@@ -10,6 +10,13 @@ oleexp is a massive project and this currently represents just a small fraction 
 
 As a twinPACKAGE, the regular addin modules can be built in.
 
+## Requirements
+
+twinBASIC Beta 147 or newer is required.
+
+
+## Updates
+
 **Update (v1.2.10):** twinBASIC now supports [ PreserveSig ] as an attribute to have HRESULT values as a function return instead of only available via Err.LastHResult; tbShellLib now has this implemented wherever it is in oleexp. Like in VB, this means they're not Implements compatible, and at some point in the next few weeks, there will also be a tbShellLibImpl as a counterpart to oleexpimp.tlb. This update also adds all DirectShow interfaces (and mDirectShow.bas), most remaining oleexp interfaces, and several additional olelib interfaces.
 
 Update (v1.1.8): Added class factory/typelib interfaces from olelib plus oleexp extensions; added manipulation.idl stuff (internial scrolling), and a few misc others.
