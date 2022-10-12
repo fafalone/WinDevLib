@@ -1,7 +1,7 @@
 # tbShellLib
 twinBASIC Shell Library
 
-Current Version 1.2.19 (October 5th, 2022)
+Current Version 1.2.10 (October 5th, 2022)
 (c) 2022 Jon Johnson (fafalone)
 
 This project aims to be a twinBASIC replacement for oleexp.tlb that is x64 compatible, due to the many problems using midl to create a 64bit tlb.
