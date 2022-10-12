@@ -12,7 +12,7 @@ As a twinPACKAGE, the regular addin modules can be built in.
 
 ## Requirements
 
-twinBASIC Beta 147 or newer is required.
+[twinBASIC Beta 147 or newer](https://github.com/twinbasic/twinbasic/releases) is required.
 
 
 ## Updates
