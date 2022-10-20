@@ -1,0 +1,1391 @@
+'tbShellLib - slAPI :: API Function Declarations
+
+
+Module slAPI
+
+'*************************************************************************
+'shell32.dll
+
+#If Win64 = 0 Then
+[PackingAlignment(1)]
+#End If
+Public Type SHQUERYRBINFO
+	cbSize As LONG
+	i64Size As LARGE_INTEGER
+	i64NumItems As LARGE_INTEGER
+End Type
+
+Public Enum SHERB_Flags
+	SHERB_NOCONFIRMATION = &H00000001
+	SHERB_NOPROGRESSUI = &H00000002
+	SHERB_NOSOUND = &H00000004
+End Enum
+
+Public Enum QUERY_USER_NOTIFICATION_STATE
+	QUNS_NOT_PRESENT = 1 ' The user is not present.  Heuristic check for modes like: screen saver, locked machine, non-active FUS session
+	QUNS_BUSY = 2 ' The user is busy.  Heuristic check for modes like: full-screen app
+	QUNS_RUNNING_D3D_FULL_SCREEN = 3 ' full-screen (exlusive-mode) D3D app
+	QUNS_PRESENTATION_MODE = 4 ' Windows presentation mode (laptop feature) is turned on
+	QUNS_ACCEPTS_NOTIFICATIONS = 5 ' notifications can be freely sent
+	' #if (NTDDI_WIN7)
+	QUNS_QUIET_TIME = 6 ' We are in OOBE quiet period
+	' #endif
+	' #if (NTDDI_WIN8)
+	QUNS_APP = 7 ' App-mode application
+	' #endif
+End Enum
+
+Public Type SHCNF_PRINTJOB_DATA
+	JobId As Long
+	Status As Long
+	TotalPages As Long
+	Size As Long
+	PagesPrinted As Long
+End Type
+
+Public Enum SCNRT_STATUS
+	SCNRT_ENABLE = 0
+	SCNRT_DISABLE = 1
+End Enum
+
+Public Enum SHGDFIL_Format
+	SHGDFIL_FINDDATA = &H1 'Format used for file system objects.The pv parameter is the address of a WIN32_FIND_DATA structure.
+	SHGDFIL_NETRESOURCE = &H2 'Format used for network resources.The pv parameter is the address of a NETRESOURCE structure.
+	SHGDFIL_DESCRIPTIONID = &H3 'Version 4.71.Format used for network resources.The pv parameter is the address of an SHDESCRIPTIONID structure.
+End Enum
+
+Public Enum ASSOC_FILTER
+    ASSOC_FILTER_NONE = 0
+    ASSOC_FILTER_RECOMMENDED = 1
+End Enum
+
+Public Enum DATAOBJ_GET_ITEM_FLAGS
+    DOGIF_DEFAULT = &H0
+    DOGIF_TRAVERSE_LINK = &H1
+    DOGIF_NO_HDROP = &H2
+    DOGIF_NO_URL = &H4
+    DOGIF_ONLY_IF_ONE = &H8
+End Enum
+    
+    
+Public Declare PtrSafe Function SHGetDataFromIDListW Lib "shell32" Alias "SHGetDataFromIDList" (ByVal psf As IShellFolder, ByVal pidl As LongPtr, ByVal nFormat As SHGDFIL_Format, ByRef pv As Any, ByVal cb As Long) As Long
+Public Declare PtrSafe Function SHCreateItemFromParsingName Lib "shell32" (ByVal pszPath As LongPtr, ByVal pbc As IBindCtx, riid As UUID, ppv As Any) As Long
+Public Declare PtrSafe Function SHCreateShellItemArrayFromIDLists Lib "shell32" (ByVal cidl As Long, ByVal rgpidl As LongPtr, ppsiItemArray As IShellItemArray) As Long
+Public Declare PtrSafe Function SHCreateItemFromIDList Lib "shell32" (ByVal pidl As LongPtr, riid As UUID, ppv As Any) As Long
+Public Declare PtrSafe Function SHGetKnownFolderItem Lib "shell32" (rfid As UUID, ByVal dwFlags As KNOWN_FOLDER_FLAG, ByVal hToken As LongPtr, riid As UUID, ppv As Any) As Long
+Public Declare PtrSafe Function SHGetKnownFolderPath Lib "shell32" (rfid As UUID, ByVal dwFlags As Long, ByVal hToken As LongPtr, ppszPath As LongPtr) As Long
+Public Declare PtrSafe Function SHGetKnownFolderIDList Lib "shell32" (rfid As UUID, ByVal dwFlags As KNOWN_FOLDER_FLAG, ByVal hToken As LongPtr, ppidl As LongPtr) As Long
+Public Declare PtrSafe Function SHGetDesktopFolder Lib "shell32" (ppshf As IShellFolder) As Long
+Public Declare PtrSafe Function SHChangeNotifyRegister Lib "shell32" (ByVal hwnd As LongPtr, ByVal fSources As SHCNRF, ByVal fEvents As SHCN_Events, ByVal wMsg As Long, ByVal cEntries As Long, lpps As SHChangeNotifyEntry) As Long
+Public Declare PtrSafe Function SHChangeNotifyDeregister Lib "shell32" (ByVal ulID As Long) As Long
+Public Declare PtrSafe Function SHCreateShellItemArrayFromDataObject Lib "shell32" (ByVal pdo As IDataObject, riid As UUID, ppv As Any) As Long
+Public Declare PtrSafe Function SHCreateShellItemArrayFromShellItem Lib "shell32" (ByVal pdo As IShellItem, riid As UUID, ppv As Any) As Long
+Public Declare PtrSafe Function SHChangeNotification_Lock Lib "shell32" (ByVal hChange As LongPtr, ByVal dwProcId As Long, pppidl As LongPtr, plEvent As Long) As LongPtr
+Public Declare PtrSafe Function SHChangeNotification_Unlock Lib "shell32" (ByVal hLock As LongPtr) As Long
+Public Declare PtrSafe Function SHGetImageList Lib "shell32" (ByVal iImageList As SHIL, riid As UUID, ppv As Any) As Long
+Public Declare PtrSafe Function SHCreateShellItemArray Lib "shell32" (ByVal pidlParent As LongPtr, ByVal psf As IShellFolder, ByVal cidl As Long, ByVal ppidl As LongPtr, ppsiItemArray As IShellItemArray) As Long
+Public Declare PtrSafe Function SHGetSpecialFolderLocation Lib "shell32" (ByVal hWndOwner As LongPtr, ByVal nFolder As CSIDLs, ppidl As LongPtr) As Long
+Public Declare PtrSafe Function SHCreateStreamOnFileEx Lib "shell32" (ByVal pszFile As LongPtr, ByVal grfMode As STGM, ByVal dwAttributes As FILE_ATTRIBUTES, ByVal fCreate As Long, ByVal pstmTemplate As IStream, ByRef ppstm As IStream) As Long
+Public Declare PtrSafe Sub SHGetSetSettings Lib "shell32" (ByRef lpss As SHELLSTATE, ByVal dwMask As SFS_MASK, ByVal bSet As Long)
+Public Declare PtrSafe Function Shell_NotifyIcon Lib "shell32" Alias "Shell_NotifyIconW" (ByVal dwMessage As Long, ByRef lpData As NOTIFYICONDATAW) As Long
+Public Declare PtrSafe Function Shell_NotifyIconGetRect Lib "shell32" (ByRef identifier As NOTIFYICONIDENTIFIER, ByRef iconLocation As RECT) As Long
+Public Declare PtrSafe Function SHQueryUserNotificationState Lib "shell32" (ByRef pquns As QUERY_USER_NOTIFICATION_STATE) As Long
+Public Declare PtrSafe Function SHQueryRecycleBin Lib "shell32" Alias "SHQueryRecycleBinW" (ByVal pszRootPath As LongPtr, ByRef pSHQueryRBInfo As SHQUERYRBINFO) As Long
+Public Declare PtrSafe Function SHEmptyRecycleBin Lib "shell32" Alias "SHEmptyRecycleBinW" (ByVal hwnd As LongPtr, ByVal pszRootPath As LongPtr, ByVal dwFlags As SHERB_Flags) As Long
+Public Declare PtrSafe Function ILAppendID Lib "shell32" (ByVal pidl As LongPtr, ByVal pmkid As LongPtr, ByVal fAppend As Long) As LongPtr
+Public Declare PtrSafe Function ILClone Lib "shell32" (ByVal pidl As LongPtr) As LongPtr
+Public Declare PtrSafe Function ILCloneChild Lib "shell32" (ByVal pidl As LongPtr) As LongPtr
+Public Declare PtrSafe Function ILCloneFirst Lib "shell32" (ByVal pidl As LongPtr) As LongPtr
+Public Declare PtrSafe Function ILCloneFull Lib "shell32" (ByVal pidl As LongPtr) As LongPtr
+Public Declare PtrSafe Function ILCreateFromPathW Lib "shell32" (ByVal pszPath As LongPtr) As LongPtr
+Public Declare PtrSafe Function ILCombine Lib "shell32" (ByVal pidl1 As LongPtr, ByVal pidl2 As LongPtr) As LongPtr
+Public Declare PtrSafe Function ILFindChild Lib "shell32" (ByVal pidlParent As LongPtr, ByVal pidlChild As LongPtr) As LongPtr
+Public Declare PtrSafe Function ILFindLastID Lib "shell32" (ByVal pidl As LongPtr) As LongPtr
+Public Declare PtrSafe Function ILGetNext Lib "shell32" (ByVal pidl As LongPtr) As LongPtr
+Public Declare PtrSafe Function ILGetSize Lib "shell32" (ByVal pidl As LongPtr) As Long
+Public Declare PtrSafe Function ILIsAligned Lib "shell32" (ByVal pidl As LongPtr) As Long
+Public Declare PtrSafe Function ILIsChild Lib "shell32" (ByVal pidl As LongPtr) As Long
+Public Declare PtrSafe Function ILIsEmpty Lib "shell32" (ByVal pidl As LongPtr) As Long
+Public Declare PtrSafe Function ILIsEqual Lib "shell32" (ByVal pidl1 As LongPtr, ByVal pidl2 As LongPtr) As Long
+Public Declare PtrSafe Function ILIsParent Lib "shell32" (ByVal pidl1 As LongPtr, ByVal pidl2 As LongPtr) As Long
+Public Declare PtrSafe Function ILLoadFromStream Lib "shell32" (ByVal pstm As IStream, pidl As LongPtr) As Long
+Public Declare PtrSafe Function ILLoadFromStreamEx Lib "shell32" (ByVal pstm As IStream, pidl As LongPtr) As Long
+Public Declare PtrSafe Function ILNext Lib "shell32" (ByVal pidl As LongPtr) As LongPtr
+Public Declare PtrSafe Function ILRemoveLastID Lib "shell32" (ByRef pidl As LongPtr) As Long
+Public Declare PtrSafe Function ILSaveToStream Lib "shell32" (ByVal pstm As IStream, ByVal pidl As LongPtr) As Long
+Public Declare PtrSafe Function ILSkip Lib "shell32" (ByVal pidl As LongPtr, ByVal cb As Long) As LongPtr
+Public Declare PtrSafe Function SHAssocEnumHandlers Lib "shell32" (ByVal pszExtra As LongPtr, ByVal afFilter As ASSOC_FILTER, ByRef ppEnumHandler As IEnumAssocHandlers) As Long
+Public Declare PtrSafe Function SHAssocEnumHandlersForProtocolByApplication Lib "shell32" (ByVal pszProtocol As LongPtr, ByRef riid As UUID, ByRef ppv As Any) As Long
+Public Declare PtrSafe Function SHBindToFolderIDListParent Lib "shell32" (ByVal psfRoot As IShellFolder, ByVal pidl As LongPtr, ByRef riid As UUID, ByRef ppv As Any, ByRef ppidl As LongPtr) As Long
+Public Declare PtrSafe Function SHBindToFolderIDListParentEx Lib "shell32" (ByVal psfRoot As IShellFolder, ByVal pidl As LongPtr, ByVal ppBC As IBindCtx, ByRef riid As UUID, ByRef ppv As Any, ByRef ppidl As LongPtr) As Long
+Public Declare PtrSafe Function SHBindToObject Lib "shell32" (ByVal psf As IShellFolder, ByVal pidl As LongPtr, ByVal pbc As IBindCtx, ByRef riid As UUID, ByRef ppv As Any) As Long
+Public Declare PtrSafe Function SHBindToParent Lib "shell32" (ByVal pidl As LongPtr, ByRef riid As UUID, ByRef ppv As Any, ByRef ppidlLast As LongPtr) As Long
+Public Declare PtrSafe Function SHCreateDataObject Lib "shell32" (ByVal pidlFolder As LongPtr, ByVal cidl As Long, ByVal apidl As LongPtr, ByVal pdtInner As IDataObject, ByRef riid As UUID, ByRef ppv As Any) As Long
+Public Declare PtrSafe Function SHCreateFileDataObject Lib "shell32" Alias "#740" (ByVal pidlFolder As LongPtr, ByVal cidl As Long, ByVal apidl As LongPtr, ByVal pdtInner As IDataObject, ByRef ppDataObj As IDataObject) As Long
+Public Declare PtrSafe Function SHCreateItemWithParent Lib "shell32" (ByVal pidlParent As LongPtr, ByVal psfParent As IShellFolder, ByVal pidl As LongPtr, ByRef riid As UUID, ByRef ppvItem As Any) As Long
+Public Declare PtrSafe Function SHDoDragDrop Lib "shell32" (ByVal hwnd As LongPtr, ByVal pdtobj As IDataObject, ByVal pdsrc As IDropSource, ByVal dwEffect As DROPEFFECTS, ByRef pdwEffect As DROPEFFECTS) As Long
+Public Declare PtrSafe Function SHGetIconOverlayIndexW Lib "shell32" (ByVal pszIconPath As LongPtr, ByVal iIconIndex As Long) As Long
+Public Declare PtrSafe Function SHGetIDListFromObject Lib "shell32" (ByVal pUnk As stdole.IUnknown, ByRef ppidl As LongPtr) As Long
+Public Declare PtrSafe Function SHGetItemFromDataObject Lib "shell32" (ByVal pdtobj As IDataObject, ByVal dwFlags As DATAOBJ_GET_ITEM_FLAGS, ByRef riid As UUID, ByRef ppv As Any) As Long
+Public Declare PtrSafe Function SHGetItemFromObject Lib "shell32" (ByVal pUnk As stdole.IUnknown, ByRef riid As UUID, ByRef ppv As Any) As Long
+Public Declare PtrSafe Function SHGetNameFromIDList Lib "shell32" (ByVal pidl As LongPtr, ByVal sigdnName As SIGDN, ByRef ppszName As LongPtr) As Long
+Public Declare PtrSafe Function SHGetNameFromPropertyKey Lib "shell32" (ByRef propkey As PROPERTYKEY, ByRef ppszCanonicalName As LongPtr) As Long
+Public Declare PtrSafe Function SHParseDisplayName Lib "shell32" (ByVal pszName As LongPtr, ByVal pbc As IBindCtx, ByRef ppidl As LongPtr, ByVal sfgaoIn As SFGAO_Flags, ByRef psfgaoOut As SFGAO_Flags) As Long
+Public Declare PtrSafe Function ShellExecuteEx Lib "shell32" Alias "ShellExecuteExW" (ByRef pExecInfo As SHELLEXECUTEINFO) As Long
+Public Declare PtrSafe Function DragQueryFile Lib "shell32" Alias "DragQueryFileA" (ByVal hDrop As LongPtr, ByVal iFile As Long, ByVal lpszFile As String, ByVal cch As Long) As Long
+Public Declare PtrSafe Function DragQueryFileW Lib "shell32" (ByVal hDrop As LongPtr, ByVal iFile As Long, ByVal lpszFile As String, ByVal cch As Long) As Long
+Public Declare PtrSafe Function DragQueryPoint Lib "shell32" (ByVal hDrop As LongPtr, ByRef lppt As POINT) As Long
+Public Declare PtrSafe Function SHGetMalloc Lib "shell32" (ppMalloc As IMalloc) As Long
+Public Declare PtrSafe Function SHGetPathFromIDList Lib "shell32" Alias "SHGetPathFromIDListA" (ByVal pidl As LongPtr, ByVal pszPath As String, ppidl As LongPtr) As Long
+Public Declare PtrSafe Function SHGetPathFromIDListW Lib "shell32" (ByVal pidl As LongPtr, ByVal pszPath As LongPtr, ppidl As LongPtr) As Long
+Public Declare PtrSafe Function SHGetSpecialFolderPath Lib "shell32" Alias "SHGetSpecialFolderPathA" (ByVal hWndOwner As LongPtr, ByVal lpszPath As String, ByVal nFolder As Long, ByVal fCreate As Long) As Long
+Public Declare PtrSafe Function SHGetSpecialFolderPathW Lib "shell32" (ByVal hWndOwner As LongPtr, ByVal lpszPath As LongPtr, ByVal nFolder As Long, ByVal fCreate As Long) As Long
+Public Declare PtrSafe Function SHGetInstanceExplorer Lib "shell32" (ppunk As stdole.IUnknown) As Long
+Public Declare PtrSafe Sub SHSetInstanceExplorer Lib "shell32" (Optional ByVal ppunk As stdole.IUnknown)
+'********************************************************************************
+'shlwapi.dll        
+        
+Public Enum StrToIntExFlags
+	STIF_DEFAULT = &H00000000
+	STIF_SUPPORT_HEX = &H00000001
+End Enum
+
+Public Enum GCTFlags
+	GCT_INVALID = &H0000
+	GCT_LFNCHAR = &H0001
+	GCT_SHORTCHAR = &H0002
+	GCT_WILD = &H0004
+	GCT_SEPARATOR = &H0008
+End Enum
+
+Public Enum URL_SCHEME
+	URL_SCHEME_INVALID = -1
+	URL_SCHEME_UNKNOWN = 0
+	URL_SCHEME_FTP = 1
+	URL_SCHEME_HTTP = 2
+	URL_SCHEME_GOPHER = 3
+	URL_SCHEME_MAILTO = 4
+	URL_SCHEME_NEWS = 5
+	URL_SCHEME_NNTP = 6
+	URL_SCHEME_TELNET = 7
+	URL_SCHEME_WAIS = 8
+	URL_SCHEME_FILE = 9
+	URL_SCHEME_MK = 10
+	URL_SCHEME_HTTPS = 11
+	URL_SCHEME_SHELL = 12
+	URL_SCHEME_SNEWS = 13
+	URL_SCHEME_LOCAL = 14
+	URL_SCHEME_JAVASCRIPT = 15
+	URL_SCHEME_VBSCRIPT = 16
+	URL_SCHEME_ABOUT = 17
+	URL_SCHEME_RES = 18
+	URL_SCHEME_MAXVALUE = 19
+End Enum
+
+Public Enum URL_PART
+    URL_PART_NONE = 0
+    URL_PART_SCHEME = 1
+    URL_PART_HOSTNAME
+    URL_PART_USERNAME
+    URL_PART_PASSshort
+    URL_PART_PORT
+    URL_PART_QUERY
+End Enum
+
+Public Enum URLIS
+    URLIS_URL
+    URLIS_OPAQUE
+    URLIS_NOHISTORY
+    URLIS_FILEURL
+    URLIS_APPLIABLE
+    URLIS_DIRECTORY
+    URLIS_HASQUERY
+End Enum
+
+Public Enum URL
+	URL_UNESCAPE = &H10000000
+	URL_ESCAPE_UNSAFE = &H20000000
+	URL_PLUGGABLE_PROTOCOL = &H40000000
+	URL_WININET_COMPATIBILITY = &H80000000
+	URL_DONT_ESCAPE_EXTRA_INFO = &H02000000
+	URL_DONT_UNESCAPE_EXTRA_INFO = &H02000000
+	URL_BROWSER_MODE = &H02000000
+	URL_ESCAPE_SPACES_ONLY = &H04000000
+	URL_DONT_SIMPLIFY = &H08000000
+	URL_NO_META = &H08000000
+	URL_UNESCAPE_INPLACE = &H00100000
+	URL_CONVERT_IF_DOSPATH = &H00200000
+	URL_UNESCAPE_HIGH_ANSI_ONLY = &H00400000
+	URL_INTERNAL_PATH = &H00800000 ' Will escape #'s in paths
+	URL_FILE_USE_PATHURL = &H00010000
+	URL_ESCAPE_PERCENT = &H00001000
+	URL_ESCAPE_SEGMENT_ONLY = &H00002000 ' Treat the entire URL param as one URL segment
+    URL_ESCAPE_AS_UTF8 = &h00040000
+    URL_ESCAPE_ASCII_URI_COMPONENT = &h00080000
+End Enum
+
+Public Enum URL_PARTFLAG
+	URL_PARTFLAG_KEEPSCHEME = &H00000001
+End Enum
+
+Public Enum URL_APPLY
+	URL_APPLY_DEFAULT = &H00000001
+	URL_APPLY_GUESSSCHEME = &H00000002
+	URL_APPLY_GUESSFILE = &H00000004
+	URL_APPLY_FORCEAPPLY = &H00000008
+End Enum
+
+Public Enum SHREGDEL_FLAGS
+	SHREGDEL_DEFAULT = &H00000000 ' Delete's HKCU, or HKLM if HKCU is not found.
+	SHREGDEL_HKCU = &H00000001 ' Delete HKCU only
+	SHREGDEL_HKLM = &H00000010 ' Delete HKLM only.
+	SHREGDEL_BOTH = &H00000011 ' Delete both HKCU and HKLM.
+End Enum
+
+Public Enum SHREGENUM_FLAGS
+	SHREGENUM_DEFAULT = &H00000000 ' Enumerates HKCU or HKLM if not found.
+	SHREGENUM_HKCU = &H00000001 ' Enumerates HKCU only
+	SHREGENUM_HKLM = &H00000010 ' Enumerates HKLM only.
+	SHREGENUM_BOTH = &H00000011 ' Enumerates both HKCU and HKLM without duplicates. This option is NYI.
+End Enum
+
+Public Enum SHREGSET
+	SHREGSET_HKCU = &H00000001 ' Write to HKCU if empty.
+	SHREGSET_FORCE_HKCU = &H00000002 ' Write to HKCU.
+	SHREGSET_HKLM = &H00000004 ' Write to HKLM if empty.
+	SHREGSET_FORCE_HKLM = &H00000008 ' Write to HKLM.
+	SHREGSET_DEFAULT = &H00000006 ' Default is SHREGSET_FORCE_HKCU | SHREGSET_HKLM.
+End Enum
+
+Public Enum REGSAM
+	KEY_QUERY_VALUE = &H0001
+	KEY_SET_VALUE = &H0002
+	KEY_CREATE_SUB_KEY = &H0004
+	KEY_ENUMERATE_SUB_KEYS = &H0008
+	KEY_NOTIFY = &H0010
+	KEY_CREATE_LINK = &H0020
+	KEY_READ = &H00020019
+	KEY_WRITE = &H00020006
+	KEY_EXECUTE = &H00020019
+	KEY_ALL_ACCESS = &H000F003F
+End Enum
+
+Public Enum REGTYPES
+    REG_NONE = 0
+    REG_SZ = 1
+    REG_EXPAND_SZ = 2
+    REG_BINARY = 3
+    REG_DWORD = 4
+    REG_DWORD_BIG_ENDIAN = 5
+    REG_DWORD_LITTLE_ENDIAN = 4
+    REG_LINK = 6
+    REG_MULTI_SZ = 7
+    REG_RESOURCE_LIST = 8
+    REG_FULL_RESOURCE_DESCRIPTOR = 9
+    REG_RESOURCE_REQUIREMENTS_LIST = &HA
+    REG_QWORD = &HB
+    REG_QWORD_LITTLE_ENDIAN = &HB
+End Enum
+
+Public Enum SHCT_FLAGS
+	CTF_INSIST = &H00000001 ' SHCreateThread() dwFlags - call pfnThreadProc synchronously if CreateThread() fails
+	CTF_THREAD_REF = &H00000002 ' hold a reference to the creating thread
+	CTF_PROCESS_REF = &H00000004 ' hold a reference to the creating process
+	CTF_COINIT = &H00000008 ' init COM for the created thread
+	CTF_FREELIBANDEXIT = &H00000010 ' hold a ref to the DLL and call FreeLibraryAndExitThread() when done
+	CTF_REF_COUNTED = &H00000020 'Set thread reference
+	CTF_WAIT_ALLOWCOM = &H00000040 'The calling thread waits and pumps COM and SendMessage messages.
+	CTF_UNUSED = &H00000080 'Used. Jk.
+	CTF_INHERITWOW64 = &H00000100 'Inherits WoW64 disabled state (if set)
+	CTF_WAIT_NO_REENTRANCY = &H00000200 'SendMessage to a window hosted on the calling thread causes the synchronous proc to deadlock.
+	CTF_KEYBOARD_LOCALE = &H00000400 'Inherit keyboard locale from calling thread
+	CTF_OLEINITIALIZE = &H00000800 'Initialize COM with STA model for created thread.
+	CTF_COINIT_MTA = &H00001000 'Initialize COM with MTA model for created thread.
+	CTF_NOADDREFLIB = &H00002000 'Opposite of CTF_FREELIBANDEXIT.
+End Enum
+
+Public Enum DLLVER
+	DLLVER_PLATFORM_WINDOWS = &H00000001 ' Windows 95
+	DLLVER_PLATFORM_NT = &H00000002 ' Windows NT
+End Enum
+Public Type DLLVERSIONINFO
+    cbSize As Long
+    dwMajor As Long
+    dwMinor As Long
+    dwBuildNumber As Long
+    dwPlatformID As DLLVER
+End Type
+Public Type DLLVERSIONINFO2
+	info1 As DLLVERSIONINFO
+	dwFlags As LONG ' No flags currently defined
+	ullVersion As LongLong ' Encoded as:
+	' Major 0xFFFF 0000 0000 0000
+	' Minor 0x0000 FFFF 0000 0000
+	' Build 0x0000 0000 FFFF 0000
+	' QFE 0x0000 0000 0000 FFFF
+End Type
+
+
+        
+Public Declare PtrSafe Function StrRetToStrW Lib "shlwapi" (pStr As STRRET, ByVal pidl As LongPtr, ppsz As LongPtr) As Long
+Public Declare PtrSafe Function IUnknown_QueryService Lib "shlwapi" (ByVal pUnk As IUnknown, ByRef guidService As UUID, ByRef riid As UUID, ByRef ppv As Any) As Long
+Public Declare PtrSafe Function StrChrA Lib "shlwapi" (ByVal lpStart As String, ByVal wMatch As Integer) As LongPtr
+Public Declare PtrSafe Function StrChrW Lib "shlwapi" (ByVal lpStart As LongPtr, ByVal wMatch As Integer) As LongPtr
+Public Declare PtrSafe Function StrChrIA Lib "shlwapi" (ByVal lpStart As String, ByVal wMatch As Integer) As LongPtr
+Public Declare PtrSafe Function StrChrIW Lib "shlwapi" (ByVal lpStart As LongPtr, ByVal wMatch As Integer) As LongPtr
+Public Declare PtrSafe Function StrCatW Lib "shlwapi" (ByVal psz1 As LongPtr, ByVal psz2 As LongPtr) As LongPtr
+Public Declare PtrSafe Function StrCmpW Lib "shlwapi" (ByVal psz1 As LongPtr, ByVal psz2 As LongPtr) As Long
+Public Declare PtrSafe Function StrCmpIW Lib "shlwapi" (ByVal psz1 As LongPtr, ByVal psz2 As LongPtr) As Long
+Public Declare PtrSafe Function StrCmpLogicalW Lib "shlwapi" (ByVal lpStr1 As LongPtr, ByVal lpStr2 As LongPtr) As Long
+Public Declare PtrSafe Function StrCpyW Lib "shlwapi" (ByVal psz1 As LongPtr, ByVal psz2 As LongPtr) As LongPtr
+Public Declare PtrSafe Function StrCpyNW Lib "shlwapi" (ByVal psz1 As LongPtr, ByVal psz2 As LongPtr, ByVal cchMax As Long) As LongPtr
+Public Declare PtrSafe Function StrCatBuffW Lib "shlwapi" (ByVal pszDest As LongPtr, ByVal pszSrc As LongPtr, ByVal cchDestBuffSize As Long) As LongPtr
+Public Declare PtrSafe Function StrCatBuffA Lib "shlwapi" (ByVal pszDest As String, ByVal pszSrc As String, ByVal cchDestBuffSize As Long) As LongPtr
+Public Declare PtrSafe Function StrCmpNA Lib "shlwapi" (ByVal lpStr1 As String, ByVal lpStr2 As String, ByVal nChar As Long) As Long
+Public Declare PtrSafe Function StrCmpNW Lib "shlwapi" (ByVal lpStr1 As LongPtr, ByVal lpStr2 As LongPtr, ByVal nChar As Long) As Long
+Public Declare PtrSafe Function StrCmpNIA Lib "shlwapi" (ByVal lpStr1 As String, ByVal lpStr2 As String, ByVal nChar As Long) As Long
+Public Declare PtrSafe Function StrCmpNIW Lib "shlwapi" (ByVal lpStr1 As LongPtr, ByVal lpStr2 As LongPtr, ByVal nChar As Long) As Long
+Public Declare PtrSafe Function StrCSpnA Lib "shlwapi" (ByVal lpStr As String, ByVal lpSet As String) As Long
+Public Declare PtrSafe Function StrCSpnW Lib "shlwapi" (ByVal lpStr As LongPtr, ByVal lpSet As LongPtr) As Long
+Public Declare PtrSafe Function StrCSpnIA Lib "shlwapi" (ByVal lpStr As String, ByVal lpSet As String) As Long
+Public Declare PtrSafe Function StrCSpnIW Lib "shlwapi" (ByVal lpStr As LongPtr, ByVal lpSet As LongPtr) As Long
+Public Declare PtrSafe Function StrDupA Lib "shlwapi" (ByVal lpSrch As String) As LongPtr
+Public Declare PtrSafe Function StrDupW Lib "shlwapi" (ByVal lpSrch As LongPtr) As LongPtr
+Public Declare PtrSafe Function StrFormatByteSizeA Lib "shlwapi" (ByVal dw As Long, ByVal szBuf As String, ByVal uiBufSize As Long) As LongPtr
+Public Declare PtrSafe Function StrFormatByteSize64A Lib "shlwapi" (ByVal qdw As LongLong, ByVal szBuf As String, ByVal uiBufSize As Long) As LongPtr
+Public Declare PtrSafe Function StrFormatByteSizeW Lib "shlwapi" (ByVal qdw As LongLong, ByVal szBuf As LongPtr, ByVal uiBufSize As Long) As LongPtr
+Public Declare PtrSafe Function StrFormatKBSizeW Lib "shlwapi" (ByVal qdw As LongLong, ByVal szBuf As LongPtr, ByVal uiBufSize As Long) As LongPtr
+Public Declare PtrSafe Function StrFormatKBSizeA Lib "shlwapi" (ByVal qdw As LongLong, ByVal szBuf As String, ByVal uiBufSize As Long) As LongPtr
+Public Declare PtrSafe Function StrFromTimeIntervalA Lib "shlwapi" (ByVal pszOut As String, ByVal cchMax As Long, ByVal dwTimeMS As Long, ByVal digits As Long) As Long
+Public Declare PtrSafe Function StrFromTimeIntervalW Lib "shlwapi" (pszOut As LongPtr, ByVal cchMax As Long, ByVal dwTimeMS As Long, ByVal digits As Long) As Long
+Public Declare PtrSafe Function StrIsIntlEqualA Lib "shlwapi" (ByVal fCaseSens As Long, ByVal lpString1 As String, ByVal lpString2 As String, ByVal nChar As Long) As Long
+Public Declare PtrSafe Function StrIsIntlEqualW Lib "shlwapi" (ByVal fCaseSens As Long, ByVal lpString1 As LongPtr, ByVal lpString2 As LongPtr, ByVal nChar As Long) As Long
+Public Declare PtrSafe Function StrNCatA Lib "shlwapi" (ByVal psz1 As String, ByVal psz2 As String, ByVal cchMax As Long) As LongPtr
+Public Declare PtrSafe Function StrNCatW Lib "shlwapi" (ByVal psz1 As LongPtr, ByVal psz2 As LongPtr, ByVal cchMax As Long) As LongPtr
+Public Declare PtrSafe Function StrPBrkA Lib "shlwapi" (ByVal psz As String, ByVal pszSet As String) As LongPtr
+Public Declare PtrSafe Function StrPBrkW Lib "shlwapi" (ByVal psz As LongPtr, ByVal pszSet As LongPtr) As LongPtr
+Public Declare PtrSafe Function StrRChrA Lib "shlwapi" (ByVal lpStart As String, ByVal lpEnd As String, ByVal wMatch As Integer) As LongPtr
+Public Declare PtrSafe Function StrRChrW Lib "shlwapi" (ByVal lpStart As LongPtr, ByVal lpEnd As LongPtr, ByVal wMatch As Integer) As LongPtr
+Public Declare PtrSafe Function StrRChrIA Lib "shlwapi" (ByVal lpStart As String, ByVal lpEnd As String, ByVal wMatch As Integer) As LongPtr
+Public Declare PtrSafe Function StrRChrIW Lib "shlwapi" (ByVal lpStart As LongPtr, ByVal lpEnd As LongPtr, ByVal wMatch As Integer) As LongPtr
+Public Declare PtrSafe Function StrRStrIA Lib "shlwapi" (ByVal lpSource As String, ByVal lpLast As String, ByVal lpSrch As String) As LongPtr
+Public Declare PtrSafe Function StrRStrIW Lib "shlwapi" (ByVal lpSource As LongPtr, ByVal lpLast As LongPtr, ByVal lpSrch As LongPtr) As LongPtr
+Public Declare PtrSafe Function StrSpnA Lib "shlwapi" (ByVal psz As String, ByVal pszSet As String) As Long
+Public Declare PtrSafe Function StrSpnW Lib "shlwapi" (ByVal psz As LongPtr, ByVal pszSet As LongPtr) As Long
+Public Declare PtrSafe Function StrStrA Lib "shlwapi" (ByVal lpFirst As String, ByVal lpSrch As String) As LongPtr
+Public Declare PtrSafe Function StrStrW Lib "shlwapi" (ByVal lpFirst As LongPtr, ByVal lpSrch As LongPtr) As LongPtr
+Public Declare PtrSafe Function StrStrIA Lib "shlwapi" (ByVal lpFirst As String, ByVal lpSrch As String) As LongPtr
+Public Declare PtrSafe Function StrStrIW Lib "shlwapi" (ByVal lpFirst As LongPtr, ByVal lpSrch As LongPtr) As LongPtr
+Public Declare PtrSafe Function StrToIntA Lib "shlwapi" (ByVal lpSrc As String) As Long
+Public Declare PtrSafe Function StrToIntW Lib "shlwapi" (ByVal lpSrc As LongPtr) As Long
+Public Declare PtrSafe Function StrToIntExA Lib "shlwapi" (ByVal pszString As String, ByVal dwFlags As StrToIntExFlags, ByRef piRet As Long) As Long
+Public Declare PtrSafe Function StrToIntExW Lib "shlwapi" (ByVal pszString As LongPtr, ByVal dwFlags As StrToIntExFlags, ByRef piRet As Long) As Long
+Public Declare PtrSafe Function StrTrimA Lib "shlwapi" (ByVal psz As String, ByVal pszTrimChars As String) As Long
+Public Declare PtrSafe Function StrTrimW Lib "shlwapi" (ByVal psz As LongPtr, ByVal pszTrimChars As LongPtr) As Long
+Public Declare PtrSafe Function ChrCmpIA Lib "shlwapi" (ByVal w1 As Integer, ByVal w2 As Integer) As Long
+Public Declare PtrSafe Function ChrCmpIW Lib "shlwapi" (ByVal w1 As Integer, ByVal w2 As Integer) As Long
+Public Declare PtrSafe Function wvnsprintfA Lib "shlwapi" (ByVal lpOut As String, ByVal cchLimitIn As Long, ByVal lpFmt As String, ByRef arglist As Any) As Long
+Public Declare PtrSafe Function wvnsprintfW Lib "shlwapi" (ByVal lpOut As LongPtr, ByVal cchLimitIn As Long, ByVal lpFmt As LongPtr, ByRef arglist As Any) As Long
+Public Declare PtrSafe Function StrRetToStrA Lib "shlwapi" (ByVal pstrret As LongPtr, ByVal pidl As LongPtr) As LongPtr
+Public Declare PtrSafe Function StrRetToStr Lib "shlwapi" Alias "StrRetToStrW" (ByVal pstrret As LongPtr, ByVal pidl As LongPtr) As LongPtr
+Public Declare PtrSafe Sub StrRetToBufA Lib "shlwapi" (ByVal pstrret As LongPtr, ByVal pidl As LongPtr, ByVal pszBuf As String, ByVal cchBuf As Long)
+Public Declare PtrSafe Sub StrRetToBufW Lib "shlwapi" (ByVal pStr As LongPtr, ByVal pidl As LongPtr, ByVal pszBuf As LongPtr, ByVal cchBuf As Long)
+Public Declare PtrSafe Function SHStrDupW Lib "shlwapi" Alias "SHStrDupW" (ByVal psz As LongPtr, ppwsz As LongPtr) As Long
+Public Declare PtrSafe Function IntlStrEqWorkerA Lib "shlwapi" (ByVal fCaseSens As Long, ByVal lpString1 As String, ByVal lpString2 As String, ByVal nChar As Long) As Long
+Public Declare PtrSafe Function IntlStrEqWorkerW Lib "shlwapi" (ByVal fCaseSens As Long, ByVal lpString1 As LongPtr, ByVal lpString2 As LongPtr, ByVal nChar As Long) As Long
+Public Declare PtrSafe Function PathAddBackslashA Lib "shlwapi" (ByVal pszPath As String) As LongPtr
+Public Declare PtrSafe Function PathAddBackslash Lib "shlwapi" Alias "PathAddBackslashW" (ByVal pszPath As LongPtr) As LongPtr
+Public Declare PtrSafe Function PathAddExtensionA Lib "shlwapi" (ByVal pszPath As String, ByVal pszExt As String) As Long
+Public Declare PtrSafe Function PathAddExtension Lib "shlwapi" Alias "PathAddExtensionW" (ByVal pszPath As LongPtr, ByVal pszExt As LongPtr) As Long
+Public Declare PtrSafe Function PathAppendA Lib "shlwapi" (ByVal pszPath As String, ByVal pMore As String) As Long
+Public Declare PtrSafe Function PathAppend Lib "shlwapi" Alias "PathAppendW" (ByVal pszPath As LongPtr, ByVal pMore As LongPtr) As Long
+Public Declare PtrSafe Function PathBuildRootA Lib "shlwapi" (ByVal pszRoot As String, ByVal iDrive As Long) As LongPtr
+Public Declare PtrSafe Function PathBuildRoot Lib "shlwapi" Alias "PathBuildRootW" (ByVal pszRoot As LongPtr, ByVal iDrive As Long) As LongPtr
+Public Declare PtrSafe Function PathCanonicalizeA Lib "shlwapi" (ByVal pszBuf As String, ByVal pszPath As String) As Long
+Public Declare PtrSafe Function PathCanonicalize Lib "shlwapi" Alias "PathCanonicalizeW" (ByVal pszBuf As LongPtr, ByVal pszPath As LongPtr) As Long
+Public Declare PtrSafe Function PathCombineA Lib "shlwapi" (ByVal pszDest As String, ByVal pszDir As String, ByVal pszFile As String) As LongPtr
+Public Declare PtrSafe Function PathCombine Lib "shlwapi" Alias "PathCombineW" (ByVal pszDest As LongPtr, ByVal pszDir As LongPtr, ByVal pszFile As LongPtr) As LongPtr
+Public Declare PtrSafe Function PathCompactPathA Lib "shlwapi" (ByVal hDC As LongPtr, ByVal pszPath As String, ByVal dx As Long) As Long
+Public Declare PtrSafe Function PathCompactPath Lib "shlwapi" Alias "PathCompactPathW" (ByVal hDC As LongPtr, ByVal pszPath As LongPtr, ByVal dx As Long) As Long
+Public Declare PtrSafe Function PathCompactPathExA Lib "shlwapi" (ByVal pszOut As String, ByVal pszSrc As String, ByVal cchMax As Long, ByVal dwFlags As Long) As Long
+Public Declare PtrSafe Function PathCompactPathEx Lib "shlwapi" Alias "PathCompactPathExW" (pszOut As LongPtr, ByVal pszSrc As LongPtr, ByVal cchMax As Long, ByVal dwFlags As Long) As Long
+Public Declare PtrSafe Function PathCommonPrefixA Lib "shlwapi" (ByVal pszFile1 As String, ByVal pszFile2 As String, ByVal achPath As String) As Long
+Public Declare PtrSafe Function PathCommonPrefix Lib "shlwapi" Alias "PathCommonPrefixW" (ByVal pszFile1 As LongPtr, ByVal pszFile2 As LongPtr, achPath As LongPtr) As Long
+Public Declare PtrSafe Function PathFileExistsA Lib "shlwapi" (ByVal pszPath As String) As Long
+Public Declare PtrSafe Function PathFileExists Lib "shlwapi" Alias "PathFileExistsW" (ByVal pszPath As LongPtr) As Long
+Public Declare PtrSafe Function PathFindExtensionA Lib "shlwapi" (ByVal pszPath As String) As LongPtr
+Public Declare PtrSafe Function PathFindExtension Lib "shlwapi" Alias "PathFindExtensionW" (ByVal pszPath As LongPtr) As LongPtr
+Public Declare PtrSafe Function PathFindFileNameA Lib "shlwapi" (ByVal pszPath As String) As LongPtr
+Public Declare PtrSafe Function PathFindFileName Lib "shlwapi" Alias "PathFindFileNameW" (ByVal pszPath As LongPtr) As LongPtr
+Public Declare PtrSafe Function PathFindNextComponentA Lib "shlwapi" (ByVal pszPath As String) As LongPtr
+Public Declare PtrSafe Function PathFindNextComponent Lib "shlwapi" Alias "PathFindNextComponentW" (ByVal pszPath As LongPtr) As LongPtr
+Public Declare PtrSafe Function PathFindOnPathA Lib "shlwapi" (ByVal pszPath As String, ByRef ppszOtherDirs As String) As Long
+Public Declare PtrSafe Function PathFindOnPath Lib "shlwapi" Alias "PathFindOnPathW" (ByVal pszPath As LongPtr, ByRef ppszOtherDirs As LongPtr) As Long
+Public Declare PtrSafe Function PathGetArgsA Lib "shlwapi" (ByVal pszPath As String) As LongPtr
+Public Declare PtrSafe Function PathGetArgs Lib "shlwapi" Alias "PathGetArgsW" (ByVal pszPath As LongPtr) As LongPtr
+Public Declare PtrSafe Function PathFindSuffixArrayA Lib "shlwapi" (ByVal pszPath As String, ByRef apszSuffix As String, ByVal iArraySize As Long) As LongPtr
+Public Declare PtrSafe Function PathFindSuffixArray Lib "shlwapi" Alias "PathFindSuffixArrayW" (ByVal pszPath As LongPtr, ByRef apszSuffix As LongPtr, ByVal iArraySize As Long) As LongPtr
+Public Declare PtrSafe Function PathIsLFNFileSpecA Lib "shlwapi" (ByVal lpName As String) As Long
+Public Declare PtrSafe Function PathIsLFNFileSpec Lib "shlwapi" Alias "PathIsLFNFileSpecW" (ByVal lpName As LongPtr) As Long
+Public Declare PtrSafe Function PathGetCharTypeA Lib "shlwapi" (ByVal ch As Byte) As GCTFlags
+Public Declare PtrSafe Function PathGetCharType Lib "shlwapi" Alias "PathGetCharTypeW" (ByVal ch As Integer) As GCTFlags
+Public Declare PtrSafe Function PathGetDriveNumberA Lib "shlwapi" (ByVal pszPath As String) As Long
+Public Declare PtrSafe Function PathGetDriveNumber Lib "shlwapi" Alias "PathGetDriveNumberW" (ByVal pszPath As LongPtr) As Long
+Public Declare PtrSafe Function PathIsDirectoryA Lib "shlwapi" Alias "(" (ByVal pszPath As String) As Long
+Public Declare PtrSafe Function PathIsDirectory Lib "shlwapi" Alias "PathIsDirectoryW" (ByVal pszPath As LongPtr) As Long
+Public Declare PtrSafe Function PathIsDirectoryEmptyA Lib "shlwapi" (ByVal pszPath As String) As Long
+Public Declare PtrSafe Function PathIsDirectoryEmpty Lib "shlwapi" Alias "PathIsDirectoryEmptyW" (ByVal pszPath As LongPtr) As Long
+Public Declare PtrSafe Function PathIsFileSpecA Lib "shlwapi" (ByVal pszPath As String) As Long
+Public Declare PtrSafe Function PathIsFileSpec Lib "shlwapi" Alias "PathIsFileSpecW" (ByVal pszPath As LongPtr) As Long
+Public Declare PtrSafe Function PathIsPrefixA Lib "shlwapi" (ByVal pszPrefix As String, ByVal pszPath As String) As Long
+Public Declare PtrSafe Function PathIsPrefix Lib "shlwapi" Alias "PathIsPrefixW" (ByVal pszPrefix As LongPtr, ByVal pszPath As LongPtr) As Long
+Public Declare PtrSafe Function PathIsRelativeA Lib "shlwapi" (ByVal pszPath As String) As Long
+Public Declare PtrSafe Function PathIsRelative Lib "shlwapi" Alias "PathIsRelativeW" (ByVal pszPath As LongPtr) As Long
+Public Declare PtrSafe Function PathIsRootA Lib "shlwapi" (ByVal pszPath As String) As Long
+Public Declare PtrSafe Function PathIsRoot Lib "shlwapi" Alias "PathIsRootW" (ByVal pszPath As LongPtr) As Long
+Public Declare PtrSafe Function PathIsSameRootA Lib "shlwapi" (ByVal pszPath1 As String, ByVal pszPath2 As String) As Long
+Public Declare PtrSafe Function PathIsSameRoot Lib "shlwapi" Alias "PathIsSameRootW" (ByVal pszPath1 As LongPtr, ByVal pszPath2 As LongPtr) As Long
+Public Declare PtrSafe Function PathIsUNCA Lib "shlwapi" (ByVal pszPath As String) As Long
+Public Declare PtrSafe Function PathIsUNC Lib "shlwapi" Alias "PathIsUNCW" (ByVal pszPath As LongPtr) As Long
+Public Declare PtrSafe Function PathIsNetworkPathA Lib "shlwapi" (ByVal pszPath As String) As Long
+Public Declare PtrSafe Function PathIsNetworkPath Lib "shlwapi" Alias "PathIsNetworkPathW" (ByVal pszPath As LongPtr) As Long
+Public Declare PtrSafe Function PathIsUNCServerA Lib "shlwapi" (ByVal pszPath As String) As Long
+Public Declare PtrSafe Function PathIsUNCServer Lib "shlwapi" Alias "PathIsUNCServerW" (ByVal pszPath As LongPtr) As Long
+Public Declare PtrSafe Function PathIsUNCServerShareA Lib "shlwapi" (ByVal pszPath As String) As Long
+Public Declare PtrSafe Function PathIsUNCServerShare Lib "shlwapi" Alias "PathIsUNCServerShareW" (ByVal pszPath As LongPtr) As Long
+Public Declare PtrSafe Function PathIsContentTypeA Lib "shlwapi" (ByVal pszPath As String, ByVal pszContentType As String) As Long
+Public Declare PtrSafe Function PathIsContentType Lib "shlwapi" Alias "PathIsContentTypeW" (ByVal pszPath As LongPtr, ByVal pszContentType As LongPtr) As Long
+Public Declare PtrSafe Function PathIsURLA Lib "shlwapi" (ByVal pszPath As String) As Long
+Public Declare PtrSafe Function PathIsURL Lib "shlwapi" Alias "PathIsURLW" (ByVal pszPath As LongPtr) As Long
+Public Declare PtrSafe Function PathMakePrettyA Lib "shlwapi" (ByVal pszPath As String) As Long
+Public Declare PtrSafe Function PathMakePretty Lib "shlwapi" Alias "PathMakePrettyW" (ByVal pszPath As LongPtr) As Long
+Public Declare PtrSafe Function PathMatchSpecA Lib "shlwapi" (ByVal pszFile As String, ByVal pszSpec As String) As Long
+Public Declare PtrSafe Function PathMatchSpec Lib "shlwapi" Alias "PathMatchSpecW" (ByVal pszFile As LongPtr, ByVal pszSpec As LongPtr) As Long
+Public Declare PtrSafe Function PathParseIconLocationA Lib "shlwapi" (ByVal pszIconFile As String) As Long
+Public Declare PtrSafe Function PathParseIconLocation Lib "shlwapi" Alias "PathParseIconLocationW" (ByVal pszIconFile As LongPtr) As Long
+Public Declare PtrSafe Sub PathQuoteSpacesA Lib "shlwapi" (ByVal lpsz As String)
+Public Declare PtrSafe Sub PathQuoteSpaces Lib "shlwapi" Alias "PathQuoteSpacesW" (ByVal lpsz As LongPtr)
+Public Declare PtrSafe Function PathRelativePathToA Lib "shlwapi" (ByVal pszPath As String, ByVal pszFrom As String, ByVal dwAttrFrom As Long, ByVal pszTo As String, ByVal dwAttrTo As Long) As Long
+Public Declare PtrSafe Function PathRelativePathTo Lib "shlwapi" Alias "PathRelativePathToW" (pszPath As LongPtr, ByVal pszFrom As LongPtr, ByVal dwAttrFrom As Long, ByVal pszTo As LongPtr, ByVal dwAttrTo As Long) As Long
+Public Declare PtrSafe Sub PathRemoveArgsA Lib "shlwapi" (ByVal pszPath As String)
+Public Declare PtrSafe Sub PathRemoveArgs Lib "shlwapi" Alias "PathRemoveArgsW" (ByVal pszPath As LongPtr)
+Public Declare PtrSafe Function PathRemoveBackslashA Lib "shlwapi" (ByVal pszPath As String) As LongPtr
+Public Declare PtrSafe Function PathRemoveBackslash Lib "shlwapi" Alias "PathRemoveBackslashW" (ByVal pszPath As LongPtr) As LongPtr
+Public Declare PtrSafe Sub PathRemoveBlanksA Lib "shlwapi" (ByVal pszPath As String)
+Public Declare PtrSafe Sub PathRemoveBlanks Lib "shlwapi" Alias "PathRemoveBlanksW" (ByVal pszPath As LongPtr)
+Public Declare PtrSafe Sub PathRemoveExtensionA Lib "shlwapi" (ByVal pszPath As String)
+Public Declare PtrSafe Sub PathRemoveExtension Lib "shlwapi" Alias "PathRemoveExtensionW" (ByVal pszPath As LongPtr)
+Public Declare PtrSafe Function PathRemoveFileSpecA Lib "shlwapi" (ByVal pszPath As String) As Long
+Public Declare PtrSafe Function PathRemoveFileSpec Lib "shlwapi" Alias "PathRemoveFileSpecW" (ByVal pszPath As LongPtr) As Long
+Public Declare PtrSafe Function PathRenameExtensionA Lib "shlwapi" (ByVal pszPath As String, ByVal pszExt As String) As Long
+Public Declare PtrSafe Function PathRenameExtension Lib "shlwapi" Alias "PathRenameExtensionW" (ByVal pszPath As LongPtr, ByVal pszExt As LongPtr) As Long
+Public Declare PtrSafe Function PathSearchAndQualifyA Lib "shlwapi" (ByVal pszPath As String, ByVal pszBuf As String, ByVal cchBuf As Long) As Long
+Public Declare PtrSafe Function PathSearchAndQualify Lib "shlwapi" Alias "PathSearchAndQualifyW" (ByVal pszPath As LongPtr, ByVal pszBuf As LongPtr, ByVal cchBuf As Long) As Long
+Public Declare PtrSafe Sub PathSetDlgItemPathA Lib "shlwapi" (ByVal hDlg As LongPtr, ByVal id As Long, ByVal pszPath As String)
+Public Declare PtrSafe Sub PathSetDlgItemPath Lib "shlwapi" Alias "PathSetDlgItemPathW" (ByVal hDlg As LongPtr, ByVal id As Long, ByVal pszPath As LongPtr)
+Public Declare PtrSafe Function PathSkipRootA Lib "shlwapi" (ByVal pszPath As String) As LongPtr
+Public Declare PtrSafe Function PathSkipRoot Lib "shlwapi" Alias "PathSkipRootW" (ByVal pszPath As LongPtr) As LongPtr
+Public Declare PtrSafe Sub PathStripPathA Lib "shlwapi" (ByVal pszPath As String)
+Public Declare PtrSafe Sub PathStripPath Lib "shlwapi" Alias "PathStripPathW" (ByVal pszPath As LongPtr)
+Public Declare PtrSafe Function PathStripToRootA Lib "shlwapi" (ByVal pszPath As String) As Long
+Public Declare PtrSafe Function PathStripToRoot Lib "shlwapi" Alias "PathStripToRootW" (ByVal pszPath As LongPtr) As Long
+Public Declare PtrSafe Sub PathUnquoteSpacesA Lib "shlwapi" (ByVal lpsz As String)
+Public Declare PtrSafe Sub PathUnquoteSpaces Lib "shlwapi" Alias "PathUnquoteSpacesW" (ByVal lpsz As LongPtr)
+Public Declare PtrSafe Function PathMakeSystemFolderA Lib "shlwapi" (ByVal pszPath As String) As Long
+Public Declare PtrSafe Function PathMakeSystemFolder Lib "shlwapi" Alias "PathMakeSystemFolderW" (ByVal pszPath As LongPtr) As Long
+Public Declare PtrSafe Function PathUnmakeSystemFolderA Lib "shlwapi" (ByVal pszPath As String) As Long
+Public Declare PtrSafe Function PathUnmakeSystemFolder Lib "shlwapi" Alias "PathUnmakeSystemFolderW" (ByVal pszPath As LongPtr) As Long
+Public Declare PtrSafe Function PathIsSystemFolderA Lib "shlwapi" (ByVal pszPath As String, ByVal dwAttrb As Long) As Long
+Public Declare PtrSafe Function PathIsSystemFolder Lib "shlwapi" Alias "PathIsSystemFolderW" (ByVal pszPath As LongPtr, ByVal dwAttrb As Long) As Long
+Public Declare PtrSafe Sub PathUndecorateA Lib "shlwapi" (ByVal pszPath As String)
+Public Declare PtrSafe Sub PathUndecorate Lib "shlwapi" Alias "PathUndecorateW" (ByVal pszPath As LongPtr)
+Public Declare PtrSafe Function PathUnExpandEnvStringsA Lib "shlwapi" (ByVal pszPath As String, ByVal pszBuf As String, ByVal cchBuf As Long) As Long
+Public Declare PtrSafe Function PathUnExpandEnvStrings Lib "shlwapi" Alias "PathUnExpandEnvStringsW" (ByVal pszPath As LongPtr, pszBuf As LongPtr, ByVal cchBuf As Long) As Long
+Public Declare PtrSafe Function UrlCompareA Lib "shlwapi" (ByVal psz1 As String, ByVal psz2 As String, ByVal fIgnoreSlash As Long) As Long
+Public Declare PtrSafe Function UrlCompare Lib "shlwapi" Alias "UrlCompareW" (ByVal psz1 As LongPtr, ByVal psz2 As LongPtr, ByVal fIgnoreSlash As Long) As Long
+Public Declare PtrSafe Sub UrlCombineA Lib "shlwapi" (ByVal pszBase As String, ByVal pszRelative As String, ByVal pszCombined As String, ByRef pcchCombined As Long, ByVal dwFlags As URL)
+Public Declare PtrSafe Sub UrlCombine Lib "shlwapi" Alias "UrlCombineW" (ByVal pszBase As LongPtr, ByVal pszRelative As LongPtr, pszCombined As LongPtr, ByRef pcchCombined As Long, ByVal dwFlags As URL)
+Public Declare PtrSafe Sub UrlCanonicalizeA Lib "shlwapi" (ByVal pszUrl As String, ByVal pszCanonicalized As String, ByRef pcchCanonicalized As Long, ByVal dwFlags As URL)
+Public Declare PtrSafe Sub UrlCanonicalize Lib "shlwapi" Alias "UrlCanonicalizeW" (ByVal pszUrl As LongPtr, pszCanonicalized As LongPtr, ByRef pcchCanonicalized As Long, ByVal dwFlags As URL)
+Public Declare PtrSafe Function UrlIsOpaqueA Lib "shlwapi" (ByVal pszUrl As String) As Long
+Public Declare PtrSafe Function UrlIsOpaque Lib "shlwapi" Alias "UrlIsOpaqueW" (ByVal pszUrl As LongPtr) As Long
+Public Declare PtrSafe Function UrlIsNoHistoryA Lib "shlwapi" (ByVal pszUrl As String) As Long
+Public Declare PtrSafe Function UrlIsNoHistory Lib "shlwapi" Alias "UrlIsNoHistoryW" (ByVal pszUrl As LongPtr) As Long
+Public Declare PtrSafe Function UrlIsA Lib "shlwapi" (ByVal pszUrl As String, ByVal URLIS As URLIS) As Long
+Public Declare PtrSafe Function URLIs Lib "shlwapi" Alias "UrlIsW" (ByVal pszUrl As LongPtr, ByVal URLIS As URLIS) As Long
+Public Declare PtrSafe Function UrlGetLocationA Lib "shlwapi" (ByVal psz1 As String) As LongPtr
+Public Declare PtrSafe Function UrlGetLocation Lib "shlwapi" Alias "UrlGetLocationW" (ByVal psz1 As LongPtr) As LongPtr
+Public Declare PtrSafe Function UrlUnescapeA Lib "shlwapi" (ByVal pszUrl As String, ByVal pszUnescaped As String, ByRef pcchUnescaped As Long, ByVal dwFlags As URL) As Long
+Public Declare PtrSafe Function UrlUnescape Lib "shlwapi" Alias "UrlUnescapeW" (ByVal pszUrl As LongPtr, pszUnescaped As LongPtr, ByRef pcchUnescaped As Long, ByVal dwFlags As URL) As Long
+Public Declare PtrSafe Function UrlEscapeA Lib "shlwapi" (ByVal pszUrl As String, ByVal pszEscaped As String, ByRef pcchEscaped As Long, ByVal dwFlags As URL) As Long
+Public Declare PtrSafe Function UrlEscape Lib "shlwapi" Alias "UrlEscapeW" (ByVal pszUrl As LongPtr, pszEscaped As LongPtr, ByRef pcchEscaped As Long, ByVal dwFlags As URL) As Long
+Public Declare PtrSafe Function UrlCreateFromPathA Lib "shlwapi" (ByVal pszPath As String, ByVal pszUrl As String, ByRef pcchUrl As Long, ByVal dwFlags As Long) As Long
+Public Declare PtrSafe Function UrlCreateFromPath Lib "shlwapi" Alias "UrlCreateFromPathW" (ByVal pszPath As String, ByVal pszUrl As String, ByRef pcchUrl As Long, ByVal dwFlags As Long) As Long
+Public Declare PtrSafe Function PathCreateFromUrlA Lib "shlwapi" (ByVal pszUrl As String, ByVal pszPath As String, ByRef pcchPath As Long, ByVal dwFlags As Long) As Long
+Public Declare PtrSafe Function PathCreateFromUrl Lib "shlwapi" Alias "PathCreateFromUrlW" (ByVal pszUrl As LongPtr, pszPath As LongPtr, ByRef pcchPath As Long, ByVal dwFlags As Long) As Long
+Public Declare PtrSafe Function UrlHashA Lib "shlwapi" (ByVal pszUrl As String, ByRef pbHash As Byte, ByVal cbHash As Long) As Long
+Public Declare PtrSafe Function UrlHash Lib "shlwapi" Alias "UrlHashW" (ByVal pszUrl As LongPtr, ByRef pbHash As Byte, ByVal cbHash As Long) As Long
+Public Declare PtrSafe Function UrlGetPart Lib "shlwapi" Alias "UrlGetPartW" (ByVal pszIn As LongPtr, pszOut As LongPtr, ByRef pcchOut As Long, ByVal dwPart As URL_PART, ByVal dwFlags As Long) As Long
+Public Declare PtrSafe Function UrlGetPartA Lib "shlwapi" (ByVal pszIn As String, ByVal pszOut As String, ByRef pcchOut As Long, ByVal dwPart As URL_PART, ByVal dwFlags As Long) As Long
+Public Declare PtrSafe Function UrlApplySchemeA Lib "shlwapi" (ByVal pszIn As String, ByVal pszOut As String, ByRef pcchOut As Long, ByVal dwFlags As URL_APPLY) As Long
+Public Declare PtrSafe Function UrlApplyScheme Lib "shlwapi" Alias "UrlApplySchemeW" (ByVal pszIn As LongPtr, pszOut As LongPtr, ByRef pcchOut As Long, ByVal dwFlags As URL_APPLY) As Long
+Public Declare PtrSafe Function HashData Lib "shlwapi" (ByRef pbData As Byte, ByVal cbData As Long, ByRef pbHash As Byte, ByVal cbHash As Long) As Long
+Public Declare PtrSafe Function SHDeleteEmptyKeyA Lib "shlwapi" (ByVal hkey As LongPtr, ByVal pszSubKey As String) As Long
+Public DeclareWide PtrSafe Function SHDeleteEmptyKey Lib "shlwapi" Alias "SHDeleteEmptyKeyW" (ByVal hkey As LongPtr, ByVal pszSubKey As String) As Long
+Public Declare PtrSafe Function SHDeleteKeyA Lib "shlwapi" (ByVal hkey As LongPtr, ByVal pszSubKey As String) As Long
+Public DeclareWide PtrSafe Function SHDeleteKey Lib "shlwapi" Alias "SHDeleteKeyW" (ByVal hkey As LongPtr, ByVal pszSubKey As String) As Long
+Public Declare PtrSafe Function SHRegDuplicateHKey Lib "shlwapi" (ByVal hkey As LongPtr) As LongPtr
+Public Declare PtrSafe Function SHDeleteValueA Lib "shlwapi" (ByVal hkey As LongPtr, ByVal pszSubKey As String, ByVal pszValue As String) As Long
+Public DeclareWide PtrSafe Function SHDeleteValue Lib "shlwapi" Alias "SHDeleteValueW" (ByVal hkey As LongPtr, ByVal pszSubKey As String, ByVal pszValue As String) As Long
+Public Declare PtrSafe Function SHGetValueA Lib "shlwapi" (ByVal hkey As LongPtr, ByVal pszSubKey As String, ByVal pszValue As String, ByRef pdwType As REGTYPES, ByRef pvData As Any, ByRef pcbData As Long) As Long
+Public DeclareWide PtrSafe Function SHGetValue Lib "shlwapi" Alias "SHGetValueW" (ByVal hkey As LongPtr, ByVal pszSubKey As String, ByVal pszValue As String, ByRef pdwType As Long, ByRef pvData As Any, ByRef pcbData As Long) As Long
+Public Declare PtrSafe Function SHSetValueA Lib "shlwapi" (ByVal hkey As LongPtr, ByVal pszSubKey As String, ByVal pszValue As String, ByVal dwType As Long, ByRef pvData As Any, ByVal cbData As Long) As Long
+Public DeclareWide PtrSafe Function SHSetValue Lib "shlwapi" Alias "SHSetValueW" (ByVal hkey As LongPtr, ByVal pszSubKey As String, ByVal pszValue As String, ByVal dwType As Long, ByRef pvData As Any, ByVal cbData As Long) As Long
+Public Declare PtrSafe Function SHQueryValueExA Lib "shlwapi" (ByVal hkey As LongPtr, ByVal pszValue As String, ByRef pdwReserved As Long, ByRef pdwType As REGTYPES, ByRef pvData As Any, ByRef pcbData As Long) As Long
+Public DeclareWide PtrSafe Function SHQueryValueEx Lib "shlwapi" Alias "SHQueryValueExW" (ByVal hkey As LongPtr, ByVal pszValue As String, ByRef pdwReserved As Long, ByRef pdwType As REGTYPES, ByRef pvData As Any, ByRef pcbData As Long) As Long
+Public Declare PtrSafe Function SHEnumKeyExA Lib "shlwapi" (ByVal hkey As LongPtr, ByVal dwIndex As Long, ByVal pszName As String, ByRef pcchName As Long) As Long
+Public DeclareWide PtrSafe Function SHEnumKeyEx Lib "shlwapi" Alias "SHEnumKeyExW" (ByVal hkey As LongPtr, ByVal dwIndex As Long, ByVal pszName As String, ByRef pcchName As Long) As Long
+Public Declare PtrSafe Function SHEnumValueA Lib "shlwapi" (ByVal hkey As LongPtr, ByVal dwIndex As Long, ByVal pszValueName As String, ByRef pcchValueName As Long, ByRef pdwType As REGTYPES, ByRef pvData As Any, ByRef pcbData As Long) As Long
+Public DeclareWide PtrSafe Function SHEnumValue Lib "shlwapi" Alias "SHEnumValueW" (ByVal hkey As LongPtr, ByVal dwIndex As Long, ByVal pszValueName As String, ByRef pcchValueName As Long, ByRef pdwType As REGTYPES, ByRef pvData As Any, ByRef pcbData As Long) As Long
+Public Declare PtrSafe Function SHQueryInfoKeyA Lib "shlwapi" (ByVal hkey As LongPtr, ByRef pcSubKeys As Long, ByRef pcchMaxSubKeyLen As Long, ByRef pcValues As Long, ByRef pcchMaxValueNameLen As Long) As Long
+Public DeclareWide PtrSafe Function SHQueryInfoKey Lib "shlwapi" Alias "SHQueryInfoKeyW" (ByVal hkey As LongPtr, ByRef pcSubKeys As Long, ByRef pcchMaxSubKeyLen As Long, ByRef pcValues As Long, ByRef pcchMaxValueNameLen As Long) As Long
+Public Declare PtrSafe Function SHCopyKeyA Lib "shlwapi" (ByVal hkeySrc As Long, ByVal szSrcSubKey As String, ByVal hkeyDest As LongPtr, ByVal fReserved As Long) As Long
+Public DeclareWide PtrSafe Function SHCopyKey Lib "shlwapi" Alias "SHCopyKeyW" (ByVal hkeySrc As Long, ByVal wszSrcSubKey As String, ByVal hkeyDest As LongPtr, ByVal fReserved As Long) As Long
+Public Declare PtrSafe Function SHRegGetPathA Lib "shlwapi" (ByVal hkey As LongPtr, ByVal pcszSubKey As String, ByVal pcszValue As String, ByVal pszPath As String, ByVal dwFlags As Long) As Long
+Public DeclareWide PtrSafe Function SHRegGetPath Lib "shlwapi" Alias "SHRegGetPathW" (ByVal hkey As LongPtr, ByVal pcszSubKey As String, ByVal pcszValue As String, ByVal pszPath As String, ByVal dwFlags As Long) As Long
+Public Declare PtrSafe Function SHRegSetPathA Lib "shlwapi" (ByVal hkey As LongPtr, ByVal pcszSubKey As String, ByVal pcszValue As String, ByVal pcszPath As String, ByVal dwFlags As Long) As Long
+Public DeclareWide PtrSafe Function SHRegSetPath Lib "shlwapi" Alias "SHRegSetPathW" (ByVal hkey As LongPtr, ByVal pcszSubKey As String, ByVal pcszValue As String, ByVal pcszPath As String, ByVal dwFlags As Long) As Long
+Public Declare PtrSafe Function SHRegCreateUSKeyA Lib "shlwapi" (ByVal pszPath As String, ByVal samDesired As REGSAM, ByVal hRelativeUSKey As LongPtr, ByRef phNewUSKey As LongPtr, ByVal dwFlags As SHREGSET) As Long
+Public DeclareWide PtrSafe Function SHRegCreateUSKey Lib "shlwapi" Alias "SHRegCreateUSKeyW" (ByVal pwzPath As String, ByVal samDesired As REGSAM, ByVal hRelativeUSKey As LongPtr, ByRef phNewUSKey As LongPtr, ByVal dwFlags As SHREGSET) As Long
+Public Declare PtrSafe Function SHRegOpenUSKeyA Lib "shlwapi" (ByVal pszPath As String, ByVal samDesired As REGSAM, ByVal hRelativeUSKey As LongPtr, ByRef phNewUSKey As LongPtr, ByVal fIgnoreHKCU As Long) As Long
+Public DeclareWide PtrSafe Function SHRegOpenUSKey Lib "shlwapi" Alias "SHRegOpenUSKeyW" (ByVal pwzPath As String, ByVal samDesired As REGSAM, ByVal hRelativeUSKey As LongPtr, ByRef phNewUSKey As LongPtr, ByVal fIgnoreHKCU As Long) As Long
+Public Declare PtrSafe Function SHRegQueryUSValueA Lib "shlwapi" (ByVal hUSKey As LongPtr, ByVal pszValue As String, ByRef pdwType As Long, ByRef pvData As Any, ByRef pcbData As Long, ByVal fIgnoreHKCU As Long, ByRef pvDefaultData As Any, ByVal dwDefaultDataSize As Long) As Long
+Public DeclareWide PtrSafe Function SHRegQueryUSValue Lib "shlwapi" Alias "SHRegQueryUSValueW" (ByVal hUSKey As LongPtr, ByVal pwzValue As String, ByRef pdwType As Long, ByRef pvData As Any, ByRef pcbData As Long, ByVal fIgnoreHKCU As Long, ByRef pvDefaultData As Any, ByVal dwDefaultDataSize As Long) As Long
+Public Declare PtrSafe Function SHRegWriteUSValueA Lib "shlwapi" (ByVal hUSKey As LongPtr, ByVal pszValue As String, ByVal dwType As REGTYPES, ByRef pvData As Any, ByVal cbData As Long, ByVal dwFlags As SHREGSET) As Long
+Public DeclareWide PtrSafe Function SHRegWriteUSValue Lib "shlwapi" Alias "SHRegWriteUSValueW" (ByVal hUSKey As LongPtr, ByVal pwzValue As String, ByVal dwType As REGTYPES, ByRef pvData As Any, ByVal cbData As Long, ByVal dwFlags As SHREGSET) As Long
+Public Declare PtrSafe Function SHRegDeleteUSValueA Lib "shlwapi" (ByVal hUSKey As LongPtr, ByVal pszValue As String, ByVal delRegFlags As SHREGDEL_FLAGS) As Long
+Public DeclareWide PtrSafe Function SHRegDeleteEmptyUSKey Lib "shlwapi" Alias "SHRegDeleteEmptyUSKeyW" (ByVal hUSKey As LongPtr, ByVal pwzSubKey As String, ByVal delRegFlags As SHREGDEL_FLAGS) As Long
+Public Declare PtrSafe Function SHRegDeleteEmptyUSKeyA Lib "shlwapi" (ByVal hUSKey As LongPtr, ByVal pszSubKey As String, ByVal delRegFlags As SHREGDEL_FLAGS) As Long
+Public DeclareWide PtrSafe Function SHRegDeleteUSValue Lib "shlwapi" Alias "SHRegDeleteUSValueW" (ByVal hUSKey As LongPtr, ByVal pwzValue As String, ByVal delRegFlags As SHREGDEL_FLAGS) As Long
+Public Declare PtrSafe Function SHRegEnumUSKeyA Lib "shlwapi" (ByVal hUSKey As LongPtr, ByVal dwIndex As Long, ByVal pszName As String, ByRef pcchName As Long, ByVal enumRegFlags As SHREGENUM_FLAGS) As Long
+Public DeclareWide PtrSafe Function SHRegEnumUSKey Lib "shlwapi" Alias "SHRegEnumUSKeyW" (ByVal hUSKey As LongPtr, ByVal dwIndex As Long, ByVal pwzName As String, ByRef pcchName As Long, ByVal enumRegFlags As SHREGENUM_FLAGS) As Long
+Public Declare PtrSafe Function SHRegEnumUSValueA Lib "shlwapi" (ByVal hUSKey As LongPtr, ByVal dwIndex As Long, ByVal pszValueName As String, ByRef pcchValueName As Long, ByRef pdwType As REGTYPES, ByRef pvData As Any, ByRef pcbData As Long, ByVal enumRegFlags As SHREGENUM_FLAGS) As Long
+Public DeclareWide PtrSafe Function SHRegEnumUSValue Lib "shlwapi" Alias "SHRegEnumUSValueW" (ByVal hUSKey As LongPtr, ByVal dwIndex As Long, ByVal pszValueName As String, ByRef pcchValueName As Long, ByRef pdwType As Long, ByRef pvData As Any, ByRef pcbData As Long, ByVal enumRegFlags As SHREGENUM_FLAGS) As Long
+Public Declare PtrSafe Function SHRegQueryInfoUSKeyA Lib "shlwapi" (ByVal hUSKey As LongPtr, ByRef pcSubKeys As Long, ByRef pcchMaxSubKeyLen As Long, ByRef pcValues As Long, ByRef pcchMaxValueNameLen As Long, ByVal enumRegFlags As SHREGENUM_FLAGS) As Long
+Public DeclareWide PtrSafe Function SHRegQueryInfoUSKey Lib "shlwapi" Alias "SHRegQueryInfoUSKeyW" (ByVal hUSKey As LongPtr, ByRef pcSubKeys As Long, ByRef pcchMaxSubKeyLen As Long, ByRef pcValues As Long, ByRef pcchMaxValueNameLen As Long, ByVal enumRegFlags As SHREGENUM_FLAGS) As Long
+Public Declare PtrSafe Function SHRegCloseUSKey Lib "shlwapi" (ByVal hUSKey As LongPtr) As Long
+Public Declare PtrSafe Function SHRegGetUSValueA Lib "shlwapi" (ByVal pszSubKey As String, ByVal pszValue As String, ByRef pdwType As REGTYPES, ByRef pvData As Any, ByRef pcbData As Long, ByVal fIgnoreHKCU As Long, ByRef pvDefaultData As Any, ByVal dwDefaultDataSize As Long) As Long
+Public DeclareWide PtrSafe Function SHRegGetUSValue Lib "shlwapi" Alias "SHRegGetUSValueW" (ByVal pwzSubKey As String, ByVal pwzValue As String, ByRef pdwType As REGTYPES, ByRef pvData As Any, ByRef pcbData As Long, ByVal fIgnoreHKCU As Long, ByRef pvDefaultData As Any, ByVal dwDefaultDataSize As Long) As Long
+Public Declare PtrSafe Function SHRegSetUSValueA Lib "shlwapi" (ByVal pszSubKey As String, ByVal pszValue As String, ByVal dwType As REGTYPES, ByRef pvData As Any, ByVal cbData As Long, ByVal dwFlags As SHREGSET) As Long
+Public DeclareWide PtrSafe Function SHRegSetUSValue Lib "shlwapi" Alias "SHRegSetUSValueW" (ByVal pwzSubKey As String, ByVal pwzValue As String, ByVal dwType As REGTYPES, ByRef pvData As Any, ByVal cbData As Long, ByVal dwFlags As SHREGSET) As Long
+Public DeclareWide PtrSafe Function SHRegGetInt Lib "shlwapi" Alias "SHRegGetIntW" (ByVal hk As Long, ByVal pwzKey As String, ByVal iDefault As Long) As Long
+Public Declare PtrSafe Function SHRegGetBoolUSValueA Lib "shlwapi" (ByVal pszSubKey As String, ByVal pszValue As String, ByVal fIgnoreHKCU As Long, ByVal fDefault As Long) As Long
+Public DeclareWide PtrSafe Function SHRegGetBoolUSValue Lib "shlwapi" Alias "SHRegGetBoolUSValueW" (ByVal pszSubKey As String, ByVal pszValue As String, ByVal fIgnoreHKCU As Long, ByVal fDefault As Long) As Long
+#If Win64 Then
+Public Declare PtrSafe Function AssocCreate Lib "shlwapi" (clsid As UUID, ByRef riid As UUID, ByRef ppv As Any) As Long
+#Else
+Public Declare PtrSafe Function AssocCreate Lib "shlwapi" (ByVal clsid_data1 As Long, ByVal clsid_data23 As Long, ByVal clsid_data4_0123 As Long, ByVal clsid_data4_4567 As Long, ByRef riid As UUID, ByRef ppv As Any) As Long
+#End If
+Public Declare PtrSafe Function AssocQueryStringA Lib "shlwapi" (ByVal flags As ASSOCF, ByVal str As ASSOCSTR, ByVal pszAssoc As String, ByVal pszExtra As String, ByVal pszOut As String, ByRef pcchOut As Long) As Long
+Public DeclareWide PtrSafe Function AssocQueryString Lib "shlwapi" Alias "AssocQueryStringW" (ByVal flags As ASSOCF, ByVal str As ASSOCSTR, ByVal pszAssoc As String, ByVal pszExtra As String, ByVal pszOut As String, ByRef pcchOut As Long) As Long
+Public Declare PtrSafe Function AssocQueryStringByKeyA Lib "shlwapi" (ByVal flags As ASSOCF, ByVal str As ASSOCSTR, ByVal hkAssoc As Long, ByVal pszExtra As String, ByVal pszOut As String, ByRef pcchOut As Long) As Long
+Public DeclareWide PtrSafe Function AssocQueryStringByKey Lib "shlwapi" Alias "AssocQueryStringByKeyW" (ByVal flags As ASSOCF, ByVal str As ASSOCSTR, ByVal hkAssoc As LongPtr, ByVal pszExtra As String, ByVal pszOut As String, ByRef pcchOut As Long) As Long
+Public Declare PtrSafe Function AssocQueryKeyA Lib "shlwapi" (ByVal flags As ASSOCF, ByVal key As ASSOCKEY, ByVal pszAssoc As String, ByVal pszExtra As String, ByRef phkeyOut As LongPtr) As Long
+Public DeclareWide PtrSafe Function AssocQueryKey Lib "shlwapi" Alias "AssocQueryKeyW" (ByVal flags As ASSOCF, ByVal key As ASSOCKEY, ByVal pszAssoc As String, ByVal pszExtra As String, ByRef phkeyOut As LongPtr) As Long
+Public Declare PtrSafe Function SHOpenRegStreamA Lib "shlwapi" (ByVal hkey As LongPtr, ByVal pszSubKey As String, ByVal pszValue As String, ByVal grfMode As STGM) As IStream
+Public DeclareWide PtrSafe Function SHOpenRegStream Lib "shlwapi" Alias "SHOpenRegStreamW" (ByVal hkey As LongPtr, ByVal pszSubKey As String, ByVal pszValue As String, ByVal grfMode As STGM) As IStream
+Public Declare PtrSafe Function SHOpenRegStream2A Lib "shlwapi" (ByVal hkey As LongPtr, ByVal pszSubKey As String, ByVal pszValue As String, ByVal grfMode As STGM) As IStream
+Public DeclareWide PtrSafe Function SHOpenRegStream2 Lib "shlwapi" Alias "SHOpenRegStream2W" (ByVal hkey As LongPtr, ByVal pszSubKey As String, ByVal pszValue As String, ByVal grfMode As STGM) As IStream
+Public Declare PtrSafe Function SHCreateStreamOnFileA Lib "shlwapi" (ByVal pszFile As String, ByVal grfMode As STGM, ppstm As IStream) As Long
+Public DeclareWide PtrSafe Function SHCreateStreamOnFile Lib "shlwapi" Alias "SHCreateStreamOnFileW" (ByVal pszFile As String, ByVal grfMode As STGM, ppstm As IStream) As Long
+Public Declare PtrSafe Function SHAutoComplete Lib "shlwapi" (ByVal hwndEdit As LongPtr, ByVal dwFlags As SHACF) As Long
+Public Declare PtrSafe Sub SHSetThreadRef Lib "shlwapi" (ByVal pUnk As stdole.IUnknown)
+Public Declare PtrSafe Function SHGetThreadRef Lib "shlwapi" (ByVal ppunk As stdole.IUnknown) As Long
+Public Declare PtrSafe Function SHSkipJunction Lib "shlwapi" (ByVal pbc As IBindCtx, ByRef pclsid As UUID) As Long
+Public Declare PtrSafe Function SHCreateThread Lib "shlwapi" (ByVal pfnThreadProc As LongPtr, ByRef pData As Any, ByVal dwFlags As SHCT_FLAGS, ByVal pfnCallback As LongPtr) As Long
+Public Declare PtrSafe Function SHCreateShellPalette Lib "shlwapi" (ByVal hDC As LongPtr) As LongPtr
+Public Declare PtrSafe Sub ColorRGBToHLS Lib "shlwapi" (ByVal clrRGB As Long, ByRef pwHue As Integer, ByRef pwLuminance As Integer, ByRef pwSaturation As Integer)
+Public Declare PtrSafe Function ColorHLSToRGB Lib "shlwapi" (ByVal wHue As Integer, ByVal wLuminance As Integer, ByVal wSaturation As Integer) As Long
+Public Declare PtrSafe Function ColorAdjustLuma Lib "shlwapi" (ByVal clrRGB As Long, ByVal n As Long, ByVal fScale As Long) As Long
+Public Declare PtrSafe Function SHMessageBoxCheck Lib "shlwapi" (ByVal hwnd As LongPtr, ByVal pszText As LongPtr, ByVal pszCaption As LongPtr, ByVal uType As MessageBoxFlags, iDefault As Long, ByVal pszRegVal As LongPtr) As MessageBoxResults
+
+
+'********************************************************************************
+'kernel32.dll
+Public Type MEMORYSTATUSEX
+	dwLength As Long
+	dwMemoryLoad As Long
+	ullTotalPhys As LongLong
+	ullAvailPhys As LongLong
+	ullTotalPageFile As LongLong
+	ullAvailPageFile As LongLong
+	ullTotalVirtual As LongLong
+	ullAvailVirtual As LongLong
+	ullAvailExtendedVirtual As LongLong
+End Type
+
+Public Type MEMORYSTATUS
+	dwLength As LONG
+	dwMemoryLoad As LONG
+	dwTotalPhys As LONG
+	dwAvailPhys As LONG
+	dwTotalPageFile As LONG
+	dwAvailPageFile As LONG
+	dwTotalVirtual As LONG
+	dwAvailVirtual As LONG
+End Type
+
+Public Type CRITICAL_SECTION
+    DebugInfo      As LongPtr
+    LockCount       As Long
+    RecursionCount  As Long
+    OwningThread    As LongPtr
+    LockSemaphore   As LongPtr
+    SpinCount       As LongPtr
+End Type
+
+Public Enum ThreadAccess
+    THREAD_DIRECT_IMPERSONATION = &H200
+    THREAD_GET_CONTEXT = &H8
+    THREAD_IMPERSONATE = &H100
+    THREAD_QUERY_INFORMATION = &H40
+    THREAD_QUERY_LIMITED_INFORMATION = &H800
+    THREAD_SET_CONTEXT = &H10
+    THREAD_SET_INFORMATION = &H20
+    THREAD_SET_LIMITED_INFORMATION = &H400
+    THREAD_SET_THREAD_TOKEN = &H80
+    THREAD_SUSPEND_RESUME = &H2
+    THREAD_TERMINATE = &H1
+End Enum
+
+Public Const DUPLICATE_CLOSE_SOURCE As Long = &H1
+Public Const DUPLICATE_SAME_ACCESS As Long = &H2
+
+Public Enum FormatMessageFlags
+    FORMAT_MESSAGE_ALLOCATE_BUFFER = &H100
+    FORMAT_MESSAGE_ARGUMENT_ARRAY = &H2000
+    FORMAT_MESSAGE_FROM_HMODULE = &H800
+    FORMAT_MESSAGE_FROM_STRING = &H400
+    FORMAT_MESSAGE_FROM_SYSTEM = &H1000
+    FORMAT_MESSAGE_IGNORE_INSERTS = &H200
+    FORMAT_MESSAGE_MAX_WIDTH_MASK = &HFF
+    FORMAT_MESSAGE_TEXT_LEN = 160 ' from ERRORS.H C++ include file.	
+End Enum
+
+Public Enum MemProtectFlags
+    PAGE_NOACCESS = &H1
+    PAGE_READONLY = &H2
+    PAGE_READWRITE = &H4
+    PAGE_WRITECOPY = &H8
+    PAGE_EXECUTE = &H10
+    PAGE_EXECUTE_READ = &H20
+    PAGE_EXECUTE_READWRITE = &H40
+    PAGE_EXECUTE_WRITECOPY = &H80
+    PAGE_GUARD = &H100
+    PAGE_NOCACHE = &H200
+    PAGE_WRITECOMBINE = &H400
+    PAGE_TARGETS_INVALID = &H40000000
+    PAGE_TARGETS_NO_UPDATE = &H40000000
+End Enum
+
+Public Enum MemAllocType
+	MEM_COMMIT = &H1000
+    MEM_RESERVE = &H2000
+    MEM_REPLACE_PLACEHOLDER = &H4000
+    MEM_RESERVE_PLACEHOLDER = &H40000
+    MEM_RESET = &H80000
+    MEM_TOP_DOWN = &H100000
+    MEM_WRITE_WATCH = &H200000
+    MEM_PHYSICAL = &H400000
+    MEM_ROTATE = &H800000
+    MEM_DIFFERENT_IMAGE_BASE_OK = &H800000
+    MEM_RESET_UNDO = &H1000000
+    MEM_LARGE_PAGES = &H20000000
+    MEM_4MB_PAGES = &H80000000
+    MEM_64K_PAGES = (MEM_LARGE_PAGES Or MEM_PHYSICAL)
+    MEM_UNMAP_WITH_TRANSIENT_BOOST = &H00000001
+    MEM_COALESCE_PLACEHOLDERS = &H00000001
+    MEM_PRESERVE_PLACEHOLDER = &H00000002
+    MEM_DECOMMIT = &H00004000
+    MEM_RELEASE = &H00008000
+    MEM_FREE = &H00010000
+End Enum
+
+Public Const CREATE_SUSPENDED As Long = 4
+
+Public Const INFINITE As Long = -1
+
+Public Enum HeapFlags
+    HEAP_NO_SERIALIZE = &H1
+    HEAP_GENERATE_EXCEPTIONS = &H4
+    HEAP_ZERO_MEMORY = &H8
+    HEAP_CREATE_ENABLE_EXECUTE = &H40000
+End Enum
+
+Public Type PROCESS_HEAP_ENTRY
+	lpData As LongPtr
+    cbData As Long
+    cbOverhead As byte
+    iRegionIndex As Byte
+    wFlags As Integer
+    'UNION: Copy the bytes in BlockOrRegion to PROCESS_HEAP_ENTRY_BLOCK or PROCESS_HEAP_ENTRY_REGION
+    #If Win64 Then
+    BlockOrRegion(23) As Byte
+    #Else
+    BlockOrRegion(15) As Byte
+    #End If
+End Type
+Public Type PROCESS_HEAP_ENTRY_BLOCK
+	hMem As LongPtr
+    dwReserved(2) As Long
+End Type
+Public Type PROCESS_HEAP_ENTRY_REGION
+	dwCommittedSize As Long
+    dwUnCommittedSize As Long
+    lpFirstBlock As LongPtr
+    lpLastBlock As LongPtr
+End Type
+
+Public Enum HEAP_INFORMATION_CLASS
+    HeapCompatibilityInformation = 0
+    HeapEnableTerminationOnCorruption = 1
+    HeapOptimizeResources = 3
+End Enum
+
+ 
+Public Enum FINDEX_SEARCH_OPS
+    FindExSearchNameMatch
+    FindExSearchLimitToDirectories
+    FindExSearchLimitToDevices
+End Enum
+ 
+Public Enum FINDEX_INFO_LEVELS
+    FindExInfoStandard
+    FindExInfoBasic
+    FindExInfoMaxInfoLevel
+End Enum
+
+Public Type BY_HANDLE_FILE_INFORMATION
+    dwFileAttributes As Long                             ' offset &H0000
+    ftCreationTime As FILETIME                    ' offset &H0004
+    ftLastAccessTime As FILETIME                  ' offset &H000C
+    ftLastWriteTime As FILETIME                   ' offset &H0014
+    dwVolumeSerialNumber As Long                         ' offset &H001C
+    nFileSizeHigh As Long                                ' offset &H0020
+    nFileSizeLow As Long                                 ' offset &H0024
+    nNumberOfLinks As Long                               ' offset &H0028
+    nFileIndexHigh As Long                               ' offset &H002C
+    nFileIndexLow As Long                                ' offset &H0030
+End Type
+
+Public Enum FILE_INFO_BY_HANDLE_CLASS
+  FileBasicInfo
+  FileStandardInfo
+  FileNameInfo
+  FileRenameInfo
+  FileDispositionInfo
+  FileAllocationInfo
+  FileEndOfFileInfo
+  FileStreamInfo
+  FileCompressionInfo
+  FileAttributeTagInfo
+  FileIdBothDirectoryInfo
+  FileIdBothDirectoryRestartInfo
+  FileIoPriorityHintInfo
+  FileRemoteProtocolInfo
+  FileFullDirectoryInfo
+  FileFullDirectoryRestartInfo
+  FileStorageInfo
+  FileAlignmentInfo
+  FileIdInfo
+  FileIdExtdDirectoryInfo
+  FileIdExtdDirectoryRestartInfo
+  FileDispositionInfoEx
+  FileRenameInfoEx
+  FileCaseSensitiveInfo
+  FileNormalizedNameInfo
+  MaximumFileInfoByHandleClass
+End Enum
+
+Public Enum STREAM_INFO_LEVELS
+    FindStreamInfoStandard = 0                           ' &H00000000&
+    FindStreamInfoMaxInfoLevel = 1                       ' &H00000001&
+End Enum
+
+Public Type WIN32_FIND_STREAM_DATA
+    StreamSize As LARGE_INTEGER                   ' offset &H0000
+    cStreamName(0 To 295) As Byte                        ' offset &H0008
+End Type                                                 ' LenB() = &H0130, Len() = &H0130, UDT Alignment = &H0004
+
+Public Enum GET_FILEEX_INFO_LEVELS
+    GetFileExInfoStandard = 0                            ' &H00000000&
+    GetFileExMaxInfoLevel = 1                            ' &H00000001&
+End Enum
+
+Public Enum FINDEX_EXTRA_FLAGS
+    FIND_FIRST_EX_CASE_SENSITIVE = 1                     ' &H00000001&
+    FIND_FIRST_EX_LARGE_FETCH = 2                        ' &H00000002&
+End Enum
+    
+Public Type FILE_BASIC_INFO
+        CreationTime As LARGE_INTEGER                 ' offset &H0000
+        LastAccessTime As LARGE_INTEGER               ' offset &H0008
+        LastWriteTime As LARGE_INTEGER                ' offset &H0010
+        ChangeTime As LARGE_INTEGER                   ' offset &H0018
+        FileAttributes As Long                               ' offset &H0020
+        'btAlign(0 To 3) As Byte                              ' offset &H0024
+    End Type
+
+        
+Public Enum GMEM
+	GMEM_FIXED = &H0000
+	GMEM_MOVEABLE = &H0002
+	GMEM_NOCOMPACT = &H0010
+	GMEM_NODISCARD = &H0020
+	GMEM_ZEROINIT = &H0040
+	GMEM_MODIFY = &H0080
+	GMEM_DISCARDABLE = &H0100
+	GMEM_NOT_BANKED = &H1000
+	GMEM_SHARE = &H2000
+	GMEM_DDESHARE = &H2000
+	GMEM_NOTIFY = &H4000
+	GMEM_LOWER = &H1000
+	GMEM_VALID_FLAGS = &H7F72
+	GMEM_INVALID_HANDLE = &H8000
+	GHND = &H42
+	GPTR = &H40
+	GMEM_DISCARDED = &H4000
+	GMEM_LOCKCOUNT = &H00FF
+End Enum
+
+Public Enum LMEM
+    LMEM_FIXED = 0
+    LMEM_MOVEABLE = &H2
+    LHND = &H42
+    LMEM_ZEROINIT = &H40
+    LPTR = &H40
+    NONZEROLHND = LMEM_MOVEABLE
+    NONZEROLPTR = LMEM_FIXED
+End Enum
+Public Declare PtrSafe Function GlobalAlloc Lib "kernel32" (ByVal uFlags As GMEM, ByVal dwBytes As LongPtr) As LongPtr
+Public Declare PtrSafe Function GlobalReAlloc Lib "kernel32" (ByVal hMem As LongPtr, ByVal dwBytes As LongPtr, ByVal uFlags As GMEM) As LongPtr
+Public Declare PtrSafe Function GlobalFree Lib "kernel32" (ByVal hMem As LongPtr) As LongPtr
+Public Declare PtrSafe Function GlobalLock Lib "kernel32" (ByVal hMem As LongPtr) As LongPtr
+Public Declare PtrSafe Function GlobalUnlock Lib "kernel32" (ByVal hMem As LongPtr) As Long
+Public Declare PtrSafe Function GlobalSize Lib "kernel32" (ByVal hMem As LongPtr) As LongPtr
+Public Declare PtrSafe Function GlobalHandle Lib "kernel32" (ByVal pMem As LongPtr) As LongPtr
+Public Declare PtrSafe Function GlobalFlags Lib "kernel32" (ByVal hMem As LongPtr) As GMEM
+Public Declare PtrSafe Sub GlobalFix Lib "kernel32" (ByVal hMem As LongPtr)
+Public Declare PtrSafe Sub GlobalUnfix Lib "kernel32" (ByVal hMem As LongPtr)
+Public Declare PtrSafe Function GlobalWire Lib "kernel32" (ByVal hMem As LongPtr) As LongPtr
+Public Declare PtrSafe Function GlobalUnWire Lib "kernel32" (ByVal hMem As LongPtr) As Long
+Public Declare PtrSafe Sub GlobalMemoryStatus Lib "kernel32" (ByRef lpBuffer As MEMORYSTATUS)
+Public Declare PtrSafe Function GlobalMemoryStatusEx Lib "kernel32" (ByRef lpBuffer As MEMORYSTATUSEX) As Long
+        
+Public Declare PtrSafe Function LocalAlloc Lib "kernel32" (ByVal uFlags As LMEM, ByVal uBytes As LongPtr) As LongPtr
+Public Declare PtrSafe Function LocalReAlloc Lib "kernel32" (ByVal hMem As LongPtr, ByVal uBytes As LongPtr, ByVal uFlags As LMEM) As LongPtr
+Public Declare PtrSafe Function LocalFree Lib "kernel32" (ByVal hMem As LongPtr) As LongPtr
+Public Declare PtrSafe Function LocalLock Lib "kernel32" (ByVal hMem As LongPtr) As LongPtr
+Public Declare PtrSafe Function LocalUnlock Lib "kernel32" (ByVal hMem As LongPtr) As Long
+Public Declare PtrSafe Function LocalSize Lib "kernel32" (ByVal hMem As LongPtr) As LongPtr
+Public Declare PtrSafe Function LocalHandle Lib "kernel32" (ByVal pMem As LongPtr) As LongPtr
+Public Declare PtrSafe Function LocalFlags Lib "kernel32" (ByVal hMem As LongPtr) As GMEM
+
+Public Declare PtrSafe Function HeapCreate Lib "kernel32" (ByVal flOptions As HeapFlags, ByVal dwInitialSize As LongPtr, ByVal dwMaximumSize As LongPtr) As LongPtr
+Public Declare PtrSafe Function HeapAlloc Lib "kernel32" (ByVal hHeap As LongPtr, ByVal dwFlags As HeapFlags, ByVal dwBytes As LongPtr) As LongPtr
+Public Declare PtrSafe Function HeaReAlloc Lib "kernel32" (ByVal hHeap As LongPtr, ByVal dwFlags As HeapFlags, lpMem As Any, ByVal dwBytes As LongPtr) As LongPtr
+Public Declare PtrSafe Function HeapLock Lib "kernel32" (ByVal hHeap As LongPtr) As Long
+Public Declare PtrSafe Function HeapUnlock Lib "kernel32" (ByVal hHeap As LongPtr) As Long
+Public Declare PtrSafe Function HeapFree Lib "kernel32" (ByVal hHeap As LongPtr, ByVal dwFlags As HeapFlags, ByRef lpMem As Any) As Long
+Public Declare PtrSafe Function HeapWalk Lib "kernel32" (ByVal hHeap As LongPtr, lpEntry As PROCESS_HEAP_ENTRY) As Long
+Public Declare PtrSafe Function HeapDestroy Lib "kernel32" (ByVal hHeap As LongPtr) As Long
+Public Declare PtrSafe Function HeapCompact Lib "kernel32" (ByVal hHeap As LongPtr, ByVal dwFlags As HeapFlags) As LongPtr
+Public Declare PtrSafe Function HeapSize Lib "kernel32" (ByVal hHeap As LongPtr, ByVal dwFlags As HeapFlags, lpMem As Any) As LongPtr
+Public Declare PtrSafe Function GetProcessHeaps Lib "kernel32.dll" (ByVal NumberOfHeaps As Long, ByRef ProcessHeaps As LongPtr) As Long
+Public Declare PtrSafe Function HeapQueryInformation Lib "kernel32.dll" (ByVal HeapHandle As LongPtr, ByVal HeapInformationClass As HEAP_INFORMATION_CLASS, ByRef HeapInformation As Any, ByVal HeapInformationLength As LongPtr, ByRef ReturnLength As LongPtr) As Long
+Public Declare PtrSafe Function HeapSetInformation Lib "kernel32.dll" (ByVal HeapHandle As LongPtr, ByVal HeapInformationClass As HEAP_INFORMATION_CLASS, ByRef HeapInformation As Any, ByVal HeapInformationLength As LongPtr) As Long
+Public Declare PtrSafe Function GetProcessHeap Lib "kernel32" () As LongPtr
+        
+        
+Public Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
+Public Declare PtrSafe Function CloseHandle Lib "kernel32" (ByVal hObject As LongPtr) As Long
+Public Declare PtrSafe Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As LongPtr)
+Public Declare PtrSafe Sub MoveyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As LongPtr)
+Public Declare PtrSafe Function InitializeCriticalSectionAndSpinCount Lib "kernel32" (lpCriticalSection As CRITICAL_SECTION, ByVal dwSpinCount As Long) As Long
+Public Declare PtrSafe Sub EnterCriticalSection Lib "kernel32" (lpCriticalSection As CRITICAL_SECTION)
+Public Declare PtrSafe Sub LeaveCriticalSection Lib "kernel32" (lpCriticalSection As CRITICAL_SECTION)
+Public Declare PtrSafe Sub DeleteCriticalSection Lib "kernel32" (lpCriticalSection As CRITICAL_SECTION)
+Public Declare PtrSafe Function DuplicateHandle Lib "kernel32" (ByVal hSourceProcessHandle As LongPtr, ByVal hSourceHandle As LongPtr, ByVal hTargetProcessHandle As LongPtr, lpTargetHandle As LongPtr, ByVal dwDesiredAccess As Long, ByVal bInheritHandle As Long, ByVal dwOptions As Long) As Long
+Public Declare PtrSafe Function FormatMessageW Lib "kernel32" (ByVal dwFlags As FormatMessageFlags, lpSource As Any, ByVal dwMessageId As Long, ByVal dwLanguageId As Long, ByVal lpBuffer As LongPtr, ByVal nSize As Long, Arguments As LongPtr) As Long
+Public Declare PtrSafe Function GetCurrentProcessId Lib "kernel32" () As Long
+Public Declare PtrSafe Function GetCurrentThreadId Lib "kernel32" () As Long
+Public Declare PtrSafe Sub GetLocalTime Lib "kernel32" (lpSystemTime As SYSTEMTIME)
+Public Declare PtrSafe Function GetProcessIdOfThread Lib "kernel32" (ByVal Thread As LongPtr) As Long
+Public Declare PtrSafe Function IsWow64Process Lib "kernel32" (ByVal hProcess As LongPtr, Wow64Process As Long) As Long
+Public Declare PtrSafe Function CreateThread Lib "kernel32" (ByRef lpThreadAttributes As Any, ByVal dwStackSize As Long, ByVal lpStartAddress As LongPtr, ByRef lpParameter As Any, ByVal dwCreationFlags As Long, ByRef lpThreadId As Long) As Long
+Public Declare PtrSafe Function ResumeThread Lib "kernel32" (ByVal hThread As LongPtr) As Long
+Public Declare PtrSafe Function SuspendThread Lib "kernel32" (ByVal hThread As LongPtr) As Long
+Public Declare PtrSafe Function TerminateThread Lib "kernel32" (ByRef hThread As LongPtr, ByVal dwExitCode As Long) As Long
+Public Declare PtrSafe Function OpenThread Lib "kernel32" (ByVal dwDesiredAccess As ThreadAccess, ByVal bInheritHandle As Long, ByVal dwThreadId As Long) As LongPtr
+Public Declare PtrSafe Function OpenProcess Lib "kernel32" (ByVal dwDesiredAccess As Long, ByVal bInheritHandle As Long, ByVal dwProcessId As Long) As LongPtr
+Public Declare PtrSafe Function WaitForSingleObject Lib "kernel32" (ByVal hHandle As LongPtr, ByVal dwMilliseconds As Long) As Long
+Public Declare PtrSafe Function WaitForMultipleObjects Lib "kernel32" (ByVal nCount As Long, ByRef lpHandles As LongPtr, ByVal bWaitAll As Long, ByVal dwMilliseconds As Long) As Long
+Public DeclareWide PtrSafe Function CreateEvent Lib "kernel32" Alias "CreateEventW" (ByVal lpEventAttributes As LongPtr, ByVal bManualReset As Long, ByVal bInitialState As Long, ByVal lpName As String) As LongPtr
+Public Declare PtrSafe Function PulseEvent Lib "kernel32" (ByVal hEvent As LongPtr) As Long
+Public Declare PtrSafe Function SetEvent Lib "kernel32" (ByVal hEvent As LongPtr) As Long
+Public Declare PtrSafe Function ResetEvent Lib "kernel32" (ByVal hEvent As LongPtr) As Long
+Public Declare PtrSafe Function VirtualProtect Lib "kernel32" (ByRef lpAddress As Any, ByVal dwSize As LongPtr, ByVal flNewProtect As MemProtectFlags, ByRef lpflOldProtect As MemProtectFlags) As Long
+Public Declare PtrSafe Function VirtualProtectEx Lib "kernel32" (ByVal hProcess As LongPtr, ByRef lpAddress As Any, ByVal dwSize As LongPtr, ByVal flNewProtect As MemProtectFlags, ByRef lpflOldProtect As MemProtectFlags) As Long
+Public Declare PtrSafe Function VirtualAlloc Lib "kernel32" (ByRef lpAddress As Any, ByVal dwSize As LongPtr, ByVal flAllocationType As MemAllocType, ByVal flProtect As MemProtectFlags) As LongPtr
+Public Declare PtrSafe Function TlsAlloc Lib "kernel32" () As Long
+Public Declare PtrSafe Function TlsSetValue Lib "kernel32" (ByVal dwTlsIndex As Long, ByRef lpTlsValue As Any) As Long
+Public Declare PtrSafe Function TlsGetValue Lib "kernel32" (ByVal dwTlsIndex As Long) As LongPtr
+Public Declare PtrSafe Function TlsFree Lib "kernel32" (ByVal dwTlsIndex As Long) As Long
+Public Declare PtrSafe Function LocalFileTimeToFileTime Lib "kernel32" (lpFileTime As FILETIME, lpLocalFileTime As FILETIME) As Long
+Public Declare PtrSafe Function FileTimeToLocalFileTime Lib "kernel32" (lpFileTime As FILETIME, lpLocalFileTime As FILETIME) As Long
+Public Declare PtrSafe Function FileTimeToSystemTime Lib "kernel32" (lpFileTime As FILETIME, lpSystemTime As SYSTEMTIME) As Long
+Public Declare PtrSafe Function SystemTimeToFileTime Lib "kernel32" (lpSystemTime As SYSTEMTIME, lpFileTime As FILETIME) As Long
+Public Declare PtrSafe Function lstrcpyA Lib "kernel32" (lpString1 As Any, lpString2 As Any) As LongPtr
+Public Declare PtrSafe Function lstrlenA Lib "kernel32" (lpString As Any) As Long
+Public Declare PtrSafe Function lstrlenW Lib "kernel32" (lpString As Any) As Long
+Public Declare PtrSafe Function GetModuleHandle Lib "kernel32" Alias "GetModuleHandleW" (ByRef lpModuleName As Any) As LongPtr
+Public Declare PtrSafe Function GetProcAddress Lib "kernel32" (ByVal hModule As LongPtr, ByVal lpProcName As String) As LongPtr
+Public Declare PtrSafe Function GetLastError Lib "kernel32" () As Long
+Public Declare PtrSafe Function GetShortPathNameW Lib "kernel32" (ByVal lpszLongPath As LongPtr, ByVal lpszShortPath As LongPtr, ByVal cchBuffer As Long) As Long
+Public Declare PtrSafe Function EncryptFile Lib "kernel32" Alias "EncryptFileW" (ByVal lpFileName As LongPtr) As Long
+Public Declare PtrSafe Function DecryptFile Lib "kernel32" Alias "DecryptFileW" (ByVal lpFileName As LongPtr, ByVal dwReserved As Long) As Long
+Public Declare PtrSafe Function FindFirstFileEx Lib "kernel32" Alias "FindFirstFileExW" (ByVal lpFileName As LongPtr, ByVal fInfoLevelId As FINDEX_INFO_LEVELS, ByRef lpFindFileData As WIN32_FIND_DATAW, ByVal fSearchOp As FINDEX_SEARCH_OPS, ByVal lpSearchFilter As LongPtr, ByVal dwAdditionalFlags As FINDEX_EXTRA_FLAGS) As LongPtr
+Public Declare PtrSafe Function FindFirstFile Lib "kernel32" Alias "FindFirstFileW" (ByVal lpFileName As LongPtr, ByRef lpFindFileData As WIN32_FIND_DATAW) As LongPtr
+Public Declare PtrSafe Function FindFirstStreamW Lib "kernel32" (ByVal lpFileName As LongPtr, ByVal InfoLevel As STREAM_INFO_LEVELS, ByRef lpFindStreamData As WIN32_FIND_STREAM_DATA, ByVal dwFlags As Long) As LongPtr
+Public Declare PtrSafe Function FindNextFile Lib "kernel32" Alias "FindNextFileW" (ByVal hFindFile As LongPtr, ByRef lpFindFileData As WIN32_FIND_DATAW) As Long
+Public Declare PtrSafe Function FindNextStreamW Lib "kernel32" (ByVal hFindStream As LongPtr, ByRef lpFindStreamData As WIN32_FIND_STREAM_DATA) As Long
+Public Declare PtrSafe Function FindClose Lib "kernel32" (ByVal hFindFile As LongPtr) As Long
+Public Declare PtrSafe Function SetFileAttributes Lib "kernel32" Alias "SetFileAttributesW" (ByVal lpFileName As LongPtr, ByVal dwFileAttributes As FILE_ATTRIBUTES) As Long
+Public Declare PtrSafe Function GetFileAttributes Lib "kernel32" Alias "GetFileAttributesW" (ByVal lpFileName As LongPtr) As FILE_ATTRIBUTES
+Public Declare PtrSafe Function GetFileAttributesEx Lib "kernel32" Alias "GetFileAttributesExW" (ByVal lpFileName As LongPtr, ByVal fInfoLevelId As GET_FILEEX_INFO_LEVELS, ByRef lpFileInformation As Any) As Long
+Public Declare PtrSafe Function GetFileInformationByHandle Lib "kernel32" (ByVal hFile As LongPtr, ByRef lpFileInformation As BY_HANDLE_FILE_INFORMATION) As Long
+Public Declare PtrSafe Function GetFileInformationByHandleEx Lib "kernel32" (ByVal hFile As LongPtr, ByVal FileInformationClass As FILE_INFO_BY_HANDLE_CLASS, ByVal lpFileInformation As LongPtr, ByVal dwBufferSize As Long) As Long
+
+'**********************************************************
+'ole32.dll
+
+Public Type STGOPTIONS
+	usVersion As Integer
+	reserved As Integer
+	ulSectorSize As LONG
+	pwcsTemplateFile As LongPtr
+	'const WCHAR *pwcsTemplateFile;
+End Type
+
+Public Enum STGFMT
+    STGFMT_STORAGE = 0
+    STGFMT_FILE = 3
+    STGFMT_ANY = 4
+    STGFMT_DOCFILE = 5
+End Enum
+
+Public Enum MEMCTX
+    MEMCTX_TASK = 1
+    MEMCTX_SHARED = 2
+    MEMCTX_MACSYSTEM = 3
+    MEMCTX_UNKNOWN = -1
+    MEMCTX_SAME = -2
+End Enum
+
+Public Enum STDMSHLFLAGS
+    SMEXF_SERVER = 1
+    SMEXF_HANDLER = 2
+End Enum
+
+Public Enum OLERENDER
+    OLERENDER_NONE = 0
+    OLERENDER_DRAW = 1
+    OLERENDER_FORMAT = 2
+    OLERENDER_ASIS = 3
+End Enum
+
+Public Enum OLECREATE_UDT
+    OLECREATE_LEAVERUNNING = 1
+End Enum
+
+Public Enum REGCLS
+  REGCLS_SINGLEUSE = 0
+  REGCLS_MULTIPLEUSE = 1
+  REGCLS_MULTI_SEPARATE = 2
+  REGCLS_SUSPENDED = 4
+  REGCLS_SURROGATE = 8
+  REGCLS_AGILE = &H10
+End Enum
+
+Public Enum COINIT
+  COINIT_APARTMENTTHREADED = &H2
+  COINIT_MULTITHREADED
+  COINIT_DISABLE_OLE1DDE = &H4
+  COINIT_SPEED_OVER_MEMORY = &H8
+End Enum
+
+Public Type COAUTHIDENTITY
+	User As Integer
+	UserLength As Long
+	Domain As Integer
+	DomainLength As Long
+	Password As Integer
+	PasswordLength As Long
+	Flags As Long
+End Type
+Public Type COAUTHINFO
+	dwAuthnSvc As Long
+	dwAuthzSvc As Long
+	pwszServerPrincName As LongPtr
+	dwAuthnLevel As Long
+	dwImpersonationLevel As Long
+	pAuthIdentityData As LongPtr
+	dwCapabilities As Long
+End Type
+Public Type COSERVERINFO
+	dwReserved1 As Long
+	pwszName As LongPtr
+	pAuthInfo As LongPtr
+	dwReserved2 As Long
+End Type
+
+Public Declare PtrSafe Function CoCreateInstance Lib "ole32" (rclsid As Any, ByVal pUnkOuter As LongPtr, ByVal dwClsContext As CLSCTX, riid As Any, pvarResult As Any) As Long
+Public Declare PtrSafe Sub CoTaskMemFree Lib "ole32" (ByVal pv As LongPtr)
+Public Declare PtrSafe Function OleRegEnumFormatEtc Lib "ole32" (clsid As UUID, ByVal dwDirection As DATADIR, ppenum As IEnumFormatETC) As Long
+Public Declare PtrSafe Function StgOpenStorageEx Lib "ole32" (ByVal pwcsName As LongPtr, ByVal grfMode As STGM, ByVal stgfmt As STGFMT, ByVal grfAttrs As Long, pStgOptions As STGOPTIONS, ByVal reserved2 As LongPtr, riid As UUID, ppObjectOpen As Any) As Long
+Public Declare PtrSafe Function StgCreateStorageEx Lib "ole32" (ByVal pwcsName As LongPtr, ByVal grfMode As STGM, ByVal stgfmt As STGFMT, ByVal grfAttrs As Long, ByVal pStgOptions As LongPtr, ByVal pSecurityDescriptor As LongPtr, riid As UUID, ppObjectOpen As Any) As Long
+Public Declare PtrSafe Function CoCreateGuid Lib "ole32" (ByRef pGUID As UUID) As Long
+Public Declare PtrSafe Function CoTaskMemAlloc Lib "ole32" (ByVal cb As LongPtr) As LongPtr
+Public Declare PtrSafe Function CoTaskMemRealloc Lib "ole32" (ByVal pv As LongPtr, ByVal cb As LongPtr) As LongPtr
+Public DeclareWide PtrSafe Function StgIsStorageFile Lib "ole32" (ByVal lpwcsFileName As String) As Long
+Public DeclareWide PtrSafe Function StgOpenStorage Lib "ole32" (ByVal pwcsName As String, ByVal pstgPriority As IStorage, ByVal grfMode As STGM, ByVal snbExclude As String, ByVal reserved As Long, ppstgOpen As IStorage) As Long
+Public Declare PtrSafe Function StgCreateDocfile Lib "ole32" (ByVal pwcsName As String, ByVal grfMode As STGM, ByVal reserved As Long, ppstgOpen As IStorage) As Long
+Public Declare PtrSafe Function GetHGlobalFromILockBytes Lib "ole32" (ByVal plkbyt As ILockBytes, phglobal As LongPtr) As Long
+Public Declare PtrSafe Function CreateILockBytesOnHGlobal Lib "ole32" (ByVal hGlobal As LongPtr, ByVal fDeleteOnRelease As Long, pplkbyt As ILockBytes) As Long
+Public Declare PtrSafe Function GetHGlobalFromStream Lib "ole32" (ByVal pStm As IStream, phglobal As LongPtr) As Long
+Public Declare PtrSafe Function CreateStreamOnHGlobal Lib "ole32" (ByVal hGlobal As LongPtr, ByVal fDeleteOnRelease As Long, ppstm As IStream) As Long
+Public Declare PtrSafe Function StgCreateDocfileOnILockBytes Lib "ole32" (ByVal plkbyt As ILockBytes, ByVal grfMode As STGM, ByVal reserved As Long, ppstgOpen As IStorage) As Long
+Public DeclareWide PtrSafe Function StgOpenStorageOnILockBytes Lib "ole32" (ByVal plkbyt As ILockBytes, ByVal pstgPriority As IStorage, ByVal grfMode As STGM, ByVal snbExclude As String, ByVal reserved As Long, ppstgOpen As IStorage) As Long
+Public Declare PtrSafe Function StgIsStorageILockBytes Lib "ole32" (ByVal plkbyt As ILockBytes) As Long
+Public Declare PtrSafe Function ReadClassStg Lib "ole32" (ByVal pStg As IStorage, ByRef pclsid As UUID) As Long
+Public Declare PtrSafe Function WriteClassStg Lib "ole32" (ByVal pStg As IStorage, ByRef rclsid As UUID) As Long
+Public Declare PtrSafe Function ReadClassStm Lib "ole32" (ByVal pStg As IStream, ByRef rclsid As UUID) As Long
+Public Declare PtrSafe Function WriteClassStm Lib "ole32" (ByVal pStg As IStream, ByRef rclsid As UUID) As Long
+Public Declare PtrSafe Function PropVariantClear Lib "ole32" (ByRef pvarg As Variant) As Long
+Public Declare PtrSafe Function PropVariantCopy Lib "ole32" (ByRef pvarDest As Variant, ByRef pvarSrc As Variant) As Long
+Public Declare PtrSafe Function CLSIDFromProgID Lib "ole32" (ByVal lpszProgID As String, ByRef lpclsid As UUID) As Long
+Public Declare PtrSafe Function CLSIDFromString Lib "ole32" (ByVal lpszProgID As String, ByRef lpclsid As UUID) As Long
+Public Declare PtrSafe Function ProgIDFromCLSID Lib "ole32" (ByRef clsid As UUID, ByRef lplpszProgID As LongPtr) As Long
+Public DeclareWide PtrSafe Function StringFromGUID2 Lib "ole32" (ByRef UUID As UUID, ByVal lplpsz As String, ByVal cbMax As Long) As Long
+Public Declare PtrSafe Function BindMoniker Lib "ole32" (ByVal pmk As IMoniker, ByVal grfOpt As Long, ByRef iidResult As UUID, ByRef ppvResult As Any) As Long
+Public Declare PtrSafe Function CoGetObject Lib "ole32" (ByVal pszName As String, ByRef pBindOptions As BIND_OPTS, ByRef riid As UUID, ByRef ppv As Any) As Long
+Public Declare PtrSafe Function MkParseDisplayName Lib "ole32" (ByVal pbc As IBindCtx, ByVal szUserName As String, ByRef pchEaten As Long, ppmk As IMoniker) As Long
+Public Declare PtrSafe Function MonikerRelativePathTo Lib "ole32" (ByVal pmkSrc As IMoniker, ByVal pmkDest As IMoniker, ByRef ppmkRelPath As IMoniker, ByVal dwReserved As Long) As Long
+Public Declare PtrSafe Function MonikerCommonPrefixWith Lib "ole32" (ByVal pmkThis As IMoniker, ByVal pmkOther As IMoniker, ppmkCommon As IMoniker) As Long
+Public Declare PtrSafe Function CreateBindCtx Lib "ole32" (ByVal reserved As Long, ppbc As IBindCtx) As Long
+Public Declare PtrSafe Function CreateGenericComposite Lib "ole32" (ByVal pmkFirst As IMoniker, ByVal pmkRest As IMoniker, ppmkComposite As IMoniker) As Long
+Public DeclareWide PtrSafe Function GetClassFile Lib "ole32" (ByVal szFileName As String, ByRef pclsid As UUID) As Long
+Public Declare PtrSafe Function CreateClassMoniker Lib "ole32" (ByRef rclsid As UUID, ppmk As IMoniker) As Long
+Public DeclareWide PtrSafe Function CreateFileMoniker Lib "ole32" (ByVal lpszPathName As String, ppmk As IMoniker) As Long
+Public DeclareWide PtrSafe Function CreateItemMoniker Lib "ole32" (ByVal lpszDelim As String, ByVal lpszItem As String, ppmk As IMoniker) As Long
+Public Declare PtrSafe Function CreateAntiMoniker Lib "ole32" (ppmk As IMoniker) As Long
+Public Declare PtrSafe Function CreatePointerMoniker Lib "ole32" (ByVal pUnk As stdole.IUnknown, ppmk As IMoniker) As Long
+Public Declare PtrSafe Function CreateObjrefMoniker Lib "ole32" (ByVal pUnk As stdole.IUnknown, ppmk As IMoniker) As Long
+Public Declare PtrSafe Function GetRunningObjectTable Lib "ole32" (ByVal reserved As Long, pprot As IRunningObjectTable) As Long
+Public Declare PtrSafe Function CoGetClassObject Lib "ole32" (ByRef rclsid As UUID, ByVal dwClsContext As CLSCTX, ByRef pvReserved As Any, ByRef riid As UUID, ByRef ppv As Any) As Long
+Public Declare PtrSafe Function CoRegisterClassObject Lib "ole32" (ByRef rclsid As UUID, ByVal pUnk As stdole.IUnknown, ByVal dwClsContext As CLSCTX, ByVal flags As REGCLS, lpdwRegister As Long) As Long
+Public Declare PtrSafe Function CoRegisterMessageFilter Lib "ole32" (ByVal pNewMessageFilter As IMessageFilter, lplpMessageFilter As IMessageFilter) As Long
+Public Declare PtrSafe Function CoRevokeClassObject Lib "ole32" (ByVal dwRegister As Long) As Long
+Public Declare PtrSafe Function CoResumeClassObjects Lib "ole32" () As Long
+Public Declare PtrSafe Function CoSuspendClassObjects Lib "ole32" () As Long
+Public Declare PtrSafe Function CoMarshalInterThreadInterfaceInStream Lib "ole32" (ByRef riid As UUID, ByVal pUnk As stdole.IUnknown, ppStm As IStream) As Long
+Public Declare PtrSafe Function CoGetInterfaceAndReleaseStream Lib "ole32" (ByVal pStm As IStream, ByRef iid As UUID, ByRef ppv As Any) As Long
+Public DeclareWide PtrSafe Function CoLoadLibrary Lib "ole32" (ByVal lpszLibName As String, ByVal bAutoFree As Long) As LongPtr
+Public Declare PtrSafe Sub CoFreeLibrary Lib "ole32" (ByVal hInst As LongPtr)
+Public Declare PtrSafe Sub CoFreeAllLibraries Lib "ole32" ()
+Public Declare PtrSafe Sub CoFreeUnusedLibraries Lib "ole32" ()
+Public Declare PtrSafe Sub CoFreeUnusedLibrariesEx Lib "ole32" (ByVal dwUnloadDelay As Long, ByVal dwReserved As Long)
+Public Declare PtrSafe Function CoFileTimeNow Lib "ole32" (lpFileTime As FILETIME) As Long
+Public DeclareWide PtrSafe Function CreateStdProgressIndicator Lib "ole32" (ByVal hwndParent As LongPtr, ByVal pszTitle As String, ByVal pIbscCaller As IBindStatusCallback, ppIbsc As IBindStatusCallback) As Long
+Public Declare PtrSafe Function IsEqualGUID Lib "ole32" (ByRef rguid1 As UUID, ByRef rguid2 As UUID) As Long
+Public Declare PtrSafe Function CoBuildVersion Lib "ole32" () As Long
+Public Declare PtrSafe Function CoInitialize Lib "ole32" (ByRef pvReserved As Any) As Long
+Public Declare PtrSafe Function OleInitialize Lib "ole32" (ByRef pvReserved As Any) As Long
+Public Declare PtrSafe Function CoInitializeEx Lib "ole32" (ByRef pvReserved As Any, ByVal dwCoInit As COINIT) As Long
+Public Declare PtrSafe Sub CoUninitialize Lib "ole32" ()
+Public Declare PtrSafe Function vbCoInitialize Lib "ole32" Alias "CoInitialize" (ByRef pvReserved As Any) As Long
+Public Declare PtrSafe Sub vbCoUninitialize Lib "ole32" Alias "CoUninitialize" ()
+Public Declare PtrSafe Function CoGetMalloc Lib "ole32" (ByVal dwMemContext As MEMCTX, ppMalloc As IMalloc) As Long
+Public Declare PtrSafe Function CoCreateInstance Lib "ole32" (ByRef clsid As UUID, ByVal pUnkOuter As stdole.IUnknown, ByVal dwClsContext As CLSCTX, ByRef iid As UUID, ByRef ppv As Any) As Long
+Public Declare PtrSafe Function CoCreateInstanceEx Lib "ole32" (ByRef clsid As UUID, ByVal pUnkOuter As stdole.IUnknown, ByVal dwClsContext As CLSCTX, pServerInfo As COSERVERINFO, ByVal dwCount As Long, pResults As MULTI_QI) As Long
+Public Declare PtrSafe Function CoGetCurrentProcess Lib "ole32" () As Long
+Public Declare PtrSafe Function CoCreateStandardMalloc Lib "ole32" (ByVal MEMCTX As MEMCTX, ppMalloc As IMalloc) As Long
+Public Declare PtrSafe Function CoGetMarshalSizeMax Lib "ole32" (ByRef pulSize As Long, ByRef riid As UUID, ByVal pUnk As stdole.IUnknown, ByVal dwDestContext As MSHCTX, ByRef pvDestContext As Any, ByVal MSHLFLAGS As MSHLFLAGS) As Long
+Public Declare PtrSafe Function CoMarshalInterface Lib "ole32" (ByVal pStm As IStream, ByRef riid As UUID, ByVal pUnk As stdole.IUnknown, ByVal dwDestContext As MSHCTX, ByRef pvDestContext As Any, ByVal MSHLFLAGS As MSHLFLAGS) As Long
+Public Declare PtrSafe Function CoUnmarshalInterface Lib "ole32" (ByVal pStm As IStream, ByRef riid As UUID, ByRef ppv As Any) As Long
+Public Declare PtrSafe Function CoMarshalHresult Lib "ole32" (ByVal pStm As IStream, ByVal hresult As Long) As Long
+Public Declare PtrSafe Function CoUnmarshalHresult Lib "ole32" (ByVal pStm As IStream, phresult As Long) As Long
+Public Declare PtrSafe Function CoReleaseMarshalData Lib "ole32" (ByVal pStm As IStream) As Long
+Public Declare PtrSafe Function CoDisconnectObject Lib "ole32" (ByVal pUnk As stdole.IUnknown, ByVal dwReserved As Long) As Long
+Public Declare PtrSafe Function CoLockObjectExternal Lib "ole32" (ByVal pUnk As stdole.IUnknown, ByVal fLock As Long, ByVal fLastUnlockReleases As Long) As Long
+Public Declare PtrSafe Function CoGetStandardMarshal Lib "ole32" (ByRef riid As UUID, ByVal pUnk As stdole.IUnknown, ByVal dwDestContext As MSHCTX, ByRef pvDestContext As Any, ByVal MSHLFLAGS As MSHLFLAGS, ppMarshal As IMarshal) As Long
+Public Declare PtrSafe Function CoGetStdMarshalEx Lib "ole32" (ByVal pUnkOuter As stdole.IUnknown, ByVal smexflags As STDMSHLFLAGS, ppunkInner As stdole.IUnknown) As Long
+Public Declare PtrSafe Function CoCreateFreeThreadedMarshaler Lib "ole32" (ByVal pUnkOuter As stdole.IUnknown, ppunkMarshal As stdole.IUnknown) As Long
+Public Declare PtrSafe Sub ReleaseStgMedium Lib "ole32" (ByRef STM As STGMEDIUM)
+Public DeclareWide PtrSafe Function OleGetIconOfClass Lib "ole32" (ByRef rclsid As UUID, ByVal lpszLabel As String, ByVal fUseTypeAsLabel As Long) As LongPtr
+Public DeclareWide PtrSafe Function OleMetafilePictFromIconAndLabel Lib "ole32" (ByVal hIcon As LongPtr, ByVal lpszLabel As String, ByVal lpszSourceFile As String, ByVal iIconIndex As Long) As LongPtr
+Public Declare PtrSafe Function OleSetContainedObject Lib "ole32" (ByVal pUnk As stdole.IUnknown, ByVal fContained As Long) As Long
+Public Declare PtrSafe Function OleCreate Lib "ole32" (ByRef rclsid As UUID, ByRef riid As UUID, ByVal renderopt As OLERENDER, ByVal pformatetc As LongPtr, ByVal pClientSite As IOleClientSite, ByVal pStg As IStorage, ByRef ppvObject As Any) As Long
+Public Declare PtrSafe Function OleCreateEx Lib "ole32" (ByRef rclsid As UUID, ByRef riid As UUID, ByVal dwFlags As OLECREATE_UDT, ByVal renderopt As OLERENDER, ByVal cFormats As Long, ByRef rgAdvf As ADVF, ByRef rgFormatEtc As FORMATETC, ByVal lpAdviseSink As IAdviseSink, ByRef rgdwConnection As Long, ByVal pClientSite As IOleClientSite, ByVal pStg As IStorage, ByRef ppvObj As Any) As Long
+Public Declare PtrSafe Function OleCreateFromData Lib "ole32" (ByVal pSrcDataObj As IDataObject, ByRef riid As UUID, ByVal renderopt As OLERENDER, ByRef pformatetc As FORMATETC, ByVal pClientSite As IOleClientSite, ByVal pStg As IStorage, ByRef ppvObj As Any) As Long
+Public Declare PtrSafe Function OleCreateFromDataEx Lib "ole32" (ByVal pSrcDataObj As IDataObject, ByRef riid As UUID, ByVal dwFlags As OLECREATE_UDT, ByVal renderopt As OLERENDER, ByVal cFormats As Long, ByRef rgAdvf As Long, ByRef rgFormatEtc As FORMATETC, ByVal lpAdviseSink As IAdviseSink, ByRef rgdwConnection As Long, ByVal pClientSite As IOleClientSite, ByVal pStg As IStorage, ByRef ppvObj As Any) As Long
+Public Declare PtrSafe Function OleCreateLinkFromData Lib "ole32" (ByVal pSrcDataObj As IDataObject, ByRef riid As UUID, ByVal renderopt As OLERENDER, ByRef pformatetc As Any, ByVal pClientSite As IOleClientSite, ByVal pStg As IStorage, ByRef ppvObj As Any) As Long
+Public Declare PtrSafe Function OleCreateLinkFromDataEx Lib "ole32" (ByVal pSrcDataObj As IDataObject, ByRef riid As UUID, ByVal dwFlags As OLECREATE_UDT, ByVal renderopt As OLERENDER, ByVal cFormats As Long, ByRef rgAdvf As Long, ByRef rgFormatEtc As Any, ByVal lpAdviseSink As IAdviseSink, ByRef rgdwConnection As Long, ByVal pClientSite As IOleClientSite, ByVal pStg As IStorage, ByRef ppvObj As Any) As Long
+Public Declare PtrSafe Function OleCreateStaticFromData Lib "ole32" (ByVal pSrcDataObj As IDataObject, ByRef iid As UUID, ByVal renderopt As OLERENDER, ByRef pformatetc As Any, ByVal pClientSite As IOleClientSite, ByVal pStg As IStorage, ByRef ppvObj As Any) As Long
+Public Declare PtrSafe Function OleCreateLink Lib "ole32" (ByVal pmkLinkSrc As IMoniker, ByRef riid As UUID, ByVal renderopt As OLERENDER, ByRef rgFormatEtc As Any, ByVal pClientSite As IOleClientSite, ByVal pStg As IStorage, ByRef ppvObj As Any) As Long
+Public Declare PtrSafe Function OleCreateLinkEx Lib "ole32" (ByVal pmkLinkSrc As IMoniker, ByRef riid As UUID, ByVal dwFlags As OLECREATE_UDT, ByVal renderopt As OLERENDER, ByVal cFormats As Long, ByRef rgAdvf As ADVF, ByRef rgFormatEtc As Any, ByVal lpAdviseSink As IAdviseSink, ByRef rgdwConnection As Long, ByVal pClientSite As IOleClientSite, ByVal pStg As IStorage, ByRef ppvObj As Any) As Long
+Public Declare PtrSafe Function OleCreateLinkToFile Lib "ole32" (ByVal lpszFileName As String, ByRef riid As UUID, ByVal renderopt As OLERENDER, ByRef rgFormatEtc As Any, ByVal pClientSite As IOleClientSite, ByVal pStg As IStorage, ByRef ppvObj As Any) As Long
+Public Declare PtrSafe Function OleCreateLinkToFileEx Lib "ole32" (ByVal lpszFileName As String, ByRef riid As UUID, ByVal dwFlags As OLECREATE_UDT, ByVal renderopt As OLERENDER, ByVal cFormats As Long, ByRef rgAdvf As Long, ByRef rgFormatEtc As Any, ByVal lpAdviseSink As IAdviseSink, ByRef rgdwConnection As Long, ByVal pClientSite As IOleClientSite, ByVal pStg As IStorage, ByRef ppvObj As Any) As Long
+Public Declare PtrSafe Function OleCreateFromFile Lib "ole32" (ByRef rclsid As Any, ByVal lpszFileName As String, ByRef riid As UUID, ByVal renderopt As OLERENDER, ByRef rgFormatEtc As Any, ByVal pClientSite As IOleClientSite, ByVal pStg As IStorage, ByRef ppvObj As Any) As Long
+Public Declare PtrSafe Function OleCreateFromFileEx Lib "ole32" (ByRef rclsid As UUID, ByVal lpszFileName As String, ByRef riid As UUID, ByVal dwFlags As OLECREATE_UDT, ByVal renderopt As OLERENDER, ByVal cFormats As Long, ByRef rgAdvf As ADVF, ByRef rgFormatEtc As FORMATETC, ByVal lpAdviseSink As IAdviseSink, ByRef rgdwConnection As Long, ByVal pClientSite As IOleClientSite, ByVal pStg As IStorage, ByRef ppvObj As Any) As Long
+Public Declare PtrSafe Function OleLoad Lib "ole32" (ByVal pStg As IStorage, ByRef riid As UUID, ByVal pClientSite As IOleClientSite, ByRef ppvObj As Any) As Long
+Public Declare PtrSafe Function OleSave Lib "ole32" (ByVal pps As IPersistStorage, ByVal pStg As IStorage, ByVal fSameAsLoad As Long) As Long
+Public Declare PtrSafe Function OleLoadFromStream Lib "ole32" (ByVal pStm As IStream, ByRef iidInterface As UUID, ByRef ppvObj As Any) As Long
+Public Declare PtrSafe Function OleSaveToStream Lib "ole32" (ByVal ppstm As IPersistStream, ByVal pStm As IStream) As Long
+Public Declare PtrSafe Function OleNoteObjectVisible Lib "ole32" (ByVal pUnknown As stdole.IUnknown, ByVal fVisible As Long) As Long
+Public Declare PtrSafe Function RegisterDragDrop Lib "ole32" (ByVal hWnd As LongPtr, ByVal DropTarget As IDropTarget) As Long
+Public Declare PtrSafe Function RevokeDragDrop Lib "ole32" (ByVal hWnd As LongPtr) As Long
+Public Declare PtrSafe Function DoDragDrop Lib "ole32" (ByVal pDataObj As IDataObject, ByVal pDropSource As IDropSource, ByVal dwOKEffects As Long, ByRef pdwEffect As Long) As Long
+Public Declare PtrSafe Function OleSetClipboard Lib "ole32" (ByVal pDataObj As IDataObject) as long
+Public Declare PtrSafe Function OleGetClipboard Lib "ole32" (ppDataObj As IDataObject) As Long
+Public Declare PtrSafe Function OleFlushClipboard Lib "ole32" () As Long
+Public Declare PtrSafe Function OleIsCurrentClipboard Lib "ole32" (ByVal pDataObj As IDataObject) As Long
+Public Declare PtrSafe Function OleCreateMenuDescriptor Lib "ole32" (ByVal hmenuCombined As LongPtr, ByRef lpMenuWidths As OLEMENUGROUPWIDTHS) As LongPtr
+Public Declare PtrSafe Function OleSetMenuDescriptor Lib "ole32" (ByVal holemenu As LongPtr, ByVal hwndFrame As LongPtr, ByVal hwndActiveObject As LongPtr, ByVal lpFrame As IOleInPlaceFrame, ByVal lpActiveObj As IOleInPlaceActiveObject) As Long
+Public Declare PtrSafe Function OleDestroyMenuDescriptor Lib "ole32" (ByVal holemenu As LongPtr) As Long
+Public Declare PtrSafe Function OleTranslateAccelerator Lib "ole32" (ByVal lpFrame As IOleInPlaceFrame, ByRef lpFrameInfo As OLEINPLACEFRAMEINFO, ByRef lpmsg As MSG) As Long
+Public Declare PtrSafe Function OleDuplicateData Lib "ole32" (ByVal hSrc As LongPtr, ByVal cfFormat As Integer, ByVal uiFlags As GMEM) As LongPtr
+Public Declare PtrSafe Function OleDraw Lib "ole32" (ByVal pUnknown As stdole.IUnknown, ByVal dwAspect As DVASPECT, ByVal hdcDraw As LongPtr, ByRef lprcBounds As RECT) As Long
+Public Declare PtrSafe Function OleRun Lib "ole32" (ByVal pUnknown As stdole.IUnknown) As Long
+Public Declare PtrSafe Function OleIsRunning Lib "ole32" (ByVal pObject As IOleObject) As Long
+Public Declare PtrSafe Function OleLockRunning Lib "ole32" (ByVal pUnknown As stdole.IUnknown, ByVal fLock As Long, ByVal fLastUnlockCloses As Long) As Long
+Public Declare PtrSafe Function CreateDataCache Lib "ole32" (ByVal pUnkOuter As stdole.IUnknown, ByRef rclsid As UUID, ByRef iid As UUID, ppv As Any) As Long
+Public Declare PtrSafe Function OleCreateDefaultHandler Lib "ole32" (ByRef clsid As UUID, ByVal pUnkOuter As stdole.IUnknown, ByRef riid As UUID, ByRef lplpObj As Any) As Long
+Public Declare PtrSafe Function IsAccelerator Lib "ole32" (ByVal haccel As LongPtr, ByVal cAccelEntries As Long, ByRef lpmsg As MSG, ByRef lpwCmd As Integer) As Long
+
+'****************************************************
+'oleaut32.dll
+
+Public Enum REGKIND
+    REGKIND_DEFAULT = 0                                  
+    REGKIND_REGISTER = 1                          
+    REGKIND_NONE = 2                                   
+End Enum
+    
+Public Enum VARFORMAT_FLAGS
+	VAR_TIMEVALUEONLY = &H00000001 ' return time value */
+	VAR_DATEVALUEONLY = &H00000002 ' return date value */
+	VAR_VALIDDATE = &H00000004
+	VAR_CALENDAR_HIJRI = &H00000008 ' use Hijri calender */
+	VAR_LOCALBOOL = &H00000010
+	VAR_FORMAT_NOSUBSTITUTE = &H00000020
+End Enum
+
+Public Enum NAMEDFORMATS
+    GeneralDate = 0                                      ' &H00000000&
+    LongDate = 1                                         ' &H00000001&
+    ShortDate = 2                                        ' &H00000002&
+    LongTime = 3                                         ' &H00000003&
+    ShortTime = 4                                        ' &H00000004&
+End Enum
+
+Public Enum ACTIVEOBJECTFLAGS
+    ACTIVEOBJECT_STRONG = 0                              ' &H00000000&
+    ACTIVEOBJECT_WEAK = 1                                ' &H00000001&
+End Enum
+
+Public Enum NUMPRS
+	NUMPRS_LEADING_WHITE = &H0001
+	NUMPRS_TRAILING_WHITE = &H0002
+	NUMPRS_LEADING_PLUS = &H0004
+	NUMPRS_TRAILING_PLUS = &H0008
+	NUMPRS_LEADING_MINUS = &H0010
+	NUMPRS_TRAILING_MINUS = &H0020
+	NUMPRS_HEX_OCT = &H0040
+	NUMPRS_PARENS = &H0080
+	NUMPRS_DECIMAL = &H0100
+	NUMPRS_THOUSANDS = &H0200
+	NUMPRS_CURRENCY = &H0400
+	NUMPRS_EXPONENT = &H0800
+	NUMPRS_USE_ALL = &H1000
+	NUMPRS_STD = &H1FFF
+	NUMPRS_NEG = &H10000
+	NUMPRS_INEXACT = &H20000
+End Enum
+
+Public Type NUMPARSE
+    cDig As Long                                         ' offset &H0000
+    dwInFlags As NUMPRS                                    ' offset &H0004
+    dwOutFlags As NUMPRS                                   ' offset &H0008
+    cchUsed As Long                                      ' offset &H000C
+    nBaseShift As Long                                   ' offset &H0010
+    nPwr10 As Long                                       ' offset &H0014
+End Type                                                 ' LenB() = &H0018, Len() = &H0018, UDT Alignment = &H0004
+
+Public Enum NORM
+	NORM_IGNORECASE = &H00000001
+	NORM_IGNORENONSPACE = &H00000002
+	NORM_IGNORESYMBOLS = &H00000004
+	NORM_IGNOREWIDTH = &H00000008
+	NORM_IGNOREKANATYPE1 = &H00000040
+	NORM_IGNOREKANATYPE = &H00010000
+	NORM_IGNOREWIDTH1 = &H00020000
+	NORM_IGNOREKASHIDA = &H00040000
+End Enum
+
+Public Enum VARCMP
+    VARCMP_LT = 0                                        ' &H00000000&
+    VARCMP_EQ = 1                                        ' &H00000001&
+    VARCMP_GT = 2                                        ' &H00000002&
+    VARCMP_NULL = 3                                      ' &H00000003&
+End Enum
+    
+        
+Public Declare PtrSafe Function DispCallFunc Lib "oleaut32" (ByRef pvInstance As Any, ByVal oVft As LongPtr, ByVal cc As Integer, ByVal vtReturn As Integer, ByVal cActuals As Long, ByRef prgvt As Any, ByRef prgpvarg As Any, ByRef pvargResult As Any) As Long
+Public Declare PtrSafe Function SystemTimeToVariantTime Lib "oleaut32" (ByRef lpSystemTime As SYSTEMTIME, ByRef pvtime As Double) As Long
+Public Declare PtrSafe Function VariantTimeToSystemTime Lib "oleaut32" (ByVal vtime As Double, ByRef lpSystemTime As SYSTEMTIME) As Long
+Public Declare PtrSafe Function DosDateTimeToVariantTime Lib "oleaut32" (ByVal wDosDate As Integer, ByVal wDosTime As Integer, ByRef pvtime As Double) As Long
+Public Declare PtrSafe Function VariantTimeToDosDateTime Lib "oleaut32" (ByVal vtime As Double, ByRef pwDosDate As Integer, ByRef pwDosTime As Integer) As Long
+Public DeclareWide PtrSafe Function LHashValOfName Lib "oleaut32" (ByVal lcid As Long, ByVal szName As String) As Long
+Public DeclareWide PtrSafe Function LHashValOfNameSys Lib "oleaut32" (ByVal SYSKIND As SYSKIND, ByVal lcid As Long, ByVal szName As String) As Long
+Public DeclareWide PtrSafe Function RegisterTypeLib Lib "oleaut32" (ByVal ptlib As ITypeLib, ByVal szFullPath As String, ByVal szHelpDir As String) as Long
+Public Declare PtrSafe Function UnRegisterTypeLib Lib "oleaut32" (ByRef libID As UUID, ByVal wVerMajor As Integer, ByVal wVerMinor As Integer, ByVal lcid As Long, ByVal SYSKIND As SYSKIND) as Long
+Public DeclareWide PtrSafe Function CreateTypeLib Lib "oleaut32" (ByVal SYSKIND As SYSKIND, ByRef szFile As String, ppctlib As ICreateTypeLib) As Long
+Public DeclareWide PtrSafe Function CreateTypeLib2 Lib "oleaut32" (ByVal SYSKIND As SYSKIND, ByVal szFile As String, ppctlib As ICreateTypeLib2) As Long
+Public Declare PtrSafe Function LoadRegTypeLib Lib "oleaut32" (ByRef rguid As UUID, ByVal wVerMajor As Integer, ByVal wVerMinor As Integer, ByVal lcid As Long, pptlib As ITypeLib) As Long
+Public DeclareWide PtrSafe Function LoadTypeLibEx Lib "oleaut32" (ByVal szFile As String, ByVal REGKIND As REGKIND, pptlib As ITypeLib) As Long
+Public DeclareWide PtrSafe Function LoadTypeLib Lib "oleaut32" (ByVal szFile As String, pptlib As ITypeLib) As Long
+Public DeclareWide PtrSafe Function QueryPathOfRegTypeLib Lib "oleaut32" (ByRef guid As UUID, ByVal wVerMajor As Integer, ByVal wVerMinor As Integer, ByVal lcid As Long, lpbstrPathName As String) As Long
+Public DeclareWide PtrSafe Function SysAllocString Lib "oleaut32" (ByVal pStr As Long) As String
+Public Declare PtrSafe Function SysAllocStringPtrPtr Lib "oleaut32" Alias "SysAllocString" (ByVal pStr As LongPtr) As LongPtr
+Public Declare PtrSafe Function SysAllocStringPtr Lib "oleaut32" Alias "SysAllocString" (ByVal pStr As String) As LongPtr
+[ Description ("This is an alias for SysAllocString") ]
+Public DeclareWide PtrSafe Function RTrimNull Lib "oleaut32" Alias "SysAllocString" (ByVal pStr As String) As String
+Public DeclareWide PtrSafe Function SysReAllocString Lib "oleaut32" (ByRef in As String, ByVal pStr As LongPtr) As Long
+[ Description ("Alias for SysReAllocString supporting Unicode.") ]
+Public Declare PtrSafe Function SysReAllocStringW Lib "oleaut32" (ByVal pBSTR As LongPtr, Optional ByVal pszStrPtr As LongPtr) As Long
+Public Declare PtrSafe Function SysReAllocStringLenW Lib "oleaut32" (ByVal pBSTR As LongPtr, Optional ByVal pszStrPtr As LongPtr, Optional ByVal Length As Long) As Long
+Public Declare PtrSafe Function SysReAllocStringLen Lib "oleaut32" (ByRef bstr As String, ByVal pStr As LongPtr, ByVal cb As Long) As Long
+Public DeclareWide PtrSafe Sub SysFreeString Lib "oleaut32" (ByRef bstr As String)
+Public DeclareWide PtrSafe Function SysStringLen Lib "oleaut32" (ByVal str As String) As Long
+Public DeclareWide PtrSafe Function SysStringByteLen Lib "oleaut32" (ByVal bstr As String) As Long
+Public DeclareWide PtrSafe Function SysAllocStringByteLen Lib "oleaut32" (ByRef psz As Any, ByVal len As Long) As String
+Public Declare PtrSafe Function VarR8Round Lib "oleaut32" (ByVal dblIn As Double, ByVal cDecimals As Long, pdblResult As Double) As Long
+Public Declare PtrSafe Function GetAltMonthNames Lib "oleaut32" (ByVal lcid As Long, ByRef prgp As LongPtr) As Long
+Public DeclareWide PtrSafe Function VarFormat Lib "oleaut32" (ByRef pvarIn As Variant, ByVal pstrFormat As String, ByVal iFirstDay As Long, ByVal iFirstWeek As Long, ByVal dwFlags As VARFORMAT_FLAGS, pbstrOut As String) As Long
+Public Declare PtrSafe Function VarFormatDateTime Lib "oleaut32" (ByRef pvarIn As Variant, ByVal iNamedFormat As NAMEDFORMATS, ByVal dwFlags As VARFORMAT_FLAGS, pbstrOut As String) As Long
+Public Declare PtrSafe Function VarFormatNumber Lib "oleaut32" (ByRef pvarIn As Variant, ByVal iNumDig As Long, ByVal iIncLead As Long, ByVal iUseParens As Long, ByVal iGroup As Long, ByVal dwFlags As VARFORMAT_FLAGS, pbstrOut As String) As Long
+Public Declare PtrSafe Function VarFormatPercent Lib "oleaut32" (ByRef pvarIn As Variant, ByVal iNumDig As Long, ByVal iIncLead As Long, ByVal iUseParens As Long, ByVal iGroup As Long, ByVal dwFlags As VARFORMAT_FLAGS, pbstrOut As String) As Long
+Public Declare PtrSafe Function VarFormatCurrency Lib "oleaut32" (ByRef pvarIn As Variant, ByVal iNumDig As Long, ByVal iIncLead As Long, ByVal iUseParens As Long, ByVal iGroup As Long, ByVal dwFlags As VARFORMAT_FLAGS, pbstrOut As String) As Long
+Public Declare PtrSafe Function VarWeekdayName Lib "oleaut32" (ByVal iWeekday As Long, ByVal fAbbrev As Long, ByVal iFirstDay As Long, ByVal dwFlags As VARFORMAT_FLAGS, pbstrOut As String) As Long
+Public Declare PtrSafe Function VarMonthName Lib "oleaut32" (ByVal iMonth As Long, ByVal fAbbrev As Long, ByVal dwFlags As VARFORMAT_FLAGS, pbstrOut As String) As Long
+Public DeclareWide PtrSafe Function VarFormatFromTokens Lib "oleaut32" (ByRef pvarIn As Variant, ByVal pstrFormat As String, ByRef pbTokCur As Any, ByVal dwFlags As VARFORMAT_FLAGS, ByRef pbstrOut As String, ByVal lcid As Long) As Long
+Public DeclareWide PtrSafe Function VarTokenizeFormatString Lib "oleaut32" (ByVal pstrFormat As String, ByRef rgbTok As Any, ByVal cbTok As Long, ByVal iFirstDay As Long, ByVal iFirstWeek As Long, ByVal lcid As Long, Optional ByRef pcbActual As Long = 0) As Long
+Public Declare PtrSafe Function DispGetParam Lib "oleaut32" (ByRef pDispParams As DISPPARAMS, ByVal position As Long, ByVal vtTarg As Integer, ByRef pVarResult As Variant, ByRef puArgErr As Long) As Long
+Public DeclareWide PtrSafe Function DispGetIDsOfNames Lib "oleaut32" (ByVal pTInfo As ITypeInfo, ByRef rgszNames As String, ByVal cNames As Long, ByRef rgdispid As Long) As Long
+Public Declare PtrSafe Function DispInvoke Lib "oleaut32" (ByRef this As Any, ByVal pTInfo As ITypeInfo, ByVal dispidMember As Long, ByVal wFlags As Integer, ByRef pparams As DISPPARAMS, ByRef pVarResult As Variant, ByRef pExcepInfo As EXCEPINFO, ByRef puArgErr As Long) As Long
+Public Declare PtrSafe Function CreateStdDispatch Lib "oleaut32" (ByVal pUnkOuter As stdole.IUnknown, ByRef pvThis As Any, ByVal pTInfo As ITypeInfo, ppunkStdDisp As stdole.IUnknown) As Long
+Public Declare PtrSafe Function RegisterActiveObject Lib "oleaut32" (ByVal pUnk As stdole.IUnknown, ByRef rclsid As UUID, ByVal dwFlags As ACTIVEOBJECTFLAGS, pdwRegister As Long) As Long
+Public Declare PtrSafe Function RevokeActiveObject Lib "oleaut32" (ByVal dwRegister As Long,  ByVal pvReserved As LongPtr) as Long
+Public Declare PtrSafe Function GetActiveObject Lib "oleaut32" (ByRef rclsid As UUID, ByVal pvReserved As Long, ppunk As stdole.IUnknown) As Long
+Public Declare PtrSafe Function SetErrorInfo Lib "oleaut32" (ByVal dwReserved As Long, ByVal perrinfo As IErrorInfo) As Long
+Public Declare PtrSafe Function GetErrorInfo Lib "oleaut32" (ByVal dwReserved As Long, pperrinfo As IErrorInfo) As Long
+Public Declare PtrSafe Function CreateErrorInfo Lib "oleaut32" (pperrinfo As ICreateErrorInfo) As Long
+Public Declare PtrSafe Function GetRecordInfoFromTypeInfo Lib "oleaut32" (ByVal pTypeInfo As ITypeInfo, ppRecInfo As IRecordInfo) As Long
+Public Declare PtrSafe Function GetRecordInfoFromGuids Lib "oleaut32" (ByRef rGuidTypeLib As UUID, ByVal uVerMajor As Long, ByVal uVerMinor As Long, ByVal lcid As Long, ByRef rGuidTypeInfo As UUID, ppRecInfo As IRecordInfo) As Long
+Public DeclareWide PtrSafe Function VarParseNumFromStr Lib "oleaut32" (ByVal strIn As String, ByVal lcid As Long, ByVal dwFlags As NUMPRS, ByRef pnumprs As NUMPARSE, ByRef rgbDig As Byte) As Long
+Public Declare PtrSafe Function VarNumFromParseNum Lib "oleaut32" (ByRef pnumprs As NUMPARSE, ByRef rgbDig As Byte, ByVal dwVtBits As Long, pvar As Variant) As Long
+Public DeclareWide PtrSafe Function VarBstrCat Lib "oleaut32" (ByVal bstrLeft As String, ByVal bstrRight As String, pbstrResult As String) As Long
+Public Declare PtrSafe Function VarBstrCmp Lib "oleaut32" (ByVal bstrLeft As String, ByVal bstrRight As String, ByVal lcid As Long, ByVal dwFlags As NORM) As VARCMP
+Public Declare PtrSafe Function VariantChangeType Lib "oleaut32" (ByRef pvargDest As Variant, ByRef pvarSrc As Variant, ByVal wFlags As Integer, ByVal vt As Integer) As Long
+Public Declare PtrSafe Function VariantChangeTypeEx Lib "oleaut32" (ByRef pvargDest As Variant, ByRef pvarSrc As Variant, ByVal lcid As Long, ByVal wFlags As Integer, ByVal vt As Integer) As Long
+Public Declare PtrSafe Function VariantClear Lib "oleaut32" (ByRef pvarg As Variant) As Long
+Public Declare PtrSafe Function VariantCopy Lib "oleaut32" (ByRef pvargDest As Variant, ByRef pvargSrc As Variant) As Long
+Public Declare PtrSafe Function VariantCopyPtrVar Lib "oleaut32" Alias "VariantCopy" (ByVal pvargDest As Long, ByRef pvargSrc As Variant) As Long
+Public Declare PtrSafe Function VariantCopyVarPtr Lib "oleaut32" Alias "VariantCopy" (ByRef pvargDest As Variant, ByVal pvargSrc As LongPtr) As Long
+Public Declare PtrSafe Function VariantCopyPtr Lib "oleaut32" Alias "VariantCopy" (ByVal pvargDest As LongPtr, ByVal pvargSrc As LongPtr) As Long
+Public Declare PtrSafe Function VariantCopyInd Lib "oleaut32" (ByRef pvargDest As Variant, ByRef pvargSrc As Variant) As Long
+Public Declare PtrSafe Function VariantCopyIndPtrVar Lib "oleaut32" Alias "VariantCopyInd" (ByVal pvargDest As LongPtr, ByRef pvargSrc As Variant) As Long
+Public Declare PtrSafe Function VariantCopyIndVarPtr Lib "oleaut32" Alias "VariantCopyInd" (ByRef pvargDest As Variant, ByVal pvargSrc As LongPtr) As Long
+Public Declare PtrSafe Function VariantCopyIndPtr Lib "oleaut32" Alias "VariantCopyInd" (ByVal pvargDest As LongPtr, ByVal pvargSrc As LongPtr) As Long
+Public Declare PtrSafe Sub VariantInit Lib "oleaut32" (ByRef pvarg As Variant)
+Public Declare PtrSafe Function OleLoadPicture Lib "oleaut32" (ByVal lpstream As IStream, ByVal lSize As Long, ByVal fRunmode As Long, ByRef riid As UUID, lplpvObj As Any) As Long
+Public Declare PtrSafe Function OleLoadPictureEx Lib "oleaut32" (ByVal lpstream As IStream, ByVal lSize As Long, ByVal fRunmode As Long, ByRef riid As UUID, ByVal xSizeDesired As Long, ByVal ySizeDesired As Long, ByVal dwFlags As stdole.LoadPictureConstants, lplpvObj As Any) As Long
+Public DeclareWide PtrSafe Function OleLoadPicturePath Lib "oleaut32" (ByVal szURLorPath As String, ByVal punkCaller As IUnknown, ByVal dwReserved As Long, ByVal clrReserved As stdole.OLE_COLOR, ByRef riid As UUID, ppvRet As Any) As Long
+Public Declare PtrSafe Function OleLoadPictureFile Lib "oleaut32" (ByVal varFileName As Variant, lplpdispPicture As stdole.IPictureDisp) As Long
+Public Declare PtrSafe Function OleLoadPictureFileEx Lib "oleaut32" (ByVal varFileName As Variant, ByVal xSizeDesired As Long, ByVal ySizeDesired As Long, ByVal dwFlags As stdole.LoadPictureConstants, lplpdispPicture As stdole.IPictureDisp) As Long
+Public DeclareWide PtrSafe Function OleSavePictureFile Lib "oleaut32" (ByVal lpdispPicture As stdole.IPictureDisp, ByVal bstrFileName As String) As Long
+Public Declare PtrSafe Function OleTranslateColor Lib "oleaut32" (ByVal clr As stdole.OLE_COLOR, ByVal hpal As LongPtr, lpcolorref As Long) As Long
+
+'*****************************************************
+'olepro32.dll
+
+Public Type OCPFIPARAMS
+	cbStructSize As LONG
+	hWndOwner As LongPtr
+	x As LONG
+	y As LONG
+	lpszCaption As LongPtr
+	cObjects As LONG
+	lplpUnk As LongPtr
+	cPages As LONG
+	lpPagesGUID As LongPtr
+	lcid As LONG
+	dispidInitialProperty As LONG
+End Type
+
+Public Type FONTDESC
+	cbSizeofstruct As LONG
+	lpstrName As LONG
+	cySize As CURRENCY
+	sWeight As Integer
+	sCharset As Integer
+	fItalic As Long
+	fUnderline As Long
+	fStrikethrough As Long
+End Type
+
+Public Enum PICTYPE
+	PICTYPE_UNINITIALIZED=-1
+	PICTYPE_NONE=0
+	PICTYPE_BITMAP=1
+	PICTYPE_METAFILE= 2
+	PICTYPE_ICON=3
+	PICTYPE_ENHMETAFILE=4
+End Enum
+
+Public Type PICTDESC
+	cbSizeofstruct As LONG
+	picType As PICTYPE
+	#If Win64 Then
+    HandleUnion(15) as Byte
+    #Else
+    HandleUnion(7) As Byte
+    #End If
+End Type
+
+Public DeclareWide PtrSafe Function OleCreatePropertyFrame Lib "OLEPRO32.DLL" (ByVal hWndOwner As LongPtr, ByVal x As Long, ByVal y As Long, ByVal lpszCaption As String, ByVal cObjects As Long, ByRef ppunk As IUnknown, ByVal cPages As Long, ByRef pPageClsID As Any, ByVal lcid As Long, ByVal dwReserved As Long, ByVal pvReserved As LongPtr) As Long
+Public Declare PtrSafe Function OleCreatePropertyFrameIndirect Lib "OLEPRO32.DLL" (ByRef lpParams As OCPFIPARAMS) As Long
+Public Declare PtrSafe Function OleCreateFontIndirect Lib "OLEPRO32.DLL" (ByRef lpFontDesc As FONTDESC, ByRef riid As UUID, lplpvObj As stdole.IFont) As Long
+Public Declare PtrSafe Function OleCreatePictureIndirect Lib "OLEPRO32.DLL" (ByRef lpPictDesc As PICTDESC, ByRef riid As UUID, ByVal fOwn As Long, lplpvObj As stdole.IPicture) As Long
+Public Declare PtrSafe Function OleIconToCursor Lib "OLEPRO32.DLL" (ByVal hinstExe As LongPtr, ByVal hIcon As LongPtr) As LongPtr
+ 
+
+
+Public Declare PtrSafe Function CreatePropertySheetPage Lib "comctl32" Alias "CreatePropertySheetPageA" (psp As PROPSHEETPAGE) As LongPtr
+Public Declare PtrSafe Function CreatePropertySheetPageW Lib "comctl32" (psp As PROPSHEETPAGE) As LongPtr
+Public Declare PtrSafe Function DestroyPropertySheetPage Lib "comctl32" (ByVal hPage As LongPtr) As Long
+
+
+
+End Module

@@ -1334,6 +1334,23 @@ Interface IQueryAssociations Extends stdole.IUnknown
     Sub GetEnum(ByVal flags As ASSOCF, ByVal str As ASSOCSTR, ByVal pszExtra As String, riid As UUID, ppvOut As Any)
 End Interface
 
+[ InterfaceId ("C1FB73D0-EC3A-4BA2-B512-8CDB9187B6D1") ]
+[ Description ("HW Event Handler Interface") ]
+Interface IHWEventHandler Extends stdole.IUnknown
+    Sub Initialize(ByVal pszParams As String)
+    Sub HandleEvent(ByVal pszDeviceID As String, ByVal pszAltDeviceID As String, ByVal pszEventType As String)
+    Sub HandleEventWithContent(ByVal pszDeviceID As String, ByVal pszAltDeviceID As String, ByVal pszEventType As String, ByVal pszContentTypeHandler As String, ByVal pDataObject As IDataObject)
+End Interface
+[ InterfaceId ("CFCC809F-295D-42e8-9FFC-424B33C487E6") ]
+Interface IHWEventHandler2 Extends IHWEventHandler
+    Sub HandleEventWithHWND(ByVal pszDeviceID As String, ByVal pszAltDeviceID As String, ByVal pszEventType As String, ByVal hwndOwner As LongPtr)
+End Interface
+[ InterfaceId ("DC2601D7-059E-42fc-A09D-2AFD21B6D5F7") ]
+Interface IDynamicHWHandler Extends stdole.IUnknown
+    Sub GetDynamicInfo(ByVal pszDeviceID As String, ByVal dwContentType As Long, ppszAction As LongPtr)
+End Interface
+    
+        
 [ InterfaceId ("DDEFE873-6997-4e68-BE26-39B633ADBE12") ]
 Interface IQueryCancelAutoPlay Extends stdole.IUnknown
     Sub AllowAutoPlay(ByVal pszPath As LongPtr, ByVal dwContentType As ARCONTENT, ByVal pszLabel As LongPtr, ByVal dwSerialNumber As Long)
@@ -1404,6 +1421,21 @@ End Interface
 [ InterfaceId ("2271dcca-74fc-4414-8fb7-c56b05ace2d7") ]
 Interface ICDBurnExt Extends IUnknown
     Sub GetSupportedActionTypes(pdwActions As CDBE_ACTIONS)
+End Interface
+
+[ InterfaceId ("E9EAD8E6-2A25-410E-9B58-A9FBEF1DD1A2") ]
+[ Description ("IUserEventTimerCallback ") ]
+Interface IUserEventTimerCallback Extends stdole.IUnknown
+    Sub UserEventTimerProc(ByVal uUserEventTimerID As Long, ByVal uTimerElapse As Long)
+End Interface
+
+[ InterfaceId ("0F504B94-6E42-42E6-99E0-E20FAFE52AB4") ]
+[ Description ("IUserEventTimer ") ]
+Interface IUserEventTimer Extends stdole.IUnknown
+    Sub SetUserEventTimer(ByVal hwnd As LongPtr, ByVal uCallbackMessage As Long, ByVal uTimerElapse As Long, ByVal pUserEventTimerCallback As IUserEventTimerCallback, ByRef puUserEventTimerID As Long)
+    Sub KillUserEventTimer(ByVal hwnd As LongPtr, ByVal uUserEventTimerID As Long)
+    Function GetUserEventTimerElapsed(ByVal hwnd As LongPtr, ByVal uUserEventTimerID As Long) As Long
+    Sub InitTimerTickInterval(ByVal uTimerTickIntervalMs As Long)
 End Interface
 
 [ InterfaceId ("A5CD92FF-29BE-454C-8D04-D82879FB3F1B") ]
@@ -1622,6 +1654,19 @@ End Interface
 Interface IPreviewItem Extends IRelatedItem
 End Interface
 
+[ InterfaceId ("C9D81948-443A-40C7-945C-5E171B8C66B4") ]
+Interface IAddressBarParser Extends stdole.IUnknown
+    Function ParseFromOutsideSource(ByVal pcszUrlIn As String, ByVal dwParseFlags As Long) As Long
+    Sub GetUrl(ByVal pszUrlOut As String, ByVal cchUrlOutSize As Long)
+    Sub SetUrl(ByVal pcszUrlIn As String, ByVal dwGenType As Long)
+    Sub GetDisplayName(ByVal pszUrlOut As String, ByVal cchUrlOutSize As Long)
+    Function GetPidl() As LongPtr
+    Sub SetPidl(ByVal pidl As Long)
+    Sub GetArgs(ByVal pszArgsOut As String, ByVal cchArgsOutSize As Long)
+    Sub AddPath(ByVal pidl As LongPtr)
+End Interface
+    
+    
 [ InterfaceId ("5CD52983-9449-11D2-963A-00C04F79ADF0") ]
 Interface IResolveShellLink Extends stdole.IUnknown
     Sub ResolveShellLink(ByVal punkLink As IUnknown, ByVal hwnd As LongPtr, ByVal fFlags As SLR_FLAGS)
@@ -2195,7 +2240,6 @@ End Interface
 
 Module slShellCore
 Option Explicit
-Public Declare PtrSafe Function CoCreateInstance Lib "ole32" (rclsid As Any, ByVal pUnkOuter As LongPtr, ByVal dwClsContext As CLSCTX, riid As Any, pvarResult As Any) As Long
 
 Public Const MAX_PATH                  As Long = 260
 
@@ -2219,13 +2263,26 @@ Public Type FILETIME
 	dwLowDateTime As LONG
 	dwHighDateTime As LONG
 End Type
+Public Type SYSTEMTIME
+	wYear As Integer
+	wMonth As Integer
+	wDayOfWeek As Integer
+	wDay As Integer
+	wHour As Integer
+	wMinute As Integer
+	wSecond As Integer
+	wMilliseconds As Integer
+End Type
+
 Public Type LARGE_INTEGER
-   lowpart As Long
-   highpart As Long
+'    lowpart As Long
+'    highpart As Long
+    QuadPart As LongLong
 End Type
 Public Type ULARGE_INTEGER
-   lowpart As Long
-   highpart As Long
+'    lowpart As Long
+'    highpart As Long
+    QuadPart As LongLong
 End Type
 Public Type RECT
     Left As Long
@@ -2291,16 +2348,7 @@ Public Enum MKREDUCE
 	MKRREDUCE_ALL = 0
 End Enum
 
-Public Type SYSTEMTIME
-	wYear As Integer
-	wMonth As Integer
-	wDayOfWeek As Integer
-	wDay As Integer
-	wHour As Integer
-	wMinute As Integer
-	wSecond As Integer
-	wMilliseconds As Integer
-End Type
+
 Public Const CF_TEXT             As Integer = 1'      //Text format
 Public Const CF_BITMAP           As Integer = 2 '      //Handle to a bitmap
 Public Const CF_METAFILEPICT     As Integer = 3 '      //Handle to a metafile picture format
@@ -2728,30 +2776,7 @@ Public Enum STGM
 	STGM_NOSNAPSHOT = &H00200000
 	STGM_DIRECT_SWMR = &H00400000
 End Enum
-Public Type COAUTHIDENTITY
-	User As Integer
-	UserLength As Long
-	Domain As Integer
-	DomainLength As Long
-	Password As Integer
-	PasswordLength As Long
-	Flags As Long
-End Type
-Public Type COAUTHINFO
-	dwAuthnSvc As Long
-	dwAuthzSvc As Long
-	pwszServerPrincName As LongPtr
-	dwAuthnLevel As Long
-	dwImpersonationLevel As Long
-	pAuthIdentityData As LongPtr
-	dwCapabilities As Long
-End Type
-Public Type COSERVERINFO
-	dwReserved1 As Long
-	pwszName As LongPtr
-	pAuthInfo As LongPtr
-	dwReserved2 As Long
-End Type
+
 Public Enum BIND_FLAGS
 	BIND_MAYBOTHERUSER = 1
 	BIND_JUSTTESTEXISTENCE = 2
@@ -5552,58 +5577,9 @@ Public Enum PROPERTYUI_FORMAT_FLAGS
     PUIFFDF_NOUNITS = 16                                 ' &H00000010&
 End Enum
     
-Public Declare PtrSafe Function SHCreateItemFromParsingName Lib "shell32" (ByVal pszPath As LongPtr, ByVal pbc As IBindCtx, riid As UUID, ppv As Any) As Long
-Public Declare PtrSafe Function SHCreateShellItemArrayFromIDLists Lib "shell32" (ByVal cidl As Long, ByVal rgpidl As LongPtr, ppsiItemArray As IShellItemArray) As Long
-Public Declare PtrSafe Function SHCreateItemFromIDList Lib "shell32" (ByVal pidl As LongPtr, riid As UUID, ppv As Any) As Long
-Public Declare PtrSafe Function SHGetKnownFolderItem Lib "shell32" (rfid As UUID, ByVal dwFlags As KNOWN_FOLDER_FLAG, ByVal hToken As LongPtr, riid As UUID, ppv As Any) As Long
-Public Declare PtrSafe Function SHGetKnownFolderPath Lib "shell32" (rfid As UUID, ByVal dwFlags As Long, ByVal hToken As LongPtr, ppszPath As LongPtr) As Long
-Public Declare PtrSafe Function SHGetKnownFolderIDList Lib "shell32" (rfid As UUID, ByVal dwFlags As KNOWN_FOLDER_FLAG, ByVal hToken As LongPtr, ppidl As LongPtr) As Long
-Public Declare PtrSafe Function SHGetDesktopFolder Lib "shell32" (ppshf As IShellFolder) As Long
-Public Declare PtrSafe Function SHChangeNotifyRegister Lib "shell32" (ByVal hwnd As LongPtr, ByVal fSources As SHCNRF, ByVal fEvents As SHCN_Events, ByVal wMsg As Long, ByVal cEntries As Long, lpps As SHChangeNotifyEntry) As Long
-Public Declare PtrSafe Function SHChangeNotifyDeregister Lib "shell32" (ByVal ulID As Long) As Long
-Public Declare PtrSafe Function SHCreateShellItemArrayFromDataObject Lib "shell32" (ByVal pdo As IDataObject, riid As UUID, ppv As Any) As Long
-Public Declare PtrSafe Function SHCreateShellItemArrayFromShellItem Lib "shell32" (ByVal pdo As IShellItem, riid As UUID, ppv As Any) As Long
-Public Declare PtrSafe Function SHChangeNotification_Lock Lib "shell32" (ByVal hChange As LongPtr, ByVal dwProcId As Long, pppidl As LongPtr, plEvent As Long) As LongPtr
-Public Declare PtrSafe Function SHChangeNotification_Unlock Lib "shell32" (ByVal hLock As LongPtr) As Long
-Public Declare PtrSafe Function SHGetImageList Lib "shell32" (ByVal iImageList As SHIL, riid As UUID, ppv As Any) As Long
-Public Declare PtrSafe Function SHCreateShellItemArray Lib "shell32" (ByVal pidlParent As LongPtr, ByVal psf As IShellFolder, ByVal cidl As Long, ByVal ppidl As LongPtr, ppsiItemArray As IShellItemArray) As Long
-Public Declare PtrSafe Function SHGetSpecialFolderLocation Lib "SHELL32.DLL" (ByVal hWndOwner As LongPtr, ByVal nFolder As CSIDLs, ppidl As LongPtr) As Long
 
-Public Declare PtrSafe Function StrRetToStrW Lib "shlwapi" (pStr As STRRET, ByVal pidl As LongPtr, ppsz As LongPtr) As Long
 
-Public Declare PtrSafe Function ILCombine Lib "shell32" (ByVal pidl1 As LongPtr, ByVal pidl2 As LongPtr) As LongPtr
 
-Public Declare PtrSafe Sub CoTaskMemFree Lib "ole32" (ByVal pv As LongPtr)
-
-Public Declare PtrSafe Function CreatePropertySheetPage Lib "comctl32" Alias "CreatePropertySheetPageA" (psp As PROPSHEETPAGE) As LongPtr
-Public Declare PtrSafe Function CreatePropertySheetPageW Lib "comctl32" (psp As PROPSHEETPAGE) As LongPtr
-Public Declare PtrSafe Function DestroyPropertySheetPage Lib "comctl32" (ByVal hPage As LongPtr) As Long
-
-Public Enum GMEM
-	GMEM_FIXED = &H0000
-	GMEM_MOVEABLE = &H0002
-	GMEM_NOCOMPACT = &H0010
-	GMEM_NODISCARD = &H0020
-	GMEM_ZEROINIT = &H0040
-	GMEM_MODIFY = &H0080
-	GMEM_DISCARDABLE = &H0100
-	GMEM_NOT_BANKED = &H1000
-	GMEM_SHARE = &H2000
-	GMEM_DDESHARE = &H2000
-	GMEM_NOTIFY = &H4000
-	GMEM_LOWER = &H1000
-	GMEM_VALID_FLAGS = &H7F72
-	GMEM_INVALID_HANDLE = &H8000
-	GHND = &H42
-	GPTR = &H40
-	GMEM_DISCARDED = &H4000
-	GMEM_LOCKCOUNT = &H00FF
-End Enum
-Public Declare PtrSafe Function GlobalAlloc Lib "kernel32" (ByVal uFlags As GMEM, ByVal dwBytes As LongPtr) As LongPtr
-Public Declare PtrSafe Function GlobalFree Lib "kernel32" (ByVal hMem As LongPtr) As LongPtr
-Public Declare PtrSafe Function GlobalLock Lib "kernel32" (ByVal hMem As LongPtr) As LongPtr
-Public Declare PtrSafe Function GlobalUnlock Lib "kernel32" (ByVal hMem As LongPtr) As Long
-Public Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
 
 
 'twinBASIC doesn't support coclasses yet, in the mean time, we can use these with CreateObject:
@@ -5654,6 +5630,7 @@ Public Const sCLSID_AppShellVerbHandler = "new: {4ED3A719-CEA8-4BD9-910D-E252F99
 Public Const sCLSID_ExecuteUnknown = "new: {e44e9428-bdbc-4987-a099-40dc8fd255e7}"
 Public Const sCLSID_NetworkPlaces = "new: {208d2c60-3aea-1069-a2d7-08002b30309d}"
 Public Const sCLSID_PropertiesUI = "new: {D912F8CF-0396-4915-884E-FB425D32943B}"
-
-
+Public Const sCLSID_UserEventTimer = "new: {864A1288-354C-4D19-9D68-C2742BB14997}"
+Public Const sCLSID_UserEventTimerCallback = "new: {15FFFD13-5140-41B8-B89A-C8D5759CD2B2}"
+Public Const sCLSID_AddressBarParser = "new: {E0E11A09-5CB8-4B6C-8332-E00720A168F2}"
 End Module
