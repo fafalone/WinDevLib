@@ -1,7 +1,7 @@
 # tbShellLib
 twinBASIC Shell Library
 
-Current Version 1.9.17 (October 15th, 2022)
+Current Version 2.0.20 (October 20th, 2022)
 (c) 2022 Jon Johnson (fafalone)
 
 This project aims to be a twinBASIC replacement for oleexp.tlb that is x64 compatible, due to the many problems using midl to create a 64bit tlb.
@@ -17,7 +17,9 @@ As a twinPACKAGE, the regular addin modules can be built in.
 
 ## Updates
 
-**Update (v1.9.17):** Extensive new interface additions; all remaining oleexp additions have been added including WIC and NetCon, and the majority of remaining original olelib interfaces have been added as well. 
+**Major Update (v2.0.20):**  The project has reached it's initial goal of implementing all but the most obsolete oleexp.tlb interfaces. In addition, with similar exception of a small set of highly obsolete items, the API coverage is now available. Note that this was subject to extensive cleanup; native-language declares can't use the last param as retval on APIs, so all of those were converted, and TLB APIs pass Strings as BSTR, while native language passes ANSI strings, so there's currently a mix of either using LongPtr or tB's DeclareWide for BSTR/LPWSTR support (if it says String you can use a String without StrPtr). 
+
+Update (v1.9.17): Extensive new interface additions; all remaining oleexp additions have been added including WIC and NetCon, and the majority of remaining original olelib interfaces have been added as well. 
 
 Update (v1.2.10): twinBASIC now supports [ PreserveSig ] as an attribute to have HRESULT values as a function return instead of only available via Err.LastHResult; tbShellLib now has this implemented wherever it is in oleexp. Like in VB, this means they're not Implements compatible, and at some point in the next few weeks, there will also be a tbShellLibImpl as a counterpart to oleexpimp.tlb. This update also adds all DirectShow interfaces (and mDirectShow.bas), most remaining oleexp interfaces, and several additional olelib interfaces.
 
