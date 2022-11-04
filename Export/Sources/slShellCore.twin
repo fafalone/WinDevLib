@@ -1,6 +1,6 @@
 '******************************************************************************
 'tbShellLib - twinBASIC Shell Library
-'Version 2.0.0
+'Version 2.1.24
 '(c) 2022 Jon Johnson (fafalone)
 '
 'This project aims to be a twinBASIC replacement fortlb that is x64
@@ -16,6 +16,8 @@
 '
 '
 'TODO: ITextDocument2 and other 2.0 RichEdit Windows 8 additions; IOleCache2 et al.
+
+#Const TB_SHELLLIB_DEFINED = 1
 
 [ InterfaceId ("85CB6900-4D95-11CF-960C-0080C7F4EE85") ]
 Interface IShellWindows Extends stdole.IDispatch
@@ -213,8 +215,8 @@ End Interface
 
 [ InterfaceId ("cde725b0-ccc9-4519-917e-325d72fab4ce") ]
 Interface IFolderView Extends stdole.IUnknown
-    Sub GetCurrentViewMode(pViewMode As Long)
-    Sub SetCurrentViewMode(ByVal ViewMode As Long)
+    Sub GetCurrentViewMode(pViewMode As FOLDERVIEWMODE)
+    Sub SetCurrentViewMode(ByVal ViewMode As FOLDERVIEWMODE)
     Sub GetFolder(riid As UUID, ppv As any)
     Sub Item(ByVal iItemIndex As Long, ppidl As LongPtr)
     Sub ItemCount(ByVal uFlags As SVGIO_Flags, pcItems As Long)
@@ -558,7 +560,7 @@ End Interface
 
 [ InterfaceId ("00000122-0000-0000-C000-000000000046") ]
 Interface IDropTarget Extends stdole.IUnknown
-    Sub DragEnter(ByVal pDataObject As IDataObject, ByVal grfKeyState As Long, ByVal pt As LongLong, dwEffect As DROPEFFECTS)
+    Sub DragEnter(ByVal pDataObject As IDataObject, ByVal grfKeyState As Long, ByVal pt As LongLong, pdwEffect As DROPEFFECTS)
     Sub DragOver(ByVal grfKeyState As Long, ByVal pt As LongLong, pdwEffect As DROPEFFECTS)
     Sub DragLeave()
     Sub Drop(ByVal pDataObj As IDataObject, ByVal grfKeyState As Long, ByVal pt As LongLong, pdwEffect As DROPEFFECTS)
@@ -594,7 +596,7 @@ Interface IImageList Extends stdole.IUnknown
     Sub BeginDrag(ByVal iTrack As Long, ByVal dxHotspot As Long, ByVal dyHotspot As Long)
     Sub EndDrag()
     Sub DragEnter(ByVal hwndLock As LongPtr, ByVal x As Long, ByVal y As Long)
-    Sub DragLeave(ByVal hwndLock As Long)
+    Sub DragLeave(ByVal hwndLock As LongPtr)
     Sub DragMove(ByVal x As Long, ByVal y As Long)
     Sub SetDragCursorImage(ByVal pUnk As stdole.IUnknown, ByVal iDrag As Long, ByVal dxHotspot As Long, ByVal dyHotspot As Long)
     Sub DragShowNolock(ByVal fShow As Long)
@@ -1054,17 +1056,6 @@ Interface IModalWindow Extends stdole.IUnknown
     Sub Show(ByVal hwndOwner As LongPtr)
 End Interface
 
-[ InterfaceId ("973510db-7d7f-452b-8975-74a85828d354") ]
-Interface IFileDialogEvents Extends stdole.IUnknown
-    Sub OnFileOk(ByVal pfd As IFileDialog)
-    Sub OnFolderChanging(ByVal pfd As IFileDialog, ByVal psiFolder As IShellItem)
-    Sub OnFolderChange(ByVal pfd As IFileDialog)
-    Sub OnSelectionChange(ByVal pfd As IFileDialog)
-    Sub OnShareViolation(ByVal pfd As IFileDialog, ByVal psi As IShellItem, pResponse As FDE_SHAREVIOLATION_RESPONSE)
-    Sub OnTypeChange(ByVal pfd As IFileDialog)
-    Sub OnOverwrite(ByVal pfd As IFileDialog, ByVal psi As IShellItem, pResponse As FDE_OVERWRITE_RESPONSE)
-End Interface
-
 [ InterfaceId ("42f85136-db7e-439c-85f1-e4075d135fc8") ]
 Interface IFileDialog Extends IModalWindow
     Sub SetFileTypes(ByVal cFileTypes As Long, ByVal rgFilterSpec As LongPtr)
@@ -1110,6 +1101,17 @@ End Interface
 Interface IFileOpenDialog Extends IFileDialog
     Sub GetResults(ppenum As IShellItemArray)
     Sub GetSelectedItems(ppsai As IShellItemArray)
+End Interface
+
+[ InterfaceId ("973510db-7d7f-452b-8975-74a85828d354") ]
+Interface IFileDialogEvents Extends stdole.IUnknown
+    Sub OnFileOk(ByVal pfd As IFileDialog)
+    Sub OnFolderChanging(ByVal pfd As IFileDialog, ByVal psiFolder As IShellItem)
+    Sub OnFolderChange(ByVal pfd As IFileDialog)
+    Sub OnSelectionChange(ByVal pfd As IFileDialog)
+    Sub OnShareViolation(ByVal pfd As IFileDialog, ByVal psi As IShellItem, pResponse As FDE_SHAREVIOLATION_RESPONSE)
+    Sub OnTypeChange(ByVal pfd As IFileDialog)
+    Sub OnOverwrite(ByVal pfd As IFileDialog, ByVal psi As IShellItem, pResponse As FDE_OVERWRITE_RESPONSE)
 End Interface
 
 [ InterfaceId ("e6fdd21a-163f-4975-9c8c-a69f1ba37034") ]
@@ -1699,6 +1701,13 @@ Interface ISystemInformation Extends stdole.IDispatch
     Function RebootRequired() As Long
 End Interface
 
+[ InterfaceId ("D11AD862-66DE-4DF4-BF6C-1F5621996AF1") ]
+Interface IOpenControlPanel Extends stdole.IUnknown
+    Sub Open(ByVal pszName As LongPtr, ByVal pszPage As LongPtr, ByVal pUnkSite As stdole.IUnknown)
+    Sub GetPath(ByVal pszName As LongPtr, pszPath As LongPtr, ByVal cchPath As Long)
+    Sub GetCurrentView(pView As CPVIEW)
+End Interface
+
 [ InterfaceId ("A08CE4D0-FA25-44AB-B57C-C7B1C323E0B9") ]
 Interface IExplorerCommand Extends stdole.IUnknown
     Sub GetTitle(ByVal psiItemArray As IShellItemArray, ByRef ppszName As LongPtr)
@@ -1836,7 +1845,7 @@ End Interface
 [ InterfaceId ("00000103-0000-0000-C000-000000000046") ]
 Interface IEnumFormatETC Extends stdole.IUnknown
     [ PreserveSig ]
-    Function Next(ByVal celt As Long, rgelt As FORMATETC, pceltFetched As Long) As Long
+    Function Next(ByVal celt As Long, rgelt As FORMATETC, Optional ByRef pceltFetched As Long) As Long
     Sub Skip(ByVal celt As Long)
     Sub Reset()
     Function Clone() As IEnumFormatETC
@@ -2238,6 +2247,330 @@ Interface IUnknownUnrestricted Extends Nothing
     [ PreserveSig ] Function Release() As Long
 End Interface
 
+
+'CLSID_DragDropHelper 
+[ CoClassId ("4657278A-411B-11D2-839A-00C04FD918D0") ]
+CoClass DragDropHelper
+	 [ Default ] Interface IDropTargetHelper
+	Interface IDragSourceHelper
+	Interface IDragSourceHelper2
+End CoClass
+'CLSID_KnownFolderManager 
+[ CoClassId ("4df0c730-df9d-4ae3-9153-aa6b82e9795a") ]
+CoClass KnownFolderManager
+	 [ Default ] Interface IKnownFolderManager
+End CoClass
+' 'CLSID_FileOperation 
+[ CoClassId ("3ad05575-8857-4850-9277-11b85bdb8e09") ]
+CoClass FileOperation
+	 [ Default ] Interface IFileOperation
+End CoClass
+'CLSID_ShellLibrary 
+[ CoClassId ("D9B3211D-E57F-4426-AAEF-30A806ADD397") ]
+CoClass ShellLibrary
+	 [ Default ] Interface IShellLibrary
+End CoClass
+'CLSID_FileOpenDialog 
+[ CoClassId ("DC1C5A9C-E88A-4dde-A5A1-60F82A20AEF7") ]
+CoClass FileOpenDialog
+	 [ Default ] Interface IFileOpenDialog
+End CoClass
+'CLSID_FileSaveDialog 
+[ CoClassId ("C0B4E2F3-BA21-4773-8DBA-335EC946EB8B") ]
+CoClass FileSaveDialog
+	 [ Default ] Interface IFileSaveDialog
+End CoClass
+'CLSID_EnumerableObjectCollection 
+[ CoClassId ("2D3468C1-36A7-43B6-AC24-D3F02FD9607A") ]
+CoClass EnumerableObjectCollection
+	 [ Default ] Interface IObjectCollection
+End CoClass
+'CLSID_TaskbarList 
+[ CoClassId ("56FDF344-FD6D-11d0-958A-006097C9A090") ]
+CoClass TaskbarList
+	 [ Default ] Interface ITaskbarList4
+End CoClass
+'CLSID_DestinationList 
+[ CoClassId ("77F10CF0-3DB5-4966-B520-B7C54FD35ED6") ]
+CoClass DestinationList
+	 [ Default ] Interface ICustomDestinationList
+End CoClass
+'CLSID_ShellWindows 
+[ CoClassId ("9BA05972-F6A8-11CF-A442-00A0C90A8F39") ]
+CoClass ShellWindows
+	 [ Default ] Interface IShellWindows
+End CoClass
+'CLSID_ProgressDialog 
+[ CoClassId ("F8383852-FCD3-11d1-A6B9-006097DF5BD4") ]
+CoClass ProgressDialog
+	 [ Default ] Interface IProgressDialog
+     Interface IOperationsProgressDialog
+End CoClass
+'CLSID_NamespaceWalker 
+[ CoClassId ("72eb61e0-8672-4303-9175-f2e4c68b2e7c") ]
+CoClass NamespaceWalker
+	 [ Default ] Interface INamespaceWalk
+End CoClass
+'CLSID_UserNotification 
+[ CoClassId ("0010890e-8789-413c-adbc-48f5b511b3af") ]
+CoClass UserNotification
+	 [ Default ] Interface IUserNotification
+End CoClass
+'CLSID_FolderViewHost 
+[ CoClassId ("20b1cb23-6968-4eb9-b7d4-a66d00d07cee") ]
+CoClass FolderViewHost
+	 [ Default ] Interface IFolderViewHost
+End CoClass
+'CLSID_CDBurn 
+[ CoClassId ("fbeb8a05-beee-4442-804e-409d6c4515e9") ]
+CoClass CDBurn
+	 [ Default ] Interface ICDBurn
+End CoClass
+'CLSID_ImageRecompress 
+[ CoClassId ("6e33091c-d2f8-4740-b55e-2e11d1477a2c") ]
+CoClass ImageRecompress
+	 [ Default ] Interface IImageRecompress
+End CoClass
+'CLSID_ImageTranscode 
+[ CoClassId ("17B75166-928F-417d-9685-64AA135565C1") ]
+CoClass ImageTranscode
+	 [ Default ] Interface ITranscodeImage
+End CoClass
+'CLSID_ShellImageDataFactory 
+[ CoClassId ("66e4e4fb-f385-4dd0-8d74-a2efd1bc6178") ]
+CoClass ShellImageDataFactory
+	 [ Default ] Interface IShellImageDataFactory
+End CoClass
+'CLSID_QueryCancelAutoPlay 
+[ CoClassId ("331F1768-05A9-4ddd-B86E-DAE34DDC998A") ]
+CoClass QueryCancelAutoPlay
+	 [ Default ] Interface IQueryCancelAutoPlay
+End CoClass
+'CLSID_CFSIconOverlayManager 
+[ CoClassId ("63B51F81-C868-11D0-999C-00C04FD655E1") ]
+CoClass CFSIconOverlayManager
+	 [ Default ] Interface IShellIconOverlayManager
+End CoClass
+'CLSID_VirtualDesktopManager 
+[ CoClassId ("aa509086-5ca9-4c25-8f95-589d3c07b48a") ]
+CoClass VirtualDesktopManager
+	 [ Default ] Interface IVirtualDesktopManager
+End CoClass
+'CLSID_PreviousVersions 
+[ CoClassId ("596AB062-B4D2-4215-9F74-E9109B0A8153") ]
+CoClass PreviousVersions
+	 [ Default ] Interface IPreviousVersionsInfo
+End CoClass
+'CLSID_StdGlobalInterfaceTable 
+[ CoClassId ("00000323-0000-0000-C000-000000000046") ]
+CoClass StdGlobalInterfaceTable
+	 [ Default ] Interface IGlobalInterfaceTable
+End CoClass
+'CLSID_LocalThumbnailCache 
+[ CoClassId ("50EF4544-AC9F-4A8E-B21B-8A26180DB13F") ]
+CoClass LocalThumbnailCache
+	 [ Default ] Interface IThumbnailCache
+End CoClass
+'CLSID_SharedBitmap 
+[ CoClassId ("4db26476-6787-4046-b836-e8412a9e8a27") ]
+CoClass SharedBitmap
+	 [ Default ] Interface ISharedBitmap
+End CoClass
+'CLSID_ShellLinkW 
+[ CoClassId ("00021401-0000-0000-C000-000000000046") ]
+CoClass ShellLinkW
+	 [ Default ] Interface IShellLinkW
+End CoClass
+'CLSID_AutoComplete 
+[ CoClassId ("00BB2763-6A77-11D0-A535-00C04FD7D062") ]
+CoClass AutoComplete
+	 [ Default ] Interface IAutoComplete2
+     Interface IAutoComplete
+End CoClass
+'CLSID_ACListISF 
+[ CoClassId ("03C036F1-A186-11D0-824A-00AA005B4383") ]
+CoClass ACListISF
+	 [ Default ] Interface IACList
+     Interface IEnumString
+End CoClass
+'CLSID_ACLHistory 
+[ CoClassId ("00BB2764-6A77-11D0-A535-00C04FD7D062") ]
+CoClass ACLHistory
+	 [ Default ] Interface IACList
+     Interface IEnumString
+End CoClass
+'CLSID_ACLMRU 
+[ CoClassId ("6756A641-DE71-11d0-831B-00AA005B4383") ]
+CoClass ACLMRU
+	 [ Default ] Interface IACList
+     Interface IEnumString
+End CoClass
+'CLSID_ACLMulti 
+[ CoClassId ("00BB2765-6A77-11D0-A535-00C04FD7D062") ]
+CoClass ACLMulti
+	 [ Default ] Interface IACList
+     Interface IEnumString
+End CoClass
+'CLSID_StdComponentCategoriesMgr 
+[ CoClassId ("0002e005-0000-0000-c000-000000000046") ]
+CoClass StdComponentCategoriesMgr
+    [ Default ] Interface ICatInformation
+    Interface ICatRegister
+End CoClass
+'CLSID_ApplicationAssociationRegistrationUI 
+[ CoClassId ("1968106d-f3b5-44cf-890e-116fcb9ecef1") ]
+CoClass ApplicationAssociationRegistrationUI
+	 [ Default ] Interface IApplicationAssociationRegistrationUI
+End CoClass
+'CLSID_ApplicationAssociationRegistration 
+[ CoClassId ("591209c7-767b-42b2-9fba-44ee4615f2c7") ]
+CoClass ApplicationAssociationRegistration
+	 [ Default ] Interface IApplicationAssociationRegistration
+End CoClass
+'CLSID_HomeGroup 
+[ CoClassId ("DE77BA04-3C92-4d11-A1A5-42352A53E0E3") ]
+CoClass HomeGroup
+	 [ Default ] Interface IHomeGroup
+End CoClass
+'CLSID_ApplicationDocumentLists 
+[ CoClassId ("86bec222-30f2-47e0-9f25-60d11cd75c28") ]
+CoClass ApplicationDocumentLists
+	 [ Default ] Interface IApplicationDocumentLists
+End CoClass
+'CLSID_SharingConfigurationManager 
+[ CoClassId ("49F371E1-8C5C-4d9c-9A3B-54A6827F513C") ]
+CoClass SharingConfigurationManager
+	 [ Default ] Interface ISharingConfigurationManager
+End CoClass
+'CLSID_SystemInformation 
+[ CoClassId ("C01B9BA0-BEA7-41BA-B604-D0A36F469133") ]
+CoClass SystemInformation
+	 [ Default ] Interface ISystemInformation
+End CoClass
+'CLSID_
+[ CoClassId ("8b6a3ebb-cd13-4704-93c5-bc3413104e4c") ]
+CoClass PropertyChangeArray
+	 [ Default ] Interface IPropertyChangeArray
+End CoClass
+'CLSID_DefFolderMenu 
+[ CoClassId ("c63382be-7933-48d0-9ac8-85fb46be2fdd") ]
+CoClass DefFolderMenu
+	 [ Default ] Interface IDefaultFolderMenuInitialize
+End CoClass
+'CLSID_FrameworkInputPane 
+[ CoClassId ("D5120AA3-46BA-44C5-822D-CA8092C1FC72") ]
+CoClass FrameworkInputPane
+	 [ Default ] Interface IFrameworkInputPane
+End CoClass
+'CLSID_ExecuteFolder 
+[ CoClassId ("11dbb47c-a525-400b-9e80-a54615a090c0") ]
+CoClass ExecuteFolder
+	 [ Default ] Interface IExecuteCommand
+End CoClass
+'CLSID_AppShellVerbHandler 
+[ CoClassId ("4ED3A719-CEA8-4BD9-910D-E252F997AFC2") ]
+CoClass AppShellVerbHandler
+	 [ Default ] Interface IExecuteCommand
+End CoClass
+'CLSID_ExecuteUnknown 
+[ CoClassId ("e44e9428-bdbc-4987-a099-40dc8fd255e7") ]
+CoClass ExecuteUnknown
+	 [ Default ] Interface IExecuteCommand
+End CoClass
+'CLSID_NetworkPlaces 
+[ CoClassId ("208d2c60-3aea-1069-a2d7-08002b30309d") ]
+CoClass NetworkPlaces
+	 [ Default ] Interface IInitializeNetworkFolder
+     Interface IShellFolder2
+End CoClass
+'CLSID_PropertiesUI 
+[ CoClassId ("D912F8CF-0396-4915-884E-FB425D32943B") ]
+CoClass PropertiesUI
+	 [ Default ] Interface IPropertyUI
+End CoClass
+'CLSID_UserEventTimer 
+[ CoClassId ("864A1288-354C-4D19-9D68-C2742BB14997") ]
+CoClass UserEventTimer
+	 [ Default ] Interface IUserEventTimer
+End CoClass
+'CLSID_UserEventTimerCallback 
+[ CoClassId ("15FFFD13-5140-41B8-B89A-C8D5759CD2B2") ]
+CoClass UserEventTimerCallback
+	 [ Default ] Interface IUserEventTimerCallback
+End CoClass
+'CLSID_AddressBarParser 
+[ CoClassId ("E0E11A09-5CB8-4B6C-8332-E00720A168F2") ]
+CoClass AddressBarParser
+	 [ Default ] Interface IAddressBarParser
+End CoClass
+
+'CLSID_ImageList 
+[ CoClassId ("7C476BA2-02B1-48f4-8048-B24619DDC058") ]
+CoClass ImageList
+	 [ Default ] Interface IImageList2
+End CoClass
+
+'CLSID_MenuBand 
+[ CoClassId ("71D88C20-41CF-4CDF-A81F-D8609836347D") ]
+CoClass MenuBand
+	 [ Default ] Interface IShellMenu
+End CoClass
+
+'CLSID_OpenControlPanel 
+[ CoClassId ("06622D85-6856-4460-8DE1-A81921B41C4B") ]
+CoClass OpenControlPanel
+	 [ Default ] Interface IOpenControlPanel
+End CoClass
+
+'CLSID_DriveSizeCategorizer 
+[ CoClassId ("94357B53-CA29-4b78-83AE-E8FE7409134F") ]
+CoClass DriveSizeCategorizer 
+	 [ Default ] Interface ICategorizer 
+End CoClass
+
+'CLSID_DriveTypeCategorizer 
+[ CoClassId ("B0A8F3CF-4333-4bab-8873-1CCB1CADA48B") ]
+CoClass DriveTypeCategorizer 
+	 [ Default ] Interface ICategorizer 
+End CoClass
+
+'CLSID_FreeSpaceCategorizer 
+[ CoClassId ("B5607793-24AC-44c7-82E2-831726AA6CB7") ]
+CoClass FreeSpaceCategorizer 
+	 [ Default ] Interface ICategorizer 
+End CoClass
+
+'CLSID_TimeCategorizer 
+[ CoClassId ("3bb4118f-ddfd-4d30-a348-9fb5d6bf1afe") ]
+CoClass TimeCategorizer 
+	 [ Default ] Interface ICategorizer 
+End CoClass
+
+'CLSID_SizeCategorizer 
+[ CoClassId ("55d7b852-f6d1-42f2-aa75-8728a1b2d264") ]
+CoClass SizeCategorizer 
+	 [ Default ] Interface ICategorizer 
+End CoClass
+
+'CLSID_AlphabeticalCategorizer 
+[ CoClassId ("3c2654c6-7372-4f6b-b310-55d6128f49d2") ]
+CoClass AlphabeticalCategorizer 
+	 [ Default ] Interface ICategorizer 
+End CoClass
+
+'CLSID_MergedCategorizer 
+[ CoClassId ("8e827c11-33e7-4bc1-b242-8cd9a1c2b304") ]
+CoClass MergedCategorizer 
+	 [ Default ] Interface ICategorizer 
+End CoClass
+
+'CLSID_ImageProperties 
+[ CoClassId ("7ab770c7-0e23-4d7a-8aa2-19bfad479829") ]
+CoClass ImageProperties 
+	 [ Default ] Interface stdole.IUnknown
+     Interface IPersistFile
+End CoClass
+
 Module slShellCore
 Option Explicit
 
@@ -2347,117 +2680,6 @@ Public Enum MKREDUCE
 	MKRREDUCE_THROUGHUSER = &H10
 	MKRREDUCE_ALL = 0
 End Enum
-
-
-Public Const CF_TEXT             As Integer = 1'      //Text format
-Public Const CF_BITMAP           As Integer = 2 '      //Handle to a bitmap
-Public Const CF_METAFILEPICT     As Integer = 3 '      //Handle to a metafile picture format
-Public Const CF_SYLK             As Integer = 4 '      //Microsoft Symbolic Link format
-Public Const CF_DIF              As Integer = 5 '      //Software Art's data interchange format
-Public Const CF_TIFF             As Integer = 6 '      //Tagged-image file format
-Public Const CF_OEMTEXT          As Integer = 7 '      //Text format in OEM character set
-Public Const CF_DIB              As Integer = 8 '      //Memory object containing BITMAPINFO
-Public Const CF_PALETTE          As Integer = 9 '      //Handle to a color palette
-Public Const CF_PENDATA          As Integer = 10 '     //Data for pen extensions
-Public Const CF_RIFF             As Integer = 11 '     //Audio data
-Public Const CF_WAVE             As Integer = 12 '     //Audio data in WAV format
-Public Const CF_UNICODETEXT      As Integer = 13 '	  //Unicode text format
-Public Const CF_ENHMETAFILE      As Integer = 14 '     //Handle to enhanced metafile
-Public Const CF_HDROP            As Integer = 15 '     //Handle that identifies list of files
-Public Const CF_LOCALE           As Integer = 16 '     //Handle to locale identifier
-Public Const CF_DIBV5            As Integer = 17 '     //Uses BITMAPV5HEADER
-Public Const CF_MAX              As Integer = 18'     //End of enum (Not real format, just placeholder)
-Public Const CF_OWNERDISPLAY     As Integer = &H0080' //Owner display format
-Public Const CF_DSPTEXT          As Integer = &H0081' //Text in private format
-Public Const CF_DSPBITMAP        As Integer = &H0082' //Bitmap display in private format
-Public Const CF_DSPMETAFILEPICT  As Integer = &H0083' //Metafile in private format
-Public Const CF_DSPENHMETAFILE   As Integer = &H008E' //Enhanced metafile in private format
-
-Public Const CFSTR_SHELLIDLIST				 = "Shell IDList Array"
-Public Const CFSTR_SHELLIDLISTOFFSET		 = "Shell Object Offsets"
-Public Const CFSTR_NETRESOURCES				 = "Net Resource"
-Public Const CFSTR_FILEDESCRIPTORA			 = "FileGroupDescriptor"
-Public Const CFSTR_FILEDESCRIPTORW			 = "FileGroupDescriptorW"
-Public Const CFSTR_FILECONTENTS				 = "FileContents"
-Public Const CFSTR_FILENAMEA				 = "FileName"
-Public Const CFSTR_FILENAMEW				 = "FileNameW"
-Public Const CFSTR_PRINTERGROUP				 = "PrinterFriendlyName"
-Public Const CFSTR_FILENAMEMAPA				 = "FileNameMap"
-Public Const CFSTR_FILENAMEMAPW				 = "FileNameMapW"
-Public Const CFSTR_SHELLURL					 = "UniformResourceLocator"
-Public Const CFSTR_INETURLA					 = "UniformResourceLocator"
-Public Const CFSTR_INETURLW					 = "UniformResourceLocatorW"
-Public Const CFSTR_PREFERREDDROPEFFECT		 = "Preferred DropEffect"
-Public Const CFSTR_PERFORMEDDROPEFFECT		 = "Performed DropEffect"
-Public Const CFSTR_PASTESUCCEEDED		     = "Paste Succeeded"
-Public Const CFSTR_INDRAGLOOP                = "InShellDragLoop"
-Public Const CFSTR_DRAGCONTEXT               = "DragContext"
-Public Const CFSTR_COMPUTEDDRAGIMAGE         = "ComputedDragImage"
-Public Const CFSTR_MOUNTEDVOLUME             = "MountedVolume"
-Public Const CFSTR_PERSISTEDDATAOBJECT       = "PersistedDataObject"
-Public Const CFSTR_DATAOBJECTATTRIBUTES      = "DataObjectAttributes"
-Public Const CFSTR_DATAOBJECTATTRIBUTESELEVATED = "DataObjectAttributesRequiringElevation"
-Public Const CFSTR_UIDISPLAYED               = "UIDisplayed"
-Public Const CFSTR_DROPEFFECTFOLDERLIST      = "DropEffectFolderList"
-Public Const CFSTR_ASYNC                     = "AsyncFlag"
-Public Const CFSTR_USINGDEFAULTDRAGIMAGE     = "UsingDefaultDragImage"
-Public Const CFSTR_DRAGIMAGEBITS             = "DragImageBits"
-Public Const CFSTR_DRAGSOURCEHELPERFLAGS     = "DragSourceHelperFlags"
-Public Const CFSTR_TARGETCLSID               = "TargetCLSID" 'HGLOBAL with a CLSID of the drop target
-Public Const CFSTR_LOGICALPERFORMEDDROPEFFECT = "Logical Performed DropEffect"
-Public Const CFSTR_OutlookExpressMessages    = "Outlook Express Messages"
-Public Const CFSTR_HYPERLINK				 = "Hyperlink"
-Public Const CFSTR_AUTOPLAY_SHELLIDLISTS	 = "Autoplay Enumerated IDList Array"
-Public Const CFSTR_UNTRUSTEDDRAGDROP		 = "UntrustedDragDrop"
-Public Const CFSTR_FILE_ATTRIBUTES_ARRAY	 = "File Attributes Array"
-Public Const CFSTR_INVOKECOMMAND_DROPPARAM	 = "InvokeCommand DropParam"
-Public Const CFSTR_SHELLDROPHANDLER			 = "DropHandlerCLSID"
-Public Const CFSTR_DROPDESCRIPTION			 = "DropDescription"
-Public Const CFSTR_HTMLFORMAT				 = "HTML Format"
-Public Const CFSTR_PNG						 = "PNG"
-Public Const CFSTR_RTF						 = "Rich Text Format"
-Public Const CFSTR_OBJECTDESCRIPTOR          = "Object Descriptor"
-Public Const CFSTR_MIME_TEXT				 = "text/plain"
-Public Const CFSTR_MIME_RICHTEXT			 = "text/richtext"
-Public Const CFSTR_MIME_URILIST				 = "text/uri-list"
-Public Const CFSTR_MIME_X_BITMAP			 = "image/x-xbitmap"
-Public Const CFSTR_MIME_POSTSCRIPT			 = "application/postscript"
-Public Const CFSTR_MIME_AIFF				 = "audio/aiff"
-Public Const CFSTR_MIME_BASICAUDIO			 = "audio/basic"
-Public Const CFSTR_MIME_WAV					 = "audio/wav"
-Public Const CFSTR_MIME_X_WAV				 = "audio/x-wav"
-Public Const CFSTR_MIME_GIF					 = "image/gif"
-Public Const CFSTR_MIME_PJPEG				 = "image/pjpeg"
-Public Const CFSTR_MIME_JPEG				 = "image/jpeg"
-Public Const CFSTR_MIME_TIFF				 = "image/tiff"
-Public Const CFSTR_MIME_X_PNG				 = "image/x-png"
-Public Const CFSTR_MIME_BMP					 = "image/bmp"
-Public Const CFSTR_MIME_X_ART				 = "image/x-jg"
-Public Const CFSTR_MIME_X_EMF				 = "image/x-emf"
-Public Const CFSTR_MIME_X_WMF				 = "image/x-wmf"
-Public Const CFSTR_MIME_AVI					 = "video/avi"
-Public Const CFSTR_MIME_MPEG				 = "video/mpeg"
-Public Const CFSTR_MIME_FRACTALS			 = "application/fractals"
-Public Const CFSTR_MIME_RAWDATA				 = "application/octet-stream"
-Public Const CFSTR_MIME_RAWDATASTRM			 = "application/octet-stream"
-Public Const CFSTR_MIME_PDF					 = "application/pdf"
-Public Const CFSTR_MIME_HTA					 = "application/hta"
-Public Const CFSTR_MIME_X_AIFF				 = "audio/x-aiff"
-Public Const CFSTR_MIME_X_REALAUDIO			 = "audio/x-pn-realaudio"
-Public Const CFSTR_MIME_XBM					 = "image/xbm"
-Public Const CFSTR_MIME_QUICKTIME			 = "video/quicktime"
-Public Const CFSTR_MIME_X_MSVIDEO			 = "video/x-msvideo"
-Public Const CFSTR_MIME_X_SGI_MOVIE			 = "video/x-sgi-movie"
-Public Const CFSTR_MIME_HTML				 = "text/html"
-Public Const CFSTR_MIME_XML					 = "text/xml"
-Public Const CFSTR_SHELLCOPYDATA             = "Shell Copy Data"
-    
-Public Const DRAGDROP_E_ALREADYREGISTERED = &H80040101
-Public Const DRAGDROP_E_INVALIDHWND       = &H80040102
-Public Const DRAGDROP_E_NOTREGISTERED     = &H80040100
-Public Const DRAGDROP_S_CANCEL            = &H40101
-Public Const DRAGDROP_S_DROP              = &H40100
-Public Const DRAGDROP_S_USEDEFAULTCURSORS = &H40102
 
 Public Enum CSIDLs
 	CSIDL_DESKTOP = &H0000
@@ -4432,8 +4654,8 @@ Public Enum FILEOPENDIALOGOPTIONS
 End Enum
 
 Public Type COMDLG_FILTERSPEC
-    pszName As String
-    pszSpec As String
+    pszName As LongPtr
+    pszSpec As LongPtr
 End Type
 
 Public Enum CDCONTROLSTATEF
@@ -4925,134 +5147,6 @@ Public Enum ARCONTENT
 	ARCONTENT_PHASE_MASK = &H70000000 ' Bits that denote what phase we are in the Autoplay process.
 End Enum
 
-Public Enum PSP_FLAGS
-	PSP_DEFAULT = &H00000000
-	PSP_DLGINDIRECT = &H00000001
-	PSP_USEHICON = &H00000002
-	PSP_USEICONID = &H00000004
-	PSP_USETITLE = &H00000008
-	PSP_RTLREADING = &H00000010
-	PSP_HASHELP = &H00000020
-	PSP_USEREFPARENT = &H00000040
-	PSP_USECALLBACK = &H00000080
-	PSP_PREMATURE = &H00000400
-	PSP_HIDEHEADER = &H00000800
-	PSP_USEHEADERTITLE = &H00001000
-	PSP_USEHEADERSUBTITLE = &H00002000
-	PSP_USEFUSIONCONTEXT = &H00004000
-End Enum
-
-Public Enum PSPCALLBACKMESSAGES
-	PSPCB_ADDREF = 0
-	PSPCB_RELEASE = 1
-	PSPCB_CREATE = 2
-End Enum
-
-Public Type PROPSHEETPAGE
-	dwSize As long
-    dwFlags As PSP_FLAGS
-    hInstance As LongPtr
-    pResource As LongPtr
-    hIcon As LongPtr
-    pszTitle As LongPtr
-    pfnDlgProc As LongPtr
-    lParam As LongPtr
-    pfnCallback As LongPtr
-    pcRefParent As LongPtr
-    pszHeaderTitle As LongPtr
-    pszHeaderSubTitle As LongPtr
-    hActCtx As LongPtr
-    bmHeader As LongPtr
-End Type
-
-Public Type PSHNOTIFY
-	hdr As NMHDR
-    lParam As LongPtr
-End Type
-
-Public Enum PSNOTIFYCODES
-	PSN_FIRST = (-200)
-	PSN_LAST = (-299)
-	PSN_SETACTIVE = (-200)
-	PSN_KILLACTIVE = (-201)
-	PSN_APPLY = (-202)
-	PSN_RESET = (-203)
-	PSN_HELP = (-205)
-	PSN_WIZBACK = (-206)
-	PSN_WIZNEXT = (-207)
-	PSN_WIZFINISH = (-208)
-	PSN_QUERYCANCEL = (-209)
-	PSN_GETOBJECT = (-210)
-	PSN_TRANSLATEACCELERATOR = (-211)
-	PSN_QUERYINITIALFOCUS = (-212)
-End Enum
-
-Public Enum PSNOTIFYRESULTS
-	PSNRET_NOERROR = 0
-	PSNRET_INVALID = 1
-	PSNRET_INVALID_NOCHANGEPAGE = 2
-	PSNRET_MESSAGEHANDLED = 3
-End Enum
-
-Public Enum PSMESSAGES
-	PSM_SETCURSEL = (&H400 + 101)
-	PSM_REMOVEPAGE = (&H400 + 102)
-	PSM_ADDPAGE = (&H400 + 103)
-	PSM_CHANGED = (&H400 + 104)
-	PSM_RESTARTWINDOWS = (&H400 + 105)
-	PSM_REBOOTSYSTEM = (&H400 + 106)
-	PSM_CANCELTOCLOSE = (&H400 + 107)
-	PSM_QUERYSIBLINGS = (&H400 + 108)
-	PSM_UNCHANGED = (&H400 + 109)
-	PSM_APPLY = (&H400 + 110)
-	PSM_SETTITLEA = (&H400 + 111)
-	PSM_SETTITLEW = (&H400 + 120)
-	PSM_SETWIZBUTTONS = (&H400 + 112)
-	PSM_PRESSBUTTON = (&H400 + 113)
-	PSM_SETCURSELID = (&H400 + 114)
-	PSM_SETFINISHTEXTA = (&H400 + 115)
-	PSM_SETFINISHTEXTW = (&H400 + 121)
-	PSM_GETTABCONTROL = (&H400 + 116)
-	PSM_ISDIALOGMESSAGE = (&H400 + 117)
-	PSM_GETCURRENTPAGEHWND = (&H400 + 118)
-	PSM_INSERTPAGE = (&H400 + 119)
-	PSM_SETHEADERTITLEA = (&H400 + 125)
-	PSM_SETHEADERTITLEW = (&H400 + 126)
-	PSM_SETHEADERSUBTITLEA = (&H400 + 127)
-	PSM_SETHEADERSUBTITLEW = (&H400 + 128)
-	PSM_HWNDTOINDEX = (&H400 + 129)
-	PSM_INDEXTOHWND = (&H400 + 130)
-	PSM_PAGETOINDEX = (&H400 + 131)
-	PSM_INDEXTOPAGE = (&H400 + 132)
-	PSM_IDTOINDEX = (&H400 + 133)
-	PSM_INDEXTOID = (&H400 + 134)
-	PSM_GETRESULT = (&H400 + 135)
-	PSM_RECALCPAGESIZES = (&H400 + 136)
-	PSM_SETNEXTTEXT = (&H400 + 137)
-	PSM_SHOWWIZBUTTONS = (&H400 + 138)
-	PSM_ENABLEWIZBUTTONS = (&H400 + 139)
-	PSM_SETBUTTONTEXT = (&H400 + 140)
-End Enum
-
-Public Enum PSWIZBUTTONS
-	PSWIZB_BACK = &H00000001
-	PSWIZB_NEXT = &H00000002
-	PSWIZB_FINISH = &H00000004
-	PSWIZB_DISABLEDFINISH = &H00000008
-	PSWIZB_CANCEL = &H00000010
-End Enum
-
-Public Enum PSBUTTONS
-	PSBTN_BACK = 0
-	PSBTN_NEXT = 1
-	PSBTN_FINISH = 2
-	PSBTN_OK = 3
-	PSBTN_APPLYNOW = 4
-	PSBTN_CANCEL = 5
-	PSBTN_HELP = 6
-	PSBTN_MAX = 6
-End Enum
-
 Public Enum SIOM_Flags
 	SIOM_OVERLAYINDEX = &H1
 	SIOM_ICONINDEX = &H2
@@ -5540,6 +5634,7 @@ Public Enum SMSET_Flags
 	SMSET_SEPARATEMERGEFOLDER = &H00000200  'Insert separator when MergedFolder host changes")
 End Enum
 
+
 Public Enum MENUPOPUPPOPUPFLAGS
     MPPF_SETFOCUS = 1                                    ' &H00000001&
     MPPF_INITIALSELECT = 2                               ' &H00000002&
@@ -5578,7 +5673,12 @@ Public Enum PROPERTYUI_FORMAT_FLAGS
 End Enum
     
 
-
+Public Enum CPVIEW
+	CPVIEW_CLASSIC = 0
+	CPVIEW_ALLITEMS = 0 'CPVIEW_CLASSIC,
+	CPVIEW_CATEGORY = 1
+	CPVIEW_HOME = 1 'CPVIEW_CATEGORY,
+End Enum
 
 
 
@@ -5588,11 +5688,11 @@ Public Const sCLSID_DragDropHelper = "new: {4657278A-411B-11D2-839A-00C04FD918D0
 Public Const sCLSID_KnownFolderManager = "new: {4df0c730-df9d-4ae3-9153-aa6b82e9795a}"
 Public Const sCLSID_FileOperation = "new: {3ad05575-8857-4850-9277-11b85bdb8e09}"
 Public Const sCLSID_ShellLibrary = "new: {D9B3211D-E57F-4426-AAEF-30A806ADD397}"
-Public Const sCLSID_FileOpenDialog= "new: {DC1C5A9C-E88A-4dde-A5A1-60F82A20AEF7}"
-Public Const sCLSID_FileSaveDialog= "new: {C0B4E2F3-BA21-4773-8DBA-335EC946EB8B}"
+Public Const sCLSID_FileOpenDialog = "new: {DC1C5A9C-E88A-4dde-A5A1-60F82A20AEF7}"
+Public Const sCLSID_FileSaveDialog = "new: {C0B4E2F3-BA21-4773-8DBA-335EC946EB8B}"
 Public Const sCLSID_EnumerableObjectCollection = "new: {2D3468C1-36A7-43B6-AC24-D3F02FD9607A}"
 Public Const sCLSID_TaskbarList = "new: {56FDF344-FD6D-11d0-958A-006097C9A090}"
-Public Const sCLSID_DestinationList= "new: {77F10CF0-3DB5-4966-B520-B7C54FD35ED6}"
+Public Const sCLSID_DestinationList = "new: {77F10CF0-3DB5-4966-B520-B7C54FD35ED6}"
 Public Const sCLSID_ShellWindows = "new: {9BA05972-F6A8-11CF-A442-00A0C90A8F39}"
 Public Const sCLSID_ProgressDialog = "new: {F8383852-FCD3-11d1-A6B9-006097DF5BD4}"
 Public Const sCLSID_NamespaceWalker = "new: {72eb61e0-8672-4303-9175-f2e4c68b2e7c}"
@@ -5622,7 +5722,7 @@ Public Const sCLSID_HomeGroup = "new: {DE77BA04-3C92-4d11-A1A5-42352A53E0E3}"
 Public Const sCLSID_ApplicationDocumentLists = "new: {86bec222-30f2-47e0-9f25-60d11cd75c28}"
 Public Const sCLSID_SharingConfigurationManager = "new: {49F371E1-8C5C-4d9c-9A3B-54A6827F513C}"
 Public Const sCLSID_SystemInformation = "new: {C01B9BA0-BEA7-41BA-B604-D0A36F469133}"
-Public Const sCLSID_PropertyChangeArray= "new: {8b6a3ebb-cd13-4704-93c5-bc3413104e4c}"
+Public Const sCLSID_PropertyChangeArray = "new: {8b6a3ebb-cd13-4704-93c5-bc3413104e4c}"
 Public Const sCLSID_DefFolderMenu = "new: {c63382be-7933-48d0-9ac8-85fb46be2fdd}"
 Public Const sCLSID_FrameworkInputPane = "new: {D5120AA3-46BA-44C5-822D-CA8092C1FC72}"
 Public Const sCLSID_ExecuteFolder = "new: {11dbb47c-a525-400b-9e80-a54615a090c0}"
@@ -5633,4 +5733,15 @@ Public Const sCLSID_PropertiesUI = "new: {D912F8CF-0396-4915-884E-FB425D32943B}"
 Public Const sCLSID_UserEventTimer = "new: {864A1288-354C-4D19-9D68-C2742BB14997}"
 Public Const sCLSID_UserEventTimerCallback = "new: {15FFFD13-5140-41B8-B89A-C8D5759CD2B2}"
 Public Const sCLSID_AddressBarParser = "new: {E0E11A09-5CB8-4B6C-8332-E00720A168F2}"
+Public Const sCLSID_ImageList = "new: {7C476BA2-02B1-48f4-8048-B24619DDC058}"
+Public Const sCLSID_MenuBand = "new: {71D88C20-41CF-4CDF-A81F-D8609836347D}"
+Public Const sCLSID_OpenControlPanel = "new: {06622D85-6856-4460-8DE1-A81921B41C4B}"
+Public Const sCLSID_DriveSizeCategorizer = "new: {94357B53-CA29-4b78-83AE-E8FE7409134F}"
+Public Const sCLSID_DriveTypeCategorizer = "new: {B0A8F3CF-4333-4bab-8873-1CCB1CADA48B}"
+Public Const sCLSID_FreeSpaceCategorizer = "new: {B5607793-24AC-44c7-82E2-831726AA6CB7}"
+Public Const sCLSID_TimeCategorizer = "new: {3bb4118f-ddfd-4d30-a348-9fb5d6bf1afe}"
+Public Const sCLSID_SizeCategorizer = "new: {55d7b852-f6d1-42f2-aa75-8728a1b2d264}"
+Public Const sCLSID_AlphabeticalCategorizer = "new: {3c2654c6-7372-4f6b-b310-55d6128f49d2}"
+Public Const sCLSID_MergedCategorizer = "new: {8e827c11-33e7-4bc1-b242-8cd9a1c2b304}"
+Public Const sCLSID_ImageProperties = "new: {7ab770c7-0e23-4d7a-8aa2-19bfad479829}"
 End Module
