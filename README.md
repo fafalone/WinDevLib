@@ -1,7 +1,7 @@
 # tbShellLib
 twinBASIC Shell Library
 
-Current Version 2.0.20 (October 20th, 2022)
+Current Version 2.1.24 (November 4th, 2022)
 (c) 2022 Jon Johnson (fafalone)
 
 This project aims to be a twinBASIC replacement for oleexp.tlb that is x64 compatible, due to the many problems using midl to create a 64bit tlb.
@@ -12,10 +12,12 @@ As a twinPACKAGE, the regular addin modules can be built in.
 
 ## Requirements
 
-[twinBASIC Beta 147 or newer](https://github.com/twinbasic/twinbasic/releases) is required.
+[twinBASIC Beta 167 or newer](https://github.com/twinbasic/twinbasic/releases) is required.
 
 
 ## Updates
+
+**Update (v2.1.24):** twinBASIC now supports in-project `CoClass` syntax! All coclasses from oleexp have been added (I think, if you find one missing please create an issue), and can once again be used with the New keyword. The prior sCLSID constants have been left in. Also greatly expanded the API declare coverage to match what was in oleexp, though a few DLLs are still pending. Finally, tbShellLib now declares an compiler constant, `TB_SHELLLIB_DEFINED`, to help avoid conflicts with other projects (chiefly, my upcoming Common Controls 64-bit compatible library). *tbShellLib now requires twinBASIC Beta 167 or newer*.
 
 **Major Update (v2.0.20):**  The project has reached it's initial goal of implementing all but the most obsolete oleexp.tlb interfaces. In addition, with similar exception of a small set of highly obsolete items, the API coverage is now available. Note that this was subject to extensive cleanup; native-language declares can't use the last param as retval on APIs, so all of those were converted, and TLB APIs pass Strings as BSTR, while native language passes ANSI strings, so there's currently a mix of either using LongPtr or tB's DeclareWide for BSTR/LPWSTR support (if it says String you can use a String without StrPtr). 
 
