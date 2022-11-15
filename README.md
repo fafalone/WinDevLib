@@ -1,7 +1,7 @@
 # tbShellLib
 twinBASIC Shell Library
 
-Current Version 2.5.26 (November 5th, 2022)
+Current Version 2.3.28 (November 15th, 2022)
 (c) 2022 Jon Johnson (fafalone)
 
 This project aims to be a twinBASIC replacement for oleexp.tlb that is x64 compatible, due to the many problems using midl to create a 64bit tlb.
@@ -16,6 +16,8 @@ As a twinPACKAGE, the regular addin modules can be built in.
 
 
 ## Updates
+
+**Update (v2.3.26):** Minor bug fixes.
 
 **Update (v2.2.24):** Added IWebBrowser2 interface I thought was already there.
 
