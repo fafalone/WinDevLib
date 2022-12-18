@@ -1,7 +1,7 @@
 # tbShellLib
 twinBASIC Shell Library
 
-Current Version 2.3.35 (December 15th, 2022)
+Current Version 2.3.38 (December 17th, 2022)
 (c) 2022 Jon Johnson (fafalone)
 
 This project aims to be a twinBASIC replacement for oleexp.tlb that is x64 compatible, due to the many problems using midl to create a 64bit tlb.
@@ -16,6 +16,8 @@ As a twinPACKAGE, the regular addin modules can be built in.
 
 
 ## Updates
+
+**Update (v2.3.38):** ICategorizer::GetCategory had apidl argument incorrectly defined as ByVal.
 
 **Update (v2.3.35):** IShellIconOverlay had incorrect pIndex params in both methods. This didn't effect 32bit projects as pointers were the same size as the index. 
 
