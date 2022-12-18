@@ -2,13 +2,18 @@
 twinBASIC Shell Library
 
 Current Version 2.3.38 (December 17th, 2022)
+
 (c) 2022 Jon Johnson (fafalone)
 
 This project aims to be a twinBASIC replacement for oleexp.tlb that is x64 compatible, due to the many problems using midl to create a 64bit tlb.
 
-oleexp is a massive project and this currently represents just a small fraction of the interfaces, but I'm expanding it all the time.
+It's now essentially complete; all interfaces are covered except ones useless on anything newer than Win9x, and all APIs are covered.
 
 As a twinPACKAGE, the regular addin modules can be built in.
+
+This project is also available via the twinBASIC Package Manager, so you can simply check the box for it there rather than download and import it manually. The versions are always kept in sync so this repo won't have anything newer. This repo is mainly for if you wish to modify it.
+
+Please report any bugs via the Issues feature here on GitHub.
 
 ## Requirements
 
