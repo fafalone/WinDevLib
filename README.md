@@ -1,11 +1,11 @@
 # tbShellLib
-twinBASIC Shell Library
+**twinBASIC Shell Library
 
-Current Version 2.3.38 (December 17th, 2022)
+Current Version: 2.3.38 (December 17th, 2022)
 
 (c) 2022 Jon Johnson (fafalone)
 
-This project aims to be a twinBASIC replacement for oleexp.tlb that is x64 compatible, due to the many problems using midl to create a 64bit tlb.
+This project aims to be a twinBASIC replacement for [oleexp.tlb](http://www.vbforums.com/showthread.php?786079-VB6-Modern-Shell-Interface-Type-Library-oleexp-tlb), my Modern Shell Interfaces Type Library project for VB6, that is x64 compatible, due to the many problems using midl to create a 64bit tlb.
 
 It's now essentially complete; all interfaces are covered except ones useless on anything newer than Win9x, and all APIs are covered.
 
