@@ -9,7 +9,7 @@ This project aims to be a twinBASIC replacement for [oleexp.tlb](http://www.vbfo
 
 It's now essentially complete; all interfaces are covered except ones useless on anything newer than Win9x, and all APIs are covered.
 
-As a twinPACKAGE, the regular addin modules can be built in.
+As a twinPACKAGE, regular code is supported in addition to the definitions, so the regular addin modules have been built in (mIID.bas, mPKEY.bas, etc).
 
 This project is also available via the twinBASIC Package Manager, so you can simply check the box for it there rather than download and import it manually. The versions are always kept in sync so this repo won't have anything newer. This repo is mainly for if you wish to modify it.
 
