@@ -22,7 +22,7 @@ Please report any bugs via the Issues feature here on GitHub.
 
 ## Updates
 
-**Update (v2.3.40):** Fixes for SHGetPathFromPIDLW and IVirtualDesktopManager::IsWindowOnCurrentVirtualDesktop.
+**Update (v2.3.40):** Fixes for SHGetPathFromIDList[W] and IVirtualDesktopManager::IsWindowOnCurrentVirtualDesktop.
 
 **Update (v2.3.38):** ICategorizer::GetCategory had apidl argument incorrectly defined as ByVal.
 
