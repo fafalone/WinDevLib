@@ -1,9 +1,9 @@
 # tbShellLib
 **twinBASIC Shell Library**
 
-Current Version: 2.3.38 (December 17th, 2022)
+Current Version: 2.3.40 (January 1st, 2023)
 
-(c) 2022 Jon Johnson (fafalone)
+(c) 2022-2023 Jon Johnson (fafalone)
 
 This project aims to be a twinBASIC replacement for [oleexp.tlb](http://www.vbforums.com/showthread.php?786079-VB6-Modern-Shell-Interface-Type-Library-oleexp-tlb), my Modern Shell Interfaces Type Library project for VB6, that is x64 compatible, due to the many problems using midl to create a 64bit tlb.
 
@@ -21,6 +21,8 @@ Please report any bugs via the Issues feature here on GitHub.
 
 
 ## Updates
+
+**Update (v2.3.40):** Fixes for SHGetPathFromPIDLW and IVirtualDesktopManager::IsWindowOnCurrentVirtualDesktop.
 
 **Update (v2.3.38):** ICategorizer::GetCategory had apidl argument incorrectly defined as ByVal.
 
