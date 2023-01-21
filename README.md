@@ -22,6 +22,10 @@ Please report any bugs via the Issues feature here on GitHub.
 
 ## Updates
 
+**tbShellLibImpl**: tbShellLib for Implements initial release. This does not cover all of oleexpimp.tlb because there's no need for an out only vs in, out distinction which many had as the only difference.
+
+**Update (v2.3.44):** ICategoryProvider and ICategorizer had BSTR instead of LPWSTR (LongPtr) arguments.
+
 **Update (v2.3.40):** Fixes for SHGetPathFromIDList[W] and IVirtualDesktopManager::IsWindowOnCurrentVirtualDesktop.
 
 **Update (v2.3.38):** ICategorizer::GetCategory had apidl argument incorrectly defined as ByVal.
