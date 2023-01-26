@@ -26,6 +26,8 @@ Please report any bugs via the Issues feature here on GitHub.
 
 -CRITICAL BUG FIX: IFolderView was missing GetDefaultSpacing, breaking any use of it and IFolderView2.
 
+-Bug fix: IsEqualIID API declare was not marked PtrSafe.
+
 -IServiceProvider did not use PreserveSig in the original oleexp, so that has been changed to match here, for use with Implements.
 
 -Added IShellUIHelper[2,3,4,5,6,7,8,9], IShellFavoritesNameSpace, IShellNameSpace, IScriptErrorList and related coclasses.
