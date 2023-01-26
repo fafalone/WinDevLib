@@ -1,6 +1,6 @@
 '******************************************************************************
 'tbShellLib - twinBASIC Shell Library
-'Version 2.3.40
+'Version 2.4.48
 '(c) 2022-2023 Jon Johnson (fafalone)
 '
 'This project is a twinBASIC replacement for oleexp.tlb that is x64
@@ -221,6 +221,7 @@ Interface IFolderView Extends stdole.IUnknown
     Sub GetFocusedItem(piItem As Long)
     Sub GetItemPosition(ByVal pidl As LongPtr, ppt As POINT)
     Sub GetSpacing(ppt As POINT)
+	Sub GetDefaultSpacing(ppt As POINT)
     Sub GetAutoArrange()
     Sub SelectItem(ByVal iItem As Long, ByVal dwFlags As SVSI_Flags)
     Sub SelectAndPositionItems(ByVal cidl As Long, apidl As LongPtr, apt As POINT, ByVal dwFlags As SVSI_Flags)
@@ -1264,13 +1265,13 @@ Interface ICategoryProvider Extends stdole.IUnknown
     [ PreserveSig ] Function GetDefaultCategory(pguid As UUID, pscid As SHCOLUMNID) As Long
     [ PreserveSig ] Function GetCategoryForSCID(pscid As SHCOLUMNID, pguid As UUID) As Long
     Function EnumCategories() As IEnumGUID
-    [ PreserveSig ] Function GetCategoryName(pguid As UUID, pszName As String, ByVal cch As Long) As Long
+    [ PreserveSig ] Function GetCategoryName(pguid As UUID, pszName As LongPtr, ByVal cch As Long) As Long
     [ PreserveSig ] Function CreateCategory(pguid As UUID, riid As UUID, ppv As any) As Long
 End Interface
 
 [ InterfaceId ("a3b14589-9174-49a8-89a3-06a1ae2b9ba7") ]
 Interface ICategorizer Extends stdole.IUnknown
-    Sub GetDescription(pszDesc As String, ByVal cch As Long)
+    Sub GetDescription(pszDesc As LongPtr, ByVal cch As Long)
     Sub GetCategory(ByVal cidl As Long, apidl As LongPtr, rgCategoryIds As Long)
     Sub GetCategoryInfo(ByVal dwCategoryId As Long, pci As CATEGORY_INFO)
     Sub CompareCategory(ByVal csfFlags As CATSORT_FLAGS, ByVal dwCategoryId1 As Long, ByVal dwCategoryId2 As Long)
@@ -1652,6 +1653,169 @@ End Interface
 Interface IPreviewItem Extends IRelatedItem
 End Interface
 
+[ InterfaceId ("3D25F6D6-4B2A-433C-9184-7C33AD35D001") ]
+Interface IDataObjectProvider Extends stdole.IUnknown
+	Sub GetDataObject(ByRef dataObject As IDataObject)
+	Sub SetDataObject(ByVal dataObject As IDataObject)
+End Interface
+
+[ InterfaceId ("3A3DCD6C-3EAB-43DC-BCDE-45671CE800C8") ]
+Interface IDataTransferManagerInterop Extends stdole.IUnknown
+	Sub GetForWindow(ByVal appWindow As LongPtr, ByRef riid As UUID, ByRef dataTransferManager As Any)
+	Sub ShowShareUIForWindow(ByVal appWindow As LongPtr)
+End Interface
+
+[ InterfaceId ("1BB12A62-2AD8-432B-8CCF-0C2C52AFCD5B") ]
+Interface IPackageExecutionStateChangeNotification Extends stdole.IUnknown
+	Sub OnStateChanged(ByVal pszPackageFullName As LongPtr, ByVal pesNewState As PACKAGE_EXECUTION_STATE)
+End Interface
+
+[ InterfaceId ("F27C3930-8029-4AD1-94E3-3DBA417810C1") ]
+Interface IPackageDebugSettings Extends stdole.IUnknown
+	Sub EnableDebugging(ByVal packageFullName As LongPtr, ByVal debuggerCommandLine As LongPtr, ByVal environment As LongPtr)
+	Sub DisableDebugging(ByVal packageFullName As LongPtr)
+	Sub Suspend(ByVal packageFullName As LongPtr)
+	Sub Resume(ByVal packageFullName As LongPtr)
+	Sub TerminateAllProcesses(ByVal packageFullName As LongPtr)
+	Sub SetTargetSessionId(ByVal sessionID As Long)
+	Sub EnumerateBackgroundTasks(ByVal packageFullName As LongPtr, ByRef taskCount As Long, ByRef taskIds As UUID, ByRef taskNames As LongPtr)
+	Sub ActivateBackgroundTask(ByRef taskId As UUID)
+	Sub StartServicing(ByVal packageFullName As LongPtr)
+	Sub StopServicing(ByVal packageFullName As LongPtr)
+	Sub StartSessionRedirection(ByVal packageFullName As LongPtr, ByVal sessionID As Long)
+	Sub StopSessionRedirection(ByVal packageFullName As LongPtr)
+	Sub GetPackageExecutionState(ByVal packageFullName As LongPtr, ByRef packageExecutionState As PACKAGE_EXECUTION_STATE)
+	Sub RegisterForPackageStateChanges(ByVal packageFullName As LongPtr, ByVal pPackageExecutionStateChangeNotification As IPackageExecutionStateChangeNotification, ByRef pdwCookie As Long)
+	Sub UnregisterForPackageStateChanges(ByVal dwCookie As Long)
+End Interface
+
+[ InterfaceId ("6E3194BB-AB82-4D22-93F5-FABDA40E7B16") ]
+Interface IPackageDebugSettings2 Extends IPackageDebugSettings
+	Sub EnumerateApps(ByVal packageFullName As LongPtr, ByRef appCount As Long, ByRef appUserModelIds As LongPtr, ByRef appDisplayNames As LongPtr)
+End Interface
+
+[ InterfaceId ("52B83A42-2543-416A-81D9-C0DE7969C8B3") ]
+Interface ISuspensionDependencyManager Extends stdole.IUnknown
+	Sub RegisterAsChild(ByVal processHandle As LongPtr)
+	Sub GroupChildWithParent(ByVal childProcessHandle As LongPtr)
+	Sub UngroupChildFromParent(ByVal childProcessHandle As LongPtr)
+End Interface
+
+[ InterfaceId ("18B21AA9-E184-4FF0-9F5E-F882D03771B3") ]
+Interface IExecuteCommandApplicationHostEnvironment Extends stdole.IUnknown
+	Sub GetValue(ByRef pahe As AHE_TYPE)
+End Interface
+
+[ InterfaceId ("2A3DEE9A-E31D-46D6-8508-BCC597DB3557") ]
+Interface IApplicationDesignModeSettings Extends stdole.IUnknown
+	Sub SetNativeDisplaySize(ByVal nativeDisplaySizePixels As LongLong) ' As SIZE)
+	Sub SetScaleFactor(ByVal scaleFactor As DEVICE_SCALE_FACTOR)
+	Sub SetApplicationViewState(ByVal viewState As APPLICATION_VIEW_STATE)
+	Sub ComputeApplicationSize(ByRef applicationSizePixels As SIZE)
+	Sub IsApplicationViewStateSupported(ByVal viewState As APPLICATION_VIEW_STATE, ByVal nativeDisplaySizePixels As LongLong, ByVal scaleFactor As DEVICE_SCALE_FACTOR, ByVal supported As Long)
+	Sub TriggerEdgeGesture(ByVal edgeGestureKind As EDGE_GESTURE_KIND)
+End Interface
+	
+[ InterfaceId ("490514E1-675A-4D6E-A58D-E54901B4CA2F") ]
+Interface IApplicationDesignModeSettings2 Extends IApplicationDesignModeSettings
+	Sub SetNativeDisplayOrientation(ByVal nativeDisplayOrientation As NATIVE_DISPLAY_ORIENTATION)
+	Sub SetApplicationViewOrientation(ByVal viewOrientation As APPLICATION_VIEW_ORIENTATION)
+	Sub SetAdjacentDisplayEdges(ByVal adjacentDisplayEdges As ADJACENT_DISPLAY_EDGES)
+	Sub SetIsOnLockScreen(ByVal isOnLockScreen As Long)
+	Sub SetApplicationViewMinWidth(ByVal viewMinWidth As APPLICATION_VIEW_MIN_WIDTH)
+	Sub GetApplicationSizeBounds(ByRef minApplicationSizePixels As SIZE, ByRef maxApplicationSizePixels As SIZE)
+	Sub GetApplicationViewOrientation(ByVal applicationSizePixels As LongLong, ByRef viewOrientation As APPLICATION_VIEW_ORIENTATION)
+End Interface
+
+[ InterfaceId ("266FBC7E-490D-46ED-A96B-2274DB252003") ]
+Interface ILaunchTargetMonitor Extends stdole.IUnknown
+	Sub GetMonitor(ByRef monitor As LongPtr)
+End Interface
+
+[ InterfaceId ("E5AA01F7-1FB8-4830-8720-4E6734CBD5F3") ]
+Interface ILaunchSourceViewSizePreference Extends stdole.IUnknown
+	Sub GetSourceViewToPosition(ByRef hwnd As LongPtr)
+	Sub GetSourceViewSizePreference(ByRef sourceSizeAfterLaunch As APPLICATION_VIEW_SIZE_PREFERENCE)
+End Interface
+
+[ InterfaceId ("2F0666C6-12F7-4360-B511-A394A0553725") ]
+Interface ILaunchTargetViewSizePreference Extends stdole.IUnknown
+	Sub GetTargetViewSizePreference(ByRef targetSizeOnLaunch As APPLICATION_VIEW_SIZE_PREFERENCE)
+End Interface
+
+[ InterfaceId ("989191AC-28FF-4CF0-9584-E0D078BC2396") ]
+Interface ILaunchSourceAppUserModelId Extends stdole.IUnknown
+	Sub GetAppUserModelId(ByRef launchingApp As LongPtr)
+End Interface
+
+[ InterfaceId ("997706EF-F880-453B-8118-39E1A2D2655A") ]
+Interface IHandlerInfo Extends stdole.IUnknown
+	Sub GetApplicationDisplayName(ByRef Value As LongPtr)
+	Sub GetApplicationPublisher(ByRef Value As LongPtr)
+	Sub GetApplicationIconReference(ByRef Value As LongPtr)
+End Interface
+
+[ InterfaceId ("35094A87-8BB1-4237-96C6-C417EEBDB078") ]
+Interface IHandlerActivationHost Extends stdole.IUnknown
+	Sub BeforeCoCreateInstance(ByRef clsidHandler As UUID, ByVal itemsBeingActivated As IShellItemArray, ByVal handlerInfo As IHandlerInfo)
+	Sub BeforeCreateProcess(ByVal applicationPath As LongPtr, ByVal commandLine As LongPtr, ByVal handlerInfo As IHandlerInfo)
+End Interface
+
+[ InterfaceId ("ABAD189D-9FA3-4278-B3CA-8CA448A88DCB") ]
+Interface IAppActivationUIInfo Extends stdole.IUnknown
+	Sub GetMonitor(ByRef Value As LongPtr)
+	Sub GetInvokePoint(ByRef Value As POINT)
+	Sub GetShowCommand(ByRef Value As Long)
+	Sub GetShowUI(ByVal Value As Long)
+	Sub GetKeyState(ByRef Value As Long)
+End Interface
+
+[ InterfaceId ("99EACBA7-E073-43B6-A896-55AFE48A0833") ]
+Interface IContactManagerInterop Extends stdole.IUnknown
+	Sub ShowContactCardForWindow(ByVal appWindow As LongPtr, ByVal contact As IUnknown, ByRef Selection As RECT, ByVal preferredPlacement As FLYOUT_PLACEMENT)
+End Interface
+
+[ InterfaceId ("2E941141-7F97-4756-BA1D-9DECDE894A3D") ]
+Interface IApplicationActivationManager Extends stdole.IUnknown
+	Sub ActivateApplication(ByVal appUserModelId As LongPtr, ByVal Arguments As LongPtr, ByVal options As ACTIVATEOPTIONS, ByRef processId As Long)
+	Sub ActivateForFile(ByVal appUserModelId As LongPtr, ByVal itemArray As IShellItemArray, ByVal verb As LongPtr, ByRef processId As Long)
+	Sub ActivateForProtocol(ByVal appUserModelId As LongPtr, ByVal itemArray As IShellItemArray, ByRef processId As Long)
+End Interface
+
+[ InterfaceId ("6584CE6B-7D82-49C2-89C9-C6BC02BA8C38") ]
+Interface IAppVisibilityEvents Extends stdole.IUnknown
+	Sub AppVisibilityOnMonitorChanged(ByVal hMonitor As LongPtr, ByVal previousMode As MONITOR_APP_VISIBILITY, ByVal currentMode As MONITOR_APP_VISIBILITY)
+	Sub LauncherVisibilityChange(ByVal currentVisibleState As Long)
+End Interface
+
+[ InterfaceId ("2246EA2D-CAEA-4444-A3C4-6DE827E44313") ]
+Interface IAppVisibility Extends stdole.IUnknown
+	Sub GetAppVisibilityOnMonitor(ByVal hMonitor As LongPtr, ByRef pMode As MONITOR_APP_VISIBILITY)
+	Sub IsLauncherVisible(ByVal pfVisible As Long)
+	Sub Advise(ByVal pCallback As IAppVisibilityEvents, ByRef pdwCookie As Long)
+	Sub Unadvise(ByVal dwCookie As Long)
+End Interface
+
+[ InterfaceId ("B92B56A9-8B55-4E14-9A89-0199BBB6F93B") ]
+Interface IDesktopWallpaper Extends stdole.IUnknown
+	Sub SetWallpaper(ByVal monitorID As LongPtr, ByVal wallpaper As LongPtr)
+	Sub GetWallpaper(ByVal monitorID As LongPtr, ByRef wallpaper As LongPtr)
+	Sub GetMonitorDevicePathAt(ByVal monitorIndex As Long, ByRef monitorID As LongPtr)
+	Sub GetMonitorDevicePathCount(ByRef Count As Long)
+	Sub GetMonitorRECT(ByVal monitorID As LongPtr, ByRef displayRect As RECT)
+	Sub SetBackgroundColor(ByVal color As Long)
+	Sub GetBackgroundColor(ByRef color As Long)
+	Sub SetPosition(ByVal position As DESKTOP_WALLPAPER_POSITION)
+	Sub GetPosition(ByRef position As DESKTOP_WALLPAPER_POSITION)
+	Sub SetSlideshow(ByVal Items As IShellItemArray)
+	Sub GetSlideshow(ByRef Items As IShellItemArray)
+	Sub SetSlideshowOptions(ByVal options As DESKTOP_SLIDESHOW_OPTIONS, ByVal slideshowTick As Long)
+	Sub GetSlideshowOptions(ByRef options As DESKTOP_SLIDESHOW_OPTIONS, ByRef slideshowTick As Long)
+	Sub AdvanceSlideshow(ByVal monitorID As LongPtr, ByVal direction As DESKTOP_SLIDESHOW_DIRECTION)
+	Sub GetStatus(ByRef State As DESKTOP_SLIDESHOW_STATE)
+	Sub Enable(ByVal Enable As Long)
+End Interface
+	
 [ InterfaceId ("C9D81948-443A-40C7-945C-5E171B8C66B4") ]
 Interface IAddressBarParser Extends stdole.IUnknown
     Function ParseFromOutsideSource(ByVal pcszUrlIn As String, ByVal dwParseFlags As Long) As Long
@@ -2177,8 +2341,7 @@ End Interface
 
 [ InterfaceId ("6d5140c1-7436-11ce-8034-00aa006009fa") ]
 Interface IServiceProvider Extends stdole.IUnknown
-    [ PreserveSig ]
-    Function QueryService(guidService As UUID, riid As UUID, ppvObject As any) As Long
+    Sub QueryService(guidService As UUID, riid As UUID, ppvObject As any)
 End Interface
 
 [ InterfaceId ("0000000e-0000-0000-C000-000000000046") ]
@@ -2243,8 +2406,50 @@ Interface IUnknownUnrestricted Extends Nothing
     [ PreserveSig ] Function AddRef() As Long
     [ PreserveSig ] Function Release() As Long
 End Interface
+[ InterfaceId ("00000000-0000-0000-C000-000000000046") ]
+Interface IUnknownUnrestrictedImpl Extends Nothing
+    Sub QueryInterface(riid As UUID, ppvObject As LongPtr)
+    Sub AddRef()
+    Sub Release()
+End Interface
 
 
+[ CoClassId ("C2CF3110-460E-4FC1-B9D0-8A1C0C9CC4BD") ]
+[ COMCreatable ]
+CoClass DesktopWallpaper
+	[ Default ] Interface IDesktopWallpaper
+End CoClass
+
+[ CoClassId ("273EB5E7-88B0-4843-BFEF-E2C81D43AAE5") ]
+[ COMCreatable ]
+CoClass AppStartupLink
+	[ Default ] Interface IShellLinkW
+End CoClass
+
+[ CoClassId ("B1AEC16F-2383-4852-B0E9-8F0B1DC66B4D") ]
+[ COMCreatable ]
+CoClass PackageDebugSettings
+	[ Default ] Interface IPackageDebugSettings2
+End CoClass
+
+[ CoClassId ("6B273FC5-61FD-4918-95A2-C3B5E9D7F581") ]
+[ COMCreatable ]
+CoClass SuspensionDependencyManager
+	[ Default ] Interface ISuspensionDependencyManager
+End CoClass
+
+[ CoClassId ("45BA127D-10A8-46EA-8AB7-56EA9078943C") ]
+[ COMCreatable ]
+CoClass ApplicationActivationManager
+	[ Default ] Interface IApplicationActivationManager
+End CoClass
+
+[ CoClassId ("958A6FB5-DCB2-4FAF-AAFD-7FB054AD1A3B") ]
+[ COMCreatable ]
+CoClass ApplicationDesignModeSettings
+	[ Default ] Interface IApplicationDesignModeSettings2
+End CoClass
+	
 'CLSID_DragDropHelper 
 [ CoClassId ("4657278A-411B-11D2-839A-00C04FD918D0") ]
 CoClass DragDropHelper
@@ -5678,9 +5883,133 @@ Public Enum CPVIEW
 	CPVIEW_HOME = 1 'CPVIEW_CATEGORY,
 End Enum
 
+Public Enum ACTIVATEOPTIONS
+    AO_NONE = &H00000000 '// No flags set
+    AO_DESIGNMODE = &H00000001 '// The application Is being activated for design mode, And thus will Not be able to
+                               '// to create an immersive window. Window creation must be done by design tools which
+                               '// load the necessary components by communicating with a designer-specified service on
+                               '// the site chain established on the activation manager.  The splash screen normally
+                               '// shown when an application is activated will also not appear.  Most activations
+                               '// will not use this flag.
+	AO_NOERRORUI = &H00000002 '// Do Not show an error dialog if the app fails to activate.
+	AO_NOSPLASHSCREEN = &H00000004 '// Do Not show the splash screen when activating the app.
+	AO_PRELAUNCH = &H02000000 '// The application Is being activated in Prelaunch mode.
+
+End Enum
+
+Public Enum MONITOR_APP_VISIBILITY
+	MAV_UNKNOWN = 0
+	MAV_NO_APP_VISIBLE = 1
+	MAV_APP_VISIBLE = 2
+End Enum
+
+Public Enum PACKAGE_EXECUTION_STATE
+	PES_UNKNOWN = 0
+	PES_RUNNING = 1
+	PES_SUSPENDING = 2
+	PES_SUSPENDED = 3
+	PES_TERMINATED = 4
+End Enum
+
+Public Enum AHE_TYPE
+	AHE_DESKTOP = 0
+	AHE_IMMERSIVE = 1
+End Enum
+
+Public Enum APPLICATION_VIEW_STATE
+	AVS_FULLSCREEN_LANDSCAPE = 0
+	AVS_FILLED
+	AVS_SNAPPED
+	AVS_FULLSCREEN_PORTRAIT
+End Enum
+Public Enum EDGE_GESTURE_KIND
+	EGK_TOUCH = 0
+	EGK_KEYBOARD
+	EGK_MOUSE
+End Enum
+Public Enum DEVICE_SCALE_FACTOR
+	DEVICE_SCALE_FACTOR_INVALID = 0
+	SCALE_100_PERCENT = 100
+	SCALE_120_PERCENT = 120
+	SCALE_125_PERCENT = 125
+	SCALE_140_PERCENT = 140
+	SCALE_150_PERCENT = 150
+	SCALE_160_PERCENT = 160
+	SCALE_175_PERCENT = 175
+	SCALE_180_PERCENT = 180
+	SCALE_200_PERCENT = 200
+	SCALE_225_PERCENT = 225
+	SCALE_250_PERCENT = 250
+	SCALE_300_PERCENT = 300
+	SCALE_350_PERCENT = 350
+	SCALE_400_PERCENT = 400
+	SCALE_450_PERCENT = 450
+	SCALE_500_PERCENT = 500
+End Enum
+Public Enum NATIVE_DISPLAY_ORIENTATION
+	NDO_LANDSCAPE = 0
+	NDO_PORTRAIT = 1
+End Enum
+Public Enum APPLICATION_VIEW_ORIENTATION
+	AVO_LANDSCAPE = 0
+	AVO_PORTRAIT = 1
+End Enum
+Public Enum ADJACENT_DISPLAY_EDGES
+	ADE_NONE = 0
+	ADE_LEFT = &H1
+	ADE_RIGHT = &H2
+End Enum
+Public Enum APPLICATION_VIEW_MIN_WIDTH
+	AVMW_DEFAULT = 0
+	AVMW_320 = 1
+	AVMW_500 = 2
+End Enum
+
+Public Enum APPLICATION_VIEW_SIZE_PREFERENCE
+	AVSP_DEFAULT = 0
+	AVSP_USE_LESS = 1
+	AVSP_USE_HALF = 2
+	AVSP_USE_MORE = 3
+	AVSP_USE_MINIMUM = 4
+	AVSP_USE_NONE = 5
+	AVSP_CUSTOM = 6
+End Enum
+
+Public Enum FLYOUT_PLACEMENT
+	FP_DEFAULT = 0
+	FP_ABOVE = 1
+	FP_BELOW = 2
+	FP_LEFT = 3
+	FP_RIGHT = 4
+End Enum
+
+Public Enum DESKTOP_SLIDESHOW_OPTIONS
+	DSO_SHUFFLEIMAGES = &H01 ' When set, indicates that the order in which images in the slideshow are displayed can be randomized.
+End Enum
+Public Enum DESKTOP_SLIDESHOW_STATE
+	DSS_ENABLED = &H01 ' Slideshows are enabled. This is normally true, unless the Enable method is used.
+	DSS_SLIDESHOW = &H02 ' A slideshow is currently configured (e.g., using SetSlideshow).
+	DSS_DISABLED_BY_REMOTE_SESSION = &H04 ' A remote session has temporarily disabled the slideshow
+End Enum
+Public Enum DESKTOP_SLIDESHOW_DIRECTION
+	DSD_FORWARD = 0 ' Advance slideshow forward.
+	DSD_BACKWARD = 1 ' Advance slideshow backward.
+End Enum
+Public Enum DESKTOP_WALLPAPER_POSITION
+	DWPOS_CENTER = 0 ' Center the image, do not stretch (WPSTYLE_CENTER in IActiveDesktop).
+	DWPOS_TILE = 1 ' Tile the image across all monitors (WPSTYLE_TILE in IActiveDesktop).
+	DWPOS_STRETCH = 2 ' Stretch the image to exactly fit on the monitor (WPSTYLE_STRETCH in IActiveDesktop).
+	DWPOS_FIT = 3 ' Stretch the image to exactly the height or width of the monitor without
+	'  changing its aspect ratio or cropping (WPSTYLE_KEEPASPECT in IActiveDesktop).
+	'  This often results in letterbox bars on the sides or top/bottom of the image.
+	DWPOS_FILL = 4 ' Like DWPOS_FIT, but stretches the image until it completely fills the screen, allowing
+	'  cropping to avoid letterbox bars (WPSTYLE_CROPTOFIT in IActiveDesktop).
+	DWPOS_SPAN = 5 ' Spans a single image across all monitors (new, no IActiveDesktop equivalent).
+End Enum
 
 
-'twinBASIC doesn't support coclasses yet, in the mean time, we can use these with CreateObject:
+
+
 
 Public Const sCLSID_DragDropHelper = "new: {4657278A-411B-11D2-839A-00C04FD918D0}"
 Public Const sCLSID_KnownFolderManager = "new: {4df0c730-df9d-4ae3-9153-aa6b82e9795a}"
@@ -5742,4 +6071,11 @@ Public Const sCLSID_SizeCategorizer = "new: {55d7b852-f6d1-42f2-aa75-8728a1b2d26
 Public Const sCLSID_AlphabeticalCategorizer = "new: {3c2654c6-7372-4f6b-b310-55d6128f49d2}"
 Public Const sCLSID_MergedCategorizer = "new: {8e827c11-33e7-4bc1-b242-8cd9a1c2b304}"
 Public Const sCLSID_ImageProperties = "new: {7ab770c7-0e23-4d7a-8aa2-19bfad479829}"
+Public Const sCLSID_DesktopWallpaper = "new: {C2CF3110-460E-4FC1-B9D0-8A1C0C9CC4BD}"
+Public Const sCLSID_AppStartupLink = "new: {273EB5E7-88B0-4843-BFEF-E2C81D43AAE5}"
+Public Const sCLSID_PackageDebugSettings = "new: {B1AEC16F-2383-4852-B0E9-8F0B1DC66B4D}"
+Public Const sCLSID_SuspensionDependencyManager = "new: {6B273FC5-61FD-4918-95A2-C3B5E9D7F581}"
+Public Const sCLSID_ApplicationActivationManager = "new: {6B273FC5-61FD-4918-95A2-C3B5E9D7F581}"
+Public Const sCLSID_ApplicationDesignModeSettings = "new: {958A6FB5-DCB2-4FAF-AAFD-7FB054AD1A3B}"
+
 End Module
