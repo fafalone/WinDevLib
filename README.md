@@ -1,7 +1,7 @@
 # tbShellLib
 **twinBASIC Shell Library**
 
-Current Version: 2.3.44 (January 21st, 2023)
+Current Version: 2.4.48 (January 26th, 2023)
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -21,6 +21,26 @@ Please report any bugs via the Issues feature here on GitHub.
 
 
 ## Updates
+
+**Update (v2.4.48):** 
+
+-CRITICAL BUG FIX: IFolderView was missing GetDefaultSpacing, breaking any use of it and IFolderView2.
+
+-IServiceProvider did not use PreserveSig in the original oleexp, so that has been changed to match here, for use with Implements.
+
+-Added IShellUIHelper[2,3,4,5,6,7,8,9], IShellFavoritesNameSpace, IShellNameSpace, IScriptErrorList and related coclasses.
+
+-Added IDesktopWallpaper with coclass DesktopWallpaper
+
+-Added IAppVisibility and IAppVisibilityEvents
+
+-Added coclass AppStartupLink
+
+-Added IApplicationActivationManager with coclass ApplicationActivationManager
+
+-Added IContactManagerInterop, IAppActivationUIInfo, IHandlerActivationHost, IHandlerInfo, ILaunchSourceAppUserModelId, ILaunchTargetViewSizePreference, ILaunchSourceViewSizePreference, ILaunchTargetMonitor, IApplicationDesignModeSettings, IApplicationDesignModeSettings2, IExecuteCommandApplicationHostEnvironment, IPackageDebugSettings, IPackageDebugSettings2, IPackageExecutionStateChangeNotification, IDataObjectProvider, IDataTransferManagerInterop.
+-Added coclasses for above: PackageDebugSettings, SuspensionDependencyManager, ApplicationDesignModeSettings
+
 
 **tbShellLibImpl (v1.0)**: tbShellLib for Implements initial release. This does not cover all of oleexpimp.tlb because there's no need for an out only vs in, out distinction which many had as the only difference.
 
