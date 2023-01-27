@@ -1,7 +1,7 @@
 # tbShellLib
 **twinBASIC Shell Library**
 
-Current Version: 2.4.48 (January 26th, 2023)
+Current Version: 2.4.49 (January 27th, 2023)
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -21,6 +21,8 @@ Please report any bugs via the Issues feature here on GitHub.
 
 
 ## Updates
+
+Update (v2.4.49): IShellView::TranslateAccelerator was incorrectly named IShellView::TranslateAcceleratorSB.
 
 **Update (v2.4.48):** 
 
