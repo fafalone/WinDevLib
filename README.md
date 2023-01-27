@@ -22,7 +22,7 @@ Please report any bugs via the Issues feature here on GitHub.
 
 ## Updates
 
-Update (tbShellLibImpl v1.01): CRITICAL BUG FIX: IFolderView was missing GetDefaultSpacing, breaking any use of it and IFolderView2.
+Update (tbShellLibImpl v1.0.2): CRITICAL BUG FIX: IFolderView was missing GetDefaultSpacing, breaking any use of it and IFolderView2.
 
 Update (v2.4.49): IShellView::TranslateAccelerator was incorrectly named IShellView::TranslateAcceleratorSB.
 
