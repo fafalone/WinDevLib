@@ -1,7 +1,7 @@
 # tbShellLib
 **twinBASIC Shell Library**
 
-Current Version: 2.4.49 (January 27th, 2023)
+Current Version: 2.5.54 (February 2nd, 2023)
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -21,6 +21,19 @@ Please report any bugs via the Issues feature here on GitHub.
 
 
 ## Updates
+
+**Update (v2.5.54):**
+-Added Sync Manager interfaces and coclasses (SyncMgr.h), including undocumented ITransferConfirmation/coclass TransferConfirmationUI.
+
+-Added interfaces IPersistSerializedPropStorage, IPersistSerializedPropStorage2, and IPropertySystemChangeNotify
+
+-Added missing propsys coclasses CLSID_InMemoryPropertyStore, CLSID_InMemoryPropertyStoreMarshalByValue, CLSID_PropertySystem
+
+-Added IListViewVista interface (Vista-only version of IListView)
+
+-Bug fix: `SFGAO_GHOSTED` incorrectly defined causing bitwise operation sign issues.
+
+---
 
 Update (tbShellLibImpl v1.0.2): CRITICAL BUG FIX: IFolderView was missing GetDefaultSpacing, breaking any use of it and IFolderView2.
 
