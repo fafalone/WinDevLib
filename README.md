@@ -32,7 +32,7 @@ Please report any bugs via the Issues feature here on GitHub.
 
 -Added IListViewVista interface (Vista-only version of IListView)
 
--Added IPinnedList with variants IPinnedListVista (Windows Vista) and IPinnedList10 (Windows 10 build 1809 and newer). Also added IStartMenuPin, ITrayNotify and INotificationCB. These are undocumented taskbar interfaces for programmatically pinning items to the start menu and taskbar. 
+-Added IPinnedList with variants IPinnedListVista (Windows Vista) and IPinnedList10 (Windows 10 build 1809 and newer). Also added IStartMenuPin, ITrayNotify and INotificationCB. These are undocumented taskbar interfaces for programmatically pinning items to the start menu and taskbar. Added TaskbandPin, TrayNotify, and StartMenuPin coclasses (the last one is officially documented for the IStartMenuPinnedList interface with remove pin only, but it implements the undocumented pinning interfaces too and those have been added to the supported list). 
 
 -Bug fix: Numerous enum values defined incorrectly as &H8000, causing sign issues in bitwise operations and downstream issues from that,
 
