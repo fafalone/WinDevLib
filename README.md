@@ -22,7 +22,7 @@ Please report any bugs via the Issues feature here on GitHub.
 
 ## Updates
 
-**Update (v2.5.54):**
+**Update (v2.5.56):**
 -Added Sync Manager interfaces and coclasses (SyncMgr.h), including undocumented ITransferConfirmation/coclass TransferConfirmationUI.
 
 -Added interfaces IPersistSerializedPropStorage, IPersistSerializedPropStorage2, and IPropertySystemChangeNotify
@@ -31,7 +31,7 @@ Please report any bugs via the Issues feature here on GitHub.
 
 -Added IListViewVista interface (Vista-only version of IListView)
 
--Bug fix: `SFGAO_GHOSTED` incorrectly defined causing bitwise operation sign issues.
+-Bug fix: Numerous enum values defined incorrectly as &H8000, causing sign issues in bitwise operations and downstream issues from that,
 
 ---
 
