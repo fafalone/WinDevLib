@@ -23,6 +23,7 @@ Please report any bugs via the Issues feature here on GitHub.
 ## Updates
 
 **Update (v2.5.56):**
+
 -Added Sync Manager interfaces and coclasses (SyncMgr.h), including undocumented ITransferConfirmation/coclass TransferConfirmationUI.
 
 -Added interfaces IPersistSerializedPropStorage, IPersistSerializedPropStorage2, and IPropertySystemChangeNotify
