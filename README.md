@@ -1,7 +1,7 @@
 # tbShellLib
 **twinBASIC Shell Library**
 
-Current Version: 2.5.56 (February 2nd, 2023)
+Current Version: 2.6.60 (February 3rd, 2023)
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -17,10 +17,27 @@ Please report any bugs via the Issues feature here on GitHub.
 
 ## Requirements
 
-[twinBASIC Beta 167 or newer](https://github.com/twinbasic/twinbasic/releases) is required.
+[twinBASIC Beta 239 or newer](https://github.com/twinbasic/twinbasic/releases) is required.
 
 
 ## Updates
+
+**Update (v2.6.60):**
+
+-**IMPORTANT:** tbShellLib now requires [twinBASIC Beta 239 or newer](https://github.com/twinbasic/twinbasic/releases). This is due to the requirement to use the new `[ OleAutomation(False) ]` attribute in order for interfaces to be used in compiled Active-X controls. All tbShellLib interfaces have been marked this way. This should not impact regular usage or UserControl usage; if it does, please create an issue.
+
+-Completed Text Object Model interfaces as of Win10 (TOM.h).
+
+-Added interfaces IObjectWithAppUserModelID, IObjectWithProgID, IObjectWithCancelEvent, IObjectWithSelection, and IObjectWithBackReferences. 
+
+-Added interface IRemoteComputer
+
+-Added interface IUpdateIDList
+
+-Added interfaces IAccessibilityDockingService and IAccessibilityDockingServiceCallback with coclass AccessibilityDockingService
+
+
+
 
 **Update (v2.5.56):**
 
