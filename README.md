@@ -1,7 +1,7 @@
 # tbShellLib
 **twinBASIC Shell Library**
 
-Current Version: 2.6.60 (February 3rd, 2023)
+Current Version: 2.6.62 (February 3rd, 2023)
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -21,6 +21,7 @@ Please report any bugs via the Issues feature here on GitHub.
 
 
 ## Updates
+**Update (v2.6.62):** Corrected remaining hex literals that would be interpreted incorrectly.
 
 **Update (v2.6.60):**
 
