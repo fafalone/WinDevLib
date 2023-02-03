@@ -36,7 +36,7 @@ Please report any bugs via the Issues feature here on GitHub.
 
 -Added interfaces IAccessibilityDockingService and IAccessibilityDockingServiceCallback with coclass AccessibilityDockingService
 
-
+-Bug fix: [#7](https://github.com/fafalone/tbShellLib/issues/7) FILE_ATTRIBUTE_PINNED incorrectly defined
 
 
 **Update (v2.5.56):**
