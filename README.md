@@ -21,7 +21,10 @@ Please report any bugs via the Issues feature here on GitHub.
 
 
 ## Updates
+**Update (tbShellLibImpl v1.0.3):** Updated internal tbShellLib reference.
+
 **Update (v2.6.62):** Corrected remaining hex literals that would be interpreted incorrectly.
+
 
 **Update (v2.6.60):**
 
