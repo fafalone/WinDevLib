@@ -21,7 +21,15 @@ Please report any bugs via the Issues feature here on GitHub.
 
 
 ## Updates
-**Update (v2.7.66):** HIGHLY EXPERIMENTAL: Added DirectWrite and Direct2D interfaces via merging d2dvb.tlb/dwvb.tlb by @Thetrik with oleexp, then copying out of tB's typelib browser. I've done an initial review to find pointer types, but may have missed some, and the defs are extremely VB-hostile and even more MKTYPLIB hostile so there may be function prototype issues. These are all in slDirectX.twin if you wanted to remove it from a build.
+**Update (v2.7.66):**
+
+-HIGHLY EXPERIMENTAL: Added DirectWrite and Direct2D interfaces via merging d2dvb.tlb/dwvb.tlb by @Thetrik with oleexp, then copying out of tB's typelib browser. I've done an initial review to find pointer types, but may have missed some, and the defs are extremely VB-hostile and even more MKTYPLIB hostile so there may be function prototype issues. These are all in slDirectX.twin if you wanted to remove it from a build.
+
+-Added Windowless RichEdit interfaces (ITextServices[2], ITextHost[2], IRicheditUiaOverrides)
+
+-Bug fix: CreateTypeLib definition incorrect ([#8](https://github.com/fafalone/tbShellLib/issues/8))
+
+-(tbShellLibImpl) Updated to v1.1.4- added `Implements` compatible versions of ITextHost[2]. WARNING: The signatures are incorrect as `[ PreserveSig ]` is not optional. You will need to swap the vtable entries to a correct prototype. These are provided merely to get around the invalid signature compiler error.
 
 **Update (v2.6.64):** IWebBrowserApp managed to escape all the replacements I ran to add `[ OleAutomation(False) ]`
 
