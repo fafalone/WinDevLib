@@ -1,7 +1,7 @@
 # tbShellLib
 **twinBASIC Shell Library**
 
-Current Version: 2.7.66 (February 5th, 2023)
+Current Version: 2.7.70 (February 6th, 2023)
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -21,6 +21,8 @@ Please report any bugs via the Issues feature here on GitHub.
 
 
 ## Updates
+**Update (v2.7.70):** Shell automation intefaces using VARIANT_BOOL have been changed to Boolean to be more correct than Integer (the underlying typedef is `short`, which is why is was Integer at first).
+
 **Update (v2.7.66):**
 
 -HIGHLY EXPERIMENTAL: Added DirectWrite and Direct2D interfaces via merging d2dvb.tlb/dwvb.tlb by [@Thetrik](https://github.com/thetrik) with oleexp, then copying out of tB's typelib browser. I've done an initial review to find pointer types, but may have missed some, and the defs are extremely VB-hostile and even more MKTYPLIB hostile so there may be function prototype issues. These are all in slDirectX.twin if you wanted to remove it from a build.
