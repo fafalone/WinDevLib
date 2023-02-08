@@ -1,7 +1,7 @@
 # tbShellLib
 **twinBASIC Shell Library**
 
-Current Version: 2.7.70 (February 6th, 2023)
+Current Version: 2.8.74 (February 8th, 2023)
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -21,6 +21,8 @@ Please report any bugs via the Issues feature here on GitHub.
 
 
 ## Updates
+**Update (v2.8.74):** Added DXGI and DirectComposition interfaces (experimental).
+
 **Update (v2.7.70):** Shell automation intefaces using VARIANT_BOOL have been changed to Boolean to be more correct than Integer (the underlying typedef is `short`, which is why is was Integer at first).
 
 **Update (v2.7.66):**
