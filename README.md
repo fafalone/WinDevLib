@@ -22,6 +22,7 @@ Please report any bugs via the Issues feature here on GitHub.
 
 ## Updates
 **Update (v2.8.76):** Added basic Media Foundation interfaces from oleexp that were missing up until now.
+
 **Update (v2.8.75):** Added DXGI and DirectComposition interfaces (experimental).
 
 **Update (v2.7.70):** Shell automation intefaces using VARIANT_BOOL have been changed to Boolean to be more correct than Integer (the underlying typedef is `short`, which is why is was Integer at first).
