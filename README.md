@@ -1,7 +1,7 @@
 # tbShellLib
 **twinBASIC Shell Library**
 
-Current Version: 2.8.78 (February 8th, 2023)
+Current Version: 2.9.80 (February 9th, 2023)
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -21,6 +21,9 @@ Please report any bugs via the Issues feature here on GitHub.
 
 
 ## Updates
+
+**Update (v2.9.80):** Substantially expanded Media Foundation set, also now includes all related GUIDs defined in mfidl.idl.
+
 **Update (v2.8.76):** Added basic Media Foundation interfaces from oleexp that were missing up until now. **(v2.8.78):** Fixed missing PtrSafe attributes and SwapVTable type errors.
 
 **Update (v2.8.75):** Added DXGI and DirectComposition interfaces (experimental).
