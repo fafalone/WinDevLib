@@ -1,7 +1,7 @@
 # tbShellLib
 **twinBASIC Shell Library**
 
-Current Version: 2.9.80 (February 9th, 2023)
+Current Version: 2.9.81 (February 10th, 2023)
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -21,8 +21,9 @@ Please report any bugs via the Issues feature here on GitHub.
 
 
 ## Updates
+**Update (v2.9.81):** Bug fix: ITypeLib::GetTypeInfoCount and several others never had `[ PreserveSig ]` restored after support was added.
 
-**Update (v2.9.80):** Substantially expanded Media Foundation set, also now includes all related GUIDs defined in mfidl.idl. Fixed incorrect IID for ITypeInfo/IID_ITypeInfo.
+**Update (v2.9.80):** Substantially expanded Media Foundation set, also now includes all related GUIDs defined in mfidl.idl. Fixed incorrect IID for ITypeInfo/IID_ITypeInfo. 
 
 **Update (v2.8.76):** Added basic Media Foundation interfaces from oleexp that were missing up until now. **(v2.8.78):** Fixed missing PtrSafe attributes and SwapVTable type errors.
 
