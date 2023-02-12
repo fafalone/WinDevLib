@@ -1,7 +1,7 @@
 # tbShellLib
 **twinBASIC Shell Library**
 
-Current Version: 2.9.84 (February 11th, 2023)
+Current Version: 2.9.85 (February 11th, 2023)
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -21,9 +21,9 @@ Please report any bugs via the Issues feature here on GitHub.
 
 
 ## Updates
-**Update (v2.9.84):** 
+**Update (v2.9.85):** 
 
--Bug fix: ITypeInfo::AddressOfMember returned Long instead of LongPtr ([#11](https://github.com/fafalone/tbShellLib/issues/11)) and other misc bugfixes.
+-Bug fix: ITypeInfo::AddressOfMember returned Long instead of LongPtr ([#11](https://github.com/fafalone/tbShellLib/issues/11)); ICreateTypeLib2 incorrectly extended IUnknown instead of ICreateTypeLib, and other misc bugfixes.
 
 -Added objidl.idl interfaces IAdviseSink2, IClientSecurity, IServerSecurity, IMallocSpy, IClassActivator, IProgressNotify, IStdMarshalInfo, IExternalConnection and IThumbnailExtractor (w/coclass ThumbnailFCNHandler).
 
