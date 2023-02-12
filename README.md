@@ -21,7 +21,7 @@ Please report any bugs via the Issues feature here on GitHub.
 
 
 ## Updates
-**Update (v2.9.81):** 
+**Update (v2.9.84):** 
 
 -Bug fix: ITypeInfo::AddressOfMember returned Long instead of LongPtr ([#11](https://github.com/fafalone/tbShellLib/issues/11)) and other misc bugfixes.
 
