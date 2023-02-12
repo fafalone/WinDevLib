@@ -371,7 +371,285 @@ CoClass EnumBthMtpConnectors
 	 [ Default ] Interface IEnumPortableDeviceConnectors
 End CoClass
 
+
+'Additional undocumented hardware device interfaces
+[ InterfaceId ("99BC7510-0A96-43fa-8BB1-C928A0302EFB") ]
+[ Description ("Hardware Event Device Info Interface") ]
+[ OleAutomation (False) ]
+Interface IHWDevice Extends stdole.IUnknown
+    Sub Init(ByVal pszDeviceId As LongPtr)
+End Interface
+
+[ InterfaceId ("77D5D69C-D6CE-4026-B625-26964EEC733F") ]
+[ OleAutomation (False) ]
+Interface IHWDeviceCustomProperties Extends stdole.IUnknown
+    Sub InitFromDeviceID(ByVal pszDeviceId As LongPtr, ByVal dwFlags As Long)
+    Sub InitFromDevNode(ByVal pszDevNode As LongPtr, ByVal dwFlags As Long)
+    Sub GetDWORDProperty(ByVal pszPropName As LongPtr, pdwProp As Long)
+    Sub GetStringProperty(ByVal pszPropName As LongPtr, ppszProp As LongPtr)
+    Sub GetMultiStringProperty(ByVal pszPropName As LongPtr, ByVal fMergeMutliSz As Long, ppBlob As LongPtr)
+    Sub GetBlobProperty(ByVal pszPropName As LongPtr, ppBlob As LongPtr)
+End Interface
+
+[ InterfaceId ("66057ABA-FFDB-4077-998E-7F131C3F8157") ]
+[ OleAutomation (False) ]
+Interface IEnumAutoplayHandler Extends stdole.IUnknown
+    [ PreserveSig ] Function Next(ppszHandler As LongPtr, ppszProvider As LongPtr, ppszIconLocation As LongPtr) As Long
+End Interface
+
+[ InterfaceId ("335E9E5D-37FC-4d73-8BA8-FD4E16B28134") ]
+[ OleAutomation (False) ]
+Interface IAutoplayHandler Extends stdole.IUnknown
+    Sub Init(ByVal pszDeviceId As LongPtr, ByVal pszEventType As LongPtr)
+    Sub InitWithContent(ByVal pszDeviceId As LongPtr, ByVal pszEventType As LongPtr, ByVal pszContentTypeHandler As LongPtr)
+    Sub EnumHandlers(ppEnum As IEnumAutoplayHandler)
+    Sub GetDefaultHandler(ppszHandler As LongPtr)
+    Sub SetDefaultHandler(ByVal pszHandler As LongPtr)
+End Interface
+
+[ InterfaceId ("557730F6-41FA-4d11-B9FD-F88AB155347F") ]
+[ OleAutomation (False) ]
+Interface IAutoplayHandlerProperties Extends stdole.IUnknown
+    Sub Init(ByVal pszDeviceId As LongPtr)
+    Sub GetInvokeProgIDAndVerb(ppszInvokeProgID As LongPtr, ppszInvokeVerb As LongPtr)
+End Interface
+
+[ InterfaceId ("553A4A55-681C-440e-B109-597B9219CFB2") ]
+[ OleAutomation (False) ]
+Interface IHardwareDevicesEnum Extends stdole.IUnknown
+    [ PreserveSig ] Function Next(ppszDeviceID As LongPtr, pguidDeviceID As UUID) As Long
+End Interface
+
+[ InterfaceId ("3342BDE1-50AF-4c5d-9A19-DABD01848DAE") ]
+[ OleAutomation (False) ]
+Interface IHardwareDevicesVolumesEnum Extends stdole.IUnknown
+    [ PreserveSig ] Function Next(pvolinfo As VOLUMEINFO) As Long
+End Interface
+
+[ InterfaceId ("EE93D145-9B4E-480c-8385-1E8119A6F7B2") ]
+[ OleAutomation (False) ]
+Interface IHardwareDevicesMountPointsEnum Extends stdole.IUnknown
+    [ PreserveSig ] Function Next(ppszMountPoint As LongPtr, ppszDeviceIDVolume As LongPtr) As Long
+End Interface
+
+[ InterfaceId ("CC271F08-E1DD-49bf-87CC-CD6DCF3F3D9F") ]
+[ OleAutomation (False) ]
+Interface IHardwareDevices Extends stdole.IUnknown
+    Sub EnumVolumes(ByVal dwFlags As Long, ppenum As IHardwareDevicesVolumesEnum)
+    Sub EnumMountPoints(ppenum As IHardwareDevicesMountPointsEnum)
+    Sub EnumDevices(ppenum As IHardwareDevicesEnum)
+    Sub Advise(ByVal dwProcessID As Long, ByVal hThread As LongPtr, ByVal pfctCallback As LongPtr, pdwToken As Long)
+    Sub Unadvise(ByVal dwToken As Long)
+End Interface
+
+'CLSID_HWEventSettings
+[ CoClassId ("5560c070-114e-4e97-929a-7e39f40debc7") ]
+CoClass HWEventSettings
+    [ Default ] Interface IAutoplayHandler
+End CoClass
+
+'CLSID_AutoplayHandlerProperties
+[ CoClassId ("11F6B41F-3BE5-4ce3-AF60-398551797DF6") ]
+CoClass AutoplayHandlerProperties
+    [ Default ] Interface IAutoplayHandlerProperties
+End CoClass
+
+'CLSID_HWDevice
+[ CoClassId ("aac41048-53e3-4867-a0aa-5fbceae7e5f5") ]
+CoClass HWDevice
+    [ Default ] Interface IHWDevice
+End CoClass
+
+'CLSID_HardwareDevices
+[ CoClassId ("dd522acc-f821-461a-a407-50b198b896dc") ]
+CoClass HardwareDevices
+    [ Default ] Interface IHardwareDevices
+End CoClass
+
+'CLSID_HWDeviceCustomProperties
+[ CoClassId ("555F3418-D99E-4e51-800A-6E89CFD8B1D7") ]
+CoClass HWDeviceCustomProperties
+    [ Default ] Interface IHWDeviceCustomProperties
+End CoClass
+
+
 Module slDevices
+
+
+Public Const MAX_FILESYSNAME         = 30
+Public Const MAX_LABEL_NTFS          = 32
+Public Const MAX_LABEL               = MAX_LABEL_NTFS + 1
+Public Const MAX_ICONLOCATION        = MAX_PATH + 12
+Public Const MAX_DEVICEID            = 200
+
+Public Enum MEDIA_STATES
+	HWDMS_PRESENT = &H10000000
+	HWDMS_FORMATTED = &H20000000
+	HWDMS_WRITEPROTECTED_SUPPORTDETECTION = &H40000000
+	HWDMS_WRITEPROTECTED = &H80000000
+End Enum
+
+Public Enum MEDIA_CAPABILITIES
+	HWDMC_WRITECAPABILITY_SUPPORTDETECTION = &H00000001
+	HWDMC_CDROM = &H00000002
+	HWDMC_CDRECORDABLE = &H00000004
+	HWDMC_CDREWRITABLE = &H00000008
+	HWDMC_DVDROM = &H00000010
+	HWDMC_DVDRECORDABLE = &H00000020
+	HWDMC_DVDREWRITABLE = &H00000040
+	HWDMC_DVDRAM = &H00000080
+	HWDMC_ANALOGAUDIOOUT = &H00000100
+	HWDMC_RANDOMWRITE = &H00001000
+	HWDMC_HASAUTORUNINF = &H00002000
+	HWDMC_HASAUTORUNCOMMAND = &H00004000
+	HWDMC_HASDESKTOPINI = &H00008000&
+	HWDMC_HASDVDMOVIE = &H00010000
+	HWDMC_HASAUDIOTRACKS = &H00020000
+	HWDMC_HASDATATRACKS = &H00040000
+	HWDMC_HASAUDIOTRACKS_UNDETERMINED = &H00080000
+	HWDMC_HASDATATRACKS_UNDETERMINED = &H00100000
+	HWDMC_HASUSEAUTOPLAY = &H00200000
+	' HWDMC_CDTYPEMASK                              (HWDMC_CDROM | HWDMC_CDRECORDABLE | HWDMC_CDREWRITABLE | HWDMC_DVDROM | HWDMC_DVDRECORDABLE | HWDMC_DVDREWRITABLE | HWDMC_DVDRAM)")
+End Enum
+
+Public Enum DRIVE_STATE
+	HWDDS_PRESENT_SUPPORTDETECTION = &H10000000
+	HWDDS_PRESENT = &H20000000
+	HWDDS_SLEEPING_SUPPORTDETECTION = &H40000000
+	HWDDS_SLEEPING = &H80000000
+End Enum
+
+Public Enum DRIVE_CAPABILITIES
+	HWDDC_CAPABILITY_SUPPORTDETECTION = &H00000001
+	HWDDC_CDROM = &H00000002
+	HWDDC_CDRECORDABLE = &H00000004
+	HWDDC_CDREWRITABLE = &H00000008
+	HWDDC_DVDROM = &H00000010
+	HWDDC_DVDRECORDABLE = &H00000020
+	HWDDC_DVDREWRITABLE = &H00000040
+	HWDDC_DVDRAM = &H00000080
+	HWDDC_ANALOGAUDIOOUT = &H00000100
+	HWDDC_RANDOMWRITE = &H00001000
+	HWDDC_NOSOFTEJECT = &H00002000
+	HWDDC_FLOPPYSOFTEJECT = &H00004000
+	HWDDC_REMOVABLEDEVICE = &H00008000&
+	' HWDDC_CDTYPEMASK                              HWDMC_CDTYPEMASK
+End Enum
+
+Public Enum VOLUME_FLAGS
+	HWDVF_STATE_SUPPORTNOTIFICATION = &H00000001
+	HWDVF_STATE_ACCESSDENIED = &H00000002
+	HWDVF_STATE_DISMOUNTED = &H00000004
+	HWDVF_STATE_HASAUTOPLAYHANDLER = &H00000008
+	HWDVF_STATE_DONOTSNIFFCONTENT = &H00000010
+	HWDVF_STATE_JUSTDOCKED = &H00000020
+End Enum
+
+Public Enum DRIVE_TYPES
+	HWDTS_FLOPPY35 = &H00000001
+	HWDTS_FLOPPY525 = &H00000002
+	HWDTS_REMOVABLEDISK = &H00000004
+	HWDTS_FIXEDDISK = &H00000008
+	HWDTS_CDROM = &H00000010
+End Enum
+
+Public Enum DEVICE_FLAGS
+	HWDDF_HASDEVICEHANDLER = &H00000001
+	HWDDF_HASDEVICEHANDLER_UNDETERMINED = &H00000002
+	HWDDF_REMOVABLEDEVICE = &H00000004
+	HWDDF_REMOVABLEDEVICE_UNDETERMINED = &H00000008
+End Enum
+
+Public Enum SHHARDWAREEVENT_IDs
+	SHHARDWAREEVENT_VOLUMEARRIVED = &H00000001
+	SHHARDWAREEVENT_VOLUMEUPDATED = &H00000002
+	SHHARDWAREEVENT_VOLUMEREMOVED = &H00000004
+	SHHARDWAREEVENT_MOUNTPOINTARRIVED = &H00000008
+	SHHARDWAREEVENT_MOUNTPOINTREMOVED = &H00000010
+	SHHARDWAREEVENT_DEVICEARRIVED = &H00000020
+	SHHARDWAREEVENT_DEVICEUPDATED = &H00000040
+	SHHARDWAREEVENT_DEVICEREMOVED = &H00000080
+	SHHARDWAREEVENT_VOLUMEMOUNTED = &H00000100
+	SHHARDWAREEVENT_VOLUMEDISMOUNTED = &H00000200
+End Enum
+Public Type SHHARDWAREEVENT
+	cbSize As Long
+	dwEvent As SHHARDWAREEVENT_IDs
+	rgbPayLoad(0 To 0) As Byte
+End Type
+
+Public Type MTPTADDED
+	szMountPoint(0 To (MAX_PATH - 1)) As Integer
+	szDeviceIDVolume(0 To (MAX_DEVICEID - 1)) As Integer
+End Type
+
+Public Type HWDEVICEINFO
+	cbSize As Long
+	szDeviceIntfID(0 To 199) As Integer
+	guidInterface As UUID
+	dwState As Long
+	dwDeviceFlags As Long
+End Type
+
+Public Type VOLUMEINFO
+	dwState As Long ' State of volume 
+	pszDeviceIDVolume As LongPtr ' \\?\STORAGE#Volume#...{...GUID...}
+	pszVolumeGUID As LongPtr ' \\?\Volume{...GUID...}
+	dwVolumeFlags As VOLUME_FLAGS ' see HWDVF_... flags
+	dwDriveType As DRIVE_TYPES ' see HWDT_... flags
+	dwDriveCapability As DRIVE_CAPABILITIES ' see HWDDC_... flags
+	pszLabel As LongPtr
+	pszFileSystem As LongPtr
+	dwFileSystemFlags As Long
+	dwMaxFileNameLen As Long
+	dwRootAttributes As Long
+	dwSerialNumber As Long ' 
+	dwDriveState As DRIVE_STATE ' see HWDDS_...; 
+	dwMediaState As MEDIA_STATES ' see HWDMS_...; 
+	dwMediaCap As MEDIA_CAPABILITIES ' see HWDMC_...; 
+	pszAutorunIconLocation As LongPtr ' Autorun IconLocation from autorun.inf 
+	pszAutorunLabel As LongPtr ' Autorun Label from autorun.inf 
+	pszIconLocationFromService As LongPtr ' Icon location from Custom Properties
+	pszNoMediaIconLocationFromService As LongPtr ' Icon location from Custom Properties
+	pszLabelFromService As LongPtr ' Label from Custom Properties
+End Type
+Public Type VOLUMEINFO2
+	cbSize As Long
+	szDeviceIDVolume(0 To 199) As Integer
+	szVolumeGUID(0 To 49) As Integer
+	szLabel(0 To 32) As Integer
+	szFileSystem(0 To 29) As Integer
+	dwState As Long
+	dwVolumeFlags As VOLUME_FLAGS
+	dwDriveType As DRIVE_TYPES
+	dwDriveCapability As DRIVE_CAPABILITIES
+	dwFileSystemFlags As Long
+	dwMaxFileNameLen As Long
+	dwRootAttributes As Long
+	dwSerialNumber As Long
+	dwDriveState As DRIVE_STATE
+	dwMediaState As MEDIA_STATES
+	dwMediaCap As MEDIA_CAPABILITIES
+	oAutorunIconLocation As Long
+	oAutorunLabel As Long
+	oIconLocationFromService As Long
+	oNoMediaIconLocationFromService As Long
+	oLabelFromService As Long
+	szOptionalStrings(0 To 0) As Integer
+End Type
+
+
+Public Enum AHDEFAULT
+	HANDLERDEFAULT_USERCHOSENDEFAULT = &H00000002
+	HANDLERDEFAULT_EVENTHANDLERDEFAULT = &H00000004
+	HANDLERDEFAULT_MORERECENTHANDLERSINSTALLED = &H00000008
+	HANDLERDEFAULT_DEFAULTSAREDIFFERENT = &H00000010
+End Enum
+
+Public Const HWDEVCUSTOMPROP_USEVOLUMEPROCESSING = &H1
+Public Const HWDEV_GETCUSTOMPROPERTIES = &H1
+
+
 
 Public Enum WPD_STREAM_UNITS
 	WPD_STREAM_UNITS_BYTES = 0
