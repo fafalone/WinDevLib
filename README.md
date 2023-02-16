@@ -1,7 +1,7 @@
 # tbShellLib
 **twinBASIC Shell Library**
 
-Current Version: 2.9.90 (February 15th, 2023)
+Current Version: 3.0.10 (February 16th, 2023)
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -20,6 +20,8 @@ Please report any bugs via the Issues feature here on GitHub.
 [twinBASIC Beta 239 or newer](https://github.com/twinbasic/twinbasic/releases) is required.
 
 ## Updates
+**Update (v3.0.10):** Added all missing Direct2D interfaces/types/enums and corrected bugs in slDirectX.
+
 **Update (v2.9.90):** EXPERIEMENTAL: Added Direct3D 11 and 12.
 
 **Update (v2.9.85):** 
