@@ -1,7 +1,7 @@
 # tbShellLib
 **twinBASIC Shell Library**
 
-Current Version: 3.0.10 (February 16th, 2023)
+Current Version: 3.0.12 (February 17th, 2023)
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -20,6 +20,15 @@ Please report any bugs via the Issues feature here on GitHub.
 [twinBASIC Beta 239 or newer](https://github.com/twinbasic/twinbasic/releases) is required.
 
 ## Updates
+**Update (v3.0.12):**
+-Added missing PROPSHEETHEADER and PROPSHEETHEADER_V2 types and PropSheet/PropSheetW APIs. Also corrected wrong values for PSN_TRANSLATEACCELERATOR/PSN_QUERYINITIALFOCUS.
+
+-Began adding back in some Optionals in DirectX interfaces which weren't supported by MKTYPLIB so weren't in oleexp, where the tB code was generated from.
+
+-(Bug fix) StringFromGUID2 now uses a Long instead of LPWSTR since the latter was not working.
+
+-(Bug fix) D3D11CreateDevice and D3D11CreateDeviceAndSwapChain were declared incorrectly for 64bit compatibility (Softare param should be LongPtr).
+
 **Update (v3.0.10):** Added all missing Direct2D interfaces/types/enums and corrected bugs in slDirectX.
 
 **Update (v2.9.90):** EXPERIEMENTAL: Added Direct3D 11 and 12.
