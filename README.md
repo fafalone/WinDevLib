@@ -1,7 +1,7 @@
 # tbShellLib
 **twinBASIC Shell Library**
 
-Current Version: 3.2.16 (February 24th, 2023)
+Current Version: 3.2.20 (February 24th, 2023)
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
