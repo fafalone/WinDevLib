@@ -20,7 +20,7 @@ Please report any bugs via the Issues feature here on GitHub.
 [twinBASIC Beta 239 or newer](https://github.com/twinbasic/twinbasic/releases) is required.
 
 ## Updates
-**Update (v3.2.16):** Added WebView2.
+**Update (v3.2.16):** Added WebView2 (EXPERIMENTAL). Added IObjectProvider, IEnumObjects, and IIOCancelInformation interfaces.
 
 **Update (v3.1.14):** Added Microsoft Speech APIs v5.4. Added IHttpNegotiate3.
 
