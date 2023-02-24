@@ -1,7 +1,7 @@
 # tbShellLib
 **twinBASIC Shell Library**
 
-Current Version: 3.1.14 (February 20th, 2023)
+Current Version: 3.2.16 (February 24th, 2023)
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -20,6 +20,8 @@ Please report any bugs via the Issues feature here on GitHub.
 [twinBASIC Beta 239 or newer](https://github.com/twinbasic/twinbasic/releases) is required.
 
 ## Updates
+**Update (v3.2.16):** Added WebView2.
+
 **Update (v3.1.14):** Added Microsoft Speech APIs v5.4. Added IHttpNegotiate3.
 
 **Update (v3.0.13):**
