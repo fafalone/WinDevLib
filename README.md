@@ -1,7 +1,7 @@
 # tbShellLib
 **twinBASIC Shell Library**
 
-Current Version: 3.2.30 (February 26th, 2023)
+Current Version: 3.3.40 (March 2nd, 2023)
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -20,6 +20,24 @@ Please report any bugs via the Issues feature here on GitHub.
 [twinBASIC Beta 239 or newer](https://github.com/twinbasic/twinbasic/releases) is required.
 
 ## Updates
+**Update (v3.3.40):**
+-Inexplicably, the IDeskBand, IDockingWindow, IDockingWindowFrame, and IDockingWindowSite interfaces were missing.
+
+-Added ITrayBand, IDeskBand2, IDeskBandInfo, IBandHost, and IBandSite interfaces, IMenuBand, and coclasses TrayDeskBand, TrayBandSiteServices, and AddressBand.
+
+-Added IRegTreeItem interface
+
+-Added IPrintDialogCallback/IPrintDialogServices interfaces.
+
+-Bug fix: Certain DirectWrite interface members had ByRef Long for strings where they should have had ByVal.
+
+-Bug fix: SHELLSTATE had an extra member on the end (shouldn't have impacted use, but if MS changed the API to look for an exact size it would be an issue).
+
+-Bug fix: Attempted to correct INameSpaceTreeControlEvents context menu crashing.
+
+-Buf fix: INameSpaceTreeCustomDraw::ItemPrePaint was missing members.
+
+
 **Update (v3.2.30):** Several Speech API interfaces were missing. Also, began using BOOL type as as enum with CFALSE (0) and CTRUE (1) members. I'll be slowly working on changing all the Long items that are actually BOOL to this over the coming months.
 
 **Update (v3.2.24):** Numerous bugfixes to Speech API interfaces.
