@@ -1,7 +1,7 @@
 # tbShellLib
 **twinBASIC Shell Library**
 
-Current Version: 3.3.40 (March 2nd, 2023)
+Current Version: 3.3.41 (March 2nd, 2023)
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -20,6 +20,8 @@ Please report any bugs via the Issues feature here on GitHub.
 [twinBASIC Beta 239 or newer](https://github.com/twinbasic/twinbasic/releases) is required.
 
 ## Updates
+**Update (v3.3.41):** Bug fix: IExplorerBrowserEvents::NavigationFailed was misspelled.
+
 **Update (v3.3.40):**
 -Inexplicably, the IDeskBand, IDockingWindow, IDockingWindowFrame, and IDockingWindowSite interfaces were missing.
 
