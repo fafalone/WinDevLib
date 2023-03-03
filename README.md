@@ -19,6 +19,20 @@ Please report any bugs via the Issues feature here on GitHub.
 
 [twinBASIC Beta 239 or newer](https://github.com/twinbasic/twinbasic/releases) is required.
 
+## Guide to switching from oleexp.tlb
+
+It's fairly simple to move your VB6 projects to tbShellLib, just follow these steps:
+
+1) Replace public aliases: It's important to do this first. Run a Replace All changing oleexp.LongPtr to LongPtr, oleexp.LONG_PTR to LongPtr, oleexp.REFERENCE_TIME to LongLong, oleexp.HNSTIME to LongLong, and oleexp.KNOWNFOLDERID to UUID. For all except the first, if you've used them without the oleexp. prefix, you'll also need to replace those.
+
+2) Replace oleexp.IUnknown with IUnknownUnrestricted. tbShellLib keeps this separate due to the major issues with conflicts with the former approach. If your project has IUnknown *without* oleexp. in front of it, **do not** replace those, as it's not referring to oleexp. 
+
+3) After you've done those two, you can now go ahead and simply delete all remaining instances of `oleexp.` (including the .). 
+
+4) Manually address any errors remaining. Interfaces should be mostly fine at this point, but if you've made use of the APIs in oleexp, many of them have syntax differences, mainly not being able to rewrite an ending [out] argument as the return value, and changing String arguments to LongPtr you'll need StrPtr with.
+
+Note that this is just for using tbShellLib-- you'll likely have a lot more changes to make if you want to make your project x64 compatible.
+
 ## Updates
 **Update (v3.3.41):** Bug fix: IExplorerBrowserEvents::NavigationFailed was misspelled.
 
@@ -37,7 +51,7 @@ Please report any bugs via the Issues feature here on GitHub.
 
 -Bug fix: Attempted to correct INameSpaceTreeControlEvents context menu crashing.
 
--Buf fix: INameSpaceTreeCustomDraw::ItemPrePaint was missing members.
+-Bug fix: INameSpaceTreeCustomDraw::ItemPrePaint was missing members.
 
 
 **Update (v3.2.30):** Several Speech API interfaces were missing. Also, began using BOOL type as as enum with CFALSE (0) and CTRUE (1) members. I'll be slowly working on changing all the Long items that are actually BOOL to this over the coming months.
