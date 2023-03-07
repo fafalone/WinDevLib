@@ -1,7 +1,7 @@
 # tbShellLib
 **twinBASIC Shell Library**
 
-Current Version: 3.3.41 (March 2nd, 2023)
+Current Version: 3.4.46 (March 7th, 2023)
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -34,6 +34,8 @@ It's fairly simple to move your VB6 projects to tbShellLib, just follow these st
 Note that this is just for using tbShellLib-- you'll likely have a lot more changes to make if you want to make your project x64 compatible.
 
 ## Updates
+**Update (v3.4.46):** Added all GDIPlus APIs and all Common Dialog APIs.
+
 **Update (v3.3.41):** Bug fix: IExplorerBrowserEvents::NavigationFailed was misspelled.
 
 **Update (v3.3.40):**
