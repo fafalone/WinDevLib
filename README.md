@@ -20,10 +20,10 @@ Please report any bugs via the Issues feature here on GitHub.
 ## Adding tbShellLib to your project
 You have 2 options for this:
 
-### Via the Package Server
-twinBASIC has an online package server and tbShellLib is published on it. Open your project settings and scroll to the **COM Type Library / ActiveX References**, then click **TWINPACK PACKAGES**. Add "twinBASIC Shell Library v3.4.46" (or whatever the newest version is). "twinBASIC Shell Library for Implements" contains `*Implements*` compatible versions of a small number of common interfaces not defined in a compatible way in the main project. For more details, including illustrations, [see this post](https://github.com/fafalone/tbShellLib/issues/9#issuecomment-1416767019).
+#### Via the Package Server
+twinBASIC has an online package server and tbShellLib is published on it. Open your project settings and scroll to the **COM Type Library / ActiveX References**, then click **TWINPACK PACKAGES**. Add "twinBASIC Shell Library v3.4.46" (or whatever the newest version is). "twinBASIC Shell Library for Implements" contains `Implements` compatible versions of a small number of common interfaces not defined in a compatible way in the main project. For more details, including illustrations, [see this post](https://github.com/fafalone/tbShellLib/issues/9#issuecomment-1416767019).
 
-### From a local file
+#### From a local file
 You can download the project from this repository and use the .twinpack file. Navigate to the same area as above, and click on the "Import from file" button. 
 
 ## Guide to switching from oleexp.tlb
