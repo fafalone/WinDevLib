@@ -5,19 +5,26 @@ Current Version: 3.4.46 (March 7th, 2023)
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
-This project aims to be a twinBASIC replacement for [oleexp.tlb](http://www.vbforums.com/showthread.php?786079-VB6-Modern-Shell-Interface-Type-Library-oleexp-tlb), my Modern Shell Interfaces Type Library project for VB6, that is x64 compatible, due to the many problems using midl to create a 64bit tlb.
+This project is a comprehensive twinBASIC replacement for [oleexp.tlb](http://www.vbforums.com/showthread.php?786079-VB6-Modern-Shell-Interface-Type-Library-oleexp-tlb), my Modern Shell Interfaces Type Library project for VB6, that is x64 compatible, due to the many problems using midl to create a 64bit tlb.
 
-It's now essentially complete; all interfaces are covered except ones useless on anything newer than Win9x, and all APIs are covered.
+All interfaces are covered except ones useless on anything newer than Win9x, and all APIs are covered.
 
-As a twinPACKAGE, regular code is supported in addition to the definitions, so the regular addin modules have been built in (mIID.bas, mPKEY.bas, etc).
-
-This project is also available via the twinBASIC Package Manager, so you can simply check the box for it there rather than download and import it manually. The versions are always kept in sync so this repo won't have anything newer. This repo is mainly for if you wish to modify it.
+This project is implemented purely in tB native code, as unlike VB6 there's language support for defining interfaces and coclasses. As a twinPACKAGE, regular code is supported in addition to the definitions, so the regular addin modules have been built in (mIID.bas, mPKEY.bas, etc).
 
 Please report any bugs via the Issues feature here on GitHub.
 
 ## Requirements
 
 [twinBASIC Beta 239 or newer](https://github.com/twinbasic/twinbasic/releases) is required.
+
+## Adding tbShellLib to your project
+You have 2 options for this:
+
+### Via the Package Server
+twinBASIC has an online package server and tbShellLib is published on it. Open your project settings and scroll to the **COM Type Library / ActiveX References**, then click **TWINPACK PACKAGES**. Add "twinBASIC Shell Library v3.4.46" (or whatever the newest version is). "twinBASIC Shell Library for Implements" contains `*Implements*` compatible versions of a small number of common interfaces not defined in a compatible way in the main project. For more details, including illustrations, [see this post](https://github.com/fafalone/tbShellLib/issues/9#issuecomment-1416767019).
+
+### From a local file
+You can download the project from this repository and use the .twinpack file. Navigate to the same area as above, and click on the "Import from file" button. 
 
 ## Guide to switching from oleexp.tlb
 
