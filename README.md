@@ -53,6 +53,8 @@ Note that this is just for using tbShellLib-- you'll likely have a lot more chan
 
 -Added IHandlerInfo2, IDeskBar, IDeskBarClient amd IShellFolderBand
 
+-Began expanding general API coverage
+
 **Update (v3.4.46):** Added all GDIPlus APIs and all Common Dialog APIs.
 
 **Update (v3.3.41):** Bug fix: IExplorerBrowserEvents::NavigationFailed was misspelled.
