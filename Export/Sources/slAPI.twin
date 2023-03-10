@@ -101,7 +101,87 @@ Public Enum FCS_RW
     FCS_WRITE = FCS_READ or FCS_FORCEWRITE
 End Enum
 
-Public declarewide ptrsafe function SHGetSetFolderCustomSettings lib "shell32" (pfcs as SHFOLDERCUSTOMSETTINGS, byval pszPath as String, byval dwReadWrite as FCS_RW) As Long
+Public Type BROWSEINFOA
+	hwndOwner As LongPtr
+	pidlRoot As LongPtr
+	pszDisplayName As String ' Return display name of item selected.
+	lpszTitle As String ' text to go in the banner over the tree.
+	ulFlags As Long ' Flags that control the return stuff
+	lpfn As LongPtr
+	lParam As LongPtr ' extra info that's passed back in callbacks
+	iImage As Long ' output var: where to return the Image index.
+End Type
+Public Type BROWSEINFOW
+	hwndOwner As LongPtr
+	pidlRoot As LongPtr
+	pszDisplayName As LongPtr ' Return display name of item selected.
+	lpszTitle As LongPtr ' text to go in the banner over the tree.
+	ulFlags As Long ' Flags that control the return stuff
+	lpfn As LongPtr
+	lParam As LongPtr ' extra info that's passed back in callbacks
+	iImage As Long ' output var: where to return the Image index.
+End Type
+Public Type BROWSEINFO
+	hwndOwner As LongPtr
+	pidlRoot As LongPtr
+	pszDisplayName As LongPtr ' Return display name of item selected.
+	lpszTitle As LongPtr ' text to go in the banner over the tree.
+	ulFlags As Long ' Flags that control the return stuff
+	lpfn As LongPtr
+	lParam As LongPtr ' extra info that's passed back in callbacks
+	iImage As Long ' output var: where to return the Image index.
+End Type
+
+Public Enum BFF_Flags
+	BIF_RETURNONLYFSDIRS  = &H00000001  ' For finding a folder to start document searching
+	BIF_DONTGOBELOWDOMAIN  = &H00000002  ' For starting the Find Computer
+	BIF_STATUSTEXT  = &H00000004  ' Top of the dialog has 2 lines of text for BROWSEINFO.lpszTitle and one line if
+'  this flag is set.  Passing the message BFFM_SETSTATUSTEXTA to the hwnd can set the
+'  rest of the text.  This is not used with BIF_USENEWUI and BROWSEINFO.lpszTitle gets
+'  all three lines of text.
+	BIF_RETURNFSANCESTORS  = &H00000008
+	BIF_EDITBOX  = &H00000010  ' Add an editbox to the dialog
+	BIF_VALIDATE  = &H00000020  ' insist on valid result (or CANCEL)
+	BIF_NEWDIALOGSTYLE  = &H00000040  ' Use the new dialog layout with the ability to resize
+'  Caller needs to call OleInitialize() before using this API
+	BIF_USENEWUI  = (BIF_NEWDIALOGSTYLE  Or  BIF_EDITBOX)
+	BIF_BROWSEINCLUDEURLS  = &H00000080  ' Allow URLs to be displayed or entered. (Requires BIF_USENEWUI)
+	BIF_UAHINT  = &H00000100  ' Add a UA hint to the dialog, in place of the edit box. May not be combined with BIF_EDITBOX
+	BIF_NONEWFOLDERBUTTON  = &H00000200  ' Do not add the "New Folder" button to the dialog.  Only applicable with BIF_NEWDIALOGSTYLE.
+	BIF_NOTRANSLATETARGETS  = &H00000400  ' don't traverse target as shortcut
+	BIF_BROWSEFORCOMPUTER  = &H00001000  ' Browsing for Computers.
+	BIF_BROWSEFORPRINTER  = &H00002000  ' Browsing for Printers
+	BIF_BROWSEINCLUDEFILES  = &H00004000  ' Browsing for Everything
+	BIF_SHAREABLE = &H00008000&  ' sharable resources displayed (remote shares, requires BIF_USENEWUI)
+	BIF_BROWSEFILEJUNCTIONS  = &H00010000  ' allow folder junctions like zip files and libraries to be browsed
+End Enum
+' messages from browser
+Public Const BFFM_INITIALIZED  = 1
+Public Const BFFM_SELCHANGED  = 2
+Public Const BFFM_VALIDATEFAILEDA  = 3  ' lParam:szPath ret:1(cont),0(EndDialog)
+Public Const BFFM_VALIDATEFAILEDW  = 4  ' lParam:wzPath ret:1(cont),0(EndDialog)
+Public Const BFFM_IUNKNOWN  = 5  ' provides IUnknown to client. lParam: IUnknown*
+'  messages to browser
+Public Const BFFM_SETSTATUSTEXTA  = (WM_USER + 100)
+Public Const BFFM_ENABLEOK  = (WM_USER + 101)
+Public Const BFFM_SETSELECTIONA  = (WM_USER + 102)
+Public Const BFFM_SETSELECTIONW  = (WM_USER + 103)
+Public Const BFFM_SETSTATUSTEXTW  = (WM_USER + 104)
+Public Const BFFM_SETOKTEXT  = (WM_USER + 105)  ' Unicode only
+Public Const BFFM_SETEXPANDED  = (WM_USER + 106)  ' Unicode only
+Public Const BFFM_SETSTATUSTEXT  = BFFM_SETSTATUSTEXTW
+Public Const BFFM_SETSELECTION  = BFFM_SETSELECTIONW
+
+Public Enum ILCFP_FLAGS
+	ILCFP_FLAG_NORMAL = &H0000
+	ILCFP_FLAG_SKIPJUNCTIONS = &H0001
+	ILCFP_FLAG_NO_MAP_ALIAS = &H0002
+End Enum
+
+Public Declare PtrSafe Function SHBrowseForFolderA Lib "shell32" (lpbi As BROWSEINFOA) As LongPtr
+Public DeclareWide PtrSafe Function SHBrowseForFolderW Lib "shell32" (lpbi As BROWSEINFOW) As LongPtr
+Public DeclareWide PtrSafe Function SHBrowseForFolder Lib "shell32" Alias "SHBrowseForFolderW" (lpbi As BROWSEINFO) As LongPtr
+Public DeclareWide PtrSafe Function SHGetSetFolderCustomSettings Lib "shell32" (pfcs as SHFOLDERCUSTOMSETTINGS, byval pszPath As String, ByVal dwReadWrite As FCS_RW) As Long
 Public Declare PtrSafe Function SHGetDataFromIDListW Lib "shell32" Alias "SHGetDataFromIDList" (ByVal psf As IShellFolder, ByVal pidl As LongPtr, ByVal nFormat As SHGDFIL_Format, ByRef pv As Any, ByVal cb As Long) As Long
 Public Declare PtrSafe Function SHCreateItemFromParsingName Lib "shell32" (ByVal pszPath As LongPtr, ByVal pbc As IBindCtx, riid As UUID, ppv As Any) As Long
 Public Declare PtrSafe Function SHCreateShellItemArrayFromIDLists Lib "shell32" (ByVal cidl As Long, ByVal rgpidl As LongPtr, ppsiItemArray As IShellItemArray) As Long
@@ -133,6 +213,7 @@ Public Declare PtrSafe Function ILCloneChild Lib "shell32" (ByVal pidl As LongPt
 Public Declare PtrSafe Function ILCloneFirst Lib "shell32" (ByVal pidl As LongPtr) As LongPtr
 Public Declare PtrSafe Function ILCloneFull Lib "shell32" (ByVal pidl As LongPtr) As LongPtr
 Public Declare PtrSafe Function ILCreateFromPathW Lib "shell32" (ByVal pszPath As LongPtr) As LongPtr
+Public Declare PtrSafe Function ILCreateFromPathEx Lib "shell32" (ByVal pszPath As LongPtr, ByVal punkToSkip As IUnknown, ByVal dwFlags As ILCFP_FLAGS, ppidl As LongPtr, rfgInOut As Long) As Long
 Public Declare PtrSafe Function ILCombine Lib "shell32" (ByVal pidl1 As LongPtr, ByVal pidl2 As LongPtr) As LongPtr
 Public Declare PtrSafe Function ILFindChild Lib "shell32" (ByVal pidlParent As LongPtr, ByVal pidlChild As LongPtr) As LongPtr
 Public Declare PtrSafe Function ILFindLastID Lib "shell32" (ByVal pidl As LongPtr) As LongPtr
@@ -974,7 +1055,7 @@ Public DeclareWide PtrSafe Function CreateEvent Lib "kernel32" Alias "CreateEven
 Public Declare PtrSafe Function PulseEvent Lib "kernel32" (ByVal hEvent As LongPtr) As Long
 Public Declare PtrSafe Function SetEvent Lib "kernel32" (ByVal hEvent As LongPtr) As Long
 Public Declare PtrSafe Function ResetEvent Lib "kernel32" (ByVal hEvent As LongPtr) As Long
-Public Declare PtrSafe Function VirtualProtect Lib "kernel32" (ByRef lpAddress As Any, ByVal dwSize As LongPtr, ByVal flNewProtect As MemProtectFlags, ByRef lpflOldProtect As MemProtectFlags) As Long
+[Description("Change the protection flags of a memory address")] Public Declare PtrSafe Function VirtualProtect Lib "kernel32" (ByRef lpAddress As Any, ByVal dwSize As LongPtr, ByVal flNewProtect As MemProtectFlags, ByRef lpflOldProtect As MemProtectFlags) As Long
 Public Declare PtrSafe Function VirtualProtectEx Lib "kernel32" (ByVal hProcess As LongPtr, ByRef lpAddress As Any, ByVal dwSize As LongPtr, ByVal flNewProtect As MemProtectFlags, ByRef lpflOldProtect As MemProtectFlags) As Long
 Public Declare PtrSafe Function VirtualAlloc Lib "kernel32" (ByRef lpAddress As Any, ByVal dwSize As LongPtr, ByVal flAllocationType As MemAllocType, ByVal flProtect As MemProtectFlags) As LongPtr
 Public Declare PtrSafe Function TlsAlloc Lib "kernel32" () As Long
@@ -1699,18 +1780,269 @@ Public Enum PMOptions
     PM_NOYIELD = 2                                       ' &H00000002&
 End Enum
 
-Public Declare PtrSafe Function PeekMessage Lib "USER32.DLL" Alias "PeekMessageA" (ByRef lpmsg As MSG, ByVal hwnd As LongPtr, ByVal wMsgFilterMin As Long, ByVal wMsgFilterMax As Long, ByVal wRemoveMsg As PMOptions) As Long
-Public Declare PtrSafe Function PeekMessageW Lib "USER32.DLL" (ByRef lpmsg As MSG, ByVal hwnd As LongPtr, ByVal wMsgFilterMin As Long, ByVal wMsgFilterMax As Long, ByVal wRemoveMsg As PMOptions) As Long
-Public Declare PtrSafe Function TranslateMessage Lib "USER32.DLL" (ByRef lpmsg As MSG) As Long
-Public Declare PtrSafe Function DispatchMessage Lib "USER32.DLL" Alias "DispatchMessageA" (ByRef lpmsg As MSG) As Long
-Public Declare PtrSafe Function DispatchMessageW Lib "USER32.DLL" (ByRef lpmsg As MSG) As Long
-Public Declare PtrSafe Function EnumThreadWindows Lib "USER32.DLL" (ByVal dwThreadId As Long, ByVal lpfn As Long, ByVal lParam As Long) As Long
-Public Declare PtrSafe Function GetClassNameA Lib "USER32.DLL" (ByVal hwnd As LongPtr, ByVal lpClassName As String, ByVal nMaxCount As Long) As Long
-Public Declare PtrSafe Function GetClassNameW Lib "USER32.DLL" (ByVal hwnd As LongPtr, ByVal lpClassName As LongPtr, ByVal nMaxCount As Long) As Long
-Public Declare PtrSafe Function SetTimer Lib "USER32.DLL" (ByVal hwnd As LongPtr, ByVal nIDEvent As LongPtr, ByVal uEleapse As Long, ByVal lpTimerFunc As LongPtr) As LongPtr
-Public Declare PtrSafe Function KillTimer Lib "USER32.DLL" (ByVal hwnd As LongPtr, ByVal nIDEvent As LongPtr) As Long
-Public Declare PtrSafe Function SystemParametersInfoA Lib "USER32.DLL" (ByVal uiAction As SPI, ByVal uiParam As Long, ByRef pvParam As Any, ByVal fWinIni As SPIF) As Long
-Public Declare PtrSafe Function SystemParametersInfoW Lib "USER32.DLL" (ByVal uiAction As SPI, ByVal uiParam As Long, ByRef pvParam As Any, ByVal fWinIni As SPIF) As Long
+Public Enum ClassStyles
+     CS_VREDRAW = &H0001
+     CS_HREDRAW = &H0002
+     CS_DBLCLKS = &H0008
+     CS_OWNDC = &H0020
+     CS_CLASSDC = &H0040
+     CS_PARENTDC = &H0080
+     CS_NOCLOSE = &H0200
+     CS_SAVEBITS = &H0800
+     CS_BYTEALIGNCLIENT = &H1000
+     CS_BYTEALIGNWINDOW = &H2000
+     CS_GLOBALCLASS = &H4000
+     CS_IME = &H00010000
+     CS_DROPSHADOW = &H00020000
+End Enum
+
+Public Enum DefCursors
+    IDC_ARROW = 32512&
+    IDC_IBEAM = 32513&
+    IDC_WAIT = 32514&
+    IDC_CROSS = 32515&
+    IDC_UPARROW = 32516&
+    IDC_SIZE = 32640&
+    IDC_ICON = 32641&
+    IDC_SIZENWSE = 32642&
+    IDC_SIZENESW = 32643&
+    IDC_SIZEWE = 32644&
+    IDC_SIZENS = 32645&
+    IDC_SIZEALL = 32646&
+    IDC_NO = 32648&
+    IDC_HAND = 32649&
+    IDC_APPSTARTING = 32650&
+    IDC_HELP = 32651&
+    IDC_PIN = 32671&
+    IDC_PERSON = 32672&
+End Enum
+
+
+Public Type WNDCLASSEXA
+    cbSize As Long
+    style As ClassStyles
+    lpfnWndProc As LongPtr
+    cbClsExtra As Long
+    cbWndExtra As Long
+    hInstance As LongPtr
+    hIcon As LongPtr
+    hCursor As LongPtr
+    hbrBackground As LongPtr
+    lpszMenuName As String
+    lpszClassName As String
+    hIconSm As LongPtr
+End Type
+Public Type WNDCLASSEXW
+    cbSize As Long
+    style As ClassStyles
+    lpfnWndProc As LongPtr
+    cbClsExtra As Long
+    cbWndExtra As Long
+    hInstance As LongPtr
+    hIcon As LongPtr
+    hCursor As LongPtr
+    hbrBackground As LongPtr
+    lpszMenuName As LongPtr
+    lpszClassName As LongPtr
+    hIconSm As LongPtr
+End Type
+Public Type WNDCLASSEX
+    cbSize As Long
+    style As ClassStyles
+    lpfnWndProc As LongPtr
+    cbClsExtra As Long
+    cbWndExtra As Long
+    hInstance As LongPtr
+    hIcon As LongPtr
+    hCursor As LongPtr
+    hbrBackground As LongPtr
+    lpszMenuName As LongPtr
+    lpszClassName As LongPtr
+    hIconSm As LongPtr
+End Type
+
+Public Enum WindowsHookCodes
+    WH_MIN = (-1)
+    WH_MSGFILTER = (-1)
+    WH_JOURNALRECORD = 0
+    WH_JOURNALPLAYBACK = 1
+    WH_KEYBOARD = 2
+    WH_GETMESSAGE = 3
+    WH_CALLWNDPROC = 4
+    WH_CBT = 5
+    WH_SYSMSGFILTER = 6
+    WH_MOUSE = 7
+    WH_HARDWARE = 8
+    WH_DEBUG = 9
+    WH_SHELL = 10
+    WH_FOREGROUNDIDLE = 11
+    WH_MAX = 11
+End Enum
+
+Public Enum HookCodes
+    HC_ACTION = 0
+    HC_GETNEXT = 1
+    HC_SKIP = 2
+    HC_NOREMOVE = 3
+    HC_NOREM = HC_NOREMOVE
+    HC_SYSMODALON = 4
+    HC_SYSMODALOFF = 5
+End Enum
+
+Public Enum CBTHookCodes
+    HCBT_MOVESIZE = 0
+    HCBT_MINMAX = 1
+    HCBT_QS = 2
+    HCBT_CREATEWND = 3
+    HCBT_DESTROYWND = 4
+    HCBT_ACTIVATE = 5
+    HCBT_CLICKSKIPPED = 6
+    HCBT_KEYSKIPPED = 7
+    HCBT_SYSCOMMAND = 8
+    HCBT_SETFOCUS = 9
+End Enum
+
+' HCBT_ACTIVATE structure pointed to by lParam
+Public Type CBTACTIVATESTRUCT
+    fMouse As Long
+    hWndActive As LongPtr
+End Type
+
+Public Enum MsgFilterCodes
+    MSGF_DIALOGBOX = 0
+    MSGF_MESSAGEBOX = 1
+    MSGF_MENU = 2
+    MSGF_MOVE = 3
+    MSGF_SIZE = 4
+    MSGF_SCROLLBAR = 5
+    MSGF_NEXTWINDOW = 6
+    MSGF_MAINLOOP = 8
+    MSGF_MAX = 8
+    MSGF_USER = 4096
+End Enum
+
+
+Public Const HSHELL_WINDOWCREATED = 1
+Public Const HSHELL_WINDOWDESTROYED = 2
+Public Const HSHELL_ACTIVATESHELLWINDOW = 3
+Public Const HSHELL_WINDOWACTIVATED  = 4
+Public Const HSHELL_GETMINRECT  = 5
+Public Const HSHELL_REDRAW  = 6
+Public Const HSHELL_TASKMAN  = 7
+Public Const HSHELL_LANGUAGE  = 8
+Public Const HSHELL_SYSMENU  = 9
+Public Const HSHELL_ENDTASK  = 10
+Public Const HSHELL_ACCESSIBILITYSTATE  = 11
+Public Const HSHELL_APPCOMMAND  = 12
+Public Const HSHELL_WINDOWREPLACED  = 13
+Public Const HSHELL_WINDOWREPLACING  = 14
+Public Const HSHELL_MONITORCHANGED  = 16
+Public Const HSHELL_HIGHBIT  = &H8000
+Public Const HSHELL_FLASH  = (HSHELL_REDRAW Or HSHELL_HIGHBIT)
+Public Const HSHELL_RUDEAPPACTIVATED  = (HSHELL_WINDOWACTIVATED Or HSHELL_HIGHBIT)
+
+Public Const APPCOMMAND_BROWSER_BACKWARD  = 1
+Public Const APPCOMMAND_BROWSER_FORWARD  = 2
+Public Const APPCOMMAND_BROWSER_REFRESH  = 3
+Public Const APPCOMMAND_BROWSER_STOP  = 4
+Public Const APPCOMMAND_BROWSER_SEARCH  = 5
+Public Const APPCOMMAND_BROWSER_FAVORITES  = 6
+Public Const APPCOMMAND_BROWSER_HOME  = 7
+Public Const APPCOMMAND_VOLUME_MUTE  = 8
+Public Const APPCOMMAND_VOLUME_DOWN  = 9
+Public Const APPCOMMAND_VOLUME_UP  = 10
+Public Const APPCOMMAND_MEDIA_NEXTTRACK  = 11
+Public Const APPCOMMAND_MEDIA_PREVIOUSTRACK  = 12
+Public Const APPCOMMAND_MEDIA_STOP  = 13
+Public Const APPCOMMAND_MEDIA_PLAY_PAUSE  = 14
+Public Const APPCOMMAND_LAUNCH_MAIL  = 15
+Public Const APPCOMMAND_LAUNCH_MEDIA_SELECT  = 16
+Public Const APPCOMMAND_LAUNCH_APP1  = 17
+Public Const APPCOMMAND_LAUNCH_APP2  = 18
+Public Const APPCOMMAND_BASS_DOWN  = 19
+Public Const APPCOMMAND_BASS_BOOST  = 20
+Public Const APPCOMMAND_BASS_UP  = 21
+Public Const APPCOMMAND_TREBLE_DOWN  = 22
+Public Const APPCOMMAND_TREBLE_UP  = 23
+Public Const APPCOMMAND_MICROPHONE_VOLUME_MUTE  = 24
+Public Const APPCOMMAND_MICROPHONE_VOLUME_DOWN  = 25
+Public Const APPCOMMAND_MICROPHONE_VOLUME_UP  = 26
+Public Const APPCOMMAND_HELP  = 27
+Public Const APPCOMMAND_FIND  = 28
+Public Const APPCOMMAND_NEW  = 29
+Public Const APPCOMMAND_OPEN  = 30
+Public Const APPCOMMAND_CLOSE  = 31
+Public Const APPCOMMAND_SAVE  = 32
+Public Const APPCOMMAND_PRINT  = 33
+Public Const APPCOMMAND_UNDO  = 34
+Public Const APPCOMMAND_REDO  = 35
+Public Const APPCOMMAND_COPY  = 36
+Public Const APPCOMMAND_CUT  = 37
+Public Const APPCOMMAND_PASTE  = 38
+Public Const APPCOMMAND_REPLY_TO_MAIL  = 39
+Public Const APPCOMMAND_FORWARD_MAIL  = 40
+Public Const APPCOMMAND_SEND_MAIL  = 41
+Public Const APPCOMMAND_SPELL_CHECK  = 42
+Public Const APPCOMMAND_DICTATE_OR_COMMAND_CONTROL_TOGGLE  = 43
+Public Const APPCOMMAND_MIC_ON_OFF_TOGGLE  = 44
+Public Const APPCOMMAND_CORRECTION_LIST  = 45
+Public Const APPCOMMAND_MEDIA_PLAY  = 46
+Public Const APPCOMMAND_MEDIA_PAUSE  = 47
+Public Const APPCOMMAND_MEDIA_RECORD  = 48
+Public Const APPCOMMAND_MEDIA_FAST_FORWARD  = 49
+Public Const APPCOMMAND_MEDIA_REWIND  = 50
+Public Const APPCOMMAND_MEDIA_CHANNEL_UP  = 51
+Public Const APPCOMMAND_MEDIA_CHANNEL_DOWN  = 52
+Public Const APPCOMMAND_DELETE  = 53
+Public Const APPCOMMAND_DWM_FLIP3D  = 54
+
+Public Const FAPPCOMMAND_MOUSE  = &H8000
+Public Const FAPPCOMMAND_KEY  = 0
+Public Const FAPPCOMMAND_OEM  = &H1000
+Public Const FAPPCOMMAND_MASK  = &HF000
+
+
+Public Const MDIS_ALLCHILDSTYLES  = &H0001
+
+'Flags for WM_MDITILE and WM_MDICASCADE messages.
+Public Const MDITILE_VERTICAL  = &H0000 /*not in win3.1 */
+Public Const MDITILE_HORIZONTAL  = &H0001 /*not in win3.1 */
+Public Const MDITILE_SKIPDISABLED  = &H0002 /*not in win3.1 */
+Public Const MDITILE_ZORDER  = &H0004
+
+Public DeclareWide PtrSafe Function CreateWindowEx Lib "user32" Alias "CreateWindowExW" (ByVal dwExStyle As WindowStylesEx, ByVal lpClassName As String, ByVal lpWindowName As String, ByVal dwStyle As WindowStyles, ByVal X As Long, ByVal Y As Long, ByVal nWidth As Long, ByVal nHeight As Long, ByVal hWndParent As LongPtr, ByVal hMenu As LongPtr, ByVal hInstance As LongPtr, lpParam As Any) As LongPtr
+Public Declare PtrSafe Function CreateWindowExA Lib "user32" (ByVal dwExStyle As WindowStylesEx, ByVal lpClassName As String, ByVal lpWindowName As String, ByVal dwStyle As WindowStyles, ByVal X As Long, ByVal Y As Long, ByVal nWidth As Long, ByVal nHeight As Long, ByVal hWndParent As LongPtr, ByVal hMenu As LongPtr, ByVal hInstance As LongPtr, lpParam As Any) As LongPtr
+Public Declare PtrSafe Function CreateWindowExW Lib "user32" (ByVal dwExStyle As WindowStylesEx, ByVal lpClassName As LongPtr, ByVal lpWindowName As LongPtr, ByVal dwStyle As WindowStyles, ByVal X As Long, ByVal Y As Long, ByVal nWidth As Long, ByVal nHeight As Long, ByVal hWndParent As LongPtr, ByVal hMenu As LongPtr, ByVal hInstance As LongPtr, lpParam As Any) As LongPtr
+Public DeclareWide PtrSafe Function CreateMDIWindow Lib "user32" Alias "CreateMDIWindowW" (ByVal lpClassName As String, ByVal lpWindowName As String, ByVal dwStyle As WindowStyles, ByVal X As Long, ByVal Y As Long, ByVal nWidth As Long, ByVal nHeight As Long, ByVal hWndParent As LongPtr, ByVal hInstance As LongPtr, lpParam As Any) As LongPtr
+Public Declare PtrSafe Function CreateMDIWindowA Lib "user32" (ByVal lpClassName As String, ByVal lpWindowName As String, ByVal dwStyle As WindowStyles, ByVal X As Long, ByVal Y As Long, ByVal nWidth As Long, ByVal nHeight As Long, ByVal hWndParent As LongPtr, ByVal hInstance As LongPtr, lpParam As Any) As LongPtr
+Public Declare PtrSafe Function CreateMDIWindowW Lib "user32" (ByVal lpClassName As LongPtr, ByVal lpWindowName As LongPtr, ByVal dwStyle As WindowStyles, ByVal X As Long, ByVal Y As Long, ByVal nWidth As Long, ByVal nHeight As Long, ByVal hWndParent As LongPtr, ByVal hInstance As LongPtr, lpParam As Any) As LongPtr
+Public Declare PtrSafe Function DestroyWindow Lib "user32" (ByVal hWnd As LongPtr) As Long
+Public DeclareWide PtrSafe Function PeekMessage Lib "user32" Alias "PeekMessageW" (ByRef lpmsg As MSG, ByVal hwnd As LongPtr, ByVal wMsgFilterMin As Long, ByVal wMsgFilterMax As Long, ByVal wRemoveMsg As PMOptions) As Long
+Public Declare PtrSafe Function PeekMessageA Lib "user32" (ByRef lpmsg As MSG, ByVal hwnd As LongPtr, ByVal wMsgFilterMin As Long, ByVal wMsgFilterMax As Long, ByVal wRemoveMsg As PMOptions) As Long
+Public Declare PtrSafe Function PeekMessageW Lib "user32" (ByRef lpmsg As MSG, ByVal hwnd As LongPtr, ByVal wMsgFilterMin As Long, ByVal wMsgFilterMax As Long, ByVal wRemoveMsg As PMOptions) As Long
+Public Declare PtrSafe Function TranslateMessage Lib "user32" (ByRef lpmsg As MSG) As Long
+Public DeclareWide PtrSafe Function DispatchMessage Lib "user32" Alias "DispatchMessageW" (ByRef lpmsg As MSG) As Long
+Public Declare PtrSafe Function DispatchMessageA Lib "user32" (ByRef lpmsg As MSG) As Long
+Public Declare PtrSafe Function DispatchMessageW Lib "user32" (ByRef lpmsg As MSG) As Long
+Public DeclareWide PtrSafe Function DefWindowProc Lib "user32" Alias "DefWindowProcW" (ByVal hWnd As LongPtr, ByVal Msg As Long, ByVal wParam As LongPtr, ByVal lParam As LongPtr) As LongPtr
+Public Declare PtrSafe Function DefWindowProcA Lib "user32" (ByVal hWnd As LongPtr, ByVal Msg As Long, ByVal wParam As LongPtr, ByVal lParam As LongPtr) As LongPtr
+Public Declare PtrSafe Function DefWindowProcW Lib "user32" (ByVal hWnd As LongPtr, ByVal Msg As Long, ByVal wParam As LongPtr, ByVal lParam As LongPtr) As LongPtr
+Public DeclareWide PtrSafe Function GetMessage Lib "user32" Alias "GetMessageW" (lpMsg As MSG, ByVal hWnd As LongPtr, ByVal wMsgFilterMin As Long, ByVal wMsgFilterMax As Long) As Long
+Public Declare PtrSafe Function GetMessageA Lib "user32" (lpMsg As MSG, ByVal hWnd As LongPtr, ByVal wMsgFilterMin As Long, ByVal wMsgFilterMax As Long) As Long
+Public Declare PtrSafe Function GetMessageW Lib "user32" (lpMsg As MSG, ByVal hWnd As LongPtr, ByVal wMsgFilterMin As Long, ByVal wMsgFilterMax As Long) As Long
+Public Declare PtrSafe Sub PostQuitMessage Lib "user32" (ByVal nExitCode As Long)
+Public DeclareWide PtrSafe Function CallWindowProc Lib "user32" Alias "CallWindowProcW" (ByVal lpPrevWndFunc As LongPtr, ByVal hWnd As LongPtr, ByVal Msg As Long, ByVal wParam As LongPtr, ByVal lParam As LongPtr) As LongPtr
+Public Declare PtrSafe Function CallWindowProcA Lib "user32" (ByVal lpPrevWndFunc As LongPtr, ByVal hWnd As LongPtr, ByVal Msg As Long, ByVal wParam As LongPtr, ByVal lParam As LongPtr) As LongPtr
+Public Declare PtrSafe Function CallWindowProcW Lib "user32" (ByVal lpPrevWndFunc As LongPtr, ByVal hWnd As LongPtr, ByVal Msg As Long, ByVal wParam As LongPtr, ByVal lParam As LongPtr) As LongPtr
+Public Declare PtrSafe Function EnumThreadWindows Lib "user32" (ByVal dwThreadId As Long, ByVal lpfn As Long, ByVal lParam As Long) As Long
+Public Declare PtrSafe Function GetClassNameA Lib "user32" (ByVal hwnd As LongPtr, ByVal lpClassName As String, ByVal nMaxCount As Long) As Long
+Public Declare PtrSafe Function GetClassNameW Lib "user32" (ByVal hwnd As LongPtr, ByVal lpClassName As LongPtr, ByVal nMaxCount As Long) As Long
+Public Declare PtrSafe Function SetTimer Lib "user32" (ByVal hwnd As LongPtr, ByVal nIDEvent As LongPtr, ByVal uEleapse As Long, ByVal lpTimerFunc As LongPtr) As LongPtr
+Public Declare PtrSafe Function KillTimer Lib "user32" (ByVal hwnd As LongPtr, ByVal nIDEvent As LongPtr) As Long
+Public Declare PtrSafe Function SystemParametersInfoA Lib "user32" (ByVal uiAction As SPI, ByVal uiParam As Long, ByRef pvParam As Any, ByVal fWinIni As SPIF) As Long
+Public Declare PtrSafe Function SystemParametersInfoW Lib "user32" (ByVal uiAction As SPI, ByVal uiParam As Long, ByRef pvParam As Any, ByVal fWinIni As SPIF) As Long
+Public Declare PtrSafe Function RegisterShellHookWindow  Lib "user32" (ByVal hwnd As LongPtr) As BOOL
+Public Declare PtrSafe Function DeregisterShellHookWindow Lib "user32" (ByVal hwnd As LongPtr) As BOOL
 
 #If Win64 Then
 Public Declare PtrSafe Function GetWindowLong Lib "user32" Alias "GetWindowLongPtrW" (ByVal hWnd As LongPtr, ByVal nIndex As GWL_Index) As LongPtr
@@ -1719,15 +2051,108 @@ Public Declare PtrSafe Function SetWindowLong Lib "user32" Alias "SetWindowLongP
 Public Declare Function GetWindowLong Lib "user32" Alias "GetWindowLongW" (ByVal hWnd As Long, ByVal nIndex As GWL_INDEX) As Long
 Public Declare Function SetWindowLong Lib "user32" Alias "SetWindowLongW" (ByVal hwnd As Long, ByVal nIndex As GWL_INDEX, ByVal dwNewLong As Long) As Long
 #End If
-Public Declare PtrSafe Function GetSystemMetrics Lib "USER32.DLL" (ByVal nIndex As SystemMetrics) As Long
-Public Declare PtrSafe Function RegisterClipboardFormat Lib "USER32.DLL" Alias "RegisterClipboardFormatA" (ByVal lpszFormat As String) As Long
-Public Declare PtrSafe Function RegisterClipboardFormatW Lib "USER32.DLL" (ByVal lpszFormat As LongPtr) As Long
+Public Declare PtrSafe Function GetSystemMetrics Lib "user32" (ByVal nIndex As SystemMetrics) As Long
+Public Declare PtrSafe Function RegisterClipboardFormat Lib "user32" Alias "RegisterClipboardFormatA" (ByVal lpszFormat As String) As Long
+Public Declare PtrSafe Function RegisterClipboardFormatW Lib "user32" (ByVal lpszFormat As LongPtr) As Long
 Public Declare PtrSafe Function SendMessage Lib "user32" Alias "SendMessageA" (ByVal hWnd As LongPtr, ByVal wMsg As Long, ByVal wParam As LongPtr, lParam As Any) As LongPtr
 Public Declare PtrSafe Function SendMessageW Lib "user32" (ByVal hWnd As LongPtr, ByVal wMsg As Long, ByVal wParam As LongPtr, lParam As Any) As LongPtr
-Public Declare PtrSafe Function PostMessage Lib "USER32.DLL" Alias "PostMessageA" (ByVal hwnd As Long, ByVal wMsg As Long, ByVal wParam As Long, ByRef lParam As Any) As Long
-Public Declare PtrSafe Function PostMessageW Lib "USER32.DLL" (ByVal hwnd As Long, ByVal wMsg As Long, ByVal wParam As Long, ByRef lParam As Any) As Long
-Public Declare PtrSafe Function FindWindow Lib "USER32.DLL" Alias "FindWindowA" (ByVal Class As String, ByVal Title As String) As LongPtr
-Public Declare PtrSafe Function FindWindowW Lib "USER32.DLL" (ByVal Class As LongPtr, ByVal Title As LongPtr) As LongPtr
+Public Declare PtrSafe Function PostMessage Lib "user32" Alias "PostMessageA" (ByVal hwnd As Long, ByVal wMsg As Long, ByVal wParam As Long, ByRef lParam As Any) As Long
+Public Declare PtrSafe Function PostMessageW Lib "user32" (ByVal hwnd As Long, ByVal wMsg As Long, ByVal wParam As Long, ByRef lParam As Any) As Long
+Public Declare PtrSafe Function FindWindow Lib "user32" Alias "FindWindowA" (ByVal Class As String, ByVal Title As String) As LongPtr
+Public Declare PtrSafe Function FindWindowW Lib "user32" (ByVal Class As LongPtr, ByVal Title As LongPtr) As LongPtr
+Public Declare PtrSafe Function RegisterWindowMessageA Lib "user32" (ByVal lpString As String) as Long
+Public Declare PtrSafe Function RegisterWindowMessageW Lib "user32" (ByVal lpString As LongPtr) As Long
+Public DeclareWide PtrSafe Function RegisterWindowMessage Lib "user32" (ByVal lpString As String) As Long
+Public Declare PtrSafe Function RegisterClassExA Lib "user32" (pcWndClassEx As WNDCLASSEXA) As Integer
+Public Declare PtrSafe Function RegisterClassExW Lib "user32" (pcWndClassEx As WNDCLASSEXW) As Integer
+Public Declare PtrSafe Function RegisterClassEx Lib "user32" Alias "RegisterClassExW" (pcWndClassEx As WNDCLASSEXW) As Integer
+Public Declare PtrSafe Function UnregisterClassA Lib "user32" (ByVal lpClassName As String, Optional ByVal hInstance As LongPtr) As Long
+Public Declare PtrSafe Function UnregisterClassW Lib "user32" (ByVal lpClassName As LongPtr, Optional ByVal hInstance As LongPtr) As Long
+Public DeclareWide PtrSafe Function UnregisterClass Lib "user32" Alias "UnregisterClassW" (ByVal lpClassName As String, Optional ByVal hInstance As LongPtr) As Long
+Public Declare PtrSafe Function SetMenuContextHelpId Lib "user32" (ByVal hMenu As LongPtr, ByVal dw As Long) As Long
+Public Declare PtrSafe Function SetMenuDefaultItem Lib "user32" (ByVal hMenu As LongPtr, ByVal uItem As Long, ByVal fByPos As Long) As Long
+Public Declare PtrSafe Function SetMessageExtraInfo Lib "user32" (ByVal lParam As LongPtr) As LongPtr
+Public Declare PtrSafe Function SetMessageQueue Lib "user32" (ByVal cMessagesMax As Long) As Long
+Public Declare PtrSafe Function SetProcessWindowStation Lib "user32" (ByVal hWinSta As LongPtr) As Long
+Public Declare PtrSafe Function SetSystemCursor Lib "user32" (ByVal hcur As LongPtr, ByVal id As Long) As Long
+Public Declare PtrSafe Function SetThreadDesktop Lib "user32" (ByVal hDesktop As LongPtr) As Long
+Public Declare PtrSafe Function SetUserObjectInformationA Lib "user32" (ByVal hObj As LongPtr, ByVal nIndex As Long, pvInfo As Any, ByVal nLength As Long) As Long
+Public Declare PtrSafe Function SetUserObjectInformationW Lib "user32" (ByVal hObj As LongPtr, ByVal nIndex As Long, pvInfo As Any, ByVal nLength As Long) As Long
+Public DeclareWide PtrSafe Function SetUserObjectInformation Lib "user32" Alias "SetUserObjectInformationW" (ByVal hObj As LongPtr, ByVal nIndex As Long, pvInfo As Any, ByVal nLength As Long) As Long
+Public Declare PtrSafe Function SetWindowContextHelpId Lib "user32" (ByVal hWnd As LongPtr, ByVal dw As Long) As Long
+Public Declare PtrSafe Function SetWindowRgn Lib "user32" (ByVal hWnd As LongPtr, ByVal hRgn As LongPtr, ByVal bRedraw As Long) As Long
+Public Declare PtrSafe Function SetWindowsHook Lib "user32" Alias "SetWindowsHookW" (ByVal nFilterType As WindowsHookCodes, ByVal pfnFilterProc As LongPtr) As LongPtr
+Public Declare PtrSafe Function SetWindowsHookEx Lib "user32" Alias "SetWindowsHookExW" (ByVal idHook As WindowsHookCodes, ByVal lpfn As LongPtr, ByVal hmod As LongPtr, ByVal dwThreadId As Long) As LongPtr
+Public Declare PtrSafe Function SetWindowsHookA Lib "user32" (ByVal nFilterType As WindowsHookCodes, ByVal pfnFilterProc As LongPtr) As LongPtr
+Public Declare PtrSafe Function SetWindowsHookExA Lib "user32" (ByVal idHook As WindowsHookCodes, ByVal lpfn As LongPtr, ByVal hmod As LongPtr, ByVal dwThreadId As Long) As LongPtr
+Public Declare PtrSafe Function SetWindowsHookW Lib "user32" (ByVal nFilterType As WindowsHookCodes, ByVal pfnFilterProc As LongPtr) As LongPtr
+Public Declare PtrSafe Function SetWindowsHookExW Lib "user32" (ByVal idHook As WindowsHookCodes, ByVal lpfn As LongPtr, ByVal hmod As LongPtr, ByVal dwThreadId As Long) As LongPtr
+Public Declare PtrSafe Function UnhookWindowsHook Lib "user32" (ByVal nCode As WindowsHookCodes, ByVal pfnFilterProc As LongPtr) As Long
+Public Declare PtrSafe Function UnhookWindowsHookEx Lib "user32" (ByVal hhk As LongPtr) As Long
+Public Declare PtrSafe Function CallNextHookEx Lib "user32" (ByVal hHook As LongPtr, ByVal ncode As Long, ByVal wParam As LongPtr, lParam As Any) As LongPtr
+Public Declare PtrSafe Function ShowWindow Lib "user32" (ByVal hWnd As LongPtr, ByVal nCmdShow As SHOWWINDOW) As Long
+Public Declare PtrSafe Function ShowWindowAsync Lib "user32" (ByVal hWnd As LongPtr, ByVal nCmdShow As SHOWWINDOW) As Long
+Public Declare PtrSafe Function SwitchDesktop Lib "user32" (ByVal hDesktop As LongPtr) As Long
+Public Declare PtrSafe Function TileWindows Lib "user32" (ByVal hwndParent As LongPtr, ByVal wHow As Long, lpRect As RECT, ByVal cKids As Long, lpKids As LongPtr) As Integer
+Public Declare PtrSafe Function ToAsciiEx Lib "user32" (ByVal uVirtKey As Long, ByVal uScanCode As Long, lpKeyState As Byte, lpChar As Integer, ByVal uFlags As Long, ByVal dwhkl As LongPtr) As Long
+Public Declare PtrSafe Function UpdateWindow Lib "user32" (ByVal hWnd As LongPtr) As Long
+Public Declare PtrSafe Function RedrawWindow Lib "user32" (ByVal hWnd As LongPtr, lprcUpdate As RECT, ByVal hrgnUpdate As LongPtr, ByVal flags As RDW_Flags) As Long
+Public Declare PtrSafe Function AnimateWindow Lib "user32" (ByVal hWnd As LongPtr, ByVal dwTime As Long, ByVal dwFlags As AnimateWindowFlags) As Long
+
+Private Enum RDW_Flags
+    RDW_INVALIDATE = &H1
+    RDW_INTERNALPAINT = &H2
+    RDW_ERASE = &H4
+    RDW_VALIDATE = &H8
+    RDW_NOINTERNALPAINT = &H10
+    RDW_NOERASE = &H20
+    RDW_NOCHILDREN = &H40
+    RDW_ALLCHILDREN = &H80
+    RDW_UPDATENOW = &H100
+    RDW_ERASENOW = &H200
+    RDW_FRAME = &H400
+    RDW_NOFRAME = &H800
+End Enum
+Public Enum TPM_wFlags
+  TPM_LEFTBUTTON = &H0
+  TPM_RIGHTBUTTON = &H2
+  TPM_LEFTALIGN = &H0
+  TPM_CENTERALIGN = &H4
+  TPM_RIGHTALIGN = &H8
+  TPM_TOPALIGN = &H0
+  TPM_VCENTERALIGN = &H10
+  TPM_BOTTOMALIGN = &H20
+
+  TPM_HORIZONTAL = &H0         ' Horz alignment matters more
+  TPM_VERTICAL = &H40            ' Vert alignment matters more
+  TPM_NONOTIFY = &H80           ' Don't send any notification msgs
+  TPM_RETURNCMD = &H100
+  
+  TPM_HORPOSANIMATION = &H400
+  TPM_HORNEGANIMATION = &H800
+  TPM_VERPOSANIMATION = &H1000
+  TPM_VERNEGANIMATION = &H2000
+  TPM_NOANIMATION = &H4000
+End Enum
+Public Type TPMPARAMS
+    cbSize As Long
+    rcExclude As RECT
+End Type
+Public Enum AnimateWindowFlags
+	AW_HOR_POSITIVE  = &H00000001
+	AW_HOR_NEGATIVE  = &H00000002
+	AW_VER_POSITIVE  = &H00000004
+	AW_VER_NEGATIVE  = &H00000008
+	AW_CENTER  = &H00000010
+	AW_HIDE  = &H00010000
+	AW_ACTIVATE  = &H00020000
+	AW_SLIDE  = &H00040000
+	AW_BLEND  = &H00080000
+End Enum
+
+Public Declare PtrSafe Function TrackPopupMenu Lib "user32" (ByVal hMenu As LongPtr, ByVal wFlags As TPM_wFlags, ByVal x As Long, ByVal y As Long, ByVal nReserved As Long, ByVal hwnd As LongPtr, lpRC As Any) As Long
+Public Declare PtrSafe Function TrackPopupMenuEx Lib "user32" (ByVal hMenu As LongPtr, ByVal wFlags As TPM_wFlags, ByVal X As Long, ByVal Y As Long, ByVal hWnd As LongPtr, lptpm As Any) As Long
+
 #End Region
 #Region "Comctl32"
 Public Enum PSP_FLAGS
@@ -2411,13 +2836,14 @@ Public Const SYMBOL_FONTTYPE  = &H80000
 Public Const WM_CHOOSEFONT_GETLOGFONT = (WM_USER + 1)
 Public Const WM_CHOOSEFONT_SETLOGFONT = (WM_USER + 101)
 Public Const WM_CHOOSEFONT_SETFLAGS = (WM_USER + 102)
-Public Const LBSELCHSTRINGA = "commdlg_LBSelChangedNotify"
-Public Const SHAREVISTRINGA = "commdlg_ShareViolation"
-Public Const FILEOKSTRINGA  = "commdlg_FileNameOK"
-Public Const COLOROKSTRINGA = "commdlg_ColorOK"
-Public Const SETRGBSTRINGA  = "commdlg_SetRGBColor"
-Public Const HELPMSGSTRINGA = "commdlg_help"
-Public Const FINDMSGSTRINGA = "commdlg_FindReplace"
+
+[ Description ("NOTE: MUST BE CONVERTED TO ANSI. Use UtfToANSI().") ] Public Const LBSELCHSTRINGA = "commdlg_LBSelChangedNotify"
+[ Description ("NOTE: MUST BE CONVERTED TO ANSI. Use UtfToANSI().") ] Public Const SHAREVISTRINGA = "commdlg_ShareViolation"
+[ Description ("NOTE: MUST BE CONVERTED TO ANSI. Use UtfToANSI().") ] Public Const FILEOKSTRINGA  = "commdlg_FileNameOK"
+[ Description ("NOTE: MUST BE CONVERTED TO ANSI. Use UtfToANSI().") ] Public Const COLOROKSTRINGA = "commdlg_ColorOK"
+[ Description ("NOTE: MUST BE CONVERTED TO ANSI. Use UtfToANSI().") ] Public Const SETRGBSTRINGA  = "commdlg_SetRGBColor"
+[ Description ("NOTE: MUST BE CONVERTED TO ANSI. Use UtfToANSI().") ] Public Const HELPMSGSTRINGA = "commdlg_help"
+[ Description ("NOTE: MUST BE CONVERTED TO ANSI. Use UtfToANSI().") ] Public Const FINDMSGSTRINGA = "commdlg_FindReplace"
 Public Const LBSELCHSTRINGW = "commdlg_LBSelChangedNotify"
 Public Const SHAREVISTRINGW = "commdlg_ShareViolation"
 Public Const FILEOKSTRINGW  = "commdlg_FileNameOK"
@@ -2547,7 +2973,7 @@ End Enum
 Public Declare PtrSafe Function PrintDlgA Lib "comdlg32" (lpPD As PRINTDLGA) As Long
 Public Declare PtrSafe Function PrintDlgW Lib "comdlg32" (lpPD As PRINTDLGW) As Long
 Public DeclareWide PtrSafe Function PrintDlg Lib "comdlg32" Alias "PrintDlgW" (lpPD As PRINTDLG) As Long
-
+[Description("TestDesc")]
 Public Type PRINTPAGERANGE
 	nFromPage As Long
 	nToPage As Long
@@ -5292,4 +5718,11 @@ Public Function SwapVtableEntry(pObj As LongPtr, EntryNumber As Integer, ByVal l
     SwapVtableEntry = lOldAddr
 
 End Function
+
+[ ConstantFoldable ]
+Public Function UtfToANSI(sIn As String) As String
+    Return StrConv(sIn, vbFromUnicode)
+End Function
+
+
 End Module
