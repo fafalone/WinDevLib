@@ -1,7 +1,7 @@
 # tbShellLib
 **twinBASIC Shell Library**
 
-Current Version: 3.4.46 (March 7th, 2023)
+Current Version: 3.5.48 (March 9th, 2023)
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -41,6 +41,18 @@ It's fairly simple to move your VB6 projects to tbShellLib, just follow these st
 Note that this is just for using tbShellLib-- you'll likely have a lot more changes to make if you want to make your project x64 compatible.
 
 ## Updates
+**Update (v3.5.48):**
+
+-Added accessibility UI Automation interfaces and APIs. 
+
+    NOTE: This API had a number of *very* generically named enums, like FillMode and ToggleState; these have been prefixed with Uia_ to avoid conflicts. In most cases, the actual members were left   alone, with the exception of LiveSetting (renamed Uia_LiveSetting), which had Off, Polite, and Assertive; these have been prefixed with Uia_ as well.
+  
+    NOTE: IUIAutomation, IUIAutomationProxyFactoryMapping, IUIAutomationAndCondition and IUIAutomationOrCondition have members that use a SAFEARRAY of IUIAutomationCondition... MKTYPLIB does not support this so these return a pointer you'll need to dereference.
+  
+-Added misc interfaces ICurrentWorkingDirectory, IPropertyKeyStore, ISortColumnArray, and IBannerNotificationHandler
+
+-Added IHandlerInfo2, IDeskBar, IDeskBarClient amd IShellFolderBand
+
 **Update (v3.4.46):** Added all GDIPlus APIs and all Common Dialog APIs.
 
 **Update (v3.3.41):** Bug fix: IExplorerBrowserEvents::NavigationFailed was misspelled.
