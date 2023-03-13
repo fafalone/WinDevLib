@@ -48,7 +48,9 @@ Note that this is just for using tbShellLib-- you'll likely have a lot more chan
 ---NOTE: This API had a number of *very* generically named enums, like FillMode and ToggleState; these have been prefixed with Uia_ to avoid conflicts. In most cases, the actual members were left   alone, with the exception of LiveSetting (renamed Uia_LiveSetting), which had Off, Polite, and Assertive; these have been prefixed with Uia_ as well.
   
 ---NOTE: IUIAutomation, IUIAutomationProxyFactoryMapping, IUIAutomationAndCondition and IUIAutomationOrCondition have members that use a SAFEARRAY of IUIAutomationCondition... MKTYPLIB does not support this so these return a pointer you'll need to dereference.
-  
+
+-The package now includes a common helper function for interfaces: SwapVTableEntry, updated for use in both 32bit and 64bit mode.
+
 -Added misc interfaces ICurrentWorkingDirectory, IPropertyKeyStore, ISortColumnArray, and IBannerNotificationHandler
 
 -Added IHandlerInfo2, IDeskBar, IDeskBarClient amd IShellFolderBand
