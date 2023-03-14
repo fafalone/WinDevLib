@@ -41,7 +41,7 @@ It's fairly simple to move your VB6 projects to tbShellLib, just follow these st
 Note that this is just for using tbShellLib-- you'll likely have a lot more changes to make if you want to make your project x64 compatible.
 
 ## Updates
-**Update (v3.6.56):** Numerous bug fixes to IPinnedList[2,3]. Added IWinEventHandler, IFolderBandPriv, and IAccessibleObject; added coclass TaskBand, and added numerous missing IIDs.
+**Update (v3.6.56):** Numerous bug fixes to IPinnedList[2,3], including their names: IPinnedListVista->IPinnedList, IPinnedList->IPinnedList2, IPinnedList10->IPinnedList3, to be more consistent with all other sources. Please do not abuse these interfaces: Never pin without permission. Added IWinEventHandler, IFolderBandPriv, and IAccessibleObject; added coclass TaskBand, and added numerous missing IIDs.
 
 **Update (v3.6.54):** Some items were Private that should have been Public; put SW_Flags back to SHOWWINDOW now that bug is resolved for compatibility purposes (SHOWWINDOW is in oleexp). To use this, twinBASIC Beta 269 or newer is needed. Misc bug fixes.
 
