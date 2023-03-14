@@ -1,7 +1,7 @@
 # tbShellLib
 **twinBASIC Shell Library**
 
-Current Version: 3.6.52 (March 13th, 2023)
+Current Version: 3.6.54 (March 13th, 2023)
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -15,7 +15,7 @@ Please report any bugs via the Issues feature here on GitHub.
 
 ## Requirements
 
-[twinBASIC Beta 239 or newer](https://github.com/twinbasic/twinbasic/releases) is required.
+[twinBASIC Beta 269 or newer](https://github.com/twinbasic/twinbasic/releases) is required.
 
 ## Adding tbShellLib to your project
 You have 2 options for this:
@@ -41,6 +41,8 @@ It's fairly simple to move your VB6 projects to tbShellLib, just follow these st
 Note that this is just for using tbShellLib-- you'll likely have a lot more changes to make if you want to make your project x64 compatible.
 
 ## Updates
+**Update (v3.6.54):** Some items were Private that should have been Public; put SW_Flags back to SHOWWINDOW now that bug is resolved for compatibility purposes (SHOWWINDOW is in oleexp). Misc bug fixes.
+
 **Update (v3.6.52):**
 
 -By popular request to expand the API coverage, tbShellLib now has had tbComCtlLib merged into it. You can exclude these definitions with the TB_COMCTL_LIB_DEFINED compiler constant. 
