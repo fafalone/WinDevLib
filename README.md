@@ -1,7 +1,7 @@
 # tbShellLib
 **twinBASIC Shell Library**
 
-Current Version: 3.6.54 (March 13th, 2023)
+Current Version: 3.6.56 (March 14th, 2023)
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -41,7 +41,9 @@ It's fairly simple to move your VB6 projects to tbShellLib, just follow these st
 Note that this is just for using tbShellLib-- you'll likely have a lot more changes to make if you want to make your project x64 compatible.
 
 ## Updates
-**Update (v3.6.54):** Some items were Private that should have been Public; put SW_Flags back to SHOWWINDOW now that bug is resolved for compatibility purposes (SHOWWINDOW is in oleexp). Misc bug fixes.
+**Update (v3.6.56):** Numerous bug fixes to IPinnedList[2,3]. Added IWinEventHandler, added coclass TaskBand, and added numerous missing IIDs.
+
+**Update (v3.6.54):** Some items were Private that should have been Public; put SW_Flags back to SHOWWINDOW now that bug is resolved for compatibility purposes (SHOWWINDOW is in oleexp). To use this, twinBASIC Beta 269 or newer is needed. Misc bug fixes.
 
 **Update (v3.6.52):**
 
