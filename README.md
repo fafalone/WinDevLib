@@ -36,11 +36,13 @@ It's fairly simple to move your VB6 projects to tbShellLib, just follow these st
 
 3) After you've done those two, you can now go ahead and simply delete all remaining instances of `oleexp.` (including the .). 
 
-4) Manually address any errors remaining. Interfaces should be mostly fine at this point, but if you've made use of the APIs in oleexp, many of them have syntax differences, mainly not being able to rewrite an ending [out] argument as the return value, and changing String arguments to LongPtr you'll need StrPtr with.
+4) Manually address any errors remaining. Interfaces should be mostly fine at this point, but if you've made use of the APIs in oleexp, many of them have syntax differences, mainly not being able to rewrite an ending [out] argument as the return value, and changing String arguments to LongPtr you'll need StrPtr with. Note that while most APIs have been converted to use Unicode as the default, this is done with tB's `DeclareWide` keyword, so the types are still `String`, so you don't need to change anything from legacy oleexp/olelib code.
 
 Note that this is just for using tbShellLib-- you'll likely have a lot more changes to make if you want to make your project x64 compatible.
 
 ## Updates
+**Update (v3.9.70):** Reworked APIs to be more consistent when there's A/W versions. For most of these APIs, tbShellLib offers 3 versions: An explicit A version, an explicit W version, and an undecorated version that uses `DeclareWide` and `String` that's an alias for the W version. Some of the more advanced/newer APIs don't have the ANSI version declared. For APIs from oleexp/olelib without A/W but accepting strings, they've been left as `LongPtr`, but new ones added will use String.
+
 **Update (v3.8.66):**
 
 -Added IActiveScript and all related ActiveX Script Host / Engine interfaces
