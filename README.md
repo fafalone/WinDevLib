@@ -42,6 +42,7 @@ Note that this is just for using tbShellLib-- you'll likely have a lot more chan
 
 ## Updates
 **Update (v3.10.72):** Added a number of important APIs for upcoming projects. Added EP_* GUIDs for IExplorerPaneVisibility, added some missing SID_ guids.
+**tbShellLib (v1.2.7):** Added IMessageFilter.
 
 **Update (v3.9.70):** Reworked APIs to be more consistent when there's A/W versions. For most of these APIs, tbShellLib offers 3 versions: An explicit A version, an explicit W version, and an undecorated version that uses `DeclareWide` and `String` that's an alias for the W version. Some of the more advanced/newer APIs don't have the ANSI version declared. For APIs from oleexp/olelib without A/W but accepting strings, they've been left as `LongPtr`, but new ones added will use String. Also continued to add new APIs.
 
