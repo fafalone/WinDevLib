@@ -1,7 +1,7 @@
 # tbShellLib
 **twinBASIC Shell Library**
 
-Current Version: 3.10.72 (March 19th, 2023)
+Current Version: 3.10.80 (March 21st, 2023)
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -41,6 +41,8 @@ It's fairly simple to move your VB6 projects to tbShellLib, just follow these st
 Note that this is just for using tbShellLib-- you'll likely have a lot more changes to make if you want to make your project x64 compatible.
 
 ## Updates
+**Update (v3.10.80):** Additional API expansion for upcoming projects.
+
 **Update (v3.10.72):** Added a number of important APIs for upcoming projects. Added EP_* GUIDs for IExplorerPaneVisibility, added some missing SID_ guids.
 **tbShellLib (v1.2.7):** Added IMessageFilter. **NOTE: tbShellLibImpl IS NOW WORKING!** I hadn't realized the old VSCode plugin was continually refusing to save settings, thus ignoring the setting to disable the autoprettifying that didn't understand interfaces and thus ran together the declares, making them invalid. This has been fixed in 1.2.7.
 
