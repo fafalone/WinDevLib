@@ -269,8 +269,20 @@ Public Declare PtrSafe Function SHGetFileInfoA Lib "shell32" (ByVal pszPath As A
 Public Declare PtrSafe Function SHGetFileInfoW Lib "shell32" (ByVal pszPath As Any, ByVal dwFileAttributes As Long, psfi As SHFILEINFOW, ByVal cbFileInfo As Long, ByVal uFlags As SHGFI_flags) As LongPtr
 Public DeclareWide PtrSafe Function SHGetFileInfo Lib "shell32" Alias "SHGetFileInfoW" (ByVal pszPath As Any, ByVal dwFileAttributes As Long, psfi As SHFILEINFO, ByVal cbFileInfo As Long, ByVal uFlags As SHGFI_flags) As LongPtr
 Public Declare PtrSafe Function PathYetAnotherMakeUniqueName Lib "shell32.dll" (ByVal pszUniqueName As LongPtr, ByVal pszPath As LongPtr, Optional ByVal pszShort As LongPtr, Optional ByVal pszFileSpec As LongPtr) As Long
-Private Declare PtrSafe Function SHMultiFileProperties Lib "shell32" (ByVal pdtobj As LongPtr, ByVal dwFlags As Long) As Long
+Public Declare PtrSafe Function SHMultiFileProperties Lib "shell32" (ByVal pdtobj As LongPtr, ByVal dwFlags As Long) As Long
+Public Declare PtrSafe Function SHFileOperationW Lib "shell32" (lpFileOp As SHFILEOPSTRUCT) As Long
 
+Public Type SHFILEOPSTRUCT
+   hWnd        As LongPtr
+   wFunc       As FILEOP
+   pFrom       As LongPtr
+   pTo         As LongPtr
+   fFlags      As FILEOP_FLAGS
+   fAborted    As Boolean
+   hNameMaps   As LongPtr
+   sProgress   As LongPtr
+ End Type
+ 
 Public Type SHFILEINFOA   ' shfi
   hIcon As LongPtr
   iIcon As Long
@@ -2575,6 +2587,15 @@ Public Const PROCESS_SET_INFORMATION = &H200 ' Enables using the process handle 
 Public Const PROCESS_QUERY_INFORMATION = &H400 ' Enables using the process handle in the GetExitCodeProcess and GetPriorityClass functions to read information from the process object.
 Public Const PROCESS_QUERY_LIMITED_INFORMATION = &H1000
 
+Public Const CP_ACP = 0        ' ANSI code page
+Public Const CP_OEMCP = 1   ' OEM code page
+Public Enum MBWC_Flags
+    MB_PRECOMPOSED = &H1
+    MB_COMPOSITE = &H2
+    MB_USEGLYPHCHARS = &H4
+    MB_ERR_INVALID_CHARS = &H8
+End Enum
+
 Public Declare PtrSafe Function CreateToolhelp32Snapshot Lib "kernel32" (ByVal dwFlags As TH32CS_Flags, ByVal th32ProcessID As Long) As LongPtr
 Public Declare PtrSafe Function Process32FirstW Lib "kernel32.dll" (ByVal hSnapshot As LongPtr, lppe As PROCESSENTRY32W) As Long
 Public Declare PtrSafe Function Process32NextW Lib "kernel32.dll" (ByVal hSnapshot As LongPtr, lppe As PROCESSENTRY32W) As Long
@@ -2723,6 +2744,11 @@ Public Declare PtrSafe Function Wow64DisableWow64FsRedirection Lib "kernel32" (p
 Public Declare PtrSafe Function Wow64RevertWow64FsRedirection Lib "kernel32" (pOldVal As LongPtr) As Long
 Public Declare PtrSafe Function CompareFileTime Lib "kernel32" (lpFileTime1 As FILETIME, lpFileTime2 As FILETIME) As Long
 Public DeclareWide PtrSafe Function CompareStringEx Lib "kernel32" (ByVal lpLocaleName As String, ByVal dwCmpFlags As COMPARE_FLAGS, ByVal lpString1 As String, ByVal cchCount1 As Long, ByVal lpString2 As String, ByVal cchCount2 As Long, ByVal lpVersionInformation As LongPtr, ByVal lpReserved As LongPtr, ByVal lParam As LongPtr) As CSTR_RETURNS
+Public DeclareWide PtrSafe Function SetVolumeLabelA Lib "kernel32" (ByVal lpRootPathName As String, ByVal lpVolumeName As String) As Long
+Public DeclareWide PtrSafe Function SetVolumeLabelW Lib "kernel32" (ByVal lpRootPathName As LongPtr, ByVal lpVolumeName As LongPtr) As Long
+Public DeclareWide PtrSafe Function SetVolumeLabel Lib "kernel32" Alias "SetVolumeLabelW" (ByVal lpRootPathName As String, ByVal lpVolumeName As String) As Long
+Public Declare PtrSafe Function MulDiv Lib "kernel32" (ByVal nNumber As Long, ByVal nNumerator As Long, ByVal nDenominator As Long) As Long
+Public Declare PtrSafe Function MultiByteToWideChar Lib "kernel32" (ByVal CodePage As Long, ByVal dwFlags As MBWC_Flags, ByVal lpMultiByteStr As LongPtr, ByVal cchMultiByte As Long, ByVal lpWideCharStr As LongPtr, ByVal cchWideChar As Long) As Long
 
 #End Region
 
@@ -3854,7 +3880,38 @@ Public Enum DefCursors
     IDC_PIN = 32671&
     IDC_PERSON = 32672&
 End Enum
+Public Enum SysCursors
+    OCR_NORMAL = 32512&
+    OCR_IBEAM = 32513&
+    OCR_WAIT = 32514&
+    OCR_CROSS = 32515&
+    OCR_UP = 32516&
+    OCR_SIZE = 32640&
+    OCR_ICON = 32641&
+    OCR_SIZENWSE = 32642&
+    OCR_SIZENESW = 32643&
+    OCR_SIZEWE = 32644&
+    OCR_SIZENS = 32645&
+    OCR_SIZEALL = 32646&
+    OCR_NO = 32648&
+    OCR_HAND = 32649&
+    OCR_APPSTARTING = 32650&
+    OCR_HELP = 32651&
+End Enum
 
+
+Public Enum DefIcons
+	IDI_APPLICATION = 32512
+	IDI_HAND        = 32513
+	IDI_QUESTION    = 32514
+	IDI_EXCLAMATION = 32515
+	IDI_ASTERISK    = 32516
+	IDI_WINLOGO     = 32517
+	IDI_WARNING     = IDI_EXCLAMATION
+	IDI_ERROR       = IDI_HAND
+	IDI_INFORMATION = IDI_ASTERISK
+    IDI_SHIELD      = 32518
+End Enum
 
 Public Type WNDCLASSEXA
     cbSize As Long
@@ -4120,9 +4177,10 @@ Public Declare PtrSafe Function GetClassNameW Lib "user32" (ByVal hwnd As LongPt
 Public DeclareWide PtrSafe Function GetClassName Lib "user32" Alias "GetClassNameW" (ByVal hwnd As LongPtr, ByVal lpClassName As String, ByVal nMaxCount As Long) As Long
 Public Declare PtrSafe Function SetTimer Lib "user32" (ByVal hwnd As LongPtr, ByVal nIDEvent As LongPtr, ByVal uEleapse As Long, ByVal lpTimerFunc As LongPtr) As LongPtr
 Public Declare PtrSafe Function KillTimer Lib "user32" (ByVal hwnd As LongPtr, ByVal nIDEvent As LongPtr) As Long
-Public Declare PtrSafe Function SystemParametersInfoA Lib "user32" (ByVal uiAction As SPI, ByVal uiParam As Long, ByRef pvParam As Any, ByVal fWinIni As SPIF) As Long
-Public Declare PtrSafe Function SystemParametersInfoW Lib "user32" (ByVal uiAction As SPI, ByVal uiParam As Long, ByRef pvParam As Any, ByVal fWinIni As SPIF) As Long
-Public DeclareWide PtrSafe Function SystemParametersInfo Lib "user32" Alias "SystemParametersInfoW" (ByVal uiAction As SPI, ByVal uiParam As Long, ByRef pvParam As Any, ByVal fWinIni As SPIF) As Long
+Public Declare PtrSafe Function SystemParametersInfoA Lib "user32" (ByVal uiAction As SPI, ByVal uiParam As Long, ByRef pvParam As Any, ByVal fWinIni As SPIF) As BOOL
+Public Declare PtrSafe Function SystemParametersInfoW Lib "user32" (ByVal uiAction As SPI, ByVal uiParam As Long, ByRef pvParam As Any, ByVal fWinIni As SPIF) As BOOL
+Public DeclareWide PtrSafe Function SystemParametersInfo Lib "user32" Alias "SystemParametersInfoW" (ByVal uiAction As SPI, ByVal uiParam As Long, ByRef pvParam As Any, ByVal fWinIni As SPIF) As BOOL
+Public Declare PtrSafe Function SystemParametersInfoForDpi Lib "user32" (ByVal uiAction As SPI, ByVal uiParam As Long, ByRef pvParam As Any, ByVal fWinIni As SPIF, ByVal dpi As Long) As BOOL
 Public Declare PtrSafe Function RegisterShellHookWindow  Lib "user32" (ByVal hwnd As LongPtr) As BOOL
 Public Declare PtrSafe Function DeregisterShellHookWindow Lib "user32" (ByVal hwnd As LongPtr) As BOOL
 Public Declare PtrSafe Function GetTouchInputInfo Lib "user32" (ByVal hTouchInput As LongPtr, ByVal cInputs As Long, pInputs As TOUCHINPUT, ByVal cbSize As Long) As BOOL
@@ -4161,7 +4219,6 @@ Public Declare PtrSafe Function SetMenuDefaultItem Lib "user32" (ByVal hMenu As 
 Public Declare PtrSafe Function SetMessageExtraInfo Lib "user32" (ByVal lParam As LongPtr) As LongPtr
 Public Declare PtrSafe Function SetMessageQueue Lib "user32" (ByVal cMessagesMax As Long) As Long
 Public Declare PtrSafe Function SetProcessWindowStation Lib "user32" (ByVal hWinSta As LongPtr) As Long
-Public Declare PtrSafe Function SetSystemCursor Lib "user32" (ByVal hcur As LongPtr, ByVal id As Long) As Long
 Public Declare PtrSafe Function SetThreadDesktop Lib "user32" (ByVal hDesktop As LongPtr) As Long
 Public Declare PtrSafe Function SetUserObjectInformationA Lib "user32" (ByVal hObj As LongPtr, ByVal nIndex As Long, pvInfo As Any, ByVal nLength As Long) As Long
 Public Declare PtrSafe Function SetUserObjectInformationW Lib "user32" (ByVal hObj As LongPtr, ByVal nIndex As Long, pvInfo As Any, ByVal nLength As Long) As Long
@@ -4194,6 +4251,9 @@ Public Declare PtrSafe Function GetSysColor Lib "user32" (ByVal nIndex As System
 Public DeclareWide PtrSafe Function LoadCursor Lib "user32" Alias "LoadCursorW" (ByVal hInstance As LongPtr, ByVal lpCursorName As Any) As LongPtr
 Public Declare PtrSafe Function LoadCursorA Lib "user32" (ByVal hInstance As LongPtr, ByVal lpCursorName As Any) As LongPtr
 Public Declare PtrSafe Function LoadCursorW Lib "user32" (ByVal hInstance As LongPtr, ByVal lpCursorName As Any) As LongPtr
+Public DeclareWide PtrSafe Function LoadIcon Lib "user32" Alias "LoadIconW" (ByVal hInstance As LongPtr, ByVal lpIconName As Any) As LongPtr
+Public Declare PtrSafe Function LoadIconA Lib "user32" (ByVal hInstance As LongPtr, ByVal lpIconName As Any) As LongPtr
+Public Declare PtrSafe Function LoadIconW Lib "user32" (ByVal hInstance As LongPtr, ByVal lpIconName As Any) As LongPtr
 Public Declare PtrSafe Function LoadImageA Lib "user32" (ByVal hInst As LongPtr, ByVal lpsz As String, ByVal dwImageType As ImageTypes, ByVal dwDesiredWidth As Long, ByVal dwDesiredHeight As Long, ByVal dwFlags As LoadResourceFlags) As LongPtr
 Public Declare PtrSafe Function LoadImageW Lib "user32" (ByVal hInst As LongPtr, ByVal lpsz As LongPtr, ByVal dwImageType As ImageTypes, ByVal dwDesiredWidth As Long, ByVal dwDesiredHeight As Long, ByVal dwFlags As LoadResourceFlags) As LongPtr
 Public DeclareWide PtrSafe Function LoadImage Lib "user32" Alias "LoadImageW" (ByVal hInst As LongPtr, ByVal lpsz As Any, ByVal dwImageType As ImageTypes, ByVal dwDesiredWidth As Long, ByVal dwDesiredHeight As Long, ByVal dwFlags As LoadResourceFlags) As LongPtr
@@ -4222,9 +4282,61 @@ Public Declare PtrSafe Function SetClipboardData Lib "user32" (ByVal wFormat As 
 Public DeclareWide PtrSafe Function RegisterClipboardFormat Lib "user32" Alias "RegisterClipboardFormatW" (ByVal lpszFormat As String) As Long
 Public Declare PtrSafe Function RegisterClipboardFormatW Lib "user32" (ByVal lpszFormat As LongPtr) As Long
 Public Declare PtrSafe Function RegisterClipboardFormatA Lib "user32" (ByVal lpszFormat As String) As Long
+Public Declare PtrSafe Function SetCursor Lib "user32" (ByVal hCursor As LongPtr) As LongPtr
+Public Declare PtrSafe Function SetSystemCursor Lib "user32" (ByVal hCursor As LongPtr, ByVal id As SysCursors) As BOOL
+Public DeclareWide PtrSafe Function LookupIconIdFromDirectory Lib "user32" (presbits As Any, ByVal fIcon As BOOL) As Long
+Public DeclareWide PtrSafe Function LookupIconIdFromDirectoryEx Lib "user32" (presbits As Any, ByVal fIcon As BOOL, ByVal cxDesired As Long, ByVal cyDesired As Long, ByVal Flags As LoadResourceFlags) As Long
+Public Declare PtrSafe Function DrawIcon Lib "user32" (ByVal hDC As LongPtr, ByVal x As Long, ByVal y As Long, ByVal hIcon As LongPtr) As BOOL
+Public Declare PtrSafe Function DrawIconEx Lib "user32" (ByVal hDC As LongPtr, ByVal xLeft As Long, ByVal yTop As Long, ByVal hIcon As LongPtr, ByVal cxWidth As Long, ByVal cyWidth As Long, ByVal istepIfAni As Long, ByVal hbrFlickerFreeDraw As LongPtr, ByVal diFlags As DrawImageFlags) As BOOL
+Public Declare PtrSafe Function CreateIconIndirect Lib "user32" (piconinfo As ICONINFO) As LongPtr
+Public Declare PtrSafe Function CreateIcon Lib "user32" (ByVal hInstance As LongPtr, ByVal nWidth As Long, ByVal nHeight As Long, ByVal cPlanes As Byte, ByVal cBitsPixel As Byte, lpbANDbits As Any, lpXORbits As Any) As LongPtr
+Public Declare PtrSafe Function GetIconInfo Lib "user32" (ByVal hIcon As LongPtr, piconinfo As ICONINFO) As BOOL
+Public Declare PtrSafe Function CopyIcon Lib "user32" (ByVal hIcon As LongPtr) As LongPtr
+Public Declare PtrSafe Function GetIconInfoExA Lib "user32" (ByVal hIcon As LongPtr, piconinfo As ICONINFOEXA) As BOOL
+Public Declare PtrSafe Function GetIconInfoExW Lib "user32" (ByVal hIcon As LongPtr, piconinfo As ICONINFOEXW) As BOOL
+Public DeclareWide PtrSafe Function GetIconInfoEx Lib "user32" (ByVal hIcon As LongPtr, piconinfo As ICONINFOEXW) As BOOL
 
+Public Type ICONINFO
+    fIcon As BOOL
+    xHotspot As Long
+    yHotspot As Long
+    hbmMask As LongPtr
+    hbmColor As LongPtr
+End Type
+Public Type ICONINFOEXW
+    cbSize As Long
+    fIcon As BOOL
+    xHotspot As Long
+    yHotspot As Long
+    hbmMask As LongPtr
+    hbmColor As LongPtr
+    wResID As Integer
+    szModName(0 To (MAX_PATH - 1)) As Integer
+    szResName(0 To (MAX_PATH - 1)) As Integer
+End Type
+Public Type ICONINFOEXA
+    cbSize As Long
+    fIcon As BOOL
+    xHotspot As Long
+    yHotspot As Long
+    hbmMask As LongPtr
+    hbmColor As LongPtr
+    wResID As Integer
+    szModName(0 To (MAX_PATH - 1)) As Byte
+    szResName(0 To (MAX_PATH - 1)) As Byte
+End Type
+'Alias ICONINFOEX As ICONINFOEXW
+
+Public Enum DrawImageFlags
+	DI_MASK  = &H0001
+	DI_IMAGE  = &H0002
+	DI_NORMAL  = &H0003
+	DI_COMPAT = &H0004
+	DI_DEFAULTSIZE  = &H0008
+	DI_NOMIRROR  = &H0010
+End Enum
 Public Enum SendInputType
-	INPUT_MOUSE  = 0
+	INPUT_MOUSE = 0
 	INPUT_KEYBOARD  = 1
 	INPUT_HARDWARE  = 2
 End Enum
@@ -4533,10 +4645,24 @@ Public Type MENUBARINFO
 	FocusBitfield As Long
 End Type
 
-Public Enum MenuBarObjectIDs
-    OBJID_CLIENT = &HFFFFFFFD
-    OBJID_MENU = &HFFFFFFFD	
-    OBJID_SYSMENU = &HFFFFFFFF
+Public Enum CommonObjectIDs
+    CHILDID_SELF            = 0
+    INDEXID_OBJECT          = 0
+    INDEXID_CONTAINER       = 0
+    OBJID_WINDOW            = (&H00000000)
+    OBJID_SYSMENU           = (&HFFFFFFFF)
+    OBJID_TITLEBAR          = (&HFFFFFFFE)
+    OBJID_MENU              = (&HFFFFFFFD)
+    OBJID_CLIENT            = (&HFFFFFFFC)
+	OBJID_VSCROLL           = (&HFFFFFFFB)
+	OBJID_HSCROLL           = (&HFFFFFFFA)
+    OBJID_SIZEGRIP          = (&HFFFFFFF9)
+    OBJID_CARET             = (&HFFFFFFF8)
+    OBJID_CURSOR            = (&HFFFFFFF7)
+    OBJID_ALERT             = (&HFFFFFFF6)
+    OBJID_SOUND             = (&HFFFFFFF5)
+    OBJID_QUERYCLASSNAMEIDX = (&HFFFFFFF4)
+    OBJID_NATIVEOM          = (&HFFFFFFF0)
 End Enum
     
 
@@ -4556,7 +4682,7 @@ Public Declare PtrSafe Function DestroyMenu Lib "user32" (ByVal hMenu As LongPtr
 Public Declare PtrSafe Function EnableMenuItem Lib "user32" (ByVal hMenu As LongPtr, ByVal uIDEnableItem As Long, ByVal uEnable As Long) As Long
 Public Declare PtrSafe Function EndMenu Lib "user32" () As BOOL
 Public Declare PtrSafe Function GetMenu Lib "user32" (ByVal hWnd As LongPtr) As LongPtr
-Public Declare PtrSafe Function GetMenuBarInfo Lib "user32" (ByVal hWnd As LongPtr, ByVal idObject As MenuBarObjectIDs, ByVal idItem As Long, pmbi As MENUBARINFO) As LongPtr
+Public Declare PtrSafe Function GetMenuBarInfo Lib "user32" (ByVal hWnd As LongPtr, ByVal idObject As CommonObjectIDs, ByVal idItem As Long, pmbi As MENUBARINFO) As LongPtr
 Public DeclareWide PtrSafe Function LoadMenuW Lib "user32" (ByVal hInstance As LongPtr, ByVal lpString As LongPtr) As LongPtr
 Public DeclareWide PtrSafe Function LoadMenu Lib "user32" Alias "LoadMenuW" (ByVal hInstance As LongPtr, ByVal lpString As String) As LongPtr
 Public DeclareWide PtrSafe Function LoadMenuIndirect Lib "user32" Alias "LoadMenuIndirectW" (ByVal lpMenuTemplate As LongPtr) As LongPtr
@@ -7889,10 +8015,12 @@ Public Declare PtrSafe Function GetStockObject Lib "gdi32.dll" (ByVal nIndex As 
 Public Declare PtrSafe Function DeleteObject Lib "gdi32" (ByVal hObject As LongPtr) As Long
 Public Declare PtrSafe Function CreateFontW Lib "gdi32" (ByVal cHeight As Long, ByVal cWidth As Long, ByVal cEscapement As Long, ByVal cOrientation As Long, ByVal cWeight As FontWeight, ByVal bItalic As Long, ByVal bUnderline As Long, ByVal bStrikeOut As Long, ByVal iCharset As FontCharset, ByVal iOutPrecision As FontOutPrecis, ByVal iClipPrecision As FontClipPrecis, ByVal iQuality As Long, ByVal iPitchAndFamily As Long, ByVal pszFaceName As LongPtr) As LongPtr
 Public Declare PtrSafe Function SelectObject Lib "gdi32" (ByVal hDC As LongPtr, ByVal hObject As LongPtr) As LongPtr
+Public Declare PtrSafe Function SetBkColor Lib "gdi32" (ByVal hDC As LongPtr, ByVal crColor As Long) As Long
 Public Declare PtrSafe Function SetBkMode Lib "gdi32" (ByVal hDC As LongPtr, ByVal nBkMode As Long) As Long
 Public Declare PtrSafe Function SetTextColor Lib "gdi32" (ByVal hDC As LongPtr, ByVal crColor As Long) As Long
 Public Declare PtrSafe Function BitBlt Lib "gdi32" (ByVal hDestDC As LongPtr, ByVal X As Long, ByVal Y As Long, ByVal nWidth As Long, ByVal nHeight As Long, ByVal hSrcDC As LongPtr, ByVal XSrc As Long, ByVal YSrc As Long, ByVal dwRop As Long) As Long
 Public Declare PtrSafe Function GetDeviceCaps Lib "gdi32" (ByVal hDC As LongPtr, ByVal nIndex As GetDevCaps_Index) As Long
+Public Declare PtrSafe Function GetDIBits Lib "gdi32" (ByVal aHDC As LongPtr, ByVal hBitmap As LongPtr, ByVal nStartScan As Long, ByVal nNumScans As Long, ByRef lpBits As Any, ByRef lpBI As BITMAPINFO, ByVal wUsage As Long) As Long
 
 Public Enum GetDevCaps_Index
 	DRIVERVERSION  = 0  ' Device driver version                    */
@@ -8371,8 +8499,31 @@ Public Declare PtrSafe Function RegEnumValue Lib "advapi32.dll" Alias "RegEnumVa
 Public Declare PtrSafe Function RegCloseKey Lib "advapi32.dll" (ByVal hKey As LongPtr) As Long
 #End Region
 
+#Region "Misc"
+Public DeclareWide PtrSafe Function PlaySound Lib "winmm.dll" Alias "PlaySoundW" (ByVal lpszName As String, ByVal hModule As LongPtr, ByVal dwFlags As SND_FLAGS) As Long
+Public DeclareWide PtrSafe Function PlaySoundW Lib "winmm.dll" (ByVal lpszName As LongPtr, ByVal hModule As LongPtr, ByVal dwFlags As SND_FLAGS) As Long
 
-
+Public Enum SND_FLAGS
+    SND_ALIAS = &H10000 ' name is a WIN.INI [sounds] entry
+    SND_ALIAS_ID = &H110000 ' name is a WIN.INI [sounds]Entry identifier
+    SND_ALIAS_START = 0 ' must be > 4096 to keep strings insame section of resource file
+    SND_APPLICATION = &H80 ' look for applicationspecific association
+    SND_ASYNC = &H1 ' play asynchronously
+    SND_FILENAME = &H20000 ' name is a file name
+    SND_LOOP = &H8 ' loop the sound until nextsndPlaySound
+    SND_MEMORY = &H4 ' lpszSoundName points to a memoryFile
+    SND_NODEFAULT = &H2 ' silence not default, if soundnot found
+    SND_NOSTOP = &H10 ' don't stop any currently playingsound
+    SND_NOWAIT = &H2000 ' don't wait if the driver is busy
+    SND_PURGE = &H40 ' purge non-static events forTask
+    SND_RESERVED = &HFF000000 ' In particular these flags areReserved
+    SND_RESOURCE = &H40004 ' name is a resource name or atom
+    SND_SYNC = &H0 ' play synchronously (default)
+    SND_TYPE_MASK = &H170007
+    SND_VALID = &H1F ' valid flags / ;Internal /
+    SND_VALIDFLAGS = &H17201F ' Set of valid flag bits.
+End Enum
+#End Region
 
 
 'Common helper function converted for x64 compatibility:
