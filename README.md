@@ -1,7 +1,7 @@
 # tbShellLib
 **twinBASIC Shell Library**
 
-Current Version: 3.10.80 (March 21st, 2023)
+Current Version: 3.11.82 (March 23rd, 2023)
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -41,6 +41,8 @@ It's fairly simple to move your VB6 projects to tbShellLib, just follow these st
 Note that this is just for using tbShellLib-- you'll likely have a lot more changes to make if you want to make your project x64 compatible.
 
 ## Updates
+**Update (V3.11.82):** Additional API expansion for upcoming projects. Added Media Foundation / D3D12 sync interfaces/GUIDs. Added Media Foundation Capture Engine interfaces/GUIDs. Realized I actually have a ton more Media Foundation stuff not yet included. 
+
 **Update (v3.10.80):** Additional API expansion for upcoming projects.
 
 **Update (v3.10.72):** Added a number of important APIs for upcoming projects. Added EP_* GUIDs for IExplorerPaneVisibility, added some missing SID_ guids.
