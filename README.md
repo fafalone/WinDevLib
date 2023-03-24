@@ -41,6 +41,8 @@ It's fairly simple to move your VB6 projects to tbShellLib, just follow these st
 Note that this is just for using tbShellLib-- you'll likely have a lot more changes to make if you want to make your project x64 compatible.
 
 ## Updates
+**Update (v3.11.84): Additional APIs and Media Foundation stuff.
+
 **Update (V3.11.82):** Additional API expansion for upcoming projects. Added Media Foundation / D3D12 sync interfaces/GUIDs. Added Media Foundation Capture Engine interfaces/GUIDs. Realized I actually have a ton more Media Foundation stuff not yet included. 
 
 **Update (v3.10.80):** Additional API expansion for upcoming projects.
