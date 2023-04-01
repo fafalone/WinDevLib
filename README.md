@@ -1,7 +1,7 @@
 # tbShellLib
 **twinBASIC Shell Library**
 
-Current Version: 3.12.88 (March 28th, 2023)
+Current Version: 4.0.92 (April 1st, 2023)
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -41,7 +41,19 @@ It's fairly simple to move your VB6 projects to tbShellLib, just follow these st
 Note that this is just for using tbShellLib-- you'll likely have a lot more changes to make if you want to make your project x64 compatible.
 
 ## Updates
-**Update (v3.12.88):** Added misc. interfaces IDelayedPropertyStoreFactory, IStorageProviderCopyHook, IDesktopGadget/Coclass DesktopGadget, IQueryCodePage, IStreamUnbufferedInfo, IUserAccountChangeCallback, IOpenSearchSource (with Implements- version in oleexpimp), IDestinationStreamFactory, ICreateProcessInputs, and ICreatingProcess. Continued adding APIs and Media Foundation interfaces.
+**Update (v4.0.92):** 
+
+-Completed Media Foundation interfaces up through the most recent Windows 11 SDK. This includes the capture engine and other entirely new feature sets.
+
+-Added CoreAudio Spatial Audio interfaces (newer Win10 versions/Win11 only)
+
+-Added IPropertyPage[2] and IPropertyPageSite interfaces.
+
+-Added ISimpleFrameSite interface
+
+-Bug fix: AUDCLNT_RETURNCODES were all incorrect.
+
+**Update (v3.12.88):** Added misc. interfaces IDelayedPropertyStoreFactory, IStorageProviderCopyHook, IDesktopGadget/Coclass DesktopGadget, IQueryCodePage, IStreamUnbufferedInfo, IUserAccountChangeCallback, IOpenSearchSource, IDestinationStreamFactory, ICreateProcessInputs, and ICreatingProcess. Continued adding APIs and Media Foundation interfaces.
 
 **Update (v3.11.84, v3.11.86):** Additional APIs and Media Foundation stuff.
 
