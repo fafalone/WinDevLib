@@ -1,7 +1,7 @@
 # tbShellLib
 **twinBASIC Shell Library**
 
-Current Version: 4.0.93 (April 1st, 2023)
+Current Version: 4.1.94 (April 3rd, 2023)
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -41,6 +41,8 @@ It's fairly simple to move your VB6 projects to tbShellLib, just follow these st
 Note that this is just for using tbShellLib-- you'll likely have a lot more changes to make if you want to make your project x64 compatible.
 
 ## Updates
+**Update (v4.1.94):** Added Packaging API interfaces (msopc.idl). Added Netaddress control defs (newer version of old IP address control, msctls_netaddress; the old one, SysIPAddress32, is still there).
+
 **Update (v4.0.93):** `Currency` in new interfaces changed to `LongLong`. 
 
 **Update (v4.0.92):** 
