@@ -49,6 +49,7 @@ If you find an oleexpimp.tlb interface is not in tbShellLibImpl, you will be abl
 tB has announced plans to support `[ PreserveSig ]` in implemented interfaces in the future; when that happens tbShellLibImpl will be deprecated.
 
 ## Updates
+**Update (v4.2.96):** Added missing Core Audio interfaces/GUIDs. Significant API coverage expansion.
 
 **Update (v4.1.94):** Added Packaging API interfaces (msopc.idl). Added Netaddress control defs (newer version of old IP address control, msctls_netaddress; the old one, SysIPAddress32, is still there).
 
