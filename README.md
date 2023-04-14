@@ -7,7 +7,7 @@ Current Version: 4.3.102 (April 14th, 2023)
 
 This project is a comprehensive twinBASIC replacement for [oleexp.tlb](http://www.vbforums.com/showthread.php?786079-VB6-Modern-Shell-Interface-Type-Library-oleexp-tlb), my Modern Shell Interfaces Type Library project for VB6, that is x64 compatible, due to the many problems using midl to create a 64bit tlb.
 
-All interfaces, types, consts, and APIs from oleexp are covered, and there's additional API coverage not included in oleexp.
+All interfaces, types, consts, and APIs from oleexp are covered, and there's additional API coverage not included in oleexp. For a full list of interfaces, see [INTERFACES.md](https://github.com/fafalone/tbShellLib/blob/main/INTERFACES.md).
 
 This project is implemented purely in tB native code, as unlike VB6 there's language support for defining interfaces and coclasses. As a twinPACKAGE, regular code is supported in addition to the definitions, so the regular addin modules have been built in (mIID.bas, mPKEY.bas, etc).
 
