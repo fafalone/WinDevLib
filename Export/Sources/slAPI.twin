@@ -3835,6 +3835,13 @@ Public Enum COINIT
   COINIT_SPEED_OVER_MEMORY = &H8
 End Enum
 
+Public Enum RPC_IMP_LVL
+	RPC_C_IMP_LEVEL_ANONYMOUS  = 1
+	RPC_C_IMP_LEVEL_IDENTIFY  = 2
+	RPC_C_IMP_LEVEL_IMPERSONATE  = 3
+	RPC_C_IMP_LEVEL_DELEGATE  = 4
+End Enum
+
 Public Type COAUTHIDENTITY
 	User As Integer
 	UserLength As Long
@@ -3845,13 +3852,13 @@ Public Type COAUTHIDENTITY
 	Flags As Long
 End Type
 Public Type COAUTHINFO
-	dwAuthnSvc As Long
-	dwAuthzSvc As Long
+	dwAuthnSvc As RPC_AUTHN
+	dwAuthzSvc As RPC_AUTHZ
 	pwszServerPrincName As LongPtr
-	dwAuthnLevel As Long
-	dwImpersonationLevel As Long
+	dwAuthnLevel As RPC_AUTHN_LVL
+	dwImpersonationLevel As RPC_IMP_LVL
 	pAuthIdentityData As LongPtr
-	dwCapabilities As Long
+	dwCapabilities As EOLE_AUTHENTICATION_CAPABILITIES
 End Type
 Public Type COSERVERINFO
 	dwReserved1 As Long
@@ -3942,6 +3949,11 @@ Public Declare PtrSafe Function CoLockObjectExternal Lib "ole32" (ByVal pUnk As 
 Public Declare PtrSafe Function CoGetStandardMarshal Lib "ole32" (ByRef riid As UUID, ByVal pUnk As stdole.IUnknown, ByVal dwDestContext As MSHCTX, ByRef pvDestContext As Any, ByVal MSHLFLAGS As MSHLFLAGS, ppMarshal As IMarshal) As Long
 Public Declare PtrSafe Function CoGetStdMarshalEx Lib "ole32" (ByVal pUnkOuter As stdole.IUnknown, ByVal smexflags As STDMSHLFLAGS, ppunkInner As stdole.IUnknown) As Long
 Public Declare PtrSafe Function CoCreateFreeThreadedMarshaler Lib "ole32" (ByVal pUnkOuter As stdole.IUnknown, ppunkMarshal As stdole.IUnknown) As Long
+Public Declare PtrSafe Function CoImpersonateClient Lib "ole32" () As Long
+Public Declare PtrSafe Function CoRevertToSelf Lib "ole32" () As Long
+Public Declare PtrSafe Function CoQueryClientBlanket Lib "ole32" (pAuthnSvc As RPC_AUTHN, pAuthzSvc As RPC_AUTHZ, pServerPrincName As LongPtr, pAuthnLevel As RPC_AUTHN_LVL, pImpLevel As RPC_IMP_LVL, pPrivs As Any, pCapabilities As EOLE_AUTHENTICATION_CAPABILITIES) As Long
+Public Declare PtrSafe Function CoCopyProxy Lib "OLE32.DLL" (ByVal pProxy As stdole.IUnknown, ppCopy As stdole.IUnknown) As Long
+
 Public Declare PtrSafe Sub ReleaseStgMedium Lib "ole32" (ByRef STM As STGMEDIUM)
 Public DeclareWide PtrSafe Function OleGetIconOfClass Lib "ole32" (ByRef rclsid As UUID, ByVal lpszLabel As String, ByVal fUseTypeAsLabel As Long) As LongPtr
 Public DeclareWide PtrSafe Function OleMetafilePictFromIconAndLabel Lib "ole32" (ByVal hIcon As LongPtr, ByVal lpszLabel As String, ByVal lpszSourceFile As String, ByVal iIconIndex As Long) As LongPtr
@@ -4508,7 +4520,14 @@ Public Enum SPI
 
     SPI_GETPENVISUALIZATION = &H201E
     SPI_SETPENVISUALIZATION = &H201F
-    
+
+'#if (NTDDI_VERSION >= NTDDI_WIN10_RS3)
+    SPI_GETCARETTIMEOUT = &H2022
+    SPI_SETCARETTIMEOUT = &H2023
+
+'#if (NTDDI_VERSION >= NTDDI_WIN10_RS4)
+    SPI_GETHANDEDNESS = &H2024
+    SPI_SETHANDEDNESS = &H2025  
 End Enum
 Public Enum SPIF
    SPIF_UPDATEINIFILE = &H1     ' Writes the new system-wide parameter setting to the user profile.
@@ -4837,6 +4856,78 @@ Public Enum GCL_Index
 	GCL_HICONSM  = (-34)
 End Enum
 
+Public Enum UserObjectInfoTypes
+	UOI_FLAGS  = 1
+	UOI_NAME  = 2
+	UOI_TYPE  = 3
+	UOI_USER_SID  = 4
+	UOI_HEAPSIZE  = 5
+	UOI_IO  = 6
+	UOI_TIMERPROC_EXCEPTION_SUPPRESSION  = 7
+End Enum
+
+Public Enum WindowStationAccessFlags
+	WINSTA_ENUMDESKTOPS  = &H0001
+	WINSTA_READATTRIBUTES  = &H0002
+	WINSTA_ACCESSCLIPBOARD  = &H0004
+	WINSTA_CREATEDESKTOP  = &H0008
+	WINSTA_WRITEATTRIBUTES  = &H0010
+	WINSTA_ACCESSGLOBALATOMS  = &H0020
+	WINSTA_EXITWINDOWS  = &H0040
+	WINSTA_ENUMERATE  = &H0100
+	WINSTA_READSCREEN  = &H0200
+	WINSTA_ALL_ACCESS  = (WINSTA_ENUMDESKTOPS Or WINSTA_READATTRIBUTES Or WINSTA_ACCESSCLIPBOARD Or WINSTA_CREATEDESKTOP Or WINSTA_WRITEATTRIBUTES Or WINSTA_ACCESSGLOBALATOMS Or WINSTA_EXITWINDOWS Or WINSTA_ENUMERATE Or WINSTA_READSCREEN)
+End Enum
+
+Public Enum WindowStationCreateFlags
+     CWF_CREATE_ONLY         = &H00000001
+End Enum
+
+Public Enum WindowStationAttribFlags
+     WSF_VISIBLE             = &H0001
+End Enum
+
+Public Enum BorderStyles
+	BDR_RAISEDOUTER  = &H0001
+	BDR_SUNKENOUTER  = &H0002
+	BDR_RAISEDINNER  = &H0004
+	BDR_SUNKENINNER  = &H0008
+	BDR_OUTER  = (BDR_RAISEDOUTER  Or  BDR_SUNKENOUTER)
+	BDR_INNER  = (BDR_RAISEDINNER  Or  BDR_SUNKENINNER)
+	BDR_RAISED  = (BDR_RAISEDOUTER  Or  BDR_RAISEDINNER)
+	BDR_SUNKEN  = (BDR_SUNKENOUTER  Or  BDR_SUNKENINNER)
+	EDGE_RAISED  = (BDR_RAISEDOUTER  Or  BDR_RAISEDINNER)
+	EDGE_SUNKEN  = (BDR_SUNKENOUTER  Or  BDR_SUNKENINNER)
+	EDGE_ETCHED  = (BDR_SUNKENOUTER  Or  BDR_RAISEDINNER)
+	EDGE_BUMP  = (BDR_RAISEDOUTER  Or  BDR_SUNKENINNER)
+End Enum
+
+Public Enum BorderFlags
+	BF_LEFT  = &H0001
+	BF_TOP  = &H0002
+	BF_RIGHT  = &H0004
+	BF_BOTTOM  = &H0008
+	BF_TOPLEFT  = (BF_TOP  Or BF_LEFT)
+	BF_TOPRIGHT  = (BF_TOP  Or  BF_RIGHT)
+	BF_BOTTOMLEFT  = (BF_BOTTOM  Or  BF_LEFT)
+	BF_BOTTOMRIGHT  = (BF_BOTTOM  Or  BF_RIGHT)
+	BF_RECT  = (BF_LEFT  Or  BF_TOP  Or  BF_RIGHT  Or BF_BOTTOM)
+	BF_DIAGONAL  = &H0010
+'  For diagonal lines, the BF_RECT flags specify the end point of the
+'  vector bounded by the rectangle parameter.
+	BF_DIAGONAL_ENDTOPRIGHT  = (BF_DIAGONAL  Or  BF_TOP  Or  BF_RIGHT)
+	BF_DIAGONAL_ENDTOPLEFT  = (BF_DIAGONAL  Or  BF_TOP  Or BF_LEFT)
+	BF_DIAGONAL_ENDBOTTOMLEFT  = (BF_DIAGONAL  Or  BF_BOTTOM  Or  BF_LEFT)
+	BF_DIAGONAL_ENDBOTTOMRIGHT  = (BF_DIAGONAL  Or  BF_BOTTOM  Or  BF_RIGHT)
+	BF_MIDDLE  = &H0800 /* Fill in the middle */
+	BF_SOFT  = &H1000 /* For softer buttons */
+	BF_ADJUST  = &H2000 /* Calculate the space left over */
+	BF_FLAT  = &H4000 /* For flat rather than 3D borders */
+	BF_MONO  = &H8000& /* For monochrome borders */
+End Enum
+
+
+
 Public DeclareWide PtrSafe Function CreateWindowEx Lib "user32" Alias "CreateWindowExW" (ByVal dwExStyle As WindowStylesEx, ByVal lpClassName As String, ByVal lpWindowName As String, ByVal dwStyle As WindowStyles, ByVal X As Long, ByVal Y As Long, ByVal nWidth As Long, ByVal nHeight As Long, ByVal hWndParent As LongPtr, ByVal hMenu As LongPtr, ByVal hInstance As LongPtr, lpParam As Any) As LongPtr
 Public Declare PtrSafe Function CreateWindowExA Lib "user32" (ByVal dwExStyle As WindowStylesEx, ByVal lpClassName As String, ByVal lpWindowName As String, ByVal dwStyle As WindowStyles, ByVal X As Long, ByVal Y As Long, ByVal nWidth As Long, ByVal nHeight As Long, ByVal hWndParent As LongPtr, ByVal hMenu As LongPtr, ByVal hInstance As LongPtr, lpParam As Any) As LongPtr
 Public Declare PtrSafe Function CreateWindowExW Lib "user32" (ByVal dwExStyle As WindowStylesEx, ByVal lpClassName As LongPtr, ByVal lpWindowName As LongPtr, ByVal dwStyle As WindowStyles, ByVal X As Long, ByVal Y As Long, ByVal nWidth As Long, ByVal nHeight As Long, ByVal hWndParent As LongPtr, ByVal hMenu As LongPtr, ByVal hInstance As LongPtr, lpParam As Any) As LongPtr
@@ -4946,11 +5037,12 @@ Public Declare PtrSafe Function SetMenuContextHelpId Lib "user32" (ByVal hMenu A
 Public Declare PtrSafe Function SetMenuDefaultItem Lib "user32" (ByVal hMenu As LongPtr, ByVal uItem As Long, ByVal fByPos As Long) As Long
 Public Declare PtrSafe Function SetMessageExtraInfo Lib "user32" (ByVal lParam As LongPtr) As LongPtr
 Public Declare PtrSafe Function SetMessageQueue Lib "user32" (ByVal cMessagesMax As Long) As Long
-Public Declare PtrSafe Function SetProcessWindowStation Lib "user32" (ByVal hWinSta As LongPtr) As Long
-Public Declare PtrSafe Function SetThreadDesktop Lib "user32" (ByVal hDesktop As LongPtr) As Long
-Public Declare PtrSafe Function SetUserObjectInformationA Lib "user32" (ByVal hObj As LongPtr, ByVal nIndex As Long, pvInfo As Any, ByVal nLength As Long) As Long
-Public Declare PtrSafe Function SetUserObjectInformationW Lib "user32" (ByVal hObj As LongPtr, ByVal nIndex As Long, pvInfo As Any, ByVal nLength As Long) As Long
-Public DeclareWide PtrSafe Function SetUserObjectInformation Lib "user32" Alias "SetUserObjectInformationW" (ByVal hObj As LongPtr, ByVal nIndex As Long, pvInfo As Any, ByVal nLength As Long) As Long
+Public Declare PtrSafe Function SetUserObjectInformationA Lib "user32" (ByVal hObj As LongPtr, ByVal nIndex As UserObjectInfoTypes, pvInfo As Any, ByVal nLength As Long) As BOOL
+Public Declare PtrSafe Function SetUserObjectInformationW Lib "user32" (ByVal hObj As LongPtr, ByVal nIndex As UserObjectInfoTypes, pvInfo As Any, ByVal nLength As Long) As BOOL
+Public DeclareWide PtrSafe Function SetUserObjectInformation Lib "user32" Alias "SetUserObjectInformationW" (ByVal hObj As LongPtr, ByVal nIndex As UserObjectInfoTypes, pvInfo As Any, ByVal nLength As Long) As BOOL
+Public Declare PtrSafe Function GetUserObjectInformationA Lib "user32" (ByVal hObj As LongPtr, ByVal nIndex As UserObjectInfoTypes, pvInfo As Any, ByVal nLength As Long, Optional lpnLengthNeeded As Long) As BOOL
+Public DeclareWide PtrSafe Function GetUserObjectInformationW Lib "user32" (ByVal hObj As LongPtr, ByVal nIndex As UserObjectInfoTypes, pvInfo As Any, ByVal nLength As Long, Optional lpnLengthNeeded As Long) As BOOL
+Public DeclareWide PtrSafe Function GetUserObjectInformation Lib "user32" Alias "GetUserObjectInformationW" (ByVal hObj As LongPtr, ByVal nIndex As UserObjectInfoTypes, pvInfo As Any, ByVal nLength As Long, Optional lpnLengthNeeded As Long) As BOOL
 Public Declare PtrSafe Function SetWindowContextHelpId Lib "user32" (ByVal hWnd As LongPtr, ByVal dw As Long) As Long
 Public Declare PtrSafe Function SetWindowRgn Lib "user32" (ByVal hWnd As LongPtr, ByVal hRgn As LongPtr, ByVal bRedraw As Long) As Long
 Public Declare PtrSafe Function SetWindowsHook Lib "user32" Alias "SetWindowsHookW" (ByVal nFilterType As WindowsHookCodes, ByVal pfnFilterProc As LongPtr) As LongPtr
@@ -4964,7 +5056,6 @@ Public Declare PtrSafe Function UnhookWindowsHookEx Lib "user32" (ByVal hhk As L
 Public Declare PtrSafe Function CallNextHookEx Lib "user32" (ByVal hHook As LongPtr, ByVal ncode As Long, ByVal wParam As LongPtr, lParam As Any) As LongPtr
 Public Declare PtrSafe Function ShowWindow Lib "user32" (ByVal hWnd As LongPtr, ByVal nCmdShow As SHOWWINDOW) As Long
 Public Declare PtrSafe Function ShowWindowAsync Lib "user32" (ByVal hWnd As LongPtr, ByVal nCmdShow As SHOWWINDOW) As Long
-Public Declare PtrSafe Function SwitchDesktop Lib "user32" (ByVal hDesktop As LongPtr) As Long
 Public Declare PtrSafe Function TileWindows Lib "user32" (ByVal hwndParent As LongPtr, ByVal wHow As Long, lpRect As RECT, ByVal cKids As Long, lpKids As LongPtr) As Integer
 Public Declare PtrSafe Function ToAsciiEx Lib "user32" (ByVal uVirtKey As Long, ByVal uScanCode As Long, lpKeyState As Byte, lpChar As Integer, ByVal uFlags As Long, ByVal dwhkl As LongPtr) As Long
 Public Declare PtrSafe Function UpdateWindow Lib "user32" (ByVal hWnd As LongPtr) As Long
@@ -4974,6 +5065,7 @@ Public Declare PtrSafe Function BeginPaint Lib "user32" (ByVal hWnd As LongPtr, 
 Public Declare PtrSafe Function EndPaint Lib "user32" (ByVal hWnd As LongPtr, lpPaint As PAINTSTRUCT) As Long
 Public Declare PtrSafe Function GetClientRect Lib "user32" (ByVal hWnd As LongPtr, lpRect As RECT) As Long
 Public Declare PtrSafe Function AdjustWindowRect Lib "user32" (lpRect As RECT, ByVal dwStyle As WindowStyles, ByVal bMenu As Long) As Long
+Public Declare PtrSafe Function AdjustWindowRectEx Lib "user32" (lpRect As RECT, ByVal dwStyle As WindowStyles, ByVal bMenu As BOOL, ByVal dwExStyle As WindowStylesEx) As Long
 Public Declare PtrSafe Function SetWindowPos Lib "user32" (ByVal hWnd As LongPtr, ByVal hWndInsertAfter As LongPtr, ByVal X As Long, ByVal Y As Long, ByVal CX As Long, ByVal CY As Long, ByVal wFlags As SWP_Flags) As Long
 Public Declare PtrSafe Function GetSysColor Lib "user32" (ByVal nIndex As SystemColors) As Long
 Public DeclareWide PtrSafe Function LoadCursor Lib "user32" Alias "LoadCursorW" (ByVal hInstance As LongPtr, ByVal lpCursorName As Any) As LongPtr
@@ -4991,6 +5083,7 @@ Public DeclareWide PtrSafe Function DrawText Lib "user32" (ByVal hDC As LongPtr,
 Public Declare PtrSafe Function DrawTextExW Lib "user32" (ByVal hDC As LongPtr, ByVal lpchText As LongPtr, ByVal cchText As Long, ByRef lprc As RECT, ByVal format As DT_Flags, lpdtp As DRAWTEXTPARAMS) As Long
 Public Declare PtrSafe Function DrawTextExA Lib "user32" (ByVal hDC As LongPtr, ByVal lpchText As String, ByVal cchText As Long, ByRef lprc As RECT, ByVal format As DT_Flags, lpdtp As DRAWTEXTPARAMS) As Long
 Public DeclareWide PtrSafe Function DrawTextEx Lib "user32" Alias "DrawTextExW" (ByVal hDC As LongPtr, ByVal lpchText As String, ByVal cchText As Long, ByRef lprc As RECT, ByVal format As DT_Flags, lpdtp As DRAWTEXTPARAMS) As Long
+Public DeclareWide PtrSafe Function DrawEdge Lib "user32" (ByVal hDC As LongPtr, qrc As RECT, ByVal edge As BorderStyles, ByVal grfFlags As BorderFlags) As BOOL
 Public Declare PtrSafe Function TrackMouseEvent Lib "user32" (lpEventTrack As TRACKMOUSEEVENT) As BOOL
 Public Declare PtrSafe Sub keybd_event Lib "user32" (ByVal bVk As Byte, ByVal bScan As Byte, ByVal dwFlags As KeybdEventFlags, ByVal dwExtraInfo As LongPtr)
 Public Declare PtrSafe Sub mouse_event Lib "user32" (ByVal dwFlags As MouseEventFlags, ByVal dx As Long, ByVal dy As Long, ByVal dwData As Long, ByVal dwExtraInfo As LongPtr)
@@ -5012,6 +5105,7 @@ Public Declare PtrSafe Function RegisterClipboardFormatW Lib "user32" (ByVal lps
 Public Declare PtrSafe Function RegisterClipboardFormatA Lib "user32" (ByVal lpszFormat As String) As Long
 Public Declare PtrSafe Function AddClipboardFormatListener Lib "user32" (ByVal hwnd As LongPtr) As Long
 Public Declare PtrSafe Function RemoveClipboardFormatListener Lib "user32" (ByVal hwnd As LongPtr) As Long
+Public Declare PtrSafe Function BlockInput Lib "user32" (ByVal fBlockIt As BOOL) As BOOL
 
 Public Declare PtrSafe Function SetCursor Lib "user32" (ByVal hCursor As LongPtr) As LongPtr
 Public Declare PtrSafe Function SetSystemCursor Lib "user32" (ByVal hCursor As LongPtr, ByVal id As SysCursors) As BOOL
@@ -5026,14 +5120,192 @@ Public Declare PtrSafe Function CopyIcon Lib "user32" (ByVal hIcon As LongPtr) A
 Public Declare PtrSafe Function GetIconInfoExA Lib "user32" (ByVal hIcon As LongPtr, piconinfo As ICONINFOEXA) As BOOL
 Public Declare PtrSafe Function GetIconInfoExW Lib "user32" (ByVal hIcon As LongPtr, piconinfo As ICONINFOEXW) As BOOL
 Public DeclareWide PtrSafe Function GetIconInfoEx Lib "user32" (ByVal hIcon As LongPtr, piconinfo As ICONINFOEXW) As BOOL
-Public Declare PtrSafe Function GetDpiForWindow Lib "user32" (ByVal hwnd As LongPtr) As Long
-Public Declare PtrSafe Function GetDpiForSystem Lib "user32" () As Long
-Public Declare PtrSafe Function GetDpiForProcess Lib "user32" (ByVal hProcess As LongPtr) As Long
 Public Declare PtrSafe Function GetAncestor Lib "user32" (ByVal hwnd As LongPtr, ByVal gaFlags As GA_FLAGS) As LongPtr
 Public Declare PtrSafe Function ChangeWindowMessageFilter Lib "user32"  (ByVal message As Long, ByVal dwFlag As CWMF_Flag) As BOOL
 Public Declare PtrSafe Function ChangeWindowMessageFilterEx Lib "user32" (ByVal hwnd As LongPtr, ByVal message As Long, ByVal action As CWMF_Flag, Optional ByRef pChangeFilterStruct As CHANGEFILTERSTRUCT) As BOOL
 Public DeclareWide PtrSafe Function GetAltTabInfo Lib "user32" Alias "GetAltTabInfoW" (ByVal hwnd As LongPtr, ByVal iItem As Long, pati As ALTTABINFO, Optional pszItemText As LongPtr, Optional ByVal cchItemText As Long = 0) As BOOL
 Public DeclareWide PtrSafe Function GetAltTabInfoW Lib "user32" (ByVal hwnd As LongPtr, ByVal iItem As Long, pati As ALTTABINFO, Optional pszItemText As LongPtr, Optional ByVal cchItemText As Long = 0) As BOOL
+
+Public DeclareWide PtrSafe Function SetProcessDpiAwarenessContext Lib "user32" (ByVal lValue As LongPtr) As LongPtr
+Public DeclareWide PtrSafe Function SetThreadDpiAwarenessContext Lib "user32" (ByVal lValue As LongPtr) As LongPtr
+Public DeclareWide PtrSafe Function GetThreadDpiAwarenessContext Lib "user32" () As LongPtr
+Public DeclareWide PtrSafe Function GetWindowDpiAwarenessContext Lib "user32" (ByVal hwnd As LongPtr) As LongPtr
+Public DeclareWide PtrSafe Function GetAwarenessFromDpiAwarenessContext Lib "user32" (ByVal lValue As LongPtr) As DPI_AWARENESS
+Public DeclareWide PtrSafe Function GetDpiFromDpiAwarenessContext Lib "user32" (ByVal lValue As LongPtr) As Long
+Public DeclareWide PtrSafe Function SetProcessDpiAwareness Lib "user32" (ByVal lValue As PROCESS_DPI_AWARENESS) As Long
+Public DeclareWide PtrSafe Function GetProcessDpiAwareness Lib "user32" (ByVal hprocess As LongPtr, value As PROCESS_DPI_AWARENESS) As Long
+Public Declare PtrSafe Function GetDpiForWindow Lib "user32" (ByVal hwnd As LongPtr) As Long
+Public Declare PtrSafe Function GetDpiForSystem Lib "user32" () As Long
+Public Declare PtrSafe Function GetDpiForProcess Lib "user32" (ByVal hProcess As LongPtr) As Long
+Public Declare PtrSafe Function GetSystemDpiForProcess Lib "user32" (ByVal hProcess As LongPtr) As Long
+Public Declare PtrSafe Function GetSystemMetricsForDpi Lib "user32" (ByVal nIndex As SystemMetrics, ByVal dpi As Long) As Long
+Public Declare PtrSafe Function AdjustWindowRectExForDpi Lib "user32" (lpRect As RECT, ByVal dwStyle As WindowStyles, ByVal bMenu As BOOL, ByVal dwExStyle As WindowStylesEx, ByVal dpi As Long) As Long
+Public Declare PtrSafe Function LogicalToPhysicalPointForPerMonitorDPI Lib "user32" (ByVal hwnd As LongPTr, lpPoint As POINT) As BOOL
+Public Declare PtrSafe Function PhysicalToLogicalPointForPerMonitorDPI Lib "user32" (ByVal hwnd As LongPtr, lpPoint As POINT) As BOOL
+Public Declare PtrSafe Function SetThreadCursorCreationScaling Lib "user32" (ByVal cursorDpi As Long) As Long
+Public Declare PtrSafe Function IsProcessDpiAware Lib "user32" () As BOOL
+Public Declare PtrSafe Function AreDpiAwarenessContextsEqual Lib "user32" (ByVal dpiContextA As LongPtr, ByVal dpiContextB As LongPtr) As BOOL
+Public Declare PtrSafe Function IsValidDpiAwarenessContext Lib "user32" (ByVal value As LongPtr) As BOOL
+Public Declare PtrSafe Function EnableNonClientDpiScaling Lib "user32" (ByVal hwnd As LongPtr) As Long
+Public Declare PtrSafe Function SetThreadDpiHostingBehavior Lib "user32" (ByVal value As DPI_HOSTING_BEHAVIOR) As DPI_HOSTING_BEHAVIOR
+Public Declare PtrSafe Function GetThreadDpiHostingBehavior Lib "user32" () As DPI_HOSTING_BEHAVIOR
+Public Declare PtrSafe Function GetDialogControlDpiChangeBehavior Lib "user32" (ByVal hwnd As LongPtr) As DIALOG_CONTROL_DPI_CHANGE_BEHAVIORS
+Public Declare PtrSafe Function SetDialogControlDpiChangeBehavior Lib "user32" (ByVal hwnd As LongPtr, ByVal mask As DIALOG_CONTROL_DPI_CHANGE_BEHAVIORS, ByVal values As DIALOG_CONTROL_DPI_CHANGE_BEHAVIORS) As BOOL
+Public Declare PtrSafe Function GetDialogDpiChangeBehavior Lib "user32" (ByVal hDlg As LongPtr) As DIALOG_DPI_CHANGE_BEHAVIORS
+Public Declare PtrSafe Function SetDialogDpiChangeBehavior Lib "user32" (ByVal hDlg As LongPtr, ByVal mask As DIALOG_DPI_CHANGE_BEHAVIORS, ByVal values As DIALOG_DPI_CHANGE_BEHAVIORS) As BOOL
+
+Public Declare PtrSafe Function CreateDesktopA Lib "user32" (ByVal lpszDesktop As String, ByVal lpszDevice As String, pDevMode As DEVMODEW, ByVal dwFlags As OpenDesktop_Flags, ByVal dwDesiredAccess As Long, Optional lpsa As SECURITY_ATTRIBUTES) As LongPtr
+Public DeclareWide PtrSafe Function CreateDesktopW Lib "user32" (ByVal lpszDesktop As LongPtr, ByVal lpszDevice As LongPtr, pDevMode As DEVMODEW, ByVal dwFlags As OpenDesktop_Flags, ByVal dwDesiredAccess As Long, Optional lpsa As SECURITY_ATTRIBUTES) As LongPtr
+Public DeclareWide PtrSafe Function CreateDesktop Lib "user32" Alias "CreateDesktopW" (ByVal lpszDesktop As String, ByVal lpszDevice As String, pDevMode As DEVMODEW, ByVal dwFlags As OpenDesktop_Flags, ByVal dwDesiredAccess As Long, Optional lpsa As SECURITY_ATTRIBUTES) As LongPtr
+Public Declare PtrSafe Function CreateDesktopExA Lib "user32" (ByVal lpszDesktop As String, ByVal lpszDevice As String, pDevMode As DEVMODEW, ByVal dwFlags As OpenDesktop_Flags, ByVal dwDesiredAccess As Long, lpsa As SECURITY_ATTRIBUTES, ByVal ulHeapSize As Long, pvoid As Any) As LongPtr
+Public DeclareWide PtrSafe Function CreateDesktopExW Lib "user32" (ByVal lpszDesktop As LongPtr, ByVal lpszDevice As LongPtr, pDevMode As DEVMODEW, ByVal dwFlags As OpenDesktop_Flags, ByVal dwDesiredAccess As Long, lpsa As SECURITY_ATTRIBUTES, ByVal ulHeapSize As Long, pvoid As Any) As LongPtr
+Public DeclareWide PtrSafe Function CreateDesktopEx Lib "user32" Alias "CreateDesktopExW" (ByVal lpszDesktop As String, ByVal lpszDevice As String, pDevMode As DEVMODEW, ByVal dwFlags As OpenDesktop_Flags, ByVal dwDesiredAccess As Long, lpsa As SECURITY_ATTRIBUTES, ByVal ulHeapSize As Long, pvoid As Any) As LongPtr
+Public DeclareWide PtrSafe Function SwitchDesktop Lib "user32" (ByVal hDesktop As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function OpenDesktopA Lib "user32" (ByVal lpszDesktop As String, ByVal dwFlags As OpenDesktop_Flags, ByVal fInherit As BOOL, ByVal dwDesiredAccess As Long) As LongPtr
+Public DeclareWide PtrSafe Function OpenDesktopW Lib "user32" (ByVal lpszDesktop As LongPtr, ByVal dwFlags As OpenDesktop_Flags, ByVal fInherit As BOOL, ByVal dwDesiredAccess As Long) As LongPtr
+Public DeclareWide PtrSafe Function OpenDesktop Lib "user32" Alias "OpenDesktopW" (ByVal lpszDesktop As String, ByVal dwFlags As OpenDesktop_Flags, ByVal fInherit As BOOL, ByVal dwDesiredAccess As Long) As LongPtr
+Public DeclareWide PtrSafe Function EnumDesktopsW Lib "user32" (ByVal hwinsta As LongPtr, ByVal lpEnumFunc As LongPtr, ByVal lParam As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function OpenInputDesktop Lib "user32" (ByVal dwFlags As OpenDesktop_Flags, ByVal fInherit As BOOL, ByVal dwDesiredAccess As Long) As LongPtr
+Public DeclareWide PtrSafe Function CloseDesktop Lib "user32" (ByVal hDesktop As LongPtr) As Long
+Public DeclareWide PtrSafe Function SetThreadDesktop Lib "user32" (ByVal hDesktop As LongPtr) As Long
+Public DeclareWide PtrSafe Function GetThreadDesktop Lib "user32" (ByVal dwThreadId As Long) As LongPtr
+
+Public DeclareWide PtrSafe Function GetProcessWindowStation Lib "user32" () As LongPtr
+Public DeclareWide PtrSafe Function SetProcessWindowStation Lib "user32" (ByVal hWinSta As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function EnumWindowStationsW Lib "user32" (ByVal lpEnumFunc As LongPtr, ByVal lParam As LongPtr) As BOOL
+Public Declare PtrSafe Function EnumWindowStationsA Lib "user32" (ByVal lpEnumFunc As LongPtr, ByVal lParam As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function EnumWindowStations Lib "user32" Alias "EnumWindowStationsW" (ByVal lpEnumFunc As LongPtr, ByVal lParam As LongPtr) As BOOL
+Public Declare PtrSafe Function CreateWindowStationA Lib "user32" (ByVal lpwinsta As String, ByVal dwFlags As WindowStationCreateFlags, ByVal dwDesiredAccess As Long, Optional lpsa As SECURITY_ATTRIBUTES) As BOOL
+Public DeclareWide PtrSafe Function CreateWindowStationW Lib "user32" (ByVal lpwinsta As LongPtr, ByVal dwFlags As WindowStationCreateFlags, ByVal dwDesiredAccess As Long, Optional lpsa As SECURITY_ATTRIBUTES) As BOOL
+Public DeclareWide PtrSafe Function CreateWindowStation Lib "user32" Alias "CreateWindowStationW" (ByVal lpwinsta As String, ByVal dwFlags As WindowStationCreateFlags, ByVal dwDesiredAccess As Long, Optional lpsa As SECURITY_ATTRIBUTES) As BOOL
+Public Declare PtrSafe Function OpenWindowStationA Lib "user32" (ByVal lpwinsta As String, ByVal fInherit As BOOL, ByVal dwDesiredAccess As Long) As BOOL
+Public DeclareWide PtrSafe Function OpenWindowStationW Lib "user32" (ByVal lpwinsta As LongPtr, ByVal fInherit As BOOL, ByVal dwDesiredAccess As Long) As BOOL
+Public DeclareWide PtrSafe Function OpenWindowStation Lib "user32" Alias "OpenWindowStationW" (ByVal lpwinsta As String, ByVal fInherit As BOOL, ByVal dwDesiredAccess As Long) As BOOL
+
+Public DeclareWide PtrSafe Function GetGestureInfo Lib "user32" (ByVal hGestureInfo As LongPtr, pGestureInfo As GESTUREINFO) As BOOL
+Public DeclareWide PtrSafe Function GetGestureExtraArgs Lib "user32" (ByVal hGestureInfo As LongPtr, ByVal cbExtraArgs As Long, pExtraArgs As Any) As BOOL
+Public DeclareWide PtrSafe Function SetGestureConfig Lib "user32" (ByVal hwnd As LongPtr, ByVal dwReserved As Long, ByVal cIDs As Long, pGestureConfig As GESTURECONFIG, ByVal cbSize As Long) As BOOL
+Public DeclareWide PtrSafe Function GetGestureConfig Lib "user32" (ByVal hwnd As LongPtr, ByVal dwReserved As Long, ByVal dwFlags As GestureInfoFlags, pcIDs As Long, pGestureConfig As GESTURECONFIG, ByVal cbSize As Long) As BOOL
+Public DeclareWide PtrSafe Function CloseGestureInfoHandle Lib "user32" (ByVal hGestureInfo As LongPtr) As BOOL
+
+Public Enum GestureInfoFlags
+	GF_BEGIN  = &H00000001
+	GF_INERTIA  = &H00000002
+	GF_END  = &H00000004
+End Enum
+
+Public Enum GestureIDs
+	GID_BEGIN  = 1
+	GID_END  = 2
+	GID_ZOOM  = 3
+	GID_PAN  = 4
+	GID_ROTATE  = 5
+	GID_TWOFINGERTAP  = 6
+	GID_PRESSANDTAP = 7
+	GID_ROLLOVER = GID_PRESSANDTAP
+End Enum
+
+Public Type GESTUREINFO
+	cbSize As Long ' size, in bytes, of this structure (including variable length Args field)
+	dwFlags As GestureInfoFlags ' see GF_* flags
+	dwID As GestureIDs ' gesture ID, see GID_* defines
+	hwndTarget As LongPtr ' handle to window targeted by this gesture
+	ptsLocation As POINTS ' current location of this gesture
+	dwInstanceID As Long ' internally used
+	dwSequenceID As Long ' internally used
+	ullArguments As LongLong ' arguments for gestures whose arguments fit in 8 BYTES
+    cbExtraArgs As Long ' size, in bytes, of extra arguments, if any, that accompany this gesture
+End Type
+
+Public Type GESTURENOTIFYSTRUCT
+	cbSize As Long ' size, in bytes, of this structure
+	dwFlags As Long ' unused
+	hwndTarget As LongPtr ' handle to window targeted by the gesture
+	ptsLocation As POINTS ' starting location
+	dwInstanceID As Long ' internally used
+End Type
+
+Public Enum GestureConfigValues
+	GC_ALLGESTURES  = &H00000001
+	GC_ZOOM  = &H00000001
+	GC_PAN = &H00000001
+	GC_PAN_WITH_SINGLE_FINGER_VERTICALLY  = &H00000002
+	GC_PAN_WITH_SINGLE_FINGER_HORIZONTALLY  = &H00000004
+	GC_PAN_WITH_GUTTER  = &H00000008
+	GC_PAN_WITH_INERTIA  = &H00000010
+	GC_ROTATE  = &H00000001
+	GC_TWOFINGERTAP  = &H00000001
+	GC_PRESSANDTAP  = &H00000001
+	GC_ROLLOVER  = GC_PRESSANDTAP
+End Enum
+
+Public Type GESTURECONFIG
+	dwID As GestureIDs ' gesture ID
+	dwWant As GestureConfigValues ' settings related to gesture ID that are to be turned on
+	dwBlock As GestureConfigValues ' settings related to gesture ID that are to be turned off
+End Type
+
+
+
+Public Enum OpenDesktop_Flags
+    DF_ALLOWOTHERACCOUNTHOOK
+End Enum
+
+Public Enum DesktopAccessMaskValues
+    DESKTOP_CREATEMENU = &H0004 ' 	Required to create a menu on the desktop.	
+    DESKTOP_CREATEWINDOW = &H0002 ' 	Required to create a window on the desktop.
+    DESKTOP_ENUMERATE = &H0040 ' 	Required for the desktop to be enumerated.
+    DESKTOP_HOOKCONTROL = &H0008 ' 	Required to establish any of the window hooks.
+    DESKTOP_JOURNALPLAYBACK = &H0020 ' 	Required to perform journal playback on a desktop.
+    DESKTOP_JOURNALRECORD = &H0010 ' 	Required to perform journal recording on a desktop.
+    DESKTOP_READOBJECTS = &H0001 ' 	Required to read objects on the desktop.
+    DESKTOP_SWITCHDESKTOP = &H0100 ' 	Required to activate the desktop using the SwitchDesktop function.
+    DESKTOP_WRITEOBJECTS = &H0080 ' 	Required to write objects on the desktop.
+End Enum
+
+Public Enum DIALOG_CONTROL_DPI_CHANGE_BEHAVIORS
+	DCDC_DEFAULT = &H0000
+	DCDC_DISABLE_FONT_UPDATE = &H0001
+	DCDC_DISABLE_RELAYOUT = &H0002
+End Enum
+Public Enum DIALOG_DPI_CHANGE_BEHAVIORS
+	DDC_DEFAULT = &H0000
+	DDC_DISABLE_ALL = &H0001
+	DDC_DISABLE_RESIZE = &H0002
+	DDC_DISABLE_CONTROL_RELAYOUT = &H0004
+End Enum
+
+
+Public Enum DPI_AWARENESS
+	DPI_AWARENESS_INVALID=-1
+	DPI_AWARENESS_UNAWARE=0
+	DPI_AWARENESS_SYSTEM_AWARE=1
+	DPI_AWARENESS_PER_MONITOR_AWARE=2
+End Enum
+Public Enum DPI_AWARENESS_CONTEXT
+	DPI_AWARENESS_CONTEXT_UNAWARE = (-1)
+	DPI_AWARENESS_CONTEXT_SYSTEM_AWARE  = (-2)
+	DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE = (-3)
+	DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2  = (-4)
+	DPI_AWARENESS_CONTEXT_UNAWARE_GDISCALED  = (-5)
+End Enum
+Public Enum DPI_HOSTING_BEHAVIOR
+	DPI_HOSTING_BEHAVIOR_INVALID=-1
+	DPI_HOSTING_BEHAVIOR_DEFAULT=0
+	DPI_HOSTING_BEHAVIOR_MIXED=1
+End Enum
+Public Enum PROCESS_DPI_AWARENESS
+	PROCESS_DPI_UNAWARE= 0
+	PROCESS_SYSTEM_DPI_AWARE=1
+	PROCESS_PER_MONITOR_DPI_AWARE=2
+End Enum
+Public Enum MONITOR_DPI_TYPE
+	MDT_EFFECTIVE_DPI=0
+	MDT_ANGULAR_DPI=1
+	MDT_RAW_DPI=2
+	MDT_DEFAULT = 2
+End Enum
+
 
 Public Type ALTTABINFO
 	cbSize As Long
@@ -8806,6 +9078,17 @@ Public Declare PtrSafe Function GetTextExtentPoint32W Lib "gdi32" (ByVal hDC As 
 Public DeclareWide PtrSafe Function GetTextExtentPoint32 Lib "gdi32" (ByVal hDC As LongPtr, ByVal lpsz As String, ByVal cbString As Long, lpSize As SIZE) As Long
 Public Declare PtrSafe Function DeleteObject Lib "gdi32" (ByVal hObject As LongPtr) As Long
 Public Declare PtrSafe Function DeleteDC Lib "gdi32" (ByVal hDC As LongPtr) As Long
+Public Declare PtrSafe Function D3DKMTSetProcessSchedulingPriorityClass Lib "gdi32" (ByVal hProcess As LongPtr, ByVal lPriority As D3DKMT_SCHEDULINGPRIORITYCLASS) As Long
+
+Public Enum D3DKMT_SCHEDULINGPRIORITYCLASS
+	D3DKMT_SCHEDULINGPRIORITYCLASS_IDLE = 0
+	D3DKMT_SCHEDULINGPRIORITYCLASS_BELOW_NORMAL = 1
+	D3DKMT_SCHEDULINGPRIORITYCLASS_NORMAL = 2
+	D3DKMT_SCHEDULINGPRIORITYCLASS_ABOVE_NORMAL = 3
+	D3DKMT_SCHEDULINGPRIORITYCLASS_HIGH = 4
+	D3DKMT_SCHEDULINGPRIORITYCLASS_REALTIME = 5
+End Enum
+
 
 Public Enum GetDevCaps_Index
 	DRIVERVERSION  = 0  ' Device driver version                    */
@@ -9550,13 +9833,6 @@ Public Declare PtrSafe Function AdjustTokenPrivileges Lib "advapi32.dll" (ByVal 
 Public Declare PtrSafe Function LookupPrivilegeValueW Lib "advapi32.dll" (ByVal lpSystemName As LongPtr, ByVal lpName As LongPtr, lpLuid As LUID) As Long
 Public Declare PtrSafe Function LookupPrivilegeNameW Lib "advapi32.dll" (ByVal lpSystemName As LongPtr, lpLuid As LUID, ByVal lpName As LongPtr, cbName As Long) As Long
 
-Public Declare PtrSafe Function OpenSCManagerW Lib "advapi32.dll" (ByVal lpMachineName As LongPtr, ByVal lpDatabaseName As LongPtr, ByVal dwDesiredAccess As Long) As LongPtr
-Public Declare PtrSafe Function OpenServiceW Lib "advapi32.dll" (ByVal hSCManager As LongPtr, ByVal lpServiceName As LongPtr, ByVal dwDesiredAccess As Long) As LongPtr
-Public Declare PtrSafe Function StartServiceW Lib "advapi32.dll" (ByVal hService As LongPtr, ByVal dwNumServiceArgs As Long, ByVal lpServiceArgVectors As LongPtr) As Long
-Public DeclareWide PtrSafe Function OpenSCManager Lib "advapi32.dll" Alias "OpenSCManagerW" (ByVal lpMachineName As String, ByVal lpDatabaseName As String, ByVal dwDesiredAccess As Long) As LongPtr
-Public DeclareWide PtrSafe Function OpenService Lib "advapi32.dll" Alias "OpenServiceW" (ByVal hSCManager As LongPtr, ByVal lpServiceName As String, ByVal dwDesiredAccess As Long) As LongPtr
-Public DeclareWide PtrSafe Function StartService Lib "advapi32.dll" Alias "StartServiceW" (ByVal hService As LongPtr, ByVal dwNumServiceArgs As Long, ByVal lpServiceArgVectors As String) As Long
-Public Declare PtrSafe Function QueryServiceStatusEx Lib "advapi32.dll" (ByVal hService As LongPtr, ByVal InfoLevel As Long, lpBuffer As SERVICE_STATUS_PROCESS, ByVal cbBufSize As Long, pcbBytesNeeded As Long) As Long
 Public Declare PtrSafe Function CloseServiceHandle Lib "advapi32" (ByVal hSCObject As LongPtr) As BOOL
 Public Declare PtrSafe Function ControlService Lib "advapi32.dll" (ByVal hService As LongPtr, ByVal dwControl As SERVICE_CONTROL, lpServiceStatus As SERVICE_STATUS) As BOOL
 Public DeclareWide PtrSafe Function ChangeServiceConfigW Lib "advapi32.dll" (ByVal hService As LongPtr, ByVal dwServiceType As ServiceType, ByVal dwStartType As ServiceStartType, ByVal dwErrorControl As ServiceErrorControlType, Optional ByVal lpBinaryPathName As LongPtr, Optional ByVal lpLoadOrderGroup As LongPtr, Optional ByRef lpdwTagId As Long, Optional ByVal lpDependencies As LongPtr, Optional ByVal lpServiceStartName As LongPtr, Optional ByVal lpPassword As LongPtr, Optional ByVal lpDisplayName As LongPtr) As BOOL
@@ -9565,6 +9841,60 @@ Public DeclareWide PtrSafe Function ChangeServiceConfig2W Lib "advapi32.dll" (By
 Public DeclareWide PtrSafe Function ChangeServiceConfig2 Lib "advapi32.dll" Alias "ChangeServiceConfig2W" (ByVal hService As LongPtr, ByVal dwInfoLevel As ServiceConfigInfoLevels, Optional lpInfo As Any) As BOOL
 Public DeclareWide PtrSafe Function CreateServiceW Lib "advapi32.dll" (ByVal hService As LongPtr, ByVal lpServiceName As LongPtr, ByVal lpDisplayName As LongPtr, ByVal dwDesiredAccess As Long, ByVal dwServiceType As ServiceType, ByVal dwStartType As ServiceStartType, ByVal dwErrorControl As ServiceErrorControlType, Optional ByVal lpBinaryPathName As String, Optional ByVal lpLoadOrderGroup As String, Optional ByRef lpdwTagId As Long, Optional ByVal lpDependencies As String, Optional ByVal lpServiceStartName As String, Optional ByVal lpPassword As String) As BOOL
 Public DeclareWide PtrSafe Function CreateService Lib "advapi32.dll" Alias "CreateServiceW" (ByVal hService As LongPtr, ByVal lpServiceName As LongPtr, ByVal lpDisplayName As LongPtr, ByVal dwDesiredAccess As Long, ByVal dwServiceType As ServiceType, ByVal dwStartType As ServiceStartType, ByVal dwErrorControl As ServiceErrorControlType, Optional ByVal lpBinaryPathName As LongPtr, Optional ByVal lpLoadOrderGroup As LongPtr, Optional ByRef lpdwTagId As Long, Optional ByVal lpDependencies As LongPtr, Optional ByVal lpServiceStartName As LongPtr, Optional ByVal lpPassword As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function DeleteService Lib "advapi32.dll" (ByVal hService As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function EnumDependentServicesW Lib "advapi32.dll" (ByVal hService As LongPtr, ByVal dwServiceState As ServiceState, lpServices As ENUM_SERVICE_STATUS, ByVal cbBufSize As Long, pcbBytesNeeded As Long, lpServicesReturned As Long) As BOOL
+Public DeclareWide PtrSafe Function EnumDependentServices Lib "advapi32.dll" Alias "EnumDependentServicesW" (ByVal hService As LongPtr, ByVal dwServiceState As ServiceState, lpServices As ENUM_SERVICE_STATUS, ByVal cbBufSize As Long, pcbBytesNeeded As Long, lpServicesReturned As Long) As BOOL
+Public DeclareWide PtrSafe Function EnumServicesStatusW Lib "advapi32.dll" (ByVal hSCManager As LongPtr, ByVal dwServiceType As ServiceType, ByVal dwServiceState As ServiceState, lpServices As ENUM_SERVICE_STATUS, ByVal cbBufSize As Long, pcbBytesNeeded As Long, lpServicesReturned As Long, Optional lpResumeHandle As Long) As BOOL
+Public DeclareWide PtrSafe Function EnumServicesStatus Lib "advapi32.dll" Alias "EnumServicesStatusW" (ByVal hSCManager As LongPtr, ByVal dwServiceType As ServiceType, ByVal dwServiceState As ServiceState, lpServices As ENUM_SERVICE_STATUS, ByVal cbBufSize As Long, pcbBytesNeeded As Long, lpServicesReturned As Long, Optional lpResumeHandle As Long) As BOOL
+Public DeclareWide PtrSafe Function EnumServicesStatusExW Lib "advapi32.dll" (ByVal hSCManager As LongPtr, ByVal InfoLevel As SC_ENUM_TYPE, ByVal dwServiceType As ServiceType, ByVal dwServiceState As ServiceState, lpServices As ENUM_SERVICE_STATUS, ByVal cbBufSize As Long, pcbBytesNeeded As Long, lpServicesReturned As Long, Optional lpResumeHandle As Long, Optional ByVal pszGroupName As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function EnumServicesStatusEx Lib "advapi32.dll" Alias "EnumServicesStatusW" (ByVal hSCManager As LongPtr, ByVal InfoLevel As SC_ENUM_TYPE, ByVal dwServiceType As ServiceType, ByVal dwServiceState As ServiceState, lpServices As ENUM_SERVICE_STATUS, ByVal cbBufSize As Long, pcbBytesNeeded As Long, lpServicesReturned As Long, Optional lpResumeHandle As Long, Optional ByVal pszGroupName As String) As BOOL
+Public DeclareWide PtrSafe Function GetServiceKeyNameW Lib "advapi32.dll" (ByVal hSCManager As LongPtr, ByVal lpDisplayName As LongPtr, lpServiceName As LongPtr, lpcchBuffer As Long) As BOOL
+Public DeclareWide PtrSafe Function GetServiceKeyName Lib "advapi32.dll" Alias "GetServiceKeyNameW" (ByVal hSCManager As LongPtr, ByVal lpDisplayName As String, lpServiceName As String, lpcchBuffer As Long) As BOOL
+Public DeclareWide PtrSafe Function GetServiceDisplayNameW Lib "advapi32.dll" (ByVal hSCManager As LongPtr, ByVal lpServiceName As LongPtr, lpDisplayName As LongPtr, lpcchBuffer As Long) As BOOL
+Public DeclareWide PtrSafe Function GetServiceDisplayName Lib "advapi32.dll" Alias "GetServiceKeyNameW" (ByVal hSCManager As LongPtr, ByVal lpServiceName As String, lpDisplayeName As String, lpcchBuffer As Long) As BOOL
+Public DeclareWide PtrSafe Function LockServiceDatabase Lib "advapi32.dll" (ByVal hSCManager As LongPtr) As LongPtr
+Public DeclareWide PtrSafe Function UnlockServiceDatabase Lib "advapi32.dll" (ByVal ScLock As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function NotifyBootConfigStatus Lib "advapi32.dll" (ByVal BootAcceptable As BOOL) As BOOL
+Public DeclareWide PtrSafe Function OpenSCManagerW Lib "advapi32.dll" (ByVal lpMachineName As LongPtr, ByVal lpDatabaseName As LongPtr, ByVal dwDesiredAccess As ServiceControlManagerAccess) As LongPtr
+Public DeclareWide PtrSafe Function OpenSCManager Lib "advapi32.dll" Alias "OpenSCManagerW" (ByVal lpMachineName As String, ByVal lpDatabaseName As String, ByVal dwDesiredAccess As ServiceControlManagerAccess) As LongPtr
+Public DeclareWide PtrSafe Function OpenService Lib "advapi32.dll" Alias "OpenServiceW" (ByVal hSCManager As LongPtr, ByVal lpServiceName As String, ByVal dwDesiredAccess As ServiceControlManagerAccess) As LongPtr
+Public DeclareWide PtrSafe Function OpenServiceW Lib "advapi32.dll" (ByVal hSCManager As LongPtr, ByVal lpServiceName As LongPtr, ByVal dwDesiredAccess As ServiceControlManagerAccess) As LongPtr
+Public DeclareWide PtrSafe Function QueryServiceConfigW Lib "advapi32.dll" (ByVal hService As LongPtr, lpServiceConfig As QUERY_SERVICE_CONFIGW, ByVal cbBufSize As Long, pcbBytesNeeded As Long) As BOOL
+Public DeclareWide PtrSafe Function QueryServiceConfig Lib "advapi32.dll" Alias "QueryServiceConfigW" (ByVal hService As LongPtr, lpServiceConfig As QUERY_SERVICE_CONFIG, ByVal cbBufSize As Long, pcbBytesNeeded As Long) As BOOL
+Public DeclareWide PtrSafe Function QueryServiceConfig2W Lib "advapi32.dll" (ByVal hService As LongPtr, ByVal InfoLevel As ServiceConfigInfoLevels, lpBuffer As Any, ByVal cbBufSize As Long, pcbBytesNeeded As Long) As BOOL
+Public DeclareWide PtrSafe Function QueryServiceConfig2 Lib "advapi32.dll" Alias "QueryServiceConfig2W" (ByVal hService As LongPtr, ByVal InfoLevel As ServiceConfigInfoLevels, lpBuffer As Any, ByVal cbBufSize As Long, pcbBytesNeeded As Long) As BOOL
+Public DeclareWide PtrSafe Function QueryServiceLockStatusW Lib "advapi32.dll" (ByVal hSCManager As LongPtr, lpLockStatus As QUERY_SERVICE_LOCK_STATUSW, ByVal cbBufSize As Long, pcbBytesNeeded As Long) As BOOL
+Public DeclareWide PtrSafe Function QueryServiceLockStatus Lib "advapi32.dll" Alias "QueryServiceLockStatusW" (ByVal hSCManager As LongPtr, lpLockStatus As QUERY_SERVICE_LOCK_STATUS, ByVal cbBufSize As Long, pcbBytesNeeded As Long) As BOOL
+Public DeclareWide PtrSafe Function QueryServiceObjectSecurity Lib "advapi32.dll" (ByVal hService As LongPtr, ByVal dwSecurityInformation As SECURITY_INFORMATION, lpSecurityDescriptor As SECURITY_DESCRIPTOR, ByVal cbBufSize As Long, pcbBytesNeeded As Long) As BOOL
+Public DeclareWide PtrSafe Function QueryServiceStatus Lib "advapi32.dll" (ByVal hService As LongPtr, lpServiceStatus As SERVICE_STATUS) As BOOL
+Public DeclareWide PtrSafe Function QueryServiceStatusEx Lib "advapi32.dll" (ByVal hService As LongPtr, ByVal InfoLevel As Long, lpBuffer As SERVICE_STATUS_PROCESS, ByVal cbBufSize As Long, pcbBytesNeeded As Long) As Long
+Public DeclareWide PtrSafe Function RegisterServiceCtrlHandlerW Lib "advapi32.dll" (ByVal lpServiceName As LongPtr, ByVal lpHandlerProc As LongPtr) As Long
+Public DeclareWide PtrSafe Function RegisterServiceCtrlHandler Lib "advapi32.dll" Alias "RegisterServiceCtrlHandlerW" (ByVal lpServiceName As String, ByVal lpHandlerProc As LongPtr) As Long
+Public DeclareWide PtrSafe Function RegisterServiceCtrlHandlerExW Lib "advapi32.dll" (ByVal lpServiceName As LongPtr, ByVal lpHandlerProc As LongPtr, Optional lpContext As Any) As Long
+Public DeclareWide PtrSafe Function RegisterServiceCtrlHandlerEx Lib "advapi32.dll" Alias "RegisterServiceCtrlHandlerW" (ByVal lpServiceName As String, ByVal lpHandlerProc As LongPtr, Optional lpContext As Any) As Long
+Public DeclareWide PtrSafe Function SetServiceObjectSecurity Lib "advapi32.dll" (ByVal hService As LongPtr, ByVal dwSecurityInformation As SECURITY_INFORMATION, lpSecurityDescriptor As SECURITY_DESCRIPTOR) As BOOL
+Public DeclareWide PtrSafe Function QueryServiceStatusEx Lib "advapi32.dll" (ByVal hServiceStatus As Long, lpServiceStatus As SERVICE_STATUS) As BOOL
+Public DeclareWide PtrSafe Function StartServiceCtrlDispatcherW Lib "advapi32.dll" (lpServiceStartTable As SERVICE_TABLE_ENTRYW) As BOOL
+Public DeclareWide PtrSafe Function StartServiceCtrlDispatcher Lib "advapi32.dll" Alias "StartServiceCtrlDispatcherW" (lpServiceStartTable As SERVICE_TABLE_ENTRY) As BOOL
+Public DeclareWide PtrSafe Function StartServiceW Lib "advapi32.dll" (ByVal hService As LongPtr, ByVal dwNumServiceArgs As Long, ByVal lpServiceArgVectors As LongPtr) As Long
+Public DeclareWide PtrSafe Function StartService Lib "advapi32.dll" Alias "StartServiceW" (ByVal hService As LongPtr, ByVal dwNumServiceArgs As Long, ByVal lpServiceArgVectors As String) As Long
+Public DeclareWide PtrSafe Function NotifyServiceStatusChangeW Lib "advapi32.dll" (ByVal hService As LongPtr, dwNotifyMask As ServiceNotifyMask, pNotifyBuffer As SERVICE_NOTIFYW) As Long
+Public DeclareWide PtrSafe Function NotifyServiceStatusChange Lib "advapi32.dll" Alias "NotifyServiceStatusChangeW" (ByVal hService As LongPtr, dwNotifyMask As ServiceNotifyMask, pNotifyBuffer As SERVICE_NOTIFYW) As Long
+Public DeclareWide PtrSafe Function ControlServiceExW Lib "advapi32.dll" (ByVal hService As LongPtr, ByVal dwControl As SERVICE_CONTROL, ByVal dwInfoLevel As ServiceControlInfoLevels, pControlParams As Any) As BOOL
+Public DeclareWide PtrSafe Function ControlServiceEx Lib "advapi32.dll" Alias "ControlServiceExW" (ByVal hService As LongPtr, ByVal dwControl As SERVICE_CONTROL, ByVal dwInfoLevel As ServiceControlInfoLevels, pControlParams As Any) As BOOL
+Public DeclareWide PtrSafe Function QueryServiceDynamicInformation Lib "advapi32.dll" (ByVal hServiceStatus As Long, ByVal dwInfoLevel As ServiceDynamicInfoLevels, ppDynamicInfo As Any) As BOOL
+Public DeclareWide PtrSafe Function SubscribeServiceChangeNotifications Lib "advapi32.dll" (ByVal hService As LongPtr, ByVal eEventType As SC_EVENT_TYPE, ByVal pCallback As LongPtr, pCallbackContext As Any, pSubscription As LongPtr) As Long
+Public DeclareWide PtrSafe Sub UnsubscribeServiceChangeNotifications Lib "advapi32.dll" (ByVal pSubscription As LongPtr) 
+Public DeclareWide PtrSafe Function WaitServiceState Lib "advapi32.dll" (ByVal hService As LongPtr, ByVal dwNotify As ServiceNotifyMask, Optional ByVal dwTimeout As Long, Optional ByVal hCancelEvent As LongPtr) As Long
+[Description("Windows 10 Redstone 4 and newer only.") ]
+Public DeclareWide PtrSafe Function GetServiceRegistryStateKey Lib "advapi32.dll" (ByVal ServiceStatusHandle As Long, ByVal StateType As SERVICE_REGISTRY_STATE_TYPE, ByVal dwAccessMask As Long, ServiceStateKey As LongPtr) As Long
+[Description("Windows 10 Redstone 5 and newer only.") ]
+Public DeclareWide PtrSafe Function GetServiceDirectory Lib "advapi32.dll" (ByVal hServiceStatus As Long, ByVal eDirectoryType As SERVICE_DIRECTORY_TYPE, lpPathBuffer As LongPtr, ByVal cchPathBufferLength As Long, lpcchRequiredBufferLength As Long) As Long
+[Description("Windows 10 20H2 and newer only.") ]
+Public DeclareWide PtrSafe Function GetSharedServiceRegistryStateKey Lib "advapi32.dll" (ByVal ServiceHandle As LongPtr, ByVal StateType As SERVICE_SHARED_REGISTRY_STATE_TYPE, ByVal dwAccessMask As Long, ServiceStateKey As LongPtr) As Long
+Public DeclareWide PtrSafe Function GetSharedServiceDirectory Lib "advapi32.dll" (ByVal ServiceHandle As Long, ByVal DirectoryType As SERVICE_SHARED_DIRECTORY_TYPE, lpPathBuffer As LongPtr, ByVal PathBufferLength As Long, RequiredBufferLength As Long) As Long
+
+
 
 Public Const SERVICES_ACTIVE_DATABASEW  = "ServicesActive"
 Public Const SERVICES_FAILED_DATABASEW  = "ServicesFailed"
@@ -9572,6 +9902,32 @@ Public Const SERVICES_ACTIVE_DATABASE  = "ServicesActive"
 Public Const SERVICES_FAILED_DATABASE  = "ServicesFailed"
 Public Const SC_GROUP_IDENTIFIERW = "+"
 Public Const SC_GROUP_IDENTIFIER = "+"
+
+Public Enum SERVICE_SHARED_DIRECTORY_TYPE
+	ServiceSharedDirectoryPersistentState=0
+End Enum
+
+Public Enum SERVICE_SHARED_REGISTRY_STATE_TYPE
+	ServiceSharedRegistryPersistentState=0
+End Enum
+
+Public Enum SERVICE_DIRECTORY_TYPE
+	ServiceDirectoryPersistentState = 0
+	ServiceDirectoryTypeMax = 1
+End Enum
+
+Public Enum SERVICE_REGISTRY_STATE_TYPE
+	ServiceRegistryStateParameters = 0
+	ServiceRegistryStatePersistent = 1
+	MaxServiceRegistryStateType = 2
+End Enum
+
+Public Enum SC_EVENT_TYPE
+	SC_EVENT_DATABASE_CHANGE = 0
+	SC_EVENT_PROPERTY_CHANGE = 1
+	SC_EVENT_STATUS_CHANGE = 2
+End Enum
+
 
 Public Enum ServiceStateBitmask
 	SERVICE_ACTIVE  = &H00000001
@@ -9630,7 +9986,7 @@ Public Enum ServiceType
     SERVICETYPE_NO_CHANGE = SERVICE_NO_CHANGE
 End Enum
 
-Public Enum ServiceControlManagerType
+Public Enum ServiceControlManagerAccess
     SC_MANAGER_CONNECT = &H1
     SC_MANAGER_CREATE_SERVICE = &H2
     SC_MANAGER_ENUMERATE_SERVICE = &H4
@@ -9988,6 +10344,17 @@ Public Type QUERY_SERVICE_CONFIGW
 	lpServiceStartName As LongPtr
 	lpDisplayName As LongPtr
 End Type
+Public Type QUERY_SERVICE_CONFIG
+    dwServiceType As ServiceType
+    dwStartType As ServiceStartType
+    dwErrorControl As ServiceErrorControlType
+    lpBinaryPathName As LongPtr
+    lpLoadOrderGroup As LongPtr
+    dwTagId As Long
+    lpDependencies As LongPtr
+    lpServiceStartName As LongPtr
+    lpDisplayName As LongPtr
+End Type
 
 Public Enum ServiceNodeFlags
 	CM_SERVICE_NETWORK_BOOT_LOAD  = &H00000001
@@ -10034,6 +10401,15 @@ Public Type SERVICE_NOTIFY_2W
 	ServiceStatus As SERVICE_STATUS_PROCESS
 	dwNotificationTriggered As Long
 	pszServiceNames As LongPtr
+End Type
+Public Type SERVICE_NOTIFYW
+    dwVersion As Long
+    pfnNotifyCallback As LongPtr
+    pContext As LongPtr
+    dwNotificationStatus As Long
+    ServiceStatus As SERVICE_STATUS_PROCESS
+    dwNotificationTriggered As Long
+    pszServiceNames As LongPtr
 End Type
 Public Type SERVICE_NOTIFY_2
     dwVersion As Long
