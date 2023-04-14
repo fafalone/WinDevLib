@@ -440,6 +440,8 @@ IContextMenuCB
 
 IContextMenuSite
 
+IContinue
+
 IContinueCallback
 
 IControlChangeNotify
@@ -1252,6 +1254,8 @@ ID3DUserDefinedAnnotation
 
 IDailyTrigger
 
+IDataAdviseHolder
+
 IDataObject
 
 IDataObjectAsyncCapability
@@ -1422,6 +1426,8 @@ IDrawPropertyControl
 
 IDropSource
 
+IDropSourceNotify
+
 IDropTarget
 
 IDropTargetHelper
@@ -1579,6 +1585,8 @@ IEmptyVolumeCache
 IEmptyVolumeCache2
 
 IEmptyVolumeCacheCallBack
+
+IEnterpriseDropTarget
 
 IEntity
 
@@ -2673,6 +2681,8 @@ IObjectWithSelection
 IObjectWithSite
 
 IObjMgr
+
+IOleAdviseHolder
 
 IOleCache
 
