@@ -1395,9 +1395,6 @@ Public Enum ThreadAccess
     THREAD_TERMINATE = &H1
 End Enum
 
-Public Const DUPLICATE_CLOSE_SOURCE As Long = &H1
-Public Const DUPLICATE_SAME_ACCESS As Long = &H2
-
 Public Enum FormatMessageFlags
     FORMAT_MESSAGE_ALLOCATE_BUFFER = &H100
     FORMAT_MESSAGE_ARGUMENT_ARRAY = &H2000
@@ -1479,7 +1476,29 @@ Public Enum CreateProcessFlags
 	PROFILE_USER  = &H10000000
 	PROFILE_KERNEL  = &H20000000
 	PROFILE_SERVER  = &H40000000
-	CREATE_IGNORE_SYSTEM_DEFAULT  = &H80000000
+	CREATE_IGNORE_SYSTEM_DEFAULT = &H80000000
+End Enum
+
+
+Public Const STACK_SIZE_PARAM_IS_A_RESERVATION   = &H00010000
+
+Public Const THREAD_DYNAMIC_CODE_ALLOW  = 1  ' Opt-out of dynamic code generation.
+Public Const THREAD_BASE_PRIORITY_LOWRT  = 15  ' value that gets a thread to LowRealtime-1
+Public Const THREAD_BASE_PRIORITY_MAX  = 2  ' maximum thread base priority boost
+Public Const THREAD_BASE_PRIORITY_MIN  = (-2)  ' minimum thread base priority boost
+Public Const THREAD_BASE_PRIORITY_IDLE  = (-15)  ' value that gets a thread to idle
+
+Public Enum ThreadPriorityClasses
+	THREAD_PRIORITY_LOWEST = THREAD_BASE_PRIORITY_MIN
+	THREAD_PRIORITY_BELOW_NORMAL  = (THREAD_PRIORITY_LOWEST+1)
+	THREAD_PRIORITY_NORMAL  = 0
+	THREAD_PRIORITY_HIGHEST  = THREAD_BASE_PRIORITY_MAX
+	THREAD_PRIORITY_ABOVE_NORMAL  = (THREAD_PRIORITY_HIGHEST-1)
+	THREAD_PRIORITY_ERROR_RETURN  = (MAXLONG)
+	THREAD_PRIORITY_TIME_CRITICAL  = THREAD_BASE_PRIORITY_LOWRT
+	THREAD_PRIORITY_IDLE  = THREAD_BASE_PRIORITY_IDLE
+	THREAD_MODE_BACKGROUND_BEGIN  = &H00010000
+	THREAD_MODE_BACKGROUND_END  = &H00020000
 End Enum
 
 Public Const INFINITE As Long = -1
@@ -3141,6 +3160,19 @@ Public Enum LoadLibraryFlags
     LOAD_LIBRARY_OS_INTEGRITY_CONTINUITY = &H00008000&
 End Enum
 
+Public Enum LockFileExFlags
+    LOCKFILE_FAIL_IMMEDIATELY = &H0001
+    LOCKFILE_EXCLUSIVE_LOCK = &H0002
+End Enum
+
+Public Enum FileBaseType
+    FILE_TYPE_UNKNOWN = &H0000
+    FILE_TYPE_DISK = &H0001
+    FILE_TYPE_CHAR = &H0002
+    FILE_TYPE_PIPE = &H0003
+    FILE_TYPE_REMOTE = &H8000&
+End Enum
+
 
 Public Declare PtrSafe Function CreateToolhelp32Snapshot Lib "kernel32" (ByVal dwFlags As TH32CS_Flags, ByVal th32ProcessID As Long) As LongPtr
 Public Declare PtrSafe Function Process32FirstW Lib "kernel32.dll" (ByVal hSnapshot As LongPtr, lppe As PROCESSENTRY32W) As Long
@@ -3178,7 +3210,7 @@ Public Declare PtrSafe Function LocalFlags Lib "kernel32" (ByVal hMem As LongPtr
 
 Public Declare PtrSafe Function HeapCreate Lib "kernel32" (ByVal flOptions As HeapFlags, ByVal dwInitialSize As LongPtr, ByVal dwMaximumSize As LongPtr) As LongPtr
 Public Declare PtrSafe Function HeapAlloc Lib "kernel32" (ByVal hHeap As LongPtr, ByVal dwFlags As HeapFlags, ByVal dwBytes As LongPtr) As LongPtr
-Public Declare PtrSafe Function HeaReAlloc Lib "kernel32" (ByVal hHeap As LongPtr, ByVal dwFlags As HeapFlags, lpMem As Any, ByVal dwBytes As LongPtr) As LongPtr
+Public Declare PtrSafe Function HeapReAlloc Lib "kernel32" (ByVal hHeap As LongPtr, ByVal dwFlags As HeapFlags, lpMem As Any, ByVal dwBytes As LongPtr) As LongPtr
 Public Declare PtrSafe Function HeapLock Lib "kernel32" (ByVal hHeap As LongPtr) As Long
 Public Declare PtrSafe Function HeapUnlock Lib "kernel32" (ByVal hHeap As LongPtr) As Long
 Public Declare PtrSafe Function HeapFree Lib "kernel32" (ByVal hHeap As LongPtr, ByVal dwFlags As HeapFlags, ByRef lpMem As Any) As Long
@@ -3209,10 +3241,13 @@ Public Declare PtrSafe Function GetCurrentThreadId Lib "kernel32" () As Long
 Public Declare PtrSafe Sub GetLocalTime Lib "kernel32" (lpSystemTime As SYSTEMTIME)
 Public Declare PtrSafe Function GetProcessIdOfThread Lib "kernel32" (ByVal Thread As LongPtr) As Long
 Public Declare PtrSafe Function IsWow64Process Lib "kernel32" (ByVal hProcess As LongPtr, Wow64Process As Long) As Long
-Public Declare PtrSafe Function CreateThread Lib "kernel32" (ByRef lpThreadAttributes As Any, ByVal dwStackSize As Long, ByVal lpStartAddress As LongPtr, ByRef lpParameter As Any, ByVal dwCreationFlags As Long, ByRef lpThreadId As Long) As Long
+Public Declare PtrSafe Function CreateThread Lib "kernel32" (ByRef lpThreadAttributes As Any, ByVal dwStackSize As LongPtr, ByVal lpStartAddress As LongPtr, ByRef lpParameter As Any, ByVal dwCreationFlags As Long, ByRef lpThreadId As Long) As LongPtr
+Public Declare PtrSafe Function CreateRemoteThread Lib "kernel32" (ByVal hProcess As LongPtr, ByRef lpThreadAttributes As Any, ByVal dwStackSize As LongPtr, ByVal lpStartAddress As LongPtr, ByRef lpParameter As Any, ByVal dwCreationFlags As Long, ByRef lpThreadId As Long) As LongPtr
+Public Declare PtrSafe Function CreateRemoteThreadEx Lib "kernel32" (ByVal hProcess As LongPtr, ByRef lpThreadAttributes As Any, ByVal dwStackSize As LongPtr, ByVal lpStartAddress As LongPtr, ByRef lpParameter As Any, ByVal dwCreationFlags As Long, ByVal lpThreadAttributesList As LongPtr, ByRef lpThreadId As Long) As LongPtr
 Public Declare PtrSafe Function ResumeThread Lib "kernel32" (ByVal hThread As LongPtr) As Long
 Public Declare PtrSafe Function SuspendThread Lib "kernel32" (ByVal hThread As LongPtr) As Long
 Public Declare PtrSafe Function TerminateThread Lib "kernel32" (ByRef hThread As LongPtr, ByVal dwExitCode As Long) As Long
+Public Declare PtrSafe Function TerminateProcess Lib "kernel32" (ByRef hProcess As LongPtr, ByVal dwExitCode As Long) As Long
 Public Declare PtrSafe Function OpenThread Lib "kernel32" (ByVal dwDesiredAccess As ThreadAccess, ByVal bInheritHandle As Long, ByVal dwThreadId As Long) As LongPtr
 Public Declare PtrSafe Function OpenProcess Lib "kernel32" (ByVal dwDesiredAccess As Long, ByVal bInheritHandle As Long, ByVal dwProcessId As Long) As LongPtr
 Public Declare PtrSafe Function WaitForSingleObject Lib "kernel32" (ByVal hHandle As LongPtr, ByVal dwMilliseconds As Long) As Long
@@ -3246,15 +3281,6 @@ Public DeclareWide PtrSafe Function FindFirstStream Lib "kernel32" Alias "FindFi
 Public Declare PtrSafe Function FindNextFile Lib "kernel32" Alias "FindNextFileW" (ByVal hFindFile As LongPtr, ByRef lpFindFileData As WIN32_FIND_DATAW) As Long
 Public Declare PtrSafe Function FindNextStreamW Lib "kernel32" (ByVal hFindStream As LongPtr, ByRef lpFindStreamData As WIN32_FIND_STREAM_DATA) As Long
 Public Declare PtrSafe Function FindClose Lib "kernel32" (ByVal hFindFile As LongPtr) As Long
-Public Declare PtrSafe Function SetFileAttributesA Lib "kernel32" (ByVal lpFileName As String, ByVal dwFileAttributes As FILE_ATTRIBUTES) As Long
-Public Declare PtrSafe Function GetFileAttributesA Lib "kernel32" (ByVal lpFileName As String) As FILE_ATTRIBUTES
-Public DeclareWide PtrSafe Function SetFileAttributesW Lib "kernel32" (ByVal lpFileName As LongPtr, ByVal dwFileAttributes As FILE_ATTRIBUTES) As Long
-Public DeclareWide PtrSafe Function GetFileAttributesW Lib "kernel32" (ByVal lpFileName As LongPtr) As FILE_ATTRIBUTES
-Public DeclareWide PtrSafe Function SetFileAttributes Lib "kernel32" Alias "SetFileAttributesW" (ByVal lpFileName As String, ByVal dwFileAttributes As FILE_ATTRIBUTES) As Long
-Public DeclareWide PtrSafe Function GetFileAttributes Lib "kernel32" Alias "GetFileAttributesW" (ByVal lpFileName As String) As FILE_ATTRIBUTES
-Public Declare PtrSafe Function GetFileAttributesExA Lib "kernel32" (ByVal lpFileName As String, ByVal fInfoLevelId As GET_FILEEX_INFO_LEVELS, ByRef lpFileInformation As Any) As Long
-Public DeclareWide PtrSafe Function GetFileAttributesExW Lib "kernel32" (ByVal lpFileName As LongPtr, ByVal fInfoLevelId As GET_FILEEX_INFO_LEVELS, ByRef lpFileInformation As Any) As Long
-Public DeclareWide PtrSafe Function GetFileAttributesEx Lib "kernel32" Alias "GetFileAttributesExW" (ByVal lpFileName As String, ByVal fInfoLevelId As GET_FILEEX_INFO_LEVELS, ByRef lpFileInformation As Any) As Long
 Public Declare PtrSafe Function GetFileInformationByHandle Lib "kernel32" (ByVal hFile As LongPtr, ByRef lpFileInformation As BY_HANDLE_FILE_INFORMATION) As Long
 Public Declare PtrSafe Function GetFileInformationByHandleEx Lib "kernel32" (ByVal hFile As LongPtr, ByVal FileInformationClass As FILE_INFO_BY_HANDLE_CLASS, ByVal lpFileInformation As LongPtr, ByVal dwBufferSize As Long) As Long
 Public Declare PtrSafe Function GetTickCount Lib "kernel32" () As Long
@@ -3271,7 +3297,6 @@ Public DeclareWide PtrSafe Function LoadLibrary Lib "kernel32" Alias "LoadLibrar
 Public Declare PtrSafe Function LoadLibraryExA Lib "kernel32" (ByVal lpLibFileName As String, ByVal hFile As LongPtr, ByVal dwFlags As LoadLibraryFlags) As LongPtr
 Public Declare PtrSafe Function LoadLibraryExW Lib "kernel32" (ByVal lpLibFileName As LongPtr, ByVal hFile As LongPtr, ByVal dwFlags As LoadLibraryFlags) As LongPtr
 Public DeclareWide PtrSafe Function LoadLibraryEx Lib "kernel32" Alias "LoadLibraryExW" (ByVal lpLibFileName As String, ByVal hFile As LongPtr, ByVal dwFlags As LoadLibraryFlags) As LongPtr
-Public DeclareWide PtrSafe Function GetProcAddress Lib "kernel32" (ByVal hModule As LongPtr, ByVal lpProcName As LongPtr) As LongPtr
 Public Declare PtrSafe Function GetProcAddress Lib "kernel32" (ByVal hModule As LongPtr, ByVal lpProcName As String) As LongPtr
 Public Declare PtrSafe Function FreeLibrary Lib "kernel32" (ByVal hLibModule As LongPtr) As Long
 Public DeclareWide PtrSafe Function GetModuleHandle Lib "kernel32" Alias "GetModuleHandleW" (Optional lpModuleName As Any) As LongPtr
@@ -3289,12 +3314,34 @@ Public Declare PtrSafe Function ReadFileEx Lib "kernel32" (ByVal hFile As LongPt
 Public Declare PtrSafe Function SetFilePointer Lib "kernel32" (ByVal hFile As LongPtr, ByVal lDistanceToMove As Long, lpDistanceToMoveHigh As Long, ByVal dwMoveMethod As FileMoveMethods) As Long
 Public Declare PtrSafe Function SetFilePointerEx Lib "kernel32" (ByVal hFile As LongPtr, ByVal lDistanceToMove As LongLong, lpDistanceToMoveHigh As LongLong, ByVal dwMoveMethod As FileMoveMethods) As Long
 Public Declare PtrSafe Function SetEndOfFile Lib "kernel32" (ByVal hFile As LongPtr) As Long
-Public Declare PtrSafe Function CreateDirectoryExA Lib "kernel32.dll" (ByVal lpTemplateDirectory As String, ByVal lpNewDirectory As String, lpSecurityAttributes As SECURITY_ATTRIBUTES) As Long
-Public Declare PtrSafe Function CreateDirectoryExW Lib "kernel32.dll" (ByVal lpTemplateDirectory As LongPtr, ByVal lpNewDirectory As LongPtr, lpSecurityAttributes As SECURITY_ATTRIBUTES) As Long
-Public DeclareWide PtrSafe Function CreateDirectoryEx Lib "kernel32.dll" Alias "CreateDirectoryExW" (ByVal lpTemplateDirectory As String, ByVal lpNewDirectory As String, lpSecurityAttributes As SECURITY_ATTRIBUTES) As Long
 Public Declare PtrSafe Function CreateFileA Lib "kernel32" (ByVal lpFileName As String, ByVal dwDesiredAccess As Long, ByVal dwShareMode As Long, lpSecurityAttributes As SECURITY_ATTRIBUTES, ByVal dwCreationDisposition As Long, ByVal dwFlagsAndAttributes As Long, ByVal hTemplateFile As LongPtr) As LongPtr
 Public Declare PtrSafe Function CreateFileW Lib "kernel32" (ByVal lpFileName As LongPtr, ByVal dwDesiredAccess As Long, ByVal dwShareMode As Long, lpSecurityAttributes As SECURITY_ATTRIBUTES, ByVal dwCreationDisposition As Long, ByVal dwFlagsAndAttributes As Long, ByVal hTemplateFile As LongPtr) As LongPtr
 Public DeclareWide PtrSafe Function CreateFile Lib "kernel32" Alias "CreateFileW" (ByVal lpFileName As String, ByVal dwDesiredAccess As Long, ByVal dwShareMode As Long, lpSecurityAttributes As SECURITY_ATTRIBUTES, ByVal dwCreationDisposition As Long, ByVal dwFlagsAndAttributes As Long, ByVal hTemplateFile As LongPtr) As LongPtr
+Public Declare PtrSafe Function FlushFileBuffers Lib "kernel32" (ByVal hFile As LongPtr) As Long
+Public Declare PtrSafe Function LockFile Lib "kernel32" (ByVal hFile As LongPtr, ByVal dwFileOffsetLow As Long, ByVal dwFileOffsetHigh As Long, ByVal nNumberOfBytesToLockLow As Long, ByVal nNumberOfBytesToLockHigh As Long) As BOOL
+Public Declare PtrSafe Function LockFileEx Lib "kernel32" (ByVal hFile As LongPtr, ByVal dwFlags As LockFileExFlags, ByVal dwReserved As Long, ByVal nNumberOfBytesToLockLow As Long, ByVal nNumberOfBytesToLockHigh As Long, lpOverlapped As OVERLAPPED) As BOOL
+Public Declare PtrSafe Function UnlockFile Lib "kernel32" (ByVal hFile As LongPtr, ByVal dwFileOffsetLow As Long, ByVal dwFileOffsetHigh As Long, ByVal nNumberOfBytesToUnlockLow As Long, ByVal nNumberOfBytesToUnlockHigh As Long) As BOOL
+Public Declare PtrSafe Function UnlockFileEx Lib "kernel32" (ByVal hFile As LongPtr, ByVal dwReserved As Long, ByVal nNumberOfBytesToUnlockLow As Long, ByVal nNumberOfBytesToUnlockHigh As Long, lpOverlapped As OVERLAPPED) As BOOL
+Public Declare PtrSafe Function SetFileValidData Lib "kernel32" (ByVal hFile As LongPtr, ByVal ValidDataLength As LongLong) As BOOL
+Public Declare PtrSafe Function GetFileSize Lib "kernel32" (ByVal hFile As LongPtr, lpFileSizeHigh As Long) As Long
+Public Declare PtrSafe Function GetFileSizeEx Lib "kernel32" (ByVal hFile As LongPtr, lpFileSizeHigh As LongLong) As BOOL
+Public DeclareWide PtrSafe Function DeleteFile Lib "kernel32" Alias "DeleteFileW" (ByVal lpFileName As String) As BOOL
+Public DeclareWide PtrSafe Function DeleteFileW Lib "kernel32" (ByVal lpFileName As LongPtr) As BOOL
+Public Declare PtrSafe Function GetFileType Lib "kernel32" (ByVal hFile As LongPtr) As FileBaseType
+
+
+Public Declare PtrSafe Function SetFileAttributesA Lib "kernel32" (ByVal lpFileName As String, ByVal dwFileAttributes As FILE_ATTRIBUTES) As Long
+Public Declare PtrSafe Function GetFileAttributesA Lib "kernel32" (ByVal lpFileName As String) As FILE_ATTRIBUTES
+Public DeclareWide PtrSafe Function SetFileAttributesW Lib "kernel32" (ByVal lpFileName As LongPtr, ByVal dwFileAttributes As FILE_ATTRIBUTES) As Long
+Public DeclareWide PtrSafe Function GetFileAttributesW Lib "kernel32" (ByVal lpFileName As LongPtr) As FILE_ATTRIBUTES
+Public DeclareWide PtrSafe Function SetFileAttributes Lib "kernel32" Alias "SetFileAttributesW" (ByVal lpFileName As String, ByVal dwFileAttributes As FILE_ATTRIBUTES) As Long
+Public DeclareWide PtrSafe Function GetFileAttributes Lib "kernel32" Alias "GetFileAttributesW" (ByVal lpFileName As String) As FILE_ATTRIBUTES
+Public Declare PtrSafe Function GetFileAttributesExA Lib "kernel32" (ByVal lpFileName As String, ByVal fInfoLevelId As GET_FILEEX_INFO_LEVELS, ByRef lpFileInformation As Any) As Long
+Public DeclareWide PtrSafe Function GetFileAttributesExW Lib "kernel32" (ByVal lpFileName As LongPtr, ByVal fInfoLevelId As GET_FILEEX_INFO_LEVELS, ByRef lpFileInformation As Any) As Long
+Public DeclareWide PtrSafe Function GetFileAttributesEx Lib "kernel32" Alias "GetFileAttributesExW" (ByVal lpFileName As String, ByVal fInfoLevelId As GET_FILEEX_INFO_LEVELS, ByRef lpFileInformation As Any) As Long
+Public Declare PtrSafe Function CreateDirectoryExA Lib "kernel32.dll" (ByVal lpTemplateDirectory As String, ByVal lpNewDirectory As String, lpSecurityAttributes As SECURITY_ATTRIBUTES) As Long
+Public Declare PtrSafe Function CreateDirectoryExW Lib "kernel32.dll" (ByVal lpTemplateDirectory As LongPtr, ByVal lpNewDirectory As LongPtr, lpSecurityAttributes As SECURITY_ATTRIBUTES) As Long
+Public DeclareWide PtrSafe Function CreateDirectoryEx Lib "kernel32.dll" Alias "CreateDirectoryExW" (ByVal lpTemplateDirectory As String, ByVal lpNewDirectory As String, lpSecurityAttributes As SECURITY_ATTRIBUTES) As Long
 Public Declare PtrSafe Function ExpandEnvironmentStringsW Lib "kernel32" (ByVal lpSrc As LongPtr, ByVal lpDst As LongPtr, ByVal nSize As Long) As Long
 Public DeclareWide PtrSafe Function ExpandEnvironmentStrings Lib "kernel32" Alias "ExpandEnvironmentStringsW" (ByVal lpSrc As String, ByVal lpDst As String, ByVal nSize As Long) As Long
 Public Declare PtrSafe Function Wow64DisableWow64FsRedirection Lib "kernel32" (pOldVal As LongPtr) As Long
@@ -3306,11 +3353,6 @@ Public DeclareWide PtrSafe Function SetVolumeLabelW Lib "kernel32" (ByVal lpRoot
 Public DeclareWide PtrSafe Function SetVolumeLabel Lib "kernel32" Alias "SetVolumeLabelW" (ByVal lpRootPathName As String, ByVal lpVolumeName As String) As Long
 Public Declare PtrSafe Function MulDiv Lib "kernel32" (ByVal nNumber As Long, ByVal nNumerator As Long, ByVal nDenominator As Long) As Long
 Public Declare PtrSafe Function MultiByteToWideChar Lib "kernel32" (ByVal CodePage As Long, ByVal dwFlags As MBWC_Flags, ByVal lpMultiByteStr As LongPtr, ByVal cchMultiByte As Long, ByVal lpWideCharStr As LongPtr, ByVal cchWideChar As Long) As Long
-Public Declare PtrSafe Function GetFileSize Lib "kernel32" (ByVal hFile As LongPtr, lpFileSizeHigh As Long) As Long
-Public Declare PtrSafe Function GetFileSizeEx Lib "kernel32" (ByVal hFile As LongPtr, lpFileSizeHigh As LongLong) As BOOL
-Public DeclareWide PtrSafe Function GetDriveType Lib "kernel32" Alias "GetDriveTypeW" (Optional ByVal lpRootPathName As String) As DriveTypes
-Public DeclareWide PtrSafe Function DeleteFile Lib "kernel32" Alias "DeleteFileW" (ByVal lpFileName As String) As BOOL
-Public DeclareWide PtrSafe Function DeleteFileW Lib "kernel32" (ByVal lpFileName As LongPtr) As BOOL
 Public DeclareWide PtrSafe Function QueryDosDevice Lib "kernel32" Alias "QueryDosDeviceW" (ByVal lpDeviceName As String, ByVal lpTargetPath As String, ByVal ucchMax As Long) As Long
 Public DeclareWide PtrSafe Function QueryDosDeviceW Lib "kernel32" (ByVal lpDeviceName As LongPtr, ByVal lpTargetPath As LongPtr, ByVal ucchMax As Long) As Long
 Public DeclareWide PtrSafe Function FindFirstVolume Lib "kernel32" Alias "FindFirstVolumeW" (lpszVolumeName As LongPtr, ByVal cchBufferLen As Long) As LongPtr
@@ -3380,8 +3422,38 @@ Public DeclareWide PtrSafe Function GetNamedPipeHandleStateW Lib "kernel32" (ByV
 Public DeclareWide PtrSafe Function GetNamedPipeHandleState Lib "kernel32" Alias "GetNamedPipeHandleStateW" (ByVal hNamedPipe As LongPtr, lpState As PipeModeFlags, lpCurInstances As Long, lpMaxCollectionCount As Long, lpCollectionDataTimeout As Long, lpUserName As LongPtr, ByVal nMaxUserNameSize) As BOOL
 Public DeclareWide PtrSafe Function CreateHardLinkW Lib "kernel32" (ByVal lpFileName As LongPtr, ByVal lpExistingFileName As LongPtr, lpSecurityAttributes As SECURITY_ATTRIBUTES) As BOOL
 Public DeclareWide PtrSafe Function CreateHardLink Lib "kernel32" Alias "CreateHardLinkW" (ByVal lpFileName As String, ByVal lpExistingFileName As String, lpSecurityAttributes As SECURITY_ATTRIBUTES) As BOOL
+Public DeclareWide PtrSafe Function QueryPerformanceCounter Lib "kernel32" (lpPerformanceCount As LongLong) As BOOL
+Public DeclareWide PtrSafe Function QueryPerformanceFrequency Lib "kernel32" (lpFrequency As LongLong) As BOOL
+Public DeclareWide PtrSafe Function GetLogicalDriveStringsA Lib "kernel32" (ByVal nBufferLength As Long, ByVal lpBuffer As String) As Long
+Public DeclareWide PtrSafe Function GetLogicalDriveStringsW Lib "kernel32" (ByVal nBufferLength As Long, ByVal lpBuffer As LongPtr) As Long
+Public DeclareWide PtrSafe Function GetLogicalDriveStrings Lib "kernel32" Alias "GetLogicalDriveStringsW" (ByVal nBufferLength As Long, ByVal lpBuffer As String) As Long
+Public DeclareWide PtrSafe Function GetLogicalDrives Lib "kernel32" () As Long
+Public DeclareWide PtrSafe Function GetDriveType Lib "kernel32" Alias "GetDriveTypeW" (Optional ByVal lpRootPathName As String) As DriveTypes
+Public DeclareWide PtrSafe Function GetDriveTypeW Lib "kernel32" (Optional ByVal lpRootPathName As LongPtr) As DriveTypes
 
-Public Declare PtrSafe Function FlushFileBuffers Lib "kernel32" (ByVal hFile As LongPtr) As Long
+Public DeclareWide PtrSafe Function GetDiskFreeSpaceW Lib "kernel32" (ByVal lpRootPathName As LongPtr, lpSectorsPerCluster As Long, lpBytesPerSector As Long, lpNumberOfFreeClusters As Long, lpTotalNumberOfClusters As Long) As BOOL
+Public DeclareWide PtrSafe Function GetDiskFreeSpace Lib "kernel32" Alias "GetDiskFreeSpaceW" (ByVal lpRootPathName As String, lpSectorsPerCluster As Long, lpBytesPerSector As Long, lpNumberOfFreeClusters As Long, lpTotalNumberOfClusters As Long) As BOOL
+Public DeclareWide PtrSafe Function GetDiskFreeSpaceExW Lib "kernel32" (Optional ByVal lpDirectoryName As LongPtr, Optional lpFreeBytesAvailableToCaller As LongLong, Optional lpTotalNumberOfBytes As LongLong, Optional lpTotalNumberOfFreeBytes As LongLong) As BOOL
+Public DeclareWide PtrSafe Function GetDiskFreeSpaceEx Lib "kernel32" Alias "GetDiskFreeSpaceW" (Optional ByVal lpDirectoryName As String, Optional lpFreeBytesAvailableToCaller As LongLong, Optional lpTotalNumberOfBytes As LongLong, Optional lpTotalNumberOfFreeBytes As LongLong) As BOOL
+[Description("This function is only available on Windows 10 17763 and newer") ]
+Public DeclareWide PtrSafe Function GetDiskSpaceInformationW Lib "kernel32" (ByVal rootPath As LongPtr, diskSpaceInfo As DISK_SPACE_INFORMATION) As Long
+[Description("This function is only available on Windows 10 17763 and newer")]
+Public DeclareWide PtrSafe Function GetDiskSpaceInformation Lib "kernel32" Alias "GetDiskSpaceInformationW" (ByVal rootPath As String, diskSpaceInfo As DISK_SPACE_INFORMATION) As Long
+Public Type DISK_SPACE_INFORMATION
+	ActualTotalAllocationUnits As LongLong
+	ActualAvailableAllocationUnits As LongLong
+	ActualPoolUnavailableAllocationUnits As LongLong
+	CallerTotalAllocationUnits As LongLong
+	CallerAvailableAllocationUnits As LongLong
+	CallerPoolUnavailableAllocationUnits As LongLong
+	UsedAllocationUnits As LongLong
+	TotalReservedAllocationUnits As LongLong
+	VolumeStorageReserveAllocationUnits As LongLong
+	AvailableCommittedAllocationUnits As LongLong
+	PoolAvailableAllocationUnits As LongLong
+	SectorsPerAllocationUnit As Long
+	BytesPerSector As Long
+End Type
 
 Public Enum PipeOpenMode
     PIPE_ACCESS_DUPLEX = &H3
@@ -3430,14 +3502,108 @@ End Enum
 
 #Region "ntdll"
 
+Public Type CLIENT_ID
+    UniqueProcess As LongPtr
+    UniqueThread  As LongPtr
+End Type
+
+Public Enum ObjectAttributeValues
+	OBJ_INHERIT                       = &H00000002
+	OBJ_PERMANENT                     = &H00000010
+	OBJ_EXCLUSIVE                     = &H00000020
+	OBJ_CASE_INSENSITIVE              = &H00000040
+	OBJ_OPENIF                        = &H00000080
+	OBJ_OPENLINK                      = &H00000100
+	OBJ_KERNEL_HANDLE                 = &H00000200
+	OBJ_FORCE_ACCESS_CHECK            = &H00000400
+	OBJ_IGNORE_IMPERSONATED_DEVICEMAP = &H00000800
+	OBJ_DONT_REPARSE                  = &H00001000
+	OBJ_VALID_ATTRIBUTES              = &H00001FF2
+End Enum
+
+
 Public Type OBJECT_ATTRIBUTES
 	Length As Long
     RootDirectory As LongPtr
     ObjectName As LongPtr
-    Attributes As Long
+    Attributes As ObjectAttributeValues
     SecurityDescriptor As LongPtr
     SecurityQualityOfService As LongPtr
 End Type
+
+Public Enum OBJECT_INFORMATION_CLASS
+    ObjectBasicInformation = 0
+    ObjectNameInformation
+    ObjectTypeInformation
+    ObjectTypesInformation
+    ObjectHandleFlagInformation
+    ObjectSessionInformation
+    ObjectSessionObjectInformation
+End Enum
+
+Public Type OBJECT_BASIC_INFORMATION
+    Attributes As ObjectAttributeValues
+    GrantedAccess As Long
+    HandleCount As Long
+    PointerCount As Long
+    PagedPoolCharge As Long
+    NonPagedPoolCharge As Long
+    Reserved(2) As Long
+    NameInfoSize As Long
+    TypeInfoSize As Long
+    SecurityDescriptorSize As Long
+    CreationTime As LongLong
+End Type
+Public Type GENERIC_MAPPING
+        GenericRead As Long
+        GenericWrite As Long
+        GenericExecute As Long
+        GenericAll As Long
+End Type
+[Description("This structure is followed by the string described by TypeName.") ]
+Private Type OBJECT_TYPE_INFORMATION
+   TypeName                    As UNICODE_STRING   '
+   TotalNumberOfObjects        As Long    'ULONG   '
+   TotalNumberOfHandles        As Long    'ULONG   '
+   TotalPagedPoolUsage         As Long    'ULONG   '
+   TotalNonPagedPoolUsage      As Long    'ULONG   '
+   TotalNamePoolUsage          As Long    'ULONG   '
+   TotalHandleTableUsage       As Long    'ULONG   '
+   HighWaterNumberOfObjects    As Long    'ULONG   '
+   HighWaterNumberOfHandles    As Long    'ULONG   '
+   HighWaterPagedPoolUsage     As Long    'ULONG   '
+   HighWaterNonPagedPoolUsage  As Long    'ULONG   '
+   HighWaterNamePoolUsage      As Long    'ULONG   '
+   HighWaterHandleTableUsage   As Long    'ULONG   '
+   InvalidAttributes           As Long    'ULONG   '
+   GenericMapping              As GENERIC_MAPPING  '
+   ValidAccessMask             As Long    'ULONG   '
+   SecurityRequired            As Byte    'BOOLEAN '
+   MaintainHandleCount         As Byte    'BOOLEAN '
+   MaintainTypeList            As Integer
+   PoolType                    As Long    'ULONG   '
+   DefaultPagedPoolCharge      As Long    'ULONG   '
+   DefaultNonPagedPoolCharge   As Long    'ULONG   ' total 22 x ULONG
+End Type
+
+Public Type OBJECT_DIRECTORY_INFORMATION
+    Name As UNICODE_STRING
+    TypeName As UNICODE_STRING
+End Type
+
+Public Type OBJECT_HANDLE_FLAG_INFORMATION 
+    Inherit As Byte
+    ProtectFromClose As Byte
+End Type
+
+Public Enum DuplicateObjectOptions
+	DUPLICATE_CLOSE_SOURCE  = &H00000001
+	DUPLICATE_SAME_ACCESS  = &H00000002
+	DUPLICATE_SAME_ATTRIBUTES  = &H00000004
+End Enum
+
+
+
 
 public enum SYSTEM_INFORMATION_CLASS
     SystemBasicInformation = &H00
@@ -3653,6 +3819,21 @@ public enum SYSTEM_INFORMATION_CLASS
     MaxSystemInfoClass                    = &HD2
 End Enum
 
+Public Type SYSTEM_HANDLE_TABLE_ENTRY_INFO 
+	UniqueProcessId As Integer
+    CreatorBackTraceIndex As Integer
+    ObjectTypeIndex As Byte
+    HandleAttributes As Byte
+    HandleValue As Integer
+    Object As LongPtr
+    GrantedAccess As Long
+End Type
+
+[Description("WARNING: This structure cannot be used as-is directly due to SAFEARRAY considerations. Copy count and array separately.")]
+Public Type SYSTEM_HANDLE_INFORMATION
+    NumberOfHandles As Long
+    Handles() As SYSTEM_HANDLE_TABLE_ENTRY_INFO
+End Type
 
 Public Type FILE_DIRECTORY_INFORMATION
   NextEntryOffset As Long
@@ -3725,7 +3906,7 @@ Public Enum FILE_INFORMATION_CLASS
     FileHardLinkInformation = 46
             
 End Enum
-Public Const OBJ_CASE_INSENSITIVE = &H40
+
 
 Public Declare PtrSafe Function CompareMemory Lib "ntdll" Alias "RtlCompareMemory" (Source1 As Any, Source2 As Any, ByVal Length As LongPtr) As LongPtr
 Public Declare PtrSafe Function NtQuerySystemInformation Lib "ntdll" (ByVal SystemInformationClass As SYSTEM_INFORMATION_CLASS, SystemInformation As Any, ByVal SystemInformationLength As Long, ReturnLength As Long) As Long
@@ -3739,6 +3920,10 @@ Public Declare PtrSafe Function RtlDosPathNameToNtPathName_U Lib "ntdll" (ByVal 
 Public Declare PtrSafe Sub RtlFreeUnicodeString Lib "ntdll" (UnicodeString As UNICODE_STRING)
 Public Declare PtrSafe Sub RtlInitUnicodeString Lib "ntdll" (DestinationString As Any, ByVal SourceString As LongPtr)
 Public Declare PtrSafe Function NtImpersonateThread Lib "ntdll" (ByVal hThread As LongPtr, ByVal hThreadToImpersonate As LongPtr, SecurityQualityOfService As SECURITY_QUALITY_OF_SERVICE) As Long
+Public Declare PtrSafe Function NtQueryObject Lib "ntdll" (ByVal Handle As LongPtr, ByVal ObjectInformationClass As OBJECT_INFORMATION_CLASS, ObjectInformation As Any, ByVal ObjectInformationLength As Long, ReturnLength As Long) As Long
+Public Declare PtrSafe Function NtDuplicateObject Lib "ntdll" (ByVal SourceProcessHandle As LongPtr, ByVal SourceHandle As LongPtr, pTargetHandle As LongPtr, ByVal DesiredAccess As Long, ByVal HandleAttributes As ObjectAttributeValues, ByVal Options As DuplicateObjectOptions) As Long
+Public Declare PtrSafe Function NtOpenProcess Lib "ntdll" (ProcessHandle As LongPtr, ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, Optional ClientID As CLIENT_ID) As Long
+
 #If Win64 = 0 Then
 Public Declare Function NtWow64QueryInformationProcess64 Lib "ntdll" ( _
                          ByVal hProcess As Long, _
@@ -3984,6 +4169,7 @@ Public Declare PtrSafe Function RevokeDragDrop Lib "ole32" (ByVal hWnd As LongPt
 Public Declare PtrSafe Function DoDragDrop Lib "ole32" (ByVal pDataObj As IDataObject, ByVal pDropSource As IDropSource, ByVal dwOKEffects As Long, ByRef pdwEffect As Long) As Long
 Public Declare PtrSafe Function OleSetClipboard Lib "ole32" (ByVal pDataObj As IDataObject) as long
 Public Declare PtrSafe Function OleGetClipboard Lib "ole32" (ppDataObj As IDataObject) As Long
+Public Declare PtrSafe Function OleGetClipboardWithEnterpriseInfo Lib "ole32" (ppDataObj As IDataObject, dataEnterpriseId As LongPtr, sourceDescription As LongPtr, targetDescription As LongPtr, dataDescription As LongPtr) As Long
 Public Declare PtrSafe Function OleFlushClipboard Lib "ole32" () As Long
 Public Declare PtrSafe Function OleIsCurrentClipboard Lib "ole32" (ByVal pDataObj As IDataObject) As Long
 Public Declare PtrSafe Function OleCreateMenuDescriptor Lib "ole32" (ByVal hmenuCombined As LongPtr, ByRef lpMenuWidths As OLEMENUGROUPWIDTHS) As LongPtr
@@ -8066,7 +8252,7 @@ Public Enum EncoderParameterValueType
 	'  are inclusive at both ends
 	'#if(GDIPVER> = &H0110)
 	EncoderParameterValueTypePointer ' a pointer to a parameter defined data.
-	'#endif = 2 '(GDIPVER >= 0x0110)
+	'#endif = 2 '(GDIPVER >= &H0110)
 End Enum
 
 Public enum EncoderValue
@@ -8094,7 +8280,7 @@ Public enum EncoderValue
     EncoderValueFrameDimensionTime
     EncoderValueFrameDimensionResolution
     EncoderValueFrameDimensionPage
-'#if (GDIPVER >= 0x0110)
+'#if (GDIPVER >= &H0110)
     EncoderValueColorTypeGray
     EncoderValueColorTypeRGB
 '#endif
