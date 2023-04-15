@@ -1,7 +1,7 @@
 # tbShellLib
 **twinBASIC Shell Library**
 
-Current Version: 4.3.112 (April 14th, 2023)
+Current Version: 4.3.114 (April 15th, 2023)
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -49,6 +49,8 @@ If you find an oleexpimp.tlb interface is not in tbShellLibImpl, you will be abl
 tB has announced plans to support `[ PreserveSig ]` in implemented interfaces in the future; when that happens tbShellLibImpl will be deprecated.
 
 ## Updates
+**Update (v4.3.114):** Important bug fixes for CreateThread ([#14](https://github.com/fafalone/tbShellLib/issues/14)), other bug fixes including IDataObject::DAdvise sink arg, and additional APIs.
+
 **Update (v4.3.112):** Added some base OLE/COM interfaces I feel were substantial oversights from both olelib and oleexp; IDataAdviseHolder, IOleAdviseHolder, IDropSourceNotify, IEnterpriseDropTarget, and IContinue.
 
 **Update (v4.3.102):** 
