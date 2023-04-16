@@ -1443,6 +1443,9 @@ Public Enum MemAllocType
     MEM_DECOMMIT = &H00004000
     MEM_RELEASE = &H00008000&
     MEM_FREE = &H00010000
+	MEM_PRIVATE  = &H00020000
+	MEM_MAPPED  = &H00040000
+	MEM_IMAGE = &H01000000
 End Enum
 
 Public Enum CreateProcessFlags
@@ -3173,6 +3176,66 @@ Public Enum FileBaseType
     FILE_TYPE_REMOTE = &H8000&
 End Enum
 
+Public Enum NTSectionFlags
+	SECTION_QUERY  = &H0001
+	SECTION_MAP_WRITE  = &H0002
+	SECTION_MAP_READ  = &H0004
+	SECTION_MAP_EXECUTE  = &H0008
+	SECTION_EXTEND_SIZE  = &H0010
+	SECTION_MAP_EXECUTE_EXPLICIT = &H0020  ' not included in SECTION_ALL_ACCESS
+    SECTION_ALL_ACCESS  = (STANDARD_RIGHTS_REQUIRED Or SECTION_QUERY Or  SECTION_MAP_WRITE  Or  SECTION_MAP_READ  Or  SECTION_MAP_EXECUTE  Or  SECTION_EXTEND_SIZE)
+	SEC_HUGE_PAGES  = &H00020000
+	SEC_PARTITION_OWNER_HANDLE  = &H00040000
+	SEC_64K_PAGES  = &H00080000
+	SEC_FILE  = &H00800000
+	SEC_IMAGE  = &H01000000
+	SEC_PROTECTED_IMAGE  = &H02000000
+	SEC_RESERVE  = &H04000000
+	SEC_COMMIT = &H08000000
+	SEC_NOCACHE  = &H10000000
+	SEC_WRITECOMBINE  = &H40000000
+	SEC_LARGE_PAGES  = &H80000000
+	SEC_IMAGE_NO_EXECUTE  = (SEC_IMAGE  Or  SEC_NOCACHE)
+End Enum
+
+Public Enum FileMapFlags
+	FILE_MAP_WRITE  = SECTION_MAP_WRITE
+	FILE_MAP_READ  = SECTION_MAP_READ
+	FILE_MAP_ALL_ACCESS  = SECTION_ALL_ACCESS
+	FILE_MAP_EXECUTE  = SECTION_MAP_EXECUTE_EXPLICIT  ' not included in FILE_MAP_ALL_ACCESS
+	FILE_MAP_COPY  = &H00000001
+	FILE_MAP_RESERVE  = &H80000000
+	FILE_MAP_TARGETS_INVALID  = &H40000000
+	FILE_MAP_LARGE_PAGES  = &H20000000
+End Enum
+
+Public Enum MEM_EXTENDED_PARAMETER_TYPE
+	MemExtendedParameterInvalidType=0
+	MemExtendedParameterAddressRequirements = 1
+	MemExtendedParameterNumaNode = 2
+	MemExtendedParameterPartitionHandle = 3
+	MemExtendedParameterUserPhysicalHandle = 4
+	MemExtendedParameterAttributeFlags = 5
+	MemExtendedParameterImageMachine = 6
+	MemExtendedParameterMax = 7
+End Enum
+Public Type MEM_EXTENDED_PARAMETER
+	Type As LongLong
+    SizeOrHandleOrPointer As LongPtr
+End Type
+
+
+Public Type MEMORY_BASIC_INFORMATION
+	BaseAddress As LongPtr
+	AllocationBase As LongPtr
+	AllocationProtect As MemProtectFlags
+	PartitionId As Integer
+	RegionSize As LongPtr
+	State As MemAllocType
+	Protect As MemProtectFlags
+	Type As MemAllocType
+End Type
+
 
 Public Declare PtrSafe Function CreateToolhelp32Snapshot Lib "kernel32" (ByVal dwFlags As TH32CS_Flags, ByVal th32ProcessID As Long) As LongPtr
 Public Declare PtrSafe Function Process32FirstW Lib "kernel32.dll" (ByVal hSnapshot As LongPtr, lppe As PROCESSENTRY32W) As Long
@@ -3259,6 +3322,16 @@ Public Declare PtrSafe Function ResetEvent Lib "kernel32" (ByVal hEvent As LongP
 [Description("Change the protection flags of a memory address")] Public Declare PtrSafe Function VirtualProtect Lib "kernel32" (ByRef lpAddress As Any, ByVal dwSize As LongPtr, ByVal flNewProtect As MemProtectFlags, ByRef lpflOldProtect As MemProtectFlags) As Long
 Public Declare PtrSafe Function VirtualProtectEx Lib "kernel32" (ByVal hProcess As LongPtr, ByRef lpAddress As Any, ByVal dwSize As LongPtr, ByVal flNewProtect As MemProtectFlags, ByRef lpflOldProtect As MemProtectFlags) As Long
 Public Declare PtrSafe Function VirtualAlloc Lib "kernel32" (ByRef lpAddress As Any, ByVal dwSize As LongPtr, ByVal flAllocationType As MemAllocType, ByVal flProtect As MemProtectFlags) As LongPtr
+Public Declare PtrSafe Function VirtualAlloc2 Lib "kernel32" (ByVal Process As LongPtr, ByRef lpAddress As Any, ByVal dwSize As LongPtr, ByVal AllocationType As MemAllocType, ByVal PageProtection As MemProtectFlags, ExtendedParameters As MEM_EXTENDED_PARAMETER, ByVal ParameterCount As Long) As LongPtr
+Public Declare PtrSafe Function VirtualAllocEx Lib "kernel32" (ByVal Process As LongPtr, ByRef lpAddress As Any, ByVal dwSize As LongPtr, ByVal flAllocationType As MemAllocType, ByVal flProtect As MemProtectFlags) As LongPtr
+Public Declare PtrSafe Function VirtualFree Lib "kernel32" (ByRef lpAddress As Any, ByVal dwSize As LongPtr, ByVal dwFreeType As MemAllocType) As BOOL
+Public Declare PtrSafe Function VirtualFreeEx Lib "kernel32" (ByVal hProcess As LongPtr, ByRef lpAddress As Any, ByVal dwSize As LongPtr, ByVal dwFreeType As MemAllocType) As BOOL
+Public Declare PtrSafe Function VirtualLock Lib "kernel32" (ByRef lpAddress As Any, ByVal dwSize As LongPtr) As BOOL
+Public Declare PtrSafe Function VirtualUnlock Lib "kernel32" (ByRef lpAddress As Any, ByVal dwSize As LongPtr) As BOOL
+Public Declare PtrSafe Function VirtualQuery Lib "kernel32" (ByRef lpAddress As Any, lpBuffer As MEMORY_BASIC_INFORMATION,  ByVal dwLength As LongPtr) As LongPtr
+Public Declare PtrSafe Function VirtualQueryEx Lib "kernel32" (ByVal hProcess As LongPtr, ByRef lpAddress As Any, lpBuffer As MEMORY_BASIC_INFORMATION, ByVal dwLength As LongPtr) As LongPtr
+
+
 Public Declare PtrSafe Function TlsAlloc Lib "kernel32" () As Long
 Public Declare PtrSafe Function TlsSetValue Lib "kernel32" (ByVal dwTlsIndex As Long, ByRef lpTlsValue As Any) As Long
 Public Declare PtrSafe Function TlsGetValue Lib "kernel32" (ByVal dwTlsIndex As Long) As LongPtr
@@ -3328,6 +3401,18 @@ Public Declare PtrSafe Function GetFileSizeEx Lib "kernel32" (ByVal hFile As Lon
 Public DeclareWide PtrSafe Function DeleteFile Lib "kernel32" Alias "DeleteFileW" (ByVal lpFileName As String) As BOOL
 Public DeclareWide PtrSafe Function DeleteFileW Lib "kernel32" (ByVal lpFileName As LongPtr) As BOOL
 Public Declare PtrSafe Function GetFileType Lib "kernel32" (ByVal hFile As LongPtr) As FileBaseType
+Public DeclareWide PtrSafe Function CreateFileMappingW Lib "kernel32" (ByVal hFile As LongPtr, lpFileMappingAttributes As SECURITY_ATTRIBUTES, ByVal flProtect As MemProtectFlags, ByVal dwMaximumSizeHigh As Long, ByVal dwMaximumSizeLow As Long, Optional ByVal lpName As LongPtr) As LongPtr
+Public DeclareWide PtrSafe Function CreateFileMapping Lib "kernel32" Alias "CreateFileMappingW" (ByVal hFile As LongPtr, lpFileMappingAttributes As SECURITY_ATTRIBUTES, ByVal flProtect As MemProtectFlags, ByVal dwMaximumSizeHigh As Long, ByVal dwMaximumSizeLow As Long, Optional ByVal lpName As String) As LongPtr
+Public DeclareWide PtrSafe Function CreateFileMapping2 Lib "kernel32" (ByVal hFile As LongPtr, lpFileMappingAttributes As SECURITY_ATTRIBUTES, ByVal DesiredAccess As Long, ByVal PageProtection As MemProtectFlags, ByVal AllocationAttributes As NTSectionFlags, ByVal MaximumSize As LongLong, ByVal Name As String, ExtendedParameters As MEM_EXTENDED_PARAMETER, ByVal ParameterCount As Long) As LongPtr
+Public DeclareWide PtrSafe Function OpenFileMappingW Lib "kernel32" (ByVal dwDesiredAccess As Long, ByVal bInheritHandle As BOOL, ByVal lpName As LongPtr) As LongPtr
+Public DeclareWide PtrSafe Function OpenFileMapping Lib "kernel32" Alias "OpenFileMappingW" (ByVal dwDesiredAccess As Long, ByVal bInheritHandle As BOOL, ByVal lpName As String) As LongPtr
+Public DeclareWide PtrSafe Function MapViewOfFile Lib "kernel32" (ByVal hFileMappingObject As LongPtr, ByVal dwDesiredAccess As Long, ByVal dwFileOffsetHigh As Long, ByVal dwFileOffsetLow As Long, ByVal dwNumberOfBytesToMap As LongPtr) As LongPtr
+Public DeclareWide PtrSafe Function MapViewOfFile2 Lib "kernel32" (ByVal FileMappingHandle As LongPtr, ByVal ProcessHandle As LongPtr, ByVal Offset As LongLong, ByVal BaseAddress As LongPtr, ByVal ViewSize As LongPtr, ByVal AllocationType As MemAllocType, ByVal PageProtection As MemProtectFlags) As LongPtr
+Public DeclareWide PtrSafe Function MapViewOfFile3 Lib "kernel32" (ByVal FileMappingHandle As LongPtr, ByVal ProcessHandle As LongPtr, ByVal Offset As LongLong, ByVal BaseAddress As LongPtr, ByVal ViewSize As LongPtr, ByVal AllocationType As MemAllocType, ByVal PageProtection As MemProtectFlags, ExtendedParameters As MEM_EXTENDED_PARAMETER, ByVal ParameterCount As Long) As LongPtr
+Public DeclareWide PtrSafe Function MapViewOfFileEx Lib "kernel32" (ByVal hFileMappingObject As LongPtr, ByVal dwDesiredAccess As Long, ByVal dwFileOffsetHigh As Long, ByVal dwFileOffsetLow As Long, ByVal dwNumberOfBytesToMap As LongPtr, Optional ByVal lpBaseAddress As LongPtr) As LongPtr
+Public DeclareWide PtrSafe Function UnmapViewOfFile Lib "kernel32" (ByVal BaseAddress As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function UnmapViewOfFileEx Lib "kernel32" (ByVal BaseAddress As LongPtr, ByVal UnmapFlags As MemAllocType) As BOOL
+Public DeclareWide PtrSafe Function UnmapViewOfFile2 Lib "kernel32" (ByVal Process As LongPtr, ByVal BaseAddress As LongPtr, ByVal UnmapFlags As MemAllocType) As BOOL
 
 
 Public Declare PtrSafe Function SetFileAttributesA Lib "kernel32" (ByVal lpFileName As String, ByVal dwFileAttributes As FILE_ATTRIBUTES) As Long
@@ -5256,6 +5341,8 @@ Public Declare PtrSafe Function GetClientRect Lib "user32" (ByVal hWnd As LongPt
 Public Declare PtrSafe Function AdjustWindowRect Lib "user32" (lpRect As RECT, ByVal dwStyle As WindowStyles, ByVal bMenu As Long) As Long
 Public Declare PtrSafe Function AdjustWindowRectEx Lib "user32" (lpRect As RECT, ByVal dwStyle As WindowStyles, ByVal bMenu As BOOL, ByVal dwExStyle As WindowStylesEx) As Long
 Public Declare PtrSafe Function SetWindowPos Lib "user32" (ByVal hWnd As LongPtr, ByVal hWndInsertAfter As LongPtr, ByVal X As Long, ByVal Y As Long, ByVal CX As Long, ByVal CY As Long, ByVal wFlags As SWP_Flags) As Long
+Public Declare PtrSafe Function InvalidateRect Lib "user32" (ByVal hWnd As LongPtr, lpRect As RECT, ByVal bErase As BOOL) As BOOL
+Public Declare PtrSafe Function ValidateRect Lib "user32" (ByVal hWnd As LongPtr, lpRect As RECT) As BOOL
 Public Declare PtrSafe Function GetSysColor Lib "user32" (ByVal nIndex As SystemColors) As Long
 Public DeclareWide PtrSafe Function LoadCursor Lib "user32" Alias "LoadCursorW" (ByVal hInstance As LongPtr, ByVal lpCursorName As Any) As LongPtr
 Public Declare PtrSafe Function LoadCursorA Lib "user32" (ByVal hInstance As LongPtr, ByVal lpCursorName As Any) As LongPtr
