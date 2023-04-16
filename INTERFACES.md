@@ -2,6 +2,8 @@
 
 ### Interfaces are sorted alphabetically, with no grouping.
 
+### Complete up to tbShellLib 4.3.120
+
 ---
 
 DFConstraint
@@ -1388,6 +1390,14 @@ IDiscMasterProgressEvents
 
 IDiscRecorder
 
+IDiskQuotaControl
+
+IDiskQuotaEvents
+
+IDiskQuotaUser
+
+IDiskQuotaUserBatch
+
 IDispatchEx
 
 IDispatchUnrestricted
@@ -1607,6 +1617,8 @@ IEnumDiscMasterFormats
 IEnumDiscRecorders
 
 IEnumDMO
+
+IEnumDiskQuotaUsers
 
 IEnumerableView
 
