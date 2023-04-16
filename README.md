@@ -49,7 +49,15 @@ If you find an oleexpimp.tlb interface is not in tbShellLibImpl, you will be abl
 tB has announced plans to support `[ PreserveSig ]` in implemented interfaces in the future; when that happens tbShellLibImpl will be deprecated.
 
 ## Updates
-**Update (v4.3.120):** Bug fixes for certain `Optional` issues, added missing Direct2D flag to enable color fonts, expanded APIs focusing on file mapping, memory management, and NT objects.
+**Update (v4.3.120):** 
+
+-Added Disk Quota interfaces IDiskQuotaControl (with coclass DiskQuotaControl), IDiskQuotaUser, IDiskQuotaUserBatch, IEnumDiskQuotaUsers, and IDiskQuotaEvents.
+
+-Bug fixes for certain `Optional` issues
+
+-Added missing Direct2D flag to enable color fonts
+
+-Expanded APIs focusing on file mapping, memory management, and NT objects.
 
 **Update (v4.3.114):** Important bug fixes for CreateThread ([#14](https://github.com/fafalone/tbShellLib/issues/14)), other bug fixes including IDataObject::DAdvise sink arg, and additional APIs.
 
