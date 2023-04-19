@@ -1,7 +1,7 @@
 # tbShellLib
 **twinBASIC Shell Library**
 
-Current Version: 4.4.122 (April 17th, 2023)
+Current Version: 4.4.124 (April 18th, 2023)
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -49,6 +49,8 @@ If you find an oleexpimp.tlb interface is not in tbShellLibImpl, you will be abl
 tB has announced plans to support `[ PreserveSig ]` in implemented interfaces in the future; when that happens tbShellLibImpl will be deprecated.
 
 ## Updates
+**Update (v4.4.124):** Important bug fixes and additional APIs (GDI printing and window transparency).
+
 **Update (v4.4.122):**
 
 -Critical bug fix for new tB builds (correctly) flagging Optional UDTs as errors. 
