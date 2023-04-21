@@ -56,6 +56,20 @@ The best example of this is many APIs, like file APIs, where in traditional VB d
 
 twinBASIC has direct support for passing a null pointer instead of a UDT. You can pass `vbNullPtr` to these arguments where previously you would have used ByVal 0 on an `As Any` argument that you've found is now a UDT. 
 
+Example:
+
+VB6:
+```
+Public Declare Function CreateFileW Lib "kernel32" (ByVal lpFileName As Long, ByVal dwDesiredAccess As Long, ByVal dwShareMode As Long, lpSecurityAttributes As Any, ByVal dwCreationDisposition As Long, ByVal dwFlagsAndAttributes As Long, ByVal hTemplateFile As Long) As Long
+
+hFile = CreateFileW(StrPtr("name"), 0, 0, ByVal 0, ...)
+```
+twinBASIC:
+```
+Public Declare PtrSafe Function CreateFileW Lib "kernel32" (ByVal lpFileName As LongPtr, ByVal dwDesiredAccess As Long, ByVal dwShareMode As Long, lpSecurityAttributes As SECURITY_ATTRIBUTES, ByVal dwCreationDisposition As Long, ByVal dwFlagsAndAttributes As Long, ByVal hTemplateFile As LongPtr) As LongPtr
+
+hFile = CreateFileW(StrPtr("name"), 0, 0, vbNullPtr, ...)
+```
 
 ## Updates
 **Update (v4.4.124):** Important bug fixes and additional APIs (GDI printing and window transparency).
