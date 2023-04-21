@@ -50,6 +50,13 @@ If you find an oleexpimp.tlb interface is not in tbShellLibImpl, you will be abl
 
 tB has announced plans to support `[ PreserveSig ]` in implemented interfaces in the future; when that happens tbShellLibImpl will be deprecated.
 
+## A note on seeing UDTs where before they were As Any
+
+The best example of this is many APIs, like file APIs, where in traditional VB declarations, you see 'As Any' and in tbShellLib you see e.g. `SECURITY_ATTRIBUTES` or `OVERLAPPED`. These are the correct the definitions, but VB6 had no facility to specify 'NULL', which is what they usually would be set to. So the VB6 way was a workaround, where you could pass ByVal 0. 
+
+twinBASIC has direct support for passing a null pointer instead of a UDT. You can pass `vbNullPtr` to these arguments where previously you would have used ByVal 0 on an `As Any` argument that you've found is now a UDT. 
+
+
 ## Updates
 **Update (v4.4.124):** Important bug fixes and additional APIs (GDI printing and window transparency).
 
