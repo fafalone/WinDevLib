@@ -2771,347 +2771,432 @@ End Interface
         Sub AddRepeat(ByVal beginOffset As Double, ByVal durationToRepeat As Double)
         Sub End(ByVal endOffset As Double, ByVal endValue As Single)
     End Interface
-	
+
+[ InterfaceId ("2E217D3A-5ABB-4138-9A13-A775593C89CA") ]
+[ OleAutomation (False) ]
+Interface IPresentationBuffer Extends stdole.IUnknown
+    Function GetAvailableEvent() As LongPtr
+    Function IsAvailable() As Byte
+End Interface
+
+[ InterfaceId ("5668BB79-3D8E-415C-B215-F38020F2D252") ]
+[ OleAutomation (False) ]
+Interface IPresentationContent Extends stdole.IUnknown
+    [ PreserveSig ] Sub SetTag(ByVal tag As LongPtr)
+End Interface
+
+[ InterfaceId ("956710FB-EA40-4EBA-A3EB-4375A0EB4EDC") ]
+[ OleAutomation (False) ]
+Interface IPresentationSurface Extends IPresentationContent
+    Sub SetBuffer(ByVal presentationBuffer As IPresentationBuffer)
+    Sub SetColorSpace(ByVal colorSpace As DXGI_COLOR_SPACE_TYPE)
+    Sub SetAlphaMode(ByVal alphaMode As DXGI_ALPHA_MODE)
+    Sub SetSourceRect(sourceRect As RECT)
+    Sub SetTransform(transform As PresentationTransform)
+    Sub RestrictToOutput(ByVal output As IUnknown)
+    Sub SetDisableReadback(ByVal value As Byte)
+    Sub SetLetterboxingMargins(ByVal leftLetterboxSize As Single, ByVal topLetterboxSize As Single, ByVal rightLetterboxSize As Single, ByVal bottomLetterboxSize As Single)
+End Interface
+
+[ InterfaceId ("B44B8BDA-7282-495D-9DD7-CEADD8B4BB86") ]
+[ OleAutomation (False) ]
+Interface IPresentStatistics Extends stdole.IUnknown
+    [ PreserveSig ] Function GetPresentId() As LongLong
+    [ PreserveSig ] Function GetKind() As PresentStatisticsKind
+End Interface
+
+[ InterfaceId ("FB562F82-6292-470A-88B1-843661E7F20C") ]
+[ OleAutomation (False) ]
+Interface IPresentationManager Extends stdole.IUnknown
+    Function AddBufferFromResource(ByVal resource As IUnknown) As IPresentationBuffer
+    Function CreatePresentationSurface(ByVal compositionSurfaceHandle As LongPtr) As IPresentationSurface
+    [ PreserveSig ] Function GetNextPresentId() As LongLong
+    [ Description ("Since this is ByVal, we'll use the only member directly. This is the same as a SystemInterruptTime struct.") ]
+    Sub SetTargetTime(ByVal targetTime As LongLong)
+    [ Description ("Since this is ByVal, we'll use the only member directly. This is the same as a SystemInterruptTime structs.") ]
+    Sub SetPreferredPresentDuration(ByVal preferredDuration As LongLong, ByVal deviationTolerance As LongLong)
+    Sub ForceVSyncInterrupt(ByVal forceVsyncInterrupt As Byte)
+    Sub Present()
+    Function GetPresentRetiringFence(riid As UUID) As LongPtr
+    Sub CancelPresentsFrom(ByVal presentIdToCancelFrom As LongLong)
+    Function GetLostEvent() As LongPtr
+    Function GetPresentStatisticsAvailableEvent() As LongPtr
+    Sub EnablePresentStatisticsKind(ByVal presentStatisticsKind As PresentStatisticsKind, ByVal enabled As Byte)
+    Function GetNextPresentStatistics() As IPresentStatistics
+End Interface
+
+[ InterfaceId ("8FB37B58-1D74-4F64-A49C-1F97A80A2EC0") ]
+[ OleAutomation (False) ]
+Interface IPresentationFactory Extends stdole.IUnknown
+    [ PreserveSig ] Function IsPresentationSupported() As Byte
+    [ PreserveSig ] Function IsPresentationSupportedWithIndependentFlip() As Byte
+    Function CreatePresentationManager() As IPresentationManager
+End Interface
+
+[ InterfaceId ("C9ED2A41-79CB-435E-964E-C8553055420C") ]
+[ OleAutomation (False) ]
+Interface IPresentStatusPresentStatistics Extends IPresentStatistics
+    [ PreserveSig ] Function GetCompositionFrameId() As LongLong
+    [ PreserveSig ] Function GetPresentStatus() As PresentStatus
+End Interface
+
+[ InterfaceId ("AB41D127-C101-4C0A-911D-F9F2E9D08E64") ]
+[ OleAutomation (False) ]
+Interface ICompositionFramePresentStatistics Extends IPresentStatistics
+    [ PreserveSig ] Function GetContentTag() As LongPtr
+    [ PreserveSig ] Sub GetDisplayInstanceArray(displayInstanceArrayCount As Long, displayInstanceArray As LongPtr)
+End Interface
+
+[ InterfaceId ("8C93BE27-AD94-4DA0-8FD4-2413132D124E") ]
+[ OleAutomation (False) ]
+Interface IIndependentFlipFramePresentStatistics Extends IPresentStatistics
+    [ PreserveSig ] Function GetOutputAdapterLUID() As LUID
+    [ PreserveSig ] Function GetOutputVidPnSourceId() As Long
+    [ PreserveSig ] Function GetContentTag() As LongPtr
+    [ PreserveSig ] Function GetDisplayedTime() As SystemInterruptTime
+    [ PreserveSig ] Function GetPresentDuration() As SystemInterruptTime
+End Interface
+
 #End Region
 
 
 
-    Module slDirectX
-        [ Description ("Creates a factory object that can be used to create Direct2D resources.") ]
-        Public Declare PtrSafe Function D2D1CreateFactory Lib "D2d1.dll" (ByVal factoryType As D2D1_FACTORY_TYPE, ByRef riid As Any, ByRef pFactoryOptions As Any, ppUnk As IUnknown) As Long
-        [ Description ("Creates a rotation transformation that rotates by the specified angle about the specified point.") ]
-        Public Declare PtrSafe Sub D2D1MakeRotateMatrix Lib "D2d1.dll" (ByVal angle As Single, ByVal centerX As Single, ByVal centerY As Single, ByRef matrix As D2D1_MATRIX_3X2_F)
-        [ Description ("Creates a skew transformation that has the specified x-axis angle, y-axis angle, and center point.") ]
-        Public Declare PtrSafe Sub D2D1MakeSkewMatrix Lib "D2d1.dll" (ByVal angleX As Single, ByVal angleY As Single, ByVal centerX As Single, ByVal centerY As Single, ByRef matrix As D2D1_MATRIX_3X2_F)
-        [ Description ("Indicates whether the specified matrix is invertible.") ]
-        Public Declare PtrSafe Function D2D1IsMatrixInvertible Lib "D2d1.dll" (ByRef matrix As D2D1_MATRIX_3X2_F) As Long
-        [ Description ("Tries to invert the specified matrix.") ]
-        Public Declare PtrSafe Function D2D1InvertMatrix Lib "D2d1.dll" (ByRef matrix As D2D1_MATRIX_3X2_F) As Long
-        Public Declare PtrSafe Function D2D1CreateDevice Lib "D2d1.dll" (ByVal dxgiDevice As IDXGIDevice, ByRef creationProperties As Any, ByRef d2dDevice As ID2D1Device) As Long
-        Public Declare PtrSafe Function D2D1CreateDeviceContext Lib "D2d1.dll" (ByVal dxgiSurface As IDXGISurface, ByRef creationProperties As Any, ByRef d2dDeviceContext As ID2D1DeviceContext) As Long
-        Public Declare PtrSafe Function D2D1ConvertColorSpace Lib "D2d1.dll" (ByVal sourceColorSpace As D2D1_COLOR_SPACE, ByVal destinationColorSpace As D2D1_COLOR_SPACE, ByRef color As D2D1_COLOR_F) As D2D1_COLOR_F
-        Public Declare PtrSafe Sub D2D1SinCos Lib "D2d1.dll" (ByVal angle As Single, ByRef s As Single, ByRef c As Single)
-        Public Declare PtrSafe Function D2D1Tan Lib "D2d1.dll" (ByVal angle As Single) As Single
-        Public Declare PtrSafe Function D2D1Vec3Length Lib "D2d1.dll" (ByVal x As Single, ByVal y As Single, ByVal z As Single) As Single
-        Public Declare PtrSafe Function D2D1ComputeMaximumScaleFactor Lib "D2d1.dll" (ByRef matrix As D2D1_MATRIX_3X2_F) As Single
+Module slDirectX
+[ Description ("Creates a factory object that can be used to create Direct2D resources.") ]
+Public Declare PtrSafe Function D2D1CreateFactory Lib "D2d1.dll" (ByVal factoryType As D2D1_FACTORY_TYPE, ByRef riid As Any, ByRef pFactoryOptions As Any, ppUnk As IUnknown) As Long
+[ Description ("Creates a rotation transformation that rotates by the specified angle about the specified point.") ]
+Public Declare PtrSafe Sub D2D1MakeRotateMatrix Lib "D2d1.dll" (ByVal angle As Single, ByVal centerX As Single, ByVal centerY As Single, ByRef matrix As D2D1_MATRIX_3X2_F)
+[ Description ("Creates a skew transformation that has the specified x-axis angle, y-axis angle, and center point.") ]
+Public Declare PtrSafe Sub D2D1MakeSkewMatrix Lib "D2d1.dll" (ByVal angleX As Single, ByVal angleY As Single, ByVal centerX As Single, ByVal centerY As Single, ByRef matrix As D2D1_MATRIX_3X2_F)
+[ Description ("Indicates whether the specified matrix is invertible.") ]
+Public Declare PtrSafe Function D2D1IsMatrixInvertible Lib "D2d1.dll" (ByRef matrix As D2D1_MATRIX_3X2_F) As Long
+[ Description ("Tries to invert the specified matrix.") ]
+Public Declare PtrSafe Function D2D1InvertMatrix Lib "D2d1.dll" (ByRef matrix As D2D1_MATRIX_3X2_F) As Long
+Public Declare PtrSafe Function D2D1CreateDevice Lib "D2d1.dll" (ByVal dxgiDevice As IDXGIDevice, ByRef creationProperties As Any, ByRef d2dDevice As ID2D1Device) As Long
+Public Declare PtrSafe Function D2D1CreateDeviceContext Lib "D2d1.dll" (ByVal dxgiSurface As IDXGISurface, ByRef creationProperties As Any, ByRef d2dDeviceContext As ID2D1DeviceContext) As Long
+Public Declare PtrSafe Function D2D1ConvertColorSpace Lib "D2d1.dll" (ByVal sourceColorSpace As D2D1_COLOR_SPACE, ByVal destinationColorSpace As D2D1_COLOR_SPACE, ByRef color As D2D1_COLOR_F) As D2D1_COLOR_F
+Public Declare PtrSafe Sub D2D1SinCos Lib "D2d1.dll" (ByVal angle As Single, ByRef s As Single, ByRef c As Single)
+Public Declare PtrSafe Function D2D1Tan Lib "D2d1.dll" (ByVal angle As Single) As Single
+Public Declare PtrSafe Function D2D1Vec3Length Lib "D2d1.dll" (ByVal x As Single, ByVal y As Single, ByVal z As Single) As Single
+Public Declare PtrSafe Function D2D1ComputeMaximumScaleFactor Lib "D2d1.dll" (ByRef matrix As D2D1_MATRIX_3X2_F) As Single
 
 Public Const D2D1_DEFAULT_FLATTENING_TOLERANCE As single = 0.25
-    Public Const DWRITE_ALPHA_MAX As Long = 255
-    Public Const DWRITE_E_FILEFORMAT = &H88995000
-    Public Const DWRITE_E_UNEXPECTED = &H88995001
-    Public Const DWRITE_E_NOFONT = &H88995002
-    Public Const DWRITE_E_FILENOTFOUND = &H88995003
-    Public Const DWRITE_E_FILEACCESS = &H88995004
-    Public Const DWRITE_E_FONTCOLLECTIONOBSOLETE = &H88995005
-    Public Const DWRITE_E_ALREADYREGISTERED = &H88995006
+Public Const DWRITE_ALPHA_MAX As Long = 255
+Public Const DWRITE_E_FILEFORMAT = &H88995000
+Public Const DWRITE_E_UNEXPECTED = &H88995001
+Public Const DWRITE_E_NOFONT = &H88995002
+Public Const DWRITE_E_FILENOTFOUND = &H88995003
+Public Const DWRITE_E_FILEACCESS = &H88995004
+Public Const DWRITE_E_FONTCOLLECTIONOBSOLETE = &H88995005
+Public Const DWRITE_E_ALREADYREGISTERED = &H88995006
 
-    Public Declare PtrSafe Function DWriteCreateFactory Lib "Dwrite.dll" (ByVal factoryType As DWRITE_FACTORY_TYPE, ByRef iid As UUID, ppUnk As IUnknown) As Long
+Public Declare PtrSafe Function DWriteCreateFactory Lib "Dwrite.dll" (ByVal factoryType As DWRITE_FACTORY_TYPE, ByRef iid As UUID, ppUnk As IUnknown) As Long
 
-    Public Const FACILITY_D2D = 2201
-    Public Const D2D1_APPEND_ALIGNED_ELEMENT As Long = -1
-    Public Const D2DERR_UNSUPPORTED_PIXEL_FORMAT = &H88982f80
-    Public Const D2DERR_INSUFFICIENT_BUFFER = &H8007007a
-    Public Const D2DERR_WRONG_STATE = &H88990001
-    Public Const D2DERR_NOT_INITIALIZED = &H88990002
-    Public Const D2DERR_UNSUPPORTED_OPERATION = &H88990003
-    Public Const D2DERR_SCANNER_FAILED = &H88990004
-    Public Const D2DERR_SCREEN_ACCESS_DENIED = &H88990005
-    Public Const D2DERR_DISPLAY_STATE_INVALID = &H88990006
-    Public Const D2DERR_ZERO_VECTOR = &H88990007
-    Public Const D2DERR_INTERNAL_ERROR = &H88990008
-    Public Const D2DERR_DISPLAY_FORMAT_NOT_SUPPORTED = &H88990009
-    Public Const D2DERR_INVALID_CALL = &H8899000a
-    Public Const D2DERR_NO_HARDWARE_DEVICE = &H8899000b
-    Public Const D2DERR_RECREATE_TARGET = &H8899000c
-    Public Const D2DERR_TOO_MANY_SHADER_ELEMENTS = &H8899000d
-    Public Const D2DERR_SHADER_COMPILE_FAILED = &H8899000e
-    Public Const D2DERR_MAX_TEXTURE_SIZE_EXCEEDED = &H8899000f
-    Public Const D2DERR_UNSUPPORTED_VERSION = &H88990010
-    Public Const D2DERR_BAD_NUMBER = &H88990011
-    Public Const D2DERR_WRONG_FACTORY = &H88990012
-    Public Const D2DERR_LAYER_ALREADY_IN_USE = &H88990013
-    Public Const D2DERR_POP_CALL_DID_NOT_MATCH_PUSH = &H88990014
-    Public Const D2DERR_WRONG_RESOURCE_DOMAIN = &H88990015
-    Public Const D2DERR_PUSH_POP_UNBALANCED = &H88990016
-    Public Const D2DERR_RENDER_TARGET_HAS_LAYER_OR_CLIPRECT = &H88990017
-    Public Const D2DERR_INCOMPATIBLE_BRUSH_TYPES = &H88990018
-    Public Const D2DERR_WIN32_ERROR = &H88990019
-    Public Const D2DERR_TARGET_NOT_GDI_COMPATIBLE = &H8899001a
-    Public Const D2DERR_TEXT_EFFECT_IS_WRONG_TYPE = &H8899001b
-    Public Const D2DERR_TEXT_RENDERER_NOT_RELEASED = &H8899001c
-    Public Const D2DERR_EXCEEDS_MAX_BITMAP_SIZE = &H8899001d
-    
-    Public Enum PageCountType
-        FinalPageCount = 0
-        IntermediatePageCount = 1
-    End Enum
+Public Const FACILITY_D2D = 2201
+Public Const D2D1_APPEND_ALIGNED_ELEMENT As Long = -1
+Public Const D2DERR_UNSUPPORTED_PIXEL_FORMAT = &H88982f80
+Public Const D2DERR_INSUFFICIENT_BUFFER = &H8007007a
+Public Const D2DERR_WRONG_STATE = &H88990001
+Public Const D2DERR_NOT_INITIALIZED = &H88990002
+Public Const D2DERR_UNSUPPORTED_OPERATION = &H88990003
+Public Const D2DERR_SCANNER_FAILED = &H88990004
+Public Const D2DERR_SCREEN_ACCESS_DENIED = &H88990005
+Public Const D2DERR_DISPLAY_STATE_INVALID = &H88990006
+Public Const D2DERR_ZERO_VECTOR = &H88990007
+Public Const D2DERR_INTERNAL_ERROR = &H88990008
+Public Const D2DERR_DISPLAY_FORMAT_NOT_SUPPORTED = &H88990009
+Public Const D2DERR_INVALID_CALL = &H8899000a
+Public Const D2DERR_NO_HARDWARE_DEVICE = &H8899000b
+Public Const D2DERR_RECREATE_TARGET = &H8899000c
+Public Const D2DERR_TOO_MANY_SHADER_ELEMENTS = &H8899000d
+Public Const D2DERR_SHADER_COMPILE_FAILED = &H8899000e
+Public Const D2DERR_MAX_TEXTURE_SIZE_EXCEEDED = &H8899000f
+Public Const D2DERR_UNSUPPORTED_VERSION = &H88990010
+Public Const D2DERR_BAD_NUMBER = &H88990011
+Public Const D2DERR_WRONG_FACTORY = &H88990012
+Public Const D2DERR_LAYER_ALREADY_IN_USE = &H88990013
+Public Const D2DERR_POP_CALL_DID_NOT_MATCH_PUSH = &H88990014
+Public Const D2DERR_WRONG_RESOURCE_DOMAIN = &H88990015
+Public Const D2DERR_PUSH_POP_UNBALANCED = &H88990016
+Public Const D2DERR_RENDER_TARGET_HAS_LAYER_OR_CLIPRECT = &H88990017
+Public Const D2DERR_INCOMPATIBLE_BRUSH_TYPES = &H88990018
+Public Const D2DERR_WIN32_ERROR = &H88990019
+Public Const D2DERR_TARGET_NOT_GDI_COMPATIBLE = &H8899001a
+Public Const D2DERR_TEXT_EFFECT_IS_WRONG_TYPE = &H8899001b
+Public Const D2DERR_TEXT_RENDERER_NOT_RELEASED = &H8899001c
+Public Const D2DERR_EXCEEDS_MAX_BITMAP_SIZE = &H8899001d
 
-    Public Enum DWRITE_FONT_FACE_TYPE
-                DWRITE_FONT_FACE_TYPE_CFF = 0
-                DWRITE_FONT_FACE_TYPE_TRUETYPE = 1
-                DWRITE_FONT_FACE_TYPE_TRUETYPE_COLLECTION = 2
-                DWRITE_FONT_FACE_TYPE_TYPE1 = 3
-                DWRITE_FONT_FACE_TYPE_VECTOR = 4
-                DWRITE_FONT_FACE_TYPE_BITMAP = 5
-                DWRITE_FONT_FACE_TYPE_UNKNOWN = 6
-    End Enum
-
-    Public Enum DWRITE_FONT_WEIGHT
-                DWRITE_FONT_WEIGHT_THIN = 100
-                DWRITE_FONT_WEIGHT_EXTRA_LIGHT = 200
-                DWRITE_FONT_WEIGHT_ULTRA_LIGHT = 200
-                DWRITE_FONT_WEIGHT_LIGHT = 300
-                DWRITE_FONT_WEIGHT_NORMAL = 400
-                DWRITE_FONT_WEIGHT_REGULAR = 400
-                DWRITE_FONT_WEIGHT_MEDIUM = 500
-                DWRITE_FONT_WEIGHT_DEMI_BOLD = 600
-                DWRITE_FONT_WEIGHT_SEMI_BOLD = 600
-                DWRITE_FONT_WEIGHT_BOLD = 700
-                DWRITE_FONT_WEIGHT_EXTRA_BOLD = 800
-                DWRITE_FONT_WEIGHT_ULTRA_BOLD = 800
-                DWRITE_FONT_WEIGHT_BLACK = 900
-                DWRITE_FONT_WEIGHT_HEAVY = 900
-                DWRITE_FONT_WEIGHT_EXTRA_BLACK = 950
-                DWRITE_FONT_WEIGHT_ULTRA_BLACK = 950
-    End Enum
-
-    Public Enum DWRITE_FONT_STRETCH
-                DWRITE_FONT_STRETCH_UNDEFINED = 0
-                DWRITE_FONT_STRETCH_ULTRA_CONDENSED = 1
-                DWRITE_FONT_STRETCH_EXTRA_CONDENSED = 2
-                DWRITE_FONT_STRETCH_CONDENSED = 3
-                DWRITE_FONT_STRETCH_SEMI_CONDENSED = 4
-                DWRITE_FONT_STRETCH_NORMAL = 5
-                DWRITE_FONT_STRETCH_MEDIUM = 5
-                DWRITE_FONT_STRETCH_SEMI_EXPANDED = 6
-                DWRITE_FONT_STRETCH_EXPANDED = 7
-                DWRITE_FONT_STRETCH_EXTRA_EXPANDED = 8
-                DWRITE_FONT_STRETCH_ULTRA_EXPANDED = 9
-    End Enum
-
-
-    Public Enum DWRITE_GLYPH_IMAGE_FORMATS
-                DWRITE_GLYPH_IMAGE_FORMATS_NONE = 0
-                DWRITE_GLYPH_IMAGE_FORMATS_TRUETYPE = 1
-                DWRITE_GLYPH_IMAGE_FORMATS_CFF = 2
-                DWRITE_GLYPH_IMAGE_FORMATS_COLR = 4
-                DWRITE_GLYPH_IMAGE_FORMATS_SVG = 8
-                DWRITE_GLYPH_IMAGE_FORMATS_PNG = 16
-                DWRITE_GLYPH_IMAGE_FORMATS_JPEG = 32
-                DWRITE_GLYPH_IMAGE_FORMATS_TIFF = 64
-                DWRITE_GLYPH_IMAGE_FORMATS_PREMULTIPLIED_B8G8R8A8 = 128
-    End Enum
-    
-    Public Enum DWRITE_FONT_STYLE
-                DWRITE_FONT_STYLE_NORMAL = 0
-                DWRITE_FONT_STYLE_OBLIQUE = 1
-                DWRITE_FONT_STYLE_ITALIC = 2
-    End Enum
-
-    Public Enum DWRITE_MEASURING_MODE
-                DWRITE_MEASURING_MODE_NATURAL = 0
-                DWRITE_MEASURING_MODE_GDI_CLASSIC = 1
-                DWRITE_MEASURING_MODE_GDI_NATURAL = 2
-    End Enum
-
-    Public Enum DWRITE_INFORMATIONAL_STRING_ID
-                DWRITE_INFORMATIONAL_STRING_NONE = 0
-                DWRITE_INFORMATIONAL_STRING_COPYRIGHT_NOTICE = 1
-                DWRITE_INFORMATIONAL_STRING_VERSION_STRINGS = 2
-                DWRITE_INFORMATIONAL_STRING_TRADEMARK = 3
-                DWRITE_INFORMATIONAL_STRING_MANUFACTURER = 4
-                DWRITE_INFORMATIONAL_STRING_DESIGNER = 5
-                DWRITE_INFORMATIONAL_STRING_DESIGNER_URL = 6
-                DWRITE_INFORMATIONAL_STRING_DESCRIPTION = 7
-                DWRITE_INFORMATIONAL_STRING_FONT_VENDOR_URL = 8
-                DWRITE_INFORMATIONAL_STRING_LICENSE_DESCRIPTION = 9
-                DWRITE_INFORMATIONAL_STRING_LICENSE_INFO_URL = 10
-                DWRITE_INFORMATIONAL_STRING_WIN32_FAMILY_NAMES = 11
-                DWRITE_INFORMATIONAL_STRING_WIN32_SUBFAMILY_NAMES = 12
-                DWRITE_INFORMATIONAL_STRING_PREFERRED_FAMILY_NAMES = 13
-                DWRITE_INFORMATIONAL_STRING_PREFERRED_SUBFAMILY_NAMES = 14
-                DWRITE_INFORMATIONAL_STRING_SAMPLE_TEXT = 15
-    End Enum
-
-    Public Enum DWRITE_FONT_SIMULATIONS
-                DWRITE_FONT_SIMULATIONS_NONE = 0
-                DWRITE_FONT_SIMULATIONS_BOLD = 1
-                DWRITE_FONT_SIMULATIONS_OBLIQUE = 2
-    End Enum
-
-    Public Type DWRITE_FONT_METRICS
-                designUnitsPerEm As Integer
-                ascent As Integer
-                descent As Integer
-                lineGap As Integer
-                capHeight As Integer
-                xHeight As Integer
-                underlinePosition As Integer
-                underlineThickness As Integer
-                strikethroughPosition As Integer
-                strikethroughThickness As Integer
-    End Type
-
-    Public Enum DWRITE_PIXEL_GEOMETRY
-                DWRITE_PIXEL_GEOMETRY_FLAT = 0
-                DWRITE_PIXEL_GEOMETRY_RGB = 1
-                DWRITE_PIXEL_GEOMETRY_BGR = 2
-    End Enum
-
-    Public Enum DWRITE_RENDERING_MODE
-                DWRITE_RENDERING_MODE_DEFAULT = 0
-                DWRITE_RENDERING_MODE_ALIASED = 1
-                DWRITE_RENDERING_MODE_CLEARTYPE_GDI_CLASSIC = 2
-                DWRITE_RENDERING_MODE_CLEARTYPE_GDI_NATURAL = 3
-                DWRITE_RENDERING_MODE_CLEARTYPE_NATURAL = 4
-                DWRITE_RENDERING_MODE_CLEARTYPE_NATURAL_SYMMETRIC = 5
-                DWRITE_RENDERING_MODE_OUTLINE = 6
-    End Enum
-
-    Public Enum DWRITE_SCRIPT_SHAPES
-                DWRITE_SCRIPT_SHAPES_DEFAULT = 0
-                DWRITE_SCRIPT_SHAPES_NO_VISUAL = 1
-    End Enum
-
-    Public Type DWRITE_SCRIPT_ANALYSIS
-        Script As Integer
-                            
-        shapes As DWRITE_SCRIPT_SHAPES
-    End Type
-
-    Public Type DWRITE_SHAPING_TEXT_PROPERTIES
-        bitfield As Integer
-    End Type
-
-    Public Type DWRITE_SHAPING_GLYPH_PROPERTIES
-        flags As Integer
-    End Type
-
-    Public Type DWRITE_GLYPH_OFFSET
-        advanceOffset As Single
-        ascenderOffset As Single
-    End Type
-
-    Public Enum DWRITE_NUMBER_SUBSTITUTION_METHOD
-        DWRITE_NUMBER_SUBSTITUTION_METHOD_FROM_CULTURE = 0
-        DWRITE_NUMBER_SUBSTITUTION_METHOD_CONTEXTUAL = 1
-        DWRITE_NUMBER_SUBSTITUTION_METHOD_NONE = 2
-        DWRITE_NUMBER_SUBSTITUTION_METHOD_NATIONAL = 3
-        DWRITE_NUMBER_SUBSTITUTION_METHOD_TRADITIONAL = 4
+Public Enum PageCountType
+    FinalPageCount = 0
+    IntermediatePageCount = 1
 End Enum
 
-    Public Type DWRITE_MATRIX
-        m11 As Single
-        m12 As Single
-        m21 As Single
-        m22 As Single
-        dx As Single
-        dy As Single
-    End Type
-
-    Public Type DWRITE_GLYPH_RUN
-        fontFace As IDWriteFontFace
-        fontEmSize As Single
-        glyphCount As Long
-        pglyphIndices As LongPtr
-        pglyphAdvances As LongPtr
-        pglyphOffsets As LongPtr
-        isSideways As Long
-        bidiLevel As Long
-    End Type
-
-    Public Type DWRITE_GLYPH_RUN_DESCRIPTION
-        plocaleName As LongPtr
-        pString As LongPtr
-        stringLength As Long
-        pclusterMap As LongPtr
-        textPosition As Long
-    End Type
-
-    Public Enum DWRITE_TEXT_ALIGNMENT
-        DWRITE_TEXT_ALIGNMENT_LEADING = 0
-        DWRITE_TEXT_ALIGNMENT_TRAILING = 1
-        DWRITE_TEXT_ALIGNMENT_CENTER = 2
+Public Enum DWRITE_FONT_FACE_TYPE
+    DWRITE_FONT_FACE_TYPE_CFF = 0
+    DWRITE_FONT_FACE_TYPE_TRUETYPE = 1
+    DWRITE_FONT_FACE_TYPE_TRUETYPE_COLLECTION = 2
+    DWRITE_FONT_FACE_TYPE_TYPE1 = 3
+    DWRITE_FONT_FACE_TYPE_VECTOR = 4
+    DWRITE_FONT_FACE_TYPE_BITMAP = 5
+    DWRITE_FONT_FACE_TYPE_UNKNOWN = 6
 End Enum
 
-    Public Enum DWRITE_PARAGRAPH_ALIGNMENT
-                DWRITE_PARAGRAPH_ALIGNMENT_NEAR = 0
-                DWRITE_PARAGRAPH_ALIGNMENT_FAR = 1
-                DWRITE_PARAGRAPH_ALIGNMENT_CENTER = 2
-    End Enum
+Public Enum DWRITE_FONT_WEIGHT
+    DWRITE_FONT_WEIGHT_THIN = 100
+    DWRITE_FONT_WEIGHT_EXTRA_LIGHT = 200
+    DWRITE_FONT_WEIGHT_ULTRA_LIGHT = 200
+    DWRITE_FONT_WEIGHT_LIGHT = 300
+    DWRITE_FONT_WEIGHT_NORMAL = 400
+    DWRITE_FONT_WEIGHT_REGULAR = 400
+    DWRITE_FONT_WEIGHT_MEDIUM = 500
+    DWRITE_FONT_WEIGHT_DEMI_BOLD = 600
+    DWRITE_FONT_WEIGHT_SEMI_BOLD = 600
+    DWRITE_FONT_WEIGHT_BOLD = 700
+    DWRITE_FONT_WEIGHT_EXTRA_BOLD = 800
+    DWRITE_FONT_WEIGHT_ULTRA_BOLD = 800
+    DWRITE_FONT_WEIGHT_BLACK = 900
+    DWRITE_FONT_WEIGHT_HEAVY = 900
+    DWRITE_FONT_WEIGHT_EXTRA_BLACK = 950
+    DWRITE_FONT_WEIGHT_ULTRA_BLACK = 950
+End Enum
 
-    Public Enum DWRITE_WORD_WRAPPING
-                DWRITE_WORD_WRAPPING_WRAP = 0
-                DWRITE_WORD_WRAPPING_NO_WRAP = 1
-    End Enum
+Public Enum DWRITE_FONT_STRETCH
+    DWRITE_FONT_STRETCH_UNDEFINED = 0
+    DWRITE_FONT_STRETCH_ULTRA_CONDENSED = 1
+    DWRITE_FONT_STRETCH_EXTRA_CONDENSED = 2
+    DWRITE_FONT_STRETCH_CONDENSED = 3
+    DWRITE_FONT_STRETCH_SEMI_CONDENSED = 4
+    DWRITE_FONT_STRETCH_NORMAL = 5
+    DWRITE_FONT_STRETCH_MEDIUM = 5
+    DWRITE_FONT_STRETCH_SEMI_EXPANDED = 6
+    DWRITE_FONT_STRETCH_EXPANDED = 7
+    DWRITE_FONT_STRETCH_EXTRA_EXPANDED = 8
+    DWRITE_FONT_STRETCH_ULTRA_EXPANDED = 9
+End Enum
 
-    Public Enum DWRITE_READING_DIRECTION
-                DWRITE_READING_DIRECTION_LEFT_TO_RIGHT = 0
-                DWRITE_READING_DIRECTION_RIGHT_TO_LEFT = 1
-    End Enum
 
-    Public Enum DWRITE_FLOW_DIRECTION
-                DWRITE_FLOW_DIRECTION_TOP_TO_BOTTOM = 0
-    End Enum
+Public Enum DWRITE_GLYPH_IMAGE_FORMATS
+    DWRITE_GLYPH_IMAGE_FORMATS_NONE = 0
+    DWRITE_GLYPH_IMAGE_FORMATS_TRUETYPE = 1
+    DWRITE_GLYPH_IMAGE_FORMATS_CFF = 2
+    DWRITE_GLYPH_IMAGE_FORMATS_COLR = 4
+    DWRITE_GLYPH_IMAGE_FORMATS_SVG = 8
+    DWRITE_GLYPH_IMAGE_FORMATS_PNG = 16
+    DWRITE_GLYPH_IMAGE_FORMATS_JPEG = 32
+    DWRITE_GLYPH_IMAGE_FORMATS_TIFF = 64
+    DWRITE_GLYPH_IMAGE_FORMATS_PREMULTIPLIED_B8G8R8A8 = 128
+End Enum
 
-    Public Enum DWRITE_TRIMMING_GRANULARITY
-                DWRITE_TRIMMING_GRANULARITY_NONE = 0
-                DWRITE_TRIMMING_GRANULARITY_CHARACTER = 1
-                DWRITE_TRIMMING_GRANULARITY_WORD = 2
-    End Enum
+Public Enum DWRITE_FONT_STYLE
+    DWRITE_FONT_STYLE_NORMAL = 0
+    DWRITE_FONT_STYLE_OBLIQUE = 1
+    DWRITE_FONT_STYLE_ITALIC = 2
+End Enum
 
-    Public Type DWRITE_TRIMMING
-                granularity As DWRITE_TRIMMING_GRANULARITY
-                delimiter As Long
-                delimiterCount As Long
-            End Type
+Public Enum DWRITE_MEASURING_MODE
+    DWRITE_MEASURING_MODE_NATURAL = 0
+    DWRITE_MEASURING_MODE_GDI_CLASSIC = 1
+    DWRITE_MEASURING_MODE_GDI_NATURAL = 2
+End Enum
 
-    Public Type DWRITE_UNDERLINE
-                width As Single
-                thickness As Single
-                Offset As Single
-                runHeight As Single
-                readingDirection As DWRITE_READING_DIRECTION
-                flowDirection As DWRITE_FLOW_DIRECTION
-                plocaleName As Long
-                measuringMode As DWRITE_MEASURING_MODE
-            End Type
+Public Enum DWRITE_INFORMATIONAL_STRING_ID
+    DWRITE_INFORMATIONAL_STRING_NONE = 0
+    DWRITE_INFORMATIONAL_STRING_COPYRIGHT_NOTICE = 1
+    DWRITE_INFORMATIONAL_STRING_VERSION_STRINGS = 2
+    DWRITE_INFORMATIONAL_STRING_TRADEMARK = 3
+    DWRITE_INFORMATIONAL_STRING_MANUFACTURER = 4
+    DWRITE_INFORMATIONAL_STRING_DESIGNER = 5
+    DWRITE_INFORMATIONAL_STRING_DESIGNER_URL = 6
+    DWRITE_INFORMATIONAL_STRING_DESCRIPTION = 7
+    DWRITE_INFORMATIONAL_STRING_FONT_VENDOR_URL = 8
+    DWRITE_INFORMATIONAL_STRING_LICENSE_DESCRIPTION = 9
+    DWRITE_INFORMATIONAL_STRING_LICENSE_INFO_URL = 10
+    DWRITE_INFORMATIONAL_STRING_WIN32_FAMILY_NAMES = 11
+    DWRITE_INFORMATIONAL_STRING_WIN32_SUBFAMILY_NAMES = 12
+    DWRITE_INFORMATIONAL_STRING_PREFERRED_FAMILY_NAMES = 13
+    DWRITE_INFORMATIONAL_STRING_PREFERRED_SUBFAMILY_NAMES = 14
+    DWRITE_INFORMATIONAL_STRING_SAMPLE_TEXT = 15
+End Enum
 
-    Public Type DWRITE_STRIKETHROUGH
-                width As Single
-                thickness As Single
-                Offset As Single
-                readingDirection As DWRITE_READING_DIRECTION
-                flowDirection As DWRITE_FLOW_DIRECTION
-                plocaleName As Long
-                measuringMode As DWRITE_MEASURING_MODE
-            End Type
+Public Enum DWRITE_FONT_SIMULATIONS
+    DWRITE_FONT_SIMULATIONS_NONE = 0
+    DWRITE_FONT_SIMULATIONS_BOLD = 1
+    DWRITE_FONT_SIMULATIONS_OBLIQUE = 2
+End Enum
 
-    Public Type DWRITE_INLINE_OBJECT_METRICS
-                width As Single
-                Height As Single
-                baseline As Single
-                supportsSideways As Long
-            End Type
+Public Type DWRITE_FONT_METRICS
+    designUnitsPerEm As Integer
+    ascent As Integer
+    descent As Integer
+    lineGap As Integer
+    capHeight As Integer
+    xHeight As Integer
+    underlinePosition As Integer
+    underlineThickness As Integer
+    strikethroughPosition As Integer
+    strikethroughThickness As Integer
+End Type
 
-    Public Type DWRITE_OVERHANG_METRICS
-                Left As Single
-                Top As Single
-                Right As Single
-                Bottom As Single
-            End Type
+Public Enum DWRITE_PIXEL_GEOMETRY
+    DWRITE_PIXEL_GEOMETRY_FLAT = 0
+    DWRITE_PIXEL_GEOMETRY_RGB = 1
+    DWRITE_PIXEL_GEOMETRY_BGR = 2
+End Enum
 
-    Public Enum DWRITE_BREAK_CONDITION
-                DWRITE_BREAK_CONDITION_NEUTRAL = 0
-                DWRITE_BREAK_CONDITION_CAN_BREAK = 1
-                DWRITE_BREAK_CONDITION_MAY_NOT_BREAK = 2
-                DWRITE_BREAK_CONDITION_MUST_BREAK = 3
-    End Enum
+Public Enum DWRITE_RENDERING_MODE
+    DWRITE_RENDERING_MODE_DEFAULT = 0
+    DWRITE_RENDERING_MODE_ALIASED = 1
+    DWRITE_RENDERING_MODE_CLEARTYPE_GDI_CLASSIC = 2
+    DWRITE_RENDERING_MODE_CLEARTYPE_GDI_NATURAL = 3
+    DWRITE_RENDERING_MODE_CLEARTYPE_NATURAL = 4
+    DWRITE_RENDERING_MODE_CLEARTYPE_NATURAL_SYMMETRIC = 5
+    DWRITE_RENDERING_MODE_OUTLINE = 6
+End Enum
 
-    Public Enum DWRITE_LINE_SPACING_METHOD
-                DWRITE_LINE_SPACING_METHOD_DEFAULT = 0
-                DWRITE_LINE_SPACING_METHOD_UNIFORM = 1
-    End Enum
+Public Enum DWRITE_SCRIPT_SHAPES
+    DWRITE_SCRIPT_SHAPES_DEFAULT = 0
+    DWRITE_SCRIPT_SHAPES_NO_VISUAL = 1
+End Enum
+
+Public Type DWRITE_SCRIPT_ANALYSIS
+    Script As Integer
+                    
+    shapes As DWRITE_SCRIPT_SHAPES
+End Type
+
+Public Type DWRITE_SHAPING_TEXT_PROPERTIES
+    bitfield As Integer
+End Type
+
+Public Type DWRITE_SHAPING_GLYPH_PROPERTIES
+    flags As Integer
+End Type
+
+Public Type DWRITE_GLYPH_OFFSET
+    advanceOffset As Single
+    ascenderOffset As Single
+End Type
+
+Public Enum DWRITE_NUMBER_SUBSTITUTION_METHOD
+    DWRITE_NUMBER_SUBSTITUTION_METHOD_FROM_CULTURE = 0
+    DWRITE_NUMBER_SUBSTITUTION_METHOD_CONTEXTUAL = 1
+    DWRITE_NUMBER_SUBSTITUTION_METHOD_NONE = 2
+    DWRITE_NUMBER_SUBSTITUTION_METHOD_NATIONAL = 3
+    DWRITE_NUMBER_SUBSTITUTION_METHOD_TRADITIONAL = 4
+End Enum
+
+Public Type DWRITE_MATRIX
+    m11 As Single
+    m12 As Single
+    m21 As Single
+    m22 As Single
+    dx As Single
+    dy As Single
+End Type
+
+Public Type DWRITE_GLYPH_RUN
+    fontFace As IDWriteFontFace
+    fontEmSize As Single
+    glyphCount As Long
+    pglyphIndices As LongPtr
+    pglyphAdvances As LongPtr
+    pglyphOffsets As LongPtr
+    isSideways As Long
+    bidiLevel As Long
+End Type
+
+Public Type DWRITE_GLYPH_RUN_DESCRIPTION
+    plocaleName As LongPtr
+    pString As LongPtr
+    stringLength As Long
+    pclusterMap As LongPtr
+    textPosition As Long
+End Type
+
+Public Enum DWRITE_TEXT_ALIGNMENT
+    DWRITE_TEXT_ALIGNMENT_LEADING = 0
+    DWRITE_TEXT_ALIGNMENT_TRAILING = 1
+    DWRITE_TEXT_ALIGNMENT_CENTER = 2
+End Enum
+
+Public Enum DWRITE_PARAGRAPH_ALIGNMENT
+    DWRITE_PARAGRAPH_ALIGNMENT_NEAR = 0
+    DWRITE_PARAGRAPH_ALIGNMENT_FAR = 1
+    DWRITE_PARAGRAPH_ALIGNMENT_CENTER = 2
+End Enum
+
+Public Enum DWRITE_WORD_WRAPPING
+    DWRITE_WORD_WRAPPING_WRAP = 0
+    DWRITE_WORD_WRAPPING_NO_WRAP = 1
+End Enum
+
+Public Enum DWRITE_READING_DIRECTION
+    DWRITE_READING_DIRECTION_LEFT_TO_RIGHT = 0
+    DWRITE_READING_DIRECTION_RIGHT_TO_LEFT = 1
+End Enum
+
+Public Enum DWRITE_FLOW_DIRECTION
+    DWRITE_FLOW_DIRECTION_TOP_TO_BOTTOM = 0
+End Enum
+
+Public Enum DWRITE_TRIMMING_GRANULARITY
+    DWRITE_TRIMMING_GRANULARITY_NONE = 0
+    DWRITE_TRIMMING_GRANULARITY_CHARACTER = 1
+    DWRITE_TRIMMING_GRANULARITY_WORD = 2
+End Enum
+
+Public Type DWRITE_TRIMMING
+    granularity As DWRITE_TRIMMING_GRANULARITY
+    delimiter As Long
+    delimiterCount As Long
+End Type
+
+Public Type DWRITE_UNDERLINE
+    width As Single
+    thickness As Single
+    Offset As Single
+    runHeight As Single
+    readingDirection As DWRITE_READING_DIRECTION
+    flowDirection As DWRITE_FLOW_DIRECTION
+    plocaleName As Long
+    measuringMode As DWRITE_MEASURING_MODE
+End Type
+
+Public Type DWRITE_STRIKETHROUGH
+    width As Single
+    thickness As Single
+    Offset As Single
+    readingDirection As DWRITE_READING_DIRECTION
+    flowDirection As DWRITE_FLOW_DIRECTION
+    plocaleName As Long
+    measuringMode As DWRITE_MEASURING_MODE
+End Type
+
+Public Type DWRITE_INLINE_OBJECT_METRICS
+    width As Single
+    Height As Single
+    baseline As Single
+    supportsSideways As Long
+End Type
+
+Public Type DWRITE_OVERHANG_METRICS
+    Left As Single
+    Top As Single
+    Right As Single
+    Bottom As Single
+End Type
+
+Public Enum DWRITE_BREAK_CONDITION
+    DWRITE_BREAK_CONDITION_NEUTRAL = 0
+    DWRITE_BREAK_CONDITION_CAN_BREAK = 1
+    DWRITE_BREAK_CONDITION_MAY_NOT_BREAK = 2
+    DWRITE_BREAK_CONDITION_MUST_BREAK = 3
+End Enum
+
+Public Enum DWRITE_LINE_SPACING_METHOD
+    DWRITE_LINE_SPACING_METHOD_DEFAULT = 0
+    DWRITE_LINE_SPACING_METHOD_UNIFORM = 1
+End Enum
 
 Public Enum DWRITE_FONT_FEATURE_TAG
 	DWRITE_FONT_FEATURE_TAG_ALTERNATIVE_FRACTIONS = &H63726661
@@ -3195,122 +3280,122 @@ Public Enum DWRITE_FONT_FEATURE_TAG
 	DWRITE_FONT_FEATURE_TAG_SLASHED_ZERO = &H6f72657a
 End Enum
 
-    Public Type DWRITE_FONT_FEATURE
-                nameTag As DWRITE_FONT_FEATURE_TAG
-                Parameter As Long
-            End Type
+Public Type DWRITE_FONT_FEATURE
+    nameTag As DWRITE_FONT_FEATURE_TAG
+    Parameter As Long
+End Type
 
-    Public Enum DWRITE_FONT_FILE_TYPE
-                DWRITE_FONT_FILE_TYPE_UNKNOWN = 0
-                DWRITE_FONT_FILE_TYPE_CFF = 1
-                DWRITE_FONT_FILE_TYPE_TRUETYPE = 2
-                DWRITE_FONT_FILE_TYPE_TRUETYPE_COLLECTION = 3
-                DWRITE_FONT_FILE_TYPE_TYPE1_PFM = 4
-                DWRITE_FONT_FILE_TYPE_TYPE1_PFB = 5
-                DWRITE_FONT_FILE_TYPE_VECTOR = 6
-                DWRITE_FONT_FILE_TYPE_BITMAP = 7
-    End Enum
+Public Enum DWRITE_FONT_FILE_TYPE
+    DWRITE_FONT_FILE_TYPE_UNKNOWN = 0
+    DWRITE_FONT_FILE_TYPE_CFF = 1
+    DWRITE_FONT_FILE_TYPE_TRUETYPE = 2
+    DWRITE_FONT_FILE_TYPE_TRUETYPE_COLLECTION = 3
+    DWRITE_FONT_FILE_TYPE_TYPE1_PFM = 4
+    DWRITE_FONT_FILE_TYPE_TYPE1_PFB = 5
+    DWRITE_FONT_FILE_TYPE_VECTOR = 6
+    DWRITE_FONT_FILE_TYPE_BITMAP = 7
+End Enum
 
-    Public Type DWRITE_LINE_METRICS
-                Length As Long
-                trailingWhitespaceLength As Long
-                newlineLength As Long
-                Height As Single
-                baseline As Single
-                isTrimmed As Long
-            End Type
+Public Type DWRITE_LINE_METRICS
+    Length As Long
+    trailingWhitespaceLength As Long
+    newlineLength As Long
+    Height As Single
+    baseline As Single
+    isTrimmed As Long
+End Type
 
-    Public Type DWRITE_TEXT_METRICS
-                Left As Single
-                Top As Single
-                width As Single
-                widthIncludingTrailingWhitespace As Single
-                Height As Single
-                layoutWidth As Single
-                layoutHeight As Single
-                maxBidiReorderingDepth As Long
-                lineCount As Long
-            End Type
+Public Type DWRITE_TEXT_METRICS
+    Left As Single
+    Top As Single
+    width As Single
+    widthIncludingTrailingWhitespace As Single
+    Height As Single
+    layoutWidth As Single
+    layoutHeight As Single
+    maxBidiReorderingDepth As Long
+    lineCount As Long
+End Type
 
-    Public Type DWRITE_CLUSTER_METRICS
-                width As Single
-                Length As Integer
-                flags As Integer
-            End Type
+Public Type DWRITE_CLUSTER_METRICS
+    width As Single
+    Length As Integer
+    flags As Integer
+End Type
 
-    Public Type DWRITE_HIT_TEST_METRICS
-                textPosition As Long
-                Length As Long
-                Left As Single
-                Top As Single
-                width As Single
-                Height As Single
-                bidiLevel As Long
-                isText As Long
-                isTrimmed As Long
-            End Type
+Public Type DWRITE_HIT_TEST_METRICS
+    textPosition As Long
+    Length As Long
+    Left As Single
+    Top As Single
+    width As Single
+    Height As Single
+    bidiLevel As Long
+    isText As Long
+    isTrimmed As Long
+End Type
 
-    Public Enum DWRITE_FACTORY_TYPE
-                DWRITE_FACTORY_TYPE_SHARED = 0
-                DWRITE_FACTORY_TYPE_ISOLATED = 1
-    End Enum
+Public Enum DWRITE_FACTORY_TYPE
+    DWRITE_FACTORY_TYPE_SHARED = 0
+    DWRITE_FACTORY_TYPE_ISOLATED = 1
+End Enum
 
-    Public Enum DWRITE_CLUSTER_METRICS_FLAGS
-                canWrapLineAfter = 1
-                isWhitespace = 2
-                isNewline = 4
-                isSoftHyphen = 8
-                isRightToLeft = 16
-    End Enum
+Public Enum DWRITE_CLUSTER_METRICS_FLAGS
+    canWrapLineAfter = 1
+    isWhitespace = 2
+    isNewline = 4
+    isSoftHyphen = 8
+    isRightToLeft = 16
+End Enum
 
-    Public Enum DWRITE_SHAPING_GLYPH_PROPERTIES_FLAGS
-                isClusterStart = 16
-                isDiacritic = 32
-                isZeroWidthSpace = 64
-                justification_mask = 15
-    End Enum
+Public Enum DWRITE_SHAPING_GLYPH_PROPERTIES_FLAGS
+    isClusterStart = 16
+    isDiacritic = 32
+    isZeroWidthSpace = 64
+    justification_mask = 15
+End Enum
 
-    Public Enum DWRITE_SHAPING_TEXT_PROPERTIES_FLAGS
-                isShapedAlone = 1
-    End Enum
+Public Enum DWRITE_SHAPING_TEXT_PROPERTIES_FLAGS
+    isShapedAlone = 1
+End Enum
 
-    Public Enum DWRITE_LINE_BREAKPOINT_FLAGS
-                breakConditionBefore_mask = 3
-                breakConditionBefore_shift = 1
-                breakConditionAfter_mask = 12
-                breakConditionAfter_shift = 4
-                lbisWhitespace = 16
-                lbisSoftHyphen = 32
-    End Enum
+Public Enum DWRITE_LINE_BREAKPOINT_FLAGS
+    breakConditionBefore_mask = 3
+    breakConditionBefore_shift = 1
+    breakConditionAfter_mask = 12
+    breakConditionAfter_shift = 4
+    lbisWhitespace = 16
+    lbisSoftHyphen = 32
+End Enum
 
-    Public Type DWRITE_GLYPH_METRICS
-                leftSideBearing As Long
-                advanceWidth As Long
-                rightSideBearing As Long
-                topSideBearing As Long
-                advanceHeight As Long
-                bottomSideBearing As Long
-                verticalOriginY As Long
-            End Type
+Public Type DWRITE_GLYPH_METRICS
+    leftSideBearing As Long
+    advanceWidth As Long
+    rightSideBearing As Long
+    topSideBearing As Long
+    advanceHeight As Long
+    bottomSideBearing As Long
+    verticalOriginY As Long
+End Type
 
-    Public Type DWRITE_TEXT_RANGE
-                startPosition As Long
-                Length As Long
-            End Type
+Public Type DWRITE_TEXT_RANGE
+    startPosition As Long
+    Length As Long
+End Type
 
-    Public Type DWRITE_TYPOGRAPHIC_FEATURES
-                features As LongPtr
-                featureCount As Long
-            End Type
+Public Type DWRITE_TYPOGRAPHIC_FEATURES
+    features As LongPtr
+    featureCount As Long
+End Type
 
-    Public Type DWRITE_LINE_BREAKPOINT
-                flags As Byte
-            End Type
+Public Type DWRITE_LINE_BREAKPOINT
+    flags As Byte
+End Type
 
-    Public Enum DWRITE_TEXTURE_TYPE
-                DWRITE_TEXTURE_ALIASED_1x1 = 0
-                DWRITE_TEXTURE_CLEARTYPE_3x1 = 1
-    End Enum
+Public Enum DWRITE_TEXTURE_TYPE
+    DWRITE_TEXTURE_ALIASED_1x1 = 0
+    DWRITE_TEXTURE_CLEARTYPE_3x1 = 1
+End Enum
 
 
 Public Const FACDXGI As Long = 2170
@@ -3359,534 +3444,534 @@ Public Declare PtrSafe Function DXGIGetDebugInterface1 Lib "dxgi.dll" (ByVal fla
 
 
 Public Type DXGI_RATIONAL
-                Numerator As Long
-                Denominator As Long
-            End Type
+    Numerator As Long
+    Denominator As Long
+End Type
 
 Public Type DXGI_SAMPLE_DESC
-                Count As Long
-                Quality As Long
-            End Type
+    Count As Long
+    Quality As Long
+End Type
 
-  Public Type DXGI_MATRIX_3X2_F
-                m_11 As Single
-                m_12 As Single
-                m_21 As Single
-                m_22 As Single
-                m_31 As Single
-                m_32 As Single
-            End Type
-    
+Public Type DXGI_MATRIX_3X2_F
+    m_11 As Single
+    m_12 As Single
+    m_21 As Single
+    m_22 As Single
+    m_31 As Single
+    m_32 As Single
+End Type
+
 Public Enum DXGI_COLOR_SPACE_TYPE
-                DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709 = 0
-                DXGI_COLOR_SPACE_RGB_FULL_G10_NONE_P709 = 1
-                DXGI_COLOR_SPACE_RGB_STUDIO_G22_NONE_P709 = 2
-                DXGI_COLOR_SPACE_RGB_STUDIO_G22_NONE_P2020 = 3
-                DXGI_COLOR_SPACE_RESERVED = 4
-                DXGI_COLOR_SPACE_YCBCR_FULL_G22_NONE_P709_X601 = 5
-                DXGI_COLOR_SPACE_YCBCR_STUDIO_G22_LEFT_P601 = 6
-                DXGI_COLOR_SPACE_YCBCR_FULL_G22_LEFT_P601 = 7
-                DXGI_COLOR_SPACE_YCBCR_STUDIO_G22_LEFT_P709 = 8
-                DXGI_COLOR_SPACE_YCBCR_FULL_G22_LEFT_P709 = 9
-                DXGI_COLOR_SPACE_YCBCR_STUDIO_G22_LEFT_P2020 = 10
-                DXGI_COLOR_SPACE_YCBCR_FULL_G22_LEFT_P2020 = 11
-                DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020 = 12
-                DXGI_COLOR_SPACE_YCBCR_STUDIO_G2084_LEFT_P2020 = 13
-                DXGI_COLOR_SPACE_RGB_STUDIO_G2084_NONE_P2020 = 14
-                DXGI_COLOR_SPACE_YCBCR_STUDIO_G22_TOPLEFT_P2020 = 15
-                DXGI_COLOR_SPACE_YCBCR_STUDIO_G2084_TOPLEFT_P2020 = 16
-                DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P2020 = 17
-                DXGI_COLOR_SPACE_YCBCR_STUDIO_GHLG_TOPLEFT_P2020 = 18
-                DXGI_COLOR_SPACE_YCBCR_FULL_GHLG_TOPLEFT_P2020 = 19
-                DXGI_COLOR_SPACE_RGB_STUDIO_G24_NONE_P709 = 20
-                DXGI_COLOR_SPACE_RGB_STUDIO_G24_NONE_P2020 = 21
-                DXGI_COLOR_SPACE_YCBCR_STUDIO_G24_LEFT_P709 = 22
-                DXGI_COLOR_SPACE_YCBCR_STUDIO_G24_LEFT_P2020 = 23
-                DXGI_COLOR_SPACE_YCBCR_STUDIO_G24_TOPLEFT_P2020 = 24
-                DXGI_COLOR_SPACE_CUSTOM = -1
-    End Enum
+    DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P709 = 0
+    DXGI_COLOR_SPACE_RGB_FULL_G10_NONE_P709 = 1
+    DXGI_COLOR_SPACE_RGB_STUDIO_G22_NONE_P709 = 2
+    DXGI_COLOR_SPACE_RGB_STUDIO_G22_NONE_P2020 = 3
+    DXGI_COLOR_SPACE_RESERVED = 4
+    DXGI_COLOR_SPACE_YCBCR_FULL_G22_NONE_P709_X601 = 5
+    DXGI_COLOR_SPACE_YCBCR_STUDIO_G22_LEFT_P601 = 6
+    DXGI_COLOR_SPACE_YCBCR_FULL_G22_LEFT_P601 = 7
+    DXGI_COLOR_SPACE_YCBCR_STUDIO_G22_LEFT_P709 = 8
+    DXGI_COLOR_SPACE_YCBCR_FULL_G22_LEFT_P709 = 9
+    DXGI_COLOR_SPACE_YCBCR_STUDIO_G22_LEFT_P2020 = 10
+    DXGI_COLOR_SPACE_YCBCR_FULL_G22_LEFT_P2020 = 11
+    DXGI_COLOR_SPACE_RGB_FULL_G2084_NONE_P2020 = 12
+    DXGI_COLOR_SPACE_YCBCR_STUDIO_G2084_LEFT_P2020 = 13
+    DXGI_COLOR_SPACE_RGB_STUDIO_G2084_NONE_P2020 = 14
+    DXGI_COLOR_SPACE_YCBCR_STUDIO_G22_TOPLEFT_P2020 = 15
+    DXGI_COLOR_SPACE_YCBCR_STUDIO_G2084_TOPLEFT_P2020 = 16
+    DXGI_COLOR_SPACE_RGB_FULL_G22_NONE_P2020 = 17
+    DXGI_COLOR_SPACE_YCBCR_STUDIO_GHLG_TOPLEFT_P2020 = 18
+    DXGI_COLOR_SPACE_YCBCR_FULL_GHLG_TOPLEFT_P2020 = 19
+    DXGI_COLOR_SPACE_RGB_STUDIO_G24_NONE_P709 = 20
+    DXGI_COLOR_SPACE_RGB_STUDIO_G24_NONE_P2020 = 21
+    DXGI_COLOR_SPACE_YCBCR_STUDIO_G24_LEFT_P709 = 22
+    DXGI_COLOR_SPACE_YCBCR_STUDIO_G24_LEFT_P2020 = 23
+    DXGI_COLOR_SPACE_YCBCR_STUDIO_G24_TOPLEFT_P2020 = 24
+    DXGI_COLOR_SPACE_CUSTOM = -1
+End Enum
 
 Public Type DXGI_RGB
-                Red As Single
-                Green As Single
-                Blue As Single
-            End Type
+    Red As Single
+    Green As Single
+    Blue As Single
+End Type
 
 Public Type D3DCOLORVALUE
-                r As Single
-                g As Single
-                b As Single
-                a As Single
-            End Type
+    r As Single
+    g As Single
+    b As Single
+    a As Single
+End Type
 
 Public Type DXGI_GAMMA_CONTROL
-                Scale As DXGI_RGB
-                Offset As DXGI_RGB
-                GammaCurve(0 To 1024) As DXGI_RGB
-            End Type
+    Scale As DXGI_RGB
+    Offset As DXGI_RGB
+    GammaCurve(0 To 1024) As DXGI_RGB
+End Type
 
 Public Type DXGI_GAMMA_CONTROL_CAPABILITIES
-                ScaleAndOffsetSupported As Long
-                MaxConvertedValue As Single
-                MinConvertedValue As Single
-                NumGammaControlPoints As Long
-                ControlPointPositions(0 To 1024) As Single
-            End Type
+    ScaleAndOffsetSupported As Long
+    MaxConvertedValue As Single
+    MinConvertedValue As Single
+    NumGammaControlPoints As Long
+    ControlPointPositions(0 To 1024) As Single
+End Type
 
 Public Enum DXGI_MODE_SCANLINE_ORDER
-                DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED = 0
-                DXGI_MODE_SCANLINE_ORDER_PROGRESSIVE = 1
-                DXGI_MODE_SCANLINE_ORDER_UPPER_FIELD_FIRST = 2
-                DXGI_MODE_SCANLINE_ORDER_LOWER_FIELD_FIRST = 3
-    End Enum
+    DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED = 0
+    DXGI_MODE_SCANLINE_ORDER_PROGRESSIVE = 1
+    DXGI_MODE_SCANLINE_ORDER_UPPER_FIELD_FIRST = 2
+    DXGI_MODE_SCANLINE_ORDER_LOWER_FIELD_FIRST = 3
+End Enum
 
 Public Enum DXGI_MODE_SCALING
-                DXGI_MODE_SCALING_UNSPECIFIED = 0
-                DXGI_MODE_SCALING_CENTERED = 1
-                DXGI_MODE_SCALING_STRETCHED = 2
-    End Enum
+    DXGI_MODE_SCALING_UNSPECIFIED = 0
+    DXGI_MODE_SCALING_CENTERED = 1
+    DXGI_MODE_SCALING_STRETCHED = 2
+End Enum
 
 Public Enum DXGI_MODE_ROTATION
-                DXGI_MODE_ROTATION_UNSPECIFIED = 0
-                DXGI_MODE_ROTATION_IDENTITY = 1
-                DXGI_MODE_ROTATION_ROTATE90 = 2
-                DXGI_MODE_ROTATION_ROTATE180 = 3
-                DXGI_MODE_ROTATION_ROTATE270 = 4
-    End Enum
+    DXGI_MODE_ROTATION_UNSPECIFIED = 0
+    DXGI_MODE_ROTATION_IDENTITY = 1
+    DXGI_MODE_ROTATION_ROTATE90 = 2
+    DXGI_MODE_ROTATION_ROTATE180 = 3
+    DXGI_MODE_ROTATION_ROTATE270 = 4
+End Enum
 
 Public Type DXGI_MODE_DESC
-                width As Long
-                Height As Long
-                RefreshRate As DXGI_RATIONAL
-                Format As DXGI_FORMAT
-                ScanlineOrdering As DXGI_MODE_SCANLINE_ORDER
-                Scaling As DXGI_MODE_SCALING
-            End Type
+    width As Long
+    Height As Long
+    RefreshRate As DXGI_RATIONAL
+    Format As DXGI_FORMAT
+    ScanlineOrdering As DXGI_MODE_SCANLINE_ORDER
+    Scaling As DXGI_MODE_SCALING
+End Type
 
 Public Type DXGI_FRAME_STATISTICS
-                PresentCount As Long
-                PresentRefreshCount As Long
-                SyncRefreshCount As Long
-                SyncQPCTime As LARGE_INTEGER
-                SyncGPUTime As LARGE_INTEGER
-            End Type
+    PresentCount As Long
+    PresentRefreshCount As Long
+    SyncRefreshCount As Long
+    SyncQPCTime As LARGE_INTEGER
+    SyncGPUTime As LARGE_INTEGER
+End Type
 
 Public Type DXGI_MAPPED_RECT
-                pitch As Long
-                pBits As LongPtr
-            End Type
+    pitch As Long
+    pBits As LongPtr
+End Type
 
 Public Type DXGI_ADAPTER_DESC
-                Description(0 To 127) As Integer
-                VendorId As Long
-                deviceId As Long
-                SubSysId As Long
-                Revision As Long
-                DedicatedVideoMemory As LongPtr
-                DedicatedSystemMemory As LongPtr
-                SharedSystemMemory As LongPtr
-                AdapterLuid As LUID
-            End Type
+    Description(0 To 127) As Integer
+    VendorId As Long
+    deviceId As Long
+    SubSysId As Long
+    Revision As Long
+    DedicatedVideoMemory As LongPtr
+    DedicatedSystemMemory As LongPtr
+    SharedSystemMemory As LongPtr
+    AdapterLuid As LUID
+End Type
 
 Public Type DXGI_OUTPUT_DESC
-                DeviceName(0 To 31) As Integer
-                DesktopCoordinates As RECT
-                AttachedToDesktop As Long
-                rotation As DXGI_MODE_ROTATION
-                monitor As LongPtr
-            End Type
+    DeviceName(0 To 31) As Integer
+    DesktopCoordinates As RECT
+    AttachedToDesktop As Long
+    rotation As DXGI_MODE_ROTATION
+    monitor As LongPtr
+End Type
 
 Public Type DXGI_SHARED_RESOURCE
-                Handle As LongPtr
-            End Type
+    Handle As LongPtr
+End Type
 
 Public Enum DXGI_RESIDENCY
-                DXGI_RESIDENCY_FULLY_RESIDENT = 1
-                DXGI_RESIDENCY_RESIDENT_IN_SHARED_MEMORY = 2
-                DXGI_RESIDENCY_EVICTED_TO_DISK = 3
-    End Enum
+    DXGI_RESIDENCY_FULLY_RESIDENT = 1
+    DXGI_RESIDENCY_RESIDENT_IN_SHARED_MEMORY = 2
+    DXGI_RESIDENCY_EVICTED_TO_DISK = 3
+End Enum
 
 Public Type DXGI_SURFACE_DESC
-                width As Long
-                Height As Long
-                Format As DXGI_FORMAT
-                SampleDesc As DXGI_SAMPLE_DESC
-            End Type
+    width As Long
+    Height As Long
+    Format As DXGI_FORMAT
+    SampleDesc As DXGI_SAMPLE_DESC
+End Type
 
 Public Enum DXGI_SWAP_EFFECT
-                DXGI_SWAP_EFFECT_DISCARD = 0
-                DXGI_SWAP_EFFECT_SEQUENTIAL = 1
-                DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL = 3
-                DXGI_SWAP_EFFECT_FLIP_DISCARD = 4
-    End Enum
+    DXGI_SWAP_EFFECT_DISCARD = 0
+    DXGI_SWAP_EFFECT_SEQUENTIAL = 1
+    DXGI_SWAP_EFFECT_FLIP_SEQUENTIAL = 3
+    DXGI_SWAP_EFFECT_FLIP_DISCARD = 4
+End Enum
 
 Public Enum DXGI_SWAP_CHAIN_FLAG
-                DXGI_SWAP_CHAIN_FLAG_NONPREROTATED = 1
-                DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH = 2
-                DXGI_SWAP_CHAIN_FLAG_GDI_COMPATIBLE = 4
-                DXGI_SWAP_CHAIN_FLAG_RESTRICTED_CONTENT = 8
-                DXGI_SWAP_CHAIN_FLAG_RESTRICT_SHARED_RESOURCE_DRIVER = 16
-                DXGI_SWAP_CHAIN_FLAG_DISPLAY_ONLY = 32
-                DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT = 64
-                DXGI_SWAP_CHAIN_FLAG_FOREGROUND_LAYER = 128
-                DXGI_SWAP_CHAIN_FLAG_FULLSCREEN_VIDEO = 256
-                DXGI_SWAP_CHAIN_FLAG_YUV_VIDEO = 512
-                DXGI_SWAP_CHAIN_FLAG_HW_PROTECTED = 1024
-                DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING = 2048
-                DXGI_SWAP_CHAIN_FLAG_RESTRICTED_TO_ALL_HOLOGRAPHIC_DISPLAYS = 4096
-    End Enum
+    DXGI_SWAP_CHAIN_FLAG_NONPREROTATED = 1
+    DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH = 2
+    DXGI_SWAP_CHAIN_FLAG_GDI_COMPATIBLE = 4
+    DXGI_SWAP_CHAIN_FLAG_RESTRICTED_CONTENT = 8
+    DXGI_SWAP_CHAIN_FLAG_RESTRICT_SHARED_RESOURCE_DRIVER = 16
+    DXGI_SWAP_CHAIN_FLAG_DISPLAY_ONLY = 32
+    DXGI_SWAP_CHAIN_FLAG_FRAME_LATENCY_WAITABLE_OBJECT = 64
+    DXGI_SWAP_CHAIN_FLAG_FOREGROUND_LAYER = 128
+    DXGI_SWAP_CHAIN_FLAG_FULLSCREEN_VIDEO = 256
+    DXGI_SWAP_CHAIN_FLAG_YUV_VIDEO = 512
+    DXGI_SWAP_CHAIN_FLAG_HW_PROTECTED = 1024
+    DXGI_SWAP_CHAIN_FLAG_ALLOW_TEARING = 2048
+    DXGI_SWAP_CHAIN_FLAG_RESTRICTED_TO_ALL_HOLOGRAPHIC_DISPLAYS = 4096
+End Enum
 
 Public Enum DXGI_OFFER_RESOURCE_PRIORITY
-                DXGI_OFFER_RESOURCE_PRIORITY_LOW = 1
-                DXGI_OFFER_RESOURCE_PRIORITY_NORMAL = 2
-                DXGI_OFFER_RESOURCE_PRIORITY_HIGH = 3
-    End Enum
-    
+    DXGI_OFFER_RESOURCE_PRIORITY_LOW = 1
+    DXGI_OFFER_RESOURCE_PRIORITY_NORMAL = 2
+    DXGI_OFFER_RESOURCE_PRIORITY_HIGH = 3
+End Enum
+
 Public Type DXGI_SWAP_CHAIN_DESC
-                BufferDesc As DXGI_MODE_DESC
-                SampleDesc As DXGI_SAMPLE_DESC
-                BufferUsage As Long
-                BufferCount As Long
-                OutputWindow As LongPtr
-                Windowed As Long
-                SwapEffect As DXGI_SWAP_EFFECT
-                flags As Long
-            End Type
+    BufferDesc As DXGI_MODE_DESC
+    SampleDesc As DXGI_SAMPLE_DESC
+    BufferUsage As Long
+    BufferCount As Long
+    OutputWindow As LongPtr
+    Windowed As Long
+    SwapEffect As DXGI_SWAP_EFFECT
+    flags As Long
+End Type
 
 Public Enum DXGI_ADAPTER_FLAG
-                DXGI_ADAPTER_FLAG_NONE = 0
-                DXGI_ADAPTER_FLAG_REMOTE = 1
-                DXGI_ADAPTER_FLAG_SOFTWARE = 2
-                DXGI_ADAPTER_FLAG_FORCE_DWORD = -1
-    End Enum
+    DXGI_ADAPTER_FLAG_NONE = 0
+    DXGI_ADAPTER_FLAG_REMOTE = 1
+    DXGI_ADAPTER_FLAG_SOFTWARE = 2
+    DXGI_ADAPTER_FLAG_FORCE_DWORD = -1
+End Enum
 
 Public Type DXGI_ADAPTER_DESC1
-                Description(0 To 127) As Integer
-                VendorId As Long
-                deviceId As Long
-                SubSysId As Long
-                Revision As Long
-                DedicatedVideoMemory As LongPtr
-                DedicatedSystemMemory As LongPtr
-                SharedSystemMemory As LongPtr
-                AdapterLuid As LUID
-                flags As Long
-            End Type
+    Description(0 To 127) As Integer
+    VendorId As Long
+    deviceId As Long
+    SubSysId As Long
+    Revision As Long
+    DedicatedVideoMemory As LongPtr
+    DedicatedSystemMemory As LongPtr
+    SharedSystemMemory As LongPtr
+    AdapterLuid As LUID
+    flags As Long
+End Type
 
 Public Type DXGI_DISPLAY_COLOR_SPACE
-                PrimaryCoordinates(0 To 7, 0 To 1) As Single
-                WhitePoints(0 To 15, 0 To 1) As Single
-            End Type
+    PrimaryCoordinates(0 To 7, 0 To 1) As Single
+    WhitePoints(0 To 15, 0 To 1) As Single
+End Type
 
 Public Type DXGI_OUTDUPL_MOVE_RECT
-                SourcePoint As POINT
-                DestinationRect As RECT
-            End Type
+    SourcePoint As POINT
+    DestinationRect As RECT
+End Type
 
 Public Type DXGI_OUTDUPL_DESC
-                ModeDesc As DXGI_MODE_DESC
-                rotation As DXGI_MODE_ROTATION
-                DesktopImageInSystemMemory As Long
-            End Type
+    ModeDesc As DXGI_MODE_DESC
+    rotation As DXGI_MODE_ROTATION
+    DesktopImageInSystemMemory As Long
+End Type
 
 Public Type DXGI_OUTDUPL_POINTER_POSITION
-                position As POINT
-                Visible As Long
-            End Type
+    position As POINT
+    Visible As Long
+End Type
 
 Public Enum DXGI_OUTDUPL_POINTER_SHAPE_TYPE
-                DXGI_OUTDUPL_POINTER_SHAPE_TYPE_MONOCHROME = 1
-                DXGI_OUTDUPL_POINTER_SHAPE_TYPE_COLOR = 2
-                DXGI_OUTDUPL_POINTER_SHAPE_TYPE_MASKED_COLOR = 4
-    End Enum
+    DXGI_OUTDUPL_POINTER_SHAPE_TYPE_MONOCHROME = 1
+    DXGI_OUTDUPL_POINTER_SHAPE_TYPE_COLOR = 2
+    DXGI_OUTDUPL_POINTER_SHAPE_TYPE_MASKED_COLOR = 4
+End Enum
 
 Public Type DXGI_OUTDUPL_POINTER_SHAPE_INFO
-                type As Long
-                width As Long
-                Height As Long
-                pitch As Long
-                HotSpot As POINT
-            End Type
+    type As Long
+    width As Long
+    Height As Long
+    pitch As Long
+    HotSpot As POINT
+End Type
 
 Public Type DXGI_OUTDUPL_FRAME_INFO
-                LastPresentTime As LARGE_INTEGER
-                LastMouseUpdateTime As LARGE_INTEGER
-                AccumulatedFrames As Long
-                RectsCoalesced As Long
-                ProtectedContentMaskedOut As Long
-                PointerPosition As DXGI_OUTDUPL_POINTER_POSITION
-                TotalMetadataBufferSize As Long
-                PointerShapeBufferSize As Long
-            End Type
+    LastPresentTime As LARGE_INTEGER
+    LastMouseUpdateTime As LARGE_INTEGER
+    AccumulatedFrames As Long
+    RectsCoalesced As Long
+    ProtectedContentMaskedOut As Long
+    PointerPosition As DXGI_OUTDUPL_POINTER_POSITION
+    TotalMetadataBufferSize As Long
+    PointerShapeBufferSize As Long
+End Type
 
 Public Enum DXGI_ALPHA_MODE
-                DXGI_ALPHA_MODE_UNSPECIFIED = 0
-                DXGI_ALPHA_MODE_PREMULTIPLIED = 1
-                DXGI_ALPHA_MODE_STRAIGHT = 2
-                DXGI_ALPHA_MODE_IGNORE = 3
-                DXGI_ALPHA_MODE_FORCE_DWORD = -1
-    End Enum
+    DXGI_ALPHA_MODE_UNSPECIFIED = 0
+    DXGI_ALPHA_MODE_PREMULTIPLIED = 1
+    DXGI_ALPHA_MODE_STRAIGHT = 2
+    DXGI_ALPHA_MODE_IGNORE = 3
+    DXGI_ALPHA_MODE_FORCE_DWORD = -1
+End Enum
 
 Public Type DXGI_MODE_DESC1
-                width As Long
-                Height As Long
-                RefreshRate As DXGI_RATIONAL
-                Format As DXGI_FORMAT
-                ScanlineOrdering As DXGI_MODE_SCANLINE_ORDER
-                Scaling As DXGI_MODE_SCALING
-                Stereo As Long
-            End Type
+    width As Long
+    Height As Long
+    RefreshRate As DXGI_RATIONAL
+    Format As DXGI_FORMAT
+    ScanlineOrdering As DXGI_MODE_SCANLINE_ORDER
+    Scaling As DXGI_MODE_SCALING
+    Stereo As Long
+End Type
 
 Public Enum DXGI_SCALING
-                DXGI_SCALING_STRETCH = 0
-                DXGI_SCALING_NONE = 1
-                DXGI_SCALING_ASPECT_RATIO_STRETCH = 2
-    End Enum
+    DXGI_SCALING_STRETCH = 0
+    DXGI_SCALING_NONE = 1
+    DXGI_SCALING_ASPECT_RATIO_STRETCH = 2
+End Enum
 
 Public Type DXGI_SWAP_CHAIN_DESC1
-                width As Long
-                Height As Long
-                Format As DXGI_FORMAT
-                Stereo As Long
-                SampleDesc As DXGI_SAMPLE_DESC
-                BufferUsage As Long
-                BufferCount As Long
-                Scaling As DXGI_SCALING
-                SwapEffect As DXGI_SWAP_EFFECT
-                AlphaMode As DXGI_ALPHA_MODE
-                flags As Long
-            End Type
+    width As Long
+    Height As Long
+    Format As DXGI_FORMAT
+    Stereo As Long
+    SampleDesc As DXGI_SAMPLE_DESC
+    BufferUsage As Long
+    BufferCount As Long
+    Scaling As DXGI_SCALING
+    SwapEffect As DXGI_SWAP_EFFECT
+    AlphaMode As DXGI_ALPHA_MODE
+    flags As Long
+End Type
 
 Public Type DXGI_SWAP_CHAIN_FULLSCREEN_DESC
-                RefreshRate As DXGI_RATIONAL
-                ScanlineOrdering As DXGI_MODE_SCANLINE_ORDER
-                Scaling As DXGI_MODE_SCALING
-                Windowed As Long
-            End Type
+    RefreshRate As DXGI_RATIONAL
+    ScanlineOrdering As DXGI_MODE_SCANLINE_ORDER
+    Scaling As DXGI_MODE_SCALING
+    Windowed As Long
+End Type
 
 Public Type DXGI_PRESENT_PARAMETERS
-                DirtyRectsCount As Long
-                pDirtyRects As LongPtr
-                pScrollRect As LongPtr
-                pScrollOffset As LongPtr
-            End Type
+    DirtyRectsCount As Long
+    pDirtyRects As LongPtr
+    pScrollRect As LongPtr
+    pScrollOffset As LongPtr
+End Type
 
 Public Enum DXGI_GRAPHICS_PREEMPTION_GRANULARITY
-                DXGI_GRAPHICS_PREEMPTION_DMA_BUFFER_BOUNDARY = 0
-                DXGI_GRAPHICS_PREEMPTION_PRIMITIVE_BOUNDARY = 1
-                DXGI_GRAPHICS_PREEMPTION_TRIANGLE_BOUNDARY = 2
-                DXGI_GRAPHICS_PREEMPTION_PIXEL_BOUNDARY = 3
-                DXGI_GRAPHICS_PREEMPTION_INSTRUCTION_BOUNDARY = 4
-    End Enum
+    DXGI_GRAPHICS_PREEMPTION_DMA_BUFFER_BOUNDARY = 0
+    DXGI_GRAPHICS_PREEMPTION_PRIMITIVE_BOUNDARY = 1
+    DXGI_GRAPHICS_PREEMPTION_TRIANGLE_BOUNDARY = 2
+    DXGI_GRAPHICS_PREEMPTION_PIXEL_BOUNDARY = 3
+    DXGI_GRAPHICS_PREEMPTION_INSTRUCTION_BOUNDARY = 4
+End Enum
 
 Public Enum DXGI_COMPUTE_PREEMPTION_GRANULARITY
-                DXGI_COMPUTE_PREEMPTION_DMA_BUFFER_BOUNDARY = 0
-                DXGI_COMPUTE_PREEMPTION_DISPATCH_BOUNDARY = 1
-                DXGI_COMPUTE_PREEMPTION_THREAD_GROUP_BOUNDARY = 2
-                DXGI_COMPUTE_PREEMPTION_THREAD_BOUNDARY = 3
-                DXGI_COMPUTE_PREEMPTION_INSTRUCTION_BOUNDARY = 4
-    End Enum
+    DXGI_COMPUTE_PREEMPTION_DMA_BUFFER_BOUNDARY = 0
+    DXGI_COMPUTE_PREEMPTION_DISPATCH_BOUNDARY = 1
+    DXGI_COMPUTE_PREEMPTION_THREAD_GROUP_BOUNDARY = 2
+    DXGI_COMPUTE_PREEMPTION_THREAD_BOUNDARY = 3
+    DXGI_COMPUTE_PREEMPTION_INSTRUCTION_BOUNDARY = 4
+End Enum
 
 Public Type DXGI_ADAPTER_DESC2
-                Description(0 To 127) As Integer
-                VendorId As Long
-                deviceId As Long
-                SubSysId As Long
-                Revision As Long
-                DedicatedVideoMemory As LongPtr
-                DedicatedSystemMemory As LongPtr
-                SharedSystemMemory As LongPtr
-                AdapterLuid As LUID
-                flags As Long
-                GraphicsPreemptionGranularity As DXGI_GRAPHICS_PREEMPTION_GRANULARITY
-                ComputePreemptionGranularity As DXGI_COMPUTE_PREEMPTION_GRANULARITY
-    End Type
+    Description(0 To 127) As Integer
+    VendorId As Long
+    deviceId As Long
+    SubSysId As Long
+    Revision As Long
+    DedicatedVideoMemory As LongPtr
+    DedicatedSystemMemory As LongPtr
+    SharedSystemMemory As LongPtr
+    AdapterLuid As LUID
+    flags As Long
+    GraphicsPreemptionGranularity As DXGI_GRAPHICS_PREEMPTION_GRANULARITY
+    ComputePreemptionGranularity As DXGI_COMPUTE_PREEMPTION_GRANULARITY
+End Type
 
-    
+
 Public Type DXGI_DECODE_SWAP_CHAIN_DESC
-                flags As Long
-            End Type
+    flags As Long
+End Type
 
 Public Enum DXGI_MULTIPLANE_OVERLAY_YCbCr_FLAGS
-                DXGI_MULTIPLANE_OVERLAY_YCbCr_FLAG_NOMINAL_RANGE = 1
-                DXGI_MULTIPLANE_OVERLAY_YCbCr_FLAG_BT709 = 2
-                DXGI_MULTIPLANE_OVERLAY_YCbCr_FLAG_xvYCC = 4
-    End Enum
+    DXGI_MULTIPLANE_OVERLAY_YCbCr_FLAG_NOMINAL_RANGE = 1
+    DXGI_MULTIPLANE_OVERLAY_YCbCr_FLAG_BT709 = 2
+    DXGI_MULTIPLANE_OVERLAY_YCbCr_FLAG_xvYCC = 4
+End Enum
 
 Public Enum DXGI_FRAME_PRESENTATION_MODE
-                DXGI_FRAME_PRESENTATION_MODE_COMPOSED = 0
-                DXGI_FRAME_PRESENTATION_MODE_OVERLAY = 1
-                DXGI_FRAME_PRESENTATION_MODE_NONE = 2
-                DXGI_FRAME_PRESENTATION_MODE_COMPOSITION_FAILURE = 3
-    End Enum
+    DXGI_FRAME_PRESENTATION_MODE_COMPOSED = 0
+    DXGI_FRAME_PRESENTATION_MODE_OVERLAY = 1
+    DXGI_FRAME_PRESENTATION_MODE_NONE = 2
+    DXGI_FRAME_PRESENTATION_MODE_COMPOSITION_FAILURE = 3
+End Enum
 
 Public Type DXGI_FRAME_STATISTICS_MEDIA
-                PresentCount As Long
-                PresentRefreshCount As Long
-                SyncRefreshCount As Long
-                SyncQPCTime As LARGE_INTEGER
-                SyncGPUTime As LARGE_INTEGER
-                CompositionMode As DXGI_FRAME_PRESENTATION_MODE
-                ApprovedPresentDuration As Long
-            End Type
+    PresentCount As Long
+    PresentRefreshCount As Long
+    SyncRefreshCount As Long
+    SyncQPCTime As LARGE_INTEGER
+    SyncGPUTime As LARGE_INTEGER
+    CompositionMode As DXGI_FRAME_PRESENTATION_MODE
+    ApprovedPresentDuration As Long
+End Type
 
 Public Enum DXGI_OVERLAY_SUPPORT_FLAG
-                DXGI_OVERLAY_SUPPORT_FLAG_DIRECT = 1
-                DXGI_OVERLAY_SUPPORT_FLAG_SCALING = 2
-    End Enum
+    DXGI_OVERLAY_SUPPORT_FLAG_DIRECT = 1
+    DXGI_OVERLAY_SUPPORT_FLAG_SCALING = 2
+End Enum
 
 Public Enum DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG
-                DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT = 1
-                DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_OVERLAY_PRESENT = 2
-    End Enum
+    DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_PRESENT = 1
+    DXGI_SWAP_CHAIN_COLOR_SPACE_SUPPORT_FLAG_OVERLAY_PRESENT = 2
+End Enum
 
 Public Enum DXGI_OVERLAY_COLOR_SPACE_SUPPORT_FLAG
-                DXGI_OVERLAY_COLOR_SPACE_SUPPORT_FLAG_PRESENT = 1
-    End Enum
+    DXGI_OVERLAY_COLOR_SPACE_SUPPORT_FLAG_PRESENT = 1
+End Enum
 
 Public Enum DXGI_MEMORY_SEGMENT_GROUP
-                DXGI_MEMORY_SEGMENT_GROUP_LOCAL = 0
-                DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL = 1
-    End Enum
+    DXGI_MEMORY_SEGMENT_GROUP_LOCAL = 0
+    DXGI_MEMORY_SEGMENT_GROUP_NON_LOCAL = 1
+End Enum
 
 Public Type DXGI_QUERY_VIDEO_MEMORY_INFO
-                Budget As LongLong
-                CurrentUsage As LongLong
-                AvailableForReservation As LongLong
-                CurrentReservation As LongLong
-            End Type
+    Budget As LongLong
+    CurrentUsage As LongLong
+    AvailableForReservation As LongLong
+    CurrentReservation As LongLong
+End Type
 
 Public Enum DXGI_OUTDUPL_FLAG
-                DXGI_OUTDUPL_COMPOSITED_UI_CAPTURE_ONLY = 1
-    End Enum
+    DXGI_OUTDUPL_COMPOSITED_UI_CAPTURE_ONLY = 1
+End Enum
 
 Public Enum DXGI_HDR_METADATA_TYPE
-                DXGI_HDR_METADATA_TYPE_NONE = 0
-                DXGI_HDR_METADATA_TYPE_HDR10 = 1
-    End Enum
+    DXGI_HDR_METADATA_TYPE_NONE = 0
+    DXGI_HDR_METADATA_TYPE_HDR10 = 1
+End Enum
 
 Public Type DXGI_HDR_METADATA_HDR10
-                RedPrimary(0 To 1) As Integer
-                GreenPrimary(0 To 1) As Integer
-                BluePrimary(0 To 1) As Integer
-                WhitePoint(0 To 1) As Integer
-                MaxMasteringLuminance As Long
-                MinMasteringLuminance As Long
-                MaxContentLightLevel As Integer
-                MaxFrameAverageLightLevel As Integer
-            End Type
+    RedPrimary(0 To 1) As Integer
+    GreenPrimary(0 To 1) As Integer
+    BluePrimary(0 To 1) As Integer
+    WhitePoint(0 To 1) As Integer
+    MaxMasteringLuminance As Long
+    MinMasteringLuminance As Long
+    MaxContentLightLevel As Integer
+    MaxFrameAverageLightLevel As Integer
+End Type
 
 Public Enum DXGI_OFFER_RESOURCE_FLAGS
-                DXGI_OFFER_RESOURCE_FLAG_ALLOW_DECOMMIT = 1
-    End Enum
+    DXGI_OFFER_RESOURCE_FLAG_ALLOW_DECOMMIT = 1
+End Enum
 
 Public Enum DXGI_RECLAIM_RESOURCE_RESULTS
-                DXGI_RECLAIM_RESOURCE_RESULT_OK = 0
-                DXGI_RECLAIM_RESOURCE_RESULT_DISCARDED = 1
-                DXGI_RECLAIM_RESOURCE_RESULT_NOT_COMMITTED = 2
-    End Enum
+    DXGI_RECLAIM_RESOURCE_RESULT_OK = 0
+    DXGI_RECLAIM_RESOURCE_RESULT_DISCARDED = 1
+    DXGI_RECLAIM_RESOURCE_RESULT_NOT_COMMITTED = 2
+End Enum
 
 
 Public Enum DXGI_FEATURE
-                DXGI_FEATURE_PRESENT_ALLOW_TEARING = 0
-    End Enum
+    DXGI_FEATURE_PRESENT_ALLOW_TEARING = 0
+End Enum
 
 
 Public Enum DXGI_ADAPTER_FLAG3
-                DXGI_ADAPTER_FLAG3_NONE = 0
-                DXGI_ADAPTER_FLAG3_REMOTE = 1
-                DXGI_ADAPTER_FLAG3_SOFTWARE = 2
-                DXGI_ADAPTER_FLAG3_ACG_COMPATIBLE = 4
-                DXGI_ADAPTER_FLAG3_SUPPORT_MONITORED_FENCES = 8
-                DXGI_ADAPTER_FLAG3_SUPPORT_NON_MONITORED_FENCES = 16
-                DXGI_ADAPTER_FLAG3_KEYED_MUTEX_CONFORMANCE = 32
-                DXGI_ADAPTER_FLAG3_FORCE_DWORD = -1
-    End Enum
+    DXGI_ADAPTER_FLAG3_NONE = 0
+    DXGI_ADAPTER_FLAG3_REMOTE = 1
+    DXGI_ADAPTER_FLAG3_SOFTWARE = 2
+    DXGI_ADAPTER_FLAG3_ACG_COMPATIBLE = 4
+    DXGI_ADAPTER_FLAG3_SUPPORT_MONITORED_FENCES = 8
+    DXGI_ADAPTER_FLAG3_SUPPORT_NON_MONITORED_FENCES = 16
+    DXGI_ADAPTER_FLAG3_KEYED_MUTEX_CONFORMANCE = 32
+    DXGI_ADAPTER_FLAG3_FORCE_DWORD = -1
+End Enum
 
 Public Type DXGI_ADAPTER_DESC3
-                Description(0 To 127) As Integer
-                VendorId As Long
-                deviceId As Long
-                SubSysId As Long
-                Revision As Long
-                DedicatedVideoMemory As LongPtr
-                DedicatedSystemMemory As LongPtr
-                SharedSystemMemory As LongPtr
-                AdapterLuid As LUID
-                flags As DXGI_ADAPTER_FLAG3
-                GraphicsPreemptionGranularity As DXGI_GRAPHICS_PREEMPTION_GRANULARITY
-                ComputePreemptionGranularity As DXGI_COMPUTE_PREEMPTION_GRANULARITY
-            End Type
+    Description(0 To 127) As Integer
+    VendorId As Long
+    deviceId As Long
+    SubSysId As Long
+    Revision As Long
+    DedicatedVideoMemory As LongPtr
+    DedicatedSystemMemory As LongPtr
+    SharedSystemMemory As LongPtr
+    AdapterLuid As LUID
+    flags As DXGI_ADAPTER_FLAG3
+    GraphicsPreemptionGranularity As DXGI_GRAPHICS_PREEMPTION_GRANULARITY
+    ComputePreemptionGranularity As DXGI_COMPUTE_PREEMPTION_GRANULARITY
+End Type
 
 Public Type DXGI_OUTPUT_DESC1
-                DeviceName(0 To 31) As Integer
-                DesktopCoordinates As RECT
-                AttachedToDesktop As Long
-                rotation As DXGI_MODE_ROTATION
-                monitor As LongPtr
-                BitsPerColor As Long
-                ColorSpace As DXGI_COLOR_SPACE_TYPE
-                RedPrimary(0 To 1) As Single
-                GreenPrimary(0 To 1) As Single
-                BluePrimary(0 To 1) As Single
-                WhitePoint(0 To 1) As Single
-                MinLuminance As Single
-                MaxLuminance As Single
-                MaxFullFrameLuminance As Single
-            End Type
+    DeviceName(0 To 31) As Integer
+    DesktopCoordinates As RECT
+    AttachedToDesktop As Long
+    rotation As DXGI_MODE_ROTATION
+    monitor As LongPtr
+    BitsPerColor As Long
+    ColorSpace As DXGI_COLOR_SPACE_TYPE
+    RedPrimary(0 To 1) As Single
+    GreenPrimary(0 To 1) As Single
+    BluePrimary(0 To 1) As Single
+    WhitePoint(0 To 1) As Single
+    MinLuminance As Single
+    MaxLuminance As Single
+    MaxFullFrameLuminance As Single
+End Type
 
 Public Enum DXGI_HARDWARE_COMPOSITION_SUPPORT_FLAGS
-                DXGI_HARDWARE_COMPOSITION_SUPPORT_FLAG_FULLSCREEN = 1
-                DXGI_HARDWARE_COMPOSITION_SUPPORT_FLAG_WINDOWED = 2
-                DXGI_HARDWARE_COMPOSITION_SUPPORT_FLAG_CURSOR_STRETCHED = 4
-    End Enum
-    
-   
+    DXGI_HARDWARE_COMPOSITION_SUPPORT_FLAG_FULLSCREEN = 1
+    DXGI_HARDWARE_COMPOSITION_SUPPORT_FLAG_WINDOWED = 2
+    DXGI_HARDWARE_COMPOSITION_SUPPORT_FLAG_CURSOR_STRETCHED = 4
+End Enum
+
+
 Public Enum DCOMPOSITION_BITMAP_INTERPOLATION_MODE
-                DCOMPOSITION_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR = 0
-                DCOMPOSITION_BITMAP_INTERPOLATION_MODE_LINEAR = 1
-                DCOMPOSITION_BITMAP_INTERPOLATION_MODE_INHERIT = -1
-    End Enum
+    DCOMPOSITION_BITMAP_INTERPOLATION_MODE_NEAREST_NEIGHBOR = 0
+    DCOMPOSITION_BITMAP_INTERPOLATION_MODE_LINEAR = 1
+    DCOMPOSITION_BITMAP_INTERPOLATION_MODE_INHERIT = -1
+End Enum
 
 Public Enum DCOMPOSITION_BORDER_MODE
-                DCOMPOSITION_BORDER_MODE_SOFT = 0
-                DCOMPOSITION_BORDER_MODE_HARD = 1
-                DCOMPOSITION_BORDER_MODE_INHERIT = -1
-    End Enum
+    DCOMPOSITION_BORDER_MODE_SOFT = 0
+    DCOMPOSITION_BORDER_MODE_HARD = 1
+    DCOMPOSITION_BORDER_MODE_INHERIT = -1
+End Enum
 
 Public Enum DCOMPOSITION_COMPOSITE_MODE
-                DCOMPOSITION_COMPOSITE_MODE_SOURCE_OVER = 0
-                DCOMPOSITION_COMPOSITE_MODE_DESTINATION_INVERT = 1
-                DCOMPOSITION_COMPOSITE_MODE_MIN_BLEND = 2
-                DCOMPOSITION_COMPOSITE_MODE_INHERIT = -1
-    End Enum
+    DCOMPOSITION_COMPOSITE_MODE_SOURCE_OVER = 0
+    DCOMPOSITION_COMPOSITE_MODE_DESTINATION_INVERT = 1
+    DCOMPOSITION_COMPOSITE_MODE_MIN_BLEND = 2
+    DCOMPOSITION_COMPOSITE_MODE_INHERIT = -1
+End Enum
 
 Public Enum DCOMPOSITION_BACKFACE_VISIBILITY
-                DCOMPOSITION_BACKFACE_VISIBILITY_VISIBLE = 0
-                DCOMPOSITION_BACKFACE_VISIBILITY_HIDDEN = 1
-                DCOMPOSITION_BACKFACE_VISIBILITY_INHERIT = -1
-    End Enum
+    DCOMPOSITION_BACKFACE_VISIBILITY_VISIBLE = 0
+    DCOMPOSITION_BACKFACE_VISIBILITY_HIDDEN = 1
+    DCOMPOSITION_BACKFACE_VISIBILITY_INHERIT = -1
+End Enum
 
 Public Enum DCOMPOSITION_OPACITY_MODE
-                DCOMPOSITION_OPACITY_MODE_LAYER = 0
-                DCOMPOSITION_OPACITY_MODE_MULTIPLY = 1
-                DCOMPOSITION_OPACITY_MODE_INHERIT = -1
-    End Enum
+    DCOMPOSITION_OPACITY_MODE_LAYER = 0
+    DCOMPOSITION_OPACITY_MODE_MULTIPLY = 1
+    DCOMPOSITION_OPACITY_MODE_INHERIT = -1
+End Enum
 
 Public Enum DCOMPOSITION_DEPTH_MODE
-                DCOMPOSITION_DEPTH_MODE_TREE = 0
-                DCOMPOSITION_DEPTH_MODE_SPATIAL = 1
-                DCOMPOSITION_DEPTH_MODE_SORTED = 3
-                DCOMPOSITION_DEPTH_MODE_INHERIT = -1
-    End Enum
+    DCOMPOSITION_DEPTH_MODE_TREE = 0
+    DCOMPOSITION_DEPTH_MODE_SPATIAL = 1
+    DCOMPOSITION_DEPTH_MODE_SORTED = 3
+    DCOMPOSITION_DEPTH_MODE_INHERIT = -1
+End Enum
 
 Public Type DCOMPOSITION_FRAME_STATISTICS
-                lastFrameTime As LARGE_INTEGER
-                currentCompositionRate As DXGI_RATIONAL
-                currentTime As LARGE_INTEGER
-                timeFrequency As LARGE_INTEGER
-                nextEstimatedFrameTime As LARGE_INTEGER
-            End Type
+    lastFrameTime As LARGE_INTEGER
+    currentCompositionRate As DXGI_RATIONAL
+    currentTime As LARGE_INTEGER
+    timeFrequency As LARGE_INTEGER
+    nextEstimatedFrameTime As LARGE_INTEGER
+End Type
 
 Public Const COMPOSITIONOBJECT_READ As Long = 1
 Public Const COMPOSITIONOBJECT_WRITE As Long = 2
@@ -3898,12 +3983,12 @@ Public Declare PtrSafe Function DCompositionCreateDevice3 Lib "dcomp.dll" (ByVal
 Public Declare PtrSafe Function DCompositionCreateSurfaceHandle Lib "dcomp.dll" (ByVal desiredAccess As Long, ByRef securityAttributes As SECURITY_ATTRIBUTES, ByRef surfaceHandle As LongPtr) As Long
 Public Declare PtrSafe Function DCompositionAttachMouseWheelToHwnd Lib "dcomp.dll" (ByVal visual As IDCompositionVisual, ByVal hwnd As LongPtr, ByVal Enable As Long) As Long
 Public Declare PtrSafe Function DCompositionAttachMouseDragToHwnd Lib "dcomp.dll" (ByVal visual As IDCompositionVisual, ByVal hwnd As LongPtr, ByVal Enable As Long) As Long
-    
+Public Declare PtrSafe Function CreatePresentationFactory Lib "dcomp.dll" (ByVal d3dDevice As IUnknown, riid As UUID, presentationFactory As Any) As Long
     
 Public Type D3DMATRIX
-                m(0 To 3, 0 To 3) As Single
-    End Type
-                                                         
+    m(0 To 3, 0 To 3) As Single
+End Type
+                                                
  
     
 Public Enum D2D1_COLORS
@@ -5063,878 +5148,936 @@ Public Enum D2D1_BLEND_OPERATION
     D2D1_BLEND_OPERATION_FORCE_DWORD = -1
 End Enum
 
-    Public Enum D2D1_BLEND
-                D2D1_BLEND_ZERO = 1
-                D2D1_BLEND_ONE = 2
-                D2D1_BLEND_SRC_COLOR = 3
-                D2D1_BLEND_INV_SRC_COLOR = 4
-                D2D1_BLEND_SRC_ALPHA = 5
-                D2D1_BLEND_INV_SRC_ALPHA = 6
-                D2D1_BLEND_DEST_ALPHA = 7
-                D2D1_BLEND_INV_DEST_ALPHA = 8
-                D2D1_BLEND_DEST_COLOR = 9
-                D2D1_BLEND_INV_DEST_COLOR = 10
-                D2D1_BLEND_SRC_ALPHA_SAT = 11
-                D2D1_BLEND_BLEND_FACTOR = 14
-                D2D1_BLEND_INV_BLEND_FACTOR = 15
-                D2D1_BLEND_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_CHANNEL_DEPTH
-                D2D1_CHANNEL_DEPTH_DEFAULT = 0
-                D2D1_CHANNEL_DEPTH_1 = 1
-                D2D1_CHANNEL_DEPTH_4 = 4
-                D2D1_CHANNEL_DEPTH_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_FILTER
-                D2D1_FILTER_MIN_MAG_MIP_POINT = 0
-                D2D1_FILTER_MIN_MAG_POINT_MIP_LINEAR = 1
-                D2D1_FILTER_MIN_POINT_MAG_LINEAR_MIP_POINT = 4
-                D2D1_FILTER_MIN_POINT_MAG_MIP_LINEAR = 5
-                D2D1_FILTER_MIN_LINEAR_MAG_MIP_POINT = 16
-                D2D1_FILTER_MIN_LINEAR_MAG_POINT_MIP_LINEAR = 17
-                D2D1_FILTER_MIN_MAG_LINEAR_MIP_POINT = 20
-                D2D1_FILTER_MIN_MAG_MIP_LINEAR = 21
-                D2D1_FILTER_ANISOTROPIC = 85
-                D2D1_FILTER_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_FEATURE
-                D2D1_FEATURE_DOUBLES = 0
-                D2D1_FEATURE_D3D10_X_HARDWARE_OPTIONS = 1
-                D2D1_FEATURE_FORCE_DWORD = -1
-    End Enum
-
-    Public Type D2D1_RESOURCE_TEXTURE_PROPERTIES
-                extents As LongPtr
-                dimensions As Long
-                bufferPrecision As D2D1_BUFFER_PRECISION
-                channelDepth As D2D1_CHANNEL_DEPTH
-                Filter As D2D1_FILTER
-                extendModes As LongPtr
-            End Type
-
-    Public Type D2D1_INPUT_ELEMENT_DESC
-                semanticName As LongPtr
-                semanticIndex As Long
-                Format As DXGI_FORMAT
-                inputSlot As Long
-                alignedByteOffset As Long
-            End Type
-
-    Public Type D2D1_VERTEX_BUFFER_PROPERTIES
-                inputCount As Long
-                Usage As D2D1_VERTEX_USAGE
-                data As LongPtr
-                byteWidth As Long
-            End Type
-
-    Public Type D2D1_CUSTOM_VERTEX_BUFFER_PROPERTIES
-                shaderBufferWithInputSignature As LongPtr
-                shaderBufferSize As Long
-                inputElements As LongPtr
-                elementCount As Long
-                stride As Long
-            End Type
-
-    Public Type D2D1_VERTEX_RANGE
-                startVertex As Long
-                vertexCount As Long
-            End Type
-
-    Public Type D2D1_BLEND_DESCRIPTION
-                sourceBlend As D2D1_BLEND
-                destinationBlend As D2D1_BLEND
-                blendOperation As D2D1_BLEND_OPERATION
-                sourceBlendAlpha As D2D1_BLEND
-                destinationBlendAlpha As D2D1_BLEND
-                blendOperationAlpha As D2D1_BLEND_OPERATION
-                blendFactor(0 To 3) As Single
-            End Type
-
-    Public Type D2D1_INPUT_DESCRIPTION
-                Filter As D2D1_FILTER
-                levelOfDetailCount As Long
-            End Type
-
-    Public Type D2D1_FEATURE_DATA_DOUBLES
-                doublePrecisionFloatShaderOps As Long
-            End Type
-
-    Public Type D2D1_FEATURE_DATA_D3D10_X_HARDWARE_OPTIONS
-                computeShaders_Plus_RawAndStructuredBuffers_Via_Shader_4_x As Long
-            End Type
-
-
-    Public Enum D2D1_BORDER_MODE
-                D2D1_BORDER_MODE_SOFT = 0
-                D2D1_BORDER_MODE_HARD = 1
-                D2D1_BORDER_MODE_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_CHANNEL_SELECTOR
-                D2D1_CHANNEL_SELECTOR_R = 0
-                D2D1_CHANNEL_SELECTOR_G = 1
-                D2D1_CHANNEL_SELECTOR_B = 2
-                D2D1_CHANNEL_SELECTOR_A = 3
-                D2D1_CHANNEL_SELECTOR_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_BITMAPSOURCE_ORIENTATION
-                D2D1_BITMAPSOURCE_ORIENTATION_DEFAULT = 1
-                D2D1_BITMAPSOURCE_ORIENTATION_FLIP_HORIZONTAL = 2
-                D2D1_BITMAPSOURCE_ORIENTATION_ROTATE_CLOCKWISE180 = 3
-                D2D1_BITMAPSOURCE_ORIENTATION_ROTATE_CLOCKWISE180_FLIP_HORIZONTAL = 4
-                D2D1_BITMAPSOURCE_ORIENTATION_ROTATE_CLOCKWISE270_FLIP_HORIZONTAL = 5
-                D2D1_BITMAPSOURCE_ORIENTATION_ROTATE_CLOCKWISE90 = 6
-                D2D1_BITMAPSOURCE_ORIENTATION_ROTATE_CLOCKWISE90_FLIP_HORIZONTAL = 7
-                D2D1_BITMAPSOURCE_ORIENTATION_ROTATE_CLOCKWISE270 = 8
-                D2D1_BITMAPSOURCE_ORIENTATION_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_GAUSSIANBLUR_PROP
-                D2D1_GAUSSIANBLUR_PROP_STANDARD_DEVIATION = 0
-                D2D1_GAUSSIANBLUR_PROP_OPTIMIZATION = 1
-                D2D1_GAUSSIANBLUR_PROP_BORDER_MODE = 2
-                D2D1_GAUSSIANBLUR_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_GAUSSIANBLUR_OPTIMIZATION
-                D2D1_GAUSSIANBLUR_OPTIMIZATION_SPEED = 0
-                D2D1_GAUSSIANBLUR_OPTIMIZATION_BALANCED = 1
-                D2D1_GAUSSIANBLUR_OPTIMIZATION_QUALITY = 2
-                D2D1_GAUSSIANBLUR_OPTIMIZATION_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_DIRECTIONALBLUR_PROP
-                D2D1_DIRECTIONALBLUR_PROP_STANDARD_DEVIATION = 0
-                D2D1_DIRECTIONALBLUR_PROP_ANGLE = 1
-                D2D1_DIRECTIONALBLUR_PROP_OPTIMIZATION = 2
-                D2D1_DIRECTIONALBLUR_PROP_BORDER_MODE = 3
-                D2D1_DIRECTIONALBLUR_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_DIRECTIONALBLUR_OPTIMIZATION
-                D2D1_DIRECTIONALBLUR_OPTIMIZATION_SPEED = 0
-                D2D1_DIRECTIONALBLUR_OPTIMIZATION_BALANCED = 1
-                D2D1_DIRECTIONALBLUR_OPTIMIZATION_QUALITY = 2
-                D2D1_DIRECTIONALBLUR_OPTIMIZATION_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_SHADOW_PROP
-                D2D1_SHADOW_PROP_BLUR_STANDARD_DEVIATION = 0
-                D2D1_SHADOW_PROP_COLOR = 1
-                D2D1_SHADOW_PROP_OPTIMIZATION = 2
-                D2D1_SHADOW_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_SHADOW_OPTIMIZATION
-                D2D1_SHADOW_OPTIMIZATION_SPEED = 0
-                D2D1_SHADOW_OPTIMIZATION_BALANCED = 1
-                D2D1_SHADOW_OPTIMIZATION_QUALITY = 2
-                D2D1_SHADOW_OPTIMIZATION_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_BLEND_PROP
-                D2D1_BLEND_PROP_MODE = 0
-                D2D1_BLEND_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_BLEND_MODE
-                D2D1_BLEND_MODE_MULTIPLY = 0
-                D2D1_BLEND_MODE_SCREEN = 1
-                D2D1_BLEND_MODE_DARKEN = 2
-                D2D1_BLEND_MODE_LIGHTEN = 3
-                D2D1_BLEND_MODE_DISSOLVE = 4
-                D2D1_BLEND_MODE_COLOR_BURN = 5
-                D2D1_BLEND_MODE_LINEAR_BURN = 6
-                D2D1_BLEND_MODE_DARKER_COLOR = 7
-                D2D1_BLEND_MODE_LIGHTER_COLOR = 8
-                D2D1_BLEND_MODE_COLOR_DODGE = 9
-                D2D1_BLEND_MODE_LINEAR_DODGE = 10
-                D2D1_BLEND_MODE_OVERLAY = 11
-                D2D1_BLEND_MODE_SOFT_LIGHT = 12
-                D2D1_BLEND_MODE_HARD_LIGHT = 13
-                D2D1_BLEND_MODE_VIVID_LIGHT = 14
-                D2D1_BLEND_MODE_LINEAR_LIGHT = 15
-                D2D1_BLEND_MODE_PIN_LIGHT = 16
-                D2D1_BLEND_MODE_HARD_MIX = 17
-                D2D1_BLEND_MODE_DIFFERENCE = 18
-                D2D1_BLEND_MODE_EXCLUSION = 19
-                D2D1_BLEND_MODE_HUE = 20
-                D2D1_BLEND_MODE_SATURATION = 21
-                D2D1_BLEND_MODE_COLOR = 22
-                D2D1_BLEND_MODE_LUMINOSITY = 23
-                D2D1_BLEND_MODE_SUBTRACT = 24
-                D2D1_BLEND_MODE_DIVISION = 25
-                D2D1_BLEND_MODE_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_SATURATION_PROP
-                D2D1_SATURATION_PROP_SATURATION = 0
-                D2D1_SATURATION_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_HUEROTATION_PROP
-                D2D1_HUEROTATION_PROP_ANGLE = 0
-                D2D1_HUEROTATION_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_COLORMATRIX_PROP
-                D2D1_COLORMATRIX_PROP_COLOR_MATRIX = 0
-                D2D1_COLORMATRIX_PROP_ALPHA_MODE = 1
-                D2D1_COLORMATRIX_PROP_CLAMP_OUTPUT = 2
-                D2D1_COLORMATRIX_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_COLORMATRIX_ALPHA_MODE
-                D2D1_COLORMATRIX_ALPHA_MODE_PREMULTIPLIED = 1
-                D2D1_COLORMATRIX_ALPHA_MODE_STRAIGHT = 2
-                D2D1_COLORMATRIX_ALPHA_MODE_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_BITMAPSOURCE_PROP
-                D2D1_BITMAPSOURCE_PROP_WIC_BITMAP_SOURCE = 0
-                D2D1_BITMAPSOURCE_PROP_SCALE = 1
-                D2D1_BITMAPSOURCE_PROP_INTERPOLATION_MODE = 2
-                D2D1_BITMAPSOURCE_PROP_ENABLE_DPI_CORRECTION = 3
-                D2D1_BITMAPSOURCE_PROP_ALPHA_MODE = 4
-                D2D1_BITMAPSOURCE_PROP_ORIENTATION = 5
-                D2D1_BITMAPSOURCE_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_BITMAPSOURCE_INTERPOLATION_MODE
-                D2D1_BITMAPSOURCE_INTERPOLATION_MODE_NEAREST_NEIGHBOR = 0
-                D2D1_BITMAPSOURCE_INTERPOLATION_MODE_LINEAR = 1
-                D2D1_BITMAPSOURCE_INTERPOLATION_MODE_CUBIC = 2
-                D2D1_BITMAPSOURCE_INTERPOLATION_MODE_FANT = 6
-                D2D1_BITMAPSOURCE_INTERPOLATION_MODE_MIPMAP_LINEAR = 7
-                D2D1_BITMAPSOURCE_INTERPOLATION_MODE_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_BITMAPSOURCE_ALPHA_MODE
-                D2D1_BITMAPSOURCE_ALPHA_MODE_PREMULTIPLIED = 1
-                D2D1_BITMAPSOURCE_ALPHA_MODE_STRAIGHT = 2
-                D2D1_BITMAPSOURCE_ALPHA_MODE_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_COMPOSITE_PROP
-                D2D1_COMPOSITE_PROP_MODE = 0
-                D2D1_COMPOSITE_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_3DTRANSFORM_PROP
-                D2D1_3DTRANSFORM_PROP_INTERPOLATION_MODE = 0
-                D2D1_3DTRANSFORM_PROP_BORDER_MODE = 1
-                D2D1_3DTRANSFORM_PROP_TRANSFORM_MATRIX = 2
-                D2D1_3DTRANSFORM_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_3DTRANSFORM_INTERPOLATION_MODE
-                D2D1_3DTRANSFORM_INTERPOLATION_MODE_NEAREST_NEIGHBOR = 0
-                D2D1_3DTRANSFORM_INTERPOLATION_MODE_LINEAR = 1
-                D2D1_3DTRANSFORM_INTERPOLATION_MODE_CUBIC = 2
-                D2D1_3DTRANSFORM_INTERPOLATION_MODE_MULTI_SAMPLE_LINEAR = 3
-                D2D1_3DTRANSFORM_INTERPOLATION_MODE_ANISOTROPIC = 4
-                D2D1_3DTRANSFORM_INTERPOLATION_MODE_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_3DPERSPECTIVETRANSFORM_PROP
-                D2D1_3DPERSPECTIVETRANSFORM_PROP_INTERPOLATION_MODE = 0
-                D2D1_3DPERSPECTIVETRANSFORM_PROP_BORDER_MODE = 1
-                D2D1_3DPERSPECTIVETRANSFORM_PROP_DEPTH = 2
-                D2D1_3DPERSPECTIVETRANSFORM_PROP_PERSPECTIVE_ORIGIN = 3
-                D2D1_3DPERSPECTIVETRANSFORM_PROP_LOCAL_OFFSET = 4
-                D2D1_3DPERSPECTIVETRANSFORM_PROP_GLOBAL_OFFSET = 5
-                D2D1_3DPERSPECTIVETRANSFORM_PROP_ROTATION_ORIGIN = 6
-                D2D1_3DPERSPECTIVETRANSFORM_PROP_ROTATION = 7
-                D2D1_3DPERSPECTIVETRANSFORM_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_3DPERSPECTIVETRANSFORM_INTERPOLATION_MODE
-                D2D1_3DPERSPECTIVETRANSFORM_INTERPOLATION_MODE_NEAREST_NEIGHBOR = 0
-                D2D1_3DPERSPECTIVETRANSFORM_INTERPOLATION_MODE_LINEAR = 1
-                D2D1_3DPERSPECTIVETRANSFORM_INTERPOLATION_MODE_CUBIC = 2
-                D2D1_3DPERSPECTIVETRANSFORM_INTERPOLATION_MODE_MULTI_SAMPLE_LINEAR = 3
-                D2D1_3DPERSPECTIVETRANSFORM_INTERPOLATION_MODE_ANISOTROPIC = 4
-                D2D1_3DPERSPECTIVETRANSFORM_INTERPOLATION_MODE_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_2DAFFINETRANSFORM_PROP
-                D2D1_2DAFFINETRANSFORM_PROP_INTERPOLATION_MODE = 0
-                D2D1_2DAFFINETRANSFORM_PROP_BORDER_MODE = 1
-                D2D1_2DAFFINETRANSFORM_PROP_TRANSFORM_MATRIX = 2
-                D2D1_2DAFFINETRANSFORM_PROP_SHARPNESS = 3
-                D2D1_2DAFFINETRANSFORM_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE
-                D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE_NEAREST_NEIGHBOR = 0
-                D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE_LINEAR = 1
-                D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE_CUBIC = 2
-                D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE_MULTI_SAMPLE_LINEAR = 3
-                D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE_ANISOTROPIC = 4
-                D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE_HIGH_QUALITY_CUBIC = 5
-                D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_DPICOMPENSATION_PROP
-                D2D1_DPICOMPENSATION_PROP_INTERPOLATION_MODE = 0
-                D2D1_DPICOMPENSATION_PROP_BORDER_MODE = 1
-                D2D1_DPICOMPENSATION_PROP_INPUT_DPI = 2
-                D2D1_DPICOMPENSATION_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_DPICOMPENSATION_INTERPOLATION_MODE
-                D2D1_DPICOMPENSATION_INTERPOLATION_MODE_NEAREST_NEIGHBOR = 0
-                D2D1_DPICOMPENSATION_INTERPOLATION_MODE_LINEAR = 1
-                D2D1_DPICOMPENSATION_INTERPOLATION_MODE_CUBIC = 2
-                D2D1_DPICOMPENSATION_INTERPOLATION_MODE_MULTI_SAMPLE_LINEAR = 3
-                D2D1_DPICOMPENSATION_INTERPOLATION_MODE_ANISOTROPIC = 4
-                D2D1_DPICOMPENSATION_INTERPOLATION_MODE_HIGH_QUALITY_CUBIC = 5
-                D2D1_DPICOMPENSATION_INTERPOLATION_MODE_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_SCALE_PROP
-                D2D1_SCALE_PROP_SCALE = 0
-                D2D1_SCALE_PROP_CENTER_POINT = 1
-                D2D1_SCALE_PROP_INTERPOLATION_MODE = 2
-                D2D1_SCALE_PROP_BORDER_MODE = 3
-                D2D1_SCALE_PROP_SHARPNESS = 4
-                D2D1_SCALE_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_SCALE_INTERPOLATION_MODE
-                D2D1_SCALE_INTERPOLATION_MODE_NEAREST_NEIGHBOR = 0
-                D2D1_SCALE_INTERPOLATION_MODE_LINEAR = 1
-                D2D1_SCALE_INTERPOLATION_MODE_CUBIC = 2
-                D2D1_SCALE_INTERPOLATION_MODE_MULTI_SAMPLE_LINEAR = 3
-                D2D1_SCALE_INTERPOLATION_MODE_ANISOTROPIC = 4
-                D2D1_SCALE_INTERPOLATION_MODE_HIGH_QUALITY_CUBIC = 5
-                D2D1_SCALE_INTERPOLATION_MODE_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_TURBULENCE_PROP
-                D2D1_TURBULENCE_PROP_OFFSET = 0
-                D2D1_TURBULENCE_PROP_SIZE = 1
-                D2D1_TURBULENCE_PROP_BASE_FREQUENCY = 2
-                D2D1_TURBULENCE_PROP_NUM_OCTAVES = 3
-                D2D1_TURBULENCE_PROP_SEED = 4
-                D2D1_TURBULENCE_PROP_NOISE = 5
-                D2D1_TURBULENCE_PROP_STITCHABLE = 6
-                D2D1_TURBULENCE_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_TURBULENCE_NOISE
-                D2D1_TURBULENCE_NOISE_FRACTAL_SUM = 0
-                D2D1_TURBULENCE_NOISE_TURBULENCE = 1
-                D2D1_TURBULENCE_NOISE_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_DISPLACEMENTMAP_PROP
-                D2D1_DISPLACEMENTMAP_PROP_SCALE = 0
-                D2D1_DISPLACEMENTMAP_PROP_X_CHANNEL_SELECT = 1
-                D2D1_DISPLACEMENTMAP_PROP_Y_CHANNEL_SELECT = 2
-                D2D1_DISPLACEMENTMAP_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_COLORMANAGEMENT_PROP
-                D2D1_COLORMANAGEMENT_PROP_SOURCE_COLOR_CONTEXT = 0
-                D2D1_COLORMANAGEMENT_PROP_SOURCE_RENDERING_INTENT = 1
-                D2D1_COLORMANAGEMENT_PROP_DESTINATION_COLOR_CONTEXT = 2
-                D2D1_COLORMANAGEMENT_PROP_DESTINATION_RENDERING_INTENT = 3
-                D2D1_COLORMANAGEMENT_PROP_ALPHA_MODE = 4
-                D2D1_COLORMANAGEMENT_PROP_QUALITY = 5
-                D2D1_COLORMANAGEMENT_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_COLORMANAGEMENT_ALPHA_MODE
-                D2D1_COLORMANAGEMENT_ALPHA_MODE_PREMULTIPLIED = 1
-                D2D1_COLORMANAGEMENT_ALPHA_MODE_STRAIGHT = 2
-                D2D1_COLORMANAGEMENT_ALPHA_MODE_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_COLORMANAGEMENT_QUALITY
-                D2D1_COLORMANAGEMENT_QUALITY_PROOF = 0
-                D2D1_COLORMANAGEMENT_QUALITY_NORMAL = 1
-                D2D1_COLORMANAGEMENT_QUALITY_BEST = 2
-                D2D1_COLORMANAGEMENT_QUALITY_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_COLORMANAGEMENT_RENDERING_INTENT
-                D2D1_COLORMANAGEMENT_RENDERING_INTENT_PERCEPTUAL = 0
-                D2D1_COLORMANAGEMENT_RENDERING_INTENT_RELATIVE_COLORIMETRIC = 1
-                D2D1_COLORMANAGEMENT_RENDERING_INTENT_SATURATION = 2
-                D2D1_COLORMANAGEMENT_RENDERING_INTENT_ABSOLUTE_COLORIMETRIC = 3
-                D2D1_COLORMANAGEMENT_RENDERING_INTENT_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_HISTOGRAM_PROP
-                D2D1_HISTOGRAM_PROP_NUM_BINS = 0
-                D2D1_HISTOGRAM_PROP_CHANNEL_SELECT = 1
-                D2D1_HISTOGRAM_PROP_HISTOGRAM_OUTPUT = 2
-                D2D1_HISTOGRAM_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_POINTSPECULAR_PROP
-                D2D1_POINTSPECULAR_PROP_LIGHT_POSITION = 0
-                D2D1_POINTSPECULAR_PROP_SPECULAR_EXPONENT = 1
-                D2D1_POINTSPECULAR_PROP_SPECULAR_CONSTANT = 2
-                D2D1_POINTSPECULAR_PROP_SURFACE_SCALE = 3
-                D2D1_POINTSPECULAR_PROP_COLOR = 4
-                D2D1_POINTSPECULAR_PROP_KERNEL_UNIT_LENGTH = 5
-                D2D1_POINTSPECULAR_PROP_SCALE_MODE = 6
-                D2D1_POINTSPECULAR_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_POINTSPECULAR_SCALE_MODE
-                D2D1_POINTSPECULAR_SCALE_MODE_NEAREST_NEIGHBOR = 0
-                D2D1_POINTSPECULAR_SCALE_MODE_LINEAR = 1
-                D2D1_POINTSPECULAR_SCALE_MODE_CUBIC = 2
-                D2D1_POINTSPECULAR_SCALE_MODE_MULTI_SAMPLE_LINEAR = 3
-                D2D1_POINTSPECULAR_SCALE_MODE_ANISOTROPIC = 4
-                D2D1_POINTSPECULAR_SCALE_MODE_HIGH_QUALITY_CUBIC = 5
-                D2D1_POINTSPECULAR_SCALE_MODE_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_SPOTSPECULAR_PROP
-                D2D1_SPOTSPECULAR_PROP_LIGHT_POSITION = 0
-                D2D1_SPOTSPECULAR_PROP_POINTS_AT = 1
-                D2D1_SPOTSPECULAR_PROP_FOCUS = 2
-                D2D1_SPOTSPECULAR_PROP_LIMITING_CONE_ANGLE = 3
-                D2D1_SPOTSPECULAR_PROP_SPECULAR_EXPONENT = 4
-                D2D1_SPOTSPECULAR_PROP_SPECULAR_CONSTANT = 5
-                D2D1_SPOTSPECULAR_PROP_SURFACE_SCALE = 6
-                D2D1_SPOTSPECULAR_PROP_COLOR = 7
-                D2D1_SPOTSPECULAR_PROP_KERNEL_UNIT_LENGTH = 8
-                D2D1_SPOTSPECULAR_PROP_SCALE_MODE = 9
-                D2D1_SPOTSPECULAR_PROP_FORCE_DWORD = -1
-    End Enum
-
-
-    Public Enum D2D1_SPOTSPECULAR_SCALE_MODE
-                D2D1_SPOTSPECULAR_SCALE_MODE_NEAREST_NEIGHBOR = 0
-                D2D1_SPOTSPECULAR_SCALE_MODE_LINEAR = 1
-                D2D1_SPOTSPECULAR_SCALE_MODE_CUBIC = 2
-                D2D1_SPOTSPECULAR_SCALE_MODE_MULTI_SAMPLE_LINEAR = 3
-                D2D1_SPOTSPECULAR_SCALE_MODE_ANISOTROPIC = 4
-                D2D1_SPOTSPECULAR_SCALE_MODE_HIGH_QUALITY_CUBIC = 5
-                D2D1_SPOTSPECULAR_SCALE_MODE_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_DISTANTSPECULAR_PROP
-                D2D1_DISTANTSPECULAR_PROP_AZIMUTH = 0
-                D2D1_DISTANTSPECULAR_PROP_ELEVATION = 1
-                D2D1_DISTANTSPECULAR_PROP_SPECULAR_EXPONENT = 2
-                D2D1_DISTANTSPECULAR_PROP_SPECULAR_CONSTANT = 3
-                D2D1_DISTANTSPECULAR_PROP_SURFACE_SCALE = 4
-                D2D1_DISTANTSPECULAR_PROP_COLOR = 5
-                D2D1_DISTANTSPECULAR_PROP_KERNEL_UNIT_LENGTH = 6
-                D2D1_DISTANTSPECULAR_PROP_SCALE_MODE = 7
-                D2D1_DISTANTSPECULAR_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_DISTANTSPECULAR_SCALE_MODE
-                D2D1_DISTANTSPECULAR_SCALE_MODE_NEAREST_NEIGHBOR = 0
-                D2D1_DISTANTSPECULAR_SCALE_MODE_LINEAR = 1
-                D2D1_DISTANTSPECULAR_SCALE_MODE_CUBIC = 2
-                D2D1_DISTANTSPECULAR_SCALE_MODE_MULTI_SAMPLE_LINEAR = 3
-                D2D1_DISTANTSPECULAR_SCALE_MODE_ANISOTROPIC = 4
-                D2D1_DISTANTSPECULAR_SCALE_MODE_HIGH_QUALITY_CUBIC = 5
-                D2D1_DISTANTSPECULAR_SCALE_MODE_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_POINTDIFFUSE_PROP
-                D2D1_POINTDIFFUSE_PROP_LIGHT_POSITION = 0
-                D2D1_POINTDIFFUSE_PROP_DIFFUSE_CONSTANT = 1
-                D2D1_POINTDIFFUSE_PROP_SURFACE_SCALE = 2
-                D2D1_POINTDIFFUSE_PROP_COLOR = 3
-                D2D1_POINTDIFFUSE_PROP_KERNEL_UNIT_LENGTH = 4
-                D2D1_POINTDIFFUSE_PROP_SCALE_MODE = 5
-                D2D1_POINTDIFFUSE_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_POINTDIFFUSE_SCALE_MODE
-                D2D1_POINTDIFFUSE_SCALE_MODE_NEAREST_NEIGHBOR = 0
-                D2D1_POINTDIFFUSE_SCALE_MODE_LINEAR = 1
-                D2D1_POINTDIFFUSE_SCALE_MODE_CUBIC = 2
-                D2D1_POINTDIFFUSE_SCALE_MODE_MULTI_SAMPLE_LINEAR = 3
-                D2D1_POINTDIFFUSE_SCALE_MODE_ANISOTROPIC = 4
-                D2D1_POINTDIFFUSE_SCALE_MODE_HIGH_QUALITY_CUBIC = 5
-                D2D1_POINTDIFFUSE_SCALE_MODE_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_SPOTDIFFUSE_PROP
-                D2D1_SPOTDIFFUSE_PROP_LIGHT_POSITION = 0
-                D2D1_SPOTDIFFUSE_PROP_POINTS_AT = 1
-                D2D1_SPOTDIFFUSE_PROP_FOCUS = 2
-                D2D1_SPOTDIFFUSE_PROP_LIMITING_CONE_ANGLE = 3
-                D2D1_SPOTDIFFUSE_PROP_DIFFUSE_CONSTANT = 4
-                D2D1_SPOTDIFFUSE_PROP_SURFACE_SCALE = 5
-                D2D1_SPOTDIFFUSE_PROP_COLOR = 6
-                D2D1_SPOTDIFFUSE_PROP_KERNEL_UNIT_LENGTH = 7
-                D2D1_SPOTDIFFUSE_PROP_SCALE_MODE = 8
-                D2D1_SPOTDIFFUSE_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_SPOTDIFFUSE_SCALE_MODE
-                D2D1_SPOTDIFFUSE_SCALE_MODE_NEAREST_NEIGHBOR = 0
-                D2D1_SPOTDIFFUSE_SCALE_MODE_LINEAR = 1
-                D2D1_SPOTDIFFUSE_SCALE_MODE_CUBIC = 2
-                D2D1_SPOTDIFFUSE_SCALE_MODE_MULTI_SAMPLE_LINEAR = 3
-                D2D1_SPOTDIFFUSE_SCALE_MODE_ANISOTROPIC = 4
-                D2D1_SPOTDIFFUSE_SCALE_MODE_HIGH_QUALITY_CUBIC = 5
-                D2D1_SPOTDIFFUSE_SCALE_MODE_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_DISTANTDIFFUSE_PROP
-                D2D1_DISTANTDIFFUSE_PROP_AZIMUTH = 0
-                D2D1_DISTANTDIFFUSE_PROP_ELEVATION = 1
-                D2D1_DISTANTDIFFUSE_PROP_DIFFUSE_CONSTANT = 2
-                D2D1_DISTANTDIFFUSE_PROP_SURFACE_SCALE = 3
-                D2D1_DISTANTDIFFUSE_PROP_COLOR = 4
-                D2D1_DISTANTDIFFUSE_PROP_KERNEL_UNIT_LENGTH = 5
-                D2D1_DISTANTDIFFUSE_PROP_SCALE_MODE = 6
-                D2D1_DISTANTDIFFUSE_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_DISTANTDIFFUSE_SCALE_MODE
-                D2D1_DISTANTDIFFUSE_SCALE_MODE_NEAREST_NEIGHBOR = 0
-                D2D1_DISTANTDIFFUSE_SCALE_MODE_LINEAR = 1
-                D2D1_DISTANTDIFFUSE_SCALE_MODE_CUBIC = 2
-                D2D1_DISTANTDIFFUSE_SCALE_MODE_MULTI_SAMPLE_LINEAR = 3
-                D2D1_DISTANTDIFFUSE_SCALE_MODE_ANISOTROPIC = 4
-                D2D1_DISTANTDIFFUSE_SCALE_MODE_HIGH_QUALITY_CUBIC = 5
-                D2D1_DISTANTDIFFUSE_SCALE_MODE_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_FLOOD_PROP
-                D2D1_FLOOD_PROP_COLOR = 0
-                D2D1_FLOOD_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_LINEARTRANSFER_PROP
-                D2D1_LINEARTRANSFER_PROP_RED_Y_INTERCEPT = 0
-                D2D1_LINEARTRANSFER_PROP_RED_SLOPE = 1
-                D2D1_LINEARTRANSFER_PROP_RED_DISABLE = 2
-                D2D1_LINEARTRANSFER_PROP_GREEN_Y_INTERCEPT = 3
-                D2D1_LINEARTRANSFER_PROP_GREEN_SLOPE = 4
-                D2D1_LINEARTRANSFER_PROP_GREEN_DISABLE = 5
-                D2D1_LINEARTRANSFER_PROP_BLUE_Y_INTERCEPT = 6
-                D2D1_LINEARTRANSFER_PROP_BLUE_SLOPE = 7
-                D2D1_LINEARTRANSFER_PROP_BLUE_DISABLE = 8
-                D2D1_LINEARTRANSFER_PROP_ALPHA_Y_INTERCEPT = 9
-                D2D1_LINEARTRANSFER_PROP_ALPHA_SLOPE = 10
-                D2D1_LINEARTRANSFER_PROP_ALPHA_DISABLE = 11
-                D2D1_LINEARTRANSFER_PROP_CLAMP_OUTPUT = 12
-                D2D1_LINEARTRANSFER_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_GAMMATRANSFER_PROP
-                D2D1_GAMMATRANSFER_PROP_RED_AMPLITUDE = 0
-                D2D1_GAMMATRANSFER_PROP_RED_EXPONENT = 1
-                D2D1_GAMMATRANSFER_PROP_RED_OFFSET = 2
-                D2D1_GAMMATRANSFER_PROP_RED_DISABLE = 3
-                D2D1_GAMMATRANSFER_PROP_GREEN_AMPLITUDE = 4
-                D2D1_GAMMATRANSFER_PROP_GREEN_EXPONENT = 5
-                D2D1_GAMMATRANSFER_PROP_GREEN_OFFSET = 6
-                D2D1_GAMMATRANSFER_PROP_GREEN_DISABLE = 7
-                D2D1_GAMMATRANSFER_PROP_BLUE_AMPLITUDE = 8
-                D2D1_GAMMATRANSFER_PROP_BLUE_EXPONENT = 9
-                D2D1_GAMMATRANSFER_PROP_BLUE_OFFSET = 10
-                D2D1_GAMMATRANSFER_PROP_BLUE_DISABLE = 11
-                D2D1_GAMMATRANSFER_PROP_ALPHA_AMPLITUDE = 12
-                D2D1_GAMMATRANSFER_PROP_ALPHA_EXPONENT = 13
-                D2D1_GAMMATRANSFER_PROP_ALPHA_OFFSET = 14
-                D2D1_GAMMATRANSFER_PROP_ALPHA_DISABLE = 15
-                D2D1_GAMMATRANSFER_PROP_CLAMP_OUTPUT = 16
-                D2D1_GAMMATRANSFER_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_TABLETRANSFER_PROP
-                D2D1_TABLETRANSFER_PROP_RED_TABLE = 0
-                D2D1_TABLETRANSFER_PROP_RED_DISABLE = 1
-                D2D1_TABLETRANSFER_PROP_GREEN_TABLE = 2
-                D2D1_TABLETRANSFER_PROP_GREEN_DISABLE = 3
-                D2D1_TABLETRANSFER_PROP_BLUE_TABLE = 4
-                D2D1_TABLETRANSFER_PROP_BLUE_DISABLE = 5
-                D2D1_TABLETRANSFER_PROP_ALPHA_TABLE = 6
-                D2D1_TABLETRANSFER_PROP_ALPHA_DISABLE = 7
-                D2D1_TABLETRANSFER_PROP_CLAMP_OUTPUT = 8
-                D2D1_TABLETRANSFER_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_DISCRETETRANSFER_PROP
-                D2D1_DISCRETETRANSFER_PROP_RED_TABLE = 0
-                D2D1_DISCRETETRANSFER_PROP_RED_DISABLE = 1
-                D2D1_DISCRETETRANSFER_PROP_GREEN_TABLE = 2
-                D2D1_DISCRETETRANSFER_PROP_GREEN_DISABLE = 3
-                D2D1_DISCRETETRANSFER_PROP_BLUE_TABLE = 4
-                D2D1_DISCRETETRANSFER_PROP_BLUE_DISABLE = 5
-                D2D1_DISCRETETRANSFER_PROP_ALPHA_TABLE = 6
-                D2D1_DISCRETETRANSFER_PROP_ALPHA_DISABLE = 7
-                D2D1_DISCRETETRANSFER_PROP_CLAMP_OUTPUT = 8
-                D2D1_DISCRETETRANSFER_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_CONVOLVEMATRIX_PROP
-                D2D1_CONVOLVEMATRIX_PROP_KERNEL_UNIT_LENGTH = 0
-                D2D1_CONVOLVEMATRIX_PROP_SCALE_MODE = 1
-                D2D1_CONVOLVEMATRIX_PROP_KERNEL_SIZE_X = 2
-                D2D1_CONVOLVEMATRIX_PROP_KERNEL_SIZE_Y = 3
-                D2D1_CONVOLVEMATRIX_PROP_KERNEL_MATRIX = 4
-                D2D1_CONVOLVEMATRIX_PROP_DIVISOR = 5
-                D2D1_CONVOLVEMATRIX_PROP_BIAS = 6
-                D2D1_CONVOLVEMATRIX_PROP_KERNEL_OFFSET = 7
-                D2D1_CONVOLVEMATRIX_PROP_PRESERVE_ALPHA = 8
-                D2D1_CONVOLVEMATRIX_PROP_BORDER_MODE = 9
-                D2D1_CONVOLVEMATRIX_PROP_CLAMP_OUTPUT = 10
-                D2D1_CONVOLVEMATRIX_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_CONVOLVEMATRIX_SCALE_MODE
-                D2D1_CONVOLVEMATRIX_SCALE_MODE_NEAREST_NEIGHBOR = 0
-                D2D1_CONVOLVEMATRIX_SCALE_MODE_LINEAR = 1
-                D2D1_CONVOLVEMATRIX_SCALE_MODE_CUBIC = 2
-                D2D1_CONVOLVEMATRIX_SCALE_MODE_MULTI_SAMPLE_LINEAR = 3
-                D2D1_CONVOLVEMATRIX_SCALE_MODE_ANISOTROPIC = 4
-                D2D1_CONVOLVEMATRIX_SCALE_MODE_HIGH_QUALITY_CUBIC = 5
-                D2D1_CONVOLVEMATRIX_SCALE_MODE_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_BRIGHTNESS_PROP
-                D2D1_BRIGHTNESS_PROP_WHITE_POINT = 0
-                D2D1_BRIGHTNESS_PROP_BLACK_POINT = 1
-                D2D1_BRIGHTNESS_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_ARITHMETICCOMPOSITE_PROP
-                D2D1_ARITHMETICCOMPOSITE_PROP_COEFFICIENTS = 0
-                D2D1_ARITHMETICCOMPOSITE_PROP_CLAMP_OUTPUT = 1
-                D2D1_ARITHMETICCOMPOSITE_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_CROP_PROP
-                D2D1_CROP_PROP_RECT = 0
-                D2D1_CROP_PROP_BORDER_MODE = 1
-                D2D1_CROP_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_BORDER_PROP
-                D2D1_BORDER_PROP_EDGE_MODE_X = 0
-                D2D1_BORDER_PROP_EDGE_MODE_Y = 1
-                D2D1_BORDER_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_BORDER_EDGE_MODE
-                D2D1_BORDER_EDGE_MODE_CLAMP = 0
-                D2D1_BORDER_EDGE_MODE_WRAP = 1
-                D2D1_BORDER_EDGE_MODE_MIRROR = 2
-                D2D1_BORDER_EDGE_MODE_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_MORPHOLOGY_PROP
-                D2D1_MORPHOLOGY_PROP_MODE = 0
-                D2D1_MORPHOLOGY_PROP_WIDTH = 1
-                D2D1_MORPHOLOGY_PROP_HEIGHT = 2
-                D2D1_MORPHOLOGY_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_MORPHOLOGY_MODE
-                D2D1_MORPHOLOGY_MODE_ERODE = 0
-                D2D1_MORPHOLOGY_MODE_DILATE = 1
-                D2D1_MORPHOLOGY_MODE_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_TILE_PROP
-                D2D1_TILE_PROP_RECT = 0
-                D2D1_TILE_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_ATLAS_PROP
-                D2D1_ATLAS_PROP_INPUT_RECT = 0
-                D2D1_ATLAS_PROP_INPUT_PADDING_RECT = 1
-                D2D1_ATLAS_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_OPACITYMETADATA_PROP
-                D2D1_OPACITYMETADATA_PROP_INPUT_OPAQUE_RECT = 0
-                D2D1_OPACITYMETADATA_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_YCBCR_PROP
-                D2D1_YCBCR_PROP_CHROMA_SUBSAMPLING = 0
-                D2D1_YCBCR_PROP_TRANSFORM_MATRIX = 1
-                D2D1_YCBCR_PROP_INTERPOLATION_MODE = 2
-                D2D1_YCBCR_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_YCBCR_CHROMA_SUBSAMPLING
-                D2D1_YCBCR_CHROMA_SUBSAMPLING_AUTO = 0
-                D2D1_YCBCR_CHROMA_SUBSAMPLING_420 = 1
-                D2D1_YCBCR_CHROMA_SUBSAMPLING_422 = 2
-                D2D1_YCBCR_CHROMA_SUBSAMPLING_444 = 3
-                D2D1_YCBCR_CHROMA_SUBSAMPLING_440 = 4
-                D2D1_YCBCR_CHROMA_SUBSAMPLING_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_YCBCR_INTERPOLATION_MODE
-                D2D1_YCBCR_INTERPOLATION_MODE_NEAREST_NEIGHBOR = 0
-                D2D1_YCBCR_INTERPOLATION_MODE_LINEAR = 1
-                D2D1_YCBCR_INTERPOLATION_MODE_CUBIC = 2
-                D2D1_YCBCR_INTERPOLATION_MODE_MULTI_SAMPLE_LINEAR = 3
-                D2D1_YCBCR_INTERPOLATION_MODE_ANISOTROPIC = 4
-                D2D1_YCBCR_INTERPOLATION_MODE_HIGH_QUALITY_CUBIC = 5
-                D2D1_YCBCR_INTERPOLATION_MODE_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_CONTRAST_PROP
-                D2D1_CONTRAST_PROP_CONTRAST = 0
-                D2D1_CONTRAST_PROP_CLAMP_INPUT = 1
-                D2D1_CONTRAST_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_RGBTOHUE_PROP
-                D2D1_RGBTOHUE_PROP_OUTPUT_COLOR_SPACE = 0
-                D2D1_RGBTOHUE_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_RGBTOHUE_OUTPUT_COLOR_SPACE
-                D2D1_RGBTOHUE_OUTPUT_COLOR_SPACE_HUE_SATURATION_VALUE = 0
-                D2D1_RGBTOHUE_OUTPUT_COLOR_SPACE_HUE_SATURATION_LIGHTNESS = 1
-                D2D1_RGBTOHUE_OUTPUT_COLOR_SPACE_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_HUETORGB_PROP
-                D2D1_HUETORGB_PROP_INPUT_COLOR_SPACE = 0
-                D2D1_HUETORGB_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_HUETORGB_INPUT_COLOR_SPACE
-                D2D1_HUETORGB_INPUT_COLOR_SPACE_HUE_SATURATION_VALUE = 0
-                D2D1_HUETORGB_INPUT_COLOR_SPACE_HUE_SATURATION_LIGHTNESS = 1
-                D2D1_HUETORGB_INPUT_COLOR_SPACE_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_CHROMAKEY_PROP
-                D2D1_CHROMAKEY_PROP_COLOR = 0
-                D2D1_CHROMAKEY_PROP_TOLERANCE = 1
-                D2D1_CHROMAKEY_PROP_INVERT_ALPHA = 2
-                D2D1_CHROMAKEY_PROP_FEATHER = 3
-                D2D1_CHROMAKEY_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_EMBOSS_PROP
-                D2D1_EMBOSS_PROP_HEIGHT = 0
-                D2D1_EMBOSS_PROP_DIRECTION = 1
-                D2D1_EMBOSS_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_EXPOSURE_PROP
-                D2D1_EXPOSURE_PROP_EXPOSURE_VALUE = 0
-                D2D1_EXPOSURE_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_POSTERIZE_PROP
-                D2D1_POSTERIZE_PROP_RED_VALUE_COUNT = 0
-                D2D1_POSTERIZE_PROP_GREEN_VALUE_COUNT = 1
-                D2D1_POSTERIZE_PROP_BLUE_VALUE_COUNT = 2
-                D2D1_POSTERIZE_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_SEPIA_PROP
-                D2D1_SEPIA_PROP_INTENSITY = 0
-                D2D1_SEPIA_PROP_ALPHA_MODE = 1
-                D2D1_SEPIA_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_SHARPEN_PROP
-                D2D1_SHARPEN_PROP_SHARPNESS = 0
-                D2D1_SHARPEN_PROP_THRESHOLD = 1
-                D2D1_SHARPEN_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_STRAIGHTEN_PROP
-                D2D1_STRAIGHTEN_PROP_ANGLE = 0
-                D2D1_STRAIGHTEN_PROP_MAINTAIN_SIZE = 1
-                D2D1_STRAIGHTEN_PROP_SCALE_MODE = 2
-                D2D1_STRAIGHTEN_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_STRAIGHTEN_SCALE_MODE
-                D2D1_STRAIGHTEN_SCALE_MODE_NEAREST_NEIGHBOR = 0
-                D2D1_STRAIGHTEN_SCALE_MODE_LINEAR = 1
-                D2D1_STRAIGHTEN_SCALE_MODE_CUBIC = 2
-                D2D1_STRAIGHTEN_SCALE_MODE_MULTI_SAMPLE_LINEAR = 3
-                D2D1_STRAIGHTEN_SCALE_MODE_ANISOTROPIC = 4
-                D2D1_STRAIGHTEN_SCALE_MODE_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_TEMPERATUREANDTINT_PROP
-                D2D1_TEMPERATUREANDTINT_PROP_TEMPERATURE = 0
-                D2D1_TEMPERATUREANDTINT_PROP_TINT = 1
-                D2D1_TEMPERATUREANDTINT_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_VIGNETTE_PROP
-                D2D1_VIGNETTE_PROP_COLOR = 0
-                D2D1_VIGNETTE_PROP_TRANSITION_SIZE = 1
-                D2D1_VIGNETTE_PROP_STRENGTH = 2
-                D2D1_VIGNETTE_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_EDGEDETECTION_PROP
-                D2D1_EDGEDETECTION_PROP_STRENGTH = 0
-                D2D1_EDGEDETECTION_PROP_BLUR_RADIUS = 1
-                D2D1_EDGEDETECTION_PROP_MODE = 2
-                D2D1_EDGEDETECTION_PROP_OVERLAY_EDGES = 3
-                D2D1_EDGEDETECTION_PROP_ALPHA_MODE = 4
-                D2D1_EDGEDETECTION_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_EDGEDETECTION_MODE
-                D2D1_EDGEDETECTION_MODE_SOBEL = 0
-                D2D1_EDGEDETECTION_MODE_PREWITT = 1
-                D2D1_EDGEDETECTION_MODE_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_HIGHLIGHTSANDSHADOWS_PROP
-                D2D1_HIGHLIGHTSANDSHADOWS_PROP_HIGHLIGHTS = 0
-                D2D1_HIGHLIGHTSANDSHADOWS_PROP_SHADOWS = 1
-                D2D1_HIGHLIGHTSANDSHADOWS_PROP_CLARITY = 2
-                D2D1_HIGHLIGHTSANDSHADOWS_PROP_INPUT_GAMMA = 3
-                D2D1_HIGHLIGHTSANDSHADOWS_PROP_MASK_BLUR_RADIUS = 4
-                D2D1_HIGHLIGHTSANDSHADOWS_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_HIGHLIGHTSANDSHADOWS_INPUT_GAMMA
-                D2D1_HIGHLIGHTSANDSHADOWS_INPUT_GAMMA_LINEAR = 0
-                D2D1_HIGHLIGHTSANDSHADOWS_INPUT_GAMMA_SRGB = 1
-                D2D1_HIGHLIGHTSANDSHADOWS_INPUT_GAMMA_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_LOOKUPTABLE3D_PROP
-                D2D1_LOOKUPTABLE3D_PROP_LUT = 0
-                D2D1_LOOKUPTABLE3D_PROP_ALPHA_MODE = 1
-                D2D1_LOOKUPTABLE3D_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_OPACITY_PROP
-                D2D1_OPACITY_PROP_OPACITY = 0
-                D2D1_OPACITY_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_CROSSFADE_PROP
-                D2D1_CROSSFADE_PROP_WEIGHT = 0
-                D2D1_CROSSFADE_PROP_FORCE_DWORD = -1
-    End Enum
-
-    Public Enum D2D1_TINT_PROP
-                D2D1_TINT_PROP_COLOR = 0
-                D2D1_TINT_PROP_CLAMP_OUTPUT = 1
-                D2D1_TINT_PROP_FORCE_DWORD = -1
-    End Enum
+Public Enum D2D1_BLEND
+    D2D1_BLEND_ZERO = 1
+    D2D1_BLEND_ONE = 2
+    D2D1_BLEND_SRC_COLOR = 3
+    D2D1_BLEND_INV_SRC_COLOR = 4
+    D2D1_BLEND_SRC_ALPHA = 5
+    D2D1_BLEND_INV_SRC_ALPHA = 6
+    D2D1_BLEND_DEST_ALPHA = 7
+    D2D1_BLEND_INV_DEST_ALPHA = 8
+    D2D1_BLEND_DEST_COLOR = 9
+    D2D1_BLEND_INV_DEST_COLOR = 10
+    D2D1_BLEND_SRC_ALPHA_SAT = 11
+    D2D1_BLEND_BLEND_FACTOR = 14
+    D2D1_BLEND_INV_BLEND_FACTOR = 15
+    D2D1_BLEND_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_CHANNEL_DEPTH
+    D2D1_CHANNEL_DEPTH_DEFAULT = 0
+    D2D1_CHANNEL_DEPTH_1 = 1
+    D2D1_CHANNEL_DEPTH_4 = 4
+    D2D1_CHANNEL_DEPTH_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_FILTER
+    D2D1_FILTER_MIN_MAG_MIP_POINT = 0
+    D2D1_FILTER_MIN_MAG_POINT_MIP_LINEAR = 1
+    D2D1_FILTER_MIN_POINT_MAG_LINEAR_MIP_POINT = 4
+    D2D1_FILTER_MIN_POINT_MAG_MIP_LINEAR = 5
+    D2D1_FILTER_MIN_LINEAR_MAG_MIP_POINT = 16
+    D2D1_FILTER_MIN_LINEAR_MAG_POINT_MIP_LINEAR = 17
+    D2D1_FILTER_MIN_MAG_LINEAR_MIP_POINT = 20
+    D2D1_FILTER_MIN_MAG_MIP_LINEAR = 21
+    D2D1_FILTER_ANISOTROPIC = 85
+    D2D1_FILTER_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_FEATURE
+    D2D1_FEATURE_DOUBLES = 0
+    D2D1_FEATURE_D3D10_X_HARDWARE_OPTIONS = 1
+    D2D1_FEATURE_FORCE_DWORD = -1
+End Enum
+
+Public Type D2D1_RESOURCE_TEXTURE_PROPERTIES
+    extents As LongPtr
+    dimensions As Long
+    bufferPrecision As D2D1_BUFFER_PRECISION
+    channelDepth As D2D1_CHANNEL_DEPTH
+    Filter As D2D1_FILTER
+    extendModes As LongPtr
+End Type
+
+Public Type D2D1_INPUT_ELEMENT_DESC
+    semanticName As LongPtr
+    semanticIndex As Long
+    Format As DXGI_FORMAT
+    inputSlot As Long
+    alignedByteOffset As Long
+End Type
+
+Public Type D2D1_VERTEX_BUFFER_PROPERTIES
+    inputCount As Long
+    Usage As D2D1_VERTEX_USAGE
+    data As LongPtr
+    byteWidth As Long
+End Type
+
+Public Type D2D1_CUSTOM_VERTEX_BUFFER_PROPERTIES
+    shaderBufferWithInputSignature As LongPtr
+    shaderBufferSize As Long
+    inputElements As LongPtr
+    elementCount As Long
+    stride As Long
+End Type
+
+Public Type D2D1_VERTEX_RANGE
+    startVertex As Long
+    vertexCount As Long
+End Type
+
+Public Type D2D1_BLEND_DESCRIPTION
+    sourceBlend As D2D1_BLEND
+    destinationBlend As D2D1_BLEND
+    blendOperation As D2D1_BLEND_OPERATION
+    sourceBlendAlpha As D2D1_BLEND
+    destinationBlendAlpha As D2D1_BLEND
+    blendOperationAlpha As D2D1_BLEND_OPERATION
+    blendFactor(0 To 3) As Single
+End Type
+
+Public Type D2D1_INPUT_DESCRIPTION
+    Filter As D2D1_FILTER
+    levelOfDetailCount As Long
+End Type
+
+Public Type D2D1_FEATURE_DATA_DOUBLES
+    doublePrecisionFloatShaderOps As Long
+End Type
+
+Public Type D2D1_FEATURE_DATA_D3D10_X_HARDWARE_OPTIONS
+    computeShaders_Plus_RawAndStructuredBuffers_Via_Shader_4_x As Long
+End Type
+
+
+Public Enum D2D1_BORDER_MODE
+    D2D1_BORDER_MODE_SOFT = 0
+    D2D1_BORDER_MODE_HARD = 1
+    D2D1_BORDER_MODE_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_CHANNEL_SELECTOR
+    D2D1_CHANNEL_SELECTOR_R = 0
+    D2D1_CHANNEL_SELECTOR_G = 1
+    D2D1_CHANNEL_SELECTOR_B = 2
+    D2D1_CHANNEL_SELECTOR_A = 3
+    D2D1_CHANNEL_SELECTOR_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_BITMAPSOURCE_ORIENTATION
+    D2D1_BITMAPSOURCE_ORIENTATION_DEFAULT = 1
+    D2D1_BITMAPSOURCE_ORIENTATION_FLIP_HORIZONTAL = 2
+    D2D1_BITMAPSOURCE_ORIENTATION_ROTATE_CLOCKWISE180 = 3
+    D2D1_BITMAPSOURCE_ORIENTATION_ROTATE_CLOCKWISE180_FLIP_HORIZONTAL = 4
+    D2D1_BITMAPSOURCE_ORIENTATION_ROTATE_CLOCKWISE270_FLIP_HORIZONTAL = 5
+    D2D1_BITMAPSOURCE_ORIENTATION_ROTATE_CLOCKWISE90 = 6
+    D2D1_BITMAPSOURCE_ORIENTATION_ROTATE_CLOCKWISE90_FLIP_HORIZONTAL = 7
+    D2D1_BITMAPSOURCE_ORIENTATION_ROTATE_CLOCKWISE270 = 8
+    D2D1_BITMAPSOURCE_ORIENTATION_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_GAUSSIANBLUR_PROP
+    D2D1_GAUSSIANBLUR_PROP_STANDARD_DEVIATION = 0
+    D2D1_GAUSSIANBLUR_PROP_OPTIMIZATION = 1
+    D2D1_GAUSSIANBLUR_PROP_BORDER_MODE = 2
+    D2D1_GAUSSIANBLUR_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_GAUSSIANBLUR_OPTIMIZATION
+    D2D1_GAUSSIANBLUR_OPTIMIZATION_SPEED = 0
+    D2D1_GAUSSIANBLUR_OPTIMIZATION_BALANCED = 1
+    D2D1_GAUSSIANBLUR_OPTIMIZATION_QUALITY = 2
+    D2D1_GAUSSIANBLUR_OPTIMIZATION_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_DIRECTIONALBLUR_PROP
+    D2D1_DIRECTIONALBLUR_PROP_STANDARD_DEVIATION = 0
+    D2D1_DIRECTIONALBLUR_PROP_ANGLE = 1
+    D2D1_DIRECTIONALBLUR_PROP_OPTIMIZATION = 2
+    D2D1_DIRECTIONALBLUR_PROP_BORDER_MODE = 3
+    D2D1_DIRECTIONALBLUR_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_DIRECTIONALBLUR_OPTIMIZATION
+    D2D1_DIRECTIONALBLUR_OPTIMIZATION_SPEED = 0
+    D2D1_DIRECTIONALBLUR_OPTIMIZATION_BALANCED = 1
+    D2D1_DIRECTIONALBLUR_OPTIMIZATION_QUALITY = 2
+    D2D1_DIRECTIONALBLUR_OPTIMIZATION_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_SHADOW_PROP
+    D2D1_SHADOW_PROP_BLUR_STANDARD_DEVIATION = 0
+    D2D1_SHADOW_PROP_COLOR = 1
+    D2D1_SHADOW_PROP_OPTIMIZATION = 2
+    D2D1_SHADOW_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_SHADOW_OPTIMIZATION
+    D2D1_SHADOW_OPTIMIZATION_SPEED = 0
+    D2D1_SHADOW_OPTIMIZATION_BALANCED = 1
+    D2D1_SHADOW_OPTIMIZATION_QUALITY = 2
+    D2D1_SHADOW_OPTIMIZATION_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_BLEND_PROP
+    D2D1_BLEND_PROP_MODE = 0
+    D2D1_BLEND_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_BLEND_MODE
+    D2D1_BLEND_MODE_MULTIPLY = 0
+    D2D1_BLEND_MODE_SCREEN = 1
+    D2D1_BLEND_MODE_DARKEN = 2
+    D2D1_BLEND_MODE_LIGHTEN = 3
+    D2D1_BLEND_MODE_DISSOLVE = 4
+    D2D1_BLEND_MODE_COLOR_BURN = 5
+    D2D1_BLEND_MODE_LINEAR_BURN = 6
+    D2D1_BLEND_MODE_DARKER_COLOR = 7
+    D2D1_BLEND_MODE_LIGHTER_COLOR = 8
+    D2D1_BLEND_MODE_COLOR_DODGE = 9
+    D2D1_BLEND_MODE_LINEAR_DODGE = 10
+    D2D1_BLEND_MODE_OVERLAY = 11
+    D2D1_BLEND_MODE_SOFT_LIGHT = 12
+    D2D1_BLEND_MODE_HARD_LIGHT = 13
+    D2D1_BLEND_MODE_VIVID_LIGHT = 14
+    D2D1_BLEND_MODE_LINEAR_LIGHT = 15
+    D2D1_BLEND_MODE_PIN_LIGHT = 16
+    D2D1_BLEND_MODE_HARD_MIX = 17
+    D2D1_BLEND_MODE_DIFFERENCE = 18
+    D2D1_BLEND_MODE_EXCLUSION = 19
+    D2D1_BLEND_MODE_HUE = 20
+    D2D1_BLEND_MODE_SATURATION = 21
+    D2D1_BLEND_MODE_COLOR = 22
+    D2D1_BLEND_MODE_LUMINOSITY = 23
+    D2D1_BLEND_MODE_SUBTRACT = 24
+    D2D1_BLEND_MODE_DIVISION = 25
+    D2D1_BLEND_MODE_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_SATURATION_PROP
+    D2D1_SATURATION_PROP_SATURATION = 0
+    D2D1_SATURATION_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_HUEROTATION_PROP
+    D2D1_HUEROTATION_PROP_ANGLE = 0
+    D2D1_HUEROTATION_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_COLORMATRIX_PROP
+    D2D1_COLORMATRIX_PROP_COLOR_MATRIX = 0
+    D2D1_COLORMATRIX_PROP_ALPHA_MODE = 1
+    D2D1_COLORMATRIX_PROP_CLAMP_OUTPUT = 2
+    D2D1_COLORMATRIX_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_COLORMATRIX_ALPHA_MODE
+    D2D1_COLORMATRIX_ALPHA_MODE_PREMULTIPLIED = 1
+    D2D1_COLORMATRIX_ALPHA_MODE_STRAIGHT = 2
+    D2D1_COLORMATRIX_ALPHA_MODE_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_BITMAPSOURCE_PROP
+    D2D1_BITMAPSOURCE_PROP_WIC_BITMAP_SOURCE = 0
+    D2D1_BITMAPSOURCE_PROP_SCALE = 1
+    D2D1_BITMAPSOURCE_PROP_INTERPOLATION_MODE = 2
+    D2D1_BITMAPSOURCE_PROP_ENABLE_DPI_CORRECTION = 3
+    D2D1_BITMAPSOURCE_PROP_ALPHA_MODE = 4
+    D2D1_BITMAPSOURCE_PROP_ORIENTATION = 5
+    D2D1_BITMAPSOURCE_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_BITMAPSOURCE_INTERPOLATION_MODE
+    D2D1_BITMAPSOURCE_INTERPOLATION_MODE_NEAREST_NEIGHBOR = 0
+    D2D1_BITMAPSOURCE_INTERPOLATION_MODE_LINEAR = 1
+    D2D1_BITMAPSOURCE_INTERPOLATION_MODE_CUBIC = 2
+    D2D1_BITMAPSOURCE_INTERPOLATION_MODE_FANT = 6
+    D2D1_BITMAPSOURCE_INTERPOLATION_MODE_MIPMAP_LINEAR = 7
+    D2D1_BITMAPSOURCE_INTERPOLATION_MODE_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_BITMAPSOURCE_ALPHA_MODE
+    D2D1_BITMAPSOURCE_ALPHA_MODE_PREMULTIPLIED = 1
+    D2D1_BITMAPSOURCE_ALPHA_MODE_STRAIGHT = 2
+    D2D1_BITMAPSOURCE_ALPHA_MODE_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_COMPOSITE_PROP
+    D2D1_COMPOSITE_PROP_MODE = 0
+    D2D1_COMPOSITE_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_3DTRANSFORM_PROP
+    D2D1_3DTRANSFORM_PROP_INTERPOLATION_MODE = 0
+    D2D1_3DTRANSFORM_PROP_BORDER_MODE = 1
+    D2D1_3DTRANSFORM_PROP_TRANSFORM_MATRIX = 2
+    D2D1_3DTRANSFORM_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_3DTRANSFORM_INTERPOLATION_MODE
+    D2D1_3DTRANSFORM_INTERPOLATION_MODE_NEAREST_NEIGHBOR = 0
+    D2D1_3DTRANSFORM_INTERPOLATION_MODE_LINEAR = 1
+    D2D1_3DTRANSFORM_INTERPOLATION_MODE_CUBIC = 2
+    D2D1_3DTRANSFORM_INTERPOLATION_MODE_MULTI_SAMPLE_LINEAR = 3
+    D2D1_3DTRANSFORM_INTERPOLATION_MODE_ANISOTROPIC = 4
+    D2D1_3DTRANSFORM_INTERPOLATION_MODE_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_3DPERSPECTIVETRANSFORM_PROP
+    D2D1_3DPERSPECTIVETRANSFORM_PROP_INTERPOLATION_MODE = 0
+    D2D1_3DPERSPECTIVETRANSFORM_PROP_BORDER_MODE = 1
+    D2D1_3DPERSPECTIVETRANSFORM_PROP_DEPTH = 2
+    D2D1_3DPERSPECTIVETRANSFORM_PROP_PERSPECTIVE_ORIGIN = 3
+    D2D1_3DPERSPECTIVETRANSFORM_PROP_LOCAL_OFFSET = 4
+    D2D1_3DPERSPECTIVETRANSFORM_PROP_GLOBAL_OFFSET = 5
+    D2D1_3DPERSPECTIVETRANSFORM_PROP_ROTATION_ORIGIN = 6
+    D2D1_3DPERSPECTIVETRANSFORM_PROP_ROTATION = 7
+    D2D1_3DPERSPECTIVETRANSFORM_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_3DPERSPECTIVETRANSFORM_INTERPOLATION_MODE
+    D2D1_3DPERSPECTIVETRANSFORM_INTERPOLATION_MODE_NEAREST_NEIGHBOR = 0
+    D2D1_3DPERSPECTIVETRANSFORM_INTERPOLATION_MODE_LINEAR = 1
+    D2D1_3DPERSPECTIVETRANSFORM_INTERPOLATION_MODE_CUBIC = 2
+    D2D1_3DPERSPECTIVETRANSFORM_INTERPOLATION_MODE_MULTI_SAMPLE_LINEAR = 3
+    D2D1_3DPERSPECTIVETRANSFORM_INTERPOLATION_MODE_ANISOTROPIC = 4
+    D2D1_3DPERSPECTIVETRANSFORM_INTERPOLATION_MODE_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_2DAFFINETRANSFORM_PROP
+    D2D1_2DAFFINETRANSFORM_PROP_INTERPOLATION_MODE = 0
+    D2D1_2DAFFINETRANSFORM_PROP_BORDER_MODE = 1
+    D2D1_2DAFFINETRANSFORM_PROP_TRANSFORM_MATRIX = 2
+    D2D1_2DAFFINETRANSFORM_PROP_SHARPNESS = 3
+    D2D1_2DAFFINETRANSFORM_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE
+    D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE_NEAREST_NEIGHBOR = 0
+    D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE_LINEAR = 1
+    D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE_CUBIC = 2
+    D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE_MULTI_SAMPLE_LINEAR = 3
+    D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE_ANISOTROPIC = 4
+    D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE_HIGH_QUALITY_CUBIC = 5
+    D2D1_2DAFFINETRANSFORM_INTERPOLATION_MODE_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_DPICOMPENSATION_PROP
+    D2D1_DPICOMPENSATION_PROP_INTERPOLATION_MODE = 0
+    D2D1_DPICOMPENSATION_PROP_BORDER_MODE = 1
+    D2D1_DPICOMPENSATION_PROP_INPUT_DPI = 2
+    D2D1_DPICOMPENSATION_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_DPICOMPENSATION_INTERPOLATION_MODE
+    D2D1_DPICOMPENSATION_INTERPOLATION_MODE_NEAREST_NEIGHBOR = 0
+    D2D1_DPICOMPENSATION_INTERPOLATION_MODE_LINEAR = 1
+    D2D1_DPICOMPENSATION_INTERPOLATION_MODE_CUBIC = 2
+    D2D1_DPICOMPENSATION_INTERPOLATION_MODE_MULTI_SAMPLE_LINEAR = 3
+    D2D1_DPICOMPENSATION_INTERPOLATION_MODE_ANISOTROPIC = 4
+    D2D1_DPICOMPENSATION_INTERPOLATION_MODE_HIGH_QUALITY_CUBIC = 5
+    D2D1_DPICOMPENSATION_INTERPOLATION_MODE_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_SCALE_PROP
+    D2D1_SCALE_PROP_SCALE = 0
+    D2D1_SCALE_PROP_CENTER_POINT = 1
+    D2D1_SCALE_PROP_INTERPOLATION_MODE = 2
+    D2D1_SCALE_PROP_BORDER_MODE = 3
+    D2D1_SCALE_PROP_SHARPNESS = 4
+    D2D1_SCALE_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_SCALE_INTERPOLATION_MODE
+    D2D1_SCALE_INTERPOLATION_MODE_NEAREST_NEIGHBOR = 0
+    D2D1_SCALE_INTERPOLATION_MODE_LINEAR = 1
+    D2D1_SCALE_INTERPOLATION_MODE_CUBIC = 2
+    D2D1_SCALE_INTERPOLATION_MODE_MULTI_SAMPLE_LINEAR = 3
+    D2D1_SCALE_INTERPOLATION_MODE_ANISOTROPIC = 4
+    D2D1_SCALE_INTERPOLATION_MODE_HIGH_QUALITY_CUBIC = 5
+    D2D1_SCALE_INTERPOLATION_MODE_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_TURBULENCE_PROP
+    D2D1_TURBULENCE_PROP_OFFSET = 0
+    D2D1_TURBULENCE_PROP_SIZE = 1
+    D2D1_TURBULENCE_PROP_BASE_FREQUENCY = 2
+    D2D1_TURBULENCE_PROP_NUM_OCTAVES = 3
+    D2D1_TURBULENCE_PROP_SEED = 4
+    D2D1_TURBULENCE_PROP_NOISE = 5
+    D2D1_TURBULENCE_PROP_STITCHABLE = 6
+    D2D1_TURBULENCE_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_TURBULENCE_NOISE
+    D2D1_TURBULENCE_NOISE_FRACTAL_SUM = 0
+    D2D1_TURBULENCE_NOISE_TURBULENCE = 1
+    D2D1_TURBULENCE_NOISE_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_DISPLACEMENTMAP_PROP
+    D2D1_DISPLACEMENTMAP_PROP_SCALE = 0
+    D2D1_DISPLACEMENTMAP_PROP_X_CHANNEL_SELECT = 1
+    D2D1_DISPLACEMENTMAP_PROP_Y_CHANNEL_SELECT = 2
+    D2D1_DISPLACEMENTMAP_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_COLORMANAGEMENT_PROP
+    D2D1_COLORMANAGEMENT_PROP_SOURCE_COLOR_CONTEXT = 0
+    D2D1_COLORMANAGEMENT_PROP_SOURCE_RENDERING_INTENT = 1
+    D2D1_COLORMANAGEMENT_PROP_DESTINATION_COLOR_CONTEXT = 2
+    D2D1_COLORMANAGEMENT_PROP_DESTINATION_RENDERING_INTENT = 3
+    D2D1_COLORMANAGEMENT_PROP_ALPHA_MODE = 4
+    D2D1_COLORMANAGEMENT_PROP_QUALITY = 5
+    D2D1_COLORMANAGEMENT_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_COLORMANAGEMENT_ALPHA_MODE
+    D2D1_COLORMANAGEMENT_ALPHA_MODE_PREMULTIPLIED = 1
+    D2D1_COLORMANAGEMENT_ALPHA_MODE_STRAIGHT = 2
+    D2D1_COLORMANAGEMENT_ALPHA_MODE_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_COLORMANAGEMENT_QUALITY
+    D2D1_COLORMANAGEMENT_QUALITY_PROOF = 0
+    D2D1_COLORMANAGEMENT_QUALITY_NORMAL = 1
+    D2D1_COLORMANAGEMENT_QUALITY_BEST = 2
+    D2D1_COLORMANAGEMENT_QUALITY_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_COLORMANAGEMENT_RENDERING_INTENT
+    D2D1_COLORMANAGEMENT_RENDERING_INTENT_PERCEPTUAL = 0
+    D2D1_COLORMANAGEMENT_RENDERING_INTENT_RELATIVE_COLORIMETRIC = 1
+    D2D1_COLORMANAGEMENT_RENDERING_INTENT_SATURATION = 2
+    D2D1_COLORMANAGEMENT_RENDERING_INTENT_ABSOLUTE_COLORIMETRIC = 3
+    D2D1_COLORMANAGEMENT_RENDERING_INTENT_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_HISTOGRAM_PROP
+    D2D1_HISTOGRAM_PROP_NUM_BINS = 0
+    D2D1_HISTOGRAM_PROP_CHANNEL_SELECT = 1
+    D2D1_HISTOGRAM_PROP_HISTOGRAM_OUTPUT = 2
+    D2D1_HISTOGRAM_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_POINTSPECULAR_PROP
+    D2D1_POINTSPECULAR_PROP_LIGHT_POSITION = 0
+    D2D1_POINTSPECULAR_PROP_SPECULAR_EXPONENT = 1
+    D2D1_POINTSPECULAR_PROP_SPECULAR_CONSTANT = 2
+    D2D1_POINTSPECULAR_PROP_SURFACE_SCALE = 3
+    D2D1_POINTSPECULAR_PROP_COLOR = 4
+    D2D1_POINTSPECULAR_PROP_KERNEL_UNIT_LENGTH = 5
+    D2D1_POINTSPECULAR_PROP_SCALE_MODE = 6
+    D2D1_POINTSPECULAR_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_POINTSPECULAR_SCALE_MODE
+    D2D1_POINTSPECULAR_SCALE_MODE_NEAREST_NEIGHBOR = 0
+    D2D1_POINTSPECULAR_SCALE_MODE_LINEAR = 1
+    D2D1_POINTSPECULAR_SCALE_MODE_CUBIC = 2
+    D2D1_POINTSPECULAR_SCALE_MODE_MULTI_SAMPLE_LINEAR = 3
+    D2D1_POINTSPECULAR_SCALE_MODE_ANISOTROPIC = 4
+    D2D1_POINTSPECULAR_SCALE_MODE_HIGH_QUALITY_CUBIC = 5
+    D2D1_POINTSPECULAR_SCALE_MODE_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_SPOTSPECULAR_PROP
+    D2D1_SPOTSPECULAR_PROP_LIGHT_POSITION = 0
+    D2D1_SPOTSPECULAR_PROP_POINTS_AT = 1
+    D2D1_SPOTSPECULAR_PROP_FOCUS = 2
+    D2D1_SPOTSPECULAR_PROP_LIMITING_CONE_ANGLE = 3
+    D2D1_SPOTSPECULAR_PROP_SPECULAR_EXPONENT = 4
+    D2D1_SPOTSPECULAR_PROP_SPECULAR_CONSTANT = 5
+    D2D1_SPOTSPECULAR_PROP_SURFACE_SCALE = 6
+    D2D1_SPOTSPECULAR_PROP_COLOR = 7
+    D2D1_SPOTSPECULAR_PROP_KERNEL_UNIT_LENGTH = 8
+    D2D1_SPOTSPECULAR_PROP_SCALE_MODE = 9
+    D2D1_SPOTSPECULAR_PROP_FORCE_DWORD = -1
+End Enum
+
+
+Public Enum D2D1_SPOTSPECULAR_SCALE_MODE
+    D2D1_SPOTSPECULAR_SCALE_MODE_NEAREST_NEIGHBOR = 0
+    D2D1_SPOTSPECULAR_SCALE_MODE_LINEAR = 1
+    D2D1_SPOTSPECULAR_SCALE_MODE_CUBIC = 2
+    D2D1_SPOTSPECULAR_SCALE_MODE_MULTI_SAMPLE_LINEAR = 3
+    D2D1_SPOTSPECULAR_SCALE_MODE_ANISOTROPIC = 4
+    D2D1_SPOTSPECULAR_SCALE_MODE_HIGH_QUALITY_CUBIC = 5
+    D2D1_SPOTSPECULAR_SCALE_MODE_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_DISTANTSPECULAR_PROP
+    D2D1_DISTANTSPECULAR_PROP_AZIMUTH = 0
+    D2D1_DISTANTSPECULAR_PROP_ELEVATION = 1
+    D2D1_DISTANTSPECULAR_PROP_SPECULAR_EXPONENT = 2
+    D2D1_DISTANTSPECULAR_PROP_SPECULAR_CONSTANT = 3
+    D2D1_DISTANTSPECULAR_PROP_SURFACE_SCALE = 4
+    D2D1_DISTANTSPECULAR_PROP_COLOR = 5
+    D2D1_DISTANTSPECULAR_PROP_KERNEL_UNIT_LENGTH = 6
+    D2D1_DISTANTSPECULAR_PROP_SCALE_MODE = 7
+    D2D1_DISTANTSPECULAR_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_DISTANTSPECULAR_SCALE_MODE
+    D2D1_DISTANTSPECULAR_SCALE_MODE_NEAREST_NEIGHBOR = 0
+    D2D1_DISTANTSPECULAR_SCALE_MODE_LINEAR = 1
+    D2D1_DISTANTSPECULAR_SCALE_MODE_CUBIC = 2
+    D2D1_DISTANTSPECULAR_SCALE_MODE_MULTI_SAMPLE_LINEAR = 3
+    D2D1_DISTANTSPECULAR_SCALE_MODE_ANISOTROPIC = 4
+    D2D1_DISTANTSPECULAR_SCALE_MODE_HIGH_QUALITY_CUBIC = 5
+    D2D1_DISTANTSPECULAR_SCALE_MODE_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_POINTDIFFUSE_PROP
+    D2D1_POINTDIFFUSE_PROP_LIGHT_POSITION = 0
+    D2D1_POINTDIFFUSE_PROP_DIFFUSE_CONSTANT = 1
+    D2D1_POINTDIFFUSE_PROP_SURFACE_SCALE = 2
+    D2D1_POINTDIFFUSE_PROP_COLOR = 3
+    D2D1_POINTDIFFUSE_PROP_KERNEL_UNIT_LENGTH = 4
+    D2D1_POINTDIFFUSE_PROP_SCALE_MODE = 5
+    D2D1_POINTDIFFUSE_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_POINTDIFFUSE_SCALE_MODE
+    D2D1_POINTDIFFUSE_SCALE_MODE_NEAREST_NEIGHBOR = 0
+    D2D1_POINTDIFFUSE_SCALE_MODE_LINEAR = 1
+    D2D1_POINTDIFFUSE_SCALE_MODE_CUBIC = 2
+    D2D1_POINTDIFFUSE_SCALE_MODE_MULTI_SAMPLE_LINEAR = 3
+    D2D1_POINTDIFFUSE_SCALE_MODE_ANISOTROPIC = 4
+    D2D1_POINTDIFFUSE_SCALE_MODE_HIGH_QUALITY_CUBIC = 5
+    D2D1_POINTDIFFUSE_SCALE_MODE_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_SPOTDIFFUSE_PROP
+    D2D1_SPOTDIFFUSE_PROP_LIGHT_POSITION = 0
+    D2D1_SPOTDIFFUSE_PROP_POINTS_AT = 1
+    D2D1_SPOTDIFFUSE_PROP_FOCUS = 2
+    D2D1_SPOTDIFFUSE_PROP_LIMITING_CONE_ANGLE = 3
+    D2D1_SPOTDIFFUSE_PROP_DIFFUSE_CONSTANT = 4
+    D2D1_SPOTDIFFUSE_PROP_SURFACE_SCALE = 5
+    D2D1_SPOTDIFFUSE_PROP_COLOR = 6
+    D2D1_SPOTDIFFUSE_PROP_KERNEL_UNIT_LENGTH = 7
+    D2D1_SPOTDIFFUSE_PROP_SCALE_MODE = 8
+    D2D1_SPOTDIFFUSE_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_SPOTDIFFUSE_SCALE_MODE
+    D2D1_SPOTDIFFUSE_SCALE_MODE_NEAREST_NEIGHBOR = 0
+    D2D1_SPOTDIFFUSE_SCALE_MODE_LINEAR = 1
+    D2D1_SPOTDIFFUSE_SCALE_MODE_CUBIC = 2
+    D2D1_SPOTDIFFUSE_SCALE_MODE_MULTI_SAMPLE_LINEAR = 3
+    D2D1_SPOTDIFFUSE_SCALE_MODE_ANISOTROPIC = 4
+    D2D1_SPOTDIFFUSE_SCALE_MODE_HIGH_QUALITY_CUBIC = 5
+    D2D1_SPOTDIFFUSE_SCALE_MODE_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_DISTANTDIFFUSE_PROP
+    D2D1_DISTANTDIFFUSE_PROP_AZIMUTH = 0
+    D2D1_DISTANTDIFFUSE_PROP_ELEVATION = 1
+    D2D1_DISTANTDIFFUSE_PROP_DIFFUSE_CONSTANT = 2
+    D2D1_DISTANTDIFFUSE_PROP_SURFACE_SCALE = 3
+    D2D1_DISTANTDIFFUSE_PROP_COLOR = 4
+    D2D1_DISTANTDIFFUSE_PROP_KERNEL_UNIT_LENGTH = 5
+    D2D1_DISTANTDIFFUSE_PROP_SCALE_MODE = 6
+    D2D1_DISTANTDIFFUSE_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_DISTANTDIFFUSE_SCALE_MODE
+    D2D1_DISTANTDIFFUSE_SCALE_MODE_NEAREST_NEIGHBOR = 0
+    D2D1_DISTANTDIFFUSE_SCALE_MODE_LINEAR = 1
+    D2D1_DISTANTDIFFUSE_SCALE_MODE_CUBIC = 2
+    D2D1_DISTANTDIFFUSE_SCALE_MODE_MULTI_SAMPLE_LINEAR = 3
+    D2D1_DISTANTDIFFUSE_SCALE_MODE_ANISOTROPIC = 4
+    D2D1_DISTANTDIFFUSE_SCALE_MODE_HIGH_QUALITY_CUBIC = 5
+    D2D1_DISTANTDIFFUSE_SCALE_MODE_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_FLOOD_PROP
+    D2D1_FLOOD_PROP_COLOR = 0
+    D2D1_FLOOD_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_LINEARTRANSFER_PROP
+    D2D1_LINEARTRANSFER_PROP_RED_Y_INTERCEPT = 0
+    D2D1_LINEARTRANSFER_PROP_RED_SLOPE = 1
+    D2D1_LINEARTRANSFER_PROP_RED_DISABLE = 2
+    D2D1_LINEARTRANSFER_PROP_GREEN_Y_INTERCEPT = 3
+    D2D1_LINEARTRANSFER_PROP_GREEN_SLOPE = 4
+    D2D1_LINEARTRANSFER_PROP_GREEN_DISABLE = 5
+    D2D1_LINEARTRANSFER_PROP_BLUE_Y_INTERCEPT = 6
+    D2D1_LINEARTRANSFER_PROP_BLUE_SLOPE = 7
+    D2D1_LINEARTRANSFER_PROP_BLUE_DISABLE = 8
+    D2D1_LINEARTRANSFER_PROP_ALPHA_Y_INTERCEPT = 9
+    D2D1_LINEARTRANSFER_PROP_ALPHA_SLOPE = 10
+    D2D1_LINEARTRANSFER_PROP_ALPHA_DISABLE = 11
+    D2D1_LINEARTRANSFER_PROP_CLAMP_OUTPUT = 12
+    D2D1_LINEARTRANSFER_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_GAMMATRANSFER_PROP
+    D2D1_GAMMATRANSFER_PROP_RED_AMPLITUDE = 0
+    D2D1_GAMMATRANSFER_PROP_RED_EXPONENT = 1
+    D2D1_GAMMATRANSFER_PROP_RED_OFFSET = 2
+    D2D1_GAMMATRANSFER_PROP_RED_DISABLE = 3
+    D2D1_GAMMATRANSFER_PROP_GREEN_AMPLITUDE = 4
+    D2D1_GAMMATRANSFER_PROP_GREEN_EXPONENT = 5
+    D2D1_GAMMATRANSFER_PROP_GREEN_OFFSET = 6
+    D2D1_GAMMATRANSFER_PROP_GREEN_DISABLE = 7
+    D2D1_GAMMATRANSFER_PROP_BLUE_AMPLITUDE = 8
+    D2D1_GAMMATRANSFER_PROP_BLUE_EXPONENT = 9
+    D2D1_GAMMATRANSFER_PROP_BLUE_OFFSET = 10
+    D2D1_GAMMATRANSFER_PROP_BLUE_DISABLE = 11
+    D2D1_GAMMATRANSFER_PROP_ALPHA_AMPLITUDE = 12
+    D2D1_GAMMATRANSFER_PROP_ALPHA_EXPONENT = 13
+    D2D1_GAMMATRANSFER_PROP_ALPHA_OFFSET = 14
+    D2D1_GAMMATRANSFER_PROP_ALPHA_DISABLE = 15
+    D2D1_GAMMATRANSFER_PROP_CLAMP_OUTPUT = 16
+    D2D1_GAMMATRANSFER_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_TABLETRANSFER_PROP
+    D2D1_TABLETRANSFER_PROP_RED_TABLE = 0
+    D2D1_TABLETRANSFER_PROP_RED_DISABLE = 1
+    D2D1_TABLETRANSFER_PROP_GREEN_TABLE = 2
+    D2D1_TABLETRANSFER_PROP_GREEN_DISABLE = 3
+    D2D1_TABLETRANSFER_PROP_BLUE_TABLE = 4
+    D2D1_TABLETRANSFER_PROP_BLUE_DISABLE = 5
+    D2D1_TABLETRANSFER_PROP_ALPHA_TABLE = 6
+    D2D1_TABLETRANSFER_PROP_ALPHA_DISABLE = 7
+    D2D1_TABLETRANSFER_PROP_CLAMP_OUTPUT = 8
+    D2D1_TABLETRANSFER_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_DISCRETETRANSFER_PROP
+    D2D1_DISCRETETRANSFER_PROP_RED_TABLE = 0
+    D2D1_DISCRETETRANSFER_PROP_RED_DISABLE = 1
+    D2D1_DISCRETETRANSFER_PROP_GREEN_TABLE = 2
+    D2D1_DISCRETETRANSFER_PROP_GREEN_DISABLE = 3
+    D2D1_DISCRETETRANSFER_PROP_BLUE_TABLE = 4
+    D2D1_DISCRETETRANSFER_PROP_BLUE_DISABLE = 5
+    D2D1_DISCRETETRANSFER_PROP_ALPHA_TABLE = 6
+    D2D1_DISCRETETRANSFER_PROP_ALPHA_DISABLE = 7
+    D2D1_DISCRETETRANSFER_PROP_CLAMP_OUTPUT = 8
+    D2D1_DISCRETETRANSFER_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_CONVOLVEMATRIX_PROP
+    D2D1_CONVOLVEMATRIX_PROP_KERNEL_UNIT_LENGTH = 0
+    D2D1_CONVOLVEMATRIX_PROP_SCALE_MODE = 1
+    D2D1_CONVOLVEMATRIX_PROP_KERNEL_SIZE_X = 2
+    D2D1_CONVOLVEMATRIX_PROP_KERNEL_SIZE_Y = 3
+    D2D1_CONVOLVEMATRIX_PROP_KERNEL_MATRIX = 4
+    D2D1_CONVOLVEMATRIX_PROP_DIVISOR = 5
+    D2D1_CONVOLVEMATRIX_PROP_BIAS = 6
+    D2D1_CONVOLVEMATRIX_PROP_KERNEL_OFFSET = 7
+    D2D1_CONVOLVEMATRIX_PROP_PRESERVE_ALPHA = 8
+    D2D1_CONVOLVEMATRIX_PROP_BORDER_MODE = 9
+    D2D1_CONVOLVEMATRIX_PROP_CLAMP_OUTPUT = 10
+    D2D1_CONVOLVEMATRIX_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_CONVOLVEMATRIX_SCALE_MODE
+    D2D1_CONVOLVEMATRIX_SCALE_MODE_NEAREST_NEIGHBOR = 0
+    D2D1_CONVOLVEMATRIX_SCALE_MODE_LINEAR = 1
+    D2D1_CONVOLVEMATRIX_SCALE_MODE_CUBIC = 2
+    D2D1_CONVOLVEMATRIX_SCALE_MODE_MULTI_SAMPLE_LINEAR = 3
+    D2D1_CONVOLVEMATRIX_SCALE_MODE_ANISOTROPIC = 4
+    D2D1_CONVOLVEMATRIX_SCALE_MODE_HIGH_QUALITY_CUBIC = 5
+    D2D1_CONVOLVEMATRIX_SCALE_MODE_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_BRIGHTNESS_PROP
+    D2D1_BRIGHTNESS_PROP_WHITE_POINT = 0
+    D2D1_BRIGHTNESS_PROP_BLACK_POINT = 1
+    D2D1_BRIGHTNESS_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_ARITHMETICCOMPOSITE_PROP
+    D2D1_ARITHMETICCOMPOSITE_PROP_COEFFICIENTS = 0
+    D2D1_ARITHMETICCOMPOSITE_PROP_CLAMP_OUTPUT = 1
+    D2D1_ARITHMETICCOMPOSITE_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_CROP_PROP
+    D2D1_CROP_PROP_RECT = 0
+    D2D1_CROP_PROP_BORDER_MODE = 1
+    D2D1_CROP_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_BORDER_PROP
+    D2D1_BORDER_PROP_EDGE_MODE_X = 0
+    D2D1_BORDER_PROP_EDGE_MODE_Y = 1
+    D2D1_BORDER_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_BORDER_EDGE_MODE
+    D2D1_BORDER_EDGE_MODE_CLAMP = 0
+    D2D1_BORDER_EDGE_MODE_WRAP = 1
+    D2D1_BORDER_EDGE_MODE_MIRROR = 2
+    D2D1_BORDER_EDGE_MODE_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_MORPHOLOGY_PROP
+    D2D1_MORPHOLOGY_PROP_MODE = 0
+    D2D1_MORPHOLOGY_PROP_WIDTH = 1
+    D2D1_MORPHOLOGY_PROP_HEIGHT = 2
+    D2D1_MORPHOLOGY_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_MORPHOLOGY_MODE
+    D2D1_MORPHOLOGY_MODE_ERODE = 0
+    D2D1_MORPHOLOGY_MODE_DILATE = 1
+    D2D1_MORPHOLOGY_MODE_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_TILE_PROP
+    D2D1_TILE_PROP_RECT = 0
+    D2D1_TILE_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_ATLAS_PROP
+    D2D1_ATLAS_PROP_INPUT_RECT = 0
+    D2D1_ATLAS_PROP_INPUT_PADDING_RECT = 1
+    D2D1_ATLAS_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_OPACITYMETADATA_PROP
+    D2D1_OPACITYMETADATA_PROP_INPUT_OPAQUE_RECT = 0
+    D2D1_OPACITYMETADATA_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_YCBCR_PROP
+    D2D1_YCBCR_PROP_CHROMA_SUBSAMPLING = 0
+    D2D1_YCBCR_PROP_TRANSFORM_MATRIX = 1
+    D2D1_YCBCR_PROP_INTERPOLATION_MODE = 2
+    D2D1_YCBCR_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_YCBCR_CHROMA_SUBSAMPLING
+    D2D1_YCBCR_CHROMA_SUBSAMPLING_AUTO = 0
+    D2D1_YCBCR_CHROMA_SUBSAMPLING_420 = 1
+    D2D1_YCBCR_CHROMA_SUBSAMPLING_422 = 2
+    D2D1_YCBCR_CHROMA_SUBSAMPLING_444 = 3
+    D2D1_YCBCR_CHROMA_SUBSAMPLING_440 = 4
+    D2D1_YCBCR_CHROMA_SUBSAMPLING_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_YCBCR_INTERPOLATION_MODE
+    D2D1_YCBCR_INTERPOLATION_MODE_NEAREST_NEIGHBOR = 0
+    D2D1_YCBCR_INTERPOLATION_MODE_LINEAR = 1
+    D2D1_YCBCR_INTERPOLATION_MODE_CUBIC = 2
+    D2D1_YCBCR_INTERPOLATION_MODE_MULTI_SAMPLE_LINEAR = 3
+    D2D1_YCBCR_INTERPOLATION_MODE_ANISOTROPIC = 4
+    D2D1_YCBCR_INTERPOLATION_MODE_HIGH_QUALITY_CUBIC = 5
+    D2D1_YCBCR_INTERPOLATION_MODE_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_CONTRAST_PROP
+    D2D1_CONTRAST_PROP_CONTRAST = 0
+    D2D1_CONTRAST_PROP_CLAMP_INPUT = 1
+    D2D1_CONTRAST_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_RGBTOHUE_PROP
+    D2D1_RGBTOHUE_PROP_OUTPUT_COLOR_SPACE = 0
+    D2D1_RGBTOHUE_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_RGBTOHUE_OUTPUT_COLOR_SPACE
+    D2D1_RGBTOHUE_OUTPUT_COLOR_SPACE_HUE_SATURATION_VALUE = 0
+    D2D1_RGBTOHUE_OUTPUT_COLOR_SPACE_HUE_SATURATION_LIGHTNESS = 1
+    D2D1_RGBTOHUE_OUTPUT_COLOR_SPACE_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_HUETORGB_PROP
+    D2D1_HUETORGB_PROP_INPUT_COLOR_SPACE = 0
+    D2D1_HUETORGB_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_HUETORGB_INPUT_COLOR_SPACE
+    D2D1_HUETORGB_INPUT_COLOR_SPACE_HUE_SATURATION_VALUE = 0
+    D2D1_HUETORGB_INPUT_COLOR_SPACE_HUE_SATURATION_LIGHTNESS = 1
+    D2D1_HUETORGB_INPUT_COLOR_SPACE_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_CHROMAKEY_PROP
+    D2D1_CHROMAKEY_PROP_COLOR = 0
+    D2D1_CHROMAKEY_PROP_TOLERANCE = 1
+    D2D1_CHROMAKEY_PROP_INVERT_ALPHA = 2
+    D2D1_CHROMAKEY_PROP_FEATHER = 3
+    D2D1_CHROMAKEY_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_EMBOSS_PROP
+    D2D1_EMBOSS_PROP_HEIGHT = 0
+    D2D1_EMBOSS_PROP_DIRECTION = 1
+    D2D1_EMBOSS_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_EXPOSURE_PROP
+    D2D1_EXPOSURE_PROP_EXPOSURE_VALUE = 0
+    D2D1_EXPOSURE_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_POSTERIZE_PROP
+    D2D1_POSTERIZE_PROP_RED_VALUE_COUNT = 0
+    D2D1_POSTERIZE_PROP_GREEN_VALUE_COUNT = 1
+    D2D1_POSTERIZE_PROP_BLUE_VALUE_COUNT = 2
+    D2D1_POSTERIZE_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_SEPIA_PROP
+    D2D1_SEPIA_PROP_INTENSITY = 0
+    D2D1_SEPIA_PROP_ALPHA_MODE = 1
+    D2D1_SEPIA_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_SHARPEN_PROP
+    D2D1_SHARPEN_PROP_SHARPNESS = 0
+    D2D1_SHARPEN_PROP_THRESHOLD = 1
+    D2D1_SHARPEN_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_STRAIGHTEN_PROP
+    D2D1_STRAIGHTEN_PROP_ANGLE = 0
+    D2D1_STRAIGHTEN_PROP_MAINTAIN_SIZE = 1
+    D2D1_STRAIGHTEN_PROP_SCALE_MODE = 2
+    D2D1_STRAIGHTEN_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_STRAIGHTEN_SCALE_MODE
+    D2D1_STRAIGHTEN_SCALE_MODE_NEAREST_NEIGHBOR = 0
+    D2D1_STRAIGHTEN_SCALE_MODE_LINEAR = 1
+    D2D1_STRAIGHTEN_SCALE_MODE_CUBIC = 2
+    D2D1_STRAIGHTEN_SCALE_MODE_MULTI_SAMPLE_LINEAR = 3
+    D2D1_STRAIGHTEN_SCALE_MODE_ANISOTROPIC = 4
+    D2D1_STRAIGHTEN_SCALE_MODE_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_TEMPERATUREANDTINT_PROP
+    D2D1_TEMPERATUREANDTINT_PROP_TEMPERATURE = 0
+    D2D1_TEMPERATUREANDTINT_PROP_TINT = 1
+    D2D1_TEMPERATUREANDTINT_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_VIGNETTE_PROP
+    D2D1_VIGNETTE_PROP_COLOR = 0
+    D2D1_VIGNETTE_PROP_TRANSITION_SIZE = 1
+    D2D1_VIGNETTE_PROP_STRENGTH = 2
+    D2D1_VIGNETTE_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_EDGEDETECTION_PROP
+    D2D1_EDGEDETECTION_PROP_STRENGTH = 0
+    D2D1_EDGEDETECTION_PROP_BLUR_RADIUS = 1
+    D2D1_EDGEDETECTION_PROP_MODE = 2
+    D2D1_EDGEDETECTION_PROP_OVERLAY_EDGES = 3
+    D2D1_EDGEDETECTION_PROP_ALPHA_MODE = 4
+    D2D1_EDGEDETECTION_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_EDGEDETECTION_MODE
+    D2D1_EDGEDETECTION_MODE_SOBEL = 0
+    D2D1_EDGEDETECTION_MODE_PREWITT = 1
+    D2D1_EDGEDETECTION_MODE_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_HIGHLIGHTSANDSHADOWS_PROP
+    D2D1_HIGHLIGHTSANDSHADOWS_PROP_HIGHLIGHTS = 0
+    D2D1_HIGHLIGHTSANDSHADOWS_PROP_SHADOWS = 1
+    D2D1_HIGHLIGHTSANDSHADOWS_PROP_CLARITY = 2
+    D2D1_HIGHLIGHTSANDSHADOWS_PROP_INPUT_GAMMA = 3
+    D2D1_HIGHLIGHTSANDSHADOWS_PROP_MASK_BLUR_RADIUS = 4
+    D2D1_HIGHLIGHTSANDSHADOWS_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_HIGHLIGHTSANDSHADOWS_INPUT_GAMMA
+    D2D1_HIGHLIGHTSANDSHADOWS_INPUT_GAMMA_LINEAR = 0
+    D2D1_HIGHLIGHTSANDSHADOWS_INPUT_GAMMA_SRGB = 1
+    D2D1_HIGHLIGHTSANDSHADOWS_INPUT_GAMMA_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_LOOKUPTABLE3D_PROP
+    D2D1_LOOKUPTABLE3D_PROP_LUT = 0
+    D2D1_LOOKUPTABLE3D_PROP_ALPHA_MODE = 1
+    D2D1_LOOKUPTABLE3D_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_OPACITY_PROP
+    D2D1_OPACITY_PROP_OPACITY = 0
+    D2D1_OPACITY_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_CROSSFADE_PROP
+    D2D1_CROSSFADE_PROP_WEIGHT = 0
+    D2D1_CROSSFADE_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Enum D2D1_TINT_PROP
+    D2D1_TINT_PROP_COLOR = 0
+    D2D1_TINT_PROP_CLAMP_OUTPUT = 1
+    D2D1_TINT_PROP_FORCE_DWORD = -1
+End Enum
+
+Public Type SystemInterruptTime
+    value As LongLong
+End Type
+
+Public Type PresentationTransform
+	M11 As Single
+	M12 As Single
+	M21 As Single
+	M22 As Single
+	M31 As Single
+	M32 As Single
+End Type
+
+Public Enum PresentStatisticsKind
+	PresentStatisticsKind_PresentStatus = 1
+	PresentStatisticsKind_CompositionFrame = 2
+	PresentStatisticsKind_IndependentFlipFrame = 3
+	'  Future versions of the API will extend this enumeration
+End Enum
+
+Public Enum PresentStatus
+	'  The frame was queued by the system to eventually be shown.
+	PresentStatus_Queued = 0
+	'  The frame was skipped because a later frame was a better candidate to show.
+	PresentStatus_Skipped = 1
+	'  The frame arrived, but was canceled by the application, so it was not displayed.
+	PresentStatus_Canceled = 2
+End Enum
+
+Public Enum CompositionFrameInstanceKind
+	'  Composed directly to DWM's backbuffer.
+	CompositionFrameInstanceKind_ComposedOnScreen = 0
+	'  Directly scanned out in an MPO plane.
+	CompositionFrameInstanceKind_ScanoutOnScreen = 1
+	'  Composed to an intermediate.
+	CompositionFrameInstanceKind_ComposedToIntermediate = 2
+End Enum
+
+Public Type CompositionFrameDisplayInstance
+	' The output that this instance was displayed on.
+	displayAdapterLUID As LUID
+	displayVidPnSourceId As Long
+	displayUniqueId As Long
+	' The LUID of the render adapter used to render this instance in the composition frame
+	renderAdapterLUID As LUID
+	' The kind of instance.
+	instanceKind As CompositionFrameInstanceKind
+	' Accumulated transform on screen of displayed content, including all transforms of ancestor
+	' visuals, if applicable.
+	finalTransform As PresentationTransform
+	' Whether or not a copy took place to display this instance due to the destination being
+	' a different adapter than the allocation's adapter.
+	requiredCrossAdapterCopy As Byte
+	' Color space of the output this instance was shown on.
+	colorSpace As DXGI_COLOR_SPACE_TYPE
+End Type
+
 
 Public Function CLSID_D2D12DAffineTransform() As UUID
 Static iid As UUID
@@ -6732,6 +6875,60 @@ Public Function IID_IPrintPreviewDxgiPackageTarget() As UUID
 Static iid As UUID
  If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H1a6dd0ad, CInt(&H1e2a), CInt(&H4e99), &Ha5, &Hba, &H91, &Hf1, &H78, &H18, &H29, &H0e)
  IID_IPrintPreviewDxgiPackageTarget = iid
+End Function
+Public Function IID_IPresentationBuffer() As UUID
+'{2E217D3A-5ABB-4138-9A13-A775593C89CA}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H2E217D3A, CInt(&H5ABB), CInt(&H4138), &H9A, &H13, &HA7, &H75, &H59, &H3C, &H89, &HCA)
+IID_IPresentationBuffer = iid
+End Function
+Public Function IID_IPresentationContent() As UUID
+'{5668BB79-3D8E-415C-B215-F38020F2D252}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H5668BB79, CInt(&H3D8E), CInt(&H415C), &HB2, &H15, &HF3, &H80, &H20, &HF2, &HD2, &H52)
+IID_IPresentationContent = iid
+End Function
+Public Function IID_IPresentationSurface() As UUID
+'{956710FB-EA40-4EBA-A3EB-4375A0EB4EDC}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H956710FB, CInt(&HEA40), CInt(&H4EBA), &HA3, &HEB, &H43, &H75, &HA0, &HEB, &H4E, &HDC)
+IID_IPresentationSurface = iid
+End Function
+Public Function IID_IPresentStatistics() As UUID
+'{B44B8BDA-7282-495D-9DD7-CEADD8B4BB86}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HB44B8BDA, CInt(&H7282), CInt(&H495D), &H9D, &HD7, &HCE, &HAD, &HD8, &HB4, &HBB, &H86)
+IID_IPresentStatistics = iid
+End Function
+Public Function IID_IPresentationManager() As UUID
+'{FB562F82-6292-470A-88B1-843661E7F20C}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HFB562F82, CInt(&H6292), CInt(&H470A), &H88, &HB1, &H84, &H36, &H61, &HE7, &HF2, &H0C)
+IID_IPresentationManager = iid
+End Function
+Public Function IID_IPresentationFactory() As UUID
+'{8FB37B58-1D74-4F64-A49C-1F97A80A2EC0}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H8FB37B58, CInt(&H1D74), CInt(&H4F64), &HA4, &H9C, &H1F, &H97, &HA8, &H0A, &H2E, &HC0)
+IID_IPresentationFactory = iid
+End Function
+Public Function IID_IPresentStatusPresentStatistics() As UUID
+'{C9ED2A41-79CB-435E-964E-C8553055420C}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HC9ED2A41, CInt(&H79CB), CInt(&H435E), &H96, &H4E, &HC8, &H55, &H30, &H55, &H42, &H0C)
+IID_IPresentStatusPresentStatistics = iid
+End Function
+Public Function IID_ICompositionFramePresentStatistics() As UUID
+'{AB41D127-C101-4C0A-911D-F9F2E9D08E64}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HAB41D127, CInt(&HC101), CInt(&H4C0A), &H91, &H1D, &HF9, &HF2, &HE9, &HD0, &H8E, &H64)
+IID_ICompositionFramePresentStatistics = iid
+End Function
+Public Function IID_IIndependentFlipFramePresentStatistics() As UUID
+'{8C93BE27-AD94-4DA0-8FD4-2413132D124E}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H8C93BE27, CInt(&HAD94), CInt(&H4DA0), &H8F, &HD4, &H24, &H13, &H13, &H2D, &H12, &H4E)
+IID_IIndependentFlipFramePresentStatistics = iid
 End Function
 
 Public Function IID_IDCompositionDevice() As UUID
