@@ -1,7 +1,7 @@
 # tbShellLib
 **twinBASIC Shell Library**
 
-Current Version: 4.4.124 (April 18th, 2023)
+Current Version: 4.5.126 (April 24th, 2023)
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -72,6 +72,9 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, vbNullPtr, ...)
 ```
 
 ## Updates
+
+**Update (v4.5.126):** Added DirectComposition Presentation Manager interfaces, added additional APIs (focused on window management and file i/o), some minor bugfixes.
+
 **Update (v4.4.124):** Important bug fixes and additional APIs (GDI printing and window transparency).
 
 **Update (v4.4.122):**
