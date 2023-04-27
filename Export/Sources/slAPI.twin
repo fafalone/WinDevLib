@@ -12,8 +12,8 @@ Module slAPI
 #End If
 Public Type SHQUERYRBINFO
 	cbSize As Long
-	i64Size As LARGE_INTEGER
-	i64NumItems As LARGE_INTEGER
+	i64Size As LongLong
+	i64NumItems As LongLong
 End Type
 
 Public Enum SHERB_Flags
@@ -1675,6 +1675,8 @@ Public Enum PriorityClass
     REALTIME_PRIORITY_CLASS = &H100
     BELOW_NORMAL_PRIORITY_CLASS = &H4000
     ABOVE_NORMAL_PRIORITY_CLASS = &H8000&
+    PROCESS_MODE_BACKGROUND_BEGIN = &H100000
+    PROCESS_MODE_BACKGROUND_END = &H200000
 End Enum
 
 Public Type THREADENTRY32
@@ -3044,16 +3046,68 @@ Public Enum GST_Class
     CT_CTYPE2 = &H2          ' ctype 2 information
     CT_CTYPE3 = &H4          ' ctype 3 information
 End Enum
-Public Const C1_UPPER As Integer = &H1      ' upper case
-Public Const C1_LOWER As Integer = &H2      ' lower case
-Public Const C1_DIGIT As Integer = &H4      ' decimal digits
-Public Const C1_SPACE As Integer = &H8      ' spacing characters
-Public Const C1_PUNCT As Integer = &H10     ' punctuation characters
-Public Const C1_CNTRL As Integer = &H20     ' control characters
-Public Const C1_BLANK As Integer = &H40     ' blank characters
-Public Const C1_XDIGIT As Integer = &H80     ' other digits
-Public Const C1_ALPHA As Integer = &H100    ' any linguistic character
-Public Const C1_DEFINED As Integer = &H200    ' defined character
+Public Enum C1_CharTypes
+    C1_UPPER = &H1      ' upper case
+    C1_LOWER     = &H2      ' lower case
+    C1_DIGIT     = &H4      ' decimal digits
+    C1_SPACE     = &H8      ' spacing characters
+    C1_PUNCT     = &H10     ' punctuation characters
+    C1_CNTRL     = &H20     ' control characters
+    C1_BLANK     = &H40     ' blank characters
+    C1_XDIGIT     = &H80     ' other digits
+    C1_ALPHA     = &H100    ' any linguistic character
+    C1_DEFINED     = &H200    ' defined character
+End Enum
+Public Enum C2_CharTypes
+	C2_LEFTTORIGHT  = &H0001  ' left to right
+	C2_RIGHTTOLEFT  = &H0002  ' right to left
+	C2_EUROPENUMBER  = &H0003  ' European number, digit
+	C2_EUROPESEPARATOR  = &H0004  ' European numeric separator
+	C2_EUROPETERMINATOR  = &H0005  ' European numeric terminator
+	C2_ARABICNUMBER  = &H0006  ' Arabic number
+	C2_COMMONSEPARATOR  = &H0007  ' common numeric separator
+	C2_BLOCKSEPARATOR  = &H0008  ' block separator
+	C2_SEGMENTSEPARATOR  = &H0009  ' segment separator
+	C2_WHITESPACE  = &H000A  ' white space
+	C2_OTHERNEUTRAL  = &H000B  ' other neutrals
+	C2_NOTAPPLICABLE  = &H0000  ' no implicit directionality
+End Enum
+Public Enum C3_CharTypes
+	C3_NONSPACING  = &H0001  ' nonspacing character
+	C3_DIACRITIC  = &H0002  ' diacritic mark
+	C3_VOWELMARK  = &H0004  ' vowel mark
+	C3_SYMBOL  = &H0008  ' symbols
+	C3_KATAKANA  = &H0010  ' katakana character
+	C3_HIRAGANA  = &H0020  ' hiragana character
+	C3_HALFWIDTH  = &H0040  ' half width character
+	C3_FULLWIDTH  = &H0080  ' full width character
+	C3_IDEOGRAPH  = &H0100  ' ideographic character
+	C3_KASHIDA  = &H0200  ' Arabic kashida character
+	C3_LEXICAL  = &H0400  ' lexical character
+	C3_HIGHSURROGATE  = &H0800  ' high surrogate code unit
+	C3_LOWSURROGATE  = &H1000  ' low surrogate code unit
+	C3_ALPHA  = &H8000&  ' any linguistic char (C1_ALPHA)
+	C3_NOTAPPLICABLE  = &H0000  ' ctype 3 is not applicable
+End Enum
+
+Public Enum CodePageDefaults
+	CP_ACP  = 0  ' default to ANSI code page
+	CP_OEMCP  = 1  ' default to OEM  code page
+	CP_MACCP  = 2  ' default to MAC  code page
+	CP_THREAD_ACP  = 3  ' current thread's ANSI code page
+	CP_SYMBOL  = 42  ' SYMBOL translations
+	CP_UTF7  = 65000  ' UTF-7 translation
+	CP_UTF8  = 65001  ' UTF-8 translation
+End Enum
+
+Public Enum WCMB_Flags
+	WC_COMPOSITECHECK  = &H00000200  ' convert composite to precomposed
+	WC_DISCARDNS  = &H00000010  ' discard non-spacing chars          // Used with WC_COMPOSITECHECK
+	WC_SEPCHARS  = &H00000020  ' generate separate chars            // Used with WC_COMPOSITECHECK
+	WC_DEFAULTCHAR  = &H00000040  ' replace w/ default char            // Used with WC_COMPOSITECHECK
+	WC_ERR_INVALID_CHARS  = &H00000080  ' error for invalid chars
+	WC_NO_BEST_FIT_CHARS  = &H00000400  ' do not use best fit chars
+End Enum
 
 Public Enum StandardAccessTypes
     DELETE                          = (&H00010000)
@@ -3099,8 +3153,7 @@ Public Const PROCESS_SET_INFORMATION = &H200 ' Enables using the process handle 
 Public Const PROCESS_QUERY_INFORMATION = &H400 ' Enables using the process handle in the GetExitCodeProcess and GetPriorityClass functions to read information from the process object.
 Public Const PROCESS_QUERY_LIMITED_INFORMATION = &H1000
 
-Public Const CP_ACP = 0        ' ANSI code page
-Public Const CP_OEMCP = 1   ' OEM code page
+
 Public Enum MBWC_Flags
     MB_PRECOMPOSED = &H1
     MB_COMPOSITE = &H2
@@ -3348,8 +3401,8 @@ Public Declare PtrSafe Function ResumeThread Lib "kernel32" (ByVal hThread As Lo
 Public Declare PtrSafe Function SuspendThread Lib "kernel32" (ByVal hThread As LongPtr) As Long
 Public Declare PtrSafe Function TerminateThread Lib "kernel32" (ByRef hThread As LongPtr, ByVal dwExitCode As Long) As Long
 Public Declare PtrSafe Function TerminateProcess Lib "kernel32" (ByRef hProcess As LongPtr, ByVal dwExitCode As Long) As Long
-Public Declare PtrSafe Function OpenThread Lib "kernel32" (ByVal dwDesiredAccess As ThreadAccess, ByVal bInheritHandle As Long, ByVal dwThreadId As Long) As LongPtr
-Public Declare PtrSafe Function OpenProcess Lib "kernel32" (ByVal dwDesiredAccess As Long, ByVal bInheritHandle As Long, ByVal dwProcessId As Long) As LongPtr
+Public Declare PtrSafe Function OpenThread Lib "kernel32" (ByVal dwDesiredAccess As ThreadAccess, ByVal bInheritHandle As BOOL, ByVal dwThreadId As Long) As LongPtr
+Public Declare PtrSafe Function OpenProcess Lib "kernel32" (ByVal dwDesiredAccess As Long, ByVal bInheritHandle As BOOL, ByVal dwProcessId As Long) As LongPtr
 Public Declare PtrSafe Function WaitForSingleObject Lib "kernel32" (ByVal hHandle As LongPtr, ByVal dwMilliseconds As Long) As Long
 Public Declare PtrSafe Function WaitForMultipleObjects Lib "kernel32" (ByVal nCount As Long, ByRef lpHandles As LongPtr, ByVal bWaitAll As Long, ByVal dwMilliseconds As Long) As Long
 Public DeclareWide PtrSafe Function CreateEvent Lib "kernel32" Alias "CreateEventW" (ByVal lpEventAttributes As LongPtr, ByVal bManualReset As Long, ByVal bInitialState As Long, ByVal lpName As String) As LongPtr
@@ -3688,7 +3741,14 @@ Public DeclareWide PtrSafe Function SetVolumeLabelA Lib "kernel32" (ByVal lpRoot
 Public DeclareWide PtrSafe Function SetVolumeLabelW Lib "kernel32" (ByVal lpRootPathName As LongPtr, ByVal lpVolumeName As LongPtr) As Long
 Public DeclareWide PtrSafe Function SetVolumeLabel Lib "kernel32" Alias "SetVolumeLabelW" (ByVal lpRootPathName As String, ByVal lpVolumeName As String) As Long
 Public Declare PtrSafe Function MulDiv Lib "kernel32" (ByVal nNumber As Long, ByVal nNumerator As Long, ByVal nDenominator As Long) As Long
-Public Declare PtrSafe Function MultiByteToWideChar Lib "kernel32" (ByVal CodePage As Long, ByVal dwFlags As MBWC_Flags, ByVal lpMultiByteStr As LongPtr, ByVal cchMultiByte As Long, ByVal lpWideCharStr As LongPtr, ByVal cchWideChar As Long) As Long
+Public Declare PtrSafe Function MultiByteToWideChar Lib "kernel32" (ByVal CodePage As CodePageDefaults, ByVal dwFlags As MBWC_Flags, ByVal lpMultiByteStr As LongPtr, ByVal cchMultiByte As Long, ByVal lpWideCharStr As LongPtr, ByVal cchWideChar As Long) As Long
+Public Declare PtrSafe Function WideCharToMultiByte Lib "kernel32" (ByVal CodePage As CodePageDefaults, ByVal dwFlags As WCMB_Flags, ByVal lpWideCharStr As LongPtr, ByVal cchWideChar As Long, ByVal lpMultiByteStr As LongPtr, ByVal cbMultiByte As Long, Optional lpDefaultChar As LongPtr, Optional lpUsedDefaultChar As BOOL) As Long
+Public Declare PtrSafe Function GetStringTypeA Lib "kernel32" (ByVal dwInfoType As GST_Class, ByVal lpSrcStr As String, ByVal cchSrc As Long, lpCharType As Integer) As BOOL
+Public DeclareWide PtrSafe Function GetStringTypeW Lib "kernel32" (ByVal dwInfoType As GST_Class, ByVal lpSrcStr As LongPtr, ByVal cchSrc As Long, lpCharType As Integer) As BOOL
+Public DeclareWide PtrSafe Function GetStringType Lib "kernel32" Alias "GetStringTypeW" (ByVal dwInfoType As GST_Class, ByVal lpSrcStr As String, ByVal cchSrc As Long, lpCharType As Integer) As BOOL
+Public Declare PtrSafe Function GetStringTypeExA Lib "kernel32" (ByVal lcid As Long, ByVal dwInfoType As GST_Class, ByVal lpSrcStr As String, ByVal cchSrc As Long, lpCharType As Integer) As BOOL
+Public DeclareWide PtrSafe Function GetStringTypeExW Lib "kernel32" (ByVal lcid As Long, ByVal dwInfoType As GST_Class, ByVal lpSrcStr As LongPtr, ByVal cchSrc As Long, lpCharType As Integer) As BOOL
+Public DeclareWide PtrSafe Function GetStringTypeEx Lib "kernel32" Alias "GetStringTypeW" (ByVal lcid As Long, ByVal dwInfoType As GST_Class, ByVal lpSrcStr As String, ByVal cchSrc As Long, lpCharType As Integer) As BOOL
 
 Public Declare PtrSafe Function QueryDosDeviceA Lib "kernel32" (ByVal lpDeviceName As String, ByVal lpTargetPath As String, ByVal ucchMax As Long) As Long
 Public DeclareWide PtrSafe Function QueryDosDeviceW Lib "kernel32" (ByVal lpDeviceName As LongPtr, ByVal lpTargetPath As LongPtr, ByVal ucchMax As Long) As Long
@@ -3717,6 +3777,16 @@ Public DeclareWide PtrSafe Function GetExitCodeThread Lib "kernel32" (ByVal hThr
 Public DeclareWide PtrSafe Function SetThreadIdealProcessor Lib "kernel32" (ByVal hThread As LongPtr, ByVal dwIdealProcessor As Long) As Long
 Public DeclareWide PtrSafe Function SetThreadIdealProcessorEx Lib "kernel32" (ByVal hThread As LongPtr, lpIdealProcessor As PROCESSOR_NUMBER, lpPreviousIdealProcessor As PROCESSOR_NUMBER) As BOOL
 Public DeclareWide PtrSafe Function SwitchToThread Lib "kernel32" () As BOOL
+Public DeclareWide PtrSafe Function SetThreadPriority Lib "kernel32" (ByVal hThread As LongPtr, ByVal nPriority As ThreadPriorityClasses) As BOOL
+Public DeclareWide PtrSafe Function GetThreadPriority Lib "kernel32" (ByVal hThread As LongPtr) As ThreadPriorityClasses
+Public DeclareWide PtrSafe Function SetThreadPriorityBoost Lib "kernel32" (ByVal hThread As LongPtr, ByVal bDisablePriorityBoost As BOOL) As BOOL
+Public DeclareWide PtrSafe Function GetThreadPriorityBoost Lib "kernel32" (ByVal hThread As LongPtr, pbDisablePriorityBoost As BOOL) As BOOL
+Public DeclareWide PtrSafe Function SetPriorityClass Lib "kernel32" (ByVal hProcess As LongPtr, ByVal dwPriority As PriorityClass) As BOOL
+Public DeclareWide PtrSafe Function GetPriorityClass Lib "kernel32" (ByVal hProcess As LongPtr) As PriorityClass
+Public DeclareWide PtrSafe Function SetProcessPriorityBoost Lib "kernel32" (ByVal hProcess As LongPtr, ByVal bDisablePriorityBoost As BOOL) As BOOL
+Public DeclareWide PtrSafe Function GetProcessPriorityBoost Lib "kernel32" (ByVal hProcess As LongPtr, pbDisablePriorityBoost As BOOL) As BOOL
+
+
 Public DeclareWide PtrSafe Function GlobalAddAtomW Lib "kernel32" (ByVal lpString As LongPtr) As Integer
 Public Declare PtrSafe Function GlobalAddAtomA Lib "kernel32" (ByVal lpString As String) As Integer
 Public DeclareWide PtrSafe Function GlobalAddAtom Lib "kernel32" Alias "GlobalAddAtomW" (ByVal lpString As LongPtr) As Integer
@@ -5491,7 +5561,19 @@ Public Enum GCL_Index
 	GCW_ATOM  = (-32)
 	GCL_HICONSM  = (-34)
 End Enum
-
+Public Enum GCLP_Index
+    GCLP_MENUNAME  = (-8)
+    GCLP_HBRBACKGROUND  = (-10)
+    GCLP_HCURSOR  = (-12)
+    GCLP_HICON = (-14)
+    GCLP_HMODULE  = (-16)
+    GCLP_CBWNDEXTRA = (-18)
+    GCLP_CBCLSEXTRA = (-20)
+    GCLP_WNDPROC  = (-24)
+    GCLP_STYLE  = (-26)
+    GCWP_ATOM  = (-32)
+    GCLP_HICONSM  = (-34)
+End Enum
 Public Enum UserObjectInfoTypes
 	UOI_FLAGS  = 1
 	UOI_NAME  = 2
@@ -5578,6 +5660,24 @@ Public Enum GetWindowConsts
 	GW_ENABLEDPOPUP  = 6
 End Enum
 
+Public Enum GWL_INDEX
+    GWL_WNDPROC = (-4)
+    GWL_HINSTANCE = (-6)
+    GWL_HWNDPARENT = (-8)
+    GWL_ID = (-12)
+    GWL_STYLE = (-16)
+    GWL_EXSTYLE = (-20)
+    GWL_USERDATA = (-21)
+End Enum
+Public Enum GWLP_INDEX
+    GWLP_WNDPROC = (-4)
+    GWLP_HINSTANCE = (-6)
+    GWLP_HWNDPARENT = (-8)
+    GWLP_ID = (-12)
+    GWLP_STYLE = (-16)
+    GWLP_EXSTYLE = (-20)
+    GWLP_USERDATA = (-21)
+End Enum
 
 Public DeclareWide PtrSafe Function CreateWindowEx Lib "user32" Alias "CreateWindowExW" (ByVal dwExStyle As WindowStylesEx, ByVal lpClassName As String, ByVal lpWindowName As String, ByVal dwStyle As WindowStyles, ByVal X As Long, ByVal Y As Long, ByVal nWidth As Long, ByVal nHeight As Long, ByVal hWndParent As LongPtr, ByVal hMenu As LongPtr, ByVal hInstance As LongPtr, lpParam As Any) As LongPtr
 Public Declare PtrSafe Function CreateWindowExA Lib "user32" (ByVal dwExStyle As WindowStylesEx, ByVal lpClassName As String, ByVal lpWindowName As String, ByVal dwStyle As WindowStyles, ByVal X As Long, ByVal Y As Long, ByVal nWidth As Long, ByVal nHeight As Long, ByVal hWndParent As LongPtr, ByVal hMenu As LongPtr, ByVal hInstance As LongPtr, lpParam As Any) As LongPtr
@@ -5640,6 +5740,11 @@ Public DeclareWide PtrSafe Function EnumPropsExW Lib "user32" (ByVal hWnd As Lon
 Public DeclareWide PtrSafe Function EnumPropsEx Lib "user32" Alias "EnumPropsW" (ByVal hWnd As LongPtr, ByVal lpEnumFunc As LongPtr, ByVal lParam As LongPtr) As Long
 Public DeclareWide PtrSafe Function GetShellWindow Lib "user32" () As LongPtr
 Public DeclareWide PtrSafe Function GetDesktopWindow Lib "user32" () As LongPtr
+Public DeclareWide PtrSafe Function GetWindowLongPtr Lib "user32" Alias "GetWindowLongPtrW" (ByVal hWnd As LongPtr, ByVal nIndex As GWLP_Index) As LongPtr
+Public DeclareWide PtrSafe Function SetWindowLongPtr Lib "user32" Alias "SetWindowLongPtrW" (ByVal hWnd As LongPtr, ByVal nIndex As GWLP_Index, ByVal dwNewLong As LongPtr) As LongPtr
+Public DeclareWide PtrSafe Function GetClassLongPtr Lib "user32" Alias "GetClassLongPtrW" (ByVal hWnd As LongPtr, ByVal nIndex As GCLP_Index) As LongPtr
+Public DeclareWide PtrSafe Function SetClassLongPtr Lib "user32" Alias "SetClassLongPtrW" (ByVal hWnd As LongPtr, ByVal nIndex As GCLP_Index, ByVal dwNewLong As LongPtr) As LongPtr
+
 #If Win64 Then
 Public DeclareWide PtrSafe Function GetWindowLong Lib "user32" Alias "GetWindowLongPtrW" (ByVal hWnd As LongPtr, ByVal nIndex As GWL_Index) As LongPtr
 Public DeclareWide PtrSafe Function SetWindowLong Lib "user32" Alias "SetWindowLongPtrW" (ByVal hWnd As LongPtr, ByVal nIndex As GWL_Index, ByVal dwNewLong As LongPtr) As LongPtr
