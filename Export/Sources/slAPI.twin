@@ -1,5 +1,7 @@
 'tbShellLib - slAPI :: API Function Declarations
 
+'Note: urlmon.dll and hlink.dll APIs are in slInternet.twin. comctl32.dll and uxtheme.dll APIs are in slAPIComCtl, along with the common control APIs from user32. 
+'      Media Foundation DLLs have their APIs in slMF.twin; Webview2Loader.dll in slWebview2. A few other very small sets for specific features are in their modules.
 
 Module slAPI
 
@@ -318,7 +320,6 @@ Public Declare PtrSafe Function SHChangeNotification_Unlock Lib "shell32" (ByVal
 Public Declare PtrSafe Function SHGetImageList Lib "shell32" (ByVal iImageList As SHIL, riid As UUID, ppv As Any) As Long
 Public Declare PtrSafe Function SHCreateShellItemArray Lib "shell32" (ByVal pidlParent As LongPtr, ByVal psf As IShellFolder, ByVal cidl As Long, ByVal ppidl As LongPtr, ppsiItemArray As IShellItemArray) As Long
 Public Declare PtrSafe Function SHGetSpecialFolderLocation Lib "shell32" (ByVal hWndOwner As LongPtr, ByVal nFolder As CSIDLs, ppidl As LongPtr) As Long
-Public Declare PtrSafe Function SHCreateStreamOnFileEx Lib "shell32" (ByVal pszFile As LongPtr, ByVal grfMode As STGM, ByVal dwAttributes As FILE_ATTRIBUTES, ByVal fCreate As Long, ByVal pstmTemplate As IStream, ByRef ppstm As IStream) As Long
 Public Declare PtrSafe Sub SHGetSetSettings Lib "shell32" (ByRef lpss As SHELLSTATE, ByVal dwMask As SFS_MASK, ByVal bSet As Long)
 Public Declare PtrSafe Function Shell_NotifyIcon Lib "shell32" Alias "Shell_NotifyIconW" (ByVal dwMessage As Long, ByRef lpData As NOTIFYICONDATAW) As Long
 Public Declare PtrSafe Function Shell_NotifyIconGetRect Lib "shell32" (ByRef identifier As NOTIFYICONIDENTIFIER, ByRef iconLocation As RECT) As Long
@@ -1334,6 +1335,8 @@ Public DeclareWide PtrSafe Function SHOpenRegStream2 Lib "shlwapi" Alias "SHOpen
 Public Declare PtrSafe Function SHCreateStreamOnFileA Lib "shlwapi" (ByVal pszFile As String, ByVal grfMode As STGM, ppstm As IStream) As Long
 Public Declare PtrSafe Function SHCreateStreamOnFileW Lib "shlwapi" (ByVal pszFile As LongPtr, ByVal grfMode As STGM, ppstm As IStream) As Long
 Public DeclareWide PtrSafe Function SHCreateStreamOnFile Lib "shlwapi" Alias "SHCreateStreamOnFileW" (ByVal pszFile As String, ByVal grfMode As STGM, ppstm As IStream) As Long
+Public Declare PtrSafe Function SHCreateStreamOnFileEx Lib "shlwapi" (ByVal pszFile As LongPtr, ByVal grfMode As STGM, ByVal dwAttributes As FILE_ATTRIBUTES, ByVal fCreate As Long, ByVal pstmTemplate As IStream, ByRef ppstm As IStream) As Long
+Public DeclareWide PtrSafe Function SHCreateMemStream Lib "shlwapi" (pInit As Any, ByVal cbInit As Long) As IStream
 Public Declare PtrSafe Function SHAutoComplete Lib "shlwapi" (ByVal hwndEdit As LongPtr, ByVal dwFlags As SHACF) As Long
 Public Declare PtrSafe Sub SHSetThreadRef Lib "shlwapi" (ByVal pUnk As stdole.IUnknown)
 Public Declare PtrSafe Function SHGetThreadRef Lib "shlwapi" (ByVal ppunk As stdole.IUnknown) As Long
@@ -1344,6 +1347,11 @@ Public Declare PtrSafe Sub ColorRGBToHLS Lib "shlwapi" (ByVal clrRGB As Long, By
 Public Declare PtrSafe Function ColorHLSToRGB Lib "shlwapi" (ByVal wHue As Integer, ByVal wLuminance As Integer, ByVal wSaturation As Integer) As Long
 Public Declare PtrSafe Function ColorAdjustLuma Lib "shlwapi" (ByVal clrRGB As Long, ByVal n As Long, ByVal fScale As Long) As Long
 Public Declare PtrSafe Function SHMessageBoxCheck Lib "shlwapi" (ByVal hwnd As LongPtr, ByVal pszText As LongPtr, ByVal pszCaption As LongPtr, ByVal uType As MessageBoxFlags, iDefault As Long, ByVal pszRegVal As LongPtr) As MessageBoxResults
+Public Declare PtrSafe Function SHSendMessageBroadcastA Lib "shlwapi" (ByVal uMsg As Long, ByVal wParam As LongPtr, lParam As Any) As LongPtr
+Public DeclareWide PtrSafe Function SHSendMessageBroadcastW Lib "shlwapi" (ByVal uMsg As Long, ByVal wParam As LongPtr, lParam As Any) As LongPtr
+Public DeclareWide PtrSafe Function SHSendMessageBroadcast Lib "shlwapi" Alias "SHSendMessageBroadcastW" (ByVal uMsg As Long, ByVal wParam As LongPtr, lParam As Any) As LongPtr
+
+
 #End Region
 
 #Region "kernel32"
@@ -3112,7 +3120,7 @@ End Enum
 Public Enum StandardAccessTypes
     DELETE                          = (&H00010000)
     READ_CONTROL                    = (&H00020000)
-    WRITE_DAC                       = (&H00040000)
+    WRITE_DAC = (&H00040000)
     WRITE_OWNER                     = (&H00080000)
     SYNCHRONIZE                     = (&H00100000)
 
@@ -3138,6 +3146,23 @@ Public Enum GenericRights
     GENERIC_WRITE                    = (&H40000000)
     GENERIC_EXECUTE                  = (&H20000000)
     GENERIC_ALL                      = (&H10000000)
+End Enum
+Public Enum EventAccessRights
+    EVENT_ALL_ACCESS = &H1F0003
+    EVENT_MODIFY_STATE = &H0002
+End Enum
+Public Enum MutexAccessRights
+    MUTEX_ALL_ACCESS = &H1F0001
+    MUTEX_MODIFY_STATE = &H0001
+End Enum
+Public Enum SemaphoreAccessRights
+    SEMAPHORE_ALL_ACCESS = &H1F0003
+    SEMAPHORE_MODIFY_STATE = &H0002
+End Enum
+Public Enum TimerAccessRights
+    TIMER_ALL_ACCESS = &H1F0003
+    TIMER_MODIFY_STATE = &H0002
+    TIMER_QUERY_STATE = &H0001
 End Enum
 
 Public Const INVALID_HANDLE_VALUE = -1&
@@ -3323,8 +3348,296 @@ Public Type SYSTEM_INFO
 	wProcessorRevision As Integer
 End Type
 
+Public Enum InitCriticalSectExFlags
+    CRITICAL_SECTION_NO_DEBUG_INFO = &H01000000
+End Enum
+
+Public Enum CreateMutexExFlags
+    CREATE_MUTEX_INITIAL_OWNER = &H00000001
+End Enum
+
+Public Enum CreateWaitableTimerExFlags
+    CREATE_WAITABLE_TIMER_MANUAL_RESET = &H00000001
+    CREATE_WAITABLE_TIMER_HIGH_RESOLUTION = &H00000002
+End Enum
+
+Public Enum WaitForObjOutcomes
+    WAIT_FAILED = (&HFFFFFFFF)
+    WAIT_OBJECT_0    =   ((STATUS_WAIT_0 ) + 0 )
+
+    WAIT_ABANDONED        = ((STATUS_ABANDONED_WAIT_0 ) + 0 )
+    WAIT_ABANDONED_0      = ((STATUS_ABANDONED_WAIT_0 ) + 0)
+
+    WAIT_IO_COMPLETION                 = STATUS_USER_APC    
+End Enum
+
+Public Enum ReasonCtxFlags
+    POWER_REQUEST_CONTEXT_SIMPLE_STRING = &H00000001
+    POWER_REQUEST_CONTEXT_DETAILED_STRING = &H00000002
+End Enum
+Public Type REASON_CONTEXT
+	Version As Long
+    Flags As ReasonCtxFlags
+    SimpleReasonString_Or_LocalizedReasonModule As LongPtr
+    LocalizedReasonId As Long
+    ReasonStringCount As Long
+    ReasonStrings As LongPtr
+End Type
+
+Public Type RTL_BARRIER
+	Reserved1 As Long
+	Reserved2 As Long
+	Reserved3(0 To 1) As LongPtr
+	Reserved4 As Long
+	Reserved5 As Long
+End Type
+'Alias SYNCHRONIZATION_BARRIER As RTL_BARRIER
+Public Type SYNCHRONIZATION_BARRIER
+    Reserved1 As Long
+    Reserved2 As Long
+    Reserved3(0 To 1) As LongPtr
+    Reserved4 As Long
+    Reserved5 As Long
+End Type
+Public Enum SyncBarrierFlags
+	SYNCHRONIZATION_BARRIER_FLAGS_SPIN_ONLY  = &H01
+	SYNCHRONIZATION_BARRIER_FLAGS_BLOCK_ONLY  = &H02
+	SYNCHRONIZATION_BARRIER_FLAGS_NO_DELETE  = &H04
+End Enum
+
+Public Enum ActivationContextFlags
+	ACTCTX_FLAG_PROCESSOR_ARCHITECTURE_VALID  = (&H00000001)
+	ACTCTX_FLAG_LANGID_VALID  = (&H00000002)
+	ACTCTX_FLAG_ASSEMBLY_DIRECTORY_VALID  = (&H00000004)
+	ACTCTX_FLAG_RESOURCE_NAME_VALID  = (&H00000008)
+	ACTCTX_FLAG_SET_PROCESS_DEFAULT  = (&H00000010)
+	ACTCTX_FLAG_APPLICATION_NAME_VALID  = (&H00000020)
+	ACTCTX_FLAG_SOURCE_IS_ASSEMBLYREF  = (&H00000040)
+	ACTCTX_FLAG_HMODULE_VALID  = (&H00000080)
+End Enum
+Public Type ACTCTXA
+	cbSize As Long
+	dwFlags As ActivationContextFlags
+	lpSource As String
+	wProcessorArchitecture As Integer
+	wLangId As Integer
+	lpAssemblyDirectory As String
+	lpResourceName As String
+	lpApplicationName As String
+	hModule As LongPtr
+End Type
+Public Type ACTCTXW
+    cbSize As Long
+    dwFlags As ActivationContextFlags
+    lpSource As LongPtr
+    wProcessorArchitecture As Integer
+    wLangId As Integer
+    lpAssemblyDirectory As LongPtr
+    lpResourceName As LongPtr
+    lpApplicationName As LongPtr
+    hModule As LongPtr
+End Type
+Public Type ACTCTX
+    cbSize As Long
+    dwFlags As ActivationContextFlags
+    lpSource As LongPtr
+    wProcessorArchitecture As Integer
+    wLangId As Integer
+    lpAssemblyDirectory As LongPtr
+    lpResourceName As LongPtr
+    lpApplicationName As LongPtr
+    hModule As LongPtr
+End Type
+Public Enum DeactivateActCtxFlags
+    DEACTIVATE_ACTCTX_FLAG_FORCE_EARLY_DEACTIVATION = (&H00000001)
+End Enum
+
+Public Type ACTCTX_SECTION_KEYED_DATA_ASSEMBLY_METADATA
+	lpInformation As LongPtr
+	lpSectionBase As LongPtr
+	ulSectionLength As Long
+	lpSectionGlobalDataBase As LongPtr
+	ulSectionGlobalDataLength As Long
+End Type
+
+Public Type ACTCTX_SECTION_KEYED_DATA_2600
+    cbSize As Long
+    ulDataFormatVersion As Long
+    lpData As LongPtr
+    ulLength As Long
+    lpSectionGlobalData As LongPtr
+    ulSectionGlobalDataLength As Long
+    lpSectionBase As LongPtr
+    ulSectionTotalLength As Long
+    hActCtx As LongPtr
+    ulAssemblyRosterIndex As Long
+End Type
+Public Enum ActivationContextKeyedDataFlags
+	FIND_ACTCTX_SECTION_KEY_RETURN_HACTCTX  = (&H00000001)
+	FIND_ACTCTX_SECTION_KEY_RETURN_FLAGS  = (&H00000002)
+	FIND_ACTCTX_SECTION_KEY_RETURN_ASSEMBLY_METADATA  = (&H00000004)
+End Enum
+Public Type ACTCTX_SECTION_KEYED_DATA
+	cbSize As Long
+	ulDataFormatVersion As Long
+	lpData As LongPtr
+	ulLength As Long
+	lpSectionGlobalData As LongPtr
+	ulSectionGlobalDataLength As Long
+	lpSectionBase As LongPtr
+	ulSectionTotalLength As Long
+	hActCtx As LongPtr
+	ulAssemblyRosterIndex As Long
+	' 2600 stops here
+	ulFlags As Long
+	AssemblyMetadata As ACTCTX_SECTION_KEYED_DATA_ASSEMBLY_METADATA
+End Type
+
+Public Enum ActivationContextSections
+	ACTIVATION_CONTEXT_SECTION_ASSEMBLY_INFORMATION  = (1)
+	ACTIVATION_CONTEXT_SECTION_DLL_REDIRECTION  = (2)
+	ACTIVATION_CONTEXT_SECTION_WINDOW_CLASS_REDIRECTION  = (3)
+	ACTIVATION_CONTEXT_SECTION_COM_SERVER_REDIRECTION  = (4)
+	ACTIVATION_CONTEXT_SECTION_COM_INTERFACE_REDIRECTION  = (5)
+	ACTIVATION_CONTEXT_SECTION_COM_TYPE_LIBRARY_REDIRECTION  = (6)
+	ACTIVATION_CONTEXT_SECTION_COM_PROGID_REDIRECTION  = (7)
+	ACTIVATION_CONTEXT_SECTION_GLOBAL_OBJECT_RENAME_TABLE  = (8)
+	ACTIVATION_CONTEXT_SECTION_CLR_SURROGATES  = (9)
+	ACTIVATION_CONTEXT_SECTION_APPLICATION_SETTINGS  = (10)
+	ACTIVATION_CONTEXT_SECTION_COMPATIBILITY_INFO  = (11)
+	ACTIVATION_CONTEXT_SECTION_WINRT_ACTIVATABLE_CLASSES  = (12)
+End Enum
+
+Public Enum ACTIVATION_CONTEXT_INFO_CLASS
+	ActivationContextBasicInformation=1
+	ActivationContextDetailedInformation= 2
+	AssemblyDetailedInformationInActivationContext=3
+	FileInformationInAssemblyOfAssemblyInActivationContext=4
+	RunlevelInformationInActivationContext=5
+	CompatibilityInformationInActivationContext=6
+	ActivationContextManifestResourceName= 7
+	MaxActivationContextInfoClass
+	' 
+	'  compatibility with old names
+	' 
+	AssemblyDetailedInformationInActivationContxt=3
+	FileInformationInAssemblyOfAssemblyInActivationContxt=4
+End Enum
+
+Public Type ACTIVATION_CONTEXT_BASIC_INFORMATION
+	hActCtx As LongPtr
+	dwFlags As Long
+End Type
+
+Public Type ASSEMBLY_FILE_DETAILED_INFORMATION
+	ulFlags As Long
+	ulFilenameLength As Long
+	ulPathLength As Long
+	lpFileName As LongPtr
+	lpFilePath As LongPtr
+End Type
+
+
+Public Enum ActivationContextPathType
+	ACTIVATION_CONTEXT_PATH_TYPE_NONE  = (1)
+	ACTIVATION_CONTEXT_PATH_TYPE_WIN32_FILE  = (2)
+	ACTIVATION_CONTEXT_PATH_TYPE_URL  = (3)
+	ACTIVATION_CONTEXT_PATH_TYPE_ASSEMBLYREF  = (4)
+End Enum
+
+Public Type ACTIVATION_CONTEXT_ASSEMBLY_DETAILED_INFORMATION
+	ulFlags As Long
+	ulEncodedAssemblyIdentityLength As Long ' in bytes
+	ulManifestPathType As ActivationContextPathType ' ACTIVATION_CONTEXT_PATH_TYPE_*
+	ulManifestPathLength As Long ' in bytes
+	liManifestLastWriteTime As LARGE_INTEGER ' FILETIME
+	ulPolicyPathType As ActivationContextPathType ' ACTIVATION_CONTEXT_PATH_TYPE_*
+	ulPolicyPathLength As Long ' in bytes
+	liPolicyLastWriteTime As LARGE_INTEGER ' FILETIME
+	ulMetadataSatelliteRosterIndex As Long
+	ulManifestVersionMajor As Long ' 1
+	ulManifestVersionMinor As Long ' 0
+	ulPolicyVersionMajor As Long ' 0
+	ulPolicyVersionMinor As Long ' 0
+	ulAssemblyDirectoryNameLength As Long ' in bytes
+	lpAssemblyEncodedAssemblyIdentity As LongPtr
+	lpAssemblyManifestPath As LongPtr
+	lpAssemblyPolicyPath As LongPtr
+	lpAssemblyDirectoryName As LongPtr
+	ulFileCount As Long
+End Type
+
+
+Public Enum ACTCTX_REQUESTED_RUN_LEVEL
+	ACTCTX_RUN_LEVEL_UNSPECIFIED=0
+	ACTCTX_RUN_LEVEL_AS_INVOKER = 1
+	ACTCTX_RUN_LEVEL_HIGHEST_AVAILABLE = 2
+	ACTCTX_RUN_LEVEL_REQUIRE_ADMIN = 3
+	ACTCTX_RUN_LEVEL_NUMBERS = 4
+End Enum
+
+Public Type ACTIVATION_CONTEXT_RUN_LEVEL_INFORMATION
+	ulFlags As Long
+	RunLevel As ACTCTX_REQUESTED_RUN_LEVEL
+	UiAccess As Long
+End Type
+
+Public Enum ACTCTX_COMPATIBILITY_ELEMENT_TYPE
+	ACTCTX_COMPATIBILITY_ELEMENT_TYPE_UNKNOWN=0
+	ACTCTX_COMPATIBILITY_ELEMENT_TYPE_OS = 1
+	ACTCTX_COMPATIBILITY_ELEMENT_TYPE_MITIGATION = 2
+	ACTCTX_COMPATIBILITY_ELEMENT_TYPE_MAXVERSIONTESTED = 3
+End Enum
+Public Type COMPATIBILITY_CONTEXT_ELEMENT
+	Id As UUID
+	Type As ACTCTX_COMPATIBILITY_ELEMENT_TYPE
+	MaxVersionTested As LongLong
+End Type
+
+Public Enum QueryActivationContextFlags
+	QUERY_ACTCTX_FLAG_USE_ACTIVE_ACTCTX  = (&H00000004)
+	QUERY_ACTCTX_FLAG_ACTCTX_IS_HMODULE  = (&H00000008)
+	QUERY_ACTCTX_FLAG_ACTCTX_IS_ADDRESS  = (&H00000010)
+	QUERY_ACTCTX_FLAG_NO_ADDREF  = (&H80000000)
+End Enum
+
+Public Type ACTIVATION_CONTEXT_DETAILED_INFORMATION
+	dwFlags As Long
+	ulFormatVersion As Long
+	ulAssemblyCount As Long
+	ulRootManifestPathType As Long
+	ulRootManifestPathChars As Long
+	ulRootConfigurationPathType As Long
+	ulRootConfigurationPathChars As Long
+	ulAppDirPathType As Long
+	ulAppDirPathChars As Long
+	lpRootManifestPath As LongPtr
+	lpRootConfigurationPath As LongPtr
+	lpAppDirPath As LongPtr
+End Type
+
+Public Type SUPPORTED_OS_INFO
+	MajorVersion As Integer
+	MinorVersion As Integer
+End Type
 
 Public DeclareWide PtrSafe Sub GetSystemInfo Lib "kernel32.dll" (lpSystemInfo As SYSTEM_INFO)
+
+Public Declare PtrSafe Function CreateActCtxA Lib "kernel32" (pActCtx As ACTCTXA) As LongPtr
+Public DeclareWide PtrSafe Function CreateActCtxW Lib "kernel32" (pActCtx As ACTCTXW) As LongPtr
+Public DeclareWide PtrSafe Function CreateActCtx Lib "kernel32" Alias "CreateActCtxW" (pActCtx As ACTCTX) As LongPtr
+Public DeclareWide PtrSafe Sub AddRefActCtx Lib "kernel32" (ByVal hActCtx As LongPtr)
+Public DeclareWide PtrSafe Sub ReleaseRefActCtx Lib "kernel32" (ByVal hActCtx As LongPtr)
+Public Declare PtrSafe Function ZombifyActCtx Lib "kernel32" (ByVal hActCtx As LongPtr) As BOOL
+Public Declare PtrSafe Function ActivateActCtx Lib "kernel32" (ByVal hActCtx As LongPtr, lpCookie As LongPtr) As BOOL
+Public Declare PtrSafe Function DeactivateActCtx Lib "kernel32" (ByVal dwFlags As DeactivateActCtxFlags, ByVal lpCookie As LongPtr) As BOOL
+Public Declare PtrSafe Function GetCurrentActCtx Lib "kernel32" (lphActCtx As LongPtr) As BOOL
+Public Declare PtrSafe Function FindActCtxSectionStringA Lib "kernel32" (ByVal dwFlags As ActivationContextKeyedDataFlags, lpExtensionGuid As UUID, ByVal ulSectionId As ActivationContextSections, ByVal lpStringToFind As String, ReturnedData As ACTCTX_SECTION_KEYED_DATA) As BOOL
+Public DeclareWide PtrSafe Function FindActCtxSectionStringW Lib "kernel32" (ByVal dwFlags As ActivationContextKeyedDataFlags, lpExtensionGuid As UUID, ByVal ulSectionId As ActivationContextSections, ByVal lpStringToFind As LongPtr, ReturnedData As ACTCTX_SECTION_KEYED_DATA) As BOOL
+Public DeclareWide PtrSafe Function FindActCtxSectionString Lib "kernel32" Alias "FindActCtxSectionStringW" (ByVal dwFlags As ActivationContextKeyedDataFlags, lpExtensionGuid As UUID, ByVal ulSectionId As ActivationContextSections, ByVal lpStringToFind As String, ReturnedData As ACTCTX_SECTION_KEYED_DATA) As BOOL
+Public DeclareWide PtrSafe Function FindActCtxSectionGuid Lib "kernel32" (ByVal dwFlags As ActivationContextKeyedDataFlags, lpExtensionGuid As UUID, ByVal ulSectionId As ActivationContextSections, lpGuidToFind As UUID, ReturnedData As ACTCTX_SECTION_KEYED_DATA) As BOOL
+Public DeclareWide PtrSafe Function QueryActCtxW Lib "kernel32" (ByVal dwFlags As QueryActivationContextFlags, ByVal hActCtx As LongPtr, pvSubInstance As Any, ByVal ulInfoClass As ACTIVATION_CONTEXT_INFO_CLASS, pvBuffer As Any, Optional ByVal cbBuffer As LongPtr, Optional ByRef pcbWrittenOrRequired As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function QueryActCtxSettingsW Lib "kernel32" (ByVal dwFlags As Long, ByVal hActCtx As LongPtr, ByVal settingsNameSpace As LongPtr, ByVal settingName As LongPtr, ByVal pvBuffer As LongPtr, ByVal dwBuffer As LongPtr, Optional ByRef pcbWrittenOrRequired As LongPtr) As BOOL
 
 Public Declare PtrSafe Function CreateToolhelp32Snapshot Lib "kernel32" (ByVal dwFlags As TH32CS_Flags, ByVal th32ProcessID As Long) As LongPtr
 Public Declare PtrSafe Function Process32FirstW Lib "kernel32.dll" (ByVal hSnapshot As LongPtr, lppe As PROCESSENTRY32W) As Long
@@ -3378,11 +3691,16 @@ Public Declare PtrSafe Function GetProcessHeap Lib "kernel32" () As LongPtr
         
         
 Public Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
+Public Declare PtrSafe Function SleepEx Lib "kernel32" (ByVal dwMilliseconds As Long, ByVal bAlertable As BOOL) As Long
 Public Declare PtrSafe Function CloseHandle Lib "kernel32" (ByVal hObject As LongPtr) As Long
 Public Declare PtrSafe Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As LongPtr)
 Public Declare PtrSafe Sub MoveMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As LongPtr)
 Public Declare PtrSafe Sub ZeroMemory Lib "kernel32" Alias "RtlZeroMemory" (Destination As Any, ByVal Length As LongPtr)
-Public Declare PtrSafe Function InitializeCriticalSectionAndSpinCount Lib "kernel32" (lpCriticalSection As CRITICAL_SECTION, ByVal dwSpinCount As Long) As Long
+Public Declare PtrSafe Sub FillMemory Lib "kernel32" Alias "RtlFillMemory" (Destination As Any, ByVal Length As LongPtr, ByVal Fill As Long)
+Public Declare PtrSafe Sub InitializeCriticalSection Lib "kernel32" (lpCriticalSection As CRITICAL_SECTION)
+Public Declare PtrSafe Function InitializeCriticalSectionAndSpinCount Lib "kernel32" (lpCriticalSection As CRITICAL_SECTION, ByVal dwSpinCount As Long) As BOOL
+Public Declare PtrSafe Function InitializeCriticalSectionEx Lib "kernel32" (lpCriticalSection As CRITICAL_SECTION, ByVal dwSpinCount As Long, ByVal Flags As InitCriticalSectExFlags) As BOOL
+Public Declare PtrSafe Function TryEnterCriticalSection Lib "kernel32" (lpCriticalSection As CRITICAL_SECTION) As BOOL
 Public Declare PtrSafe Sub EnterCriticalSection Lib "kernel32" (lpCriticalSection As CRITICAL_SECTION)
 Public Declare PtrSafe Sub LeaveCriticalSection Lib "kernel32" (lpCriticalSection As CRITICAL_SECTION)
 Public Declare PtrSafe Sub DeleteCriticalSection Lib "kernel32" (lpCriticalSection As CRITICAL_SECTION)
@@ -3403,14 +3721,65 @@ Public Declare PtrSafe Function TerminateThread Lib "kernel32" (ByRef hThread As
 Public Declare PtrSafe Function TerminateProcess Lib "kernel32" (ByRef hProcess As LongPtr, ByVal dwExitCode As Long) As Long
 Public Declare PtrSafe Function OpenThread Lib "kernel32" (ByVal dwDesiredAccess As ThreadAccess, ByVal bInheritHandle As BOOL, ByVal dwThreadId As Long) As LongPtr
 Public Declare PtrSafe Function OpenProcess Lib "kernel32" (ByVal dwDesiredAccess As Long, ByVal bInheritHandle As BOOL, ByVal dwProcessId As Long) As LongPtr
-Public Declare PtrSafe Function WaitForSingleObject Lib "kernel32" (ByVal hHandle As LongPtr, ByVal dwMilliseconds As Long) As Long
-Public Declare PtrSafe Function WaitForMultipleObjects Lib "kernel32" (ByVal nCount As Long, ByRef lpHandles As LongPtr, ByVal bWaitAll As Long, ByVal dwMilliseconds As Long) As Long
+Public Declare PtrSafe Function WaitForSingleObject Lib "kernel32" (ByVal hHandle As LongPtr, ByVal dwMilliseconds As Long) As WaitForObjOutcomes
+Public Declare PtrSafe Function WaitForMultipleObjects Lib "kernel32" (ByVal nCount As Long, ByRef lpHandles As LongPtr, ByVal bWaitAll As Long, ByVal dwMilliseconds As Long) As WaitForObjOutcomes
+Public Declare PtrSafe Function WaitForSingleObjectEx Lib "kernel32" (ByVal hHandle As LongPtr, ByVal dwMilliseconds As Long, ByVal bAlertable As BOOL) As WaitForObjOutcomes
+Public Declare PtrSafe Function WaitForMultipleObjectsEx Lib "kernel32" (ByVal nCount As Long, ByRef lpHandles As LongPtr, ByVal bWaitAll As Long, ByVal dwMilliseconds As Long, ByVal bAlertable As BOOL) As WaitForObjOutcomes
+Public Declare PtrSafe Function SignalObjectAndWait Lib "kernel32" (ByVal hObjectToSignal As LongPtr, ByVal hObjectToWaitOn As LongPtr, ByVal dwMilliseconds As Long, ByVal bAlertable As BOOL) As WaitForObjOutcomes
 Public DeclareWide PtrSafe Function CreateEvent Lib "kernel32" Alias "CreateEventW" (ByVal lpEventAttributes As LongPtr, ByVal bManualReset As Long, ByVal bInitialState As Long, ByVal lpName As String) As LongPtr
 Public Declare PtrSafe Function PulseEvent Lib "kernel32" (ByVal hEvent As LongPtr) As Long
 Public Declare PtrSafe Function SetEvent Lib "kernel32" (ByVal hEvent As LongPtr) As Long
 Public Declare PtrSafe Function ResetEvent Lib "kernel32" (ByVal hEvent As LongPtr) As Long
+Public Declare PtrSafe Function CreateSemaphoreA Lib "kernel32" (lpSemaphoreAttributes As SECURITY_ATTRIBUTES, ByVal lInitialCount As Long, ByVal lMaximumCount As Long, Optional ByVal lpName As String) As LongPtr
+Public DeclareWide PtrSafe Function CreateSemaphoreW Lib "kernel32" (lpSemaphoreAttributes As SECURITY_ATTRIBUTES, ByVal lInitialCount As Long, ByVal lMaximumCount As Long, Optional ByVal lpName As LongPtr) As LongPtr
+Public DeclareWide PtrSafe Function CreateSemaphore Lib "kernel32" Alias "CreateSemaphoreW" (lpSemaphoreAttributes As SECURITY_ATTRIBUTES, ByVal lInitialCount As Long, ByVal lMaximumCount As Long, Optional ByVal lpName As String) As LongPtr
+Public Declare PtrSafe Function CreateSemaphoreExA Lib "kernel32" (lpSemaphoreAttributes As SECURITY_ATTRIBUTES, ByVal lInitialCount As Long, ByVal lMaximumCount As Long, ByVal lpName As String, ByVal dwFlags As Long, ByVal dwDesiredAccess As Long) As LongPtr
+Public DeclareWide PtrSafe Function CreateSemaphoreExW Lib "kernel32" (lpSemaphoreAttributes As SECURITY_ATTRIBUTES, ByVal lInitialCount As Long, ByVal lMaximumCount As Long, ByVal lpName As LongPtr, ByVal dwFlags As Long, ByVal dwDesiredAccess As Long) As LongPtr
+Public DeclareWide PtrSafe Function CreateSemaphoreEx Lib "kernel32" Alias "CreateSemaphoreExW" (lpSemaphoreAttributes As SECURITY_ATTRIBUTES, ByVal lInitialCount As Long, ByVal lMaximumCount As Long, ByVal lpName As String, ByVal dwFlags As Long, ByVal dwDesiredAccess As Long) As LongPtr
+Public Declare PtrSafe Function OpenSemaphoreA Lib "kernel32" (ByVal dwDesiredAccess As Long, ByVal bInheritHandle As BOOL, ByVal lpName As String) As LongPtr
+Public DeclareWide PtrSafe Function OpenSemaphoreW Lib "kernel32" (ByVal dwDesiredAccess As Long, ByVal bInheritHandle As BOOL, ByVal lpName As LongPtr) As LongPtr
+Public DeclareWide PtrSafe Function OpenSemaphore Lib "kernel32" Alias "OpenSemaphoreW" (ByVal dwDesiredAccess As Long, ByVal bInheritHandle As BOOL, ByVal lpName As String) As LongPtr
+Public DeclareWide PtrSafe Function ReleaseSemaphore Lib "kernel32" (ByVal hSemaphore As LongPtr, ByVal lReleaseCount As Long, Optional lpPreviousCount As Long) As BOOL
+Public Declare PtrSafe Function CreateMutexA Lib "kernel32" (lpMutexAttributes As SECURITY_ATTRIBUTES, ByVal lInitialOwner As Long, Optional ByVal lpName As String) As LongPtr
+Public DeclareWide PtrSafe Function CreateMutexW Lib "kernel32" (lpMutexAttributes As SECURITY_ATTRIBUTES, ByVal lInitialOwner As Long, Optional ByVal lpName As LongPtr) As LongPtr
+Public DeclareWide PtrSafe Function CreateMutex Lib "kernel32" Alias "CreateMutexW" (lpMutexAttributes As SECURITY_ATTRIBUTES, ByVal lInitialOwner As Long, Optional ByVal lpName As String) As LongPtr
+Public Declare PtrSafe Function CreateMutexExA Lib "kernel32" (lpMutexAttributes As SECURITY_ATTRIBUTES, ByVal lInitialOwner As Long, ByVal lpName As String, ByVal dwFlags As CreateMutexExFlags, ByVal dwDesiredAccess As Long) As LongPtr
+Public DeclareWide PtrSafe Function CreateMutexExW Lib "kernel32" (lpMutexAttributes As SECURITY_ATTRIBUTES, ByVal lInitialOwner As Long, ByVal lpName As LongPtr, ByVal dwFlags As CreateMutexExFlags, ByVal dwDesiredAccess As Long) As LongPtr
+Public DeclareWide PtrSafe Function CreateMutexEx Lib "kernel32" Alias "CreateMutexExW" (lpMutexAttributes As SECURITY_ATTRIBUTES, ByVal lInitialOwner As Long, ByVal lpName As String, ByVal dwFlags As CreateMutexExFlags, ByVal dwDesiredAccess As Long) As LongPtr
+Public Declare PtrSafe Function OpenMutexA Lib "kernel32" (ByVal dwDesiredAccess As Long, ByVal bInheritHandle As BOOL, ByVal lpName As String) As LongPtr
+Public DeclareWide PtrSafe Function OpenMutexW Lib "kernel32" (ByVal dwDesiredAccess As Long, ByVal bInheritHandle As BOOL, ByVal lpName As LongPtr) As LongPtr
+Public DeclareWide PtrSafe Function OpenMutex Lib "kernel32" Alias "OpenMutexW" (ByVal dwDesiredAccess As Long, ByVal bInheritHandle As BOOL, ByVal lpName As String) As LongPtr
+Public DeclareWide PtrSafe Function ReleaseMutex Lib "kernel32" (ByVal hMutex As LongPtr) As BOOL
+Public Declare PtrSafe Function CreateWaitableTimerA Lib "kernel32" (lpTimerAttributes As SECURITY_ATTRIBUTES, ByVal bManualReset As BOOL, Optional ByVal lpTimerName As String) As LongPtr
+Public DeclareWide PtrSafe Function CreateWaitableTimerW Lib "kernel32" (lpTimerAttributes As SECURITY_ATTRIBUTES, ByVal bManualReset As BOOL, Optional ByVal lpTimerName As LongPtr) As LongPtr
+Public DeclareWide PtrSafe Function CreateWaitableTimer Lib "kernel32" Alias "CreateWaitableTimerW" (lpTimerAttributes As SECURITY_ATTRIBUTES, ByVal bManualReset As BOOL, Optional ByVal lpTimerName As String) As LongPtr
+Public Declare PtrSafe Function CreateWaitableTimerExA Lib "kernel32" (lpTimerAttributes As SECURITY_ATTRIBUTES, ByVal lpTimerName As String, ByVal dwFlags As CreateWaitableTimerExFlags, ByVal dwDesiredAccess As Long) As LongPtr
+Public DeclareWide PtrSafe Function CreateWaitableTimerExW Lib "kernel32" (lpTimerAttributes As SECURITY_ATTRIBUTES, ByVal lpTimerName As String, ByVal dwFlags As CreateWaitableTimerExFlags, ByVal dwDesiredAccess As Long) As LongPtr
+Public DeclareWide PtrSafe Function CreateWaitableTimerEx Lib "kernel32" Alias "CreateWaitableTimerExW" (lpTimerAttributes As SECURITY_ATTRIBUTES, ByVal lpTimerName As String, ByVal dwFlags As CreateWaitableTimerExFlags, ByVal dwDesiredAccess As Long) As LongPtr
+Public Declare PtrSafe Function OpenWaitableTimerA Lib "kernel32" (ByVal dwDesiredAccess As Long, ByVal bInheritHandle As BOOL, ByVal lpTimerName As String) As LongPtr
+Public DeclareWide PtrSafe Function OpenWaitableTimerW Lib "kernel32" (ByVal dwDesiredAccess As Long, ByVal bInheritHandle As BOOL, ByVal lpTimerName As LongPtr) As LongPtr
+Public DeclareWide PtrSafe Function OpenWaitableTimer Lib "kernel32" Alias "OpenWaitableTimerW" (ByVal dwDesiredAccess As Long, ByVal bInheritHandle As BOOL, ByVal lpTimerName As String) As LongPtr
+Public DeclareWide PtrSafe Function CancelWaitableTimer Lib "kernel32" (ByVal hTimer As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function SetWaitableTimer Lib "kernel32" (ByVal hTimer As LongPtr, lpDueTime As LARGE_INTEGER, ByVal lPeriod As Long, ByVal pfnCompletionRoutine As LongPtr, lpArgToCompletionRoutine As Any, ByVal fResume As BOOL) As BOOL
+Public DeclareWide PtrSafe Function SetWaitableTimerEx Lib "kernel32" (ByVal hTimer As LongPtr, lpDueTime As LARGE_INTEGER, ByVal lPeriod As Long, ByVal pfnCompletionRoutine As LongPtr, lpArgToCompletionRoutine As Any, WakeContext As REASON_CONTEXT, ByVal TolerableDelay As Long) As BOOL
+Public DeclareWide PtrSafe Sub InitializeSRWLock Lib "kernel32" (SRWLock As LongPtr)
+Public DeclareWide PtrSafe Sub AcquireSRWLockExclusive Lib "kernel32" (SRWLock As LongPtr)
+Public DeclareWide PtrSafe Sub AcquireSRWLockShared Lib "kernel32" (SRWLock As LongPtr)
+Public DeclareWide PtrSafe Function TryAcquireSRWLockExclusive Lib "kernel32" (SRWLock As LongPtr) As Byte
+Public DeclareWide PtrSafe Function TryAcquireSRWLockShared Lib "kernel32" (SRWLock As LongPtr) As Byte
+Public DeclareWide PtrSafe Sub ReleaseSRWLockExclusive Lib "kernel32" (SRWLock As LongPtr)
+Public DeclareWide PtrSafe Sub ReleaseSRWLockShared Lib "kernel32" (SRWLock As LongPtr)
+Public DeclareWide PtrSafe Sub InitializeConditionVariable Lib "kernel32" (ConditionVariable As LongPtr)
+Public DeclareWide PtrSafe Function SleepConditionVariableCS Lib "kernel32" (ConditionVariable As LongPtr, CriticalSection As CRITICAL_SECTION, ByVal dwMilliseconds As Long) As BOOL
+Public DeclareWide PtrSafe Sub WakeConditionVariable Lib "kernel32" (ConditionVariable As LongPtr)
+Public DeclareWide PtrSafe Sub WakeAllConditionVariable Lib "kernel32" (ConditionVariable As LongPtr)
+Public Declare PtrSafe Function SleepConditionVariableSRW Lib "kernel32" (ConditionVariable As LongPtr, SRWLock As LongPtr, ByVal dwMilliseconds As Long) As BOOL
+Public Declare PtrSafe Function InitializeSynchronizationBarrier Lib "kernel32" (lpBarrier As SYNCHRONIZATION_BARRIER, ByVal lTotalThreads As Long, ByVal lSpinCount As Long) As BOOL
+Public Declare PtrSafe Function EnterSynchronizationBarrier Lib "kernel32" (lpBarrier As SYNCHRONIZATION_BARRIER, ByVal dwFlags As SyncBarrierFlags) As BOOL
+Public Declare PtrSafe Function DeleteSynchronizationBarrier Lib "kernel32" (lpBarrier As SYNCHRONIZATION_BARRIER) As BOOL
 
-[Description("Change the protection flags of a memory address") ] Public Declare PtrSafe Function VirtualProtect Lib "kernel32" (ByRef lpAddress As Any, ByVal dwSize As LongPtr, ByVal flNewProtect As MemProtectFlags, ByRef lpflOldProtect As MemProtectFlags) As Long
+
+[Description ("Change the protection flags of a memory address") ] Public Declare PtrSafe Function VirtualProtect Lib "kernel32" (ByRef lpAddress As Any, ByVal dwSize As LongPtr, ByVal flNewProtect As MemProtectFlags, ByRef lpflOldProtect As MemProtectFlags) As Long
 Public Declare PtrSafe Function VirtualProtectEx Lib "kernel32" (ByVal hProcess As LongPtr, ByRef lpAddress As Any, ByVal dwSize As LongPtr, ByVal flNewProtect As MemProtectFlags, ByRef lpflOldProtect As MemProtectFlags) As Long
 Public Declare PtrSafe Function VirtualAlloc Lib "kernel32" (ByRef lpAddress As Any, ByVal dwSize As LongPtr, ByVal flAllocationType As MemAllocType, ByVal flProtect As MemProtectFlags) As LongPtr
 Public Declare PtrSafe Function VirtualAlloc2 Lib "kernel32" (ByVal Process As LongPtr, ByRef lpAddress As Any, ByVal dwSize As LongPtr, ByVal AllocationType As MemAllocType, ByVal PageProtection As MemProtectFlags, ExtendedParameters As MEM_EXTENDED_PARAMETER, ByVal ParameterCount As Long) As LongPtr
@@ -3761,7 +4130,7 @@ Public DeclareWide PtrSafe Function FindFirstVolumeW Lib "kernel32" (lpszVolumeN
 Public DeclareWide PtrSafe Function FindNextVolume Lib "kernel32" Alias "FindNextVolumeW" (ByVal hFindVolume As LongPtr, lpszVolumeName As LongPtr, ByVal cchBufferLen As Long) As LongPtr
 Public DeclareWide PtrSafe Function FindNextVolumeW Lib "kernel32" (ByVal hFindVolume As LongPtr, lpszVolumeName As LongPtr, ByVal cchBufferLen As Long) As LongPtr
 Public Declare PtrSafe Function FindVolumeClose Lib "kernel32" (ByVal hFindFile As LongPtr) As Long
-Public DeclareWide PtrSafe Function GetVolumePathNamesForVolumeNameW Lib "kernel32" (ByVal lpszVolumeName As LongPtr, lpszVolumePathNames As LongPtr, ByVal cchBufferLength As Long, lpcchReturnLength As Long) As BOOL
+Public DeclareWide PtrSafe Function GetVolumePathNamesForVolumeNameW Lib "kernel32" (ByVal lpszVolumeName As LongPtr, ByVal lpszVolumePathNames As LongPtr, ByVal cchBufferLength As Long, lpcchReturnLength As Long) As BOOL
 Public DeclareWide PtrSafe Function CreateProcessW Lib "kernel32" (ByVal lpApplicationName As LongPtr, ByVal lpCommandLine As LongPtr, lpProccessAttributes As SECURITY_ATTRIBUTES, lpThreadAttributes As SECURITY_ATTRIBUTES, ByVal bInheritHandles As BOOL, ByVal dwCreationFlags As CreateProcessFlags, lpEnvironment As Any, _
     ByVal lpCurrentDirectory As LongPtr, lpStartupInfo As STARTUPINFOW, lpProcessInformation As PROCESS_INFORMATION) As Long
 Public DeclareWide PtrSafe Function CreateProcess Lib "kernel32" Alias "CreateProcessW" (ByVal lpApplicationName As String, ByVal lpCommandLine As String, lpProccessAttributes As SECURITY_ATTRIBUTES, lpThreadAttributes As SECURITY_ATTRIBUTES, ByVal bInheritHandles As BOOL, ByVal dwCreationFlags As CreateProcessFlags, lpEnvironment As Any, _
@@ -4701,7 +5070,7 @@ Public Declare PtrSafe Function OleCreateDefaultHandler Lib "ole32" (ByRef clsid
 Public Declare PtrSafe Function IsAccelerator Lib "ole32" (ByVal haccel As LongPtr, ByVal cAccelEntries As Long, ByRef lpmsg As MSG, ByRef lpwCmd As Integer) As Long
 #End Region
 
-#Region "oleauto32"
+#Region "oleaut32"
 '****************************************************
 'oleaut32.dll
 
@@ -5774,7 +6143,7 @@ Public DeclareWide Function SetClassLongW Lib "user32" (ByVal hwnd As Long, ByVa
 #End If
 Public Declare PtrSafe Function GetSystemMetrics Lib "user32" (ByVal nIndex As SystemMetrics) As Long
 Public Declare PtrSafe Function SendMessage Lib "user32" Alias "SendMessageA" (ByVal hWnd As LongPtr, ByVal wMsg As Long, ByVal wParam As LongPtr, lParam As Any) As LongPtr
-Public Declare PtrSafe Function SendMessageW Lib "user32" (ByVal hWnd As LongPtr, ByVal wMsg As Long, ByVal wParam As LongPtr, lParam As Any) As LongPtr
+Public DeclareWide PtrSafe Function SendMessageW Lib "user32" (ByVal hWnd As LongPtr, ByVal wMsg As Long, ByVal wParam As LongPtr, lParam As Any) As LongPtr
 Public Declare PtrSafe Function PostMessage Lib "user32" Alias "PostMessageA" (ByVal hwnd As Long, ByVal wMsg As Long, ByVal wParam As Long, ByRef lParam As Any) As Long
 Public Declare PtrSafe Function PostMessageW Lib "user32" (ByVal hwnd As Long, ByVal wMsg As Long, ByVal wParam As Long, ByRef lParam As Any) As Long
 Public DeclareWide PtrSafe Function FindWindow Lib "user32" Alias "FindWindowW" (ByVal Class As String, ByVal Title As String) As LongPtr
@@ -9859,33 +10228,241 @@ End Function
 
 
 #Region "gdi32"
+Public Enum GdiHatchStyles
+	HS_HORIZONTAL  = 0 /* ----- */
+	HS_VERTICAL  = 1 /*  Or  Or  Or  Or  Or  */
+	HS_FDIAGONAL  = 2 /* \\\\\ */
+	HS_BDIAGONAL  = 3 /*  '/// */
+	HS_CROSS  = 4 /* +++++ */
+	HS_DIAGCROSS  = 5 /* xxxxx */
+	HS_API_MAX  = 12
+End Enum
+
+Public Enum GdiPenStyles
+	PS_SOLID  = 0
+	PS_DASH  = 1 /* ------- */
+	PS_DOT  = 2 /* ....... */
+	PS_DASHDOT  = 3 /* _._._._ */
+	PS_DASHDOTDOT  = 4 /* _.._.._ */
+	PS_NULL  = 5
+	PS_INSIDEFRAME  = 6
+	PS_USERSTYLE  = 7
+	PS_ALTERNATE  = 8
+	PS_STYLE_MASK  = &H0000000F
+	PS_ENDCAP_ROUND  = &H00000000
+	PS_ENDCAP_SQUARE  = &H00000100
+	PS_ENDCAP_FLAT  = &H00000200
+	PS_ENDCAP_MASK  = &H00000F00
+	PS_JOIN_ROUND  = &H00000000
+	PS_JOIN_BEVEL  = &H00001000
+	PS_JOIN_MITER  = &H00002000
+	PS_JOIN_MASK  = &H0000F000&
+	PS_COSMETIC  = &H00000000
+	PS_GEOMETRIC  = &H00010000
+	PS_TYPE_MASK  = &H000F0000
+End Enum
+
+Public Enum GdiRegionTypes
+	RGN_ERROR  = 0
+	NULLREGION  = 1
+	SIMPLEREGION  = 2
+	COMPLEXREGION  = 3
+End Enum
+
+Public Type TEXTMETRICA
+    tmHeight As LONG
+    tmAscent As LONG
+    tmDescent As LONG
+    tmInternalLeading As LONG
+    tmExternalLeading As LONG
+    tmAveCharWidth As LONG
+    tmMaxCharWidth As LONG
+    tmWeight As LONG
+    tmOverhang As LONG
+    tmDigitizedAspectX As LONG
+    tmDigitizedAspectY As LONG
+    tmFirstChar As BYTE
+    tmLastChar As BYTE
+    tmDefaultChar As BYTE
+    tmBreakChar As BYTE
+    tmItalic As BYTE
+    tmUnderlined As BYTE
+    tmStruckOut As BYTE
+    tmPitchAndFamily As BYTE
+    tmCharSet As BYTE
+End Type
+Public Type TEXTMETRICW
+    tmHeight As LONG
+    tmAscent As LONG
+    tmDescent As LONG
+    tmInternalLeading As LONG
+    tmExternalLeading As LONG
+    tmAveCharWidth As LONG
+    tmMaxCharWidth As LONG
+    tmWeight As LONG
+    tmOverhang As LONG
+    tmDigitizedAspectX As LONG
+    tmDigitizedAspectY As LONG
+    tmFirstChar As Integer
+    tmLastChar As Integer
+    tmDefaultChar As Integer
+    tmBreakChar As Integer
+    tmItalic As BYTE
+    tmUnderlined As BYTE
+    tmStruckOut As BYTE
+    tmPitchAndFamily As BYTE
+    tmCharSet As BYTE
+End Type
+Public Type TEXTMETRIC
+    tmHeight As LONG
+    tmAscent As LONG
+    tmDescent As LONG
+    tmInternalLeading As LONG
+    tmExternalLeading As LONG
+    tmAveCharWidth As LONG
+    tmMaxCharWidth As LONG
+    tmWeight As LONG
+    tmOverhang As LONG
+    tmDigitizedAspectX As LONG
+    tmDigitizedAspectY As LONG
+    tmFirstChar As Integer
+    tmLastChar As Integer
+    tmDefaultChar As Integer
+    tmBreakChar As Integer
+    tmItalic As BYTE
+    tmUnderlined As BYTE
+    tmStruckOut As BYTE
+    tmPitchAndFamily As BYTE
+    tmCharSet As BYTE
+End Type
+
+Public Enum GdiTextAlign
+	TA_NOUPDATECP  = 0
+	TA_UPDATECP  = 1
+	TA_LEFT  = 0
+	TA_RIGHT  = 2
+	TA_CENTER  = 6
+	TA_TOP  = 0
+	TA_BOTTOM  = 8
+	TA_BASELINE  = 24
+	TA_RTLREADING  = 256
+	TA_MASK  = (TA_BASELINE+TA_CENTER+TA_UPDATECP+TA_RTLREADING)
+	VTA_BASELINE  = TA_BASELINE
+	VTA_LEFT  = TA_BOTTOM
+	VTA_RIGHT  = TA_TOP
+	VTA_CENTER  = TA_CENTER
+	VTA_BOTTOM  = TA_RIGHT
+	VTA_TOP = TA_LEFT
+End Enum
+
+Public Enum GdiExtTextOutOpts
+	ETO_OPAQUE  = &H0002
+	ETO_CLIPPED  = &H0004
+	ETO_GLYPH_INDEX  = &H0010
+	ETO_RTLREADING  = &H0080
+	ETO_NUMERICSLOCAL  = &H0400
+	ETO_NUMERICSLATIN  = &H0800
+	ETO_IGNORELANGUAGE  = &H1000
+	ETO_PDY  = &H2000
+	ETO_REVERSE_INDEX_MAP  = &H10000
+End Enum
+
+Public Enum GdiExtFloodFillType
+	FLOODFILLBORDER  = 0
+	FLOODFILLSURFACE  = 1
+End Enum
+
+Public Enum GdiObjectTypes
+	OBJ_PEN  = 1
+	OBJ_BRUSH  = 2
+	OBJ_DC  = 3
+	OBJ_METADC  = 4
+	OBJ_PAL  = 5
+	OBJ_FONT  = 6
+	OBJ_BITMAP  = 7
+	OBJ_REGION  = 8
+	OBJ_METAFILE  = 9
+	OBJ_MEMDC  = 10
+	OBJ_EXTPEN  = 11
+	OBJ_ENHMETADC  = 12
+	OBJ_ENHMETAFILE  = 13
+	OBJ_COLORSPACE  = 14
+End Enum
+
+Public Enum GdiDIBitsColorUse
+	DIB_RGB_COLORS  = 0 /* color table in RGBs */
+	DIB_PAL_COLORS  = 1 /* color table in palette indices */
+End Enum
 
 Public Declare PtrSafe Function GetStockObject Lib "gdi32.dll" (ByVal nIndex As StockObjects) As LongPtr
 Public Declare PtrSafe Function CreateFontW Lib "gdi32" (ByVal cHeight As Long, ByVal cWidth As Long, ByVal cEscapement As Long, ByVal cOrientation As Long, ByVal cWeight As FontWeight, ByVal bItalic As Long, ByVal bUnderline As Long, ByVal bStrikeOut As Long, ByVal iCharset As FontCharset, ByVal iOutPrecision As FontOutPrecis, ByVal iClipPrecision As FontClipPrecis, ByVal iQuality As Long, ByVal iPitchAndFamily As Long, ByVal pszFaceName As LongPtr) As LongPtr
 Public Declare PtrSafe Function SelectObject Lib "gdi32" (ByVal hDC As LongPtr, ByVal hObject As LongPtr) As LongPtr
 Public Declare PtrSafe Function SetBkColor Lib "gdi32" (ByVal hDC As LongPtr, ByVal crColor As Long) As Long
-Public Declare PtrSafe Function SetBkMode Lib "gdi32" (ByVal hDC As LongPtr, ByVal nBkMode As Long) As Long
+Public Declare PtrSafe Function GetBkColor Lib "gdi32" (ByVal hDC As LongPtr) As Long
+Public Declare PtrSafe Function SetBkMode Lib "gdi32" (ByVal hDC As LongPtr, ByVal nBkMode As GdiBackgroundModes) As Long
+Public Declare PtrSafe Function GetBkMode Lib "gdi32" (ByVal hDC As LongPtr) As GdiBackgroundModes
 Public Declare PtrSafe Function SetTextColor Lib "gdi32" (ByVal hDC As LongPtr, ByVal crColor As Long) As Long
-Public Declare PtrSafe Function BitBlt Lib "gdi32" (ByVal hDestDC As LongPtr, ByVal X As Long, ByVal Y As Long, ByVal nWidth As Long, ByVal nHeight As Long, ByVal hSrcDC As LongPtr, ByVal XSrc As Long, ByVal YSrc As Long, ByVal dwRop As Long) As Long
+Public Declare PtrSafe Function BitBlt Lib "gdi32" (ByVal hdcDest As LongPtr, ByVal X As Long, ByVal Y As Long, ByVal nWidth As Long, ByVal nHeight As Long, ByVal hSrcDC As LongPtr, ByVal XSrc As Long, ByVal YSrc As Long, ByVal dwRop As RASTEROPFLAGS) As Long
+Public Declare PtrSafe Function StretchBlt Lib "gdi32" (ByVal hdcDest As LongPtr, ByVal xDest As Long, ByVal yDest As Long, ByVal wDest As Long, ByVal hDest As Long, ByVal hdcSrc As LongPtr, ByVal xSrc As Long, ByVal ySrc As Long, ByVal wSrc As Long, ByVal hSrc As Long, ByVal rop As RASTEROPFLAGS) As BOOL
+
 Public Declare PtrSafe Function GetDeviceCaps Lib "gdi32" (ByVal hDC As LongPtr, ByVal nIndex As GetDevCaps_Index) As Long
-Public Declare PtrSafe Function GetDIBits Lib "gdi32" (ByVal aHDC As LongPtr, ByVal hBitmap As LongPtr, ByVal nStartScan As Long, ByVal nNumScans As Long, ByRef lpBits As Any, ByRef lpBI As BITMAPINFO, ByVal wUsage As Long) As Long
+Public Declare PtrSafe Function GetDIBits Lib "gdi32" (ByVal hdc As LongPtr, ByVal hbm As LongPtr, ByVal start As Long, ByVal cLines As Long, ByRef lpvBits As Any, ByRef lpbmi As BITMAPINFO, ByVal usage As GdiDIBitsColorUse) As Long
+Public Declare PtrSafe Function SetDIBits Lib "gdi32" (ByVal hdc As LongPtr, ByVal hbm As LongPtr, ByVal start As Long, ByVal cLines As Long, ByRef lpBits As Any, ByRef lpbmi As BITMAPINFO, ByVal ColorUse As GdiDIBitsColorUse) As Long
 Public DeclareWide PtrSafe Function GetObject Lib "gdi32" Alias "GetObjectW" (ByVal hObject As LongPtr, ByVal nCount As Long, lpObject As Any) As Long
 Public DeclareWide PtrSafe Function GetObjectW Lib "gdi32" (ByVal hObject As LongPtr, ByVal nCount As Long, lpObject As Any) As Long
 Public Declare PtrSafe Function GetObjectA Lib "gdi32" (ByVal hObject As LongPtr, ByVal nCount As Long, lpObject As Any) As Long
+Public DeclareWide PtrSafe Function GetObjectType Lib "gdi32" (ByVal h As LongPtr) As GdiObjectTypes
 Public Declare PtrSafe Function CreateCompatibleBitmap Lib "gdi32" (ByVal hDC As LongPtr, ByVal nWidth As Long, ByVal nHeight As Long) As LongPtr
 Public Declare PtrSafe Function CreateCompatibleDC Lib "gdi32" (ByVal hDC As LongPtr) As LongPtr
 Public Declare PtrSafe Function CreateDIBSection Lib "gdi32" (ByVal hDC As LongPtr, pBitmapInfo As BITMAPINFO, ByVal usage As Long, ByRef lplpVoid As Any, ByVal hSection As LongPtr, ByVal offset As Long) As LongPtr
+Public Declare PtrSafe Function DeleteObject Lib "gdi32" (ByVal hObject As LongPtr) As Long
+Public Declare PtrSafe Function DeleteDC Lib "gdi32" (ByVal hDC As LongPtr) As Long
+Public Declare PtrSafe Function D3DKMTSetProcessSchedulingPriorityClass Lib "gdi32" (ByVal hProcess As LongPtr, ByVal lPriority As D3DKMT_SCHEDULINGPRIORITYCLASS) As Long
+Public Declare PtrSafe Function CreateSolidBrush Lib "gdi32" (ByVal crColor As Long) As LongPtr
+Public Declare PtrSafe Function CreateHatchBrush Lib "gdi32" (ByVal iHatch As GdiHatchStyles, ByVal crColor As Long) As LongPtr
+Public Declare PtrSafe Function CreatePen Lib "gdi32" (ByVal iStyle As GdiPenStyles, ByVal cWidth As Long, ByVal crColor As Long) As LongPtr
+Public Declare PtrSafe Function SetViewportOrgEx Lib "gdi32" (ByVal hdc As LongPtr, ByVal x As Long, ByVal y As Long, lppt As POINT) As BOOL
+Public Declare PtrSafe Function SetBrushOrgEx Lib "gdi32" (ByVal hdc As LongPtr, ByVal x As Long, ByVal y As Long, lppt As POINT) As BOOL
+Public Declare PtrSafe Function GetBitmapDimensionEx Lib "gdi32" (ByVal hbit As LongPtr, lpsize As SIZE) As BOOL
+Public Declare PtrSafe Function SetBitmapDimensionEx Lib "gdi32" (ByVal hbit As LongPtr, ByVal w As Long, ByVal h As Long, lpsz As SIZE) As BOOL
+
+Public Declare PtrSafe Function IntersectClipRect Lib "gdi32" (ByVal hdc As LongPtr, ByVal left As Long, ByVal top As Long, ByVal right As Long, ByVal bottom As Long) As GdiRegionTypes
+Public Declare PtrSafe Function SelectClipRgn Lib "gdi32" (ByVal hdc As LongPtr, ByVal hRgn As LongPtr) As GdiRegionTypes
+
 Public Declare PtrSafe Function CreateFontIndirectA Lib "gdi32" (ByRef lpLogFont As LOGFONTA) As LongPtr
 Public DeclareWide PtrSafe Function CreateFontIndirectW Lib "gdi32" (ByRef lpLogFont As LOGFONTW) As LongPtr
 Public DeclareWide PtrSafe Function CreateFontIndirect Lib "gdi32" Alias "CreateFontIndirectW" (ByRef lpLogFont As LOGFONTW) As LongPtr
 Public Declare PtrSafe Function GetTextExtentPoint32W Lib "gdi32" (ByVal hDC As LongPtr, ByVal lpsz As LongPtr, ByVal cbString As Long, lpSize As SIZE) As Long
 Public DeclareWide PtrSafe Function GetTextExtentPoint32 Lib "gdi32" (ByVal hDC As LongPtr, ByVal lpsz As String, ByVal cbString As Long, lpSize As SIZE) As Long
-Public Declare PtrSafe Function DeleteObject Lib "gdi32" (ByVal hObject As LongPtr) As Long
-Public Declare PtrSafe Function DeleteDC Lib "gdi32" (ByVal hDC As LongPtr) As Long
-Public Declare PtrSafe Function D3DKMTSetProcessSchedulingPriorityClass Lib "gdi32" (ByVal hProcess As LongPtr, ByVal lPriority As D3DKMT_SCHEDULINGPRIORITYCLASS) As Long
+Public DeclareWide PtrSafe Function GetTextMetricsW Lib "gdi32" (ByVal hdc As LongPtr, lptm As TEXTMETRICW) As BOOL
+Public Declare PtrSafe Function GetTextMetricsA Lib "gdi32" (ByVal hdc As LongPtr, lptm As TEXTMETRICA) As BOOL
+Public DeclareWide PtrSafe Function GetTextMetrics Lib "gdi32" Alias "GetTextMetricsW" (ByVal hdc As LongPtr, lptm As TEXTMETRIC) As BOOL
+Public Declare PtrSafe Function TextOutA Lib "gdi32" (ByVal hdc As LongPtr, ByVal x As Long, ByVal y As Long, ByVal lpString As String, ByVal c As Long) As BOOL
+Public DeclareWide PtrSafe Function TextOutW Lib "gdi32" (ByVal hdc As LongPtr, ByVal x As Long, ByVal y As Long, ByVal lpString As LongPtr, ByVal c As Long) As BOOL
+Public DeclareWide PtrSafe Function TextOut Lib "gdi32" Alias "TextOutW" (ByVal hdc As LongPtr, ByVal x As Long, ByVal y As Long, ByVal lpString As String, ByVal c As Long) As BOOL
+Public Declare PtrSafe Function SetTextAlign Lib "gdi32" (ByVal hDC As LongPtr, ByVal align As GdiTextAlign) As GdiTextAlign
+Public Declare PtrSafe Function GetTextAlign Lib "gdi32" (ByVal hDC As LongPtr) As GdiTextAlign
+Public Declare PtrSafe Function ExtTextOutA Lib "gdi32" (ByVal hdc As LongPtr, ByVal x As Long, ByVal y As Long, ByVal options As GdiExtTextOutOpts, lprect As RECT, ByVal lpString As String, ByVal c As Long, Optional lpDx As Long) As BOOL
+Public DeclareWide PtrSafe Function ExtTextOutW Lib "gdi32" (ByVal hdc As LongPtr, ByVal x As Long, ByVal y As Long, ByVal options As GdiExtTextOutOpts, lprect As RECT, ByVal lpString As LongPtr, ByVal c As Long, Optional lpDx As Long) As BOOL
+Public DeclareWide PtrSafe Function ExtTextOut Lib "gdi32" Alias "ExtTextOutW" (ByVal hdc As LongPtr, ByVal x As Long, ByVal options As GdiExtTextOutOpts, lprect As RECT, ByVal y As Long, ByVal lpString As String, ByVal c As Long, Optional lpDx As Long) As BOOL
+Public Declare PtrSafe Function FloodFill Lib "gdi32" (ByVal hdc As LongPtr, ByVal x As Long, ByVal y As Long, ByVal color As Long) As BOOL
+Public Declare PtrSafe Function ExtFloodFill Lib "gdi32" (ByVal hdc As LongPtr, ByVal x As Long, ByVal y As Long, ByVal color As Long, ByVal type As GdiExtFloodFillType) As BOOL
+
+Public Type GRADIENT_TRIANGLE
+	Vertex1 As Long
+	Vertex2 As Long
+	Vertex3 As Long
+End Type
+Public Type GRADIENT_RECT
+	UpperLeft As Long
+	LowerRight As Long
+End Type
+
 [Description("NOTE: The last param of this API is ByVal BLENDFUNCTION; copy that 4-byte UDT to a Long, then pass that long. Do not pass a pointer.")]
-Public Declare PtrSafe Function AlpbaBlend Lib "gdi32" (ByVal hdcDest As LongPtr, ByVal xoriginDest As Long, ByVal yoriginDest As Long, ByVal wDest As Long, ByVal hDest As Long, ByVal hdcSrc As LongPtr, ByVal xoriginSrc As Long, ByVal yoriginSrc As Long, ByVal wSrc As Long, ByVal hSrc As Long, ByVal ftn As Long) As BOOL
-Public Declare PtrSafe Function TransparentBlt Lib "gdi32" (ByVal hdcDest As LongPtr, ByVal xoriginDest As Long, ByVal yoriginDest As Long, ByVal wDest As Long, ByVal hDest As Long, ByVal hdcSrc As LongPtr, ByVal xoriginSrc As Long, ByVal yoriginSrc As Long, ByVal wSrc As Long, ByVal hSrc As Long, ByVal crTransparent As Long) As BOOL
+Public Declare PtrSafe Function GdiAlphaBlend Lib "gdi32" (ByVal hdcDest As LongPtr, ByVal xoriginDest As Long, ByVal yoriginDest As Long, ByVal wDest As Long, ByVal hDest As Long, ByVal hdcSrc As LongPtr, ByVal xoriginSrc As Long, ByVal yoriginSrc As Long, ByVal wSrc As Long, ByVal hSrc As Long, ByVal ftn As Long) As BOOL
+Public Declare PtrSafe Function GdiTransparentBlt Lib "gdi32" (ByVal hdcDest As LongPtr, ByVal xoriginDest As Long, ByVal yoriginDest As Long, ByVal wDest As Long, ByVal hDest As Long, ByVal hdcSrc As LongPtr, ByVal xoriginSrc As Long, ByVal yoriginSrc As Long, ByVal wSrc As Long, ByVal hSrc As Long, ByVal crTransparent As Long) As BOOL
+Public Declare PtrSafe Function GdiGradientFill Lib "gdi32" (ByVal hdc As LongPtr, pVertex As TRIVERTEX, ByVal nVertex As Long, pMesh As Any, ByVal nMesh As Long, ByVal ulMode As GradientDrawingMode) As BOOL
+
 
 Public Declare PtrSafe Function StartDocA Lib "gdi32" (ByVal hDC As LongPtr, lpdi As DOCINFOA) As Long
 Public DeclareWide PtrSafe Function StartDocW Lib "gdi32" (ByVal hDC As LongPtr, lpdi As DOCINFOW) As Long
@@ -10091,8 +10668,10 @@ Public Enum GetDevCaps_Index
 	CCHFORMNAME  = 32
 End Enum
 
-Public Const TRANSPARENT = 1&
-Public Const OPAQUE = 2&
+Public Enum GdiBackgroundModes
+    TRANSPARENT = 1&
+    OPAQUE = 2&
+End Enum
 
 Public Enum StockObjects
     WHITE_BRUSH = 0
@@ -11630,6 +12209,27 @@ Public Enum SND_FLAGS
     SND_VALID = &H1F ' valid flags / ;Internal /
     SND_VALIDFLAGS = &H17201F ' Set of valid flag bits.
 End Enum
+
+Public Type TRIVERTEX
+	x As LONG
+	y As LONG
+	Red As Integer
+	Green As Integer
+	Blue As Integer
+	Alpha As Integer
+End Type
+
+Public Enum GradientDrawingMode
+	GRADIENT_FILL_RECT_H  = &H00000000
+	GRADIENT_FILL_RECT_V  = &H00000001
+	GRADIENT_FILL_TRIANGLE  = &H00000002
+	GRADIENT_FILL_OP_FLAG  = &H000000ff
+End Enum
+
+[Description("NOTE: The last param of this API is ByVal BLENDFUNCTION; copy that 4-byte UDT to a Long, then pass that long. Do not pass a pointer.")]
+Public Declare PtrSafe Function AlphaBlend Lib "Msimg32.dll" (ByVal hdcDest As LongPtr, ByVal xoriginDest As Long, ByVal yoriginDest As Long, ByVal wDest As Long, ByVal hDest As Long, ByVal hdcSrc As LongPtr, ByVal xoriginSrc As Long, ByVal yoriginSrc As Long, ByVal wSrc As Long, ByVal hSrc As Long, ByVal ftn As Long) As BOOL
+Public Declare PtrSafe Function TransparentBlt Lib "Msimg32.dll" (ByVal hdcDest As LongPtr, ByVal xoriginDest As Long, ByVal yoriginDest As Long, ByVal wDest As Long, ByVal hDest As Long, ByVal hdcSrc As LongPtr, ByVal xoriginSrc As Long, ByVal yoriginSrc As Long, ByVal wSrc As Long, ByVal hSrc As Long, ByVal crTransparent As Long) As BOOL
+Public Declare PtrSafe Function GradientFill Lib "Msimg32.dll" (ByVal hdc As LongPtr, pVertex As TRIVERTEX, ByVal nVertex As Long, pMesh As Any, ByVal nMesh As Long, ByVal ulMode As GradientDrawingMode) As BOOL
 
 Public Declare PtrSafe Function GetFileVersionInfoSizeW Lib "version.dll" (ByVal lptstrFilename As LongPtr, lpdwHandle As Long) As Long
 Public Declare PtrSafe Function GetFileVersionInfoW Lib "version.dll" (ByVal lptstrFilename As LongPtr, ByVal dwhandle As Long, ByVal dwLen As Long, lpData As Any) As Long
