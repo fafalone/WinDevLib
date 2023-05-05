@@ -1,7 +1,7 @@
 # tbShellLib
 **twinBASIC Shell Library**
 
-Current Version: 4.5.130 (April 30th, 2023)
+Current Version: 4.6.133 (May 5th, 2023)
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -72,6 +72,8 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, vbNullPtr, ...)
 ```
 
 ## Updates
+
+**Update (v4.6.132):** Numerous bug fixes related to string handling (ByRef LongPtrs that should have been ByVal), added another large batch of APIs.
 
 **Update (v4.5.130):** Some minor bug fixes, added IInputPaneAnimationCoordinator, added another batch of APIs (focused on GDI, thread synchronization, and activation contexts). 
 
