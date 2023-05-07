@@ -136,46 +136,7 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, vbNullPtr, ...)
 
 -Bug fix: AUDCLNT_RETURNCODES were all incorrect.
 
-**Update (v3.12.88):** Added misc. interfaces IDelayedPropertyStoreFactory, IStorageProviderCopyHook, IDesktopGadget/Coclass DesktopGadget, IQueryCodePage, IStreamUnbufferedInfo, IUserAccountChangeCallback, IOpenSearchSource, IDestinationStreamFactory, ICreateProcessInputs, and ICreatingProcess. Continued adding APIs and Media Foundation interfaces.
-
-**Update (v3.11.84, v3.11.86):** Additional APIs and Media Foundation stuff.
-
-**Update (V3.11.82):** Additional API expansion for upcoming projects. Added Media Foundation / D3D12 sync interfaces/GUIDs. Added Media Foundation Capture Engine interfaces/GUIDs. Realized I actually have a ton more Media Foundation stuff not yet included. 
-
-**Update (v3.10.80):** Additional API expansion for upcoming projects.
-
-**Update (v3.10.72):** Added a number of important APIs for upcoming projects. Added EP_* GUIDs for IExplorerPaneVisibility, added some missing SID_ guids.
-**tbShellLib (v1.2.7):** Added IMessageFilter. **NOTE: tbShellLibImpl IS NOW WORKING!** I hadn't realized the old VSCode plugin was continually refusing to save settings, thus ignoring the setting to disable the autoprettifying that didn't understand interfaces and thus ran together the declares, making them invalid. This has been fixed in 1.2.7.
-
-**Update (v3.9.70):** Reworked APIs to be more consistent when there's A/W versions. For most of these APIs, tbShellLib offers 3 versions: An explicit A version, an explicit W version, and an undecorated version that uses `DeclareWide` and `String` that's an alias for the W version. Some of the more advanced/newer APIs don't have the ANSI version declared. For APIs from oleexp/olelib without A/W but accepting strings, they've been left as `LongPtr`, but new ones added will use String. Also continued to add new APIs.
-
-**Update (v3.8.66):**
-
--Added IActiveScript and all related ActiveX Script Host / Engine interfaces
-
--Added IDispatchEx interface and related interfaces IDispError, IVariantChangeType, IProvideRuntimeContext, IObjectIdentity, and ICanHandleException
-
--Added IFileSearchBand, coclass FileSearchBand
-
--Corrected some Direct3D type names that got caught up in an autoreplace unintentionally.
-
--Misc bug fixes (Long->LongPtr, APIs pointing to wrong A/W version, missing A/W versions)
-
--Continued expanding API coverage.
-
-**Update (v3.7.62):** Added all remaining missing oleexp interfaces simply for completeness and not needing to qualify 'contains everything in oleexp'. IHostDialog/coclass HostDialog seemed like a major omission from those legacy interfaces so added it. Continued to substantially expand API coverage.
-
-**Update (v3.6.56):** Numerous bug fixes to IPinnedList[2,3], including their names: IPinnedListVista->IPinnedList, IPinnedList->IPinnedList2, IPinnedList10->IPinnedList3, to be more consistent with all other sources. Please do not abuse these interfaces: Never pin without permission. Added IWinEventHandler, IFolderBandPriv, and IAccessibleObject; added coclass TaskBand, and added numerous missing IIDs.
-
-**Update (v3.6.54):** Some items were Private that should have been Public; put SW_Flags back to SHOWWINDOW now that bug is resolved for compatibility purposes (SHOWWINDOW is in oleexp). To use this, twinBASIC Beta 269 or newer is needed. Misc bug fixes.
-
-**Update (v3.6.52):**
-
--By popular request to expand the API coverage, tbShellLib now has had tbComCtlLib merged into it. You can exclude these definitions with the TB_COMCTL_LIB_DEFINED compiler constant. 
-
--Substantially expanded general API coverage.
-
--Misc bugfixes including renaming SHOWWINDOW enum to SW_Flags to work around a tB bug. 
+---
 
 For earlier version history, see CHANGELOG.md
 
