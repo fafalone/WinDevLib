@@ -1,7 +1,7 @@
 # tbShellLib
 **twinBASIC Shell Library**
 
-Current Version: 4.6.139 (May 9th, 2023)
+Current Version: 4.6.140 (May 9th, 2023) **NOTE:** There was an error with the online package manager version, 4.6.140 is the same as 139, but I had to bump the version number to be able to reupload to the package server. No need to update the respository code, so that can wait a day or two for the next feature update.
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
