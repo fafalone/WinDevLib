@@ -52,7 +52,19 @@ If you find an oleexpimp.tlb interface is not in tbShellLibImpl, you will be abl
 
 tB has announced plans to support `[ PreserveSig ]` in implemented interfaces in the future; when that happens tbShellLibImpl will be deprecated.
 
-## A note on seeing UDTs where before they were As Any
+## tbShellLib API standards
+
+This was mentioned above, but it's worth going into more detail. In addition to the COM interfaces, tbShellLib has a large selection of common Windows APIs; this is a much larger set than oleexp. tbShellLib and twinBASIC represented the best opportunity there would be to modernize standards... most VB programs are written with ANSI versions of APIs being the default. **This is not the case with tbShellLib**. With very few exceptions, APIs are Unicode by default-- i.e. they use the W, rather than A, version of APIs e.g. `DeleteFile` maps to `DeleteFileW` rather than `DeleteFileA`. The A and W variants use String/LongPtr, and in almost all cases, the mapped version uses `String` with twinBASIC's `DeclareWide` keyword-- this disables Unicode-ANSI conversion, so you can still use `String` without `StrPtr` or any Unicode <-> ANSI conversion. Note this usually only applies to strings passed as input, APIs passing a LPWSTR that's allocated externally will still be LongPtr, as they're not in the same BSTR format as VBx/TB strings.
+
+All APIs are provided, as a minimum, as the explicit W variant, and an untagged version that maps to the W version. Some, but not all, APIs also have an explicit A variant defined that will perform the normal ANSI conversion for compatibility purposes. This is decided on a case by case basis depending on my impression of how much legacy code is around that needs the ANSI version. All new code should use the Unicode versions.
+
+UDTs used by these calls are also supplied in the same manner, the W variant, an untagged variant that's the same as the W version, and in some cases, an A version. UDTs always use `LongPtr` for strings, even the untagged versions for `DeclareWide`. 
+
+As noted before, an exception to the rule is `SendMessage`, due to the enourmous volume of existing code expecting SendMessage to map to SendMessageA.
+
+If you have any doubts about which API is being called, twinBASIC will show the full declaration when you hover your cursor over the API in your code.
+
+### A note on seeing UDTs where before they were As Any
 
 The best example of this is many APIs, like file APIs, where in traditional VB declarations, you see 'As Any' and in tbShellLib you see e.g. `SECURITY_ATTRIBUTES` or `OVERLAPPED`. These are the correct the definitions, but VB6 had no facility to specify 'NULL', which is what they usually would be set to. So the VB6 way was a workaround, where you could pass ByVal 0. 
 
