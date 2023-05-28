@@ -11,7 +11,7 @@ This and oleexp are projects to supply Windows shell and component interfaces in
 
 All interfaces, types, consts, and APIs from oleexp are covered, and there's additional API coverage not included in oleexp. For a full list of interfaces, see [INTERFACES.md](https://github.com/fafalone/tbShellLib/blob/main/INTERFACES.md).
 
-This project is implemented purely in tB native code, as unlike VB6 there's language support for defining interfaces and coclasses. As a twinPACKAGE, regular code is supported in addition to the definitions, so the regular addin modules have been built in (mIID.bas, mPKEY.bas, etc).
+This project is implemented purely in tB native code, as unlike VB6 there's language support for defining interfaces and coclasses. As a twinPACKAGE, regular code is supported in addition to the definitions, so the regular addin modules have been built in (mIID.bas, mPKEY.bas, etc). Does it still make sense to use a project like this when interfaces can be defined in-language? I'd say yes, because for a large number of interfaces, there's deep dependency chains with other interfaces and the types they rely on. It makes more sense to drop this in and be done with it than constantly have to define the interfaces you want and then stubs for their dependencies, especially when you might need those later on. This project is even more useful now with the API coverage; it should cover about 99% of your needs for system DLLS. 
 
 Please report any bugs via the Issues feature here on GitHub.
 
