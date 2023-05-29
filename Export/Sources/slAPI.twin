@@ -5421,6 +5421,9 @@ Public Declare PtrSafe Function NtDuplicateToken Lib "ntdll" (ByVal ExistingToke
 Public Declare PtrSafe Function NtCreateSection Lib "ntdll" (SectionHandle As LongPtr, [TypeHint(StandardAccessTypes, NTSectionAccessRights) ] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, MaximumSize As QLARGE_INTEGER, ByVal SectionPageProtection As MemProtectFlags, ByVal AllocationAttributes As NTSectionFlags, Optional ByVal FileHandle As LongPtr) As Long
 Public Declare PtrSafe Function RtlAdjustPrivilege Lib "ntdll" (ByVal Privilege As Long, ByVal Enable As Byte, ByVal CurrentThread As Byte, Enabled As Byte) As Long
 
+Public Declare PtrSafe Function DbgPrint CDecl Lib "ntdll" (ByVal Format As String, Arg1 As Any) As Long
+Public Declare PtrSafe Function DbgPrint2 CDecl Lib "ntdll" (ByVal Format As String, Arg1 As Any, Arg2 As Any) As Long
+Public Declare PtrSafe Function DbgPrint3 CDecl Lib "ntdll" (ByVal Format As String, Arg1 As Any, Arg2 As Any, Arg3 As Any) As Long
 
 
 
@@ -14240,6 +14243,7 @@ Public Type PACKEDEVENTINFO
 	ulOffsets(0) As Long 'the offsets from the start of this structure to the EVENTSFORLOGFILE structure
 End Type
 
+
 Public DeclareWide PtrSafe Function CryptAcquireContext Lib "advapi32.dll" Alias "CryptAcquireContextW" (hProv As LongPtr, ByVal pszContainer As String, ByVal pszProvider As String, ByVal dwProvType As Crypt_Providers, ByVal dwFlags As Crypt_AC_Flags) As BOOL
 Public DeclareWide PtrSafe Function CryptAcquireContextW Lib "advapi32.dll" (hProv As LongPtr, ByVal pszContainer As LongPtr, ByVal pszProvider As LongPtr, ByVal dwProvType As Crypt_Providers, ByVal dwFlags As Crypt_AC_Flags) As BOOL
 Public Declare PtrSafe Function CryptReleaseContext Lib "advapi32.dll" (ByVal hProv As LongPtr, ByVal dwFlags As Long) As BOOL
@@ -14375,6 +14379,62 @@ Public Declare PtrSafe Function AlphaBlend Lib "Msimg32.dll" (ByVal hdcDest As L
 Public Declare PtrSafe Function TransparentBlt Lib "Msimg32.dll" (ByVal hdcDest As LongPtr, ByVal xoriginDest As Long, ByVal yoriginDest As Long, ByVal wDest As Long, ByVal hDest As Long, ByVal hdcSrc As LongPtr, ByVal xoriginSrc As Long, ByVal yoriginSrc As Long, ByVal wSrc As Long, ByVal hSrc As Long, ByVal crTransparent As Long) As BOOL
 Public Declare PtrSafe Function GradientFill Lib "Msimg32.dll" (ByVal hdc As LongPtr, pVertex As TRIVERTEX, ByVal nVertex As Long, pMesh As Any, ByVal nMesh As Long, ByVal ulMode As GradientDrawingMode) As BOOL
 
+
+
+Public Type DATA_BLOB
+        cbData As Long
+        pbData As LongPtr
+End Type
+
+Public Enum CryptPromptFlags
+	CRYPTPROTECT_PROMPT_ON_UNPROTECT  = &H1  ' 1<<0
+'  prompt on protect
+	CRYPTPROTECT_PROMPT_ON_PROTECT  = &H2  ' 1<<1
+End Enum
+Public Type CRYPTPROTECT_PROMPTSTRUCT
+	cbSize As Long
+	dwPromptFlags As CryptPromptFlags
+	hwndApp As LongPtr
+	szPrompt As LongPtr
+End Type
+
+Public Enum CryptProtectFlags
+	CRYPTPROTECT_UI_FORBIDDEN  = &H1
+'  per machine protected data -- any user on machine where CryptProtectData
+'  took place may CryptUnprotectData
+	CRYPTPROTECT_LOCAL_MACHINE  = &H4
+'  force credential synchronize during CryptProtectData()
+'  Synchronize is only operation that occurs during this operation
+	CRYPTPROTECT_CRED_SYNC  = &H8
+'  Generate an Audit on protect and unprotect operations
+	CRYPTPROTECT_AUDIT  = &H10
+'  Protect data with a non-recoverable key
+	CRYPTPROTECT_NO_RECOVERY  = &H20
+'  Verify the protection of a protected blob
+	CRYPTPROTECT_VERIFY_PROTECTION  = &H40
+'  Regenerate the local machine protection
+	CRYPTPROTECT_CRED_REGENERATE  = &H80
+End Enum
+
+Public Enum CryptMemProtectFlags
+	CRYPTPROTECTMEMORY_SAME_PROCESS  = &H00
+'  Encrypt/Decrypt across process boundaries.
+'  eg: encrypted buffer passed across LPC to another process which calls CryptUnprotectMemory.
+	CRYPTPROTECTMEMORY_CROSS_PROCESS  = &H01
+'  Encrypt/Decrypt across callers with same LogonId.
+'  eg: encrypted buffer passed across LPC to another process which calls CryptUnprotectMemory whilst impersonating.
+	CRYPTPROTECTMEMORY_SAME_LOGON  = &H02
+End Enum
+
+Public Const CRYPTPROTECTMEMORY_BLOCK_SIZE  = 16
+
+Public DeclareWide PtrSafe Function CryptProtectData lib "crypt32" (pDataIn As DATA_BLOB, ByVal szDataDescr As String, pOptionalEntropy As DATA_BLOB, ByVal pvReserved As LongPtr, pPromptStruct As CRYPTPROTECT_PROMPTSTRUCT, ByVal dwFlags As CryptProtectFlags, pDataOut As DATA_BLOB) As BOOL
+Public DeclareWide PtrSafe Function CryptUnprotectData Lib "crypt32" (pDataIn As DATA_BLOB, szDataDescr As LongPtr, pOptionalEntropy As DATA_BLOB, ByVal pvReserved As LongPtr, pPromptStruct As CRYPTPROTECT_PROMPTSTRUCT, ByVal dwFlags As CryptProtectFlags, pDataOut As DATA_BLOB) As BOOL
+Public DeclareWide PtrSafe Function CryptProtectMemory lib "crypt32" (pDataIn As Any, ByVal cbDataIn As Long, ByVal dwFlags As CryptMemProtectFlags) As BOOL
+Public DeclareWide PtrSafe Function CryptUnprotectMemory lib "crypt32" (pDataIn As Any, ByVal cbDataIn As Long, ByVal dwFlags As CryptMemProtectFlags) As BOOL
+
+
+
 Public DeclareWide PtrSafe Function GetFileVersionInfoSizeW Lib "version.dll" (ByVal lptstrFilename As LongPtr, lpdwHandle As Long) As Long
 Public DeclareWide PtrSafe Function GetFileVersionInfoW Lib "version.dll" (ByVal lptstrFilename As LongPtr, ByVal dwhandle As Long, ByVal dwLen As Long, lpData As Any) As Long
 Public DeclareWide PtrSafe Function GetFileVersionInfoSize Lib "version.dll" Alias "GetFileVersionInfoSizeW" (ByVal lptstrFilename As String, lpdwHandle As Long) As Long
@@ -14392,6 +14452,99 @@ Public DeclareWide PtrSafe Function VerInstallFile Lib "version.dll" Alias "VerI
 Public DeclareWide PtrSafe Function VerLanguageNameW Lib "version.dll" (ByVal wLang As Long, ByVal szLang As LongPtr, ByVal cchLang As Long) As Long
 Public DeclareWide PtrSafe Function VerLanguageName Lib "version.dll" Alias "VerLanguageNameW" (ByVal wLang As Long, ByVal szLang As String, ByVal cchLang As Long) As Long
 
+
+Public Enum SetupApiErrorCodes
+	ERROR_EXPECTED_SECTION_NAME  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or 0)
+	ERROR_BAD_SECTION_NAME_LINE  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or 1)
+	ERROR_SECTION_NAME_TOO_LONG  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or 2)
+	ERROR_GENERAL_SYNTAX  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or 3)
+	ERROR_WRONG_INF_STYLE  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H100)
+	ERROR_SECTION_NOT_FOUND  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H101)
+	ERROR_LINE_NOT_FOUND  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H102)
+	ERROR_NO_BACKUP  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H103)
+	ERROR_NO_ASSOCIATED_CLASS  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H200)
+	ERROR_CLASS_MISMATCH  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H201)
+	ERROR_DUPLICATE_FOUND  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H202)
+	ERROR_NO_DRIVER_SELECTED  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H203)
+	ERROR_KEY_DOES_NOT_EXIST  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H204)
+	ERROR_INVALID_DEVINST_NAME  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H205)
+	ERROR_INVALID_CLASS  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H206)
+	ERROR_DEVINST_ALREADY_EXISTS  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H207)
+	ERROR_DEVINFO_NOT_REGISTERED  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H208)
+	ERROR_INVALID_REG_PROPERTY  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H209)
+	ERROR_NO_INF  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H20A)
+	ERROR_NO_SUCH_DEVINST  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H20B)
+	ERROR_CANT_LOAD_CLASS_ICON  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H20C)
+	ERROR_INVALID_CLASS_INSTALLER  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H20D)
+	ERROR_DI_DO_DEFAULT  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H20E)
+	ERROR_DI_NOFILECOPY  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H20F)
+	ERROR_INVALID_HWPROFILE  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H210)
+	ERROR_NO_DEVICE_SELECTED  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H211)
+	ERROR_DEVINFO_LIST_LOCKED  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H212)
+	ERROR_DEVINFO_DATA_LOCKED  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H213)
+	ERROR_DI_BAD_PATH  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H214)
+	ERROR_NO_CLASSINSTALL_PARAMS  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H215)
+	ERROR_FILEQUEUE_LOCKED  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H216)
+	ERROR_BAD_SERVICE_INSTALLSECT  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H217)
+	ERROR_NO_CLASS_DRIVER_LIST  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H218)
+	ERROR_NO_ASSOCIATED_SERVICE  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H219)
+	ERROR_NO_DEFAULT_DEVICE_INTERFACE  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H21A)
+	ERROR_DEVICE_INTERFACE_ACTIVE  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H21B)
+	ERROR_DEVICE_INTERFACE_REMOVED  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H21C)
+	ERROR_BAD_INTERFACE_INSTALLSECT  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H21D)
+	ERROR_NO_SUCH_INTERFACE_CLASS  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H21E)
+	ERROR_INVALID_REFERENCE_STRING  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H21F)
+	ERROR_INVALID_MACHINENAME  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H220)
+	ERROR_REMOTE_COMM_FAILURE  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H221)
+	ERROR_MACHINE_UNAVAILABLE  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H222)
+	ERROR_NO_CONFIGMGR_SERVICES  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H223)
+	ERROR_INVALID_PROPPAGE_PROVIDER  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H224)
+	ERROR_NO_SUCH_DEVICE_INTERFACE  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H225)
+	ERROR_DI_POSTPROCESSING_REQUIRED  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H226)
+	ERROR_INVALID_COINSTALLER  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H227)
+	ERROR_NO_COMPAT_DRIVERS  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H228)
+	ERROR_NO_DEVICE_ICON  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H229)
+	ERROR_INVALID_INF_LOGCONFIG  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H22A)
+	ERROR_DI_DONT_INSTALL  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H22B)
+	ERROR_INVALID_FILTER_DRIVER  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H22C)
+	ERROR_NON_WINDOWS_NT_DRIVER  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H22D)
+	ERROR_NON_WINDOWS_DRIVER  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H22E)
+	ERROR_NO_CATALOG_FOR_OEM_INF  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H22F)
+	ERROR_DEVINSTALL_QUEUE_NONNATIVE  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H230)
+	ERROR_NOT_DISABLEABLE  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H231)
+	ERROR_CANT_REMOVE_DEVINST  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H232)
+	ERROR_INVALID_TARGET  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H233)
+	ERROR_DRIVER_NONNATIVE  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H234)
+	ERROR_IN_WOW64  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H235)
+	ERROR_SET_SYSTEM_RESTORE_POINT  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H236)
+	ERROR_SCE_DISABLED  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H238)
+	ERROR_UNKNOWN_EXCEPTION  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H239)
+	ERROR_PNP_REGISTRY_ERROR  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H23A)
+	ERROR_REMOTE_REQUEST_UNSUPPORTED  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H23B)
+	ERROR_NOT_AN_INSTALLED_OEM_INF  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H23C)
+	ERROR_INF_IN_USE_BY_DEVICES  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H23D)
+	ERROR_DI_FUNCTION_OBSOLETE  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H23E)
+	ERROR_NO_AUTHENTICODE_CATALOG  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H23F)
+	ERROR_AUTHENTICODE_DISALLOWED  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H240)
+	ERROR_AUTHENTICODE_TRUSTED_PUBLISHER  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H241)
+	ERROR_AUTHENTICODE_TRUST_NOT_ESTABLISHED  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H242)
+	ERROR_AUTHENTICODE_PUBLISHER_NOT_TRUSTED  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H243)
+	ERROR_SIGNATURE_OSATTRIBUTE_MISMATCH  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H244)
+	ERROR_ONLY_VALIDATE_VIA_AUTHENTICODE  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H245)
+	ERROR_DEVICE_INSTALLER_NOT_READY  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H246)
+	ERROR_DRIVER_STORE_ADD_FAILED  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H247)
+	ERROR_DEVICE_INSTALL_BLOCKED  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H248)
+	ERROR_DRIVER_INSTALL_BLOCKED  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H249)
+	ERROR_WRONG_INF_TYPE  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H24A)
+	ERROR_FILE_HASH_NOT_IN_CATALOG  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H24B)
+	ERROR_DRIVER_STORE_DELETE_FAILED  = (APPLICATION_ERROR_MASK Or ERROR_SEVERITY_ERROR Or &H24C)
+End Enum
+
+Public Enum Setup_KeyType
+	DIREG_DEV  = &H00000001  ' Open/Create/Delete device key
+	DIREG_DRV  = &H00000002  ' Open/Create/Delete driver key
+	DIREG_BOTH  = &H00000004  ' Delete both driver and Device key
+End Enum
 Public Enum Setup_DIGCF
 	DIGCF_DEFAULT  = &H00000001  ' only valid with DIGCF_DEVICEINTERFACE
 	DIGCF_PRESENT  = &H00000002
@@ -14407,6 +14560,18 @@ Public Type SP_DEVINFO_DATA
 	Reserved As LongPtr
 End Type
 
+Public Enum SetupDevIfaceDataFlags
+	SPINT_ACTIVE  = &H00000001
+	SPINT_DEFAULT  = &H00000002
+	SPINT_REMOVED  = &H00000004
+End Enum
+Public Type SP_DEVICE_INTERFACE_DATA
+	cbSize As Long
+	InterfaceClassGuid As UUID
+	Flags As SetupDevIfaceDataFlags
+	Reserved As LongPtr
+End Type
+
 Public Enum Setup_DICSF
 	DICS_FLAG_GLOBAL  = &H00000001  ' make change in all hardware profiles
 	DICS_FLAG_CONFIGSPECIFIC  = &H00000002  ' make change in specified profile only
@@ -14414,17 +14579,293 @@ Public Enum Setup_DICSF
 '  changes to follow.
 End Enum
 
-Public Enum Setup_KeyType
-	DIREG_DEV  = &H00000001  ' Open/Create/Delete device key
-	DIREG_DRV  = &H00000002  ' Open/Create/Delete driver key
-	DIREG_BOTH  = &H00000004  ' Delete both driver and Device key
+
+Public Enum DI_FUNCTION
+	DIF_SELECTDEVICE  = &H00000001
+	DIF_INSTALLDEVICE  = &H00000002
+	DIF_ASSIGNRESOURCES  = &H00000003
+	DIF_PROPERTIES  = &H00000004
+	DIF_REMOVE  = &H00000005
+	DIF_FIRSTTIMESETUP  = &H00000006
+	DIF_FOUNDDEVICE  = &H00000007
+	DIF_SELECTCLASSDRIVERS  = &H00000008
+	DIF_VALIDATECLASSDRIVERS  = &H00000009
+	DIF_INSTALLCLASSDRIVERS  = &H0000000A
+	DIF_CALCDISKSPACE = &H0000000B
+	DIF_DESTROYPRIVATEDATA  = &H0000000C
+	DIF_VALIDATEDRIVER  = &H0000000D
+    DIF_MOVEDEVICE = &H0000000E
+	DIF_DETECT  = &H0000000F
+	DIF_INSTALLWIZARD  = &H00000010
+	DIF_DESTROYWIZARDDATA  = &H00000011
+	DIF_PROPERTYCHANGE  = &H00000012
+	DIF_ENABLECLASS  = &H00000013
+	DIF_DETECTVERIFY  = &H00000014
+	DIF_INSTALLDEVICEFILES  = &H00000015
+	DIF_UNREMOVE  = &H00000016
+	DIF_SELECTBESTCOMPATDRV  = &H00000017
+	DIF_ALLOW_INSTALL  = &H00000018
+	DIF_REGISTERDEVICE  = &H00000019
+	DIF_NEWDEVICEWIZARD_PRESELECT  = &H0000001A
+	DIF_NEWDEVICEWIZARD_SELECT  = &H0000001B
+	DIF_NEWDEVICEWIZARD_PREANALYZE  = &H0000001C
+	DIF_NEWDEVICEWIZARD_POSTANALYZE  = &H0000001D
+	DIF_NEWDEVICEWIZARD_FINISHINSTALL  = &H0000001E
+	DIF_UNUSED1  = &H0000001F
+	DIF_INSTALLINTERFACES  = &H00000020
+	DIF_DETECTCANCEL  = &H00000021
+	DIF_REGISTER_COINSTALLERS  = &H00000022
+	DIF_ADDPROPERTYPAGE_ADVANCED  = &H00000023
+	DIF_ADDPROPERTYPAGE_BASIC  = &H00000024
+	DIF_RESERVED1  = &H00000025
+	DIF_TROUBLESHOOTER  = &H00000026
+	DIF_POWERMESSAGEWAKE  = &H00000027
+	DIF_ADDREMOTEPROPERTYPAGE_ADVANCED  = &H00000028
+	DIF_UPDATEDRIVER_UI  = &H00000029
+	DIF_FINISHINSTALL_ACTION  = &H0000002A
+	DIF_RESERVED2  = &H00000030
 End Enum
 
-Public DeclareWide PtrSafe Function SetupDiGetClassDevs Lib "setupapi" Alias "SetupDiGetClassDevsW" (ClassGuid As UUID, ByVal Enumerator As String, ByVal hWndParent As LongPtr, ByVal Flags As Setup_DIGCF) As LongPtr
+Public Type SP_CLASSINSTALL_HEADER
+	cbSize As Long
+	InstallFunction As DI_FUNCTION
+End Type
+
+Public Enum SetupDeviceStateChange
+	DICS_ENABLE  = &H00000001
+	DICS_DISABLE  = &H00000002
+	DICS_PROPCHANGE  = &H00000003
+	DICS_START  = &H00000004
+	DICS_STOP  = &H00000005
+End Enum
+
+Public Type SP_PROPCHANGE_PARAMS
+	ClassInstallHeader As SP_CLASSINSTALL_HEADER
+	StateChange As SetupDeviceStateChange
+	Scope As Setup_DICSF
+	HwProfile As Long
+End Type
+
+Public Type SP_CLASSIMAGELIST_DATA
+	cbSize As Long
+	ImageList As LongPtr
+	Reserved As LongPtr
+End Type
+
+Public Enum SetupDevInstallFlags
+	DI_SHOWOEM = &H00000001  ' support Other... button
+	DI_SHOWCOMPAT  = &H00000002  ' show compatibility list
+	DI_SHOWCLASS  = &H00000004  ' show class list
+	DI_SHOWALL  = &H00000007  ' both class & compat list shown
+	DI_NOVCP  = &H00000008  ' don't create a new copy queue--use
+'  caller-supplied FileQueue
+	DI_DIDCOMPAT  = &H00000010  ' Searched for compatible devices
+	DI_DIDCLASS  = &H00000020  ' Searched for class devices
+	DI_AUTOASSIGNRES  = &H00000040  ' No UI for resources if possible
+'  flags returned by DiInstallDevice to indicate need to reboot/restart
+	DI_NEEDRESTART  = &H00000080  ' Reboot required to take effect
+	DI_NEEDREBOOT  = &H00000100  ' ""
+'  flags for device installation
+	DI_NOBROWSE  = &H00000200  ' no Browse... in InsertDisk
+'  Flags set by DiBuildDriverInfoList
+	DI_MULTMFGS  = &H00000400  ' Set if multiple manufacturers in
+'  class driver list
+'  Flag indicates that device is disabled
+	DI_DISABLED  = &H00000800  ' Set if device disabled
+'  Flags for Device/Class Properties
+	DI_GENERALPAGE_ADDED  = &H00001000
+	DI_RESOURCEPAGE_ADDED  = &H00002000
+'  Flag to indicate the setting properties for this Device (or class) caused a change
+'  so the Dev Mgr UI probably needs to be updatd.
+	DI_PROPERTIES_CHANGE  = &H00004000
+'  Flag to indicate that the sorting from the INF file should be used.
+	DI_INF_IS_SORTED  = &H00008000&
+'  Flag to indicate that only the the INF specified by SP_DEVINSTALL_PARAMS.DriverPath
+'  should be searched.
+	DI_ENUMSINGLEINF  = &H00010000
+'  Flag that prevents ConfigMgr from removing/re-enumerating devices during device
+'  registration, installation, and deletion.
+	DI_DONOTCALLCONFIGMG  = &H00020000
+'  The following flag can be used to install a device disabled
+	DI_INSTALLDISABLED  = &H00040000
+'  Flag that causes SetupDiBuildDriverInfoList to build a device's compatible driver
+'  list from its existing class driver list, instead of the normal INF search.
+	DI_COMPAT_FROM_CLASS  = &H00080000
+'  This flag is set if the Class Install params should be used.
+	DI_CLASSINSTALLPARAMS  = &H00100000
+'  This flag is set if the caller of DiCallClassInstaller does NOT
+'  want the internal default action performed if the Class installer
+'  returns ERROR_DI_DO_DEFAULT.
+	DI_NODI_DEFAULTACTION  = &H00200000
+'  The setupx flag, DI_NOSYNCPROCESSING (0x00400000L) is not support in the Setup APIs.
+'  flags for device installation
+	DI_QUIETINSTALL  = &H00800000  ' don't confuse the user with
+'  questions or excess info
+	DI_NOFILECOPY  = &H01000000  ' No file Copy necessary
+	DI_FORCECOPY  = &H02000000  ' Force files to be copied from install path
+	DI_DRIVERPAGE_ADDED = &H04000000  ' Prop provider added Driver page.
+	DI_USECI_SELECTSTRINGS  = &H08000000  ' Use Class Installer Provided strings in the Select Device Dlg
+	DI_OVERRIDE_INFFLAGS  = &H10000000 ' Override INF flags
+	DI_PROPS_NOCHANGEUSAGE  = &H20000000  ' No Enable/Disable in General Props
+	DI_NOSELECTICONS  = &H40000000  ' No small icons in select device dialogs
+	DI_NOWRITE_IDS  = &H80000000  ' Don't write HW & Compat IDs on install
+End Enum
+Public Enum SetupDevInstallFlagsEx
+	DI_FLAGSEX_RESERVED2 = &H00000001  ' DI_FLAGSEX_USEOLDINFSEARCH is obsolete
+	DI_FLAGSEX_RESERVED3  = &H00000002  ' DI_FLAGSEX_AUTOSELECTRANK0 is obsolete
+	DI_FLAGSEX_CI_FAILED  = &H00000004  ' Failed to Load/Call class installer
+	DI_FLAGSEX_FINISHINSTALL_ACTION  = &H00000008  ' Class/co-installer wants to get a DIF_FINISH_INSTALL action in client context.
+	DI_FLAGSEX_DIDINFOLIST  = &H00000010  ' Did the Class Info List
+	DI_FLAGSEX_DIDCOMPATINFO = &H00000020  ' Did the Compat Info List
+	DI_FLAGSEX_FILTERCLASSES  = &H00000040
+	DI_FLAGSEX_SETFAILEDINSTALL  = &H00000080
+	DI_FLAGSEX_DEVICECHANGE  = &H00000100
+	DI_FLAGSEX_ALWAYSWRITEIDS  = &H00000200
+	DI_FLAGSEX_PROPCHANGE_PENDING  = &H00000400  ' One or more device property sheets have had changes made
+'  to them, and need to have a DIF_PROPERTYCHANGE occur.
+	DI_FLAGSEX_ALLOWEXCLUDEDDRVS  = &H00000800
+	DI_FLAGSEX_NOUIONQUERYREMOVE  = &H00001000
+	DI_FLAGSEX_USECLASSFORCOMPAT  = &H00002000  ' Use the device's class when building compat drv list.
+'  (Ignored if DI_COMPAT_FROM_CLASS flag is specified.)
+	DI_FLAGSEX_RESERVED4  = &H00004000  ' DI_FLAGSEX_OLDINF_IN_CLASSLIST is obsolete
+	DI_FLAGSEX_NO_DRVREG_MODIFY  = &H00008000&  ' Don't run AddReg and DelReg for device's software (driver) key.
+	DI_FLAGSEX_IN_SYSTEM_SETUP  = &H00010000  ' Installation is occurring during initial system setup.
+	DI_FLAGSEX_INET_DRIVER  = &H00020000  ' Driver came from Windows Update
+	DI_FLAGSEX_APPENDDRIVERLIST  = &H00040000  ' Cause SetupDiBuildDriverInfoList to append
+'  a new driver list to an existing list.
+	DI_FLAGSEX_PREINSTALLBACKUP  = &H00080000  ' not used
+	DI_FLAGSEX_BACKUPONREPLACE  = &H00100000  ' not used
+	DI_FLAGSEX_DRIVERLIST_FROM_URL  = &H00200000  ' build driver list from INF(s) retrieved from URL specified
+'  in SP_DEVINSTALL_PARAMS.DriverPath (empty string means
+'  Windows Update website)
+	DI_FLAGSEX_RESERVED1  = &H00400000
+	DI_FLAGSEX_EXCLUDE_OLD_INET_DRIVERS  = &H00800000  ' Don't include old Internet drivers when building
+'  a driver list.
+'  Ignored on Windows Vista and later.
+	DI_FLAGSEX_POWERPAGE_ADDED  = &H01000000  ' class installer added their own power page
+	DI_FLAGSEX_FILTERSIMILARDRIVERS  = &H02000000  ' only include similar drivers in class list
+	DI_FLAGSEX_INSTALLEDDRIVER  = &H04000000  ' only add the installed driver to the class or compat
+'  driver list.  Used in calls to SetupDiBuildDriverInfoList
+	DI_FLAGSEX_NO_CLASSLIST_NODE_MERGE  = &H08000000  ' Don't remove identical driver nodes from the class list
+	DI_FLAGSEX_ALTPLATFORM_DRVSEARCH  = &H10000000  ' Build driver list based on alternate platform information
+'  specified in associated file queue
+	DI_FLAGSEX_RESTART_DEVICE_ONLY = &H20000000  ' only restart the device drivers are being installed on as
+'  opposed to restarting all devices using those drivers.
+	DI_FLAGSEX_RECURSIVESEARCH  = &H40000000  ' Tell SetupDiBuildDriverInfoList to do a recursive search
+	DI_FLAGSEX_SEARCH_PUBLISHED_INFS  = &H80000000  ' Tell SetupDiBuildDriverInfoList to do a "published INF" search
+End Enum
+
+Public Type SP_DEVINSTALL_PARAMS_W
+	cbSize As Long
+	Flags As SetupDevInstallFlags
+	FlagsEx As SetupDevInstallFlagsEx
+	hwndParent As LongPtr
+	InstallMsgHandler As LongPtr
+	InstallMsgHandlerContext As LongPtr
+	FileQueue As LongPtr
+	ClassInstallReserved As LongPtr
+	Reserved As Long
+	DriverPath(0 To (MAX_PATH - 1)) As Integer
+End Type
+Public Type SP_DEVINSTALL_PARAMS
+    cbSize As Long
+    Flags As SetupDevInstallFlags
+    FlagsEx As SetupDevInstallFlagsEx
+    hwndParent As LongPtr
+    InstallMsgHandler As LongPtr
+    InstallMsgHandlerContext As LongPtr
+    FileQueue As LongPtr
+    ClassInstallReserved As LongPtr
+    Reserved As Long
+    DriverPath(0 To (MAX_PATH - 1)) As Integer
+End Type
+
+Public Enum SetupClassListFlags
+	DIBCI_NOINSTALLCLASS  = &H00000001
+	DIBCI_NODISPLAYCLASS  = &H00000002
+End Enum
+
+Public Type SP_DEVICE_INTERFACE_DETAIL_DATA_W
+	cbSize As Long
+	DevicePath(0) As Integer
+End Type
+
+Public Enum SetupDevPropType
+	DEVPROP_TYPEMOD_ARRAY  = &H00001000  ' array of fixed-sized data elements
+	DEVPROP_TYPEMOD_LIST  = &H00002000  ' list of variable-sized data elements
+'  Property data types.
+	DEVPROP_TYPE_EMPTY  = &H00000000  ' nothing, no property data
+	DEVPROP_TYPE_NULL  = &H00000001  ' null property data
+	DEVPROP_TYPE_SBYTE  = &H00000002  ' 8-bit signed int (SBYTE)
+	DEVPROP_TYPE_BYTE  = &H00000003  ' 8-bit unsigned int (BYTE)
+	DEVPROP_TYPE_INT16  = &H00000004  ' 16-bit signed int (SHORT)
+	DEVPROP_TYPE_UINT16  = &H00000005  ' 16-bit unsigned int (USHORT)
+	DEVPROP_TYPE_INT32  = &H00000006  ' 32-bit signed int (LONG)
+	DEVPROP_TYPE_UINT32  = &H00000007  ' 32-bit unsigned int (ULONG)
+	DEVPROP_TYPE_INT64  = &H00000008  ' 64-bit signed int (LONG64)
+	DEVPROP_TYPE_UINT64  = &H00000009  ' 64-bit unsigned int (ULONG64)
+	DEVPROP_TYPE_FLOAT  = &H0000000A  ' 32-bit floating-point (FLOAT)
+	DEVPROP_TYPE_DOUBLE  = &H0000000B  ' 64-bit floating-point (DOUBLE)
+	DEVPROP_TYPE_DECIMAL  = &H0000000C  ' 128-bit data (DECIMAL)
+	DEVPROP_TYPE_GUID  = &H0000000D  ' 128-bit unique identifier (GUID)
+	DEVPROP_TYPE_CURRENCY  = &H0000000E  ' 64 bit signed int currency value (CURRENCY)
+	DEVPROP_TYPE_DATE  = &H0000000F  ' date (DATE)
+	DEVPROP_TYPE_FILETIME  = &H00000010  ' file time (FILETIME)
+	DEVPROP_TYPE_BOOLEAN  = &H00000011  ' 8-bit boolean (DEVPROP_BOOLEAN)
+	DEVPROP_TYPE_STRING  = &H00000012  ' null-terminated string
+	DEVPROP_TYPE_STRING_LIST  = (DEVPROP_TYPE_STRING Or DEVPROP_TYPEMOD_LIST)  ' multi-sz string list
+	DEVPROP_TYPE_SECURITY_DESCRIPTOR  = &H00000013  ' self-relative binary SECURITY_DESCRIPTOR
+	DEVPROP_TYPE_SECURITY_DESCRIPTOR_STRING  = &H00000014  ' security descriptor string (SDDL format)
+	DEVPROP_TYPE_DEVPROPKEY  = &H00000015  ' device property key (DEVPROPKEY)
+	DEVPROP_TYPE_DEVPROPTYPE  = &H00000016  ' device property type (DEVPROPTYPE)
+	DEVPROP_TYPE_BINARY  = (DEVPROP_TYPE_BYTE Or DEVPROP_TYPEMOD_ARRAY)  ' custom binary data
+	DEVPROP_TYPE_ERROR  = &H00000017  ' 32-bit Win32 system error code
+	DEVPROP_TYPE_NTSTATUS  = &H00000018  ' 32-bit NTSTATUS code
+	DEVPROP_TYPE_STRING_INDIRECT  = &H00000019  ' string resource (@[path\]<dllname>,-<strId>)
+End Enum
+
+
+
 Public DeclareWide PtrSafe Function SetupDiGetClassDevsW Lib "setupapi" (ClassGuid As UUID, ByVal Enumerator As String, ByVal hWndParent As LongPtr, ByVal Flags As Setup_DIGCF) As LongPtr
+Public DeclareWide PtrSafe Function SetupDiGetClassDevs Lib "setupapi" Alias "SetupDiGetClassDevsW" (ClassGuid As UUID, ByVal Enumerator As String, ByVal hWndParent As LongPtr, ByVal Flags As Setup_DIGCF) As LongPtr
 Public DeclareWide PtrSafe Function SetupDiEnumDeviceInfo Lib "setupapi" (ByVal DeviceInfoSet As LongPtr, ByVal MemberIndex As Long, ByRef DeviceInfoData As SP_DEVINFO_DATA) As BOOL
-Public DeclareWide PtrSafe Function SetupDiOpenDevRegKey Lib "setupapi" (ByVal DeviceInfoSet As LongPtr, ByRef DeviceInfoData As SP_DEVINFO_DATA, ByVal Scope As Setup_DICSF, ByVal HwProfile As Long, ByVal KeyType As Setup_KeyType, ByVal samDesired As REGSAM) As LongPtr
 Public DeclareWide PtrSafe Function SetupDiDestroyDeviceInfoList Lib "setupapi" (ByVal DeviceInfoSet As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function SetupDiGetDeviceInstanceIdW Lib "setupapi" (ByVal DeviceInfoSet As LongPtr, DeviceInfoData As SP_DEVINFO_DATA, ByVal DeviceInstanceId As LongPtr, ByVal DeviceInstanceSize As Long, RequiredSize As Long) As BOOL
+Public DeclareWide PtrSafe Function SetupDiGetDeviceInstanceId Lib "setupapi" Alias "SetupDiGetDeviceInstanceIdW" (ByVal DeviceInfoSet As LongPtr, DeviceInfoData As SP_DEVINFO_DATA, ByVal DeviceInstanceId As String, ByVal DeviceInstanceSize As Long, RequiredSize As Long) As BOOL
+Public DeclareWide PtrSafe Function SetupDiSetClassInstallParamsW Lib "setupapi" (ByVal DeviceInfoSet As LongPtr, DeviceInfoData As SP_DEVINFO_DATA, ClassInstallParams As Any, ByVal ClassInstallParamsSize As Long) As BOOL
+Public DeclareWide PtrSafe Function SetupDiSetClassInstallParams Lib "setupapi" Alias "SetupDiSetClassInstallParamsW" (ByVal DeviceInfoSet As LongPtr, DeviceInfoData As SP_DEVINFO_DATA, ClassInstallParams As Any, ByVal ClassInstallParamsSize As Long) As BOOL
+Public DeclareWide PtrSafe Function SetupDiGetClassInstallParamsW Lib "setupapi" (ByVal DeviceInfoSet As LongPtr, DeviceInfoData As SP_DEVINFO_DATA, ClassInstallParams As Any, ByVal ClassInstallParamsSize As Long, RequiredSize As Long) As BOOL
+Public DeclareWide PtrSafe Function SetupDiGetClassInstallParams Lib "setupapi" Alias "SetupDiGetClassInstallParamsW" (ByVal DeviceInfoSet As LongPtr, DeviceInfoData As SP_DEVINFO_DATA, ClassInstallParams As Any, ByVal ClassInstallParamsSize As Long, RequiredSize As Long) As BOOL
+Public DeclareWide PtrSafe Function SetupDiOpenDevRegKey Lib "setupapi" (ByVal DeviceInfoSet As LongPtr, ByRef DeviceInfoData As SP_DEVINFO_DATA, ByVal Scope As Setup_DICSF, ByVal HwProfile As Long, ByVal KeyType As Setup_KeyType, ByVal samDesired As REGSAM) As LongPtr
+Public DeclareWide PtrSafe Function SetupDiRemoveDevice Lib "setupapi" (ByVal DeviceInfoSet As LongPtr, DeviceInfoData As SP_DEVINFO_DATA) As BOOL
+Public DeclareWide PtrSafe Function SetupDiLoadClassIcon Lib "setupapi" (ClassGuid As UUID, Optional LargeIcon As LongPtr, Optional MiniIconIndex As Long) As BOOL
+Public DeclareWide PtrSafe Function SetupDiLoadDeviceIcon Lib "setupapi" (ByVal DeviceInfoSet As LongPtr, DeviceInfoData As SP_DEVINFO_DATA, ByVal cxIcon As Long, ByVal cyIcon As Long, ByVal Flags As Long, hIcon As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function SetupDiGetClassDescriptionW Lib "setupapi" (ClassGuid As UUID, ByVal ClassDescription As LongPtr, ByVal ClassDescriptionSize As Long, RequiredSize As Long) As BOOL
+Public DeclareWide PtrSafe Function SetupDiGetClassDescription Lib "setupapi" Alias "SetupDiGetClassDescriptionW" (ClassGuid As UUID, ByVal ClassDescription As String, ByVal ClassDescriptionSize As Long, RequiredSize As Long) As BOOL
+Public DeclareWide PtrSafe Function SetupDiGetClassImageList Lib "setupapi" (ClassImageListData As SP_CLASSIMAGELIST_DATA) As BOOL
+Public DeclareWide PtrSafe Function SetupDiDestroyClassImageList Lib "setupapi" (ClassImageListData As SP_CLASSIMAGELIST_DATA) As BOOL
+Public DeclareWide PtrSafe Function SetupDiGetClassImageIndex Lib "setupapi" (ClassImageListData As SP_CLASSIMAGELIST_DATA, ClassGuid As UUID, ImageIndex As Long) As BOOL
+Public DeclareWide PtrSafe Function SetupDiGetDeviceInstallParamsW Lib "setupapi" (ByVal DeviceInfoSet As LongPtr, DeviceInfoData As SP_DEVINFO_DATA, DeviceInstallParams As SP_DEVINSTALL_PARAMS_W) As BOOL
+Public DeclareWide PtrSafe Function SetupDiSetDeviceInstallParamsW Lib "setupapi" (ByVal DeviceInfoSet As LongPtr, DeviceInfoData As SP_DEVINFO_DATA, DeviceInstallParams As SP_DEVINSTALL_PARAMS_W) As BOOL
+Public DeclareWide PtrSafe Function SetupDiGetDeviceInstallParams Lib "setupapi" Alias "SetupDiGetDeviceInstallParamsW" (ByVal DeviceInfoSet As LongPtr, DeviceInfoData As SP_DEVINFO_DATA, DeviceInstallParams As SP_DEVINSTALL_PARAMS) As Bool
+Public DeclareWide PtrSafe Function SetupDiSetDeviceInstallParams Lib "setupapi" Alias "SetupDiSetDeviceInstallParamsW" (ByVal DeviceInfoSet As LongPtr, DeviceInfoData As SP_DEVINFO_DATA, DeviceInstallParams As SP_DEVINSTALL_PARAMS) As BOOL
+Public DeclareWide PtrSafe Function SetupDiBuildClassInfoList Lib "setupapi" (ByVal Flags As SetupClassListFlags, ClassGuidList As UUID, ByVal ClassGuidListSize As Long, RequiredSize As Long) As BOOL
+Public DeclareWide PtrSafe Function SetupDiClassNameFromGuidW Lib "setupapi" (ClassGuid As UUID, ByVal ClassName As LongPtr, ByVal ClassNameSize As Long, RequiredSize As Long) as BOOL
+Public DeclareWide PtrSafe Function SetupDiClassNameFromGuid Lib "setupapi" Alias "SetupDiClassNameFromGuidW" (ClassGuid As UUID, ByVal ClassName As String, ByVal ClassNameSize As Long, RequiredSize As Long) As BOOL
+Public DeclareWide PtrSafe Function SetupDiEnumDeviceInterfaces Lib "setupapi" (ByVal DeviceInfoSet As LongPtr, DeviceInfoData As SP_DEVINFO_DATA, InterfaceClassGuid As UUID, ByVal MemberIndex As Long, DeviceInterfaceData As SP_DEVICE_INTERFACE_DATA) As BOOL
+Public DeclareWide PtrSafe Function SetupDiGetDeviceInterfaceDetailW Lib "setupapi" (ByVal DeviceInfoSet As LongPtr, DeviceInterfaceData As SP_DEVICE_INTERFACE_DATA, DeviceInterfaceDetailData As Any, ByVal DeviceInterfaceDetailDataSize As Long, RequiredSize As Long, DeviceInfoData As SP_DEVINFO_DATA) As BOOL
+Public DeclareWide PtrSafe Function SetupDiGetDeviceInterfaceDetail Lib "setupapi" Alias "SetupDiGetDeviceInterfaceDetailW" (ByVal DeviceInfoSet As LongPtr, DeviceInterfaceData As SP_DEVICE_INTERFACE_DATA, DeviceInterfaceDetailData As Any, ByVal DeviceInterfaceDetailDataSize As Long, RequiredSize As Long, DeviceInfoData As SP_DEVINFO_DATA) As BOOL
+Public DeclareWide PtrSafe Function SetupDiGetDevicePropertyW Lib "setupapi" (ByVal DeviceInfoSet As LongPtr, DeviceInfoData As SP_DEVINFO_DATA, PropertyKey As PROPERTYKEY, PropertyType As DEVPROPTYPE, PropertyBuffer As Any, ByVal PropertyBufferSize As Long, RequiredSize As Long, ByVal Flags As Long) As BOOL
+Public DeclareWide PtrSafe Function SetupDiGetDeviceProperty Lib "setupapi" Alias "SetupDiGetDevicePropertyW" (ByVal DeviceInfoSet As LongPtr, DeviceInfoData As SP_DEVINFO_DATA, PropertyKey As PROPERTYKEY, PropertyType As DEVPROPTYPE, PropertyBuffer As Any, ByVal PropertyBufferSize As Long, RequiredSize As Long, ByVal Flags As Long) As BOOL
+Public DeclareWide PtrSafe Function SetupDiSetDevicePropertyW Lib "setupapi" (ByVal DeviceInfoSet As LongPtr, DeviceInfoData As SP_DEVINFO_DATA, PropertyKey As PROPERTYKEY, PropertyType As DEVPROPTYPE, PropertyBuffer As Any, ByVal PropertyBufferSize As Long, ByVal Flags As Long) As BOOL
+Public DeclareWide PtrSafe Function SetupDiSetDeviceProperty Lib "setupapi" Alias "SetupDiSetDevicePropertyW" (ByVal DeviceInfoSet As LongPtr, DeviceInfoData As SP_DEVINFO_DATA, PropertyKey As PROPERTYKEY, PropertyType As DEVPROPTYPE, PropertyBuffer As Any, ByVal PropertyBufferSize As Long, ByVal Flags As Long) As BOOL
+Public DeclareWide PtrSafe Function SetupDiGetDevicePropertyKeys Lib "setupapi" (ByVal DeviceInfoSet As LongPtr, DeviceInfoData As SP_DEVINFO_DATA, PropertyKeyArray As PROPERTYKEY, ByVal PropertyKeyCount As Long, RequiredPropertyKeyCount As Long, ByVal Flags As Long) as BOOL
+Public DeclareWide PtrSafe Function SetupDiSetDeviceInterfacePropertyW Lib "setupapi" (ByVal DeviceInfoSet As LongPtr, DeviceInfoData As SP_DEVINFO_DATA, PropertyKey As PROPERTYKEY, PropertyType As DEVPROPTYPE, PropertyBuffer As Any, ByVal PropertyBufferSize As Long, ByVal Flags As Long) As BOOL
+Public DeclareWide PtrSafe Function SetupDiSetDeviceInterfaceProperty Lib "setupapi" Alias "SetupDiSetDeviceInterfacePropertyW" (ByVal DeviceInfoSet As LongPtr, DeviceInfoData As SP_DEVINFO_DATA, PropertyKey As PROPERTYKEY, PropertyType As DEVPROPTYPE, PropertyBuffer As Any, ByVal PropertyBufferSize As Long, ByVal Flags As Long) As BOOL
+Public DeclareWide PtrSafe Function SetupDiGetDeviceInterfacePropertyW Lib "setupapi" (ByVal DeviceInfoSet As LongPtr, DeviceInfoData As SP_DEVINFO_DATA, PropertyKey As PROPERTYKEY, PropertyType As DEVPROPTYPE, PropertyBuffer As Any, ByVal PropertyBufferSize As Long, RequiredSize As Long, ByVal Flags As Long) As BOOL
+Public DeclareWide PtrSafe Function SetupDiGetDeviceInterfaceProperty Lib "setupapi" Alias "SetupDiGetDeviceInterfacePropertyW" (ByVal DeviceInfoSet As LongPtr, DeviceInfoData As SP_DEVINFO_DATA, PropertyKey As PROPERTYKEY, PropertyType As DEVPROPTYPE, PropertyBuffer As Any, ByVal PropertyBufferSize As Long, RequiredSize As Long, ByVal Flags As Long) As BOOL
+
+
 
 Public DeclareWide PtrSafe Function ImmIsIME Lib "imm32" (ByVal hKL As LongPtr) As BOOL
 Public DeclareWide PtrSafe Function ImmCreateContext Lib "imm32" () As Long
@@ -14564,7 +15005,7 @@ Public Function UtfToANSI(sIn As String) As String
     Return StrConv(sIn, vbFromUnicode)
 End Function
 
-[Description("A 32 and 64bit compatible implementation of the classic helper function.") ]
+[Description ("A 32 and 64bit compatible implementation of the classic helper function.") ]
 Public Function LPWSTRtoStr(lPtr As LongPtr, Optional ByVal fFree As Boolean = True) As String
 SysReAllocStringW VarPtr(LPWSTRtoStr), lPtr
 If fFree Then
@@ -14572,6 +15013,1188 @@ If fFree Then
 End If
 
 End Function
-    
-    
+
+[Description("Ensures a block of memory is zeroed where compiler optimizations may prevent that with ZeroMemory")]
+Public Sub SecureZeroMemory(ByVal pv As LongPtr, cb As LongPtr)
+	Dim i As LongPtr
+    For i = 0 To cb -1
+        CopyMemory ByVal pv+i, 0, 1
+    Next
+End Sub
+ 
+#Region "DEVPKEY"
+Public Function DEVPKEY_Device_DeviceDesc() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha45c254e, &Hdf1c, &H4efd, &H80, &H20, &H67, &Hd1, &H46, &Ha8, &H50, &He0, 2)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_Device_DeviceDesc = pkk
+End Function
+Public Function DEVPKEY_Device_HardwareIds() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha45c254e, &Hdf1c, &H4efd, &H80, &H20, &H67, &Hd1, &H46, &Ha8, &H50, &He0, 3)
+ 'DEVPROP_TYPE_STRING_LIST
+DEVPKEY_Device_HardwareIds = pkk
+End Function
+Public Function DEVPKEY_NAME() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Hb725f130, &H47ef, &H101a, &Ha5, &Hf1, &H02, &H60, &H8c, &H9e, &Heb, &Hac, 10)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_NAME = pkk
+End Function
+Public Function DEVPKEY_Device_CompatibleIds() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha45c254e, &Hdf1c, &H4efd, &H80, &H20, &H67, &Hd1, &H46, &Ha8, &H50, &He0, 4)
+ 'DEVPROP_TYPE_STRING_LIST
+DEVPKEY_Device_CompatibleIds = pkk
+End Function
+Public Function DEVPKEY_Device_Service() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha45c254e, &Hdf1c, &H4efd, &H80, &H20, &H67, &Hd1, &H46, &Ha8, &H50, &He0, 6)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_Device_Service = pkk
+End Function
+Public Function DEVPKEY_Device_Class() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha45c254e, &Hdf1c, &H4efd, &H80, &H20, &H67, &Hd1, &H46, &Ha8, &H50, &He0, 9)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_Device_Class = pkk
+End Function
+Public Function DEVPKEY_Device_ClassGuid() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha45c254e, &Hdf1c, &H4efd, &H80, &H20, &H67, &Hd1, &H46, &Ha8, &H50, &He0, 10)
+ 'DEVPROP_TYPE_GUID
+DEVPKEY_Device_ClassGuid = pkk
+End Function
+Public Function DEVPKEY_Device_Driver() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha45c254e, &Hdf1c, &H4efd, &H80, &H20, &H67, &Hd1, &H46, &Ha8, &H50, &He0, 11)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_Device_Driver = pkk
+End Function
+Public Function DEVPKEY_Device_ConfigFlags() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha45c254e, &Hdf1c, &H4efd, &H80, &H20, &H67, &Hd1, &H46, &Ha8, &H50, &He0, 12)
+ 'DEVPROP_TYPE_UINT32
+DEVPKEY_Device_ConfigFlags = pkk
+End Function
+Public Function DEVPKEY_Device_Manufacturer() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha45c254e, &Hdf1c, &H4efd, &H80, &H20, &H67, &Hd1, &H46, &Ha8, &H50, &He0, 13)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_Device_Manufacturer = pkk
+End Function
+Public Function DEVPKEY_Device_FriendlyName() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha45c254e, &Hdf1c, &H4efd, &H80, &H20, &H67, &Hd1, &H46, &Ha8, &H50, &He0, 14)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_Device_FriendlyName = pkk
+End Function
+Public Function DEVPKEY_Device_LocationInfo() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha45c254e, &Hdf1c, &H4efd, &H80, &H20, &H67, &Hd1, &H46, &Ha8, &H50, &He0, 15)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_Device_LocationInfo = pkk
+End Function
+Public Function DEVPKEY_Device_PDOName() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha45c254e, &Hdf1c, &H4efd, &H80, &H20, &H67, &Hd1, &H46, &Ha8, &H50, &He0, 16)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_Device_PDOName = pkk
+End Function
+Public Function DEVPKEY_Device_Capabilities() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha45c254e, &Hdf1c, &H4efd, &H80, &H20, &H67, &Hd1, &H46, &Ha8, &H50, &He0, 17)
+ 'DEVPROP_TYPE_UINT32
+DEVPKEY_Device_Capabilities = pkk
+End Function
+Public Function DEVPKEY_Device_UINumber() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha45c254e, &Hdf1c, &H4efd, &H80, &H20, &H67, &Hd1, &H46, &Ha8, &H50, &He0, 18)
+ 'DEVPROP_TYPE_UINT32
+DEVPKEY_Device_UINumber = pkk
+End Function
+Public Function DEVPKEY_Device_UpperFilters() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha45c254e, &Hdf1c, &H4efd, &H80, &H20, &H67, &Hd1, &H46, &Ha8, &H50, &He0, 19)
+ 'DEVPROP_TYPE_STRING_LIST
+DEVPKEY_Device_UpperFilters = pkk
+End Function
+Public Function DEVPKEY_Device_LowerFilters() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha45c254e, &Hdf1c, &H4efd, &H80, &H20, &H67, &Hd1, &H46, &Ha8, &H50, &He0, 20)
+ 'DEVPROP_TYPE_STRING_LIST
+DEVPKEY_Device_LowerFilters = pkk
+End Function
+Public Function DEVPKEY_Device_BusTypeGuid() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha45c254e, &Hdf1c, &H4efd, &H80, &H20, &H67, &Hd1, &H46, &Ha8, &H50, &He0, 21)
+ 'DEVPROP_TYPE_GUID
+DEVPKEY_Device_BusTypeGuid = pkk
+End Function
+Public Function DEVPKEY_Device_LegacyBusType() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha45c254e, &Hdf1c, &H4efd, &H80, &H20, &H67, &Hd1, &H46, &Ha8, &H50, &He0, 22)
+ 'DEVPROP_TYPE_UINT32
+DEVPKEY_Device_LegacyBusType = pkk
+End Function
+Public Function DEVPKEY_Device_BusNumber() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha45c254e, &Hdf1c, &H4efd, &H80, &H20, &H67, &Hd1, &H46, &Ha8, &H50, &He0, 23)
+ 'DEVPROP_TYPE_UINT32
+DEVPKEY_Device_BusNumber = pkk
+End Function
+Public Function DEVPKEY_Device_EnumeratorName() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha45c254e, &Hdf1c, &H4efd, &H80, &H20, &H67, &Hd1, &H46, &Ha8, &H50, &He0, 24)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_Device_EnumeratorName = pkk
+End Function
+Public Function DEVPKEY_Device_Security() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha45c254e, &Hdf1c, &H4efd, &H80, &H20, &H67, &Hd1, &H46, &Ha8, &H50, &He0, 25)
+ 'DEVPROP_TYPE_SECURITY_DESCRIPTOR
+DEVPKEY_Device_Security = pkk
+End Function
+Public Function DEVPKEY_Device_SecuritySDS() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha45c254e, &Hdf1c, &H4efd, &H80, &H20, &H67, &Hd1, &H46, &Ha8, &H50, &He0, 26)
+ 'DEVPROP_TYPE_SECURITY_DESCRIPTOR_STRING
+DEVPKEY_Device_SecuritySDS = pkk
+End Function
+Public Function DEVPKEY_Device_DevType() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha45c254e, &Hdf1c, &H4efd, &H80, &H20, &H67, &Hd1, &H46, &Ha8, &H50, &He0, 27)
+ 'DEVPROP_TYPE_UINT32
+DEVPKEY_Device_DevType = pkk
+End Function
+Public Function DEVPKEY_Device_Exclusive() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha45c254e, &Hdf1c, &H4efd, &H80, &H20, &H67, &Hd1, &H46, &Ha8, &H50, &He0, 28)
+ 'DEVPROP_TYPE_BOOLEAN
+DEVPKEY_Device_Exclusive = pkk
+End Function
+Public Function DEVPKEY_Device_Characteristics() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha45c254e, &Hdf1c, &H4efd, &H80, &H20, &H67, &Hd1, &H46, &Ha8, &H50, &He0, 29)
+ 'DEVPROP_TYPE_UINT32
+DEVPKEY_Device_Characteristics = pkk
+End Function
+Public Function DEVPKEY_Device_Address() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha45c254e, &Hdf1c, &H4efd, &H80, &H20, &H67, &Hd1, &H46, &Ha8, &H50, &He0, 30)
+ 'DEVPROP_TYPE_UINT32
+DEVPKEY_Device_Address = pkk
+End Function
+Public Function DEVPKEY_Device_UINumberDescFormat() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha45c254e, &Hdf1c, &H4efd, &H80, &H20, &H67, &Hd1, &H46, &Ha8, &H50, &He0, 31)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_Device_UINumberDescFormat = pkk
+End Function
+Public Function DEVPKEY_Device_PowerData() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha45c254e, &Hdf1c, &H4efd, &H80, &H20, &H67, &Hd1, &H46, &Ha8, &H50, &He0, 32)
+ 'DEVPROP_TYPE_BINARY
+DEVPKEY_Device_PowerData = pkk
+End Function
+Public Function DEVPKEY_Device_RemovalPolicy() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha45c254e, &Hdf1c, &H4efd, &H80, &H20, &H67, &Hd1, &H46, &Ha8, &H50, &He0, 33)
+ 'DEVPROP_TYPE_UINT32
+DEVPKEY_Device_RemovalPolicy = pkk
+End Function
+Public Function DEVPKEY_Device_RemovalPolicyDefault() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha45c254e, &Hdf1c, &H4efd, &H80, &H20, &H67, &Hd1, &H46, &Ha8, &H50, &He0, 34)
+ 'DEVPROP_TYPE_UINT32
+DEVPKEY_Device_RemovalPolicyDefault = pkk
+End Function
+Public Function DEVPKEY_Device_RemovalPolicyOverride() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha45c254e, &Hdf1c, &H4efd, &H80, &H20, &H67, &Hd1, &H46, &Ha8, &H50, &He0, 35)
+ 'DEVPROP_TYPE_UINT32
+DEVPKEY_Device_RemovalPolicyOverride = pkk
+End Function
+Public Function DEVPKEY_Device_InstallState() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha45c254e, &Hdf1c, &H4efd, &H80, &H20, &H67, &Hd1, &H46, &Ha8, &H50, &He0, 36)
+ 'DEVPROP_TYPE_UINT32
+DEVPKEY_Device_InstallState = pkk
+End Function
+Public Function DEVPKEY_Device_LocationPaths() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha45c254e, &Hdf1c, &H4efd, &H80, &H20, &H67, &Hd1, &H46, &Ha8, &H50, &He0, 37)
+ 'DEVPROP_TYPE_STRING_LIST
+DEVPKEY_Device_LocationPaths = pkk
+End Function
+Public Function DEVPKEY_Device_BaseContainerId() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha45c254e, &Hdf1c, &H4efd, &H80, &H20, &H67, &Hd1, &H46, &Ha8, &H50, &He0, 38)
+ 'DEVPROP_TYPE_GUID
+DEVPKEY_Device_BaseContainerId = pkk
+End Function
+Public Function DEVPKEY_Device_InstanceId() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H78c34fc8, &H104a, &H4aca, &H9e, &Ha4, &H52, &H4d, &H52, &H99, &H6e, &H57, 256)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_Device_InstanceId = pkk
+End Function
+Public Function DEVPKEY_Device_DevNodeStatus() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H4340a6c5, &H93fa, &H4706, &H97, &H2c, &H7b, &H64, &H80, &H08, &Ha5, &Ha7, 2)
+ 'DEVPROP_TYPE_UINT32
+DEVPKEY_Device_DevNodeStatus = pkk
+End Function
+Public Function DEVPKEY_Device_ProblemCode() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H4340a6c5, &H93fa, &H4706, &H97, &H2c, &H7b, &H64, &H80, &H08, &Ha5, &Ha7, 3)
+ 'DEVPROP_TYPE_UINT32
+DEVPKEY_Device_ProblemCode = pkk
+End Function
+Public Function DEVPKEY_Device_EjectionRelations() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H4340a6c5, &H93fa, &H4706, &H97, &H2c, &H7b, &H64, &H80, &H08, &Ha5, &Ha7, 4)
+ 'DEVPROP_TYPE_STRING_LIST
+DEVPKEY_Device_EjectionRelations = pkk
+End Function
+Public Function DEVPKEY_Device_RemovalRelations() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H4340a6c5, &H93fa, &H4706, &H97, &H2c, &H7b, &H64, &H80, &H08, &Ha5, &Ha7, 5)
+ 'DEVPROP_TYPE_STRING_LIST
+DEVPKEY_Device_RemovalRelations = pkk
+End Function
+Public Function DEVPKEY_Device_PowerRelations() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H4340a6c5, &H93fa, &H4706, &H97, &H2c, &H7b, &H64, &H80, &H08, &Ha5, &Ha7, 6)
+ 'DEVPROP_TYPE_STRING_LIST
+DEVPKEY_Device_PowerRelations = pkk
+End Function
+Public Function DEVPKEY_Device_BusRelations() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H4340a6c5, &H93fa, &H4706, &H97, &H2c, &H7b, &H64, &H80, &H08, &Ha5, &Ha7, 7)
+ 'DEVPROP_TYPE_STRING_LIST
+DEVPKEY_Device_BusRelations = pkk
+End Function
+Public Function DEVPKEY_Device_Parent() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H4340a6c5, &H93fa, &H4706, &H97, &H2c, &H7b, &H64, &H80, &H08, &Ha5, &Ha7, 8)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_Device_Parent = pkk
+End Function
+Public Function DEVPKEY_Device_Children() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H4340a6c5, &H93fa, &H4706, &H97, &H2c, &H7b, &H64, &H80, &H08, &Ha5, &Ha7, 9)
+ 'DEVPROP_TYPE_STRING_LIST
+DEVPKEY_Device_Children = pkk
+End Function
+Public Function DEVPKEY_Device_Siblings() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H4340a6c5, &H93fa, &H4706, &H97, &H2c, &H7b, &H64, &H80, &H08, &Ha5, &Ha7, 10)
+ 'DEVPROP_TYPE_STRING_LIST
+DEVPKEY_Device_Siblings = pkk
+End Function
+Public Function DEVPKEY_Device_TransportRelations() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H4340a6c5, &H93fa, &H4706, &H97, &H2c, &H7b, &H64, &H80, &H08, &Ha5, &Ha7, 11)
+ 'DEVPROP_TYPE_STRING_LIST
+DEVPKEY_Device_TransportRelations = pkk
+End Function
+Public Function DEVPKEY_Device_ProblemStatus() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H4340a6c5, &H93fa, &H4706, &H97, &H2c, &H7b, &H64, &H80, &H08, &Ha5, &Ha7, 12)
+ 'DEVPROP_TYPE_NTSTATUS
+DEVPKEY_Device_ProblemStatus = pkk
+End Function
+Public Function DEVPKEY_Device_Reported() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H80497100, &H8c73, &H48b9, &Haa, &Hd9, &Hce, &H38, &H7e, &H19, &Hc5, &H6e, 2)
+ 'DEVPROP_TYPE_BOOLEAN
+DEVPKEY_Device_Reported = pkk
+End Function
+Public Function DEVPKEY_Device_Legacy() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H80497100, &H8c73, &H48b9, &Haa, &Hd9, &Hce, &H38, &H7e, &H19, &Hc5, &H6e, 3)
+ 'DEVPROP_TYPE_BOOLEAN
+DEVPKEY_Device_Legacy = pkk
+End Function
+Public Function DEVPKEY_Device_ContainerId() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H8c7ed206, &H3f8a, &H4827, &Hb3, &Hab, &Hae, &H9e, &H1f, &Hae, &Hfc, &H6c, 2)
+ 'DEVPROP_TYPE_GUID
+DEVPKEY_Device_ContainerId = pkk
+End Function
+Public Function DEVPKEY_Device_InLocalMachineContainer() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H8c7ed206, &H3f8a, &H4827, &Hb3, &Hab, &Hae, &H9e, &H1f, &Hae, &Hfc, &H6c, 4)
+ 'DEVPROP_TYPE_BOOLEAN
+DEVPKEY_Device_InLocalMachineContainer = pkk
+End Function
+Public Function DEVPKEY_Device_Model() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H78c34fc8, &H104a, &H4aca, &H9e, &Ha4, &H52, &H4d, &H52, &H99, &H6e, &H57, 39)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_Device_Model = pkk
+End Function
+Public Function DEVPKEY_Device_ModelId() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H80d81ea6, &H7473, &H4b0c, &H82, &H16, &Hef, &Hc1, &H1a, &H2c, &H4c, &H8b, 2)
+ 'DEVPROP_TYPE_GUID
+DEVPKEY_Device_ModelId = pkk
+End Function
+Public Function DEVPKEY_Device_FriendlyNameAttributes() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H80d81ea6, &H7473, &H4b0c, &H82, &H16, &Hef, &Hc1, &H1a, &H2c, &H4c, &H8b, 3)
+ 'DEVPROP_TYPE_UINT32
+DEVPKEY_Device_FriendlyNameAttributes = pkk
+End Function
+Public Function DEVPKEY_Device_ManufacturerAttributes() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H80d81ea6, &H7473, &H4b0c, &H82, &H16, &Hef, &Hc1, &H1a, &H2c, &H4c, &H8b, 4)
+ 'DEVPROP_TYPE_UINT32
+DEVPKEY_Device_ManufacturerAttributes = pkk
+End Function
+Public Function DEVPKEY_Device_PresenceNotForDevice() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H80d81ea6, &H7473, &H4b0c, &H82, &H16, &Hef, &Hc1, &H1a, &H2c, &H4c, &H8b, 5)
+ 'DEVPROP_TYPE_BOOLEAN
+DEVPKEY_Device_PresenceNotForDevice = pkk
+End Function
+Public Function DEVPKEY_Device_SignalStrength() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H80d81ea6, &H7473, &H4b0c, &H82, &H16, &Hef, &Hc1, &H1a, &H2c, &H4c, &H8b, 6)
+ 'DEVPROP_TYPE_INT32
+DEVPKEY_Device_SignalStrength = pkk
+End Function
+Public Function DEVPKEY_Device_IsAssociateableByUserAction() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H80d81ea6, &H7473, &H4b0c, &H82, &H16, &Hef, &Hc1, &H1a, &H2c, &H4c, &H8b, 7)
+ 'DEVPROP_TYPE_BOOLEAN
+DEVPKEY_Device_IsAssociateableByUserAction = pkk
+End Function
+Public Function DEVPKEY_Device_ShowInUninstallUI() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H80d81ea6, &H7473, &H4b0c, &H82, &H16, &Hef, &Hc1, &H1a, &H2c, &H4c, &H8b, 8)
+ 'DEVPROP_TYPE_BOOLEAN
+DEVPKEY_Device_ShowInUninstallUI = pkk
+End Function
+Public Function DEVPKEY_Device_Numa_Proximity_Domain() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H540b947e, &H8b40, &H45bc, &Ha8, &Ha2, &H6a, &H0b, &H89, &H4c, &Hbd, &Ha2, 1)
+ 'DEVPROP_TYPE_UINT32
+DEVPKEY_Device_Numa_Proximity_Domain = pkk
+End Function
+Public Function DEVPKEY_Device_DHP_Rebalance_Policy() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H540b947e, &H8b40, &H45bc, &Ha8, &Ha2, &H6a, &H0b, &H89, &H4c, &Hbd, &Ha2, 2)
+ 'DEVPROP_TYPE_UINT32
+DEVPKEY_Device_DHP_Rebalance_Policy = pkk
+End Function
+Public Function DEVPKEY_Device_Numa_Node() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H540b947e, &H8b40, &H45bc, &Ha8, &Ha2, &H6a, &H0b, &H89, &H4c, &Hbd, &Ha2, 3)
+ 'DEVPROP_TYPE_UINT32
+DEVPKEY_Device_Numa_Node = pkk
+End Function
+Public Function DEVPKEY_Device_BusReportedDeviceDesc() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H540b947e, &H8b40, &H45bc, &Ha8, &Ha2, &H6a, &H0b, &H89, &H4c, &Hbd, &Ha2, 4)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_Device_BusReportedDeviceDesc = pkk
+End Function
+Public Function DEVPKEY_Device_IsPresent() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H540b947e, &H8b40, &H45bc, &Ha8, &Ha2, &H6a, &H0b, &H89, &H4c, &Hbd, &Ha2, 5)
+ 'DEVPROP_TYPE_BOOL
+DEVPKEY_Device_IsPresent = pkk
+End Function
+Public Function DEVPKEY_Device_HasProblem() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H540b947e, &H8b40, &H45bc, &Ha8, &Ha2, &H6a, &H0b, &H89, &H4c, &Hbd, &Ha2, 6)
+ 'DEVPROP_TYPE_BOOL
+DEVPKEY_Device_HasProblem = pkk
+End Function
+Public Function DEVPKEY_Device_ConfigurationId() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H540b947e, &H8b40, &H45bc, &Ha8, &Ha2, &H6a, &H0b, &H89, &H4c, &Hbd, &Ha2, 7)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_Device_ConfigurationId = pkk
+End Function
+Public Function DEVPKEY_Device_ReportedDeviceIdsHash() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H540b947e, &H8b40, &H45bc, &Ha8, &Ha2, &H6a, &H0b, &H89, &H4c, &Hbd, &Ha2, 8)
+ 'DEVPROP_TYPE_UINT32
+DEVPKEY_Device_ReportedDeviceIdsHash = pkk
+End Function
+Public Function DEVPKEY_Device_PhysicalDeviceLocation() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H540b947e, &H8b40, &H45bc, &Ha8, &Ha2, &H6a, &H0b, &H89, &H4c, &Hbd, &Ha2, 9)
+ 'DEVPROP_TYPE_BINARY
+DEVPKEY_Device_PhysicalDeviceLocation = pkk
+End Function
+Public Function DEVPKEY_Device_BiosDeviceName() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H540b947e, &H8b40, &H45bc, &Ha8, &Ha2, &H6a, &H0b, &H89, &H4c, &Hbd, &Ha2, 10)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_Device_BiosDeviceName = pkk
+End Function
+Public Function DEVPKEY_Device_DriverProblemDesc() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H540b947e, &H8b40, &H45bc, &Ha8, &Ha2, &H6a, &H0b, &H89, &H4c, &Hbd, &Ha2, 11)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_Device_DriverProblemDesc = pkk
+End Function
+Public Function DEVPKEY_Device_DebuggerSafe() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H540b947e, &H8b40, &H45bc, &Ha8, &Ha2, &H6a, &H0b, &H89, &H4c, &Hbd, &Ha2, 12)
+ 'DEVPROP_TYPE_UINT32
+DEVPKEY_Device_DebuggerSafe = pkk
+End Function
+Public Function DEVPKEY_Device_PostInstallInProgress() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H540b947e, &H8b40, &H45bc, &Ha8, &Ha2, &H6a, &H0b, &H89, &H4c, &Hbd, &Ha2, 13)
+ 'DEVPROP_TYPE_BOOLEAN
+DEVPKEY_Device_PostInstallInProgress = pkk
+End Function
+Public Function DEVPKEY_Device_Stack() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H540b947e, &H8b40, &H45bc, &Ha8, &Ha2, &H6a, &H0b, &H89, &H4c, &Hbd, &Ha2, 14)
+ 'DEVPROP_TYPE_STRING_LIST
+DEVPKEY_Device_Stack = pkk
+End Function
+Public Function DEVPKEY_Device_ExtendedConfigurationIds() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H540b947e, &H8b40, &H45bc, &Ha8, &Ha2, &H6a, &H0b, &H89, &H4c, &Hbd, &Ha2, 15)
+ 'DEVPROP_TYPE_STRING_LIST
+DEVPKEY_Device_ExtendedConfigurationIds = pkk
+End Function
+Public Function DEVPKEY_Device_IsRebootRequired() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H540b947e, &H8b40, &H45bc, &Ha8, &Ha2, &H6a, &H0b, &H89, &H4c, &Hbd, &Ha2, 16)
+ 'DEVPROP_TYPE_BOOLEAN
+DEVPKEY_Device_IsRebootRequired = pkk
+End Function
+Public Function DEVPKEY_Device_FirmwareDate() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H540b947e, &H8b40, &H45bc, &Ha8, &Ha2, &H6a, &H0b, &H89, &H4c, &Hbd, &Ha2, 17)
+ 'DEVPROP_TYPE_FILETIME
+DEVPKEY_Device_FirmwareDate = pkk
+End Function
+Public Function DEVPKEY_Device_FirmwareVersion() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H540b947e, &H8b40, &H45bc, &Ha8, &Ha2, &H6a, &H0b, &H89, &H4c, &Hbd, &Ha2, 18)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_Device_FirmwareVersion = pkk
+End Function
+Public Function DEVPKEY_Device_FirmwareRevision() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H540b947e, &H8b40, &H45bc, &Ha8, &Ha2, &H6a, &H0b, &H89, &H4c, &Hbd, &Ha2, 19)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_Device_FirmwareRevision = pkk
+End Function
+Public Function DEVPKEY_Device_DependencyProviders() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H540b947e, &H8b40, &H45bc, &Ha8, &Ha2, &H6a, &H0b, &H89, &H4c, &Hbd, &Ha2, 20)
+ 'DEVPROP_TYPE_STRING_LIST
+DEVPKEY_Device_DependencyProviders = pkk
+End Function
+Public Function DEVPKEY_Device_DependencyDependents() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H540b947e, &H8b40, &H45bc, &Ha8, &Ha2, &H6a, &H0b, &H89, &H4c, &Hbd, &Ha2, 21)
+ 'DEVPROP_TYPE_STRING_LIST
+DEVPKEY_Device_DependencyDependents = pkk
+End Function
+Public Function DEVPKEY_Device_SoftRestartSupported() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H540b947e, &H8b40, &H45bc, &Ha8, &Ha2, &H6a, &H0b, &H89, &H4c, &Hbd, &Ha2, 22)
+ 'DEVPROP_TYPE_BOOLEAN
+DEVPKEY_Device_SoftRestartSupported = pkk
+End Function
+Public Function DEVPKEY_Device_ExtendedAddress() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H540b947e, &H8b40, &H45bc, &Ha8, &Ha2, &H6a, &H0b, &H89, &H4c, &Hbd, &Ha2, 23)
+ 'DEVPROP_TYPE_UINT64
+DEVPKEY_Device_ExtendedAddress = pkk
+End Function
+Public Function DEVPKEY_Device_AssignedToGuest() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H540b947e, &H8b40, &H45bc, &Ha8, &Ha2, &H6a, &H0b, &H89, &H4c, &Hbd, &Ha2, 24)
+ 'DEVPROP_TYPE_BOOLEAN
+DEVPKEY_Device_AssignedToGuest = pkk
+End Function
+Public Function DEVPKEY_Device_CreatorProcessId() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H540b947e, &H8b40, &H45bc, &Ha8, &Ha2, &H6a, &H0b, &H89, &H4c, &Hbd, &Ha2, 25)
+ 'DEVPROP_TYPE_UINT32
+DEVPKEY_Device_CreatorProcessId = pkk
+End Function
+Public Function DEVPKEY_Device_FirmwareVendor() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H540b947e, &H8b40, &H45bc, &Ha8, &Ha2, &H6a, &H0b, &H89, &H4c, &Hbd, &Ha2, 26)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_Device_FirmwareVendor = pkk
+End Function
+Public Function DEVPKEY_Device_SessionId() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H83da6326, &H97a6, &H4088, &H94, &H53, &Ha1, &H92, &H3f, &H57, &H3b, &H29, 6)
+ 'DEVPROP_TYPE_UINT32
+DEVPKEY_Device_SessionId = pkk
+End Function
+Public Function DEVPKEY_Device_InstallDate() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H83da6326, &H97a6, &H4088, &H94, &H53, &Ha1, &H92, &H3f, &H57, &H3b, &H29, 100)
+ 'DEVPROP_TYPE_FILETIME
+DEVPKEY_Device_InstallDate = pkk
+End Function
+Public Function DEVPKEY_Device_FirstInstallDate() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H83da6326, &H97a6, &H4088, &H94, &H53, &Ha1, &H92, &H3f, &H57, &H3b, &H29, 101)
+ 'DEVPROP_TYPE_FILETIME
+DEVPKEY_Device_FirstInstallDate = pkk
+End Function
+Public Function DEVPKEY_Device_LastArrivalDate() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H83da6326, &H97a6, &H4088, &H94, &H53, &Ha1, &H92, &H3f, &H57, &H3b, &H29, 102)
+ 'DEVPROP_TYPE_FILETIME
+DEVPKEY_Device_LastArrivalDate = pkk
+End Function
+Public Function DEVPKEY_Device_LastRemovalDate() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H83da6326, &H97a6, &H4088, &H94, &H53, &Ha1, &H92, &H3f, &H57, &H3b, &H29, 103)
+ 'DEVPROP_TYPE_FILETIME
+DEVPKEY_Device_LastRemovalDate = pkk
+End Function
+Public Function DEVPKEY_Device_DriverDate() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha8b865dd, &H2e3d, &H4094, &Had, &H97, &He5, &H93, &Ha7, &Hc, &H75, &Hd6, 2)
+ 'DEVPROP_TYPE_FILETIME
+DEVPKEY_Device_DriverDate = pkk
+End Function
+Public Function DEVPKEY_Device_DriverVersion() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha8b865dd, &H2e3d, &H4094, &Had, &H97, &He5, &H93, &Ha7, &Hc, &H75, &Hd6, 3)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_Device_DriverVersion = pkk
+End Function
+Public Function DEVPKEY_Device_DriverDesc() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha8b865dd, &H2e3d, &H4094, &Had, &H97, &He5, &H93, &Ha7, &Hc, &H75, &Hd6, 4)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_Device_DriverDesc = pkk
+End Function
+Public Function DEVPKEY_Device_DriverInfPath() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha8b865dd, &H2e3d, &H4094, &Had, &H97, &He5, &H93, &Ha7, &Hc, &H75, &Hd6, 5)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_Device_DriverInfPath = pkk
+End Function
+Public Function DEVPKEY_Device_DriverInfSection() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha8b865dd, &H2e3d, &H4094, &Had, &H97, &He5, &H93, &Ha7, &Hc, &H75, &Hd6, 6)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_Device_DriverInfSection = pkk
+End Function
+Public Function DEVPKEY_Device_DriverInfSectionExt() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha8b865dd, &H2e3d, &H4094, &Had, &H97, &He5, &H93, &Ha7, &Hc, &H75, &Hd6, 7)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_Device_DriverInfSectionExt = pkk
+End Function
+Public Function DEVPKEY_Device_MatchingDeviceId() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha8b865dd, &H2e3d, &H4094, &Had, &H97, &He5, &H93, &Ha7, &Hc, &H75, &Hd6, 8)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_Device_MatchingDeviceId = pkk
+End Function
+Public Function DEVPKEY_Device_DriverProvider() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha8b865dd, &H2e3d, &H4094, &Had, &H97, &He5, &H93, &Ha7, &Hc, &H75, &Hd6, 9)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_Device_DriverProvider = pkk
+End Function
+Public Function DEVPKEY_Device_DriverPropPageProvider() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha8b865dd, &H2e3d, &H4094, &Had, &H97, &He5, &H93, &Ha7, &Hc, &H75, &Hd6, 10)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_Device_DriverPropPageProvider = pkk
+End Function
+Public Function DEVPKEY_Device_DriverCoInstallers() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha8b865dd, &H2e3d, &H4094, &Had, &H97, &He5, &H93, &Ha7, &Hc, &H75, &Hd6, 11)
+ 'DEVPROP_TYPE_STRING_LIST
+DEVPKEY_Device_DriverCoInstallers = pkk
+End Function
+Public Function DEVPKEY_Device_ResourcePickerTags() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha8b865dd, &H2e3d, &H4094, &Had, &H97, &He5, &H93, &Ha7, &Hc, &H75, &Hd6, 12)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_Device_ResourcePickerTags = pkk
+End Function
+Public Function DEVPKEY_Device_ResourcePickerExceptions() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha8b865dd, &H2e3d, &H4094, &Had, &H97, &He5, &H93, &Ha7, &Hc, &H75, &Hd6, 13)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_Device_ResourcePickerExceptions = pkk
+End Function
+Public Function DEVPKEY_Device_DriverRank() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha8b865dd, &H2e3d, &H4094, &Had, &H97, &He5, &H93, &Ha7, &Hc, &H75, &Hd6, 14)
+ 'DEVPROP_TYPE_UINT32
+DEVPKEY_Device_DriverRank = pkk
+End Function
+Public Function DEVPKEY_Device_DriverLogoLevel() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha8b865dd, &H2e3d, &H4094, &Had, &H97, &He5, &H93, &Ha7, &Hc, &H75, &Hd6, 15)
+ 'DEVPROP_TYPE_UINT32
+DEVPKEY_Device_DriverLogoLevel = pkk
+End Function
+Public Function DEVPKEY_Device_NoConnectSound() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha8b865dd, &H2e3d, &H4094, &Had, &H97, &He5, &H93, &Ha7, &Hc, &H75, &Hd6, 17)
+ 'DEVPROP_TYPE_BOOLEAN
+DEVPKEY_Device_NoConnectSound = pkk
+End Function
+Public Function DEVPKEY_Device_GenericDriverInstalled() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha8b865dd, &H2e3d, &H4094, &Had, &H97, &He5, &H93, &Ha7, &Hc, &H75, &Hd6, 18)
+ 'DEVPROP_TYPE_BOOLEAN
+DEVPKEY_Device_GenericDriverInstalled = pkk
+End Function
+Public Function DEVPKEY_Device_AdditionalSoftwareRequested() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Ha8b865dd, &H2e3d, &H4094, &Had, &H97, &He5, &H93, &Ha7, &Hc, &H75, &Hd6, 19)
+ 'DEVPROP_TYPE_BOOLEAN
+DEVPKEY_Device_AdditionalSoftwareRequested = pkk
+End Function
+Public Function DEVPKEY_Device_SafeRemovalRequired() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Hafd97640, &H86a3, &H4210, &Hb6, &H7c, &H28, &H9c, &H41, &Haa, &Hbe, &H55, 2)
+ 'DEVPROP_TYPE_BOOLEAN
+DEVPKEY_Device_SafeRemovalRequired = pkk
+End Function
+Public Function DEVPKEY_Device_SafeRemovalRequiredOverride() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Hafd97640, &H86a3, &H4210, &Hb6, &H7c, &H28, &H9c, &H41, &Haa, &Hbe, &H55, 3)
+ 'DEVPROP_TYPE_BOOLEAN
+DEVPKEY_Device_SafeRemovalRequiredOverride = pkk
+End Function
+Public Function DEVPKEY_DrvPkg_Model() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Hcf73bb51, &H3abf, &H44a2, &H85, &He0, &H9a, &H3d, &Hc7, &Ha1, &H21, &H32, 2)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_DrvPkg_Model = pkk
+End Function
+Public Function DEVPKEY_DrvPkg_VendorWebSite() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Hcf73bb51, &H3abf, &H44a2, &H85, &He0, &H9a, &H3d, &Hc7, &Ha1, &H21, &H32, 3)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_DrvPkg_VendorWebSite = pkk
+End Function
+Public Function DEVPKEY_DrvPkg_DetailedDescription() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Hcf73bb51, &H3abf, &H44a2, &H85, &He0, &H9a, &H3d, &Hc7, &Ha1, &H21, &H32, 4)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_DrvPkg_DetailedDescription = pkk
+End Function
+Public Function DEVPKEY_DrvPkg_DocumentationLink() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Hcf73bb51, &H3abf, &H44a2, &H85, &He0, &H9a, &H3d, &Hc7, &Ha1, &H21, &H32, 5)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_DrvPkg_DocumentationLink = pkk
+End Function
+Public Function DEVPKEY_DrvPkg_Icon() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Hcf73bb51, &H3abf, &H44a2, &H85, &He0, &H9a, &H3d, &Hc7, &Ha1, &H21, &H32, 6)
+ 'DEVPROP_TYPE_STRING_LIST
+DEVPKEY_DrvPkg_Icon = pkk
+End Function
+Public Function DEVPKEY_DrvPkg_BrandingIcon() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Hcf73bb51, &H3abf, &H44a2, &H85, &He0, &H9a, &H3d, &Hc7, &Ha1, &H21, &H32, 7)
+ 'DEVPROP_TYPE_STRING_LIST
+DEVPKEY_DrvPkg_BrandingIcon = pkk
+End Function
+Public Function DEVPKEY_DeviceClass_UpperFilters() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H4321918b, &Hf69e, &H470d, &Ha5, &Hde, &H4d, &H88, &Hc7, &H5a, &Hd2, &H4b, 19)
+ 'DEVPROP_TYPE_STRING_LIST
+DEVPKEY_DeviceClass_UpperFilters = pkk
+End Function
+Public Function DEVPKEY_DeviceClass_LowerFilters() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H4321918b, &Hf69e, &H470d, &Ha5, &Hde, &H4d, &H88, &Hc7, &H5a, &Hd2, &H4b, 20)
+ 'DEVPROP_TYPE_STRING_LIST
+DEVPKEY_DeviceClass_LowerFilters = pkk
+End Function
+Public Function DEVPKEY_DeviceClass_Security() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H4321918b, &Hf69e, &H470d, &Ha5, &Hde, &H4d, &H88, &Hc7, &H5a, &Hd2, &H4b, 25)
+ 'DEVPROP_TYPE_SECURITY_DESCRIPTOR
+DEVPKEY_DeviceClass_Security = pkk
+End Function
+Public Function DEVPKEY_DeviceClass_SecuritySDS() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H4321918b, &Hf69e, &H470d, &Ha5, &Hde, &H4d, &H88, &Hc7, &H5a, &Hd2, &H4b, 26)
+ 'DEVPROP_TYPE_SECURITY_DESCRIPTOR_STRING
+DEVPKEY_DeviceClass_SecuritySDS = pkk
+End Function
+Public Function DEVPKEY_DeviceClass_DevType() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H4321918b, &Hf69e, &H470d, &Ha5, &Hde, &H4d, &H88, &Hc7, &H5a, &Hd2, &H4b, 27)
+ 'DEVPROP_TYPE_UINT32
+DEVPKEY_DeviceClass_DevType = pkk
+End Function
+Public Function DEVPKEY_DeviceClass_Exclusive() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H4321918b, &Hf69e, &H470d, &Ha5, &Hde, &H4d, &H88, &Hc7, &H5a, &Hd2, &H4b, 28)
+ 'DEVPROP_TYPE_BOOLEAN
+DEVPKEY_DeviceClass_Exclusive = pkk
+End Function
+Public Function DEVPKEY_DeviceClass_Characteristics() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H4321918b, &Hf69e, &H470d, &Ha5, &Hde, &H4d, &H88, &Hc7, &H5a, &Hd2, &H4b, 29)
+ 'DEVPROP_TYPE_UINT32
+DEVPKEY_DeviceClass_Characteristics = pkk
+End Function
+Public Function DEVPKEY_DeviceClass_Name() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H259abffc, &H50a7, &H47ce, &Haf, &H8, &H68, &Hc9, &Ha7, &Hd7, &H33, &H66, 2)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_DeviceClass_Name = pkk
+End Function
+Public Function DEVPKEY_DeviceClass_ClassName() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H259abffc, &H50a7, &H47ce, &Haf, &H8, &H68, &Hc9, &Ha7, &Hd7, &H33, &H66, 3)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_DeviceClass_ClassName = pkk
+End Function
+Public Function DEVPKEY_DeviceClass_Icon() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H259abffc, &H50a7, &H47ce, &Haf, &H8, &H68, &Hc9, &Ha7, &Hd7, &H33, &H66, 4)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_DeviceClass_Icon = pkk
+End Function
+Public Function DEVPKEY_DeviceClass_ClassInstaller() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H259abffc, &H50a7, &H47ce, &Haf, &H8, &H68, &Hc9, &Ha7, &Hd7, &H33, &H66, 5)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_DeviceClass_ClassInstaller = pkk
+End Function
+Public Function DEVPKEY_DeviceClass_PropPageProvider() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H259abffc, &H50a7, &H47ce, &Haf, &H8, &H68, &Hc9, &Ha7, &Hd7, &H33, &H66, 6)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_DeviceClass_PropPageProvider = pkk
+End Function
+Public Function DEVPKEY_DeviceClass_NoInstallClass() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H259abffc, &H50a7, &H47ce, &Haf, &H8, &H68, &Hc9, &Ha7, &Hd7, &H33, &H66, 7)
+ 'DEVPROP_TYPE_BOOLEAN
+DEVPKEY_DeviceClass_NoInstallClass = pkk
+End Function
+Public Function DEVPKEY_DeviceClass_NoDisplayClass() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H259abffc, &H50a7, &H47ce, &Haf, &H8, &H68, &Hc9, &Ha7, &Hd7, &H33, &H66, 8)
+ 'DEVPROP_TYPE_BOOLEAN
+DEVPKEY_DeviceClass_NoDisplayClass = pkk
+End Function
+Public Function DEVPKEY_DeviceClass_SilentInstall() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H259abffc, &H50a7, &H47ce, &Haf, &H8, &H68, &Hc9, &Ha7, &Hd7, &H33, &H66, 9)
+ 'DEVPROP_TYPE_BOOLEAN
+DEVPKEY_DeviceClass_SilentInstall = pkk
+End Function
+Public Function DEVPKEY_DeviceClass_NoUseClass() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H259abffc, &H50a7, &H47ce, &Haf, &H8, &H68, &Hc9, &Ha7, &Hd7, &H33, &H66, 10)
+ 'DEVPROP_TYPE_BOOLEAN
+DEVPKEY_DeviceClass_NoUseClass = pkk
+End Function
+Public Function DEVPKEY_DeviceClass_DefaultService() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H259abffc, &H50a7, &H47ce, &Haf, &H8, &H68, &Hc9, &Ha7, &Hd7, &H33, &H66, 11)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_DeviceClass_DefaultService = pkk
+End Function
+Public Function DEVPKEY_DeviceClass_IconPath() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H259abffc, &H50a7, &H47ce, &Haf, &H8, &H68, &Hc9, &Ha7, &Hd7, &H33, &H66, 12)
+ 'DEVPROP_TYPE_STRING_LIST
+DEVPKEY_DeviceClass_IconPath = pkk
+End Function
+Public Function DEVPKEY_DeviceClass_DHPRebalanceOptOut() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &Hd14d3ef3, &H66cf, &H4ba2, &H9d, &H38, &H0d, &Hdb, &H37, &Hab, &H47, &H01, 2)
+ 'DEVPROP_TYPE_BOOLEAN
+DEVPKEY_DeviceClass_DHPRebalanceOptOut = pkk
+End Function
+Public Function DEVPKEY_DeviceClass_ClassCoInstallers() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H713d1703, &Ha2e2, &H49f5, &H92, &H14, &H56, &H47, &H2e, &Hf3, &Hda, &H5c, 2)
+ 'DEVPROP_TYPE_STRING_LIST
+DEVPKEY_DeviceClass_ClassCoInstallers = pkk
+End Function
+Public Function DEVPKEY_DeviceInterface_FriendlyName() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H026e516e, &Hb814, &H414b, &H83, &Hcd, &H85, &H6d, &H6f, &Hef, &H48, &H22, 2)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_DeviceInterface_FriendlyName = pkk
+End Function
+Public Function DEVPKEY_DeviceInterface_Enabled() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H026e516e, &Hb814, &H414b, &H83, &Hcd, &H85, &H6d, &H6f, &Hef, &H48, &H22, 3)
+ 'DEVPROP_TYPE_BOOLEAN
+DEVPKEY_DeviceInterface_Enabled = pkk
+End Function
+Public Function DEVPKEY_DeviceInterface_ClassGuid() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H026e516e, &Hb814, &H414b, &H83, &Hcd, &H85, &H6d, &H6f, &Hef, &H48, &H22, 4)
+ 'DEVPROP_TYPE_GUID
+DEVPKEY_DeviceInterface_ClassGuid = pkk
+End Function
+Public Function DEVPKEY_DeviceInterface_ReferenceString() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H026e516e, &Hb814, &H414b, &H83, &Hcd, &H85, &H6d, &H6f, &Hef, &H48, &H22, 5)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_DeviceInterface_ReferenceString = pkk
+End Function
+Public Function DEVPKEY_DeviceInterface_Restricted() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H026e516e, &Hb814, &H414b, &H83, &Hcd, &H85, &H6d, &H6f, &Hef, &H48, &H22, 6)
+ 'DEVPROP_TYPE_BOOLEAN
+DEVPKEY_DeviceInterface_Restricted = pkk
+End Function
+Public Function DEVPKEY_DeviceInterface_UnrestrictedAppCapabilities() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H026e516e, &Hb814, &H414b, &H83, &Hcd, &H85, &H6d, &H6f, &Hef, &H48, &H22, 8)
+ 'DEVPROP_TYPE_STRING_LIST
+DEVPKEY_DeviceInterface_UnrestrictedAppCapabilities = pkk
+End Function
+Public Function DEVPKEY_DeviceInterface_SchematicName() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H026e516e, &Hb814, &H414b, &H83, &Hcd, &H85, &H6d, &H6f, &Hef, &H48, &H22, 9)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_DeviceInterface_SchematicName = pkk
+End Function
+Public Function DEVPKEY_DeviceInterfaceClass_DefaultInterface() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H14c83a99, &H0b3f, &H44b7, &Hbe, &H4c, &Ha1, &H78, &Hd3, &H99, &H05, &H64, 2)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_DeviceInterfaceClass_DefaultInterface = pkk
+End Function
+Public Function DEVPKEY_DeviceInterfaceClass_Name() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H14c83a99, &H0b3f, &H44b7, &Hbe, &H4c, &Ha1, &H78, &Hd3, &H99, &H05, &H64, 3)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_DeviceInterfaceClass_Name = pkk
+End Function
+Public Function DEVPKEY_DeviceContainer_Address() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H78c34fc8, &H104a, &H4aca, &H9e, &Ha4, &H52, &H4d, &H52, &H99, &H6e, &H57, 51)
+ 'DEVPROP_TYPE_STRING | DEVPROP_TYPE_STRING_LIST
+DEVPKEY_DeviceContainer_Address = pkk
+End Function
+Public Function DEVPKEY_DeviceContainer_DiscoveryMethod() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H78c34fc8, &H104a, &H4aca, &H9e, &Ha4, &H52, &H4d, &H52, &H99, &H6e, &H57, 52)
+ 'DEVPROP_TYPE_STRING_LIST
+DEVPKEY_DeviceContainer_DiscoveryMethod = pkk
+End Function
+Public Function DEVPKEY_DeviceContainer_IsEncrypted() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H78c34fc8, &H104a, &H4aca, &H9e, &Ha4, &H52, &H4d, &H52, &H99, &H6e, &H57, 53)
+ 'DEVPROP_TYPE_BOOLEAN
+DEVPKEY_DeviceContainer_IsEncrypted = pkk
+End Function
+Public Function DEVPKEY_DeviceContainer_IsAuthenticated() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H78c34fc8, &H104a, &H4aca, &H9e, &Ha4, &H52, &H4d, &H52, &H99, &H6e, &H57, 54)
+ 'DEVPROP_TYPE_BOOLEAN
+DEVPKEY_DeviceContainer_IsAuthenticated = pkk
+End Function
+Public Function DEVPKEY_DeviceContainer_IsConnected() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H78c34fc8, &H104a, &H4aca, &H9e, &Ha4, &H52, &H4d, &H52, &H99, &H6e, &H57, 55)
+ 'DEVPROP_TYPE_BOOLEAN
+DEVPKEY_DeviceContainer_IsConnected = pkk
+End Function
+Public Function DEVPKEY_DeviceContainer_IsPaired() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H78c34fc8, &H104a, &H4aca, &H9e, &Ha4, &H52, &H4d, &H52, &H99, &H6e, &H57, 56)
+ 'DEVPROP_TYPE_BOOLEAN
+DEVPKEY_DeviceContainer_IsPaired = pkk
+End Function
+Public Function DEVPKEY_DeviceContainer_Icon() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H78c34fc8, &H104a, &H4aca, &H9e, &Ha4, &H52, &H4d, &H52, &H99, &H6e, &H57, 57)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_DeviceContainer_Icon = pkk
+End Function
+Public Function DEVPKEY_DeviceContainer_Version() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H78c34fc8, &H104a, &H4aca, &H9e, &Ha4, &H52, &H4d, &H52, &H99, &H6e, &H57, 65)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_DeviceContainer_Version = pkk
+End Function
+Public Function DEVPKEY_DeviceContainer_Last_Seen() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H78c34fc8, &H104a, &H4aca, &H9e, &Ha4, &H52, &H4d, &H52, &H99, &H6e, &H57, 66)
+ 'DEVPROP_TYPE_FILETIME
+DEVPKEY_DeviceContainer_Last_Seen = pkk
+End Function
+Public Function DEVPKEY_DeviceContainer_Last_Connected() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H78c34fc8, &H104a, &H4aca, &H9e, &Ha4, &H52, &H4d, &H52, &H99, &H6e, &H57, 67)
+ 'DEVPROP_TYPE_FILETIME
+DEVPKEY_DeviceContainer_Last_Connected = pkk
+End Function
+Public Function DEVPKEY_DeviceContainer_IsShowInDisconnectedState() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H78c34fc8, &H104a, &H4aca, &H9e, &Ha4, &H52, &H4d, &H52, &H99, &H6e, &H57, 68)
+ 'DEVPROP_TYPE_BOOLEAN
+DEVPKEY_DeviceContainer_IsShowInDisconnectedState = pkk
+End Function
+Public Function DEVPKEY_DeviceContainer_IsLocalMachine() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H78c34fc8, &H104a, &H4aca, &H9e, &Ha4, &H52, &H4d, &H52, &H99, &H6e, &H57, 70)
+ 'DEVPROP_TYPE_BOOLEAN
+DEVPKEY_DeviceContainer_IsLocalMachine = pkk
+End Function
+Public Function DEVPKEY_DeviceContainer_MetadataPath() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H78c34fc8, &H104a, &H4aca, &H9e, &Ha4, &H52, &H4d, &H52, &H99, &H6e, &H57, 71)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_DeviceContainer_MetadataPath = pkk
+End Function
+Public Function DEVPKEY_DeviceContainer_IsMetadataSearchInProgress() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H78c34fc8, &H104a, &H4aca, &H9e, &Ha4, &H52, &H4d, &H52, &H99, &H6e, &H57, 72)
+ 'DEVPROP_TYPE_BOOLEAN
+DEVPKEY_DeviceContainer_IsMetadataSearchInProgress = pkk
+End Function
+Public Function DEVPKEY_DeviceContainer_MetadataChecksum() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H78c34fc8, &H104a, &H4aca, &H9e, &Ha4, &H52, &H4d, &H52, &H99, &H6e, &H57, 73)
+ 'DEVPROP_TYPE_BINARY
+DEVPKEY_DeviceContainer_MetadataChecksum = pkk
+End Function
+Public Function DEVPKEY_DeviceContainer_IsNotInterestingForDisplay() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H78c34fc8, &H104a, &H4aca, &H9e, &Ha4, &H52, &H4d, &H52, &H99, &H6e, &H57, 74)
+ 'DEVPROP_TYPE_BOOLEAN
+DEVPKEY_DeviceContainer_IsNotInterestingForDisplay = pkk
+End Function
+Public Function DEVPKEY_DeviceContainer_LaunchDeviceStageOnDeviceConnect() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H78c34fc8, &H104a, &H4aca, &H9e, &Ha4, &H52, &H4d, &H52, &H99, &H6e, &H57, 76)
+ 'DEVPROP_TYPE_BOOLEAN
+DEVPKEY_DeviceContainer_LaunchDeviceStageOnDeviceConnect = pkk
+End Function
+Public Function DEVPKEY_DeviceContainer_LaunchDeviceStageFromExplorer() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H78c34fc8, &H104a, &H4aca, &H9e, &Ha4, &H52, &H4d, &H52, &H99, &H6e, &H57, 77)
+ 'DEVPROP_TYPE_BOOLEAN
+DEVPKEY_DeviceContainer_LaunchDeviceStageFromExplorer = pkk
+End Function
+Public Function DEVPKEY_DeviceContainer_BaselineExperienceId() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H78c34fc8, &H104a, &H4aca, &H9e, &Ha4, &H52, &H4d, &H52, &H99, &H6e, &H57, 78)
+ 'DEVPROP_TYPE_GUID
+DEVPKEY_DeviceContainer_BaselineExperienceId = pkk
+End Function
+Public Function DEVPKEY_DeviceContainer_IsDeviceUniquelyIdentifiable() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H78c34fc8, &H104a, &H4aca, &H9e, &Ha4, &H52, &H4d, &H52, &H99, &H6e, &H57, 79)
+ 'DEVPROP_TYPE_BOOLEAN
+DEVPKEY_DeviceContainer_IsDeviceUniquelyIdentifiable = pkk
+End Function
+Public Function DEVPKEY_DeviceContainer_AssociationArray() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H78c34fc8, &H104a, &H4aca, &H9e, &Ha4, &H52, &H4d, &H52, &H99, &H6e, &H57, 80)
+ 'DEVPROP_TYPE_STRING_LIST
+DEVPKEY_DeviceContainer_AssociationArray = pkk
+End Function
+Public Function DEVPKEY_DeviceContainer_DeviceDescription1() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H78c34fc8, &H104a, &H4aca, &H9e, &Ha4, &H52, &H4d, &H52, &H99, &H6e, &H57, 81)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_DeviceContainer_DeviceDescription1 = pkk
+End Function
+Public Function DEVPKEY_DeviceContainer_DeviceDescription2() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H78c34fc8, &H104a, &H4aca, &H9e, &Ha4, &H52, &H4d, &H52, &H99, &H6e, &H57, 82)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_DeviceContainer_DeviceDescription2 = pkk
+End Function
+Public Function DEVPKEY_DeviceContainer_HasProblem() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H78c34fc8, &H104a, &H4aca, &H9e, &Ha4, &H52, &H4d, &H52, &H99, &H6e, &H57, 83)
+ 'DEVPROP_TYPE_BOOLEAN
+DEVPKEY_DeviceContainer_HasProblem = pkk
+End Function
+Public Function DEVPKEY_DeviceContainer_IsSharedDevice() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H78c34fc8, &H104a, &H4aca, &H9e, &Ha4, &H52, &H4d, &H52, &H99, &H6e, &H57, 84)
+ 'DEVPROP_TYPE_BOOLEAN
+DEVPKEY_DeviceContainer_IsSharedDevice = pkk
+End Function
+Public Function DEVPKEY_DeviceContainer_IsNetworkDevice() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H78c34fc8, &H104a, &H4aca, &H9e, &Ha4, &H52, &H4d, &H52, &H99, &H6e, &H57, 85)
+ 'DEVPROP_TYPE_BOOLEAN
+DEVPKEY_DeviceContainer_IsNetworkDevice = pkk
+End Function
+Public Function DEVPKEY_DeviceContainer_IsDefaultDevice() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H78c34fc8, &H104a, &H4aca, &H9e, &Ha4, &H52, &H4d, &H52, &H99, &H6e, &H57, 86)
+ 'DEVPROP_TYPE_BOOLEAN
+DEVPKEY_DeviceContainer_IsDefaultDevice = pkk
+End Function
+Public Function DEVPKEY_DeviceContainer_MetadataCabinet() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H78c34fc8, &H104a, &H4aca, &H9e, &Ha4, &H52, &H4d, &H52, &H99, &H6e, &H57, 87)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_DeviceContainer_MetadataCabinet = pkk
+End Function
+Public Function DEVPKEY_DeviceContainer_RequiresPairingElevation() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H78c34fc8, &H104a, &H4aca, &H9e, &Ha4, &H52, &H4d, &H52, &H99, &H6e, &H57, 88)
+ 'DEVPROP_TYPE_BOOLEAN
+DEVPKEY_DeviceContainer_RequiresPairingElevation = pkk
+End Function
+Public Function DEVPKEY_DeviceContainer_ExperienceId() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H78c34fc8, &H104a, &H4aca, &H9e, &Ha4, &H52, &H4d, &H52, &H99, &H6e, &H57, 89)
+ 'DEVPROP_TYPE_GUID
+DEVPKEY_DeviceContainer_ExperienceId = pkk
+End Function
+Public Function DEVPKEY_DeviceContainer_Category() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H78c34fc8, &H104a, &H4aca, &H9e, &Ha4, &H52, &H4d, &H52, &H99, &H6e, &H57, 90)
+ 'DEVPROP_TYPE_STRING_LIST
+DEVPKEY_DeviceContainer_Category = pkk
+End Function
+Public Function DEVPKEY_DeviceContainer_Category_Desc_Singular() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H78c34fc8, &H104a, &H4aca, &H9e, &Ha4, &H52, &H4d, &H52, &H99, &H6e, &H57, 91)
+ 'DEVPROP_TYPE_STRING_LIST
+DEVPKEY_DeviceContainer_Category_Desc_Singular = pkk
+End Function
+Public Function DEVPKEY_DeviceContainer_Category_Desc_Plural() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H78c34fc8, &H104a, &H4aca, &H9e, &Ha4, &H52, &H4d, &H52, &H99, &H6e, &H57, 92)
+ 'DEVPROP_TYPE_STRING_LIST
+DEVPKEY_DeviceContainer_Category_Desc_Plural = pkk
+End Function
+Public Function DEVPKEY_DeviceContainer_Category_Icon() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H78c34fc8, &H104a, &H4aca, &H9e, &Ha4, &H52, &H4d, &H52, &H99, &H6e, &H57, 93)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_DeviceContainer_Category_Icon = pkk
+End Function
+Public Function DEVPKEY_DeviceContainer_CategoryGroup_Desc() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H78c34fc8, &H104a, &H4aca, &H9e, &Ha4, &H52, &H4d, &H52, &H99, &H6e, &H57, 94)
+ 'DEVPROP_TYPE_STRING_LIST
+DEVPKEY_DeviceContainer_CategoryGroup_Desc = pkk
+End Function
+Public Function DEVPKEY_DeviceContainer_CategoryGroup_Icon() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H78c34fc8, &H104a, &H4aca, &H9e, &Ha4, &H52, &H4d, &H52, &H99, &H6e, &H57, 95)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_DeviceContainer_CategoryGroup_Icon = pkk
+End Function
+Public Function DEVPKEY_DeviceContainer_PrimaryCategory() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H78c34fc8, &H104a, &H4aca, &H9e, &Ha4, &H52, &H4d, &H52, &H99, &H6e, &H57, 97)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_DeviceContainer_PrimaryCategory = pkk
+End Function
+Public Function DEVPKEY_DeviceContainer_UnpairUninstall() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H78c34fc8, &H104a, &H4aca, &H9e, &Ha4, &H52, &H4d, &H52, &H99, &H6e, &H57, 98)
+ 'DEVPROP_TYPE_BOOLEAN
+DEVPKEY_DeviceContainer_UnpairUninstall = pkk
+End Function
+Public Function DEVPKEY_DeviceContainer_RequiresUninstallElevation() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H78c34fc8, &H104a, &H4aca, &H9e, &Ha4, &H52, &H4d, &H52, &H99, &H6e, &H57, 99)
+ 'DEVPROP_TYPE_BOOLEAN
+DEVPKEY_DeviceContainer_RequiresUninstallElevation = pkk
+End Function
+Public Function DEVPKEY_DeviceContainer_DeviceFunctionSubRank() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H78c34fc8, &H104a, &H4aca, &H9e, &Ha4, &H52, &H4d, &H52, &H99, &H6e, &H57, 100)
+ 'DEVPROP_TYPE_UINT32
+DEVPKEY_DeviceContainer_DeviceFunctionSubRank = pkk
+End Function
+Public Function DEVPKEY_DeviceContainer_AlwaysShowDeviceAsConnected() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H78c34fc8, &H104a, &H4aca, &H9e, &Ha4, &H52, &H4d, &H52, &H99, &H6e, &H57, 101)
+ 'DEVPROP_TYPE_BOOLEAN
+DEVPKEY_DeviceContainer_AlwaysShowDeviceAsConnected = pkk
+End Function
+Public Function DEVPKEY_DeviceContainer_ConfigFlags() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H78c34fc8, &H104a, &H4aca, &H9e, &Ha4, &H52, &H4d, &H52, &H99, &H6e, &H57, 105)
+ 'DEVPROP_TYPE_UINT32
+DEVPKEY_DeviceContainer_ConfigFlags = pkk
+End Function
+Public Function DEVPKEY_DeviceContainer_PrivilegedPackageFamilyNames() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H78c34fc8, &H104a, &H4aca, &H9e, &Ha4, &H52, &H4d, &H52, &H99, &H6e, &H57, 106)
+ 'DEVPROP_TYPE_STRING_LIST
+DEVPKEY_DeviceContainer_PrivilegedPackageFamilyNames = pkk
+End Function
+Public Function DEVPKEY_DeviceContainer_CustomPrivilegedPackageFamilyNames() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H78c34fc8, &H104a, &H4aca, &H9e, &Ha4, &H52, &H4d, &H52, &H99, &H6e, &H57, 107)
+ 'DEVPROP_TYPE_STRING_LIST
+DEVPKEY_DeviceContainer_CustomPrivilegedPackageFamilyNames = pkk
+End Function
+Public Function DEVPKEY_DeviceContainer_IsRebootRequired() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H78c34fc8, &H104a, &H4aca, &H9e, &Ha4, &H52, &H4d, &H52, &H99, &H6e, &H57, 108)
+ 'DEVPROP_TYPE_BOOLEAN
+DEVPKEY_DeviceContainer_IsRebootRequired = pkk
+End Function
+Public Function DEVPKEY_DeviceContainer_FriendlyName() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H656A3BB3, &HECC0, &H43FD, &H84, &H77, &H4A, &HE0, &H40, &H4A, &H96, &HCD, 12288)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_DeviceContainer_FriendlyName = pkk
+End Function
+Public Function DEVPKEY_DeviceContainer_Manufacturer() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H656A3BB3, &HECC0, &H43FD, &H84, &H77, &H4A, &HE0, &H40, &H4A, &H96, &HCD, 8192)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_DeviceContainer_Manufacturer = pkk
+End Function
+Public Function DEVPKEY_DeviceContainer_ModelName() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H656A3BB3, &HECC0, &H43FD, &H84, &H77, &H4A, &HE0, &H40, &H4A, &H96, &HCD, 8194)
+ 'DEVPROP_TYPE_STRING (localizable)
+DEVPKEY_DeviceContainer_ModelName = pkk
+End Function
+Public Function DEVPKEY_DeviceContainer_ModelNumber() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H656A3BB3, &HECC0, &H43FD, &H84, &H77, &H4A, &HE0, &H40, &H4A, &H96, &HCD, 8195)
+ 'DEVPROP_TYPE_STRING
+DEVPKEY_DeviceContainer_ModelNumber = pkk
+End Function
+Public Function DEVPKEY_DeviceContainer_InstallInProgress() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H83da6326, &H97a6, &H4088, &H94, &H53, &Ha1, &H92, &H3f, &H57, &H3b, &H29, 9)
+ 'DEVPROP_TYPE_BOOLEAN
+DEVPKEY_DeviceContainer_InstallInProgress = pkk
+End Function
+Public Function DEVPKEY_DevQuery_ObjectType() As PROPERTYKEY
+Static pkk As PROPERTYKEY
+ If (pkk.fmtid.Data1 = 0&) Then Call DEFINE_PROPERTYKEY(pkk, &H13673f42, &Ha3d6, &H49f6, &Hb4, &Hda, &Hae, &H46, &He0, &Hc5, &H23, &H7c, 2)
+ 'DEVPROP_TYPE_UINT32
+DEVPKEY_DevQuery_ObjectType = pkk
+End Function
+Public Function DEVPKEY_DeviceDisplay_DiscoveryMethod() As PROPERTYKEY
+	Return DEVPKEY_DeviceContainer_DiscoveryMethod
+End Function
+#End Region
 End Module
