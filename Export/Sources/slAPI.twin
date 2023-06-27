@@ -297,6 +297,32 @@ Public Enum SHSTOCKICONID
 	'  160+ are for Windows 7 icons
 	SIID_MAX_ICONS=181
 End Enum
+
+Public Enum SHFileOpErrors
+	DE_SAMEFILE  = &H71
+	DE_MANYSRC1DEST  = &H72
+	DE_DIFFDIR  = &H73
+	DE_ROOTDIR  = &H74
+	DE_OPCANCELLED  = &H75
+	DE_DESTSUBTREE  = &H76
+	DE_ACCESSDENIEDSRC  = &H78
+	DE_PATHTOODEEP  = &H79
+	DE_MANYDEST  = &H7A
+	DE_INVALIDFILES  = &H7C
+	DE_DESTSAMETREE  = &H7D
+	DE_FLDDESTISFILE  = &H7E
+	DE_FILEDESTISFLD  = &H80
+	DE_FILENAMETOOLONG  = &H81
+	DE_DEST_IS_CDROM  = &H82
+	DE_DEST_IS_DVD  = &H83
+	DE_DEST_IS_CDRECORD  = &H84
+	DE_FILE_TOO_LARGE  = &H85
+	DE_SRC_IS_CDROM  = &H86
+	DE_SRC_IS_DVD  = &H87
+	DE_SRC_IS_CDRECORD  = &H88
+    ERRORONDEST = &H10000
+End Enum
+
 Public Const SIID_INVALID As Long = &HFFFFFFFF
 Public DeclareWide PtrSafe Function SHGetStockIconInfo Lib "shell32" (ByVal siid As SHSTOCKICONID, ByVal uFlags As StockIconInfoFlags, psii As SHSTOCKICONINFO) As Long
 Public Declare PtrSafe Function SHBrowseForFolderA Lib "shell32" (lpbi As BROWSEINFOA) As LongPtr
@@ -369,6 +395,7 @@ Public Declare PtrSafe Function SHCreateFileDataObject Lib "shell32" Alias "#740
 Public Declare PtrSafe Function SHCreateItemWithParent Lib "shell32" (ByVal pidlParent As LongPtr, ByVal psfParent As IShellFolder, ByVal pidl As LongPtr, ByRef riid As UUID, ByRef ppvItem As Any) As Long
 Public Declare PtrSafe Function SHDoDragDrop Lib "shell32" (ByVal hwnd As LongPtr, ByVal pdtobj As IDataObject, ByVal pdsrc As IDropSource, ByVal dwEffect As DROPEFFECTS, ByRef pdwEffect As DROPEFFECTS) As Long
 Public Declare PtrSafe Function SHGetIconOverlayIndexW Lib "shell32" (ByVal pszIconPath As LongPtr, ByVal iIconIndex As Long) As Long
+Public DeclareWide PtrSafe Function SHGetIconOverlayIndex Lib "shell32" Alias "SHGetIconOverlayIndexW" (ByVal pszIconPath As String, ByVal iIconIndex As Long) As Long
 Public Declare PtrSafe Function SHGetIDListFromObject Lib "shell32" (ByVal pUnk As stdole.IUnknown, ByRef ppidl As LongPtr) As Long
 Public Declare PtrSafe Function SHGetItemFromDataObject Lib "shell32" (ByVal pdtobj As IDataObject, ByVal dwFlags As DATAOBJ_GET_ITEM_FLAGS, ByRef riid As UUID, ByRef ppv As Any) As Long
 Public Declare PtrSafe Function SHGetItemFromObject Lib "shell32" (ByVal pUnk As stdole.IUnknown, ByRef riid As UUID, ByRef ppv As Any) As Long
@@ -398,11 +425,12 @@ Public Declare PtrSafe Function SHGetFileInfoW Lib "shell32" (ByVal pszPath As A
 Public DeclareWide PtrSafe Function SHGetFileInfo Lib "shell32" Alias "SHGetFileInfoW" (ByVal pszPath As Any, ByVal dwFileAttributes As Long, psfi As SHFILEINFO, ByVal cbFileInfo As Long, ByVal uFlags As SHGFI_flags) As LongPtr
 Public Declare PtrSafe Function PathYetAnotherMakeUniqueName Lib "shell32" (ByVal pszUniqueName As LongPtr, ByVal pszPath As LongPtr, Optional ByVal pszShort As LongPtr, Optional ByVal pszFileSpec As LongPtr) As Long
 Public Declare PtrSafe Function SHMultiFileProperties Lib "shell32" (ByVal pdtobj As LongPtr, ByVal dwFlags As Long) As Long
-Public Declare PtrSafe Function SHFileOperationW Lib "shell32" (lpFileOp As SHFILEOPSTRUCT) As Long
+Public DeclareWide PtrSafe Function SHFileOperationW Lib "shell32" (lpFileOp As SHFILEOPSTRUCT) As SHFileOpErrors
+Public DeclareWide PtrSafe Function SHFileOperation Lib "shell32" Alias "SHFileOperationW" (lpFileOp As SHFILEOPSTRUCT) As SHFileOpErrors
 Public Declare PtrSafe Function SHOpenFolderAndSelectItems Lib "shell32" (ByVal pidlFolder As LongPtr, ByVal cidl As Long, ByVal apidl As LongPtr, ByVal dwFlags As SHOFASI_Flags) As Long
 Public Declare PtrSafe Function SHOpenWithDialog Lib "shell32" (ByVal hWnd As LongPtr, poainfo As OPENASINFO) As Long
 Public Declare PtrSafe Function SHCreateStdEnumFmtEtc Lib "shell32" (ByVal cfmt As Long, afmt As FORMATETC, ppenumFormatEtc As IEnumFormatETC) As Long
-[Description("Can be used to create folders inside folders that also do not yet exist. This call supports Unicode.")]
+[Description("Can be used to create folders inside folders that also do not yet exist. This call supports Unicode.") ]
 Public DeclareWide PtrSafe Function SHCreateDirectory Lib "shell32" (ByVal hwnd As LongPtr, ByVal pszPath As String) As Long
 [Description("Can be used to create folders inside folders that also do not yet exist. This call supports Unicode.")]
 Public DeclareWide PtrSafe Function SHCreateDirectoryExW Lib "shell32" (ByVal hwnd As LongPtr, ByVal pszPath As LongPtr, psa As SECURITY_ATTRIBUTES) As Long
@@ -3130,6 +3158,229 @@ Public Const LOCALE_NAME_INVARIANT As String = ""
 Public Const LOCALE_NAME_USER_DEFAULT As String = vbNullString
 Public Const LOCALE_NAME_SYSTEM_DEFAULT As String = "!x-sys-default-locale"
 
+Public Enum DefaultLocales
+	LOCALE_CUSTOM_DEFAULT     = &H0c00
+	LOCALE_CUSTOM_UI_DEFAULT  = &H1400
+	LOCALE_CUSTOM_UNSPECIFIED = &H1000
+	LOCALE_INVARIANT = &H007f
+	LOCALE_USER_DEFAULT       = &H0400
+	LOCALE_SYSTEM_DEFAULT     = &H0800
+End Enum
+Public Enum LCTypes
+	LOCALE_NOUSEROVERRIDE  = &H80000000  ' Not Recommended - do not use user overrides
+	LOCALE_USE_CP_ACP  = &H40000000  ' DEPRECATED, call Unicode APIs instead: use the system ACP
+' #if(WINVER >= 0x0400)
+	LOCALE_RETURN_NUMBER  = &H20000000  ' return number instead of string
+' #endif /* WINVER >= 0x0400 */
+' #if (WINVER >= _WIN32_WINNT_WIN7)
+	LOCALE_RETURN_GENITIVE_NAMES  = &H10000000  'Flag to return the Genitive forms of month names
+	LOCALE_ALLOW_NEUTRAL_NAMES  = &H08000000  'Flag to allow returning neutral names/lcids for name conversion
+' #endif //(WINVER >= _WIN32_WINNT_WIN7)
+'   The following LCTypes are mutually exclusive in that they may NOT
+'   be used in combination with each other.
+'  These are the various forms of the name of the locale:
+	LOCALE_SLOCALIZEDDISPLAYNAME  = &H00000002  ' localized name of locale, eg "German (Germany)" in UI language
+' #if (WINVER >= _WIN32_WINNT_WIN7)
+	LOCALE_SENGLISHDISPLAYNAME  = &H00000072  ' Display name (language + country/region usually) in English, eg "German (Germany)"
+	LOCALE_SNATIVEDISPLAYNAME  = &H00000073  ' Display name in native locale language, eg "Deutsch (Deutschland)
+' #endif //(WINVER >= _WIN32_WINNT_WIN7)
+' #if (WINVER >= _WIN32_WINNT_VISTA)
+	LOCALE_SLOCALIZEDLANGUAGENAME  = &H0000006f  ' Language Display Name for a language, eg "German" in UI language
+' #endif //(WINVER >= _WIN32_WINNT_VISTA)
+	LOCALE_SENGLISHLANGUAGENAME  = &H00001001  ' English name of language, eg "German"
+	LOCALE_SNATIVELANGUAGENAME  = &H00000004  ' native name of language, eg "Deutsch"
+	LOCALE_SLOCALIZEDCOUNTRYNAME  = &H00000006  ' localized name of country/region, eg "Germany" in UI language
+	LOCALE_SENGLISHCOUNTRYNAME  = &H00001002  ' English name of country/region, eg "Germany"
+	LOCALE_SNATIVECOUNTRYNAME  = &H00000008  ' native name of country/region, eg "Deutschland"
+'  Additional LCTypes
+	LOCALE_IDIALINGCODE  = &H00000005  ' country/region dialing code, example: en-US and en-CA return 1.
+	LOCALE_SLIST  = &H0000000C  ' list item separator, eg "," for "1,2,3,4"
+	LOCALE_IMEASURE  = &H0000000D  ' 0 = metric, 1 = US measurement system
+	LOCALE_SDECIMAL  = &H0000000E  ' decimal separator, eg "." for 1,234.00
+	LOCALE_STHOUSAND  = &H0000000F  ' thousand separator, eg "," for 1,234.00
+	LOCALE_SGROUPING  = &H00000010  ' digit grouping, eg "3;0" for 1,000,000
+	LOCALE_IDIGITS  = &H00000011  ' number of fractional digits eg 2 for 1.00
+	LOCALE_ILZERO  = &H00000012  ' leading zeros for decimal, 0 for .97, 1 for 0.97
+	LOCALE_INEGNUMBER  = &H00001010  ' negative number mode, 0-4, see documentation
+	LOCALE_SNATIVEDIGITS  = &H00000013  ' native digits for 0-9, eg "0123456789"
+	LOCALE_SCURRENCY  = &H00000014  ' local monetary symbol, eg "$"
+	LOCALE_SINTLSYMBOL  = &H00000015  ' intl monetary symbol, eg "USD"
+	LOCALE_SMONDECIMALSEP  = &H00000016  ' monetary decimal separator, eg "." for $1,234.00
+	LOCALE_SMONTHOUSANDSEP  = &H00000017  ' monetary thousand separator, eg "," for $1,234.00
+	LOCALE_SMONGROUPING  = &H00000018  ' monetary grouping, eg "3;0" for $1,000,000.00
+	LOCALE_ICURRDIGITS  = &H00000019  ' # local monetary digits, eg 2 for $1.00
+	LOCALE_ICURRENCY  = &H0000001B  ' positive currency mode, 0-3, see documentation
+	LOCALE_INEGCURR  = &H0000001C  ' negative currency mode, 0-15, see documentation
+	LOCALE_SSHORTDATE  = &H0000001F  ' short date format string, eg "MM/dd/yyyy"
+	LOCALE_SLONGDATE  = &H00000020  ' long date format string, eg "dddd, MMMM dd, yyyy"
+	LOCALE_STIMEFORMAT  = &H00001003  ' time format string, eg "HH:mm:ss"
+	LOCALE_SAM  = &H00000028  ' AM designator, eg "AM"
+	LOCALE_SPM  = &H00000029  ' PM designator, eg "PM"
+	LOCALE_ICALENDARTYPE  = &H00001009  ' type of calendar specifier, eg CAL_GREGORIAN
+	LOCALE_IOPTIONALCALENDAR  = &H0000100B  ' additional calendar types specifier, eg CAL_GREGORIAN_US
+	LOCALE_IFIRSTDAYOFWEEK  = &H0000100C  ' first day of week specifier, 0-6, 0=Monday, 6=Sunday
+	LOCALE_IFIRSTWEEKOFYEAR  = &H0000100D  ' first week of year specifier, 0-2, see documentation
+	LOCALE_SDAYNAME1  = &H0000002A  ' long name for Monday
+	LOCALE_SDAYNAME2  = &H0000002B  ' long name for Tuesday
+	LOCALE_SDAYNAME3  = &H0000002C  ' long name for Wednesday
+	LOCALE_SDAYNAME4  = &H0000002D  ' long name for Thursday
+	LOCALE_SDAYNAME5  = &H0000002E  ' long name for Friday
+	LOCALE_SDAYNAME6  = &H0000002F  ' long name for Saturday
+	LOCALE_SDAYNAME7  = &H00000030  ' long name for Sunday
+	LOCALE_SABBREVDAYNAME1  = &H00000031  ' abbreviated name for Monday
+	LOCALE_SABBREVDAYNAME2  = &H00000032  ' abbreviated name for Tuesday
+	LOCALE_SABBREVDAYNAME3  = &H00000033  ' abbreviated name for Wednesday
+	LOCALE_SABBREVDAYNAME4  = &H00000034  ' abbreviated name for Thursday
+	LOCALE_SABBREVDAYNAME5  = &H00000035  ' abbreviated name for Friday
+	LOCALE_SABBREVDAYNAME6  = &H00000036  ' abbreviated name for Saturday
+	LOCALE_SABBREVDAYNAME7  = &H00000037  ' abbreviated name for Sunday
+	LOCALE_SMONTHNAME1  = &H00000038  ' long name for January
+	LOCALE_SMONTHNAME2  = &H00000039  ' long name for February
+	LOCALE_SMONTHNAME3  = &H0000003A  ' long name for March
+	LOCALE_SMONTHNAME4  = &H0000003B  ' long name for April
+	LOCALE_SMONTHNAME5  = &H0000003C  ' long name for May
+	LOCALE_SMONTHNAME6  = &H0000003D  ' long name for June
+	LOCALE_SMONTHNAME7  = &H0000003E  ' long name for July
+	LOCALE_SMONTHNAME8  = &H0000003F  ' long name for August
+	LOCALE_SMONTHNAME9  = &H00000040  ' long name for September
+	LOCALE_SMONTHNAME10  = &H00000041  ' long name for October
+	LOCALE_SMONTHNAME11  = &H00000042  ' long name for November
+	LOCALE_SMONTHNAME12  = &H00000043  ' long name for December
+	LOCALE_SMONTHNAME13  = &H0000100E  ' long name for 13th month (if exists)
+	LOCALE_SABBREVMONTHNAME1  = &H00000044  ' abbreviated name for January
+	LOCALE_SABBREVMONTHNAME2  = &H00000045  ' abbreviated name for February
+	LOCALE_SABBREVMONTHNAME3  = &H00000046  ' abbreviated name for March
+	LOCALE_SABBREVMONTHNAME4  = &H00000047  ' abbreviated name for April
+	LOCALE_SABBREVMONTHNAME5  = &H00000048  ' abbreviated name for May
+	LOCALE_SABBREVMONTHNAME6  = &H00000049  ' abbreviated name for June
+	LOCALE_SABBREVMONTHNAME7  = &H0000004A  ' abbreviated name for July
+	LOCALE_SABBREVMONTHNAME8  = &H0000004B  ' abbreviated name for August
+	LOCALE_SABBREVMONTHNAME9  = &H0000004C  ' abbreviated name for September
+	LOCALE_SABBREVMONTHNAME10  = &H0000004D  ' abbreviated name for October
+	LOCALE_SABBREVMONTHNAME11  = &H0000004E  ' abbreviated name for November
+	LOCALE_SABBREVMONTHNAME12  = &H0000004F  ' abbreviated name for December
+	LOCALE_SABBREVMONTHNAME13  = &H0000100F  ' abbreviated name for 13th month (if exists)
+	LOCALE_SPOSITIVESIGN  = &H00000050  ' positive sign, eg ""
+	LOCALE_SNEGATIVESIGN  = &H00000051  ' negative sign, eg "-"
+	LOCALE_IPOSSIGNPOSN  = &H00000052  ' positive sign position (derived from INEGCURR)
+	LOCALE_INEGSIGNPOSN  = &H00000053  ' negative sign position (derived from INEGCURR)
+	LOCALE_IPOSSYMPRECEDES  = &H00000054  ' mon sym precedes pos amt (derived from ICURRENCY)
+	LOCALE_IPOSSEPBYSPACE  = &H00000055  ' mon sym sep by space from pos amt (derived from ICURRENCY)
+	LOCALE_INEGSYMPRECEDES  = &H00000056  ' mon sym precedes neg amt (derived from INEGCURR)
+	LOCALE_INEGSEPBYSPACE  = &H00000057  ' mon sym sep by space from neg amt (derived from INEGCURR)
+' #if(WINVER >= 0x0400)
+	LOCALE_FONTSIGNATURE  = &H00000058  ' font signature
+	LOCALE_SISO639LANGNAME  = &H00000059  ' ISO abbreviated language name, eg "en"
+	LOCALE_SISO3166CTRYNAME  = &H0000005A  ' ISO abbreviated country/region name, eg "US"
+' #endif /* WINVER >= 0x0400 */
+' #if(WINVER >= 0x0500)
+	LOCALE_IPAPERSIZE  = &H0000100A  ' 1 = letter, 5 = legal, 8 = a3, 9 = a4
+	LOCALE_SENGCURRNAME  = &H00001007  ' english name of currency, eg "Euro"
+	LOCALE_SNATIVECURRNAME  = &H00001008  ' native name of currency, eg "euro"
+	LOCALE_SYEARMONTH  = &H00001006  ' year month format string, eg "MM/yyyy"
+	LOCALE_SSORTNAME  = &H00001013  ' sort name, usually "", eg "Dictionary" in UI Language
+	LOCALE_IDIGITSUBSTITUTION  = &H00001014  ' 0 = context, 1 = none, 2 = national
+' #endif /* WINVER >= 0x0500 */
+' #if (WINVER >= 0x0600)
+	LOCALE_SNAME  = &H0000005c  ' locale name (ie: en-us)
+	LOCALE_SDURATION  = &H0000005d  ' time duration format, eg "hh:mm:ss"
+	LOCALE_SSHORTESTDAYNAME1  = &H00000060  ' Shortest day name for Monday
+	LOCALE_SSHORTESTDAYNAME2  = &H00000061  ' Shortest day name for Tuesday
+	LOCALE_SSHORTESTDAYNAME3  = &H00000062  ' Shortest day name for Wednesday
+	LOCALE_SSHORTESTDAYNAME4  = &H00000063  ' Shortest day name for Thursday
+	LOCALE_SSHORTESTDAYNAME5  = &H00000064  ' Shortest day name for Friday
+	LOCALE_SSHORTESTDAYNAME6  = &H00000065  ' Shortest day name for Saturday
+	LOCALE_SSHORTESTDAYNAME7  = &H00000066  ' Shortest day name for Sunday
+	LOCALE_SISO639LANGNAME2  = &H00000067  ' 3 character ISO abbreviated language name, eg "eng"
+	LOCALE_SISO3166CTRYNAME2  = &H00000068  ' 3 character ISO country/region name, eg "USA"
+	LOCALE_SNAN  = &H00000069  ' Not a Number, eg "NaN"
+	LOCALE_SPOSINFINITY  = &H0000006a  ' + Infinity, eg "infinity"
+	LOCALE_SNEGINFINITY  = &H0000006b  ' - Infinity, eg "-infinity"
+	LOCALE_SSCRIPTS  = &H0000006c  ' Typical scripts in the locale: ; delimited script codes, eg "Latn;"
+	LOCALE_SPARENT  = &H0000006d  ' Fallback name for resources, eg "en" for "en-US"
+	LOCALE_SCONSOLEFALLBACKNAME  = &H0000006e  ' Fallback name for within the console for Unicode Only locales, eg "en" for bn-IN
+' #endif //(WINVER >= 0x0600)
+' #if (WINVER >= _WIN32_WINNT_WIN7)
+	LOCALE_IREADINGLAYOUT  = &H00000070  ' Returns one of the following 4 reading layout values:
+'  0 - Left to right (eg en-US)
+'  1 - Right to left (eg arabic locales)
+'  2 - Vertical top to bottom with columns to the left and also left to right (ja-JP locales)
+'  3 - Vertical top to bottom with columns proceeding to the right
+	LOCALE_INEUTRAL  = &H00000071  ' Returns 0 for specific cultures, 1 for neutral cultures.
+	LOCALE_INEGATIVEPERCENT  = &H00000074  ' Returns 0-11 for the negative percent format
+	LOCALE_IPOSITIVEPERCENT  = &H00000075  ' Returns 0-3 for the positive percent formatIPOSITIVEPERCENT
+	LOCALE_SPERCENT  = &H00000076  ' Returns the percent symbol
+	LOCALE_SPERMILLE  = &H00000077  ' Returns the permille (U+2030) symbol
+	LOCALE_SMONTHDAY  = &H00000078  ' Returns the preferred month/day format
+	LOCALE_SSHORTTIME  = &H00000079  ' Returns the preferred short time format (ie: no seconds, just h:mm)
+	LOCALE_SOPENTYPELANGUAGETAG  = &H0000007a  ' Open type language tag, eg: "latn" or "dflt"
+	LOCALE_SSORTLOCALE  = &H0000007b  ' Name of locale to use for sorting/collation/casing behavior.
+' #endif //(WINVER >= _WIN32_WINNT_WIN7)
+' #if (WINVER >= _WIN32_WINNT_WIN8)
+	LOCALE_SRELATIVELONGDATE  = &H0000007c  ' Long date without year, day of week, month, date, eg: for lock screen
+' #endif
+' #if (WINVER >= _WIN32_WINNT_WINBLUE)
+	LOCALE_ICONSTRUCTEDLOCALE  = &H0000007d  ' Flags if this locale is constructed.  Avoid using.
+' #endif
+' #if (WINVER >= _WIN32_WINNT_WIN10)
+	LOCALE_SSHORTESTAM  = &H0000007e  ' Shortest AM designator, eg "A"
+	LOCALE_SSHORTESTPM  = &H0000007f  ' Shortest PM designator, eg "P"
+' #endif
+' #if (NTDDI_VERSION >= NTDDI_WIN10_MN)
+	LOCALE_IUSEUTF8LEGACYACP  = &H00000666  ' default ansi code page (use of Unicode is recommended instead)
+	LOCALE_IUSEUTF8LEGACYOEMCP  = &H00000999  ' default oem code page (use of Unicode is recommended instead)
+' #endif
+'  DEPRECATED LCTYPEs
+'  DEPRECATED LCTYPEs for Code Pages
+'  Applications are strongly encouraged to Use Unicode, such as UTF-16 (WCHAR type)
+'  or the CP_UTF8 Code Page.  Legacy encodings are unable to represent the full
+'  set of scripts/language and characters (& emoji!) available on modern computers.
+'  Use of legacy code pages (encodings) is a leading cause of data loss and corruption.
+	LOCALE_IDEFAULTCODEPAGE  = &H0000000B  ' default oem code page for locale (user may configure as UTF-8, use of Unicode is recommended instead)
+	LOCALE_IDEFAULTANSICODEPAGE  = &H00001004  ' default ansi code page for locale (user may configure as UTF-8, use of Unicode is recommended instead)
+	LOCALE_IDEFAULTMACCODEPAGE  = &H00001011  ' default mac code page for locale (user may configure as UTF-8, use of Unicode is recommended instead)
+' #if(WINVER >= 0x0500)
+	LOCALE_IDEFAULTEBCDICCODEPAGE  = &H00001012  ' default ebcdic code page for a locale (use of Unicode is recommended instead)
+' #endif /* WINVER >= 0x0500 */
+'  LCTYPEs using out-of-date concepts
+	LOCALE_ILANGUAGE  = &H00000001  ' DEPRECATED language id (LCID), LOCALE_SNAME preferred
+	LOCALE_SABBREVLANGNAME  = &H00000003  ' DEPRECATED arbitrary abbreviated language name, LOCALE_SISO639LANGNAME instead.
+	LOCALE_SABBREVCTRYNAME  = &H00000007  ' DEPRECATED arbitrary abbreviated country/region name, LOCALE_SISO3166CTRYNAME instead.
+	LOCALE_IGEOID  = &H0000005B  ' DEPRECATED geographical location id, use LOCALE_SISO3166CTRYNAME instead.
+	LOCALE_IDEFAULTLANGUAGE  = &H00000009  ' DEPRECATED default language id, deprecated
+	LOCALE_IDEFAULTCOUNTRY  = &H0000000A  ' DEPRECATED default country/region code, deprecated
+	LOCALE_IINTLCURRDIGITS  = &H0000001A  ' DEPRECATED, use LOCALE_ICURRDIGITS # intl monetary digits, eg 2 for $1.00
+'  Derived legacy date & time values for compatibility only.
+'  Please use the appropriate date or time pattern instead.
+'  These can be misleading, for example a locale configured as 12h24m52s could have a time separator of "h".
+	LOCALE_SDATE  = &H0000001D  ' DEPRECATED date separator (derived from LOCALE_SSHORTDATE, use that instead)
+	LOCALE_STIME  = &H0000001E  ' DEPRECATED time separator (derived from LOCALE_STIMEFORMAT, use that instead)
+	LOCALE_IDATE  = &H00000021  ' DEPRECATED short date format ordering (derived from LOCALE_SSHORTDATE, use that instead)
+	LOCALE_ILDATE  = &H00000022  ' DEPRECATED long date format ordering (derived from LOCALE_SLONGDATE, use that instead)
+	LOCALE_ITIME  = &H00000023  ' DEPRECATED time format specifier (derived from LOCALE_STIMEFORMAT, use that instead)
+	LOCALE_ITIMEMARKPOSN  = &H00001005  ' DEPRECATED time marker position (derived from LOCALE_STIMEFORMAT, use that instead)
+	LOCALE_ICENTURY  = &H00000024  ' DEPRECATED century format specifier (short date, LOCALE_SSHORTDATE is preferred)
+	LOCALE_ITLZERO  = &H00000025  ' DEPRECATED leading zeros in time field (derived from LOCALE_STIMEFORMAT, use that instead)
+	LOCALE_IDAYLZERO  = &H00000026  ' DEPRECATED leading zeros in day field (short date, LOCALE_SSHORTDATE is preferred)
+	LOCALE_IMONLZERO  = &H00000027  ' DEPRECATED leading zeros in month field (short date, LOCALE_SSHORTDATE is preferred)
+' #if(WINVER >= 0x0600)
+	LOCALE_SKEYBOARDSTOINSTALL  = &H0000005e  ' Used internally, see GetKeyboardLayoutName() function
+' #endif /* WINVER >= 0x0600 */
+'  LCTYPEs which have been renamed to enable more understandable source code.
+	LOCALE_SLANGUAGE  = LOCALE_SLOCALIZEDDISPLAYNAME  ' DEPRECATED as new name is more readable.
+	LOCALE_SLANGDISPLAYNAME  = LOCALE_SLOCALIZEDLANGUAGENAME  ' DEPRECATED as new name is more readable.
+	LOCALE_SENGLANGUAGE  = LOCALE_SENGLISHLANGUAGENAME  ' DEPRECATED as new name is more readable.
+	LOCALE_SNATIVELANGNAME  = LOCALE_SNATIVELANGUAGENAME  ' DEPRECATED as new name is more readable.
+	LOCALE_SCOUNTRY  = LOCALE_SLOCALIZEDCOUNTRYNAME  ' DEPRECATED as new name is more readable.
+	LOCALE_SENGCOUNTRY  = LOCALE_SENGLISHCOUNTRYNAME  ' DEPRECATED as new name is more readable.
+	LOCALE_SNATIVECTRYNAME  = LOCALE_SNATIVECOUNTRYNAME  ' DEPRECATED as new name is more readable.
+'  DEPRECATED: Use LOCALE_SISO3166CTRYNAME to query for a region identifier, LOCALE_ICOUNTRY is not a region identifier.
+	LOCALE_ICOUNTRY  = LOCALE_IDIALINGCODE  ' Deprecated synonym for LOCALE_IDIALINGCODE
+	LOCALE_S1159  = LOCALE_SAM  ' DEPRECATED: Please use LOCALE_SAM, which is more readable.
+	LOCALE_S2359  = LOCALE_SPM  ' DEPRECATED: Please use LOCALE_SPM, which is more readable.
+End Enum
+
+
 Public Enum GST_Class
     CT_CTYPE1 = &H1          ' ctype 1 information
     CT_CTYPE2 = &H2          ' ctype 2 information
@@ -3821,10 +4072,54 @@ Public Type PERFORMANCE_INFORMATION
 	ThreadCount As Long
 End Type
 
+Public Enum ThreadPoolFlags
+	WT_EXECUTEDEFAULT  = &H00000000
+	WT_EXECUTEINIOTHREAD  = &H00000001
+	WT_EXECUTEINUITHREAD  = &H00000002
+	WT_EXECUTEINWAITTHREAD  = &H00000004
+	WT_EXECUTEONLYONCE  = &H00000008
+	WT_EXECUTEINTIMERTHREAD  = &H00000020
+	WT_EXECUTELONGFUNCTION  = &H00000010
+	WT_EXECUTEINPERSISTENTIOTHREAD  = &H00000040
+	WT_EXECUTEINPERSISTENTTHREAD  = &H00000080
+	WT_TRANSFER_IMPERSONATION  = &H00000100
+End Enum
+
+Public Enum ErrorModes
+	SEM_FAILCRITICALERRORS  = &H0001
+	SEM_NOGPFAULTERRORBOX = &H0002
+	SEM_NOALIGNMENTFAULTEXCEPT  = &H0004
+	SEM_NOOPENFILEERRORBOX = &H8000&
+End Enum
+
+Public Enum LocaleIndMappingFlags
+	MAP_FOLDCZONE  = &H00000010  ' fold compatibility zone chars
+	MAP_PRECOMPOSED  = &H00000020  ' convert to precomposed chars
+	MAP_COMPOSITE  = &H00000040  ' convert to composite chars
+	MAP_FOLDDIGITS  = &H00000080  ' all digits to ASCII 0-9
+	MAP_EXPAND_LIGATURES  = &H00002000  ' expand all ligatures
+End Enum
+
 Public DeclareWide PtrSafe Function DeviceIoControl Lib "kernel32" (ByVal hDevice As LongPtr, ByVal dwIoControlCode As Long, lpInBuffer As Any, ByVal nInBufferSize As Long, lpOutBuffer As Any, ByVal nOutBufferSize As Long, lpBytesReturned As Long, lpOverlapped As OVERLAPPED) As BOOL
+
+Public DeclareWide PtrSafe Function SetErrorMode Lib "kernel32" (ByVal uMode As ErrorModes) As ErrorModes
+Public DeclareWide PtrSafe Function GetErrorMode Lib "kernel32" () As ErrorModes
+Public DeclareWide PtrSafe Function SetThreadErrorMode Lib "kernel32" (ByVal uMode As ErrorModes) As ErrorModes
+Public DeclareWide PtrSafe Function GetThreadErrorMode Lib "kernel32" () As ErrorModes
+Public DeclareWide PtrSafe Sub SetLastError Lib "kernel32" (ByVal dwErrorCode As Long)
+Public Declare PtrSafe Function GetLastError Lib "kernel32" () As Long
+Public DeclareWide PtrSafe Sub FatalAppExitW Lib "kernel32" (ByVal uAction As Long, ByVal lpMessageText As LongPtr)
+Public DeclareWide PtrSafe Sub FatalAppExit Lib "kernel32" Alias "FatalAppExitW" (ByVal uAction As Long, ByVal lpMessageText As String)
 
 Public DeclareWide PtrSafe Sub GetSystemInfo Lib "kernel32" (lpSystemInfo As SYSTEM_INFO)
 Public DeclareWide PtrSafe Function GetPerformanceInfo Lib "kernel32" (pPerformanceInformation As PERFORMANCE_INFORMATION, ByVal cb As Long) As BOOL
+Public DeclareWide PtrSafe Function GetSystemDefaultLangID Lib "kernel32" () As Integer
+Public DeclareWide PtrSafe Function GetUserDefaultLangID Lib "kernel32" () As Integer
+Public DeclareWide PtrSafe Function GetUserDefaultUILanguage Lib "kernel32" () As Integer
+Public DeclareWide PtrSafe Function GetLocaleInfo Lib "kernel32" Alias "GetLocaleInfoW" (ByVal LCID As DefaultLocales, ByVal LCType As LCTypes, ByVal lpLCData As String, ByVal cchData As Long) As Long
+Public DeclareWide PtrSafe Function GetLocaleInfoW Lib "kernel32" (ByVal LCID As DefaultLocales, ByVal LCType As LCTypes, ByVal lpLCData As LongPtr, ByVal cchData As Long) As Long
+Public DeclareWide PtrSafe Function GetLocaleInfoEx Lib "kernel32" (ByVal LocaleName As String, ByVal LCType As LCTypes, ByVal lpLCData As String, ByVal cchData As Long) As Long
+
 
 Public Declare PtrSafe Function CreateActCtxA Lib "kernel32" (pActCtx As ACTCTXA) As LongPtr
 Public DeclareWide PtrSafe Function CreateActCtxW Lib "kernel32" (pActCtx As ACTCTXW) As LongPtr
@@ -3902,6 +4197,8 @@ Public Declare PtrSafe Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Dest
 Public Declare PtrSafe Sub MoveMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As LongPtr)
 Public Declare PtrSafe Sub ZeroMemory Lib "kernel32" Alias "RtlZeroMemory" (Destination As Any, ByVal Length As LongPtr)
 Public Declare PtrSafe Sub FillMemory Lib "kernel32" Alias "RtlFillMemory" (Destination As Any, ByVal Length As LongPtr, ByVal Fill As Long)
+
+
 Public Declare PtrSafe Sub InitializeCriticalSection Lib "kernel32" (lpCriticalSection As CRITICAL_SECTION)
 Public Declare PtrSafe Function InitializeCriticalSectionAndSpinCount Lib "kernel32" (lpCriticalSection As CRITICAL_SECTION, ByVal dwSpinCount As Long) As BOOL
 Public Declare PtrSafe Function InitializeCriticalSectionEx Lib "kernel32" (lpCriticalSection As CRITICAL_SECTION, ByVal dwSpinCount As Long, ByVal Flags As InitCriticalSectExFlags) As BOOL
@@ -3987,6 +4284,13 @@ Public DeclareWide PtrSafe Function CreateMailslotW Lib "kernel32" (ByVal lpName
 Public DeclareWide PtrSafe Function CreateMailslot Lib "kernel32" Alias "CreateMailslotW" (ByVal lpName As LongPtr, ByVal nMaxMessageSize As Long, ByVal lReadTimeout As Long, lpSecurityAttributes As SECURITY_ATTRIBUTES) As LongPtr
 Public DeclareWide PtrSafe Function GetMailslotInfo Lib "kernel32" (ByVal hMailslot As LongPtr, Optional lpMaxMessageSize As Long, Optional lpNextSize As Long, Optional lpMessageCount As Long, Optional lpReadTimeout As Long) As BOOL
 Public DeclareWide PtrSafe Function SetMailslotInfo Lib "kernel32" (ByVal hMailslot As LongPtr, ByVal lpReadTimeout As Long) As BOOL
+Public DeclareWide PtrSafe Function CreateTimerQueue Lib "kernel32" () As LongPtr
+Public DeclareWide PtrSafe Function CreateTimerQueueTimer Lib "kernel32" (phNewTimer As LongPtr, ByVal TimerQueue As LongPtr, ByVal Callback As LongPtr, Parameter As Any, ByVal DueTime As Long, ByVal Period As Long, ByVal Flags As ThreadPoolFlags) As BOOL
+Public DeclareWide PtrSafe Function ChangeTimerQueueTimer Lib "kernel32" (ByVal TimerQueue As LongPtr, ByVal hTimer As LongPtr, ByVal DueTime As Long, ByVal Period As Long) As BOOL
+Public DeclareWide PtrSafe Function DeleteTimerQueue Lib "kernel32" (ByVal TimerQueue As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function DeleteTimerQueueEx Lib "kernel32" (ByVal TimerQueue As LongPtr, Optional ByVal CompletionEvent As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function DeleteTimerQueueTimer Lib "kernel32" (ByVal TimerQueue As LongPtr, ByVal hTimer As LongPtr, Optional ByVal CompletionEvent As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function QueueUserWorkItem Lib "kernel32" (ByVal pfnStart As LongPtr, Context As Any, ByVal Flags As ThreadPoolFlags) As BOOL
 
 
 [Description ("Change the protection flags of a memory address") ] Public Declare PtrSafe Function VirtualProtect Lib "kernel32" (ByRef lpAddress As Any, ByVal dwSize As LongPtr, ByVal flNewProtect As MemProtectFlags, ByRef lpflOldProtect As MemProtectFlags) As Long
@@ -4014,9 +4318,10 @@ Public Declare PtrSafe Function FileTimeToLocalFileTime Lib "kernel32" (lpFileTi
 Public Declare PtrSafe Function FileTimeToSystemTime Lib "kernel32" (lpFileTime As FILETIME, lpSystemTime As SYSTEMTIME) As Long
 Public Declare PtrSafe Function SystemTimeToFileTime Lib "kernel32" (lpSystemTime As SYSTEMTIME, lpFileTime As FILETIME) As Long
 Public Declare PtrSafe Function lstrcpyA Lib "kernel32" (lpString1 As Any, lpString2 As Any) As LongPtr
+Public DeclareWide PtrSafe Function lstrcpy Lib "kernel32" Alias "lstrcpyW" (ByVal lpString1 As String, ByVal lpString2 As String) As LongPtr
+Public Declare PtrSafe Function lstrcpyW Lib "kernel32" (ByVal lpString1 As LongPtr, ByVal lpString2 As LongPtr) As LongPtr
 Public Declare PtrSafe Function lstrlenA Lib "kernel32" (lpString As Any) As Long
 Public Declare PtrSafe Function lstrlenW Lib "kernel32" (lpString As Any) As Long
-Public Declare PtrSafe Function GetLastError Lib "kernel32" () As Long
 Public Declare PtrSafe Function GetShortPathNameA Lib "kernel32" (ByVal lpszLongPath As String, ByVal lpszShortPath As String, ByVal cchBuffer As Long) As Long
 Public DeclareWide PtrSafe Function GetShortPathNameW Lib "kernel32" (ByVal lpszLongPath As LongPtr, ByVal lpszShortPath As LongPtr, ByVal cchBuffer As Long) As Long
 Public DeclareWide PtrSafe Function GetShortPathName Lib "kernel32" Alias "GetShortPathNameW" (ByVal lpszLongPath As String, ByVal lpszShortPath As String, ByVal cchBuffer As Long) As Long
@@ -4370,11 +4675,14 @@ Public DeclareWide PtrSafe Function CreateDirectoryEx Lib "kernel32" Alias "Crea
 Public Declare PtrSafe Function Wow64DisableWow64FsRedirection Lib "kernel32" (pOldVal As LongPtr) As Long
 Public Declare PtrSafe Function Wow64RevertWow64FsRedirection Lib "kernel32" (pOldVal As LongPtr) As Long
 Public Declare PtrSafe Function CompareFileTime Lib "kernel32" (lpFileTime1 As FILETIME, lpFileTime2 As FILETIME) As Long
-Public DeclareWide PtrSafe Function CompareStringEx Lib "kernel32" (ByVal lpLocaleName As String, ByVal dwCmpFlags As COMPARE_FLAGS, ByVal lpString1 As String, ByVal cchCount1 As Long, ByVal lpString2 As String, ByVal cchCount2 As Long, ByVal lpVersionInformation As LongPtr, ByVal lpReserved As LongPtr, ByVal lParam As LongPtr) As CSTR_RETURNS
 Public DeclareWide PtrSafe Function SetVolumeLabelA Lib "kernel32" (ByVal lpRootPathName As String, ByVal lpVolumeName As String) As Long
 Public DeclareWide PtrSafe Function SetVolumeLabelW Lib "kernel32" (ByVal lpRootPathName As LongPtr, ByVal lpVolumeName As LongPtr) As Long
 Public DeclareWide PtrSafe Function SetVolumeLabel Lib "kernel32" Alias "SetVolumeLabelW" (ByVal lpRootPathName As String, ByVal lpVolumeName As String) As Long
 Public Declare PtrSafe Function MulDiv Lib "kernel32" (ByVal nNumber As Long, ByVal nNumerator As Long, ByVal nDenominator As Long) As Long
+
+Public DeclareWide PtrSafe Function CompareStringW Lib "kernel32" (ByVal Locale As DefaultLocales, ByVal dwCmpFlags As COMPARE_FLAGS, ByVal lpString1 As LongPtr, ByVal cchCount1 As Long, ByVal lpString2 As LongPtr, ByVal cchCount2 As Long) As CSTR_RETURNS
+Public DeclareWide PtrSafe Function CompareString Lib "kernel32" Alias "CompareStringW" (ByVal Locale As DefaultLocales, ByVal dwCmpFlags As COMPARE_FLAGS, ByVal lpString1 As String, ByVal cchCount1 As Long, ByVal lpString2 As String, ByVal cchCount2 As Long) As CSTR_RETURNS
+Public DeclareWide PtrSafe Function CompareStringEx Lib "kernel32" (ByVal lpLocaleName As String, ByVal dwCmpFlags As COMPARE_FLAGS, ByVal lpString1 As String, ByVal cchCount1 As Long, ByVal lpString2 As String, ByVal cchCount2 As Long, ByVal lpVersionInformation As LongPtr, ByVal lpReserved As LongPtr, ByVal lParam As LongPtr) As CSTR_RETURNS
 Public Declare PtrSafe Function MultiByteToWideChar Lib "kernel32" (ByVal CodePage As CodePageDefaults, ByVal dwFlags As MBWC_Flags, ByVal lpMultiByteStr As LongPtr, ByVal cchMultiByte As Long, ByVal lpWideCharStr As LongPtr, ByVal cchWideChar As Long) As Long
 Public Declare PtrSafe Function WideCharToMultiByte Lib "kernel32" (ByVal CodePage As CodePageDefaults, ByVal dwFlags As WCMB_Flags, ByVal lpWideCharStr As LongPtr, ByVal cchWideChar As Long, ByVal lpMultiByteStr As LongPtr, ByVal cbMultiByte As Long, Optional lpDefaultChar As LongPtr, Optional lpUsedDefaultChar As BOOL) As Long
 Public Declare PtrSafe Function GetStringTypeA Lib "kernel32" (ByVal dwInfoType As GST_Class, ByVal lpSrcStr As String, ByVal cchSrc As Long, lpCharType As Integer) As BOOL
@@ -4383,6 +4691,8 @@ Public DeclareWide PtrSafe Function GetStringType Lib "kernel32" Alias "GetStrin
 Public Declare PtrSafe Function GetStringTypeExA Lib "kernel32" (ByVal lcid As Long, ByVal dwInfoType As GST_Class, ByVal lpSrcStr As String, ByVal cchSrc As Long, lpCharType As Integer) As BOOL
 Public DeclareWide PtrSafe Function GetStringTypeExW Lib "kernel32" (ByVal lcid As Long, ByVal dwInfoType As GST_Class, ByVal lpSrcStr As LongPtr, ByVal cchSrc As Long, lpCharType As Integer) As BOOL
 Public DeclareWide PtrSafe Function GetStringTypeEx Lib "kernel32" Alias "GetStringTypeW" (ByVal lcid As Long, ByVal dwInfoType As GST_Class, ByVal lpSrcStr As String, ByVal cchSrc As Long, lpCharType As Integer) As BOOL
+Public DeclareWide PtrSafe Function FoldStringW Lib "kernel32" (ByVal dwMapFlags As LocaleIndMappingFlags, ByVal lpSrcStr As LongPtr, ByVal cchSrc As Long, ByVal lpDestStr As LongPtr, ByVal cchDest As Long) As Long
+Public DeclareWide PtrSafe Function FoldString Lib "kernel32" Alias "FoldStringW" (ByVal dwMapFlags As LocaleIndMappingFlags, ByVal lpSrcStr As String, ByVal cchSrc As Long, ByVal lpDestStr As String, ByVal cchDest As Long) As Long
 
 Public Declare PtrSafe Function QueryDosDeviceA Lib "kernel32" (ByVal lpDeviceName As String, ByVal lpTargetPath As String, ByVal ucchMax As Long) As Long
 Public DeclareWide PtrSafe Function QueryDosDeviceW Lib "kernel32" (ByVal lpDeviceName As LongPtr, ByVal lpTargetPath As LongPtr, ByVal ucchMax As Long) As Long
@@ -5836,9 +6146,9 @@ Public Enum VARCMP
     VARCMP_GT = 2                                        ' &H00000002&
     VARCMP_NULL = 3                                      ' &H00000003&
 End Enum
-    
+
         
-Public Declare PtrSafe Function DispCallFunc Lib "oleaut32" (ByRef pvInstance As Any, ByVal oVft As LongPtr, ByVal cc As Integer, ByVal vtReturn As Integer, ByVal cActuals As Long, ByRef prgvt As Any, ByRef prgpvarg As Any, ByRef pvargResult As Any) As Long
+Public Declare PtrSafe Function DispCallFunc Lib "oleaut32" (ByRef pvInstance As Any, ByVal oVft As LongPtr, ByVal cc As CALLCONV, ByVal vtReturn As Integer, ByVal cActuals As Long, ByRef prgvt As Any, ByRef prgpvarg As Any, ByRef pvargResult As Any) As Long
 Public Declare PtrSafe Function SystemTimeToVariantTime Lib "oleaut32" (ByRef lpSystemTime As SYSTEMTIME, ByRef pvtime As Double) As Long
 Public Declare PtrSafe Function VariantTimeToSystemTime Lib "oleaut32" (ByVal vtime As Double, ByRef lpSystemTime As SYSTEMTIME) As Long
 Public Declare PtrSafe Function DosDateTimeToVariantTime Lib "oleaut32" (ByVal wDosDate As Integer, ByVal wDosTime As Integer, ByRef pvtime As Double) As Long
@@ -5996,6 +6306,8 @@ Public Enum DT_Flags
     DT_MODIFYSTRING = &H10000
     DT_RTLREADING = &H20000
     DT_WORD_ELLIPSIS = &H40000
+    DT_HIDEPREFIX = &H00100000
+    DT_PREFIXONLY = &H00200000
 End Enum
 
 Public Type WINDOWPOS
@@ -6943,8 +7255,8 @@ Public Declare PtrSafe Function GetPropA Lib "user32" (ByVal hWnd As LongPtr, By
 Public DeclareWide PtrSafe Function GetPropW Lib "user32" (ByVal hWnd As LongPtr, ByVal lpString As LongPtr) As LongPtr
 Public DeclareWide PtrSafe Function GetProp Lib "user32" Alias "GetPropW" (ByVal hWnd As LongPtr, ByVal lpString As String) As LongPtr
 Public Declare PtrSafe Function RemovePropA Lib "user32" (ByVal hWnd As LongPtr, ByVal lpString As String) As LongPtr
-Public DeclareWide PtrSafe Function RemovePropW Lib "user32" (ByVal hWnd As LongPtr, ByVal lpString As LongPtr, Optional ByVal hData As LongPtr) As BOOL
-Public DeclareWide PtrSafe Function RemoveProp Lib "user32" Alias "RemovePropW" (ByVal hWnd As LongPtr, ByVal lpString As String, Optional ByVal hData As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function RemovePropW Lib "user32" (ByVal hWnd As LongPtr, ByVal lpString As LongPtr) As LongPtr
+Public DeclareWide PtrSafe Function RemoveProp Lib "user32" Alias "RemovePropW" (ByVal hWnd As LongPtr, ByVal lpString As String) As LongPtr
 Public Declare PtrSafe Function EnumPropsA Lib "user32" (ByVal hWnd As LongPtr, ByVal lpEnumFunc As LongPtr) As Long
 Public DeclareWide PtrSafe Function EnumPropsW Lib "user32" (ByVal hWnd As LongPtr, ByVal lpEnumFunc As LongPtr) As Long
 Public DeclareWide PtrSafe Function EnumProps Lib "user32" Alias "EnumPropsW" (ByVal hWnd As LongPtr, ByVal lpEnumFunc As LongPtr) As Long
@@ -7104,13 +7416,92 @@ Public DeclareWide PtrSafe Function DrawEdge Lib "user32" (ByVal hDC As LongPtr,
 Public DeclareWide PtrSafe Function DrawFocusRect Lib "user32" (ByVal hdc As LongPtr, lpRect As RECT) As BOOL
 Public DeclareWide PtrSafe Function DrawAnimatedRects Lib "user32" (ByVal hdc As LongPtr, ByVal idAni As AnimationTypeIDs, lprcFrom As RECT, lprcTo As RECT) As BOOL
 Public Declare PtrSafe Function DrawStateA Lib "user32" (ByVal hdc As LongPtr, ByVal hbrFore As LongPtr, ByVal qfnCallBack As LongPtr, ByVal lData As LongPtr, ByVal wData As LongPtr, ByVal x As Long, ByVal y As Long, ByVal cx As Long, ByVal cy As Long, [TypeHint(DrawStateStates, DrawStateImageTypes) ] ByVal uFlags As Long) As BOOL
-Public DeclareWide PtrSafe Function DrawStateW Lib "user32" (ByVal hdc As LongPtr, ByVal hbrFore As LongPtr, ByVal qfnCallBack As LongPtr, ByVal lData As LongPtr, ByVal wData As LongPtr, ByVal x As Long, ByVal y As Long, ByVal cx As Long, ByVal cy As Long, [TypeHint (DrawStateStates, DrawStateImageTypes) ] ByVal uFlags As Long) As BOOL
-Public DeclareWide PtrSafe Function DrawState Lib "user32" Alias "DrawStateW" (ByVal hdc As LongPtr, ByVal hbrFore As LongPtr, ByVal qfnCallBack As LongPtr, ByVal lData As LongPtr, ByVal wData As LongPtr, ByVal x As Long, ByVal y As Long, ByVal cx As Long, ByVal cy As Long, [TypeHint(DrawStateStates, DrawStateImageTypes)] ByVal uFlags As Long) As BOOL
+Public DeclareWide PtrSafe Function DrawStateW Lib "user32" (ByVal hdc As LongPtr, ByVal hbrFore As LongPtr, ByVal qfnCallBack As LongPtr, ByVal lData As LongPtr, ByVal wData As LongPtr, ByVal x As Long, ByVal y As Long, ByVal cx As Long, ByVal cy As Long, [ TypeHint (DrawStateStates, DrawStateImageTypes) ] ByVal uFlags As Long) As BOOL
+Public DeclareWide PtrSafe Function DrawState Lib "user32" Alias "DrawStateW" (ByVal hdc As LongPtr, ByVal hbrFore As LongPtr, ByVal qfnCallBack As LongPtr, ByVal lData As LongPtr, ByVal wData As LongPtr, ByVal x As Long, ByVal y As Long, ByVal cx As Long, ByVal cy As Long, [ TypeHint (DrawStateStates, DrawStateImageTypes) ] ByVal uFlags As Long) As BOOL
 Public Declare PtrSafe Function DrawCaption Lib "user32" (ByVal hWnd As LongPtr, ByVal hDC As LongPtr, lprect As RECT, ByVal flags As DrawCaptionFlags) As BOOL
 Public DeclareWide PtrSafe Function DrawFrameControl Lib "user32" (ByVal hdc As LongPtr, lprc As RECT, ByVal type As DrawFrameControlTypes, ByVal state As DrawFrameControlStates) As BOOL
 
 Public DeclareWide PtrSafe Function PaintDesktop Lib "user32" (ByVal hdc As LongPtr) As BOOL
 
+Public DeclareWide PtrSafe Function RegisterPointerDeviceNotifications Lib "user32" (ByVal window As LongPtr, ByVal notifyRange As BOOL) As BOOL
+Public DeclareWide PtrSafe Function RegisterTouchHitTestingWindow Lib "user32" (ByVal hWnd As LongPtr, ByVal value As TouchHitTestingValue) As BOOL
+Public DeclareWide PtrSafe Function EvaluateProximityToRect Lib "user32" (controlBoundingBox As RECT, pHitTestingInput As TOUCH_HIT_TESTING_INPUT, pProximityEval As TOUCH_HIT_TESTING_PROXIMITY_EVALUATION) As BOOL
+Public Enum TouchHitTestingValue
+	TOUCH_HIT_TESTING_DEFAULT  = &H0
+	TOUCH_HIT_TESTING_CLIENT  = &H1
+	TOUCH_HIT_TESTING_NONE = &H2
+End Enum
+
+Public Type TOUCH_HIT_TESTING_INPUT
+	pointerId As Long
+	point As POINT
+	boundingBox As RECT
+	nonOccludedBoundingBox As RECT
+	orientation As Long
+End Type
+Public Type TOUCH_HIT_TESTING_PROXIMITY_EVALUATION
+	score As Integer
+	adjustedPoint As POINT
+End Type
+
+
+
+
+Public Enum WINDOWCOMPOSITIONATTRIB
+	WCA_UNDEFINED=0
+	WCA_NCRENDERING_ENABLED=1
+	WCA_NCRENDERING_POLICY=2
+	WCA_TRANSITIONS_FORCEDISABLED=3
+	WCA_ALLOW_NCPAINT=4
+	WCA_CAPTION_BUTTON_BOUNDS=5
+	WCA_NONCLIENT_RTL_LAYOUT=6
+	WCA_FORCE_ICONIC_REPRESENTATION=7
+	WCA_EXTENDED_FRAME_BOUNDS=8
+	WCA_HAS_ICONIC_BITMAP=9
+	WCA_THEME_ATTRIBUTES=10
+	WCA_NCRENDERING_EXILED=11
+	WCA_NCADORNMENTINFO=12
+	WCA_EXCLUDED_FROM_LIVEPREVIEW=13
+	WCA_VIDEO_OVERLAY_ACTIVE=14
+	WCA_FORCE_ACTIVEWINDOW_APPEARANCE=15
+	WCA_DISALLOW_PEEK=16
+	WCA_CLOAK=17
+	WCA_CLOAKED=18
+	WCA_ACCENT_POLICY=19
+	WCA_FREEZE_REPRESENTATION=20
+	WCA_EVER_UNCLOAKED=21
+	WCA_VISUAL_OWNER=22
+	WCA_HOLOGRAPHIC=23
+	WCA_EXCLUDED_FROM_DDA=24
+	WCA_PASSIVEUPDATEMODE=25
+	WCA_USEDARKMODECOLORS=26
+	WCA_CORNER_STYLE=27
+	WCA_PART_COLOR=28
+	WCA_DISABLE_MOVESIZE_FEEDBACK=29
+	WCA_LAST=30
+End Enum
+Public Type WINDOWCOMPOSITIONATTRIBDATA
+	Attrib As WINDOWCOMPOSITIONATTRIB
+	pvData As LongPtr
+	cbData As LongPtr
+End Type
+Public Enum ACCENT_STATE
+	ACCENT_DISABLED=0
+	ACCENT_ENABLE_GRADIENT=1
+	ACCENT_ENABLE_TRANSPARENTGRADIENT=2
+	ACCENT_ENABLE_BLURBEHIND=3
+	ACCENT_ENABLE_ACRYLICBLURBEHIND=4 ' RS4 1803
+	ACCENT_ENABLE_HOSTBACKDROP=5 ' RS5 1809
+	ACCENT_INVALID_STATE=6
+End Enum
+Public Type ACCENT_POLICY
+	AccentState As ACCENT_STATE
+	AccentFlags As Long
+	GradientColor As Long
+	AnimationId As Long
+End Type
+
+Public Declare PtrSafe Function SetWindowCompositionAttribute Lib "user32" (ByVal hWnd As LongPtr, wca As WINDOWCOMPOSITIONATTRIBDATA) As Long
 Public Declare PtrSafe Function TrackMouseEvent Lib "user32" (lpEventTrack As TRACKMOUSEEVENT) As BOOL
 Public Declare PtrSafe Sub keybd_event Lib "user32" ([TypeHint(VirtualKeyCodes)] ByVal bVk As Byte, ByVal bScan As Byte, ByVal dwFlags As KeybdEventFlags, ByVal dwExtraInfo As LongPtr)
 Public Declare PtrSafe Sub mouse_event Lib "user32" (ByVal dwFlags As MouseEventFlags, ByVal dx As Long, ByVal dy As Long, ByVal dwData As Long, ByVal dwExtraInfo As LongPtr)
@@ -7118,6 +7509,7 @@ Public Declare PtrSafe Function SendInput Lib "user32" (ByVal cInputs As Long, p
 Public Declare PtrSafe Function ClientToScreen Lib "user32" (ByVal hWnd As LongPtr, lpPoint As Any) As Long  ' lpPoint As POINTAPI) As Long
 Public Declare PtrSafe Function ScreenToClient Lib "user32" (ByVal hWnd As LongPtr, lpPoint As Any) As Long  ' lpPoint As POINT) As Long
 Public Declare PtrSafe Function SetCapture Lib "user32" (ByVal hwnd As LongPtr) As LongPtr
+Public Declare PtrSafe Function GetCapture Lib "user32" () As LongPtr
 Public Declare PtrSafe Function ReleaseCapture Lib "user32" () As Long
 Public Declare PtrSafe Function GetDC Lib "user32" (ByVal hWnd As LongPtr) As LongPtr
 Public Declare PtrSafe Function GetDCEx Lib "user32" (ByVal hWnd As LongPtr, ByVal hrgnClip As LongPtr, ByVal flags As GetDcExFlags) As LongPtr
@@ -7144,10 +7536,12 @@ Public Declare PtrSafe Function EnableWindow Lib "user32" (ByVal hWnd As LongPtr
 Public Declare PtrSafe Function IsWindowEnabled Lib "user32" (ByVal hWnd As LongPtr) As BOOL
 Public Declare PtrSafe Function SetActiveWindow Lib "user32" (ByVal hwnd As LongPtr) As LongPtr
 Public Declare PtrSafe Function GetActiveWindow Lib "user32" () As LongPtr
+Public Declare PtrSafe Function GetFocus Lib "user32" () As LongPtr
+Public Declare PtrSafe Function GetFocusAPI Lib "user32" Alias "GetFocus" () As LongPtr
 Public Declare PtrSafe Function SetFocusAPI Lib "user32" Alias "SetFocus" (ByVal hwnd As LongPtr) As LongPtr
 [Description ("pt is a ByVal As POINT; copy a POINT into a LongLong. We use LongLong instead of x,y for 64bit compatibility without seperate definitions.") ]
 Public Declare PtrSafe Function ChildWindowFromPoint Lib "user32" (ByVal hwnd As LongPtr, ByVal pt As LongLong) As LongPtr
-[Description("pt is a ByVal As POINT; copy a POINT into a LongLong. We use LongLong instead of x,y for 64bit compatibility without seperate definitions.") ]
+[Description ("pt is a ByVal As POINT; copy a POINT into a LongLong. We use LongLong instead of x,y for 64bit compatibility without seperate definitions.") ]
 Public Declare PtrSafe Function ChildWindowFromPointEx Lib "user32" (ByVal hwnd As LongPtr, ByVal pt As LongLong, ByVal flags As ChildWindowFromPointFlags) As LongPtr
 Public Declare PtrSafe Function SetWindowTextA Lib "user32" (ByVal hWnd As LongPtr, ByVal lpString As String) As Long
 Public DeclareWide PtrSafe Function SetWindowTextW Lib "user32" (ByVal hWnd As LongPtr, ByVal lpString As LongPtr) As Long
@@ -7507,9 +7901,9 @@ Public DeclareWide PtrSafe Function GetMonitorInfo Lib "user32" Alias "GetMonito
 Public DeclareWide PtrSafe Function OpenClipboard Lib "user32" (ByVal hWnd As LongPtr) As Long
 Public DeclareWide PtrSafe Function EmptyClipboard Lib "user32" () As BOOL
 Public DeclareWide PtrSafe Function GetClipboardData Lib "user32" (ByVal wFormat As StdClipboardFormats) As Long
+Public Declare PtrSafe Function SetClipboardData Lib "user32" (ByVal wFormat As StdClipboardFormats, Optional ByVal hMem As LongPtr) As LongPtr
 Public DeclareWide PtrSafe Function IsClipboardFormatAvailable Lib "user32" (ByVal wFormat As StdClipboardFormats) As BOOL
 Public Declare PtrSafe Function CloseClipboard Lib "user32" () As Long
-Public Declare PtrSafe Function SetClipboardData Lib "user32" (ByVal wFormat As StdClipboardFormats, Optional ByVal hMem As LongPtr) As LongPtr
 Public DeclareWide PtrSafe Function RegisterClipboardFormat Lib "user32" Alias "RegisterClipboardFormatW" (ByVal lpszFormat As String) As Long
 Public Declare PtrSafe Function RegisterClipboardFormatW Lib "user32" (ByVal lpszFormat As LongPtr) As Long
 Public Declare PtrSafe Function RegisterClipboardFormatA Lib "user32" (ByVal lpszFormat As String) As Long
@@ -12292,6 +12686,43 @@ Public Type LOGPEN
     lopnColor As Long
 End Type
 
+Public Type BITMAP
+    BMType As Long
+    BMWidth As Long
+    BMHeight As Long
+    BMWidthBytes As Long
+    BMPlanes As Integer
+    BMBitsPixel As Integer
+    BMBits As LongPtr
+End Type
+
+Public Enum LayoutOrientationOptions
+	LAYOUT_RTL  = &H00000001  ' Right to left
+	LAYOUT_BTT  = &H00000002  ' Bottom to top
+	LAYOUT_VBH  = &H00000004  ' Vertical before horizontal
+	LAYOUT_ORIENTATIONMASK  = (LAYOUT_RTL Or LAYOUT_BTT Or LAYOUT_VBH)
+	LAYOUT_BITMAPORIENTATIONPRESERVED  = &H00000008
+End Enum
+
+Public Enum MappingModes
+	MM_TEXT  = 1
+	MM_LOMETRIC  = 2
+	MM_HIMETRIC  = 3
+	MM_LOENGLISH  = 4
+	MM_HIENGLISH  = 5
+	MM_TWIPS  = 6
+	MM_ISOTROPIC  = 7
+	MM_ANISOTROPIC  = 8
+End Enum
+
+
+
+Public Declare PtrSafe Function GetLayout Lib "gdi32" (ByVal hDC As LongPtr) As LayoutOrientationOptions
+Public Declare PtrSafe Function SetLayout Lib "gdi32" (ByVal hDC As LongPtr, ByVal l As LayoutOrientationOptions) As LayoutOrientationOptions
+Public Declare PtrSafe Function SetMapMode Lib "gdi32" (ByVal hDC As LongPtr, ByVal iMode As MappingModes) As MappingModes
+Public Declare PtrSafe Function GetMapMode Lib "gdi32" (ByVal hDC As LongPtr) As MappingModes
+Public Declare PtrSafe Function SetMapperFlags Lib "gdi32" (ByVal hDC As LongPtr, ByVal flags As Long) As Long
+
 Public Declare PtrSafe Function GetStockObject Lib "gdi32.dll" (ByVal nIndex As StockObjects) As LongPtr
 Public Declare PtrSafe Function SelectObject Lib "gdi32" (ByVal hDC As LongPtr, ByVal hObject As LongPtr) As LongPtr
 Public Declare PtrSafe Function SetBkColor Lib "gdi32" (ByVal hDC As LongPtr, ByVal crColor As Long) As Long
@@ -12315,6 +12746,7 @@ Public Declare PtrSafe Function PatBlt Lib "gdi32" (ByVal hdc As LongPtr, ByVal 
 Public Declare PtrSafe Function MaskBlt Lib "gdi32" (ByVal hdc As LongPtr, ByVal xDest As Long, ByVal yDest As Long, ByVal nWidth As Long, ByVal nHeight As Long, ByVal hdcSrc As LongPtr, ByVal xSrc As Long, ByVal ySrc As Long, ByVal wSrc As Long, ByVal hSrc As Long, ByVal dwRop As RASTEROPFLAGS) As BOOL
 Public Declare PtrSafe Function PlgBlt Lib "gdi32" (ByVal hdc As LongPtr, lpPoint As POINT, ByVal hdcSrc As LongPtr, ByVal xSrc As Long, ByVal ySrc As Long, ByVal nWidth As Long, ByVal nHeight As Long, ByVal hbmMask As LongPtr, ByVal xMask As Long, ByVal yMask As Long) As BOOL
 Public Declare PtrSafe Function StretchBlt Lib "gdi32" (ByVal hdcDest As LongPtr, ByVal xDest As Long, ByVal yDest As Long, ByVal wDest As Long, ByVal hDest As Long, ByVal hdcSrc As LongPtr, ByVal xSrc As Long, ByVal ySrc As Long, ByVal wSrc As Long, ByVal hSrc As Long, ByVal rop As RASTEROPFLAGS) As BOOL
+
 Public Declare PtrSafe Function PtInRegion Lib "gdi32" (ByVal hRgn As LongPtr, ByVal x As Long, ByVal y As Long) As BOOL
 Public Declare PtrSafe Function RectInRegion Lib "gdi32" (ByVal hRgn As LongPtr, lpRect As RECT) As BOOL
 Public Declare PtrSafe Function CreateRectRgn Lib "gdi32" (ByVal X1 As Long, ByVal Y1 As Long, ByVal X2 As Long, ByVal Y2 As Long) As LongPtr
@@ -12322,17 +12754,28 @@ Public Declare PtrSafe Function CreateRectRgnIndirect Lib "gdi32" (lprect As REC
 Public Declare PtrSafe Function CreateRoundRectRgn Lib "gdi32" (ByVal X1 As Long, ByVal Y1 As Long, ByVal X2 As Long, ByVal Y2 As Long, ByVal width As Long, ByVal height As Long) As LongPtr
 Public Declare PtrSafe Function CreatePolygonRgn Lib "gdi32" (pptl As POINT, ByVal cPoint As Long, ByVal iMode As PolyFillModes) As LongPtr
 Public Declare PtrSafe Function CreatePolyPolygonRgn Lib "gdi32" (pptl As POINT, pc As Long, ByVal cPoly As Long, ByVal iMode As PolyFillModes) As LongPtr
-Public Declare PtrSafe Function CombineRgn Lib "gdi32" (ByVal hRgnDsr As LongPtr, ByVal hrgnSrc1 As LongPtr, ByVal hrgnSc2 As LongPtr, byval iMode As CombineRegionStyles) As WindowRegionTypes
+Public Declare PtrSafe Function CombineRgn Lib "gdi32" (ByVal hRgnDsr As LongPtr, ByVal hrgnSrc1 As LongPtr, ByVal hrgnSc2 As LongPtr, ByVal iMode As CombineRegionStyles) As WindowRegionTypes
 Public Declare PtrSafe Function SelectClipRgn Lib "gdi32" (ByVal hdc As LongPtr, ByVal hRgn As LongPtr) As GdiRegionTypes
 Public Declare PtrSafe Function CreateEllipticRgn Lib "gdi32" (ByVal x1 As Long, ByVal y1 As Long, ByVal x2 As Long, ByVal y2 As Long) As LongPtr
 Public Declare PtrSafe Function ExtCreateRegion Lib "gdi32" (lpx As XFORM, ByVal nCount As Long, lpData As Any) As LongPtr
 Public DeclareWide PtrSafe Function GetCurrentPositionEx Lib "gdi32" (ByVal hdc As LongPtr, ByRef lppt As POINT) As Long
-
-
-Public Declare PtrSafe Function SetROP2 Lib "gdi32" (ByVal hdc As LongPtr, ByVal nDrawMode As BinaryRasterOps) As BinaryRasterOps
+Public DeclareWide PtrSafe Function ExtSelectClipRgn Lib "gdi32" (ByVal hDC As LongPtr, ByVal hRgn As LongPtr, ByVal fnMode As CombineRegionStyles) As WindowRegionTypes
 Public Declare PtrSafe Function FrameRgn Lib "gdi32" (ByVal hdc As LongPtr, ByVal hRgn As LongPtr, ByVal hBrush As LongPtr, ByVal nWidth As Long, ByVal nHeight As Long) As BOOL
 Public Declare PtrSafe Function PaintRgn Lib "gdi32" (ByVal hdc As LongPtr, ByVal hRgn As LongPtr) As BOOL
 Public Declare PtrSafe Function FillRgn Lib "gdi32" (ByVal hdc As LongPtr, ByVal hRgn As LongPtr, ByVal hbr As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function GetRegionData Lib "gdi32" (ByVal hRgn As LongPtr, ByVal nCount As Long, lpRgnData As Any) As BOOL
+Public DeclareWide PtrSafe Function SetRectRgn Lib "gdi32" (ByVal hRgn As LongPtr, ByVal left As Long, ByVal top As Long, ByVal right As Long, ByVal bottom As Long) As BOOL
+Public DeclareWide PtrSafe Function SetMetaRgn Lib "gdi32" (ByVal hDC As LongPtr) As WindowRegionTypes
+Public DeclareWide PtrSafe Function GetMetaRgn Lib "gdi32" (ByVal hDC As LongPtr, ByVal hRgn As LongPtr) As Long
+Public DeclareWide PtrSafe Function OffsetRgn Lib "gdi32" (ByVal hRgn As LongPtr, ByVal x As Long, ByVal y As Long) As WindowRegionTypes
+Public DeclareWide PtrSafe Function OffsetClipRgn Lib "gdi32" (ByVal hDC As LongPtr, ByVal x As Long, ByVal y As Long) As WindowRegionTypes
+Public DeclareWide PtrSafe Function PathToRegion Lib "gdi32" (ByVal hDC As LongPtr) As LongPtr
+Public DeclareWide PtrSafe Function InvertRgn Lib "gdi32" (ByVal hdc As LongPtr, ByVal hRgn As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function GetRgnBox Lib "gdi32" (ByVal hRgn As LongPtr, lprc As RECT) As WindowRegionTypes
+Public DeclareWide PtrSafe Function EqualRgn Lib "gdi32" (ByVal hRgn1 As LongPtr, ByVal hRgn2 As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function GetClipRgn Lib "gdi32" (ByVal hDC As LongPtr, ByVal hRgn As LongPtr) As Long
+
+Public Declare PtrSafe Function SetROP2 Lib "gdi32" (ByVal hdc As LongPtr, ByVal nDrawMode As BinaryRasterOps) As BinaryRasterOps
 Public Declare PtrSafe Function Rectangle Lib "gdi32" (ByVal hdc As LongPtr, ByVal left As Long, ByVal top As Long, ByVal right As Long, ByVal bottom As Long) As BOOL
 Public Declare PtrSafe Function Ellipse Lib "gdi32" (ByVal hdc As LongPtr, ByVal left As Long, ByVal top As Long, ByVal right As Long, ByVal bottom As Long) As BOOL
 Public Declare PtrSafe Function MoveToEx Lib "gdi32" (ByVal hdc As LongPtr, ByVal x As Long, ByVal y As Long, lpPoint As Any) As Long
@@ -12358,6 +12801,7 @@ Public Declare PtrSafe Function PolyBezierTo Lib "gdi32" (ByVal hDC As LongPtr, 
 
 Public Declare PtrSafe Function SetDIBColorTable Lib "gdi32" (ByVal hDC As LongPtr, ByVal iStart As Long, ByVal cEntries As Long, lpRGBQuad As Any) As Long
 Public Declare PtrSafe Function GetDIBColorTable Lib "gdi32" (ByVal hDC As LongPtr, ByVal iStart As Long, ByVal cEntries As Long, lpRGBQuad As Any) As Long
+Public Declare PtrSafe Function CreatePalette Lib "gdi32" (plpal As Any) As LongPtr
 Public Declare PtrSafe Function CreateHalftonePalette Lib "gdi32" (ByVal hDC As LongPtr) As LongPtr
 Public Declare PtrSafe Function SelectPalette Lib "gdi32" (ByVal hDC As LongPtr, ByVal hPal As LongPtr, ByVal bForceBkgd As BOOL) As LongPtr
 Public Declare PtrSafe Function RealizePalette Lib "gdi32" (ByVal hDC As LongPtr) As Long
@@ -12378,17 +12822,26 @@ Public DeclareWide PtrSafe Function CreateDC Lib "gdi32" Alias "CreateDCW" (ByVa
 Public Declare PtrSafe Function ResetDCA Lib "gdi32" (ByVal hDC As LongPtr, pdm As DEVMODEA) As LongPtr
 Public DeclareWide PtrSafe Function ResetDCW Lib "gdi32" (ByVal hDC As LongPtr, pdm As DEVMODEW) As LongPtr
 Public DeclareWide PtrSafe Function ResetDC Lib "gdi32" Alias "ResetDCW" (ByVal hDC As LongPtr, pdm As DEVMODE) As LongPtr
+Public Declare PtrSafe Function CreateBitmapIndirect Lib "gdi32" (ByRef lpBitmap As BITMAP) As LongPtr
 
 Public Declare PtrSafe Function CreateDIBSection Lib "gdi32" (ByVal hDC As LongPtr, pbmi As BITMAPINFO, ByVal usage As Long, ByRef ppvBits As Any, ByVal hSection As LongPtr, ByVal offset As Long) As LongPtr
 Public Declare PtrSafe Function DeleteObject Lib "gdi32" (ByVal hObject As LongPtr) As Long
 Public Declare PtrSafe Function DeleteDC Lib "gdi32" (ByVal hDC As LongPtr) As Long
 Public Declare PtrSafe Function D3DKMTSetProcessSchedulingPriorityClass Lib "gdi32" (ByVal hProcess As LongPtr, ByVal lPriority As D3DKMT_SCHEDULINGPRIORITYCLASS) As Long
 Public Declare PtrSafe Function CreateSolidBrush Lib "gdi32" (ByVal crColor As Long) As LongPtr
+Public Declare PtrSafe Function CreatePatternBrush Lib "gdi32" (ByVal hBitmap As LongPtr) As LongPtr
 Public Declare PtrSafe Function CreateHatchBrush Lib "gdi32" (ByVal iHatch As GdiHatchStyles, ByVal crColor As Long) As LongPtr
 Public Declare PtrSafe Function CreatePen Lib "gdi32" (ByVal iStyle As GdiPenStyles, ByVal cWidth As Long, ByVal crColor As Long) As LongPtr
 Public Declare PtrSafe Function CreatePenIndirect Lib "gdi32" (lopn As LOGPEN) As LongPtr
+
+Public Declare PtrSafe Function SetWindowExtEx Lib "gdi32" (ByVal hDC As LongPtr, ByVal x As Long, ByVal y As Long, lpsz As SIZE) As BOOL
+Public Declare PtrSafe Function GetWindowExtEx Lib "gdi32" (ByVal hDC As LongPtr, lpsz As SIZE) As BOOL
+Public Declare PtrSafe Function SetWindowOrgEx Lib "gdi32" (ByVal hdc As LongPtr, ByVal x As Long, ByVal y As Long, lppt As POINT) As BOOL
+Public Declare PtrSafe Function GetWindowOrgEx Lib "gdi32" (ByVal hdc As LongPtr, lppoint As POINT) As BOOL
 Public Declare PtrSafe Function SetViewportOrgEx Lib "gdi32" (ByVal hdc As LongPtr, ByVal x As Long, ByVal y As Long, lppt As POINT) As BOOL
 Public Declare PtrSafe Function GetViewportOrgEx Lib "gdi32" (ByVal hdc As LongPtr, lppoint As POINT) As BOOL
+Public Declare PtrSafe Function SetViewportExtEx Lib "gdi32" (ByVal hdc As LongPtr, ByVal x As Long, ByVal y As Long, lpsz As SIZE) As BOOL
+Public Declare PtrSafe Function GetViewportExtEx Lib "gdi32" (ByVal hdc As LongPtr, lpsz As SIZE) As BOOL
 Public Declare PtrSafe Function SetBrushOrgEx Lib "gdi32" (ByVal hdc As LongPtr, ByVal x As Long, ByVal y As Long, lppt As POINT) As BOOL
 Public Declare PtrSafe Function GetBrushOrgEx Lib "gdi32" (ByVal hdc As LongPtr, lppoint As POINT) As BOOL
 Public Declare PtrSafe Function GetBitmapDimensionEx Lib "gdi32" (ByVal hbit As LongPtr, lpsize As SIZE) As BOOL
@@ -12446,6 +12899,7 @@ Public Declare PtrSafe Function ExtFloodFill Lib "gdi32" (ByVal hdc As LongPtr, 
 Public Declare PtrSafe Function PolyTextOutA Lib "gdi32" (ByVal hdc As LongPtr, ppt As POLYTEXTA, ByVal nStrings As Long) As BOOL
 Public DeclareWide PtrSafe Function PolyTextOutW Lib "gdi32" (ByVal hdc As LongPtr, ppt As POLYTEXTW, ByVal nStrings As Long) As BOOL
 Public DeclareWide PtrSafe Function PolyTextOut Lib "gdi32" Alias "PolyTextOutW" (ByVal hdc As LongPtr, ppt As POLYTEXT, ByVal nStrings As Long) As BOOL
+Public DeclareWide PtrSafe Function SetTextJustification Lib "gdi32" (ByVal hdc As LongPtr, ByVal extra As Long, ByVal count As Long) As BOOL
 
 Public Declare PtrSafe Function LPtoDP Lib "gdi32" (ByVal hdc As LongPtr, lppt As POINT, ByVal c As Long) As BOOL
 Public Declare PtrSafe Function DPtoLP Lib "gdi32" (ByVal hdc As LongPtr, lppt As POINT, ByVal c As Long) As BOOL
@@ -15245,7 +15699,7 @@ Public Enum VersionInstallFileErrors
 	VIF_CANNOTREADDST = &H00020000
 	VIF_BUFFTOOSMALL  = &H00040000
 	VIF_CANNOTLOADLZ32  = &H00080000
-	VIF_CANNOTLOADCABINET  = &H00100000
+	VIF_CANNOTLOADCABINET = &H00100000
 End Enum
 
 
@@ -15333,6 +15787,7 @@ Public DeclareWide PtrSafe Function ImmCreateContext Lib "imm32" () As Long
 Public DeclareWide PtrSafe Function ImmDestroyContext Lib "imm32" (ByVal hIMC As Long) As Long
 Public DeclareWide PtrSafe Function ImmGetContext Lib "imm32" (ByVal hWnd As LongPtr) As Long
 Public DeclareWide PtrSafe Function ImmReleaseContext Lib "imm32" (ByVal hWnd As LongPtr, ByVal hIMC As Long) As BOOL
+Public DeclareWide PtrSafe Function ImmGetOpenStatus Lib "imm32" (ByVal hIMC As Long) As BOOL
 Public DeclareWide PtrSafe Function ImmSetOpenStatus Lib "imm32" (ByVal hIMC As Long, ByVal fOpen As BOOL) As BOOL
 Public DeclareWide PtrSafe Function ImmAssociateContext Lib "imm32" (ByVal hWnd As LongPtr, ByVal hIMC As Long) As Long
 Public DeclareWide PtrSafe Function ImmGetConversionStatus Lib "imm32" (ByVal hIMC As Long, ByRef lpfdwConversion As Long, ByRef lpfdwSentence As Long) As BOOL
