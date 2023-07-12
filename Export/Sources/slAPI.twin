@@ -411,7 +411,9 @@ Public Declare PtrSafe Function ShellExecuteA Lib "shell32" (ByVal hwnd As LongP
 Public Declare PtrSafe Function DragQueryFileA Lib "shell32" (ByVal hDrop As LongPtr, ByVal iFile As Long, ByVal lpszFile As String, ByVal cch As Long) As Long
 Public Declare PtrSafe Function DragQueryFileW Lib "shell32" (ByVal hDrop As LongPtr, ByVal iFile As Long, ByVal lpszFile As LongPtr, ByVal cch As Long) As Long
 Public DeclareWide PtrSafe Function DragQueryFile Lib "shell32" Alias "DragQueryFileW" (ByVal hDrop As LongPtr, ByVal iFile As Long, ByVal lpszFile As String, ByVal cch As Long) As Long
+Public DeclareWide PtrSafe Sub DragAcceptFiles Lib "shell32" (ByVal hwnd As LongPtr, ByVal fAccept As BOOL)
 Public Declare PtrSafe Function DragQueryPoint Lib "shell32" (ByVal hDrop As LongPtr, ByRef lppt As POINT) As Long
+Public DeclareWide PtrSafe Sub DragFinish Lib "shell32" (ByVal hDrop As LongPtr)
 Public Declare PtrSafe Function SHGetMalloc Lib "shell32" (ppMalloc As IMalloc) As Long
 Public DeclareWide PtrSafe Function SHGetPathFromIDList Lib "shell32" Alias "SHGetPathFromIDListW" (ByVal pidl As LongPtr, ByVal pszPath As String) As Long
 Public Declare PtrSafe Function SHGetPathFromIDListA Lib "shell32" (ByVal pidl As LongPtr, ByVal pszPath As String) As Long
@@ -7825,6 +7827,22 @@ Public Type ACCENT_POLICY
 	AnimationId As Long
 End Type
 
+Public Enum FlashWindowFlags
+	FLASHW_STOP  = 0
+	FLASHW_CAPTION  = &H00000001
+	FLASHW_TRAY  = &H00000002
+	FLASHW_ALL  = (FLASHW_CAPTION  Or  FLASHW_TRAY)
+	FLASHW_TIMER  = &H00000004
+	FLASHW_TIMERNOFG  = &H0000000C
+End Enum
+Public Type FLASHWINFO
+    cbSize As Long
+    hWnd As LongPtr
+    dwFlags As FlashWindowFlags
+    uCount As Long
+    dwTimeout As Long
+End Type
+
 Public Declare PtrSafe Function SetWindowCompositionAttribute Lib "user32" (ByVal hWnd As LongPtr, wca As WINDOWCOMPOSITIONATTRIBDATA) As Long
 Public Declare PtrSafe Function TrackMouseEvent Lib "user32" (lpEventTrack As TRACKMOUSEEVENT) As BOOL
 Public Declare PtrSafe Sub keybd_event Lib "user32" ([TypeHint(VirtualKeyCodes)] ByVal bVk As Byte, ByVal bScan As Byte, ByVal dwFlags As KeybdEventFlags, ByVal dwExtraInfo As LongPtr)
@@ -7875,6 +7893,9 @@ Public DeclareWide PtrSafe Function WindowFromPoint Lib "user32" (ByVal xy As Lo
 Public DeclareWide PtrSafe Function GetWindowRgn Lib "user32" (ByVal hwnd As LongPtr, ByVal hRgn As LongPtr) As WindowRegionTypes
 [Description("Determines whether a window is maximized.") ]
 Public DeclareWide PtrSafe Function IsZoomed Lib "user32" (ByVal hwnd As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function FlashWindow Lib "user32" (ByVal hwnd As LongPtr, ByVal bInvert As BOOL) As BOOL
+Public DeclareWide PtrSafe Function FlashWindowEx Lib "user32" (ByRef pFWI As FLASHWINFO) As BOOL
+Public DeclareWide PtrSafe Function ShowOwnedPopups Lib "user32" (ByVal hwnd As LongPtr, ByVal fShow As BOOL) As BOOL
 
 Public Enum DialogStyles
 	DS_ABSALIGN  = &H01
@@ -14753,6 +14774,23 @@ Public Enum RegKeyRestoreAndLoadHiveFlags
 	REG_APP_HIVE_OPEN_READ_ONLY  = (REG_OPEN_READ_ONLY)  ' Open an app hive's files in read-only mode (if the hive was not previously loaded)
 End Enum
 
+Public Enum RegKeySecurity
+	KEY_QUERY_VALUE  = (&H0001)
+	KEY_SET_VALUE  = (&H0002)
+	KEY_CREATE_SUB_KEY  = (&H0004)
+	KEY_ENUMERATE_SUB_KEYS  = (&H0008)
+	KEY_NOTIFY = (&H0010)
+	KEY_CREATE_LINK  = (&H0020)
+	KEY_WOW64_32KEY  = (&H0200)
+	KEY_WOW64_64KEY  = (&H0100)
+	KEY_WOW64_RES  = (&H0300)
+    KEY_READ = ((STANDARD_RIGHTS_READ Or KEY_QUERY_VALUE Or KEY_ENUMERATE_SUB_KEYS Or KEY_NOTIFY) And (Not SYNCHRONIZE))
+    KEY_WRITE = ((STANDARD_RIGHTS_WRITE Or KEY_SET_VALUE Or KEY_CREATE_SUB_KEY) And (Not SYNCHRONIZE))
+    KEY_EXECUTE = ((KEY_READ) And (Not SYNCHRONIZE))
+    KEY_ALL_ACCESS = ((STANDARD_RIGHTS_ALL Or KEY_QUERY_VALUE Or KEY_SET_VALUE Or KEY_CREATE_SUB_KEY Or KEY_ENUMERATE_SUB_KEYS Or KEY_NOTIFY Or KEY_CREATE_LINK) And (Not SYNCHRONIZE))                                                                                                  
+End Enum
+
+
 Public DeclareWide PtrSafe Function RegOpenKeyEx Lib "advapi32.dll" Alias "RegOpenKeyExW" ([ TypeHint (RegKeyspace) ] ByVal hKey As LongPtr, ByVal lpSubKey As String, ByVal ulOptions As RegOptions, ByVal samDesired As REGSAM, phkResult As LongPtr) As Long
 Public DeclareWide PtrSafe Function RegOpenKeyExW Lib "advapi32.dll" ([TypeHint(RegKeyspace) ] ByVal hKey As LongPtr, ByVal lpSubKey As LongPtr, ByVal ulOptions As RegOptions, ByVal samDesired As REGSAM, phkResult As LongPtr) As Long
 Public DeclareWide PtrSafe Function RegCreateKeyEx Lib "advapi32.dll" Alias "RegCreateKeyExW" ([TypeHint(RegKeyspace) ] ByVal hKey As LongPtr, ByVal lpSubKey As String, ByVal Reserved As LongPtr, ByVal lpClass As String, ByVal dwOptions As Long, ByVal samDesired As REGSAM, ByVal lpSecurityAttributes As LongPtr, phkResult As LongPtr, lpdwDisposition As Long) As Long
@@ -14780,7 +14818,8 @@ Public DeclareWide PtrSafe Function RegSaveKeyEx Lib "advapi32.dll" Alias "RegSa
 Public DeclareWide PtrSafe Function RegRestoreKeyW Lib "advapi32.dll" ([ TypeHint (RegKeyspace) ] ByVal hKey As LongPtr, ByVal lpFile As LongPtr, ByVal Flags As RegKeyRestoreAndLoadHiveFlags) As Long
 Public DeclareWide PtrSafe Function RegRestoreKey Lib "advapi32.dll" Alias "RegRestoreKeyW" ([ TypeHint (RegKeyspace) ] ByVal hKey As LongPtr, ByVal lpFile As String, ByVal Flags As RegKeyRestoreAndLoadHiveFlags) As Long
 Public DeclareWide PtrSafe Function RegCloseKey Lib "advapi32.dll" ([ TypeHint (RegKeyspace) ] ByVal hKey As LongPtr) As Long
-
+Public DeclareWide PtrSafe Function RegGetKeySecurity Lib "advapi32.dll" ([ TypeHint (RegKeyspace) ] ByVal hKey As LongPtr, ByVal SecurityInformation As SECURITY_INFORMATION, pSecurityDescriptor As SECURITY_DESCRIPTOR) As Long
+Public DeclareWide PtrSafe Function RegSetKeySecurity Lib "advapi32.dll" ([ TypeHint (RegKeyspace) ] ByVal hKey As LongPtr, ByVal SecurityInformation As SECURITY_INFORMATION, pSecurityDescriptor As SECURITY_DESCRIPTOR, lpcbSecurityDescriptor As Long) As Long
 
 Public Declare PtrSafe Function OpenThreadToken Lib "advapi32.dll" (ByVal hThread As LongPtr, ByVal dwDesiredAccess As Long, ByVal bOpenAsSelf As Long, phToken As LongPtr) As Boolean
 Public Declare PtrSafe Function OpenProcessToken Lib "advapi32.dll" (ByVal ProcessHandle As LongPtr, ByVal DesiredAccess As Long, TokenHandle As LongPtr) As Long
@@ -14790,6 +14829,7 @@ Public Declare PtrSafe Function ImpersonateSelf Lib "advapi32" (ByVal Impersonat
 Public Declare PtrSafe Function RevertToSelf Lib "advapi32" () As BOOL
 Public Declare PtrSafe Function InitializeSecurityDescriptor Lib "advapi32.dll" (pSecurityDescriptor As Any, ByVal dwRevision As Long) As Long
 Public Declare PtrSafe Function SetSecurityDescriptorDacl Lib "advapi32.dll" (pSecurityDescriptor As Any, ByVal bDaclPresent As Long, PDACL As Any, ByVal bDaclDefaulted As Long) As Long
+Public Declare PtrSafe Function GetSecurityDescriptorDacl Lib "advapi32.dll" (pSecurityDescriptor As Any, lpbDaclPresent As Long, PDACL As Any, pbDaclDefaulted As Long) As Long
 Public Declare PtrSafe Function EncryptFileA Lib "advapi32" (ByVal lpFileName As String) As Long
 Public Declare PtrSafe Function DecryptFileA Lib "advapi32" (ByVal lpFileName As String, ByVal dwReserved As Long) As Long
 Public Declare PtrSafe Function EncryptFileW Lib "advapi32" (ByVal lpFileName As LongPtr) As Long
@@ -14824,8 +14864,74 @@ Public DeclareWide PtrSafe Function LookupPrivilegeValue Lib "advapi32.dll" Alia
 Public DeclareWide PtrSafe Function LookupPrivilegeName Lib "advapi32.dll" Alias "LookupPrivilegeNameW" (ByVal lpSystemName As String, lpLuid As LUID, ByVal lpName As LongPtr, cbName As Long) As Long
 Public DeclareWide PtrSafe Function LookupPrivilegeDisplayNameW Lib "advapi32.dll" (ByVal lpSystemName As LongPtr, ByVal lpName As LongPtr, ByVal lpDisplayName As LongPtr, cchDisplayName As Long, lpLanguageId As Long) As BOOL
 Public DeclareWide PtrSafe Function LookupPrivilegeDisplayName Lib "advapi32.dll" Alias "LookupPrivilegeDisplayNameW" (ByVal lpSystemName As String, ByVal lpName As String, ByVal lpDisplayName As String, cchDisplayName As Long, lpLanguageId As Long) As BOOL
+Public DeclareWide PtrSafe Function AddAce Lib "advapi32" (ByVal pAcl As LongPtr, ByVal dwAceRevision As AclRevision, pAceList As Any, ByVal nAceListLength As Long) As BOOL
+Public DeclareWide PtrSafe Function GetAce Lib "advapi32" (ByVal pAcl As LongPtr, ByVal dwAceIndex As Long, pAce As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function InitializeAcl Lib "advapi32" (ByVal pAcl As LongPtr, ByVal nAclLength As Long, ByVal dwAceRevision As AclRevision) As BOOL
+Public DeclareWide PtrSafe Function GetKernelObjectSecurity Lib "advapi32" (ByVal Handle As LongPtr, ByVal RequestedInformation As SECURITY_INFORMATION, pSecurityDescriptor As SECURITY_DESCRIPTOR, ByVal nLength As Long, lpnLengthNeeded As Long) As BOOL
+Public DeclareWide PtrSafe Function SetKernelObjectSecurity Lib "advapi32" (ByVal Handle As LongPtr, ByVal RequestedInformation As SECURITY_INFORMATION, pSecurityDescriptor As SECURITY_DESCRIPTOR) As BOOL
+
+Public Enum AceTypes
+	ACCESS_MIN_MS_ACE_TYPE  = (&H0)
+	ACCESS_ALLOWED_ACE_TYPE  = (&H0)
+	ACCESS_DENIED_ACE_TYPE  = (&H1)
+	SYSTEM_AUDIT_ACE_TYPE  = (&H2)
+	SYSTEM_ALARM_ACE_TYPE  = (&H3)
+	ACCESS_MAX_MS_V2_ACE_TYPE  = (&H3)
+	ACCESS_ALLOWED_COMPOUND_ACE_TYPE  = (&H4)
+	ACCESS_MAX_MS_V3_ACE_TYPE  = (&H4)
+	ACCESS_MIN_MS_OBJECT_ACE_TYPE  = (&H5)
+	ACCESS_ALLOWED_OBJECT_ACE_TYPE  = (&H5)
+	ACCESS_DENIED_OBJECT_ACE_TYPE  = (&H6)
+	SYSTEM_AUDIT_OBJECT_ACE_TYPE  = (&H7)
+	SYSTEM_ALARM_OBJECT_ACE_TYPE  = (&H8)
+	ACCESS_MAX_MS_OBJECT_ACE_TYPE  = (&H8)
+	ACCESS_MAX_MS_V4_ACE_TYPE  = (&H8)
+	ACCESS_MAX_MS_ACE_TYPE  = (&H8)
+	ACCESS_ALLOWED_CALLBACK_ACE_TYPE  = (&H9)
+	ACCESS_DENIED_CALLBACK_ACE_TYPE  = (&HA)
+	ACCESS_ALLOWED_CALLBACK_OBJECT_ACE_TYPE  = (&HB)
+	ACCESS_DENIED_CALLBACK_OBJECT_ACE_TYPE  = (&HC)
+	SYSTEM_AUDIT_CALLBACK_ACE_TYPE  = (&HD)
+	SYSTEM_ALARM_CALLBACK_ACE_TYPE  = (&HE)
+	SYSTEM_AUDIT_CALLBACK_OBJECT_ACE_TYPE  = (&HF)
+	SYSTEM_ALARM_CALLBACK_OBJECT_ACE_TYPE  = (&H10)
+	SYSTEM_MANDATORY_LABEL_ACE_TYPE  = (&H11)
+	SYSTEM_RESOURCE_ATTRIBUTE_ACE_TYPE  = (&H12)
+	SYSTEM_SCOPED_POLICY_ID_ACE_TYPE  = (&H13)
+	SYSTEM_PROCESS_TRUST_LABEL_ACE_TYPE  = (&H14)
+	SYSTEM_ACCESS_FILTER_ACE_TYPE  = (&H15)
+	ACCESS_MAX_MS_V5_ACE_TYPE  = (&H15)
+End Enum
+
+Public Enum AceInheritFlags
+	OBJECT_INHERIT_ACE  = (&H1)
+	CONTAINER_INHERIT_ACE  = (&H2)
+	NO_PROPAGATE_INHERIT_ACE  = (&H4)
+	INHERIT_ONLY_ACE  = (&H8)
+	INHERITED_ACE = (&H10)
+	VALID_INHERIT_FLAGS  = (&H1F)
+End Enum
+
+Public Type ACE_HEADER
+    /*[TypeHint(AceTypes)]*/ AceType As Byte
+    AceFlags As Byte
+    AceSize As Integer
+End Type
 
 
+Public Const CRITICAL_ACE_FLAG            =  (&H20)
+Public Const SUCCESSFUL_ACCESS_ACE_FLAG  = (&H40)
+Public Const FAILED_ACCESS_ACE_FLAG  = (&H80)
+Public Const TRUST_PROTECTED_FILTER_ACE_FLAG = (&H40)
+
+Public Enum AclRevision
+    ACL_REVISION1 = (1)
+    ACL_REVISION2 = (2)
+    ACL_REVISION3 = (3)
+    ACL_REVISION4 = (4)
+    ACL_REVISION = (2)
+    ACL_REVISION_DS = (4)
+End Enum
 
 Public Type PRIVILEGE_SET
         PrivilegeCount As Long
@@ -15644,6 +15750,21 @@ Public Enum SetupClassPropFlags
 	DICLASSPROP_INTERFACE  = &H00000002  ' device interface class property
 End Enum
 
+Public Type SP_PROPSHEETPAGE_REQUEST
+	cbSize As Long
+	PageRequested As Long
+	DeviceInfoSet As LongPtr
+	DeviceInfoData As LongPtr
+End Type
+
+Public Enum SetupPropPageTypes
+	DIGCDP_FLAG_BASIC  = &H00000001
+	DIGCDP_FLAG_ADVANCED  = &H00000002
+	DIGCDP_FLAG_REMOTE_BASIC  = &H00000003  ' not presently implemented
+	DIGCDP_FLAG_REMOTE_ADVANCED  = &H00000004
+End Enum
+
+
 Public DeclareWide PtrSafe Function SetupDiGetClassDevsW Lib "setupapi" (ClassGuid As UUID, ByVal Enumerator As String, ByVal hWndParent As LongPtr, ByVal Flags As Setup_DIGCF) As LongPtr
 Public DeclareWide PtrSafe Function SetupDiGetClassDevs Lib "setupapi" Alias "SetupDiGetClassDevsW" (ClassGuid As UUID, ByVal Enumerator As String, ByVal hWndParent As LongPtr, ByVal Flags As Setup_DIGCF) As LongPtr
 Public DeclareWide PtrSafe Function SetupDiEnumDeviceInfo Lib "setupapi" (ByVal DeviceInfoSet As LongPtr, ByVal MemberIndex As Long, ByRef DeviceInfoData As SP_DEVINFO_DATA) As BOOL
@@ -15710,6 +15831,9 @@ Public DeclareWide PtrSafe Function SetupDiGetClassPropertyW Lib "setupapi" (Cla
 Public DeclareWide PtrSafe Function SetupDiGetClassProperty Lib "setupapi" Alias "SetupDiGetClassPropertyW" (ClassGuid As UUID, PropertyKey As PROPERTYKEY, PropertyType As DEVPROPTYPE, PropertyBuffer As Any, ByVal PropertyBufferSize As Long, RequiredSize As Long, ByVal Flags As SetupClassPropFlags) As BOOL
 Public DeclareWide PtrSafe Function SetupDiGetClassPropertyKeys Lib "setupapi" (ClassGuid As UUID, PropertyKeyArray As PROPERTYKEY, ByVal PropertyKeyCount As Long, RequiredPropertyKeyCount As Long, ByVal Flags As SetupClassPropFlags) As BOOL
 Public DeclareWide PtrSafe Function SetupDiGetDeviceInterfaceAlias Lib "setupapi" (ByVal DeviceInfoSet As LongPtr, DeviceInterfaceData As SP_DEVICE_INTERFACE_DATA, AliasInterfaceClassGuid As UUID, AliasDeviceInterfaceData As SP_DEVICE_INTERFACE_DATA) As BOOL
+Public DeclareWide PtrSafe Function SetupDiGetClassDevPropertySheetsW Lib "setupapi" (ByVal DeviceInfoSet As LongPtr, DeviceInfoData As SP_DEVINFO_DATA, ByVal PropertySheetHeaderPageListSize As Long, RequiredSize As Long, ByVal PropertySheetType As SetupPropPageTypes) As BOOL
+Public DeclareWide PtrSafe Function SetupDiGetClassDevPropertySheets Lib "setupapi" Alias "SetupDiGetClassDevPropertySheetsW" (ByVal DeviceInfoSet As LongPtr, DeviceInfoData As SP_DEVINFO_DATA, ByVal PropertySheetHeaderPageListSize As Long, RequiredSize As Long, ByVal PropertySheetType As SetupPropPageTypes) As BOOL
+
 
 Public Enum PNP_VETO_TYPE
     PNP_VetoTypeUnknown
@@ -15815,6 +15939,20 @@ Public Declare PtrSafe Function mciSendStringA Lib "winmm" (ByVal lpszCommand As
 Public Declare PtrSafe Function mciGetErrorStringA Lib "winmm" (ByVal fdwError As Long, ByVal lpszErrorText As String, ByVal cchErrorText As Long) As Long
 Public DeclareWide PtrSafe Function mciSendStringW Lib "winmm" (ByVal lpszommand As LongPtr, ByVal lpszReturnString As LongPtr, ByVal cchReturn As Long, ByVal hwndCallback As LongPtr) As Long
 Public DeclareWide PtrSafe Function mciGetErrorStringW Lib "winmm" (ByVal fdwError As Long, ByVal lpszErrorText As LongPtr, ByVal cchErrorText As Long) As Long
+
+Public Declare PtrSafe Function midiOutOpen Lib "winmm.dll" (lphMidiOut As LongPtr, ByVal uDeviceID As Long, ByVal dwCallback As LongPtr, ByVal dwInstance As LongPtr, ByVal fdwOpen As MidiCallback) As Long
+Public Declare PtrSafe Function midiOutClose Lib "winmm.dll" (ByVal hMidiOut As LongPtr) As Long
+Public Declare PtrSafe Function midiOutShortMsg Lib "winmm.dll" (ByVal hMidiOut As LongPtr, ByVal dwMsg As Long) As Long
+
+Public Enum MidiCallback
+    CALLBACK_NULL = 0
+    CALLBACK_WINDOW = &H10000
+    CALLBACK_TASK = &H20000
+    CALLBACK_THREAD = CALLBACK_TASK
+    CALLBACK_FUNCTION = &H30000
+    CALLBACK_EVENT = &H50000
+End Enum
+
 
 Public Const TIMERR_NOERROR = 0
 Public Const TIMERR_NOCANDO = 97
