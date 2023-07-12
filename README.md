@@ -1,7 +1,7 @@
 # tbShellLib
 **twinBASIC Shell Library**
 
-Current Version: 4.12.166 (July 3rd, 2023)
+Current Version: 4.12.171 (July 11th, 2023)
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -86,6 +86,8 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, vbNullPtr, ...)
 ```
 
 ## Updates
+ **Update (v4.12.170):** Bug fix: IOleInPlaceSite::Scroll scrollExtant should be ByVal. Added common error consts w/ descriptions. (171 is a version number change only for testing the package manager).
+ 
 **Update (v4.12.166):**
 -Added HTMLHelp APIs and misc ones that should be grouped with existing sets.
 
