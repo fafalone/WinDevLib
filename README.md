@@ -1,7 +1,7 @@
 # tbShellLib
 **twinBASIC Shell Library**
 
-Current Version: 4.12.172 (July 15th, 2023)
+Current Version: 4.13.174 (July 17th, 2023)
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -86,6 +86,8 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, vbNullPtr, ...)
 ```
 
 ## Updates
+**Update (v4.13.174):** Added caret APIs. Bug fix: Certain DirectWrite interfaces had members incompatible with x64. *IMPORTANT:* Having a single format for both 32 and 64bit breaks compatibility with the 32bit-only version. Previously `DWRITE_TEXT_RANGE` arguments were passed as two separate arguments, you'll now need to copy them to a single LongLong to pass.
+
 **Update (v4.12.172):** User info APIs added.
 
  **Update (v4.12.170):** Bug fix: IOleInPlaceSite::Scroll scrollExtant should be ByVal. Added common error consts w/ descriptions. (171 is a version number change only for testing the package manager).
