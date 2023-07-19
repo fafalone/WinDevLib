@@ -1,3 +1,5 @@
+**Update (v4.13.175):** Bug fix: IIDs were missing for UI Ribbon interfaces.
+
 **Update (v4.13.174):** Added caret APIs. Bug fix: Certain DirectWrite interfaces had members incompatible with x64. *IMPORTANT:* Having a single format for both 32 and 64bit breaks compatibility with the 32bit-only version. Previously `DWRITE_TEXT_RANGE` arguments were passed as two separate arguments, you'll now need to copy them to a single LongLong to pass.
 
 **Update (v4.12.172):** User info APIs added.
