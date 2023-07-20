@@ -1,7 +1,7 @@
 # tbShellLib
 **twinBASIC Shell Library**
 
-Current Version: 4.13.175 (July 19th, 2023)
+Current Version: 4.13.177 (July 20th, 2023)
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -87,6 +87,8 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, vbNullPtr, ...)
 ```
 
 ## Updates
+**Update (v4.13.177):** Bug fix: Helper function UI_HSB had a syntax error.
+
 **Update (v4.13.175):** Bug fix: UI Ribbon IIDs were missing.
 
 **Update (v4.13.174):** Added caret APIs. Bug fix: Certain DirectWrite interfaces had members incompatible with x64. *IMPORTANT:* Having a single format for both 32 and 64bit breaks compatibility with the 32bit-only version. Previously `DWRITE_TEXT_RANGE` arguments were passed as two separate arguments, you'll now need to copy them to a single LongLong to pass.
