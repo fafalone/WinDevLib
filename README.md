@@ -87,7 +87,7 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, vbNullPtr, ...)
 ```
 
 ## Updates
-**Update (v4.14.180):** Bug fix: CHARFORMAT2[A|W] was incorrectly declared.
+**Update (v4.14.181):** Bug fix: CHARFORMAT2[A|W] was incorrectly declared.
 
 
 **Update (v4.14.180):** Much more extensive coverage of PROPVARIANT and Variant helpers for supported VB types (use changetype first to use them with unsigned et al).
