@@ -1,7 +1,7 @@
 # tbShellLib
 **twinBASIC Shell Library**
 
-Current Version: 4.14.178 (July 21st, 2023)
+Current Version: 4.14.180 (July 22nd, 2023)
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -87,6 +87,8 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, vbNullPtr, ...)
 ```
 
 ## Updates
+**Update (v4.14.180):** Much more extensive coverage of PROPVARIANT and Variant helpers for supported VB types (use changetype first to use them with unsigned et al).
+
 **Update (v4.14.178):** Added partial Virtual Disk APIs and unsigned PROPVARIANT helpers.
 
 **Update (v4.13.177):** Bug fix: Helper function UI_HSB had a syntax error.
