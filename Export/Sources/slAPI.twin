@@ -1688,8 +1688,17 @@ Public Type FILE_BASIC_INFO
     ChangeTime As LARGE_INTEGER                   
     FileAttributes As Long                               
 End Type
+Public Type FILE_STANDARD_INFO
+    AllocationSize As QLARGE_INTEGER
+    EndOfFile As QLARGE_INTEGER
+    NumberOfLinks As Long
+    DeletePending As Byte
+    Directory As Byte
+End Type
 
-        
+
+
+  
 Public Enum GMEM
 	GMEM_FIXED = &H0000
 	GMEM_MOVEABLE = &H0002
@@ -4621,6 +4630,7 @@ Public Declare PtrSafe Function FindNextStream Lib "kernel32" Alias "FindNextStr
 Public Declare PtrSafe Function FindClose Lib "kernel32" (ByVal hFindFile As LongPtr) As Long
 Public Declare PtrSafe Function GetFileInformationByHandle Lib "kernel32" (ByVal hFile As LongPtr, ByRef lpFileInformation As BY_HANDLE_FILE_INFORMATION) As Long
 Public Declare PtrSafe Function GetFileInformationByHandleEx Lib "kernel32" (ByVal hFile As LongPtr, ByVal FileInformationClass As FILE_INFO_BY_HANDLE_CLASS, ByVal lpFileInformation As LongPtr, ByVal dwBufferSize As Long) As Long
+Public Declare PtrSafe Function SetFileInformationByHandle Lib "kernel32" (ByVal hFile As LongPtr, ByVal FileInformationClass As FILE_INFO_BY_HANDLE_CLASS, lpFileInformation As Any, ByVal dwBufferSize As Long) As Long
 Public Declare PtrSafe Function GetTickCount Lib "kernel32" () As Long
 Public Declare PtrSafe Function GetTickCount64 Lib "kernel32" () As LongLong
 Public DeclareWide PtrSafe Function SetDefaultDllDirectories Lib "kernel32" (ByVal DirectoryFlags As LoadLibraryFlags) As Long
@@ -4945,6 +4955,39 @@ Public Type CREATEFILE2_EXTENDED_PARAMETERS
 	hTemplateFile As LongPtr
 End Type
 
+Public Enum FileSystemFlags
+    FILE_CASE_SENSITIVE_SEARCH  = &H00000001
+    FILE_CASE_PRESERVED_NAMES  = &H00000002
+    FILE_UNICODE_ON_DISK  = &H00000004
+    FILE_PERSISTENT_ACLS  = &H00000008
+    FILE_FILE_COMPRESSION  = &H00000010
+    FILE_VOLUME_QUOTAS  = &H00000020
+    FILE_SUPPORTS_SPARSE_FILES  = &H00000040
+    FILE_SUPPORTS_REPARSE_POINTS  = &H00000080
+    FILE_SUPPORTS_REMOTE_STORAGE  = &H00000100
+    FILE_RETURNS_CLEANUP_RESULT_INFO  = &H00000200
+    FILE_SUPPORTS_POSIX_UNLINK_RENAME  = &H00000400
+    FILE_SUPPORTS_BYPASS_IO  = &H00000800
+    FILE_SUPPORTS_STREAM_SNAPSHOTS  = &H00001000
+    FILE_SUPPORTS_CASE_SENSITIVE_DIRS  = &H00002000
+    FILE_VOLUME_IS_COMPRESSED = &H00008000&
+    FILE_SUPPORTS_OBJECT_IDS  = &H00010000
+    FILE_SUPPORTS_ENCRYPTION  = &H00020000
+    FILE_NAMED_STREAMS  = &H00040000
+    FILE_READ_ONLY_VOLUME  = &H00080000
+    FILE_SEQUENTIAL_WRITE_ONCE  = &H00100000
+    FILE_SUPPORTS_TRANSACTIONS  = &H00200000
+    FILE_SUPPORTS_HARD_LINKS  = &H00400000
+    FILE_SUPPORTS_EXTENDED_ATTRIBUTES  = &H00800000
+    FILE_SUPPORTS_OPEN_BY_FILE_ID  = &H01000000
+    FILE_SUPPORTS_USN_JOURNAL  = &H02000000
+    FILE_SUPPORTS_INTEGRITY_STREAMS  = &H04000000
+    FILE_SUPPORTS_BLOCK_REFCOUNTING  = &H08000000
+    FILE_SUPPORTS_SPARSE_VDL  = &H10000000
+    FILE_DAX_VOLUME  = &H20000000
+    FILE_SUPPORTS_GHOSTING  = &H40000000
+End Enum
+
 Public Declare PtrSafe Function SetFileAttributesA Lib "kernel32" (ByVal lpFileName As String, ByVal dwFileAttributes As FILE_ATTRIBUTES) As Long
 Public Declare PtrSafe Function GetFileAttributesA Lib "kernel32" (ByVal lpFileName As String) As FILE_ATTRIBUTES
 Public DeclareWide PtrSafe Function SetFileAttributesW Lib "kernel32" (ByVal lpFileName As LongPtr, ByVal dwFileAttributes As FILE_ATTRIBUTES) As Long
@@ -4960,9 +5003,6 @@ Public DeclareWide PtrSafe Function CreateDirectoryEx Lib "kernel32" Alias "Crea
 Public Declare PtrSafe Function Wow64DisableWow64FsRedirection Lib "kernel32" (pOldVal As LongPtr) As Long
 Public Declare PtrSafe Function Wow64RevertWow64FsRedirection Lib "kernel32" (pOldVal As LongPtr) As Long
 Public Declare PtrSafe Function CompareFileTime Lib "kernel32" (lpFileTime1 As FILETIME, lpFileTime2 As FILETIME) As Long
-Public DeclareWide PtrSafe Function SetVolumeLabelA Lib "kernel32" (ByVal lpRootPathName As String, ByVal lpVolumeName As String) As Long
-Public DeclareWide PtrSafe Function SetVolumeLabelW Lib "kernel32" (ByVal lpRootPathName As LongPtr, ByVal lpVolumeName As LongPtr) As Long
-Public DeclareWide PtrSafe Function SetVolumeLabel Lib "kernel32" Alias "SetVolumeLabelW" (ByVal lpRootPathName As String, ByVal lpVolumeName As String) As Long
 Public Declare PtrSafe Function MulDiv Lib "kernel32" (ByVal nNumber As Long, ByVal nNumerator As Long, ByVal nDenominator As Long) As Long
 
 Public DeclareWide PtrSafe Function CompareStringW Lib "kernel32" (ByVal Locale As DefaultLocales, ByVal dwCmpFlags As COMPARE_FLAGS, ByVal lpString1 As LongPtr, ByVal cchCount1 As Long, ByVal lpString2 As LongPtr, ByVal cchCount2 As Long) As CSTR_RETURNS
@@ -4989,8 +5029,32 @@ Public DeclareWide PtrSafe Function FindFirstVolume Lib "kernel32" Alias "FindFi
 Public DeclareWide PtrSafe Function FindFirstVolumeW Lib "kernel32" (ByVal lpszVolumeName As LongPtr, ByVal cchBufferLen As Long) As LongPtr
 Public DeclareWide PtrSafe Function FindNextVolume Lib "kernel32" Alias "FindNextVolumeW" (ByVal hFindVolume As LongPtr, ByVal lpszVolumeName As LongPtr, ByVal cchBufferLen As Long) As LongPtr
 Public DeclareWide PtrSafe Function FindNextVolumeW Lib "kernel32" (ByVal hFindVolume As LongPtr, ByVal lpszVolumeName As LongPtr, ByVal cchBufferLen As Long) As LongPtr
-Public Declare PtrSafe Function FindVolumeClose Lib "kernel32" (ByVal hFindFile As LongPtr) As Long
+Public DeclareWide PtrSafe Function FindVolumeClose Lib "kernel32" (ByVal hFindFile As LongPtr) As Long
 Public DeclareWide PtrSafe Function GetVolumePathNamesForVolumeNameW Lib "kernel32" (ByVal lpszVolumeName As LongPtr, ByVal lpszVolumePathNames As LongPtr, ByVal cchBufferLength As Long, lpcchReturnLength As Long) As BOOL
+Public DeclareWide PtrSafe Function GetVolumePathNamesForVolumeName Lib "kernel32" Alias "GetVolumePathNamesForVolumeNameW" (ByVal lpszVolumeName As String, ByVal lpszVolumePathNames As String, ByVal cchBufferLength As Long, lpcchReturnLength As Long) As BOOL
+Public Declare PtrSafe Function SetVolumeLabelA Lib "kernel32" (ByVal lpRootPathName As String, ByVal lpVolumeName As String) As Long
+Public DeclareWide PtrSafe Function SetVolumeLabelW Lib "kernel32" (ByVal lpRootPathName As LongPtr, ByVal lpVolumeName As LongPtr) As Long
+Public DeclareWide PtrSafe Function SetVolumeLabel Lib "kernel32" Alias "SetVolumeLabelW" (ByVal lpRootPathName As String, ByVal lpVolumeName As String) As Long
+Public DeclareWide PtrSafe Function CreateHardLinkW Lib "kernel32" (ByVal lpFileName As LongPtr, ByVal lpExistingFileName As LongPtr, lpSecurityAttributes As SECURITY_ATTRIBUTES) As BOOL
+Public DeclareWide PtrSafe Function CreateHardLink Lib "kernel32" Alias "CreateHardLinkW" (ByVal lpFileName As String, ByVal lpExistingFileName As String, lpSecurityAttributes As SECURITY_ATTRIBUTES) As BOOL
+Public DeclareWide PtrSafe Function SetVolumeMountPointW Lib "kernel32" (ByVal lpszVolumeMountPoint As LongPtr, ByVal lpszVolumeName As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function SetVolumeMountPoint Lib "kernel32" Alias "SetVolumeMountPointW" (ByVal lpszVolumeMountPoint As String, ByVal lpszVolumeName As String) As BOOL
+Public DeclareWide PtrSafe Function GetVolumeNameForVolumeMountPointW Lib "kernel32" (ByVal lpszVolumeMountPoint As LongPtr, ByVal lpszVolumePathNames As LongPtr, ByVal cchBufferLength As Long) As BOOL
+Public DeclareWide PtrSafe Function GetVolumeNameForVolumeMountPoint Lib "kernel32" Alias "GetVolumeNameForVolumeMountPointW" (ByVal lpszVolumeMountPoint As String, ByVal lpszVolumePathNames As String, ByVal cchBufferLength As Long) As BOOL
+Public Declare PtrSafe Function GetVolumePathNameA Lib "kernel32" (ByVal lpszFileName As LongPtr, ByVal lpszVolumePathName As LongPtr, ByVal cchBufferLength As Long) As BOOL
+Public DeclareWide PtrSafe Function GetVolumePathNameW Lib "kernel32" (ByVal lpszFileName As LongPtr, ByVal lpszVolumePathName As LongPtr, ByVal cchBufferLength As Long) As BOOL
+Public DeclareWide PtrSafe Function GetVolumePathName Lib "kernel32" Alias "GetVolumePathNameW" (ByVal lpszFileName As LongPtr, ByVal lpszVolumePathName As LongPtr, ByVal cchBufferLength As Long) As BOOL
+Public Declare PtrSafe Function GetVolumeInformationA Lib "kernel32" (ByVal lpRootPathName As String, ByVal lpVolumeNameBuffer As String, ByVal nVolumeNameSize As Long, lpVolumeSerialNumber As Long, lpMaximumComponentLength, lpFileSystemFlags As FileSystemFlags, ByVal lpFileSystemNameBuffer As String, ByVal nFileSystemNameSize As Long) As BOOL
+Public DeclareWide PtrSafe Function GetVolumeInformationW Lib "kernel32" (ByVal lpRootPathName As LongPtr, ByVal lpVolumeNameBuffer As LongPtr, ByVal nVolumeNameSize As Long, lpVolumeSerialNumber As Long, lpMaximumComponentLength As Long, lpFileSystemFlags As FileSystemFlags, ByVal lpFileSystemNameBuffer As LongPtr, ByVal nFileSystemNameSize As Long) As BOOL
+Public DeclareWide PtrSafe Function GetVolumeInformation Lib "kernel32" Alias "GetVolumeInformationW" (ByVal lpRootPathName As String, ByVal lpVolumeNameBuffer As String, ByVal nVolumeNameSize As Long, lpVolumeSerialNumber As Long, lpMaximumComponentLength, lpFileSystemFlags As FileSystemFlags, ByVal lpFileSystemNameBuffer As String, ByVal nFileSystemNameSize As Long) As BOOL
+Public Declare PtrSafe Function GetVolumeInformationByHandleA Lib "kernel32" (ByVal hFile As LongPtr, ByVal lpVolumeNameBuffer As String, ByVal nVolumeNameSize As Long, lpVolumeSerialNumber As Long, lpMaximumComponentLength, lpFileSystemFlags As FileSystemFlags, ByVal lpFileSystemNameBuffer As String, ByVal nFileSystemNameSize As Long) As BOOL
+Public DeclareWide PtrSafe Function GetVolumeInformationByHandleW Lib "kernel32" (ByVal hFile As LongPtr, ByVal lpVolumeNameBuffer As LongPtr, ByVal nVolumeNameSize As Long, lpVolumeSerialNumber As Long, lpMaximumComponentLength As Long, lpFileSystemFlags As FileSystemFlags, ByVal lpFileSystemNameBuffer As LongPtr, ByVal nFileSystemNameSize As Long) As BOOL
+Public DeclareWide PtrSafe Function GetVolumeInformationByHandle Lib "kernel32" Alias "GetVolumeInformationW" (ByVal hFile As LongPtr, ByVal lpVolumeNameBuffer As String, ByVal nVolumeNameSize As Long, lpVolumeSerialNumber As Long, lpMaximumComponentLength, lpFileSystemFlags As FileSystemFlags, ByVal lpFileSystemNameBuffer As String, ByVal nFileSystemNameSize As Long) As BOOL
+Public Declare PtrSafe Function DeleteVolumeMountPointA Lib "kernel32" (ByVal lpszVolumeMountPoint As String) As BOOL
+Public DeclareWide PtrSafe Function DeleteVolumeMountPointW Lib "kernel32" (ByVal lpszVolumeMountPoint As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function DeleteVolumeMountPoint Lib "kernel32" Alias "DeleteVolumeMountPointW" (ByVal lpszVolumeMountPoint As String) As BOOL
+
+
 
 Public DeclareWide PtrSafe Function CreateProcessW Lib "kernel32" (ByVal lpApplicationName As LongPtr, ByVal lpCommandLine As LongPtr, lpProccessAttributes As SECURITY_ATTRIBUTES, lpThreadAttributes As SECURITY_ATTRIBUTES, ByVal bInheritHandles As BOOL, ByVal dwCreationFlags As CreateProcessFlags, lpEnvironment As Any, _
     ByVal lpCurrentDirectory As LongPtr, lpStartupInfo As STARTUPINFOW, lpProcessInformation As PROCESS_INFORMATION) As Long
@@ -5097,10 +5161,6 @@ Public DeclareWide PtrSafe Function GetNamedPipeInfo Lib "kernel32" (ByVal hName
 Public Declare PtrSafe Function GetNamedPipeHandleStateA Lib "kernel32" (ByVal hNamedPipe As LongPtr, lpState As PipeModeFlags, lpCurInstances As Long, lpMaxCollectionCount As Long, lpCollectionDataTimeout As Long, lpUserName As LongPtr, ByVal nMaxUserNameSize) As BOOL
 Public DeclareWide PtrSafe Function GetNamedPipeHandleStateW Lib "kernel32" (ByVal hNamedPipe As LongPtr, lpState As PipeModeFlags, lpCurInstances As Long, lpMaxCollectionCount As Long, lpCollectionDataTimeout As Long, lpUserName As LongPtr, ByVal nMaxUserNameSize) As BOOL
 Public DeclareWide PtrSafe Function GetNamedPipeHandleState Lib "kernel32" Alias "GetNamedPipeHandleStateW" (ByVal hNamedPipe As LongPtr, lpState As PipeModeFlags, lpCurInstances As Long, lpMaxCollectionCount As Long, lpCollectionDataTimeout As Long, lpUserName As LongPtr, ByVal nMaxUserNameSize) As BOOL
-Public DeclareWide PtrSafe Function CreateHardLinkW Lib "kernel32" (ByVal lpFileName As LongPtr, ByVal lpExistingFileName As LongPtr, lpSecurityAttributes As SECURITY_ATTRIBUTES) As BOOL
-Public DeclareWide PtrSafe Function CreateHardLink Lib "kernel32" Alias "CreateHardLinkW" (ByVal lpFileName As String, ByVal lpExistingFileName As String, lpSecurityAttributes As SECURITY_ATTRIBUTES) As BOOL
-Public DeclareWide PtrSafe Function SetVolumeMountPointW Lib "kernel32" (ByVal lpszVolumeMountPoint As LongPtr, ByVal lpszVolumeName As LongPtr) As BOOL
-Public DeclareWide PtrSafe Function SetVolumeMountPoint Lib "kernel32" Alias "SetVolumeMountPointW" (ByVal lpszVolumeMountPoint As String, ByVal lpszVolumeName As String) As BOOL
 
 Public DeclareWide PtrSafe Function QueryPerformanceCounter Lib "kernel32" (lpPerformanceCount As LongLong) As BOOL
 Public DeclareWide PtrSafe Function QueryPerformanceFrequency Lib "kernel32" (lpFrequency As LongLong) As BOOL
@@ -16416,6 +16476,279 @@ Public DeclareWide PtrSafe Function VerInstallFile Lib "version.dll" Alias "VerI
 Public DeclareWide PtrSafe Function VerLanguageNameW Lib "version.dll" (ByVal wLang As Long, ByVal szLang As LongPtr, ByVal cchLang As Long) As Long
 Public DeclareWide PtrSafe Function VerLanguageName Lib "version.dll" Alias "VerLanguageNameW" (ByVal wLang As Long, ByVal szLang As String, ByVal cchLang As Long) As Long
 
+Public Type VIRTUAL_STORAGE_TYPE
+    DeviceId As VirtualDiskType
+    VendorId As UUID
+End Type
+
+Public Enum VIRTUAL_DISK_ACCESS_MASK
+    VIRTUAL_DISK_ACCESS_NONE = &H00000000
+    VIRTUAL_DISK_ACCESS_ATTACH_RO = &H00010000
+    VIRTUAL_DISK_ACCESS_ATTACH_RW = &H00020000
+    VIRTUAL_DISK_ACCESS_DETACH = &H00040000
+    VIRTUAL_DISK_ACCESS_GET_INFO = &H00080000
+    VIRTUAL_DISK_ACCESS_CREATE = &H00100000
+    VIRTUAL_DISK_ACCESS_METAOPS = &H00200000
+    VIRTUAL_DISK_ACCESS_READ = &H000d0000
+    VIRTUAL_DISK_ACCESS_ALL = &H003f0000
+    VIRTUAL_DISK_ACCESS_WRITABLE = &H00320000
+End Enum
+
+Public Enum OPEN_VIRTUAL_DISK_FLAG
+    OPEN_VIRTUAL_DISK_FLAG_NONE = &H00000000
+    '[ Description("Open the backing store without opening any differencing chain parents. This allows one to fixup broken parent links.") ]
+    OPEN_VIRTUAL_DISK_FLAG_NO_PARENTS = &H00000001
+    '[ Description("The backing store being opened is an empty file. Do not perform virtual disk verification.") ]
+    OPEN_VIRTUAL_DISK_FLAG_BLANK_FILE = &H00000002
+    '[ Description("This flag is only specified at boot time to load the system disk during virtual disk boot.  Must be kernel mode to specify this flag") ]
+    OPEN_VIRTUAL_DISK_FLAG_BOOT_DRIVE = &H00000004
+    '[ Description("This flag causes the backing file to be opened in cached mode.") ]
+    OPEN_VIRTUAL_DISK_FLAG_CACHED_IO = &H00000008
+    '[ Description("Open the backing store without opening any differencing chain parents. This allows one to fixup broken parent links temporarily without updating the parent locator.") ]
+    OPEN_VIRTUAL_DISK_FLAG_CUSTOM_DIFF_CHAIN = &H00000010
+    '[ Description("This flag causes all backing stores except the leaf backing store to be opened in cached mode.") ]
+    OPEN_VIRTUAL_DISK_FLAG_PARENT_CACHED_IO = &H00000020
+    '[ Description("This flag causes a Vhd Set file to be opened without any virtual disk.") ]
+    OPEN_VIRTUAL_DISK_FLAG_VHDSET_FILE_ONLY = &H00000040
+    '[ Description("For differencing disks, relative parent locators are not used when determining the path of a parent VHD.") ]
+    OPEN_VIRTUAL_DISK_FLAG_IGNORE_RELATIVE_PARENT_LOCATOR = &H00000080
+    '[ Description("Disable flushing and FUA (both for payload data and for metadata for backing files associated with this virtual disk.") ]
+    OPEN_VIRTUAL_DISK_FLAG_NO_WRITE_HARDENING = &H00000100
+    '[ Description("Open the backing store even if it is a compressed file.") ]
+    OPEN_VIRTUAL_DISK_FLAG_SUPPORT_COMPRESSED_VOLUMES = &H00000200
+    '[ Description("Open the backing store even if it is a sparse file, on any file system.") ]
+    OPEN_VIRTUAL_DISK_FLAG_SUPPORT_SPARSE_FILES_ANY_FS = &H00000400
+    '[ Description("Open the backing store even if it is an encrypted file.") ]
+    OPEN_VIRTUAL_DISK_FLAG_SUPPORT_ENCRYPTED_FILES = &H00000800
+End Enum
+
+Public Enum OPEN_VIRTUAL_DISK_VERSION
+    OPEN_VIRTUAL_DISK_VERSION_UNSPECIFIED=0
+    OPEN_VIRTUAL_DISK_VERSION_1=1
+    OPEN_VIRTUAL_DISK_VERSION_2=2
+    OPEN_VIRTUAL_DISK_VERSION_3=3
+End Enum
+[Description ("THIS TYPE IS FOR V2 ONLY: Use OPEN_VIRTUAL_DISK_PARAMETERS_V1 for Version 1.") ]
+Public Type OPEN_VIRTUAL_DISK_PARAMETERS
+	Version As OPEN_VIRTUAL_DISK_VERSION
+    GetInfoOnly As BOOL
+    ReadOnly As BOOL
+    ResiliencyGuid As UUID
+End Type
+[Description ("THIS TYPE IS FOR V1 ONLY") ]
+Public Type OPEN_VIRTUAL_DISK_PARAMETERS_V1
+    Version As OPEN_VIRTUAL_DISK_VERSION
+    RWDepth As Long
+End Type
+[ Description ("THIS TYPE IS FOR V3 ONLY") ]
+Public Type OPEN_VIRTUAL_DISK_PARAMETERS_V3
+    Version As OPEN_VIRTUAL_DISK_VERSION
+    GetInfoOnly As BOOL
+    ReadOnly As BOOL
+    ResiliencyGuid As UUID
+    SnapshotId As UUID
+End Type
+
+Public Enum VirtualDiskType
+    VIRTUAL_STORAGE_TYPE_DEVICE_UNKNOWN  = 0
+    VIRTUAL_STORAGE_TYPE_DEVICE_ISO  = 1
+    VIRTUAL_STORAGE_TYPE_DEVICE_VHD  = 2
+    VIRTUAL_STORAGE_TYPE_DEVICE_VHDX  = 3
+    VIRTUAL_STORAGE_TYPE_DEVICE_VHDSET  = 4
+End Enum
+
+Public Const OPEN_VIRTUAL_DISK_RW_DEPTH_DEFAULT = 1
+
+Public Enum CREATE_VIRTUAL_DISK_FLAG
+    CREATE_VIRTUAL_DISK_FLAG_NONE = &H0
+    '  Pre-allocate all physical space necessary for the virtual
+    '  size of the disk (e.g. a fixed VHD).
+    CREATE_VIRTUAL_DISK_FLAG_FULL_PHYSICAL_ALLOCATION = &H1
+    '  Take ownership of the source disk during create from source disk, to
+    '  insure the source disk does not change during the create operation.  The
+    '  source disk must also already be offline or read-only (or both).
+    '  Ownership is released when create is done.  This also has a side-effect
+    '  of disallowing concurrent create from same source disk.  Create will fail
+    '  if ownership cannot be obtained or if the source disk is not already
+    '  offline or read-only.  This flag is optional, but highly recommended for
+    '  creates from source disk.  No effect for other types of create (no effect
+    '  for create from source VHD; no effect for create without SourcePath).
+    CREATE_VIRTUAL_DISK_FLAG_PREVENT_WRITES_TO_SOURCE_DISK = &H2
+    '  Do not copy initial virtual disk metadata or block states from the
+    '  parent VHD; this is useful if the parent VHD is a stand-in file and the
+    '  real parent will be explicitly set later.
+    CREATE_VIRTUAL_DISK_FLAG_DO_NOT_COPY_METADATA_FROM_PARENT = &H4
+    '  Create the backing storage disk.
+    CREATE_VIRTUAL_DISK_FLAG_CREATE_BACKING_STORAGE = &H8
+    '  If set, the SourceLimitPath is an change tracking ID, and all data that has changed
+    '  since that change tracking ID will be copied from the source. If clear, the
+    '  SourceLimitPath is a VHD file path in the source VHD's chain, and
+    '  all data that is present in the children of that VHD in the chain
+    '  will be copied from the source.
+    CREATE_VIRTUAL_DISK_FLAG_USE_CHANGE_TRACKING_SOURCE_LIMIT = &H10
+    '  If set and the parent VHD has change tracking enabled, the child will
+    '  have change tracking enabled and will recognize all change tracking
+    '  IDs that currently exist in the parent. If clear or if the parent VHD
+    '  does not have change tracking available, then change tracking will
+    '  not be enabled in the new VHD.
+    CREATE_VIRTUAL_DISK_FLAG_PRESERVE_PARENT_CHANGE_TRACKING_STATE = &H20
+    '  When creating a VHD Set from source, don't copy the data in the original
+    '  backing store, but intsead use the file as is. If this flag is not specified
+    '  and a source file is passed to CreateVirtualDisk for a VHDSet file, the data
+    '  in the source file is copied. If this flag is set the data is moved. The
+    '  name of the file may change.
+    CREATE_VIRTUAL_DISK_FLAG_VHD_SET_USE_ORIGINAL_BACKING_STORAGE = &H40
+    ' 
+    '  When creating a fixed virtual disk, take advantage of an underlying sparse file.
+    '  Only supported on file systems that support sparse VDLs.
+    ' 
+    CREATE_VIRTUAL_DISK_FLAG_SPARSE_FILE = &H80
+    ' 
+    '  Creates a VHD suitable as the backing store for a virtual persistent memory device.
+    ' 
+    CREATE_VIRTUAL_DISK_FLAG_PMEM_COMPATIBLE = &H100
+    ' 
+    '  Allow a VHD to be created on a compressed volume.
+    ' 
+    CREATE_VIRTUAL_DISK_FLAG_SUPPORT_COMPRESSED_VOLUMES = &H200
+    ' 
+    '  Allow a VHD to be created when it may be marked as a sparse file. This flag is a companion
+    '  to CREATE_VIRTUAL_DISK_FLAG_SPARSE_FILE, and overrides the behavior that only
+    '  allows sparse files on file systems that support sparse VDLs.
+    ' 
+    CREATE_VIRTUAL_DISK_FLAG_SUPPORT_SPARSE_FILES_ANY_FS = &H400
+End Enum
+
+Public Const CREATE_VIRTUAL_DISK_PARAMETERS_DEFAULT_BLOCK_SIZE = 0
+Public Enum CREATE_VIRTUAL_DISK_VERSION
+    CREATE_VIRTUAL_DISK_VERSION_UNSPECIFIED=0
+    CREATE_VIRTUAL_DISK_VERSION_1=1
+    CREATE_VIRTUAL_DISK_VERSION_2=2
+    CREATE_VIRTUAL_DISK_VERSION_3=3
+    CREATE_VIRTUAL_DISK_VERSION_4=4
+End Enum
+
+[Description ("This is the V2 version of the type. Use CREATE_VIRTUAL_DISK_PARAMETERS_V1 for version 1. 3 and 4 are similarly defined but for internal use.") ]
+Public Type CREATE_VIRTUAL_DISK_PARAMETERS
+    Version As CREATE_VIRTUAL_DISK_VERSION
+	UniqueId As UUID
+    MaximumSize As LongLong
+    BlockSizeInBytes As Long
+    SectorSizeInBytes As Long
+    PhysicalSectorSizeInBytes As Long
+    ParentPath As LongPtr
+    SourcePath As LongPtr
+    OpenFlags As OPEN_VIRTUAL_DISK_FLAG
+    ParentVirtualStorageType As VIRTUAL_STORAGE_TYPE
+    SourceVirtualStorageType As VIRTUAL_STORAGE_TYPE
+    ResiliencyGuid As UUID
+End Type
+
+Public Type CREATE_VIRTUAL_DISK_PARAMETERS_V1
+    Version As CREATE_VIRTUAL_DISK_VERSION
+    UniqueId As UUID
+    MaximumSize As LongLong
+    BlockSizeInBytes As Long
+    SectorSizeInBytes As Long
+    PhysicalSectorSizeInBytes As Long
+    ParentPath As LongPtr
+    SourcePath As LongPtr
+End Type
+Public Type CREATE_VIRTUAL_DISK_PARAMETERS_V3
+    Version As CREATE_VIRTUAL_DISK_VERSION
+    UniqueId As UUID
+    MaximumSize As LongLong
+    BlockSizeInBytes As Long
+    SectorSizeInBytes As Long
+    PhysicalSectorSizeInBytes As Long
+    ParentPath As LongPtr
+    SourcePath As LongPtr
+    OpenFlags As OPEN_VIRTUAL_DISK_FLAG
+    ParentVirtualStorageType As VIRTUAL_STORAGE_TYPE
+    SourceVirtualStorageType As VIRTUAL_STORAGE_TYPE
+    ResiliencyGuid As UUID
+    SourceLimitPath As LongPtr
+    BackingStorageType As VIRTUAL_STORAGE_TYPE
+End Type
+Public Type CREATE_VIRTUAL_DISK_PARAMETERS_V4
+    Version As CREATE_VIRTUAL_DISK_VERSION
+    UniqueId As UUID
+    MaximumSize As LongLong
+    BlockSizeInBytes As Long
+    SectorSizeInBytes As Long
+    PhysicalSectorSizeInBytes As Long
+    ParentPath As LongPtr
+    SourcePath As LongPtr
+    OpenFlags As OPEN_VIRTUAL_DISK_FLAG
+    ParentVirtualStorageType As VIRTUAL_STORAGE_TYPE
+    SourceVirtualStorageType As VIRTUAL_STORAGE_TYPE
+    ResiliencyGuid As UUID
+    SourceLimitPath As LongPtr
+    BackingStorageType As VIRTUAL_STORAGE_TYPE
+    PmemAddressAbstractionType As UUID
+    DataAlignment As LongLong
+End Type
+
+Public Enum ATTACH_VIRTUAL_DISK_VERSION
+    ATTACH_VIRTUAL_DISK_VERSION_UNSPECIFIED=0
+    ATTACH_VIRTUAL_DISK_VERSION_1=1
+    ATTACH_VIRTUAL_DISK_VERSION_2=2
+End Enum
+
+[Description ("This is V2 of the type, for V1 use ATTACH_VIRTUAL_DISK_PARAMETERS_V1 ") ]
+Public Type ATTACH_VIRTUAL_DISK_PARAMETERS
+	Version As ATTACH_VIRTUAL_DISK_VERSION
+    RestrictedOffset As LongLong
+    RestrictedLength As LongLong
+End Type
+Public Type ATTACH_VIRTUAL_DISK_PARAMETERS_V1
+    Version As ATTACH_VIRTUAL_DISK_VERSION
+    Reserved As Long
+End Type
+
+Public Enum ATTACH_VIRTUAL_DISK_FLAG
+    ATTACH_VIRTUAL_DISK_FLAG_NONE = &H00000000
+    '  Attach the disk as read only
+    ATTACH_VIRTUAL_DISK_FLAG_READ_ONLY = &H00000001
+    '  Will cause all volumes on the disk to be mounted
+    '  without drive letters.
+    ATTACH_VIRTUAL_DISK_FLAG_NO_DRIVE_LETTER = &H00000002
+    '  Will decouple the disk lifetime from that of the VirtualDiskHandle.
+    '  The disk will be attached until an explicit call is made to
+    '  DetachVirtualDisk, even if all handles are closed.
+    ATTACH_VIRTUAL_DISK_FLAG_PERMANENT_LIFETIME = &H00000004
+    '  Indicates that the drive will not be attached to
+    '  the local system (but rather to a VM).
+    ATTACH_VIRTUAL_DISK_FLAG_NO_LOCAL_HOST = &H00000008
+    '  Do not assign a custom security descriptor to the disk; use the
+    '  system default.
+    ATTACH_VIRTUAL_DISK_FLAG_NO_SECURITY_DESCRIPTOR = &H00000010
+    '  Default volume encryption policies should not be applied to the
+    '  disk when attached to the local system.
+    ATTACH_VIRTUAL_DISK_FLAG_BYPASS_DEFAULT_ENCRYPTION_POLICY = &H00000020
+    '  Attach the disk as a non-PnP device.
+    ATTACH_VIRTUAL_DISK_FLAG_NON_PNP = &H00000040
+    '  Restrict the disk's view to the specified offset and length.
+    ATTACH_VIRTUAL_DISK_FLAG_RESTRICTED_RANGE = &H00000080
+    '  Restrict the disk's view to the unique data partition.
+    ATTACH_VIRTUAL_DISK_FLAG_SINGLE_PARTITION = &H00000100
+    '  Register the non-PnP disk as a volume with mount manager.
+    ATTACH_VIRTUAL_DISK_FLAG_REGISTER_VOLUME = &H00000200
+End Enum
+
+Public Enum DETACH_VIRTUAL_DISK_FLAG
+    DETACH_VIRTUAL_DISK_FLAG_NONE = &H00000000
+End Enum
+
+
+Public DeclareWide PtrSafe Function OpenVirtualDisk Lib "virtdisk.dll" (VirtualStorageType As VIRTUAL_STORAGE_TYPE, ByVal Path As String, ByVal VirtualDiskAccessMask As VIRTUAL_DISK_ACCESS_MASK, ByVal Flags As OPEN_VIRTUAL_DISK_FLAG, Parameters As Any, Handle As LongPtr) As Long
+Public DeclareWide PtrSafe Function CreateVirtualDisk Lib "virtdisk.dll" (VirtualStorageType As VIRTUAL_STORAGE_TYPE, ByVal Path As String, ByVal VirtualDiskAccessMask As VIRTUAL_DISK_ACCESS_MASK, SecurityDescriptor As SECURITY_DESCRIPTOR, ByVal Flags As CREATE_VIRTUAL_DISK_FLAG, ByVal ProviderSpecificFlags As Long, Parameters As Any, lpOverlapped As OVERLAPPED, Handle As LongPtr) As Long
+Public DeclareWide PtrSafe Function AttachVirtualDisk Lib "virtdisk.dll" (ByVal VirtualDiskHandle As LongPtr, SecurityDescriptor As SECURITY_DESCRIPTOR, ByVal Flags As ATTACH_VIRTUAL_DISK_FLAG, ByVal ProviderSpecificFlags As Long, Parameters As Any, lpOverlapped As OVERLAPPED) As Long
+Public DeclareWide PtrSafe Function DetachVirtualDisk Lib "virtdisk.dll" (ByVal VirtualDiskHandle As LongPtr, ByVal Flags As DETACH_VIRTUAL_DISK_FLAG, ByVal ProviderSpecificFlags As Long) As Long
+Public DeclareWide PtrSafe Function GetVirtualDiskPhysicalPath Lib "virtdisk.dll" (ByVal VirtualDiskHandle As LongPtr, ByRef DiskPathSizeInBytes As Long, ByVal DiskPath As String) As Long
+Public DeclareWide PtrSafe Function GetAllAttachedVirtualDiskPhysicalPaths Lib "virtdisk.dll" (PathsBufferSizeInBytes As Long, ByVal PathsBuffer As String) As Long
+
+
 
 
 Public DeclareWide PtrSafe Function ImmIsIME Lib "imm32" (ByVal hKL As LongPtr) As BOOL
@@ -17082,6 +17415,25 @@ Public Sub SecureZeroMemory(ByVal pv As LongPtr, cb As LongPtr)
     Next
 End Sub
  
+[ Description("Creates a PROPVARIANT with a VT_UI2 type.") ]
+Public Function InitPropVariantFromUInt16(ByVal uiVal As Integer, ppropvar As Variant) As Long
+ppropvar = uiVal 
+Dim vt As Integer = VT_UI2
+CopyMemory ppropvar, vt, 2	'Overwrite VT_I2 with VT_UI2
+End Function
+[ Description("Creates a PROPVARIANT with a VT_UI4 type.") ]
+Public Function InitPropVariantFromUInt32(ByVal ulVal As Long, ppropvar As Variant) As Long
+ppropvar = ulVal
+Dim vt As Integer = VT_UI4
+CopyMemory ppropvar, vt, 2    'Overwrite VT_I4 with VT_UI4
+End Function
+[ Description ("Creates a PROPVARIANT with a VT_UI8 type.") ]
+Public Function InitPropVariantFromUInt64(ByVal ullVal As LongLong, ppropvar As Variant) As Long
+ppropvar = ullVal
+Dim vt As Integer = VT_UI8
+CopyMemory ppropvar, vt, 2    'Overwrite VT_I8 with VT_UI8
+End Function
+
 #Region "DEVPKEY"
 Public Function DEVPKEY_Device_DeviceDesc() As PROPERTYKEY
 Static pkk As PROPERTYKEY
@@ -18257,5 +18609,19 @@ Public Function DEVPKEY_DeviceDisplay_DiscoveryMethod() As PROPERTYKEY
 	Return DEVPKEY_DeviceContainer_DiscoveryMethod
 End Function
 #End Region
+
+Public Function VIRTUAL_STORAGE_TYPE_VENDOR_UNKNOWN() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H00000000, &H0000, &H0000, &H00, &H00, &H00, &H00, &H00, &H00, &H00, &H00)
+VIRTUAL_STORAGE_TYPE_VENDOR_UNKNOWN = iid
+End Function
+Public Function VIRTUAL_STORAGE_TYPE_VENDOR_MICROSOFT() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hec984aec, &Ha0f9, &H47e9, &H90, &H1f, &H71, &H41, &H5a, &H66, &H34, &H5b)
+VIRTUAL_STORAGE_TYPE_VENDOR_MICROSOFT = iid
+End Function
+
+
+
 End Module
 #End If
