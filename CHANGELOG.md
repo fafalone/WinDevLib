@@ -1,3 +1,6 @@
+**Update (v4.14.180):** Much more extensive coverage of PROPVARIANT and Variant helpers for supported VB types (use changetype first to use them with unsigned et al).
+
+
 **Update (v4.14.178):** Added partial Virtual Disk APIs and unsigned PROPVARIANT helpers.
 
 **Update (v4.13.177):** Bug fix: Helper function UI_HSB had a syntax error.
