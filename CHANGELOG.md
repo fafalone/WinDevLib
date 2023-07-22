@@ -1,5 +1,8 @@
-**Update (v4.14.180):** Much more extensive coverage of PROPVARIANT and Variant helpers for supported VB types (use changetype first to use them with unsigned et al).
 
+
+**Update (v4.14.181):** Bug fix: CHARFORMAT2[A|W] was incorrectly declared.
+
+**Update (v4.14.180):** Much more extensive coverage of PROPVARIANT and Variant helpers for supported VB types (use changetype first to use them with unsigned et al).
 
 **Update (v4.14.178):** Added partial Virtual Disk APIs and unsigned PROPVARIANT helpers.
 
