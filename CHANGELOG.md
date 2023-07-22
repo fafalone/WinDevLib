@@ -1,3 +1,5 @@
+**Update (v4.14.178):** Added partial Virtual Disk APIs and unsigned PROPVARIANT helpers.
+
 **Update (v4.13.177):** Bug fix: Helper function UI_HSB had a syntax error.
 
 **Update (v4.13.175):** Ribbon UI IIDs were missing.
