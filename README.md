@@ -1,7 +1,7 @@
 # tbShellLib
 **twinBASIC Shell Library**
 
-Current Version: 4.14.181 (July 22nd, 2023)
+Current Version: 4.14.182 (July 23rd, 2023)
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -87,8 +87,10 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, vbNullPtr, ...)
 ```
 
 ## Updates
-**Update (v4.14.181):** Bug fix: CHARFORMAT2[A|W] was incorrectly declared.
+**Update (v4.14.182):** Added missing kernel32 string functions. Added SUCCEEDED helper function.
 
+
+**Update (v4.14.181):** Bug fix: CHARFORMAT2[A|W] was incorrectly declared.
 
 **Update (v4.14.180):** Much more extensive coverage of PROPVARIANT and Variant helpers for supported VB types (use changetype first to use them with unsigned et al).
 
