@@ -57,6 +57,39 @@ Public Enum SHGDFIL_Format
 	SHGDFIL_NETRESOURCE = &H2 'Format used for network resources.The pv parameter is the address of a NETRESOURCE structure.
 	SHGDFIL_DESCRIPTIONID = &H3 'Version 4.71.Format used for network resources.The pv parameter is the address of an SHDESCRIPTIONID structure.
 End Enum
+Public Enum ShellDescriptionId
+    SHDID_ROOT_REGITEM  = 1
+    SHDID_FS_FILE  = 2
+    SHDID_FS_DIRECTORY  = 3
+    SHDID_FS_OTHER  = 4
+    SHDID_COMPUTER_DRIVE35  = 5
+    SHDID_COMPUTER_DRIVE525  = 6
+    SHDID_COMPUTER_REMOVABLE  = 7
+    SHDID_COMPUTER_FIXED  = 8
+    SHDID_COMPUTER_NETDRIVE  = 9
+    SHDID_COMPUTER_CDROM  = 10
+    SHDID_COMPUTER_RAMDISK  = 11
+    SHDID_COMPUTER_OTHER  = 12
+    SHDID_NET_DOMAIN  = 13
+    SHDID_NET_SERVER  = 14
+    SHDID_NET_SHARE  = 15
+    SHDID_NET_RESTOFNET  = 16
+    SHDID_NET_OTHER  = 17
+' #if (NTDDI_VERSION >= NTDDI_WINXP)
+    SHDID_COMPUTER_IMAGING  = 18
+    SHDID_COMPUTER_AUDIO  = 19
+    SHDID_COMPUTER_SHAREDDOCS  = 20
+' #endif
+' #if (NTDDI_VERSION >= NTDDI_VISTA)
+    SHDID_MOBILE_DEVICE  = 21  ' PDA/PalmPC
+' #endif
+' #if (NTDDI_VERSION >= NTDDI_WIN10_RS4)
+    SHDID_REMOTE_DESKTOP_DRIVE  = 22
+End Enum
+Public Type SHDESCRIPTIONID
+    dwDescriptionId As ShellDescriptionId
+    clsid As UUID
+End Type
 
 Public Enum ASSOC_FILTER
     ASSOC_FILTER_NONE = 0
@@ -324,14 +357,54 @@ Public Enum SHFileOpErrors
     ERRORONDEST = &H10000
 End Enum
 
+Public Enum SHARD
+    SHARD_PIDL = &H00000001
+    SHARD_PATHA = &H00000002
+    SHARD_PATHW = &H00000003
+    SHARD_PATH = &H00000003
+    ' #if (NTDDI_VERSION >= NTDDI_WIN7)
+    SHARD_APPIDINFO = &H00000004 ' indicates the data type is a pointer to a SHARDAPPIDINFO structure
+    SHARD_APPIDINFOIDLIST = &H00000005 ' indicates the data type is a pointer to a SHARDAPPIDINFOIDLIST structure
+    SHARD_LINK = &H00000006 ' indicates the data type is a pointer to an IShellLink instance
+    SHARD_APPIDINFOLINK = &H00000007 ' indicates the data type is a pointer to a SHARDAPPIDINFOLINK structure
+    SHARD_SHELLITEM = &H00000008 ' indicates the data type is a pointer to an IShellItem instance
+    ' #endif
+End Enum
+
+Public Type SHARDAPPIDINFO
+    psi As IShellItem ' The namespace location of the the item that should be added to the recent docs folder.
+    pszAppID As LongPtr  ' The id of the application that should be associated with this recent doc.
+End Type
+Public Type SHARDAPPIDINFOIDLIST
+    pidl As Long ' The idlist for the shell item that should be added to the recent docs folder.
+    pszAppID As LongPtr  ' The id of the application that should be associated with this recent doc.
+End Type
+Public Type SHARDAPPIDINFOLINK
+    psl As IShellLinkW ' An IShellLink instance that when launched opens a recently used item in the specified
+    ' application. This link is not added to the recent docs folder, but will be added to the
+    ' specified application's destination list.
+    pszAppID As LongPtr  ' The id of the application that should be associated with this recent doc.
+End Type
+
+Public Type SHChangeUpdateImageIDList
+    cb As Integer
+    iIconIndex As Long
+    iCurIndex As Long
+    uFlags As GILFlags
+    dwProcessID As Long
+    szName(0 To (MAX_PATH - 1)) As Integer
+    cbZero As Integer
+End Type
+
 Public Const SIID_INVALID As Long = &HFFFFFFFF
+[Description ("Adds an item ID list to shell list of recently used documents, or clears documents from the list") ] Public Declare PtrSafe Sub SHAddToRecentDocs Lib "shell32" (ByVal uFlags As SHARD, pv As Any)
 Public DeclareWide PtrSafe Function SHGetStockIconInfo Lib "shell32" (ByVal siid As SHSTOCKICONID, ByVal uFlags As StockIconInfoFlags, psii As SHSTOCKICONINFO) As Long
-Public Declare PtrSafe Function SHBrowseForFolderA Lib "shell32" (lpbi As BROWSEINFOA) As LongPtr
-Public DeclareWide PtrSafe Function SHBrowseForFolderW Lib "shell32" (lpbi As BROWSEINFOW) As LongPtr
-Public DeclareWide PtrSafe Function SHBrowseForFolder Lib "shell32" Alias "SHBrowseForFolderW" (lpbi As BROWSEINFO) As LongPtr
+[ Description ("Displays a dialog that allows selection of shell folders") ] Public Declare PtrSafe Function SHBrowseForFolderA Lib "shell32" (lpbi As BROWSEINFOA) As LongPtr
+[Description ("Displays a dialog that allows selection of shell folders") ] Public DeclareWide PtrSafe Function SHBrowseForFolderW Lib "shell32" (lpbi As BROWSEINFOW) As LongPtr
+[Description ("Displays a dialog that allows selection of shell folders") ] Public DeclareWide PtrSafe Function SHBrowseForFolder Lib "shell32" Alias "SHBrowseForFolderW" (lpbi As BROWSEINFO) As LongPtr
 Public DeclareWide PtrSafe Function SHGetSetFolderCustomSettings Lib "shell32" (pfcs as SHFOLDERCUSTOMSETTINGS, byval pszPath As String, ByVal dwReadWrite As FCS_RW) As Long
-Public DeclareWide PtrSafe Function SHGetDataFromIDListW Lib "shell32" (ByVal psf As IShellFolder, ByVal pidl As LongPtr, ByVal nFormat As SHGDFIL_Format, ByRef pv As Any, ByVal cb As Long) As Long
-Public DeclareWide PtrSafe Function SHGetDataFromIDList Lib "shell32" Alias "SHGetDataFromIDListW" (ByVal psf As IShellFolder, ByVal pidl As LongPtr, ByVal nFormat As SHGDFIL_Format, ByRef pv As Any, ByVal cb As Long) As Long
+[Description ("Retrieves extended property data from relative identifier list") ] Public DeclareWide PtrSafe Function SHGetDataFromIDListW Lib "shell32" (ByVal psf As IShellFolder, ByVal pidl As LongPtr, ByVal nFormat As SHGDFIL_Format, ByRef pv As Any, ByVal cb As Long) As Long
+[Description ("Retrieves extended property data from relative identifier list") ] Public DeclareWide PtrSafe Function SHGetDataFromIDList Lib "shell32" Alias "SHGetDataFromIDListW" (ByVal psf As IShellFolder, ByVal pidl As LongPtr, ByVal nFormat As SHGDFIL_Format, ByRef pv As Any, ByVal cb As Long) As Long
 Public Declare PtrSafe Function SHCreateItemFromParsingName Lib "shell32" (ByVal pszPath As LongPtr, ByVal pbc As IBindCtx, riid As UUID, ppv As Any) As Long
 Public Declare PtrSafe Function SHCreateShellItemArrayFromIDLists Lib "shell32" (ByVal cidl As Long, ByVal rgpidl As LongPtr, ppsiItemArray As IShellItemArray) As Long
 Public Declare PtrSafe Function SHCreateItemFromIDList Lib "shell32" (ByVal pidl As LongPtr, riid As UUID, ppv As Any) As Long
@@ -339,16 +412,20 @@ Public Declare PtrSafe Function SHCreateShellItem Lib "shell32" (ByVal pidlParen
 Public Declare PtrSafe Function SHGetKnownFolderItem Lib "shell32" (rfid As UUID, ByVal dwFlags As KNOWN_FOLDER_FLAG, ByVal hToken As LongPtr, riid As UUID, ppv As Any) As Long
 Public Declare PtrSafe Function SHGetKnownFolderPath Lib "shell32" (rfid As UUID, ByVal dwFlags As Long, ByVal hToken As LongPtr, ppszPath As LongPtr) As Long
 Public Declare PtrSafe Function SHGetKnownFolderIDList Lib "shell32" (rfid As UUID, ByVal dwFlags As KNOWN_FOLDER_FLAG, ByVal hToken As LongPtr, ppidl As LongPtr) As Long
-Public Declare PtrSafe Function SHGetDesktopFolder Lib "shell32" (ppshf As IShellFolder) As Long
+[ Description("Retrieves IShellFolder interface for desktop folder, which is the root of the shell's namespace") ] Public Declare PtrSafe Function SHGetDesktopFolder Lib "shell32" (ppshf As IShellFolder) As Long
+[ Description ("Notifies system of event that may affect the shell") ] Public Declare PtrSafe Sub SHChangeNotify Lib "shell32" (ByVal wEventId As SHCN_Events, ByVal uFlags As SHCN_Flags, Optional ByVal dwItem1 As LongPtr, Optional ByVal dwItem2 As LongPtr)
 Public Declare PtrSafe Function SHChangeNotifyRegister Lib "shell32" (ByVal hwnd As LongPtr, ByVal fSources As SHCNRF, ByVal fEvents As SHCN_Events, ByVal wMsg As Long, ByVal cEntries As Long, lpps As SHChangeNotifyEntry) As Long
 Public Declare PtrSafe Function SHChangeNotifyDeregister Lib "shell32" (ByVal ulID As Long) As Long
 Public Declare PtrSafe Function SHCreateShellItemArrayFromDataObject Lib "shell32" (ByVal pdo As IDataObject, riid As UUID, ppv As Any) As Long
 Public Declare PtrSafe Function SHCreateShellItemArrayFromShellItem Lib "shell32" (ByVal pdo As IShellItem, riid As UUID, ppv As Any) As Long
 Public Declare PtrSafe Function SHChangeNotification_Lock Lib "shell32" (ByVal hChange As LongPtr, ByVal dwProcId As Long, pppidl As LongPtr, plEvent As Long) As LongPtr
 Public Declare PtrSafe Function SHChangeNotification_Unlock Lib "shell32" (ByVal hLock As LongPtr) As Long
+Public Declare PtrSafe Function SHHandleUpdateImage Lib "shell32" (ByVal pidlExtra As LongPtr) As Long
+[Description ("Notifies the Shell that an image in the system image list has changed.") ] Public DeclareWide PtrSafe Sub SHUpdateImageW Lib "shell32" (ByVal pszHashItem As LongPtr, ByVal iIndex As Long, ByVal uFlags As GILFlags, ByVal iImageIndex As Long)
+[Description("Notifies the Shell that an image in the system image list has changed.")] Public Declare PtrSafe Sub SHUpdateImage Lib "shell32" Alias "SHUpdateImageW" (ByVal pszHashItem As LongPtr, ByVal iIndex As Long, ByVal uFlags As GILFlags, ByVal iImageIndex As Long)
 Public Declare PtrSafe Function SHGetImageList Lib "shell32" (ByVal iImageList As SHIL, riid As UUID, ppv As Any) As Long
 Public Declare PtrSafe Function SHCreateShellItemArray Lib "shell32" (ByVal pidlParent As LongPtr, ByVal psf As IShellFolder, ByVal cidl As Long, ByVal ppidl As LongPtr, ppsiItemArray As IShellItemArray) As Long
-Public Declare PtrSafe Function SHGetSpecialFolderLocation Lib "shell32" (ByVal hWndOwner As LongPtr, ByVal nFolder As CSIDLs, ppidl As LongPtr) As Long
+[Description("Get item ID of special folder location") ] Public Declare PtrSafe Function SHGetSpecialFolderLocation Lib "shell32" (ByVal hWndOwner As LongPtr, ByVal nFolder As CSIDLs, ppidl As LongPtr) As Long
 Public Declare PtrSafe Function SHGetSettings Lib "Shell32" (lpsfs As Integer, ByVal dwMask As SFS_MASK) As Long
 Public Declare PtrSafe Sub SHGetSetSettings Lib "shell32" (ByRef lpss As SHELLSTATE, ByVal dwMask As SFS_MASK, ByVal bSet As Long)
 Public Declare PtrSafe Function Shell_NotifyIcon Lib "shell32" Alias "Shell_NotifyIconW" (ByVal dwMessage As Long, ByRef lpData As NOTIFYICONDATA) As Long
@@ -414,28 +491,28 @@ Public DeclareWide PtrSafe Function DragQueryFile Lib "shell32" Alias "DragQuery
 Public DeclareWide PtrSafe Sub DragAcceptFiles Lib "shell32" (ByVal hwnd As LongPtr, ByVal fAccept As BOOL)
 Public Declare PtrSafe Function DragQueryPoint Lib "shell32" (ByVal hDrop As LongPtr, ByRef lppt As POINT) As Long
 Public DeclareWide PtrSafe Sub DragFinish Lib "shell32" (ByVal hDrop As LongPtr)
-Public Declare PtrSafe Function SHGetMalloc Lib "shell32" (ppMalloc As IMalloc) As Long
-Public DeclareWide PtrSafe Function SHGetPathFromIDList Lib "shell32" Alias "SHGetPathFromIDListW" (ByVal pidl As LongPtr, ByVal pszPath As String) As Long
-Public Declare PtrSafe Function SHGetPathFromIDListA Lib "shell32" (ByVal pidl As LongPtr, ByVal pszPath As String) As Long
-Public Declare PtrSafe Function SHGetPathFromIDListW Lib "shell32" (ByVal pidl As LongPtr, ByVal pszPath As LongPtr) As Long
+[Description("Returns a pointer to an IMalloc used to allocate LPITEMID")] Public Declare PtrSafe Function SHGetMalloc Lib "shell32" (ppMalloc As IMalloc) As Long
+[Description ("Converts an item ID list pointer to a file system path (cMaxPath buffer expected)") ] Public DeclareWide PtrSafe Function SHGetPathFromIDList Lib "shell32" Alias "SHGetPathFromIDListW" (ByVal pidl As LongPtr, ByVal pszPath As String) As Long
+[Description("Converts an item ID list pointer to a file system path (cMaxPath buffer expected)") ] Public Declare PtrSafe Function SHGetPathFromIDListA Lib "shell32" (ByVal pidl As LongPtr, ByVal pszPath As String) As Long
+[Description ("Converts an item ID list pointer to a file system path (cMaxPath buffer expected)") ] Public Declare PtrSafe Function SHGetPathFromIDListW Lib "shell32" (ByVal pidl As LongPtr, ByVal pszPath As LongPtr) As Long
 Public DeclareWide PtrSafe Function SHGetSpecialFolderPath Lib "shell32" Alias "SHGetSpecialFolderPathW" (ByVal hWndOwner As LongPtr, ByVal lpszPath As String, ByVal nFolder As CSIDLs, ByVal fCreate As BOOL) As Long
 Public Declare PtrSafe Function SHGetSpecialFolderPathW Lib "shell32" (ByVal hWndOwner As LongPtr, ByVal lpszPath As LongPtr, ByVal nFolder As CSIDLs, ByVal fCreate As BOOL) As Long
 Public Declare PtrSafe Function SHGetSpecialFolderPathA Lib "shell32" (ByVal hWndOwner As LongPtr, ByVal lpszPath As String, ByVal nFolder As CSIDLs, ByVal fCreate As BOOL) As Long
 Public Declare PtrSafe Function SHGetInstanceExplorer Lib "shell32" (ppunk As stdole.IUnknown) As Long
 Public Declare PtrSafe Sub SHSetInstanceExplorer Lib "shell32" (Optional ByVal ppunk As stdole.IUnknown)
-Public Declare PtrSafe Function SHGetFileInfoA Lib "shell32" (ByVal pszPath As Any, ByVal dwFileAttributes As Long, psfi As SHFILEINFOA, ByVal cbFileInfo As Long, ByVal uFlags As SHGFI_flags) As LongPtr
-Public Declare PtrSafe Function SHGetFileInfoW Lib "shell32" (ByVal pszPath As Any, ByVal dwFileAttributes As Long, psfi As SHFILEINFOW, ByVal cbFileInfo As Long, ByVal uFlags As SHGFI_flags) As LongPtr
-Public DeclareWide PtrSafe Function SHGetFileInfo Lib "shell32" Alias "SHGetFileInfoW" (ByVal pszPath As Any, ByVal dwFileAttributes As Long, psfi As SHFILEINFO, ByVal cbFileInfo As Long, ByVal uFlags As SHGFI_flags) As LongPtr
+[ Description("Retrieves information about a file system object such as a file, a folder, a directory, or a drive root") ] Public Declare PtrSafe Function SHGetFileInfoA Lib "shell32" (ByVal pszPath As Any, ByVal dwFileAttributes As Long, psfi As SHFILEINFOA, ByVal cbFileInfo As Long, ByVal uFlags As SHGFI_flags) As LongPtr
+[ Description("Retrieves information about a file system object such as a file, a folder, a directory, or a drive root") ] Public Declare PtrSafe Function SHGetFileInfoW Lib "shell32" (ByVal pszPath As Any, ByVal dwFileAttributes As Long, psfi As SHFILEINFOW, ByVal cbFileInfo As Long, ByVal uFlags As SHGFI_flags) As LongPtr
+[ Description("Retrieves information about a file system object such as a file, a folder, a directory, or a drive root") ] Public DeclareWide PtrSafe Function SHGetFileInfo Lib "shell32" Alias "SHGetFileInfoW" (ByVal pszPath As Any, ByVal dwFileAttributes As Long, psfi As SHFILEINFO, ByVal cbFileInfo As Long, ByVal uFlags As SHGFI_flags) As LongPtr
 Public Declare PtrSafe Function PathYetAnotherMakeUniqueName Lib "shell32" (ByVal pszUniqueName As LongPtr, ByVal pszPath As LongPtr, Optional ByVal pszShort As LongPtr, Optional ByVal pszFileSpec As LongPtr) As Long
 Public Declare PtrSafe Function SHMultiFileProperties Lib "shell32" (ByVal pdtobj As LongPtr, ByVal dwFlags As Long) As Long
-Public DeclareWide PtrSafe Function SHFileOperationW Lib "shell32" (lpFileOp As SHFILEOPSTRUCT) As SHFileOpErrors
-Public DeclareWide PtrSafe Function SHFileOperation Lib "shell32" Alias "SHFileOperationW" (lpFileOp As SHFILEOPSTRUCT) As SHFileOpErrors
+[Description ("Performs a copy, move, rename, or delete operation on a file system object") ] Public DeclareWide PtrSafe Function SHFileOperationW Lib "shell32" (lpFileOp As SHFILEOPSTRUCT) As SHFileOpErrors
+[ Description ("Performs a copy, move, rename, or delete operation on a file system object") ] Public DeclareWide PtrSafe Function SHFileOperation Lib "shell32" Alias "SHFileOperationW" (lpFileOp As SHFILEOPSTRUCT) As SHFileOpErrors
 Public Declare PtrSafe Function SHOpenFolderAndSelectItems Lib "shell32" (ByVal pidlFolder As LongPtr, ByVal cidl As Long, ByVal apidl As LongPtr, ByVal dwFlags As SHOFASI_Flags) As Long
 Public Declare PtrSafe Function SHOpenWithDialog Lib "shell32" (ByVal hWnd As LongPtr, poainfo As OPENASINFO) As Long
 Public Declare PtrSafe Function SHCreateStdEnumFmtEtc Lib "shell32" (ByVal cfmt As Long, afmt As FORMATETC, ppenumFormatEtc As IEnumFormatETC) As Long
 [Description("Can be used to create folders inside folders that also do not yet exist. This call supports Unicode.") ]
 Public DeclareWide PtrSafe Function SHCreateDirectory Lib "shell32" (ByVal hwnd As LongPtr, ByVal pszPath As String) As Long
-[Description("Can be used to create folders inside folders that also do not yet exist. This call supports Unicode.")]
+[Description("Can be used to create folders inside folders that also do not yet exist. This call supports Unicode.") ]
 Public DeclareWide PtrSafe Function SHCreateDirectoryExW Lib "shell32" (ByVal hwnd As LongPtr, ByVal pszPath As LongPtr, psa As SECURITY_ATTRIBUTES) As Long
 [Description("Can be used to create folders inside folders that also do not yet exist. This call supports Unicode.")]
 Public DeclareWide PtrSafe Function SHCreateDirectoryEx Lib "shell32" (ByVal hwnd As LongPtr, ByVal pszPath As String, psa As SECURITY_ATTRIBUTES) As Long
@@ -8146,7 +8223,7 @@ Public Const AC_SRC_ALPHA As Byte = 01
 
 Public Enum ExitWindowsExFlags
 	EWX_LOGOFF  = &H00000000
-	EWX_SHUTDOWN  = &H00000001
+	EWX_SHUTDOWN = &H00000001
 	EWX_REBOOT  = &H00000002
 	EWX_FORCE  = &H00000004
 	EWX_POWEROFF  = &H00000008
@@ -16543,6 +16620,13 @@ Public DeclareWide PtrSafe Function CryptUnprotectData Lib "crypt32" (pDataIn As
 Public DeclareWide PtrSafe Function CryptProtectMemory lib "crypt32" (pDataIn As Any, ByVal cbDataIn As Long, ByVal dwFlags As CryptMemProtectFlags) As BOOL
 Public DeclareWide PtrSafe Function CryptUnprotectMemory lib "crypt32" (pDataIn As Any, ByVal cbDataIn As Long, ByVal dwFlags As CryptMemProtectFlags) As BOOL
 
+Public Enum CREATE_ASM_NAME_OBJ_FLAGS
+    CANOF_PARSE_DISPLAY_NAME = &H1
+    CANOF_SET_DEFAULT_VALUES = &H2
+End Enum
+
+Public DeclareWide PtrSafe Function CreateAssemblyNameObject Lib "sxs.dll" (ppAssemblyNameObj As IAssemblyName, ByVal szAssemblyName As LongPtr, ByVal dwFlags As CREATE_ASM_NAME_OBJ_FLAGS, ByVal pvReserved As LongPtr) As Long
+Public DeclareWide PtrSafe Function CreateAssemblyCache Lib "sxs.dll" (ppAsmCache As IAssemblyCache, ByVal dwReserved As Long)
 
 
 Public DeclareWide PtrSafe Function GetFileVersionInfoSizeW Lib "version.dll" (ByVal lptstrFilename As LongPtr, lpdwHandle As Long) As Long
@@ -17457,6 +17541,11 @@ End Enum
 Public Function SUCCEEDED(hr As Long) As Boolean
     Return hr >= 0
 End Function
+
+Public Function MAKEINTRESOURCE(ByVal dwVal As Long) As Long
+   MAKEINTRESOURCE = &HFFFF& And dwVal
+End Function
+
 
 [Description("A 32 and 64bit compatible implementation of the classic helper function.") ]
 Public Function SwapVtableEntry(pObj As LongPtr, EntryNumber As Integer, ByVal lpFN As LongPtr) As LongPtr
