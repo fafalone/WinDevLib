@@ -1,4 +1,6 @@
 
+**Update (v4.14.184):** Added SxS Assembly interfaces and APIs. Added MAKEINTRESOURCE macro. Added additional error messages. Made TaskDialogIndirect returns Optional per MSDN.
+
 **Update (v4.14.182):** Added missing kernel32 string functions. Added SUCCEEDED helper function.
 
 **Update (v4.14.181):** Bug fix: CHARFORMAT2[A|W] was incorrectly declared.
