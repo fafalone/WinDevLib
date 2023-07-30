@@ -1,5 +1,7 @@
 
-**Update (v4.15.185):** Bug fix: lstrcmp, lstrcmpi, and lstrcat declarations were incorrect. Some additional [ TypeHint ] attributes add.
+**Update (v4.15.188):** Added SAFEARRAY APIs for manual operations on them and some more TypeLib-related APIs.
+
+**Update (v4.14.185):** Bug fix: lstrcmp, lstrcmpi, and lstrcat declarations were incorrect. Some additional [ TypeHint ] attributes add.
 
 **Update (v4.14.184):** Added SxS Assembly interfaces and APIs. Added MAKEINTRESOURCE macro. Added additional error messages. Made TaskDialogIndirect returns Optional per MSDN.
 
