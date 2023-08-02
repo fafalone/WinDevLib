@@ -1,7 +1,7 @@
 # tbShellLib
 **twinBASIC Shell Library**
 
-Current Version: 4.15.188 (July 30th, 2023)
+Current Version: 4.16.190 (August 2nd, 2023)
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -87,8 +87,13 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, vbNullPtr, ...)
 ```
 
 ## Updates
-**Update (v4.15.188):** Added `SAFEARRAY` APIs for manual operations on them and some more TypeLib-related APIs.
+**Update (v4.16.190):**\
+-Critical bug fix: `TB_SHELLLIB_LITE` mode was broken.\
+-Added additional DirectX errors w/ desciprtions.\
+-Added initial D3D compiler apis, note that by default, these direct to d3dcompiler_47.dll, however you can specify compiler flag D3D_COMPILER = 44, 45, and 46 to use those.
 
+
+**Update (v4.15.188):** Added `SAFEARRAY` APIs for manual operations on them and some more TypeLib-related APIs.
 
 **Update (v4.15.185):** Bug fix: lstrcmp, lstrcmpi, and lstrcat declarations were incorrect. Some additional `[ TypeHint ]` attributes add.
 
