@@ -1,4 +1,6 @@
 
+**Update (v4.16.191):** Bug fix: Multiple instances of errors for auto-declaring Variants, Bug fix: `GetClipboardData` incorrectly returned a Long (should be LongPtr).
+
 **Update (v4.16.190):** Critical bug fix: TB_SHELLLIB_LITE mode was broken. Added additional DirectX errors w/ desciprtions. Added initial D3D compiler apis, note that by default, these direct to d3dcompiler_47.dll, however you can specify compiler flag D3D_COMPILER = 44, 45, and 46 to use those.
 
 **Update (v4.15.188):** Added SAFEARRAY APIs for manual operations on them and some more TypeLib-related APIs.
