@@ -1,7 +1,12 @@
 # tbShellLib
 **twinBASIC Shell Library**
 
-Current Version: 4.16.191 (August 3rd, 2023)
+## Big News!
+**As of the [latest twinBASIC version](https://github.com/twinbasic/twinbasic/releases), Beta 368, massive improvements to Intellisense mean that tbShellLib is vastly more usable, with no long delays. Intellisense is now cached and lag-free.** Thanks to Wayne for tackling this issue and continuing to make twinBASIC the programming tool of the future 👍
+
+---
+
+**Current Version: 4.16.191 (August 3rd, 2023)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
