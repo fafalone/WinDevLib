@@ -1,7 +1,7 @@
 # tbShellLib
-**twinBASIC Shell Library**
+## twinBASIC Shell Library
 
-## Big News!
+### Big News!
 **As of the [latest twinBASIC version](https://github.com/twinbasic/twinbasic/releases), Beta 368, massive improvements to Intellisense mean that tbShellLib is vastly more usable, with no long delays. Intellisense is now cached and lag-free.** Thanks to Wayne for tackling this issue and continuing to make twinBASIC the programming tool of the future 👍
 
 ---
@@ -20,11 +20,11 @@ This project is implemented purely in tB native code, as unlike VB6 there's lang
 
 Please report any bugs via the Issues feature here on GitHub.
 
-## Requirements
+### Requirements
 
 [twinBASIC Beta 269 or newer](https://github.com/twinbasic/twinbasic/releases) is required.
 
-## Adding tbShellLib to your project
+### Adding tbShellLib to your project
 You have 2 options for this:
 
 #### Via the Package Server
@@ -33,7 +33,7 @@ twinBASIC has an online package server and tbShellLib is published on it. Open y
 #### From a local file
 You can download the project from this repository and use the .twinpack file. Navigate to the same area as above, and click on the "Import from file" button. 
 
-## Guide to switching from oleexp.tlb
+### Guide to switching from oleexp.tlb
 
 tbShellLib presented the best opportunity there would be to ditch some olelib legacy baggage. It's fairly simple to move your VB6 projects to tbShellLib, just follow these steps:
 
@@ -50,7 +50,7 @@ Finally, a very small number of APIs and interfaces use ByVal UDTs. Since VB can
 
 Note that this is just for using tbShellLib-- you'll likely have a lot more changes to make if you want to make your project x64 compatible.
 
-## Guide to switching from oleexpimp.tlb
+### Guide to switching from oleexpimp.tlb
 
 There's 'twinBASIC Shell Library for Implements' (tbShellLibImpl.twinpack/.twinproj) as well, but you'll note it has substantially fewer interfaces than oleexpimp.tlb. This is because there's two reasons for an interface to have an alternate version: It uses `[ Preservesig ]` on one or more methods, or it uses `As Any`. twinBASIC allows using `Implements` with `As Any` by replacing it with `As LongPtr` (which is what the alternate versions do). So many interfaces were in oleexpimp.tlb for this latter reason, and subsequently are *not* included in tbShellLibImpl as it's not neccessary.
 
@@ -58,7 +58,7 @@ If you find an oleexpimp.tlb interface is not in tbShellLibImpl, you will be abl
 
 tB has announced plans to support `[ PreserveSig ]` in implemented interfaces in the future; when that happens tbShellLibImpl will be deprecated.
 
-## tbShellLib API standards
+### tbShellLib API standards
 
 This was mentioned above, but it's worth going into more detail. In addition to the COM interfaces, tbShellLib has a large selection of common Windows APIs; this is a much larger set than oleexp. tbShellLib and twinBASIC represented the best opportunity there would be to modernize standards... most VB programs are written with ANSI versions of APIs being the default. **This is not the case with tbShellLib**. With very few exceptions, APIs are Unicode by default-- i.e. they use the W, rather than A, version of APIs e.g. `DeleteFile` maps to `DeleteFileW` rather than `DeleteFileA`. The A and W variants use String/LongPtr, and in almost all cases, the mapped version uses `String` with twinBASIC's `DeclareWide` keyword-- this disables Unicode-ANSI conversion, so you can still use `String` without `StrPtr` or any Unicode <-> ANSI conversion. Note this usually only applies to strings passed as input, APIs passing a LPWSTR that's allocated externally will still be LongPtr, as they're not in the same BSTR format as VBx/TB strings.
 
@@ -70,7 +70,7 @@ As noted before, an exception to the rule is `SendMessage`, due to the enourmous
 
 If you have any doubts about which API is being called, twinBASIC will show the full declaration when you hover your cursor over the API in your code.
 
-### A note on seeing UDTs where before they were As Any
+#### A note on seeing UDTs where before they were As Any
 
 The best example of this is many APIs, like file APIs, where in traditional VB declarations, you see 'As Any' and in tbShellLib you see e.g. `SECURITY_ATTRIBUTES` or `OVERLAPPED`. These are the correct the definitions, but VB6 had no facility to specify 'NULL', which is what they usually would be set to. So the VB6 way was a workaround, where you could pass ByVal 0. 
 
@@ -91,7 +91,7 @@ Public Declare PtrSafe Function CreateFileW Lib "kernel32" (ByVal lpFileName As 
 hFile = CreateFileW(StrPtr("name"), 0, 0, vbNullPtr, ...)
 ```
 
-## Updates
+### Updates
 **Update (v4.16.191):** Critical bug fix: Multiple instances of errors for auto-declaring Variants. Bug fix: `GetClipboardData` incorrectly returned a Long (should be LongPtr).
 
 **Update (v4.16.190):**\
