@@ -94,13 +94,13 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, vbNullPtr, ...)
 
 ### Updates
 **Update (v5.0.201):**\
--Added some missing DirectShow media stream interfaces. 
--Complete coverage of winmm API sets for wave, midi, time, sound, mmio, joystick, mci, aux, and mixer.
--Complete coverage of printer and print spooler APIs from winspool.
--Major expansion of security-related APIs
--Added D3D compiler APIs and effects interfaces; 
--Added basic DirectSound interfaces/apis.
--Bug fix: ShowWindow relocated to slShellCore.twin to avoid amibiguity with SHOWWINDOW enum.
+-Added some missing DirectShow media stream interfaces.\
+-Complete coverage of winmm API sets for wave, midi, time, sound, mmio, joystick, mci, aux, and mixer.\
+-Complete coverage of printer and print spooler APIs from winspool.\
+-Major expansion of security-related APIs\
+-Added D3D compiler APIs and effects interfaces\ 
+-Added basic DirectSound interfaces/apis.\
+-Bug fix: ShowWindow relocated to slShellCore.twin to avoid amibiguity with SHOWWINDOW enum.\
 -Bug fix: Misc. bug fixes to APIs.
 
 
