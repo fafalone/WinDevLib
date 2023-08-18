@@ -93,7 +93,7 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, vbNullPtr, ...)
 ```
 
 ### Updates
-**Update (v5.0.201):**\ 
+**Update (v5.0.201):**\
 -Added some missing DirectShow media stream interfaces. 
 -Complete coverage of winmm API sets for wave, midi, time, sound, mmio, joystick, mci, aux, and mixer.
 -Complete coverage of printer and print spooler APIs from winspool.
