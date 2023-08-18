@@ -1,4 +1,16 @@
 
+**Update (v5.0.201):** 
+-Added some missing DirectShow media stream interfaces. 
+-Complete coverage of winmm API sets for wave, midi, time, sound, mmio, joystick, mci, aux, and mixer.
+-Complete coverage of printer and print spooler APIs from winspool.
+-Major expansion of security-related APIs
+-Added D3D compiler APIs and effects interfaces; 
+-Added basic DirectSound interfaces/apis.
+-Bug fix: ShowWindow relocated to slShellCore.twin to avoid amibiguity with SHOWWINDOW enum.
+-Bug fix: Misc. bug fixes to APIs.
+
+**Update (v4.16.193):** Small API update for upcoming project; some resource loading APIs were missing.
+
 **Update (v4.16.191):** Bug fix: Multiple instances of errors for auto-declaring Variants, Bug fix: `GetClipboardData` incorrectly returned a Long (should be LongPtr).
 
 **Update (v4.16.190):** Critical bug fix: TB_SHELLLIB_LITE mode was broken. Added additional DirectX errors w/ desciprtions. Added initial D3D compiler apis, note that by default, these direct to d3dcompiler_47.dll, however you can specify compiler flag D3D_COMPILER = 44, 45, and 46 to use those.
@@ -345,3 +357,5 @@ Update (v1.2.10): twinBASIC now supports [ PreserveSig ] as an attribute to have
 Update (v1.1.8): Added class factory/typelib interfaces from olelib plus oleexp extensions; added manipulation.idl stuff (internial scrolling), and a few misc others.
 
 Update (v1.1.6): Added a small number of interfaces I shouldn't have left out of the first major release... IShellExtInit, IShellExtPropPage (and related structs/apis), IQueryAssociations, IItemNameLimits, IObjectWithSite, a few others. 
+
+Initial release: v1.0.1: 26 Sept 2022
