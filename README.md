@@ -2,7 +2,7 @@
 ## twinBASIC Shell Library
 
 ### Big News!
-**As of the [latest twinBASIC version](https://github.com/twinbasic/twinbasic/releases), Beta 368, massive improvements to Intellisense mean that tbShellLib is vastly more usable, with no long delays. Intellisense is now cached and lag-free.** Thanks to Wayne for tackling this issue and continuing to make twinBASIC the programming tool of the future 👍
+**As of the [twinBASIC version Beta 368 and newer](https://github.com/twinbasic/twinbasic/releases),, massive improvements to Intellisense mean that tbShellLib is vastly more usable, with no long delays. Intellisense is now cached and lag-free.** Thanks to Wayne for tackling this issue and continuing to make twinBASIC the programming tool of the future 👍
 
 ---
 
