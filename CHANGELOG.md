@@ -1,4 +1,7 @@
 
+
+**Update (v5.0.203):** Bug fix: D3DMATRIX layout with 2d array was incorrect.
+
 **Update (v5.0.201):** 
 -Added some missing DirectShow media stream interfaces. 
 -Complete coverage of winmm API sets for wave, midi, time, sound, mmio, joystick, mci, aux, and mixer.
