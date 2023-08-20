@@ -6,7 +6,7 @@
 
 ---
 
-**Current Version: 5.0.201 (August 18th, 2023)**
+**Current Version: 5.0.203 (August 19th, 2023)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -93,6 +93,8 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, vbNullPtr, ...)
 ```
 
 ### Updates
+**Update (v5.0.203):** Bug fix: D3DMATRIX layout with 2d array was incorrect.
+
 **Update (v5.0.201):**\
 -Added some missing DirectShow media stream interfaces.\
 -Complete coverage of winmm API sets for wave, midi, time, sound, mmio, joystick, mci, aux, and mixer.\
