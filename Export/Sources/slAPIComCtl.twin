@@ -4283,10 +4283,15 @@ Public Enum PSPCALLBACKMESSAGES
 	PSPCB_ADDREF = 0
 	PSPCB_RELEASE = 1
 	PSPCB_CREATE = 2
+End Enum
+
+Public Enum PSCALLBACKMSG
+    PSCB_INITIALIZED = 1
+    PSCB_PRECREATE = 2
     PSCB_BUTTONPRESSED = 3
 End Enum
 
-Public Type PROPSHEETPAGE
+Public Type PROPSHEETPAGE_V1
 	dwSize As Long
     dwFlags As PSP_FLAGS
     hInstance As LongPtr
@@ -4343,9 +4348,26 @@ Public Type PROPSHEETPAGE_V4
     hActCtx As LongPtr
     bmHeader As LongPtr
 End Type
-[ Description ("NOTE: This is V4 of the type (Windows Vista and newer). Use PROPSHEETPAGE_V3/V2/_ for earlier versions.") ]
+[ Description ("NOTE: This is V4 of the type (Windows Vista and newer). Use PROPSHEETPAGE_V3/V2/V1 for earlier versions.") ]
 Public Type PROPSHEETPAGEW
 	dwSize As Long
+    dwFlags As PSP_FLAGS
+    hInstance As LongPtr
+    pResource As LongPtr
+    hIcon As LongPtr
+    pszTitle As LongPtr
+    pfnDlgProc As LongPtr
+    lParam As LongPtr
+    pfnCallback As LongPtr
+    pcRefParent As LongPtr
+    pszHeaderTitle As LongPtr
+    pszHeaderSubTitle As LongPtr
+    hActCtx As LongPtr
+    bmHeader As LongPtr
+End Type
+[ Description ("NOTE: This is V4 of the type (Windows Vista and newer). Use PROPSHEETPAGE_V3/V2/V1 for earlier versions.") ]
+Public Type PROPSHEETPAGE
+    dwSize As Long
     dwFlags As PSP_FLAGS
     hInstance As LongPtr
     pResource As LongPtr
@@ -4366,7 +4388,7 @@ Public Type PSHNOTIFY
     lParam As LongPtr
 End Type
 
-Public Type PROPSHEETHEADER
+Public Type PROPSHEETHEADER_V1
     dwSize As Long
     dwFlags As PropSheetHeaderFlags
     hwndParent As LongPtr
@@ -4376,6 +4398,7 @@ Public Type PROPSHEETHEADER
     nPages As Long
     nStartPage As LongPtr
     ppsp As LongPtr
+    pfnCallback As LongPtr
 End Type
 Public Type PROPSHEETHEADER_V2
     dwSize As Long
@@ -4387,11 +4410,41 @@ Public Type PROPSHEETHEADER_V2
     nPages As Long
     nStartPage As LongPtr
     ppsp As LongPtr
+    pfnCallback As LongPtr
     hbmWatermark As LongPtr
     hplWatermark As LongPtr
     hbmHeader As LongPtr
 End Type
-
+Public Type PROPSHEETHEADER
+    dwSize As Long
+    dwFlags As PropSheetHeaderFlags
+    hwndParent As LongPtr
+    hInstance As LongPtr
+    hIcon As LongPtr
+    pszCaption As LongPtr
+    nPages As Long
+    nStartPage As LongPtr
+    ppsp As LongPtr
+    pfnCallback As LongPtr
+    hbmWatermark As LongPtr
+    hplWatermark As LongPtr
+    hbmHeader As LongPtr
+End Type
+Public Type PROPSHEETHEADERW
+    dwSize As Long
+    dwFlags As PropSheetHeaderFlags
+    hwndParent As LongPtr
+    hInstance As LongPtr
+    hIcon As LongPtr
+    pszCaption As LongPtr
+    nPages As Long
+    nStartPage As LongPtr
+    ppsp As LongPtr
+    pfnCallback As LongPtr
+    hbmWatermark As LongPtr
+    hplWatermark As LongPtr
+    hbmHeader As LongPtr
+End Type
 
 
 Public Enum PSNOTIFYCODES
@@ -4502,6 +4555,16 @@ Public Enum PSWIZBUTTONS
 	PSWIZB_FINISH = &H00000004
 	PSWIZB_DISABLEDFINISH = &H00000008
 	PSWIZB_CANCEL = &H00000010
+    PSWIZB_SHOW = 0
+    PSWIZB_RESTORE = 1
+End Enum
+
+Public Enum PSWIZBUTTONFLAGS
+    PSWIZBF_ELEVATIONREQUIRED = &H1
+End Enum
+
+Public Enum PSWIZFSB_FLAG
+    PSWIZF_SETCOLOR = (-1)
 End Enum
 
 Public Enum PSBUTTONS
@@ -10609,6 +10672,108 @@ dwStyle = dwStyle Or dwNewStyle
 SetButtonStyle = CLng(SetWindowLong(hWnd, GWL_STYLE, dwStyle))
 End Function
 
+Public Function PropSheet_SetCurSel(hDlg As LongPtr, hPage As LongPtr, index As Long) As Long
+	Return CLng(SendMessage(hDlg, PSM_SETCURSEL, index, ByVal hPage))
+End Function
+Public Function PropSheet_RemovePage(hDlg As LongPtr, hPage As LongPtr, index As Long) As Long
+    Return CLng(SendMessage(hDlg, PSM_REMOVEPAGE, index, ByVal hPage))
+End Function
+Public Function PropSheet_AddPage(hDlg As LongPtr, hPage As LongPtr) As Long
+    Return CLng(SendMessage(hDlg, PSM_ADDPAGE, 0, ByVal hPage))
+End Function
+Public Function PropSheet_Changed(hDlg As LongPtr, hWnd As LongPtr) As Long
+    Return CLng(SendMessage(hDlg, PSM_CHANGED, hWnd, ByVal 0))
+End Function
+Public Function PropSheet_RestartWindows(hDlg As LongPtr) As Long
+    Return CLng(SendMessage(hDlg, PSM_RESTARTWINDOWS, 0, ByVal 0))
+End Function
+Public Function PropSheet_RebootSystem(hDlg As LongPtr) As Long
+    Return CLng(SendMessage(hDlg, PSM_REBOOTSYSTEM, 0, ByVal 0))
+End Function
+Public Function PropSheet_CancelToClose(hDlg As LongPtr) As Long
+    Return CLng(PostMessage(hDlg, PSM_CANCELTOCLOSE, 0, ByVal 0))
+End Function
+Public Function PropSheet_QuerySiblings(hDlg As LongPtr, wParam As LongPtr, lParam As LongPtr) As Long
+    Return CLng(SendMessage(hDlg, PSM_QUERYSIBLINGS, wParam, ByVal lParam))
+End Function
+Public Function PropSheet_Unchanged(hDlg As LongPtr, hWnd As LongPtr) As Long
+    Return CLng(SendMessage(hDlg, PSM_UNCHANGED, hWnd, ByVal 0))
+End Function
+Public Function PropSheet_Apply(hDlg As LongPtr) As Long
+    Return CLng(SendMessage(hDlg, PSM_APPLY, 0, ByVal 0))
+End Function
+Public Function PropSheet_SetTitle(hDlg As LongPtr, wStyle As Long, lpszText As LongPtr) As Long
+    Return CLng(SendMessage(hDlg, PSM_SETTITLE, wStyle, ByVal lpszText))
+End Function
+Public Function PropSheet_SetWizButtons(hDlg As LongPtr, dwFlag As PSWIZBUTTONFLAGS, dwButtons As PSWIZBUTTONS) As Long
+    Return CLng(PostMessage(hDlg, PSM_SETWIZBUTTONS, dwFlag, ByVal dwButtons))
+End Function
+Public Function PropSheet_PressButton(hDlg As LongPtr, iButton As PSBUTTONS) As Long
+    Return CLng(PostMessage(hDlg, PSM_PRESSBUTTON, iButton, ByVal 0))
+End Function
+Public Function PropSheet_SetCurSelByID(hDlg As LongPtr, id As LongPtr) As Long
+    Return CLng(SendMessage(hDlg, PSM_SETCURSELID, 0, ByVal id))
+End Function
+Public Function PropSheet_SetFinishText(hDlg As LongPtr, lpszText As LongPtr) As Long
+    Return CLng(SendMessage(hDlg, PSM_SETFINISHTEXT, 0, ByVal lpszText))
+End Function
+Public Function PropSheet_GetTabControl(hDlg As LongPtr) As LongPtr
+    Return SendMessage(hDlg, PSM_GETTABCONTROL, 0, ByVal 0)
+End Function
+Public Function PropSheet_IsDialogMessage(hDlg As LongPtr, pMsg As MSG) As BOOL
+    Return CLng(SendMessage(hDlg, PSM_ISDIALOGMESSAGE, 0, pMsg))
+End Function
+Public Function PropSheet_GetCurrentPageHwnd(hDlg As LongPtr) As LongPtr
+    Return SendMessage(hDlg, PSM_GETCURRENTPAGEHWND, 0, ByVal 0)
+End Function
+Public Function PropSheet_InsertPage(hDlg As LongPtr, index As Long, hPage As LongPtr) As Long
+    Return CLng(SendMessage(hDlg, PSM_INSERTPAGE, index, ByVal hPage))
+End Function
+Public Function PropSheet_SetHeaderTitle(hDlg As LongPtr, index As Long, lpszText As LongPtr) As Long
+    Return CLng(SendMessage(hDlg, PSM_SETHEADERTITLE, index, ByVal lpszText))
+End Function
+Public Function PropSheet_SetHeaderSubTitle(hDlg As LongPtr, index As Long, lpszText As LongPtr) As Long
+    Return CLng(SendMessage(hDlg, PSM_SETHEADERSUBTITLE, index, ByVal lpszText))
+End Function
+Public Function PropSheet_HwndToIndex(hDlg As LongPtr, hWnd As LongPtr) As Long
+    Return CLng(SendMessage(hDlg, PSM_HWNDTOINDEX, hWnd, ByVal 0))
+End Function
+Public Function PropSheet_IndexToHwnd(hDlg As LongPtr, i As Long) As LongPtr
+    Return SendMessage(hDlg, PSM_INDEXTOHWND, i, ByVal 0)
+End Function
+Public Function PropSheet_PageToIndex(hDlg As LongPtr, hPage As LongPtr) As Long
+    Return CLng(SendMessage(hDlg, PSM_PAGETOINDEX, 0, ByVal hPage))
+End Function
+Public Function PropSheet_IndexToPage(hDlg As LongPtr, i As Long) As LongPtr
+    Return SendMessage(hDlg, PSM_INDEXTOPAGE, i, ByVal 0)
+End Function
+Public Function PropSheet_IdToIndex(hDlg As LongPtr, id As LongPtr) As Long
+    Return CLng(SendMessage(hDlg, PSM_IDTOINDEX, 0, ByVal id))
+End Function
+Public Function PropSheet_IndexToId(hDlg As LongPtr, i As Long) As LongPtr
+    Return SendMessage(hDlg, PSM_INDEXTOID, i, ByVal 0)
+End Function
+Public Function PropSheet_GetResult(hDlg As LongPtr) As LongPtr
+    Return SendMessage(hDlg, PSM_GETRESULT, 0, ByVal 0)
+End Function
+Public Function PropSheet_RecalcPageSizes(hDlg As LongPtr) As Long
+    Return CLng(SendMessage(hDlg, PSM_RECALCPAGESIZES, 0, ByVal 0))
+End Function
+Public Function PropSheet_SetNextText(hDlg As LongPtr, lpszText As LongPtr) As Long
+    Return CLng(SendMessage(hDlg, PSM_SETNEXTTEXT, 0, ByVal lpszText))
+End Function
+Public Function PropSheet_ShowWizButtons(hDlg As LongPtr, dwFlag As PSWIZBUTTONS, dwButtons As PSWIZBUTTONS) As Long
+    Return CLng(PostMessage(hDlg, PSM_SHOWWIZBUTTONS, dwFlag, ByVal dwFlag))
+End Function
+Public Function PropSheet_EnableWizButtons(hDlg As LongPtr, dwFlag As PSWIZBUTTONS, dwButtons As PSWIZBUTTONS) As Long
+    Return CLng(PostMessage(hDlg, PSM_ENABLEWIZBUTTONS, dwFlag, ByVal dwFlag))
+End Function
+Public Function PropSheet_SetButtonText(hDlg As LongPtr, dwButton As PSBUTTONS, lpszText As LongPtr) As Long
+    Return CLng(SendMessage(hDlg, PSM_SETBUTTONTEXT, dwButton, ByVal lpszText))
+End Function
+
+
+
 
 Public Function ImageList_AddIcon(himl As LongPtr, hIcon As LongPtr) As Long
   ImageList_AddIcon = ImageList_ReplaceIcon(himl, -1, hIcon)
@@ -10667,7 +10832,7 @@ Public Function ListView_GetWorkAreas(hWnd As LongPtr, nWorkAreas As Long, prc()
   ListView_GetWorkAreas = SendMessage(hWnd, LVM_GETWORKAREAS, ByVal nWorkAreas, prc(0))
 End Function
 
-Public Function ListView_GetNumberOfWorkAreas(hWnd As Long, pnWorkAreas As Long) As Boolean
+Public Function ListView_GetNumberOfWorkAreas(hWnd As LongPtr, pnWorkAreas As Long) As Boolean
   ListView_GetNumberOfWorkAreas = SendMessage(hWnd, LVM_GETNUMBEROFWORKAREAS, 0, pnWorkAreas)
 End Function
 
@@ -10775,7 +10940,7 @@ Public Function ListView_SetItem(hWnd As LongPtr, pItem As LVITEM) As Boolean
   ListView_SetItem = SendMessage(hWnd, LVM_SETITEM, 0, pItem)
 End Function
 '
-Public Function ListView_SetCallbackMask(hWnd As Long, Mask As Long) As Boolean
+Public Function ListView_SetCallbackMask(hWnd As LongPtr, Mask As Long) As Boolean
   ListView_SetCallbackMask = SendMessage(hWnd, LVM_SETCALLBACKMASK, ByVal Mask, 0)
 End Function
 Public Function ListView_GetCallbackMask(hWnd As LongPtr) As LongPtr   ' LVStyles

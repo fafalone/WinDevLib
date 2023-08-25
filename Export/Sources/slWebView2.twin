@@ -1,6 +1,7 @@
 /*
 slWebView2 - Adapted from WebView2 SDK TypeLib
 Updated on 25 May 2023 to match current stable release 1.0.1774.30
+Updated on 23 Aug 2023 to match current stable release 1.0.1901.177
 */
 
 
@@ -1321,6 +1322,11 @@ Updated on 25 May 2023 to match current stable release 1.0.1774.30
         Property Get AdditionalAllowedFrameAncestors() As LongPtr
         Property Let AdditionalAllowedFrameAncestors(ByVal value As LongPtr)
     End Interface
+    
+    [ InterfaceId ("DDFFE494-4942-4BD2-AB73-35B8FF40E19F") ]
+    Interface ICoreWebView2NavigationStartingEventArgs3 Extends ICoreWebView2NavigationStartingEventArgs2
+    	Property Get NavigationKind() As COREWEBVIEW2_NAVIGATION_KIND
+    End Interface
 
     [ InterfaceId ("BBC7BAED-74C6-4C92-B63A-7F5AEAE03DE3") ]
     Interface ICoreWebView2NewWindowRequestedEventArgs2 Extends ICoreWebView2NewWindowRequestedEventArgs
@@ -1346,6 +1352,35 @@ Updated on 25 May 2023 to match current stable release 1.0.1774.30
         Property Get PrinterName() As LongPtr
         Property Let PrinterName(ByVal value As LongPtr)
     End Interface
+
+    [ InterfaceId ("7A626017-28BE-49B2-B865-3BA2B3522D90") ]
+    Interface ICoreWebView2_18 Extends ICoreWebView2_17
+    	Sub add_LaunchingExternalUriScheme(ByVal eventHandler As ICoreWebView2LaunchingExternalUriSchemeEventHandler, token As LongLong)
+        Sub remove_LaunchingExternalUriScheme(ByVal token As LongLong)
+    End Interface
+
+    [ InterfaceId ("6921F954-79B0-437F-A997-C85811897C68") ]
+    Interface ICoreWebView2_19 Extends ICoreWebView2_18
+    	Property Get MemoryUsageTargetLevel() As COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL
+        Property Let MemoryUsageTargetLevel(ByVal level As COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL)
+    End Interface
+    
+    [ InterfaceId ("74F712E0-8165-43A9-A13F-0CCE597E75DF") ]
+    Interface ICoreWebView2LaunchingExternalUriSchemeEventHandler Extends IUnknown
+    	Sub Invoke(ByVal sender As ICoreWebView2, ByVal args As ICoreWebView2LaunchingExternalUriSchemeEventArgs)
+    End Interface
+    
+    [ InterfaceId ("07D1A6C3-7175-4BA1-9306-E593CA07E46C") ]
+    Interface ICoreWebView2LaunchingExternalUriSchemeEventArgs Extends IUnknown
+    	Property Get Uri() As LongPtr
+        Property Get InitiatingOrigin() As LongPtr
+        Property Get IsUserInitiated() As BOOL
+        Property Get Cancel() As BOOL
+        Property Let Cancel(ByVal value As BOOL)
+        Function GetDeferral() As ICoreWebView2Deferral
+    End Interface
+    
+    
 
     [ InterfaceId ("8FD80075-ED08-42DB-8570-F5D14977461E") ]
     Interface ICoreWebView2PrintCompletedHandler Extends IUnknown
@@ -1387,6 +1422,14 @@ Updated on 25 May 2023 to match current stable release 1.0.1774.30
     [ InterfaceId ("2EE5B76E-6E80-4DF2-BCD3-D4EC3340A01B") ]
     Interface ICoreWebView2Profile5 Extends ICoreWebView2Profile4
         Property Get CookieManager() As ICoreWebView2CookieManager
+    End Interface
+    
+    [ InterfaceId ("BD82FA6A-1D65-4C33-B2B4-0393020CC61B") ]
+    Interface ICoreWebView2Profile6 Extends ICoreWebView2Profile5
+    	Property Get IsPasswordAutosaveEnabled() As BOOL
+        Property Let IsPasswordAutosaveEnabled(ByVal value As BOOL)
+        Property Get IsGeneralAutofillEnabled() As BOOL
+        Property Let IsGeneralAutofillEnabled(ByVal value As BOOL)
     End Interface
 
 
@@ -1921,6 +1964,9 @@ Module slWebView2
             '/ COREWEBVIEW2_BROWSING_DATA_KINDS_BROWSING_HISTORY, and
             '/ COREWEBVIEW2_BROWSING_DATA_KINDS_SETTINGS.
             COREWEBVIEW2_BROWSING_DATA_KINDS_ALL_PROFILE = 1 << 14
+            '/ Specifies service workers registered for an origin, and clear will result in
+            '/ termination and deregistration of them.
+            COREWEBVIEW2_BROWSING_DATA_KINDS_SERVICE_WORKERS = 1 << 15
     End Enum
 
     Public Enum COREWEBVIEW2_SERVER_CERTIFICATE_ERROR_ACTION
@@ -1970,7 +2016,33 @@ Module slWebView2
         COREWEBVIEW2_PRINT_DIALOG_KIND_SYSTEM = 1
     End Enum
 
-
+    Public Enum COREWEBVIEW2_NAVIGATION_KIND
+        ' / A navigation caused by `CoreWebView2.Reload()`, `location.reload()`, the end user
+        ' / using F5 or other UX, or other reload mechanisms to reload the current document
+        ' / without modifying the navigation history.
+        COREWEBVIEW2_NAVIGATION_KIND_RELOAD = 0
+        ' / A navigation back or forward to a different entry in the session navigation history,
+        ' / like via `CoreWebView2.Back()`, `location.back()`, the end user pressing Alt+Left
+        ' / or other UX, or other mechanisms to navigate back or forward in the current
+        ' / session navigation history.
+        ' /
+        '  Note: This kind doesn't distinguish back or forward, because we can't
+        '  distinguish it from origin source `blink.mojom.NavigationType`.
+        COREWEBVIEW2_NAVIGATION_KIND_BACK_OR_FORWARD = 1
+        ' / A navigation to another document, which can be caused by `CoreWebView2.Navigate()`,
+        ' / `window.location.href = ...`, or other WebView2 or DOM APIs that navigate to a new URI.
+        COREWEBVIEW2_NAVIGATION_KIND_NEW_DOCUMENT = 2
+    End Enum
+    
+    Public Enum COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL
+        ' / Specifies normal memory usage target level.
+        COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_NORMAL = 0
+        ' / Specifies low memory usage target level.
+        ' / Used for inactivate WebView for reduced memory consumption.
+        COREWEBVIEW2_MEMORY_USAGE_TARGET_LEVEL_LOW = 1
+    End Enum
+    
+       
     Public DeclareWide PtrSafe Function CreateCoreWebView2EnvironmentWithOptions Lib "WebView2Loader.dll" (ByVal browserExecutableFolder As String, ByVal userDataFolder As String, ByVal environmentOptions As ICoreWebView2EnvironmentOptions, ByVal environmentCreatedHandler As ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler) As Long
     Public Declare PtrSafe Function CreateCoreWebView2Environment Lib "WebView2Loader.dll" (ByVal environmentCreatedHandler As ICoreWebView2CreateCoreWebView2EnvironmentCompletedHandler) As Long
     Public DeclareWide PtrSafe Function GetAvailableCoreWebView2BrowserVersionString Lib "WebView2Loader.dll" (ByVal browserExecutableFolder As String, versionInfo As LongPtr) As Long

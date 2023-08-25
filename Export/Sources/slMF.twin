@@ -3566,6 +3566,49 @@ Public Const MFOUTPUTATTRIBUTE_COMPRESSED As Long = 8
 Public Const MFOUTPUTATTRIBUTE_SOFTWARE As Long = 16
 Public Const MFOUTPUTATTRIBUTE_BUS As Long = 32
 Public Const MFOUTPUTATTRIBUTE_BUSIMPLEMENTATION As Long = 65280
+
+Public Enum MF_STARTUP_FLAGS
+    MFSTARTUP_NOSOCKET = &H1
+    MFSTARTUP_LITE = (MFSTARTUP_NOSOCKET)
+    MFSTARTUP_FULL = 0
+End Enum
+
+Public Enum MFASYNC_WORKQUEUE_TYPE
+    MF_STANDARD_WORKQUEUE = 0
+    MF_WINDOW_WORKQUEUE = 1
+    MF_MULTITHREADED_WORKQUEUE = 2
+End Enum
+
+Public Type MFASYNCRESULT
+    AsyncResult As IMFAsyncResult
+    overlapped As OVERLAPPED
+    pCallback As IMFAsyncCallback
+    hrStatusResult As Long
+    dwBytesTransferred As Long
+    hEvent As LongPtr
+End Type
+
+
+Public Const MF_E_DXGI_DEVICE_NOT_INITIALIZED  = (&H80041000)  ' DXVA2_E_NOT_INITIALIZED
+Public Const MF_E_DXGI_NEW_VIDEO_DEVICE  = (&H80041001)  ' DXVA2_E_NEW_VIDEO_DEVICE
+Public Const MF_E_DXGI_VIDEO_DEVICE_LOCKED  = (&H80041002)  ' DXVA2_E_VIDEO_DEVICE_LOCKED
+
+Public Enum MF_MEM_ALIGN
+    MF_1_BYTE_ALIGNMENT = &H00000000
+    MF_2_BYTE_ALIGNMENT = &H00000001
+    MF_4_BYTE_ALIGNMENT = &H00000003
+    MF_8_BYTE_ALIGNMENT = &H00000007
+    MF_16_BYTE_ALIGNMENT = &H0000000f
+    MF_32_BYTE_ALIGNMENT = &H0000001f
+    MF_64_BYTE_ALIGNMENT = &H0000003f
+    MF_128_BYTE_ALIGNMENT = &H0000007f
+    MF_256_BYTE_ALIGNMENT = &H000000ff
+    MF_512_BYTE_ALIGNMENT = &H000001ff
+    MF_1024_BYTE_ALIGNMENT = &H000003ff
+    MF_2048_BYTE_ALIGNMENT = &H000007ff
+    MF_4096_BYTE_ALIGNMENT = &H00000fff
+    MF_8192_BYTE_ALIGNMENT = &H00001fff
+End Enum
         
 Public Declare PtrSafe Function MFCreateMediaSession Lib "mf.dll" (ByVal pConfiguration As IMFAttributes, ByRef ppMediaSession As IMFMediaSession) As Long
 Public Declare PtrSafe Function MFCreatePMPMediaSession Lib "mf.dll" (ByVal dwCreationFlags As Long, ByVal pConfiguration As IMFAttributes, ByRef ppMediaSession As IMFMediaSession, ByRef ppEnablerActivate As IMFActivate) As Long
@@ -3615,10 +3658,12 @@ Public Declare PtrSafe Function MFGetSystemId Lib "mf.dll" (ByRef ppid As IMFSys
 Public Declare PtrSafe Function MFGetLocalId Lib "mf.dll" (ByRef verifier As Byte, ByVal SIZE As Long, ByVal id As LongPtr) As Long
 Public Declare PtrSafe Function MFCreateEncryptedMediaExtensionsStoreActivate Lib "mf.dll" (ByVal pmpHost As IMFPMPHostApp, ByVal objectStream As IStream, ByVal ClassId As String, ByRef Activate As IMFActivate) As Long
 
-Public Declare PtrSafe Function MFPCreateMediaPlayer Lib "mfplay.dll" (ByVal pwszUrl As Long, ByVal fStartPlayback As Long, ByVal creationOptions As MFP_CREATION_OPTIONS, ByVal pCallback As IMFPMediaPlayerCallback, ByVal hwnd As LongPtr, ByRef ppMediaPlayer As IMFPMediaPlayer) As Long
+Public Declare PtrSafe Function MFPCreateMediaPlayer Lib "mfplay.dll" (ByVal pwszUrl As LongPtr, ByVal fStartPlayback As BOOL, ByVal creationOptions As MFP_CREATION_OPTIONS, ByVal pCallback As IMFPMediaPlayerCallback, ByVal hwnd As LongPtr, ByRef ppMediaPlayer As IMFPMediaPlayer) As Long
 
-Public Declare PtrSafe Function MFStartup Lib "MFPlat.DLL" (ByVal Version As Long, ByVal dwFlags As Long) As Long
+Public Declare PtrSafe Function MFStartup Lib "MFPlat.DLL" (ByVal Version As Long, ByVal dwFlags As MF_STARTUP_FLAGS) As Long
 Public Declare PtrSafe Function MFShutdown Lib "MFPlat.DLL" () As Long
+Public Declare PtrSafe Function MFLockPlatform Lib "MFPlat.DLL" () As Long
+Public Declare PtrSafe Function MFUnlockPlatform Lib "MFPlat.DLL" () As Long
 Public Declare PtrSafe Function MFCreateSourceResolver Lib "MFPlat.DLL" (ppISourceResolver As IMFSourceResolver) As Long
 Public Declare PtrSafe Function MFCreateAttributes Lib "MFPlat.DLL" (ByRef ppMFAttributes As IMFAttributes, ByVal cInitialSize As Long) As Long
 Public Declare PtrSafe Function MFCreateMediaType Lib "MFPlat.DLL" (ppMFType As IMFMediaType) As Long
@@ -3642,6 +3687,42 @@ Public Declare PtrSafe Function MFIsContentProtectionDeviceSupported Lib "MFPlat
 Public Declare PtrSafe Function MFCreateContentDecryptorContext Lib "MFPlat.DLL" (ByRef guidMediaProtectionSystemId As UUID, ByVal pD3DManager As IMFDXGIDeviceManager, ByVal pContentProtectionDevice As IMFContentProtectionDevice, ByRef ppContentDecryptorContext As IMFContentDecryptorContext) As Long
 Public Declare PtrSafe Function MFCreateD3D12SynchronizationObject Lib "MFPlat.DLL" (ByVal pDevice As ID3D12Device, riid As UUID, ppv As Any) As Long
 Public Declare PtrSafe Function MFCreateTransformActivate Lib "MFPlat.DLL" (ByRef ppActivate As IMFActivate) As Long
+Public Declare PtrSafe Function MFAllocateWorkQueue Lib "MFPlat.dll" (pdwWorkQueue As Long) As Long
+Public Declare PtrSafe Function MFAllocateWorkQueueEx Lib "MFPlat.dll" (ByVal WorkQueueType As MFASYNC_WORKQUEUE_TYPE, pdwWorkQueue As Long) As Long
+Public Declare PtrSafe Function MFLockWorkQueue Lib "MFPlat.dll" (ByVal dwWorkQueue As Long) As Long
+Public Declare PtrSafe Function MFUnlockWorkQueue Lib "MFPlat.dll" (ByVal dwWorkQueue As Long) As Long
+Public Declare PtrSafe Function MFPutWorkItem Lib "MFPlat.dll" (ByVal dwQueue As Long, ByVal pCallback As IMFAsyncCallback, ByVal pState As IUnknown) As Long
+Public Declare PtrSafe Function MFPutWorkItem2 Lib "MFPlat.dll" (ByVal dwQueue As Long, ByVal Priority As Long, ByVal pCallback As IMFAsyncCallback, ByVal pState As IUnknown) As Long
+Public Declare PtrSafe Function MFPutWorkItemEx Lib "MFPlat.dll" (ByVal dwQueue As Long, ByVal pResult As IMFAsyncCallback) As Long
+Public Declare PtrSafe Function MFPutWorkItemEx2 Lib "MFPlat.dll" (ByVal dwQueue As Long, ByVal Priority As Long, ByVal pResult As IMFAsyncCallback) As Long
+Public Declare PtrSafe Function MFPutWaitingWorkItem Lib "MFPlat.dll" (ByVal hEvent As LongPtr, ByVal Priority As Long, ByVal pResult As IMFAsyncCallback, pKey As LongLong) As Long
+Public Declare PtrSafe Function MFAllocateSerialWorkQueue Lib "MFPlat.dll" (ByVal dwWorkQueue As Long, pdwWorkQueue As Long) As Long
+Public Declare PtrSafe Function MFScheduleWorkItem Lib "MFPlat.dll" (ByVal pCallback As IMFAsyncCallback, ByVal pState As IUnknown, ByVal Timeout As LongLong, Optional pKey As LongLong) As Long
+Public Declare PtrSafe Function MFScheduleWorkItemEx Lib "MFPlat.dll" (ByVal pResult As IMFAsyncCallback, ByVal Timeout As LongLong, Optional pKey As LongLong) As Long
+Public Declare PtrSafe Function MFCancelWorkItem Lib "MFPlat.dll" (ByVal key As LongLong) As Long
+Public Declare PtrSafe Function MFAddPeriodicCallback Lib "MFPlat.dll" (ByVal Callback As LongPtr, ByVal pContext As IUnknown, Optional pdwKey As Long) As Long
+Public Declare PtrSafe Function MFRemovePeriodicCallback Lib "MFPlat.dll" (ByVal dwKey As Long) As Long
+Public Declare PtrSafe Function MFCreateAsyncResult Lib "MFPlat.dll" (ByVal punkObject As IUnknown, ByVal pCallback As IMFAsyncCallback, ByVal punkState As IUnknown, ppAsyncResult As IMFAsyncResult) As Long
+Public Declare PtrSafe Function MFInvokeCallback Lib "MFPlat.dll" (ByVal pAsyncResult As IMFAsyncResult) As Long
+Public Declare PtrSafe Function MFCreateFile Lib "MFPlat.dll" (ByVal AccessMode As MF_FILE_ACCESSMODE, ByVal OpenMode As MF_FILE_OPENMODE, ByVal fFlags As MF_FILE_FLAGS, ByVal pwszFileURL As LongPtr, ppIByteStream As IMFByteStream) As Long
+Public Declare PtrSafe Function MFCreateTempFile Lib "MFPlat.dll" (ByVal AccessMode As MF_FILE_ACCESSMODE, ByVal OpenMode As MF_FILE_OPENMODE, ByVal fFlags As MF_FILE_FLAGS, ppIByteStream As IMFByteStream) As Long
+Public Declare PtrSafe Function MFBeginCreateFile Lib "MFPlat.dll" (ByVal AccessMode As MF_FILE_ACCESSMODE, ByVal OpenMode As MF_FILE_OPENMODE, ByVal fFlags As MF_FILE_FLAGS, ByVal pwszFilePath As LongPtr, ByVal pCallback As IMFAsyncCallback, ByVal pState As IUnknown, ppCancelCookie As IUnknown) As Long
+Public Declare PtrSafe Function MFEndCreateFile Lib "MFPlat.dll" (ByVal pResult As IMFAsyncResult, ppFile As IMFByteStream) As Long
+Public Declare PtrSafe Function MFCancelCreateFile Lib "MFPlat.dll" (ByVal pCancelCookie As IUnknown) As Long
+Public Declare PtrSafe Function MFCreateMemoryBuffer Lib "MFPlat.dll" (ByVal cbMaxLength As Long, ppBuffer As IMFMediaBuffer) As Long
+Public Declare PtrSafe Function MFCreateAlignedMemoryBuffer Lib "MFPlat.dll" (ByVal cbMaxLength As Long, ByVal cbAlignment As MF_MEM_ALIGN, ppBuffer As IMFMediaBuffer) As Long
+Public Declare PtrSafe Function MFCreateMediaBufferWrapper Lib "MFPlat.dll" (ByVal pBuffer As IMFMediaBuffer, ByVal cbOffset As Long, ByVal dwLength As Long, ppBuffer As IMFMediaBuffer) As Long
+Public Declare PtrSafe Function MFMapDX9FormatToDXGIFormat Lib "MFPlat.dll" (ByVal dx9 As D3DFORMAT) As DXGI_FORMAT
+Public Declare PtrSafe Function MFMapDXGIFormatToDX9Format Lib "MFPlat.dll" (ByVal dx11 As DXGI_FORMAT) As D3DFORMAT
+Public Declare PtrSafe Function MFLockDXGIDeviceManager Lib "MFPlat.dll" (pResetToken As Long, ppManager As IMFDXGIDeviceManager) As Long
+Public Declare PtrSafe Function MFCreateDXSurfaceBuffer Lib "MFPlat.dll" (riid As UUID, ByVal punkSurface As IUnknown, ByVal fBottomUpWhenLinear As BOOL, ppBuffer As IMFMediaBuffer) As Long
+Public Declare PtrSafe Function MFCreateWICBitmapBuffer Lib "MFPlat.dll" (riid As UUID, ByVal punkSurface As IUnknown, ppBuffer As IMFMediaBuffer) As Long
+Public Declare PtrSafe Function MFCreateDXGISurfaceBuffer Lib "MFPlat.dll" (riid As UUID, ByVal punkSurface As IUnknown, ByVal uSubresourceIndex As Long, ByVal fBottomUpWhenLinear As BOOL, ppBuffer As IMFMediaBuffer) As Long
+Public Declare PtrSafe Function MFCreateVideoSampleAllocatorEx Lib "MFPlat.dll" (riid As UUID, ppSampleAllocator As Any) As Long
+Public Declare PtrSafe Function MFCreateDXGIDeviceManager Lib "MFPlat.dll" (pResetToken As Long, ppDeviceManager As IMFDXGIDeviceManager) As Long
+Public Declare PtrSafe Function MFCreateMediaEvent Lib "MFPlat.dll" (ByVal met As MediaEventType, guidExtendedType As UUID, ByVal hrStatus As Long, pvValue As Variant, ppEvent As IMFMediaEvent) As Long
+Public Declare PtrSafe Function MFCreateEventQueue Lib "MFPlat.dll" (ppMediaEventQueue As IMFMediaEventQueue) As Long
+'todo: continue from here in mfapi.h
 
 Public Declare PtrSafe Function MFCreateSourceReaderFromMediaSource Lib "MFReadWrite.DLL" (ByVal pMediaSource As IMFMediaSource, ByVal pAttributes As IMFAttributes, ppSourceReader As IMFSourceReader) As Long
 Public Declare PtrSafe Function MFCreateSourceReaderFromURL Lib "MFReadWrite.DLL" (ByVal pwszUrl As LongPtr, ByVal pAttributes As IMFAttributes, ByRef ppSourceReader As IMFSourceReader) As Long
