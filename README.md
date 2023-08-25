@@ -94,7 +94,7 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, vbNullPtr, ...)
 
 ### Updates
 
-**Update (5.1.206/207):**\ 
+**Update (5.1.206/207):**\
 -Added PropSheet macros.\
 -Set PROPSHEETPAGE to V4 by default.\
 -Add missing PropSheet consts.\
