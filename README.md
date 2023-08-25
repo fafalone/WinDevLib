@@ -6,7 +6,7 @@
 
 ---
 
-**Current Version: 5.0.203 (August 19th, 2023)**
+**Current Version: 5.1.207 (August 25th, 2023)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -93,6 +93,20 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, vbNullPtr, ...)
 ```
 
 ### Updates
+
+**Update (5.1.206/207):**\ 
+-Added PropSheet macros.\
+-Set PROPSHEETPAGE to V4 by default.\
+-Add missing PropSheet consts.\
+-Bug fix: PROPSHEETHEADER definitions incorrect.\
+-Bug fix: PostMessage API not 64bit compatible.\
+-Bug fix: Several ListView macros not 64bit compatible.\
+-Updated WebView2 to match 1.0.1901.177.\
+-Completed all advapi32 registry functions.\
+-Expanded Media Foundation APIs.\
+-Bug fix: Property Sheet callback enums were missing values and improperly organized.\
+-Misc bug fixes and additions to APIs.\
+
 **Update (v5.0.203):** Bug fix: D3DMATRIX layout with 2d array was incorrect.
 
 **Update (v5.0.201):**\
