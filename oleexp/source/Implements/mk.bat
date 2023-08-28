@@ -1,0 +1,1 @@
+C:\PROGRA~2\MICROS~1\VC98\Bin\MKTYPLIB.exe oleexpimp.odl
