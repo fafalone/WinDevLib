@@ -1,0 +1,735 @@
+//Property system related interfaces
+
+//tbShellLib - 100% implemented
+
+typedef struct PROPVARIANT
+{
+	short vt;
+	short wReserved1;
+	short wReserved2;
+	short wReserved3;
+	LONG pVar;
+} PROPVARIANT;
+	
+	
+typedef struct PROPVARIANTSTRING
+{
+	VARENUM vt;
+	LONG wReserved1;
+	LONG wReserved2;
+	LONG wReserved3;
+	LPSTR pVar;
+} PROPVARIANTSTRING;	
+typedef enum GETPROPERTYSTOREFLAGS { 
+  GPS_DEFAULT                  = 0,
+  GPS_HANDLERPROPERTIESONLY    = 0x1,
+  GPS_READWRITE                = 0x2,
+  GPS_TEMPORARY                = 0x4,
+  GPS_FASTPROPERTIESONLY       = 0x8,
+  GPS_OPENSLOWITEM             = 0x10,
+  GPS_DELAYCREATION            = 0x20,
+  GPS_BESTEFFORT               = 0x40,
+  GPS_NO_OPLOCK                = 0x80,
+  GPS_PREFERQUERYPROPERTIES    = 0x100,
+  GPS_MASK_VALID               = 0x1ff,
+  GPS_EXTRINSICPROPERTIES      = 0x00000200,
+  GPS_EXTRINSICPROPERTIESONLY  = 0x00000400
+} GETPROPERTYSTOREFLAGS;
+[
+    odl,
+    uuid(fc0ca0a7-c316-4fd2-9031-3e628e6d4f23)
+]
+interface IObjectWithPropertyKey : stdole.IUnknown
+{
+    HRESULT SetPropertyKey([in] PROPERTYKEY *key);
+    
+    HRESULT GetPropertyKey([out] PROPERTYKEY *pkey);
+}
+
+typedef enum PKA_FLAGS
+{
+    PKA_SET,      // replace current value
+    PKA_APPEND,   // append to current value - multi-value properties only
+    PKA_DELETE,   // delete from current value - multi-value properties only
+} PKA_FLAGS;      // note, this enum type not named property, it should have been named PKA_OPERATION
+
+
+[
+	odl,
+    uuid(f917bc8a-1bba-4478-a245-1bde03eb9431),
+]
+interface IPropertyChange : IObjectWithPropertyKey
+{
+    HRESULT ApplyToPropVariant([in] VARIANT* propvarIn, [out] VARIANT *ppropvarOut);
+}
+
+[
+	odl,
+    uuid(380f5cad-1b5e-42f2-805d-637fd392d31e),
+]
+interface IPropertyChangeArray : stdole.IUnknown
+{
+    HRESULT GetCount(
+        [out] LONG *pcOperations);
+
+    HRESULT GetAt(
+        [in] LONG iIndex,
+        [in] UUID* riid,
+        [in, out] LPVOID ppv);
+
+    HRESULT InsertAt(
+        [in] LONG iIndex,
+        [in] IPropertyChange *ppropChange);
+    
+    HRESULT Append(
+        [in] IPropertyChange *ppropChange);
+
+    // If the PROPERTYKEY for that change was not in the Array, then add it
+    // else if the PROPERTYKEY was already part of the Array then 
+    // replace the first occurence of that PROPERTYKEY with the new ppropChange
+    HRESULT AppendOrReplace(
+        [in] IPropertyChange *ppropChange);
+
+    HRESULT RemoveAt(
+        [in] LONG iIndex);
+
+    HRESULT IsKeyInArray(
+        [in] PROPERTYKEY *key);
+};
+
+    typedef enum PROPDESC_TYPE_FLAGS
+    {
+        PDTF_DEFAULT                    = 0x00000000,
+        PDTF_MULTIPLEVALUES             = 0x00000001,   // This property can have multiple values (as VT_VECTOR)
+        PDTF_ISINNATE                   = 0x00000002,   // This property cannot be written to
+        PDTF_ISGROUP                    = 0x00000004,   // This property is a group heading
+        PDTF_CANGROUPBY                 = 0x00000008,   // The user can group by this property
+        PDTF_CANSTACKBY                 = 0x00000010,   // The user can stack by this property
+        PDTF_ISTREEPROPERTY             = 0x00000020,   // This property contains a hierarchy
+        PDTF_INCLUDEINFULLTEXTQUERY     = 0x00000040,   // Deprecated
+        PDTF_ISVIEWABLE                 = 0x00000080,   // This property is meant to be viewed by the user
+        PDTF_ISQUERYABLE                = 0x00000100,   // Deprecated
+        PDTF_CANBEPURGED                = 0x00000200,   // This property can be purged, even if it is innate (property handler should respect this)
+        PDTF_SEARCHRAWVALUE             = 0x00000400,   // The raw (rather than formatted) value of this property should be used for searching
+        PDTF_ISSYSTEMPROPERTY           = 0x80000000, // This property is owned by the system
+        PDTF_MASK_ALL                   = 0x800007FF
+    } PROPDESC_TYPE_FLAGS;
+
+    //cpp_quote("DEFINE_ENUM_FLAG_OPERATORS(PROPDESC_TYPE_FLAGS)")
+
+    typedef enum PROPDESC_VIEW_FLAGS
+    {
+        PDVF_DEFAULT                = 0x00000000,
+        PDVF_CENTERALIGN            = 0x00000001,   // This property should be centered
+        PDVF_RIGHTALIGN             = 0x00000002,   // This property should be right aligned
+        PDVF_BEGINNEWGROUP          = 0x00000004,   // Show this property as the beginning of the next collection of properties in the view
+        PDVF_FILLAREA               = 0x00000008,   // Fill the remainder of the view area with the content of this property
+        PDVF_SORTDESCENDING         = 0x00000010,   // If this flag is set, the default sort for this property is highest-to-lowest. If this flag is not set, the default sort is lowest-to-highest
+        PDVF_SHOWONLYIFPRESENT      = 0x00000020,   // Only show this property if it is present
+        PDVF_SHOWBYDEFAULT          = 0x00000040,   // the property should be shown by default in a view (where applicable)
+        PDVF_SHOWINPRIMARYLIST      = 0x00000080,   // the property should be shown by default in primary column selection UI
+        PDVF_SHOWINSECONDARYLIST    = 0x00000100,   // the property should be shown by default in secondary column selection UI
+        PDVF_HIDELABEL              = 0x00000200,   // Hide the label if the view is normally inclined to show the label
+        // obsolete                 = 0x00000400,
+        PDVF_HIDDEN                 = 0x00000800,   // Don't display this property as a column in the UI
+        PDVF_CANWRAP                = 0x00001000,   // the property can be wrapped to the next row
+        PDVF_MASK_ALL               = 0x00001BFF
+    } PROPDESC_VIEW_FLAGS;
+
+    //cpp_quote("DEFINE_ENUM_FLAG_OPERATORS(PROPDESC_VIEW_FLAGS)")
+
+    typedef enum PROPDESC_DISPLAYTYPE
+    {
+        PDDT_STRING         = 0,
+        PDDT_NUMBER         = 1,
+        PDDT_BOOLEAN        = 2,
+        PDDT_DATETIME       = 3,
+        PDDT_ENUMERATED     = 4,    // Use GetEnumTypeList
+    } PROPDESC_DISPLAYTYPE;
+
+    typedef enum PROPDESC_GROUPING_RANGE
+    {
+        PDGR_DISCRETE       = 0,    // Display individual values
+        PDGR_ALPHANUMERIC   = 1,    // Display static alphanumeric ranges for values
+        PDGR_SIZE           = 2,    // Display static size ranges for values
+        PDGR_DYNAMIC        = 3,    // Display dynamically created ranges for the values
+        PDGR_DATE           = 4,    // Display month/year groups
+        PDGR_PERCENT        = 5,    // Display percent buckets
+        PDGR_ENUMERATED     = 6,    // Display buckets from GetEnumTypeList
+    } PROPDESC_GROUPING_RANGE;
+
+    typedef enum PROPDESC_FORMAT_FLAGS
+    {
+        PDFF_DEFAULT                = 0x00000000,
+        PDFF_PREFIXNAME             = 0x00000001,   // Prefix the value with the property name
+        PDFF_FILENAME               = 0x00000002,   // Treat as a file name
+        PDFF_ALWAYSKB               = 0x00000004,   // Always format byte sizes as KB
+        PDFF_RESERVED_RIGHTTOLEFT   = 0x00000008,   // Reserved for legacy use.
+        PDFF_SHORTTIME              = 0x00000010,   // Show time as "5:17 pm"
+        PDFF_LONGTIME               = 0x00000020,   // Show time as "5:17:14 pm"
+        PDFF_HIDETIME               = 0x00000040,   // Hide the time-portion of the datetime
+        PDFF_SHORTDATE              = 0x00000080,   // Show date as "3/21/04"
+        PDFF_LONGDATE               = 0x00000100,   // Show date as "Monday, March 21, 2004"
+        PDFF_HIDEDATE               = 0x00000200,   // Hide the date-portion of the datetime
+        PDFF_RELATIVEDATE           = 0x00000400,   // Use friendly date descriptions like "Yesterday"
+        PDFF_USEEDITINVITATION      = 0x00000800,   // Use edit invitation text if failed or empty
+        PDFF_READONLY               = 0x00001000,   // Use readonly format, fill with default text if empty and !PDFF_FAILIFEMPTYPROP
+        PDFF_NOAUTOREADINGORDER     = 0x00002000,   // Don't detect reading order automatically. Useful if you will be converting to Ansi and don't want Unicode reading order characters
+    } PROPDESC_FORMAT_FLAGS;
+
+    //cpp_quote("DEFINE_ENUM_FLAG_OPERATORS(PROPDESC_FORMAT_FLAGS)")
+
+    typedef enum PROPDESC_SORTDESCRIPTION
+    {
+        PDSD_GENERAL                 = 0,
+        PDSD_A_Z                     = 1,
+        PDSD_LOWEST_HIGHEST          = 2,
+        PDSD_SMALLEST_BIGGEST        = 3,
+        PDSD_OLDEST_NEWEST           = 4,
+    } PROPDESC_SORTDESCRIPTION;
+
+    typedef enum PROPDESC_RELATIVEDESCRIPTION_TYPE
+    {
+        PDRDT_GENERAL                = 0,
+        PDRDT_DATE                   = 1,
+        PDRDT_SIZE                   = 2,
+        PDRDT_COUNT                  = 3,
+        PDRDT_REVISION               = 4,
+        PDRDT_LENGTH                 = 5,
+        PDRDT_DURATION               = 6,
+        PDRDT_SPEED                  = 7,
+        PDRDT_RATE                   = 8,
+        PDRDT_RATING                 = 9,
+        PDRDT_PRIORITY               = 10,
+    } PROPDESC_RELATIVEDESCRIPTION_TYPE;
+
+    typedef enum PROPDESC_AGGREGATION_TYPE
+    {
+        PDAT_DEFAULT        = 0,    // Display "multiple-values"
+        PDAT_FIRST          = 1,    // Display first property value in the selection.
+        PDAT_SUM            = 2,    // Display the numerical sum of the values. This is never returned for VT_LPWSTR, VT_BOOL, and VT_FILETIME types.
+        PDAT_AVERAGE        = 3,    // Display the numerical average of the values. This is never returned for VT_LPWSTR, VT_BOOL, and VT_FILETIME types.
+        PDAT_DATERANGE      = 4,    // Display the date range of the values. This is only returned for VT_FILETIME types.
+        PDAT_UNION          = 5,    // Display values as union of all values. The order is undefined.
+        PDAT_MAX            = 6,    // Displays the maximum of all the values.
+        PDAT_MIN            = 7,    // Displays the minimum of all the values.
+    } PROPDESC_AGGREGATION_TYPE;
+
+    typedef enum PROPDESC_CONDITION_TYPE
+    {
+        PDCOT_NONE          = 0,
+        PDCOT_STRING        = 1,
+        PDCOT_SIZE          = 2,
+        PDCOT_DATETIME      = 3,
+        PDCOT_BOOLEAN       = 4,
+        PDCOT_NUMBER        = 5,
+    } PROPDESC_CONDITION_TYPE;
+
+typedef enum CONDITION_OPERATION { 
+  COP_IMPLICIT              = 0,
+  COP_EQUAL                 = 1,
+  COP_NOTEQUAL              = 2,
+  COP_LESSTHAN              = 3,
+  COP_GREATERTHAN           = 4,
+  COP_LESSTHANOREQUAL       = 5,
+  COP_GREATERTHANOREQUAL    = 6,
+  COP_VALUE_STARTSWITH      = 7,
+  COP_VALUE_ENDSWITH        = 8,
+  COP_VALUE_CONTAINS        = 9,
+  COP_VALUE_NOTCONTAINS     = 10,
+  COP_DOSWILDCARDS          = 11,
+  COP_WORD_EQUAL            = 12,
+  COP_WORD_STARTSWITH       = 13,
+  COP_APPLICATION_SPECIFIC  = 14
+} CONDITION_OPERATION;
+[
+	odl,
+    uuid(6f79d558-3e96-4549-a1d1-7d75d2288814)
+]
+interface IPropertyDescription : stdole.IUnknown
+{
+
+
+    long GetPropertyKey(
+        [out] PROPERTYKEY *pkey);
+    
+    long GetCanonicalName(
+        [out] LONG *ppszName);
+    
+    long GetPropertyType(
+        [out] short *pvartype);
+    
+    long GetDisplayName(
+        [out] LONG *ppszName);
+    
+    long GetEditInvitation(
+        [out] LONG *ppszInvite);
+    
+    long GetTypeFlags(
+        [in] PROPDESC_TYPE_FLAGS mask,
+        [out] PROPDESC_TYPE_FLAGS *ppdtFlags);
+    
+    long GetViewFlags(
+        [out] PROPDESC_VIEW_FLAGS *ppdvFlags);
+    
+    long GetDefaultColumnWidth(
+        [out] UINT *pcxChars);
+    
+    long GetDisplayType(
+        [out] PROPDESC_DISPLAYTYPE *pdisplaytype);
+    
+    long GetColumnState(
+        [out] SHCOLSTATEF *pcsFlags);   // Needs to correspond to bits in SHCOLSTATE_TYPEMASK
+    
+    long GetGroupingRange(
+        [out] PROPDESC_GROUPING_RANGE *pgr);
+    
+    long GetRelativeDescriptionType(
+        [out] PROPDESC_RELATIVEDESCRIPTION_TYPE *prdt);
+    
+    long GetRelativeDescription(
+        [in] VARIANT* propvar1,
+        [in] VARIANT* propvar2,
+        [out] LONG *ppszDesc1,
+        [out] LONG *ppszDesc2);
+    
+    long GetSortDescription(
+        [out] PROPDESC_SORTDESCRIPTION *psd);
+    
+    long GetSortDescriptionLabel(
+        [in] BOOL fDescending,
+        [out] LONG *ppszDescription);
+    
+    long GetAggregationType(
+        [out] PROPDESC_AGGREGATION_TYPE *paggtype);
+    
+    long GetConditionType(
+        [out] PROPDESC_CONDITION_TYPE *pcontype,
+        [out] CONDITION_OPERATION *popDefault);
+    
+    // Returns an IPropertyEnumTypeList interface
+    long GetEnumTypeList(
+        [in] UUID* riid,
+        [in,out]  LPVOID ppv);
+
+    long CoerceToCanonicalValue(
+        [in, out] VARIANT *ppropvar);
+    
+    long FormatForDisplay(
+        [in] VARIANT* propvar,
+        [in] PROPDESC_FORMAT_FLAGS pdfFlags,
+        [out] LONG *ppszDisplay);
+    
+    long IsValueCanonical(
+        [in] VARIANT* propvar); //[in] REFPROPVARIANT propvar);
+}
+[
+	odl,
+    uuid(57d2eded-5062-400e-b107-5dae79fe57a6)
+]
+interface IPropertyDescription2 : IPropertyDescription
+{
+    // returns a string of the form "<dll name>,-<resid>" that is suitable to be passed to PathParseIconLocation()
+    long GetImageReferenceForValue(
+        [in] VARIANT* propvar,
+        [out] LONG *ppszImageRes); //[out] LPWSTR *ppszImageRes)
+}
+
+
+[
+	odl,
+	uuid(f67104fc-2af9-46fd-b32d-243c1404f3d1)
+]
+interface IPropertyDescriptionAliasInfo : IPropertyDescription
+{
+	// Returns an IPropertyDescription interface
+	HRESULT GetSortByAlias([in] UUID* riid, [out] LPVOID ppv);
+
+	// Returns an IPropertyDescriptionList interface
+	HRESULT GetAdditionalSortByAliases([in] UUID* riid, [out] LPVOID ppv);
+};
+
+typedef enum PROPDESC_SEARCHINFO_FLAGS
+{
+    PDSIF_DEFAULT           = 0x00000000,
+    PDSIF_ININVERTEDINDEX   = 0x00000001,
+    PDSIF_ISCOLUMN          = 0x00000002,
+    PDSIF_ISCOLUMNSPARSE    = 0x00000004,
+    PDSIF_ALWAYSINCLUDE     = 0x00000008,
+} PROPDESC_SEARCHINFO_FLAGS;
+
+
+typedef enum PROPDESC_COLUMNINDEX_TYPE
+{
+    PDCIT_NONE             = 0,
+    PDCIT_ONDISK           = 1,
+    PDCIT_INMEMORY         = 2,
+    PDCIT_ONDEMAND         = 3,
+    PDCIT_ONDISKALL        = 4,
+    PDCIT_ONDISKVECTOR     = 5,
+} PROPDESC_COLUMNINDEX_TYPE;
+
+[
+	odl,
+    uuid(078f91bd-29a2-440f-924e-46a291524520)
+]
+interface IPropertyDescriptionSearchInfo : IPropertyDescription
+{
+    HRESULT GetSearchInfoFlags(
+        [out] PROPDESC_SEARCHINFO_FLAGS *ppdsiFlags);
+    
+    HRESULT GetColumnIndexType(
+        [out] PROPDESC_COLUMNINDEX_TYPE *ppdciType);
+    
+    HRESULT GetProjectionString(
+        [out] LONG *ppszProjection);
+    
+    HRESULT GetMaxSize(
+        [out] UINT *pcbMaxSize);
+};
+[
+	odl,
+    uuid(507393f4-2a3d-4a60-b59e-d9c75716c2dd)
+]
+interface IPropertyDescriptionRelatedPropertyInfo : IPropertyDescription
+{
+    // Returns an IPropertyDescription interface
+    HRESULT GetRelatedProperty(
+        [in] LONG pszRelationshipName,
+        [in] UUID *riid,
+        [out] LPVOID ppv);
+};
+
+[
+	odl,
+    uuid(886d8eeb-8cf2-4446-8d02-cdba1dbdcf99),
+    helpstring("Property Store Interface")
+]
+interface IPropertyStore : stdole.IUnknown
+{
+    long GetCount(
+        [out] LONG *cProps);
+    
+    long GetAt(
+        [in] LONG iProp,
+        [out] PROPERTYKEY *pkey);
+    
+    long GetValue(
+        [in] PROPERTYKEY *key,
+        [out] VARIANT *pv);
+    
+    //HRESULT SetValue(
+    //    [in] PROPERTYKEY *key,
+    //    [in] PROPVARIANT *propvar);
+    long SetValue(
+		[in] PROPERTYKEY *key, //PROPERTYKEY *key,
+        [in] VARIANT *propvar); //pass varptr() ?
+    
+    long Commit();
+};
+
+[
+	odl,
+    uuid(1f9fc1d0-c39b-4b26-817f-011967d3440e)
+]
+interface IPropertyDescriptionList : stdole.IUnknown
+{
+    HRESULT GetCount(
+        [out] UINT *pcElem);
+
+    // Returns an IPropertyDescription interface
+    HRESULT GetAt(
+        [in] UINT iElem,
+        [in] UUID* riid,
+        [out] LPVOID ppv);
+};
+
+typedef enum PROPDESC_ENUMFILTER
+{
+    PDEF_ALL            = 0,        // All properties in system
+    PDEF_SYSTEM         = 1,        // Only system properties
+    PDEF_NONSYSTEM      = 2,        // Only non-system properties
+    PDEF_VIEWABLE       = 3,        // Only viewable properties
+    PDEF_QUERYABLE      = 4,        // Deprecated
+    PDEF_INFULLTEXTQUERY= 5,        // Deprecated
+    PDEF_COLUMN         = 6,        // Only properties that are columns
+} PROPDESC_ENUMFILTER;
+
+[
+	odl,
+    uuid(ca724e8a-c3e6-442b-88a4-6fb0db8035a3)
+]
+interface IPropertySystem : stdole.IUnknown
+{
+    // Returns an IPropertyDescription interface
+    HRESULT GetPropertyDescription(
+        [in] PROPERTYKEY *propkey,
+        [in] UUID* riid,
+        [in, out] LPVOID ppv);
+    
+    HRESULT GetPropertyDescriptionByName(
+        [in] LPCWSTR pszCanonicalName,
+        [in] UUID* riid,
+        [in, out] LPVOID ppv);
+
+    // Returns an IPropertyDescriptionList interface
+    HRESULT GetPropertyDescriptionListFromString(
+        [in] LPCWSTR pszPropList,
+        [in] UUID* riid,
+		[in, out] LPVOID ppv);
+    
+    HRESULT EnumeratePropertyDescriptions(
+        [in] PROPDESC_ENUMFILTER filterOn,
+        [in] UUID* riid,
+        [in, out] LPVOID ppv);
+
+    HRESULT FormatForDisplay(
+        [in] PROPERTYKEY *key,
+        [in] VARIANT* propvar,
+        [in] PROPDESC_FORMAT_FLAGS pdff,
+        [out] LONG *pszText,
+        [in] DWORD cchText); // 32K should be enough for anybody
+    
+    HRESULT FormatForDisplayAlloc(
+        [in] PROPERTYKEY *key,
+        [in] VARIANT* propvar,
+        [in] PROPDESC_FORMAT_FLAGS pdff,
+        [out] LONG *ppszDisplay);
+
+    HRESULT RegisterPropertySchema(
+        [in] LPCWSTR pszPath);
+    
+    HRESULT UnregisterPropertySchema(
+        [in] LPCWSTR pszPath);
+    
+    HRESULT RefreshPropertySchema();
+}
+
+    typedef enum PROPENUMTYPE
+    {
+        PET_DISCRETEVALUE   = 0,     // Use GetValue & GetDisplayText
+        PET_RANGEDVALUE     = 1,     // Use GetRangeValues & GetDisplayText
+        PET_DEFAULTVALUE    = 2,     // Use GetDisplayText
+        PET_ENDRANGE        = 3,     // Use GetValue
+    } PROPENUMTYPE;
+
+[
+	odl,
+    uuid(11e1fbf9-2d56-4a6b-8db3-7cd193a471f2)
+]
+interface IPropertyEnumType : stdole.IUnknown
+{
+
+    HRESULT GetEnumType([out] PROPENUMTYPE *penumtype);
+    
+    HRESULT GetValue([out] VARIANT *ppropvar);
+    
+    HRESULT GetRangeMinValue([out] VARIANT *ppropvarMin);
+    
+    HRESULT GetRangeSetValue([out] VARIANT *ppropvarSet);
+    
+    HRESULT GetDisplayText([out] LONG *ppszDisplay);
+}
+
+[
+	odl,
+    uuid(9b6e051c-5ddd-4321-9070-fe2acb55e794)
+]
+interface IPropertyEnumType2 : IPropertyEnumType
+{
+    HRESULT GetImageReference([out] LONG *ppszImageRes); // returns a string of the form "<dll name>,-<resid>" that is suitable to be passed to PathParseIconLocation()
+}
+
+[
+	odl,
+    uuid(a99400f4-3d84-4557-94ba-1242fb2cc9a6)
+]
+interface IPropertyEnumTypeList : stdole.IUnknown
+{
+    HRESULT GetCount(
+        [out] UINT *pctypes);
+
+    HRESULT GetAt(
+        [in] UINT itype,
+        [in] UUID* riid,   // riid may be IID_IPropertyEnumType
+        [in, out] LPVOID ppv);
+
+    HRESULT GetConditionAt(
+        [in] UINT nIndex,
+        [in] UUID* riid,
+        [in, out] LPVOID ppv);
+    
+    HRESULT FindMatchingIndex(
+        [in] VARIANT* propvarCmp,
+        [out] UINT *pnIndex);
+}
+
+[
+	odl,
+    uuid(bc110b6d-57e8-4148-a9c6-91015ab2f3a5)
+]
+interface IPropertyStoreFactory : stdole.IUnknown
+{
+    // Returns an IPropertyStore interface
+    HRESULT GetPropertyStore(
+        [in] GETPROPERTYSTOREFLAGS flags,
+        [in] IUnknown *pUnkFactory,  // ICreateObject
+        [in] UUID *riid,
+        [out] LPVOID ppv);
+    
+    HRESULT GetPropertyStoreForKeys(
+        [in] PROPERTYKEY *rgKeys,
+        [in] UINT cKeys,
+        [in] GETPROPERTYSTOREFLAGS flags,
+        [in] UUID *riid,
+        [out] LPVOID ppv);
+};
+
+typedef enum DPSF_StoreIDs {
+    STOREID_INNATE,
+    STOREID_FILE,
+    STOREID_FALLBACK
+} DPSF_StoreIDs;
+[
+    odl,
+    uuid(40d4577f-e237-4bdb-bd69-58f089431b6a)
+]
+interface IDelayedPropertyStoreFactory : IPropertyStoreFactory
+{
+    // Returns an IPropertyStore interface
+    HRESULT GetDelayedPropertyStore(
+        [in] GETPROPERTYSTOREFLAGS flags,
+        [in] DPSF_StoreIDs dwStoreId,
+        [in] REFIID riid,
+        [out] LPVOID ppv);
+}
+
+
+[
+	odl,
+    uuid(c8e2d566-186e-4d49-bf41-6909ead56acc)
+]
+interface IPropertyStoreCapabilities : stdole.IUnknown
+{
+    long IsPropertyWritable([in] LONG pkey);
+}
+
+typedef enum PSC_STATE
+{
+    PSC_NORMAL      = 0,
+    PSC_NOTINSOURCE = 1,
+    PSC_DIRTY       = 2,
+    PSC_READONLY    = 3,
+} PSC_STATE;
+[
+	odl,
+    uuid(3017056d-9a91-4e90-937d-746c72abbf4f)
+]
+interface IPropertyStoreCache : IPropertyStore
+{
+    // returns E_FAIL if not found
+    HRESULT GetState(
+        [in] PROPERTYKEY *key,
+        [out] PSC_STATE *pstate);
+    
+    // retunrs E_FAIL if not found
+    HRESULT GetValueAndState(
+        [in] PROPERTYKEY *key,
+        [out] VARIANT *ppropvar,
+        [out] PSC_STATE *pstate);
+    
+    HRESULT SetState(
+        [in] PROPERTYKEY *key,
+        [in] PSC_STATE state);
+    
+    HRESULT SetValueAndState(
+        [in] PROPERTYKEY *key,
+        [in] VARIANT *ppropvar,
+        [in] PSC_STATE state);
+};
+
+[
+	odl,
+	uuid(71604b0f-97b0-4764-8577-2f13e98a1422)
+]
+interface INamedPropertyStore : stdole.IUnknown
+{
+	HRESULT GetNamedValue([in] LPCWSTR pszName, [out] VARIANT *ppropvar);
+	HRESULT SetNamedValue([in] LPCWSTR pszName, [in] VARIANT* propvar);
+	HRESULT GetNameCount([out] DWORD *pdwCount);
+	HRESULT GetNameAt([in] DWORD iProp, [out] BSTR *pbstrName);
+};
+
+typedef enum PERSIST_SPROPSTORE_FLAGS
+{
+    FPSPS_DEFAULT = 0x00000000,
+    FPSPS_READONLY = 0x00000001,
+    FPSPS_TREAT_NEW_VALUES_AS_DIRTY = 0x00000002,
+} PERSIST_SPROPSTORE_FLAGS;
+
+[
+    odl,
+    uuid(e318ad57-0aa0-450f-aca5-6fab7103d917)
+]
+interface IPersistSerializedPropStorage : stdole.IUnknown
+{
+    HRESULT SetFlags([in] PERSIST_SPROPSTORE_FLAGS flags);
+
+    HRESULT SetPropertyStorage(
+        [in] long psps,
+        [in] DWORD cb);
+
+    HRESULT GetPropertyStorage(
+        [in, out] long* ppsps,
+        [in, out] DWORD* pcb);
+}
+
+[
+    odl,
+    uuid(77effa68-4f98-4366-ba72-573b3d880571)
+]
+interface IPersistSerializedPropStorage2 : stdole.IUnknown
+{
+    HRESULT SetFlags([in] PERSIST_SPROPSTORE_FLAGS flags);
+
+    HRESULT SetPropertyStorage(
+        [in] long psps,
+        [in] DWORD cb);
+
+    HRESULT GetPropertyStorage(
+        [in, out] long* ppsps,
+        [in, out] DWORD* pcb);
+
+    HRESULT GetPropertyStorageSize([in, out] DWORD* pcb);
+
+    // Fails if cb is smaller than the total size of the serialized data.
+    HRESULT GetPropertyStorageBuffer(
+        [in, out] long* psps,
+        [in] DWORD cb,
+        [in, out] DWORD* pcbWritten);
+}
+
+[
+    odl,
+    uuid(fa955fd9-38be-4879-a6ce-824cf52d609f)
+]
+interface IPropertySystemChangeNotify : stdole.IUnknown
+{
+    HRESULT SchemaRefreshed();
+}
+
+
+// CLSID_InMemoryPropertyStore
+[uuid(9a02e012-6303-4e1e-b9a1-630f802592c5)] coclass InMemoryPropertyStore { interface IPropertyStore; }
+
+// CLSID_InMemoryPropertyStoreMarshalByValue
+[uuid(D4CA0E2D-6DA7-4b75-A97C-5F306F0EAEDC)] coclass InMemoryPropertyStoreMarshalByValue { interface IPropertyStore; }
+
+// CLSID_PropertySystem
+[uuid(b8967f85-58ae-4f46-9fb2-5d7904798f4b)] coclass PropertySystem { interface IPropertySystem; }
+
+// CLSID_PropertyChangeArray
+[uuid(8b6a3ebb-cd13-4704-93c5-bc3413104e4c)]
+coclass PropertyChangeArray {
+	interface IPropertyChangeArray;
+}

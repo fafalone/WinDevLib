@@ -1,0 +1,224 @@
+//tbShellLib - 100% complete
+
+interface IShellImageDataFactory;
+interface IShellImageData;
+interface IShellImageDataAbort;
+
+typedef LONG PixelFormat;
+
+typedef BYTE EncoderParameters;
+typedef BYTE Image;
+
+
+// property bag strings for SetEncoderParams
+//cpp_quote("#define  SHIMGKEY_QUALITY    L\"Compression\"")
+//cpp_quote("#define  SHIMGKEY_RAWFORMAT  L\"RawDataFormat\"")
+//cpp_quote("")
+
+typedef enum SHIMGDEC {
+	SHIMGDEC_DEFAULT           = 0x00000000,   // creates a full Image
+	SHIMGDEC_THUMBNAIL         = 0x00000001,    // decodes only thumbnail image
+	SHIMGDEC_LOADFULL          = 0x00000002   // load the whole file into memory
+} SHIMGDEC;
+
+// Some custom error codes
+//cpp_quote("#define  E_NOTVALIDFORANIMATEDIMAGE  MAKE_HRESULT(SEVERITY_ERROR, FACILITY_ITF, 0x01)")  // operation is not valid for animated images, for example IShellImageData::Rotate will fail for animated images with this code
+
+
+[
+	odl,
+    helpstring("IShellImageDataFactory"),
+    uuid(9be8ed5c-edab-4d75-90f3-bd5bdbb21c82)
+]
+interface IShellImageDataFactory : stdole.IUnknown
+{
+    HRESULT CreateIShellImageData(
+        [out] IShellImageData **ppshimg);
+
+    // Easy functions for loading and saving from a file or stream
+
+    HRESULT CreateImageFromFile( 
+        [in] LONG pszPath,
+        [out] IShellImageData **ppshimg);
+
+    HRESULT CreateImageFromStream( 
+        [in] IStream *pStream,
+        [out] IShellImageData **ppshimg);
+        
+    // looks up the extension in the registry, gets the content type, and looks up the appropriate IMGFMT_*
+    // value.
+    HRESULT GetDataFormatFromPath(
+        [in] LONG pszPath,
+        [out] UUID *pDataFormat);
+}
+
+#define    QualityModeInvalid    -1
+#define    QualityModeDefault    0
+#define    QualityModeLow        1 // Best performance
+#define    QualityModeHigh       2  // Best rendering quality
+
+typedef enum InterpolationMode {
+  InterpolationModeInvalid               = QualityModeInvalid,
+  InterpolationModeDefault               = QualityModeDefault,
+  InterpolationModeLowQuality            = QualityModeLow,
+  InterpolationModeHighQuality           = QualityModeHigh,
+  InterpolationModeBilinear              = QualityModeHigh + 1,
+  InterpolationModeBicubic               = QualityModeHigh + 2,
+  InterpolationModeNearestNeighbor       = QualityModeHigh + 3,
+  InterpolationModeHighQualityBilinear   = QualityModeHigh + 4,
+  InterpolationModeHighQualityBicubic    = QualityModeHigh + 5 
+} InterpolationMode;
+[
+	odl,
+    helpstring("IShellImageData"),
+    uuid(bfdeec12-8040-4403-a5ea-9e07dafcf530)
+]
+interface IShellImageData : stdole.IUnknown
+{
+   // Start the decode process setting state (for thumbnails etc)
+
+    long Decode(
+        [in] SHIMGDEC dwFlags,
+        [in] ULONG cxDesired,
+        [in] ULONG cyDesired);
+
+   // Draw the current image to the screen
+
+    long Draw(
+        [in] HDC hdc, 
+        [in] RECT *prcDest, 
+        [in] RECT *prcSrc);
+
+    // Multipage support
+
+    // switches to next frame if it's available
+    // starts decoder and returns E_PENDING if next frame is not available yet
+    // will loop or return E_NOMOREDATA based on the image contents
+
+    long NextFrame();
+
+    // dumps any animation data, switchs to the next page, and resets the animation data for that page.  
+    // Returns E_NOMOREDATA if there is no next page.    
+
+    long NextPage();     
+    long PrevPage();
+    
+    //
+    // Query functions.  They return S_OK if condition is true, S_FALSE if not.  Use should be 
+    // self-explanatory from function name...
+    //
+    
+    long IsTransparent();
+    long IsAnimated();
+    long IsVector();
+    long IsMultipage();
+    long IsEditable();
+    long IsPrintable();
+    long IsDecoded();
+
+    // step through the pages in the image 
+
+    long GetCurrentPage(
+      [out] ULONG *pnPage);
+
+    long GetPageCount(
+      [out] ULONG *pcPages);
+
+    long SelectPage(
+      [in] ULONG iPage);
+
+    // Fetch information on image
+    long GetSize(
+      [out] SIZE *pSize);
+
+    long GetRawDataFormat(
+      [out] UUID *pDataFormat);
+
+    long GetPixelFormat(
+      [out] PixelFormat *pFormat);
+
+    long GetDelay(
+      [out] DWORD *pdwDelay);        // delay can be different for every frame
+
+    // dwMode is STGM_* flags
+    long GetProperties(
+        [in] DWORD dwMode,
+        [out] IPropertySetStorage **ppPropSet);
+        
+    //
+    // Rotate with specified angle in 90 degree increments
+    //
+
+    long Rotate(
+      [in] DWORD dwAngle);
+        
+    // Scale with aspect correction when one of the scale factors is 0.  
+    // Scale to specified dimensions if both values are non-zero
+    // examples: Scale(300, 0) sets X to 300 and Y to the correct scaled value based on X
+    //           Scale(0, 200) sets Y to 200 and X to the correct scaled value based on Y
+    //           Scale(150, 75) sets X to 150 and Y to 75
+    
+    long ScaleImage(
+      [in] LONG cx, 
+      [in] LONG cy, 
+      [in] InterpolationMode hints);
+             
+    long DiscardEdit();
+
+    //
+    // KENSY 
+    //   Instead of Commit we will depend on people to do IPersistFile::Save, IPersistStream::Save,
+    // etc.  Need to give them control over output format and quality among other things...
+    //
+
+    long SetEncoderParams(
+        [in] IPropertyBag *pbagEnc);
+
+    long DisplayName(
+      [in, out] LPWSTR wszName, 
+      [in] UINT cch);
+
+    long GetResolution( // DPI
+       [out] ULONG *puResolutionX, 
+       [out] ULONG *puResolutionY);
+
+    long GetEncoderParams( // possible values for encoder params, given a format
+       [in] UUID *pguidFmt,
+       [out] long *ppEncParams); //EncoderParameters ** to pointer
+
+   // Set a callback abort object; optionally returns previous
+    long RegisterAbort(
+        [in] IShellImageDataAbort *pAbort,
+        [out] IShellImageDataAbort **ppAbortPrev);
+
+    long CloneFrame( // return a clone of the GDI+ Image being worked on
+       [out] long *ppImg); //Image ** to pointer
+
+    long ReplaceFrame( // replace the current frame with a new Image
+       [in] Image *pImg);
+}
+
+[
+	odl,
+    helpstring("IShellImageDataAbort"),
+    uuid(53fb8e58-50c0-4003-b4aa-0c8df28e7f3a)
+]
+interface IShellImageDataAbort : stdole.IUnknown
+{
+    HRESULT QueryAbort();  // S_OK = continue; S_FALSE = abort ::VB- WILL NEED TO USE SWAPVTABLE() TO BE ABLE TO RETURN S_FALSE
+}
+
+
+
+//[
+//    uuid(0b8aff06-8df0-4f13-8e25-25b2319c436a), // LIBID_ShellImageData
+//    helpstring("Microsoft Shell Image library"),
+//    lcid(0x0000),
+//    version(1.0)
+//]
+//library ShellImageData
+//{
+    // CLSID_ShellImageDataFactory
+    [ uuid(66e4e4fb-f385-4dd0-8d74-a2efd1bc6178) ] coclass ShellImageDataFactory { [default] interface IShellImageDataFactory; }
+
+//};

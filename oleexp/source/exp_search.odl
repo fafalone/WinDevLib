@@ -1,0 +1,1867 @@
+//Search API
+
+typedef struct FULLPROPSPEC
+{
+    UUID         guidPropSet;
+    PROPSPEC psProperty;
+} FULLPROPSPEC;
+
+typedef enum IFILTER_INIT
+{
+    IFILTER_INIT_CANON_PARAGRAPHS = 1,
+    IFILTER_INIT_HARD_LINE_BREAKS = 2,
+    IFILTER_INIT_CANON_HYPHENS = 4,
+    IFILTER_INIT_CANON_SPACES = 8,
+
+    IFILTER_INIT_APPLY_INDEX_ATTRIBUTES = 16,
+    IFILTER_INIT_APPLY_OTHER_ATTRIBUTES = 32,
+    IFILTER_INIT_APPLY_CRAWL_ATTRIBUTES = 256,
+
+    IFILTER_INIT_INDEXING_ONLY = 64,
+
+    IFILTER_INIT_SEARCH_LINKS = 128,
+
+    IFILTER_INIT_FILTER_OWNED_VALUE_OK = 512,
+
+    IFILTER_INIT_FILTER_AGGRESSIVE_BREAK = 1024,
+
+    IFILTER_INIT_DISABLE_EMBEDDED = 2048,
+
+    IFILTER_INIT_EMIT_FORMATTING = 4096
+
+} IFILTER_INIT;
+
+typedef enum IFILTER_FLAGS
+{
+    IFILTER_FLAGS_OLE_PROPERTIES = 1
+} IFILTER_FLAGS;
+
+typedef enum CHUNKSTATE
+{
+    CHUNK_TEXT = 0x1,
+    CHUNK_VALUE = 0x2,
+    CHUNK_FILTER_OWNED_VALUE = 0x4
+} CHUNKSTATE;
+
+typedef enum CHUNK_BREAKTYPE
+{
+    CHUNK_NO_BREAK = 0,
+    CHUNK_EOW = 1,
+    CHUNK_EOS = 2,
+    CHUNK_EOP = 3,
+    CHUNK_EOC = 4
+} CHUNK_BREAKTYPE;
+
+typedef struct FILTERREGION
+{
+    ULONG idChunk;
+    ULONG cwcStart;
+    ULONG cwcExtent;
+} FILTERREGION;
+
+typedef struct STAT_CHUNK
+{
+    ULONG           idChunk;
+    CHUNK_BREAKTYPE breakType;
+    CHUNKSTATE      flags;
+    LCID            locale;
+    FULLPROPSPEC    attribute;
+    ULONG           idChunkSource;
+    ULONG           cwcStartSource;
+    ULONG           cwcLenSource;
+} STAT_CHUNK;
+
+
+[
+    odl,
+    uuid(89BCB740-6119-101A-BCB7-00DD010655AF)
+]
+
+interface IFilter : stdole.IUnknown
+{
+    long Init([in] ULONG grfFlags,
+        [in] ULONG cAttributes,
+        [in] FULLPROPSPEC *aAttributes,
+        [out] ULONG* pFlags);
+
+    long GetChunk([out] STAT_CHUNK* pStat);
+
+    long GetText([in, out] ULONG* pcwcBuffer,
+        [out] WCHAR* awcBuffer);
+
+    long GetValue([out] VARIANT** ppPropValue);
+
+    //[local]
+    long BindRegion([in] FILTERREGION origPos,
+        [in] REFIID riid,
+        [out] LPVOID ppunk);
+};
+
+    typedef struct FILTERED_DATA_SOURCES
+    {
+        long pwcsExtension; // file extension
+        long pwcsMime;       // mime type string
+        long pClsid;
+        long pwcsOverride;
+
+    } FILTERED_DATA_SOURCES;
+
+[
+    odl,
+    uuid(c7310722-ac80-11d1-8df3-00c04fb6ef4f),
+    helpstring("ILoadFilter Interface")
+]
+interface ILoadFilter : stdole.IUnknown
+{
+    HRESULT LoadIFilter([in] long pwcsPath,
+        [in] FILTERED_DATA_SOURCES* pFilteredSources,
+        [in] IUnknown* pUnkOuter,
+        [in] BOOL fUseDefault,   // use default filter when no filter is found
+        [in, out] UUID* pFilterClsid,
+        [in, out] int* SearchDecSize,
+        [in, out] long* pwcsSearchDesc,
+        [in, out] IFilter** ppIFilt);
+
+
+
+    HRESULT LoadIFilterFromStorage([in] IStorage* pStg,
+        [in] IUnknown* pUnkOuter,
+        [in] long pwcsOverride,
+        [in] BOOL fUseDefault,
+        [in, out] UUID* pFilterClsid,
+        [in, out] int* SearchDecSize,
+        [in, out] long* pwcsSearchDesc,
+        [in, out] IFilter** ppIFilt);
+
+
+    HRESULT LoadIFilterFromStream([in] IStream* pStm,
+        [in] FILTERED_DATA_SOURCES* pFilteredSources,
+        [in] IUnknown* pUnkOuter,
+        [in] BOOL fUseDefault,
+        [in, out] UUID* pFilterClsid,
+        [in, out] int* SearchDecSize,
+        [in, out] long* pwcsSearchDesc,
+        [in, out] IFilter** ppIFilt);
+};
+
+[
+    odl,
+    uuid(40BDBD34-780B-48D3-9BB6-12EBD4AD2E75),
+    helpstring("ILoadFilterWithPrivateComActivation Interface")
+]
+interface ILoadFilterWithPrivateComActivation : ILoadFilter
+{
+    HRESULT LoadIFilterWithPrivateComActivation(
+        [in] FILTERED_DATA_SOURCES* filteredSources,
+        [in] BOOL useDefault,   // use default filter when no filter is found
+        [out] UUID* filterClsid,
+        [out] BOOL* isFilterPrivateComActivated,
+        [in, out] IFilter** filterObj);
+};
+
+[
+    odl,
+    uuid(0b63e318-9ccc-11d0-bcdb-00805fccce04),
+    helpstring("URL Accessor Interface")
+]
+interface IUrlAccessor : stdole.IUnknown
+{
+    HRESULT AddRequestParameter([in] PROPSPEC* pSpec,
+        [in] VARIANT* pVar);
+
+    HRESULT GetDocFormat([out] short *wszDocFormat,
+        [in] DWORD dwSize,
+        [out] DWORD* pdwLength);
+
+    HRESULT GetCLSID([out] UUID* pClsid);
+
+    HRESULT GetHost([out] short *wszHost,
+        [in] DWORD dwSize,
+        [out] DWORD* pdwLength);
+
+    long IsDirectory();
+
+    HRESULT GetSize([out] ULONGLONG* pllSize);
+
+    HRESULT GetLastModified([out] FILETIME* pftLastModified);
+
+    HRESULT GetFileName([out] short *wszFileName,
+        [in] DWORD dwSize,
+        [out] DWORD* pdwLength);
+
+    HRESULT GetSecurityDescriptor([out] BYTE* pSD,
+        [in] DWORD dwSize,
+        [out] DWORD* pdwLength);
+
+    HRESULT GetRedirectedURL([out] short *wszRedirectedURL,
+        [in] DWORD dwSize,
+        [out] DWORD* pdwLength);
+
+    HRESULT GetSecurityProvider([out] CLSID* pSPClsid);
+
+    HRESULT BindToStream([out] IStream** ppStream);
+    HRESULT BindToFilter([out] IFilter** ppFilter);
+};
+
+[
+    odl,
+    uuid(c7310734-ac80-11d1-8df3-00c04fb6ef4f),
+    helpstring("URL Accessor Interface")
+]
+
+interface IUrlAccessor2 : IUrlAccessor
+{
+    HRESULT  GetDisplayUrl([out] short *wszDocUrl,
+        [in] DWORD dwSize,
+        [out] DWORD* pdwLength);
+
+    long IsDocument();
+
+    HRESULT GetCodePage([out] short *wszCodePage,
+        [in] DWORD dwSize,
+        [out] DWORD* pdwLength);
+};
+
+typedef struct tagBLOB {
+    ULONG cbSize;
+    long pBlobData;
+} BLOB;
+
+[
+    odl,
+    uuid(6FBC7005-0455-4874-B8FF-7439450241A3),
+    helpstring("URL Accessor Interface")
+]
+interface IUrlAccessor3 : IUrlAccessor2
+{
+    HRESULT GetImpersonationSidBlobs([in] long pcwszURL, [out] DWORD* pcSidCount, [out] long* ppSidBlobs);
+};
+
+[
+    odl,
+    uuid(5CC51041-C8D2-41d7-BCA3-9E9E286297DC),
+    helpstring("URL Accessor Interface")
+]
+
+interface IUrlAccessor4 : IUrlAccessor3
+{
+    HRESULT ShouldIndexItemContent([out] BOOL* pfIndexContent);
+    HRESULT ShouldIndexProperty([in] REFPROPERTYKEY key, [out] BOOL* pfIndexProperty);
+};
+
+[
+    odl,
+    uuid(c73106e1-ac80-11d1-8df3-00c04fb6ef4f),
+    helpstring("Search Protocol Handler Thread Context Interface")
+]
+interface ISearchProtocolThreadContext : stdole.IUnknown
+{
+    HRESULT ThreadInit();
+
+    HRESULT ThreadShutdown();
+
+    HRESULT ThreadIdle([in] DWORD dwTimeElaspedSinceLastCallInMS);
+};
+
+[
+    odl,
+    uuid(c731065d-ac80-11d1-8df3-00c04fb6ef4f),
+    helpstring("Opportunistic Locking Status")
+]
+interface IOpLockStatus : stdole.IUnknown
+{
+    HRESULT IsOplockValid([out] BOOL* pfIsOplockValid);
+
+    HRESULT IsOplockBroken([out] BOOL* pfIsOplockBroken);
+
+    HRESULT GetOplockEventHandle([out] HANDLE* phOplockEv);
+};
+
+
+typedef struct TIMEOUT_INFO
+{
+    DWORD       dwSize;                     //  Actual size of structure (bytes)
+    DWORD       dwConnectTimeout;           //  Timeout for connection (seconds)
+    DWORD       dwDataTimeout;              //  Timeout for data (seconds)
+} TIMEOUT_INFO;
+
+typedef enum PROXY_ACCESS
+{
+    PROXY_ACCESS_PRECONFIG = 0,
+    PROXY_ACCESS_DIRECT,
+    PROXY_ACCESS_PROXY
+} PROXY_ACCESS;
+
+typedef struct PROXY_INFO
+{
+    DWORD           dwSize;                     //  Actual size of structure (bytes)
+    long         pcwszUserAgent;             //
+    PROXY_ACCESS    paUseProxy;                 //
+    BOOL            fLocalBypass;               //  Bypass proxy for local address
+    DWORD           dwPortNumber;
+    long         pcwszProxyName;
+    long         pcwszBypassList;
+} PROXY_INFO;
+
+typedef enum AUTH_TYPE
+{
+    eAUTH_TYPE_ANONYMOUS = 0,
+    eAUTH_TYPE_NTLM,
+    eAUTH_TYPE_BASIC
+} AUTH_TYPE;
+
+typedef struct AUTHENTICATION_INFO
+{
+    DWORD       dwSize;                     //  Actual size of structure (bytes)
+    AUTH_TYPE   atAuthenticationType;       //  Anonymous, Basic, or NTLM
+    long     pcwszUser;
+    long     pcwszPassword;
+} AUTHENTICATION_INFO;
+
+typedef struct INCREMENTAL_ACCESS_INFO
+{
+    DWORD       dwSize;                     //  Actual size of structure (bytes)
+    FILETIME    ftLastModifiedTime;
+} INCREMENTAL_ACCESS_INFO;
+
+typedef struct ITEM_INFO
+{
+    DWORD       dwSize;                     //  Actual size of structure (bytes)
+    long     pcwszFromEMail;
+    long     pcwszApplicationName;
+    long     pcwszCatalogName;
+    long     pcwszContentClass;
+} ITEM_INFO;
+
+interface IProtocolHandlerSite;
+
+[
+    odl,
+    uuid(c73106ba-ac80-11d1-8df3-00c04fb6ef4f),
+    helpstring("Protocol Handler Interface")
+]
+interface ISearchProtocol : stdole.IUnknown
+{
+    HRESULT Init([in] TIMEOUT_INFO* pTimeoutInfo,
+        [in] IProtocolHandlerSite* pProtocolHandlerSite,
+        [in] PROXY_INFO* pProxyInfo);
+
+    HRESULT CreateAccessor([in] long pcwszURL,
+        [in] AUTHENTICATION_INFO* pAuthenticationInfo,
+        [in] INCREMENTAL_ACCESS_INFO* pIncrementalAccessInfo,
+        [in] ITEM_INFO* pItemInfo,
+        [out] IUrlAccessor** ppAccessor);
+    // ISSUE: The last step will cause us to return ISearchUrlAccessor
+    // [out] ISearchUrlAccessor **ppAccessor);
+
+
+// ISSUE: Pass ISearchUrlAccessor when we support that
+    HRESULT CloseAccessor([in] IUrlAccessor* pAccessor);
+
+    HRESULT ShutDown();
+}
+
+//+----------------------------------------------------------------------------
+//
+//  Interface:  ISearchProtocol2
+//
+//  Comment:    Protocol handler interface which allows user data that is
+//              passed in with notifications to reach the PHs.
+//
+//  History:    11/11/05    mabarbis      Created
+//
+//+----------------------------------------------------------------------------
+
+[
+    odl,
+    uuid(7789F0B2-B5B2-4722-8B65-5DBD150697A9),
+    helpstring("Protocol Handler Interface")
+]
+interface ISearchProtocol2 : ISearchProtocol
+{
+    HRESULT CreateAccessorEx([in] long pcwszURL,
+        [in] AUTHENTICATION_INFO* pAuthenticationInfo,
+        [in] INCREMENTAL_ACCESS_INFO* pIncrementalAccessInfo,
+        [in] ITEM_INFO* pItemInfo,
+        [in] BLOB* pUserData,
+        [out] IUrlAccessor** ppAccessor);
+}
+
+
+//+----------------------------------------------------------------------------
+//
+//  Interface:  IProtocolHandlerSite
+//
+//  Comment:    This interface allows protocol handlers to get "services" from
+//              the filter daemon. If a protocol handler needs to get an
+//              IFilter for an embedded document, it can do so by calling the
+//              GetFilter method.
+//
+//  History:    02/18/00    mcheng      Created
+//
+//+----------------------------------------------------------------------------
+[
+    odl,
+    uuid(0b63e385-9ccc-11d0-bcdb-00805fccce04),
+    helpstring("Protocol Handler Site Interface")
+]
+interface IProtocolHandlerSite : stdole.IUnknown
+{
+    HRESULT GetFilter([in] CLSID* pclsidObj,
+        [in] long pcwszContentType,
+        [in] long pcwszExtension,
+        [out] IFilter** ppFilter);
+
+};
+
+[
+    odl,
+    uuid(04C18CCF-1F57-4CBD-88CC-3900F5195CE3)
+]
+interface ISearchRoot : stdole.IUnknown
+{
+    //
+    // Queue a scheduled task
+    //
+    [propput]
+    HRESULT Schedule([in] long pszTaskArg);
+
+    [propget]
+    HRESULT Schedule([out, retval] long* ppszTaskArg);
+
+    //
+    // Set Root URL
+    //
+    [propput]
+    HRESULT RootURL([in] long pszURL);
+
+    //
+    // Get Root URL
+    //
+    [propget]
+    HRESULT RootURL([out, retval] long* ppszURL);
+
+
+    //
+    // TRUE for hierarchical trees like the file system
+    // FALSE for things like web pages
+    // This comes from the underlying protocol definition.
+    //
+    [propput]
+    HRESULT IsHierarchical([in] BOOL fIsHierarchical);
+
+    [propget]
+    HRESULT IsHierarchical([out, retval] BOOL* pfIsHierarchical);
+
+
+    //
+    // TRUE if provides notifications
+    //
+    // This is not protocol specific since for example file: could
+    // have a CDFS in its space.
+    //
+    [propput]
+    HRESULT ProvidesNotifications([in] BOOL fProvidesNotifications);
+
+    [propget]
+    HRESULT ProvidesNotifications([out, retval] BOOL* pfProvidesNotifications);
+
+
+    //
+    // UseNotificationsOnly - in other words, don't crawl this root
+    //
+    [propput]
+    HRESULT UseNotificationsOnly([in] BOOL fUseNotificationsOnly);
+
+    [propget]
+    HRESULT UseNotificationsOnly([out, retval] BOOL* pfUseNotificationsOnly);
+
+
+    //
+    // Methods below apply to start pages and primarily to non-hierarchical sources
+    //
+
+    //
+    // How deep to enumerate links when crawling
+    //
+    [propput]
+    HRESULT EnumerationDepth([in] DWORD dwDepth);
+
+    [propget]
+    HRESULT EnumerationDepth([out, retval] DWORD* pdwDepth);
+
+
+    //
+    // How many hosts away to crawl
+    //
+    [propput]
+    HRESULT HostDepth([in] DWORD dwDepth);
+
+    [propget]
+    HRESULT HostDepth([out, retval] DWORD* pdwDepth);
+
+
+    //
+    // FollowDirectories for Hierarchical stores
+    //
+    [propput]
+    HRESULT FollowDirectories([in] BOOL fFollowDirectories);
+
+    [propget]
+    HRESULT FollowDirectories([out, retval] BOOL* pfFollowDirectories);
+
+    //
+    // Authentication information for accessing URL from
+    // AUTHENTICATION_INFO defined in srchprth.idl
+    //
+    [propput]
+    HRESULT AuthenticationType([in] AUTH_TYPE authType);
+
+    [propget]
+    HRESULT AuthenticationType([out, retval] AUTH_TYPE* pAuthType);
+
+
+    [propput]
+    HRESULT User([in] long pszUser);
+
+    [propget]
+    HRESULT User([out, retval] long* ppszUser);
+
+
+    [propput]
+    HRESULT Password([in] long pszPassword);
+
+    [propget]
+    HRESULT Password([out, retval] long* ppszPassword);
+};
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+//  IEnumSearchRoots - Enumerate all the search roots
+//
+
+[
+    odl,
+    uuid(AB310581-AC80-11D1-8DF3-00C04FB6EF52)
+]
+interface IEnumSearchRoots : stdole.IUnknown
+{
+    HRESULT Next([in] ULONG celt,
+        [out] ISearchRoot** rgelt,
+        [in, out] ULONG* pceltFetched);
+
+    HRESULT Skip([in] ULONG celt);
+
+    HRESULT Reset();
+
+    HRESULT Clone([out, retval] IEnumSearchRoots** ppenum);
+};
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+//  ISearchScopeRules - Define scope for crawling and indexing
+//
+
+typedef enum FOLLOW_FLAGS {
+    //
+    // Whether or not to index complex URLs (contains '?')
+    //
+    FF_INDEXCOMPLEXURLS = 0x00000001,
+
+    //
+    // Suppress indexing this URL (i.e., follow but do not index)
+    //
+    FF_SUPPRESSINDEXING = 0x00000002,
+
+} FOLLOW_FLAGS;
+
+[
+    odl,
+    uuid(AB310581-AC80-11D1-8DF3-00C04FB6EF53)
+]
+interface ISearchScopeRule : stdole.IUnknown
+{
+    //
+    // Zero terminated pattern or URL
+    //
+    [propget]
+    HRESULT PatternOrURL([out, retval] long* ppszPatternOrURL);
+
+    //
+    // Include or exclude rule
+    //
+    [propget]
+    HRESULT IsIncluded([out, retval] BOOL* pfIsIncluded);
+
+    //
+    // Is a default rule
+    //
+    [propget]
+    HRESULT IsDefault([out, retval] BOOL* pfIsDefault);
+
+    //
+    // Follow properties as described by FOLLOW_FLAGS
+    //
+    [propget]
+    HRESULT FollowFlags([out, retval] DWORD* pFollowFlags);
+};
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// IEnumSearchScopeRules -  Enumerate scope rules
+//
+[
+    odl,
+    uuid(AB310581-AC80-11D1-8DF3-00C04FB6EF54)
+]
+interface IEnumSearchScopeRules : stdole.IUnknown
+{
+    HRESULT Next([in] ULONG celt,
+        [out] ISearchScopeRule** pprgelt,
+        [in, out] ULONG* pceltFetched);
+
+    HRESULT Skip([in] ULONG celt);
+
+    HRESULT Reset();
+
+    HRESULT Clone([out, retval] IEnumSearchScopeRules** ppenum);
+};
+
+////////////////////////////////////////////////////////////////////////////////
+//
+//  Reason for inclusion or exclusion of a given URL
+//
+
+typedef enum CLUSION_REASON {
+    //
+    // By unknown scope - i.e., there is no scope that would include or
+    // exclude this URL so it is by default excluded
+    //
+    CLUSIONREASON_UNKNOWNSCOPE = 0,
+
+    //
+    // By default rule
+    //
+    CLUSIONREASON_DEFAULT = 1,
+
+    //
+    // By a user rule
+    //
+    CLUSIONREASON_USER = 2,
+
+    //
+    // By group policy
+    //
+    CLUSIONREASON_GROUPPOLICY = 3
+} CLUSION_REASON;
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+//  ISearchCrawlScopeManager - manipulate crawlscopes and searchroots
+//
+[
+    odl,
+    uuid(AB310581-AC80-11D1-8DF3-00C04FB6EF55)
+]
+interface ISearchCrawlScopeManager : stdole.IUnknown
+{
+    ////////////////////////////////////////////////////////////////////////////
+    //
+    //  Roots
+    //
+    // A search root defines information about the root of some scope.
+    // It doesn't automatically include or exclude anything--it just
+    // defines the characteristic of the root.
+    //
+
+
+    //
+    // Add a default scope rule
+    //
+    HRESULT AddDefaultScopeRule([in] long pszURL,
+        [in] BOOL fInclude,
+        //
+        // Follow properties as described by FOLLOW_FLAGS
+        //
+        [in] DWORD fFollowFlags);
+
+    //
+    // Add a new root. Overrides any existing root definition for URL
+    //
+    HRESULT AddRoot([in] ISearchRoot* pSearchRoot);
+
+    //
+    // Remove an existing root
+    //
+    HRESULT RemoveRoot([in] long pszURL);
+
+    //
+    // Enumerate over the registered roots
+    //
+    HRESULT EnumerateRoots([out, retval] IEnumSearchRoots** ppSearchRoots);
+
+    ////////////////////////////////////////////////////////////////////////////
+    //
+    //  Scope rules
+    //
+
+    HRESULT AddHierarchicalScope([in] long pszURL,
+        [in] BOOL fInclude, [in] BOOL fDefault,
+        [in] BOOL fOverrideChildren);
+
+
+    //
+    // Add a user scope rule
+    //
+    HRESULT  AddUserScopeRule([in] long pszURL,
+        [in] BOOL fInclude,
+        //
+        // TRUE to override all children rules - this in effect removes all of them
+        //
+        [in] BOOL fOverrideChildren,
+        //
+        // Follow properties as described by FOLLOW_FLAGS
+        //
+        [in] DWORD fFollowFlags);
+
+    //
+    // Remove a scope rule - either user or default
+    //
+    HRESULT RemoveScopeRule([in] long pszRule);
+
+    //
+    // Enumerate over default scope rules
+    //
+    HRESULT EnumerateScopeRules([out, retval] IEnumSearchScopeRules** ppSearchScopeRules);
+
+    //
+    // TRUE if any parent is explicitly included/excluded
+    //
+    HRESULT HasParentScopeRule([in] long pszURL, [out, retval] BOOL* pfHasParentRule);
+
+    //
+    // TRUE if any child explicitly included/excluded
+    //
+    HRESULT HasChildScopeRule([in] long pszURL, [out, retval] BOOL* pfHasChildRule);
+
+    //
+    // TRUE if URL is included in crawl scope, FALSE if excluded - and the reason for either
+    //
+    HRESULT IncludedInCrawlScope([in] long pszURL, [out, retval] BOOL* pfIsIncluded);
+
+    HRESULT IncludedInCrawlScopeEx([in] long pszURL, [out] BOOL* pfIsIncluded, [out] CLUSION_REASON* pReason);
+
+    ////////////////////////////////////////////////////////////////////////////
+    //
+    //  Transactions
+    //
+
+    //
+    // Revert to default scopes only
+    //
+    HRESULT RevertToDefaultScopes();
+
+    //
+    // Save changes made
+    // This allows a series of changes to be saved or abandoned.  ScopeRules
+    // do not take effect until SaveAll is called to commit them.
+    //
+    HRESULT SaveAll();
+
+    // Get the version ID of the url's parent inclusion
+    // This ID will most likely change if a scope rule is removed and then added back
+    // returns S_FALSE in case no parent inclusion URL was found
+
+    HRESULT GetParentScopeVersionId([in] long pszURL, [out, retval] LONG* plScopeId);
+
+    //
+    // Removes a default scope rule
+    //
+
+    HRESULT RemoveDefaultScopeRule([in] long pszURL);
+};
+
+[
+    odl,
+    uuid(6292F7AD-4E19-4717-A534-8FC22BCD5CCD)
+]
+interface ISearchCrawlScopeManager2 : ISearchCrawlScopeManager
+{
+    HRESULT GetVersion([out] long* plVersion, [out] HANDLE* phFileMapping);
+};
+
+typedef enum SEARCH_KIND_OF_CHANGE {
+    SEARCH_CHANGE_ADD = 0,
+    SEARCH_CHANGE_DELETE = 1,
+    SEARCH_CHANGE_MODIFY = 2,
+
+    //
+    // Item has been moved or renamed
+    //
+    SEARCH_CHANGE_MOVE_RENAME = 3,
+
+    //
+    // This is a directory--optimization since crawl needs to define it
+    //
+    SEARCH_CHANGE_SEMANTICS_DIRECTORY = 0x40000,
+
+    //
+    // Only index directory properties
+    //
+    SEARCH_CHANGE_SEMANTICS_SHALLOW = 0x80000,
+
+    //
+    // Update security only--optimization
+    //
+    SEARCH_CHANGE_SEMANTICS_UPDATE_SECURITY = 0x400000,
+
+} SEARCH_KIND_OF_CHANGE;
+
+typedef enum SEARCH_NOTIFICATION_PRIORITY {
+    SEARCH_NORMAL_PRIORITY = 0,
+    SEARCH_HIGH_PRIORITY = 1
+} SEARCH_NOTIFICATION_PRIORITY;
+
+
+//
+// Information about change
+// There is no longer a logical URL passed in here because the indexer does not track
+// it anyway. The only real purpose was for status.
+//
+typedef struct SEARCH_ITEM_CHANGE
+{
+    SEARCH_KIND_OF_CHANGE          Change;
+    //
+    // High priority is done before normal priority is done before incrementals
+    //
+    SEARCH_NOTIFICATION_PRIORITY   Priority;
+    long pUserData;
+    long                         lpwszURL;
+    long                lpwszOldURL;    //valid only for moves
+} SEARCH_ITEM_CHANGE;
+
+
+[
+    odl,
+    uuid(AB310581-AC80-11D1-8DF3-00C04FB6EF58)
+]
+interface ISearchItemsChangedSink : stdole.IUnknown
+{
+    // Indicate hierarchical scopes that are being monitored.
+    // IMPLEMENTATION: Incrementals will skip these scopes once
+    // specified.  Also starting monitoring will no longer
+    // automatically kick off an incremental.
+    HRESULT StartedMonitoringScope([in] long pszURL);
+    HRESULT StoppedMonitoringScope([in] long pszURL);
+
+
+    ////////////////////////////////////////////////////////////////////////////
+    //
+    //  Pusher Notifications
+    //
+    //  Client gets status updates as notification goes through the pipeline,
+    //  but has to resubmit in the case of crawler failure.
+    //
+
+    //
+    // Notification providers call this in order to get the indexer to
+    // index some changed items.
+    //
+    // IMPLEMENTATION: When there are multiple notifications we need
+    // to make sure that a URL ends up in the highest priorty queue.
+    //
+    HRESULT OnItemsChanged([in] DWORD              dwNumberOfChanges,
+        [in]  SEARCH_ITEM_CHANGE *rgDataChangeEntries,
+        //
+        // Doc IDs that will be passed
+        // back when finished
+        //
+        [out] DWORD              *rgdwDocIds,
+        //
+        // This indicates whether or not each URL was
+        // accepted for indexing
+        //
+        [out] long            *rghrCompletionCodes);
+
+
+
+};
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// ISearchPersistentItemsChangedSink -  This interface allows passing on change
+//                                      notifications to the indexer; i.e.,
+//                                      to alert the indexer that an item needs
+//                                      to be updated
+//
+    //
+    // Information about change
+    // There is no longer a logical URL passed in here because the indexer does not track
+    // it anyway. The only real purpose was for status.
+    //
+    typedef struct SEARCH_ITEM_PERSISTENT_CHANGE
+    {
+        SEARCH_KIND_OF_CHANGE Change;
+        long URL;
+        long OldURL;    //valid only for moves
+        //
+        // High priority is done before normal priority is done before incrementals
+        //
+        SEARCH_NOTIFICATION_PRIORITY Priority;
+    } SEARCH_ITEM_PERSISTENT_CHANGE;
+
+[
+    odl,
+    uuid(A2FFDF9B-4758-4F84-B729-DF81A1A0612F)
+]
+interface ISearchPersistentItemsChangedSink : stdole.IUnknown
+{
+
+    ////////////////////////////////////////////////////////////////////////////
+    //
+    //  Persistent Notifications
+    //
+    //  Client will not receive status as notification progresses,
+    //  but notifications are persisted and do not need to be resubmitted
+    //  as a recovery crawl will pick them up.
+    //
+
+    //
+    // Indicate hierarchical scopes that are being monitored.
+    // IMPLEMENTATION: Incrementals will skip these scopes once
+    // specified.  Also starting monitoring will no longer
+    // automatically kick off an incremental.
+    //
+    HRESULT StartedMonitoringScope([in] long pszURL);
+    HRESULT StoppedMonitoringScope([in] long pszURL);
+
+
+
+    HRESULT OnItemsChanged([in] DWORD dwNumberOfChanges,
+        [in] SEARCH_ITEM_PERSISTENT_CHANGE *DataChangeEntries,
+        //
+        // This indicates whether or not each URL was
+        // accepted for indexing
+        //
+        [out] long *hrCompletionCodes);
+};
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// Index Notifications
+//
+// These notifications happen when an item has been successfully
+// indexed.  The structure is registered on the catalog via
+// RegisterViewForNotification() and these methods are called by the
+// indexer to notify a client when a change occurs.
+//
+
+////////////////////////////////////////////////////////////////////////////////
+//
+// ISearchViewChangedSink
+//
+[
+    odl,
+    uuid(AB310581-AC80-11D1-8DF3-00C04FB6EF65)
+]
+interface ISearchViewChangedSink : stdole.IUnknown
+{
+    //
+    // Get the ITEMID that changed, the kind of change and whether or
+    // not the change is in the registered view.  If there is no
+    // registered view, then this is alway FALSE.
+    //
+    HRESULT OnChange([in] long* pdwDocID,
+        [in] SEARCH_ITEM_CHANGE* pChange,
+        [in] BOOL* pfInView);
+};
+
+
+    typedef enum SEARCH_INDEXING_PHASE
+    {
+        SEARCH_INDEXING_PHASE_GATHERER = 0,
+        SEARCH_INDEXING_PHASE_QUERYABLE = 1,
+        SEARCH_INDEXING_PHASE_PERSISTED = 2
+    } SEARCH_INDEXING_PHASE;
+
+    typedef struct SEARCH_ITEM_INDEXING_STATUS
+    {
+        DWORD   dwDocID;
+        long hrIndexingStatus;
+    } SEARCH_ITEM_INDEXING_STATUS;
+
+[
+    odl,
+    uuid(B5702E61-E75C-4B64-82A1-6CB4F832FCCF),
+    helpstring("Search Inline Notification Site Client Interface")
+]
+interface ISearchNotifyInlineSite : stdole.IUnknown
+{
+    HRESULT OnItemIndexedStatusChange(
+        [in]    SEARCH_INDEXING_PHASE   sipStatus,
+        [in]    DWORD                   dwNumEntries,
+        [in] SEARCH_ITEM_INDEXING_STATUS *rgItemStatusEntries);
+
+    HRESULT OnCatalogStatusChange(
+        [in]    REFGUID guidCatalogResetSignature,
+        [in]    REFGUID guidCheckPointSignature,
+        [in]    DWORD   dwLastCheckPointNumber);
+};
+
+interface ISearchQueryHelper;
+
+////////////////////////////////////////////////////////////////////////////////
+//
+//  ISearchCatalogManager - Manage catalogs
+//
+
+typedef enum CatalogStatus {
+    //
+    // No indexing is needed
+    //
+    CATALOG_STATUS_IDLE = 0,
+
+    //
+    // Indexer is paused, queries are still OK
+    //
+    CATALOG_STATUS_PAUSED = 1,
+
+    //
+    // Indexer is recovering--no indexing or querying
+    //
+    CATALOG_STATUS_RECOVERING = 2,
+
+    //
+    // Indexer is doing a full crawl and indexing everything
+    //
+    CATALOG_STATUS_FULL_CRAWL = 3,
+
+    //
+    // Indexer is checking to see if anything needs to be indexed because it has changed
+    //
+    CATALOG_STATUS_INCREMENTAL_CRAWL = 4,
+
+    //
+    // Indexer is processing notification queue which is done before resuming any crawl.
+    //
+    CATALOG_STATUS_PROCESSING_NOTIFICATIONS = 5,
+
+    //
+    // Indexer is shutting down and is not indexing and can't be queried.
+    //
+    CATALOG_STATUS_SHUTTING_DOWN = 6
+} CatalogStatus;
+
+
+typedef enum CatalogPausedReason {
+    //
+    // Not paused
+    //
+    CATALOG_PAUSED_REASON_NONE = 0,
+
+    //
+    // Paused due to high I/O
+    //
+    CATALOG_PAUSED_REASON_HIGH_IO = 1,
+
+    //
+    // Paused due to high CPU usage
+    //
+    CATALOG_PAUSED_REASON_HIGH_CPU = 2,
+
+    //
+    // Paused due to high NTF rate
+    //
+    CATALOG_PAUSED_REASON_HIGH_NTF_RATE = 3,
+
+    //
+    // Paused due to low battery
+    //
+    CATALOG_PAUSED_REASON_LOW_BATTERY = 4,
+
+    //
+    // Paused due to low memory
+    //
+    CATALOG_PAUSED_REASON_LOW_MEMORY = 5,
+
+    //
+    // Paused due to low disk space
+    //
+    CATALOG_PAUSED_REASON_LOW_DISK = 6,
+
+    //
+    // Paused due to need for delayed recovery
+    //
+    CATALOG_PAUSED_REASON_DELAYED_RECOVERY = 7,
+
+    //
+    // Paused due to user activity on the machine
+    //
+    CATALOG_PAUSED_REASON_USER_ACTIVE = 8,
+
+    //
+    // Paused by external request
+    //
+    CATALOG_PAUSED_REASON_EXTERNAL = 9,
+
+    //
+    // Paused by upgrading
+    //
+    CATALOG_PAUSED_REASON_UPGRADING = 10
+
+} CatalogPausedReason;
+
+[
+    odl,
+    uuid(AB310581-AC80-11D1-8DF3-00C04FB6EF50)
+]
+interface ISearchCatalogManager : stdole.IUnknown
+{
+    ////////////////////////////////////////////////////////////////////////////
+    //
+    //  Basic catalog properties
+    //
+
+    //
+    // Get the name of the catalog
+    //
+    [propget]
+    HRESULT Name([out, retval] long* pszName);
+
+    //
+    // Get or set parameters for the catalog
+    //
+    // Some examples:
+    //  MaxBytesPerFile (307,200 bytes)
+    //  MaxBytesPerProperty (8k)
+    //  Default timeouts, authentication
+
+    HRESULT GetParameter([in] long pszName, [out, retval] VARIANT** ppValue);
+
+    HRESULT SetParameter([in] long pszName, [in] VARIANT* pValue);
+
+    //
+    // Get the status of the catalog
+    //
+    // If *pStatus is CATALOG_STATUS_PAUSED, further information
+    // may be obtained from the pPausedReason parameter.
+    //
+    HRESULT GetCatalogStatus([out] CatalogStatus* pStatus, [out] CatalogPausedReason* pPausedReason);
+
+
+    ////////////////////////////////////////////////////////////////////////////
+    //
+    //  Catalog control
+    //
+
+    //
+    // Reset the underlying catalog by rebuilding databases, etc. then
+    // reindex everything.
+    //
+    HRESULT Reset();
+
+    //
+    // Reindex all of the URL's in the catalog.  The old information
+    // will remain until it is replaced by new information.
+    //
+    HRESULT Reindex();
+
+    //
+    // Force reindexing URL's that match the pattern
+    // This is useful to for example recrawl everything in a
+    // particular directory or with a particular extension.
+    //
+    HRESULT ReindexMatchingURLs([in] long pszPattern);
+
+    //
+    // Reindex all of the paths that the search root pszRootURL encompasses
+    //
+    HRESULT ReindexSearchRoot([in] long pszRootURL);
+
+
+    ////////////////////////////////////////////////////////////////////////////
+    //
+    //  Timeouts
+    //
+
+    //
+    // Timeout information for connection and data from TIMEOUT_INFO
+    //
+
+    //
+    // Set the current connect timeout
+    //
+    [propput]
+    HRESULT ConnectTimeout([in] DWORD dwConnectTimeout);
+
+    //
+    // Get the current connect timeout
+    //
+    [propget]
+    HRESULT ConnectTimeout([out, retval] DWORD* pdwConnectTimeout);
+
+    //
+    // Set the current data timeout
+    //
+    [propput]
+    HRESULT DataTimeout([in] DWORD dwDataTimeout);
+
+
+    //
+    // Get the current data timeout
+    //
+    [propget]
+    HRESULT DataTimeout([out, retval] DWORD* pdwDataTimeout);
+
+
+    ////////////////////////////////////////////////////////////////////////////
+    //
+    //  Catalog information
+    //
+
+    //
+    // Number of items in this catalog
+    //
+    HRESULT NumberOfItems([out, retval] LONG* plCount);
+
+    //
+    // Number of items pending indexing
+    //
+    HRESULT NumberOfItemsToIndex([out] LONG* plIncrementalCount, [out] LONG* plNotificationQueue,
+        [out] LONG* plHighPriorityQueue);
+
+    //
+    // URL currently being indexed
+    //
+    HRESULT URLBeingIndexed([out, retval] long* pszUrl);
+
+    //
+    // Current indexing state of URL
+    //
+    HRESULT GetURLIndexingState([in] long pszURL, [out, retval] DWORD* pdwState);
+
+
+
+    ////////////////////////////////////////////////////////////////////////////
+    //
+    //  Notifications
+    //
+
+
+
+    HRESULT GetPersistentItemsChangedSink([out, retval] ISearchPersistentItemsChangedSink** ppISearchPersistentItemsChangedSink);
+
+    //
+    // When an item is indexed, a notification will be passed to
+    // the sink if the user token used when registering has access to
+    // the newly indexed item.  If query is NULL, then InView will
+    // always be FALSE.  If query is specified then InView will
+    // reflect whether or not the newly indexed item is then in
+    // the view.  The select list will be used to return information
+    // on the newly indexed item.  If the select list is only docid,
+    // then no values will be generated.
+    //
+    // Related to PQS
+    //
+    //
+    // When the interface is registered, a cookie is returned.  This cookie
+    // is passed in to unregister the view
+    //
+    HRESULT RegisterViewForNotification([in] long pszView,
+        [in] ISearchViewChangedSink* pViewChangedSink,
+        [out] DWORD* pdwCookie);
+
+    //
+    // Get the change notification sink interface
+    //
+    HRESULT GetItemsChangedSink([in]                ISearchNotifyInlineSite* pISearchNotifyInlineSite,
+        [in]                REFIID                  riid,
+        [out]               LPVOID ppv,
+        [out]               UUID* pGUIDCatalogResetSignature,
+        [out]               UUID* pGUIDCheckPointSignature,
+        [out]               DWORD* pdwLastCheckPointNumber);
+
+    HRESULT UnregisterViewForNotification([in] DWORD dwCookie);
+
+    //
+    // Exclude (fExclude is TRUE): Add extension to list of excluded extensions
+    // Include: (fExclude is FALSE): Remove this from the list of excluded
+    // extensions so that it is indexed.
+    //
+    HRESULT SetExtensionClusion([in] long pszExtension, [in] BOOL fExclude);
+
+    //
+    // Enumerate excluded extensions - extensions are included by default,
+    // so only the excluded ones need to be looked at.
+    //
+    HRESULT EnumerateExcludedExtensions([out, retval] IEnumString** ppExtensions);
+
+    ////////////////////////////////////////////////////////////////////////////
+    //
+    // Return a query helper
+    //
+
+    HRESULT GetQueryHelper([out, retval] ISearchQueryHelper** ppSearchQueryHelper);
+
+    //
+    // Sensitive to diacritics
+    //
+    [propput]
+    HRESULT DiacriticSensitivity([in] BOOL fDiacriticSensitive);
+
+    [propget]
+    HRESULT DiacriticSensitivity([out, retval] BOOL* pfDiacriticSensitive);
+
+    ////////////////////////////////////////////////////////////////////////////
+    //
+    // Crawl scope manager for catalog
+    //
+
+    HRESULT GetCrawlScopeManager([out, retval] ISearchCrawlScopeManager** ppCrawlScopeManager);
+};
+
+
+
+typedef enum PRIORITIZE_FLAGS
+{
+    // In prioritization, kick off a retry of items that have failed indexing with the
+    // requested pattern.
+
+    PRIORITIZE_FLAG_RETRYFAILEDITEMS = 0x00000001,
+
+    // Valid only in combination with PRIORITIZE_FLAG_RETRYFAILEDITEMS.
+    // Normally, items are no longer retried after a series of failed indexing attempts.
+    // This flag indicates that those items should also be re-attempted.
+
+    PRIORITIZE_FLAG_IGNOREFAILURECOUNT = 0x00000002
+} PRIORITIZE_FLAGS;
+
+
+[
+    odl,
+    uuid(7AC3286D-4D1D-4817-84FC-C1C85E3AF0D9)
+]
+interface ISearchCatalogManager2 : ISearchCatalogManager
+{
+    //
+    // Allow the indexer to prioritize the given pattern of URLs over other potential
+    // tasks.
+    //
+    HRESULT PrioritizeMatchingURLs([in] long pszPattern, [in] PRIORITIZE_FLAGS dwPrioritizeFlags);
+};
+
+
+    typedef enum SEARCH_TERM_EXPANSION {
+        // No Expansion
+        SEARCH_TERM_NO_EXPANSION,
+
+        // All search terms become <term>*
+        SEARCH_TERM_PREFIX_ALL,
+
+        // Stem expansion is applied to all terms
+        SEARCH_TERM_STEM_ALL,
+    } SEARCH_TERM_EXPANSION;
+
+
+    typedef enum SEARCH_QUERY_SYNTAX {
+        // No query syntax in user input
+        SEARCH_NO_QUERY_SYNTAX,
+
+        // Understand AQS (from:chris)
+        SEARCH_ADVANCED_QUERY_SYNTAX,
+
+        // Understand NQS (mail from chris) in addition to AQS.
+        // NOTE: This is not enough to allow a semantic canvas.  For
+        // that I think people either have to host our query control
+        // or go to SemThing directly.
+        SEARCH_NATURAL_QUERY_SYNTAX,
+    } SEARCH_QUERY_SYNTAX;
+
+    typedef struct SEARCH_COLUMN_PROPERTIES {
+        VARIANT         Value;
+        LCID            lcid;
+    } SEARCH_COLUMN_PROPERTIES;
+[
+    odl,
+    uuid(AB310581-AC80-11D1-8DF3-00C04FB6EF63)
+]
+interface ISearchQueryHelper : stdole.IUnknown
+{
+    //
+    // Return the OLE-DB connection string
+    //
+    [propget]
+    HRESULT ConnectionString([out, retval] long* pszConnectionString);
+
+    //
+    // Language of query for user words
+    //
+    [propput]
+    HRESULT QueryContentLocale([in] LCID lcid);
+
+    [propget]
+    HRESULT QueryContentLocale([out, retval] LCID* plcid);
+
+    //
+    // Language of sem thing for AQS
+    //
+    [propput]
+    HRESULT QueryKeywordLocale([in] LCID lcid);
+
+    [propget]
+    HRESULT QueryKeywordLocale([out, retval] LCID* plcid);
+
+    //
+    // How to expand search terms
+    //
+    [propput]
+    HRESULT QueryTermExpansion([in] SEARCH_TERM_EXPANSION expandTerms);
+
+    [propget]
+    HRESULT QueryTermExpansion([out, retval] SEARCH_TERM_EXPANSION* pExpandTerms);
+
+    //
+    // Query syntax to allow
+    //
+    [propput]
+    HRESULT QuerySyntax([in] SEARCH_QUERY_SYNTAX querySyntax);
+
+    [propget]
+    HRESULT QuerySyntax([out, retval] SEARCH_QUERY_SYNTAX* pQuerySyntax);
+
+    //
+    // NULL for using all properties
+    // Otherwise comma delimited list of properties to search
+    // when looking for content that is not explicit.
+    // So if this was "Content, DocAuthor", then
+    // "foo" --> Look for "foo" in Content, DocAuthor
+    // "from:foo" --> Look for "foo" in From field.
+    //
+    [propput]
+    HRESULT QueryContentProperties([in] long pszContentProperties);
+
+    [propget]
+    HRESULT QueryContentProperties([out, retval] long* ppszContentProperties);
+
+    //
+    // Comma delimted column names
+    // Example: "System.ItemAuthors, System.Document.Title"
+    //
+    [propput]
+    HRESULT QuerySelectColumns([in] long pszSelectColumns);
+
+    [propget]
+    HRESULT QuerySelectColumns([out, retval] long* ppszSelectColumns);
+
+    //
+    // Additional where clauses added to the
+    // end, must start with and/or
+    // Example: "and contains(*, 'foo')"
+    //
+    //
+    [propput]
+    HRESULT QueryWhereRestrictions([in] long pszRestrictions);
+
+    [propget]
+    HRESULT QueryWhereRestrictions([out, retval] long* ppszRestrictions);
+
+    //
+    // Sorting clause
+    // Example: "System.ItemAuthors asc, System.ItemDate desc"
+    //
+    [propput]
+    HRESULT QuerySorting([in] long pszSorting);
+
+    [propget]
+    HRESULT QuerySorting([out, retval] long* ppszSorting);
+
+    //
+    // Start a user query and immediately return the result
+    //
+    HRESULT GenerateSQLFromUserQuery([in] long pszQuery,
+        [out, retval] long* ppszSQL);
+
+
+
+    //
+    // Write properites for a specific itemID
+    //
+
+    HRESULT WriteProperties([in] int itemID,
+        [in] DWORD dwNumberOfColumns,
+        [in] PROPERTYKEY* pColumns,
+        [in] SEARCH_COLUMN_PROPERTIES* pValues,
+        [in] FILETIME* pftGatherModifiedTime);
+
+    //
+    // Any negative number for returning all results, otherwise the maximum number of results to return.
+    //
+
+    [propput]
+    HRESULT QueryMaxResults([in] LONG cMaxResults);
+
+    [propget]
+    HRESULT QueryMaxResults([out, retval] LONG* pcMaxResults);
+};
+
+
+
+typedef enum PRIORITY_LEVEL
+{
+    PRIORITY_LEVEL_FOREGROUND = 0,    // process items in the scope first as quickly as possible
+    PRIORITY_LEVEL_HIGH = 1,    // process items in the scope first at the normal rate
+    PRIORITY_LEVEL_LOW = 2,    // process items in this scope before those at the normal rate, but after any other prioritization requests
+    PRIORITY_LEVEL_DEFAULT = 3     // process items at the normal indexer rate
+} PRIORITY_LEVEL;
+
+
+[
+    odl,
+    uuid(42811652-079D-481B-87A2-09A69ECC5F44)
+]
+interface IRowsetPrioritization : stdole.IUnknown
+{
+    // Sets or retrieves the current indexer prioritization level for the scope specified by
+    // this query.
+
+    HRESULT SetScopePriority([in] PRIORITY_LEVEL priority, [in] DWORD scopeStatisticsEventFrequency);
+    HRESULT GetScopePriority([out] PRIORITY_LEVEL* priority, [out] DWORD* scopeStatisticsEventFrequency);
+
+    // Gets information describing the scope specified by this query:
+    // indexedDocumentCount     -   The total number of documents currently indexed in the scope
+    // oustandingAddCount       -   The total number of documents yet to be indexed in the scope (those not yet included in indexedDocumentCount)
+    // oustandingModifyCount    -   The total number of documents indexed in the scope that need to be re-indexed (included in indexedDocumentCount)
+
+    HRESULT GetScopeStatistics([out] DWORD* indexedDocumentCount, [out] DWORD* oustandingAddCount, [out] DWORD* oustandingModifyCount);
+};
+
+
+typedef enum ROWSETEVENT_ITEMSTATE
+{
+    ROWSETEVENT_ITEMSTATE_NOTINROWSET = 0,    // The item is definitely not in the rowset
+    ROWSETEVENT_ITEMSTATE_INROWSET = 1,    // The item is definitely contained within the rowset
+    ROWSETEVENT_ITEMSTATE_UNKNOWN = 2     // The item MAY be in the rowset
+} ROWSETEVENT_ITEMSTATE;
+
+
+typedef enum ROWSETEVENT_TYPE
+{
+    ROWSETEVENT_TYPE_DATAEXPIRED = 0,    // Sent when the data backing the rowset has expired.  A new rowset should be requested
+    ROWSETEVENT_TYPE_FOREGROUNDLOST = 1,    // Sent when a request for foreground prioritization has been automatically downgraded to high
+    ROWSETEVENT_TYPE_SCOPESTATISTICS = 2,    // Sent on an interval of roughly scopeStatisticsEventFrequency when there is a statistics change. Also sent once when all stats go to zero.
+} ROWSETEVENT_TYPE;
+
+
+[
+    odl,
+    uuid(1551AEA5-5D66-4B11-86F5-D5634CB211B9)
+]
+interface IRowsetEvents : stdole.IUnknown
+{
+    // A new item was added meeting some (or all) of the criteria for your rowset.
+    // newItemState:
+    //      ROWSETEVENT_ITEMSTATE_NOTINROWSET  - NOT APPLICABLE
+    //      ROWSETEVENT_ITEMSTATE_INROWSET     - The new item definitely matches all criteria for your rowset.
+    //      ROWSETEVENT_ITEMSTATE_UNKNOWN      - The new item partially matches some criteria for your rowset.  It MAY fully match.
+
+    HRESULT OnNewItem([in] VARIANT* itemID, [in] ROWSETEVENT_ITEMSTATE newItemState);
+
+    // An item that MAY have matched some (or all) of the criteria for your rowset has been modified.
+    // rowsetItemState:
+    //      ROWSETEVENT_ITEMSTATE_NOTINROWSET   - The item changed was definitely not originally in your rowset.
+    //      ROWSETEVENT_ITEMSTATE_INROWSET      - The item changed was definitely in your rowset.
+    //      ROWSETEVENT_ITEMSTATE_UNKNOWN       - The item changed MAY have originally been in your rowset.
+    // changedItemState:
+    //      ROWSETEVENT_ITEMSTATE_NOTINROWSET   - As a result of the change, the item is removed from your rowset.
+    //      ROWSETEVENT_ITEMSTATE_INROWSET      - As a result of the change, the item definitely remains in your rowset.
+    //      ROWSETEVENT_ITEMSTATE_UNKNOWN       - As a result of the change, the item MAY now belong in your rowset.
+
+    HRESULT OnChangedItem([in] VARIANT* itemID, [in] ROWSETEVENT_ITEMSTATE rowsetItemState, [in] ROWSETEVENT_ITEMSTATE changedItemState);
+
+    // An item was deleted meeting some (or all) of the criteria for your query.
+    // deletedItemState:
+    //      ROWSETEVENT_ITEMSTATE_NOTINROWSET   - The deleted item is definitely not in your rowset (but may have already been added via an OnNewItme or OnChangedItem)
+    //      ROWSETEVENT_ITEMSTATE_INROWSET      - The deleted item is definitely in your rowset
+    //      ROWSETEVENT_ITEMSTATE_UNKNOWN       - The deleted item MAY be in your rowset
+
+    HRESULT OnDeletedItem([in] VARIANT* itemID, [in] ROWSETEVENT_ITEMSTATE deletedItemState);
+
+    // This method allows for future notifications of various actions about your rowset or items within
+    // eventType:                               - An identifier of the particular event being sent
+    // pVarEventData:                           - The expected value of the EventData for each event type
+    //      ROWSETEVENT_TYPE_DATAEXPIRED        - VT_EMPTY
+    //      ROWSETEVENT_TYPE_FOREGROUNDLOST     - VT_EMPTY
+    //      ROWSETEVENT_TYPE_SCOPESTATISTICS    - VT_VECTOR | VT_UI4 - 3 elements (0 = indexed items, 1 = outstanding adds, 2 = oustanding modifies)
+
+    HRESULT OnRowsetEvent([in] ROWSETEVENT_TYPE eventType, [in] VARIANT* eventData);
+};
+
+
+
+[
+    odl,
+    uuid(AB310581-AC80-11D1-8DF3-00C04FB6EF69)
+]
+interface ISearchManager : stdole.IUnknown
+{
+    ////////////////////////////////////////////////////////////////////////////
+    //
+    // Service Management
+    //
+
+    //
+    // Get the version of the indexer
+    //
+
+    HRESULT GetIndexerVersionStr([out] long* ppszVersionString);
+
+    HRESULT GetIndexerVersion([out] DWORD* pdwMajor, [out] DWORD* pdwMinor);
+
+    //
+    // Get or set parameters for the service
+    //
+    // Some examples
+    //  Backoff control -- battery thresholds, etc.
+    //  Default timeouts, authentication and proxy information
+    //  Memory quota on filters
+    //  Size limits
+    //  Retry intervales
+    //  Number of robot threads
+    //  Default location of catalogs
+    //
+
+    HRESULT GetParameter([in] long pszName, [out, retval] VARIANT** ppValue);
+
+    HRESULT SetParameter([in] long pszName, [in] VARIANT* pValue);
+
+    //
+    // Name of proxy
+    //
+    [propget]
+    HRESULT ProxyName([out, retval] long* ppszProxyName);
+
+    //
+    // Proxy bypass list
+    //
+    [propget]
+    HRESULT BypassList([out, retval] long* ppszBypassList);
+
+    HRESULT SetProxy([in] PROXY_ACCESS sUseProxy,
+        [in] BOOL  fLocalByPassProxy,
+        [in] DWORD dwPortNumber,
+        [in] long pszProxyName,
+        [in] long pszByPassList);
+
+    ////////////////////////////////////////////////////////////////////////////
+    //
+    // Catalog management
+    //
+    // Access to catalog management functions is determined by the
+    // security associated with a particular catalog.
+    //
+    // ACCESS -- allows getting the catalog interface and information
+    // about the catalog.
+    //
+    // MANAGE -- allows changing the configuration of the catalog.
+    //
+
+    //
+    // Lookup a catalog by name
+    // Doing this will block until the catalog is ready.  If you don't
+    // want to block, check for the ready event.
+    //
+    HRESULT GetCatalog([in] long pszCatalog,
+        [out, retval] ISearchCatalogManager** ppCatalogManager);
+
+
+    ////////////////////////////////////////////////////////////////////////////
+    //
+    // Site access properties
+    //
+    // From here down is passed to protocol handler
+    //
+
+    //
+    // Browser agent like (Mozilla/4.0) -- search manager level
+    //
+    [propget]
+    HRESULT UserAgent([out, retval] long* ppszUserAgent);
+    [propput]
+    HRESULT UserAgent([in] long pszUserAgent);
+
+    //
+    // What proxy to use
+    //
+    [propget]
+    HRESULT UseProxy([out, retval] PROXY_ACCESS* pUseProxy);
+
+    //
+    //  Bypass proxy for local address
+    //
+    [propget]
+    HRESULT LocalBypass([out, retval] BOOL* pfLocalBypass);
+
+    //
+    // Port number to use
+    //
+    [propget]
+    HRESULT PortNumber([out, retval] DWORD* pdwPortNumber);
+
+
+};
+
+
+////////////////////////////////////////////////////////////////////////////////
+//
+//  ISearchManager2 - manage catalogs in the search service
+//
+
+[
+    odl,
+    uuid(DBAB3F73-DB19-4A79-BFC0-A61A93886DDF)
+]
+interface ISearchManager2 : ISearchManager
+{
+
+    // Creates new catalog in the main "Windows" application. Fails if catalog already exists.
+    HRESULT CreateCatalog([in] long pszCatalog, [out] ISearchCatalogManager** ppCatalogManager);
+
+    // Deletes all data and settings related to the associated catalog.
+    HRESULT DeleteCatalog([in] long pszCatalog);
+
+};
+
+[
+    odl,
+    uuid(24C3CBAA-EBC1-491a-9EF1-9F6D8DEB1B8F)
+]
+interface ISearchLanguageSupport : stdole.IUnknown
+{
+    //#if 0
+    //    //**********************************************************************
+    //    // Get thesaurus information
+    //    //
+    //    // A thesaurus file contains a word and a list of words to
+    //    // substitute when querying.  It is specific to a catalog and can
+    //    // be defined in more than one file.
+    //    //
+    //    //**********************************************************************
+    //
+    //    // Thesaurus terms for word.
+    //    // Permitted IID: IEnumString
+    //    // Returns S_OK on success; no other success value.
+    //    // Various failure return values.
+    //    HRESULT EnumerateExpandedTerms([in] LPCWSTR pszWord,
+    //        [in] LCID lcid,
+    //        [in] REFIID riid,
+    //        [out, iid_is(riid)] void** ppWords);
+    //#endif
+
+        //
+        // Sensitivity to diacritics
+        // Both methods return S_OK on success; no other success value.
+        // Various failure return values.
+        // A newly created CSearchLanguageSupport will be insensitive to diacritics.
+        HRESULT SetDiacriticSensitivity([in] BOOL fDiacriticSensitive);
+        HRESULT GetDiacriticSensitivity([out, retval] BOOL* pfDiacriticSensitive);
+
+        //#if 0
+        //    //**********************************************************************
+        //    // Access to noise list
+        //    //
+        //    // A noise list contains words that are not indexed substitute
+        //    // when querying.  It is specific to a catalog and can be defined
+        //    // in more than one file.
+        //    //
+        //    //**********************************************************************
+        //
+        //    // Test a word to see if it is a noise word
+        //    // Returns S_OK on success; no other success value.
+        //    // Various failure return values.
+        //    HRESULT IsNoiseWord([in] LPCWSTR pszWord,
+        //        [in] LCID lcid,
+        //        [out, retval] BOOL* pfIsNoise);
+        //#endif
+
+            //**********************************************************************
+            //
+            // Word breakers/stemmers
+            //
+            //**********************************************************************
+
+            // Return an interface to the word breaker registered for a
+            // specific language.
+            // Returns S_OK on success; no other success value.
+            // Various failure return values.
+            HRESULT LoadWordBreaker([in] LCID lcid,
+                [in] REFIID riid,
+                [out] LPVOID ppWordBreaker,
+                [out] LCID* pLcidUsed);
+
+            // Return an interface to the stemmer registered for a specific
+            // language.
+            // Returns S_OK on success; no other success value.
+            // Various failure return values.
+            HRESULT LoadStemmer([in] LCID lcid,
+                [in] REFIID riid,
+                [out] LPVOID ppStemmer,
+                [out] LCID* pLcidUsed);
+
+            // Ask whether the query token is a prefix of the document token,
+            // when disregarding case, width and (optionally) diacritics.
+            // If this is the case, S_OK is returned and *pulPrefixLength is set to the number
+            // of characters that were matched in the document token (this is typically
+            // but not necessarily the same as the number of characters in the query token).
+            // If the (whole) query token is not a prefix of the document token,
+            // S_FALSE is returned and *pulPrefixLength is set to zero.
+            // Various failure return values.
+            HRESULT IsPrefixNormalized([in] long pwcsQueryToken,
+                [in] ULONG cwcQueryToken,
+                [in] long pwcsDocumentToken,
+                [in] ULONG cwcDocumentToken,
+                [out] ULONG* pulPrefixLength);
+};
+
+// Class definitions
+
+[
+    uuid(7D096C5F-AC08-4f1f-BEB7-5C22C517CE39),
+    helpstring("ISearchManager Implementation Class")
+]
+coclass CSearchManager
+{
+    [default] interface ISearchManager;
+};
+
+[
+    uuid(30766BD2-EA1C-4F28-BF27-0B44E2F68DB7),
+    helpstring("ISearchRoot Implementation Class")
+]
+coclass CSearchRoot
+{
+    [default] interface ISearchRoot;
+};
+
+[
+    uuid(E63DE750-3BD7-4BE5-9C84-6B4281988C44),
+    helpstring("ISearchScopeRule Implementation Class")
+]
+coclass CSearchScopeRule
+{
+    [default] interface ISearchScopeRule;
+};
+
+// CLSID_FilterRegistration
+[
+    uuid(9E175B8D-F52A-11D8-B9A5-505054503030)
+]
+coclass FilterRegistration
+{
+    [default] interface ILoadFilter;
+    interface ILoadFilterWithPrivateComActivation;
+};

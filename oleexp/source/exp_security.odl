@@ -1,0 +1,255 @@
+
+
+typedef enum SIOI_Flags
+{
+    SI_EDIT_PERMS               = 0x00000000, // always implied
+    SI_EDIT_OWNER               = 0x00000001,
+    SI_EDIT_AUDITS              = 0x00000002,
+    SI_CONTAINER                = 0x00000004,
+    SI_READONLY                 = 0x00000008,
+    SI_ADVANCED                 = 0x00000010,
+    SI_RESET                    = 0x00000020, //equals to SI_RESET_DAC,|SI_RESET_SAC,|SI_RESET_OWNER
+    SI_OWNER_READONLY           = 0x00000040,
+    SI_EDIT_PROPERTIES          = 0x00000080,
+    SI_OWNER_RECURSE            = 0x00000100,
+    SI_NO_ACL_PROTECT           = 0x00000200,
+    SI_NO_TREE_APP,Y            = 0x00000400,
+    SI_PAGE_TITLE               = 0x00000800,
+    SI_SERVER_IS_DC             = 0x00001000,
+    SI_RESET_DACL_TREE          = 0x00004000,
+    SI_RESET_SACL_TREE          = 0x00008000,
+    SI_OBJECT_GUID              = 0x00010000,
+    SI_EDIT_EFFECTIVE           = 0x00020000,
+    SI_RESET_DACL               = 0x00040000,
+    SI_RESET_SACL               = 0x00080000,
+    SI_RESET_OWNER              = 0x00100000,
+    SI_NO_ADDITIONAL_PERMISSION = 0x00200000,
+    //Vista+
+    SI_VIEW_ONLY                = 0x00400000,
+    SI_PERMS_ELEVATION_REQUIRED = 0x01000000,
+    SI_AUDITS_ELEVATION_REQUIRED = 0x02000000,
+    SI_OWNER_ELEVATION_REQUIRED = 0x04000000,
+//Win8+
+    SI_SCOPE_ELEVATION_REQUIRED = 0x08000000,
+//Vista+
+    SI_MAY_WRITE                = 0x10000000, //not sure if user can write permission
+//Win8+
+    SI_ENABLE_EDIT_ATTRIBUTE_CONDITION = 0x20000000,
+    SI_ENABLE_CENTRAL_POLICY    = 0x40000000,
+    SI_DISABLE_DENY_ACE         = 0x80000000,
+
+    SI_EDIT_ALL    = 0x3 //(SI_EDIT_PERMS | SI_EDIT_OWNER | SI_EDIT_AUDITS)
+} SIOI_Flags;
+
+typedef struct SI_OBJECT_INFO
+{
+    SIOI_Flags  dwFlags;
+    HINSTANCE   hInstance;          // resources (e.g. strings) reside here
+    LONG      pszServerName;      // must be present
+    LONG      pszObjectName;      // must be present
+    LONG      pszPageTitle;       // only valid if SI_PAGE_TITLE is set
+    UUID        guidObjectType;     // only valid if SI_OBJECT_GUID is set
+} SI_OBJECT_INFO;
+
+typedef enum SIAC_Flags
+{
+    SI_ACCESS_SPECIFIC  = 0x00010000,
+    SI_ACCESS_GENERAL   = 0x00020000,
+    SI_ACCESS_CONTAINER = 0x00040000, // general access, container-only
+    SI_ACCESS_PROPERTY  = 0x00080000
+} SIAC_Flags;
+typedef struct SI_ACCESS
+{
+    LONG pguid;
+    DWORD mask;
+    LONG     pszName;            // may be resource ID
+    SIAC_Flags       dwFlags;
+} SI_ACCESS;
+
+typedef struct SI_INHERIT_TYPE
+{
+    LONG pguid;
+    LONG       dwFlags;
+    LONG     pszName;            // may be resource ID
+} SI_INHERIT_TYPE;
+
+typedef enum SI_PAGE_TYPE
+{
+    SI_PAGE_PERM = 0,
+    SI_PAGE_ADVPERM,
+    SI_PAGE_AUDIT,
+    SI_PAGE_OWNER,
+    SI_PAGE_EFFECTIVE,
+//#if (NTDDI_VERSION >= NTDDI_VISTA)
+    SI_PAGE_TAKEOWNERSHIP,
+//#endif // (NTDDI_VERSION >= NTDDI_VISTA)
+//#if (NTDDI_VERSION >= NTDDI_WIN8)
+    SI_PAGE_SHARE,
+//#endif
+} SI_PAGE_TYPE;
+
+typedef enum SI_PAGE_ACTIVATED
+{
+    SI_SHOW_DEFAULT = 0,
+    SI_SHOW_PERM_ACTIVATED,
+    SI_SHOW_AUDIT_ACTIVATED,
+    SI_SHOW_OWNER_ACTIVATED,
+    SI_SHOW_EFFECTIVE_ACTIVATED,
+    SI_SHOW_SHARE_ACTIVATED,
+    SI_SHOW_CENTRAL_POLICY_ACTIVATED,
+} SI_PAGE_ACTIVATED;
+
+[
+    odl,
+    uuid(965FC360-16FF-11d0-91CB-00AA00BBB723)
+]
+interface ISecurityInformation : stdole.IUnknown
+{
+    HRESULT GetObjectInformation([in, out] SI_OBJECT_INFO *pObjectInfo);
+    HRESULT GetSecurity([in] DWORD RequestedInformation,[in, out] long* pSecurityDescriptor);
+    HRESULT SetSecurity([in] DWORD SecurityInformation,[in] long pSecurityDescriptpr);
+    HRESULT GetAccessRights([in, out] UUID* pguidObjectType,[in] DWORD dwFlags,[in, out] long* ppAccess,[in, out] LONG* pcAccesses,[in, out] LONG *piDefaultAccess);
+    HRESULT MapGeneric([in, out] UUID* pguidObjectType,[in] LONG pAceFlags,[in, out] DWORD* pMask);
+    HRESULT GetInheritTypes([in, out] long* ppInheritTypes,[in, out] long* pcInheritTypes);
+    HRESULT PropertySheetPageCallback([in] long HWND,[in] long uMsg,[in] SI_PAGE_TYPE uPage);
+};
+
+[
+    odl,
+    uuid(c3ccfdb4-6f88-11d2-a3ce-00c04fb1782a)
+]
+interface ISecurityInformation2 : stdole.IUnknown
+{
+    HRESULT IsDaclCanonical([in] long pDacl);
+    HRESULT LookupSids([in] LONG cSids, [in, out] long* rgpSids, [in, out] IDataObject **ppdo);
+};
+
+typedef struct SID_INFO
+{
+    long    pSid;
+    long   pwzCommonName;
+    long   pwzClass;       // Used for selecting icon, e.g. "User" or "Group"
+    long   pwzUPN;         // Optional, may be NULL
+} SID_INFO;
+typedef struct SID_INFO_LIST
+{
+    ULONG       cItems;
+    SID_INFO    aSidInfo[1];
+} SID_INFO_LIST;
+
+[
+    odl,
+    uuid(3853DC76-9F35-407c-88A1-D19344365FBC)
+]
+interface IEffectivePermission : stdole.IUnknown
+{
+    HRESULT GetEffectivePermission([in] UUID * pguidObjectType,
+                                   [in] long pUserSid,
+                                   [in] long pszServerName,
+                                   [in] void* pSD,
+                                   [in, out] long* ppObjectTypeList,
+                                   [in, out] long* pcObjectTypeListLength,
+                                   [in, out] long* ppGrantedAccessList,
+                                   [in, out] long* pcGrantedAccessListLength);
+};
+
+[
+    odl,
+    uuid(FC3066EB-79EF-444b-9111-D18A75EBF2FA)
+]
+interface ISecurityObjectTypeInfo : stdole.IUnknown
+{
+    HRESULT GetInheritSource([in] DWORD si, [in] long pACL, [in, out] long* ppInheritArray);
+};
+
+[
+    odl,
+    uuid(E2CDC9CC-31BD-4f8f-8C8B-B641AF516A1A)
+]
+interface ISecurityInformation3 : stdole.IUnknown
+{
+    HRESULT GetFullResourceName([in, out] long* ppszResourceName);
+    HRESULT OpenElevatedEditor([in] long hWnd,[in] SI_PAGE_TYPE uPage);
+};
+
+typedef enum SecurityObjectIds
+{
+    SECURITY_OBJECT_ID_OBJECT_SD      = 1,
+    SECURITY_OBJECT_ID_SHARE          = 2,
+    SECURITY_OBJECT_ID_CENTRAL_POLICY = 3,
+    SECURITY_OBJECT_ID_CENTRAL_ACCESS_RULE  = 4
+} SecurityObjectIds;
+
+typedef struct SECURITY_OBJECT
+{
+    long pwszName;
+    long pData;
+    DWORD cbData;
+    long pData2;
+    DWORD cbData2;
+    SecurityObjectIds Id;
+    BYTE fWellKnown;
+} SECURITY_OBJECT;
+
+
+
+typedef struct EFFPERM_RESULT_LIST
+{
+    BYTE fEvaluated;
+    ULONG cObjectTypeListLength;
+    long pObjectTypeList;
+    long pGrantedAccessList;
+} EFFPERM_RESULT_LIST;
+
+[
+    odl,
+    uuid(EA961070-CD14-4621-ACE4-F63C03E583E4)
+]
+interface ISecurityInformation4 : stdole.IUnknown
+{
+    HRESULT GetSecondarySecurity([in, out] long* pSecurityObjects,[in, out] long* pSecurityObectCount);
+};
+
+[
+    odl,
+    uuid(941FABCA-DD47-4FCA-90BB-B0E10255F20D)
+]
+interface IEffectivePermission2 : stdole.IUnknown
+{
+    HRESULT ComputeEffectivePermissionWithSecondarySecurity(
+                    [in] long pSid,
+                    [in] long pDeviceSid,
+                    [in] long pszServerName,
+                    [in] SECURITY_OBJECT * pSecurityObjects,
+                    [in] DWORD dwSecurityObjectCount,
+                    [in] long pUserGroups,
+                    [in] long pAuthzUserGroupsOperations,
+                    [in] long pDeviceGroups,
+                    [in] long pAuthzDeviceGroupsOperations,
+                    [in] long pAuthzUserClaims,
+                    [in] long pAuthzUserClaimsOperations,
+                    [in] long pAuthzDeviceClaims,
+                    [in] long pAuthzDeviceClaimsOperations,
+                    [in, out] long* pEffpermResultLists);
+};
+
+[
+    dllname("Aclui.dll")
+]
+module aclui {
+    const long PSPCB_SI_INITDIALOG = (0x400 + 1);
+    const long DOBJ_RES_CONT = 0x00000001;
+    const long DOBJ_RES_ROOT = 0x00000002;
+    const long DOBJ_VOL_NTACLS = 0x00000004;     // NTFS or OFS
+    const long DOBJ_COND_NTACLS = 0x00000008;     // Conditional aces supported.
+    const long DOBJ_RIBBON_LAUNCH = 0x00000010;     // Invoked from explorer ribbon.
+
+    [entry("CreateSecurityPage")]
+    long CreateSecurityPage([in] ISecurityInformation* psi);
+
+    [entry("EditSecurityAdvanced")]
+    long EditSecurityAdvanced([in] long hwndOwner,[in] ISecurityInformation* psi,[in] SI_PAGE_TYPE uSIPage);
+
+    [entry("EditSecurity")]
+    long EditSecurity([in] long hwndOwner,[in] ISecurityInformation* psi);
+};

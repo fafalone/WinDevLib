@@ -1,0 +1,414 @@
+typedef enum UI_CONTEXTAVAILABILITY
+{
+    UI_CONTEXTAVAILABILITY_NOTAVAILABLE = 0,
+    UI_CONTEXTAVAILABILITY_AVAILABLE    = 1,
+    UI_CONTEXTAVAILABILITY_ACTIVE       = 2,
+} UI_CONTEXTAVAILABILITY;
+
+typedef enum UI_FONTPROPERTIES
+{
+    UI_FONTPROPERTIES_NOTAVAILABLE = 0,
+    UI_FONTPROPERTIES_NOTSET       = 1,
+    UI_FONTPROPERTIES_SET          = 2,
+} UI_FONTPROPERTIES;
+     
+typedef enum UI_FONTVERTICALPOSITION
+{
+    UI_FONTVERTICALPOSITION_NOTAVAILABLE = 0,
+    UI_FONTVERTICALPOSITION_NOTSET       = 1,
+    UI_FONTVERTICALPOSITION_SUPERSCRIPT  = 2,
+    UI_FONTVERTICALPOSITION_SUBSCRIPT    = 3,
+} UI_FONTVERTICALPOSITION;
+   
+typedef enum UI_FONTUNDERLINE
+{
+    UI_FONTUNDERLINE_NOTAVAILABLE = 0,
+    UI_FONTUNDERLINE_NOTSET       = 1,
+    UI_FONTUNDERLINE_SET          = 2,
+} UI_FONTUNDERLINE;
+
+typedef enum UI_FONTDELTASIZE
+{
+    UI_FONTDELTASIZE_GROW        = 0,
+    UI_FONTDELTASIZE_SHRINK      = 1,
+} UI_FONTDELTASIZE;
+
+typedef enum UI_CONTROLDOCK
+{
+    UI_CONTROLDOCK_TOP    = 1,
+    UI_CONTROLDOCK_BOTTOM = 3,
+} UI_CONTROLDOCK;
+
+// Types for the color picker
+
+// Determines whether a swatch has a color, is nocolor or automatic.
+typedef enum UI_SWATCHCOLORTYPE
+{
+    UI_SWATCHCOLORTYPE_NOCOLOR   = 0, // Inactive swatch
+    UI_SWATCHCOLORTYPE_AUTOMATIC = 1, // Automatic swatch
+    UI_SWATCHCOLORTYPE_RGB       = 2, // Solid color swatch
+} UI_SWATCHCOLORTYPE;
+
+// If the mode is set to MONOCHROME, the swatch's RGB color value will be interpreted as a 1 bit-per-pixel
+// pattern.
+typedef enum UI_SWATCHCOLORMODE
+{
+    UI_SWATCHCOLORMODE_NORMAL     = 0,
+    UI_SWATCHCOLORMODE_MONOCHROME = 1, 
+} UI_SWATCHCOLORMODE;
+
+typedef enum UI_EVENTTYPE
+{
+    UI_EVENTTYPE_ApplicationMenuOpened = 0,
+    UI_EVENTTYPE_RibbonMinimized = 1,
+    UI_EVENTTYPE_RibbonExpanded = 2,
+    UI_EVENTTYPE_ApplicationModeSwitched = 3,
+    UI_EVENTTYPE_TabActivated = 4,
+    UI_EVENTTYPE_MenuOpened = 5,
+    UI_EVENTTYPE_CommandExecuted = 6,
+    UI_EVENTTYPE_TooltipShown = 7,
+} UI_EVENTTYPE;
+
+typedef enum UI_EVENTLOCATION
+{
+    UI_EVENTLOCATION_Ribbon = 0,
+    UI_EVENTLOCATION_QAT = 1,
+    UI_EVENTLOCATION_ApplicationMenu = 2,
+    UI_EVENTLOCATION_ContextPopup = 3,
+} UI_EVENTLOCATION;
+
+
+typedef struct UI_EVENTPARAMS_COMMAND {
+    UINT CommandID;
+    long CommandName;
+    UINT ParentCommandID;
+    long ParentCommandName;
+    UINT SelectionIndex;
+    UI_EVENTLOCATION Location;
+} UI_EVENTPARAMS_COMMAND;
+
+//[helpstring("Params represents a union; if you're looking for Modes, it would be filled into Params.CommandID")]
+typedef struct UI_EVENTPARAMS {
+    UI_EVENTTYPE EventType;
+    UI_EVENTPARAMS_COMMAND Params;
+    //union {
+    //    INT32 Modes;
+    //    UI_EVENTPARAMS_COMMAND Params;
+    //};
+} UI_EVENTPARAMS;
+
+[
+    odl,
+    helpstring("Event logging interface"),
+    uuid(ec3e1034-dbf4-41a1-95d5-03e0f1026e05)
+]
+interface IUIEventLogger : stdole.IUnknown
+{
+    // Event reporting callback
+    HRESULT OnUIEvent([in] UI_EVENTPARAMS* pEventParams);        // the event parameters
+}
+
+[
+    odl,
+    helpstring("Windows Ribbon event reporting interface"),
+    uuid(3BE6EA7F-9A9B-4198-9368-9B0F923BD534)
+]
+interface IUIEventingManager : stdole.IUnknown
+{
+    // Sets the event reporting callback for this process.
+    HRESULT SetEventLogger([in] IUIEventLogger* eventLogger);
+};
+
+
+[
+    odl,
+    helpstring("Simple property bag"),
+    uuid(c205bb48-5b1c-4219-a106-15bd0a5f24e2)
+]
+interface IUISimplePropertySet : stdole.IUnknown
+{
+    // Retrieves the stored value of a given property
+    HRESULT GetValue([in] REFPROPERTYKEY key, [in, out] VARIANT* value);
+};
+
+[
+    odl,
+    helpstring("Ribbon view interface"),
+    uuid(803982ab-370a-4f7e-a9e7-8784036a6e26)
+]
+interface IUIRibbon : stdole.IUnknown
+{
+    // Returns the Ribbon height
+    HRESULT GetHeight([in, out] UINT32* cy);
+
+    // Load Ribbon parameters (e.g. QuickAccessToolbar) from a stream
+    HRESULT LoadSettingsFromStream([in] IStream *pStream);
+
+    // Save Ribbon parameters (e.g. QuickAccessToolbar) to a stream
+    HRESULT SaveSettingsToStream([in] IStream *pStream);
+};
+
+    typedef enum UI_INVALIDATIONS
+    {
+        UI_INVALIDATIONS_STATE         = 0x00000001, // UI_PKEY_Enabled
+        UI_INVALIDATIONS_VALUE         = 0x00000002, // Value property
+        UI_INVALIDATIONS_PROPERTY      = 0x00000004, // Any property
+        UI_INVALIDATIONS_ALLPROPERTIES = 0x00000008  // All properties
+    } UI_INVALIDATIONS;
+
+interface IUIApplication; // forward reference
+
+[
+    odl,
+    helpstring("Windows Ribbon Application interface"),
+    uuid(F4F0385D-6872-43a8-AD09-4C339CB3F5C5)
+]
+interface IUIFramework : stdole.IUnknown
+{
+
+
+
+    //const UINT32 UI_ALL_COMMANDS = 0;
+
+    // Connects the framework and the application
+    HRESULT Initialize([in] HWND frameWnd, [in] IUIApplication* application);
+ 
+    // Releases all framework objects
+    HRESULT Destroy();
+ 
+    // Loads and instantiates the views and commands specified in markup
+    HRESULT LoadUI([in] HINSTANCE instance, [in] long resourceName); //LPWSTR
+ 
+    // Retrieves a pointer to a view object
+    HRESULT GetView([in] UINT32 viewId, [in] REFIID riid, [out] LPVOID ppv); //void**
+
+    // Retrieves the current value of a property
+    HRESULT GetUICommandProperty([in] UINT32 commandId, [in] REFPROPERTYKEY key, [out] VARIANT* value);
+
+    // Immediately sets the value of a property
+    HRESULT SetUICommandProperty([in] UINT32 commandId, [in] REFPROPERTYKEY key, [in] VARIANT *value);
+
+    // Asks the framework to retrieve the new value of a property at the next update cycle
+    HRESULT InvalidateUICommand([in] UINT32 commandId, [in] UI_INVALIDATIONS flags, [in] PROPERTYKEY* key);
+
+    // Flush all the pending UI command updates
+    HRESULT FlushPendingInvalidations();
+
+    // Asks the framework to switch to the list of modes specified and adjust visibility of controls accordingly
+    HRESULT SetModes([in] INT32 iModes);
+};
+
+[
+    odl,
+    helpstring("Windows Ribbon ContextualUI interface"),
+    uuid(EEA11F37-7C46-437c-8E55-B52122B29293)
+]
+interface IUIContextualUI : stdole.IUnknown
+{
+    // Sets the desired anchor point where ContextualUI should be displayed.
+    // Typically this is the mouse location at the time of right click.
+    // x and y are in virtual screen coordinates.
+    HRESULT ShowAtLocation([in] INT32 x, [in] INT32 y);
+};
+
+[
+    odl,
+    helpstring("Windows Ribbon Collection interface"),
+    uuid(DF4F45BF-6F9D-4dd7-9D68-D8F9CD18C4DB)
+]
+interface IUICollection : stdole.IUnknown
+{
+    // Retrieves the count of the collection
+    HRESULT GetCount([out] UINT32* count);
+
+    // Retrieves an item
+    HRESULT GetItem([in] UINT32 index, [out] IUnknown** item); //IUnknown
+
+    // Adds an item to the end
+    HRESULT Add([in] stdole.IUnknown* item);
+
+    // Inserts an item
+    HRESULT Insert([in] UINT32 index, [in] IUnknown* item);
+
+    // Removes an item at the specified position
+    HRESULT RemoveAt([in] UINT32 index);
+
+    // Replaces an item at the specified position
+    HRESULT Replace([in] UINT32 indexReplaced, [in] stdole.IUnknown* itemReplaceWith); //iUnknown
+
+    // Clear the collection
+    HRESULT Clear();
+};
+
+typedef enum UI_COLLECTIONCHANGE
+{
+    UI_COLLECTIONCHANGE_INSERT  = 0,
+    UI_COLLECTIONCHANGE_REMOVE  = 1,
+    UI_COLLECTIONCHANGE_REPLACE = 2,
+    UI_COLLECTIONCHANGE_RESET   = 3,
+} UI_COLLECTIONCHANGE;
+
+//const UINT32 UI_COLLECTION_INVALIDINDEX = 0xffffffff;
+
+[
+    odl,
+    helpstring("Connection Sink for listening to collection changes"),
+    uuid(6502AE91-A14D-44b5-BBD0-62AACC581D52)
+]
+interface IUICollectionChangedEvent : stdole.IUnknown
+{
+    HRESULT OnChanged([in] UI_COLLECTIONCHANGE action,
+                      [in] UINT32 oldIndex,
+                      [in] IUnknown* oldItem, 
+                      [in] UINT32 newIndex,
+                      [in] long newItem); //IUnknown
+};
+
+
+// Windows Ribbon interfaces implemented by the application
+    typedef enum UI_EXECUTIONVERB
+    {
+        UI_EXECUTIONVERB_EXECUTE       = 0,
+        UI_EXECUTIONVERB_PREVIEW       = 1,
+        UI_EXECUTIONVERB_CANCELPREVIEW = 2
+    } UI_EXECUTIONVERB;
+[
+    odl,
+    helpstring("Command handler interface"),
+    uuid(75ae0a2d-dc03-4c9f-8883-069660d0beb6)
+]
+interface IUICommandHandler : stdole.IUnknown
+{
+
+
+    // User action callback, with transient execution parameters
+    HRESULT Execute([in] UINT32 commandId,                                                               // the command that has been executed
+                    [in] UI_EXECUTIONVERB verb,                                                  // the mode of execution
+                    [in] PROPERTYKEY* key,                            // the property that has changed
+                    [in] VARIANT* currentValue,                   // the new value of the property that has changed
+                    [in] IUISimplePropertySet* commandExecutionProperties); // additional data for this execution
+
+    // Informs of the current value of a property, and queries for the new one
+    HRESULT UpdateProperty([in] UINT32 commandId, 
+                           [in] REFPROPERTYKEY key,
+                           [in] VARIANT* currentValue,
+                           [in, out] VARIANT* newValue);
+}
+
+// Types of UI commands
+typedef enum UI_COMMANDTYPE
+{
+    UI_COMMANDTYPE_UNKNOWN                                       = 0,
+    UI_COMMANDTYPE_GROUP                                         = 1,
+    UI_COMMANDTYPE_ACTION                                        = 2,
+    UI_COMMANDTYPE_ANCHOR                                        = 3,
+    UI_COMMANDTYPE_CONTEXT                                       = 4,
+    UI_COMMANDTYPE_COLLECTION                                    = 5,
+    UI_COMMANDTYPE_COMMANDCOLLECTION                             = 6,
+    UI_COMMANDTYPE_DECIMAL                                       = 7,
+    UI_COMMANDTYPE_BOOLEAN                                       = 8,
+    UI_COMMANDTYPE_FONT                                          = 9,
+    UI_COMMANDTYPE_RECENTITEMS                                   = 10,
+    UI_COMMANDTYPE_COLORANCHOR                                   = 11,
+    UI_COMMANDTYPE_COLORCOLLECTION                               = 12,
+} UI_COMMANDTYPE;
+
+// Types of UI Views
+typedef enum UI_VIEWTYPE
+{
+    UI_VIEWTYPE_RIBBON   = 1,
+} UI_VIEWTYPE;
+    typedef enum UI_VIEWVERB
+    {
+        UI_VIEWVERB_CREATE  = 0,
+        UI_VIEWVERB_DESTROY = 1,
+        UI_VIEWVERB_SIZE    = 2,
+        UI_VIEWVERB_ERROR   = 3,
+    } UI_VIEWVERB;
+[
+    odl,
+    helpstring("Application callback interface"),
+    uuid(D428903C-729A-491d-910D-682A08FF2522)
+]
+interface IUIApplication : stdole.IUnknown
+{
+
+
+    // A view has changed
+    HRESULT OnViewChanged([in] UINT32 viewId,
+                          [in] UI_VIEWTYPE typeID,
+                          [in] stdole.IUnknown* view, 
+                          [in] UI_VIEWVERB verb,
+                          [in] INT32 uReasonCode);
+ 
+    // Command creation callback
+    HRESULT OnCreateUICommand([in] UINT32 commandId,
+        [in] UI_COMMANDTYPE typeID,
+                              [in, out] IUICommandHandler** commandHandler);
+
+    // Command destroy callback
+    HRESULT OnDestroyUICommand([in] UINT32 commandId,
+        [in] UI_COMMANDTYPE typeID,
+                               [in] IUICommandHandler* commandHandler);
+
+};
+
+[
+    odl,
+    helpstring("Container for bitmap image"),
+    uuid(23c8c838-4de6-436b-ab01-5554bb7c30dd)
+]
+interface IUIImage : stdole.IUnknown
+{
+    HRESULT GetBitmap([in, out] HBITMAP *bitmap);
+};
+    typedef enum UI_OWNERSHIP
+    {
+        UI_OWNERSHIP_TRANSFER = 0, // IUIImage now owns HBITMAP.
+        UI_OWNERSHIP_COPY     = 1, // IUIImage creates a copy of HBITMAP. Caller still owns HBITMAP.
+    } UI_OWNERSHIP;
+[
+    odl,
+    helpstring("Produces containers for bitmap images"),
+    uuid(18aba7f3-4c1c-4ba2-bf6c-f5c3326fa816)
+]
+interface IUIImageFromBitmap : stdole.IUnknown
+{
+
+
+    HRESULT CreateImage([in] HBITMAP bitmap, [in] UI_OWNERSHIP options, [in, out] IUIImage **image);
+};
+
+// cpp_quote("#define UI_MAKEAPPMODE(x) (1 << (x))")
+
+//cpp_quote("DEFINE_GUID(CLSID_UIRibbonFramework,0x926749fa, 0x2615, 0x4987, 0x88, 0x45, 0xc3, 0x3e, 0x65, 0xf2, 0xb9, 0x57);")
+//cpp_quote("DEFINE_GUID(CLSID_UIRibbonImageFromBitmapFactory,")
+//cpp_quote("                                    0x0f7434b6, 0x59b6, 0x4250, 0x99, 0x9e, 0xd1, 0x68, 0xd6, 0xae, 0x42, 0x93);")
+//cpp_quote("DEFINE_GUID(LIBID_UIRibbon,         0x942f35c2, 0xe83b, 0x45ef, 0xb0, 0x85, 0xac, 0x29, 0x5d, 0xd6, 0x3d, 0x5b);")
+
+// Module
+//[
+//    uuid(942f35c2-e83b-45ef-b085-ac295dd63d5b), // LIBID_UIRibbon (not registered)
+//    lcid(0x0000),
+//    version(1.0)
+//]
+//library UIRibbon
+//{
+    [ 
+        uuid(926749fa-2615-4987-8845-c33e65f2b957), 
+        helpstring("UIRibbonFramework class")
+    ] 
+    coclass UIRibbonFramework 
+    { 
+        [default] interface IUIFramework; 
+    };
+
+    [ 
+        uuid(0F7434B6-59B6-4250-999E-D168D6AE4293),
+        helpstring("UIRibbonImageFromBitmapFactory class")
+    ] 
+    coclass UIRibbonImageFromBitmapFactory 
+    { 
+        [default] interface IUIImageFromBitmap; 
+    };
+//};

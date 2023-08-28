@@ -1,0 +1,1886 @@
+//tbShellLib - 100% complete
+
+//+----------------------------------------------------------------------------
+//
+// Datatypes
+//
+//-----------------------------------------------------------------------------
+
+typedef enum TASK_DAYS {
+    TASK_SUNDAY       = 0x1,
+    TASK_MONDAY       = 0x2,
+    TASK_TUESDAY      = 0x4,
+    TASK_WEDNESDAY    = 0x8,
+    TASK_THURSDAY     = 0x10,
+    TASK_FRIDAY       = 0x20,
+    TASK_SATURDAY     = 0x40,
+} TASK_DAYS;
+
+typedef enum TASK_WEEKS {
+    TASK_FIRST_WEEK   = 1,
+    TASK_SECOND_WEEK  = 2,
+    TASK_THIRD_WEEK   = 3,
+    TASK_FOURTH_WEEK  = 4,
+    TASK_LAST_WEEK    = 5,
+} TASK_WEEKS;
+
+typedef enum TASK_MONTHS {
+    TASK_JANUARY      = 0x1,
+    TASK_FEBRUARY     = 0x2,
+    TASK_MARCH        = 0x4,
+    TASK_APRIL        = 0x8,
+    TASK_MAY          = 0x10,
+    TASK_JUNE         = 0x20,
+    TASK_JULY         = 0x40,
+    TASK_AUGUST       = 0x80,
+    TASK_SEPTEMBER    = 0x100,
+    TASK_OCTOBER      = 0x200,
+    TASK_NOVEMBER     = 0x400,
+    TASK_DECEMBER     = 0x800,
+} TASK_MONTHS;
+
+typedef enum TASK_FLAGS {
+    TASK_FLAG_INTERACTIVE                  =(0x1),
+    TASK_FLAG_DELETE_WHEN_DONE             =(0x2),
+    TASK_FLAG_DISABLED                     =(0x4),
+    TASK_FLAG_START_ONLY_IF_IDLE           =(0x10),
+    TASK_FLAG_KILL_ON_IDLE_END             =(0x20),
+    TASK_FLAG_DONT_START_IF_ON_BATTERIES   =(0x40),
+    TASK_FLAG_KILL_IF_GOING_ON_BATTERIES   =(0x80),
+    TASK_FLAG_RUN_ONLY_IF_DOCKED           =(0x100),
+    TASK_FLAG_HIDDEN                       =(0x200),
+    TASK_FLAG_RUN_IF_CONNECTED_TO_INTERNET =(0x400),
+    TASK_FLAG_RESTART_ON_IDLE_RESUME       =(0x800),
+     TASK_FLAG_SYSTEM_REQUIRED             = (0x1000),
+     TASK_FLAG_RUN_ONLY_IF_LOGGED_ON       = (0x2000),
+} TASK_FLAGS;
+
+typedef enum TASK_TRIGGER_FLAGS {
+    TASK_TRIGGER_FLAG_HAS_END_DATE         =(0x1),
+    TASK_TRIGGER_FLAG_KILL_AT_DURATION_END =(0x2),
+    TASK_TRIGGER_FLAG_DISABLED             =(0x4),
+} TASK_TRIGGER_FLAGS;
+
+typedef enum TASK_MAXS {
+    [helpstring("1440 = 60 mins/hour * 24 hrs/day since a trigger/TASK could run all day at one minute intervals.")]
+    TASK_MAX_RUN_TIMES = 1440,
+} TASK_MAXS;
+
+typedef enum TASK_TRIGGER_TYPE {
+    TASK_TIME_TRIGGER_ONCE            = 0,
+    TASK_TIME_TRIGGER_DAILY           = 1,
+    TASK_TIME_TRIGGER_WEEKLY          = 2,
+    TASK_TIME_TRIGGER_MONTHLYDATE     = 3,
+    TASK_TIME_TRIGGER_MONTHLYDOW      = 4,
+    TASK_EVENT_TRIGGER_ON_IDLE        = 5,
+    TASK_EVENT_TRIGGER_AT_SYSTEMSTART = 6,
+    TASK_EVENT_TRIGGER_AT_LOGON       = 7
+} TASK_TRIGGER_TYPE;
+
+typedef struct DAILY {
+    short DaysInterval;
+    LONG Reserved;
+} DAILY;
+
+typedef struct WEEKLY {
+    short WeeksInterval;
+    short rgfDaysOfTheWeek;
+    short Reserved;
+} WEEKLY;
+
+typedef struct MONTHLYDATE {
+    LONG rgfDays;
+    short rgfMonths;
+} MONTHLYDATE;
+
+typedef struct MONTHLYDOW {
+    short wWhichWeek;
+    short rgfDaysOfTheWeek;
+    short rgfMonths;
+} MONTHLYDOW;
+
+typedef struct TRIGGER_TYPE_UNION {
+[helpstring("It was an union but VB does not have uniouns. Use RtlMoveMemory or Lset to convert it to the needed struct. Union Members:\nDAILY Daily;\nWEEKLY Weekly;\nMONTHLYDATE MonthlyDate;\nMONTHLYDOW MonthlyDOW;")]
+    short vb_compat_union[3];
+} TRIGGER_TYPE_UNION;
+
+typedef struct TASK_TRIGGER {
+    [helpstring("Structure size.")]
+    short cbTriggerSize;
+    [helpstring("Reserved. Must be zero.")]
+    short Reserved1;
+    [helpstring("Trigger beginning date year.")]
+    short wBeginYear;
+    [helpstring("Trigger beginning date month.")]
+    short wBeginMonth;
+    [helpstring("Trigger beginning date day.")]
+    short wBeginDay;
+    [helpstring("Optional trigger ending date year.")]
+    short wEndYear;
+    [helpstring("Optional trigger ending date month.")]
+    short wEndMonth;
+    [helpstring("Optional trigger ending date day.")]
+    short wEndDay;
+    [helpstring("Run bracket start time hour.")]
+    short wStartHour;
+    [helpstring("Run bracket start time minute.")]
+    short wStartMinute;
+    [helpstring("Duration of run bracket.")]
+    LONG MinutesDuration;
+    [helpstring("Run bracket repetition interval.")]
+    LONG MinutesInterval;
+    [helpstring("Trigger flags.")]
+    TASK_TRIGGER_FLAGS rgFlags;
+    [helpstring("Trigger type.")]
+    TASK_TRIGGER_TYPE TriggerType;
+    [helpstring("Trigger data.")]
+    TRIGGER_TYPE_UNION Type;
+    [helpstring("Reserved. Must be zero.")]
+    short Reserved2;
+    [helpstring("Maximum number of random minutes after start time.")]
+    short wRandomMinutesInterval;
+} TASK_TRIGGER;
+
+//+----------------------------------------------------------------------------
+//
+// Interfaces
+//
+//-----------------------------------------------------------------------------
+
+//+----------------------------------------------------------------------------
+//
+// Interface:  ITaskTrigger
+//
+//-----------------------------------------------------------------------------
+
+[
+    odl,
+    uuid(148BD52B-A2AB-11CE-B11F-00AA00530503),
+    helpstring("Trigger object interface. A Task object may contain several of these.")
+]
+interface ITaskTrigger : stdole.IUnknown {
+
+    // Methods:
+
+    HRESULT SetTrigger(
+        [in] TASK_TRIGGER *pTrigger);
+
+    HRESULT GetTrigger(
+        [in, out] TASK_TRIGGER *pTrigger);
+
+    HRESULT GetTriggerString(
+        [out, retval] LONG *ppwszTrigger);
+};
+
+//+----------------------------------------------------------------------------
+//
+// Interface:  IScheduledWorkItem
+//
+//-----------------------------------------------------------------------------
+[
+    odl,
+    uuid(a6b952f0-a4b1-11d0-997d-00aa006887ec),
+    helpstring("Abstract base class for any runnable work item that can be scheduled by the task scheduler.")
+]
+interface IScheduledWorkItem : stdole.IUnknown {
+
+    // Methods concerning scheduling:
+
+    HRESULT CreateTrigger(
+        [out] short *piNewTrigger,
+        [out, retval] ITaskTrigger ** ppTrigger);
+
+    HRESULT DeleteTrigger(
+        [in] short iTrigger);
+
+    HRESULT GetTriggerCount(
+        [out, retval] short *pwCount);
+
+    HRESULT GetTrigger(
+        [in] short iTrigger,
+        [out, retval] ITaskTrigger ** ppTrigger);
+
+    HRESULT GetTriggerString(
+        [in] short iTrigger,
+        [out, retval] LONG *ppwszTrigger);
+
+    HRESULT GetRunTimes(
+        [in] SYSTEMTIME   *pstBegin,
+        [in] SYSTEMTIME   *pstEnd,
+        [in, out] short   *pCount,
+        [out] SYSTEMTIME  *rgstTaskTimes);
+
+    HRESULT GetNextRunTime(
+        [in, out] SYSTEMTIME *pstNextRun);
+
+    HRESULT SetIdleWait(
+        [in] short wMinutes,
+        [in] short wDeadlineMinutes);
+
+    HRESULT GetIdleWait(
+        [out] short * pwMinutes,
+        [out] short * pwDeadlineMinutes);
+
+// Other methods:
+
+    HRESULT Run(
+        void);
+
+    HRESULT Terminate(
+        void);
+
+    HRESULT EditWorkItem(
+        [in] LONG hWndParent,
+        [in, defaultvalue(0)] LONG dwReserved);
+
+    HRESULT GetMostRecentRunTime(
+        [out] SYSTEMTIME *pstLastRun);
+
+    HRESULT GetStatus(
+        [out, retval] LONG *phrStatus);
+
+    HRESULT GetExitCode(
+        [out, retval] LONG *pdwExitCode);
+
+//    properties:
+
+    HRESULT SetComment(
+        [in] LPWSTR pwszComment);
+
+    HRESULT GetComment(
+        [out, retval] LONG *ppwszComment);
+
+    HRESULT SetCreator(
+        [in] LPWSTR pwszCreator);
+
+    HRESULT GetCreator(
+        [out, retval] LONG *ppwszCreator);
+
+    HRESULT SetWorkItemData(
+        [in] short cbData,
+        [in] BYTE *rgbData);
+
+    HRESULT GetWorkItemData(
+        [in, out] short *pcbData,
+        [in] BYTE *prgbData);
+
+    HRESULT SetErrorRetryCount(
+        [in] short wRetryCount);
+
+    HRESULT GetErrorRetryCount(
+        [out, retval] short * pwRetryCount);
+
+    HRESULT SetErrorRetryInterval(
+        [in] short wRetryInterval);
+
+    HRESULT GetErrorRetryInterval(
+        [out, retval] short * pwRetryInterval);
+
+    HRESULT SetFlags(
+        [in] LONG   dwFlags);
+
+    HRESULT GetFlags(
+        [out, retval] LONG * pdwFlags);
+
+    HRESULT SetAccountInformation(
+        [in] LPWSTR pwszAccountName,
+        [in] LPWSTR pwszPassword);
+
+    HRESULT GetAccountInformation(
+        [out, retval] LONG *ppwszAccountName);
+}
+
+//+----------------------------------------------------------------------------
+//
+//  Interface:  ITask
+//
+//-----------------------------------------------------------------------------
+[
+    odl,
+    uuid(148BD524-A2AB-11CE-B11F-00AA00530503),
+    helpstring("Task object interface. The primary means of task object manipulation.")
+]
+interface ITask : IScheduledWorkItem {
+
+// Properties that correspond to parameters of CreateProcess:
+
+    HRESULT SetApplicationName(
+        [in] LPWSTR  pwszApplicationName);
+
+    HRESULT GetApplicationName(
+        [out, retval] LONG *ppwszApplicationName);
+
+    HRESULT SetParameters(
+        [in] LPWSTR pwszParameters);
+
+    HRESULT GetParameters(
+        [out, retval] LONG *ppwszParameters);
+
+    HRESULT SetWorkingDirectory(
+        [in] LPWSTR pwszWorkingDirectory);
+
+    HRESULT GetWorkingDirectory(
+        [out, retval] LONG *ppwszWorkingDirectory);
+
+    HRESULT SetPriority(
+        [in] LONG   dwPriority);
+
+    HRESULT GetPriority(
+        [out, retval] LONG *pdwPriority);
+
+// Other properties:
+
+    HRESULT SetTaskFlags(
+        [in] LONG   dwFlags);
+
+    HRESULT GetTaskFlags(
+        [out, retval] LONG *pdwFlags);
+
+    HRESULT SetMaxRunTime(
+        [in] LONG   dwMaxRunTimeMS);
+
+    HRESULT GetMaxRunTime(
+        [out, retval] LONG * pdwMaxRunTimeMS);
+}
+
+//+----------------------------------------------------------------------------
+//
+//  Interface:  IEnumWorkItems
+//
+//-----------------------------------------------------------------------------
+
+[
+    odl,
+    uuid(148BD528-A2AB-11CE-B11F-00AA00530503),
+    helpstring("Work item object enumerator. Enumerates the work item objects within the Tasks folder.")
+]
+interface IEnumWorkItems : stdole.IUnknown {
+
+    // Methods:
+
+    LONG Next(
+        [in] LONG celt,
+        [in] LONG *rgpwszNames,
+        [in, out] LONG * pceltFetched);
+
+    LONG Skip(
+        [in] LONG celt);
+
+    HRESULT Reset(void);
+
+    HRESULT Clone(
+        [out, retval] IEnumWorkItems ** ppEnumWorkItems);
+}
+
+//+----------------------------------------------------------------------------
+//
+//  Interface:  ISchedulingAgent
+//
+//-----------------------------------------------------------------------------
+[
+    odl,
+    uuid(148BD527-A2AB-11CE-B11F-00AA00530503),
+    helpstring("Scheduling agent interface. Provides location transparent manipulation of task and/or queue objects within the Tasks folder.")
+]
+interface ISchedulingAgent : stdole.IUnknown {
+
+    // methods:
+
+    HRESULT SetTargetComputer(
+        [in] LPWSTR pwszComputer);
+
+    HRESULT GetTargetComputer(
+        [out, retval] LONG *ppwszComputer);
+
+    HRESULT Enum(
+        [out, retval] IEnumWorkItems ** ppEnumWorkItems);
+
+    HRESULT Activate(
+        [in] LPWSTR pwszName,
+        [in] UUID * riid,
+        [out, retval] ITask ** ppUnk);
+
+    HRESULT Delete(
+        [in] LPWSTR pwszName);
+
+    HRESULT NewWorkItem(
+        [in] LPWSTR pwszTaskName,
+        [in] UUID * rclsid,
+        [in] UUID * riid,
+        [out, retval] ITask ** ppUnk);
+
+    HRESULT AddWorkItem(
+        [in] LPWSTR pwszTaskName,
+        [in] IScheduledWorkItem * pWorkItem);
+
+    HRESULT IsOfType(
+        [in] LPWSTR pwszName,
+        [in] UUID  * riid);
+};
+
+typedef enum TASKPAGE {
+    TASKPAGE_TASK     = 0,
+    TASKPAGE_SCHEDULE = 1,
+    TASKPAGE_SETTINGS = 2
+} TASKPAGE;
+
+//+----------------------------------------------------------------------------
+//
+//  Interface:  IProvideTaskPage
+//
+//-----------------------------------------------------------------------------
+
+[
+    odl,
+    uuid(4086658a-cbbb-11cf-b604-00c04fd8d565),
+    helpstring("Task property page retrieval interface. With this interface, it is possible to retrieve one or more property pages associated with a task object. Task objects inherit this interface.")
+]
+interface IProvideTaskPage : stdole.IUnknown {
+
+    // Methods:
+
+    HRESULT GetPage(
+        [in] TASKPAGE tpType,
+        [in] long fPersistChanges,
+        [out, retval] LONG *phPage);
+}
+
+[
+    uuid(148BD520-A2AB-11CE-B11F-00AA00530503),
+    helpstring("Task object")
+]
+coclass Task {
+    [default] interface ITask;
+}
+
+[
+    uuid(148BD52A-A2AB-11CE-B11F-00AA00530503),
+    helpstring("Scheduling agent")
+]
+coclass SchedulingAgent{
+    [default] interface ISchedulingAgent;
+}
+
+    typedef enum {
+        SCHED_S_TASK_READY = 0x00041300,
+        SCHED_S_TASK_RUNNING = 0x00041301,
+        SCHED_S_TASK_DISABLED = 0x00041302,
+        SCHED_S_TASK_HAS_NOT_RUN = 0x00041303,
+        SCHED_S_TASK_NO_MORE_RUNS = 0x00041304,
+        SCHED_S_TASK_NOT_SCHEDULED = 0x00041305,
+        SCHED_S_TASK_TERMINATED = 0x00041306,
+        SCHED_S_TASK_NO_VALID_TRIGGERS = 0x00041307,
+        SCHED_S_EVENT_TRIGGER = 0x00041308
+    } SCHED_STATUS;
+
+    typedef enum {
+        SCHED_E_TRIGGER_NOT_FOUND = 0x80041309,
+        SCHED_E_TASK_NOT_READY = 0x8004130a,
+        SCHED_E_TASK_NOT_RUNNING = 0x8004130b,
+        SCHED_E_SERVICE_NOT_INSTALLED = 0x8004130c,
+        SCHED_E_CANNOT_OPEN_TASK = 0x8004130d,
+        SCHED_E_INVALID_TASK = 0x8004130e,
+        SCHED_E_ACCOUNT_INFORMATION_NOT_SET = 0x8004130f,
+        SCHED_E_ACCOUNT_NAME_NOT_FOUND = 0x80041310,
+        SCHED_E_ACCOUNT_DBASE_CORRUPT = 0x80041311,
+        SCHED_E_NO_SECURITY_SERVICES = 0x80041312,
+        SCHED_E_UNKNOWN_OBJECT_VERSION = 0x80041313,
+        SCHED_E_UNSUPPORTED_ACCOUNT_OPTION = 0x80041314,
+        SCHED_E_SERVICE_NOT_RUNNING = 0x80041315
+    } SCHED_ERRORS;
+
+	//******************************************************************
+	//
+	//Task Schedule 2.0 and 3.0 interfaces
+	//
+	//******************************************************************
+	typedef enum TASK_LOGON_TYPE {
+		TASK_LOGON_NONE = 0,
+		TASK_LOGON_PASSWORD = 1,
+		TASK_LOGON_S4U = 2,
+		TASK_LOGON_INTERACTIVE_TOKEN = 3,
+		TASK_LOGON_GROUP = 4,
+		TASK_LOGON_SERVICE_ACCOUNT = 5,
+		TASK_LOGON_INTERACTIVE_TOKEN_OR_PASSWORD = 6
+	} TASK_LOGON_TYPE;
+
+	typedef enum TASK_RUNLEVEL {
+		TASK_RUNLEVEL_LUA = 0,
+		TASK_RUNLEVEL_HIGHEST = 1
+	} TASK_RUNLEVEL;
+
+	typedef enum TASK_STATE {
+		TASK_STATE_UNKNOWN = 0,
+		TASK_STATE_DISABLED = 1,
+		TASK_STATE_QUEUED = 2,
+		TASK_STATE_READY = 3,
+		TASK_STATE_RUNNING = 4
+	} TASK_STATE;
+
+	typedef enum TASK_TRIGGER_TYPE2 {
+		TASK_TRIGGER_EVENT = 0,
+		TASK_TRIGGER_TIME = 1,
+		TASK_TRIGGER_DAILY = 2,
+		TASK_TRIGGER_WEEKLY = 3,
+		TASK_TRIGGER_MONTHLY = 4,
+		TASK_TRIGGER_MONTHLYDOW = 5,
+		TASK_TRIGGER_IDLE = 6,
+		TASK_TRIGGER_REGISTRATION = 7,
+		TASK_TRIGGER_BOOT = 8,
+		TASK_TRIGGER_LOGON = 9,
+		TASK_TRIGGER_SESSION_STATE_CHANGE = 11,
+		TASK_TRIGGER_CUSTOM_TRIGGER_01 = 12
+	} TASK_TRIGGER_TYPE2;
+
+	typedef enum TASK_INSTANCES_POLICY {
+		TASK_INSTANCES_PARALLEL = 0,
+		TASK_INSTANCES_QUEUE = 1,
+		TASK_INSTANCES_IGNORE_NEW = 2,
+		TASK_INSTANCES_STOP_EXISTING = 3
+	} TASK_INSTANCES_POLICY;
+
+	typedef enum TASK_COMPATIBILITY {
+		TASK_COMPATIBILITY_AT = 0,
+		TASK_COMPATIBILITY_V1 = 1,
+		TASK_COMPATIBILITY_V2 = 2,
+		TASK_COMPATIBILITY_V2_1 = 3,
+		TASK_COMPATIBILITY_V2_2 = 4,
+		TASK_COMPATIBILITY_V2_3 = 5,
+		TASK_COMPATIBILITY_V2_4 = 6
+	} TASK_COMPATIBILITY;
+
+	typedef enum TASK_ACTION_TYPE {
+		TASK_ACTION_EXEC = 0,
+		TASK_ACTION_COM_HANDLER = 5,
+		TASK_ACTION_SEND_EMAIL = 6,
+		TASK_ACTION_SHOW_MESSAGE = 7
+	} TASK_ACTION_TYPE;
+
+	typedef enum TASK_SESSION_STATE_CHANGE_TYPE {
+		TASK_CONSOLE_CONNECT = 1,
+		TASK_CONSOLE_DISCONNECT = 2,
+		TASK_REMOTE_CONNECT = 3,
+		TASK_REMOTE_DISCONNECT = 4,
+		TASK_SESSION_LOCK = 7,
+		TASK_SESSION_UNLOCK = 8
+	} TASK_SESSION_STATE_CHANGE_TYPE;
+
+	typedef enum TASK_RUN_FLAGS {
+		TASK_RUN_NO_FLAGS = 0,
+		TASK_RUN_AS_SELF = 1,
+		TASK_RUN_IGNORE_CONSTRAINTS = 2,
+		TASK_RUN_USE_SESSION_ID = 4,
+		TASK_RUN_USER_SID = 8
+	} TASK_RUN_FLAGS;
+
+	typedef enum TASK_ENUM_FLAGS {
+		TASK_ENUM_HIDDEN = 1
+	} TASK_ENUM_FLAGS;
+
+	typedef enum TASK_CREATION {
+		TASK_VALIDATE_ONLY = 1,
+		TASK_CREATE = 2,
+		TASK_UPDATE = 4,
+		TASK_CREATE_OR_UPDATE = 6,
+		TASK_DISABLE = 8,
+		TASK_DONT_ADD_PRINCIPAL_ACE = 16,
+		TASK_IGNORE_REGISTRATION_TRIGGERS = 32
+	} TASK_CREATION;
+
+	typedef enum TASK_PROCESSTOKENSID {
+		TASK_PROCESSTOKENSID_NONE = 0,
+		TASK_PROCESSTOKENSID_UNRESTRICTED = 1,
+		TASK_PROCESSTOKENSID_DEFAULT = 2
+	} TASK_PROCESSTOKENSID;
+
+	[
+		odl,
+		uuid(79184A66-8664-423F-97F1-637356A5D812),
+		helpstring("Container for ITaskFolders."),
+		dual,
+		nonextensible,
+		oleautomation
+	]
+	interface ITaskFolderCollection : IDispatch {
+		[id(0x60020000), propget, helpstring("Number of elements.")]
+		HRESULT Count([out, retval] long* pCount);
+		[id(00000000), propget, helpstring("Retrieve specific element.")]
+		HRESULT Item(
+			[in] VARIANT index,
+			[out, retval] ITaskFolder** ppFolder);
+		[id(0xfffffffc), propget, helpstring("Create new enumerator.")]
+		HRESULT _NewEnum([out, retval] IUnknown** ppEnum);
+	};
+
+	[
+		odl,
+		uuid(8CFAC062-A080-4C15-9A88-AA7C2AF80DFC),
+		helpstring("Container (directory) for tasks."),
+		dual,
+		nonextensible,
+		oleautomation
+	]
+	interface ITaskFolder : IDispatch {
+		[id(0x00000001), propget, helpstring("Identifier for folder.")]
+		HRESULT Name([out, retval] BSTR* pName);
+		[id(00000000), propget, helpstring("Complete name for folder, including parent folders.")]
+		HRESULT Path([out, retval] BSTR* pPath);
+		[id(0x00000003), helpstring("Retrieve sub-folder by name.")]
+		HRESULT GetFolder(
+			[in] BSTR Path,
+			[out, retval] ITaskFolder** ppFolder);
+		[id(0x00000004), helpstring("Retrieve all sub-folders.")]
+		HRESULT GetFolders(
+			[in] long flags,
+			[out, retval] ITaskFolderCollection** ppFolders);
+		[id(0x00000005), helpstring("Make a new sub-folder.")]
+		HRESULT CreateFolder(
+			[in] BSTR subFolderName,
+			[in, optional] VARIANT sddl,
+			[out, retval] ITaskFolder** ppFolder);
+		[id(0x00000006), helpstring("Erase existing folder.")]
+		HRESULT DeleteFolder(
+			[in] BSTR subFolderName,
+			[in] long flags);
+		[id(0x00000007), helpstring("Retrieve named task from folder.")]
+		HRESULT GetTask(
+			[in] BSTR Path,
+			[out, retval] IRegisteredTask** ppTask);
+		[id(0x00000008), helpstring("Retrieve all tasks from folder.")]
+		HRESULT GetTasks(
+			[in] long flags,
+			[out, retval] IRegisteredTaskCollection** ppTasks);
+		[id(0x00000009), helpstring("Erase named task.")]
+		HRESULT DeleteTask(
+			[in] BSTR Name,
+			[in] long flags);
+		[id(0x0000000a), helpstring("Create new task from XML.")]
+		HRESULT RegisterTask(
+			[in] BSTR Path,
+			[in] BSTR XmlText,
+			[in] long flags,
+			[in] VARIANT UserId,
+			[in] VARIANT password,
+			[in] TASK_LOGON_TYPE LogonType,
+			[in, optional] VARIANT sddl,
+			[out, retval] IRegisteredTask** ppTask);
+		[id(0x0000000b), helpstring("Create new task.")]
+		HRESULT RegisterTaskDefinition(
+			[in] BSTR Path,
+			[in] ITaskDefinition* pDefinition,
+			[in] long flags,
+			[in] VARIANT UserId,
+			[in] VARIANT password,
+			[in] TASK_LOGON_TYPE LogonType,
+			[in, optional] VARIANT sddl,
+			[out, retval] IRegisteredTask** ppTask);
+		[id(0x0000000c), helpstring("Retrieve SDDL form of folder's current security descriptor.")]
+		HRESULT GetSecurityDescriptor(
+			[in] long securityInformation,
+			[out, retval] BSTR* pSddl);
+		[id(0x0000000d), helpstring("Change security descriptor of task folder.")]
+		HRESULT SetSecurityDescriptor(
+			[in] BSTR sddl,
+			[in] long flags);
+	};
+
+	[
+		odl,
+		uuid(9C86F320-DEE3-4DD1-B972-A303F26B061E),
+		helpstring("A task that has been registered with the Task Scheduler service."),
+		dual,
+		nonextensible,
+		oleautomation
+	]
+	interface IRegisteredTask : IDispatch {
+		[id(0x00000001), propget, helpstring("Unique identifier for the task")]
+		HRESULT Name([out, retval] BSTR* pName);
+		[id(00000000), propget, helpstring("Folder and name of the task")]
+		HRESULT Path([out, retval] BSTR* pPath);
+		[id(0x00000002), propget, helpstring("Current status of the task (TASK_STATE)")]
+		HRESULT State([out, retval] TASK_STATE* pState);
+		[id(0x00000003), propget, helpstring("If false the task will not be allowed to run.")]
+		HRESULT Enabled([out, retval] VARIANT_BOOL* pEnabled);
+		[id(0x00000003), propput, helpstring("If false the task will not be allowed to run.")]
+		HRESULT Enabled([in] VARIANT_BOOL pEnabled);
+		[id(0x00000005)]
+		HRESULT Run(
+			[in] VARIANT params,
+			[out, retval] IRunningTask** ppRunningTask);
+		[id(0x00000006), helpstring("Start the task now, with various options.")]
+		HRESULT RunEx(
+			[in] VARIANT params,
+			[in] long flags,
+			[in] long sessionID,
+			[in] BSTR user,
+			[out, retval] IRunningTask** ppRunningTask);
+		[id(0x00000007), helpstring("Retrieve collection of running tasks.")]
+		HRESULT GetInstances(
+			[in] long flags,
+			[out, retval] IRunningTaskCollection** ppRunningTasks);
+		[id(0x00000008), propget, helpstring("Most recent time the task executed.")]
+		HRESULT LastRunTime([out, retval] DATE* pLastRunTime);
+		[id(0x00000009), propget, helpstring("Return code from the most recent time the task ran.")]
+		HRESULT LastTaskResult([out, retval] long* pLastTaskResult);
+		[id(0x0000000b), propget, helpstring("Number of times the task was unable to run.")]
+		HRESULT NumberOfMissedRuns([out, retval] long* pNumberOfMissedRuns);
+		[id(0x0000000c), propget, helpstring("Next time the task is scheduled to start.")]
+		HRESULT NextRunTime([out, retval] DATE* pNextRunTime);
+		[id(0x0000000d), propget, helpstring("Retrieve editable copy of this task's definition.")]
+		HRESULT Definition([out, retval] ITaskDefinition** ppDefinition);
+		[id(0x0000000e), propget, helpstring("Retrieve XML version of this task's definition.")]
+		HRESULT Xml([out, retval] BSTR* pXml);
+		[id(0x0000000f), helpstring("SDDL form of security descriptor currently applied to task.")]
+		HRESULT GetSecurityDescriptor(
+			[in] long securityInformation,
+			[out, retval] BSTR* pSddl);
+		[id(0x00000010), helpstring("SDDL form of security descriptor to be applied to task.")]
+		HRESULT SetSecurityDescriptor(
+			[in] BSTR sddl,
+			[in] long flags);
+		[id(0x00000011), helpstring("Cause all task's instances to exit.")]
+		HRESULT Stop([in] long flags);
+		[id(0x60020011), restricted, hidden, helpstring("Retrieve collection of scheduled execution times.")]
+		HRESULT GetRunTimes(
+			[in] SYSTEMTIME* pstStart,
+			[in] SYSTEMTIME* pstEnd,
+			[in, out] long* pCount, 
+			[out] long* pRunTimes);//unsigned long, SYSTEMTIME ** - unsupported usertype array, instead use pRunTimes with CopyMemory; 
+	};
+
+
+
+	[
+		odl,
+		uuid(653758FB-7B9A-4F1E-A471-BEEB8E9B834E),
+		helpstring("An instance of a task that is currently executing."),
+		dual,
+		nonextensible,
+		oleautomation
+	]
+	interface IRunningTask : IDispatch {
+		[id(0x00000001), propget, helpstring("Human-readable identifier for the task.")]
+		HRESULT Name([out, retval] BSTR* pName);
+		[id(00000000), propget, helpstring("Identifies a specific occurrence of a running task.")]
+		HRESULT InstanceGuid([out, retval] BSTR* pGuid);
+		[id(0x00000002), propget, helpstring("Folder the task resides in.")]
+		HRESULT Path([out, retval] BSTR* pPath);
+		[id(0x00000003), propget, helpstring("TASK_STATE Enum, current condition of task.")]
+		HRESULT State([out, retval] TASK_STATE* pState);
+		[id(0x00000004), propget, helpstring("The action that is executing now.")]
+		HRESULT CurrentAction([out, retval] BSTR* pName);
+		[id(0x00000005), helpstring("Cause the task instance to exit.")]
+		HRESULT Stop();
+		[id(0x00000006), helpstring("Get current status from Task Scheduler service.")]
+		HRESULT Refresh();
+		[id(0x00000007), propget, helpstring("Process ID of the host which is running the task.")]
+		HRESULT EnginePID([out, retval] long* pPID);//unsigned 
+	};
+
+	[
+		odl,
+		uuid(6A67614B-6828-4FEC-AA54-6D52E8F1F2DB),
+		helpstring("Group of tasks which are currently executing."),
+		dual,
+		nonextensible,
+		oleautomation
+	]
+	interface IRunningTaskCollection : IDispatch {
+		[id(0x00000001), propget, helpstring("Number of elements in collection.")]
+		HRESULT Count([out, retval] long* pCount);
+		[id(00000000), propget, helpstring("Retrieve specific element.")]
+		HRESULT Item(
+			[in] VARIANT index,
+			[out, retval] IRunningTask** ppRunningTask);
+		[id(0xfffffffc), propget, helpstring("Create new Enumerator.")]
+		HRESULT _NewEnum([out, retval] IUnknown** ppEnum);
+	};
+
+	[
+		odl,
+		uuid(F5BC8FC5-536D-4F77-B852-FBC1356FDEB6),
+		helpstring("Describe a task to be run by the Task Scheduler service."),
+		dual,
+		nonextensible,
+		oleautomation
+	]
+	interface ITaskDefinition : IDispatch {
+		[id(0x00000001), propget, helpstring("Information about the task.")]
+		HRESULT RegistrationInfo([out, retval] IRegistrationInfo** ppRegistrationInfo);
+		[id(0x00000001), propput, helpstring("Information about the task.")]
+		HRESULT RegistrationInfo([in] IRegistrationInfo* ppRegistrationInfo);
+		[id(0x00000002), propget, helpstring("Conditions which cause the task to be started.")]
+		HRESULT Triggers([out, retval] ITriggerCollection** ppTriggers);
+		[id(0x00000002), propput, helpstring("Conditions which cause the task to be started.")]
+		HRESULT Triggers([in] ITriggerCollection* ppTriggers);
+		[id(0x00000007), propget, helpstring("Control various aspects of the task execution.")]
+		HRESULT Settings([out, retval] ITaskSettings** ppSettings);
+		[id(0x00000007), propput, helpstring("Control various aspects of the task execution.")]
+		HRESULT Settings([in] ITaskSettings* ppSettings);
+		[id(0x0000000b), propget, helpstring("Information to be used by third parties - ignored by service.")]
+		HRESULT Data([out, retval] BSTR* pData);
+		[id(0x0000000b), propput, helpstring("Information to be used by third parties - ignored by service.")]
+		HRESULT Data([in] BSTR pData);
+		[id(0x0000000c), propget, helpstring("User or group associated with the task.")]
+		HRESULT Principal([out, retval] IPrincipal** ppPrincipal);
+		[id(0x0000000c), propput, helpstring("User or group associated with the task.")]
+		HRESULT Principal([in] IPrincipal* ppPrincipal);
+		[id(0x0000000d), propget, helpstring("Acts to be performed by the task.")]
+		HRESULT Actions([out, retval] IActionCollection** ppActions);
+		[id(0x0000000d), propput, helpstring("Acts to be performed by the task.")]
+		HRESULT Actions([in] IActionCollection* ppActions);
+		[id(0x0000000e), propget, helpstring("XML version of the task.")]
+		HRESULT XmlText([out, retval] BSTR* pXml);
+		[id(0x0000000e), propput, helpstring("XML version of the task.")]
+		HRESULT XmlText([in] BSTR pXml);
+	};
+
+	[
+		odl,
+		uuid(416D8B73-CB41-4EA1-805C-9BE9A5AC4A74),
+		helpstring("Information about the task"),
+		dual,
+		nonextensible,
+		oleautomation
+	]
+	interface IRegistrationInfo : IDispatch {
+		[id(0x00000001), propget, helpstring("Explanation of the task's purpose")]
+		HRESULT Description([out, retval] BSTR* pDescription);
+		[id(0x00000001), propput, helpstring("Explanation of the task's purpose")]
+		HRESULT Description([in] BSTR pDescription);
+		[id(0x00000002), propget, helpstring("Person who wrote the task")]
+		HRESULT Author([out, retval] BSTR* pAuthor);
+		[id(0x00000002), propput, helpstring("Person who wrote the task")]
+		HRESULT Author([in] BSTR pAuthor);
+		[id(0x00000004), propget, helpstring("Revision level of the task")]
+		HRESULT Version([out, retval] BSTR* pVersion);
+		[id(0x00000004), propput, helpstring("Revision level of the task")]
+		HRESULT Version([in] BSTR pVersion);
+		[id(0x00000005), propget, helpstring("Date task was created or updated")]
+		HRESULT Date([out, retval] BSTR* pDate);
+		[id(0x00000005), propput, helpstring("Date task was created or updated")]
+		HRESULT Date([in] BSTR pDate);
+		[id(0x00000006), propget, helpstring("Web address for further information")]
+		HRESULT Documentation([out, retval] BSTR* pDocumentation);
+		[id(0x00000006), propput, helpstring("Web address for further information")]
+		HRESULT Documentation([in] BSTR pDocumentation);
+		[id(0x00000009), propget, helpstring("XML version of the registration information")]
+		HRESULT XmlText([out, retval] BSTR* pText);
+		[id(0x00000009), propput, helpstring("XML version of the registration information")]
+		HRESULT XmlText([in] BSTR pText);
+		[id(0x0000000a), propget, helpstring("Name for the task, including folders if applicable")]
+		HRESULT URI([out, retval] BSTR* pUri);
+		[id(0x0000000a), propput, helpstring("Name for the task, including folders if applicable")]
+		HRESULT URI([in] BSTR pUri);
+		[id(0x0000000b), propget, helpstring("SDDL form of security descriptor to be applied to task")]
+		HRESULT SecurityDescriptor([out, retval] VARIANT* pSddl);
+		[id(0x0000000b), propput, helpstring("SDDL form of security descriptor to be applied to task")]
+		HRESULT SecurityDescriptor([in] VARIANT pSddl);
+		[id(0x0000000c), propget, helpstring("Generator of the task (Company name)")]
+		HRESULT Source([out, retval] BSTR* pSource);
+		[id(0x0000000c), propput, helpstring("Generator of the task (Company name)")]
+		HRESULT Source([in] BSTR pSource);
+	};
+
+	[
+		odl,
+		uuid(85DF5081-1B24-4F32-878A-D9D14DF4CB77),
+		helpstring("Container for ITriggers"),
+		dual,
+		nonextensible,
+		oleautomation
+	]
+	interface ITriggerCollection : IDispatch {
+		[id(0x00000001), propget, helpstring("Number of elements")]
+		HRESULT Count([out, retval] long* pCount);
+		[id(00000000), propget, helpstring("Retrieve specific element")]
+		HRESULT Item(
+			[in] long index,
+			[out, retval] ITrigger** ppTrigger);
+		[id(0xfffffffc), propget, helpstring("Create new enumerator")]
+		HRESULT _NewEnum([out, retval] IUnknown** ppEnum);
+		[id(0x00000002), helpstring("Make new trigger")]
+		HRESULT Create(
+			[in] TASK_TRIGGER_TYPE2 Type,
+			[out, retval] ITrigger** ppTrigger);
+		[id(0x00000004), helpstring("Erase specific trigger")]
+		HRESULT Remove([in] VARIANT index);
+		[id(0x00000005), helpstring("Erase all triggers")]
+		HRESULT Clear();
+	};
+
+	[
+		odl,
+		uuid(09941815-EA89-4B5B-89E0-2A773801FAC3),
+		helpstring("Specify when the task is to be started."),
+		dual,
+		nonextensible,
+		oleautomation
+	]
+	interface ITrigger : IDispatch {
+		[id(0x00000001), propget, helpstring("Specific kind of trigger")]
+		HRESULT Type([out, retval] TASK_TRIGGER_TYPE2* pType);
+		[id(0x00000002), propget, helpstring("Unique name for this trigger")]
+		HRESULT Id([out, retval] BSTR* pId);
+		[id(0x00000002), propput, helpstring("Unique name for this trigger")]
+		HRESULT Id([in] BSTR pId);
+		[id(0x00000003), propget, helpstring("Specify that task should execute multiple times")]
+		HRESULT Repetition([out, retval] IRepetitionPattern** ppRepeat);
+		[id(0x00000003), propput, helpstring("Specify that task should execute multiple times")]
+		HRESULT Repetition([in] IRepetitionPattern* ppRepeat);
+		[id(0x00000004), propget, helpstring("Amount of time task is allowed to execute")]
+		HRESULT ExecutionTimeLimit([out, retval] BSTR* pTimeLimit);
+		[id(0x00000004), propput, helpstring("Amount of time task is allowed to execute")]
+		HRESULT ExecutionTimeLimit([in] BSTR pTimeLimit);
+		[id(0x00000005), propget, helpstring("Earliest time task is allowed to run")]
+		HRESULT StartBoundary([out, retval] BSTR* pStart);
+		[id(0x00000005), propput, helpstring("Earliest time task is allowed to run")]
+		HRESULT StartBoundary([in] BSTR pStart);
+		[id(0x00000006), propget, helpstring("Latest time task is allowed to run")]
+		HRESULT EndBoundary([out, retval] BSTR* pEnd);
+		[id(0x00000006), propput, helpstring("Latest time task is allowed to run")]
+		HRESULT EndBoundary([in] BSTR pEnd);
+		[id(0x00000007), propget, helpstring("If true, task will run in response to this trigger")]
+		HRESULT Enabled([out, retval] VARIANT_BOOL* pEnabled);
+		[id(0x00000007), propput, helpstring("If true, task will run in response to this trigger")]
+		HRESULT Enabled([in] VARIANT_BOOL pEnabled);
+	};
+
+
+
+	[
+		odl,
+		uuid(7FB9ACF1-26BE-400E-85B5-294B9C75DFD6),
+		helpstring("Specify how often a task is to repeat."),
+		dual,
+		nonextensible,
+		oleautomation
+	]
+	interface IRepetitionPattern : IDispatch {
+		[id(0x00000001), propget, helpstring("Amount of time between repetitions")]
+		HRESULT Interval([out, retval] BSTR* pInterval);
+		[id(0x00000001), propput, helpstring("Amount of time between repetitions")]
+		HRESULT Interval([in] BSTR pInterval);
+		[id(0x00000002), propget, helpstring("Amount of time to continue repeating")]
+		HRESULT Duration([out, retval] BSTR* pDuration);
+		[id(0x00000002), propput, helpstring("Amount of time to continue repeating")]
+		HRESULT Duration([in] BSTR pDuration);
+		[id(0x00000003), propget, helpstring("Cease execution when duration expires")]
+		HRESULT StopAtDurationEnd([out, retval] VARIANT_BOOL* pStop);
+		[id(0x00000003), propput, helpstring("Cease execution when duration expires")]
+		HRESULT StopAtDurationEnd([in] VARIANT_BOOL pStop);
+	};
+
+	[
+		odl,
+		uuid(8FD4711D-2D02-4C8C-87E3-EFF699DE127E),
+		helpstring("Control execution of the task."),
+		dual,
+		nonextensible,
+		oleautomation
+	]
+	interface ITaskSettings : IDispatch {
+		[id(0x00000003), propget, helpstring("Control whether the task can be started manually.")]
+		HRESULT AllowDemandStart([out, retval] VARIANT_BOOL* pAllowDemandStart);
+		[id(0x00000003), propput, helpstring("Control whether the task can be started manually.")]
+		HRESULT AllowDemandStart([in] VARIANT_BOOL pAllowDemandStart);
+		[id(0x00000004), propget, helpstring("Amount of time to wait before restarting a failed task.")]
+		HRESULT RestartInterval([out, retval] BSTR* pRestartInterval);
+		[id(0x00000004), propput, helpstring("Amount of time to wait before restarting a failed task.")]
+		HRESULT RestartInterval([in] BSTR pRestartInterval);
+		[id(0x00000005), propget, helpstring("Number of times to attempt to run a failed task.")]
+		HRESULT RestartCount([out, retval] int* pRestartCount);
+		[id(0x00000005), propput, helpstring("Number of times to attempt to run a failed task.")]
+		HRESULT RestartCount([in] int pRestartCount);
+		[id(0x00000006), propget, helpstring("Specify what to do if the task starts while another instance is still running.")]
+		HRESULT MultipleInstances([out, retval] TASK_INSTANCES_POLICY* pPolicy);
+		[id(0x00000006), propput, helpstring("Specify what to do if the task starts while another instance is still running.")]
+		HRESULT MultipleInstances([in] TASK_INSTANCES_POLICY pPolicy);
+		[id(0x00000007), propget, helpstring("Cease execution if machine switches to battery power")]
+		HRESULT StopIfGoingOnBatteries([out, retval] VARIANT_BOOL* pStopIfOnBatteries);
+		[id(0x00000007), propput, helpstring("Cease execution if machine switches to battery power")]
+		HRESULT StopIfGoingOnBatteries([in] VARIANT_BOOL pStopIfOnBatteries);
+		[id(0x00000008), propget, helpstring("Do not start if machine is running on battery power")]
+		HRESULT DisallowStartIfOnBatteries([out, retval] VARIANT_BOOL* pDisallowStart);
+		[id(0x00000008), propput, helpstring("Do not start if machine is running on battery power")]
+		HRESULT DisallowStartIfOnBatteries([in] VARIANT_BOOL pDisallowStart);
+		[id(0x00000009), propget, helpstring("Allow task to be stopped with TerminateProcess()")]
+		HRESULT AllowHardTerminate([out, retval] VARIANT_BOOL* pAllowHardTerminate);
+		[id(0x00000009), propput, helpstring("Allow task to be stopped with TerminateProcess()")]
+		HRESULT AllowHardTerminate([in] VARIANT_BOOL pAllowHardTerminate);
+		[id(0x0000000a), propget, helpstring("Start task when machine is running if it was off at scheduled time")]
+		HRESULT StartWhenAvailable([out, retval] VARIANT_BOOL* pStartWhenAvailable);
+		[id(0x0000000a), propput, helpstring("Start task when machine is running if it was off at scheduled time")]
+		HRESULT StartWhenAvailable([in] VARIANT_BOOL pStartWhenAvailable);
+		[id(0x0000000b), propget, helpstring("Task settings in XML format.")]
+		HRESULT XmlText([out, retval] BSTR* pText);
+		[id(0x0000000b), propput, helpstring("Task settings in XML format.")]
+		HRESULT XmlText([in] BSTR pText);
+		[id(0x0000000c), propget, helpstring("Only start task if machine is connected to network")]
+		HRESULT RunOnlyIfNetworkAvailable([out, retval] VARIANT_BOOL* pRunOnlyIfNetworkAvailable);
+		[id(0x0000000c), propput, helpstring("Only start task if machine is connected to network")]
+		HRESULT RunOnlyIfNetworkAvailable([in] VARIANT_BOOL pRunOnlyIfNetworkAvailable);
+		[id(0x0000000d), propget, helpstring("Maximum amount of time to allow task to run")]
+		HRESULT ExecutionTimeLimit([out, retval] BSTR* pExecutionTimeLimit);
+		[id(0x0000000d), propput, helpstring("Maximum amount of time to allow task to run")]
+		HRESULT ExecutionTimeLimit([in] BSTR pExecutionTimeLimit);
+		[id(0x0000000e), propget, helpstring("Control whether task is allowed to run")]
+		HRESULT Enabled([out, retval] VARIANT_BOOL* pEnabled);
+		[id(0x0000000e), propput, helpstring("Control whether task is allowed to run")]
+		HRESULT Enabled([in] VARIANT_BOOL pEnabled);
+		[id(0x0000000f), propget, helpstring("Amount of time to wait before deleting task after it is no longer scheduled to run")]
+		HRESULT DeleteExpiredTaskAfter([out, retval] BSTR* pExpirationDelay);
+		[id(0x0000000f), propput, helpstring("Amount of time to wait before deleting task after it is no longer scheduled to run")]
+		HRESULT DeleteExpiredTaskAfter([in] BSTR pExpirationDelay);
+		[id(0x00000010), propget, helpstring("Controls amount of CPU time and execution order of tasks")]
+		HRESULT Priority([out, retval] int* pPriority);
+		[id(0x00000010), propput, helpstring("Controls amount of CPU time and execution order of tasks")]
+		HRESULT Priority([in] int pPriority);
+		[id(0x00000011), propget, helpstring("Specify whether task is compatible with previous versions")]
+		HRESULT Compatibility([out, retval] TASK_COMPATIBILITY* pCompatLevel);
+		[id(0x00000011), propput, helpstring("Specify whether task is compatible with previous versions")]
+		HRESULT Compatibility([in] TASK_COMPATIBILITY pCompatLevel);
+		[id(0x00000012), propget, helpstring("Do not show task in UI")]
+		HRESULT Hidden([out, retval] VARIANT_BOOL* pHidden);
+		[id(0x00000012), propput, helpstring("Do not show task in UI")]
+		HRESULT Hidden([in] VARIANT_BOOL pHidden);
+		[id(0x00000013), propget, helpstring("Controls how long machine must be idle before starting task")]
+		HRESULT IdleSettings([out, retval] IIdleSettings** ppIdleSettings);
+		[id(0x00000013), propput, helpstring("Controls how long machine must be idle before starting task")]
+		HRESULT IdleSettings([in] IIdleSettings* ppIdleSettings);
+		[id(0x00000014), propget, helpstring("Only run task if machine is in idle state")]
+		HRESULT RunOnlyIfIdle([out, retval] VARIANT_BOOL* pRunOnlyIfIdle);
+		[id(0x00000014), propput, helpstring("Only run task if machine is in idle state")]
+		HRESULT RunOnlyIfIdle([in] VARIANT_BOOL pRunOnlyIfIdle);
+		[id(0x00000015), propget, helpstring("Wake machine from suspended power state to run task")]
+		HRESULT WakeToRun([out, retval] VARIANT_BOOL* pWake);
+		[id(0x00000015), propput, helpstring("Wake machine from suspended power state to run task")]
+		HRESULT WakeToRun([in] VARIANT_BOOL pWake);
+		[id(0x00000016), propget, helpstring("Network required to run task")]
+		HRESULT NetworkSettings([out, retval] INetworkSettings** ppNetworkSettings);
+		[id(0x00000016), propput, helpstring("Network required to run task")]
+		HRESULT NetworkSettings([in] INetworkSettings* ppNetworkSettings);
+	};
+
+
+	[
+		odl,
+		uuid(84594461-0053-4342-A8FD-088FABF11F32),
+		helpstring("Parameters which specify idle state required for task to run."),
+		dual,
+		nonextensible,
+		oleautomation
+	]
+	interface IIdleSettings : IDispatch {
+		[id(0x00000001), propget, helpstring("Amount of time machine has been idle")]
+		HRESULT IdleDuration([out, retval] BSTR* pDelay);
+		[id(0x00000001), propput, helpstring("Amount of time machine has been idle")]
+		HRESULT IdleDuration([in] BSTR pDelay);
+		[id(0x00000002), propget, helpstring("Amount of time to wait for machine to be idle for IdleDuration")]
+		HRESULT WaitTimeout([out, retval] BSTR* pTimeout);
+		[id(0x00000002), propput, helpstring("Amount of time to wait for machine to be idle for IdleDuration")]
+		HRESULT WaitTimeout([in] BSTR pTimeout);
+		[id(0x00000003), propget, helpstring("Cease execution when machine is no longer idle")]
+		HRESULT StopOnIdleEnd([out, retval] VARIANT_BOOL* pStop);
+		[id(0x00000003), propput, helpstring("Cease execution when machine is no longer idle")]
+		HRESULT StopOnIdleEnd([in] VARIANT_BOOL pStop);
+		[id(0x00000004), propget, helpstring("Run task when machine is idle again")]
+		HRESULT RestartOnIdle([out, retval] VARIANT_BOOL* pRestart);
+		[id(0x00000004), propput, helpstring("Run task when machine is idle again")]
+		HRESULT RestartOnIdle([in] VARIANT_BOOL pRestart);
+	};
+
+	[
+		odl,
+		uuid(9F7DEA84-C30B-4245-80B6-00E9F646F1B4),
+		helpstring("Specify network settings required to run task."),
+		dual,
+		nonextensible,
+		oleautomation
+	]
+	interface INetworkSettings : IDispatch {
+		[id(0x00000001), propget, helpstring("Human readable identifier")]
+		HRESULT Name([out, retval] BSTR* pName);
+		[id(0x00000001), propput, helpstring("Human readable identifier")]
+		HRESULT Name([in] BSTR pName);
+		[id(0x00000002), propget, helpstring("Unique GUID")]
+		HRESULT Id([out, retval] BSTR* pId);
+		[id(0x00000002), propput, helpstring("Unique GUID")]
+		HRESULT Id([in] BSTR pId);
+	};
+
+	[
+		odl,
+		uuid(D98D51E5-C9B4-496A-A9C1-18980261CF0F),
+		helpstring("User associated with task"),
+		dual,
+		nonextensible,
+		oleautomation
+	]
+	interface IPrincipal : IDispatch {
+		[id(0x00000001), propget, helpstring("Required, unique per task")]
+		HRESULT Id([out, retval] BSTR* pId);
+		[id(0x00000001), propput, helpstring("Required, unique per task")]
+		HRESULT Id([in] BSTR pId);
+		[id(0x00000002), propget, helpstring("Human-readable name")]
+		HRESULT DisplayName([out, retval] BSTR* pName);
+		[id(0x00000002), propput, helpstring("Human-readable name")]
+		HRESULT DisplayName([in] BSTR pName);
+		[id(0x00000003), propget, helpstring("User's login id")]
+		HRESULT UserId([out, retval] BSTR* pUser);
+		[id(0x00000003), propput, helpstring("User's login id")]
+		HRESULT UserId([in] BSTR pUser);
+		[id(0x00000004), propget, helpstring("Kind of login to be performed, TASK_LOGON_TYPE")]
+		HRESULT LogonType([out, retval] TASK_LOGON_TYPE* pLogon);
+		[id(0x00000004), propput, helpstring("Kind of login to be performed, TASK_LOGON_TYPE")]
+		HRESULT LogonType([in] TASK_LOGON_TYPE pLogon);
+		[id(0x00000005), propget, helpstring("Name of a security group")]
+		HRESULT GroupId([out, retval] BSTR* pGroup);
+		[id(0x00000005), propput, helpstring("Name of a security group")]
+		HRESULT GroupId([in] BSTR pGroup);
+		[id(0x00000006), propget, helpstring("TASK_RUNLEVEL_TYPE")]
+		HRESULT RunLevel([out, retval] TASK_RUNLEVEL* pRunLevel);
+		[id(0x00000006), propput, helpstring("TASK_RUNLEVEL_TYPE")]
+		HRESULT RunLevel([in] TASK_RUNLEVEL pRunLevel);
+	};
+
+
+
+	[
+		odl,
+		uuid(02820E19-7B98-4ED2-B2E8-FDCCCEFF619B),
+		helpstring("Container of task actions."),
+		dual,
+		nonextensible,
+		oleautomation
+	]
+	interface IActionCollection : IDispatch {
+		[id(0x00000001), propget, helpstring("Number of elements")]
+		HRESULT Count([out, retval] long* pCount);
+		[id(00000000), propget, helpstring("Retrieve specific element")]
+		HRESULT Item(
+			[in] long index,
+			[out, retval] IAction** ppAction);
+		[id(0xfffffffc), propget, helpstring("Create new enumerator")]
+		HRESULT _NewEnum([out, retval] IUnknown** ppEnum);
+		[id(0x00000002), propget]
+		HRESULT XmlText([out, retval] BSTR* pText);
+		[id(0x00000002), propput]
+		HRESULT XmlText([in] BSTR pText);
+		[id(0x00000003), helpstring("Make new action")]
+		HRESULT Create(
+			[in] TASK_ACTION_TYPE Type,
+			[out, retval] IAction** ppAction);
+		[id(0x00000004), helpstring("Erase specific action")]
+		HRESULT Remove([in] VARIANT index);
+		[id(0x00000005), helpstring("Erase all actions")]
+		HRESULT Clear();
+		[id(0x00000006), propget, helpstring("ID of principal to be used")]
+		HRESULT Context([out, retval] BSTR* pContext);
+		[id(0x00000006), propput, helpstring("ID of principal to be used")]
+		HRESULT Context([in] BSTR pContext);
+	};
+
+	[
+		odl,
+		uuid(BAE54997-48B1-4CBE-9965-D6BE263EBEA4),
+		helpstring("A single operation to be performed."),
+		dual,
+		nonextensible,
+		oleautomation
+	]
+	interface IAction : IDispatch {
+		[id(0x00000001), propget, helpstring("A Unique name for this action")]
+		HRESULT Id([out, retval] BSTR* pId);
+		[id(0x00000001), propput, helpstring("A Unique name for this action")]
+		HRESULT Id([in] BSTR pId);
+		[id(0x00000002), propget, helpstring("The specific kind of action to be performed")]
+		HRESULT Type([out, retval] TASK_ACTION_TYPE* pType);
+	};
+
+
+
+	//typedef struct SYSTEMTIME {
+
+	//	unsigned short wYear;
+
+	//	unsigned short wMonth;
+
+	//	unsigned short wDayOfWeek;
+
+	//	unsigned short wDay;
+
+	//	unsigned short wHour;
+
+	//	unsigned short wMinute;
+
+	//	unsigned short wSecond;
+
+	//	unsigned short wMilliseconds;
+	//} SYSTEMTIME;
+
+	[
+		odl,
+		uuid(86627EB4-42A7-41E4-A4D9-AC33A72F2D52),
+		helpstring("Group of IRegisteredTasks."),
+		dual,
+		nonextensible,
+		oleautomation
+	]
+	interface IRegisteredTaskCollection : IDispatch {
+		[id(0x60020000), propget, helpstring("Number of elements in collection.")]
+		HRESULT Count([out, retval] long* pCount);
+		[id(00000000), propget, helpstring("Retrieve specific element")]
+		HRESULT Item(
+			[in] VARIANT index,
+			[out, retval] IRegisteredTask** ppRegisteredTask);
+		[id(0xfffffffc), propget, helpstring("Create new enumerator.")]
+		HRESULT _NewEnum([out, retval] IUnknown** ppEnum);
+	};
+
+	[
+		odl,
+		uuid(2FABA4C7-4DA9-4013-9697-20CC3FD40F85),
+		helpstring("Communicate with the Task Scheduler service."),
+		dual,
+		nonextensible,
+		oleautomation
+	]
+	interface ITaskService : IDispatch {
+		[id(0x00000001), helpstring("Retrieve named folder.")]
+		HRESULT GetFolder(
+			[in] BSTR Path,
+			[out, retval] ITaskFolder** ppFolder);
+		[id(0x00000002), helpstring("Retrieve collection of tasks currently executing.")]
+		HRESULT GetRunningTasks(
+			[in] long flags,
+			[out, retval] IRunningTaskCollection** ppRunningTasks);
+		[id(0x00000003), helpstring("Create a new Task Definition object.")]
+		HRESULT NewTask(
+			[in] long flags,
+			[out, retval] ITaskDefinition** ppDefinition); //unsigned long
+		[id(0x00000004), helpstring("Initiate communication with Task Scheduler Service.")]
+		HRESULT Connect(
+			[in, optional] VARIANT serverName,
+			[in, optional] VARIANT user,
+			[in, optional] VARIANT domain,
+			[in, optional] VARIANT password);
+		[id(0x00000005), propget, helpstring("Returns true if communication has been initiated.")]
+		HRESULT Connected([out, retval] VARIANT_BOOL* pConnected);
+		[id(00000000), propget, helpstring("Name of machine this interface is communicating with.")]
+		HRESULT TargetServer([out, retval] BSTR* pServer);
+		[id(0x00000006), propget, helpstring("User name associated with current session.")]
+		HRESULT ConnectedUser([out, retval] BSTR* pUser);
+		[id(0x00000007), propget, helpstring("Domain of user associated with current session.")]
+		HRESULT ConnectedDomain([out, retval] BSTR* pDomain);
+		[id(0x00000008), propget, helpstring("Latest revision server supports.")]
+		HRESULT HighestVersion([out, retval] long* pVersion); //unsigned long
+	};
+
+	[
+		odl,
+		uuid(839D7762-5121-4009-9234-4F0D19394F04),
+		helpstring("The COM task handler action interface.")
+	]
+	interface ITaskHandler : IUnknown {
+		[helpstring("Begin execution (spawn thread & return quickly).")]
+		HRESULT _stdcall Start(
+			[in] IUnknown* pHandlerServices,
+			[in] BSTR Data);
+		[helpstring("Cease execution.")]
+		HRESULT _stdcall Stop([out] HRESULT* pRetCode);
+		[helpstring("Suspend execution until Resume() is called.")]
+		HRESULT _stdcall Pause();
+		[helpstring("Start execution where it was when Pause() was called.")]
+		HRESULT _stdcall Resume();
+	};
+
+	[
+		odl,
+		uuid(EAEC7A8F-27A0-4DDC-8675-14726A01A38A),
+		helpstring("Allow task handler to send status information to Task Scheduler.")
+	]
+	interface ITaskHandlerStatus : IUnknown {
+		[helpstring("Give current action status to Task Scheduler.")]
+		HRESULT _stdcall UpdateStatus(
+			[in] short percentComplete,
+			[in] BSTR statusMessage);
+		[helpstring("Inform the service that the task instance has finished.")]
+		HRESULT _stdcall TaskCompleted([in] HRESULT taskErrCode);
+	};
+
+	[
+		odl,
+		uuid(3E4C9351-D966-4B8B-BB87-CEBA68BB0107),
+		helpstring("Allows Task Scheduler to share information with the task instance.")
+	]
+	interface ITaskVariables : IUnknown {
+		[helpstring("Retrieve information from task engine.")]
+		HRESULT _stdcall GetInput([out, retval] BSTR* pInput);
+		[helpstring("Send information to task engine.")]
+		HRESULT _stdcall SetOutput([in] BSTR input);
+		[helpstring("Retrieve all output from all actions.")]
+		HRESULT _stdcall GetContext([out, retval] BSTR* pContext);
+	};
+
+	[
+		odl,
+		uuid(39038068-2B46-4AFD-8662-7BB6F868D221),
+		helpstring("Container for named strings."),
+		dual,
+		nonextensible,
+		oleautomation
+	]
+	interface ITaskNamedValuePair : IDispatch {
+		[id(00000000), propget, helpstring("Unique identifier for this pair.")]
+		HRESULT Name([out, retval] BSTR* pName);
+		[id(00000000), propput, helpstring("Unique identifier for this pair.")]
+		HRESULT Name([in] BSTR pName);
+		[id(0x00000001), propget, helpstring("String associated with the name.")]
+		HRESULT Value([out, retval] BSTR* pValue);
+		[id(0x00000001), propput, helpstring("String associated with the name.")]
+		HRESULT Value([in] BSTR pValue);
+	};
+
+	[
+		odl,
+		uuid(B4EF826B-63C3-46E4-A504-EF69E4F7EA4D),
+		helpstring("Group of ITaskNamedValuePairs."),
+		dual,
+		nonextensible,
+		oleautomation
+	]
+	interface ITaskNamedValueCollection : IDispatch {
+		[id(0x00000001), propget, helpstring("Number of elements.")]
+		HRESULT Count([out, retval] long* pCount);
+		[id(00000000), propget, helpstring("Access one ITaskNamedValuePair by index.")]
+		HRESULT Item(
+			[in] long index,
+			[out, retval] ITaskNamedValuePair** ppPair);
+		[id(0xfffffffc), propget]
+		HRESULT _NewEnum([out, retval] IUnknown** ppEnum);
+		[id(0x00000002), helpstring("Create new ITaskNamedValuePair.")]
+		HRESULT Create(
+			[in] BSTR Name,
+			[in] BSTR Value,
+			[out, retval] ITaskNamedValuePair** ppPair);
+		[id(0x00000004), helpstring("Delete specific ITaskNamedValuePair.")]
+		HRESULT Remove([in] long index);
+		[id(0x00000005), helpstring("Delete all ITaskNamedValuePairs.")]
+		HRESULT Clear();
+	};
+
+	[
+		odl,
+		uuid(D537D2B0-9FB3-4D34-9739-1FF5CE7B1EF3),
+		helpstring("Run task when machine becomes idle."),
+		dual,
+		nonextensible,
+		oleautomation
+	]
+	interface IIdleTrigger : ITrigger {
+	};
+
+	[
+		odl,
+		uuid(72DADE38-FAE4-4B3E-BAF4-5D009AF02B1C),
+		helpstring("Run task when user logs on."),
+		dual,
+		nonextensible,
+		oleautomation
+	]
+	interface ILogonTrigger : ITrigger {
+		[id(0x00000014), propget, helpstring("Amount of time to wait before starting task")]
+		HRESULT Delay([out, retval] BSTR* pDelay);
+		[id(0x00000014), propput, helpstring("Amount of time to wait before starting task")]
+		HRESULT Delay([in] BSTR pDelay);
+		[id(0x00000015), propget, helpstring("Run task when specific user logs on")]
+		HRESULT UserId([out, retval] BSTR* pUser);
+		[id(0x00000015), propput, helpstring("Run task when specific user logs on")]
+		HRESULT UserId([in] BSTR pUser);
+	};
+
+	[
+		odl,
+		uuid(754DA71B-4385-4475-9DD9-598294FA3641),
+		helpstring("Run task when login session state changes."),
+		dual,
+		nonextensible,
+		oleautomation
+	]
+	interface ISessionStateChangeTrigger : ITrigger {
+		[id(0x00000014), propget, helpstring("Amount of time to wait before starting task")]
+		HRESULT Delay([out, retval] BSTR* pDelay);
+		[id(0x00000014), propput, helpstring("Amount of time to wait before starting task")]
+		HRESULT Delay([in] BSTR pDelay);
+		[id(0x00000015), propget, helpstring("Run task only specific user's state changes")]
+		HRESULT UserId([out, retval] BSTR* pUser);
+		[id(0x00000015), propput, helpstring("Run task only specific user's state changes")]
+		HRESULT UserId([in] BSTR pUser);
+		[id(0x00000016), propget, helpstring("Specific type of state change")]
+		HRESULT StateChange([out, retval] TASK_SESSION_STATE_CHANGE_TYPE* pType);
+		[id(0x00000016), propput, helpstring("Specific type of state change")]
+		HRESULT StateChange([in] TASK_SESSION_STATE_CHANGE_TYPE pType);
+	};
+
+
+	[
+		odl,
+		uuid(D45B0167-9653-4EEF-B94F-0732CA7AF251),
+		helpstring("Start task in response to an event log event."),
+		dual,
+		nonextensible,
+		oleautomation
+	]
+	interface IEventTrigger : ITrigger {
+		[id(0x00000014), propget, helpstring("Event query to identify events which will start task")]
+		HRESULT Subscription([out, retval] BSTR* pQuery);
+		[id(0x00000014), propput, helpstring("Event query to identify events which will start task")]
+		HRESULT Subscription([in] BSTR pQuery);
+		[id(0x00000015), propget, helpstring("Amount of time to wait after event before starting task")]
+		HRESULT Delay([out, retval] BSTR* pDelay);
+		[id(0x00000015), propput, helpstring("Amount of time to wait after event before starting task")]
+		HRESULT Delay([in] BSTR pDelay);
+		[id(0x00000016), propget, helpstring("Identify event properties to used by task")]
+		HRESULT ValueQueries([out, retval] ITaskNamedValueCollection** ppNamedXPaths);
+		[id(0x00000016), propput, helpstring("Identify event properties to used by task")]
+		HRESULT ValueQueries([in] ITaskNamedValueCollection* ppNamedXPaths);
+	};
+
+	[
+		odl,
+		uuid(B45747E0-EBA7-4276-9F29-85C5BB300006),
+		helpstring("Start task at a specific time."),
+		dual,
+		nonextensible,
+		oleautomation
+	]
+	interface ITimeTrigger : ITrigger {
+		[id(0x00000014), propget, helpstring("Maximum amount of time to delay execution")]
+		HRESULT RandomDelay([out, retval] BSTR* pRandomDelay);
+		[id(0x00000014), propput, helpstring("Maximum amount of time to delay execution")]
+		HRESULT RandomDelay([in] BSTR pRandomDelay);
+	};
+
+	[
+		odl,
+		uuid(126C5CD8-B288-41D5-8DBF-E491446ADC5C),
+		helpstring("Run task every day, or every N days."),
+		dual,
+		nonextensible,
+		oleautomation
+	]
+	interface IDailyTrigger : ITrigger {
+		[id(0x00000019), propget, helpstring("Number of days between executions")]
+		HRESULT DaysInterval([out, retval] short* pDays);
+		[id(0x00000019), propput, helpstring("Number of days between executions")]
+		HRESULT DaysInterval([in] short pDays);
+		[id(0x00000014), propget, helpstring("Maximum amount of time to delay execution")]
+		HRESULT RandomDelay([out, retval] BSTR* pRandomDelay);
+		[id(0x00000014), propput, helpstring("Maximum amount of time to delay execution")]
+		HRESULT RandomDelay([in] BSTR pRandomDelay);
+	};
+
+	[
+		odl,
+		uuid(5038FC98-82FF-436D-8728-A512A57C9DC1),
+		helpstring("Run task every week, or every N weeks."),
+		dual,
+		nonextensible,
+		oleautomation
+	]
+	interface IWeeklyTrigger : ITrigger {
+		[id(0x00000019), propget, helpstring("Bit mask specifying which days to run")]
+		HRESULT DaysOfWeek([out, retval] short* pDays);
+		[id(0x00000019), propput, helpstring("Bit mask specifying which days to run")]
+		HRESULT DaysOfWeek([in] short pDays);
+		[id(0x0000001a), propget, helpstring("Number of weeks between runs")]
+		HRESULT WeeksInterval([out, retval] short* pWeeks);
+		[id(0x0000001a), propput, helpstring("Number of weeks between runs")]
+		HRESULT WeeksInterval([in] short pWeeks);
+		[id(0x00000014), propget, helpstring("Maximum amount of time to delay execution")]
+		HRESULT RandomDelay([out, retval] BSTR* pRandomDelay);
+		[id(0x00000014), propput, helpstring("Maximum amount of time to delay execution")]
+		HRESULT RandomDelay([in] BSTR pRandomDelay);
+	};
+
+	[
+		odl,
+		uuid(97C45EF1-6B02-4A1A-9C0E-1EBFBA1500AC),
+		helpstring("Run task on specific days each month."),
+		dual,
+		nonextensible,
+		oleautomation
+	]
+	interface IMonthlyTrigger : ITrigger {
+		[id(0x00000019), propget, helpstring("Bit mask specifying which days to run")]
+		HRESULT DaysOfMonth([out, retval] long* pDays);
+		[id(0x00000019), propput, helpstring("Bit mask specifying which days to run")]
+		HRESULT DaysOfMonth([in] long pDays);
+		[id(0x0000001a), propget, helpstring("Bit mask specifying which months to run")]
+		HRESULT MonthsOfYear([out, retval] short* pMonths);
+		[id(0x0000001a), propput, helpstring("Bit mask specifying which months to run")]
+		HRESULT MonthsOfYear([in] short pMonths);
+		[id(0x0000001b), propget, helpstring("Run on last day of month, regardless of numeric date")]
+		HRESULT RunOnLastDayOfMonth([out, retval] VARIANT_BOOL* pLastDay);
+		[id(0x0000001b), propput, helpstring("Run on last day of month, regardless of numeric date")]
+		HRESULT RunOnLastDayOfMonth([in] VARIANT_BOOL pLastDay);
+		[id(0x00000014), propget, helpstring("Maximum amount of time to delay execution")]
+		HRESULT RandomDelay([out, retval] BSTR* pRandomDelay);
+		[id(0x00000014), propput, helpstring("Maximum amount of time to delay execution")]
+		HRESULT RandomDelay([in] BSTR pRandomDelay);
+	};
+
+	[
+		odl,
+		uuid(77D025A3-90FA-43AA-B52E-CDA5499B946A),
+		helpstring("Run task on specific day of week, e.g. 'Second Tuesday in March'."),
+		dual,
+		nonextensible,
+		oleautomation
+	]
+	interface IMonthlyDOWTrigger : ITrigger {
+		[id(0x00000019), propget, helpstring("Bit mask specifying which days to run")]
+		HRESULT DaysOfWeek([out, retval] short* pDays);
+		[id(0x00000019), propput, helpstring("Bit mask specifying which days to run")]
+		HRESULT DaysOfWeek([in] short pDays);
+		[id(0x0000001a), propget, helpstring("Bit mask specifying which weeks to run")]
+		HRESULT WeeksOfMonth([out, retval] short* pWeeks);
+		[id(0x0000001a), propput, helpstring("Bit mask specifying which weeks to run")]
+		HRESULT WeeksOfMonth([in] short pWeeks);
+		[id(0x0000001b), propget, helpstring("Bit mask specifying which months to run")]
+		HRESULT MonthsOfYear([out, retval] short* pMonths);
+		[id(0x0000001b), propput, helpstring("Bit mask specifying which months to run")]
+		HRESULT MonthsOfYear([in] short pMonths);
+		[id(0x0000001c), propget, helpstring("Run during last week - regardless of whether it's the fourth or fifth week")]
+		HRESULT RunOnLastWeekOfMonth([out, retval] VARIANT_BOOL* pLastWeek);
+		[id(0x0000001c), propput, helpstring("Run during last week - regardless of whether it's the fourth or fifth week")]
+		HRESULT RunOnLastWeekOfMonth([in] VARIANT_BOOL pLastWeek);
+		[id(0x00000014), propget, helpstring("Maximum amount of time to delay execution")]
+		HRESULT RandomDelay([out, retval] BSTR* pRandomDelay);
+		[id(0x00000014), propput, helpstring("Maximum amount of time to delay execution")]
+		HRESULT RandomDelay([in] BSTR pRandomDelay);
+	};
+
+	[
+		odl,
+		uuid(2A9C35DA-D357-41F4-BBC1-207AC1B1F3CB),
+		helpstring("Run task when machine starts up."),
+		dual,
+		nonextensible,
+		oleautomation
+	]
+	interface IBootTrigger : ITrigger {
+		[id(0x00000014), propget, helpstring("Amount of time to wait before starting task")]
+		HRESULT Delay([out, retval] BSTR* pDelay);
+		[id(0x00000014), propput, helpstring("Amount of time to wait before starting task")]
+		HRESULT Delay([in] BSTR pDelay);
+	};
+
+	[
+		odl,
+		uuid(4C8FEC3A-C218-4E0C-B23D-629024DB91A2),
+		helpstring("Run task as soon as it is registered."),
+		dual,
+		nonextensible,
+		oleautomation
+	]
+	interface IRegistrationTrigger : ITrigger {
+		[id(0x00000014), propget, helpstring("Amount of time to wait before starting task")]
+		HRESULT Delay([out, retval] BSTR* pDelay);
+		[id(0x00000014), propput, helpstring("Amount of time to wait before starting task")]
+		HRESULT Delay([in] BSTR pDelay);
+	};
+
+	[
+		odl,
+		uuid(4C3D624D-FD6B-49A3-B9B7-09CB3CD3F047),
+		helpstring("Run a program."),
+		dual,
+		nonextensible,
+		oleautomation
+	]
+	interface IExecAction : IAction {
+		[id(0x0000000a), propget, helpstring("Program name")]
+		HRESULT Path([out, retval] BSTR* pPath);
+		[id(0x0000000a), propput, helpstring("Program name")]
+		HRESULT Path([in] BSTR pPath);
+		[id(0x0000000b), propget, helpstring("Command line parameters for the program")]
+		HRESULT Arguments([out, retval] BSTR* pArgument);
+		[id(0x0000000b), propput, helpstring("Command line parameters for the program")]
+		HRESULT Arguments([in] BSTR pArgument);
+		[id(0x0000000c), propget, helpstring("Default directory for the program")]
+		HRESULT WorkingDirectory([out, retval] BSTR* pWorkingDirectory);
+		[id(0x0000000c), propput, helpstring("Default directory for the program")]
+		HRESULT WorkingDirectory([in] BSTR pWorkingDirectory);
+	};
+
+	[
+		odl,
+		uuid(F2A82542-BDA5-4E6B-9143-E2BF4F8987B6),
+		helpstring("Run a program, optionally hiding the window."),
+		dual,
+		nonextensible,
+		oleautomation
+	]
+	interface IExecAction2 : IExecAction {
+		[id(0x0000000d), propget, helpstring("Hide the executable window")]
+		HRESULT HideAppWindow([out, retval] VARIANT_BOOL* pHideAppWindow);
+		[id(0x0000000d), propput, helpstring("Hide the executable window")]
+		HRESULT HideAppWindow([in] VARIANT_BOOL pHideAppWindow);
+	};
+
+	[
+		odl,
+		uuid(505E9E68-AF89-46B8-A30F-56162A83D537),
+		helpstring("Show a message to the user."),
+		dual,
+		nonextensible,
+		oleautomation
+	]
+	interface IShowMessageAction : IAction {
+		[id(0x0000000a), propget, helpstring("Subject of message")]
+		HRESULT Title([out, retval] BSTR* pTitle);
+		[id(0x0000000a), propput, helpstring("Subject of message")]
+		HRESULT Title([in] BSTR pTitle);
+		[id(0x0000000b), propget, helpstring("Text of message")]
+		HRESULT MessageBody([out, retval] BSTR* pMessageBody);
+		[id(0x0000000b), propput, helpstring("Text of message")]
+		HRESULT MessageBody([in] BSTR pMessageBody);
+	};
+
+	[
+		odl,
+		uuid(6D2FD252-75C5-4F66-90BA-2A7D8CC3039F),
+		helpstring("Execute a COM Task Handler."),
+		dual,
+		nonextensible,
+		oleautomation
+	]
+	interface IComHandlerAction : IAction {
+		[id(0x0000000a), propget, helpstring("CLSID for handler")]
+		HRESULT ClassId([out, retval] BSTR* pClsid);
+		[id(0x0000000a), propput, helpstring("CLSID for handler")]
+		HRESULT ClassId([in] BSTR pClsid);
+		[id(0x0000000b), propget, helpstring("Information to be passed to handler at startup")]
+		HRESULT Data([out, retval] BSTR* pData);
+		[id(0x0000000b), propput, helpstring("Information to be passed to handler at startup")]
+		HRESULT Data([in] BSTR pData);
+	};
+
+	[
+		odl,
+		uuid(10F62C64-7E16-4314-A0C2-0C3683F99D40),
+		helpstring("Send an email"),
+		dual,
+		nonextensible,
+		oleautomation
+	]
+	interface IEmailAction : IAction {
+		[id(0x0000000a), propget, helpstring("SMTP Server (required)")]
+		HRESULT Server([out, retval] BSTR* pServer);
+		[id(0x0000000a), propput, helpstring("SMTP Server (required)")]
+		HRESULT Server([in] BSTR pServer);
+		[id(0x0000000b), propget, helpstring("Title of email")]
+		HRESULT Subject([out, retval] BSTR* pSubject);
+		[id(0x0000000b), propput, helpstring("Title of email")]
+		HRESULT Subject([in] BSTR pSubject);
+		[id(0x0000000c), propget, helpstring("Addresses for primary recipients of email")]
+		HRESULT To([out, retval] BSTR* pTo);
+		[id(0x0000000c), propput, helpstring("Addresses for primary recipients of email")]
+		HRESULT To([in] BSTR pTo);
+		[id(0x0000000d), propget, helpstring("Addresses for secondary recipients of email")]
+		HRESULT Cc([out, retval] BSTR* pCc);
+		[id(0x0000000d), propput, helpstring("Addresses for secondary recipients of email")]
+		HRESULT Cc([in] BSTR pCc);
+		[id(0x0000000e), propget, helpstring("Addresses for recipients of 'blind copies' of email")]
+		HRESULT Bcc([out, retval] BSTR* pBcc);
+		[id(0x0000000e), propput, helpstring("Addresses for recipients of 'blind copies' of email")]
+		HRESULT Bcc([in] BSTR pBcc);
+		[id(0x0000000f), propget, helpstring("Address recipient should send replies to")]
+		HRESULT ReplyTo([out, retval] BSTR* pReplyTo);
+		[id(0x0000000f), propput, helpstring("Address recipient should send replies to")]
+		HRESULT ReplyTo([in] BSTR pReplyTo);
+		[id(0x00000010), propget, helpstring("Address to be used as the sender of the email")]
+		HRESULT From([out, retval] BSTR* pFrom);
+		[id(0x00000010), propput, helpstring("Address to be used as the sender of the email")]
+		HRESULT From([in] BSTR pFrom);
+		[id(0x00000011), propget, helpstring("Extra data to be included in email header")]
+		HRESULT HeaderFields([out, retval] ITaskNamedValueCollection** ppHeaderFields);
+		[id(0x00000011), propput, helpstring("Extra data to be included in email header")]
+		HRESULT HeaderFields([in] ITaskNamedValueCollection* ppHeaderFields);
+		[id(0x00000012), propget, helpstring("Text of the email")]
+		HRESULT Body([out, retval] BSTR* pBody);
+		[id(0x00000012), propput, helpstring("Text of the email")]
+		HRESULT Body([in] BSTR pBody);
+		[id(0x00000013), propget, helpstring("Filenames of attachements to email")]
+		HRESULT Attachments([out, retval] SAFEARRAY(VARIANT)* pAttachements);
+		[id(0x00000013), propput, helpstring("Filenames of attachements to email")]
+		HRESULT Attachments([in] SAFEARRAY(VARIANT) pAttachements);
+	};
+
+	[
+		odl,
+		uuid(248919AE-E345-4A6D-8AEB-E0D3165C904E),
+		helpstring("Extra settings for the user account used to execute the task as."),
+		dual,
+		nonextensible,
+		oleautomation
+	]
+	interface IPrincipal2 : IDispatch {
+		[id(0x0000000a), propget, helpstring("Type of process token SID, TASK_PROCESSTOKENSID_TYPE.")]
+		HRESULT ProcessTokenSidType([out, retval] TASK_PROCESSTOKENSID* pProcessTokenSidType);
+		[id(0x0000000a), propput, helpstring("Type of process token SID, TASK_PROCESSTOKENSID_TYPE.")]
+		HRESULT ProcessTokenSidType([in] TASK_PROCESSTOKENSID pProcessTokenSidType);
+		[id(0x0000000b), propget, helpstring("Number of required privileges.")]
+		HRESULT RequiredPrivilegeCount([out, retval] long* pCount);
+		[id(0x0000000c), propget, helpstring("Retrieve specific privilege by index.")]
+		HRESULT RequiredPrivilege(
+			[in] long index,
+			[out, retval] BSTR* pPrivilege);
+		[id(0x0000000d), helpstring("Add new required privilege.")]
+		HRESULT AddRequiredPrivilege([in] BSTR privilege);
+	};
+
+
+	[
+		odl,
+		uuid(2C05C3F0-6EED-4C05-A15F-ED7D7A98A369),
+		helpstring("Extended control execution of the task."),
+		dual,
+		nonextensible,
+		oleautomation
+	]
+	interface ITaskSettings2 : IDispatch {
+		[id(0x0000001e), propget, helpstring("Do not start if target session is a RemoteApp Session.")]
+		HRESULT DisallowStartOnRemoteAppSession([out, retval] VARIANT_BOOL* pDisallowStart);
+		[id(0x0000001e), propput, helpstring("Do not start if target session is a RemoteApp Session.")]
+		HRESULT DisallowStartOnRemoteAppSession([in] VARIANT_BOOL pDisallowStart);
+		[id(0x0000001f), propget, helpstring("Use the Unified Scheduling Engine to run this task.")]
+		HRESULT UseUnifiedSchedulingEngine([out, retval] VARIANT_BOOL* pUseUnifiedEngine);
+		[id(0x0000001f), propput, helpstring("Use the Unified Scheduling Engine to run this task.")]
+		HRESULT UseUnifiedSchedulingEngine([in] VARIANT_BOOL pUseUnifiedEngine);
+	};
+
+	[
+		odl,
+		uuid(0AD9D0D7-0C7F-4EBB-9A5F-D1C648DCA528),
+		helpstring("Maintenance related task properties."),
+		dual,
+		nonextensible,
+		oleautomation
+	]
+	interface ITaskSettings3 : ITaskSettings {
+		[id(0x0000001e), propget, helpstring("Do not start if target session is a RemoteApp Session.")]
+		HRESULT DisallowStartOnRemoteAppSession([out, retval] VARIANT_BOOL* pDisallowStart);
+		[id(0x0000001e), propput, helpstring("Do not start if target session is a RemoteApp Session.")]
+		HRESULT DisallowStartOnRemoteAppSession([in] VARIANT_BOOL pDisallowStart);
+		[id(0x0000001f), propget, helpstring("Use the Unified Scheduling Engine to run this task.")]
+		HRESULT UseUnifiedSchedulingEngine([out, retval] VARIANT_BOOL* pUseUnifiedEngine);
+		[id(0x0000001f), propput, helpstring("Use the Unified Scheduling Engine to run this task.")]
+		HRESULT UseUnifiedSchedulingEngine([in] VARIANT_BOOL pUseUnifiedEngine);
+		[id(0x00000028), propget, helpstring("Returns current maintenance settings of the task. If the task has no maintenance settings, returns NULL.")]
+		HRESULT MaintenanceSettings([out, retval] IMaintenanceSettings** ppMaintenanceSettings);
+		[id(0x00000028), propput, helpstring("Returns current maintenance settings of the task. If the task has no maintenance settings, returns NULL.")]
+		HRESULT MaintenanceSettings([in] IMaintenanceSettings* ppMaintenanceSettings);
+		[id(0x00000029), helpstring("Create new maintenance settings for the task. Old values are dropped.")]
+		HRESULT CreateMaintenanceSettings([out, retval] IMaintenanceSettings** ppMaintenanceSettings);
+		[id(0x0000002a), propget, helpstring("This task will appear disabled after system reboot.")]
+		HRESULT Volatile([out, retval] VARIANT_BOOL* pVolatile);
+		[id(0x0000002a), propput, helpstring("This task will appear disabled after system reboot.")]
+		HRESULT Volatile([in] VARIANT_BOOL pVolatile);
+	};
+
+	[
+		odl,
+		uuid(A6024FA8-9652-4ADB-A6BF-5CFCD877A7BA),
+		helpstring("Control the extended maintenance execution settings of the task."),
+		dual,
+		nonextensible,
+		oleautomation
+	]
+	interface IMaintenanceSettings : IDispatch {
+		[id(0x00000022), propput, helpstring("Set task maintenance periodicity requirement.")]
+		HRESULT Period([in] BSTR target);
+		[id(0x00000022), propget, helpstring("Set task maintenance periodicity requirement.")]
+		HRESULT Period([out, retval] BSTR* target);
+		[id(0x00000023), propput, helpstring("Set task maintenance deadline requirement.")]
+		HRESULT Deadline([in] BSTR target);
+		[id(0x00000023), propget, helpstring("Set task maintenance deadline requirement.")]
+		HRESULT Deadline([out, retval] BSTR* target);
+		[id(0x00000024), propput, helpstring("Set task maintenance exclusivity.")]
+		HRESULT Exclusive([in] VARIANT_BOOL target);
+		[id(0x00000024), propget, helpstring("Set task maintenance exclusivity.")]
+		HRESULT Exclusive([out, retval] VARIANT_BOOL* target);
+	};
+
+
+
+	[
+		uuid(0F87369F-A4E5-4CFC-BD3E-73E6154572DD)
+	]
+	coclass TaskScheduler {
+		[default] interface ITaskService;
+	};
+
+	[
+		uuid(F2A69DB7-DA2C-4352-9066-86FEE6DACAC9)
+	]
+	coclass TaskHandlerPS {
+		[default] interface ITaskHandler;
+	};
+
+	[
+		uuid(9F15266D-D7BA-48F0-93C1-E6895F6FE5AC)
+	]
+	coclass TaskHandlerStatusPS {
+		[default] interface ITaskHandlerStatus;
+		interface ITaskVariables;
+	};
+
+
+	typedef enum IRTIR_Values
+	{
+		IRTIR_TASK_NOT_RUNNING  = 0,
+		IRTIR_TASK_RUNNING      = 1,
+		IRTIR_TASK_SUSPENDED    = 2,
+		IRTIR_TASK_PENDING      = 3,
+		IRTIR_TASK_FINISHED     = 4
+	} IRTIR_Values;
+
+	[
+		odl,
+		uuid(85788d00-6807-11d0-b810-00c04fd706ec)
+	]
+	interface IRunnableTask : stdole.IUnknown
+	{
+		HRESULT Run(void);
+		HRESULT Kill([in] BOOL bWait);
+		HRESULT Suspend(void);
+		HRESULT IsRunning(void); //This interface is Implemented so must use HRESULT, will need vtable swap
+	};
+
+	[
+		odl,
+		uuid(6CCB7BE0-6807-11d0-B810-00C04FD706EC)
+	]
+	interface IShellTaskScheduler : stdole.IUnknown
+	{
+		long AddTask([in] IRunnableTask *prt,
+					 [in] UUID* rtoid,
+					 [in] long lParam,
+					 [in] DWORD dwPriority);
+
+		long RemoveTasks([in] UUID *rtoid,
+			[in] long lParam,
+			[in] BOOL bWaitIfRunning);
+
+		long CountTasks([in] UUID* rtoid);
+		
+		long Status([in] DWORD dwReleaseStatus,
+			[in] DWORD dwThreadTimeout);
+
+	};
+
+	[ uuid(603D3800-BD81-11D0-A3A5-00C04FD706EC) ]
+	coclass ShellTaskScheduler { interface IShellTaskScheduler; }

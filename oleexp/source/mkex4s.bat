@@ -1,0 +1,1 @@
+"C:\Program Files (x86)\Microsoft Visual Studio\VC98\Bin\MKTYPLIB.exe" "oleexp.odl"

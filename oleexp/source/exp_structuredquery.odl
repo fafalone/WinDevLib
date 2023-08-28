@@ -1,0 +1,910 @@
+//tbShellLib - 100% complete
+//structuredquery.idl and related
+
+interface IQuerySolution;
+interface IConditionGenerator;
+interface ISchemaProvider;
+interface IEntity;
+interface INamedEntity;
+interface ITokenCollection;
+interface INamedEntityCollector;
+interface IRichChunk;
+interface ISchemaLocalizerSupport;
+
+
+
+typedef enum STRUCTURED_QUERY_RESOLVE_OPTION
+{
+	SQRO_DEFAULT = 0x00000000, // None of the below.
+	SQRO_DONT_RESOLVE_DATETIME = 0x00000001,
+	SQRO_ALWAYS_ONE_INTERVAL = 0x00000002,
+	SQRO_DONT_SIMPLIFY_CONDITION_TREES = 0x00000004,
+	SQRO_DONT_MAP_RELATIONS = 0x00000008,
+	SQRO_DONT_RESOLVE_RANGES = 0x00000010,
+	SQRO_DONT_REMOVE_UNRESTRICTED_KEYWORDS = 0x00000020, // An unrestricted keyword is a keyword that is not associated with a value to make a real condition.
+	SQRO_DONT_SPLIT_WORDS = 0x00000040, // If this flag is set, groups of words that are not separated by whitespace
+										// will be kept together and it is up to the consumer of the parse result to do any
+										// additional separation. (Note that it is possible through this interface to obtain
+										// how the input string was broken into words as well as the word breaker used.)
+										// If this flag is not set, then each word will end up in a separate condition tree node.
+	SQRO_IGNORE_PHRASE_ORDER = 0x00000080, // If this flag is set, a full-text query for a phrase will disregard the order of the words in the phrase.
+										   // In this case, the query from:"foo bar" will behave like from:(foo bar).
+	SQRO_ADD_VALUE_TYPE_FOR_PLAIN_VALUES = 0x00000100, // Normally only unresolved named entities have a semantic type but this flag causes a semantic type
+													   // to be added for leaves with a numeric, Boolean, date/time or string value.
+	SQRO_ADD_ROBUST_ITEM_NAME = 0x00000200, // Work around known issues in word breakers, adding conditions on PKEY_ItemNameDisplay as needed.
+} STRUCTURED_QUERY_RESOLVE_OPTION; // prefix SQRO
+
+								   // ---------------------------------
+								   // Query syntax for parser
+								   // ---------------------------------
+typedef enum STRUCTURED_QUERY_SYNTAX
+{
+	SQS_NO_SYNTAX,
+	SQS_ADVANCED_QUERY_SYNTAX,
+	SQS_NATURAL_QUERY_SYNTAX,
+} STRUCTURED_QUERY_SYNTAX;
+
+typedef enum CONDITION_TYPE
+{
+	CT_AND_CONDITION,   // AND of subconditions
+	CT_OR_CONDITION,    // OR of subconditions
+	CT_NOT_CONDITION,   // NOT of a single subcondition
+	CT_LEAF_CONDITION,  // No subcondition: property, operation, value.
+} CONDITION_TYPE;  // Prefix CT
+
+[
+	odl,
+	uuid(4FDEF69C-DBC9-454e-9910-B34F3C64B510)
+]
+interface IRichChunk : stdole.IUnknown
+{
+	// The position *pFirstPos is zero-based.
+	// Any one of pFirstPos, pLength, ppsz and pValue may be NULL.
+	HRESULT GetData([out] ULONG* pFirstPos,
+	[out] ULONG* pLength,
+		[out] LONG* ppsz,
+		[out] VARIANT* pValue);
+
+//[call_as(GetData)]
+//HRESULT RemoteGetData([out] ULONG* pFirstPos, 
+//                      [out] ULONG* pLength, 
+//                      [out] LPWSTR* ppsz, 
+//                      [out] PROPVARIANT* pValue);
+};
+
+[
+	odl,
+	uuid(0FC988D4-C935-4b97-A973-46282EA175C8)
+]
+interface ICondition : IPersistStream
+{
+	// For any node, return what kind of node it is.
+	HRESULT GetConditionType([out, retval] CONDITION_TYPE* pNodeType);
+
+	// riid must be IID_IEnumUnknown, IID_IEnumVARIANT or IID_IObjectArray, or in the case of a negation node IID_ICondition.
+	// If this is a leaf node, E_FAIL will be returned.
+	// If this is a negation node, then if riid is IID_ICondition, *ppv will be set to a single ICondition, otherwise an enumeration of one.
+	// If this is a conjunction or a disjunction, *ppv will be set to an enumeration of the subconditions.
+	HRESULT GetSubConditions([in] UUID *riid, [out] LPVOID ppv);
+
+	// If this is not a leaf node, E_FAIL will be returned.
+	// Retrieve the property name, operation and value from the leaf node.
+	// Any one of ppszPropertyName, pcop and ppropvar may be NULL.
+	//[local]
+	HRESULT GetComparisonInfo([out] LONG *ppszPropertyName,
+		[out] CONDITION_OPERATION *pcop,
+		[out] PROPVARIANT *ppropvar);
+
+	//[call_as(GetComparisonInfo)]
+	//HRESULT RemoteGetComparisonInfo([out] LPWSTR *ppszPropertyName,
+	//                                [out] CONDITION_OPERATION *pcop,
+	//                                [out] PROPVARIANT *ppropvar);
+
+	// If this is not a leaf node, E_FAIL will be returned.
+	// *ppszValueTypeName will be set to the semantic type of the value, or to NULL if this is not meaningful.
+	HRESULT GetValueType([out, retval] LONG* ppszValueTypeName);
+
+	// If this is not a leaf node, E_FAIL will be returned.
+	// If the value of the leaf node is VT_EMPTY, *ppszNormalization will be set to an empty string.
+	// If the value is a string (VT_LPWSTR, VT_BSTR or VT_LPSTR), then *ppszNormalization will be set to a
+	// character-normalized form of the value.
+	// Otherwise, *ppszNormalization will be set to some (character-normalized) string representation of the value.
+	HRESULT GetValueNormalization([out, retval] LONG* ppszNormalization);
+
+	// Return information about what parts of the input produced the property, the operation and the value.
+	// Any one of ppPropertyTerm, ppOperationTerm and ppValueTerm may be NULL.
+	// For a leaf node returned by the parser, the position information of each IRichChunk identifies the tokens that
+	// contributed the property/operation/value, the string value is the corresponding part of the input string, and
+	// the PROPVARIANT is VT_EMPTY.
+	//[local]
+	HRESULT GetInputTerms([out] IRichChunk** ppPropertyTerm,
+		[out] IRichChunk** ppOperationTerm,
+		[out] IRichChunk** ppValueTerm);
+
+	//[call_as(GetInputTerms)]
+	//HRESULT RemoteGetInputTerms([out] IRichChunk** ppPropertyTerm, 
+	//                            [out] IRichChunk** ppOperationTerm, 
+	//                            [out] IRichChunk** ppValueTerm);
+
+	// Make a deep copy of this ICondition.
+	HRESULT Clone([out, retval] ICondition** ppc);
+};
+
+[
+	odl,
+	uuid(0DB8851D-2E5B-47eb-9208-D28C325A01D7)
+]
+interface ICondition2 : ICondition
+{
+	// If this is not a leaf node, E_FAIL will be returned.
+	// *ppszLocaleName will be set to the locale name of the value,
+	// which may be NULL.
+	HRESULT GetLocale([out] LONG* ppszLocaleName);
+
+	// If this is not a leaf node, E_FAIL will be returned.
+	// Retrieve the property key, operation and value from the leaf node.
+	// Any one of ppropkey, pcop and ppropvar may be NULL.
+	//[local]
+	HRESULT GetLeafConditionInfo([out] PROPERTYKEY* ppropkey, [out] CONDITION_OPERATION* pcop, [out] VARIANT* ppropvar);
+
+	// If this is not a leaf node, E_FAIL will be returned.
+	// Retrieve the property key, operation and value from the leaf node.
+	// Any one of ppropkey, pcop and ppropvar may be NULL.
+	//[call_as(GetLeafConditionInfo)]
+	//HRESULT RemoteGetLeafConditionInfo([out] PROPERTYKEY* ppropkey, [out] CONDITION_OPERATION* pcop, [out] PROPVARIANT* ppropvar);
+}
+// ----------------------------------------------------------------------------------
+// IConditionFactory -- interface for creating conditions
+// The documention for each method is quite length and has been removed.
+// See the original definition in structuredquery.idl in the SDK
+// ----------------------------------------------------------------------------------
+[
+	odl,
+	uuid(A5EFE073-B16F-474f-9F3E-9F8B497A3E08)
+]
+interface IConditionFactory : stdole.IUnknown
+{
+	HRESULT MakeNot([in] ICondition* pcSub,[in] BOOL fSimplify,[out] ICondition** ppcResult); //last was retval
+
+HRESULT MakeAndOr([in] CONDITION_TYPE ct,[in] IEnumUnknown* peuSubs,[in] BOOL fSimplify,[out, retval] ICondition** ppcResult);
+
+HRESULT MakeLeaf([in] LONG pszPropertyName,[in] CONDITION_OPERATION cop,[in] LONG pszValueType,[in] VARIANT *ppropvar,[in] IRichChunk* pPropertyNameTerm,[in] IRichChunk* pOperationTerm,[in] IRichChunk* pValueTerm,[in] BOOL fExpand,[out] ICondition** ppcResult); //last was retval
+
+HRESULT Resolve([in] ICondition* pc,[in] STRUCTURED_QUERY_RESOLVE_OPTION sqro,[in] SYSTEMTIME *pstReferenceTime,[out] ICondition** ppcResolved);
+}
+
+typedef enum CONDITION_CREATION_OPTIONS
+{
+	CONDITION_CREATION_DEFAULT = 0x00000000,
+	CONDITION_CREATION_NONE = 0x00000000,
+
+	CONDITION_CREATION_SIMPLIFY = 0x00000001,
+
+	CONDITION_CREATION_VECTOR_AND = 0x00000002,
+	CONDITION_CREATION_VECTOR_OR = 0x00000004,
+	CONDITION_CREATION_VECTOR_LEAF = 0x00000008,
+	CONDITION_CREATION_USE_CONTENT_LOCALE = 0x00000010,
+} CONDITION_CREATION_OPTIONS;
+
+[
+	odl,
+	uuid(71D222E1-432F-429e-8C13-B6DAFDE5077A)
+]
+interface IConditionFactory2 : IConditionFactory
+{
+	// Create a condition that is always simply true or false.
+	HRESULT CreateTrueFalse([in] BOOL fVal, [in] CONDITION_CREATION_OPTIONS cco,
+		[in] UUID *riid, [out] LPVOID ppv);
+
+	// Create a condition that is a negation of another condition.
+	// For default options, use CONDITION_CREATION_DEFAULT.
+	// The returned object supports ICondition and ICondition2.
+	HRESULT CreateNegation(
+		[in] ICondition* pcSub, [in] CONDITION_CREATION_OPTIONS cco,
+		[in] UUID *riid, [out] LPVOID ppv);
+
+	// Create a condition node that is a conjunction (AND) or a disjunction (OR)
+	// of a collection of subconditions.
+	// ct must be CT_AND_CONDITION or CT_OR_CONDITION.
+	// Each element of poaSubs must implement ICondition.
+	// poaSubs may also be NULL, which is equivalent to it being empty.
+	// For default options, use CONDITION_CREATION_DEFAULT.
+	// The returned object supports ICondition and ICondition2.
+	HRESULT CreateCompoundFromObjectArray(
+		[in] CONDITION_TYPE ct,
+		[in] IObjectArray* poaSubs,
+		[in] CONDITION_CREATION_OPTIONS cco,
+		[in] UUID *riid, [out] LPVOID ppv);
+
+	// Create a conjunction (AND) or disjunction (OR) from an array of
+	// condition nodes. ct must be CT_AND_CONDITION or CT_OR_CONDITION.
+	// For default options, use CONDITION_CREATION_DEFAULT.
+	// The returned object supports ICondition and ICondition2.
+	HRESULT CreateCompoundFromArray(
+		[in] CONDITION_TYPE ct, [in] ICondition** ppcondSubs,
+		[in] ULONG cSubs, [in] CONDITION_CREATION_OPTIONS cco,
+		[in] UUID *riid, [out] LPVOID ppv);
+
+	// Create a leaf condition node for a string value.
+	// If the leaf has no particular property, use PKEY_Null.
+	// If the leaf has no particular operation, use COP_IMPLICIT.
+	// pszLocaleName should reflect the language of the contents of pszValue;
+	// if that is not meaningful, LOCALE_NAME_INVARIANT is appropriate.
+	// For default options, use CONDITION_CREATION_DEFAULT.
+	// The returned object supports ICondition and ICondition2.
+	HRESULT CreateStringLeaf(
+		[in] PROPERTYKEY *propkey, [in] CONDITION_OPERATION cop,
+		[in] LONG pszValue,
+		[in] LONG pszLocaleName,
+		[in] CONDITION_CREATION_OPTIONS cco,
+		[in] UUID *riid, [out] LPVOID ppv);
+
+	// Create a leaf condition node for an integer value.
+	// If the leaf has no particular property, use PKEY_Null.
+	// If the leaf has no particular operation, use COP_IMPLICIT.
+	// For default options, use CONDITION_CREATION_DEFAULT.
+	// The returned object supports ICondition and ICondition2.
+	HRESULT CreateIntegerLeaf(
+		[in] PROPERTYKEY *propkey, [in] CONDITION_OPERATION cop,
+		[in] LONG lValue, [in] CONDITION_CREATION_OPTIONS cco,
+		[in] UUID *riid, [out] LPVOID ppv);
+
+	// Create a leaf condition node for a Boolean value.
+	// If the leaf has no particular property, use PKEY_Null.
+	// If the leaf has no particular operation, use COP_IMPLICIT.
+	// For default options, use CONDITION_CREATION_DEFAULT.
+	// The returned object supports ICondition and ICondition2.
+	HRESULT CreateBooleanLeaf(
+		[in] PROPERTYKEY *propkey, [in] CONDITION_OPERATION cop,
+		[in] BOOL fValue, [in] CONDITION_CREATION_OPTIONS cco,
+		[in] UUID *riid, [out] LPVOID ppv);
+
+	// Create a leaf condition node for any value.
+	// If the leaf has no particular property, use PKEY_Null.
+	// If the leaf has no particular operation, use COP_IMPLICIT.
+	// If the created leaf is an unresolved named entity, pszSemanticType
+	// should be the name of a semantic type, otherwise NULL.
+	// If propvar does not contain a string value, pszLocaleName should be
+	// LOCALE_NAME_USER_DEFAULT; otherwise, pszLocaleName should reflect the
+	// language the string. (if that is not meaningful, consider
+	// LOCALE_NAME_INVARIANT).
+	// If the leaf condition was obtained by parsing a string, one or more of 
+	// pPropertyTerm, pOperationTerm and pValueTerm may be an IRichChunk (cf.
+	// ICondition::GetInputTerms). Otherwise, use NULL for all three.
+	// For default options, use CONDITION_CREATION_DEFAULT.
+	// The returned object supports ICondition and ICondition2.
+	HRESULT CreateLeaf(
+		[in] PROPERTYKEY *propkey,
+		[in] CONDITION_OPERATION cop,
+		[in] VARIANT *propvar,
+		[in] LONG pszSemanticType,
+		[in] LONG pszLocaleName,
+		[in] IRichChunk* pPropertyNameTerm,
+		[in] IRichChunk* pOperationTerm,
+		[in] IRichChunk* pValueTerm,
+		[in] CONDITION_CREATION_OPTIONS cco,
+		[in] UUID *riid, [out] LPVOID ppv);
+
+	// Resolve a condition to prepare it for evaluation.
+	// See IConditionFactory::Resolve for sqro and pstReferenceTime.
+	// The flag SQRO_DONT_SPLIT_WORDS will be implicitly added to sqro.
+	// The returned object supports ICondition and ICondition2.
+	HRESULT ResolveCondition(
+		[in] ICondition* pc, [in] STRUCTURED_QUERY_RESOLVE_OPTION sqro,
+		[in] SYSTEMTIME *pstReferenceTime,
+		[in] UUID *riid, [out] LPVOID ppv);
+};
+
+
+// -----------------------------------------------
+// Query Parser options
+// -----------------------------------------------
+
+typedef enum STRUCTURED_QUERY_SINGLE_OPTION
+{
+	SQSO_SCHEMA,             // The value should be VT_LPWSTR and the path to a file containing a schema binary.
+
+	SQSO_LOCALE_WORD_BREAKING, // The value must be VT_EMPTY (the default) or a VT_UI4 that is an LCID. It is used
+							   // as the locale of contents (not keywords) in the query to be searched for, when no
+							   // other information is available. The default value is the current keyboard locale.
+							   // Retrieving the value always returns a VT_UI4.
+
+	SQSO_WORD_BREAKER,       // This option is used to override the default word breaker used when identifying keywords
+							 // in queries. The default word breaker is chosen according to the language of the keywords
+							 // (cf. SQSO_LANGUAGE_KEYWORDS below). When setting this option, the value should be VT_EMPTY
+							 // for using the default word breaker, or a VT_UNKNOWN with an object supporting
+							 // the IWordBreaker interface. Retrieving the option always returns a VT_UNKNOWN with an object
+							 // supporting the IWordBreaker interface.
+
+	SQSO_NATURAL_SYNTAX,     // The value should be VT_EMPTY or VT_BOOL with VARIANT_TRUE to allow natural query
+							 // syntax (the default) or VT_BOOL with VARIANT_FALSE to allow only advanced query syntax.
+							 // Retrieving the option always returns a VT_BOOL.
+							 // This option is now deprecated, use SQSO_SYNTAX.
+
+	SQSO_AUTOMATIC_WILDCARD, // The value should be VT_BOOL with VARIANT_TRUE to generate query expressions
+							 // as if each word in the query had a star appended to it (unless followed by punctuation
+							 // other than a parenthesis), or VT_EMPTY or VT_BOOL with VARIANT_FALSE to
+							 // use the words as they are (the default). A word-wheeling application
+							 // will generally want to set this option to true.
+							 // Retrieving the option always returns a VT_BOOL.
+
+	SQSO_TRACE_LEVEL,        // Reserved. The value should be VT_EMPTY (the default) or VT_I4.
+							 // Retrieving the option always returns a VT_I4.
+
+	SQSO_LANGUAGE_KEYWORDS,  // The value must be a VT_UI4 that is a LANGID. It defaults to the default user UI language.
+
+	SQSO_SYNTAX,             // The value must be a VT_UI4 that is a STRUCTURED_QUERY_SYNTAX value.
+							 // It defaults to SQS_NATURAL_QUERY_SYNTAX.
+
+	SQSO_TIME_ZONE,          // The value must be a VT_BLOB that is a copy of a TIME_ZONE_INFORMATION structure.
+							 // It defaults to the current time zone.
+
+	SQSO_IMPLICIT_CONNECTOR, // This setting decides what connector should be assumed between conditions when none is specified.
+							 // The value must be a VT_UI4 that is a CONDITION_TYPE. Only CT_AND_CONDITION and CT_OR_CONDITION
+							 // are valid. It defaults to CT_AND_CONDITION.
+
+	SQSO_CONNECTOR_CASE,     // This setting decides whether there are special requirements on the case of connector keywords (such
+							 // as AND or OR). The value must be a VT_UI4 that is a CASE_REQUIREMENT value.
+							 // It defaults to CASE_REQUIREMENT_UPPER_IF_AQS.
+} STRUCTURED_QUERY_SINGLE_OPTION;  // Prefix SQSO
+
+typedef enum STRUCTURED_QUERY_MULTIOPTION
+{
+	SQMO_VIRTUAL_PROPERTY,   // The key should be property name P. The value should be a
+							 // VT_UNKNOWN with an IEnumVARIANT which has two values: a VT_BSTR that is another
+							 // property name Q and a VT_I4 that is a CONDITION_OPERATION cop. A predicate with
+							 // property name P, some operation and a value V will then be replaced by a predicate
+							 // with property name Q, operation cop and value V before further processing happens.
+
+	SQMO_DEFAULT_PROPERTY,   // The key should be a value type name V. The value should be a
+							 // VT_LPWSTR with a property name P. A predicate with no property name and a value of type
+							 // V (or any subtype of V) will then use property P.
+
+	SQMO_GENERATOR_FOR_TYPE, // The key should be a value type name V. The value should be a
+							 // VT_UNKNOWN with a IConditionGenerator G. The GenerateForLeaf method of
+							 // G will then be applied to any predicate with value type V and if it returns a query
+							 // expression, that will be used. If it returns NULL, normal processing will be used
+							 // instead.
+
+	SQMO_MAP_PROPERTY,       // The key should be a property name P. The value should be a VT_VECTOR|VT_LPWSTR,
+							 // where each string is a property name. The count must be at least one. This "map" will be
+							 // added to those of the loaded schema and used during resolution. A second call with the
+							 // same key will replace the current map. If the value is VT_NULL, the map will be removed.
+} STRUCTURED_QUERY_MULTIOPTION; // prefix SQMO
+
+								// ------------------------------------------
+								// Parse error information
+								// ------------------------------------------
+typedef enum STRUCTURED_QUERY_PARSE_ERROR
+{
+	SQPE_NONE,
+	SQPE_EXTRA_OPENING_PARENTHESIS, // A spurious (
+	SQPE_EXTRA_CLOSING_PARENTHESIS, // A spurious )
+	SQPE_IGNORED_MODIFIER,          // A spurious NOT, <, >=, etc.
+	SQPE_IGNORED_CONNECTOR,         // A spurious AND or OR.
+	SQPE_IGNORED_KEYWORD,           // A spurious property.
+	SQPE_UNHANDLED,                 // Something else.
+} STRUCTURED_QUERY_PARSE_ERROR; // prefix SQPE
+
+								// Values controlling case requirements, if any.
+typedef enum CASE_REQUIREMENT
+{
+	CASE_REQUIREMENT_ANY,                                // Keywords are recognized regardless of case.
+	CASE_REQUIREMENT_UPPER_IF_AQS,                       // Keywords are recognized only if uppercase, when AQS is the syntax, regardless of case otherwise.
+} CASE_REQUIREMENT; // prefix CASE_REQUIREMENT
+
+					// ------------------------------------------
+					// An interval limit
+					// ------------------------------------------
+typedef enum INTERVAL_LIMIT_KIND
+{
+	ILK_EXPLICIT_INCLUDED,
+	ILK_EXPLICIT_EXCLUDED,
+	ILK_NEGATIVE_INFINITY,
+	ILK_POSITIVE_INFINITY,
+} INTERVAL_LIMIT_KIND; // prefix ILK
+
+					   // -----------------------------------------------
+					   // Query Parser Manager options
+					   // -----------------------------------------------
+
+typedef enum QUERY_PARSER_MANAGER_OPTION
+{
+	QPMO_SCHEMA_BINARY_NAME,                 // The value must be VT_LPWSTR and be the name of the file containing a schema binary.
+											 // The default value depends on the catalog. For the SystemIndex catalog it is
+											 // "StructuredQuerySchema.bin".
+
+	QPMO_PRELOCALIZED_SCHEMA_BINARY_PATH,    // The value must be either a VT_BOOL or a VT_LPWSTR. If it is a VT_BOOL and the value
+											 // IS VARIANT_FALSE, a prelocalized schema binary path will not be used. If it is VARIANT_TRUE,
+											 // a default prelocalized schema binary path will be used, depending on the catalog.
+											 // If it is a VT_LPWSTR, the value should be a full folder part (though an LCID may be
+											 // appended to it according to the QPMO_APPEND_LCID_TO_LOCALIZED_PATH setting).
+											 // The default is VT_BOOL with VARIANT_TRUE; the actual path is
+											 // "%COMMONAPPDATA%\Microsoft\Windows" (note though that environment variables in the
+											 // given string will not be expanded).
+
+	QPMO_UNLOCALIZED_SCHEMA_BINARY_PATH,     // The value must be VT_LPWSTR and be the full path of a folder in which an unlocalized
+											 // schema binary resides and can be read.
+											 // The default value is the expansion of "%SYSTEMROOT%\System32" (note though
+											 // that environment variables in the given string will not be expanded).
+
+	QPMO_LOCALIZED_SCHEMA_BINARY_PATH,       // The value must be VT_LPWSTR and be the full path of a folder in which a localized
+											 // schema binary can be read, or written as necessary.
+											 // The default value is "%LOCALAPPDATA%\Microsoft\Windows" (note though
+											 // that environment variables in the given string will not be expanded).
+
+	QPMO_APPEND_LCID_TO_LOCALIZED_PATH,      // The value must be a VT_BOOL. If it is VARIANT_TRUE, then the path(s) for localized
+											 // binary will have "\<LCID>" appended to it, e.g., "\1042". The default is VARIANT_TRUE.
+
+	QPMO_LOCALIZER_SUPPORT,                  // The value must be a VT_UNKNOWN with an object supporting ISchemaLocalizerSupport.
+											 // It will be used instead of the default localizer support object which expects "global"
+											 // mnemonics to be on the form "@foo.dll,-12345" and will return the resourec with ID 12345
+											 // of the binary foo.dll.
+} QUERY_PARSER_MANAGER_OPTION;  // Prefix QPMO
+
+								// -----------------------------------------------
+								// IQueryParser -- parse an input string to a query structure
+								// -----------------------------------------------
+[
+	odl,
+	uuid(2EBDEE67-3505-43f8-9946-EA44ABC8E5B0)
+]
+interface IQueryParser : stdole.IUnknown
+{
+	// Parse parses an input string, producing a query solution.
+	// pCustomProperties should be an enumeration of IRichChunk objects, one for each custom property
+	// the application has recognized. pCustomProperties may be NULL, equivalent to an empty enumeration.
+	// For each IRichChunk, the position information identifies the character span of the custom property,
+	// the string value should be the name of an actual property, and the PROPVARIANT is completely ignored.
+	HRESULT Parse([in] LONG pszInputString,[in] IEnumUnknown* pCustomProperties,[out, retval] IQuerySolution** ppSolution);
+
+// Set a single option. See STRUCTURED_QUERY_SINGLE_OPTION above.
+HRESULT SetOption([in] STRUCTURED_QUERY_SINGLE_OPTION option,[in] VARIANT *pOptionValue);
+
+// Get a single option.
+HRESULT GetOption([in] STRUCTURED_QUERY_SINGLE_OPTION option,[out, retval] VARIANT* pOptionValue);
+
+// Set a multi option. See STRUCTURED_QUERY_MULTIOPTION above.
+HRESULT SetMultiOption([in] STRUCTURED_QUERY_MULTIOPTION option,[in] LONG pszOptionKey,[in] VARIANT* pOptionValue);
+
+// Get a schema provider for browsing the currently loaded schema.
+HRESULT GetSchemaProvider([out, retval] ISchemaProvider** ppSchemaProvider);
+
+// Restate a condition as a query string according to the currently selected syntax.
+// The parameter fUseEnglish is reserved for future use; must be FALSE.
+HRESULT RestateToString([in] ICondition* pCondition,[in] BOOL fUseEnglish,[out] LONG* ppszQueryString);
+
+// Parse a condition for a given property. It can be anything that would go after 'PROPERTY:' in an AQS expession.
+HRESULT ParsePropertyValue([in] LONG pszPropertyName,[in] LONG pszInputString,[out, retval] IQuerySolution** ppSolution);
+
+// Restate a condition for a given property. If the condition contains a leaf with any other property name, or no property name at all,
+// E_INVALIDARG will be returned.
+HRESULT RestatePropertyValueToString([in] ICondition* pCondition,[in] BOOL fUseEnglish,[out] LONG* ppszPropertyName,[out] LONG* ppszQueryString);
+};
+
+// ----------------------------------------------------------------------------------
+// IQuerySolution -- encapsulates all information about the interpretation of a query
+// ----------------------------------------------------------------------------------
+[
+	odl,
+	uuid(D6EBC66B-8921-4193-AFDD-A1789FB7FF57)
+]
+interface IQuerySolution : IConditionFactory
+{
+	// Retrieve the condition tree and the "main type" of the solution.
+	// ppQueryNode and ppMainType may be NULL.
+	HRESULT GetQuery([out] ICondition** ppQueryNode, [out] IEntity** ppMainType);
+
+	// Identify parts of the input string not accounted for.
+	// Each parse error is represented by an IRichChunk where the position information
+	// reflect token counts, the string is NULL and the value is a VT_I4
+	// where lVal is from the ParseErrorType enumeration. The valid
+	// values for riid are IID_IEnumUnknown and IID_IEnumVARIANT.
+	HRESULT GetErrors([in] UUID *riid, [out] LPVOID ppParseErrors);
+
+	// Report the query string, how it was tokenized and what LCID and word breaker were used (for recognizing keywords).
+	// ppszInputString, ppTokens, pLocale and ppWordBreaker may be NULL.
+	HRESULT GetLexicalData([out] LONG* ppszInputString, [out] ITokenCollection** ppTokens, [out] LCID* plcid, [out] IUnknown** ppWordBreaker);
+}
+
+
+// -----------------------------------------------
+// IConditionGenerator -- handle named entities and special conditions
+// -----------------------------------------------
+
+// Typically, an IConditionGenerator recognizes a certain type of named entities and generates
+// condition trees for them. An application makes an IConditionGenerator for a type known to
+// the query parser by invoking IQueryParser::SetMultiOption with the name of the type and
+// the IConditionGenerator. The query parser has preloaded condition generators for the base
+// schema types Boolean, Integer, FloatingPoint, DateTime and FilePath.
+// Consider an IConditionGenerator G for some semantic type T.
+// The query parser will call the Initialize method of G as soon as possible (if a schema has
+// been loaded) and again any time a new schema has been loaded (so the named entity
+// recognizer should reset any sort of state each time Initialize is called).
+// The query parser will call the RecognizeNamedEntities method of G for each query and expects that
+// any recognized named entities for type T are added to a named entity collection.
+// The query parser will call the GenerateForLeaf method of G any time it is about to generate a leaf
+// condition with a value of semantic type T.     
+[
+	odl,
+	uuid(92D2CC58-4386-45a3-B98C-7E0CE64A4117)
+]
+interface IConditionGenerator : stdole.IUnknown
+{
+	// The condition generator is expected to reset any state and to retrieve anew any schema
+	// information that it uses.
+	HRESULT Initialize([in] ISchemaProvider* pSchemaProvider);
+
+	// Given an input string, the a user locale (typically the user's default locale) and a tokenization of the
+	// input string, the condition generator should identify any named entities it knows of in that input string
+	// and add each one to the named entity collection. Note that the value of the named entity must be expressed
+	// as a string. That string value will come back to the IConditionGenerator in a call to GenerateForLeaf.
+	HRESULT RecognizeNamedEntities([in] LONG pszInputString,
+		[in] LCID lcidUserLocale,
+		[in] ITokenCollection* pTokenCollection,
+		[in, out] INamedEntityCollector* pNamedEntities);
+
+	// For what would otherwise become a leaf query expression, generate an arbitrary query expression.
+	// pConditionFactory should be used to create the necessary nodes. pszPropertyName is either a property name or NULL.
+	// pszValueType is a semantic type. pszValue is a string as produced earlier by RecognizeNamedEntities.
+	// If pszValue2 is not NULL, then this is actually a range of values beginning with that represented by pszValue
+	// and ending with that represented by pszValue2.
+	// Each of pPropertyNameTerm, pOperationTerm and pValueTerm is either NULL or an IRichChunk with information about
+	// what part of an input string produced the property name, operation or value (cf IConditionFacrory::MakeLeaf and
+	// ICondition::GetInputTerms). If automaticWildcard is VARIANT_TRUE, the generated condition should be one that
+	// matches results that begin with the given value, if meaningful.
+	// If this method returns S_FALSE, it means that it did not generate a condition and the query parser must produce
+	// one in some other way. If it returns S_OK, then there are two outputs that should be set on exit.
+	// If *pNoStringQuery is set to VARIANT_TRUE, then *ppQueryExpression will be the whole condition tree
+	// for this part. It *pNoStringQuery is set to VARIANT_FALSE, then a disjunction will be formed of *ppQueryExpression
+	// and a node that simply looks for the covered part of the input as a string.
+	HRESULT GenerateForLeaf([in] IConditionFactory* pConditionFactory,
+		[in] LONG pszPropertyName,
+		[in] CONDITION_OPERATION cop,
+		[in] LONG pszValueType,
+		[in] LONG pszValue,
+		[in] LONG pszValue2,
+		[in] IRichChunk* pPropertyNameTerm,
+		[in] IRichChunk* pOperationTerm,
+		[in] IRichChunk* pValueTerm,
+		[in] BOOL automaticWildcard,
+		[out] BOOL* pNoStringQuery,
+		[out, retval] ICondition** ppQueryExpression);
+
+	// Given a semantic type and a value, this method attempts to produce a phrase that when recognized by this
+	// IConditionGenerator would produce the given value. On success S_OK will be returned and *ppszPhrase will
+	// be assigned the phrase, to be freed by the caller (CoTaskMemFree). If no such phrase can be produced, S_FALSE
+	// will be returned and NULL assigned to *ppszPhrase. The parameter fUseEnglish is reserved: it should be ignored
+	// by implementors and callers should pass FALSE.
+	HRESULT DefaultPhrase([in] LONG pszValueType, [in] VARIANT* ppropvar, [in] BOOL fUseEnglish, [out, retval] LONG* ppszPhrase);
+}
+
+// ---------------------------------------------------------------------------------------------
+// IInterval -- a closed or open interval
+// ---------------------------------------------------------------------------------------------
+
+[
+	odl,
+	uuid(6BF0A714-3C18-430b-8B5D-83B1C234D3DB)
+]
+interface IInterval : stdole.IUnknown
+{
+	// If an INTERVAL_LIMIT_KIND is ILK_EXPLICIT_INCLUDED or ILK_EXPLICIT_EXCLUDED, then the corresponding PROPVARIANT will be set to an actual value that is the limit.
+	// If an INTERVAL_LIMIT_KIND is ILK_NEGATIVE_INFINITY or ILK_POSITIVE_INFINITY, then the corresponding PROPVARIANT will be set to VT_EMPTY.
+	HRESULT GetLimits([out] INTERVAL_LIMIT_KIND* pilkLower, [out] VARIANT* ppropvarLower, [out] INTERVAL_LIMIT_KIND* pilkUpper, [out] VARIANT* ppropvarUpper);
+}
+
+// ---------------------------------------------------------------------------------------------
+// IMetaData -- a pair of strings, to be thought of as a key and a value
+// ---------------------------------------------------------------------------------------------
+[
+	helpstring("Key/Value pair of strings"),
+	odl,
+	uuid(780102B0-C43B-4876-BC7B-5E9BA5C88794)
+]
+interface IMetaData : stdole.IUnknown
+{
+	// Return a key/value pair.
+	HRESULT GetData([out] LONG* ppszKey, [out] LONG* ppszValue);
+}
+
+// ----------------------------------------------------------------------------------------------
+// IEntity -- a type in the schema
+// ----------------------------------------------------------------------------------------------
+interface IRelationship;
+
+[
+	helpstring("Representing a schema type"),
+	odl,
+	uuid(24264891-E80B-4fd3-B7CE-4FF2FAE8931F)
+]
+interface IEntity : stdole.IUnknown
+{
+	// Return the name of the entity.
+	HRESULT Name([out, retval] LONG* ppszName);
+
+	// If the entity has no base (parent) entity, S_FALSE is returned (and *pBaseEntity is set to NULL),
+	// otherwise *pBaseEntity is set to the base entity.
+	HRESULT Base([out, retval] IEntity** pBaseEntity);
+
+	// Return an enumeration of IRelationship, one for each relationship going out from this entity.
+	// riid must be IID_IEnumUnknown or IID_IEnumVARIANT.
+	HRESULT Relationships([in] UUID* riid, [out] LPVOID pRelationships);
+
+	// If this entity has no outgoing relationship with the given name, S_FALSE is returned (and *pRelationship is set to NULL),
+	// otherwise *pRelationship is set to the corresponding IRelationship.
+	HRESULT GetRelationship([in] LONG pszRelationName, [out, retval] IRelationship** pRelationship);
+
+	// Return an enumeration of IMetaData for this entity. There may be multiple pairs with the same key (or the same value).
+	// riid must be IID_IEnumUnknown or IID_IEnumVARIANT.
+	HRESULT MetaData([in] UUID* riid, [out] LPVOID pMetaData);
+
+	// Return an enumeration of INamedEntity, one for each known named entity of this type.
+	// riid must be IID_IEnumUnknown or IID_IEnumVARIANT.
+	HRESULT NamedEntities([in] UUID* riid, [out] LPVOID pNamedEntities);
+
+	// If this entity has no known named entity with the given value, S_FALSE is returned (and *pNamedEntity is set to NULL),
+	// otherwise *pNamedEntity is set to the corresponding INamedEntity.
+	HRESULT GetNamedEntity([in] LONG pszValue, [out, retval] INamedEntity** ppNamedEntity);
+
+	// Return S_OK and a default phrase to use for this entity in restatements, if there is one,
+	// otherwise return S_FALSE.
+	HRESULT DefaultPhrase([out, retval] LONG* ppszPhrase);
+};
+
+// ----------------------------------------------------------------------------------------------
+// IRelationship -- a property in the schema
+// ----------------------------------------------------------------------------------------------
+[
+	helpstring("Representing a schema property"),
+	odl,
+	uuid(2769280B-5108-498c-9C7F-A51239B63147)
+]
+interface IRelationship : stdole.IUnknown
+{
+	// Return the name of the relationship.
+	HRESULT Name([out, retval] LONG* ppszName);
+
+	// A relationship is not considered "real" if its source entity derives from an entity
+	// which has a relationship with the same name. The purpose of such a "shadow" relationship
+	// is to store metadata specific to the inherited relationship.
+	HRESULT IsReal([out, retval] BOOL* pIsReal);
+
+	// The destination of a relationshipo corresponds to the type of a property.
+	// If the relationship is not "real", S_FALSE will be returned and *pDestinationEntity set to NULL.
+	HRESULT Destination([out, retval] IEntity** pDestinationEntity);
+
+	// Return an enumeration of IMetaData for this relationship. There may be multiple pairs with the same key (or the same value).
+	// riid must be IID_IEnumUnknown or IID_IEnumVARIANT.
+	HRESULT MetaData([in] UUID* riid, [out] LPVOID pMetaData);
+
+	// Return S_OK and a default phrase to use for this relationship in restatements, if there is one,
+	// otherwise return S_FALSE.
+	HRESULT DefaultPhrase([out, retval] LONG* ppszPhrase);
+};
+
+// ---------------------------------------------------------------------------------------------
+// INamedEntity -- a known value of some entity type
+// ---------------------------------------------------------------------------------------------
+[
+	helpstring("Representing a known value of some type"),
+	odl,
+	uuid(ABDBD0B1-7D54-49fb-AB5C-BFF4130004CD)
+]
+interface INamedEntity : stdole.IUnknown
+{
+	// Return the value of the named entity.
+	HRESULT GetValue([out, retval] LONG* ppszValue);
+
+	// Return S_OK and a default phrase to use for this named entity in restatements, if there is one,
+	// otherwise return S_FALSE.
+	HRESULT DefaultPhrase([out, retval] LONG* ppszPhrase);
+}
+
+// ----------------------------------------------------------------------------------------------
+// ISchemaProvider -- a repository of schema
+// ----------------------------------------------------------------------------------------------
+[
+	helpstring("Browsable, localizable schema repository"),
+	odl,
+	uuid(8CF89BCB-394C-49b2-AE28-A59DD4ED7F68)
+]
+interface ISchemaProvider : stdole.IUnknown
+{
+	// Return an enumeration of IEntity, one for each entity in the schema.
+	// riid must be IID_IEnumUnknown or IID_IEnumVARIANT.
+	HRESULT Entities([in] UUID* riid, [out] LPVOID pEntities);
+
+	// Get the root entity of the schema.
+	HRESULT RootEntity([out, retval] IEntity** pRootEntity);
+
+	// If there is no entity with the given name, S_FALSE is returned (and *pEntity is set to NULL),
+	// otherwise *pEntity is set to the corresponding IEntity.
+	HRESULT GetEntity([in] LONG pszEntityName, [out, retval] IEntity** pEntity);
+
+	// Return an enumeration of global IMetaData for this schema. There may be multiple pairs with the same key (or the same value).
+	// riid must be IID_IEnumUnknown or IID_IEnumVARIANT.
+	HRESULT MetaData([in] UUID* riid, [out] LPVOID pMetaData);
+
+	// Localize the (presumably global) currently loaded schema for a given locale.
+	// pSchemaLocalizerSupport may be NULL, in which case each localized string will be obtained by calling SHLoadIndirectString.
+	HRESULT Localize([in] LCID lcid, [in] ISchemaLocalizerSupport* pSchemaLocalizerSupport);
+
+	// Save the current schema as a schema binary at a specified path.
+	// Any existing file in that location will be overwritten.
+	HRESULT SaveBinary([in] LONG pszSchemaBinaryPath);
+
+	// If the token sequence beginning at position cTokensBegin in the given token collection denotes some (authored) named entity
+	// of the specified (entity) type, then return the length of the shortest such token sequence in *pcTokensLength and the value of the
+	// named entity in *ppszValue, and return S_OK. If there is no such token sequence, return S_FALSE.
+	HRESULT LookupAuthoredNamedEntity([in] IEntity* pEntity, [in] LONG pszInputString, [in] ITokenCollection* pTokenCollection, [in] ULONG cTokensBegin, [out] ULONG* pcTokensLength, [out] LONG* ppszValue);
+};
+
+// ----------------------------------------------------------------------------------------------
+// ITokenCollection -- the result of applying a word breaker
+// ----------------------------------------------------------------------------------------------
+[
+	helpstring("Sequence of tokens"),
+	odl,
+	uuid(22D8B4F2-F577-4adb-A335-C2AE88416FAB)
+]
+interface ITokenCollection : stdole.IUnknown
+{
+	// Return the number of tokens in the collection.
+	HRESULT NumberOfTokens([out] ULONG* pCount);
+
+	// Return the zero-based first position and length of a certain token. Moreover, if there was
+	// an overriding text for this token, *ppsz will be set to that text, otherwise *ppsz will be set to NULL.
+	// Any one of pBegin, pLength and ppsz may be NULL.
+	HRESULT GetToken([in] ULONG i, [out] ULONG* pBegin, [out] ULONG* pLength, [out] LONG* ppsz);
+};
+
+// ----------------------------------------------------------------------------------------------
+// INamedEntityCollector -- an accumulator of named entities
+// ----------------------------------------------------------------------------------------------
+
+typedef enum NAMED_ENTITY_CERTAINTY
+{
+	NEC_LOW,      // It could be this named entity but additional evidence advisable.
+	NEC_MEDIUM,   // It quite likely is this named entity; it is OK to use it.
+	NEC_HIGH,     // It almost certainly is this named entity; it should be ok to toss other possibilities.
+} NAMED_ENTITY_CERTAINTY; // prefix NEC
+
+[
+	helpstring("Accumulator for named entities"),
+	odl,
+	uuid(AF2440F6-8AFC-47d0-9A7F-396A0ACFB43D)
+]
+interface INamedEntityCollector : stdole.IUnknown
+{
+	// Add a single (potential) named entity. beginSpan and endSpan make up the overall token span, including any quotes.
+	// beginActual and endActual make up the significant token span. It must be that beginSpan <= beginActual < endActual <= endSpan.
+	// The named entity has a semantic type and some value, represented by a string (cf IConditionGenerator::RecognizeNamedEntities
+	// and IConditionGenerator::GenerateForLeaf).
+	// The given certainty will affect how aggressively this potential named entity is used in the solution.
+	HRESULT Add([in] ULONG beginSpan, [in] ULONG endSpan, [in] ULONG beginActual, [in] ULONG endActual,
+		[in] IEntity* pType, [in] LONG pszValue, [in] NAMED_ENTITY_CERTAINTY certainty);
+};
+
+// ----------------------------------------------------------------------------------------------
+// ISchemaLocalizationSupport -- an application-provided object to translate annotations
+// ----------------------------------------------------------------------------------------------
+[
+	odl,
+	uuid(CA3FDCA2-BFBE-4eed-90D7-0CAEF0A1BDA1)
+]
+interface ISchemaLocalizerSupport : stdole.IUnknown
+{
+	// Translate one annotation. It may just return the same string back, translate any string,
+	// or only translate strings on a certain format.
+	HRESULT Localize([in] LONG pszGlobalString, [out, retval] LONG* ppszLocalString);
+}
+
+// ----------------------------------------------------------------------------------------------
+// IQueryParserManager -- a helper API for creating and initializing query parsers for SearchAPI
+// ----------------------------------------------------------------------------------------------
+[
+	odl,
+	uuid(A879E3C4-AF77-44fb-8F37-EBD1487CF920)
+
+]
+interface IQueryParserManager : stdole.IUnknown
+{
+	// Create a query parser loaded with the schema for a certain catalog localize to a certain language, and initialized with
+	// standard defaults. One valid value for riid is IID_IQueryParser.
+	HRESULT CreateLoadedParser([in] LONG pszCatalog, [in] WORD langidForKeywords, [in] UUID* riid, [out] LPVOID ppQueryParser);
+
+	// In addition to setting AQS/NQS and automatic wildcard for the given query parser, this sets up standard named entity handlers and
+	// sets the keyboard locale as locale for word breaking.
+	HRESULT InitializeOptions([in] BOOL fUnderstandNQS, [in] BOOL fAutoWildCard, [in] IQueryParser* pQueryParser);
+
+	// Change one of the settings for the query parser manager, such as the name of the schema binary, or the location of the localized and unlocalized
+	// schema binaries. By default, the settings point to the schema binaries used by Windows Shell.
+	HRESULT SetOption([in] QUERY_PARSER_MANAGER_OPTION option, [in] VARIANT* pOptionValue);
+}
+
+typedef struct HITRANGE
+{
+	ULONG iPosition;
+	ULONG cLength;
+} HITRANGE;
+
+	// ---------------------------------------------------------------------------------------------
+	// QueryParser -- our main coclass
+	// ---------------------------------------------------------------------------------------------
+
+	// Create an instance of this coclass to obtain a query parser.
+	[
+		uuid(B72F8FD8-0FAB-4dd9-BDBF-245A6CE1485B)
+	]
+	coclass QueryParser
+	{
+		[default] interface IQueryParser;
+	};
+
+	// ---------------------------------------------------------------------------------------------
+	// Our implementations of ICondition
+	// ---------------------------------------------------------------------------------------------
+
+	// These coclasses are not intended to be instantiated; they exist so that the implementation of
+	// ICondition can support IPersistStream.
+	[
+		uuid(8DE9C74C-605A-4acd-BEE3-2B222AA2D23D)
+	]
+	coclass NegationCondition
+	{
+		[default] interface ICondition;
+	};
+
+	[
+		uuid(116F8D13-101E-4fa5-84D4-FF8279381935)
+	]
+	coclass CompoundCondition
+	{
+		[default] interface ICondition;
+	};
+
+	[
+		uuid(52F15C89-5A17-48e1-BBCD-46A3F89C7CC2)
+	]
+	coclass LeafCondition
+	{
+		[default] interface ICondition;
+	};
+
+	// ---------------------------------------------------------------------------------------------
+	// The light weight condition factory
+	// ---------------------------------------------------------------------------------------------
+
+	// Create an instance of this coclass to obtain a factory for condition tree nodes.
+	//CLSID_ConditionFactory
+	[uuid(E03E85B0-7BE3-4000-BA98-6C13DE9FA486)]
+	coclass ConditionFactory
+	{
+		[default] interface IConditionFactory;
+	}
+	// ---------------------------------------------------------------------------------------------
+	// The interval implementation
+	// ---------------------------------------------------------------------------------------------
+
+	[
+		uuid(D957171F-4BF9-4de2-BCD5-C70A7CA55836)
+	]
+	coclass Interval
+	{
+		[default] interface IInterval;
+	};
+
+	// ---------------------------------------------------------------------------------------------
+	// QueryParserManager -- coclass for creating initialized query parsers
+	// ---------------------------------------------------------------------------------------------
+
+	// Create an instance of this coclass to obtain a query parser manager.
+	[
+		uuid(5088B39A-29B4-4d9d-8245-4EE289222F66)
+	]
+	coclass QueryParserManager
+	{
+		[default] interface IQueryParserManager;
+	};
+

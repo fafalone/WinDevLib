@@ -1,0 +1,217 @@
+//dskquota.h
+
+//#define HRESULT x) HRESULT x
+
+typedef enum DiskQuotaStates {
+	DISKQUOTA_STATE_DISABLED          =  0x00000000,
+	DISKQUOTA_STATE_TRACK             =  0x00000001,
+	DISKQUOTA_STATE_ENFORCE           =  0x00000002,
+	DISKQUOTA_STATE_MASK              =  0x00000003,
+	DISKQUOTA_FILESTATE_INCOMPLETE    =  0x00000100,
+	DISKQUOTA_FILESTATE_REBUILDING    =  0x00000200,
+	DISKQUOTA_FILESTATE_MASK          =  0x00000300
+} DiskQuotaStates;
+
+typedef enum DiskQuotaLogFlags {
+	DISKQUOTA_LOGFLAG_USER_THRESHOLD   = 0x00000001,
+	DISKQUOTA_LOGFLAG_USER_LIMIT       = 0x00000002
+} DiskQuotaLogFlags;
+
+typedef struct DISKQUOTA_USER_INFORMATION {
+	LONGLONG QuotaUsed;
+	LONGLONG QuotaThreshold;
+	LONGLONG QuotaLimit;
+} DISKQUOTA_USER_INFORMATION;
+
+typedef enum DiskQuotaNameResolution {
+	DISKQUOTA_USERNAME_RESOLVE_NONE    = 0,
+	DISKQUOTA_USERNAME_RESOLVE_SYNC    = 1,
+	DISKQUOTA_USERNAME_RESOLVE_ASYNC   = 2
+} DiskQuotaNameResolution;
+
+typedef enum DiskQuotaAccountStatus {
+	DISKQUOTA_USER_ACCOUNT_RESOLVED    = 0,
+	DISKQUOTA_USER_ACCOUNT_UNAVAILABLE = 1,
+	DISKQUOTA_USER_ACCOUNT_DELETED     = 2,
+	DISKQUOTA_USER_ACCOUNT_INVALID     = 3,
+	DISKQUOTA_USER_ACCOUNT_UNKNOWN     = 4,
+	DISKQUOTA_USER_ACCOUNT_UNRESOLVED  = 5
+} DiskQuotaAccountStatus;
+
+[
+	odl,
+	uuid(7988B574-EC89-11cf-9C00-00AA00A14F56)
+]
+interface IDiskQuotaUser : stdole.IUnknown
+{
+	HRESULT GetID([out] ULONG *pulID);
+	HRESULT GetName(
+        [in] LongPtr pszAccountContainer,
+        [in] DWORD cchAccountContainer,
+        [in] LongPtr pszLogonName,
+        [in] DWORD cchLogonName,
+        [in] LongPtr pszDisplayName,
+        [in] DWORD cchDisplayName);
+
+    HRESULT GetSidLength(
+        [out] DWORD *pdwLength);
+
+    HRESULT GetSid(
+        [out] BYTE *pbSidBuffer,
+        [in] DWORD cbSidBuffer);
+
+    HRESULT GetQuotaThreshold(
+        [out] LONGLONG *pllThreshold);
+
+    HRESULT GetQuotaThresholdText(
+        [in] LongPtr pszText,
+        [in] DWORD cchText);
+
+    HRESULT GetQuotaLimit(
+        [out] LONGLONG *pllLimit);
+
+    HRESULT GetQuotaLimitText(
+        [in] LongPtr pszText,
+        [in] DWORD cchText);
+
+    HRESULT GetQuotaUsed(
+        [out] LONGLONG *pllUsed);
+
+    HRESULT GetQuotaUsedText(
+        [in] LongPtr pszText,
+        [in] DWORD cchText);
+
+    HRESULT GetQuotaInformation(
+        [in, out] LPVOID pbQuotaInfo,
+        [in] DWORD cbQuotaInfo);
+
+    HRESULT SetQuotaThreshold(
+        [in] LONGLONG llThreshold,
+        [in] BOOL fWriteThrough);
+
+    HRESULT SetQuotaLimit(
+        [in] LONGLONG llLimit,
+        [in] BOOL fWriteThrough);
+
+    HRESULT Invalidate(void);
+
+    HRESULT GetAccountStatus(
+        [out] DiskQuotaAccountStatus *pdwStatus);
+}
+
+[
+    odl,
+    uuid(7988B577-EC89-11cf-9C00-00AA00A14F56)
+]
+interface IEnumDiskQuotaUsers : stdole.IUnknown
+{
+    HRESULT Next([in] DWORD cUsers,[out] IDiskQuotaUser * *rgUsers,[in, out] DWORD * pcUsersFetched);
+    HRESULT Skip([in] DWORD cUsers);
+    HRESULT Reset(void);
+    HRESULT Clone([out] IEnumDiskQuotaUsers** ppEnum);
+}
+
+[
+    odl,
+    uuid(7988B576-EC89-11cf-9C00-00AA00A14F56)
+]
+interface IDiskQuotaUserBatch : stdole.IUnknown
+{
+    HRESULT Add([in] IDiskQuotaUser * pUser);
+    HRESULT Remove([in] IDiskQuotaUser* pUser);
+    HRESULT RemoveAll(void);
+    HRESULT FlushToDisk(void);
+}
+
+[
+    odl,
+    uuid(7988B572-EC89-11cf-9C00-00AA00A14F56)
+]
+interface IDiskQuotaControl : IConnectionPointContainer
+{
+    HRESULT Initialize(
+        [in] LongPtr pszPath,
+        [in] BOOL bReadWrite);
+
+    HRESULT SetQuotaState(
+        [in] DiskQuotaStates dwState);
+
+    HRESULT GetQuotaState(
+        [out] DiskQuotaStates *pdwState);
+
+    HRESULT SetQuotaLogFlags(
+        [in] DiskQuotaLogFlags dwFlags);
+
+    HRESULT GetQuotaLogFlags(
+        [out] DiskQuotaLogFlags *pdwFlags);
+
+    HRESULT SetDefaultQuotaThreshold(
+        [in] LONGLONG llThreshold);
+
+    HRESULT GetDefaultQuotaThreshold(
+        [out] LONGLONG* pllThreshold);
+
+    HRESULT GetDefaultQuotaThresholdText(
+        [in] LongPtr pszText,
+        [in] DWORD cchText);
+
+    HRESULT SetDefaultQuotaLimit(
+        [in] LONGLONG llLimit);
+
+    HRESULT GetDefaultQuotaLimit(
+        [out] LONGLONG *pllLimit);
+
+    HRESULT GetDefaultQuotaLimitText(
+        [in] LongPtr pszText,
+        [in] DWORD cchText);
+
+    HRESULT AddUserSid(
+        [in] LongPtr pUserSid,
+        [in] DiskQuotaNameResolution fNameResolution,
+        [out] IDiskQuotaUser** ppUser);
+
+    HRESULT AddUserName(
+        [in] LongPtr pszLogonName,
+        [in] DiskQuotaNameResolution fNameResolution,
+        [out] IDiskQuotaUser** ppUser);
+
+    HRESULT DeleteUser(
+        [in] IDiskQuotaUser* pUser);
+
+    HRESULT FindUserSid(
+        [in] LongPtr pUserSid,
+        [in] DiskQuotaNameResolution fNameResolution,
+        [out] IDiskQuotaUser** ppUser);
+
+    HRESULT FindUserName(
+        [in] LongPtr pszLogonName,
+        [out] IDiskQuotaUser** ppUser);
+
+    HRESULT CreateEnumUsers(
+        [out] LongPtr* rgpUserSids,
+        [in] DWORD cpSids,
+        [in] DiskQuotaNameResolution fNameResolution,
+        [out] IEnumDiskQuotaUsers** ppEnum);
+
+    HRESULT CreateUserBatch(
+        [out] IDiskQuotaUserBatch** ppBatch);
+
+    HRESULT InvalidateSidNameCache(void);
+
+    HRESULT GiveUserNameResolutionPriority(
+        [in] IDiskQuotaUser* pUser);
+
+    HRESULT ShutdownNameResolution(void);
+};
+
+[
+    odl,
+    uuid(7988B579-EC89-11cf-9C00-00AA00A14F56)
+]
+interface IDiskQuotaEvents : stdole.IUnknown
+{
+    HRESULT OnUserNameChanged([in] IDiskQuotaUser * pUser);
+}
+
+//CLSID_DiskQuotaControl
+[uuid(7988B571-EC89-11cf-9C00-00AA00A14F56)] coclass DiskQuotaControl { interface IDiskQuotaControl; }

@@ -1,0 +1,640 @@
+//explrvw.odl - Contains IExplorerView, INamespaceTreeControl, and related interfaces/enums
+
+
+//  Event sink interface for IExplorerBrowser events
+[
+	odl,
+    uuid(361bbdc7-e6ee-4e13-be58-58e2240c810f)
+]
+interface IExplorerBrowserEvents : stdole.IUnknown
+{
+    // Returning failure from this will cancel the navigation.
+    HRESULT OnNavigationPending([in] LONG pidlFolder);
+
+    // Called once the view window has been created.  Do any last minute modifcations
+    //  to the view here before it is shown (set view modes, folder flags, etc...)
+    HRESULT OnViewCreated([in] IShellView *psv);
+
+    // Called once the navigation has succeeded (after OnViewCreated).
+    HRESULT OnNavigationComplete([in] LONG pidlFolder);
+
+    // Called if a navigation failed, despite the call to IShellBrowser::BrowseObject succeeding.
+    HRESULT OnNavigationFailed([in] LONG pidlFolder);
+}
+
+// IExplorerBrowser::SetOptions() flags
+typedef enum EXPLORER_BROWSER_OPTIONS
+{
+    EBO_NONE               = 0x00000000,     // No options
+    EBO_NAVIGATEONCE       = 0x00000001,     // Don't navigate after initial navigation
+    EBO_SHOWFRAMES         = 0x00000002,     // Show with frame module manager on - otherwise, single view object
+    EBO_ALWAYSNAVIGATE     = 0x00000004,     // Always navigate, even if you are attempting to navigate to the current folder
+    EBO_NOTRAVELLOG        = 0x00000008,     // do not update travel log
+    EBO_NOWRAPPERWINDOW    = 0x00000010,     // For legacy clients that need the browser parented directly on themselves
+    EBO_HTMLSHAREPOINTVIEW = 0x00000020,     // Show WebView for sharepoint sites
+    EBO_NOBORDER           = 0x00000040,
+    EBO_NOPERSISTVIEWSTATE = 0x00000080
+} EXPLORER_BROWSER_OPTIONS;
+
+// IExplorerBrowser::FillFromObject() flags
+// Cannot conflict with SBSP_... flags from IShellBrowser::BrowseObject()
+typedef enum EXPLORER_BROWSER_FILL_FLAGS
+{
+    EBF_NONE                  = 0x0000000,   // No flags
+    // Causes FillFromObject to populate the ResultsFolder with the
+    // contents of the parent folders of the items in the DataObject
+    // and then check-selects only the items that are in the DataObject
+    EBF_SELECTFROMDATAOBJECT  = 0x0000100,   
+    // don't regsiter a drop target for the view, this enables apps to register their own drop target
+    // that they can use to receive the drops
+    EBF_NODROPTARGET          = 0x0000200,   
+} EXPLORER_BROWSER_FILL_FLAGS;
+
+   
+//
+//  This allows you to host a simple browser (CLSID_ExplorerBrowser) that can be navigated
+//  or host a view of a data object.   Use either BrowseToIDList or BrowseToObject to navigate
+//  the browser or use FillWithDataObject to create the view on the data object.
+//
+[
+	odl,
+    uuid(dfd3b6b5-c10c-4be9-85f6-a66969f402f6)
+]
+interface IExplorerBrowser : stdole.IUnknown
+{
+    // to clean up this object you must call ::Destroy.
+    long Initialize(
+        [in] HWND hwndParent,
+        [in] RECT *prc,
+        [in] FOLDERSETTINGS *pfs);
+
+	long Destroy();
+
+    long SetRect(
+        [in, out] LONG *phdwp, //HDWP *phdwp,
+		[in] LONG ptleft,
+		[in] LONG pttop,
+		[in] LONG ptright,
+		[in] LONG ptbottom);
+        //[in] RECT *rcBrowser);  // relative to hwndParent
+
+	long SetPropertyBag([in] LPCWSTR pszPropertyBag);  // Property bag for view state persistence
+
+	long SetEmptyText([in] LPCWSTR pszEmptyText);  // Displayed when view is empty
+
+	long SetFolderSettings([in] FOLDERSETTINGS *pfs);  // Sets how view displays / operates
+
+	long Advise([in] IExplorerBrowserEvents *psbe, [out] DWORD *pdwCookie);
+
+	long Unadvise([in] DWORD dwCookie);
+
+	long SetOptions([in] EXPLORER_BROWSER_OPTIONS dwFlag);
+
+	long GetOptions([out] EXPLORER_BROWSER_OPTIONS *pdwFlag);
+
+    // navigate the browser to a particular location
+    // uFlags contains SBSP_ flag values
+	long BrowseToIDList([in] LONG pidl, [in] BO_Flags uFlags);
+
+    // punk is a shell item (IShellItem) or any object that can produce an IDList
+    // using SHGetIDListFromObject()
+    // uFlags contains SBSP_ flag values
+	long BrowseToObject([in] IUnknown *punk, [in] BO_Flags uFlags);
+
+    // populate from a given data source
+    // punk can be an IDataObject or anything that can be used with INamespaceWalk
+	long FillFromObject([in] IUnknown *punk, [in] EXPLORER_BROWSER_FILL_FLAGS dwFlags);
+
+	long RemoveAll();
+
+    // return the current view object on IShellView or IFolderView or related interface
+    long GetCurrentView([in] UUID *riid, [in, out] LPVOID ppv);
+}
+typedef enum EXPLORERPANESTATE
+{
+    // ordinals
+    EPS_DONTCARE     = 0x0000,  // don't impact the pane at all
+    EPS_DEFAULT_ON   = 0x0001,  // set its default state to "on", however user-modified persisted state is respected.
+    EPS_DEFAULT_OFF  = 0x0002,  //  "   "   "  "off".
+    EPS_STATEMASK    = 0xFFFF,
+
+    // flags
+    // not all ExplorerPanes will necessarily respect these flags
+    EPS_INITIALSTATE      = 0x00010000,  // ignore persisted state from the user, but user can still modify the state.
+    EPS_FORCE             = 0x00020000,  // user can't modify the state (i.e. hide affordances for show/hide).  implies EPS_INITIALSTATE.
+} EXPLORERPANESTATE;
+[
+    odl,
+    uuid(e07010ec-bc17-44c0-97b0-46c7c95b9edc)
+]
+interface IExplorerPaneVisibility : stdole.IUnknown
+{
+
+    // each pane has its own semantic, for example the NavPane is opt-out, so EPS_DONTCARE means you'll typically have the
+    // NavPane displayed, clients who want it to never show will pass EPS_DEFAULT_OFF | EPS_FORCE.
+    // QueryPane is opt-in, so it will only show for clients who pass EPS_DEFAULT_ON.  however its default persisted state
+    // is "off" so if you want to force it on you have to pass EPS_DEFAULT_ON | EPS_INITIALSTATE.
+
+    // IExplorerPaneVisibility client can provide default states by returning EXPLORERPANESTATE here,
+    // failure of GetPaneState corresponds to EPS_DONTCARE.
+    HRESULT GetPaneState(
+		[in] UUID *ep,
+		[in, out] EXPLORERPANESTATE *peps);
+}
+// New for Vista, but used by downlevel code
+//cpp_quote("#if (NTDDI_VERSION >= NTDDI_VISTA)")
+    typedef enum NSTCSTYLE
+    {
+        NSTCS_HASEXPANDOS           = 0x00000001,
+        NSTCS_HASLINES              = 0x00000002,
+        NSTCS_SINGLECLICKEXPAND     = 0x00000004,
+        NSTCS_FULLROWSELECT         = 0x00000008,
+        NSTCS_SPRINGEXPAND          = 0x00000010,
+        NSTCS_HORIZONTALSCROLL      = 0x00000020,
+        NSTCS_ROOTHASEXPANDO        = 0x00000040,
+        NSTCS_SHOWSELECTIONALWAYS   = 0x00000080,
+        NSTCS_NOINFOTIP             = 0x00000200,
+        NSTCS_EVENHEIGHT            = 0x00000400,
+        NSTCS_NOREPLACEOPEN         = 0x00000800,
+        NSTCS_DISABLEDRAGDROP       = 0x00001000,
+        NSTCS_NOORDERSTREAM         = 0x00002000,
+        NSTCS_RICHTOOLTIP           = 0x00004000,
+        NSTCS_BORDER                = 0x00008000,
+        NSTCS_NOEDITLABELS          = 0x00010000,
+        NSTCS_TABSTOP               = 0x00020000,
+        NSTCS_FAVORITESMODE         = 0x00080000,  // temporary
+        NSTCS_AUTOHSCROLL           = 0x00100000,
+        NSTCS_FADEINOUTEXPANDOS     = 0x00200000,
+        NSTCS_EMPTYTEXT             = 0x00400000,  // insert empty text when folder is empty
+        NSTCS_CHECKBOXES            = 0x00800000,
+        NSTCS_PARTIALCHECKBOXES     = 0x01000000,
+        NSTCS_EXCLUSIONCHECKBOXES   = 0x02000000,
+        NSTCS_DIMMEDCHECKBOXES      = 0x04000000,
+        NSTCS_NOINDENTCHECKS        = 0x08000000,
+        NSTCS_ALLOWJUNCTIONS        = 0x10000000,
+        NSTCS_SHOWTABSBUTTON        = 0x20000000,
+        NSTCS_SHOWDELETEBUTTON      = 0x40000000,
+        NSTCS_SHOWREFRESHBUTTON     = 0x80000000,
+    } NSTCSTYLE;
+
+    typedef enum NSTCROOTSTYLE
+    {
+        NSTCRS_VISIBLE      = 0x0000,
+        NSTCRS_HIDDEN       = 0x0001,
+        NSTCRS_EXPANDED     = 0x0002,
+    } NSTCROOTSTYLE;
+
+    typedef enum NSTCITEMSTATE
+    {
+        NSTCIS_NONE             = 0x0000,
+        NSTCIS_SELECTED         = 0x0001,
+        NSTCIS_EXPANDED         = 0x0002,
+        NSTCIS_BOLD             = 0x0004,
+        NSTCIS_DISABLED         = 0x0008,
+        NSTCIS_SELECTEDNOEXPAND = 0x0010,
+    } NSTCITEMSTATE;
+
+    typedef enum NSTCGNI
+    {
+        NSTCGNI_NEXT            = 0,
+        NSTCGNI_NEXTVISIBLE     = 1,
+        NSTCGNI_PREV            = 2,
+        NSTCGNI_PREVVISIBLE     = 3,
+        NSTCGNI_PARENT          = 4,
+        NSTCGNI_CHILD           = 5,
+        NSTCGNI_FIRSTVISIBLE    = 6,
+        NSTCGNI_LASTVISIBLE     = 7,
+    } NSTCGNI;
+[
+    odl,
+    uuid(028212A3-B627-47e9-8856-C14265554E4F)
+]
+interface INameSpaceTreeControl : stdole.IUnknown
+{
+    HRESULT Initialize(
+        [in] HWND hwndParent,
+        [in] RECT *prc,
+        [in] NSTCSTYLE nsctsFlags);
+
+    HRESULT TreeAdvise(
+        [in] IUnknown *punk,
+        [out] DWORD *pdwCookie);
+
+    HRESULT TreeUnadvise([in] DWORD dwCookie);
+
+    HRESULT AppendRoot(
+        [in] IShellItem *psiRoot,
+        [in] SHCONTF grfEnumFlags,
+        [in] NSTCROOTSTYLE grfRootStyle,
+        [in] IShellItemFilter *pif);
+
+    HRESULT InsertRoot(
+        [in] int iIndex,
+        [in] IShellItem *psiRoot,
+        [in] SHCONTF grfEnumFlags,
+        [in] NSTCROOTSTYLE grfRootStyle,
+        [in] IShellItemFilter *pif);
+
+    HRESULT RemoveRoot([in] IShellItem *psiRoot);
+
+    HRESULT RemoveAllRoots();
+
+    HRESULT GetRootItems([out] IShellItemArray **ppsiaRootItems);
+
+    HRESULT SetItemState(
+        [in] IShellItem *psi,
+        [in] NSTCITEMSTATE nstcisMask,
+        [in] NSTCITEMSTATE nstcisFlags);
+
+    HRESULT GetItemState(
+        [in] IShellItem *psi,
+        [in] NSTCITEMSTATE nstcisMask,
+        [out] NSTCITEMSTATE *pnstcisFlags);
+
+    HRESULT GetSelectedItems([out] IShellItemArray **psiaItems);
+
+    HRESULT GetItemCustomState(
+        [in] IShellItem *psi,
+        [out] int *piStateNumber);
+
+    HRESULT SetItemCustomState(
+        [in] IShellItem *psi,
+        [in] int iStateNumber);
+
+    HRESULT EnsureItemVisible([in] IShellItem *psi);
+
+    HRESULT SetTheme([in] LPCWSTR pszTheme);
+
+    HRESULT GetNextItem(
+        [in] IShellItem *psi,
+        [in] NSTCGNI nstcgi,
+        [out] IShellItem **ppsiNext);
+
+    HRESULT HitTest(
+        [in] POINT *ppt,
+        [out] IShellItem **ppsiOut);
+
+    HRESULT GetItemRect(
+        [in] IShellItem *psi,
+        [out] RECT *prect);
+
+    HRESULT CollapseAll();
+}
+    typedef enum NSTCSTYLE2
+    {
+        NSTCS2_DEFAULT                  = 0x00000000,
+        NSTCS2_INTERRUPTNOTIFICATIONS   = 0x00000001,
+        NSTCS2_SHOWNULLSPACEMENU        = 0x00000002,
+        NSTCS2_DISPLAYPADDING           = 0x00000004,
+        NSTCS2_DISPLAYPINNEDONLY        = 0x00000008, // Filters items based on PKEY_IsPinnedToNameSpaceTree
+        NTSCS2_NOSINGLETONAUTOEXPAND    = 0x00000010, // Prevent auto expansion of singleton nodes in tree
+        NTSCS2_NEVERINSERTNONENUMERATED = 0x00000020, // Don't insert non-enumerated (SFGAO_NONENUMERATED) items
+    } NSTCSTYLE2;
+
+[
+    odl,
+    uuid(7cc7aed8-290e-49bc-8945-c1401cc9306c),
+]
+interface INameSpaceTreeControl2 : INameSpaceTreeControl
+{
+
+    HRESULT SetControlStyle(
+               [in] NSTCSTYLE nstcsMask,
+               [in] NSTCSTYLE nstcsStyle);
+
+    HRESULT GetControlStyle(
+               [in] NSTCSTYLE nstcsMask,
+               [out] NSTCSTYLE *pnstcsStyle);
+
+    HRESULT SetControlStyle2(
+               [in] NSTCSTYLE2 nstcsMask,
+               [in] NSTCSTYLE2 nstcsStyle);
+
+    HRESULT GetControlStyle2(
+               [in] NSTCSTYLE2 nstcsMask,
+               [out] NSTCSTYLE2 *pnstcsStyle);
+}
+typedef enum NSTCEHITTEST
+{
+    // items up to 0x00ff reflect the TVHITTESTINFO flags
+    NSTCEHT_NOWHERE         = 0x0001,
+    NSTCEHT_ONITEMICON      = 0x0002,
+    NSTCEHT_ONITEMLABEL     = 0x0004,
+    NSTCEHT_ONITEMINDENT    = 0x0008,
+    NSTCEHT_ONITEMBUTTON    = 0x0010,
+    NSTCEHT_ONITEMRIGHT     = 0x0020,
+    NSTCEHT_ONITEMSTATEICON = 0x0040,
+    NSTCEHT_ONITEM          = 0x0046,
+    // items below don't reflect the TVHITTESTINFO flags
+    NSTCEHT_ONITEMTABBUTTON = 0x1000,
+} NSTCEHITTEST;
+
+typedef enum NSTCECLICKTYPE
+{
+    NSTCECT_LBUTTON    = 0x0001,
+    NSTCECT_MBUTTON    = 0x0002,
+    NSTCECT_RBUTTON    = 0x0003,
+    NSTCECT_BUTTON     = 0x0003,
+    NSTCECT_DBLCLICK   = 0x0004,
+} NSTCECLICKTYPE;
+[
+    odl,
+    uuid(93D77985-B3D8-4484-8318-672CDDA002CE)
+]
+interface INameSpaceTreeControlEvents : stdole.IUnknown
+{
+
+
+    HRESULT OnItemClick(
+        [in] IShellItem *psi,
+        [in] NSTCEHITTEST nstceHitTest,
+        [in] NSTCECLICKTYPE nstceClickType);
+
+    HRESULT OnPropertyItemCommit([in] IShellItem *psi);
+
+    HRESULT OnItemStateChanging(
+        [in] IShellItem *psi,
+        [in] NSTCITEMSTATE nstcisMask,
+        [in] NSTCITEMSTATE nstcisState);
+
+    HRESULT OnItemStateChanged(
+        [in] IShellItem *psi,
+        [in] NSTCITEMSTATE nstcisMask,
+        [in] NSTCITEMSTATE nstcisState);
+
+    HRESULT OnSelectionChanged([in] IShellItemArray *psiaSelection);
+
+    HRESULT OnKeyboardInput(
+        [in] UINT uMsg,
+        [in] LONG wParam,
+        [in] LONG lParam);
+
+    HRESULT OnBeforeExpand([in] IShellItem *psi);
+
+    HRESULT OnAfterExpand([in] IShellItem *psi);
+
+    HRESULT OnBeginLabelEdit([in] IShellItem *psi);
+
+    HRESULT OnEndLabelEdit([in] IShellItem *psi);
+
+    HRESULT OnGetToolTip(
+        [in] IShellItem *psi,
+        [in, out] LONG *pszTip,
+        [in] int cchTip);
+
+    HRESULT OnBeforeItemDelete([in] IShellItem *psi);
+
+    HRESULT OnItemAdded(
+        [in] IShellItem *psi,
+        [in] BOOL fIsRoot);
+
+    HRESULT OnItemDeleted(
+        [in] IShellItem *psi,
+        [in] BOOL fIsRoot);
+
+	HRESULT OnBeforeContextMenu(
+		[in] IShellItem *psi,
+		[in] UUID *riid,
+		[in, out] LONG *ppv);
+		//[in, out] IContextMenu **ppv); //[out] LPVOID
+
+    // psi can only be NULL if NSTCS2_SHOWNULLSPACEMENU is set
+	HRESULT OnAfterContextMenu(
+		[in] IShellItem *psi,
+		[in] IContextMenu *pcmIn,
+		[in] UUID *riid,
+		[in, out] LONG *ppv);
+		//[in, out] IContextMenu **ppv);
+
+    HRESULT OnBeforeStateImageChange([in] IShellItem *psi);
+
+    HRESULT OnGetDefaultIconIndex(
+        [in] IShellItem *psi,
+        [in, out] int *piDefaultIcon,
+        [in, out] int *piOpenIcon);
+}
+
+[
+    odl,
+    uuid(F9C665D6-C2F2-4c19-BF33-8322D7352F51)
+]
+interface INameSpaceTreeControlDropHandler : stdole.IUnknown
+{
+    HRESULT OnDragEnter(
+        [in] IShellItem *psiOver,
+        [in] IShellItemArray *psiaData,
+        [in] BOOL fOutsideSource,
+        [in] DWORD grfKeyState,
+        [in, out] DWORD *pdwEffect);
+
+    HRESULT OnDragOver(
+        [in] IShellItem *psiOver,
+        [in] IShellItemArray *psiaData,
+        [in] DWORD grfKeyState,
+        [in, out] DWORD *pdwEffect);
+
+    HRESULT OnDragPosition(
+        [in] IShellItem *psiOver,
+        [in] IShellItemArray *psiaData,
+        [in] int iNewPosition,
+        [in] int iOldPosition);
+
+    HRESULT OnDrop(
+        [in] IShellItem *psiOver,
+        [in] IShellItemArray *psiaData,
+        [in] int iPosition,
+        [in] DWORD grfKeyState,
+        [in, out] DWORD *pdwEffect);
+
+    HRESULT OnDropPosition(
+        [in] IShellItem *psiOver,
+        [in] IShellItemArray *psiaData,
+        [in] int iNewPosition,
+        [in] int iOldPosition);
+
+    HRESULT OnDragLeave([in] IShellItem *psiOver);
+};
+
+[
+    odl,
+    uuid(71f312de-43ed-4190-8477-e9536b82350b)
+]
+interface INameSpaceTreeAccessible : stdole.IUnknown
+{
+    HRESULT OnGetDefaultAccessibilityAction(
+        [in] IShellItem *psi,
+        [in, out] BSTR *pbstrDefaultAction);
+
+    HRESULT OnDoDefaultAccessibilityAction([in] IShellItem *psi);
+
+    HRESULT OnGetAccessibilityRole(
+        [in] IShellItem *psi,
+        [out] VARIANT *pvarRole);
+}
+    typedef struct NSTCCUSTOMDRAW
+    {
+		IShellItem *psi; //- LONG psi; //def. automation error... pass ptr?
+        UINT uItemState; // CDIS_xxx values
+        NSTCITEMSTATE nstcis;
+        LONG pszText;
+        int iImage;
+        HIMAGELIST himl;
+        int iLevel;
+        int iIndent;
+    } NSTCCUSTOMDRAW;
+[
+    odl,
+    uuid(2D3BA758-33EE-42d5-BB7B-5F3431D86C78)
+]
+interface INameSpaceTreeControlCustomDraw : stdole.IUnknown
+{
+
+
+    HRESULT PrePaint(
+        [in] HDC hdc,
+        [in] RECT *prc,
+        [out] LONG *plres);
+
+    HRESULT PostPaint(
+        [in] HDC hdc,
+        [in] RECT *prc);
+
+    HRESULT ItemPrePaint(
+        [in] HDC hdc,
+        [in] RECT *prc,
+        [in] NSTCCUSTOMDRAW *pnstccdItem,
+        [in, out] LONG *pclrText,
+        [in, out] LONG *pclrTextBk,
+        [out] LONG *plres);
+
+    HRESULT ItemPostPaint(
+        [in] HDC hdc,
+        [in] RECT *prc,
+        [in] NSTCCUSTOMDRAW *pnstccdItem);
+}
+    typedef enum NSTCFOLDERCAPABILITIES
+    {
+        NSTCFC_NONE                    = 0x00000000,
+        NSTCFC_PINNEDITEMFILTERING     = 0x00000001, // Supports filtering based on PKEY_IsPinnedToNameSpaceTree
+        NSTCFC_DELAY_REGISTER_NOTIFY   = 0x00000002, // Delays registration for change notifications until expanded in navigation pane
+    } NSTCFOLDERCAPABILITIES;
+[
+    odl,
+    uuid(e9701183-e6b3-4ff2-8568-813615fec7be)
+]
+interface INameSpaceTreeControlFolderCapabilities : stdole.IUnknown
+{
+
+    HRESULT GetFolderCapabilities([in] NSTCFOLDERCAPABILITIES nfcMask, [out] NSTCFOLDERCAPABILITIES *pnfcValue);
+};
+
+
+
+
+
+    typedef enum ShellWindowTypeConstants {
+        [helpstring("Explorer")]                    SWC_EXPLORER    = 0x0,
+        [helpstring("Various Browsing Windows")]    SWC_BROWSER     = 0x00000001,
+        [helpstring("3rd Party Browsers")]          SWC_3RDPARTY    = 0x00000002,
+        [helpstring("Creation Callback")]           SWC_CALLBACK    = 0x00000004,
+        [helpstring("The Windows Desktop")]         SWC_DESKTOP     = 0x00000008,
+    } ShellWindowTypeConstants;
+	typedef enum ShellWindowFindWindowOptions { 
+	  SWFO_NEEDDISPATCH    = 0x00000001,
+	  SWFO_INCLUDEPENDING  = 0x00000002,
+	  SWFO_COOKIEPASSED    = 0x00000004
+	} ShellWindowFindWindowOptions;
+    [
+		odl,
+        uuid(85CB6900-4D95-11CF-960C-0080C7F4EE85),     // IID_IShellWindows
+        helpstring("Definition of interface IShellWindows")
+    ]
+    interface IShellWindows : stdole.IDispatch
+    {
+        //Properties
+        [helpstring("Get count of open Shell windows")]
+        HRESULT Count([out, retval] long *Count);
+
+        //Methods
+        [helpstring("Return the shell window for the given index")]
+        HRESULT Item([in] VARIANT index, [out, retval]IDispatch **Folder);
+
+        [helpstring("Enumerates the figures")]
+        HRESULT NewEnum([out, retval] IUnknown **ppunk);
+
+        // Some private hidden members to allow shell windows to add and
+        // remove themself from the list.  We mark them hidden to keep
+        // random VB apps from trying to Register...
+        [helpstring("Register a window with the list")]
+        HRESULT Register([in] IDispatch *pid,
+                         [in] long hwnd,
+                         [in] ShellWindowTypeConstants swClass,
+                         [out]long *plCookie);
+
+        [helpstring("Register a pending open with the list")]
+        HRESULT RegisterPending([in] long lThreadId,
+                         [in] VARIANT* pvarloc,     // will hold pidl that is being opened.
+                         [in] VARIANT* pvarlocRoot, // Optional root pidl
+                         [in] ShellWindowTypeConstants swClass,
+                         [out]long *plCookie);
+
+        [helpstring("Remove a window from the list")]
+        HRESULT Revoke([in]long lCookie);
+        // As an optimization, each window notifies the new location
+        // only when
+        //  (1) it's being deactivated
+        //  (2) getFullName is called (we overload it to force update)
+        [helpstring("Notifies the new location"), hidden]
+        HRESULT OnNavigate([in]long lCookie, [in] VARIANT* pvarLoc);
+        [helpstring("Notifies the activation"), hidden]
+        HRESULT OnActivated([in]long lCookie, [in] VARIANT_BOOL fActive);
+        [helpstring("Find the window based on the location")]
+        HRESULT FindWindowSW([in] VARIANT* pvarLoc,
+                             [in] VARIANT* pvarLocRoot, /* unused */
+                             [in] ShellWindowTypeConstants swClass,
+                             [out] long *phwnd,
+                             [in] ShellWindowFindWindowOptions swfwOptions,
+                             [out,retval] IDispatch** ppdispOut);
+        [helpstring("Notifies on creation and frame name set"), hidden]
+        HRESULT OnCreated([in] long lCookie,[in] IUnknown *punk);
+
+        [helpstring("Used by IExplore to register different processes"), hidden]
+        HRESULT ProcessAttachDetach([in] VARIANT_BOOL fAttach);
+    };
+
+
+    [
+        uuid(fe4106e0-399a-11d0-a48c-00a0c90a8f39), // DIID_DShellWindowsEvents
+        helpstring("Event interface for IShellWindows"),
+    ]
+    dispinterface DShellWindowsEvents
+    {
+        properties:
+        methods:
+        [id(201), helpstring("A new window was registered."), helpcontext(0x0000)]
+        void WindowRegistered([in] long lCookie);
+
+        [id(202), helpstring("A new window was revoked."), helpcontext(0x0000)]
+        void WindowRevoked([in] long lCookie);
+    }
+
+    [
+        uuid(9BA05972-F6A8-11CF-A442-00A0C90A8F39),     // CLSID_ShellWindows
+        helpstring("ShellDispatch Load in Shell Context")
+    ]
+    coclass ShellWindows
+    {
+        [default] interface IShellWindows;
+        [default, source] dispinterface DShellWindowsEvents;
+    }
+    // CLSID_NamespaceTreeControl
+    [ uuid(AE054212-3535-4430-83ED-D501AA6680E6) ]
+	coclass NamespaceTreeControl {
+		interface INameSpaceTreeControl2;
+	}
+
+    // CLSID_ExplorerBrowser
+    [ uuid(71f96385-ddd6-48d3-a0c1-ae06e8b055fb) ]
+	coclass ExplorerBrowser { 
+		interface IExplorerBrowser;
+	}
