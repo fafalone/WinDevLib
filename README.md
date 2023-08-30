@@ -6,7 +6,7 @@
 
 ---
 
-**Current Version: 5.1.207 (August 25th, 2023)**
+**Current Version: 5.2.208 (August 30th, 2023)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -93,6 +93,9 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, vbNullPtr, ...)
 ```
 
 ### Updates
+
+**Update (v5.2.208):** Substantial API additions; inc. SystemParametersInfo structs/enums, display config, raw input, missing dialog stuff. Additional standard helper macros found in Windows headers.
+
 
 **Update (5.1.206/207):**\
 -Added PropSheet macros.\
