@@ -1474,18 +1474,6 @@ Public Const CDIS_NEARHOT = &H400
 Public Const CDIS_OTHERSIDEHOT = &H800
 Public Const CDIS_DROPHILITED = &H1000
 
-Public Enum DDL_Flags
-	DDL_READWRITE = &H0000
-	DDL_READONLY = &H0001
-	DDL_HIDDEN = &H0002
-	DDL_SYSTEM = &H0004
-	DDL_DIRECTORY = &H0010
-	DDL_ARCHIVE = &H0020
-	DDL_POSTMSGS = &H2000
-	DDL_DRIVES = &H4000
-	DDL_EXCLUSIVE = &H8000&
-End Enum
-
 Public Enum MSGFs
 	MSGF_COMMCTRL_BEGINDRAG = &H4200
 	MSGF_COMMCTRL_SIZEHEADER = &H4201
@@ -1941,9 +1929,193 @@ End Type
 Public Declare PtrSafe Function GetComboBoxInfo Lib "user32" (ByVal hWndCombo As LongPtr, pcbi As COMBOBOXINFO) As Long
 
 
-Public Declare PtrSafe Function DlgDirListComboBoxA Lib "user32" (ByVal hDlg As LongPtr, ByVal lpPathSpec As String, ByVal nIDComboBox As Long, ByVal nIDStaticPath As Long, ByVal uFileType As DDL_Flags) As Long
-Public Declare PtrSafe Function DlgDirListComboBoxW Lib "user32" (ByVal hDlg As LongPtr, ByVal lpPathSpec As LongPtr, ByVal nIDComboBox As Long, ByVal nIDStaticPath As Long, ByVal uFileType As DDL_Flags) As Long
 	
+#End Region
+
+#Region "Dialog"
+Public Const WC_DIALOG = "#32770"
+
+[ Description ("WARNING: Use GWLP_Dialog values with Get/SetWindowLongPtr on 64bit") ]
+Public Enum GWL_Dialog
+    DWL_MSGRESULT = 0
+    DWL_DLGPROC = 4
+    DWL_USER = 8
+End Enum
+[ Description ("WARNING: Use GWL_Dialog values with Get/SetWindowLongPtr on 32bit") ]
+Public Enum GWLP_Dialog
+    DWLP_MSGRESULT = 0
+    DWLP_DLGPROC = DWLP_MSGRESULT + LenB(Of LongPtr)
+    DWLP_USER = DWLP_DLGPROC + LenB(Of LongPtr)
+End Enum
+
+Public Enum DlgDL_Flags
+    DDL_READWRITE = &H0000
+    DDL_READONLY = &H0001
+    DDL_HIDDEN = &H0002
+    DDL_SYSTEM = &H0004
+    DDL_DIRECTORY = &H0010
+    DDL_ARCHIVE = &H0020
+    DDL_POSTMSGS = &H2000
+    DDL_DRIVES = &H4000
+    DDL_EXCLUSIVE = &H8000&
+End Enum
+
+Public Enum DialogStyles
+    DS_ABSALIGN = &H01
+    DS_SYSMODAL = &H02
+    DS_LOCALEDIT = &H20 /* 16-bit: Edit items get Local storage. 32-bit and up: meaningless. */
+    DS_SETFONT = &H40 /* User specified font for Dlg controls */
+    DS_MODALFRAME = &H80 /* Can be combined with WS_CAPTION */
+    DS_NOIDLEMSG = &H100 /* WM_ENTERIDLE message will not be sent */
+    DS_SETFOREGROUND = &H200 /* not in win3.1 */
+    DS_3DLOOK = &H0004
+    DS_FIXEDSYS = &H0008
+    DS_NOFAILCREATE = &H0010
+    DS_CONTROL = &H0400
+    DS_CENTER = &H0800
+    DS_CENTERMOUSE = &H1000
+    DS_CONTEXTHELP = &H2000
+    DS_SHELLFONT = (DS_SETFONT Or DS_FIXEDSYS)
+    DS_USEPIXELS = &H8000&
+End Enum
+
+[ Description ("style also includes control-specific styles") ]
+[ PackingAlignment (2) ]
+Public Type DLGITEMTEMPLATE
+    style As WindowStyles
+    dwExtendedStyle As WindowStylesEx
+    x As Integer
+    y As Integer
+    cx As Integer
+    cy As Integer
+    id As Integer
+End Type
+[ Description ("style can also be DialogStyles entries") ]
+[ PackingAlignment (2) ]
+Public Type DLGTEMPLATE
+    style As WindowStyles
+    dwExtendedStyle As WindowStylesEx
+    x As Integer
+    y As Integer
+    cx As Integer
+    cy As Integer
+    id As Integer
+End Type
+
+Public Enum DIALOG_CONTROL_DPI_CHANGE_BEHAVIORS
+    DCDC_DEFAULT = &H0000
+    DCDC_DISABLE_FONT_UPDATE = &H0001
+    DCDC_DISABLE_RELAYOUT = &H0002
+End Enum
+Public Enum DIALOG_DPI_CHANGE_BEHAVIORS
+    DDC_DEFAULT = &H0000
+    DDC_DISABLE_ALL = &H0001
+    DDC_DISABLE_RESIZE = &H0002
+    DDC_DISABLE_CONTROL_RELAYOUT = &H0004
+End Enum
+
+Public Const DM_GETDEFID  = (WM_USER + 0)
+Public Const DM_SETDEFID  = (WM_USER + 1)
+Public Const DM_REPOSITION  = (WM_USER + 2)
+[ Description ("Returned in HIWORD() of DM_GETDEFID result if msg Is supported") ] Public Const DC_HASDEFID  = &H534B
+
+Public Enum DialogCodes
+    DLGC_WANTARROWS = &H0001 /* Control wants arrow keys */
+    DLGC_WANTTAB = &H0002 /* Control wants tab keys */
+    DLGC_WANTALLKEYS = &H0004 /* Control wants all keys */
+    DLGC_WANTMESSAGE = &H0004 /* Pass message to control */
+    DLGC_HASSETSEL = &H0008 /* Understands EM_SETSEL message */
+    DLGC_DEFPUSHBUTTON = &H0010 /* Default pushbutton */
+    DLGC_UNDEFPUSHBUTTON = &H0020 /* Non-default pushbutton */
+    DLGC_RADIOBUTTON = &H0040 /* Radio button */
+    DLGC_WANTCHARS = &H0080 /* Want WM_CHAR messages */
+    DLGC_STATIC = &H0100 /* Static item: don't include */
+    DLGC_BUTTON = &H2000 /* Button item: can be checked */
+End Enum
+
+Public Const DLGWINDOWEXTRA = 30
+
+Public Declare PtrSafe Function CreateDialogParamA Lib "user32" (ByVal hInstance As LongPtr, ByVal lpName As String, Optional ByVal hWndParent As LongPtr = 0, Optional ByVal lpDialogFunc As LongPtr = 0, Optional ByVal dwInitParam As LongPtr = 0) As LongPtr
+Public DeclareWide PtrSafe Function CreateDialogParamW Lib "user32" (ByVal hInstance As LongPtr, ByVal lpName As LongPtr, Optional ByVal hWndParent As LongPtr = 0, Optional ByVal lpDialogFunc As LongPtr = 0, Optional ByVal dwInitParam As LongPtr = 0) As LongPtr
+Public DeclareWide PtrSafe Function CreateDialogParam Lib "user32" Alias "CreateDialogParamW" (ByVal hInstance As LongPtr, ByVal lpName As String, Optional ByVal hWndParent As LongPtr = 0, Optional ByVal lpDialogFunc As LongPtr = 0, Optional ByVal dwInitParam As LongPtr = 0) As LongPtr
+Public Declare PtrSafe Function CreateDialogIndirectParamA Lib "user32" (ByVal hInstance As LongPtr, lpTemplate As Any, Optional ByVal hWndParent As LongPtr = 0, Optional ByVal lpDialogFunc As LongPtr = 0, Optional ByVal dwInitParam As LongPtr = 0) As LongPtr
+Public DeclareWide PtrSafe Function CreateDialogIndirectParamW Lib "user32" (ByVal hInstance As LongPtr, lpTemplate As Any, Optional ByVal hWndParent As LongPtr = 0, Optional ByVal lpDialogFunc As LongPtr = 0, Optional ByVal dwInitParam As LongPtr = 0) As LongPtr
+Public DeclareWide PtrSafe Function CreateDialogIndirectParam Lib "user32" Alias "CreateDialogIndirectParamW" (ByVal hInstance As LongPtr, lpTemplate As Any, Optional ByVal hWndParent As LongPtr = 0, Optional ByVal lpDialogFunc As LongPtr = 0, Optional ByVal dwInitParam As LongPtr = 0) As LongPtr
+Public Declare PtrSafe Function DefDlgProcA Lib "user32" (ByVal hDlg As LongPtr, ByVal uMsg As Long, ByVal wParam As LongPtr, lParam As Any) As LongPtr
+Public DeclareWide PtrSafe Function DefDlgProcW Lib "user32" (ByVal hDlg As LongPtr, ByVal uMsg As Long, ByVal wParam As LongPtr, lParam As Any) As LongPtr
+Public DeclareWide PtrSafe Function DefDlgProc Lib "user32" Alias "DefDlgProcW" (ByVal hDlg As LongPtr, ByVal uMsg As Long, ByVal wParam As LongPtr, lParam As Any) As LongPtr
+Public Declare PtrSafe Function DialogBoxParamA Lib "user32" (ByVal hInstance As LongPtr, ByVal lpTemplateName As String, Optional ByVal hWndParent As LongPtr = 0, Optional ByVal lpDialogFunc As LongPtr = 0, Optional ByVal dwInitParam As LongPtr = 0) As LongPtr
+Public DeclareWide PtrSafe Function DialogBoxParamW Lib "user32" (ByVal hInstance As LongPtr, ByVal lpTemplateName As LongPtr, Optional ByVal hWndParent As LongPtr = 0, Optional ByVal lpDialogFunc As LongPtr = 0, Optional ByVal dwInitParam As LongPtr = 0) As LongPtr
+Public DeclareWide PtrSafe Function DialogBoxParam Lib "user32" Alias "DialogBoxParamW" (ByVal hInstance As LongPtr, ByVal lpTemplateName As String, Optional ByVal hWndParent As LongPtr = 0, Optional ByVal lpDialogFunc As LongPtr = 0, Optional ByVal dwInitParam As LongPtr = 0) As LongPtr
+Public Declare PtrSafe Function DialogBoxIndirectParamA Lib "user32" (ByVal hInstance As LongPtr, hDialogTemplate As Any, Optional ByVal hWndParent As LongPtr = 0, Optional ByVal lpDialogFunc As LongPtr = 0, Optional ByVal dwInitParam As LongPtr = 0) As LongPtr
+Public DeclareWide PtrSafe Function DialogBoxIndirectParamW Lib "user32" (ByVal hInstance As LongPtr, hDialogTemplate As Any, Optional ByVal hWndParent As LongPtr = 0, Optional ByVal lpDialogFunc As LongPtr = 0, Optional ByVal dwInitParam As LongPtr = 0) As LongPtr
+Public DeclareWide PtrSafe Function DialogBoxIndirectParam Lib "user32" Alias "DialogBoxIndirectParamW" (ByVal hInstance As LongPtr, hDialogTemplate As Any, Optional ByVal hWndParent As LongPtr = 0, Optional ByVal lpDialogFunc As LongPtr = 0, Optional ByVal dwInitParam As LongPtr = 0) As LongPtr
+Public DeclareWide PtrSafe Function EndDialog Lib "user32" (ByVal hDlg As LongPtr, ByVal nResult As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function GetDialogBaseUnits Lib "user32" () As Long
+Public DeclareWide PtrSafe Function GetDlgCtrlID Lib "user32" (ByVal hWnd As LongPtr) As Long
+Public DeclareWide PtrSafe Function GetDlgItem Lib "user32" (ByVal hDlg As LongPtr, ByVal nIDDlgItem As Long) As LongPtr
+Public DeclareWide PtrSafe Function GetDlgItemInt Lib "user32" (ByVal hDlg As LongPtr, ByVal nIDDlgItem As Long, lpTranslated As BOOL, ByVal bSigned As BOOL) As Long
+Public Declare PtrSafe Function GetDlgItemTextA Lib "user32" (ByVal hDlg As LongPtr, ByVal nIDDlgItem As Long, ByVal lpString As String, ByVal cchMax As Long) As Long
+Public DeclareWide PtrSafe Function GetDlgItemTextW Lib "user32" (ByVal hDlg As LongPtr, ByVal nIDDlgItem As Long, ByVal lpString As LongPtr, ByVal cchMax As Long) As Long
+Public DeclareWide PtrSafe Function GetDlgItemText Lib "user32" Alias "GetDlgItemTextW" (ByVal hDlg As LongPtr, ByVal nIDDlgItem As Long, ByVal lpString As String, ByVal cchMax As Long) As Long
+Public DeclareWide PtrSafe Function GetNextDlgGroupItem Lib "user32" (ByVal hDlg As LongPtr, ByVal hCtl As LongPtr, ByVal bPrevious As BOOL) As LongPtr
+Public DeclareWide PtrSafe Function GetNextDlgTabItem Lib "user32" (ByVal hDlg As LongPtr, ByVal hCtl As LongPtr, ByVal bPrevious As BOOL) As LongPtr
+Public Declare PtrSafe Function IsDialogMessageA Lib "user32" (ByVal hDlg As LongPtr, lpMsg As MSG) As BOOL
+Public DeclareWide PtrSafe Function IsDialogMessageW Lib "user32" (ByVal hDlg As LongPtr, lpMsg As MSG) As BOOL
+Public DeclareWide PtrSafe Function IsDialogMessage Lib "user32" Alias "IsDialogMessageW" (ByVal hDlg As LongPtr, lpMsg As MSG) As BOOL
+Public DeclareWide PtrSafe Function MapDialogRect Lib "user32" (ByVal hDlg As LongPtr, lpRect As RECT) As BOOL
+Public Declare PtrSafe Function SendDlgItemMessageA Lib "user32" (ByVal hDlg As LongPtr, ByVal nIDDlgItem As Long, ByVal uMsg As Long, ByVal wParam As LongPtr, lParam As Any) As LongPtr
+Public DeclareWide PtrSafe Function SendDlgItemMessageW Lib "user32" (ByVal hDlg As LongPtr, ByVal nIDDlgItem As Long, ByVal uMsg As Long, ByVal wParam As LongPtr, lParam As Any) As LongPtr
+Public DeclareWide PtrSafe Function SendDlgItemMessage Lib "user32" Alias "SendDlgItemMessageW" (ByVal hDlg As LongPtr, ByVal nIDDlgItem As Long, ByVal uMsg As Long, ByVal wParam As LongPtr, lParam As Any) As LongPtr
+Public DeclareWide PtrSafe Function SetDlgItemInt Lib "user32" (ByVal hDlg As LongPtr, ByVal nIDDlgItem As Long, ByVal uValue As Long, ByVal bSigned As BOOL) As BOOL
+Public Declare PtrSafe Function SetDlgItemTextA Lib "user32" (ByVal hDlg As LongPtr, ByVal nIDDlgItem As Long, ByVal lpString As String) As BOOL
+Public DeclareWide PtrSafe Function SetDlgItemTextW Lib "user32" (ByVal hDlg As LongPtr, ByVal nIDDlgItem As Long, ByVal lpString As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function SetDlgItemText Lib "user32" Alias "SetDlgItemTextW" (ByVal hDlg As LongPtr, ByVal nIDDlgItem As Long, ByVal lpString As String) As BOOL
+Public DeclareWide PtrSafe Function CheckDlgButton Lib "user32" (ByVal hDlg As LongPtr, ByVal nIDButton As Long, ByVal uCheck As ButtonStates) As BOOL
+Public DeclareWide PtrSafe Function CheckRadioButton Lib "user32" (ByVal hDlg As LongPtr, ByVal nIDFirstButton As Long, ByVal nIDLastButton As Long, ByVal nIDCheckButton As Long) As BOOL
+Public DeclareWide PtrSafe Function IsDlgButtonChecked Lib "user32" (ByVal hDlg As LongPtr, ByVal nIDButton As Long) As Long
+Public Declare PtrSafe Function GetDialogControlDpiChangeBehavior Lib "user32" (ByVal hwnd As LongPtr) As DIALOG_CONTROL_DPI_CHANGE_BEHAVIORS
+Public DeclareWide PtrSafe Function SetDialogControlDpiChangeBehavior Lib "user32" (ByVal hwnd As LongPtr, ByVal mask As DIALOG_CONTROL_DPI_CHANGE_BEHAVIORS, ByVal values As DIALOG_CONTROL_DPI_CHANGE_BEHAVIORS) As BOOL
+Public DeclareWide PtrSafe Function GetDialogDpiChangeBehavior Lib "user32" (ByVal hDlg As LongPtr) As DIALOG_DPI_CHANGE_BEHAVIORS
+Public DeclareWide PtrSafe Function SetDialogDpiChangeBehavior Lib "user32" (ByVal hDlg As LongPtr, ByVal mask As DIALOG_DPI_CHANGE_BEHAVIORS, ByVal values As DIALOG_DPI_CHANGE_BEHAVIORS) As BOOL
+Public Declare PtrSafe Function DlgDirListA Lib "user32" (ByVal hDlg As LongPtr, ByVal lpPathSpec As String, ByVal nIDListBox As Long, ByVal nIDStaticPath As Long, ByVal uFileType As DlgDL_Flags) As Long
+Public Declare PtrSafe Function DlgDirListW Lib "user32" (ByVal hDlg As LongPtr, ByVal lpPathSpec As LongPtr, ByVal nIDListBox As Long, ByVal nIDStaticPath As Long, ByVal uFileType As DlgDL_Flags) As Long
+Public DeclareWide PtrSafe Function DlgDirList Lib "user32" Alias "DlgDirListW" (ByVal hDlg As LongPtr, ByVal lpPathSpec As String, ByVal nIDListBox As Long, ByVal nIDStaticPath As Long, ByVal uFileType As DlgDL_Flags) As Long
+Public Declare PtrSafe Function DlgDirSelectExA Lib "user32" (ByVal hDlg As LongPtr, ByVal lpString As String, ByVal chCount As Long, ByVal idListBox As Long) As BOOL
+Public Declare PtrSafe Function DlgDirSelectExW Lib "user32" (ByVal hDlg As LongPtr, ByVal lpString As LongPtr, ByVal chCount As Long, ByVal idListBox As Long) As BOOL
+Public DeclareWide PtrSafe Function DlgDirSelectEx Lib "user32" Alias "DlgDirListW" (ByVal hDlg As LongPtr, ByVal lpString As String, ByVal chCount As Long, ByVal idListBox As Long) As BOOL
+Public Declare PtrSafe Function DlgDirListComboBoxA Lib "user32" (ByVal hDlg As LongPtr, ByVal lpPathSpec As String, ByVal nIDComboBox As Long, ByVal nIDStaticPath As Long, ByVal uFileType As DlgDL_Flags) As Long
+Public Declare PtrSafe Function DlgDirListComboBoxW Lib "user32" (ByVal hDlg As LongPtr, ByVal lpPathSpec As LongPtr, ByVal nIDComboBox As Long, ByVal nIDStaticPath As Long, ByVal uFileType As DlgDL_Flags) As Long
+Public DeclareWide PtrSafe Function DlgDirListComboBox Lib "user32" Alias "DlgDirListComboBoxW" (ByVal hDlg As LongPtr, ByVal lpPathSpec As String, ByVal nIDComboBox As Long, ByVal nIDStaticPath As Long, ByVal uFileType As DlgDL_Flags) As Long
+Public Declare PtrSafe Function DlgDirSelectComboBoxExA Lib "user32" (ByVal hwndDlg As LongPtr, ByVal lpString As String, ByVal chCount As Long, ByVal idComboBox As Long) As BOOL
+Public Declare PtrSafe Function DlgDirSelectComboBoxExW Lib "user32" (ByVal hwndDlg As LongPtr, ByVal lpString As LongPtr, ByVal chCount As Long, ByVal idComboBox As Long) As BOOL
+Public DeclareWide PtrSafe Function DlgDirSelectComboBoxEx Lib "user32" Alias "DlgDirSelectComboBoxExW" (ByVal hwndDlg As LongPtr, ByVal lpString As String, ByVal chCount As Long, ByVal idComboBox As Long) As BOOL
+
+Public Sub CreateDialogW(ByVal hInstance As LongPtr, ByVal lpName As LongPtr, Optional ByVal hWndParent As LongPtr = 0, Optional ByVal lpDialogFunc As LongPtr = 0)
+    CreateDialogParamW(hInstance, lpName, hWndParent, lpDialogFunc, 0)
+End Sub
+Public Sub CreateDialog(ByVal hInstance As LongPtr, ByVal lpName As String, Optional ByVal hWndParent As LongPtr = 0, Optional ByVal lpDialogFunc As LongPtr = 0)
+    CreateDialogParam(hInstance, lpName, hWndParent, lpDialogFunc, 0)
+End Sub
+Public Sub CreateDialogIndirectW(ByVal hInstance As LongPtr, ByVal lpTemplate As LongPtr, Optional ByVal hWndParent As LongPtr = 0, Optional ByVal lpDialogFunc As LongPtr = 0)
+    CreateDialogIndirectParamW(hInstance, ByVal lpTemplate, hWndParent, lpDialogFunc, 0)
+End Sub
+Public Sub CreateDialogIndirect(ByVal hInstance As LongPtr, ByVal lpTemplate As LongPtr, Optional ByVal hWndParent As LongPtr = 0, Optional ByVal lpDialogFunc As LongPtr = 0)
+    CreateDialogIndirectParam(hInstance, ByVal lpTemplate, hWndParent, lpDialogFunc, 0)
+End Sub
+Public Sub DialogBoxW(ByVal hInstance As LongPtr, ByVal lpTemplateName As LongPtr, Optional ByVal hWndParent As LongPtr = 0, Optional ByVal lpDialogFunc As LongPtr = 0)
+    DialogBoxParamW(hInstance, lpTemplateName, hWndParent, lpDialogFunc, 0)
+End Sub
+Public Sub DialogBox(ByVal hInstance As LongPtr, ByVal lpTemplateName As String, Optional ByVal hWndParent As LongPtr = 0, Optional ByVal lpDialogFunc As LongPtr = 0)
+    DialogBoxParam(hInstance, lpTemplateName, hWndParent, lpDialogFunc, 0)
+End Sub
+Public Sub DialogBoxIndirectW(ByVal hInstance As LongPtr, ByVal hDialogTemplate As LongPtr, Optional ByVal hWndParent As LongPtr = 0, Optional ByVal lpDialogFunc As LongPtr = 0)
+    DialogBoxIndirectParamW(hInstance, ByVal hDialogTemplate, hWndParent, lpDialogFunc, 0)
+End Sub
+Public Sub DialogBoxIndirect(ByVal hInstance As LongPtr, ByVal hDialogTemplate As LongPtr, Optional ByVal hWndParent As LongPtr = 0, Optional ByVal lpDialogFunc As LongPtr = 0)
+    DialogBoxIndirectParam(hInstance, ByVal hDialogTemplate, hWndParent, lpDialogFunc, 0)
+End Sub
+
 #End Region
 
 #Region "DTPicker"
@@ -10518,50 +10690,6 @@ Public Declare PtrSafe Function DwmGetWindowAttribute Lib "uxtheme" (ByVal hWnd 
 #End Region
 
 #Region "Helpers"
-Public Function MAKELPARAM(wLow As Long, wHigh As Long) As LongPtr
-  MAKELPARAM = MakeLong(wLow, wHigh)
-End Function
-Public Function MakeLong(wLow As Long, wHigh As Long) As Long
-  MakeLong = LoWord(wLow) Or (&H10000 * LoWord(wHigh))
-End Function
-
-Public Function INDEXTOSTATEIMAGEMASK(ByVal Index As Long) As Long
-#If TWINBASIC Then
-INDEXTOSTATEIMAGEMASK = (Index << 12)
-#Else
-INDEXTOSTATEIMAGEMASK = Index * (2 ^ 12)	
-#End If
-End Function
-Public Function STATEIMAGEMASKTOINDEX(ByVal ImgState As Long) As Long
-#If TWINBASIC Then
-STATEIMAGEMASKTOINDEX = (ImgState >> 12)
-#Else
-STATEIMAGEMASKTOINDEX = ImgState / (2 ^ 12)	
-#End If
-End Function
-
-Public Function LoWord(ByVal DWord As Long) As Integer
-If DWord And &H8000& Then
-    LoWord = DWord Or &HFFFF0000
-Else
-    LoWord = DWord And &HFFFF&
-End If
-End Function
-Public Function HiWord(ByVal DWord As Long) As Integer
-HiWord = (DWord And &HFFFF0000) \ &H10000
-End Function
-
-Public Function MAKEIPRANGE(ByVal Low As Byte, ByVal High As Byte) As Integer
-If (High And &H80) <> 0 Then
-    MAKEIPRANGE = ((High * &H100&) Or Low) Or &HFFFF0000
-Else
-    MAKEIPRANGE = (High * &H100) Or Low
-End If
-End Function
-
-Public Function MAKEIPADDRESS(b1 As Long, b2 As Long, b3 As Long, b4 As Long) As Long
-MAKEIPADDRESS = ((b1 << 24) + (b2 << 16) + (b3 << 8) + b4)
-End Function
 
 Public Function Header_GetItemW(hwndHD As LongPtr, iItem As Long, phdi As HDITEMW) As Boolean
   Header_GetItemW = SendMessage(hwndHD, HDM_GETITEMW, iItem, phdi)
@@ -10649,7 +10777,7 @@ Public Function Button_SetElevationRequiredState(hWnd As LongPtr, fRequired As L
 Button_SetElevationRequiredState = CLng(SendMessage(hWnd, BCM_SETSHIELD, 0, ByVal fRequired))
 End Function
 Public Function Button_SetStyle(hWnd As LongPtr, dwStyle As ButtonStyles, fRedraw As Long) As Long
-Button_SetStyle = CLng(SendMessage(hWnd, BM_SETSTYLE, LoWord(dwStyle), ByVal MAKELPARAM(fRedraw, 0)))
+Button_SetStyle = CLng(SendMessage(hWnd, BM_SETSTYLE, LOWORD(dwStyle), ByVal MAKELPARAM(fRedraw, 0)))
 End Function
 Public Function Button_GetState(hWnd As LongPtr) As ButtonStates
 Button_GetState = CLng(SendMessage(hWnd, BM_GETSTATE, 0, ByVal 0&))
@@ -10990,7 +11118,7 @@ Public Sub ListView_SetItemText(hwndLV As LongPtr, i As Long, iSubItem As Long, 
   SendMessage hwndLV, LVM_SETITEMTEXT, ByVal i, lvi
 End Sub
 Public Function ListView_SetIconSpacing(hwndLV As LongPtr, CX As Long, CY As Long) As LongPtr
-  ListView_SetIconSpacing = SendMessage(hwndLV, LVM_SETICONSPACING, 0, ByVal MakeLong(CX, CY))
+  ListView_SetIconSpacing = SendMessage(hwndLV, LVM_SETICONSPACING, 0, ByVal MAKELONG(CX, CY))
 End Function
 Public Sub ListView_SetItemCount(hwndLV As LongPtr, cItems As Long)
   SendMessage hwndLV, LVM_SETITEMCOUNT, ByVal cItems, 0
