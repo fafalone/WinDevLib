@@ -1,4 +1,5 @@
 
+**Update (v5.2.208):** Substantial API additions; inc. SystemParametersInfo structs/enums, display config, raw input, missing dialog stuff. Additional standard helper macros found in Windows headers.
 
 **Update (5.1.207):** 
 -Added PropSheet macros
