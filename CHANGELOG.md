@@ -1,4 +1,6 @@
 
+**Update (v5.2.210-212):** Additional APIs for upcoming project release.
+
 **Update (v5.2.208):** Substantial API additions; inc. SystemParametersInfo structs/enums, display config, raw input, missing dialog stuff. Additional standard helper macros found in Windows headers.
 
 **Update (5.1.207):** 
