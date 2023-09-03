@@ -1,6 +1,6 @@
 '**********************************************************************************
 'tbShellLib - twinBASIC Shell Library
-'Version 5.2.212
+'Version 5.3.214
 '(c) 2022-2023 Jon Johnson (fafalone)
 'Project GUID: {1FCDB98D-617D-4995-9736-2ED0E4746A10}
 '
@@ -1828,7 +1828,7 @@ End Interface
 [ OleAutomation (False) ]
 Interface IShellApp Extends stdole.IUnknown
     Sub GetAppInfo(ByRef pai As APPINFODATA)
-    Sub GetPossibleActions(ByRef pdwActions As Long)
+    Sub GetPossibleActions(ByRef pdwActions As APPACTIONFLAGS)
     Sub GetSlowAppInfo(ByRef psaid As SLOWAPPINFO)
     Sub GetCachedSlowAppInfo(ByRef psaid As SLOWAPPINFO)
     Sub IsInstalled()
@@ -1863,6 +1863,71 @@ Interface IAppPublisher Extends stdole.IUnknown
     Sub GetNumberOfApps(ByRef pdwApps As Long)
     Sub EnumApps(ByRef pAppCategoryId As UUID, ByRef ppepa As IEnumPublishedApps)
 End Interface
+
+[ InterfaceId ("3964D99F-AC96-11D1-9851-00C04FD91972") ]
+Interface IADCCtl Extends IDispatch
+	[ DispId (&H100) ] Property Let Dirty(ByVal bDirty As Boolean)
+    [ DispId (&H100) ] Property Get Dirty() As Boolean
+    [ DispId (&H101) ] Property Let Category(ByVal bstrCategory As String)
+    [ DispId (&H101) ] Property Get Category() As String
+    [ DispId (&H102) ] Property Let Sort(ByVal bstrSortExpr As String)
+    [ DispId (&H102) ] Property Get Sort() As String
+    [ DispId (&H103) ] Property Let Forcex86(ByVal bForce As Boolean)
+    [ DispId (&H103) ] Property Get Forcex86() As Boolean
+    [ DispId (&H104) ] Property Get ShowPostSetup() As Boolean
+    [ DispId (&H105) ] Property Let OnDomain(ByVal bOnDomain As Boolean)
+    [ DispId (&H105) ] Property Get OnDomain() As Boolean
+    [ DispId (&H106) ] Property Get DefaultCategory() As String
+    [ DispId (-3900), Restricted ] Function msDataSourceObject(ByVal qualifier As String) As IUnknown
+    [ DispId (-3901), Restricted ] Sub addDataSourceListener(ByVal pEvent As IUnknown)
+	Sub Reset(ByVal qualifier As String)
+	Function IsRestricted(ByVal bstrPolicy As String) As Boolean
+	/*
+    // Valid Exec command strings:
+    //
+    //  "install"       - install app at nRecord
+    //  "uninstall"     - uninstall app
+    //  "modify"        - modify app
+    //  "repair"        - repair app
+    //  "upgrade"       - upgrade app
+    //  "generic install" - invoke the 'install from floppy or CD' wizard
+    //  "ntoptions"     - add/remove NT options
+    //  "winupdate"     - update windows
+	*/
+    Sub Exec(ByVal qualifier As String, ByVal bstrCmd As String, ByVal nRecord As Long)
+End Interface
+
+[ InterfaceId ("1BC752DF-9046-11D1-B8B3-006008059382") ]
+[ OleAutomation (False) ]
+[ Description ("Shell Installed Application Interface") ]
+Interface IInstalledApp Extends IShellApp
+	[ Description ("Same as Add/Remove") ]
+	Sub Uninstall(ByVal hWnd As LongPtr)
+	Sub Modify(ByVal hwnd As LongPtr)
+	Sub Repair(ByVal bReInstall As BOOL)
+	Sub Upgrade()
+End Interface
+[ InterfaceId ("1BC752E1-9046-11D1-B8B3-006008059382") ]
+[ OleAutomation (False) ]
+[ Description ("Shell Installed Apps Enumeration Interface") ]
+Interface IEnumInstalledApps Extends IUnknown
+	Sub Next(pia As IInstalledApp)
+	Sub Reset()
+End Interface
+
+[ InterfaceId ("352EC2B8-8B9A-11D1-B8AE-006008059382") ]
+[ OleAutomation (False) ]
+[ Description ("Application Manager") ]
+Interface IShellAppManager Extends IUnknown
+	Sub GetNumberofInstalledApps(pdwResult As Long)
+	Sub EnumInstalledApps(peia As IEnumInstalledApps)
+	Sub GetPublishedAppCategories(pCategoryList As SHELLAPPCATEGORYLIST)
+	Sub EnumPublishedApps(ByVal pszCategory As LongPtr, ppepa As IEnumPublishedApps)
+	Sub InstallFromFloppyOrCDROM(ByVal hwndParent As LongPtr)
+End Interface
+
+
+
 
 [ InterfaceId ("B4CD448A-9C86-4466-9201-2E62105B87AE") ]
 [ OleAutomation (False) ]
@@ -3636,6 +3701,28 @@ End CoClass
 CoClass AddressBand
     [ Default ] Interface IDeskBand
 End CoClass
+
+'CLSID_ADCCtl
+[ CoClassId ("3964D9A0-AC96-11D1-9851-00C04FD91972") ]
+CoClass ADCCtl
+    [ Default ] Interface IADCCtl
+End CoClass
+
+'CLSID_EnumInstalledApps
+[ CoClassId ("0B124F8F-91F0-11D1-B8B5-006008059382") ]
+[ Description ("Shell Installed Applications Enumeration Object") ]
+CoClass EnumInstalledApps
+    [ Default ] Interface IEnumInstalledApps
+End CoClass
+
+'CLSID_ShellAppManager
+[ CoClassId ("352EC2B7-8B9A-11D1-B8AE-006008059382") ]
+[ Description ("Shell Application Manager") ]
+CoClass ShellAppManager
+    [ Default ] Interface IShellAppManager
+End CoClass
+
+
 
 #End Region
 
@@ -6476,6 +6563,25 @@ Public Type APPCATEGORYINFOLIST
 	cCategory As Long
 	pCategoryInfo As LongPtr
 End Type
+
+Public Type SHELLAPPCATEGORY
+    pszCategory As LongPtr ' category description
+    idCategory As Long ' category id for ShellAppManager
+End Type
+Public Type SHELLAPPCATEGORYLIST
+    cCategories As Long
+    pCategory As LongPtr
+End Type
+
+Public Const DISPID_IADCCTL_DIRTY  = &H100
+Public Const DISPID_IADCCTL_PUBCAT  = &H101
+Public Const DISPID_IADCCTL_SORT  = &H102
+Public Const DISPID_IADCCTL_FORCEX86  = &H103
+Public Const DISPID_IADCCTL_SHOWPOSTSETUP  = &H104
+Public Const DISPID_IADCCTL_ONDOMAIN  = &H105
+Public Const DISPID_IADCCTL_DEFAULTCAT  = &H106
+
+
 
 Public Enum DEF_SHARE_ID
 	DEFSHAREID_USERS = 1
