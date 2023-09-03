@@ -6,7 +6,7 @@
 
 ---
 
-**Current Version: 5.2.212 (August 30th, 2023)**
+**Current Version: 5.3.214 (September 3rd, 2023)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -94,8 +94,10 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, vbNullPtr, ...)
 
 ### Updates
 
-**Update (v5.2.210/212):** Additional APIs for upcoming project release.
+**Update (v5.3.214):** Added all DWM APIs from dwmapi.h. Added undoc'd shell app manager interfaces/coclasses. Added CPL applet defs. Misc API additions and bugfixes.
 
+
+**Update (v5.2.210/212):** Additional APIs for upcoming project release.
 
 **Update (v5.2.208):** Substantial API additions; inc. SystemParametersInfo structs/enums, display config, raw input, missing dialog stuff. Additional standard helper macros found in Windows headers.
 
