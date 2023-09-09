@@ -71,6 +71,17 @@ As noted before, an exception to the rule is `SendMessage`, due to the enourmous
 
 If you have any doubts about which API is being called, twinBASIC will show the full declaration when you hover your cursor over the API in your code.
 
+#### Scope of coverage
+
+The goal of the API coverage in tbShellLib is to provide the kind of programming experience you'd get in C/C++ by including windows.h and some of the more common feature sets like DirectX and GDIPlus. It currently includes about 3,500 APIs. But even that is just scratching the surface of the total Windows API set. Due to the low quality of automated conversion, even by Microsoft themselves (see: Win32API_PtrSafe.txt), I'm not interested in simply feeding headers through a conversion utility or using a database, so instead tbShellLib will be focused on the most commonly used features in the major system DLLs. For example I've not included the Event Tracing APIs, as even though they're in advapi32.dll, they're a self-contained highly specialized set not found in the standard headers. I also do not intend to include native APIs that have fully equivalent regular APIs; that's basically doubling the work for no benefit. 
+
+I've included the definitions, associated types, and associated constants, for extensive portions of the following modules: shell32.dll, shlwapi.dll, kernel32.dll, user32.dll, advapi32.dll, ole32.dll, oleaut32.dll, propsys.dll, gdi32.dll, gdiplus.dll, urlmon.dll, hlink.dll, winmm.dll, setupapi.dll, comctl32.dll, dwm.dll/uxtheme.dll, comdlg32.dll, winspool.drv, and netapi32.dll. Besides highly self-contained specialized sets in their own headers (unless small), please let me know any I've missed from these.\
+Limited coverage (or full coverage of very small sets) is provided for ntdll.dll, version.dll, msimg32.dll, crypt32.dll, virtdisk.dll, sxs.dll, secur32.dll, imm32.dll, userenv.dll, wintrust.dll, msacm32.dll, url.dll, htmlhelp.dll, imagehlp.dll, and ws2_32.dll. If you feel any missing ones from these should be included, or would like to contribute more, let me know.\
+Finally, there's small API sets for features, like DirectX DLLs, Webview2Loader, WIC, etc. Definitely let me know any missing from these.
+
+**Future coverage:** In the future I'm planning to expand crypto coverage from advapi32 and wintrust, expand native APIs with no equivalents, and add coverage of Iphlpapi.dll. Winsock coverage is also planned, but this will likely be as an opt-in requiring a compiler constant, as there's just so many common two or three letter functions and types that would cause endless conflicts. I welcome contributions of any of these. If you've done the consts->enums conversions already, I'd even take 32bit-only versions.
+
+
 #### A note on seeing UDTs where before they were As Any
 
 The best example of this is many APIs, like file APIs, where in traditional VB declarations, you see 'As Any' and in tbShellLib you see e.g. `SECURITY_ATTRIBUTES` or `OVERLAPPED`. These are the correct the definitions, but VB6 had no facility to specify 'NULL', which is what they usually would be set to. So the VB6 way was a workaround, where you could pass ByVal 0. 
