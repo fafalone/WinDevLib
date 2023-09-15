@@ -6,7 +6,7 @@
 
 ---
 
-**Current Version: 5.3.214 (September 3rd, 2023)**
+**Current Version: 6.0.220 (September 15th, 2023)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
