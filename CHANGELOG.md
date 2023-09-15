@@ -1,4 +1,17 @@
 
+
+**Update (v6.0.220):** 
+-Added Network List Manager interfaces and coclass NetworkListManager.
+-Added WININET APis (wininet.h, 99% coverage-- autoproxy defs unsupported by language)
+-Added all APIs from iphlpapi.h (IP Helper; network stats); netioapi.h not included. Will be in future release.
+-Added all Console APIs (wincon.h/wincontypes.h/consoleapi[, 2,3].h) and Comm APIs. WinEvent APIs and consts.
+-FileDeviceTypes has been renamed DEVICE_TYPE, per usage in km
+-Added most UDTs for GetFileInformationByHandle and native equivalents.
+-Added Vista+ Thread Pool APIs, including inlined ones (threadpoolapiset.h, 100% coverage)
+-Added Windows 10+ Secure Enclave APIs (enclaveapi.h, 100% coverage)
+-dlgs.h, part of windows.h, has been added *AS AN OPTIONAL EXTENSION* due to anticipated naming conflicts with common names like 'lst1'. Add the compiler constant `TB_SHELLLIB_DLGH = 1` to include these. 
+-Bug fix: Numerous UDTs with LARGE_INTEGER changed to QLARGE_INTEGER where the lack of 8-byte QuadPart was throwing alignment off. Note that in the future, tB will have union support, at which point LARGE_INTEGER will be changed to one, and all QLARGE_INTEGER replaced.
+
 **Update (v5.3.214):** Added all DWM APIs from dwmapi.h. Added undoc'd shell app manager interfaces/coclasses. Added CPL applet defs. Misc API additions and bugfixes.
 
 **Update (v5.2.210-212):** Additional APIs for upcoming project release.
