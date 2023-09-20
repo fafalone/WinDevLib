@@ -1,4 +1,14 @@
 
+**Update (v6.1.228):**
+-Completed imm32 APIs
+-Added Job Object APIs
+-Completed Virtual Disk APIs (virtdisk.h, 100% coverage)
+-Many missing gdi32.dll APIs
+-Misc APIs, inc. some power APIs
+-All UDTs for NtQueryInformationFile (through current Win11)
+-Bug fix: GDI object enum duplicate
+-Bug fix: Some incorrect UDTs
+
 
 **Update (v6.0.220):** 
 -Added Network List Manager interfaces and coclass NetworkListManager.
