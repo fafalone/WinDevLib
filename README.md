@@ -6,7 +6,7 @@
 
 ---
 
-**Current Version: 6.1.228 (September 20th, 2023)**
+**Current Version: 6.1.229 (September 20th, 2023)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -105,6 +105,10 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, vbNullPtr, ...)
 
 ### Updates
 
+
+**Update (v6.1.229):** Bug fix: A number of APIs had missing 'As <type>` statements, which were upgraded to errors. tB had previosly not caught these.
+
+
 **Update (v6.1.228):**
 -Completed imm32 APIs\
 -Added Job Object APIs\
@@ -127,9 +131,7 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, vbNullPtr, ...)
 -dlgs.h, part of windows.h, has been added *AS AN OPTIONAL EXTENSION* due to anticipated naming conflicts with common names like 'lst1'. Add the compiler constant `TB_SHELLLIB_DLGH = 1` to include these.\
 -Bug fix: Numerous UDTs with LARGE_INTEGER changed to QLARGE_INTEGER where the lack of 8-byte QuadPart was throwing alignment off. Note that in the future, tB will have union support, at which point LARGE_INTEGER will be changed to one, and all QLARGE_INTEGER replaced.
 
-
 **Update (v5.3.214):** Added all DWM APIs from dwmapi.h. Added undoc'd shell app manager interfaces/coclasses. Added CPL applet defs. Misc API additions and bugfixes.
-
 
 **Update (v5.2.210/212):** Additional APIs for upcoming project release.
 
