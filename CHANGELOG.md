@@ -1,4 +1,6 @@
 
+**Update (v6.1.229):** Bug fix: A number of APIs had missing 'As <type>` statements, which were upgraded to errors. tB had previosly not caught these.
+
 **Update (v6.1.228):**
 -Completed imm32 APIs
 -Added Job Object APIs
