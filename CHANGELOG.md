@@ -1,4 +1,48 @@
 
+
+**Update (v6.2.230):** 
+-Added Windows Networking (WNet) APIs (winnetwk.h, 100% coverage (mpr.dll))
+-Major expansion of internationalization API coverage from winnls.h.
+-Added numerous missing common User32 functions.
+-Misc bug fixes, inc. InsertMenuItem entry-point not found, missing menu alternates (W or A variations)
+-Added overloads for a number of functions, if you have any trouble with the following, please file a bug report:
+CoUnMarshalIface
+
+IsValidLocaleName
+EnumDateFormatsExEx
+EnumCalendarInfoExEx
+
+GetSystemDefaultLocaleName
+GetCurrencyFormatEx
+GetNumberFormatEx
+GetCalendarInfoEx
+
+SetUserGeoName
+
+GetThreadPreferredUILanguages
+SetThreadPreferredUILanguages
+SetProcessPreferredUILanguages
+GetProcessPreferredUILanguages
+
+LocaleNameToLCID
+
+GetDurationFormat
+GetDurationFormatEx
+
+GetLocaleInfoEx
+ResolveLocaleName
+
+GetNLSVersion
+GetNLSVersionEx
+
+ToUnicode
+
+LoadBitmap[A,W]
+
+ModifyMenu
+InsertMenu
+
+
 **Update (v6.1.229):** Bug fix: A number of APIs had missing 'As <type>` statements, which were upgraded to errors. tB had previosly not caught these.
 
 **Update (v6.1.228):**
