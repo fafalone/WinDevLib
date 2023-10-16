@@ -9981,12 +9981,12 @@ Public Enum ImageMachineType
 	IMAGE_FILE_MACHINE_ARMNT = &H01c4  ' ARM Thumb-2 Little-Endian
 	IMAGE_FILE_MACHINE_AM33  = &H01d3
 	IMAGE_FILE_MACHINE_POWERPC  = &H01F0  ' IBM PowerPC Little-Endian
-	IMAGE_FILE_MACHINE_POWERPCFP  = &H01f1
+	IMAGE_FILE_MACHINE_POWERPCFP = &H01f1
 	IMAGE_FILE_MACHINE_IA64  = &H0200  ' Intel 64
 	IMAGE_FILE_MACHINE_MIPS16  = &H0266  ' MIPS
 	IMAGE_FILE_MACHINE_ALPHA64  = &H0284  ' ALPHA64
-	IMAGE_FILE_MACHINE_MIPSFPU  = &H0366  ' MIPS
-	IMAGE_FILE_MACHINE_MIPSFPU16  = &H0466  ' MIPS
+	IMAGE_FILE_MACHINE_MIPSFPU = &H0366  ' MIPS
+	IMAGE_FILE_MACHINE_MIPSFPU16 = &H0466  ' MIPS
 	IMAGE_FILE_MACHINE_AXP64 = IMAGE_FILE_MACHINE_ALPHA64
 	IMAGE_FILE_MACHINE_TRICORE = &H0520  ' Infineon
 	IMAGE_FILE_MACHINE_CEF  = &H0CEF
@@ -9995,6 +9995,8 @@ Public Enum ImageMachineType
 	IMAGE_FILE_MACHINE_M32R  = &H9041&  ' M32R little-endian
 	IMAGE_FILE_MACHINE_ARM64  = &HAA64&  ' ARM64 Little-Endian
 	IMAGE_FILE_MACHINE_CEE  = &HC0EE&
+    IMAGE_FILE_MACHINE_ARM64EC = &HA641&
+    IMAGE_FILE_MACHINE_ARM64X = &HA64E&
 End Enum
 Public Type IMAGE_FILE_HEADER
 	/* [ TypeHint(ImageMachineType) ] */ Machine As Integer
@@ -10867,7 +10869,6 @@ Public Enum IMAGE_RELOC_TYPE_EBC
 End Enum
 
 
-
 Public Type IMAGE_RELOCATION
     ' union {
         ' DWORD   VirtualAddress;
@@ -10878,7 +10879,203 @@ Public Type IMAGE_RELOCATION
     nType As Integer
 End Type
 
-
+Public Type IMAGE_LOAD_CONFIG_CODE_INTEGRITY
+    Flags As Integer ' Flags to indicate if CI information is available, etc.
+    Catalog As Integer ' 0xFFFF means not available
+    CatalogOffset As Long
+    Reserved As Long ' Additional bitmask to be defined later
+End Type
+Public Enum ImageLoadConfigGuardFlags
+    IMAGE_GUARD_CF_INSTRUMENTED  = &H00000100  ' Module performs control flow integrity checks using system-supplied support
+    IMAGE_GUARD_CFW_INSTRUMENTED  = &H00000200  ' Module performs control flow and write integrity checks
+    IMAGE_GUARD_CF_FUNCTION_TABLE_PRESENT  = &H00000400  ' Module contains valid control flow target metadata
+    IMAGE_GUARD_SECURITY_COOKIE_UNUSED  = &H00000800  ' Module does not make use of the /GS security cookie
+    IMAGE_GUARD_PROTECT_DELAYLOAD_IAT  = &H00001000  ' Module supports read only delay load IAT
+    IMAGE_GUARD_DELAYLOAD_IAT_IN_ITS_OWN_SECTION  = &H00002000  ' Delayload import table in its own .didat section (with nothing else in it) that can be freely reprotected
+    IMAGE_GUARD_CF_EXPORT_SUPPRESSION_INFO_PRESENT  = &H00004000  ' Module contains suppressed export information. This also infers that the address taken
+'  taken IAT table is also present in the load config.
+    IMAGE_GUARD_CF_ENABLE_EXPORT_SUPPRESSION  = &H00008000&  ' Module enables suppression of exports
+    IMAGE_GUARD_CF_LONGJUMP_TABLE_PRESENT  = &H00010000  ' Module contains longjmp target information
+    IMAGE_GUARD_RF_INSTRUMENTED  = &H00020000  ' Module contains return flow instrumentation and metadata
+    IMAGE_GUARD_RF_ENABLE  = &H00040000  ' Module requests that the OS enable return flow protection
+    IMAGE_GUARD_RF_STRICT  = &H00080000  ' Module requests that the OS enable return flow protection in strict mode
+    IMAGE_GUARD_RETPOLINE_PRESENT  = &H00100000  ' Module was built with retpoline support
+'  DO_NOT_USE                                          0x00200000 // Was EHCont flag on VB (20H1)
+    IMAGE_GUARD_EH_CONTINUATION_TABLE_PRESENT  = &H00400000  ' Module contains EH continuation target information
+    IMAGE_GUARD_XFG_ENABLED  = &H00800000  ' Module was built with xfg
+    IMAGE_GUARD_CASTGUARD_PRESENT  = &H01000000  ' Module has CastGuard instrumentation present
+    IMAGE_GUARD_MEMCPY_PRESENT  = &H02000000  ' Module has Guarded Memcpy instrumentation present
+    IMAGE_GUARD_CF_FUNCTION_TABLE_SIZE_MASK  = &HF0000000  ' Stride of Guard CF function table encoded in these bits (additional count of bytes per element)
+    IMAGE_GUARD_CF_FUNCTION_TABLE_SIZE_SHIFT  = 28  ' Shift to right-justify Guard CF function table stride
+End Enum
+[Description("WARNING: CHECK SIZE BEFORE COPYING: This UDT has members appended in most Windows versions. Only copy the available size.")]
+Public Type IMAGE_LOAD_CONFIG_DIRECTORY64
+    Size As Long
+    TimeDateStamp As Long
+    MajorVersion As Integer
+    MinorVersion As Integer
+    GlobalFlagsClear As Long
+    GlobalFlagsSet As Long
+    CriticalSectionDefaultTimeout As Long
+    DeCommitFreeBlockThreshold As LongLong
+    DeCommitTotalFreeThreshold As LongLong
+    LockPrefixTable As LongLong ' VA
+    MaximumAllocationSize As LongLong
+    VirtualMemoryThreshold As LongLong
+    ProcessAffinityMask As LongLong
+    ProcessHeapFlags As Long
+    CSDVersion As Integer
+    DependentLoadFlags As Integer
+    EditList As LongLong ' VA
+    SecurityCookie As LongLong ' VA
+    SEHandlerTable As LongLong ' VA
+    SEHandlerCount As LongLong
+    'Fields available in v8.1+ of the Windows SDK.
+    GuardCFCheckFunctionPointer As LongLong ' VA
+    GuardCFDispatchFunctionPointer As LongLong ' VA
+    GuardCFFunctionTable As LongLong ' VA
+    GuardCFFunctionCount As LongLong
+    GuardFlags As ImageLoadConfigGuardFlags
+    'Fields available in v10.0.10586.0+ of the Windows SDK.
+    CodeIntegrity As IMAGE_LOAD_CONFIG_CODE_INTEGRITY
+    GuardAddressTakenIatEntryTable As LongLong ' VA
+    GuardAddressTakenIatEntryCount As LongLong
+    GuardLongJumpTargetTable As LongLong ' VA
+    GuardLongJumpTargetCount As LongLong
+    DynamicValueRelocTable As LongLong ' VA
+    CHPEMetadataPointer As LongLong ' VA
+    'Fields available in the v10.0.15063.468+ of the SDK.
+    GuardRFFailureRoutine As LongLong ' VA
+    GuardRFFailureRoutineFunctionPointer As LongLong ' VA
+    DynamicValueRelocTableOffset As Long
+    DynamicValueRelocTableSection As Integer
+    Reserved2 As Integer
+    'Windows 11
+    GuardRFVerifyStackPointerFunctionPointer As LongLong ' VA
+    HotPatchTableOffset As Long
+    Reserved3 As Long
+    EnclaveConfigurationPointer As LongLong ' VA
+    VolatileMetadataPointer As LongLong ' VA
+    GuardEHContinuationTable As LongLong ' VA
+    GuardEHContinuationCount As LongLong
+    GuardXFGCheckFunctionPointer As LongLong ' VA
+    GuardXFGDispatchFunctionPointer As LongLong ' VA
+    GuardXFGTableDispatchFunctionPointer As LongLong ' VA
+    CastGuardOsDeterminedFailureMode As LongLong ' VA
+    GuardMemcpyFunctionPointer As LongLong ' VA
+End Type
+[Description("WARNING: CHECK SIZE BEFORE COPYING: This UDT has members appended in most Windows versions. Only copy the available size.")]
+Public Type IMAGE_LOAD_CONFIG_DIRECTORY32
+    Size As Long
+    TimeDateStamp As Long
+    MajorVersion As Integer
+    MinorVersion As Integer
+    GlobalFlagsClear As Long
+    GlobalFlagsSet As Long
+    CriticalSectionDefaultTimeout As Long
+    DeCommitFreeBlockThreshold As Long
+    DeCommitTotalFreeThreshold As Long
+    LockPrefixTable As Long ' VA
+    MaximumAllocationSize As Long
+    VirtualMemoryThreshold As Long
+    ProcessAffinityMask As Long
+    ProcessHeapFlags As Long
+    CSDVersion As Integer
+    DependentLoadFlags As Integer
+    EditList As Long ' VA
+    SecurityCookie As Long ' VA
+    SEHandlerTable As Long ' VA
+    SEHandlerCount As Long
+    'Fields available in v8.1+ of the Windows SDK.
+    GuardCFCheckFunctionPointer As Long ' VA
+    GuardCFDispatchFunctionPointer As Long ' VA
+    GuardCFFunctionTable As Long ' VA
+    GuardCFFunctionCount As Long
+    GuardFlags As ImageLoadConfigGuardFlags
+    'Fields available in v10.0.10586.0+ of the Windows SDK.
+    CodeIntegrity As IMAGE_LOAD_CONFIG_CODE_INTEGRITY
+    GuardAddressTakenIatEntryTable As Long ' VA
+    GuardAddressTakenIatEntryCount As Long
+    GuardLongJumpTargetTable As Long ' VA
+    GuardLongJumpTargetCount As Long
+    DynamicValueRelocTable As Long ' VA
+    CHPEMetadataPointer As Long ' VA
+    'Fields available in the v10.0.15063.468+ of the SDK.
+    GuardRFFailureRoutine As Long ' VA
+    GuardRFFailureRoutineFunctionPointer As Long ' VA
+    DynamicValueRelocTableOffset As Long
+    DynamicValueRelocTableSection As Integer
+    Reserved2 As Integer
+    'Windows 11
+    GuardRFVerifyStackPointerFunctionPointer As Long ' VA
+    HotPatchTableOffset As Long
+    Reserved3 As Long
+    EnclaveConfigurationPointer As Long ' VA
+    VolatileMetadataPointer As Long ' VA
+    GuardEHContinuationTable As Long ' VA
+    GuardEHContinuationCount As Long
+    GuardXFGCheckFunctionPointer As Long ' VA
+    GuardXFGDispatchFunctionPointer As Long ' VA
+    GuardXFGTableDispatchFunctionPointer As Long ' VA
+    CastGuardOsDeterminedFailureMode As Long ' VA
+    GuardMemcpyFunctionPointer As Long ' VA
+End Type
+[Description("WARNING: CHECK SIZE BEFORE COPYING: This UDT has members appended in most Windows versions. Only copy the available size.")]
+Public Type IMAGE_LOAD_CONFIG_DIRECTORY
+    Size As Long
+    TimeDateStamp As Long
+    MajorVersion As Integer
+    MinorVersion As Integer
+    GlobalFlagsClear As Long
+    GlobalFlagsSet As Long
+    CriticalSectionDefaultTimeout As Long
+    DeCommitFreeBlockThreshold As LongPtr
+    DeCommitTotalFreeThreshold As LongPtr
+    LockPrefixTable As LongPtr ' VA
+    MaximumAllocationSize As LongPtr
+    VirtualMemoryThreshold As LongPtr
+    ProcessAffinityMask As LongPtr
+    ProcessHeapFlags As Long
+    CSDVersion As Integer
+    DependentLoadFlags As Integer
+    EditList As LongPtr ' VA
+    SecurityCookie As LongPtr ' VA
+    SEHandlerTable As LongPtr ' VA
+    SEHandlerCount As LongPtr
+    'Fields available in v8.1+ of the Windows SDK.
+    GuardCFCheckFunctionPointer As LongPtr ' VA
+    GuardCFDispatchFunctionPointer As LongPtr ' VA
+    GuardCFFunctionTable As LongPtr ' VA
+    GuardCFFunctionCount As LongPtr
+    GuardFlags As ImageLoadConfigGuardFlags
+    'Fields available in v10.0.10586.0+ of the Windows SDK.
+    CodeIntegrity As IMAGE_LOAD_CONFIG_CODE_INTEGRITY
+    GuardAddressTakenIatEntryTable As LongPtr ' VA
+    GuardAddressTakenIatEntryCount As LongPtr
+    GuardLongJumpTargetTable As LongPtr ' VA
+    GuardLongJumpTargetCount As LongPtr
+    DynamicValueRelocTable As LongPtr ' VA
+    CHPEMetadataPointer As LongPtr ' VA
+    'Fields available in the v10.0.15063.468+ of the SDK.
+    GuardRFFailureRoutine As LongPtr ' VA
+    GuardRFFailureRoutineFunctionPointer As LongPtr ' VA
+    DynamicValueRelocTableOffset As Long
+    DynamicValueRelocTableSection As Integer
+    Reserved2 As Integer
+    'Windows 11
+    GuardRFVerifyStackPointerFunctionPointer As LongPtr ' VA
+    HotPatchTableOffset As Long
+    Reserved3 As Long
+    EnclaveConfigurationPointer As LongPtr ' VA
+    VolatileMetadataPointer As LongPtr ' VA
+    GuardEHContinuationTable As LongPtr ' VA
+    GuardEHContinuationCount As LongPtr
+    GuardXFGCheckFunctionPointer As LongPtr ' VA
+    GuardXFGDispatchFunctionPointer As LongPtr ' VA
+    GuardXFGTableDispatchFunctionPointer As LongPtr ' VA
+    CastGuardOsDeterminedFailureMode As LongPtr ' VA
+    GuardMemcpyFunctionPointer As LongPtr ' VA
+End Type
 
 Public Type CLIENT_ID
     UniqueProcess As LongPtr
