@@ -6,7 +6,7 @@
 
 ---
 
-**Current Version: 6.2.230 (September 24th, 2023)**
+**Current Version: 6.2.234 (October 15th, 2023)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -104,6 +104,15 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, vbNullPtr, ...)
 ```
 
 ### Updates
+
+**Update (v6.2.234):**
+-Added additional file info structs, exe header structs, and ntdll API\
+-(Bug fix) Some Disk Quota interface enums had incorrect names and in some cases values.
+
+**Update (v6.2.232):** 
+-Added gdi32 Color Management (ICM) APIs.\
+-Additional sysinfo UDTs.\
+-TypeHints for NT functions missing them.
 
 **Update (v6.2.230):** 
 -Added Windows Networking (WNet) APIs (winnetwk.h, 100% coverage (mpr.dll))\
