@@ -1,5 +1,16 @@
 
 
+**Update (v6.2.234):**
+-Added additional file info structs, exe header structs, and ntdll APIs
+-(Bug fix) Some Disk Quota interface enums had incorrect names and in some cases values.
+
+**Update (v6.2.232):** 
+-Added gdi32 Color Management (ICM) APIs. 
+-Additional sysinfo UDTs. 
+-TypeHints for NT functions missing them.
+
+
+
 **Update (v6.2.230):** 
 -Added Windows Networking (WNet) APIs (winnetwk.h, 100% coverage (mpr.dll))
 -Major expansion of internationalization API coverage from winnls.h.
