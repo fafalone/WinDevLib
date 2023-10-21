@@ -1,4 +1,8 @@
 
+**Update (v6.2.238):**
+-Added a limited set of winhttp APIs
+-Added misc APIs for recent projects
+-(Bug fix) RegQueryValueEx/RegQueryValueExW/RegQueryValueExA definitions incorrect.
 
 **Update (v6.2.237):** Missing consts for upcoming project.
 
