@@ -611,6 +611,31 @@ Public DeclareWide PtrSafe Function SHFindFiles Lib "shell32" (ByVal pidlFolder 
 Public DeclareWide PtrSafe Function SHGetRealIDL Lib "shell32" (ByVal psf As IShellFolder, ByVal pidlSimple As LongPtr, ppidlReal As LongPtr) As Long
 Public DeclareWide PtrSafe Function Shell_MergeMenus Lib "shell32" (ByVal hmDst As LongPtr, ByVal hmSrc As LongPtr, ByVal uInsert As Long, ByVal uIDAdjust As Long, ByVal uIDAdjustMax As Long, ByVal uFlags As ShellMergeMenuFlags) As Long
 Public DeclareWide PtrSafe Function SHValidateUNC Lib "shell32" (ByVal hwndOwner As LongPtr, ByVal pszFile As LongPtr, ByVal fConnect As SHValidateUNC_Flags) As BOOL
+Public DeclareWide PtrSafe Function RunFileDlg Lib "shell32" (ByVal hwndOwner As LongPtr, ByVal hIcon As LongPtr, ByVal lpszDirectory As String, ByVal lpszTitle As String, ByVal lpszDescription As String, ByVal uFlags As RunDialogFlags) As BOOL
+Public DeclareWide PtrSafe Function SHCreateFilter Lib "shell32" (ByVal szName As String, ByVal InFolder As String, PropertyKey As PROPERTYKEY, ByVal nType As Long, ByVal Condition As ICondition, riid As UUID, ppv As Any) As Long
+Public DeclareWide PtrSafe Function RealDriveType Lib "shell32" (ByVal iDrive As Long, ByVal fOKToHitNet As BOOL) As DriveTypes
+Public DeclareWide PtrSafe Sub CheckDiskSpace Lib "shell32" ()
+Public DeclareWide PtrSafe Function CopyStreamUI Lib "shell32" (ByVal pSrc As IStream, ByVal pDst As IStream, ByVal pDlg As IProgressDialog, ByVal ullMaxBytes As LongLong) As Long
+Public DeclareWide PtrSafe Function CopyStream Lib "shell32" (ByVal pSrc As IStream, ByVal pDst As IStream) As Long 'Calls CopyStreamUI(IStream,Istream,Null,0)
+
+Public Enum RunDialogFlags
+    RFF_NOBROWSE = &H0001
+    RFF_NODEFAULT = &H0002
+    RFF_CALCDIRECTORY = &H0004
+    RFF_NOLABEL = &H0008
+    RFF_NOSEPARATEMEM = &H0020
+End Enum
+Public Type NMRUNFILEDLGW
+    hdr As NMHDR
+    lpszFile As LongPtr
+    lpszDirectory As LongPtr
+    nShow As Long
+End Type
+[ Description("Allow the application to run") ] Public Const RF_OK  = &H0000
+[ Description("Cancel the operation and close the dialog") ] Public Const RF_CANCEL  = &H0001
+[ Description("Cancel the operation, but leave the dialog open") ] Public Const RF_RETRY  = &H0002
+
+
 
 Public Enum SHValidateUNC_Flags
     VALIDATEUNC_CONNECT  = &H0001  ' connect a drive letter
@@ -4293,12 +4318,12 @@ End Enum
 
 Public Enum StandardAccessTypes
     DELETE                          = (&H00010000)
-    READ_CONTROL                    = (&H00020000)
-    WRITE_DAC = (&H00040000)
+    READ_CONTROL = (&H00020000)
+    WRITE_DAC                       = (&H00040000)
     WRITE_OWNER                     = (&H00080000)
     SYNCHRONIZE                     = (&H00100000)
 
-    STANDARD_RIGHTS_REQUIRED = (&H000F0000)
+    STANDARD_RIGHTS_REQUIRED        = (&H000F0000)
 
     STANDARD_RIGHTS_READ            = (READ_CONTROL)
     STANDARD_RIGHTS_WRITE           = (READ_CONTROL)
@@ -4312,24 +4337,24 @@ Public Enum StandardAccessTypes
 ' // AccessSystemAcl access type
 ' //
 
-    ACCESS_SYSTEM_SECURITY          = (&H01000000)
+    ACCESS_SYSTEM_SECURITY = (&H01000000)
     MAXIMUM_ALLOWED                 = (&H02000000)
 End Enum
 Public Enum GenericRights
-    GENERIC_READ = (&H80000000)
-    GENERIC_WRITE = (&H40000000)
+    GENERIC_READ                     = (&H80000000)
+    GENERIC_WRITE                    = (&H40000000)
     GENERIC_EXECUTE                  = (&H20000000)
     GENERIC_ALL                      = (&H10000000)
 End Enum
 Public Enum FileAccessRights
 	FILE_READ_DATA  = ( &H0001 )  ' file & pipe
 	FILE_LIST_DIRECTORY  = ( &H0001 )  ' directory
-	FILE_WRITE_DATA  = ( &H0002 )  ' file & pipe
+	FILE_WRITE_DATA  = ( &H0002)  ' file & pipe
 	FILE_ADD_FILE  = ( &H0002 )  ' directory
 	FILE_APPEND_DATA  = ( &H0004 )  ' file
-	FILE_ADD_SUBDIRECTORY  = ( &H0004 )  ' directory
-	FILE_CREATE_PIPE_INSTANCE  = ( &H0004 )  ' named pipe
-	FILE_READ_EA  = ( &H0008 )  ' file & directory
+	FILE_ADD_SUBDIRECTORY  = (&H0004)  ' directory
+	FILE_CREATE_PIPE_INSTANCE  = ( &H0004)  ' named pipe
+	FILE_READ_EA  = ( &H0008)  ' file & directory
 	FILE_WRITE_EA  = ( &H0010 )  ' file & directory
 	FILE_EXECUTE  = ( &H0020 )  ' file
 	FILE_TRAVERSE  = ( &H0020 )  ' directory
@@ -4340,6 +4365,17 @@ Public Enum FileAccessRights
 	FILE_GENERIC_READ  = (STANDARD_RIGHTS_READ  Or  FILE_READ_DATA  Or  FILE_READ_ATTRIBUTES  Or  FILE_READ_EA  Or SYNCHRONIZE)
 	FILE_GENERIC_WRITE  = (STANDARD_RIGHTS_WRITE  Or  FILE_WRITE_DATA  Or  FILE_WRITE_ATTRIBUTES  Or  FILE_WRITE_EA  Or  FILE_APPEND_DATA  Or  SYNCHRONIZE)
 	FILE_GENERIC_EXECUTE  = (STANDARD_RIGHTS_EXECUTE  Or  FILE_READ_ATTRIBUTES  Or  FILE_EXECUTE  Or  SYNCHRONIZE)
+End Enum
+Public Enum DirectoryAccessRights
+    DIRECTORY_QUERY  = (&H0001)
+    DIRECTORY_TRAVERSE  = (&H0002)
+    DIRECTORY_CREATE_OBJECT  = (&H0004)
+    DIRECTORY_CREATE_SUBDIRECTORY  = (&H0008)
+    DIRECTORY_ALL_ACCESS  = (STANDARD_RIGHTS_REQUIRED  Or  &HF)
+End Enum
+Public Enum SymbolicLinkAccessRights
+    SYMBOLIC_LINK_QUERY  = (&H0001)
+    SYMBOLIC_LINK_ALL_ACCESS  = (STANDARD_RIGHTS_REQUIRED  Or  &H1)
 End Enum
 Public Enum EventAccessRights
     EVENT_ALL_ACCESS = &H1F0003
@@ -7155,7 +7191,7 @@ Public Declare PtrSafe Function GetModuleBaseNameA Lib "kernel32" (ByVal hProces
 Public DeclareWide PtrSafe Function GetModuleBaseNameW Lib "kernel32" (ByVal hProcess As LongPtr, ByVal hModule As LongPtr, ByVal lpBaseName As LongPtr, ByVal nSize As Long) As Long
 Public DeclareWide PtrSafe Function GetModuleBaseName Lib "kernel32" Alias "GetModuleBaseNameW" (ByVal hProcess As LongPtr, ByVal hModule As LongPtr, ByVal lpBaseName As String, ByVal nSize As Long) As Long
 Public DeclareWide PtrSafe Function GetModuleInformation Lib "kernel32" (ByVal hProcess As LongPtr, ByVal hModule As LongPtr, lpmodinfo As MODULEINFO, ByVal cb As Long) As BOOL
-
+Public DeclareWide PtrSafe Function DisableThreadLibraryCalls Lib "kernel32" (ByVal hLibModule As LongPtr) As BOOL
 
 /*
 wincon.h, 100%
@@ -11836,7 +11872,7 @@ Public Enum SYSTEM_CODEINTEGRITY_OPTIONS
     CODEINTEGRITY_OPTION_UMCI_EXCLUSIONPATHS_ENABLED  = &H10
     CODEINTEGRITY_OPTION_TEST_BUILD  = &H20
     CODEINTEGRITY_OPTION_PREPRODUCTION_BUILD  = &H40
-    CODEINTEGRITY_OPTION_DEBUGMODE_ENABLED  = &H80
+    CODEINTEGRITY_OPTION_DEBUGMODE_ENABLED = &H80
     CODEINTEGRITY_OPTION_FLIGHT_BUILD  = &H100
     CODEINTEGRITY_OPTION_FLIGHTING_ENABLED  = &H200
     CODEINTEGRITY_OPTION_HVCI_KMCI_ENABLED  = &H400
@@ -13119,7 +13155,7 @@ Public Type LDR_DATA_TABLE_ENTRY
     EntryPointActivationContext As LongPtr
 End Type
 
-
+'NTDLL APIs should only be added if they don't have higher level equivalents. If the NTDLL version has substantially more functionality, it's not equivalent and should be added.
 Public Declare PtrSafe Function NtQuerySystemInformation Lib "ntdll" (ByVal SystemInformationClass As SYSTEM_INFORMATION_CLASS, SystemInformation As Any, ByVal SystemInformationLength As Long, ReturnLength As Long) As Long
 Public Declare PtrSafe Function NtSetSystemInformation Lib "ntdll" (ByVal SystemInformationClass As SYSTEM_INFORMATION_CLASS, SystemInformation As Any, ByVal SystemInformationLength As Long) As Long
 Public Declare PtrSafe Function NtQueryInformationProcess Lib "ntdll" (ByVal ProcessHandle As LongPtr, ByVal ProcessInformationClass As PROCESSINFOCLASS, ProccessInformation As Any, ByVal ProcessInformationLength As Long, ReturnLength As Long) As Long
@@ -13138,11 +13174,11 @@ Public Declare PtrSafe Function NtOpenProcess Lib "ntdll" (ProcessHandle As Long
 Public Declare PtrSafe Function NtSuspendProcess Lib "ntdll" (ByVal hProcess As LongPtr) As Long
 Public Declare PtrSafe Function NtResumeProcess Lib "ntdll" (ByVal hProcess As LongPtr) As Long
 Public Declare PtrSafe Function NtQueryInformationToken Lib "ntdll" (ByVal TokenHandle As LongPtr, ByVal TokenInformationClass As TOKEN_INFORMATION_CLASS, TokenInformation As Any, ByVal TokenInformationLength As Long, ReturnLength As Long) As Long
-Public Declare PtrSafe Function NtOpenProcessToken Lib "ntdll" (ByVal ProcessHandle As LongPtr, [TypeHint (TokenAccessRights, StandardAccessTypes) ] ByVal DesiredAccess As Long, TokenHandle As LongPtr) As Long
+Public Declare PtrSafe Function NtOpenProcessToken Lib "ntdll" (ByVal ProcessHandle As LongPtr, [ TypeHint (TokenAccessRights, StandardAccessTypes) ] ByVal DesiredAccess As Long, TokenHandle As LongPtr) As Long
 Public Declare PtrSafe Function NtCreateToken Lib "ntdll" (TokenHandle As LongPtr, [ TypeHint (TokenAccessRights, StandardAccessTypes) ] ByVal DesiredAccess As Long, ByVal TokenType As TOKEN_TYPE, AuthenticationId As LUID, ExpirationTime As LongLong, TokenUser As Any, TokenGroups As Any, TokenPrivileges As Any, TokenOwner As TOKEN_OWNER, TokenPrimaryGroup As TOKEN_PRIMARY_GROUP, TokenDefaultDacl As TOKEN_DEFAULT_DACL, TokenSource As TOKEN_SOURCE) As Long
 Public Declare PtrSafe Function NtCompareTokens Lib "ntdll" (ByVal FirstTokenHandle As LongPtr, ByVal SecondTokenHandle As LongPtr, pEqual As Byte) As Long
 Public Declare PtrSafe Function NtDuplicateToken Lib "ntdll" (ByVal ExistingTokenHandle As LongPtr, [ TypeHint (TokenAccessRights, StandardAccessTypes) ] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, ByVal EffectiveOnly As Byte, ByVal TokenType As TOKEN_TYPE, NewTokenHandle As LongPtr) As Long
-Public Declare PtrSafe Function NtCreateSection Lib "ntdll" (SectionHandle As LongPtr, [TypeHint(StandardAccessTypes, NTSectionAccessRights) ] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, MaximumSize As QLARGE_INTEGER, ByVal SectionPageProtection As MemProtectFlags, ByVal AllocationAttributes As NTSectionFlags, Optional ByVal FileHandle As LongPtr) As Long
+Public Declare PtrSafe Function NtCreateSection Lib "ntdll" (SectionHandle As LongPtr, [TypeHint (StandardAccessTypes, NTSectionAccessRights) ] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, MaximumSize As QLARGE_INTEGER, ByVal SectionPageProtection As MemProtectFlags, ByVal AllocationAttributes As NTSectionFlags, Optional ByVal FileHandle As LongPtr) As Long
 Public Declare PtrSafe Function NtCreateSectionEx Lib "ntdll" (SectionHandle As LongPtr, [ TypeHint (StandardAccessTypes, NTSectionAccessRights) ] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, MaximumSize As QLARGE_INTEGER, ByVal SectionPageProtection As MemProtectFlags, ByVal AllocationAttributes As NTSectionFlags, ByVal FileHandle As LongPtr, ExtendedParameters As MEM_EXTENDED_PARAMETER, ByVal ExtendedParameterCount As Long) As Long
 Public Declare PtrSafe Function NtCreateProfile Lib "ntdll" (ProfileHandle As LongPtr, ByVal Process As LongPtr, ByVal ProfileBase As LongPtr, ByVal ProfileSize As LongPtr, Buffer As Long, ByVal BufferSize As Long, ByVal ProfileSource As KPROFILE_SOURCE, ByVal Affinity As LongPtr) As Long
 Public Declare PtrSafe Function NtCreateProfileEx Lib "ntdll" (ProfileHandle As LongPtr, ByVal Process As LongPtr, ByVal ProfileBase As LongPtr, ByVal ProfileSize As LongPtr, Buffer As Long, ByVal BufferSize As Long, ByVal ProfileSource As KPROFILE_SOURCE, ByVal GroupCount As Long, AffinityArray As GROUP_AFFINITY) As Long
@@ -13154,6 +13190,15 @@ Public Declare PtrSafe Function NtPowerInformation Lib "ntdll" (ByVal Informatio
 Public Declare PtrSafe Function NtShutdownSystem Lib "ntdll" (ByVal Action As SHUTDOWN_ACTION) As Long
 [Description ("WARNING: For emergency shutdown only; one step above flipping the power switch. Requires SE_SHUTDOWN_PRIVILEGE") ]
 Public Declare PtrSafe Function NtSetSystemPowerState Lib "ntdll" (ByVal SystemAction As POWER_ACTION, ByVal MinSystemState As SYSTEM_POWER_STATE, ByVal Flags As SystemShutdownReasons) As Long
+Public Declare PtrSafe Function NtOpenSymbolicLinkObject Lib "ntdll" (LinkHandle As LongPtr, [ TypeHint (GenericRights, SymbolicLinkAccessRights) ] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES) As Long
+Public Declare PtrSafe Function NtCreateSymbolicLinkObject Lib "ntdll" (LinkHandle As LongPtr, [ TypeHint (GenericRights, SymbolicLinkAccessRights) ] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, LinkTarget As UNICODE_STRING) As NTSTATUS
+Public Declare PtrSafe Function NtQuerySymbolicLinkObject Lib "ntdll" (ByVal LinkHandle As LongPtr, LinkTarget As UNICODE_STRING, Optional ReturnLenfth As Long) As NTSTATUS
+Public Declare PtrSafe Function NtOpenDirectoryObject Lib "ntdll" (DirectoryHandle As LongPtr, [ TypeHint (GenericRights, DirectoryAccessRights) ] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES) As Long
+Public Declare PtrSafe Function NtQueryDirectoryObject Lib "ntdll" (ByVal DirectoryHandle As LongPtr, Buffer As Any, ByVal Length As Long, ByVal ReturnSingleEntry As Byte, ByVal RestartScan As Byte, Context As Long, Optional ReturnLength As Long) As NTSTATUS
+Public Declare PtrSafe Function NtCreateDirectoryObject Lib "ntdll" (DirectoryHandle As LongPtr, [ TypeHint (GenericRights, DirectoryAccessRights) ] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES) As NTSTATUS
+Public Declare PtrSafe Function NtLoadDriver Lib "ntdll" (DriverServiceName As UNICODE_STRING) As NTSTATUS
+Public Declare PtrSafe Function NtUnloadDriver Lib "ntdll" (DriverServiceName As UNICODE_STRING) As NTSTATUS
+Public Declare PtrSafe Function NtYieldExecution Lib "ntdll" () As NTSTATUS
 
 
 Public Declare PtrSafe Function RtlAdjustPrivilege Lib "ntdll" (ByVal Privilege As NTDefinedPrivilegeConsts, ByVal Enable As Byte, ByVal CurrentThread As Byte, Enabled As Byte) As Long
@@ -13164,13 +13209,16 @@ Public Declare PtrSafe Function RtlEqualUnicodeString Lib "ntdll" (String1 As UN
 Public Declare PtrSafe Function CompareMemory Lib "ntdll" Alias "RtlCompareMemory" (Source1 As Any, Source2 As Any, ByVal Length As LongPtr) As LongPtr
 [Description("Returns true Windows version. Takes either OSVERSIONINFO or OSVERSIONINFOEX types (RTL_OSV... is an alias for these).") ]
 Public Declare PtrSafe Function RtlGetVersion Lib "ntdll" (lpVersionInformation As Any) As Long
+Public Declare PtrSafe Sub RtlGetNtVersionNumbers Lib "ntdll" (Major As Long, Minor As Long, Build As Long)
 Public Declare PtrSafe Function RtlDosPathNameToNtPathName_U Lib "ntdll" (ByVal DosFileName As LongPtr, NtFileName As UNICODE_STRING, FilePart As LongPtr, RelativeName As Any) As Boolean
 Public Declare PtrSafe Function RtlGetCurrentPeb Lib "ntdll" () As LongPtr
 Public Declare PtrSafe Sub RtlAcquirePebLock Lib "ntdll" ()
 Public Declare PtrSafe Sub RtlReleasePebLock Lib "ntdll" ()
-Public Declare PtrSafe Function RtlNtStatusToDosError Lib "ntdll" (ByVal ntStatus As Long) As Long
+Public Declare PtrSafe Function RtlNtStatusToDosError Lib "ntdll" (ByVal ntStatus As NTSTATUS) As Long
 [Description("Generates a uniform random number using D.H. Lehmer's 1948 algorithm.")]
 Public Declare PtrSafe Function RtlUniform Lib "ntdll" (Seed As Long) As Long
+Public Declare PtrSafe Function RtlImageNtHeader Lib "ntdll" (ByVal ModuleBase as LongPtr) As IMAGE_NT_HEADERS
+Public Declare PtrSafe Function RtlImageRvaToVa Lib "ntdll" (ByVal NtHeaders As LongPtr, ByVal ModuleBase as LongPtr, ByVal Rva As Long, pLastSection As IMAGE_SECTION_HEADER) As LongPtr
 
 Public Declare PtrSafe Function RtlIpv4AddressToStringA Lib "ntdll" (Addr As in_addr, ByVal s As String) As LongPtr
 Public Declare PtrSafe Function RtlIpv4AddressToStringW Lib "ntdll" (Addr As in_addr, ByVal s As LongPtr) As LongPtr
@@ -14956,8 +15004,8 @@ End Enum
 
 
 Public Enum PrintWindowFlags
-	PW_CLIENTONLY  = &H00000001
-	PW_RENDERFULLCONTENT  = &H00000002
+    PW_CLIENTONLY  = &H00000001
+    PW_RENDERFULLCONTENT  = &H00000002
 End Enum
 
 Public Enum GetWindowConsts
@@ -15482,8 +15530,10 @@ Public Enum SETWINEVENT_FLAGS
     WINEVENT_SKIPOWNPROCESS  = &H0002  ' Don't call back for events on installer's process
     WINEVENT_INCONTEXT  = &H0004  ' Events are SYNC, this causes your dll to be injected into every process
 End Enum
-Public Const EVENT_MIN  = &H00000001
-Public Const EVENT_MAX  = &H7FFFFFFF
+
+Public Enum WINEVENTS
+    EVENT_MIN  = &H00000001
+    EVENT_MAX  = &H7FFFFFFF
 /*
  *  EVENT_SYSTEM_SOUND
  *  Sent when a sound is played.  Currently nothing is generating this, we
@@ -15505,7 +15555,7 @@ Public Const EVENT_MAX  = &H7FFFFFFF
  *  are perfectly welcome to use it.  Clients of IAccessible* will simply
  *  turn around and get back a non-visual object that describes the sound.
  */
-Public Const EVENT_SYSTEM_SOUND              = &H0001
+    EVENT_SYSTEM_SOUND              = &H0001
 
 /*
  * EVENT_SYSTEM_ALERT
@@ -15517,7 +15567,7 @@ Public Const EVENT_SYSTEM_SOUND              = &H0001
  * (Generated whenever)
  *      hwnd+idObject gets interface pointer to Alert
  */
-Public Const EVENT_SYSTEM_ALERT              = &H0002
+    EVENT_SYSTEM_ALERT              = &H0002
 
 /*
  * EVENT_SYSTEM_FOREGROUND
@@ -15527,7 +15577,7 @@ Public Const EVENT_SYSTEM_ALERT              = &H0002
  *      idObject        is OBJID_WINDOW
  *      idChild    is INDEXID_OBJECT
  */
-Public Const EVENT_SYSTEM_FOREGROUND         = &H0003
+    EVENT_SYSTEM_FOREGROUND         = &H0003
 
 /*
  * Menu
@@ -15543,8 +15593,8 @@ Public Const EVENT_SYSTEM_FOREGROUND         = &H0003
  * Sent when entering into and leaving from menu mode (system, app bar, and
  * track popups).
  */
-Public Const EVENT_SYSTEM_MENUSTART          = &H0004
-Public Const EVENT_SYSTEM_MENUEND            = &H0005
+    EVENT_SYSTEM_MENUSTART          = &H0004
+    EVENT_SYSTEM_MENUEND            = &H0005
 
 /*
  * EVENT_SYSTEM_MENUPOPUPSTART
@@ -15558,8 +15608,8 @@ Public Const EVENT_SYSTEM_MENUEND            = &H0005
  * parent item which is hierarchical.  You can get the parent menu/popup by
  * asking for the accParent object.
  */
-Public Const EVENT_SYSTEM_MENUPOPUPSTART     = &H0006
-Public Const EVENT_SYSTEM_MENUPOPUPEND       = &H0007
+    EVENT_SYSTEM_MENUPOPUPSTART     = &H0006
+    EVENT_SYSTEM_MENUPOPUPEND       = &H0007
 
 
 /*
@@ -15567,8 +15617,8 @@ Public Const EVENT_SYSTEM_MENUPOPUPEND       = &H0007
  * EVENT_SYSTEM_CAPTUREEND
  * Sent when a window takes the capture and releases the capture.
  */
-Public Const EVENT_SYSTEM_CAPTURESTART       = &H0008
-Public Const EVENT_SYSTEM_CAPTUREEND         = &H0009
+    EVENT_SYSTEM_CAPTURESTART       = &H0008
+    EVENT_SYSTEM_CAPTUREEND         = &H0009
 
 /*
  * Move Size
@@ -15576,8 +15626,8 @@ Public Const EVENT_SYSTEM_CAPTUREEND         = &H0009
  * EVENT_SYSTEM_MOVESIZEEND
  * Sent when a window enters and leaves move-size dragging mode.
  */
-Public Const EVENT_SYSTEM_MOVESIZESTART      = &H000A
-Public Const EVENT_SYSTEM_MOVESIZEEND        = &H000B
+    EVENT_SYSTEM_MOVESIZESTART      = &H000A
+    EVENT_SYSTEM_MOVESIZEEND        = &H000B
 
 /*
  * Context Help
@@ -15585,8 +15635,8 @@ Public Const EVENT_SYSTEM_MOVESIZEEND        = &H000B
  * EVENT_SYSTEM_CONTEXTHELPEND
  * Sent when a window enters and leaves context sensitive help mode.
  */
-Public Const EVENT_SYSTEM_CONTEXTHELPSTART   = &H000C
-Public Const EVENT_SYSTEM_CONTEXTHELPEND     = &H000D
+    EVENT_SYSTEM_CONTEXTHELPSTART   = &H000C
+    EVENT_SYSTEM_CONTEXTHELPEND     = &H000D
 
 /*
  * Drag & Drop
@@ -15598,8 +15648,8 @@ Public Const EVENT_SYSTEM_CONTEXTHELPEND     = &H000D
  * doesn't know.  Like EVENT_SYSTEM_SOUND, it will be a while before this
  * is prevalent.
  */
-Public Const EVENT_SYSTEM_DRAGDROPSTART      = &H000E
-Public Const EVENT_SYSTEM_DRAGDROPEND        = &H000F
+    EVENT_SYSTEM_DRAGDROPSTART      = &H000E
+    EVENT_SYSTEM_DRAGDROPEND        = &H000F
 
 /*
  * Dialog
@@ -15609,8 +15659,8 @@ Public Const EVENT_SYSTEM_DRAGDROPEND        = &H000F
  * EVENT_SYSTEM_DIALOGSTART
  * EVENT_SYSTEM_DIALOGEND
  */
-Public Const EVENT_SYSTEM_DIALOGSTART        = &H0010
-Public Const EVENT_SYSTEM_DIALOGEND          = &H0011
+    EVENT_SYSTEM_DIALOGSTART        = &H0010
+    EVENT_SYSTEM_DIALOGEND          = &H0011
 
 /*
  * EVENT_SYSTEM_SCROLLING
@@ -15619,8 +15669,8 @@ Public Const EVENT_SYSTEM_DIALOGEND          = &H0011
  * Sent when beginning and ending the tracking of a scrollbar in a window,
  * and also for scrollbar controls.
  */
-Public Const EVENT_SYSTEM_SCROLLINGSTART     = &H0012
-Public Const EVENT_SYSTEM_SCROLLINGEND       = &H0013
+    EVENT_SYSTEM_SCROLLINGSTART     = &H0012
+    EVENT_SYSTEM_SCROLLINGEND       = &H0013
 
 /*
  * Alt-Tab Window
@@ -15629,26 +15679,26 @@ Public Const EVENT_SYSTEM_SCROLLINGEND       = &H0013
  * EVENT_SYSTEM_SWITCHSTART
  * EVENT_SYSTEM_SWITCHEND
  */
-Public Const EVENT_SYSTEM_SWITCHSTART        = &H0014
-Public Const EVENT_SYSTEM_SWITCHEND          = &H0015
+    EVENT_SYSTEM_SWITCHSTART        = &H0014
+    EVENT_SYSTEM_SWITCHEND          = &H0015
 
 /*
  * EVENT_SYSTEM_MINIMIZESTART
  * EVENT_SYSTEM_MINIMIZEEND
  * Sent when a window minimizes and just before it restores.
  */
-Public Const EVENT_SYSTEM_MINIMIZESTART      = &H0016
-Public Const EVENT_SYSTEM_MINIMIZEEND        = &H0017
+    EVENT_SYSTEM_MINIMIZESTART      = &H0016
+    EVENT_SYSTEM_MINIMIZEEND        = &H0017
 
 
 '#if(_WIN32_WINNT >= = &H0600)
-Public Const EVENT_SYSTEM_DESKTOPSWITCH      = &H0020
+    EVENT_SYSTEM_DESKTOPSWITCH      = &H0020
 '#endif /* _WIN32_WINNT >= = &H0600 */
 
 
 '#if(_WIN32_WINNT >= = &H0602)
 '// AppGrabbed: HWND = hwnd of app thumbnail, objectID = 0, childID = 0
-Public Const EVENT_SYSTEM_SWITCHER_APPGRABBED    = &H0024
+    EVENT_SYSTEM_SWITCHER_APPGRABBED    = &H0024
 /* OverTarget: HWND = hwnd of app thumbnail, objectID =
 //            1 for center
 //            2 for near snapped
@@ -15656,11 +15706,11 @@ Public Const EVENT_SYSTEM_SWITCHER_APPGRABBED    = &H0024
 //            4 for prune
 //            childID = 0
 */
-Public Const EVENT_SYSTEM_SWITCHER_APPOVERTARGET = &H0025
+    EVENT_SYSTEM_SWITCHER_APPOVERTARGET = &H0025
 '// Dropped: HWND = hwnd of app thumbnail, objectID = <same as above>, childID = 0
-Public Const EVENT_SYSTEM_SWITCHER_APPDROPPED    = &H0026
+    EVENT_SYSTEM_SWITCHER_APPDROPPED    = &H0026
 '// Cancelled: HWND = hwnd of app thumbnail, objectID = 0, childID = 0
-Public Const EVENT_SYSTEM_SWITCHER_CANCELLED     = &H0027
+    EVENT_SYSTEM_SWITCHER_CANCELLED     = &H0027
 '#endif /* _WIN32_WINNT >= = &H0602 */
 
 
@@ -15675,51 +15725,51 @@ Public Const EVENT_SYSTEM_SWITCHER_CANCELLED     = &H0027
  *     idObject         is a bitfield
  *         = &H00000001: set if a 32-bit Unicode surrogate pair is used
  */
-Public Const EVENT_SYSTEM_IME_KEY_NOTIFICATION  = &H0029
+    EVENT_SYSTEM_IME_KEY_NOTIFICATION  = &H0029
 
 '#endif /* _WIN32_WINNT >= = &H0602 */
 
 
 '#if(_WIN32_WINNT >= = &H0601)
-Public Const EVENT_SYSTEM_END        = &H00FF
+    EVENT_SYSTEM_END        = &H00FF
 
-Public Const EVENT_OEM_DEFINED_START     = &H0101
-Public Const EVENT_OEM_DEFINED_END       = &H01FF
+    EVENT_OEM_DEFINED_START     = &H0101
+    EVENT_OEM_DEFINED_END       = &H01FF
 
-Public Const EVENT_UIA_EVENTID_START         = &H4E00
-Public Const EVENT_UIA_EVENTID_END           = &H4EFF
+    EVENT_UIA_EVENTID_START         = &H4E00
+    EVENT_UIA_EVENTID_END           = &H4EFF
 
-Public Const EVENT_UIA_PROPID_START          = &H7500
-Public Const EVENT_UIA_PROPID_END            = &H75FF
+    EVENT_UIA_PROPID_START          = &H7500
+    EVENT_UIA_PROPID_END            = &H75FF
 '#endif /* _WIN32_WINNT >= = &H0601 */
 
 '#if(_WIN32_WINNT >= = &H0501)
-Public Const EVENT_CONSOLE_CARET             = &H4001
-Public Const EVENT_CONSOLE_UPDATE_REGION     = &H4002
-Public Const EVENT_CONSOLE_UPDATE_SIMPLE     = &H4003
-Public Const EVENT_CONSOLE_UPDATE_SCROLL     = &H4004
-Public Const EVENT_CONSOLE_LAYOUT            = &H4005
-Public Const EVENT_CONSOLE_START_APPLICATION = &H4006
-Public Const EVENT_CONSOLE_END_APPLICATION   = &H4007
+    EVENT_CONSOLE_CARET             = &H4001
+    EVENT_CONSOLE_UPDATE_REGION     = &H4002
+    EVENT_CONSOLE_UPDATE_SIMPLE     = &H4003
+    EVENT_CONSOLE_UPDATE_SCROLL     = &H4004
+    EVENT_CONSOLE_LAYOUT            = &H4005
+    EVENT_CONSOLE_START_APPLICATION = &H4006
+    EVENT_CONSOLE_END_APPLICATION   = &H4007
 
 /*
  * Flags for EVENT_CONSOLE_START/END_APPLICATION.
  */
 #If Win64 Then
-Public Const CONSOLE_APPLICATION_16BIT       = &H0000
+    CONSOLE_APPLICATION_16BIT       = &H0000
 #else
-Public Const CONSOLE_APPLICATION_16BIT       = &H0001
+    CONSOLE_APPLICATION_16BIT       = &H0001
 #End If
 
 /*
  * Flags for EVENT_CONSOLE_CARET
  */
-Public Const CONSOLE_CARET_SELECTION         = &H0001
-Public Const CONSOLE_CARET_VISIBLE           = &H0002
+    CONSOLE_CARET_SELECTION         = &H0001
+    CONSOLE_CARET_VISIBLE           = &H0002
 '#endif /* _WIN32_WINNT >= = &H0501 */
 
 '#if(_WIN32_WINNT >= = &H0601)
-Public Const EVENT_CONSOLE_END       = &H40FF
+    EVENT_CONSOLE_END       = &H40FF
 '#endif /* _WIN32_WINNT >= = &H0601 */
 
 /*
@@ -15800,11 +15850,11 @@ Public Const EVENT_CONSOLE_END       = &H40FF
  * PARENT container in which the zorder is occurring.  This is because if
  * one child is zordering, all of them are changing their relative zorder.
  */
-Public Const EVENT_OBJECT_CREATE                 = &H8000  '// hwnd + ID + idChild is created item
-Public Const EVENT_OBJECT_DESTROY                = &H8001  '// hwnd + ID + idChild is destroyed item
-Public Const EVENT_OBJECT_SHOW                   = &H8002  '// hwnd + ID + idChild is shown item
-Public Const EVENT_OBJECT_HIDE                   = &H8003  '// hwnd + ID + idChild is hidden item
-Public Const EVENT_OBJECT_REORDER                = &H8004  '// hwnd + ID + idChild is parent of zordering children
+    EVENT_OBJECT_CREATE                 = &H8000&  '// hwnd + ID + idChild is created item
+    EVENT_OBJECT_DESTROY                = &H8001&  '// hwnd + ID + idChild is destroyed item
+    EVENT_OBJECT_SHOW                   = &H8002&  '// hwnd + ID + idChild is shown item
+    EVENT_OBJECT_HIDE                   = &H8003&  '// hwnd + ID + idChild is hidden item
+    EVENT_OBJECT_REORDER = &H8004&  '// hwnd + ID + idChild is parent of zordering children
 /*
  * NOTE:
  * Minimize the number of notifications!
@@ -15816,11 +15866,11 @@ Public Const EVENT_OBJECT_REORDER                = &H8004  '// hwnd + ID + idChi
  */
 
 
-Public Const EVENT_OBJECT_FOCUS                  = &H8005  '// hwnd + ID + idChild is focused item
-Public Const EVENT_OBJECT_SELECTION              = &H8006  '// hwnd + ID + idChild is selected item (if only one), or idChild is OBJID_WINDOW if complex
-Public Const EVENT_OBJECT_SELECTIONADD           = &H8007  '// hwnd + ID + idChild is item added
-Public Const EVENT_OBJECT_SELECTIONREMOVE        = &H8008  '// hwnd + ID + idChild is item removed
-Public Const EVENT_OBJECT_SELECTIONWITHIN        = &H8009  '// hwnd + ID + idChild is parent of changed selected items
+    EVENT_OBJECT_FOCUS                  = &H8005&  '// hwnd + ID + idChild is focused item
+    EVENT_OBJECT_SELECTION              = &H8006&  '// hwnd + ID + idChild is selected item (if only one), or idChild is OBJID_WINDOW if complex
+    EVENT_OBJECT_SELECTIONADD           = &H8007&  '// hwnd + ID + idChild is item added
+    EVENT_OBJECT_SELECTIONREMOVE        = &H8008&  '// hwnd + ID + idChild is item removed
+    EVENT_OBJECT_SELECTIONWITHIN        = &H8009&  '// hwnd + ID + idChild is parent of changed selected items
 
 /*
  * NOTES:
@@ -15858,14 +15908,14 @@ Public Const EVENT_OBJECT_SELECTIONWITHIN        = &H8009  '// hwnd + ID + idChi
  *     are.
  */
 
-Public Const EVENT_OBJECT_STATECHANGE            = &H800A  '// hwnd + ID + idChild is item w/ state change
+    EVENT_OBJECT_STATECHANGE = &H800A&  '// hwnd + ID + idChild is item w/ state change
 /*
  * Examples of when to send an EVENT_OBJECT_STATECHANGE include
  *      * It is being enabled/disabled (USER does for windows)
  *      * It is being pressed/released (USER does for buttons)
  *      * It is being checked/unchecked (USER does for radio/check buttons)
  */
-Public Const EVENT_OBJECT_LOCATIONCHANGE         = &H800B  '// hwnd + ID + idChild is moved/sized item
+    EVENT_OBJECT_LOCATIONCHANGE         = &H800B&  '// hwnd + ID + idChild is moved/sized item
 
 /*
  * Note:
@@ -15890,17 +15940,17 @@ Public Const EVENT_OBJECT_LOCATIONCHANGE         = &H800B  '// hwnd + ID + idChi
  *      (2) Cursor
  */
 
-Public Const EVENT_OBJECT_NAMECHANGE             = &H800C  '// hwnd + ID + idChild is item w/ name change
-Public Const EVENT_OBJECT_DESCRIPTIONCHANGE      = &H800D  '// hwnd + ID + idChild is item w/ desc change
-Public Const EVENT_OBJECT_VALUECHANGE            = &H800E  '// hwnd + ID + idChild is item w/ value change
-Public Const EVENT_OBJECT_PARENTCHANGE           = &H800F  '// hwnd + ID + idChild is item w/ new parent
-Public Const EVENT_OBJECT_HELPCHANGE             = &H8010  '// hwnd + ID + idChild is item w/ help change
-Public Const EVENT_OBJECT_DEFACTIONCHANGE        = &H8011  '// hwnd + ID + idChild is item w/ def action change
-Public Const EVENT_OBJECT_ACCELERATORCHANGE      = &H8012  '// hwnd + ID + idChild is item w/ keybd accel change
+    EVENT_OBJECT_NAMECHANGE             = &H800C&  '// hwnd + ID + idChild is item w/ name change
+    EVENT_OBJECT_DESCRIPTIONCHANGE      = &H800D&  '// hwnd + ID + idChild is item w/ desc change
+    EVENT_OBJECT_VALUECHANGE            = &H800E&  '// hwnd + ID + idChild is item w/ value change
+    EVENT_OBJECT_PARENTCHANGE           = &H800F&  '// hwnd + ID + idChild is item w/ new parent
+    EVENT_OBJECT_HELPCHANGE             = &H8010&  '// hwnd + ID + idChild is item w/ help change
+    EVENT_OBJECT_DEFACTIONCHANGE        = &H8011&  '// hwnd + ID + idChild is item w/ def action change
+    EVENT_OBJECT_ACCELERATORCHANGE      = &H8012&  '// hwnd + ID + idChild is item w/ keybd accel change
 
 '#if(_WIN32_WINNT >= = &H0600)
-Public Const EVENT_OBJECT_INVOKED                = &H8013  '// hwnd + ID + idChild is item invoked
-Public Const EVENT_OBJECT_TEXTSELECTIONCHANGED   = &H8014  '// hwnd + ID + idChild is item w? test selection change
+    EVENT_OBJECT_INVOKED                = &H8013&  '// hwnd + ID + idChild is item invoked
+    EVENT_OBJECT_TEXTSELECTIONCHANGED = &H8014&  '// hwnd + ID + idChild is item w? test selection change
 
 /*
  * EVENT_OBJECT_CONTENTSCROLLED
@@ -15918,11 +15968,11 @@ Public Const EVENT_OBJECT_TEXTSELECTIONCHANGED   = &H8014  '// hwnd + ID + idChi
  *          idObject == OBJID_CLIENT
  *          idChild == CHILDID_SELF
  */
-Public Const EVENT_OBJECT_CONTENTSCROLLED        = &H8015
+    EVENT_OBJECT_CONTENTSCROLLED        = &H8015&
 '#endif /* _WIN32_WINNT >= = &H0600 */
 
 '#if(_WIN32_WINNT >= = &H0601)
-Public Const EVENT_SYSTEM_ARRANGMENTPREVIEW      = &H8016
+    EVENT_SYSTEM_ARRANGMENTPREVIEW      = &H8016&
 '#endif /* _WIN32_WINNT >= = &H0601 */
 
 '#if(_WIN32_WINNT >= = &H0602)
@@ -15933,8 +15983,8 @@ Public Const EVENT_SYSTEM_ARRANGMENTPREVIEW      = &H8016
  * A cloaked window still exists, but is invisible to
  * the user.
  */
-Public Const EVENT_OBJECT_CLOAKED                = &H8017
-Public Const EVENT_OBJECT_UNCLOAKED              = &H8018
+    EVENT_OBJECT_CLOAKED                = &H8017&
+    EVENT_OBJECT_UNCLOAKED              = &H8018&
 
 /*
  * EVENT_OBJECT_LIVEREGIONCHANGED
@@ -15944,7 +15994,7 @@ Public Const EVENT_OBJECT_UNCLOAKED              = &H8018
  * that an assistive technology tool might want to pay
  * special attention to it.
  */
-Public Const EVENT_OBJECT_LIVEREGIONCHANGED      = &H8019
+    EVENT_OBJECT_LIVEREGIONCHANGED      = &H8019&
 
 /*
  * EVENT_OBJECT_HOSTEDOBJECTSINVALIDATED
@@ -15960,7 +16010,7 @@ Public Const EVENT_OBJECT_LIVEREGIONCHANGED      = &H8019
  * change events, such as EVENT_OBJECT_CREATED for MSAA.
  * see above.
  */
-Public Const EVENT_OBJECT_HOSTEDOBJECTSINVALIDATED = &H8020
+    EVENT_OBJECT_HOSTEDOBJECTSINVALIDATED = &H8020&
 
 /*
  * Drag / Drop Events
@@ -15975,38 +16025,38 @@ Public Const EVENT_OBJECT_HOSTEDOBJECTSINVALIDATED = &H8020
  * that is being hovered over.
  */
 
-Public Const EVENT_OBJECT_DRAGSTART              = &H8021
-Public Const EVENT_OBJECT_DRAGCANCEL             = &H8022
-Public Const EVENT_OBJECT_DRAGCOMPLETE           = &H8023
+    EVENT_OBJECT_DRAGSTART              = &H8021&
+    EVENT_OBJECT_DRAGCANCEL             = &H8022&
+    EVENT_OBJECT_DRAGCOMPLETE           = &H8023&
 
-Public Const EVENT_OBJECT_DRAGENTER              = &H8024
-Public Const EVENT_OBJECT_DRAGLEAVE              = &H8025
-Public Const EVENT_OBJECT_DRAGDROPPED            = &H8026
+    EVENT_OBJECT_DRAGENTER              = &H8024&
+    EVENT_OBJECT_DRAGLEAVE              = &H8025&
+    EVENT_OBJECT_DRAGDROPPED            = &H8026&
 
 /*
  * EVENT_OBJECT_IME_SHOW/HIDE
  * Sent by an IME window when it has become visible or invisible.
  */
-Public Const EVENT_OBJECT_IME_SHOW               = &H8027
-Public Const EVENT_OBJECT_IME_HIDE               = &H8028
+    EVENT_OBJECT_IME_SHOW               = &H8027&
+    EVENT_OBJECT_IME_HIDE               = &H8028&
 
 /*
  * EVENT_OBJECT_IME_CHANGE
  * Sent by an IME window whenever it changes size or position.
  */
-Public Const EVENT_OBJECT_IME_CHANGE             = &H8029
+    EVENT_OBJECT_IME_CHANGE             = &H8029&
 
-Public Const EVENT_OBJECT_TEXTEDIT_CONVERSIONTARGETCHANGED = &H8030
+    EVENT_OBJECT_TEXTEDIT_CONVERSIONTARGETCHANGED = &H8030&
 
 '#endif /* _WIN32_WINNT >= = &H0602 */
 
 '#if(_WIN32_WINNT >= = &H0601)
-Public Const EVENT_OBJECT_END                    = &H80FF
+    EVENT_OBJECT_END                    = &H80FF&
 
-Public Const EVENT_AIA_START                     = &HA000
-Public Const EVENT_AIA_END                       = &HAFFF
+    EVENT_AIA_START                     = &HA000&
+    EVENT_AIA_END = &HAFFF&
 '#endif /* _WIN32_WINNT >= = &H0601 */
-
+End Enum
 
 /*
  * Child IDs
@@ -16047,8 +16097,34 @@ Public Enum SYSTEM_ALERT_IDS
     CALERT_SYSTEM                  = 6
 End Enum
 
+
+Public Enum GuiThreadFlags
+    GUI_CARETBLINKING  = &H00000001
+    GUI_INMOVESIZE  = &H00000002
+    GUI_INMENUMODE  = &H00000004
+    GUI_SYSTEMMENUMODE  = &H00000008
+    GUI_POPUPMENUMODE  = &H00000010
+#if Win64 Then
+    GUI_16BITTASK  = &H00000000
+#else
+    GUI_16BITTASK  = &H00000020
+  #End If
+End Enum
+Public Type GUITHREADINFO
+    cbSize As Long
+    flags As GuiThreadFlags
+    hwndActive As LongPtr
+    hwndFocus As LongPtr
+    hwndCapture As LongPtr
+    hwndMenuOwner As LongPtr
+    hwndMoveSize As LongPtr
+    hwndCaret As LongPtr
+    rcCaret As RECT
+End Type
+
+
 Public Enum POINTER_INPUT_TYPE
-    PT_POINTER=1 ' Generic pointer
+    PT_POINTER= 1 ' Generic pointer
     PT_TOUCH=2 ' Touch
     PT_PEN=3 ' Pen
     PT_MOUSE=4 ' Mouse
@@ -16346,7 +16422,7 @@ Public Declare PtrSafe Function CallMsgFilterA Lib "user32" (lpMsg As MSG, ByVal
 Public DeclareWide PtrSafe Function CallMsgFilterW Lib "user32" (lpMsg As MSG, ByVal nCode As Long) As BOOL
 Public DeclareWide PtrSafe Function CallMsgFilter Lib "user32" Alias "CallMsgFilterW" (lpMsg As MSG, ByVal nCode As Long) As BOOL
 Public DeclareWide PtrSafe Sub NotifyWinEvent Lib "user32" (ByVal event As Long, ByVal hwnd As LongPtr, ByVal idObject As Long, ByVal idChild As Long)
-Public DeclareWide PtrSafe Function SetWinEventHook Lib "user32" (ByVal eventmin As Long, ByVal eventmax As Long, ByVal hmodWinEventProc As LongPtr, ByVal pfnWinEventProc As LongPtr, ByVal idProcess As Long, ByVal idThread As Long, ByVal dwFlags As SETWINEVENT_FLAGS) As LongPtr
+Public DeclareWide PtrSafe Function SetWinEventHook Lib "user32" (ByVal eventmin As WINEVENTS, ByVal eventmax As WINEVENTS, ByVal hmodWinEventProc As LongPtr, ByVal pfnWinEventProc As LongPtr, ByVal idProcess As Long, ByVal idThread As Long, ByVal dwFlags As SETWINEVENT_FLAGS) As LongPtr
 Public DeclareWide PtrSafe Function IsWinEventHookInstalled Lib "user32" (ByVal event As Long) As BOOL
 Public DeclareWide PtrSafe Function UnhookWinEvent Lib "user32" (ByVal hWinEventHook As LongPtr) As BOOL
 
@@ -16498,6 +16574,7 @@ Public DeclareWide PtrSafe Function GrayString Lib "user32" Alias "GrayStringW" 
 
 
 
+
 [Description ("For szKeyphrase, 101 is provided as a reasonable maximum, but there's no such limit. For mkSize, specify only 6+actual used chars.") ]
 Public Type MULTIKEYHELPA
     mkSize As Long
@@ -16603,7 +16680,7 @@ Public Declare PtrSafe Function SetWindowContextHelpId Lib "user32" (ByVal hWnd 
 
 Public DeclareWide PtrSafe Function PaintDesktop Lib "user32" (ByVal hdc As LongPtr) As BOOL
 Public DeclareWide PtrSafe Function IsImmersiveProcess Lib "user32" (ByVal hProcess As LongPtr) As BOOL
-
+Public DeclareWide PtrSafe Function GetGUIThreadInfo Lib "user32" (ByVal idThread As Long, pgui As GUITHREADINFO) As BOOL
 
 Public Enum WINDOWCOMPOSITIONATTRIB
 	WCA_UNDEFINED=0
@@ -16654,10 +16731,69 @@ Public Enum ACCENT_STATE
 End Enum
 Public Type ACCENT_POLICY
 	AccentState As ACCENT_STATE
-	AccentFlags As Long
+	AccentFlags As WindowCompositionAccentFlags
 	GradientColor As Long
 	AnimationId As Long
 End Type
+' Public DeclareWide PtrSafe Function SetWindowCompositionAttribute Lib "user32" (ByVal hWnd As LongPtr, pAttribData As WINCOMPATTRDATA) As BOOL
+' Public Enum WindowCompositionAttribute
+    ' WCA_UNDEFINED=0
+    ' WCA_NCRENDERING_ENABLED= 1
+    ' WCA_NCRENDERING_POLICY=2
+    ' WCA_TRANSITIONS_FORCEDISABLED=3
+    ' WCA_ALLOW_NCPAINT=4
+    ' WCA_CAPTION_BUTTON_BOUNDS=5
+    ' WCA_NONCLIENT_RTL_LAYOUT=6
+    ' WCA_FORCE_ICONIC_REPRESENTATION=7
+    ' WCA_EXTENDED_FRAME_BOUNDS=8
+    ' WCA_HAS_ICONIC_BITMAP=9
+    ' WCA_THEME_ATTRIBUTES= 10
+    ' WCA_NCRENDERING_EXILED=11
+    ' WCA_NCADORNMENTINFO=12
+    ' WCA_EXCLUDED_FROM_LIVEPREVIEW=13
+    ' WCA_VIDEO_OVERLAY_ACTIVE=14
+    ' WCA_FORCE_ACTIVEWINDOW_APPEARANCE=15
+    ' WCA_DISALLOW_PEEK=16
+    ' WCA_CLOAK=17
+    ' WCA_CLOAKED=18
+    ' WCA_ACCENT_POLICY=19
+    ' WCA_FREEZE_REPRESENTATION=20
+    ' WCA_EVER_UNCLOAKED=21
+    ' WCA_VISUAL_OWNER=22
+    ' WCA_HOLOGRAPHIC=23
+    ' WCA_EXCLUDED_FROM_DDA=24
+    ' WCA_PASSIVEUPDATEMODE=25
+    ' WCA_LAST=26
+' End Enum
+' Public Enum WindowCompositionAccentState
+    ' ACCENT_DISABLED=0
+    ' ACCENT_ENABLE_GRADIENT=1
+    ' ACCENT_ENABLE_TRANSPARENTGRADIENT=2
+    ' ACCENT_ENABLE_BLURBEHIND=3
+    ' ACCENT_ENABLE_ACRYLICBLURBEHIND= 4 ' RS4 1803.17063
+    ' ACCENT_ENABLE_HOSTBACKDROP=5 ' RS5 1809
+    ' ACCENT_INVALID_STATE=6
+' End Enum
+Public Enum WindowCompositionAccentFlags
+    '  ...
+    DrawLeftBorder = &H20
+    DrawTopBorder = &H40
+    DrawRightBorder = &H80
+    DrawBottomBorder = &H100
+    DrawAllBorders= (DrawLeftBorder Or DrawTopBorder Or DrawRightBorder Or DrawBottomBorder)
+    '  ...
+End Enum
+' Public Type WINCOMPATTRDATA
+    ' Attrib As WindowCompositionAttribute
+    ' pvData As LongPtr
+    ' cbSize As Long
+' End Type
+' Public Type ACCENTPOLICY
+    ' AccentState As WindowCompositionAccentState
+    ' AccentFlags As WindowCompositionAccentFlags
+    ' GradientColor As Long
+    ' AnimationId As Long
+' End Type
 
 Public Enum FlashWindowFlags
 	FLASHW_STOP  = 0
@@ -17880,8 +18016,8 @@ Public DeclareWide PtrSafe Function GetDisplayConfigBufferSizes Lib "user32" (nu
 
 Public DeclareWide PtrSafe Function OpenClipboard Lib "user32" (ByVal hWnd As LongPtr) As Long
 Public DeclareWide PtrSafe Function EmptyClipboard Lib "user32" () As BOOL
-Public DeclareWide PtrSafe Function GetClipboardData Lib "user32" (ByVal wFormat As StdClipboardFormats) As LongPtr
 Public Declare PtrSafe Function SetClipboardData Lib "user32" (ByVal wFormat As StdClipboardFormats, Optional ByVal hMem As LongPtr) As LongPtr
+Public DeclareWide PtrSafe Function GetClipboardData Lib "user32" (ByVal wFormat As StdClipboardFormats) As LongPtr
 Public DeclareWide PtrSafe Function IsClipboardFormatAvailable Lib "user32" (ByVal wFormat As StdClipboardFormats) As BOOL
 Public Declare PtrSafe Function CloseClipboard Lib "user32" () As Long
 Public DeclareWide PtrSafe Function RegisterClipboardFormat Lib "user32" Alias "RegisterClipboardFormatW" (ByVal lpszFormat As String) As Long
@@ -24785,7 +24921,7 @@ Public Enum SID_NAME_USE
 End Enum
 Public Type SID_AND_ATTRIBUTES
     Sid As LongPtr
-    Attributes As Long
+    Attributes As GROUP_SID_ATTRIBUTES
 End Type
 Public Const SID_HASH_SIZE = 32
 
@@ -25587,9 +25723,9 @@ Public DeclareWide PtrSafe Function RegCreateKeyTransactedW Lib "advapi32" ([ Ty
 Public DeclareWide PtrSafe Function RegSetValueEx Lib "advapi32" Alias "RegSetValueExW" ([TypeHint (RegKeyspace) ] ByVal hKey As LongPtr, ByVal lpValueName As String, ByVal Reserved As Long, ByVal dwType As REGTYPES, lpData As Any, ByVal cbData As Long) As Long
 Public Declare PtrSafe Function RegSetValueExA Lib "advapi32" ([ TypeHint (RegKeyspace) ] ByVal hKey As LongPtr, ByVal lpValueName As String, ByVal Reserved As Long, ByVal dwType As REGTYPES, lpData As Any, ByVal cbData As Long) As Long
 Public DeclareWide PtrSafe Function RegSetValueExW Lib "advapi32" ([TypeHint(RegKeyspace) ] ByVal hKey As LongPtr, ByVal lpValueName As LongPtr, ByVal Reserved As Long, ByVal dwType As REGTYPES, lpData As Any, ByVal cbData As Long) As Long
-Public DeclareWide PtrSafe Function RegQueryValueEx Lib "advapi32" Alias "RegQueryValueExW" ([TypeHint(RegKeyspace)] ByVal hKey As LongPtr, ByVal lpValueName As String, ByVal lpReserved As LongPtr, lpType As REGTYPES, lpData As Any, lpcbData As LongPtr) As Long
-Public Declare PtrSafe Function RegQueryValueExA Lib "advapi32" ([TypeHint(RegKeyspace) ] ByVal hKey As LongPtr, ByVal lpValueName As String, ByVal lpReserved As LongPtr, lpType As REGTYPES, lpData As Any, lpcbData As LongPtr) As Long
-Public DeclareWide PtrSafe Function RegQueryValueExW Lib "advapi32" ([TypeHint (RegKeyspace) ] ByVal hKey As LongPtr, ByVal lpValueName As LongPtr, ByVal lpReserved As LongPtr, lpType As REGTYPES, lpData As Any, lpcbData As LongPtr) As Long
+Public DeclareWide PtrSafe Function RegQueryValueEx Lib "advapi32" Alias "RegQueryValueExW" ([TypeHint(RegKeyspace)] ByVal hKey As LongPtr, ByVal lpValueName As String, ByVal lpReserved As LongPtr, lpType As REGTYPES, lpData As Any, lpcbData As Long) As Long
+Public Declare PtrSafe Function RegQueryValueExA Lib "advapi32" ([TypeHint(RegKeyspace) ] ByVal hKey As LongPtr, ByVal lpValueName As String, ByVal lpReserved As LongPtr, lpType As REGTYPES, lpData As Any, lpcbData As Long) As Long
+Public DeclareWide PtrSafe Function RegQueryValueExW Lib "advapi32" ([ TypeHint (RegKeyspace) ] ByVal hKey As LongPtr, ByVal lpValueName As LongPtr, ByVal lpReserved As LongPtr, lpType As REGTYPES, lpData As Any, lpcbData As Long) As Long
 Public DeclareWide PtrSafe Function RegEnumKey Lib "advapi32" Alias "RegEnumKeyW" ([ TypeHint (RegKeyspace) ] ByVal hKey As LongPtr, ByVal dwIndex As Long, ByVal lpName As String, ByVal cchName As Long) As Long
 Public Declare PtrSafe Function RegEnumKeyA Lib "advapi32" ([ TypeHint (RegKeyspace) ] ByVal hKey As LongPtr, ByVal dwIndex As Long, ByVal lpName As String, ByVal cchName As Long) As Long
 Public DeclareWide PtrSafe Function RegEnumKeyW Lib "advapi32" ([ TypeHint (RegKeyspace) ] ByVal hKey As LongPtr, ByVal dwIndex As Long, ByVal lpName As LongPtr, ByVal cchName As Long) As Long
@@ -25669,10 +25805,10 @@ Public DeclareWide PtrSafe Function RegConnectRegistryEx Lib "advapi32" Alias "R
 
 
 
-Public DeclareWide PtrSafe Function OpenThreadToken Lib "advapi32" (ByVal hThread As LongPtr, ByVal dwDesiredAccess As Long, ByVal bOpenAsSelf As Long, phToken As LongPtr) As Boolean
-Public DeclareWide PtrSafe Function OpenProcessToken Lib "advapi32" (ByVal ProcessHandle As LongPtr, ByVal DesiredAccess As Long, TokenHandle As LongPtr) As Long
-Public DeclareWide PtrSafe Function DuplicateToken Lib "advapi32" (ByVal ExistingTokenHandle As LongPtr, ByVal ImpersonationLevel As SECURITY_IMPERSONATION_LEVEL, DuplicateTokenHandle As LongPtr) As Boolean
-Public DeclareWide PtrSafe Function DuplicateTokenEx Lib "advapi32" (ByVal hExistingToken As LongPtr, ByVal dwDesiredAccess As Long, lpTokenAttributes As SECURITY_ATTRIBUTES, ByVal ImpersonationLevel As SECURITY_IMPERSONATION_LEVEL, ByVal TokenType As TOKEN_TYPE, phNewToken As LongPtr) As Boolean
+Public DeclareWide PtrSafe Function OpenThreadToken Lib "advapi32" (ByVal hThread As LongPtr, [ TypeHint (StandardAccessTypes, TokenAccessRights) ] ByVal dwDesiredAccess As Long, ByVal bOpenAsSelf As Long, phToken As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function OpenProcessToken Lib "advapi32" (ByVal ProcessHandle As LongPtr, [ TypeHint (StandardAccessTypes, TokenAccessRights) ] ByVal DesiredAccess As Long, TokenHandle As LongPtr) As Long
+Public DeclareWide PtrSafe Function DuplicateToken Lib "advapi32" (ByVal ExistingTokenHandle As LongPtr, ByVal ImpersonationLevel As SECURITY_IMPERSONATION_LEVEL, DuplicateTokenHandle As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function DuplicateTokenEx Lib "advapi32" (ByVal hExistingToken As LongPtr, ByVal dwDesiredAccess As Long, lpTokenAttributes As SECURITY_ATTRIBUTES, ByVal ImpersonationLevel As SECURITY_IMPERSONATION_LEVEL, ByVal TokenType As TOKEN_TYPE, phNewToken As LongPtr) As BOOL
 Public DeclareWide PtrSafe Function ImpersonateLoggedOnUser Lib "advapi32" (ByVal hToken As LongPtr) As Long
 Public DeclareWide PtrSafe Function ImpersonateSelf Lib "advapi32" (ByVal ImpersonationLevel As SECURITY_IMPERSONATION_LEVEL) As BOOL
 Public DeclareWide PtrSafe Function RevertToSelf Lib "advapi32" () As BOOL
@@ -25750,7 +25886,7 @@ Public DeclareWide PtrSafe Function FileEncryptionStatus Lib "advapi32" Alias "F
 Public DeclareWide PtrSafe Function IsValidSid Lib "advapi32" (ByVal psid As LongPtr) As BOOL
 Public DeclareWide PtrSafe Function IsWellKnownSid Lib "advapi32" (ByVal psid As LongPtr, WellKnownSidType As WELL_KNOWN_SID_TYPE) As BOOL
 Public DeclareWide PtrSafe Function InitializeSid Lib "advapi32" (psid As LongPtr, pIdentifierAuthority As SID_IDENTIFIER_AUTHORITY, ByVal nSubAuthorityCount As Byte) As BOOL
-Public DeclareWide PtrSafe Function AllocateAndInitializeSid Lib "advapi32" (pIdentifierAuthority As SID_IDENTIFIER_AUTHORITY,ByVal nSubAuthorityCount As Byte, ByVal nSubAuthority0 As Long, ByVal nSubAuthority1 As Long, ByVal nSubAuthority2 As Long, ByVal nSubAuthority3 As Long, ByVal nSubAuthority4 As Long, ByVal nSubAuthority5 As Long, ByVal nSubAuthority6 As Long, ByVal nSubAuthority7 As Long, psid As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function AllocateAndInitializeSid Lib "advapi32" (pIdentifierAuthority As SID_IDENTIFIER_AUTHORITY, ByVal nSubAuthorityCount As Byte, ByVal nSubAuthority0 As Long, ByVal nSubAuthority1 As Long, ByVal nSubAuthority2 As Long, ByVal nSubAuthority3 As Long, ByVal nSubAuthority4 As Long, ByVal nSubAuthority5 As Long, ByVal nSubAuthority6 As Long, ByVal nSubAuthority7 As Long, psid As LongPtr) As BOOL
 Public DeclareWide PtrSafe Function GetLengthSid Lib "advapi32" (ByVal psid As LongPtr) As Long
 Public DeclareWide PtrSafe Function EqualSid Lib "advapi32" (ByVal pSid1 As LongPtr, ByVal pSid2 As LongPtr) As BOOL
 Public DeclareWide PtrSafe Function EqualDomainSid Lib "advapi32" (ByVal pSid1 As LongPtr, ByVal pSid2 As LongPtr, pfEqual As BOOL) As BOOL
@@ -26272,7 +26408,7 @@ Public Const SECURITY_TRUSTED_INSTALLER_RID4  = 1853292631
 Public Const SECURITY_TRUSTED_INSTALLER_RID5  = 2271478464
 Public Enum GROUP_SID_ATTRIBUTES
     SE_GROUP_MANDATORY = (&H00000001)
-    SE_GROUP_ENABLED_BY_DEFAULT  = (&H00000002)
+    SE_GROUP_ENABLED_BY_DEFAULT = (&H00000002)
     SE_GROUP_ENABLED  = (&H00000004)
     SE_GROUP_OWNER  = (&H00000008)
     SE_GROUP_USE_FOR_DENY_ONLY  = (&H00000010)
@@ -34971,21 +35107,478 @@ Public Type WINHTTP_PROXY_SETTINGS
     pNetworkKeys As LongPtr 'PWINHTTP_PROXY_NETWORKING_KEY
 End Type
 
+Public Type WINHTTP_CERTIFICATE_INFO
+    ' ftExpiry - date the certificate expires.
+    ftExpiry As FILETIME
+    ' ftStart - date the certificate becomes valid.
+    ftStart As FILETIME
+    ' lpszSubjectInfo - the name of organization, site, and server
+    '   the cert. was issued for.
+    lpszSubjectInfo As LongPtr
+    ' lpszIssuerInfo - the name of organization, site, and server
+    '   the cert was issues by.
+    lpszIssuerInfo As LongPtr
+    ' lpszProtocolName - the name of the protocol used to provide the secure
+    '   connection.
+    lpszProtocolName As LongPtr
+    ' lpszSignatureAlgName - the name of the algorithm used for signing
+    '  the certificate.
+    lpszSignatureAlgName As LongPtr
+    ' lpszEncryptionAlgName - the name of the algorithm used for
+    '  doing encryption over the secure channel (SSL) connection.
+    lpszEncryptionAlgName As LongPtr
+    ' dwKeySize - size of the key.
+    dwKeySize As Long
+End Type
+
+Public Type SOCKADDR_STORAGE
+	/* [ TypeHint(ADDRESS_FAMILIES) ] */ ss_family As Integer
+    __ss_pad1(5) As Byte
+    __ss_align As LongLong
+    __ss_pad2(111) As Byte
+End Type
+
+Public Type WINHTTP_CONNECTION_INFO
+    cbSize As Long
+    LocalAddress As SOCKADDR_STORAGE ' local ip, local port
+    RemoteAddress As SOCKADDR_STORAGE ' remote ip, remote port
+End Type
+
+Public Enum WINHTTP_REQUEST_TIME_ENTRY
+    WinHttpProxyDetectionStart = 0
+    WinHttpProxyDetectionEnd
+
+    WinHttpConnectionAcquireStart
+    WinHttpConnectionAcquireWaitEnd
+    WinHttpConnectionAcquireEnd
+
+    WinHttpNameResolutionStart
+    WinHttpNameResolutionEnd
+
+    WinHttpConnectionEstablishmentStart
+    WinHttpConnectionEstablishmentEnd
+
+    WinHttpTlsHandshakeClientLeg1Start
+    WinHttpTlsHandshakeClientLeg1End
+    WinHttpTlsHandshakeClientLeg2Start
+    WinHttpTlsHandshakeClientLeg2End
+    WinHttpTlsHandshakeClientLeg3Start
+    WinHttpTlsHandshakeClientLeg3End
+
+    WinHttpStreamWaitStart
+    WinHttpStreamWaitEnd
+
+    WinHttpSendRequestStart
+    WinHttpSendRequestHeadersCompressionStart
+    WinHttpSendRequestHeadersCompressionEnd
+    WinHttpSendRequestHeadersEnd
+    WinHttpSendRequestEnd
+
+    WinHttpReceiveResponseStart
+    WinHttpReceiveResponseHeadersDecompressionStart
+    WinHttpReceiveResponseHeadersDecompressionEnd
+    WinHttpReceiveResponseHeadersEnd
+    WinHttpReceiveResponseBodyDecompressionDelta
+    WinHttpReceiveResponseEnd
+
+    WinHttpProxyTunnelStart
+    WinHttpProxyTunnelEnd
+
+    WinHttpProxyTlsHandshakeClientLeg1Start
+    WinHttpProxyTlsHandshakeClientLeg1End
+    WinHttpProxyTlsHandshakeClientLeg2Start
+    WinHttpProxyTlsHandshakeClientLeg2End
+    WinHttpProxyTlsHandshakeClientLeg3Start
+    WinHttpProxyTlsHandshakeClientLeg3End
+
+    WinHttpRequestTimeLast
+    WinHttpRequestTimeMax = 64
+End Enum
+Public Type WINHTTP_REQUEST_TIMES
+    cTimes As Long
+    rgullTimes(0 To (WinHttpRequestTimeMax - 1)) As LongLong
+End Type
+
+Public Enum WINHTTP_REQUEST_STAT_ENTRY
+    WinHttpConnectFailureCount = 0
+    WinHttpProxyFailureCount
+
+    WinHttpTlsHandshakeClientLeg1Size
+    WinHttpTlsHandshakeServerLeg1Size
+    WinHttpTlsHandshakeClientLeg2Size
+    WinHttpTlsHandshakeServerLeg2Size
+
+    WinHttpRequestHeadersSize
+    WinHttpRequestHeadersCompressedSize
+
+    WinHttpResponseHeadersSize
+    WinHttpResponseHeadersCompressedSize
+    WinHttpResponseBodySize
+    WinHttpResponseBodyCompressedSize
+
+    WinHttpProxyTlsHandshakeClientLeg1Size
+    WinHttpProxyTlsHandshakeServerLeg1Size
+    WinHttpProxyTlsHandshakeClientLeg2Size
+    WinHttpProxyTlsHandshakeServerLeg2Size
+
+    WinHttpRequestStatLast
+    WinHttpRequestStatMax = 32
+End Enum
+
+Public Enum WINHTTP_REQUEST_STAT_FLAGS
+    WINHTTP_REQUEST_STAT_FLAG_TCP_FAST_OPEN  = &H00000001
+    WINHTTP_REQUEST_STAT_FLAG_TLS_SESSION_RESUMPTION  = &H00000002
+    WINHTTP_REQUEST_STAT_FLAG_TLS_FALSE_START  = &H00000004
+    WINHTTP_REQUEST_STAT_FLAG_PROXY_TLS_SESSION_RESUMPTION  = &H00000008
+    WINHTTP_REQUEST_STAT_FLAG_PROXY_TLS_FALSE_START  = &H00000010
+    WINHTTP_REQUEST_STAT_FLAG_FIRST_REQUEST  = &H00000020
+End Enum
+Public Type WINHTTP_REQUEST_STATS
+    /* [ TypeHint(WINHTTP_REQUEST_STAT_FLAGS) ] */ ullFlags As LongLong
+    ulIndex As Long
+    cStats As Long
+    rgullStats(0 To (WinHttpRequestStatMax - 1)) As LongLong
+End Type
+
+Public Enum WINHTTP_MATCH_CON_GUID_FLAGS
+    WINHTTP_MATCH_CONNECTION_GUID_FLAG_REQUIRE_MARKED_CONNECTION  = &H00000001
+    WINHTTP_MATCH_CONNECTION_GUID_FLAGS_MASK  = WINHTTP_MATCH_CONNECTION_GUID_FLAG_REQUIRE_MARKED_CONNECTION
+End Enum
+Public Type WINHTTP_MATCH_CONNECTION_GUID
+    ConnectionGuid As UUID
+    /* [ TypeHint(WINHTTP_MATCH_CON_GUID_FLAGS) ] */ ullFlags As LongLong
+End Type
+
+Public Enum WINHTTP_OPTIONS
+    WINHTTP_FIRST_OPTION  = WINHTTP_OPTION_CALLBACK
+    WINHTTP_OPTION_CALLBACK  = 1
+    WINHTTP_OPTION_RESOLVE_TIMEOUT  = 2
+    WINHTTP_OPTION_CONNECT_TIMEOUT  = 3
+    WINHTTP_OPTION_CONNECT_RETRIES  = 4
+    WINHTTP_OPTION_SEND_TIMEOUT  = 5
+    WINHTTP_OPTION_RECEIVE_TIMEOUT  = 6
+    WINHTTP_OPTION_RECEIVE_RESPONSE_TIMEOUT  = 7
+    WINHTTP_OPTION_HANDLE_TYPE  = 9
+    WINHTTP_OPTION_READ_BUFFER_SIZE  = 12
+    WINHTTP_OPTION_WRITE_BUFFER_SIZE  = 13
+    WINHTTP_OPTION_PARENT_HANDLE  = 21
+    WINHTTP_OPTION_EXTENDED_ERROR  = 24
+    WINHTTP_OPTION_SECURITY_FLAGS  = 31
+    WINHTTP_OPTION_SECURITY_CERTIFICATE_STRUCT  = 32
+    WINHTTP_OPTION_URL  = 34
+    WINHTTP_OPTION_SECURITY_KEY_BITNESS  = 36
+    WINHTTP_OPTION_PROXY  = 38
+    WINHTTP_OPTION_PROXY_RESULT_ENTRY  = 39
+    WINHTTP_OPTION_USER_AGENT  = 41
+    WINHTTP_OPTION_CONTEXT_VALUE  = 45
+    WINHTTP_OPTION_CLIENT_CERT_CONTEXT  = 47
+    WINHTTP_OPTION_REQUEST_PRIORITY  = 58
+    WINHTTP_OPTION_HTTP_VERSION  = 59
+    WINHTTP_OPTION_DISABLE_FEATURE  = 63
+    WINHTTP_OPTION_CODEPAGE  = 68
+    WINHTTP_OPTION_MAX_CONNS_PER_SERVER  = 73
+    WINHTTP_OPTION_MAX_CONNS_PER_1_0_SERVER  = 74
+    WINHTTP_OPTION_AUTOLOGON_POLICY  = 77
+    WINHTTP_OPTION_SERVER_CERT_CONTEXT  = 78
+    WINHTTP_OPTION_ENABLE_FEATURE  = 79
+    WINHTTP_OPTION_WORKER_THREAD_COUNT  = 80
+    WINHTTP_OPTION_PASSPORT_COBRANDING_TEXT  = 81
+    WINHTTP_OPTION_PASSPORT_COBRANDING_URL  = 82
+    WINHTTP_OPTION_CONFIGURE_PASSPORT_AUTH  = 83
+    WINHTTP_OPTION_SECURE_PROTOCOLS  = 84
+    WINHTTP_OPTION_ENABLETRACING  = 85
+    WINHTTP_OPTION_PASSPORT_SIGN_OUT  = 86
+    WINHTTP_OPTION_PASSPORT_RETURN_URL  = 87
+    WINHTTP_OPTION_REDIRECT_POLICY  = 88
+    WINHTTP_OPTION_MAX_HTTP_AUTOMATIC_REDIRECTS  = 89
+    WINHTTP_OPTION_MAX_HTTP_STATUS_CONTINUE  = 90
+    WINHTTP_OPTION_MAX_RESPONSE_HEADER_SIZE  = 91
+    WINHTTP_OPTION_MAX_RESPONSE_DRAIN_SIZE  = 92
+    WINHTTP_OPTION_CONNECTION_INFO  = 93
+    WINHTTP_OPTION_CLIENT_CERT_ISSUER_LIST  = 94
+    WINHTTP_OPTION_SPN  = 96
+    WINHTTP_OPTION_GLOBAL_PROXY_CREDS  = 97
+    WINHTTP_OPTION_GLOBAL_SERVER_CREDS  = 98
+    WINHTTP_OPTION_UNLOAD_NOTIFY_EVENT  = 99
+    WINHTTP_OPTION_REJECT_USERPWD_IN_URL  = 100
+    WINHTTP_OPTION_USE_GLOBAL_SERVER_CREDENTIALS  = 101
+    WINHTTP_OPTION_RECEIVE_PROXY_CONNECT_RESPONSE  = 103
+    WINHTTP_OPTION_IS_PROXY_CONNECT_RESPONSE  = 104
+    WINHTTP_OPTION_NETWORK_INTERFACE_AFFINITY  = 105
+    WINHTTP_OPTION_SERVER_SPN_USED  = 106
+    WINHTTP_OPTION_PROXY_SPN_USED  = 107
+    WINHTTP_OPTION_SERVER_CBT  = 108
+    WINHTTP_OPTION_UNSAFE_HEADER_PARSING  = 110
+    WINHTTP_OPTION_ASSURED_NON_BLOCKING_CALLBACKS  = 111
+    WINHTTP_OPTION_UPGRADE_TO_WEB_SOCKET  = 114
+    WINHTTP_OPTION_WEB_SOCKET_CLOSE_TIMEOUT  = 115
+    WINHTTP_OPTION_WEB_SOCKET_KEEPALIVE_INTERVAL  = 116
+    WINHTTP_OPTION_DECOMPRESSION  = 118
+    WINHTTP_OPTION_WEB_SOCKET_RECEIVE_BUFFER_SIZE  = 122
+    WINHTTP_OPTION_WEB_SOCKET_SEND_BUFFER_SIZE  = 123
+    WINHTTP_OPTION_TCP_PRIORITY_HINT  = 128
+    WINHTTP_OPTION_CONNECTION_FILTER  = 131
+    WINHTTP_OPTION_ENABLE_HTTP_PROTOCOL  = 133
+    WINHTTP_OPTION_HTTP_PROTOCOL_USED  = 134
+    WINHTTP_OPTION_KDC_PROXY_SETTINGS  = 136
+    WINHTTP_OPTION_PROXY_DISABLE_SERVICE_CALLS  = 137
+    WINHTTP_OPTION_ENCODE_EXTRA  = 138
+    WINHTTP_OPTION_DISABLE_STREAM_QUEUE  = 139
+    WINHTTP_OPTION_IPV6_FAST_FALLBACK  = 140
+    WINHTTP_OPTION_CONNECTION_STATS_V0  = 141
+    WINHTTP_OPTION_REQUEST_TIMES  = 142
+    WINHTTP_OPTION_EXPIRE_CONNECTION  = 143
+    WINHTTP_OPTION_DISABLE_SECURE_PROTOCOL_FALLBACK  = 144
+    WINHTTP_OPTION_HTTP_PROTOCOL_REQUIRED  = 145
+    WINHTTP_OPTION_REQUEST_STATS  = 146
+    WINHTTP_OPTION_SERVER_CERT_CHAIN_CONTEXT  = 147
+    WINHTTP_OPTION_CONNECTION_STATS_V1  = 150
+    WINHTTP_OPTION_SECURITY_INFO  = 151
+    WINHTTP_OPTION_TCP_KEEPALIVE  = 152
+    WINHTTP_OPTION_TCP_FAST_OPEN  = 153
+    WINHTTP_OPTION_TLS_FALSE_START  = 154
+    WINHTTP_OPTION_IGNORE_CERT_REVOCATION_OFFLINE  = 155
+    WINHTTP_OPTION_TLS_PROTOCOL_INSECURE_FALLBACK  = 158
+    WINHTTP_OPTION_STREAM_ERROR_CODE  = 159
+    WINHTTP_OPTION_REQUIRE_STREAM_END  = 160
+    WINHTTP_OPTION_ENABLE_HTTP2_PLUS_CLIENT_CERT  = 161
+    WINHTTP_OPTION_FAILED_CONNECTION_RETRIES  = 162
+    WINHTTP_OPTION_HTTP2_KEEPALIVE  = 164
+    WINHTTP_OPTION_RESOLUTION_HOSTNAME  = 165
+    WINHTTP_OPTION_SET_TOKEN_BINDING  = 166
+    WINHTTP_OPTION_TOKEN_BINDING_PUBLIC_KEY  = 167
+    WINHTTP_OPTION_REFERER_TOKEN_BINDING_HOSTNAME  = 168
+    WINHTTP_OPTION_HTTP2_PLUS_TRANSFER_ENCODING  = 169
+    WINHTTP_OPTION_RESOLVER_CACHE_CONFIG  = 170
+    WINHTTP_OPTION_DISABLE_CERT_CHAIN_BUILDING  = 171
+    WINHTTP_OPTION_BACKGROUND_CONNECTIONS  = 172
+    WINHTTP_OPTION_FIRST_AVAILABLE_CONNECTION  = 173
+    WINHTTP_OPTION_TCP_PRIORITY_STATUS  = 177
+    WINHTTP_OPTION_CONNECTION_GUID  = 178
+    WINHTTP_OPTION_MATCH_CONNECTION_GUID  = 179
+    WINHTTP_OPTION_HTTP2_RECEIVE_WINDOW  = 183
+    WINHTTP_OPTION_FEATURE_SUPPORTED  = 184
+    WINHTTP_OPTION_QUIC_STATS  = 185
+    WINHTTP_OPTION_HTTP3_KEEPALIVE  = 188
+    WINHTTP_OPTION_HTTP3_HANDSHAKE_TIMEOUT  = 189
+    WINHTTP_OPTION_HTTP3_INITIAL_RTT  = 190
+    WINHTTP_OPTION_HTTP3_STREAM_ERROR_CODE  = 191
+    WINHTTP_OPTION_REQUEST_ANNOTATION  = 192
+    WINHTTP_OPTION_DISABLE_PROXY_AUTH_SCHEMES  = 193
+    WINHTTP_OPTION_REVERT_IMPERSONATION_SERVER_CERT  = 194
+    WINHTTP_OPTION_DISABLE_GLOBAL_POOLING  = 195
+    WINHTTP_OPTION_USE_SESSION_SCH_CRED  = 196
+    WINHTTP_OPTION_QUIC_STATS_V2  = 200
+    WINHTTP_OPTION_QUIC_STREAM_STATS  = 202
+    WINHTTP_OPTION_USE_LOOKASIDE  = 203
+    WINHTTP_OPTION_ERROR_LOG_GUID  = 204
+    WINHTTP_LAST_OPTION  = WINHTTP_OPTION_ERROR_LOG_GUID
+    WINHTTP_OPTION_USERNAME  = &H1000
+    WINHTTP_OPTION_PASSWORD  = &H1001
+    WINHTTP_OPTION_PROXY_USERNAME  = &H1002
+    WINHTTP_OPTION_PROXY_PASSWORD  = &H1003
+End Enum
+
+Public Enum WINHTTP_WEB_SOCKET_BUFFER_TYPE
+    WINHTTP_WEB_SOCKET_BINARY_MESSAGE_BUFFER_TYPE=0
+    WINHTTP_WEB_SOCKET_BINARY_FRAGMENT_BUFFER_TYPE=1
+    WINHTTP_WEB_SOCKET_UTF8_MESSAGE_BUFFER_TYPE=2
+    WINHTTP_WEB_SOCKET_UTF8_FRAGMENT_BUFFER_TYPE=3
+    WINHTTP_WEB_SOCKET_CLOSE_BUFFER_TYPE=4
+End Enum
+Public Enum WINHTTP_WEB_SOCKET_CLOSE_STATUS
+    WINHTTP_WEB_SOCKET_SUCCESS_CLOSE_STATUS=1000
+    WINHTTP_WEB_SOCKET_ENDPOINT_TERMINATED_CLOSE_STATUS=1001
+    WINHTTP_WEB_SOCKET_PROTOCOL_ERROR_CLOSE_STATUS=1002
+    WINHTTP_WEB_SOCKET_INVALID_DATA_TYPE_CLOSE_STATUS=1003
+    WINHTTP_WEB_SOCKET_EMPTY_CLOSE_STATUS=1005
+    WINHTTP_WEB_SOCKET_ABORTED_CLOSE_STATUS=1006
+    WINHTTP_WEB_SOCKET_INVALID_PAYLOAD_CLOSE_STATUS=1007
+    WINHTTP_WEB_SOCKET_POLICY_VIOLATION_CLOSE_STATUS=1008
+    WINHTTP_WEB_SOCKET_MESSAGE_TOO_BIG_CLOSE_STATUS=1009
+    WINHTTP_WEB_SOCKET_UNSUPPORTED_EXTENSIONS_CLOSE_STATUS=1010
+    WINHTTP_WEB_SOCKET_SERVER_ERROR_CLOSE_STATUS=1011
+    WINHTTP_WEB_SOCKET_SECURE_HANDSHAKE_ERROR_CLOSE_STATUS=1015
+End Enum
+
+Public Enum WINHTTP_QUERY_HEADER
+    WINHTTP_QUERY_MIME_VERSION  = 0
+    WINHTTP_QUERY_CONTENT_TYPE  = 1
+    WINHTTP_QUERY_CONTENT_TRANSFER_ENCODING  = 2
+    WINHTTP_QUERY_CONTENT_ID  = 3
+    WINHTTP_QUERY_CONTENT_DESCRIPTION  = 4
+    WINHTTP_QUERY_CONTENT_LENGTH  = 5
+    WINHTTP_QUERY_CONTENT_LANGUAGE  = 6
+    WINHTTP_QUERY_ALLOW  = 7
+    WINHTTP_QUERY_PUBLIC  = 8
+    WINHTTP_QUERY_DATE  = 9
+    WINHTTP_QUERY_EXPIRES  = 10
+    WINHTTP_QUERY_LAST_MODIFIED  = 11
+    WINHTTP_QUERY_MESSAGE_ID  = 12
+    WINHTTP_QUERY_URI  = 13
+    WINHTTP_QUERY_DERIVED_FROM  = 14
+    WINHTTP_QUERY_COST  = 15
+    WINHTTP_QUERY_LINK  = 16
+    WINHTTP_QUERY_PRAGMA  = 17
+    WINHTTP_QUERY_VERSION  = 18  ' special: part of status line
+    WINHTTP_QUERY_STATUS_CODE  = 19  ' special: part of status line
+    WINHTTP_QUERY_STATUS_TEXT  = 20  ' special: part of status line
+    WINHTTP_QUERY_RAW_HEADERS  = 21  ' special: all headers as ASCIIZ
+    WINHTTP_QUERY_RAW_HEADERS_CRLF  = 22  ' special: all headers
+    WINHTTP_QUERY_CONNECTION  = 23
+    WINHTTP_QUERY_ACCEPT  = 24
+    WINHTTP_QUERY_ACCEPT_CHARSET  = 25
+    WINHTTP_QUERY_ACCEPT_ENCODING  = 26
+    WINHTTP_QUERY_ACCEPT_LANGUAGE  = 27
+    WINHTTP_QUERY_AUTHORIZATION  = 28
+    WINHTTP_QUERY_CONTENT_ENCODING  = 29
+    WINHTTP_QUERY_FORWARDED  = 30
+    WINHTTP_QUERY_FROM  = 31
+    WINHTTP_QUERY_IF_MODIFIED_SINCE  = 32
+    WINHTTP_QUERY_LOCATION  = 33
+    WINHTTP_QUERY_ORIG_URI  = 34
+    WINHTTP_QUERY_REFERER  = 35
+    WINHTTP_QUERY_RETRY_AFTER  = 36
+    WINHTTP_QUERY_SERVER  = 37
+    WINHTTP_QUERY_TITLE  = 38
+    WINHTTP_QUERY_USER_AGENT  = 39
+    WINHTTP_QUERY_WWW_AUTHENTICATE  = 40
+    WINHTTP_QUERY_PROXY_AUTHENTICATE  = 41
+    WINHTTP_QUERY_ACCEPT_RANGES  = 42
+    WINHTTP_QUERY_SET_COOKIE  = 43
+    WINHTTP_QUERY_COOKIE  = 44
+    WINHTTP_QUERY_REQUEST_METHOD  = 45  ' special: GET/POST etc.
+    WINHTTP_QUERY_REFRESH  = 46
+    WINHTTP_QUERY_CONTENT_DISPOSITION  = 47
+'  HTTP 1.1 defined headers
+    WINHTTP_QUERY_AGE  = 48
+    WINHTTP_QUERY_CACHE_CONTROL  = 49
+    WINHTTP_QUERY_CONTENT_BASE  = 50
+    WINHTTP_QUERY_CONTENT_LOCATION  = 51
+    WINHTTP_QUERY_CONTENT_MD5  = 52
+    WINHTTP_QUERY_CONTENT_RANGE  = 53
+    WINHTTP_QUERY_ETAG  = 54
+    WINHTTP_QUERY_HOST  = 55
+    WINHTTP_QUERY_IF_MATCH  = 56
+    WINHTTP_QUERY_IF_NONE_MATCH  = 57
+    WINHTTP_QUERY_IF_RANGE  = 58
+    WINHTTP_QUERY_IF_UNMODIFIED_SINCE  = 59
+    WINHTTP_QUERY_MAX_FORWARDS  = 60
+    WINHTTP_QUERY_PROXY_AUTHORIZATION  = 61
+    WINHTTP_QUERY_RANGE  = 62
+    WINHTTP_QUERY_TRANSFER_ENCODING  = 63
+    WINHTTP_QUERY_UPGRADE  = 64
+    WINHTTP_QUERY_VARY  = 65
+    WINHTTP_QUERY_VIA  = 66
+    WINHTTP_QUERY_WARNING  = 67
+    WINHTTP_QUERY_EXPECT  = 68
+    WINHTTP_QUERY_PROXY_CONNECTION  = 69
+    WINHTTP_QUERY_UNLESS_MODIFIED_SINCE  = 70
+    WINHTTP_QUERY_PROXY_SUPPORT  = 75
+    WINHTTP_QUERY_AUTHENTICATION_INFO  = 76
+    WINHTTP_QUERY_PASSPORT_URLS  = 77
+    WINHTTP_QUERY_PASSPORT_CONFIG  = 78
+    WINHTTP_QUERY_MAX  = 78
+    WINHTTP_QUERY_EX_ALL_HEADERS  = WINHTTP_QUERY_RAW_HEADERS
+'  WINHTTP_QUERY_CUSTOM - if this special value is supplied as the dwInfoLevel
+'  parameter of WinHttpQueryHeaders() then the lpBuffer parameter contains the name
+'  of the header we are to query
+    WINHTTP_QUERY_CUSTOM  = 65535
+End Enum
+
+Public Enum WINHTTP_QUERY_HEADER_FLAGS
+    WINHTTP_QUERY_FLAG_REQUEST_HEADERS  = &H80000000
+'  WINHTTP_QUERY_FLAG_SYSTEMTIME - if this bit is set in the dwInfoLevel parameter
+'  of WinHttpQueryHeaders() AND the header being queried contains date information,
+'  e.g. the "Expires:" header then lpBuffer will contain a SYSTEMTIME structure
+'  containing the date and time information converted from the header string
+    WINHTTP_QUERY_FLAG_SYSTEMTIME  = &H40000000
+'  WINHTTP_QUERY_FLAG_NUMBER - if this bit is set in the dwInfoLevel parameter of
+'  HttpQueryHeader(), then the value of the header will be converted to a number
+'  before being returned to the caller, if applicable
+    WINHTTP_QUERY_FLAG_NUMBER  = &H20000000
+'  HTTP_QUERY_FLAG_NUMBER64 - if this bit is set in the dwInfoLevel parameter of
+'  HttpQueryInfo(), then the value of the header will be converted to a 64bit
+'  number before being returned to the caller, if applicable
+    WINHTTP_QUERY_FLAG_NUMBER64  = &H08000000
+'  HTTP_QUERY_FLAG_TRAILERS - if this bit is set in the dwInfoLevel parameter of
+'  WinHttpQueryHeaders(), then the response trailers will be queried, if they exist
+    WINHTTP_QUERY_FLAG_TRAILERS  = &H02000000
+'  WINHTTP_QUERY_FLAG_WIRE_ENCODING - if this bit is set in the dwInfoLevel parameter
+'  of WinHttpQueryHeaders(), then the value of the header will be returned
+'  with as it gets encoded when sent over the wire.
+    WINHTTP_QUERY_FLAG_WIRE_ENCODING  = &H01000000
+End Enum
+
+Public Enum WINHTTP_CALLBACK_STATUS_VALUES
+    WINHTTP_CALLBACK_STATUS_RESOLVING_NAME  = &H00000001
+    WINHTTP_CALLBACK_STATUS_NAME_RESOLVED  = &H00000002
+    WINHTTP_CALLBACK_STATUS_CONNECTING_TO_SERVER  = &H00000004
+    WINHTTP_CALLBACK_STATUS_CONNECTED_TO_SERVER  = &H00000008
+    WINHTTP_CALLBACK_STATUS_SENDING_REQUEST  = &H00000010
+    WINHTTP_CALLBACK_STATUS_REQUEST_SENT  = &H00000020
+    WINHTTP_CALLBACK_STATUS_RECEIVING_RESPONSE  = &H00000040
+    WINHTTP_CALLBACK_STATUS_RESPONSE_RECEIVED  = &H00000080
+    WINHTTP_CALLBACK_STATUS_CLOSING_CONNECTION  = &H00000100
+    WINHTTP_CALLBACK_STATUS_CONNECTION_CLOSED  = &H00000200
+    WINHTTP_CALLBACK_STATUS_HANDLE_CREATED  = &H00000400
+    WINHTTP_CALLBACK_STATUS_HANDLE_CLOSING  = &H00000800
+    WINHTTP_CALLBACK_STATUS_DETECTING_PROXY  = &H00001000
+    WINHTTP_CALLBACK_STATUS_REDIRECT  = &H00004000
+    WINHTTP_CALLBACK_STATUS_INTERMEDIATE_RESPONSE = &H00008000&
+    WINHTTP_CALLBACK_STATUS_SECURE_FAILURE  = &H00010000
+    WINHTTP_CALLBACK_STATUS_HEADERS_AVAILABLE  = &H00020000
+    WINHTTP_CALLBACK_STATUS_DATA_AVAILABLE  = &H00040000
+    WINHTTP_CALLBACK_STATUS_READ_COMPLETE  = &H00080000
+    WINHTTP_CALLBACK_STATUS_WRITE_COMPLETE  = &H00100000
+    WINHTTP_CALLBACK_STATUS_REQUEST_ERROR  = &H00200000
+    WINHTTP_CALLBACK_STATUS_SENDREQUEST_COMPLETE  = &H00400000
+    WINHTTP_CALLBACK_STATUS_GETPROXYFORURL_COMPLETE  = &H01000000
+    WINHTTP_CALLBACK_STATUS_CLOSE_COMPLETE  = &H02000000
+    WINHTTP_CALLBACK_STATUS_SHUTDOWN_COMPLETE  = &H04000000
+    WINHTTP_CALLBACK_STATUS_GETPROXYSETTINGS_COMPLETE  = &H08000000
+    WINHTTP_CALLBACK_STATUS_SETTINGS_WRITE_COMPLETE  = &H10000000
+    WINHTTP_CALLBACK_STATUS_SETTINGS_READ_COMPLETE  = &H20000000
+End Enum
+
+Public Enum WINHTTP_CALLBACK_STATUS_FLAGS
+    WINHTTP_CALLBACK_FLAG_RESOLVE_NAME  = (WINHTTP_CALLBACK_STATUS_RESOLVING_NAME  Or  WINHTTP_CALLBACK_STATUS_NAME_RESOLVED)
+    WINHTTP_CALLBACK_FLAG_CONNECT_TO_SERVER  = (WINHTTP_CALLBACK_STATUS_CONNECTING_TO_SERVER  Or  WINHTTP_CALLBACK_STATUS_CONNECTED_TO_SERVER)
+    WINHTTP_CALLBACK_FLAG_SEND_REQUEST  = (WINHTTP_CALLBACK_STATUS_SENDING_REQUEST  Or  WINHTTP_CALLBACK_STATUS_REQUEST_SENT)
+    WINHTTP_CALLBACK_FLAG_RECEIVE_RESPONSE  = (WINHTTP_CALLBACK_STATUS_RECEIVING_RESPONSE  Or  WINHTTP_CALLBACK_STATUS_RESPONSE_RECEIVED)
+    WINHTTP_CALLBACK_FLAG_CLOSE_CONNECTION  = (WINHTTP_CALLBACK_STATUS_CLOSING_CONNECTION  Or  WINHTTP_CALLBACK_STATUS_CONNECTION_CLOSED)
+    WINHTTP_CALLBACK_FLAG_HANDLES  = (WINHTTP_CALLBACK_STATUS_HANDLE_CREATED  Or  WINHTTP_CALLBACK_STATUS_HANDLE_CLOSING)
+    WINHTTP_CALLBACK_FLAG_DETECTING_PROXY  = WINHTTP_CALLBACK_STATUS_DETECTING_PROXY
+    WINHTTP_CALLBACK_FLAG_REDIRECT  = WINHTTP_CALLBACK_STATUS_REDIRECT
+    WINHTTP_CALLBACK_FLAG_INTERMEDIATE_RESPONSE  = WINHTTP_CALLBACK_STATUS_INTERMEDIATE_RESPONSE
+    WINHTTP_CALLBACK_FLAG_SECURE_FAILURE  = WINHTTP_CALLBACK_STATUS_SECURE_FAILURE
+    WINHTTP_CALLBACK_FLAG_SENDREQUEST_COMPLETE  = WINHTTP_CALLBACK_STATUS_SENDREQUEST_COMPLETE
+    WINHTTP_CALLBACK_FLAG_HEADERS_AVAILABLE  = WINHTTP_CALLBACK_STATUS_HEADERS_AVAILABLE
+    WINHTTP_CALLBACK_FLAG_DATA_AVAILABLE  = WINHTTP_CALLBACK_STATUS_DATA_AVAILABLE
+    WINHTTP_CALLBACK_FLAG_READ_COMPLETE  = WINHTTP_CALLBACK_STATUS_READ_COMPLETE
+    WINHTTP_CALLBACK_FLAG_WRITE_COMPLETE  = WINHTTP_CALLBACK_STATUS_WRITE_COMPLETE
+    WINHTTP_CALLBACK_FLAG_REQUEST_ERROR  = WINHTTP_CALLBACK_STATUS_REQUEST_ERROR
+    WINHTTP_CALLBACK_FLAG_GETPROXYFORURL_COMPLETE  = WINHTTP_CALLBACK_STATUS_GETPROXYFORURL_COMPLETE
+    WINHTTP_CALLBACK_FLAG_GETPROXYSETTINGS_COMPLETE  = WINHTTP_CALLBACK_STATUS_GETPROXYSETTINGS_COMPLETE
+    WINHTTP_CALLBACK_FLAG_ALL_COMPLETIONS  = (WINHTTP_CALLBACK_STATUS_SENDREQUEST_COMPLETE  Or  WINHTTP_CALLBACK_STATUS_HEADERS_AVAILABLE  Or  WINHTTP_CALLBACK_STATUS_DATA_AVAILABLE  Or  WINHTTP_CALLBACK_STATUS_READ_COMPLETE  Or  WINHTTP_CALLBACK_STATUS_WRITE_COMPLETE  Or  WINHTTP_CALLBACK_STATUS_REQUEST_ERROR  Or  WINHTTP_CALLBACK_STATUS_GETPROXYFORURL_COMPLETE  Or  WINHTTP_CALLBACK_STATUS_GETPROXYSETTINGS_COMPLETE)
+    WINHTTP_CALLBACK_FLAG_ALL_NOTIFICATIONS  = &Hffffffff
+End Enum
+
 Public Declare PtrSafe Function WinHttpOpen Lib "winhttp" (ByVal pszAgentW As LongPtr, ByVal dwAccessType As WINHTTP_ACCESS_TYPES, ByVal pszProxyW As LongPtr, ByVal pszProxyBypassW As LongPtr, ByVal dwFlags As WINHTTP_OPEN_FLAGS) As LongPtr
 Public Declare PtrSafe Function WinHttpConnect Lib "winhttp" (ByVal hSession As LongPtr, ByVal pswzServerName As LongPtr, ByVal nServerPort As Long, ByVal dwReserved As Long) As LongPtr
 Public Declare PtrSafe Function WinHttpOpenRequest Lib "winhttp" (ByVal hConnect As LongPtr, ByVal pwszVerb As LongPtr, ByVal pwszObjectName As LongPtr, ByVal pwszVersion As LongPtr, ByVal pwszReferrer As LongPtr, ByVal ppwszAcceptTypes As LongPtr, ByVal dwFlags As WINHTTP_OPEN_REQ_FLAGS) As LongPtr
-Public Declare PtrSafe Function WinHttpSetOption Lib "winhttp" (ByVal hInternet As LongPtr, ByVal dwOption As Long, ByVal lpBuffer As LongPtr, ByVal dwBufferLength As Long) As Long
-Public Declare PtrSafe Function WinHttpSendRequest Lib "winhttp" (ByVal hRequest As LongPtr, ByVal lpszHeaders As LongPtr, ByVal dwHeadersLength As Long, ByVal lpOptional As LongPtr, ByVal dwOptionalLength As Long, ByVal dwTotalLength As Long, ByVal dwContext As Long) As Long
-Public Declare PtrSafe Function WinHttpReceiveResponse Lib "winhttp" (ByVal hRequest As LongPtr, ByVal lpReserved As LongPtr) As Long
+Public Declare PtrSafe Function WinHttpSetOption Lib "winhttp" (ByVal hInternet As LongPtr, ByVal dwOption As WINHTTP_OPTIONS, lpBuffer As Any, ByVal dwBufferLength As Long) As BOOL
+Public Declare PtrSafe Function WinHttpSendRequest Lib "winhttp" (ByVal hRequest As LongPtr, ByVal lpszHeaders As LongPtr, ByVal dwHeadersLength As Long, lpOptional As Any, ByVal dwOptionalLength As Long, ByVal dwTotalLength As Long, ByVal dwContext As LongPtr) As BOOL
+Public Declare PtrSafe Function WinHttpReceiveResponse Lib "winhttp" (ByVal hRequest As LongPtr, ByVal lpReserved As LongPtr) As BOOL
 Public Declare PtrSafe Function WinHttpWebSocketCompleteUpgrade Lib "winhttp" (ByVal hRequest As LongPtr, ByVal pContext As LongPtr) As LongPtr
-Public Declare PtrSafe Function WinHttpCloseHandle Lib "winhttp" (ByVal hRequest As LongPtr) As Long
-Public Declare PtrSafe Function WinHttpWebSocketSend Lib "winhttp" (ByVal hWebSocket As LongPtr, ByVal eEBufferType As Long, ByVal pvBuffer As LongPtr, ByVal dwBufferLength As Long) As Long
-Public Declare PtrSafe Function WinHttpWebSocketReceive Lib "winhttp" (ByVal hWebSocket As LongPtr, ByRef pvBuffer As Any, ByVal dwBufferLength As Long, ByRef pdwBytesRead As Long, ByRef peEBufferType As Long) As Long
-Public Declare PtrSafe Function WinHttpWebSocketClose Lib "winhttp" (ByVal hWebSocket As LongPtr, ByVal usStatus As Integer, ByVal pvReason As LongPtr, ByVal dwReasonLength As Long) As Long
-Public Declare PtrSafe Function WinHttpWebSocketQueryCloseStatus Lib "winhttp" (ByVal hWebSocket As LongPtr, ByRef usStatus As Integer, ByRef pvReason As Any, ByVal dwReasonLength As Long, ByRef pdwReasonLengthConsumed As LongPtr) As Long
-Public Declare PtrSafe Function WinHttpQueryHeaders Lib "winhttp" (ByVal hRequest As LongPtr, ByVal dwInfoLevel As Long, ByVal pwszName As LongPtr, ByRef lpBuffer As Long, ByRef lpdwBufferLength As Long, ByRef lpdwIndex As Long) As Long
-Public Declare PtrSafe Function WinHttpSetStatusCallback Lib "winhttp" (ByVal hWebSocket As LongPtr, ByVal lpfnInternetCallback As LongPtr, ByVal dwNotificationFlags As Long, ByVal dwReserved As LongPtr) As Long
-Public Declare PtrSafe Function WebSocketGetAction Lib "websocket" (ByVal hWebSocket As LongPtr, ByVal eActionQueue As Long, ByVal pDataBuffers As LongPtr, ByRef pulDataBufferCount As Long, ByRef pAction As Long, ByRef pEBufferType As Long, ByRef pvApplicationContext As LongPtr, ByRef pvActionContext As LongPtr) As Long
+Public Declare PtrSafe Function WinHttpCloseHandle Lib "winhttp" (ByVal hRequest As LongPtr) As BOOL
+Public Declare PtrSafe Function WinHttpWebSocketSend Lib "winhttp" (ByVal hWebSocket As LongPtr, ByVal eEBufferType As WINHTTP_WEB_SOCKET_BUFFER_TYPE, pvBuffer As Any, ByVal dwBufferLength As Long) As Long
+Public Declare PtrSafe Function WinHttpWebSocketReceive Lib "winhttp" (ByVal hWebSocket As LongPtr, ByRef pvBuffer As Any, ByVal dwBufferLength As Long, ByRef pdwBytesRead As Long, ByRef peEBufferType As WINHTTP_WEB_SOCKET_BUFFER_TYPE) As Long
+Public Declare PtrSafe Function WinHttpWebSocketClose Lib "winhttp" (ByVal hWebSocket As LongPtr, [ TypeHint (WINHTTP_WEB_SOCKET_CLOSE_STATUS) ] ByVal usStatus As Integer, ByVal pvReason As LongPtr, ByVal dwReasonLength As Long) As Long
+Public Declare PtrSafe Function WinHttpWebSocketQueryCloseStatus Lib "winhttp" (ByVal hWebSocket As LongPtr, [ TypeHint (WINHTTP_WEB_SOCKET_CLOSE_STATUS) ] ByRef usStatus As Integer, ByRef pvReason As Any, ByVal dwReasonLength As Long, ByRef pdwReasonLengthConsumed As Long) As Long
+Public Declare PtrSafe Function WinHttpQueryHeaders Lib "winhttp" (ByVal hRequest As LongPtr, ByVal dwInfoLevel As WINHTTP_QUERY_HEADER, ByVal pwszName As LongPtr, ByRef lpBuffer As Any, ByRef lpdwBufferLength As Long, ByRef lpdwIndex As Long) As BOOL
+Public Declare PtrSafe Function WinHttpSetStatusCallback Lib "winhttp" (ByVal hWebSocket As LongPtr, ByVal lpfnInternetCallback As LongPtr, ByVal dwNotificationFlags As WINHTTP_CALLBACK_STATUS_FLAGS, ByVal dwReserved As LongPtr) As Long
+' Public Declare PtrSafe Function WebSocketGetAction Lib "websocket" (ByVal hWebSocket As LongPtr, ByVal eActionQueue As Long, ByVal pDataBuffers As LongPtr, ByRef pulDataBufferCount As Long, ByRef pAction As Long, ByRef pEBufferType As Long, ByRef pvApplicationContext As LongPtr, ByRef pvActionContext As LongPtr) As Long
     
 #End Region
 
@@ -41023,6 +41616,183 @@ End Enum
 Public DeclareWide PtrSafe Function BCryptOpenAlgorithmProvider Lib "bcrypt" (phAlgorithm As LongPtr, ByVal pszAlgId As String, ByVal pszImplementation As String, ByVal dwFlags As BCRYPT_OA_FLAGS) As NTSTATUS
 Public DeclareWide PtrSafe Function BCryptGenRandom Lib "bcrypt" (ByVal hAlgorithm As LongPtr, pbBuffer As Any, ByVal cbBuffer As Long, ByVal dwFlags As BCRYPT_GR_FLAGS) As NTSTATUS
 Public DeclareWide PtrSafe Function BCryptCloseAlgorithmProvider Lib "bcrypt" (ByVal hAlgorithm As LongPtr, ByVal dwFlags As Long) As NTSTATUS
+
+
+
+/*
+pdh.h
+*/
+
+Public Type PDH_FMT_COUNTERVALUE
+	CStatus As PDH_STATUS
+    pad As Long
+    data(7) As Byte
+    ' union {
+        ' LONG        longValue;
+        ' double      doubleValue;
+        ' LONGLONG    largeValue;
+        ' LPCSTR      AnsiStringValue;
+        ' LPCWSTR     WideStringValue;
+    ' };
+End Type
+
+Public Enum PDH_STATUS
+    PDH_CSTATUS_VALID_DATA  = &H00000000
+    PDH_CSTATUS_NEW_DATA = &H00000001
+    PDH_CSTATUS_NO_MACHINE  = &H800007D0
+    PDH_CSTATUS_NO_INSTANCE  = &H800007D1
+    PDH_MORE_DATA  = &H800007D2
+    PDH_CSTATUS_ITEM_NOT_VALIDATED = &H800007D3
+    PDH_RETRY  = &H800007D4
+    PDH_NO_DATA  = &H800007D5
+    PDH_CALC_NEGATIVE_DENOMINATOR = &H800007D6
+    PDH_CALC_NEGATIVE_TIMEBASE  = &H800007D7
+    PDH_CALC_NEGATIVE_VALUE = &H800007D8
+    PDH_DIALOG_CANCELLED = &H800007D9
+    PDH_END_OF_LOG_FILE  = &H800007DA  
+    PDH_ASYNC_QUERY_TIMEOUT  = &H800007DB
+    PDH_CANNOT_SET_DEFAULT_REALTIME_DATASOURCE  = &H800007DC
+    PDH_UNABLE_MAP_NAME_FILES  = &H80000BD5
+    PDH_PLA_VALIDATION_WARNING  = &H80000BF3
+    MSG_Publisher_Name  = &H90000001
+    PDH_CSTATUS_NO_OBJECT  = &HC0000BB8
+    PDH_CSTATUS_NO_COUNTER  = &HC0000BB9
+    PDH_CSTATUS_INVALID_DATA  = &HC0000BBA
+    PDH_MEMORY_ALLOCATION_FAILURE  = &HC0000BBB
+    PDH_INVALID_HANDLE  = &HC0000BBC
+    PDH_INVALID_ARGUMENT  = &HC0000BBD
+    PDH_FUNCTION_NOT_FOUND  = &HC0000BBE
+    PDH_CSTATUS_NO_COUNTERNAME  = &HC0000BBF
+    PDH_CSTATUS_BAD_COUNTERNAME  = &HC0000BC0
+    PDH_INVALID_BUFFER  = &HC0000BC1
+    PDH_INSUFFICIENT_BUFFER  = &HC0000BC2
+    PDH_CANNOT_CONNECT_MACHINE  = &HC0000BC3
+    PDH_INVALID_PATH  = &HC0000BC4
+    PDH_INVALID_INSTANCE  = &HC0000BC5
+    PDH_INVALID_DATA  = &HC0000BC6
+    PDH_NO_DIALOG_DATA  = &HC0000BC7
+    PDH_CANNOT_READ_NAME_STRINGS  = &HC0000BC8
+    PDH_LOG_FILE_CREATE_ERROR  = &HC0000BC9
+    PDH_LOG_FILE_OPEN_ERROR  = &HC0000BCA
+    PDH_LOG_TYPE_NOT_FOUND  = &HC0000BCB
+    PDH_NO_MORE_DATA  = &HC0000BCC
+    PDH_ENTRY_NOT_IN_LOG_FILE  = &HC0000BCD
+    PDH_DATA_SOURCE_IS_LOG_FILE  = &HC0000BCE
+    PDH_DATA_SOURCE_IS_REAL_TIME = &HC0000BCF
+    PDH_UNABLE_READ_LOG_HEADER  = &HC0000BD0
+    PDH_FILE_NOT_FOUND  = &HC0000BD1
+    PDH_FILE_ALREADY_EXISTS  = &HC0000BD2
+    PDH_NOT_IMPLEMENTED  = &HC0000BD3
+    PDH_STRING_NOT_FOUND  = &HC0000BD4
+    PDH_UNKNOWN_LOG_FORMAT  = &HC0000BD6
+    PDH_UNKNOWN_LOGSVC_COMMAND  = &HC0000BD7
+    PDH_LOGSVC_QUERY_NOT_FOUND  = &HC0000BD8
+    PDH_LOGSVC_NOT_OPENED  = &HC0000BD9
+    PDH_WBEM_ERROR  = &HC0000BDA
+    PDH_ACCESS_DENIED  = &HC0000BDB
+    PDH_LOG_FILE_TOO_SMALL  = &HC0000BDC
+    PDH_INVALID_DATASOURCE  = &HC0000BDD
+    PDH_INVALID_SQLDB  = &HC0000BDE
+    PDH_NO_COUNTERS = &HC0000BDF
+    PDH_SQL_ALLOC_FAILED  = &HC0000BE0
+    PDH_SQL_ALLOCCON_FAILED  = &HC0000BE1
+    PDH_SQL_EXEC_DIRECT_FAILED  = &HC0000BE2
+    PDH_SQL_FETCH_FAILED  = &HC0000BE3
+    PDH_SQL_ROWCOUNT_FAILED  = &HC0000BE4
+    PDH_SQL_MORE_RESULTS_FAILED  = &HC0000BE5
+    PDH_SQL_CONNECT_FAILED  = &HC0000BE6
+    PDH_SQL_BIND_FAILED  = &HC0000BE7
+    PDH_CANNOT_CONNECT_WMI_SERVER  = &HC0000BE8
+    PDH_PLA_COLLECTION_ALREADY_RUNNING  = &HC0000BE9
+    PDH_PLA_ERROR_SCHEDULE_OVERLAP  = &HC0000BEA
+    PDH_PLA_COLLECTION_NOT_FOUND  = &HC0000BEB
+    PDH_PLA_ERROR_SCHEDULE_ELAPSED  = &HC0000BEC
+    PDH_PLA_ERROR_NOSTART  = &HC0000BED
+    PDH_PLA_ERROR_ALREADY_EXISTS  = &HC0000BEE
+    PDH_PLA_ERROR_TYPE_MISMATCH  = &HC0000BEF
+    PDH_PLA_ERROR_FILEPATH  = &HC0000BF0
+    PDH_PLA_SERVICE_ERROR  = &HC0000BF1
+    PDH_PLA_VALIDATION_ERROR  = &HC0000BF2
+    PDH_PLA_ERROR_NAME_TOO_LONG  = &HC0000BF4
+    PDH_INVALID_SQL_LOG_FORMAT  = &HC0000BF5
+    PDH_COUNTER_ALREADY_IN_QUERY  = &HC0000BF6
+    PDH_BINARY_LOG_CORRUPT = &HC0000BF7
+    PDH_LOG_SAMPLE_TOO_SMALL  = &HC0000BF8
+    PDH_OS_LATER_VERSION = &HC0000BF9
+    PDH_OS_EARLIER_VERSION  = &HC0000BFA
+    PDH_INCORRECT_APPEND_TIME  = &HC0000BFB
+    PDH_UNMATCHED_APPEND_COUNTER  = &HC0000BFC
+    PDH_SQL_ALTER_DETAIL_FAILED  = &HC0000BFD
+    PDH_QUERY_PERF_DATA_TIMEOUT = &HC0000BFE
+End Enum
+
+Public Enum PDH_DATATYPE
+    PDH_FMT_RAW = (&H00000010)
+    PDH_FMT_ANSI  = (&H00000020)
+    PDH_FMT_UNICODE  = (&H00000040)
+    PDH_FMT_LONG  = (&H00000100)
+    PDH_FMT_DOUBLE  = (&H00000200)
+    PDH_FMT_LARGE = (&H00000400)
+    PDH_FMT_NOSCALE  = (&H00001000)
+    PDH_FMT_1000  = (&H00002000)
+    PDH_FMT_NODATA  = (&H00004000)
+    PDH_FMT_NOCAP100  = (&H00008000&)
+    PERF_DETAIL_COSTLY  = (&H00010000)
+    PERF_DETAIL_STANDARD  = (&H0000FFFF&)
+End Enum
+
+Public Enum PERF_COUNTER_TYPES
+    PERF_COUNTER_LARGE_RAWCOUNT_HEX = 256
+    PERF_COUNTER_TEXT = 2816
+    PERF_COUNTER_RAWCOUNT = 65536
+    PERF_COUNTER_LARGE_RAWCOUNT = 65792
+    PERF_DOUBLE_RAW = 73728
+    PERF_COUNTER_DELTA = 4195328
+    PERF_COUNTER_LARGE_DELTA = 4195584
+    PERF_SAMPLE_COUNTER = 4260864
+    PERF_COUNTER_QUEUELEN_TYPE = 4523008
+    PERF_COUNTER_LARGE_QUEUELEN_TYPE = 4523264
+    PERF_COUNTER_100NS_QUEUELEN_TYPE = 5571840
+    PERF_COUNTER_OBJ_TIME_QUEUELEN_TYPE = 6620416
+    PERF_COUNTER_COUNTER = 272696320
+    PERF_COUNTER_BULK_COUNT = 272696576
+    PERF_RAW_FRACTION = 537003008
+    PERF_COUNTER_TIMER = 541132032
+    PERF_PRECISION_SYSTEM_TIMER = 541525248
+    PERF_100NSEC_TIMER = 542180608
+    PERF_PRECISION_100NS_TIMER = 542573824
+    PERF_OBJ_TIME_TIMER = 543229184
+    PERF_PRECISION_OBJECT_TIMER = 543622400
+    PERF_SAMPLE_FRACTION = 549585920
+    PERF_COUNTER_TIMER_INV = 557909248
+    PERF_100NSEC_TIMER_INV = 558957824
+    PERF_COUNTER_MULTI_TIMER = 574686464
+    PERF_100NSEC_MULTI_TIMER =  575735040
+    PERF_COUNTER_MULTI_TIMER_INV = 591463680
+    PERF_100NSEC_MULTI_TIMER_INV = 592512256
+    PERF_AVERAGE_TIMER = 805438464
+    PERF_ELAPSED_TIME = 807666944
+    PERF_COUNTER_NODATA = 1073742336
+    PERF_AVERAGE_BULK = 1073874176
+    PERF_SAMPLE_BASE = 1073939457
+    PERF_AVERAGE_BASE = 1073939458
+    PERF_RAW_BASE = 1073939459
+    PERF_PRECISION_TIMESTAMP = 1073939712
+    PERF_LARGE_RAW_BASE = 1073939715
+    PERF_COUNTER_MULTI_BASE = 1107494144
+End Enum
+
+Public DeclareWide PtrSafe Function PdhOpenQueryW Lib "Pdh.dll" (ByVal szDataSource As LongPtr, ByVal dwUserData As LongPtr, phQuery As LongPtr) As PDH_STATUS
+Public Declare PtrSafe Function PdhOpenQueryA Lib "Pdh.dll" (ByVal szDataSource As String, ByVal dwUserData As LongPtr, phQuery As LongPtr) As PDH_STATUS
+Public DeclareWide PtrSafe Function PdhOpenQuery Lib "Pdh.dll" Alias "PdhOpenQueryW" (ByVal szDataSource As String, ByVal dwUserData As LongPtr, phQuery As LongPtr) As PDH_STATUS
+
+Public Declare PtrSafe Function PdhAddEnglishCounterA Lib "Pdh.dll" Alias "PdhAddEnglishCounterW" (ByVal hQuery As LongPtr, ByVal szFullCounterPath As String, ByVal dwUserData As LongPtr, phCounter As LongPtr) As PDH_STATUS
+Public DeclareWide PtrSafe Function PdhAddEnglishCounterW Lib "Pdh.dll" (ByVal hQuery As LongPtr, ByVal szFullCounterPath As LongPtr, ByVal dwUserData As LongPtr, phCounter As LongPtr) As PDH_STATUS
+Public DeclareWide PtrSafe Function PdhAddEnglishCounter Lib "Pdh.dll" Alias "PdhAddEnglishCounterW" (ByVal hQuery As LongPtr, ByVal szFullCounterPath As String, ByVal dwUserData As LongPtr, phCounter As LongPtr) As PDH_STATUS
+Public DeclareWide PtrSafe Function PdhCollectQueryData Lib "Pdh.dll" (ByVal hQuery As LongPtr) As PDH_STATUS
+Public DeclareWide PtrSafe Function PdhGetFormattedCounterValue Lib "Pdh.dll" (ByVal hCounter As LongPtr, ByVal dwFormat As PDH_DATATYPE, lpdwType As PERF_COUNTER_TYPES, pValue As PDH_FMT_COUNTERVALUE) As PDH_STATUS
+
+
 
 
 /*
