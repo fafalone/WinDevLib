@@ -6,7 +6,7 @@
 
 ---
 
-**Current Version: 6.2.237 (October 16th, 2023)**
+**Current Version: 6.2.238 (October 21st, 2023)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -104,6 +104,12 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, vbNullPtr, ...)
 ```
 
 ### Updates
+
+**Update (v6.2.238):**\
+-Added a limited set of winhttp APIs\
+-Added misc APIs for recent projects\
+-(Bug fix) RegQueryValueEx/RegQueryValueExW/RegQueryValueExA definitions incorrect.
+
 
 **Update (v6.2.237):** Missing consts for upcoming project.
 
