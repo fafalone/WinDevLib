@@ -1,4 +1,12 @@
 
+**Update (v6.3.240):**
+-Added interfaces IComputerAccounts, IEnumAccounts, IComputerAccountNotify, and IProfileNotify with coclasses LocalUserAccounts, LocalGroups, LoggedOnAccounts, ProfileAccounts, UserAccounts, and ProfileNotificationHandler. Also added numerous PROPERTYKEYs associated with this functionality.
+-Added a limited set of Winsock APIs. Note that with the exception of WSA* APIs, the short, generic names have been prefixed with ws_.
+-Misc API additions including undocumented shell32 APIs, and additional ntdll APIs.
+-Additional PE file structs
+-(Bug fix) Several WebView2 interface had incompatible Property Get defs for ByVal UDT workarounds.
+
+
 **Update (v6.2.238):**
 -Added a limited set of winhttp APIs
 -Added misc APIs for recent projects
@@ -14,8 +22,6 @@
 -Added gdi32 Color Management (ICM) APIs. 
 -Additional sysinfo UDTs. 
 -TypeHints for NT functions missing them.
-
-
 
 **Update (v6.2.230):** 
 -Added Windows Networking (WNet) APIs (winnetwk.h, 100% coverage (mpr.dll))
