@@ -91,7 +91,7 @@ I've included the definitions, associated types, and associated constants, for e
 Limited coverage (or full coverage of very small sets) is provided for ntdll.dll, version.dll, msimg32.dll, crypt32.dll, virtdisk.dll, sxs.dll, secur32.dll, imm32.dll, userenv.dll, wintrust.dll, msacm32.dll, url.dll, htmlhelp.dll, imagehlp.dll, and ws2_32.dll. If you feel any missing ones from these should be included, or would like to contribute more, let me know.\
 Finally, there's small API sets for features, like DirectX DLLs, Webview2Loader, WIC, etc. Definitely let me know any missing from these.
 
-**Future coverage:** In the future I'm planning to expand crypto coverage from advapi32 and wintrust, expand native APIs with no equivalents, and add coverage of Iphlpapi.dll. Winsock coverage is also planned, but this will likely be as an opt-in requiring a compiler constant, as there's just so many common two or three letter functions and types that would cause endless conflicts. I welcome contributions of any of these. If you've done the consts->enums conversions already, I'd even take 32bit-only versions.
+**Future coverage:** In the future I'm planning to expand crypto coverage from advapi32 and wintrust, expand native APIs with no equivalents, add additional Winsock coverage, and add OpenGL-- though for this last one I may wait for tB to have `Alias` support since existing OpenGL codebases make heavy use of them by way of NeHe's TLB. I welcome contributions of any of these. If you've done the consts->enums conversions already, I'd even take 32bit-only versions.
 
 
 #### A note on seeing UDTs where before they were As Any
