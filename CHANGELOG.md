@@ -1,4 +1,12 @@
 
+**Update (v6.3.250):**
+-Added Credential Provider interfaces from credentialprovider.h
+-Added missing TlHelp32.h APIs/structs, now covered 100%. 
+-Added several types/enums related to things already in project.
+-(Bug fix) Duplicate of NETRESOURCE type. Project was subsequently analyzed for further duplicated types, and 4 other bugs in this class were eliminated.
+-(Bug fix) No base PEB type defined.
+-(NOTICE) OpenGL is being deferred until twinBASIC has Alias support (planned).
+
 **Update (v6.3.240):**
 -Added interfaces IComputerAccounts, IEnumAccounts, IComputerAccountNotify, and IProfileNotify with coclasses LocalUserAccounts, LocalGroups, LoggedOnAccounts, ProfileAccounts, UserAccounts, and ProfileNotificationHandler. Also added numerous PROPERTYKEYs associated with this functionality.
 -Added a limited set of Winsock APIs. Note that with the exception of WSA* APIs, the short, generic names have been prefixed with ws_.
