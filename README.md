@@ -6,7 +6,7 @@
 
 ---
 
-**Current Version: 6.3.240 (October 26th, 2023)**
+**Current Version: 6.3.250 (November 5th, 2023)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -120,13 +120,20 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, vbNullPtr, ...)
 
 ### Updates
 
-**Update (v6.3.240):**
+**Update (v6.3.250):**\
+-Added Credential Provider interfaces from credentialprovider.h\
+-Added missing TlHelp32.h APIs/structs, now covered 100%.\
+-Added several types/enums related to things already in project.\
+-(Bug fix) Duplicate of NETRESOURCE type. Project was subsequently analyzed for further duplicated types, and 4 other bugs in this class were eliminated.\
+-(Bug fix) No base PEB type defined.\
+-(NOTICE) OpenGL is being deferred until twinBASIC has Alias support (planned).
+
+**Update (v6.3.240):**\
 -Added interfaces IComputerAccounts, IEnumAccounts, IComputerAccountNotify, and IProfileNotify with coclasses LocalUserAccounts, LocalGroups, LoggedOnAccounts, ProfileAccounts, UserAccounts, and ProfileNotificationHandler. Also added numerous PROPERTYKEYs associated with this functionality.\
 -Added a limited set of Winsock APIs. Note that with the exception of WSA* APIs, the short, generic names have been prefixed with ws_.\
 -Misc API additions including undocumented shell32 APIs, and additional ntdll APIs.\
 -Additional PE file structs\
 -(Bug fix) Several WebView2 interface had incompatible Property Get defs for ByVal UDT workarounds.
-
 
 **Update (v6.2.238):**\
 -Added a limited set of winhttp APIs\
