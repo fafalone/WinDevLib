@@ -60,7 +60,7 @@ End Enum
 Public Enum ShellDescriptionId
     SHDID_ROOT_REGITEM  = 1
     SHDID_FS_FILE  = 2
-    SHDID_FS_DIRECTORY  = 3
+    SHDID_FS_DIRECTORY = 3
     SHDID_FS_OTHER  = 4
     SHDID_COMPUTER_DRIVE35  = 5
     SHDID_COMPUTER_DRIVE525  = 6
@@ -81,7 +81,7 @@ Public Enum ShellDescriptionId
     SHDID_COMPUTER_SHAREDDOCS  = 20
 ' #endif
 ' #if (NTDDI_VERSION >= NTDDI_VISTA)
-    SHDID_MOBILE_DEVICE  = 21  ' PDA/PalmPC
+    SHDID_MOBILE_DEVICE = 21  ' PDA/PalmPC
 ' #endif
 ' #if (NTDDI_VERSION >= NTDDI_WIN10_RS4)
     SHDID_REMOTE_DESKTOP_DRIVE  = 22
@@ -484,7 +484,8 @@ Public Declare PtrSafe Function SHBindToFolderIDListParentEx Lib "shell32" (ByVa
 Public Declare PtrSafe Function SHBindToParent Lib "shell32" (ByVal pidl As LongPtr, ByRef riid As UUID, ByRef ppv As Any, ByRef ppidlLast As LongPtr) As Long
 Public Declare PtrSafe Function SHGetIDListFromObject Lib "shell32" (ByVal pUnk As stdole.IUnknown, ByRef ppidl As LongPtr) As Long
 Public Declare PtrSafe Function SHGetNameFromIDList Lib "shell32" (ByVal pidl As LongPtr, ByVal sigdnName As SIGDN, ByRef ppszName As LongPtr) As Long
-[Description ("Converts an item ID list pointer to a file system path (cMaxPath buffer expected)") ] Public DeclareWide PtrSafe Function SHGetPathFromIDList Lib "shell32" Alias "SHGetPathFromIDListW" (ByVal pidl As LongPtr, ByVal pszPath As String) As Long
+Public DeclareWide PtrSafe Function SHILCreateFromPath Lib "shell32" (ByVal pszPath As String, ppidl As LongPtr, rfgInOut As SFGAO_Flags) As Long
+[ Description ("Converts an item ID list pointer to a file system path (cMaxPath buffer expected)") ] Public DeclareWide PtrSafe Function SHGetPathFromIDList Lib "shell32" Alias "SHGetPathFromIDListW" (ByVal pidl As LongPtr, ByVal pszPath As String) As Long
 [Description("Converts an item ID list pointer to a file system path (cMaxPath buffer expected)") ] Public Declare PtrSafe Function SHGetPathFromIDListA Lib "shell32" (ByVal pidl As LongPtr, ByVal pszPath As String) As Long
 [Description ("Converts an item ID list pointer to a file system path (cMaxPath buffer expected)") ] Public Declare PtrSafe Function SHGetPathFromIDListW Lib "shell32" (ByVal pidl As LongPtr, ByVal pszPath As LongPtr) As Long
 Public Declare PtrSafe Function SHGetFolderLocation Lib "shell32" (ByVal hWndOwner As LongPtr, ByVal nFolder As CSIDLs, ByVal hToken As LongPtr, ByVal dwReserved As Long, ppidl As LongPtr) As Long
@@ -556,7 +557,6 @@ Public Declare PtrSafe Function SHDefExtractIconA Lib "shell32" (ByVal pszIconFi
 Public DeclareWide PtrSafe Function SHDefExtractIconW Lib "shell32" (ByVal pszIconFile As LongPtr, ByVal iIndex As Long, ByVal uFlags As GILRes, phiconLarge As LongPtr, phiconSmall As LongPtr, ByVal nIconSize As Long) As Long
 Public DeclareWide PtrSafe Function SHDefExtractIcon Lib "shell32" Alias "SHDefExtractIconW" (ByVal pszIconFile As String, ByVal iIndex As Long, ByVal uFlags As GILRes, phiconLarge As LongPtr, phiconSmall As LongPtr, ByVal nIconSize As Long) As Long
 Public Declare PtrSafe Function SHRestricted Lib "shell32" (ByVal rest As RESTRICTIONS) As Long
-Public DeclareWide PtrSafe Function SHILCreateFromPath Lib "shell32" (ByVal pszPath As String, ppidl As LongPtr, rfgInOut As SFGAO_Flags) As Long
 Public DeclareWide PtrSafe Function IsUserAnAdmin Lib "shell32" () As BOOL
 Public DeclareWide PtrSafe Function SHCreateDefaultExtractIcon Lib "shell32" (ByRef riid As UUID, ByRef ppv As Any) As Long
 Public Declare PtrSafe Function ExtractIconExA Lib "shell32" (ByVal lpszFile As String, ByVal nIconIndex As Long, phiconLarge As LongPtr, phiconSmall As LongPtr, ByVal nIcons As Long) As Long
@@ -1670,6 +1670,8 @@ Public Declare PtrSafe Function SHCreateStreamOnModuleResourceA Lib "shlwapi" (B
 Public DeclareWide PtrSafe Function SHCreateStreamOnModuleResourceW Lib "shlwapi" (ByVal hModule As LongPtr, ByVal pszName As LongPtr, [ TypeHint (ResourceTypes) ] ByVal pszType As LongPtr, ppStream As IStream) As Long
 Public DeclareWide PtrSafe Function SHCreateStreamOnModuleResource Lib "shlwapi" Alias "SHCreateStreamOnModuleResourceW" (ByVal hModule As LongPtr, ByVal pszName As String, [ TypeHint (ResourceTypes) ] ByVal pszType As LongPtr, ppStream As IStream) As Long
 [ Description("This function compares the bits of the color mask bitmaps retrived by GetIconInfo.") ] Public DeclareWide PtrSafe Function SHAreIconsEqual Lib "shlwapi" (ByVal hIcon1 As LongPtr, ByVal hIcon2 As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function SHWindowsPolicyGetValue Lib "shlwapi" (rpolid As UUID, pvData As Any, pcbData As Long) As Long
+Public DeclareWide PtrSafe Function SHWindowsPolicy Lib "shlwapi" (rpolid As UUID) As BOOL
 
 #End Region
 
@@ -1708,18 +1710,20 @@ Public Type CRITICAL_SECTION
     SpinCount       As LongPtr
 End Type
 
-Public Enum ThreadAccess
-    THREAD_DIRECT_IMPERSONATION = &H200
+Public Enum ThreadAccessRights
+    THREAD_TERMINATE = &H1
+    THREAD_SUSPEND_RESUME = &H2
     THREAD_GET_CONTEXT = &H8
-    THREAD_IMPERSONATE = &H100
-    THREAD_QUERY_INFORMATION = &H40
-    THREAD_QUERY_LIMITED_INFORMATION = &H800
     THREAD_SET_CONTEXT = &H10
     THREAD_SET_INFORMATION = &H20
-    THREAD_SET_LIMITED_INFORMATION = &H400
+    THREAD_QUERY_INFORMATION = &H40
     THREAD_SET_THREAD_TOKEN = &H80
-    THREAD_SUSPEND_RESUME = &H2
-    THREAD_TERMINATE = &H1
+    THREAD_IMPERSONATE = &H100
+    THREAD_DIRECT_IMPERSONATION = &H200
+    THREAD_SET_LIMITED_INFORMATION = &H400
+    THREAD_QUERY_LIMITED_INFORMATION = &H800
+    THREAD_RESUME = &H1000
+    THREAD_ALL_ACCESS = (STANDARD_RIGHTS_REQUIRED Or SYNCHRONIZE Or &HFFFF&)
 End Enum
 
 Public Enum FormatMessageFlags
@@ -1821,10 +1825,22 @@ End Enum
 Public Const INFINITE As Long = -1
 
 Public Enum HeapFlags
-    HEAP_NO_SERIALIZE = &H1
-    HEAP_GENERATE_EXCEPTIONS = &H4
-    HEAP_ZERO_MEMORY = &H8
-    HEAP_CREATE_ENABLE_EXECUTE = &H40000
+    HEAP_NO_SERIALIZE  = &H00000001
+    HEAP_GROWABLE  = &H00000002
+    HEAP_GENERATE_EXCEPTIONS  = &H00000004
+    HEAP_ZERO_MEMORY  = &H00000008
+    HEAP_REALLOC_IN_PLACE_ONLY  = &H00000010
+    HEAP_TAIL_CHECKING_ENABLED  = &H00000020
+    HEAP_FREE_CHECKING_ENABLED  = &H00000040
+    HEAP_DISABLE_COALESCE_ON_FREE  = &H00000080
+    HEAP_CREATE_ALIGN_16  = &H00010000
+    HEAP_CREATE_ENABLE_TRACING  = &H00020000
+    HEAP_CREATE_ENABLE_EXECUTE  = &H00040000
+    HEAP_MAXIMUM_TAG  = &H0FFF
+    HEAP_PSEUDO_TAG_FLAG = &H8000&
+    HEAP_TAG_SHIFT  = 18
+    HEAP_CREATE_SEGMENT_HEAP  = &H00000100
+    HEAP_CREATE_HARDENED  = &H00000200
 End Enum
 
 Public Type PROCESS_HEAP_ENTRY
@@ -2202,15 +2218,6 @@ Public Enum LMEM
 End Enum
 
 
-Public Enum TH32CS_Flags
-    TH32CS_SNAPHEAPLIST = &H1
-    TH32CS_SNAPPROCESS = &H2
-    TH32CS_SNAPTHREAD = &H4
-    TH32CS_SNAPMODULE = &H8
-    TH32CS_SNAPALL = (TH32CS_SNAPHEAPLIST Or TH32CS_SNAPPROCESS Or TH32CS_SNAPTHREAD Or TH32CS_SNAPMODULE)
-    TH32CS_INHERIT = &H80000000
-End Enum
-
 Public Enum PriorityClass
     NORMAL_PRIORITY_CLASS = &H20
     IDLE_PRIORITY_CLASS = &H40
@@ -2220,6 +2227,17 @@ Public Enum PriorityClass
     ABOVE_NORMAL_PRIORITY_CLASS = &H8000&
     PROCESS_MODE_BACKGROUND_BEGIN = &H100000
     PROCESS_MODE_BACKGROUND_END = &H200000
+End Enum
+
+Public Const MAX_MODULE_NAME32 = 255
+
+Public Enum TH32CS_Flags
+    TH32CS_SNAPHEAPLIST = &H1
+    TH32CS_SNAPPROCESS = &H2
+    TH32CS_SNAPTHREAD = &H4
+    TH32CS_SNAPMODULE = &H8
+    TH32CS_SNAPALL = (TH32CS_SNAPHEAPLIST Or TH32CS_SNAPPROCESS Or TH32CS_SNAPTHREAD Or TH32CS_SNAPMODULE)
+    TH32CS_INHERIT = &H80000000
 End Enum
 
 Public Type THREADENTRY32
@@ -2232,6 +2250,18 @@ Public Type THREADENTRY32
     dwFlags As Long
 End Type
 
+Public Type PROCESSENTRY32A
+    dwSize As Long
+    cntUsage As Long
+    th32ProcessID As Long
+    th32DefaultHeapID As LongPtr
+    th32ModuleID As Long
+    cntThreads As Long
+    th32ParentProcessID As Long
+    pcPriClassBase As PriorityClass
+    dwFlags As Long
+    szExeFile (0 To (MAX_PATH - 1)) As Byte
+End Type
 Public Type PROCESSENTRY32W
     dwSize As Long
     cntUsage As Long
@@ -2244,6 +2274,85 @@ Public Type PROCESSENTRY32W
     dwFlags As Long
     szExeFile (0 To (MAX_PATH - 1)) As Integer
 End Type
+Public Type PROCESSENTRY32
+    dwSize As Long
+    cntUsage As Long
+    th32ProcessID As Long
+    th32DefaultHeapID As LongPtr
+    th32ModuleID As Long
+    cntThreads As Long
+    th32ParentProcessID As Long
+    pcPriClassBase As PriorityClass
+    dwFlags As Long
+    szExeFile (0 To (MAX_PATH - 1)) As Integer
+End Type
+
+Public Enum HL32_Flags
+    HF32_DEFAULT  = 1  ' process's default heap
+    HF32_SHARED  = 2  ' is shared heap
+End Enum
+Public Type HEAPLIST32
+    dwSize As LongPtr
+    th32ProcessID As Long ' owning process
+    th32HeapID As LongPtr ' heap (in owning process's context!)
+    dwFlags As HL32_Flags
+End Type
+
+Public Enum HL32_EntryFlags
+    LF32_FIXED  = &H00000001
+    LF32_FREE  = &H00000002
+    LF32_MOVEABLE  = &H00000004
+End Enum
+Public Type HEAPENTRY32
+    dwSize As LongPtr
+    hHandle As LongPtr ' Handle of this heap block
+    dwAddress As LongPtr ' Linear address of start of block
+    dwBlockSize As LongPtr ' Size of block in bytes
+    dwFlags As HL32_EntryFlags
+    dwLockCount As Long
+    dwResvd As Long
+    th32ProcessID As Long ' owning process
+    th32HeapID As LongPtr ' heap block is in
+End Type
+
+Public Type MODULEENTRY32A
+    dwSize As Long
+    th32ModuleID As Long ' This module
+    th32ProcessID As Long ' owning process
+    GlblcntUsage As Long ' Global usage count on the module
+    ProccntUsage As Long ' Module usage count in th32ProcessID's context
+    modBaseAddr As LongPtr   ' Base address of module in th32ProcessID's context
+    modBaseSize As Long ' Size in bytes of module starting at modBaseAddr
+    hModule As LongPtr ' The hModule of this module in th32ProcessID's context
+    szModule(0 To (MAX_MODULE_NAME32+1 - 1)) As Byte
+    szExePath(0 To (MAX_PATH - 1)) As Byte
+End Type
+Public Type MODULEENTRY32W
+    dwSize As Long
+    th32ModuleID As Long ' This module
+    th32ProcessID As Long ' owning process
+    GlblcntUsage As Long ' Global usage count on the module
+    ProccntUsage As Long ' Module usage count in th32ProcessID's context
+    modBaseAddr As LongPtr   ' Base address of module in th32ProcessID's context
+    modBaseSize As Long ' Size in bytes of module starting at modBaseAddr
+    hModule As LongPtr ' The hModule of this module in th32ProcessID's context
+    szModule(0 To (MAX_MODULE_NAME32+1 - 1)) As Integer
+    szExePath(0 To (MAX_PATH - 1)) As Integer
+End Type
+Public Type MODULEENTRY32
+    dwSize As Long
+    th32ModuleID As Long ' This module
+    th32ProcessID As Long ' owning process
+    GlblcntUsage As Long ' Global usage count on the module
+    ProccntUsage As Long ' Module usage count in th32ProcessID's context
+    modBaseAddr As LongPtr   ' Base address of module in th32ProcessID's context
+    modBaseSize As Long ' Size in bytes of module starting at modBaseAddr
+    hModule As LongPtr ' The hModule of this module in th32ProcessID's context
+    szModule(0 To (MAX_MODULE_NAME32+1 - 1)) As Integer
+    szExePath(0 To (MAX_PATH - 1)) As Integer
+End Type
+
+
 
 Public Type UNICODE_STRING
     uLength As Integer
@@ -2418,16 +2527,18 @@ Public Enum NTGLB_Flags
     FLG_CRITSEC_EVENT_CREATION      = &H10000000 '5.0+
     FLG_LDR_TOP_DOWN                = &H20000000 '5.1-6.2
     FLG_STOP_ON_UNHANDLED_EXCEPTION = &H20000000 '6.3+
-    FLG_ENABLE_HANDLE_EXCEPTIONS = &H40000000 '5.1+
+    FLG_ENABLE_HANDLE_EXCEPTIONS    = &H40000000 '5.1+
     FLG_DISABLE_PROTDLLS            = &H80000000& '5.0+
 End Enum
+
+
 
 #Region "PEB/UPP"
 [ Description ("RTL_USER_PROCESS_PARAMETERS for Windows XP and Server 2003 and above.") ]
 Public Type RTL_USER_PROCESS_PARAMETERS_XP
     MaximumLength As Long
     Length As Long
-    Flags As Long
+    Flags As RTL_UPP_FLAGS
     DebugFlags As Long
     ConsoleHandle As LongPtr
     ConsoleFlags As Long
@@ -2445,9 +2556,9 @@ Public Type RTL_USER_PROCESS_PARAMETERS_XP
     CountY As Long
     CountCharsX As Long
     CountCharsY As Long
-    FillAttribute As Long
-    WindowFlags As Long
-    ShowWindowFlags As Long
+    FillAttribute As CONSOLE_CHAR_ATTRIB
+    WindowFlags As STARTUP_FLAGS
+    ShowWindowFlags As SHOWWINDOW
     WindowTitle As UNICODE_STRING
     DesktopInfo As UNICODE_STRING
     ShellInfo As UNICODE_STRING
@@ -2458,7 +2569,7 @@ End Type
 Public Type RTL_USER_PROCESS_PARAMETERS
     MaximumLength As Long
     Length As Long
-    Flags As Long
+    Flags As RTL_UPP_FLAGS
     DebugFlags As Long
     ConsoleHandle As LongPtr
     ConsoleFlags As Long
@@ -2476,9 +2587,9 @@ Public Type RTL_USER_PROCESS_PARAMETERS
     CountY As Long
     CountCharsX As Long
     CountCharsY As Long
-    FillAttribute As Long
-    WindowFlags As Long
-    ShowWindowFlags As Long
+    FillAttribute As CONSOLE_CHAR_ATTRIB
+    WindowFlags As STARTUP_FLAGS
+    ShowWindowFlags As SHOWWINDOW
     WindowTitle As UNICODE_STRING
     DesktopInfo As UNICODE_STRING
     ShellInfo As UNICODE_STRING
@@ -2490,7 +2601,7 @@ End Type
 Public Type RTL_USER_PROCESS_PARAMETERS_WIN7
     MaximumLength As Long
     Length As Long
-    Flags As Long
+    Flags As RTL_UPP_FLAGS
     DebugFlags As Long
     ConsoleHandle As LongPtr
     ConsoleFlags As Long
@@ -2508,9 +2619,9 @@ Public Type RTL_USER_PROCESS_PARAMETERS_WIN7
     CountY As Long
     CountCharsX As Long
     CountCharsY As Long
-    FillAttribute As Long
-    WindowFlags As Long
-    ShowWindowFlags As Long
+    FillAttribute As CONSOLE_CHAR_ATTRIB
+    WindowFlags As STARTUP_FLAGS
+    ShowWindowFlags As SHOWWINDOW
     WindowTitle As UNICODE_STRING
     DesktopInfo As UNICODE_STRING
     ShellInfo As UNICODE_STRING
@@ -2523,7 +2634,7 @@ End Type
 Public Type RTL_USER_PROCESS_PARAMETERS_WIN8
     MaximumLength As Long
     Length As Long
-    Flags As Long
+    Flags As RTL_UPP_FLAGS
     DebugFlags As Long
     ConsoleHandle As LongPtr
     ConsoleFlags As Long
@@ -2541,9 +2652,9 @@ Public Type RTL_USER_PROCESS_PARAMETERS_WIN8
     CountY As Long
     CountCharsX As Long
     CountCharsY As Long
-    FillAttribute As Long
-    WindowFlags As Long
-    ShowWindowFlags As Long
+    FillAttribute As CONSOLE_CHAR_ATTRIB
+    WindowFlags As STARTUP_FLAGS
+    ShowWindowFlags As SHOWWINDOW
     WindowTitle As UNICODE_STRING
     DesktopInfo As UNICODE_STRING
     ShellInfo As UNICODE_STRING
@@ -2558,7 +2669,7 @@ End Type
 Public Type RTL_USER_PROCESS_PARAMETERS_WIN10
     MaximumLength As Long
     Length As Long
-    Flags As Long
+    Flags As RTL_UPP_FLAGS
     DebugFlags As Long
     ConsoleHandle As LongPtr
     ConsoleFlags As Long
@@ -2576,9 +2687,9 @@ Public Type RTL_USER_PROCESS_PARAMETERS_WIN10
     CountY As Long
     CountCharsX As Long
     CountCharsY As Long
-    FillAttribute As Long
-    WindowFlags As Long
-    ShowWindowFlags As Long
+    FillAttribute As CONSOLE_CHAR_ATTRIB
+    WindowFlags As STARTUP_FLAGS
+    ShowWindowFlags As SHOWWINDOW
     WindowTitle As UNICODE_STRING
     DesktopInfo As UNICODE_STRING
     ShellInfo As UNICODE_STRING
@@ -2594,7 +2705,7 @@ End Type
 Public Type RTL_USER_PROCESS_PARAMETERS_WIN10_R5
     MaximumLength As Long
     Length As Long
-    Flags As Long
+    Flags As RTL_UPP_FLAGS
     DebugFlags As Long
     ConsoleHandle As LongPtr
     ConsoleFlags As Long
@@ -2612,9 +2723,9 @@ Public Type RTL_USER_PROCESS_PARAMETERS_WIN10_R5
     CountY As Long
     CountCharsX As Long
     CountCharsY As Long
-    FillAttribute As Long
-    WindowFlags As Long
-    ShowWindowFlags As Long
+    FillAttribute As CONSOLE_CHAR_ATTRIB
+    WindowFlags As STARTUP_FLAGS
+    ShowWindowFlags As SHOWWINDOW
     WindowTitle As UNICODE_STRING
     DesktopInfo As UNICODE_STRING
     ShellInfo As UNICODE_STRING
@@ -2631,7 +2742,7 @@ End Type
 Public Type RTL_USER_PROCESS_PARAMETERS_WIN10_19H1
     MaximumLength As Long
     Length As Long
-    Flags As Long
+    Flags As RTL_UPP_FLAGS
     DebugFlags As Long
     ConsoleHandle As LongPtr
     ConsoleFlags As Long
@@ -2649,9 +2760,9 @@ Public Type RTL_USER_PROCESS_PARAMETERS_WIN10_19H1
     CountY As Long
     CountCharsX As Long
     CountCharsY As Long
-    FillAttribute As Long
-    WindowFlags As Long
-    ShowWindowFlags As Long
+    FillAttribute As CONSOLE_CHAR_ATTRIB
+    WindowFlags As STARTUP_FLAGS
+    ShowWindowFlags As SHOWWINDOW
     WindowTitle As UNICODE_STRING
     DesktopInfo As UNICODE_STRING
     ShellInfo As UNICODE_STRING
@@ -2671,7 +2782,7 @@ End Type
 Public Type RTL_USER_PROCESS_PARAMETERS_WIN10_20H1
     MaximumLength As Long
     Length As Long
-    Flags As Long
+    Flags As RTL_UPP_FLAGS
     DebugFlags As Long
     ConsoleHandle As LongPtr
     ConsoleFlags As Long
@@ -2689,9 +2800,9 @@ Public Type RTL_USER_PROCESS_PARAMETERS_WIN10_20H1
     CountY As Long
     CountCharsX As Long
     CountCharsY As Long
-    FillAttribute As Long
-    WindowFlags As Long
-    ShowWindowFlags As Long
+    FillAttribute As CONSOLE_CHAR_ATTRIB
+    WindowFlags As STARTUP_FLAGS
+    ShowWindowFlags As SHOWWINDOW
     WindowTitle As UNICODE_STRING
     DesktopInfo As UNICODE_STRING
     ShellInfo As UNICODE_STRING
@@ -2712,7 +2823,7 @@ End Type
 Public Type RTL_USER_PROCESS_PARAMETERS_WIN11_21H2
     MaximumLength As Long
     Length As Long
-    Flags As Long
+    Flags As RTL_UPP_FLAGS
     DebugFlags As Long
     ConsoleHandle As LongPtr
     ConsoleFlags As Long
@@ -2730,9 +2841,9 @@ Public Type RTL_USER_PROCESS_PARAMETERS_WIN11_21H2
     CountY As Long
     CountCharsX As Long
     CountCharsY As Long
-    FillAttribute As Long
-    WindowFlags As Long
-    ShowWindowFlags As Long
+    FillAttribute As CONSOLE_CHAR_ATTRIB
+    WindowFlags As STARTUP_FLAGS
+    ShowWindowFlags As SHOWWINDOW
     WindowTitle As UNICODE_STRING
     DesktopInfo As UNICODE_STRING
     ShellInfo As UNICODE_STRING
@@ -2776,15 +2887,38 @@ Public Enum APP_COMPAT_FLAGS
     KACF_ALLOWMAXIMIZEDWINDOWGAMMA  = &H01000000
     KACF_DONOTADDTOCACHE  = &H80000000
 End Enum
-Public Type PEB_XP
+
+Public Enum PEB_BITFIELD_OLD
+    PebImageUsedLargePages = &H01
+    PebIsProtectedProcess = &H02 'V+
+    PebIsLegacyProcess = &H04 'V-8
+    PebIsImageDynamicallyRelocated = &H08 'V+
+    PebSkipPatchingUser32Forwarders = &H10
+    PebIsPackagedProcess = &H20
+    PebIsAppContainer = &H40
+    PebIsProtectedProcessLight = &H80
+End Enum
+Public Enum PEB_BITFIELD_NEW
+    PebNImageUsedLargePages = &H01
+    PebNIsProtectedProcess = &H02 'V+
+    PebNIsImageDynamicallyRelocated = &H04 'V+
+    PebNSkipPatchingUser32Forwarders = &H08
+    PebNIsPackagedProcess = &H10
+    PebNIsAppContainer = &H20
+    PebNIsProtectedProcessLight = &H40
+    PebNIsLongPathAwareProcess = &H80
+End Enum
+
+[ Description("This is the base compatibility PEB, usuable from Windows XP through 11+. For additional members, see additional PEBs, e.g. PEB_VISTA.")]
+Public Type PEB
     InheritedAddressSpace As Byte
     ReadImageFileExecOptions As Byte
     BeingDebugged As Byte
-    BitField As Byte
+    /* [ TypeHint(PEB_BITFIELD_OLD) ] */ BitField As Byte
     Mutant As LongPtr
     ImageBaseAddress As LongPtr
     Ldr As LongPtr
-    ProcessParameters As LongPtr 'RTL_USER_PROCESS_PARAMETERS, what we're primarily interested in.
+    ProcessParameters As LongPtr 'RTL_USER_PROCESS_PARAMETERS
     SubSystemData As LongPtr
     ProcessHeap As LongPtr
     FastPebLock As LongPtr
@@ -2823,7 +2957,81 @@ Public Type PEB_XP
     OSBuildNumber As Integer
     OSCSDVersion As Integer
     OSPlatformId As Long
-    ImageSubsystem As Long
+    ImageSubsystem As ImageSubsystemType
+    ImageSubsystemMajorVersion As Long
+    ImageSubsystemMinorVersion As Long
+    ImageProcessAffinityMask As LongPtr
+    #If Win64 Then
+    GdiHandleBuffer(59) As Long
+    #Else
+    GdiHandleBuffer(33) As Long    
+    #End If
+    PostProcessInitRoutine As LongPtr
+    TlsExpansionBitmap As LongPtr
+    TlsExpansionBitmapBits(31) As Long
+    SessionId As Long
+    AppCompatFlagsHi As Long
+    AppCompatFlags As APP_COMPAT_FLAGS 'ULARGE_INTEGER
+    AppCompatFlagUser As ULARGE_INTEGER
+    pShimData As LongPtr
+    AppCompatInfo As LongPtr
+    CSDVersion As UNICODE_STRING
+    ActivationContextData As LongPtr
+    ProcessAssemblyStorageMap As LongPtr
+    SystemDefaultActivationContextData As LongPtr
+    SystemAssemblyStorageMap As LongPtr
+    MinimumStackCommit As LongPtr
+End Type
+
+
+Public Type PEB_XP
+    InheritedAddressSpace As Byte
+    ReadImageFileExecOptions As Byte
+    BeingDebugged As Byte
+    /* [ TypeHint(PEB_BITFIELD_OLD) ] */ BitField As Byte
+    Mutant As LongPtr
+    ImageBaseAddress As LongPtr
+    Ldr As LongPtr
+    ProcessParameters As LongPtr 'RTL_USER_PROCESS_PARAMETERS
+    SubSystemData As LongPtr
+    ProcessHeap As LongPtr
+    FastPebLock As LongPtr
+    AtlThunkSListPtr As LongPtr
+    SparePtr2 As LongPtr
+    EnvironmentUpdateCount As Long
+    KernelCallbackTable As LongPtr
+    SystemReserved(0) As Long
+    SpareUlong As Long
+    FreeList As LongPtr
+    TlsExpansionCounter As Long
+    TlsBitmap As LongPtr
+    TlsBitmapBits(1) As Long
+    ReadOnlySharedMemoryBase As LongPtr
+    ReadOnlySharedMemoryHeap As LongPtr
+    ReadOnlyStaticServerData As LongPtr
+    AnsiCodePageData As LongPtr
+    OemCodePageData As LongPtr
+    UnicodeCaseTableData As LongPtr
+    NumberOfProcessors As Long
+    NtGlobalFlag As NTGLB_Flags
+    CriticalSectionTimeout As QLARGE_INTEGER
+    HeapSegmentReserve As LongPtr
+    HeapSegmentCommit As LongPtr
+    HeapDeCommitTotalFreeThreshold As LongPtr
+    HeapDeCommitFreeBlockThreshold As LongPtr
+    NumberOfHeaps As Long
+    MaximumNumberOfHeaps As Long
+    ProcessHeaps As LongPtr
+    GdiSharedHandleTable As LongPtr
+    ProcessStarterHelper As LongPtr
+    GdiDCAttributeList As Long
+    LoaderLock As LongPtr
+    OSMajorVersion As Long
+    OSMinorVersion As Long
+    OSBuildNumber As Integer
+    OSCSDVersion As Integer
+    OSPlatformId As Long
+    ImageSubsystem As ImageSubsystemType
     ImageSubsystemMajorVersion As Long
     ImageSubsystemMinorVersion As Long
     ImageProcessAffinityMask As LongPtr
@@ -2865,7 +3073,7 @@ Public Type PEB_VISTA 'Also 2003
     Mutant As LongPtr
     ImageBaseAddress As LongPtr
     Ldr As LongPtr
-    ProcessParameters As LongPtr 'RTL_USER_PROCESS_PARAMETERS, what we're primarily interested in.
+    ProcessParameters As LongPtr 'RTL_USER_PROCESS_PARAMETERS
     SubSystemData As LongPtr
     ProcessHeap As LongPtr
     FastPebLock As LongPtr
@@ -2904,7 +3112,7 @@ Public Type PEB_VISTA 'Also 2003
     OSBuildNumber As Integer
     OSCSDVersion As Integer
     OSPlatformId As Long
-    ImageSubsystem As Long
+    ImageSubsystem As ImageSubsystemType
     ImageSubsystemMajorVersion As Long
     ImageSubsystemMinorVersion As Long
     ImageProcessAffinityMask As LongPtr 'ActiveProcessAffinityMask in SP2
@@ -2944,7 +3152,7 @@ Public Type PEB_WIN7
     Mutant As LongPtr
     ImageBaseAddress As LongPtr
     Ldr As LongPtr
-    ProcessParameters As LongPtr 'RTL_USER_PROCESS_PARAMETERS, what we're primarily interested in.
+    ProcessParameters As LongPtr 'RTL_USER_PROCESS_PARAMETERS
     SubSystemData As LongPtr
     ProcessHeap As LongPtr
     FastPebLock As LongPtr
@@ -2983,7 +3191,7 @@ Public Type PEB_WIN7
     OSBuildNumber As Integer
     OSCSDVersion As Integer
     OSPlatformId As Long
-    ImageSubsystem As Long
+    ImageSubsystem As ImageSubsystemType
     ImageSubsystemMajorVersion As Long
     ImageSubsystemMinorVersion As Long
     ActiveProcessAffinityMask As LongPtr
@@ -3026,7 +3234,7 @@ Public Type PEB_WIN8
     Mutant As LongPtr
     ImageBaseAddress As LongPtr
     Ldr As LongPtr
-    ProcessParameters As LongPtr 'RTL_USER_PROCESS_PARAMETERS, what we're primarily interested in.
+    ProcessParameters As LongPtr 'RTL_USER_PROCESS_PARAMETERS
     SubSystemData As LongPtr
     ProcessHeap As LongPtr
     FastPebLock As LongPtr
@@ -3065,7 +3273,7 @@ Public Type PEB_WIN8
     OSBuildNumber As Integer
     OSCSDVersion As Integer
     OSPlatformId As Long
-    ImageSubsystem As Long
+    ImageSubsystem As ImageSubsystemType
     ImageSubsystemMajorVersion As Long
     ImageSubsystemMinorVersion As Long
     ActiveProcessAffinityMask As LongPtr
@@ -3110,7 +3318,7 @@ Public Type PEB_WIN10_T2
     Mutant As LongPtr
     ImageBaseAddress As LongPtr
     Ldr As LongPtr
-    ProcessParameters As LongPtr 'RTL_USER_PROCESS_PARAMETERS, what we're primarily interested in.
+    ProcessParameters As LongPtr 'RTL_USER_PROCESS_PARAMETERS
     SubSystemData As LongPtr
     ProcessHeap As LongPtr
     FastPebLock As LongPtr
@@ -3149,7 +3357,7 @@ Public Type PEB_WIN10_T2
     OSBuildNumber As Integer
     OSCSDVersion As Integer
     OSPlatformId As Long
-    ImageSubsystem As Long
+    ImageSubsystem As ImageSubsystemType
     ImageSubsystemMajorVersion As Long
     ImageSubsystemMinorVersion As Long
     ActiveProcessAffinityMask As LongPtr
@@ -3197,7 +3405,7 @@ Public Type PEB_WIN10_R3
     Mutant As LongPtr
     ImageBaseAddress As LongPtr
     Ldr As LongPtr
-    ProcessParameters As LongPtr 'RTL_USER_PROCESS_PARAMETERS, what we're primarily interested in.
+    ProcessParameters As LongPtr 'RTL_USER_PROCESS_PARAMETERS
     SubSystemData As LongPtr
     ProcessHeap As LongPtr
     FastPebLock As LongPtr
@@ -3236,7 +3444,7 @@ Public Type PEB_WIN10_R3
     OSBuildNumber As Integer
     OSCSDVersion As Integer
     OSPlatformId As Long
-    ImageSubsystem As Long
+    ImageSubsystem As ImageSubsystemType
     ImageSubsystemMajorVersion As Long
     ImageSubsystemMinorVersion As Long
     ActiveProcessAffinityMask As LongPtr
@@ -3285,7 +3493,7 @@ Public Type PEB_WIN10_R4
     Mutant As LongPtr
     ImageBaseAddress As LongPtr
     Ldr As LongPtr
-    ProcessParameters As LongPtr 'RTL_USER_PROCESS_PARAMETERS, what we're primarily interested in.
+    ProcessParameters As LongPtr 'RTL_USER_PROCESS_PARAMETERS
     SubSystemData As LongPtr
     ProcessHeap As LongPtr
     FastPebLock As LongPtr
@@ -3324,7 +3532,7 @@ Public Type PEB_WIN10_R4
     OSBuildNumber As Integer
     OSCSDVersion As Integer
     OSPlatformId As Long
-    ImageSubsystem As Long
+    ImageSubsystem As ImageSubsystemType
     ImageSubsystemMajorVersion As Long
     ImageSubsystemMinorVersion As Long
     ActiveProcessAffinityMask As LongPtr
@@ -3376,7 +3584,7 @@ Public Type PEB_WIN10_R5
     Mutant As LongPtr
     ImageBaseAddress As LongPtr
     Ldr As LongPtr
-    ProcessParameters As LongPtr 'RTL_USER_PROCESS_PARAMETERS, what we're primarily interested in.
+    ProcessParameters As LongPtr 'RTL_USER_PROCESS_PARAMETERS
     SubSystemData As LongPtr
     ProcessHeap As LongPtr
     FastPebLock As LongPtr
@@ -3415,7 +3623,7 @@ Public Type PEB_WIN10_R5
     OSBuildNumber As Integer
     OSCSDVersion As Integer
     OSPlatformId As Long
-    ImageSubsystem As Long
+    ImageSubsystem As ImageSubsystemType
     ImageSubsystemMajorVersion As Long
     ImageSubsystemMinorVersion As Long
     ActiveProcessAffinityMask As LongPtr
@@ -3470,7 +3678,7 @@ Public Type PEB_WIN11
     Mutant As LongPtr
     ImageBaseAddress As LongPtr
     Ldr As LongPtr
-    ProcessParameters As LongPtr 'RTL_USER_PROCESS_PARAMETERS, what we're primarily interested in.
+    ProcessParameters As LongPtr 'RTL_USER_PROCESS_PARAMETERS
     SubSystemData As LongPtr
     ProcessHeap As LongPtr
     FastPebLock As LongPtr
@@ -4398,7 +4606,7 @@ Public Enum GenericRights
     GENERIC_ALL                      = (&H10000000)
 End Enum
 Public Enum FileAccessRights
-	FILE_READ_DATA  = ( &H0001 )  ' file & pipe
+	FILE_READ_DATA  = ( &H0001)  ' file & pipe
 	FILE_LIST_DIRECTORY  = ( &H0001 )  ' directory
 	FILE_WRITE_DATA  = ( &H0002)  ' file & pipe
 	FILE_ADD_FILE  = ( &H0002 )  ' directory
@@ -5363,7 +5571,7 @@ End Type
 Public Type PSAPI_WORKING_SET_EX_BLOCK
     Flags As LongPtr
 End Type
-[Description("WARNING: You cannot use this type directly as it represents a C-style array. Use a byte array to fill in the number of entries, redim, and copy the rest fo VarPtr(workingsetinfo(0))") ]
+[Description ("⚠️ **WARNING:** You cannot use this type directly as it represents a C-style array. Use a byte array to fill in the number of entries, redim, and copy the rest fo VarPtr(workingsetinfo(0))") ]
 Public Type PSAPI_WORKING_SET_INFORMATION
     NumberOfEntries As LongPtr
     WorkingSetInfo() As PSAPI_WORKING_SET_BLOCK
@@ -6253,7 +6461,7 @@ Public Enum LOCALE_ENUM_FLAGS
     LcidSpecialValue = &H39
 End Enum
 
-[ Description("Note: This enum is used with several functions; not all functions support all flags.") ]
+[ Description ("📝**NOTE:** This enum is used with several functions; not all functions support all flags.") ]
 Public Enum TIME_FORMAT_FLAGS
     TIME_NOMINUTESORSECONDS  = &H00000001  ' do not use minutes or seconds
     TIME_NOSECONDS  = &H00000002  ' do not use seconds
@@ -6725,11 +6933,29 @@ Public DeclareWide PtrSafe Function QueryActCtx Lib "kernel32" Alias "QueryActCt
 Public DeclareWide PtrSafe Function QueryActCtxSettingsW Lib "kernel32" (ByVal dwFlags As Long, ByVal hActCtx As LongPtr, ByVal settingsNameSpace As LongPtr, ByVal settingName As LongPtr, ByVal pvBuffer As LongPtr, ByVal dwBuffer As LongPtr, Optional ByRef pcbWrittenOrRequired As LongPtr) As BOOL
 Public DeclareWide PtrSafe Function QueryActCtxSettings Lib "kernel32" Alias "QueryActCtxSettingsW" (ByVal dwFlags As Long, ByVal hActCtx As LongPtr, ByVal settingsNameSpace As LongPtr, ByVal settingName As String, ByVal pvBuffer As LongPtr, ByVal dwBuffer As LongPtr, Optional ByRef pcbWrittenOrRequired As LongPtr) As BOOL
 
+'TlHelp32.h - 100% coverage + custom ANSI alternates
 Public Declare PtrSafe Function CreateToolhelp32Snapshot Lib "kernel32" (ByVal dwFlags As TH32CS_Flags, ByVal th32ProcessID As Long) As LongPtr
-Public Declare PtrSafe Function Process32FirstW Lib "kernel32" (ByVal hSnapshot As LongPtr, lppe As PROCESSENTRY32W) As Long
-Public Declare PtrSafe Function Process32NextW Lib "kernel32" (ByVal hSnapshot As LongPtr, lppe As PROCESSENTRY32W) As Long
-Public Declare PtrSafe Function Thread32First Lib "kernel32" (ByVal hSnapshot As LongPtr, lpTE As THREADENTRY32) As Long
-Public Declare PtrSafe Function Thread32Next Lib "kernel32" (ByVal hSnapshot As LongPtr, lpTE As THREADENTRY32) As Long
+Public Declare PtrSafe Function Heap32ListFirst Lib "kernel32" (ByVal hSnapshot As LongPtr, lphl As HEAPLIST32) As BOOL
+Public Declare PtrSafe Function Heap32ListNext Lib "kernel32" (ByVal hSnapshot As LongPtr, lphl As HEAPLIST32) As BOOL
+Public Declare PtrSafe Function Heap32First Lib "kernel32" (lphe As HEAPENTRY32, ByVal th32ProcessID As Long, ByVal th32HeapID As LongPtr) As BOOL
+Public Declare PtrSafe Function Heap32Next Lib "kernel32" (lphe As HEAPENTRY32) As BOOL
+Public Declare PtrSafe Function Toolhelp32ReadProcessMemory Lib "kernel32" (ByVal th32ProcessID As Long, ByVal lpBaseAddress As LongPtr, lpBuffer As Any, ByVal cbRead As LongPtr, lpNumberOfBytesRead As LongPtr) As BOOL
+Public Declare PtrSafe Function Process32FirstA Lib "kernel32" Alias "Process32First" (ByVal hSnapshot As LongPtr, lppe As PROCESSENTRY32A) As BOOL
+Public Declare PtrSafe Function Process32NextA Lib "kernel32" Alias "Process32Next" (ByVal hSnapshot As LongPtr, lppe As PROCESSENTRY32A) As BOOL
+Public Declare PtrSafe Function Process32FirstW Lib "kernel32" (ByVal hSnapshot As LongPtr, lppe As PROCESSENTRY32W) As BOOL
+Public Declare PtrSafe Function Process32NextW Lib "kernel32" (ByVal hSnapshot As LongPtr, lppe As PROCESSENTRY32W) As BOOL
+Public Declare PtrSafe Function Process32First Lib "kernel32" Alias "Process32FirstW" (ByVal hSnapshot As LongPtr, lppe As PROCESSENTRY32) As BOOL
+Public Declare PtrSafe Function Process32Next Lib "kernel32" Alias "Process32NextW" (ByVal hSnapshot As LongPtr, lppe As PROCESSENTRY32) As BOOL
+Public Declare PtrSafe Function Thread32First Lib "kernel32" (ByVal hSnapshot As LongPtr, lpTE As THREADENTRY32) As BOOL
+Public Declare PtrSafe Function Thread32Next Lib "kernel32" (ByVal hSnapshot As LongPtr, lpTE As THREADENTRY32) As BOOL
+Public Declare PtrSafe Function Module32FirstA Lib "kernel32" Alias "Module32First" (ByVal hSnapshot As LongPtr, lpme As MODULEENTRY32A) As BOOL
+Public Declare PtrSafe Function Module32NextA Lib "kernel32" Alias "Module32Next" (ByVal hSnapshot As LongPtr, lpme As MODULEENTRY32A) As BOOL
+Public Declare PtrSafe Function Module32FirstW Lib "kernel32" (ByVal hSnapshot As LongPtr, lpme As MODULEENTRY32W) As BOOL
+Public Declare PtrSafe Function Module32NextW Lib "kernel32" (ByVal hSnapshot As LongPtr, lpme As MODULEENTRY32W) As BOOL
+Public Declare PtrSafe Function Module32First Lib "kernel32" Alias "Module32FirstW" (ByVal hSnapshot As LongPtr, lpme As MODULEENTRY32) As BOOL
+Public Declare PtrSafe Function Module32Next Lib "kernel32" Alias "Module32NextW" (ByVal hSnapshot As LongPtr, lpme As MODULEENTRY32) As BOOL
+
+
 Public Declare PtrSafe Function QueryFullProcessImageNameA Lib "kernel32" (ByVal hProcess As LongPtr, ByVal dwFlags As PROCESS_FULL_IMAGENAME_FLAGS, ByVal lpExeName As String, lpdwSize As Long) As Long
 Public DeclareWide PtrSafe Function QueryFullProcessImageName Lib "kernel32" Alias "QueryFullProcessImageNameW" (ByVal hProcess As LongPtr, ByVal dwFlags As PROCESS_FULL_IMAGENAME_FLAGS, ByVal lpExeName As String, lpdwSize As Long) As Long
 Public DeclareWide PtrSafe Function QueryFullProcessImageNameW Lib "kernel32" (ByVal hProcess As LongPtr, ByVal dwFlags As PROCESS_FULL_IMAGENAME_FLAGS, ByVal lpExeName As LongPtr, lpdwSize As Long) As Long
@@ -6785,21 +7011,21 @@ Public Declare PtrSafe Sub MoveMemory Lib "kernel32" Alias "RtlMoveMemory" (Dest
 Public Declare PtrSafe Sub ZeroMemory Lib "kernel32" Alias "RtlZeroMemory" (Destination As Any, ByVal Length As LongPtr)
 Public Declare PtrSafe Sub FillMemory Lib "kernel32" Alias "RtlFillMemory" (Destination As Any, ByVal Length As LongPtr, ByVal Fill As Long)
 
-[Description ("WARNING: This function is obsolete and unreliable. It is also in banned.h, APIs banned by Microsoft's Security Development Lifecycle and some open source repositories.") ]
+[Description ("⚠️ **WARNING:** This function is obsolete and unreliable. It is also in banned.h, APIs banned by Microsoft's Security Development Lifecycle and some open source repositories.") ]
 Public Declare PtrSafe Function IsBadReadPtr Lib "kernel32" (lp As Any, ByVal ucb As LongPtr) As BOOL
-[Description ("WARNING: This function is obsolete and unreliable. It is also in banned.h, APIs banned by Microsoft's Security Development Lifecycle and some open source repositories.") ]
+[Description ("⚠️ **WARNING:** This function is obsolete and unreliable. It is also in banned.h, APIs banned by Microsoft's Security Development Lifecycle and some open source repositories.") ]
 Public Declare PtrSafe Function IsBadWritePtr Lib "kernel32" (lp As Any, ByVal ucb As LongPtr) As BOOL
-[Description ("WARNING: This function is obsolete and unreliable. It is also in banned.h, APIs banned by Microsoft's Security Development Lifecycle and some open source repositories.") ]
+[Description ("⚠️ **WARNING:** This function is obsolete and unreliable. It is also in banned.h, APIs banned by Microsoft's Security Development Lifecycle and some open source repositories.") ]
 Public Declare PtrSafe Function IsBadStringPtrA Lib "kernel32" (ByVal lpsz As String, ByVal ucchMax As LongPtr) As BOOL
-[Description ("WARNING: This function is obsolete and unreliable. It is also in banned.h, APIs banned by Microsoft's Security Development Lifecycle and some open source repositories.") ]
+[Description ("⚠️ **WARNING:** This function is obsolete and unreliable. It is also in banned.h, APIs banned by Microsoft's Security Development Lifecycle and some open source repositories.") ]
 Public Declare PtrSafe Function IsBadStringPtrW Lib "kernel32" Alias "IsBadStringPtrW" (ByVal lpsz As String, ByVal ucchMax As LongPtr) As BOOL
-[Description ("WARNING: This function is obsolete and unreliable. It is also in banned.h, APIs banned by Microsoft's Security Development Lifecycle and some open source repositories.") ]
+[Description ("⚠️ **WARNING:** This function is obsolete and unreliable. It is also in banned.h, APIs banned by Microsoft's Security Development Lifecycle and some open source repositories.") ]
 Public Declare PtrSafe Function IsBadStringPtr Lib "kernel32" (ByVal lpsz As LongPtr, ByVal ucchMax As LongPtr) As BOOL
-[Description ("WARNING: This function is obsolete and unreliable. It is also in banned.h, APIs banned by Microsoft's Security Development Lifecycle and some open source repositories.") ]
+[Description ("⚠️ **WARNING:** This function is obsolete and unreliable. It is also in banned.h, APIs banned by Microsoft's Security Development Lifecycle and some open source repositories.") ]
 Public Declare PtrSafe Function IsBadHugeReadPtr Lib "kernel32" (lp As Any, ByVal ucb As LongPtr) As BOOL
-[Description ("WARNING: This function is obsolete and unreliable. It is also in banned.h, APIs banned by Microsoft's Security Development Lifecycle and some open source repositories.") ]
+[Description ("⚠️ **WARNING:** This function is obsolete and unreliable. It is also in banned.h, APIs banned by Microsoft's Security Development Lifecycle and some open source repositories.") ]
 Public Declare PtrSafe Function IsBadHugeWritePtr Lib "kernel32" (lp As Any, ByVal ucb As LongPtr) As BOOL
-[Description ("WARNING: This function is obsolete and unreliable. It is also in banned.h, APIs banned by Microsoft's Security Development Lifecycle and some open source repositories.") ]
+[ Description ("⚠️ **WARNING:** This function is obsolete and unreliable. It is also in banned.h, APIs banned by Microsoft's Security Development Lifecycle and some open source repositories.") ]
 Public Declare PtrSafe Function IsBadCodePtr Lib "kernel32" (ByVal lpfn As LongPtr) As BOOL
 
 Public Declare PtrSafe Sub InitializeCriticalSection Lib "kernel32" (lpCriticalSection As CRITICAL_SECTION)
@@ -8497,14 +8723,18 @@ Public Enum PROCESS_SHUTDOWN_FLAGS
     SHUTDOWN_NORETRY = 1
 End Enum
 
-Public DeclareWide PtrSafe Function CreateProcessW Lib "kernel32" (ByVal lpApplicationName As LongPtr, ByVal lpCommandLine As LongPtr, lpProccessAttributes As SECURITY_ATTRIBUTES, lpThreadAttributes As SECURITY_ATTRIBUTES, ByVal bInheritHandles As BOOL, ByVal dwCreationFlags As CreateProcessFlags, lpEnvironment As Any, _
-    ByVal lpCurrentDirectory As LongPtr, lpStartupInfo As STARTUPINFOW, lpProcessInformation As PROCESS_INFORMATION) As Long
-Public DeclareWide PtrSafe Function CreateProcess Lib "kernel32" Alias "CreateProcessW" (ByVal lpApplicationName As String, ByVal lpCommandLine As String, lpProccessAttributes As SECURITY_ATTRIBUTES, lpThreadAttributes As SECURITY_ATTRIBUTES, ByVal bInheritHandles As BOOL, ByVal dwCreationFlags As CreateProcessFlags, lpEnvironment As Any, _
-    ByVal lpCurrentDirectory As String, lpStartupInfo As STARTUPINFOW, lpProcessInformation As PROCESS_INFORMATION) As Long
+Public Declare PtrSafe Function CreateProcessA Lib "kernel32" (ByVal lpApplicationName As String, ByVal lpCommandLine As String, lpProccessAttributes As SECURITY_ATTRIBUTES, lpThreadAttributes As SECURITY_ATTRIBUTES, ByVal bInheritHandles As BOOL, _
+                                                                ByVal dwCreationFlags As CreateProcessFlags, lpEnvironment As Any, ByVal lpCurrentDirectory As String, lpStartupInfo As STARTUPINFOA, lpProcessInformation As PROCESS_INFORMATION) As BOOL
+Public DeclareWide PtrSafe Function CreateProcessW Lib "kernel32" (ByVal lpApplicationName As LongPtr, ByVal lpCommandLine As LongPtr, lpProccessAttributes As SECURITY_ATTRIBUTES, lpThreadAttributes As SECURITY_ATTRIBUTES, _
+                                                                   ByVal bInheritHandles As BOOL, ByVal dwCreationFlags As CreateProcessFlags, lpEnvironment As Any, ByVal lpCurrentDirectory As LongPtr, lpStartupInfo As STARTUPINFOW, lpProcessInformation As PROCESS_INFORMATION) As BOOL
+Public DeclareWide PtrSafe Function CreateProcess Lib "kernel32" Alias "CreateProcessW" (ByVal lpApplicationName As String, ByVal lpCommandLine As String, lpProccessAttributes As SECURITY_ATTRIBUTES, lpThreadAttributes As SECURITY_ATTRIBUTES, _
+                                                                    ByVal bInheritHandles As BOOL, ByVal dwCreationFlags As CreateProcessFlags, lpEnvironment As Any, ByVal lpCurrentDirectory As String, lpStartupInfo As STARTUPINFO, lpProcessInformation As PROCESS_INFORMATION) As BOOL
+Public Declare PtrSafe Function CreateProcessAsUserA Lib "kernel32" (ByVal hToken As LongPtr, ByVal lpApplicationName As String, ByVal lpCommandLine As String, lpProccessAttributes As SECURITY_ATTRIBUTES, lpThreadAttributes As SECURITY_ATTRIBUTES, ByVal bInheritHandles As BOOL, ByVal dwCreationFlags As CreateProcessFlags, lpEnvironment As Any, _
+    ByVal lpCurrentDirectory As String, lpStartupInfo As STARTUPINFOA, lpProcessInformation As PROCESS_INFORMATION) As BOOL
 Public DeclareWide PtrSafe Function CreateProcessAsUserW Lib "kernel32" (ByVal hToken As LongPtr, ByVal lpApplicationName As LongPtr, ByVal lpCommandLine As LongPtr, lpProccessAttributes As SECURITY_ATTRIBUTES, lpThreadAttributes As SECURITY_ATTRIBUTES, ByVal bInheritHandles As BOOL, ByVal dwCreationFlags As CreateProcessFlags, lpEnvironment As Any, _
-    ByVal lpCurrentDirectory As LongPtr, lpStartupInfo As STARTUPINFOW, lpProcessInformation As PROCESS_INFORMATION) As Long
+    ByVal lpCurrentDirectory As LongPtr, lpStartupInfo As STARTUPINFOW, lpProcessInformation As PROCESS_INFORMATION) As BOOL
 Public DeclareWide PtrSafe Function CreateProcessAsUser Lib "kernel32" Alias "CreateProcessAsUserW" (ByVal hToken As LongPtr, ByVal lpApplicationName As String, ByVal lpCommandLine As String, lpProccessAttributes As SECURITY_ATTRIBUTES, lpThreadAttributes As SECURITY_ATTRIBUTES, ByVal bInheritHandles As BOOL, ByVal dwCreationFlags As CreateProcessFlags, lpEnvironment As Any, _
-    ByVal lpCurrentDirectory As String, lpStartupInfo As STARTUPINFOW, lpProcessInformation As PROCESS_INFORMATION) As Long
+    ByVal lpCurrentDirectory As String, lpStartupInfo As STARTUPINFO, lpProcessInformation As PROCESS_INFORMATION) As BOOL
 Public Declare PtrSafe Sub ExitProcess Lib "kernel32" (ByVal uExitCode As Long)
 Public Declare PtrSafe Sub ExitThread Lib "kernel32" (ByVal dwExitCode As Long)
 Public DeclareWide PtrSafe Function GetExitCodeProcess Lib "kernel32" (ByVal hProcess As LongPtr, lpExitCode As Long) As BOOL
@@ -8546,7 +8776,7 @@ Public Declare PtrSafe Function SuspendThread Lib "kernel32" (ByVal hThread As L
 Public Declare PtrSafe Function Wow64SuspendThread Lib "kernel32" (ByVal hThread As LongPtr) As Long
 Public Declare PtrSafe Function TerminateThread Lib "kernel32" (ByVal hThread As LongPtr, ByVal dwExitCode As Long) As Long
 Public Declare PtrSafe Function TerminateProcess Lib "kernel32" (ByVal hProcess As LongPtr, ByVal dwExitCode As Long) As Long
-Public Declare PtrSafe Function OpenThread Lib "kernel32" (ByVal dwDesiredAccess As ThreadAccess, ByVal bInheritHandle As BOOL, ByVal dwThreadId As Long) As LongPtr
+Public Declare PtrSafe Function OpenThread Lib "kernel32" (ByVal dwDesiredAccess As ThreadAccessRights, ByVal bInheritHandle As BOOL, ByVal dwThreadId As Long) As LongPtr
 Public Declare PtrSafe Function OpenProcess Lib "kernel32" (ByVal dwDesiredAccess As Long, ByVal bInheritHandle As BOOL, ByVal dwProcessId As Long) As LongPtr
 Public Declare PtrSafe Function GetProcessHandleCount Lib "kernel32" (ByVal hProcess As LongPtr, pdwHandleCount As Long) As BOOL
 Public Declare PtrSafe Function GetProcessInformation Lib "kernel32" (ByVal hProcess As LongPtr, ByVal ProcessInformationClass As PROCESS_INFORMATION_CLASS, ProcessInformation As Any, ByVal ProcessInformationSize As Long) As BOOL
@@ -8753,7 +8983,7 @@ Public Type JOBOBJECT_EXTENDED_LIMIT_INFORMATION
     PeakProcessMemoryUsed As LongPtr
     PeakJobMemoryUsed As LongPtr
 End Type
-[Description("WARNING: This structure cannot be used as-is directly due to SAFEARRAY considerations. Copy count and array separately.")]
+[Description("⚠️ **WARNING:** This structure cannot be used as-is directly due to SAFEARRAY considerations. Copy count and array separately.") ]
 Public Type JOBOBJECT_BASIC_PROCESS_ID_LIST
     NumberOfAssignedProcesses As Long
     NumberOfProcessIdsInList As Long
@@ -9003,7 +9233,7 @@ Public DeclareWide PtrSafe Function ExpandEnvironmentStrings Lib "kernel32" Alia
 Public Declare PtrSafe Function SetEnvironmentStringsA Lib "kernel32" (ByVal NewEnvironment As String) As BOOL
 Public DeclareWide PtrSafe Function SetEnvironmentStringsW Lib "kernel32" (ByVal NewEnvironment As LongPtr) As BOOL
 Public DeclareWide PtrSafe Function SetEnvironmentStrings Lib "kernel32" Alias "SetEnvironmentStringsW" (ByVal NewEnvironment As String) As BOOL
-[ Description ("Warning: This is not a Unicode function; the API does not follow the standard rules for that; this version returns ANSI characters, and GetEnvironmentStringsA returns OEM characters.") ]
+[ Description ("⚠️ **Warning:** This is not a Unicode function; the API does not follow the standard rules for that; this version returns ANSI characters, and GetEnvironmentStringsA returns OEM characters.") ]
 Public Declare PtrSafe Function GetEnvironmentStrings Lib "kernel32" () As String
 Public Declare PtrSafe Function GetEnvironmentStringsA Lib "kernel32" () As String
 Public DeclareWide PtrSafe Function GetEnvironmentStringsW Lib "kernel32" () As LongPtr
@@ -9287,14 +9517,14 @@ Public Enum WINDOWS_OS_PRODUCT_TYPES
     PRODUCT_AZURESTACKHCI_SERVER_CORE  = &H00000196
     PRODUCT_DATACENTER_SERVER_AZURE_EDITION  = &H00000197
     PRODUCT_DATACENTER_SERVER_CORE_AZURE_EDITION  = &H00000198
-    PRODUCT_UNLICENSED  = &HABCDABCD
+    PRODUCT_UNLICENSED = &HABCDABCD
 End Enum
 
 
 
-[Description("WARNING: This function is deprecated.")]
+[Description("⚠️ **WARNING:** This function is deprecated.")]
 Public DeclareWide PtrSafe Function GetVersion Lib "kernel32" () As Long
-[Description ("WARNING: This function will indicate Windows 8.1 unless you supply an application manifest targeting Windows 10. \nTo get real version info, use RtlGetVersion.") ]
+[ Description ("⚠️ **WARNING:** This function will indicate Windows 8.1 unless you supply an application manifest targeting Windows 10.  " & vbCrLf & "To get real version info, use RtlGetVersion.") ]
 Public DeclareWide PtrSafe Function GetVersionEx Lib "kernel32" Alias "GetVersionExW" (lpVersionInformation As OSVERSIONINFOEX) As BOOL
 Public DeclareWide PtrSafe Function GetVersionExW Lib "kernel32" (lpVersionInformation As OSVERSIONINFOEXW) As BOOL
 Public DeclareWide PtrSafe Function GetVersionExA Lib "kernel32" (lpVersionInformation As OSVERSIONINFOEXA) As BOOL
@@ -9308,7 +9538,7 @@ Public Const RESTART_MAX_CMD_LINE  = 1024
 Public Enum RegisterRestartFlags
 	RESTART_NO_CRASH  = 1
 '  Do not restart the process for termination due to application hangs
-	RESTART_NO_HANG  = 2
+	RESTART_NO_HANG = 2
 '  Do not restart the process for termination due to patch installations
 	RESTART_NO_PATCH  = 4
 '  Do not restart the process when the system is rebooted due to patch installations
@@ -9400,12 +9630,24 @@ Public Enum FileMoveMethods
     FILE_END
 End Enum
 
+Public Enum VERSION_PLATFORM
+    VER_PLATFORM_WIN32s  = 0
+    VER_PLATFORM_WIN32_WINDOWS  = 1
+    VER_PLATFORM_WIN32_NT  = 2
+End Enum
+
+Public Enum VERSION_PRODUCT_TYPE
+    VER_NT_WORKSTATION  = &H0000001
+    VER_NT_DOMAIN_CONTROLLER  = &H0000002
+    VER_NT_SERVER  = &H0000003
+End Enum
+
 Public Type OSVERSIONINFOW
 	dwOSVersionInfoSize As Long
 	dwMajorVersion As Long
 	dwMinorVersion As Long
 	dwBuildNumber As Long
-	dwPlatformId As Long
+	/* [ TypeHiint(VERSION_PLATFORM) ] */ dwPlatformId As Long
 	szCSDVersion(0 To 127) As Integer ' Maintenance string for PSS usage
 End Type
 Public Type OSVERSIONINFOEXW
@@ -9413,12 +9655,12 @@ Public Type OSVERSIONINFOEXW
 	dwMajorVersion As Long
 	dwMinorVersion As Long
 	dwBuildNumber As Long
-	dwPlatformId As Long
+    /* [ TypeHiint(VERSION_PLATFORM) ] */ dwPlatformId As Long
 	szCSDVersion(0 To 127) As Integer ' Maintenance string for PSS usage
 	wServicePackMajor As Integer
 	wServicePackMinor As Integer
-	wSuiteMask As Integer
-	wProductType As Byte
+	/* [ TypeHint(VER_SUITE_VALUES) ] */ wSuiteMask As Integer
+	/* [ TypeHint(VERSION_PRODUCT_TYPE) ] */ wProductType As Byte
 	wReserved As Byte
 End Type
 Public Type OSVERSIONINFO
@@ -9426,7 +9668,7 @@ Public Type OSVERSIONINFO
     dwMajorVersion As Long
     dwMinorVersion As Long
     dwBuildNumber As Long
-    dwPlatformId As Long
+    /* [ TypeHiint(VERSION_PLATFORM) ] */ dwPlatformId As Long
     szCSDVersion(0 To 127) As Integer ' Maintenance string for PSS usage
 End Type
 Public Type OSVERSIONINFOEX
@@ -9434,12 +9676,12 @@ Public Type OSVERSIONINFOEX
     dwMajorVersion As Long
     dwMinorVersion As Long
     dwBuildNumber As Long
-    dwPlatformId As Long
+    /* [ TypeHiint(VERSION_PLATFORM) ] */ dwPlatformId As Long
     szCSDVersion(0 To 127) As Integer ' Maintenance string for PSS usage
     wServicePackMajor As Integer
     wServicePackMinor As Integer
-    wSuiteMask As Integer
-    wProductType As Byte
+    /* [ TypeHint(VER_SUITE_VALUES) ] */ wSuiteMask As Integer
+    /* [ TypeHint(VERSION_PRODUCT_TYPE) ] */ wProductType As Byte
     wReserved As Byte
 End Type
 Public Type OSVERSIONINFOA
@@ -9447,7 +9689,7 @@ Public Type OSVERSIONINFOA
     dwMajorVersion As Long
     dwMinorVersion As Long
     dwBuildNumber As Long
-    dwPlatformId As Long
+    /* [ TypeHiint(VERSION_PLATFORM) ] */ dwPlatformId As Long
     szCSDVersion(0 To 127) As Byte ' Maintenance string for PSS usage
 End Type
 Public Type OSVERSIONINFOEXA
@@ -9455,12 +9697,12 @@ Public Type OSVERSIONINFOEXA
     dwMajorVersion As Long
     dwMinorVersion As Long
     dwBuildNumber As Long
-    dwPlatformId As Long
+    /* [ TypeHiint(VERSION_PLATFORM) ] */ dwPlatformId As Long
     szCSDVersion(0 To 127) As Byte ' Maintenance string for PSS usage
     wServicePackMajor As Integer
     wServicePackMinor As Integer
-    wSuiteMask As Integer
-    wProductType As Byte
+    /* [ TypeHint(VER_SUITE_VALUES) ] */ wSuiteMask As Integer
+    /* [ TypeHint(VERSION_PRODUCT_TYPE) ] */ wProductType As Byte
     wReserved As Byte
 End Type
 
@@ -9980,22 +10222,22 @@ Public Declare PtrSafe Function CommConfigDialogA Lib "kernel32" (ByVal lpszName
 Public Declare PtrSafe Function CommConfigDialogW Lib "kernel32" (ByVal lpszName As LongPtr, ByVal hWnd As LongPtr, lpCC As COMMCONFIG) As BOOL
 Public DeclareWide PtrSafe Function CommConfigDialog Lib "kernel32" Alias "CommConfigDialogW" (ByVal lpszName As String, ByVal hWnd As LongPtr, lpCC As COMMCONFIG) As BOOL
 
-[ Description("WARNING: This is a legacy compatibility API, new applications should use CreateFile etc.") ]
+[ Description("⚠️ **WARNING:** This is a legacy compatibility API, new applications should use CreateFile etc.") ]
 Public Declare PtrSafe Function _lopen Lib "kernel32" (ByVal lpPathName As String, ByVal iReadWrite As Long) As Long
-[ Description("WARNING: This is a legacy compatibility API, new applications should use CreateFile etc.") ]
+[ Description("⚠️ **WARNING:** This is a legacy compatibility API, new applications should use CreateFile etc.") ]
 Public Declare PtrSafe Function _lclose Lib "kernel32" (ByVal hFile As Long) As Long
-[ Description("WARNING: This is a legacy compatibility API, new applications should use CreateFile etc.") ]
+[ Description("⚠️ **WARNING:** This is a legacy compatibility API, new applications should use CreateFile etc.") ]
 Public Declare PtrSafe Function _lcreat Lib "kernel32" (ByVal lpPathName As String, ByVal iAttribute As Long) As Long
-[ Description("WARNING: This is a legacy compatibility API, new applications should use CreateFile etc.") ]
+[ Description("⚠️ **WARNING:** This is a legacy compatibility API, new applications should use CreateFile etc.") ]
 Public Declare PtrSafe Function _llseek Lib "kernel32" (ByVal hFile As Long, ByVal lOffset As Long, ByVal iOrigin As Long) As Long
-[ Description("WARNING: This is a legacy compatibility API, new applications should use CreateFile etc.") ]
+[ Description("⚠️ **WARNING:** This is a legacy compatibility API, new applications should use CreateFile etc.") ]
 Public Declare PtrSafe Function _lread Lib "kernel32" (ByVal hFile As Long, lpBuffer As Any, ByVal wBytes As Long) As Long
-[ Description("WARNING: This is a legacy compatibility API, new applications should use CreateFile etc.") ]
+[ Description("⚠️ **WARNING:** This is a legacy compatibility API, new applications should use CreateFile etc.") ]
 Public Declare PtrSafe Function _lwrite Lib "kernel32" (ByVal hFile As Long, ByVal lpBuffer As String, ByVal wBytes As Long) As Long
 
-[ Description("WARNING: This is a legacy compatibility API, new applications should use CreateFile etc.") ]
+[ Description("⚠️ **WARNING:** This is a legacy compatibility API, new applications should use CreateFile etc.") ]
 Public Declare PtrSafe Function _hread Lib "kernel32" (ByVal hFile As Long, lpBuffer As Any, ByVal lBytes As Long) As Long
-[ Description("WARNING: This is a legacy compatibility API, new applications should use CreateFile etc.") ]
+[ Description ("⚠️ **WARNING:** This is a legacy compatibility API, new applications should use CreateFile etc.") ]
 Public Declare PtrSafe Function _hwrite Lib "kernel32" (ByVal hFile As Long, ByVal lpBuffer As String, ByVal lBytes As Long) As Long
 
 #End Region
@@ -10306,12 +10548,12 @@ Public Type IMAGE_RESOURCE_DIRECTORY_ENTRY
     Name As Long
     OffsetToData As Long
 End Type
-[ Description("WARNING: Do not copy this all at once. Use length to determine what to copy.")]
+[ Description("⚠️ **WARNING:** Do not copy this all at once. Use length to determine what to copy.") ]
 Public Type IMAGE_RESOURCE_DIRECTORY_STRING
     Length As Integer
     NameString(0 To 79) As Byte
 End Type
-[ Description("WARNING: Do not copy this all at once. Use length to determine what to copy.")]
+[ Description("⚠️ **WARNING:** Do not copy this all at once. Use length to determine what to copy.")]
 Public Type IMAGE_RESOURCE_DIR_STRING_U
     Length As Integer
     NameString(0 To 0) As Integer
@@ -10922,10 +11164,10 @@ Public Enum IMAGE_RELOC_TYPE_SH3
     IMAGE_REL_SH3_GPREL4_LONG  = &H0011  ' GP-relative addressing
     IMAGE_REL_SH3_TOKEN  = &H0012  ' clr token
     IMAGE_REL_SHM_PCRELPT  = &H0013  ' Offset from current
-'   instruction in longwords
-'   if not NOMODE, insert the
-'   inverse of the low bit at
-'   bit 32 to select PTA/PTB
+                                    '   instruction in longwords
+                                    '   if not NOMODE, insert the
+                                    '   inverse of the low bit at
+                                    '   bit 32 to select PTA/PTB
     IMAGE_REL_SHM_REFLO  = &H0014  ' Low bits of 32-bit address
     IMAGE_REL_SHM_REFHALF  = &H0015  ' High bits of 32-bit address
     IMAGE_REL_SHM_RELLO  = &H0016  ' Low bits of relative reference
@@ -11216,7 +11458,7 @@ Public Enum ImageLoadConfigGuardFlags
     IMAGE_GUARD_CF_FUNCTION_TABLE_SIZE_MASK  = &HF0000000  ' Stride of Guard CF function table encoded in these bits (additional count of bytes per element)
     IMAGE_GUARD_CF_FUNCTION_TABLE_SIZE_SHIFT  = 28  ' Shift to right-justify Guard CF function table stride
 End Enum
-[Description("WARNING: CHECK SIZE BEFORE COPYING: This UDT has members appended in most Windows versions. Only copy the available size.")]
+[Description ("⚠️ **WARNING:** CHECK SIZE BEFORE COPYING: This UDT has members appended in most Windows versions. Only copy the available size.") ]
 Public Type IMAGE_LOAD_CONFIG_DIRECTORY64
     Size As Long
     TimeDateStamp As Long
@@ -11272,7 +11514,7 @@ Public Type IMAGE_LOAD_CONFIG_DIRECTORY64
     CastGuardOsDeterminedFailureMode As LongLong ' VA
     GuardMemcpyFunctionPointer As LongLong ' VA
 End Type
-[Description("WARNING: CHECK SIZE BEFORE COPYING: This UDT has members appended in most Windows versions. Only copy the available size.")]
+[Description("⚠️ **WARNING:** CHECK SIZE BEFORE COPYING: This UDT has members appended in most Windows versions. Only copy the available size.") ]
 Public Type IMAGE_LOAD_CONFIG_DIRECTORY32
     Size As Long
     TimeDateStamp As Long
@@ -11328,7 +11570,7 @@ Public Type IMAGE_LOAD_CONFIG_DIRECTORY32
     CastGuardOsDeterminedFailureMode As Long ' VA
     GuardMemcpyFunctionPointer As Long ' VA
 End Type
-[Description("WARNING: CHECK SIZE BEFORE COPYING: This UDT has members appended in most Windows versions. Only copy the available size.")]
+[Description("⚠️ **WARNING:** CHECK SIZE BEFORE COPYING: This UDT has members appended in most Windows versions. Only copy the available size.") ]
 Public Type IMAGE_LOAD_CONFIG_DIRECTORY
     Size As Long
     TimeDateStamp As Long
@@ -12124,42 +12366,14 @@ Public Type SYSTEM_FLAGS_INFORMATION
     Flags As NTGLB_Flags
 End Type
 
-[Description("WARNING: This structure cannot be used as-is directly due to SAFEARRAY considerations. Copy count and array separately.")]
+[Description("⚠️ **WARNING:** This structure cannot be used as-is directly due to SAFEARRAY considerations. Copy count and array separately.") ]
 Public Type SYSTEM_CALL_TIME_INFORMATION
     Length As Long
     TotalCalls As Long
     TimeOfCalls() As QLARGE_INTEGER
 End Type
 
-Public Enum LDR_DATA_TABLE_FLAGS
-    LDRP_PACKAGED_BINARY  = &H00000001
-    LDRP_MARKED_FOR_REMOVAL  = &H00000002
-    LDRP_IMAGE_DLL  = &H00000004
-    LDRP_LOAD_NOTIFICATIONS_SENT  = &H00000008
-    LDRP_TELEMETRY_ENTRY_PROCESSED  = &H00000010
-    LDRP_PROCESS_STATIC_IMPORT  = &H00000020
-    LDRP_IN_LEGACY_LISTS  = &H00000040
-    LDRP_IN_INDEXES  = &H00000080
-    LDRP_SHIM_DLL  = &H00000100
-    LDRP_IN_EXCEPTION_TABLE  = &H00000200
-    LDRP_LOAD_IN_PROGRESS  = &H00001000
-    LDRP_LOAD_CONFIG_PROCESSED  = &H00002000
-    LDRP_ENTRY_PROCESSED  = &H00004000
-    LDRP_PROTECT_DELAY_LOAD  = &H00008000&
-    LDRP_DONT_CALL_FOR_THREADS  = &H00040000
-    LDRP_PROCESS_ATTACH_CALLED  = &H00080000
-    LDRP_PROCESS_ATTACH_FAILED  = &H00100000
-    LDRP_COR_DEFERRED_VALIDATE  = &H00200000
-    LDRP_COR_IMAGE = &H00400000
-    LDRP_DONT_RELOCATE  = &H00800000
-    LDRP_COR_IL_ONLY  = &H01000000
-    LDRP_CHPE_IMAGE  = &H02000000
-    LDRP_CHPE_EMULATOR_IMAGE  = &H04000000
-    LDRP_REDIRECTED  = &H10000000
-    LDRP_COMPAT_DATABASE_PROCESSED  = &H80000000
-End Enum
-
-[Description("WARNING: This structure cannot be used as-is directly due to SAFEARRAY considerations. Copy count and array separately.")]
+[Description("⚠️ **WARNING:** This structure cannot be used as-is directly due to SAFEARRAY considerations. Copy count and array separately.") ]
 Public Type RTL_PROCESS_MODULES
     NumberOfModules As Long
     Modules() As RTL_PROCESS_MODULE_INFORMATION
@@ -12189,7 +12403,7 @@ Public Type RTL_PROCESS_LOCK_INFORMATION
     NumberOfWaitingShared As Long
     NumberOfWaitingExclusive As Long
 End Type
-[Description("WARNING: This structure cannot be used as-is directly due to SAFEARRAY considerations. Copy count and array separately.")]
+[Description("⚠️ **WARNING:** This structure cannot be used as-is directly due to SAFEARRAY considerations. Copy count and array separately.")]
 Public Type RTL_PROCESS_LOCKS
     NumberOfLocks As Long
     Locks() As RTL_PROCESS_LOCK_INFORMATION
@@ -12202,7 +12416,7 @@ Public Type RTL_PROCESS_BACKTRACE_INFORMATION
     Depth As Integer
     BackTrace(0 To 31) As LongPtr
 End Type
-[Description("WARNING: This structure cannot be used as-is directly due to SAFEARRAY considerations. Copy count and array separately.")]
+[Description("⚠️ **WARNING:** This structure cannot be used as-is directly due to SAFEARRAY considerations. Copy count and array separately.")]
 Public Type RTL_PROCESS_BACKTRACES
     CommittedMemory As Long
     ReservedMemory As Long
@@ -12220,7 +12434,7 @@ Public Type SYSTEM_HANDLE_TABLE_ENTRY_INFO
     Object As LongPtr
     GrantedAccess As Long
 End Type
-[Description("WARNING: This structure cannot be used as-is directly due to SAFEARRAY considerations. Copy count and array separately.")]
+[Description("⚠️ **WARNING:** This structure cannot be used as-is directly due to SAFEARRAY considerations. Copy count and array separately.")]
 Public Type SYSTEM_HANDLE_INFORMATION
     NumberOfHandles As Long
     Handles() As SYSTEM_HANDLE_TABLE_ENTRY_INFO
@@ -12821,7 +13035,7 @@ Public Type FILE_LINKS_INFORMATION
     EntriesReturned As Long
     Entry As FILE_LINK_ENTRY_INFORMATION
 End Type
-[ Description ("WARNING: You cannot use this struct as-is due to SAFEARRAY considerations. Copy the first 4 bytes, determine the size, then copy the rest into ProcessIdList(0) ") ]
+[ Description ("⚠️ **WARNING:** You cannot use this struct as-is due to SAFEARRAY considerations. Copy the first 4 bytes, determine the size, then copy the rest into ProcessIdList(0) ") ]
 Public Type FILE_PROCESS_IDS_USING_FILE_INFORMATION
     NumberOfProcessIdsInList As Long
     ProcessIdList() As LongPtr
@@ -13059,8 +13273,7 @@ Public Enum FILE_LINK_EX_FLAGS
     FILE_LINK_NO_DECREASE_AVAILABLE_SPACE  = &H00000020
     FILE_LINK_PRESERVE_AVAILABLE_SPACE  = &H00000030
     FILE_LINK_IGNORE_READONLY_ATTRIBUTE  = &H00000040
-' #endif
-' #if (PHNT_VERSION >= PHNT_19H1)
+    '19H1+
     FILE_LINK_FORCE_RESIZE_TARGET_SR  = &H00000080
     FILE_LINK_FORCE_RESIZE_SOURCE_SR  = &H00000100
     FILE_LINK_FORCE_RESIZE_SR  = &H00000180
@@ -13457,18 +13670,23 @@ Public Type TOKEN_LINKED_TOKEN
     LinkedToken As LongPtr
 End Type
 
-[Description("**WARNING** WINDOWS 8 AND EARLIER MUST USE 56 instead!")]
-Public Const POLICY_AUDIT_SUBCATEGORY_COUNT = 58
+[Description ("⚠️ **WARNING:** WINDOWS 8 AND EARLIER MUST USE 56 instead!") ]
+Public Const POLICY_AUDIT_SUBCATEGORY_COUNT_Vista = 53
 Public Const POLICY_AUDIT_SUBCATEGORY_COUNT_Win8 = 56
-[Description("WINDOWS VISTA+")]
+[Description ("⚠️ **WARNING:** WINDOWS 10+ ONLY. WINDOWS 8 AND EARLIER MUST USE _Win8 or _Vista variants.!") ]
+Public Const POLICY_AUDIT_SUBCATEGORY_COUNT = 59 'Windows 10
+[Description("⚠️ **WARNING:** WINDOWS 10+ ONLY. WINDOWS 8 AND EARLIER MUST USE _Win8 or _Vista variants.!") ]
 Public Type TOKEN_AUDIT_POLICY
 	PerUserPolicy(POLICY_AUDIT_SUBCATEGORY_COUNT >> 1) As Byte
+End Type
+[Description("WINVISTA/7")]
+Public Type TOKEN_AUDIT_POLICY_Vista 
+    PerUserPolicy(POLICY_AUDIT_SUBCATEGORY_COUNT_Vista >> 1) As Byte
 End Type
 [Description("WIN8 AND EARLIER")]
 Public Type TOKEN_AUDIT_POLICY_Win8
     PerUserPolicy(POLICY_AUDIT_SUBCATEGORY_COUNT_win8 >> 1) As Byte
 End Type
-
 Public Type TOKEN_DEVICE_CLAIMS
     DeviceClaims As LongPtr
 End Type
@@ -13549,26 +13767,31 @@ Public Enum FileAccessFlags
     FILE_DIRECTORY_FILE  = &H00000001
     FILE_WRITE_THROUGH  = &H00000002
     FILE_SEQUENTIAL_ONLY  = &H00000004
-    FILE_NO_INTERMEDIATE_BUFFERING  = &H00000008
+    FILE_NO_INTERMEDIATE_BUFFERING = &H00000008
     FILE_SYNCHRONOUS_IO_ALERT  = &H00000010
     FILE_SYNCHRONOUS_IO_NONALERT  = &H00000020
     FILE_NON_DIRECTORY_FILE  = &H00000040
     FILE_CREATE_TREE_CONNECTION  = &H00000080
     FILE_COMPLETE_IF_OPLOCKED  = &H00000100
-    FILE_NO_EA_KNOWLEDGE  = &H00000200
+    FILE_NO_EA_KNOWLEDGE = &H00000200
     FILE_OPEN_REMOTE_INSTANCE  = &H00000400
     FILE_RANDOM_ACCESS  = &H00000800
     FILE_DELETE_ON_CLOSE  = &H00001000
     FILE_OPEN_BY_FILE_ID  = &H00002000
-    FILE_OPEN_FOR_BACKUP_INTENT  = &H00004000
+    FILE_OPEN_FOR_BACKUP_INTENT = &H00004000
     FILE_NO_COMPRESSION = &H00008000&
 ' #if (_WIN32_WINNT >= _WIN32_WINNT_WIN7)
     FILE_OPEN_REQUIRING_OPLOCK  = &H00010000
-' #endif
-    FILE_RESERVE_OPFILTER  = &H00100000
+    FILE_DISALLOW_EXCLUSIVE = &H00020000
+    FILE_SESSION_AWARE = &H00040000
+    FILE_RESERVE_OPFILTER = &H00100000
     FILE_OPEN_REPARSE_POINT  = &H00200000
     FILE_OPEN_NO_RECALL  = &H00400000
     FILE_OPEN_FOR_FREE_SPACE_QUERY  = &H00800000
+    'Windows 11
+    FILE_CONTAINS_EXTENDED_CREATE_INFORMATION = &H10000000
+' #endif
+
     FILE_VALID_OPTION_FLAGS  = &H00ffffff
     FILE_VALID_PIPE_OPTION_FLAGS = &H00000032
     FILE_VALID_MAILSLOT_OPTION_FLAGS  = &H00000032
@@ -13587,6 +13810,39 @@ Public Type PEB_LDR_DATA
     ShutdownThreadId As LongPtr
 End Type
 
+Public Enum LDR_DATA_TABLE_FLAGS
+    LDRP_STATIC_LINK  = &H00000002  ' ntdll
+    LDRP_IMAGE_DLL  = &H00000004  ' ntdll
+    LDRP_LOAD_IN_PROGRESS  = &H00001000  ' ntdll
+    LDRP_UNLOAD_IN_PROGRESS  = &H00002000  ' ntdll
+    LDRP_ENTRY_PROCESSED  = &H00004000  ' ntldr, ntoskrnl and ntdll
+    LDRP_ENTRY_INSERTED = &H00008000&
+    LDRP_CURRENT_LOAD  = &H00010000
+    LDRP_FAILED_BUILTIN_LOAD  = &H00020000  ' ntoskrnl
+' 6.2 and later:
+    LDRP_PACKAGED_BINARY  = &H00000001
+    LDRP_MARKED_FOR_REMOVAL  = &H00000002
+    LDRP_LOAD_NOTIFICATION_SENT  = &H00000008
+    LDRP_TELEMETRY_ENTRY_PROCESSED  = &H00000010
+    LDRP_PROCESS_STATIC_IMPORT  = &H00000020
+    LDRP_IN_LEGACY_LISTS  = &H00000040
+    LDRP_IN_INDEXES  = &H00000080
+    LDRP_SHIM_DLL  = &H00000100
+    LDRP_IN_EXCEPTION_TABLE  = &H00000200
+    LDRP_LOAD_CONFIG_PROCESSED  = &H00002000  'Win10+
+    LDRP_PROTECTED_PAYLOAD = &H00008000&  'Win10+
+    LDRP_DONT_CALL_FOR_THREADS  = &H00040000
+    LDRP_PROCESS_ATTACH_CALLED  = &H00080000
+    LDRP_PROCESS_ATTACH_FAILED  = &H00100000
+    LDRP_COR_DEFERRED_VALIDATE  = &H00200000
+    LDRP_COR_IMAGE  = &H00400000
+    LDRP_DONT_RELOCATE  = &H00800000
+    LDRP_COR_IL_ONLY  = &H01000000
+    LDRP_CHPE_IMAGE  = &H02000000
+    LDRP_CHPE_EMULATOR_IMAGE = &H04000000
+    LDRP_REDIRECTED  = &H10000000
+    LDRP_COMPAT_DATABASE_PROCESSED  = &H80000000
+End Enum
 [ Description ("This structure is complete only up until Windows NT4. Additional members have been added.") ]
 Public Type LDR_DATA_TABLE_ENTRY
     InLoadOrderLinks As LIST_ENTRY
@@ -13597,13 +13853,368 @@ Public Type LDR_DATA_TABLE_ENTRY
     SizeOfImage As Long
     FullDllName As UNICODE_STRING
     BaseDllName As UNICODE_STRING
-    Flags As Long
+    Flags As LDR_DATA_TABLE_FLAGS
     LoadCount As Integer 'Obsolete starting in Win8
     TlsIndex As Integer
     HashLinks As LIST_ENTRY
     TimeDateStamp As Long
     EntryPointActivationContext As LongPtr
 End Type
+
+Public Enum PROCESS_CREATE_FLAGS
+    PROCESS_CREATE_FLAGS_BREAKAWAY  = &H00000001  ' NtCreateProcessEx & NtCreateUserProcess
+    PROCESS_CREATE_FLAGS_NO_DEBUG_INHERIT  = &H00000002  ' NtCreateProcessEx & NtCreateUserProcess
+    PROCESS_CREATE_FLAGS_INHERIT_HANDLES  = &H00000004  ' NtCreateProcessEx & NtCreateUserProcess
+    PROCESS_CREATE_FLAGS_OVERRIDE_ADDRESS_SPACE  = &H00000008  ' NtCreateProcessEx only
+    PROCESS_CREATE_FLAGS_LARGE_PAGES  = &H00000010  ' NtCreateProcessEx only, requires SeLockMemory
+    PROCESS_CREATE_FLAGS_LARGE_PAGE_SYSTEM_DLL  = &H00000020  ' NtCreateProcessEx only, requires SeLockMemory
+    PROCESS_CREATE_FLAGS_PROTECTED_PROCESS  = &H00000040  ' NtCreateUserProcess only
+    PROCESS_CREATE_FLAGS_CREATE_SESSION  = &H00000080  ' NtCreateProcessEx & NtCreateUserProcess, requires SeLoadDriver
+    PROCESS_CREATE_FLAGS_INHERIT_FROM_PARENT  = &H00000100  ' NtCreateProcessEx & NtCreateUserProcess
+    PROCESS_CREATE_FLAGS_SUSPENDED  = &H00000200  ' NtCreateProcessEx & NtCreateUserProcess
+    PROCESS_CREATE_FLAGS_FORCE_BREAKAWAY  = &H00000400  ' NtCreateProcessEx & NtCreateUserProcess, requires SeTcb
+    PROCESS_CREATE_FLAGS_MINIMAL_PROCESS  = &H00000800  ' NtCreateProcessEx only
+    PROCESS_CREATE_FLAGS_RELEASE_SECTION  = &H00001000  ' NtCreateProcessEx & NtCreateUserProcess
+    PROCESS_CREATE_FLAGS_CLONE_MINIMAL  = &H00002000  ' NtCreateProcessEx only
+    PROCESS_CREATE_FLAGS_CLONE_MINIMAL_REDUCED_COMMIT  = &H00004000  '
+    PROCESS_CREATE_FLAGS_AUXILIARY_PROCESS = &H00008000& ' NtCreateProcessEx & NtCreateUserProcess, requires SeTcb
+    PROCESS_CREATE_FLAGS_CREATE_STORE  = &H00020000  ' NtCreateProcessEx only
+    PROCESS_CREATE_FLAGS_USE_PROTECTED_ENVIRONMENT  = &H00040000  ' NtCreateProcessEx & NtCreateUserProces
+End Enum
+Public Enum THREAD_CREATE_FLAGS
+    THREAD_CREATE_FLAGS_CREATE_SUSPENDED  = &H00000001  ' NtCreateUserProcess & NtCreateThreadEx
+    THREAD_CREATE_FLAGS_SKIP_THREAD_ATTACH  = &H00000002  ' NtCreateThreadEx only
+    THREAD_CREATE_FLAGS_HIDE_FROM_DEBUGGER  = &H00000004  ' NtCreateThreadEx only
+    THREAD_CREATE_FLAGS_LOADER_WORKER  = &H00000010  ' NtCreateThreadEx only
+    THREAD_CREATE_FLAGS_SKIP_LOADER_INIT  = &H00000020  ' NtCreateThreadEx only
+    THREAD_CREATE_FLAGS_BYPASS_PROCESS_FREEZE  = &H00000040  ' NtCreateThreadEx only
+    THREAD_CREATE_FLAGS_INITIAL_THREAD  = &H00000080  ' ?
+End Enum
+
+Public Enum PSCI_OUTFLAGS
+    PSCI_ProtectedProcess = &H1
+    PSCI_AddressSpaceOverride = &H2
+    PSCI_DevOverrideEnabled = &H4
+    PSCI_ManifestDetected = &H8
+    PSCI_ProtectedProcessLight = &H10
+End Enum
+Public Enum PSCI_INITFLAGS
+    PSCI_WriteOutputOnExit = &H1
+    PSCI_DetectManifest = &H2
+    PSCI_IFEOSkipDebugger = &H4
+End Enum
+
+Public Enum PS_CREATE_STATE
+    PsCreateInitialState
+    PsCreateFailOnFileOpen
+    PsCreateFailOnSectionCreate
+    PsCreateFailExeFormat
+    PsCreateFailMachineMismatch
+    PsCreateFailExeName
+    PsCreateSuccess
+    PsCreateMaximumStates
+End Enum
+Public Type PS_CREATE_INFO
+    Size As LongPtr
+    State As PS_CREATE_STATE
+    #If Win64 Then
+        uniondata(75) As Byte
+    #Else
+        uniondata(63) As Byte
+    #End If
+    /*
+    union {
+    struct {
+       HANDLE FileHandle;
+    } FailSection;
+    struct {
+       USHORT DllCharacteristics;
+    } ExeFormat;
+    struct {
+       HANDLE IFEOKey;
+    } ExeName;
+    struct {
+      ULONG InitFlags; //PSCI_INITFLAGS
+      ACCESS_MASK AdditionalFileAccess;
+    }
+    struct {
+        ULONG OutputFlags; //PSCI_OUTFLAGS
+        HANDLE FileHandle;
+        HANDLE SectionHandle;
+        ULONGLONG  UserProcessParametersNative;
+        ULONG UserProcessParametersWow64;
+        ULONG CurrentParameterFlags;
+        ULONGLONG PebAddressNative;
+        ULONG PebAddressWow64;
+        ULONGLONG ManifestAddress;
+        ULONG ManifestSize
+    }
+    */        
+End Type
+Public Type PS_CREATE_INFO_SUCCESS_U
+    OutputFlags As Long 'PSCI_OUTFLAGS
+    FileHandle As LongPtr
+    SectionHandle As LongPtr
+    UserProcessParametersNative As LongLong
+    UserProcessParametersWow64 As Long
+    CurrentParameterFlags As Long
+    PebAddressNative As LongLong
+    PebAddressWow64 As Long
+    ManifestAddress As LongLong
+    ManifestSiz As Long
+End Type
+Public Enum PS_ATTRIBUTE_NUM
+    PsAttributeParentProcess ' in HANDLE
+    PsAttributeDebugPort ' in HANDLE
+    PsAttributeToken ' in HANDLE
+    PsAttributeClientId ' out PCLIENT_ID
+    PsAttributeTebAddress ' out PTEB *
+    PsAttributeImageName ' in PWSTR
+    PsAttributeImageInfo ' out PSECTION_IMAGE_INFORMATION
+    PsAttributeMemoryReserve ' in PPS_MEMORY_RESERVE
+    PsAttributePriorityClass ' in UCHAR
+    PsAttributeErrorMode ' in ULONG
+    PsAttributeStdHandleInfo ' 10, in PPS_STD_HANDLE_INFO
+    PsAttributeHandleList ' in PHANDLE
+    PsAttributeGroupAffinity ' in PGROUP_AFFINITY
+    PsAttributePreferredNode ' in PUSHORT
+    PsAttributeIdealProcessor ' in PPROCESSOR_NUMBER
+    PsAttributeUmsThread ' ? in PUMS_CREATE_THREAD_ATTRIBUTES
+    PsAttributeMitigationOptions ' in UCHAR
+    PsAttributeProtectionLevel ' in ULONG
+    PsAttributeSecureProcess ' since THRESHOLD
+    PsAttributeJobList
+    PsAttributeChildProcessPolicy ' since THRESHOLD2
+    PsAttributeAllApplicationPackagesPolicy ' since REDSTONE
+    PsAttributeWin32kFilter
+    PsAttributeSafeOpenPromptOriginClaim
+    PsAttributeBnoIsolation ' PS_BNO_ISOLATION_PARAMETERS
+    PsAttributeDesktopAppPolicy ' in ULONG
+    PsAttributeChpe ' since REDSTONE3
+    PsAttributeMitigationAuditOptions ' since 21H1
+    PsAttributeMachineType ' since WIN11
+    PsAttributeComponentFilter
+    PsAttributeEnableOptionalXStateFeatures
+    PsAttributeMax
+End Enum
+Public Const PS_ATTRIBUTE_NUMBER_MASK  = &H0000ffff
+Public Const PS_ATTRIBUTE_THREAD  = &H00010000  ' may be used with thread creation
+Public Const PS_ATTRIBUTE_INPUT  = &H00020000  ' input only
+Public Const PS_ATTRIBUTE_ADDITIVE  = &H00040000  ' "accumulated" e.g. bitmasks, counters, etc.
+
+Public Enum PS_ATTRIBUTE_ID
+    PS_ATTRIBUTE_PARENT_PROCESS = &H60000
+    PS_ATTRIBUTE_DEBUG_PORT = &H60001
+    PS_ATTRIBUTE_TOKEN = &H60002
+    PS_ATTRIBUTE_CLIENT_ID = &H10003
+    PS_ATTRIBUTE_TEB_ADDRESS = &H10004
+    PS_ATTRIBUTE_IMAGE_NAME = &H20005
+    PS_ATTRIBUTE_IMAGE_INFO = &H6
+    PS_ATTRIBUTE_MEMORY_RESERVE = &H20007
+    PS_ATTRIBUTE_PRIORITY_CLASS = &H20008
+    PS_ATTRIBUTE_ERROR_MODE = &H20009
+    PS_ATTRIBUTE_STD_HANDLE_INFO = &H2000a
+    PS_ATTRIBUTE_HANDLE_LIST = &H2000b
+    PS_ATTRIBUTE_GROUP_AFFINITY = &H3000c
+    PS_ATTRIBUTE_PREFERRED_NODE = &H2000d
+    PS_ATTRIBUTE_IDEAL_PROCESSOR = &H3000e
+    PS_ATTRIBUTE_UMS_THREAD = &H3000f
+    PS_ATTRIBUTE_MITIGATION_OPTIONS = &H60010
+    PS_ATTRIBUTE_PROTECTION_LEVEL = &H60011
+    PS_ATTRIBUTE_SECURE_PROCESS = &H20012
+    PS_ATTRIBUTE_JOB_LIST = &H20013
+    PS_ATTRIBUTE_CHILD_PROCESS_POLICY = &H20014
+    PS_ATTRIBUTE_ALL_APPLICATION_PACKAGES_POLICY = &H20015
+    PS_ATTRIBUTE_WIN32K_FILTER = &H20016
+    PS_ATTRIBUTE_SAFE_OPEN_PROMPT_ORIGIN_CLAIM = &H20017
+    PS_ATTRIBUTE_BNO_ISOLATION = &H20018
+    PS_ATTRIBUTE_DESKTOP_APP_POLICY = &H20019
+End Enum
+Public Type PS_ATTRIBUTE
+    Attribute As LongPtr
+    Size As LongPtr
+    'union
+    ' {
+    '    ULONG_PTR Value;
+    ValuePtrOrValue As LongPtr
+    '};
+    ReturnLength As LongPtr 'PSIZE_T
+End Type
+[ Description("IMPORTANT: Set length only to length *actually used*-- this is buffered to the maximum possible, but they can't be uninitialized/unused.")]
+Public Type PS_ATTRIBUTE_LIST
+    TotalLength As LongPtr
+    Attributes(0 To 30) As PS_ATTRIBUTE
+End Type
+
+Public Type PS_MEMORY_RESERVE
+    ReserveAddress As LongPtr
+    ReserveSize As LongPtr
+End Type
+Public Enum PS_STD_HANDLES
+    PS_STD_INPUT_HANDLE  = &H1
+    PS_STD_OUTPUT_HANDLE  = &H2
+    PS_STD_ERROR_HANDLE  = &H4
+End Enum
+Public Enum PS_STD_HANDLE_STATE
+    PsNeverDuplicate 
+    PsRequestDuplicate ' duplicate standard handles specified by PseudoHandleMask, and only if StdHandleSubsystemType matches the image subsystem
+    PsAlwaysDuplicate ' always duplicate standard handles
+    PsMaxStdHandleStates 
+End Enum
+Public Type PS_STD_HANDLE_INFO
+    /* [ TypeHint(PS_STD_HANDLE_STATE, PS_STD_HANDLES) ] */ Flags As PS_STD_HANDLE_STATE
+    StdHandleSubsystemType As Long
+End Type
+
+Public Type PS_BNO_ISOLATION_PARAMETERS
+    IsolationPrefix As UNICODE_STRING
+    HandleCount As Long
+    Handles As LongPtr
+    IsolationEnabled As Byte
+End Type
+
+Public Enum PS_MITIGATION_OPTION
+    PS_MITIGATION_OPTION_NX
+    PS_MITIGATION_OPTION_SEHOP
+    PS_MITIGATION_OPTION_FORCE_RELOCATE_IMAGES
+    PS_MITIGATION_OPTION_HEAP_TERMINATE
+    PS_MITIGATION_OPTION_BOTTOM_UP_ASLR
+    PS_MITIGATION_OPTION_HIGH_ENTROPY_ASLR
+    PS_MITIGATION_OPTION_STRICT_HANDLE_CHECKS
+    PS_MITIGATION_OPTION_WIN32K_SYSTEM_CALL_DISABLE
+    PS_MITIGATION_OPTION_EXTENSION_POINT_DISABLE
+    PS_MITIGATION_OPTION_PROHIBIT_DYNAMIC_CODE
+    PS_MITIGATION_OPTION_CONTROL_FLOW_GUARD
+    PS_MITIGATION_OPTION_BLOCK_NON_MICROSOFT_BINARIES
+    PS_MITIGATION_OPTION_FONT_DISABLE
+    PS_MITIGATION_OPTION_IMAGE_LOAD_NO_REMOTE
+    PS_MITIGATION_OPTION_IMAGE_LOAD_NO_LOW_LABEL
+    PS_MITIGATION_OPTION_IMAGE_LOAD_PREFER_SYSTEM32
+    PS_MITIGATION_OPTION_RETURN_FLOW_GUARD
+    PS_MITIGATION_OPTION_LOADER_INTEGRITY_CONTINUITY
+    PS_MITIGATION_OPTION_STRICT_CONTROL_FLOW_GUARD
+    PS_MITIGATION_OPTION_RESTRICT_SET_THREAD_CONTEXT
+    PS_MITIGATION_OPTION_ROP_STACKPIVOT 'since REDSTONE3
+    PS_MITIGATION_OPTION_ROP_CALLER_CHECK
+    PS_MITIGATION_OPTION_ROP_SIMEXEC
+    PS_MITIGATION_OPTION_EXPORT_ADDRESS_FILTER
+    PS_MITIGATION_OPTION_EXPORT_ADDRESS_FILTER_PLUS
+    PS_MITIGATION_OPTION_RESTRICT_CHILD_PROCESS_CREATION
+    PS_MITIGATION_OPTION_IMPORT_ADDRESS_FILTER
+    PS_MITIGATION_OPTION_MODULE_TAMPERING_PROTECTION
+    PS_MITIGATION_OPTION_RESTRICT_INDIRECT_BRANCH_PREDICTION
+    PS_MITIGATION_OPTION_SPECULATIVE_STORE_BYPASS_DISABLE ' since REDSTONE5
+    PS_MITIGATION_OPTION_ALLOW_DOWNGRADE_DYNAMIC_CODE_POLICY
+    PS_MITIGATION_OPTION_CET_USER_SHADOW_STACKS
+    PS_MITIGATION_OPTION_USER_CET_SET_CONTEXT_IP_VALIDATION 'since 21H1
+    PS_MITIGATION_OPTION_BLOCK_NON_CET_BINARIES
+    PS_MITIGATION_OPTION_CET_DYNAMIC_APIS_OUT_OF_PROC_ONLY
+    PS_MITIGATION_OPTION_REDIRECTION_TRUST
+End Enum
+
+Public Type RTL_HEAP_PARAMETERS
+    Length As Long
+    SegmentReserve As LongPtr
+    SegmentCommit As LongPtr
+    DeCommitFreeBlockThreshold As LongPtr
+    DeCommitTotalFreeThreshold As LongPtr
+    MaximumAllocationSize As LongPtr
+    VirtualMemoryThreshold As LongPtr
+    InitialCommit As LongPtr
+    InitialReserve As LongPtr
+    CommitRoutine As LongPtr 'PRTL_HEAP_COMMIT_ROUTINE
+    Reserved(0 To 1) As LongPtr
+End Type
+
+Public Enum RTL_UPP_FLAGS
+    RTL_USER_PROCESS_PARAMETERS_NORMALIZED  = &H01
+    RTL_USER_PROCESS_PARAMETERS_PROFILE_USER  = &H02
+    RTL_USER_PROCESS_PARAMETERS_PROFILE_KERNEL  = &H04
+    RTL_USER_PROCESS_PARAMETERS_PROFILE_SERVER  = &H08
+    RTL_USER_PROCESS_PARAMETERS_UNKNOWN  = &H10
+    RTL_USER_PROCESS_PARAMETERS_RESERVE_1MB  = &H20
+    RTL_USER_PROCESS_PARAMETERS_RESERVE_16MB  = &H40
+    RTL_USER_PROCESS_PARAMETERS_CASE_SENSITIVE  = &H80
+    RTL_USER_PROCESS_PARAMETERS_DISABLE_HEAP_CHECKS  = &H100
+    RTL_USER_PROCESS_PARAMETERS_PROCESS_OR_1  = &H200
+    RTL_USER_PROCESS_PARAMETERS_PROCESS_OR_2  = &H400
+    RTL_USER_PROCESS_PARAMETERS_PRIVATE_DLL_PATH  = &H1000
+    RTL_USER_PROCESS_PARAMETERS_LOCAL_DLL_PATH  = &H2000
+    RTL_USER_PROCESS_PARAMETERS_IMAGE_KEY_MISSING  = &H4000
+    RTL_USER_PROCESS_PARAMETERS_NX  = &H20000
+End Enum
+
+Public Type _SEP_TOKEN_PRIVILEGES
+	Present As LongLong
+    Enabled As LongLong
+    EnabledByDefault As LongLong
+End Type
+
+Public Type _SEP_AUDIT_POLICY
+	AdtTokenPolicy As TOKEN_AUDIT_POLICY
+    PolicySetStatus As Byte
+End Type
+
+[Description("Windows 10 through Windows 11 22H2 (last verified)")]
+Public Type _TOKEN
+	TokenSource As TOKEN_SOURCE
+    TokenId As LUID
+    AuthenticationId As LUID
+    ParentTokenId As LUID
+    ExpirationTime As QLARGE_INTEGER
+    TokenLock As LongPtr 'PERESOURCE
+    ModifiedId As LUID
+    Privileges As _SEP_TOKEN_PRIVILEGES
+    SessionId As Long
+    UserAndGroupCount As Long
+    RestrictedSidCount As Long
+    VariableLength As Long
+    DynamicCharged As Long
+    DynamicAvailable As Long
+    DefaultOwnerIndex As Long
+    UserAndGroups As LongPtr 'SID_AND_ATTRIBUTES
+    RestrictedSids As LongPtr 'SID_AND_ATTRIBUTES
+    PrimaryGroup As LongPtr
+    DynamicPart As LongPtr 'ULONG*
+    DefaultDacl As LongPtr '_ACL*
+    TokenType As TOKEN_TYPE
+    ImpersonationLevel As SECURITY_IMPERSONATION_LEVEL
+    TokenFlags As TOKEN_FLAGS
+    TokenInUse As Byte
+    IntegrityLevelIndex As Long
+    MandatoryPolicy As TOKEN_MANDATORY_POLICY_FLAGS
+    LogonSession As LongPtr '_SEP_LOGON_SESSION_REFERENCES*
+    OriginatingLogonSession As LUID
+    SidHash As SID_AND_ATTRIBUTES_HASH
+    RestrictedSidHash As SID_AND_ATTRIBUTES_HASH
+    pSecurityAttributes As LongPtr ' _AUTHZBASEP_SECURITY_ATTRIBUTES_INFORMATION*
+    Package As LongPtr
+    Capabilities As LongPtr 'SID_AND_ATTRIBUTES*
+    CapabilityCount As Long
+    CapabilitiesHash As SID_AND_ATTRIBUTES_HASH
+    LowboxNumberEntry As LongPtr '_SEP_LOWBOX_NUMBER_ENTRY*
+    LowboxHandlesEntry As LongPtr '_SEP_LOWBOX_HANDLES_ENTRY* 
+    pClaimAttributes As LongPtr '_AUTHZBASEP_CLAIM_ATTRIBUTES_COLLECTION*
+    TrustLevelSid As LongPtr
+    TrustLinkedToken As LongPtr '_TOKEN*
+    IntegrityLevelSidValue As LongPtr 'PVOID
+    TokenSidValues As LongPtr '_SEP_SID_VALUES_BLOCK*
+    IndexEntry As LongPtr '_SEP_LUID_TO_INDEX_MAP_ENTRY*
+    DiagnosticInfo As LongPtr '_SEP_TOKEN_DIAG_TRACK_ENTRY*
+    VariablePart As LongLong
+End Type
+
+Public Enum EXTENDED_CREATE_FLAGS
+    EX_CREATE_FLAG_FILE_SOURCE_OPEN_FOR_COPY = &H00000001
+    EX_CREATE_FLAG_FILE_DEST_OPEN_FOR_COPY = &H00000002
+End Enum
+
+Public Type EXTENDED_CREATE_INFORMATION
+    /* [ TypeHint(EXTENDED_CREATE_FLAGS) ] */ ExtendedCreateFlags As LongLong
+    EaBuffer As LongPtr
+    EaLength As Long
+End Type
+
 
 'NTDLL APIs should only be added if they don't have higher level equivalents. If the NTDLL version has substantially more functionality, it's not equivalent and should be added.
 Public Declare PtrSafe Function NtQuerySystemInformation Lib "ntdll" (ByVal SystemInformationClass As SYSTEM_INFORMATION_CLASS, SystemInformation As Any, ByVal SystemInformationLength As Long, ReturnLength As Long) As Long
@@ -13620,7 +14231,7 @@ Public Declare PtrSafe Function NtSetVolumeInformationFile Lib "ntdll" (ByVal Fi
 Public Declare PtrSafe Function NtImpersonateThread Lib "ntdll" (ByVal hThread As LongPtr, ByVal hThreadToImpersonate As LongPtr, SecurityQualityOfService As SECURITY_QUALITY_OF_SERVICE) As Long
 Public Declare PtrSafe Function NtQueryObject Lib "ntdll" (ByVal Handle As LongPtr, ByVal ObjectInformationClass As OBJECT_INFORMATION_CLASS, ObjectInformation As Any, ByVal ObjectInformationLength As Long, ReturnLength As Long) As Long
 Public Declare PtrSafe Function NtDuplicateObject Lib "ntdll" (ByVal SourceProcessHandle As LongPtr, ByVal SourceHandle As LongPtr, pTargetHandle As LongPtr, ByVal DesiredAccess As Long, ByVal HandleAttributes As ObjectAttributeValues, ByVal Options As DuplicateObjectOptions) As Long
-Public Declare PtrSafe Function NtOpenProcess Lib "ntdll" (ProcessHandle As LongPtr, [TypeHint(ProcessAccessRights, StandardAccessTypes) ] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, ClientID As CLIENT_ID) As Long
+Public Declare PtrSafe Function NtOpenProcess Lib "ntdll" (ProcessHandle As LongPtr, [TypeHint (ProcessAccessRights, StandardAccessTypes) ] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, ClientID As CLIENT_ID) As Long
 Public Declare PtrSafe Function NtSuspendProcess Lib "ntdll" (ByVal hProcess As LongPtr) As Long
 Public Declare PtrSafe Function NtResumeProcess Lib "ntdll" (ByVal hProcess As LongPtr) As Long
 Public Declare PtrSafe Function NtQueryInformationToken Lib "ntdll" (ByVal TokenHandle As LongPtr, ByVal TokenInformationClass As TOKEN_INFORMATION_CLASS, TokenInformation As Any, ByVal TokenInformationLength As Long, ReturnLength As Long) As Long
@@ -13638,7 +14249,7 @@ Public Declare PtrSafe Function NtStartProfile Lib "ntdll" (ByVal ProfileHandle 
 Public Declare PtrSafe Function NtStopProfile Lib "ntdll" (ByVal ProfileHandle As LongPtr) As Long
 Public Declare PtrSafe Function NtPowerInformation Lib "ntdll" (ByVal InformationLevel As POWER_INFORMATION_LEVEL, InputBuffer As Any, ByVal InputBufferLength As Long, OutputBuffer As Any, ByVal OutputBufferLength As Long) As Long
 Public Declare PtrSafe Function NtShutdownSystem Lib "ntdll" (ByVal Action As SHUTDOWN_ACTION) As Long
-[Description ("WARNING: For emergency shutdown only; one step above flipping the power switch. Requires SE_SHUTDOWN_PRIVILEGE") ]
+[Description ("⚠️ **WARNING:** For emergency shutdown only; one step above flipping the power switch. Requires SE_SHUTDOWN_PRIVILEGE") ]
 Public Declare PtrSafe Function NtSetSystemPowerState Lib "ntdll" (ByVal SystemAction As POWER_ACTION, ByVal MinSystemState As SYSTEM_POWER_STATE, ByVal Flags As SystemShutdownReasons) As Long
 Public Declare PtrSafe Function NtOpenSymbolicLinkObject Lib "ntdll" (LinkHandle As LongPtr, [ TypeHint (GenericRights, SymbolicLinkAccessRights) ] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES) As Long
 Public Declare PtrSafe Function NtCreateSymbolicLinkObject Lib "ntdll" (LinkHandle As LongPtr, [ TypeHint (GenericRights, SymbolicLinkAccessRights) ] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, LinkTarget As UNICODE_STRING) As NTSTATUS
@@ -13649,7 +14260,8 @@ Public Declare PtrSafe Function NtCreateDirectoryObject Lib "ntdll" (DirectoryHa
 Public Declare PtrSafe Function NtLoadDriver Lib "ntdll" (DriverServiceName As UNICODE_STRING) As NTSTATUS
 Public Declare PtrSafe Function NtUnloadDriver Lib "ntdll" (DriverServiceName As UNICODE_STRING) As NTSTATUS
 Public Declare PtrSafe Function NtYieldExecution Lib "ntdll" () As NTSTATUS
-
+Public Declare PtrSafe Function NtCreateUserProcess Lib "ntdll" (ProcessHandle As LongPtr, ThreadHandle As LongPtr, [ TypeHint(ProcessAccessRights, StandardAccessTypes) ] ByVal ProcessDesiredAccess As Long, [ TypeHint(ThreadAccessRights, StandardAccessTypes) ] ByVal ThreadDesiredAccess As Long, _
+                                                                    ProcessObjectAttributes As OBJECT_ATTRIBUTES, ThreadObjectAttributes As OBJECT_ATTRIBUTES, ByVal ProcessFlags As PROCESS_CREATE_FLAGS, ByVal ThreadFlags As THREAD_CREATE_FLAGS, ProcessParameters As Any, CreateInfo As PS_CREATE_INFO, AttributeList As PS_ATTRIBUTE_LIST) As NTSTATUS
 
 Public Declare PtrSafe Function RtlAdjustPrivilege Lib "ntdll" (ByVal Privilege As NTDefinedPrivilegeConsts, ByVal Enable As Byte, ByVal CurrentThread As Byte, Enabled As Byte) As Long
 Public Declare PtrSafe Sub RtlFreeUnicodeString Lib "ntdll" (UnicodeString As UNICODE_STRING)
@@ -13669,6 +14281,17 @@ Public Declare PtrSafe Function RtlNtStatusToDosError Lib "ntdll" (ByVal ntStatu
 Public Declare PtrSafe Function RtlUniform Lib "ntdll" (Seed As Long) As Long
 Public Declare PtrSafe Function RtlImageNtHeader Lib "ntdll" (ByVal ModuleBase as LongPtr) As IMAGE_NT_HEADERS
 Public Declare PtrSafe Function RtlImageRvaToVa Lib "ntdll" (ByVal NtHeaders As LongPtr, ByVal ModuleBase as LongPtr, ByVal Rva As Long, pLastSection As IMAGE_SECTION_HEADER) As LongPtr
+Public Declare PtrSafe Function RtlGetNtGlobalFlags Lib "ntdll" () As NTGLB_Flags
+Public Declare PtrSafe Function RtlAllocateHeap Lib "ntdll" (ByVal HeapHandle As LongPtr, ByVal Flags As HeapFlags, ByVal Size As LongPtr) As LongPtr
+Public Declare PtrSafe Function RtlCreateHeap Lib "ntdll" (ByVal Flags As HeapFlags, ByVal HeapBase As LongPtr, ByVal ReserveSize As LongPtr, ByVal CommitSize As LongPtr, ByVal Lock As LongPtr, Parameters As RTL_HEAP_PARAMETERS) As LongPtr
+Public Declare PtrSafe Function RtlFreeHeapp Lib "ntdll" (ByVal HeapHandle As LongPtr, ByVal Flags As HeapFlags, ByVal BaseAddress As LongPtr) As Long
+Public Declare PtrSafe Function RtlDestroyHeap Lib "ntdll" (ByVal HeapHandle As LongPtr) As LongPtr
+Public Declare PtrSafe Function RtlCreateProcessParametersEx Lib "ntdll" (pProcessParameters As Any, ImagePathName As UNICODE_STRING, DllPath As UNICODE_STRING, CurrentDirectory As UNICODE_STRING, CommandLine As UNICODE_STRING, _
+                                               Environment As Any, WindowTitle As UNICODE_STRING, DesktopInfo As UNICODE_STRING, ShellInfo As UNICODE_STRING, RuntimeData As UNICODE_STRING, ByVal Flags As RTL_UPP_FLAGS) As NTSTATUS
+Public Declare PtrSafe Function RtlCreateProcessParameters Lib "ntdll" (pProcessParameters As Any, ImagePathName As UNICODE_STRING, DllPath As UNICODE_STRING, CurrentDirectory As UNICODE_STRING, CommandLine As UNICODE_STRING, _
+                                               ByVal Environment As LongPtr, WindowTitle As UNICODE_STRING, DesktopInfo As UNICODE_STRING, ShellInfo As UNICODE_STRING, RuntimeData As UNICODE_STRING) As NTSTATUS
+Public Declare PtrSafe Function RtlCreateEnvironment Lib "ntdll" (ByVal bInherit As Byte, Environment As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function RtlDestroyProcessParameters Lib "ntdll" (pProcessParameters As Any) As NTSTATUS
 
 Public Declare PtrSafe Function RtlIpv4AddressToStringA Lib "ntdll" (Addr As in_addr, ByVal s As String) As LongPtr
 Public Declare PtrSafe Function RtlIpv4AddressToStringW Lib "ntdll" (Addr As in_addr, ByVal s As LongPtr) As LongPtr
@@ -13835,7 +14458,7 @@ Public Enum COWAIT_FLAGS
 	COWAIT_DEFAULT=0
 	COWAIT_WAITALL=1
 	COWAIT_ALERTABLE=2
-	COWAIT_INPUTAVAILABLE=4
+	COWAIT_INPUTAVAILABLE= 4
 	COWAIT_DISPATCH_CALLS=8
 	COWAIT_DISPATCH_WINDOW_MESSAGES = &H10
 End Enum
@@ -13843,7 +14466,7 @@ End Enum
 Public Type SOLE_AUTHENTICATION_SERVICE
 	dwAuthnSvc As RPC_AUTHN
 	dwAuthzSvc As RPC_AUTHZ
-	pPrincipalName As LongPtr
+	pPrincipalName As LongPtr 'OLECHAR
 	hr As Long
 End Type
 
@@ -15812,7 +16435,7 @@ Public Declare PtrSafe Function GetWindowModuleFileNameA Lib "user32" (ByVal hWn
 Public Declare PtrSafe Function GetWindowModuleFileNameW Lib "user32" (ByVal hWnd As LongPtr, ByVal pszFileName As LongPtr, ByVal cchFileNameMax As Long) As Long
 Public DeclareWide PtrSafe Function GetWindowModuleFileName Lib "user32" Alias "GetWindowModuleFileNameW" (ByVal hWnd As LongPtr, ByVal pszFileName As String, ByVal cchFileNameMax As Long) As Long
 
-[Description ("WARNING: Maps to ANSI version.") ]
+[Description ("⚠️ **WARNING:** Maps to ANSI version.") ]
 Public Declare PtrSafe Function SendMessage Lib "user32" Alias "SendMessageA" (ByVal hWnd As LongPtr, ByVal wMsg As Long, ByVal wParam As LongPtr, lParam As Any) As LongPtr
 Public Declare PtrSafe Function SendMessageA Lib "user32" (ByVal hWnd As LongPtr, ByVal wMsg As Long, ByVal wParam As LongPtr, lParam As Any) As LongPtr
 Public DeclareWide PtrSafe Function SendMessageW Lib "user32" (ByVal hWnd As LongPtr, ByVal wMsg As Long, ByVal wParam As LongPtr, lParam As Any) As LongPtr
@@ -15827,7 +16450,7 @@ Public Declare PtrSafe Function SendNotifyMessageA Lib "user32" (ByVal hWnd As L
 Public DeclareWide PtrSafe Function SendNotifyMessageW Lib "user32" (ByVal hWnd As LongPtr, ByVal wMsg As Long, ByVal wParam As LongPtr, lParam As Any) As LongPtr
 Public DeclareWide PtrSafe Function InSendMessage Lib "user32" () As BOOL
 Public DeclareWide PtrSafe Function InSendMessageEx Lib "user32" () As ISMEX_FLAGS
-[Description ("WARNING: Maps to ANSI version.") ]
+[Description ("⚠️ **WARNING:** Maps to ANSI version.") ]
 Public DeclareWide PtrSafe Function PostMessage Lib "user32" Alias "PostMessageA" (ByVal hwnd As LongPtr, ByVal wMsg As Long, ByVal wParam As Long, ByRef lParam As Any) As Long
 Public DeclareWide PtrSafe Function PostMessageW Lib "user32" (ByVal hwnd As LongPtr, ByVal wMsg As Long, ByVal wParam As Long, ByRef lParam As Any) As Long
 Public Declare PtrSafe Function PostThreadMessage Lib "user32" (ByVal idThread As Long, ByVal wMsg As Long, ByVal wParam As LongPtr, lParam As Any) As Long
@@ -17331,7 +17954,7 @@ Public Enum RawMouseButtons
     RI_MOUSE_HWHEEL  = &H0800
 End Enum
 
-[ Description("Note: You can obtain usButtonData from the HIWORD of ulButtons") ]
+[ Description("📝**NOTE:** You can obtain usButtonData from the HIWORD of ulButtons") ]
 Public Type RAWMOUSE
     /* [ TypeHint(RawMouseIndicatorFlags) ] */ usFlags As Integer
     ulButtons As RawMouseButtons
@@ -17352,7 +17975,7 @@ Public Enum RawKeyboardDataFlags
     RI_KEY_TERMSRV_SHADOW  = &H10
 End Enum
 
-[ Description("WARNING: You cannot use this struct as-is due to SAFEARRAY considerations. Copy the first 8 bytes, determine the size, then copy the rest into bRawData(0) ") ]
+[ Description("⚠️ **WARNING:** You cannot use this struct as-is due to SAFEARRAY considerations. Copy the first 8 bytes, determine the size, then copy the rest into bRawData(0) ") ]
 Public Type RAWHID
     dwSizeHid As Long ' byte size of each report
     dwCount As Long ' number of input packed
@@ -19696,13 +20319,13 @@ Public Const WM_CHOOSEFONT_GETLOGFONT = (WM_USER + 1)
 Public Const WM_CHOOSEFONT_SETLOGFONT = (WM_USER + 101)
 Public Const WM_CHOOSEFONT_SETFLAGS = (WM_USER + 102)
 
-[ Description ("NOTE: MUST BE CONVERTED TO ANSI. Use UtfToANSI().") ] Public Const LBSELCHSTRINGA = "commdlg_LBSelChangedNotify"
-[ Description ("NOTE: MUST BE CONVERTED TO ANSI. Use UtfToANSI().") ] Public Const SHAREVISTRINGA = "commdlg_ShareViolation"
-[ Description ("NOTE: MUST BE CONVERTED TO ANSI. Use UtfToANSI().") ] Public Const FILEOKSTRINGA  = "commdlg_FileNameOK"
-[ Description ("NOTE: MUST BE CONVERTED TO ANSI. Use UtfToANSI().") ] Public Const COLOROKSTRINGA = "commdlg_ColorOK"
-[ Description ("NOTE: MUST BE CONVERTED TO ANSI. Use UtfToANSI().") ] Public Const SETRGBSTRINGA  = "commdlg_SetRGBColor"
-[ Description ("NOTE: MUST BE CONVERTED TO ANSI. Use UtfToANSI().") ] Public Const HELPMSGSTRINGA = "commdlg_help"
-[ Description ("NOTE: MUST BE CONVERTED TO ANSI. Use UtfToANSI().") ] Public Const FINDMSGSTRINGA = "commdlg_FindReplace"
+[ Description ("📝**NOTE:** MUST BE CONVERTED TO ANSI. Use UtfToANSI().") ] Public Const LBSELCHSTRINGA = "commdlg_LBSelChangedNotify"
+[ Description ("📝**NOTE:** MUST BE CONVERTED TO ANSI. Use UtfToANSI().") ] Public Const SHAREVISTRINGA = "commdlg_ShareViolation"
+[ Description ("📝**NOTE:** MUST BE CONVERTED TO ANSI. Use UtfToANSI().") ] Public Const FILEOKSTRINGA  = "commdlg_FileNameOK"
+[ Description ("📝**NOTE:** MUST BE CONVERTED TO ANSI. Use UtfToANSI().") ] Public Const COLOROKSTRINGA = "commdlg_ColorOK"
+[ Description ("📝**NOTE:** MUST BE CONVERTED TO ANSI. Use UtfToANSI().") ] Public Const SETRGBSTRINGA  = "commdlg_SetRGBColor"
+[ Description ("📝**NOTE:** MUST BE CONVERTED TO ANSI. Use UtfToANSI().") ] Public Const HELPMSGSTRINGA = "commdlg_help"
+[ Description ("📝**NOTE:** MUST BE CONVERTED TO ANSI. Use UtfToANSI().") ] Public Const FINDMSGSTRINGA = "commdlg_FindReplace"
 Public Const LBSELCHSTRINGW = "commdlg_LBSelChangedNotify"
 Public Const SHAREVISTRINGW = "commdlg_ShareViolation"
 Public Const FILEOKSTRINGW  = "commdlg_FileNameOK"
@@ -21910,9 +22533,9 @@ Public Declare PtrSafe Function GdipCreateBitmapFromResource Lib "gdiplus" (ByVa
 Public Declare PtrSafe Function GdipGetPropertyItem Lib "gdiplus" (ByVal Image As LongPtr, ByVal propId As Long, ByVal propSize As Long, ByRef buffer As Any) As GpStatus
 Public Declare PtrSafe Function GdipGetPropertyItemSize Lib "gdiplus" (ByVal Image As LongPtr, ByVal propId As Long, ByRef Size As Long) As GpStatus
 Public Declare PtrSafe Function GdipDisposeImage Lib "gdiplus" (ByVal Image As LongPtr) As GpStatus
-[Description("NOTE: This API is a placeholder until tB supports no-vtable interfaces") ]
+[Description("⛔NOTE: This API is a placeholder until tB supports no-vtable interfaces") ]
 Public Declare PtrSafe Function GdipImageSetAbort Lib "gdiplus" (ByVal pImage As LongPtr, pIAbort As Any /*GdiplusAbort*/) As GpStatus
-[Description("NOTE: This API is a placeholder until tB supports no-vtable interfaces") ]
+[Description("⛔NOTE: This API is a placeholder until tB supports no-vtable interfaces") ]
 Public Declare PtrSafe Function GdipGraphicsSetAbort Lib "gdiplus" (ByVal pGraphics As LongPtr, pIAbort As Any /*GdiplusAbort*/) As GpStatus
 Public Declare PtrSafe Function GdiplusStartup Lib "gdiplus" (token As LongPtr, LInput As GdiplusStartupInput, Optional ByVal lOutPut As LongPtr = 0) As GpStatus
 Public Declare PtrSafe Function GdiplusShutdown Lib "gdiplus" (ByVal token As LongPtr) As GpStatus
@@ -22850,7 +23473,7 @@ Public Type WCRANGE
     wcLow As Integer
     cGlyphs As Integer
 End Type
-[Description("WARNING: This structure is not meant to be used directly, as the API returns a C-style array. This is meant to be filled from a raw byte array by copying the fixed part and then the variable part.")]
+[Description("⚠️ **WARNING:** This structure is not meant to be used directly, as the API returns a C-style array. This is meant to be filled from a raw byte array by copying the fixed part and then the variable part.")]
 Public Type GLYPHSET
     cbThis As Long
     flAccel As GlyphSetFlags
@@ -22901,7 +23524,7 @@ Public Enum TTPOLYCURVETYPES
 	TT_PRIM_QSPLINE  = 2
 	TT_PRIM_CSPLINE  = 3
 End Enum
-[Description("WARNING: This structure is not meant to be used directly, as the API returns a C-style array. This is meant to be filled from a raw byte array by copying the fixed part and then the variable part.")]
+[Description("⚠️ **WARNING:** This structure is not meant to be used directly, as the API returns a C-style array. This is meant to be filled from a raw byte array by copying the fixed part and then the variable part.")]
 Public Type TTPOLYCURVE
 	/*[TypeHint(TTPOLYCURVETYPES)]*/ wType As Integer
 	cpfx As Integer
@@ -23330,7 +23953,7 @@ Public Type RGNDATAHEADER
 	rcBound As RECT
 End Type
 
-[Description("WARNING: This structure is not meant to be used directly, as the APIs that use it require C-style arrays. You must copy the header and data separate, and this can only be used to receive, not send, this data.")]
+[Description("⚠️ **WARNING:** This structure is not meant to be used directly, as the APIs that use it require C-style arrays. You must copy the header and data separate, and this can only be used to receive, not send, this data.")]
 Public Type RGNDATA
     rdh As RGNDATAHEADER
     Buffer() As Byte
@@ -24136,7 +24759,7 @@ Public DeclareWide PtrSafe Function EnumFontFamiliesExW Lib "gdi32" (ByVal hdc A
 Public DeclareWide PtrSafe Function EnumFontFamiliesEx Lib "gdi32" Alias "EnumFontFamiliesExW" (ByVal hdc As LongPtr, lpLogfont As LOGFONT, ByVal lpProc As LongPtr, lParam As Any, ByVal dwFlags As Long) As Long
 Public DeclareWide PtrSafe Function GetGlyphIndicesW Lib "gdi32" (ByVal hdc As LongPtr, ByVal lpstr As LongPtr, ByVal c As LongPtr, pgi As Long, ByVal fl As GetGlyphIndiciesFlags) As Long
 Public DeclareWide PtrSafe Function GetGlyphIndices Lib "gdi32" Alias "GetGlyphIndicesW" (ByVal hdc As LongPtr, ByVal lpstr As LongPtr, ByVal c As LongPtr, pgi As Long, ByVal fl As  GetGlyphIndiciesFlags) As Long
-[Description("Note: First pass ByVal 0 to get the required size; then use a byte array, then fill a GLYPHSET in two steps, copy fixed, redim and copy WCRANGE bytes.")]
+[Description("📝**NOTE:** First pass ByVal 0 to get the required size; then use a byte array, then fill a GLYPHSET in two steps, copy fixed, redim and copy WCRANGE bytes.") ]
 Public DeclareWide PtrSafe Function GetFontUnicodeRanges Lib "gdi32" (ByVal hdc As LongPtr, lpgs As Any) As Long
 Public DeclareWide PtrSafe Function GetGlyphOutlineW Lib "gdi32" (ByVal hdc As LongPtr, ByVal uChar As Long, ByVal fuFormat As GlyphOutlineFormats, lpgm As GLYPHMETRICS, ByVal cjBuffer As Long, pvBuffer As Any, lpmat2 As MAT2) As Long
 Public DeclareWide PtrSafe Function GetGlyphOutline Lib "gdi32" Alias "GetGlyphOutlineW" (ByVal hdc As LongPtr, ByVal uChar As Long, ByVal fuFormat As GlyphOutlineFormats, lpgm As GLYPHMETRICS, ByVal cjBuffer As Long, pvBuffer As Any, lpmat2 As MAT2) As Long
@@ -24647,6 +25270,16 @@ Public Declare PtrSafe Function TranslateCharsetInfo Lib "gdi32" (lpSrc As Long,
 
 #Region "opengl"
 
+/*
+*************************************************************
+OPENGL IS ON HOLD PENDING ALIAS SUPPORT.
+All the extant VBx OpenGL I've seen uses NeHe's TLB which makes heavy use of aliases,
+and I don't want to break all of that. I considered a TLB dependency, but it's too 
+'clumsy. So I'll be waiting for full Alias support in tB for this section.
+*************************************************************
+*/
+
+
 Public Type POINTFLOAT
     x As Single
     y As Single
@@ -24986,6 +25619,26 @@ Public DeclareWide PtrSafe Function PSGetItemPropertyHandlerWithCreateObject Lib
 
 #Region "advapi32"
 
+Public Type STARTUPINFOA
+   cbSize As Long
+   lpReserved As LongPtr
+   lpDesktop As String
+   lpTitle As String
+   dwX As Long
+   dwY As Long
+   dwXSize As Long
+   dwYSize As Long
+   dwXCountChars As Long
+   dwYCountChars As Long
+   dwFillAttribute As CONSOLE_CHAR_ATTRIB
+   dwFlags As STARTUP_FLAGS
+   /* [ TypeHint(SHOWWINDOW) ] */ wShowWindow As Integer
+   cbReserved2 As Integer
+   lpReserved2 As LongPtr
+   hStdInput As LongPtr
+   hStdOutput As LongPtr
+   hStdError As LongPtr
+End Type
 Public Type STARTUPINFOW
    cbSize As Long
    lpReserved As LongPtr
@@ -24997,15 +25650,41 @@ Public Type STARTUPINFOW
    dwYSize As Long
    dwXCountChars As Long
    dwYCountChars As Long
-   dwFillAttribute As Long
+   dwFillAttribute As CONSOLE_CHAR_ATTRIB
    dwFlags As STARTUP_FLAGS
-   wShowWindow As Integer
+   /* [ TypeHint(SHOWWINDOW) ] */ wShowWindow As Integer
    cbReserved2 As Integer
    lpReserved2 As LongPtr
    hStdInput As LongPtr
    hStdOutput As LongPtr
    hStdError As LongPtr
 End Type
+'Alias STARTUPINFO As STARTUPINFOW
+Public Type STARTUPINFO
+   cbSize As Long
+   lpReserved As LongPtr
+   lpDesktop As LongPtr
+   lpTitle As LongPtr
+   dwX As Long
+   dwY As Long
+   dwXSize As Long
+   dwYSize As Long
+   dwXCountChars As Long
+   dwYCountChars As Long
+   dwFillAttribute As CONSOLE_CHAR_ATTRIB
+   dwFlags As STARTUP_FLAGS
+   /* [ TypeHint(SHOWWINDOW) ] */ wShowWindow As Integer
+   cbReserved2 As Integer
+   lpReserved2 As LongPtr
+   hStdInput As LongPtr
+   hStdOutput As LongPtr
+   hStdError As LongPtr
+End Type
+
+
+
+
+
 
 Public Enum SE_PRIVILEGE_ATTR
 	SE_PRIVILEGE_ENABLED_BY_DEFAULT  = (&H00000001)
@@ -25352,7 +26031,7 @@ End Enum
 Public Type SID_IDENTIFIER_AUTHORITY
 	Value(0 To 5) As BYTE
 End Type
-[Description("NOTE: You may need to use this as a header for a custom structure with fewer subauthorities appended.")]
+[Description("📝**NOTE:** You may need to use this as a header for a custom structure with fewer subauthorities appended.") ]
 Public Type SID
 	Revision As BYTE
 	SubAuthorityCount As BYTE
@@ -25400,35 +26079,42 @@ Public Enum SystemShutdownFlags
 	SHUTDOWN_SKIP_SVC_PRESHUTDOWN  = &H00000100
 	SHUTDOWN_HYBRID  = &H00000200
 	SHUTDOWN_RESTART_BOOTOPTIONS  = &H00000400
-	SHUTDOWN_SOFT_REBOOT  = &H00000800
+	SHUTDOWN_SOFT_REBOOT = &H00000800
 	SHUTDOWN_MOBILE_UI  = &H00001000
-	SHUTDOWN_ARSO  = &H00002000
+	SHUTDOWN_ARSO = &H00002000
 	SHUTDOWN_CHECK_SAFE_FOR_SERVER  = &H00004000
 	SHUTDOWN_VAIL_CONTAINER = &H00008000&
-	SHUTDOWN_SYSTEM_INITIATED  = &H00010000
+	SHUTDOWN_SYSTEM_INITIATED = &H00010000
 End Enum
 
-Public DeclareWide PtrSafe Function GetUserName Lib "advapi32" Alias "GetUserNameW" (ByVal lpBuffer As String, nSize As Long) As Long
-Public DeclareWide PtrSafe Function GetUserNameW Lib "advapi32" (ByVal lpBuffer As LongPtr, nSize As Long) As Long
+Public Declare PtrSafe Function GetUserNameA Lib "advapi32" (ByVal lpBuffer As String, nSize As Long) As BOOL
+Public DeclareWide PtrSafe Function GetUserNameW Lib "advapi32" (ByVal lpBuffer As LongPtr, nSize As Long) As BOOL
+Public DeclareWide PtrSafe Function GetUserName Lib "advapi32" Alias "GetUserNameW" (ByVal lpBuffer As String, nSize As Long) As BOOL
+'CreateProcessWithTokenA does not exist in the Windows API.
 Public DeclareWide PtrSafe Function CreateProcessWithTokenW Lib "advapi32" (ByVal hToken As LongPtr, ByVal dwLogonFlags As PROCESS_LOGON_FLAGS, _
     ByVal lpApplicationName As LongPtr, ByVal lpCommandLine As LongPtr, ByVal dwCreationFlags As CreateProcessFlags, ByVal lpEnvironment As LongPtr, _
-    ByVal lpCurrentDirectory As LongPtr, lpStartupInfo As STARTUPINFOW, lpProcessInformation As PROCESS_INFORMATION) As Long
-Public DeclareWide PtrSafe Function CreateProcessWithLogonW Lib "advapi32" (ByVal lpUsername As LongPtr, ByVal lpDomain As LongPtr, ByVal lpPassword As LongPtr, ByVal dwLogonFlags As PROCESS_LOGON_FLAGS, _
-    ByVal lpApplicationName As LongPtr, ByVal lpCommandLine As LongPtr, ByVal dwCreationFlags As CreateProcessFlags, lpEnvironment As Any, _
-    ByVal lpCurrentDirectory As LongPtr, lpStartupInfo As STARTUPINFOW, lpProcessInformation As PROCESS_INFORMATION) As Long
+    ByVal lpCurrentDirectory As LongPtr, lpStartupInfo As STARTUPINFOW, lpProcessInformation As PROCESS_INFORMATION) As BOOL
 Public DeclareWide PtrSafe Function CreateProcessWithToken Lib "advapi32" Alias "CreateProcessWithTokenW" (ByVal hToken As LongPtr, ByVal dwLogonFlags As PROCESS_LOGON_FLAGS, _
     ByVal lpApplicationName As String, ByVal lpCommandLine As String, ByVal dwCreationFlags As CreateProcessFlags, lpEnvironment As Any, _
-    ByVal lpCurrentDirectory As String, lpStartupInfo As STARTUPINFOW, lpProcessInformation As PROCESS_INFORMATION) As Long
+    ByVal lpCurrentDirectory As String, lpStartupInfo As STARTUPINFOW, lpProcessInformation As PROCESS_INFORMATION) As BOOL
+'CreateProcessWithLogonA does not exist in the Windows API.
+Public DeclareWide PtrSafe Function CreateProcessWithLogonW Lib "advapi32" (ByVal lpUsername As LongPtr, ByVal lpDomain As LongPtr, ByVal lpPassword As LongPtr, ByVal dwLogonFlags As PROCESS_LOGON_FLAGS, _
+    ByVal lpApplicationName As LongPtr, ByVal lpCommandLine As LongPtr, ByVal dwCreationFlags As CreateProcessFlags, lpEnvironment As Any, _
+    ByVal lpCurrentDirectory As LongPtr, lpStartupInfo As STARTUPINFOW, lpProcessInformation As PROCESS_INFORMATION) As BOOL
 Public DeclareWide PtrSafe Function CreateProcessWithLogon Lib "advapi32" Alias "CreateProcessWithLogonW" (ByVal lpUsername As String, ByVal lpDomain As String, ByVal lpPassword As String, ByVal dwLogonFlags As PROCESS_LOGON_FLAGS, _
     ByVal lpApplicationName As String, ByVal lpCommandLine As String, ByVal dwCreationFlags As CreateProcessFlags, lpEnvironment As Any, _
-    ByVal lpCurrentDirectory As String, lpStartupInfo As STARTUPINFOW, lpProcessInformation As PROCESS_INFORMATION) As Long
+    ByVal lpCurrentDirectory As String, lpStartupInfo As STARTUPINFO, lpProcessInformation As PROCESS_INFORMATION) As BOOL
 
+Public Declare PtrSafe Function InitiateShutdownA Lib "advapi32" (ByVal lpMachineName As String, ByVal lpMessage As String, ByVal dwGracePeriod As Long, ByVal dwShutdownFlags As SystemShutdownFlags, ByVal dwReason As SystemShutdownReasons) As Long
 Public DeclareWide PtrSafe Function InitiateShutdownW Lib "advapi32" (ByVal lpMachineName As LongPtr, ByVal lpMessage As LongPtr, ByVal dwGracePeriod As Long, ByVal dwShutdownFlags As SystemShutdownFlags, ByVal dwReason As SystemShutdownReasons) As Long
 Public DeclareWide PtrSafe Function InitiateShutdown Lib "advapi32" Alias "InitiateShutdownW" (ByVal lpMachineName As String, ByVal lpMessage As String, ByVal dwGracePeriod As Long, ByVal dwShutdownFlags As SystemShutdownFlags, ByVal dwReason As SystemShutdownReasons) As Long
+Public Declare PtrSafe Function InitiateSystemShutdownA Lib "advapi32" (ByVal lpMachineName As String, ByVal lpMessage As String, ByVal dwTimeout As Long, ByVal bForceAppsClosed As BOOL, ByVal bRebootAfterShutdown As BOOL) As BOOL
 Public DeclareWide PtrSafe Function InitiateSystemShutdownW Lib "advapi32" (ByVal lpMachineName As LongPtr, ByVal lpMessage As LongPtr, ByVal dwTimeout As Long, ByVal bForceAppsClosed As BOOL, ByVal bRebootAfterShutdown As BOOL) As BOOL
 Public DeclareWide PtrSafe Function InitiateSystemShutdown Lib "advapi32" Alias "InitiateShutdownW" (ByVal lpMachineName As String, ByVal lpMessage As String, ByVal dwTimeout As Long, ByVal bForceAppsClosed As BOOL, ByVal bRebootAfterShutdown As BOOL) As BOOL
+Public Declare PtrSafe Function InitiateSystemShutdownExA Lib "advapi32" (ByVal lpMachineName As String, ByVal lpMessage As String, ByVal dwTimeout As Long, ByVal bForceAppsClosed As BOOL, ByVal bRebootAfterShutdown As BOOL, ByVal dwReason As SystemShutdownReasons) As BOOL
 Public DeclareWide PtrSafe Function InitiateSystemShutdownExW Lib "advapi32" (ByVal lpMachineName As LongPtr, ByVal lpMessage As LongPtr, ByVal dwTimeout As Long, ByVal bForceAppsClosed As BOOL, ByVal bRebootAfterShutdown As BOOL, ByVal dwReason As SystemShutdownReasons) As BOOL
 Public DeclareWide PtrSafe Function InitiateSystemShutdownEx Lib "advapi32" Alias "InitiateShutdownExW" (ByVal lpMachineName As String, ByVal lpMessage As String, ByVal dwTimeout As Long, ByVal bForceAppsClosed As BOOL, ByVal bRebootAfterShutdown As BOOL, ByVal dwReason As SystemShutdownReasons) As BOOL
+Public Declare PtrSafe Function AbortSystemShutdownA Lib "advapi32" (ByVal lpMachineName As String) As BOOL
 Public DeclareWide PtrSafe Function AbortSystemShutdownW Lib "advapi32" (ByVal lpMachineName As LongPtr) As BOOL
 Public DeclareWide PtrSafe Function AbortSystemShutdown Lib "advapi32" Alias "AbortSystemShutdownW" (ByVal lpMachineName As String) As BOOL
 
@@ -26914,9 +27600,9 @@ Public Enum AuditAllowFlag
     AUDIT_ALLOW_NO_PRIVILEGE  = &H1
 End Enum
 '  DS values for Source and ObjectTypeName
-[Description ("NOTE: CONVERT TO ANSI") ] Public Const ACCESS_DS_SOURCE_A  = "DS"
+[Description ("📝**NOTE:** CONVERT TO ANSI") ] Public Const ACCESS_DS_SOURCE_A  = "DS"
 Public Const ACCESS_DS_SOURCE_W  = "DS"
-[Description ("NOTE: CONVERT TO ANSI") ] Public Const ACCESS_DS_OBJECT_TYPE_NAME_A  = "Directory Service Object"
+[ Description ("📝**NOTE:** CONVERT TO ANSI") ] Public Const ACCESS_DS_OBJECT_TYPE_NAME_A  = "Directory Service Object"
 Public Const ACCESS_DS_OBJECT_TYPE_NAME_W  = "Directory Service Object"
 
 
@@ -27098,6 +27784,32 @@ Public Enum TOKEN_INFORMATION_CLASS
 	TokenIsSandboxed = 47
 	TokenIsAppSilo = 48
 	MaxTokenInfoClass = 49
+End Enum
+
+Public Enum TOKEN_FLAGS
+    TOKEN_HAS_TRAVERSE_PRIVILEGE = &H0001
+    TOKEN_HAS_BACKUP_PRIVILEGE  = &H0002
+    TOKEN_HAS_RESTORE_PRIVILEGE  = &H0004
+    TOKEN_WRITE_RESTRICTED  = &H0008
+    TOKEN_IS_RESTRICTED  = &H0010
+    TOKEN_SESSION_NOT_REFERENCED  = &H0020
+    TOKEN_SANDBOX_INERT  = &H0040
+    TOKEN_HAS_IMPERSONATE_PRIVILEGE  = &H0080
+    SE_BACKUP_PRIVILEGES_CHECKED = &H0100
+    TOKEN_VIRTUALIZE_ALLOWED  = &H0200
+    TOKEN_VIRTUALIZE_ENABLED  = &H0400
+    TOKEN_IS_FILTERED  = &H0800
+    TOKEN_UIACCESS = &H1000
+    TOKEN_NOT_LOW  = &H2000
+    TOKEN_LOWBOX  = &H4000
+    TOKEN_HAS_OWN_CLAIM_ATTRIBUTES = &H8000&
+    TOKEN_PRIVATE_NAMESPACE  = &H00010000
+    TOKEN_DO_NOT_USE_GLOBAL_ATTRIBS_FOR_QUERY  = &H00020000
+    SPECIAL_ENCRYPTED_OPEN = &H00040000
+    TOKEN_NO_CHILD_PROCESS  = &H00080000
+    TOKEN_NO_CHILD_PROCESS_UNLESS_SECURE  = &H00100000
+    TOKEN_AUDIT_NO_CHILD_PROCESS  = &H00200000
+    TOKEN_INHERIT_SECURITY_FLAGS  = ( TOKEN_NO_CHILD_PROCESS  Or  TOKEN_NO_CHILD_PROCESS_UNLESS_SECURE  Or  TOKEN_AUDIT_NO_CHILD_PROCESS)
 End Enum
 
 Public Type SECURITY_DESCRIPTOR
@@ -31240,10 +31952,10 @@ Public Declare PtrSafe Function DwmGetGraphicsStreamClient Lib "dwmapi" (ByVal u
 Public Declare PtrSafe Function DwmGetTransportAttributes Lib "dwmapi" (pfIsRemoting As BOOL, pfIsConnected As BOOL, pDwGeneration As Long) As Long
 Public Declare PtrSafe Function DwmTransitionOwnedWindow Lib "dwmapi" (ByVal hwnd As LongPtr, ByVal target As DWMTRANSITION_OWNEDWINDOW_TARGET) As Long
 Public Declare PtrSafe Function DwmRenderGesture Lib "dwmapi" (ByVal gt As GESTURE_TYPE, ByVal cContacts As Long, pdwPointerID As Long, pPoints As POINT) As Long
-[Description("NOTE: ptTether is a ByVal POINT; copy the POINT into a LongLong") ]
+[Description ("📝**NOTE:** ptTether is a ByVal POINT; copy the POINT into a LongLong") ]
 Public Declare PtrSafe Function DwmTetherContact Lib "dwmapi" (ByVal dwPointerID As Long, ByVal fEnable As BOOL, ByVal ptTether As LongLong) As Long
 Public Declare PtrSafe Function DwmShowContact Lib "dwmapi" (ByVal dwPointerID As Long, ByVal eShowContact As DWM_SHOWCONTACT) As Long
-[Description("Windows 10 Redstone 4+ only")]
+[Description("📝**NOTE:** Windows 10 Redstone 4+ only")]
 Public Declare PtrSafe Function DwmGetUnmetTabRequirements Lib "dwmapi" (ByVal appWindow As LongPtr, value As DWM_TAB_WINDOW_REQUIREMENTS) As Long
    
 #End Region
@@ -31998,7 +32710,7 @@ Public Enum MMIOERR
     MMIOERR_INVALIDFILE  = (MMIOERR_BASE + 16) /* default error file error */
 End Enum
 
-[Description("NOTE: Convert to ANSI")]
+[Description("📝**NOTE:** Convert to ANSI") ]
 Public Const CFSEPCHAR   = "+"             /* compound file name separator char. */
 
 Public Enum MMIO_OPENMODE
@@ -36021,6 +36733,58 @@ Public Enum WINHTTP_CALLBACK_STATUS_FLAGS
     WINHTTP_CALLBACK_FLAG_ALL_NOTIFICATIONS  = &Hffffffff
 End Enum
 
+Public Enum WEB_SOCKET_ACTION_QUEUE
+    WEB_SOCKET_SEND_ACTION_QUEUE = &H1
+    WEB_SOCKET_RECEIVE_ACTION_QUEUE = &H2
+    WEB_SOCKET_ALL_ACTION_QUEUE 
+End Enum
+
+Public Enum WEB_SOCKET_CLOSE_STATUS
+    WEB_SOCKET_SUCCESS_CLOSE_STATUS=1000
+    WEB_SOCKET_ENDPOINT_UNAVAILABLE_CLOSE_STATUS=1001
+    WEB_SOCKET_PROTOCOL_ERROR_CLOSE_STATUS=1002
+    WEB_SOCKET_INVALID_DATA_TYPE_CLOSE_STATUS=1003
+    WEB_SOCKET_EMPTY_CLOSE_STATUS=1005
+    WEB_SOCKET_ABORTED_CLOSE_STATUS=1006
+    WEB_SOCKET_INVALID_PAYLOAD_CLOSE_STATUS=1007
+    WEB_SOCKET_POLICY_VIOLATION_CLOSE_STATUS=1008
+    WEB_SOCKET_MESSAGE_TOO_BIG_CLOSE_STATUS=1009
+    WEB_SOCKET_UNSUPPORTED_EXTENSIONS_CLOSE_STATUS=1010
+    WEB_SOCKET_SERVER_ERROR_CLOSE_STATUS=1011
+    WEB_SOCKET_SECURE_HANDSHAKE_ERROR_CLOSE_STATUS=1015
+End Enum
+
+Public Type WEB_SOCKET_BUFFER_DATA
+	pbBuffer As LongPtr
+    ulBufferLength As Long
+    align(3) As Byte	
+End Type
+
+Public Type WEB_SOCKET_BUFFER_CLOSESTATUS
+	pbReason As LongPtr
+    ulReasonLength As Long
+    /* TypeHint(WEB_SOCKET_CLOSE_STATUS) ] */ usStatus As Integer
+End Type
+
+Public Enum WEB_SOCKET_ACTION
+    WEB_SOCKET_NO_ACTION=0
+    WEB_SOCKET_SEND_TO_NETWORK_ACTION=1
+    WEB_SOCKET_INDICATE_SEND_COMPLETE_ACTION=2
+    WEB_SOCKET_RECEIVE_FROM_NETWORK_ACTION=3
+    WEB_SOCKET_INDICATE_RECEIVE_COMPLETE_ACTION=4
+End Enum
+
+Public Enum WEB_SOCKET_BUFFER_TYPE
+    WEB_SOCKET_UTF8_MESSAGE_BUFFER_TYPE = &H80000000
+    WEB_SOCKET_UTF8_FRAGMENT_BUFFER_TYPE = &H80000001
+    WEB_SOCKET_BINARY_MESSAGE_BUFFER_TYPE = &H80000002
+    WEB_SOCKET_BINARY_FRAGMENT_BUFFER_TYPE = &H80000003
+    WEB_SOCKET_CLOSE_BUFFER_TYPE = &H80000004
+    WEB_SOCKET_PING_PONG_BUFFER_TYPE = &H80000005
+    WEB_SOCKET_UNSOLICITED_PONG_BUFFER_TYPE = &H80000006
+End Enum
+
+
 Public Declare PtrSafe Function WinHttpOpen Lib "winhttp" (ByVal pszAgentW As LongPtr, ByVal dwAccessType As WINHTTP_ACCESS_TYPES, ByVal pszProxyW As LongPtr, ByVal pszProxyBypassW As LongPtr, ByVal dwFlags As WINHTTP_OPEN_FLAGS) As LongPtr
 Public Declare PtrSafe Function WinHttpConnect Lib "winhttp" (ByVal hSession As LongPtr, ByVal pswzServerName As LongPtr, ByVal nServerPort As Long, ByVal dwReserved As Long) As LongPtr
 Public Declare PtrSafe Function WinHttpOpenRequest Lib "winhttp" (ByVal hConnect As LongPtr, ByVal pwszVerb As LongPtr, ByVal pwszObjectName As LongPtr, ByVal pwszVersion As LongPtr, ByVal pwszReferrer As LongPtr, ByVal ppwszAcceptTypes As LongPtr, ByVal dwFlags As WINHTTP_OPEN_REQ_FLAGS) As LongPtr
@@ -36035,7 +36799,7 @@ Public Declare PtrSafe Function WinHttpWebSocketClose Lib "winhttp" (ByVal hWebS
 Public Declare PtrSafe Function WinHttpWebSocketQueryCloseStatus Lib "winhttp" (ByVal hWebSocket As LongPtr, [ TypeHint (WINHTTP_WEB_SOCKET_CLOSE_STATUS) ] ByRef usStatus As Integer, ByRef pvReason As Any, ByVal dwReasonLength As Long, ByRef pdwReasonLengthConsumed As Long) As Long
 Public Declare PtrSafe Function WinHttpQueryHeaders Lib "winhttp" (ByVal hRequest As LongPtr, ByVal dwInfoLevel As WINHTTP_QUERY_HEADER, ByVal pwszName As LongPtr, ByRef lpBuffer As Any, ByRef lpdwBufferLength As Long, ByRef lpdwIndex As Long) As BOOL
 Public Declare PtrSafe Function WinHttpSetStatusCallback Lib "winhttp" (ByVal hWebSocket As LongPtr, ByVal lpfnInternetCallback As LongPtr, ByVal dwNotificationFlags As WINHTTP_CALLBACK_STATUS_FLAGS, ByVal dwReserved As LongPtr) As Long
-' Public Declare PtrSafe Function WebSocketGetAction Lib "websocket" (ByVal hWebSocket As LongPtr, ByVal eActionQueue As Long, ByVal pDataBuffers As LongPtr, ByRef pulDataBufferCount As Long, ByRef pAction As Long, ByRef pEBufferType As Long, ByRef pvApplicationContext As LongPtr, ByRef pvActionContext As LongPtr) As Long
+Public Declare PtrSafe Function WebSocketGetAction Lib "websocket" (ByVal hWebSocket As LongPtr, ByVal eActionQueue As WEB_SOCKET_ACTION_QUEUE, pDataBuffers As Any, ByRef pulDataBufferCount As Long, ByRef pAction As WEB_SOCKET_ACTION, ByRef pBufferType As WEB_SOCKET_BUFFER_TYPE, ByRef pvApplicationContext As LongPtr, ByRef pvActionContext As LongPtr) As Long
     
 #End Region
 
@@ -37980,17 +38744,17 @@ Public Type IP_ADAPTER_INDEX_MAP
     Name(0 To (MAX_ADAPTER_NAME - 1)) As Integer
 End Type
 
-[Description("WARNING: Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(Adapter(0))") ]
+[Description("⚠️ **WARNING:** Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(Adapter(0))") ]
 Public Type IP_INTERFACE_INFO
     NumAdapters As LONG
     Adapter() As IP_ADAPTER_INDEX_MAP
 End Type
-[Description("WARNING: Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(Address(0))") ]
+[Description("⚠️ **WARNING:** Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(Address(0))") ]
 Public Type IP_UNIDIRECTIONAL_ADAPTER_ADDRESS
     NumAdapters As Long
     Address() As Long
 End Type
-[Description ("WARNING: Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(AdapterOrder(0))") ]
+[Description ("⚠️ **WARNING:** Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(AdapterOrder(0))") ]
 Public Type IP_ADAPTER_ORDER_MAP
     NumAdapters As Long
     AdapterOrder() As Long
@@ -38302,7 +39066,7 @@ Public Enum MIB_VARS
     UDP6_STATS  = (IP6_STATS + 1)
     TCP6_STATS  = (UDP6_STATS + 1)
 End Enum
-[Description ("WARNING: Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(rgdwVarIndex(0))") ]
+[Description ("⚠️ **WARNING:** Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(rgdwVarIndex(0))") ]
 Public Type MIB_OPAQUE_QUERY
     dwVarId As Long
     rgdwVarIndex() As Long
@@ -38526,7 +39290,7 @@ Public Type MIB_IFROW
     dwDescrLen As Long
     bDescr(0 To (MAXLEN_IFDESCR - 1)) As Byte
 End Type
-[Description ("WARNING: Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
+[Description ("⚠️ **WARNING:** Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
 Public Type MIB_IFTABLE
     dwNumEntries As Long
     table() As MIB_IFROW
@@ -38790,7 +39554,7 @@ Public Type MIB_IPADDRROW
     unused1 As Integer
     /* [ TypeHint(MIB_IPADDR_TYPE) ] */ wType As Integer
 End Type
-[Description ("WARNING: Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
+[Description ("⚠️ **WARNING:** Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
 Public Type MIB_IPADDRTABLE
     dwNumEntries As Long
     table() As MIB_IPADDRROW
@@ -38833,7 +39597,7 @@ Public Enum MIB_IPROUTE_TYPE
     MIB_IPROUTE_TYPE_INDIRECT  = 4
     MIB_IPROUTE_METRIC_UNUSED  = -1
 End Enum
-[Description ("WARNING: Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
+[Description ("⚠️ **WARNING:** Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
 Public Type MIB_IPFORWARDTABLE
     dwNumEntries As Long
     table() As MIB_IPFORWARDROW
@@ -38872,7 +39636,7 @@ Public Type MIB_IPNETROW_W2K
     dwAddr As Long
     dwType As MIB_IPNET_TYPE
 End Type
-[Description ("WARNING: Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
+[Description ("⚠️ **WARNING:** Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
 Public Type MIB_IPNETTABLE
     dwNumEntries As Long
     table() As MIB_IPNETROW
@@ -39028,7 +39792,7 @@ Public Type MIB_IPMCAST_OIF
     dwReserved As Long
     dwReserved1 As Long
 End Type
-[ Description ("WARNING: Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(rgmioOutInfo(0))") ]
+[ Description ("⚠️ **WARNING:** Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(rgmioOutInfo(0))") ]
 Public Type MIB_IPMCAST_MFE
     dwGroup As Long
     dwSource As Long
@@ -39047,7 +39811,7 @@ Public Type MIB_IPMCAST_MFE
     dwReserved As Long
     rgmioOutInfo() As MIB_IPMCAST_OIF
 End Type
-[ Description ("WARNING: Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
+[ Description ("⚠️ **WARNING:** Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
 Public Type MIB_MFE_TABLE
     dwNumEntries As Long
     table() As MIB_IPMCAST_MFE
@@ -39071,7 +39835,7 @@ Public Type MIB_IPMCAST_OIF_STATS
     ulOutPackets As Long
     ulOutDiscards As Long
 End Type
-[ Description ("WARNING: Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(rgmiosOutStats(0))") ]
+[ Description ("⚠️ **WARNING:** Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(rgmiosOutStats(0))") ]
 Public Type MIB_IPMCAST_MFE_STATS
     dwGroup As Long
     dwSource As Long
@@ -39091,12 +39855,12 @@ Public Type MIB_IPMCAST_MFE_STATS
     ulQueueOverflow As Long
     rgmiosOutStats() As MIB_IPMCAST_OIF_STATS
 End Type
-[ Description ("WARNING: Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
+[ Description ("⚠️ **WARNING:** Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
 Public Type MIB_MFE_STATS_TABLE
     dwNumEntries As Long
     table() As MIB_IPMCAST_MFE_STATS
 End Type
-[ Description ("WARNING: Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(rgmiosOutStats(0))") ]
+[ Description ("⚠️ **WARNING:** Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(rgmiosOutStats(0))") ]
 Public Type MIB_IPMCAST_MFE_STATS_EX_XP
     dwGroup As Long
     dwSource As Long
@@ -39122,7 +39886,7 @@ Public Type MIB_IPMCAST_MFE_STATS_EX_XP
     rgmiosOutStats() As MIB_IPMCAST_OIF_STATS
 End Type
 'Alias MIB_IPMCAST_MFE_STATS_EX As MIB_IPMCAST_MFE_STATS_EX_XP
-[ Description ("WARNING: Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(rgmiosOutStats(0))") ]
+[ Description ("⚠️ **WARNING:** Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(rgmiosOutStats(0))") ]
 Public Type MIB_IPMCAST_MFE_STATS_EX
     dwGroup As Long
     dwSource As Long
@@ -39147,13 +39911,13 @@ Public Type MIB_IPMCAST_MFE_STATS_EX
     ulTotalOutPackets As Long
     rgmiosOutStats() As MIB_IPMCAST_OIF_STATS
 End Type
-[ Description ("WARNING: Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
+[ Description ("⚠️ **WARNING:** Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
 Public Type MIB_MFE_STATS_TABLE_EX_XP
     dwNumEntries As Long
     table() As LongPtr 'PMIB_IPMCAST_MFE_STATS_EX_XP
 End Type
 'Alias MIB_MFE_STATS_TABLE_EX As MIB_MFE_STATS_TABLE_EX_XP
-[ Description ("WARNING: Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
+[ Description ("⚠️ **WARNING:** Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
 Public Type MIB_MFE_STATS_TABLE_EX
     dwNumEntries As Long
     table() As LongPtr 'PMIB_IPMCAST_MFE_STATS_EX_XP
@@ -39169,7 +39933,7 @@ Public Type MIB_IPMCAST_IF_ENTRY
     ulInMcastOctets As Long
     ulOutMcastOctets As Long
 End Type
-[ Description ("WARNING: Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
+[ Description ("⚠️ **WARNING:** Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
 Public Type MIB_IPMCAST_IF_TABLE
     dwNumEntries As Long
     table() As MIB_IPMCAST_IF_ENTRY
@@ -39223,7 +39987,7 @@ Public Type MIB_TCPROW
     dwRemoteAddr As Long
     dwRemotePort As Long
 End Type
-[ Description ("WARNING: Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
+[ Description ("⚠️ **WARNING:** Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
 Public Type MIB_TCPTABLE
     dwNumEntries As Long
     table() As MIB_TCPROW
@@ -39237,7 +40001,7 @@ Public Type MIB_TCPROW2
     dwOwningPid As Long
     dwOffloadState As TCP_CONNECTION_OFFLOAD_STATE
 End Type
-[ Description ("WARNING: Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
+[ Description ("⚠️ **WARNING:** Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
 Public Type MIB_TCPTABLE2
     dwNumEntries As Long
     table() As MIB_TCPROW2
@@ -39250,7 +40014,7 @@ Public Type MIB_TCPROW_OWNER_PID
     dwRemotePort As Long
     dwOwningPid As Long
 End Type
-[ Description ("WARNING: Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
+[ Description ("⚠️ **WARNING:** Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
 Public Type MIB_TCPTABLE_OWNER_PID
     dwNumEntries As Long
     table() As MIB_TCPROW_OWNER_PID
@@ -39265,7 +40029,7 @@ Public Type MIB_TCPROW_OWNER_MODULE
     liCreateTimestamp As QLARGE_INTEGER
     OwningModuleInfo(0 To (TCPIP_OWNING_MODULE_SIZE - 1)) As LongLong
 End Type
-[ Description ("WARNING: Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
+[ Description ("⚠️ **WARNING:** Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
 Public Type MIB_TCPTABLE_OWNER_MODULE
     dwNumEntries As Long
     table() As MIB_TCPROW_OWNER_MODULE
@@ -39279,7 +40043,7 @@ Public Type MIB_TCP6ROW
     dwRemoteScopeId As Long
     dwRemotePort As Long
 End Type
-[ Description ("WARNING: Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
+[ Description ("⚠️ **WARNING:** Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
 Public Type MIB_TCP6TABLE
     dwNumEntries As Long
     table() As MIB_TCP6ROW
@@ -39295,7 +40059,7 @@ Public Type MIB_TCP6ROW2
     dwOwningPid As Long
     dwOffloadState As TCP_CONNECTION_OFFLOAD_STATE
 End Type
-[ Description ("WARNING: Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
+[ Description ("⚠️ **WARNING:** Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
 Public Type MIB_TCP6TABLE2
     dwNumEntries As Long
     table() As MIB_TCP6ROW2
@@ -39310,7 +40074,7 @@ Public Type MIB_TCP6ROW_OWNER_PID
     dwState As MIB_TCP_STATE
     dwOwningPid As Long
 End Type
-[ Description ("WARNING: Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
+[ Description ("⚠️ **WARNING:** Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
 Public Type MIB_TCP6TABLE_OWNER_PID
     dwNumEntries As Long
     '_Field_size_(dwNumEntries)
@@ -39328,7 +40092,7 @@ Public Type MIB_TCP6ROW_OWNER_MODULE
     liCreateTimestamp As QLARGE_INTEGER
     OwningModuleInfo(0 To (TCPIP_OWNING_MODULE_SIZE - 1)) As LongLong
 End Type
-[ Description ("WARNING: Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
+[ Description ("⚠️ **WARNING:** Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
 Public Type MIB_TCP6TABLE_OWNER_MODULE
     dwNumEntries As Long
     '_Field_size_(dwNumEntries)
@@ -39411,7 +40175,7 @@ Public Type MIB_UDPROW
     dwLocalAddr As Long
     dwLocalPort As Long
 End Type
-[ Description ("WARNING: Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
+[ Description ("⚠️ **WARNING:** Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
 Public Type MIB_UDPTABLE
     dwNumEntries As Long
     table() As MIB_UDPROW
@@ -39421,7 +40185,7 @@ Public Type MIB_UDPROW_OWNER_PID
     dwLocalPort As Long
     dwOwningPid As Long
 End Type
-[ Description ("WARNING: Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
+[ Description ("⚠️ **WARNING:** Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
 Public Type MIB_UDPTABLE_OWNER_PID
     dwNumEntries As Long
     table() As MIB_UDPROW_OWNER_PID
@@ -39439,7 +40203,7 @@ Public Type MIB_UDPROW_OWNER_MODULE
     '};
     OwningModuleInfo(0 To (TCPIP_OWNING_MODULE_SIZE - 1)) As LongLong
 End Type
-[ Description ("WARNING: Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
+[ Description ("⚠️ **WARNING:** Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
 Public Type MIB_UDPTABLE_OWNER_MODULE
     dwNumEntries As Long
     table() As MIB_UDPROW_OWNER_MODULE
@@ -39459,7 +40223,7 @@ Public Type MIB_UDPROW2
     dwRemoteAddr As Long
     dwRemotePort As Long
 End Type
-[ Description ("WARNING: Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
+[ Description ("⚠️ **WARNING:** Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
 Public Type MIB_UDPTABLE2
     dwNumEntries As Long
     table() As MIB_UDPROW2
@@ -39469,7 +40233,7 @@ Public Type MIB_UDP6ROW
     dwLocalScopeId As Long
     dwLocalPort As Long
 End Type
-[ Description ("WARNING: Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
+[ Description ("⚠️ **WARNING:** Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
 Public Type MIB_UDP6TABLE
     dwNumEntries As Long
     table() As MIB_UDP6ROW
@@ -39480,7 +40244,7 @@ Public Type MIB_UDP6ROW_OWNER_PID
     dwLocalPort As Long
     dwOwningPid As Long
 End Type
-[ Description ("WARNING: Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
+[ Description ("⚠️ **WARNING:** Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
 Public Type MIB_UDP6TABLE_OWNER_PID
     dwNumEntries As Long
     '_Field_size_(dwNumEntries)
@@ -39500,7 +40264,7 @@ Public Type MIB_UDP6ROW_OWNER_MODULE
     '};
     OwningModuleInfo(0 To (TCPIP_OWNING_MODULE_SIZE - 1)) As LongLong
 End Type
-[ Description ("WARNING: Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
+[ Description ("⚠️ **WARNING:** Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
 Public Type MIB_UDP6TABLE_OWNER_MODULE
     dwNumEntries As Long
     table() As MIB_UDP6ROW_OWNER_MODULE
@@ -39522,7 +40286,7 @@ Public Type MIB_UDP6ROW2
     dwRemoteScopeId As Long
     dwRemotePort As Long
 End Type
-[ Description ("WARNING: Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
+[ Description ("⚠️ **WARNING:** Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
 Public Type MIB_UDP6TABLE2
     dwNumEntries As Long
     table() As MIB_UDP6ROW2
@@ -39573,7 +40337,7 @@ Public Type MIB_IPMCAST_BOUNDARY
     dwGroupMask As Long
     dwStatus As Long
 End Type
-[ Description ("WARNING: Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
+[ Description ("⚠️ **WARNING:** Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
 Public Type MIB_IPMCAST_BOUNDARY_TABLE
     dwNumEntries As Long
     table() As MIB_IPMCAST_BOUNDARY
@@ -39615,7 +40379,7 @@ Public Type MIB_IPDESTROW
     dwForwardPreference As Long
     dwForwardViewSet As RTM_VIEW
 End Type
-[ Description ("WARNING: Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
+[ Description ("⚠️ **WARNING:** Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))") ]
 Public Type MIB_IPDESTTABLE
     dwNumEntries As Long
     table() As MIB_IPDESTROW
@@ -40395,12 +41159,7 @@ Public Enum IP_NET_STRING_PARSING_FLAGS
     NET_STRING_ANY_SERVICE_NO_SCOPE  = (NET_STRING_NAMED_SERVICE  Or  NET_STRING_IP_SERVICE_NO_SCOPE)
 End Enum
 
-Public Enum NET_ADDRESS_FORMAT_
-    NET_ADDRESS_FORMAT_UNSPECIFIED=0
-    NET_ADDRESS_DNS_NAME = 1
-    NET_ADDRESS_IPV4 = 2
-    NET_ADDRESS_IPV6 = 3
-End Enum
+
 Public Const DNS_MAX_NAME_BUFFER_LENGTH = 256
 /*
 typedef struct NET_ADDRESS_INFO_
@@ -40422,10 +41181,10 @@ typedef struct NET_ADDRESS_INFO_
 } NET_ADDRESS_INFO, *PNET_ADDRESS_INFO;
 
 */
-Public Type NET_ADDRESS_INFO
-    Format As NET_ADDRESS_FORMAT
-    union(523) As Byte '(256 + 6) * sizeof(WCHAR)
-End Type
+' Public Type NET_ADDRESS_INFO
+'     Format As NET_ADDRESS_FORMAT
+'     union(523) As Byte '(256 + 6) * sizeof(WCHAR)
+' End Type
 
 
 Public DeclareWide PtrSafe Function GetNumberOfInterfaces Lib "Iphlpapi" (pdwNumIf As Long) As Long
@@ -40450,9 +41209,9 @@ Public DeclareWide PtrSafe Function GetExtendedUdpTable Lib "Iphlpapi" (pUdpTabl
 Public DeclareWide PtrSafe Function GetOwnerModuleFromUdpEntry Lib "Iphlpapi" (pUdpEntry As MIB_UDPROW_OWNER_MODULE, ByVal Class As TCPIP_OWNER_MODULE_INFO_CLASS, pBuffer As Any, pdwSize As Long) As Long
 [Description ("Make an initial call for size, copy to a byte array, then copy the parts into the UDT and it's SAFEARRAY.") ]
 Public DeclareWide PtrSafe Function GetTcpTable2 Lib "Iphlpapi" (TcpTable As Any /* MIB_TCPTABLE2 */, SizePointer As Long, ByVal Order As BOOL) As Long
-[Description("WARNING: MS states this has been removed as of Windows Vista, and to use GetTcpTable/GetExtendedTcpTable instead.")]
+[Description("⚠️ **WARNING:** MS states this has been removed as of Windows Vista, and to use GetTcpTable/GetExtendedTcpTable instead.")]
 Public DeclareWide PtrSafe Function AllocateAndGetTcpExTableFromStack Lib "Iphlpapi" (ppTcpTable As Any, ByVal bOrder As BOOL, ByVal hHeap As LongPtr, ByVal dwFlags As HeapFlags, ByVal dwFamily As ADDRESS_FAMILIES) As Long
-[Description("WARNING: MS states this has been removed as of Windows Vista, and to use GetTcpTable/GetExtendedTcpTable instead.")]
+[Description("⚠️ **WARNING:** MS states this has been removed as of Windows Vista, and to use GetTcpTable/GetExtendedTcpTable instead.")]
 Public DeclareWide PtrSafe Function AllocateAndGetUdpExTableFromStack Lib "Iphlpapi" (ppUdpTable As Any, ByVal bOrder As BOOL, ByVal hHeap As LongPtr, ByVal dwFlags As HeapFlags, ByVal dwFamily As ADDRESS_FAMILIES) As Long
 [Description ("Make an initial call for size, copy to a byte array, then copy the parts into the UDT and it's SAFEARRAY.") ]
 Public DeclareWide PtrSafe Function GetTcp6Table Lib "Iphlpapi" (TcpTable As Any /* MIB_TCP6TABLE */, SizePointer As Long, ByVal Order As BOOL) As Long
@@ -41263,7 +42022,7 @@ Public Type TRANSMSG
     wParam As LongPtr
     lParam As LongPtr
 End Type
-[Description("WARNING: This structure cannot be used as-is directly due to SAFEARRAY considerations. Copy count and array separately.")]
+[Description("⚠️ **WARNING:** This structure cannot be used as-is directly due to SAFEARRAY considerations. Copy count and array separately.")]
 Public Type TRANSMSGLIST
     uMsgCount As Long
     TransMsg() As TRANSMSG
@@ -42826,7 +43585,7 @@ Public Enum VersionInstallFileErrors
 End Enum
 
 
-[Description("NOTE: The last param of this API is ByVal BLENDFUNCTION; copy that 4-byte UDT to a Long, then pass that long. Do not pass a pointer.")]
+[Description("📝**NOTE:** The last param of this API is ByVal BLENDFUNCTION; copy that 4-byte UDT to a Long, then pass that long. Do not pass a pointer.") ]
 Public Declare PtrSafe Function AlphaBlend Lib "Msimg32.dll" (ByVal hdcDest As LongPtr, ByVal xoriginDest As Long, ByVal yoriginDest As Long, ByVal wDest As Long, ByVal hDest As Long, ByVal hdcSrc As LongPtr, ByVal xoriginSrc As Long, ByVal yoriginSrc As Long, ByVal wSrc As Long, ByVal hSrc As Long, ByVal ftn As Long) As BOOL
 Public Declare PtrSafe Function TransparentBlt Lib "Msimg32.dll" (ByVal hdcDest As LongPtr, ByVal xoriginDest As Long, ByVal yoriginDest As Long, ByVal wDest As Long, ByVal hDest As Long, ByVal hdcSrc As LongPtr, ByVal xoriginSrc As Long, ByVal yoriginSrc As Long, ByVal wSrc As Long, ByVal hSrc As Long, ByVal crTransparent As Long) As BOOL
 Public Declare PtrSafe Function GradientFill Lib "Msimg32.dll" (ByVal hdc As LongPtr, pVertex As TRIVERTEX, ByVal nVertex As Long, pMesh As Any, ByVal nMesh As Long, ByVal ulMode As GradientDrawingMode) As BOOL
@@ -42879,10 +43638,46 @@ End Enum
 
 Public Const CRYPTPROTECTMEMORY_BLOCK_SIZE  = 16
 
-Public DeclareWide PtrSafe Function CryptProtectData lib "crypt32" (pDataIn As DATA_BLOB, ByVal szDataDescr As String, pOptionalEntropy As DATA_BLOB, ByVal pvReserved As LongPtr, pPromptStruct As CRYPTPROTECT_PROMPTSTRUCT, ByVal dwFlags As CryptProtectFlags, pDataOut As DATA_BLOB) As BOOL
+Public Enum CRYPT_STRING_OPTIONS
+    CRYPT_STRING_BASE64HEADER  = &H00000000
+    CRYPT_STRING_BASE64  = &H00000001
+    CRYPT_STRING_BINARY  = &H00000002
+    CRYPT_STRING_BASE64REQUESTHEADER  = &H00000003
+    CRYPT_STRING_HEX  = &H00000004
+    CRYPT_STRING_HEXASCII  = &H00000005
+    CRYPT_STRING_BASE64_ANY  = &H00000006
+    CRYPT_STRING_ANY  = &H00000007
+    CRYPT_STRING_HEX_ANY  = &H00000008
+    CRYPT_STRING_BASE64X509CRLHEADER  = &H00000009
+    CRYPT_STRING_HEXADDR  = &H0000000a
+    CRYPT_STRING_HEXASCIIADDR  = &H0000000b
+    CRYPT_STRING_HEXRAW  = &H0000000c
+    CRYPT_STRING_BASE64URI  = &H0000000d
+    CRYPT_STRING_ENCODEMASK  = &H000000ff
+    CRYPT_STRING_RESERVED100  = &H00000100
+    CRYPT_STRING_RESERVED200 = &H00000200
+    CRYPT_STRING_PERCENTESCAPE  = &H08000000  ' base64 formats only
+    CRYPT_STRING_HASHDATA  = &H10000000
+    CRYPT_STRING_STRICT  = &H20000000
+    CRYPT_STRING_NOCRLF  = &H40000000
+    CRYPT_STRING_NOCR  = &H80000000
+End Enum
+
+
+Public DeclareWide PtrSafe Function CryptProtectData Lib "crypt32" (pDataIn As DATA_BLOB, ByVal szDataDescr As String, pOptionalEntropy As DATA_BLOB, ByVal pvReserved As LongPtr, pPromptStruct As CRYPTPROTECT_PROMPTSTRUCT, ByVal dwFlags As CryptProtectFlags, pDataOut As DATA_BLOB) As BOOL
 Public DeclareWide PtrSafe Function CryptUnprotectData Lib "crypt32" (pDataIn As DATA_BLOB, szDataDescr As LongPtr, pOptionalEntropy As DATA_BLOB, ByVal pvReserved As LongPtr, pPromptStruct As CRYPTPROTECT_PROMPTSTRUCT, ByVal dwFlags As CryptProtectFlags, pDataOut As DATA_BLOB) As BOOL
-Public DeclareWide PtrSafe Function CryptProtectMemory lib "crypt32" (pDataIn As Any, ByVal cbDataIn As Long, ByVal dwFlags As CryptMemProtectFlags) As BOOL
-Public DeclareWide PtrSafe Function CryptUnprotectMemory lib "crypt32" (pDataIn As Any, ByVal cbDataIn As Long, ByVal dwFlags As CryptMemProtectFlags) As BOOL
+Public DeclareWide PtrSafe Function CryptProtectMemory Lib "crypt32" (pDataIn As Any, ByVal cbDataIn As Long, ByVal dwFlags As CryptMemProtectFlags) As BOOL
+Public DeclareWide PtrSafe Function CryptUnprotectMemory Lib "crypt32" (pDataIn As Any, ByVal cbDataIn As Long, ByVal dwFlags As CryptMemProtectFlags) As BOOL
+Public Declare PtrSafe Function CryptStringToBinaryA Lib "crypt32" (ByVal pszString As String, ByVal cchString As Long, ByVal dwFlags As CRYPT_STRING_OPTIONS, pbBinary As Byte, pcbBinary As Long, Optional pdwSkip As Long, Optional pdwFlags As CRYPT_STRING_OPTIONS) As BOOL
+Public DeclareWide PtrSafe Function CryptStringToBinaryW Lib "crypt32" (ByVal pszString As LongPtr, ByVal cchString As Long, ByVal dwFlags As CRYPT_STRING_OPTIONS, pbBinary As Byte, pcbBinary As Long, Optional pdwSkip As Long, Optional pdwFlags As CRYPT_STRING_OPTIONS) As BOOL
+Public DeclareWide PtrSafe Function CryptStringToBinary Lib "crypt32" Alias "CryptStringToBinaryW" (ByVal pszString As String, ByVal cchString As Long, ByVal dwFlags As CRYPT_STRING_OPTIONS, pbBinary As Byte, pcbBinary As Long, Optional pdwSkip As Long, Optional pdwFlags As CRYPT_STRING_OPTIONS) As BOOL
+Public Declare PtrSafe Function CryptBinaryToStringA Lib "crypt32" (pbBinary As Any, ByVal cbBinary As Long, ByVal dwFlags As CRYPT_STRING_OPTIONS, ByVal pszString As String, pcchString As Long) As BOOL
+Public DeclareWide PtrSafe Function CryptBinaryToStringW Lib "crypt32" (pbBinary As Any, ByVal cbBinary As Long, ByVal dwFlags As CRYPT_STRING_OPTIONS, ByVal pszString As LongPtr, pcchString As Long) As BOOL
+Public DeclareWide PtrSafe Function CryptBinaryToString Lib "crypt32" Alias "CryptBinaryToStringW" (pbBinary As Any, ByVal cbBinary As Long, ByVal dwFlags As CRYPT_STRING_OPTIONS, ByVal pszString As String, pcchString As Long) As BOOL
+
+
+
+
 
 Public Enum CREATE_ASM_NAME_OBJ_FLAGS
     CANOF_PARSE_DISPLAY_NAME = &H1
@@ -43251,7 +44046,7 @@ Public Type STORAGE_DEPENDENCY_INFO_TYPE_2
     DependentVolumeRelativePath As LongPtr
 End Type
 
-[Description("WARNING: This structure cannot be used as-is directly due to SAFEARRAY considerations. Copy count and array separately.")]
+[Description("⚠️ **WARNING:** This structure cannot be used as-is directly due to SAFEARRAY considerations. Copy count and array separately.")]
 Public Type STORAGE_DEPENDENCY_INFO
     Version As STORAGE_DEPENDENCY_INFO_VERSION
     NumberEntries As Long
@@ -43261,7 +44056,7 @@ Public Type STORAGE_DEPENDENCY_INFO
     Version2Entries() As STORAGE_DEPENDENCY_INFO_TYPE_2
     '};
 End Type
-[Description("WARNING: This structure cannot be used as-is directly due to SAFEARRAY considerations. Copy count and array separately.")]
+[Description("⚠️ **WARNING:** This structure cannot be used as-is directly due to SAFEARRAY considerations. Copy count and array separately.")]
 Public Type STORAGE_DEPENDENCY_INFO_V1
     Version As STORAGE_DEPENDENCY_INFO_VERSION
     NumberEntries As Long
@@ -44632,39 +45427,39 @@ Public Enum AUDIT_CONTROL_FLAGS
 End Enum
 
 
-[ Description ("NOTE: twinBASIC patches this to an internal implementation, it will not actually call msvbvm60 (or any other DLL).") ]
+[ Description ("📝**NOTE:** twinBASIC patches this to an internal implementation, it will not actually call msvbvm60 (or any other DLL).") ]
 Public Declare PtrSafe Function vbaObjSetAddRef Lib "msvbvm60.dll" Alias "__vbaObjSetAddref" (ByRef objDest As Object, ByVal pObject As LongPtr) As LongPtr 'THIS IS REDIRECTED TO A TWINBASIC INTERNAL IMPLEMENTATION
-[ Description("NOTE: twinBASIC patches this to an internal implementation, it will not actually call msvbvm60 (or any other DLL).") ]
+[ Description("📝**NOTE:** twinBASIC patches this to an internal implementation, it will not actually call msvbvm60 (or any other DLL).") ]
 Public Declare PtrSafe Function vbaObjSet Lib "msvbvm60.dll" Alias "__vbaObjSet" (ByRef objDest As Object, ByVal pObject As LongPtr) As LongPtr 'THIS IS REDIRECTED TO A TWINBASIC INTERNAL IMPLEMENTATION
-[ Description("NOTE: twinBASIC patches this to an internal implementation, it will not actually call msvbvm60 (or any other DLL).") ]
+[ Description("📝**NOTE:** twinBASIC patches this to an internal implementation, it will not actually call msvbvm60 (or any other DLL).") ]
 Public Declare PtrSafe Function GetMem1 Lib "msvbvm60.dll" (pSrc As Any, pDst As Any) As Long 'THIS IS REDIRECTED TO A TWINBASIC INTERNAL IMPLEMENTATION
-[ Description("NOTE: twinBASIC patches this to an internal implementation, it will not actually call msvbvm60 (or any other DLL).") ]
+[ Description("📝**NOTE:** twinBASIC patches this to an internal implementation, it will not actually call msvbvm60 (or any other DLL).") ]
 Public Declare PtrSafe Function GetMem2 Lib "msvbvm60.dll" (pSrc As Any, pDst As Any) As Long 'THIS IS REDIRECTED TO A TWINBASIC INTERNAL IMPLEMENTATION
-[ Description("NOTE: twinBASIC patches this to an internal implementation, it will not actually call msvbvm60 (or any other DLL).") ]
+[ Description("📝**NOTE:** twinBASIC patches this to an internal implementation, it will not actually call msvbvm60 (or any other DLL).") ]
 Public Declare PtrSafe Function GetMem4 Lib "msvbvm60.dll" (pSrc As Any, pDst As Any) As Long 'THIS IS REDIRECTED TO A TWINBASIC INTERNAL IMPLEMENTATION
-[ Description("NOTE: twinBASIC patches this to an internal implementation, it will not actually call msvbvm60 (or any other DLL).") ]
+[ Description("📝**NOTE:** twinBASIC patches this to an internal implementation, it will not actually call msvbvm60 (or any other DLL).") ]
 Public Declare PtrSafe Function GetMem8 Lib "msvbvm60.dll" (pSrc As Any, pDst As Any) As Long 'THIS IS REDIRECTED TO A TWINBASIC INTERNAL IMPLEMENTATION
 #If Win64 Then
-[ Description("NOTE: twinBASIC patches this to an internal implementation, it will not actually call msvbvm60 (or any other DLL).") ]
+[ Description("📝**NOTE:** twinBASIC patches this to an internal implementation, it will not actually call msvbvm60 (or any other DLL).") ]
 Public Declare PtrSafe Function GetMemPtr Lib "msvbvm60.dll" Alias "GetMem8" (pSrc As Any, pDst As Any) As Long 'THIS IS REDIRECTED TO A TWINBASIC INTERNAL IMPLEMENTATION
 #Else
-[ Description("NOTE: twinBASIC patches this to an internal implementation, it will not actually call msvbvm60 (or any other DLL).") ]
+[ Description("📝**NOTE:** twinBASIC patches this to an internal implementation, it will not actually call msvbvm60 (or any other DLL).") ]
 Public Declare PtrSafe Function GetMemPtr Lib "msvbvm60.dll" Alias "GetMem4" (pSrc As Any, pDst As Any) As Long 'THIS IS REDIRECTED TO A TWINBASIC INTERNAL IMPLEMENTATION
 #End If
 
-[ Description("NOTE: twinBASIC patches this to an internal implementation, it will not actually call msvbvm60 (or any other DLL).") ]
+[ Description("📝**NOTE:** twinBASIC patches this to an internal implementation, it will not actually call msvbvm60 (or any other DLL).") ]
 Public Declare PtrSafe Function PutMem1 Lib "msvbvm60.dll" (pDst As Any, ByVal v As Byte) As Long 'THIS IS REDIRECTED TO A TWINBASIC INTERNAL IMPLEMENTATION
-[ Description("NOTE: twinBASIC patches this to an internal implementation, it will not actually call msvbvm60 (or any other DLL).") ]
+[ Description("📝**NOTE:** twinBASIC patches this to an internal implementation, it will not actually call msvbvm60 (or any other DLL).") ]
 Public Declare PtrSafe Function PutMem2 Lib "msvbvm60.dll" (pDst As Any, ByVal v As Integer) As Long 'THIS IS REDIRECTED TO A TWINBASIC INTERNAL IMPLEMENTATION
-[ Description("NOTE: twinBASIC patches this to an internal implementation, it will not actually call msvbvm60 (or any other DLL).") ]
+[ Description("📝**NOTE:** twinBASIC patches this to an internal implementation, it will not actually call msvbvm60 (or any other DLL).") ]
 Public Declare PtrSafe Function PutMem4 Lib "msvbvm60.dll" (pDst As Any, ByVal v As Long) As Long 'THIS IS REDIRECTED TO A TWINBASIC INTERNAL IMPLEMENTATION
-[ Description("NOTE: twinBASIC patches this to an internal implementation, it will not actually call msvbvm60 (or any other DLL).") ]
+[ Description("📝**NOTE:** twinBASIC patches this to an internal implementation, it will not actually call msvbvm60 (or any other DLL).") ]
 Public Declare PtrSafe Function PutMem8 Lib "msvbvm60.dll" (pDst As Any, ByVal v As LongLong) As Long 'THIS IS REDIRECTED TO A TWINBASIC INTERNAL IMPLEMENTATION
 #If Win64 Then
-[ Description("NOTE: twinBASIC patches this to an internal implementation, it will not actually call msvbvm60 (or any other DLL).") ]
+[ Description("📝**NOTE:** twinBASIC patches this to an internal implementation, it will not actually call msvbvm60 (or any other DLL).") ]
 Public Declare PtrSafe Function PutMemPtr Lib "msvbvm60.dll" Alias "PutMem8" (pDst As Any, ByVal v As LongLong) As Long 'THIS IS REDIRECTED TO A TWINBASIC INTERNAL IMPLEMENTATION
 #Else
-[ Description("NOTE: twinBASIC patches this to an internal implementation, it will not actually call msvbvm60 (or any other DLL).") ]
+[ Description("📝**NOTE:** twinBASIC patches this to an internal implementation, it will not actually call msvbvm60 (or any other DLL).") ]
 Public Declare PtrSafe Function PutMemPtr Lib "msvbvm60.dll" Alias "PutMem4" (pDst As Any, ByVal v As Long) As Long 'THIS IS REDIRECTED TO A TWINBASIC INTERNAL IMPLEMENTATION
 #End If
 #End Region
@@ -44701,6 +45496,14 @@ Public Enum CtlBufferPassMethod
 	METHOD_IN_DIRECT  = 1
 	METHOD_OUT_DIRECT  = 2
 	METHOD_NEITHER  = 3
+    METHOD_DIRECT_TO_HARDWARE     =  METHOD_IN_DIRECT
+    METHOD_DIRECT_FROM_HARDWARE   =  METHOD_OUT_DIRECT
+End Enum
+Public Enum DEVICE_FILE_ACCESS
+    FILE_ANY_ACCESS  = 0
+    FILE_SPECIAL_ACCESS  = (FILE_ANY_ACCESS)
+    FILE_READ_ACCESS  = ( &H0001 )  ' file & pipe
+    FILE_WRITE_ACCESS  = ( &H0002 )  ' file & pipe
 End Enum
 
 Public Function SUCCEEDED(hr As Long) As Boolean
@@ -44711,28 +45514,28 @@ Private Function NT_SUCCESS(ByVal Status As Long) As Boolean
 End Function
 
 Public Function MAKEINTRESOURCE(ByVal dwVal As Long) As Long
-   MAKEINTRESOURCE = &HFFFF& And dwVal
+   Return &HFFFF& And dwVal
 End Function
 
 Public Function MAKELPARAM(wLow As Long, wHigh As Long) As LongPtr
-  Return MakeLong(wLow, wHigh)
+    Return MakeLong(wLow, wHigh)
 End Function
 Public Function MAKELONG(wLow As Long, wHigh As Long) As Long
-  MakeLong = LoWord(wLow) Or (&H10000 * LoWord(wHigh))
+    Return LoWord(wLow) Or (&H10000 * LoWord(wHigh))
 End Function
 Public Function MAKEDWORD(ByVal LoWord As Integer, ByVal HiWord As Integer) As Long
-MakeDWord = (CLng(HiWord) * &H10000) Or (LoWord And &HFFFF&)
+    Return (CLng(HiWord) * &H10000) Or (LoWord And &HFFFF&)
 End Function
 Public Function INDEXTOSTATEIMAGEMASK(ByVal Index As Long) As Long
 #If TWINBASIC Then
-INDEXTOSTATEIMAGEMASK = (Index << 12)
+Return (Index << 12)
 #Else
 INDEXTOSTATEIMAGEMASK = Index * (2 ^ 12)    
 #End If
 End Function
 Public Function STATEIMAGEMASKTOINDEX(ByVal ImgState As Long) As Long
 #If TWINBASIC Then
-STATEIMAGEMASKTOINDEX = (ImgState >> 12)
+Return (ImgState >> 12)
 #Else
 STATEIMAGEMASKTOINDEX = ImgState / (2 ^ 12)    
 #End If
@@ -44740,27 +45543,27 @@ End Function
 
 Public Function LOWORD(ByVal DWord As Long) As Integer
 If DWord And &H8000& Then
-    LoWord = DWord Or &HFFFF0000
+    Return DWord Or &HFFFF0000
 Else
-    LoWord = DWord And &HFFFF&
+    Return DWord And &HFFFF&
 End If
 End Function
 Public Function HIWORD(ByVal DWord As Long) As Integer
-HiWord = (DWord And &HFFFF0000) \ &H10000
+Return (DWord And &HFFFF0000) \ &H10000
 End Function
 
 Public Function LOBYTE(ByVal Word As Integer) As Byte
-LoByte = Word And &HFF
+    Return Word And &HFF
 End Function
 Public Function HIBYTE(ByVal Word As Integer) As Byte
-HiByte = (Word And &HFF00&) \ &H100
+    Return (Word And &HFF00&) \ &H100
 End Function
 
 Public Function MAKEWORD(ByVal LoByte As Byte, ByVal HiByte As Byte) As Integer
 If (HiByte And &H80) <> 0 Then
-    MakeWord = ((HiByte * &H100&) Or LoByte) Or &HFFFF0000
+    Return ((HiByte * &H100&) Or LoByte) Or &HFFFF0000
 Else
-    MakeWord = (HiByte * &H100) Or LoByte
+    Return (HiByte * &H100) Or LoByte
 End If
 End Function
 
@@ -44817,14 +45620,14 @@ End Function
 
 Public Function MAKEIPRANGE(ByVal Low As Byte, ByVal High As Byte) As Integer
 If (High And &H80) <> 0 Then
-    MAKEIPRANGE = ((High * &H100&) Or Low) Or &HFFFF0000
+    Return ((High * &H100&) Or Low) Or &HFFFF0000
 Else
-    MAKEIPRANGE = (High * &H100) Or Low
+    Return (High * &H100) Or Low
 End If
 End Function
 
 Public Function MAKEIPADDRESS(ByVal b1 As Long, ByVal b2 As Long, ByVal b3 As Long, ByVal b4 As Long) As Long
-MAKEIPADDRESS = ((b1 << 24) + (b2 << 16) + (b3 << 8) + b4)
+    Return ((b1 << 24) + (b2 << 16) + (b3 << 8) + b4)
 End Function
 
 /*
@@ -44887,7 +45690,7 @@ Public Function UtfToANSI(sIn As String) As String
 End Function
 
 [ ConstantFoldable ]
-Public Function CTL_CODE(ByVal DeviceType As DEVICE_TYPE, ByVal lFunction As Long, [ TypeHint(CtlBufferPassMethod) ] ByVal Method As Long, ByVal Access As Long) As Long
+Public Function CTL_CODE(ByVal DeviceType As DEVICE_TYPE, ByVal lFunction As Long, [ TypeHint (CtlBufferPassMethod) ] ByVal Method As Long, [ TypeHint (DEVICE_FILE_ACCESS, FileAccessRights) ] ByVal Access As Long) As Long
    CTL_CODE = ((DeviceType) << 16) Or ((Access) << 14) Or ((lFunction) << 2) Or (Method)
 End Function
 
@@ -44939,7 +45742,7 @@ Public Function InitPropVariantFromString(psz As String, ppropvar As Variant) As
     Return S_OK
 End Function
 
-[ Description ("Sets a Variant to the specified type without any alteration to the data. vtOnlyIf raises an error if the original type is other than specified. WARNING: Many data formats are incompatible, use VariantChangeType absent specific need....") ]
+[ Description ("Sets a Variant to the specified type without any alteration to the data. vtOnlyIf raises an error if the original type is other than specified.  " & vbCrLf & "WARNING: Many data formats are incompatible, use VariantChangeType absent specific need....") ]
 Public Function VariantSetType(pvar As Variant, [ TypeHint (VARENUM) ] ByVal vt As Integer, [ TypeHint (VARENUM) ] Optional ByVal vtOnlyIf As Integer = -1) As Boolean
     If VarPtr(pvar) = 0 Then Return False
     If vtOnlyIf <> -1 Then
