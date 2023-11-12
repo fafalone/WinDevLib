@@ -1,5 +1,16 @@
 
-**Update (v6.3.250):**
+**Update (v6.3.252, 11 Nov 2023):**
+-Expanded bcrypt coverage
+-Added RegisterDeviceChangeNotification and the numerous assorted consts/types (dbt.h, 100% coverage)
+-Added DISP_E_* and TYPE_E_* error messages w/ descriptions. Added additional errors and descriptions for several original oleexp error sets.
+-The WBIDM enum that was full of IDM_* values has had the values changed to WBIDM_*. IDM_ is the standard prefix for menu resources, so these would often conflict with projects not using the same resource id, and the ids here are for Win9x legacy content.
+-All the fairly useless system info UDTs and an actually useful one, SYSTEM_PROCESS_ID_INFORMATION was missing.
+-Additional shell32 APIs
+-(Bug fix) Helper function NT_SUCCESS was improperly Private
+-(Bug fix) SetupDiGetClassDevPropertySheets[W] definitions incorrect
+
+
+**Update (v6.3.250, 5 Nov 2023):**
 -Added Credential Provider interfaces from credentialprovider.h
 -Added missing TlHelp32.h APIs/structs, now covered 100%. 
 -Added several types/enums related to things already in project.
@@ -73,6 +84,7 @@ LoadBitmap[A,W]
 ModifyMenu
 InsertMenu
 
+StgMakeUniqueName
 
 **Update (v6.1.229):** Bug fix: A number of APIs had missing 'As <type>` statements, which were upgraded to errors. tB had previosly not caught these.
 
