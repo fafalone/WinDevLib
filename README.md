@@ -2,11 +2,11 @@
 ## twinBASIC Shell Library
 
 ### Big News!
-**As of the [twinBASIC version Beta 368 and newer](https://github.com/twinbasic/twinbasic/releases),, massive improvements to Intellisense mean that tbShellLib is vastly more usable, with no long delays. Intellisense is now cached and lag-free.** Thanks to Wayne for tackling this issue and continuing to make twinBASIC the programming tool of the future 👍
+**As of the [twinBASIC version Beta 368 and newer](https://github.com/twinbasic/twinbasic/releases), massive improvements to Intellisense mean that tbShellLib is vastly more usable, with no long delays. Intellisense is now cached and lag-free.** Thanks to Wayne for tackling this issue and continuing to make twinBASIC the programming tool of the future 👍
 
 ---
 
-**Current Version: 6.3.250 (November 5th, 2023)**
+**Current Version: 6.3.252 (November 11th, 2023)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -123,7 +123,17 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, vbNullPtr, ...)
 
 ### Updates
 
-**Update (v6.3.250):**\
+**Update (v6.3.252, 11 Nov 2023):**\
+-Expanded bcrypt coverage\
+-Added RegisterDeviceChangeNotification and the numerous assorted consts/types (dbt.h, 100% coverage)\
+-Added DISP_E_* and TYPE_E_* error messages w/ descriptions. Added additional errors and descriptions for several original oleexp error sets.\
+-The WBIDM enum that was full of IDM_* values has had the values changed to WBIDM_*. IDM_ is the standard prefix for menu resources, so these would often conflict with projects not using the same resource id, and the ids here are for Win9x legacy content.\
+-All the fairly useless system info UDTs and an actually useful one, SYSTEM_PROCESS_ID_INFORMATION was missing.\
+-Additional shell32 APIs\
+-(Bug fix) Helper function NT_SUCCESS was improperly Private\
+-(Bug fix) SetupDiGetClassDevPropertySheets[W] definitions incorrect
+
+**Update (v6.3.250, 5 Nov 2023):**\
 -Added Credential Provider interfaces from credentialprovider.h\
 -Added missing TlHelp32.h APIs/structs, now covered 100%.\
 -Added several types/enums related to things already in project.\
