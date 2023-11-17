@@ -7095,7 +7095,7 @@ Public Declare PtrSafe Sub LeaveCriticalSection Lib "kernel32" (lpCriticalSectio
 Public Declare PtrSafe Sub DeleteCriticalSection Lib "kernel32" (lpCriticalSection As CRITICAL_SECTION)
 Public Declare PtrSafe Function DuplicateHandle Lib "kernel32" (ByVal hSourceProcessHandle As LongPtr, ByVal hSourceHandle As LongPtr, ByVal hTargetProcessHandle As LongPtr, lpTargetHandle As LongPtr, ByVal dwDesiredAccess As Long, ByVal bInheritHandle As Long, ByVal dwOptions As Long) As Long
 Public Declare PtrSafe Function FormatMessageW Lib "kernel32" (ByVal dwFlags As FormatMessageFlags, lpSource As Any, ByVal dwMessageId As Long, ByVal dwLanguageId As Long, ByVal lpBuffer As LongPtr, ByVal nSize As Long, Arguments As LongPtr) As Long
-Public DeclareWide PtrSafe Function FormatMessage Lib "kernel32" Alias "FormatMessageW" (ByVal dwFlags As FormatMessageFlags, lpSource As Any, ByVal dwMessageId As Long, ByVal dwLanguageId As Long, ByVal lpBuffer As LongPtr, ByVal nSize As Long, Arguments As LongPtr) As Long
+Public DeclareWide PtrSafe Function FormatMessage Lib "kernel32" Alias "FormatMessageW" (ByVal dwFlags As FormatMessageFlags, lpSource As Any, ByVal dwMessageId As Long, ByVal dwLanguageId As Long, ByVal lpBuffer As String, ByVal nSize As Long, Arguments As LongPtr) As Long
 Public DeclareWide PtrSafe Function GetCurrentProcessId Lib "kernel32" () As Long
 Public Declare PtrSafe Function GetCurrentThreadId Lib "kernel32" () As Long
 Public Declare PtrSafe Function GetCurrentThread Lib "kernel32" () As LongPtr
@@ -10426,9 +10426,9 @@ Public Const IMAGE_ARCHIVE_START_SIZE  = 8
 Public Const IMAGE_ARCHIVE_START  = "!<arch>\n"
 Public Const IMAGE_ARCHIVE_END  = "`\n"
 Public Const IMAGE_ARCHIVE_PAD  = "\n"
-Public Const IMAGE_ARCHIVE_LINKER_MEMBER  = "/ "
-Public Const IMAGE_ARCHIVE_LONGNAMES_MEMBER  = " '              "
-Public Const IMAGE_ARCHIVE_HYBRIDMAP_MEMBER  = "/<HYBRIDMAP>/ "
+Public Const IMAGE_ARCHIVE_LINKER_MEMBER  = "/               "
+Public Const IMAGE_ARCHIVE_LONGNAMES_MEMBER  = "//              "
+Public Const IMAGE_ARCHIVE_HYBRIDMAP_MEMBER  = "/<HYBRIDMAP>/   "
 
 Public Type IMAGE_ARCHIVE_MEMBER_HEADER
     Name(0 To 15) As BYTE ' File member name - `/' terminated.
@@ -10656,7 +10656,7 @@ Public Type IMAGE_BOUND_FORWARDER_REF
 End Type
 Public Type IMAGE_IMPORT_BY_NAME
     Hint As Integer
-    Name(0 To 0) As Byte
+    Name(0 To 99) As Byte
 End Type
 
 Public Const IMAGE_NUMBEROF_DIRECTORY_ENTRIES   = 16
@@ -10780,8 +10780,8 @@ Public Type IMAGE_OPTIONAL_HEADER32
     SizeOfImage As Long
     SizeOfHeaders As Long
     CheckSum As Long
-    Subsystem As Integer
-    DllCharacteristics As Integer
+    /* [ TypeHint(ImageSubsystemType) ] */ Subsystem As Integer
+    /* [ TypeHint(ImageDllCharacteristics) ] */ DllCharacteristics As Integer
     SizeOfStackReserve As Long
     SizeOfStackCommit As Long
     SizeOfHeapReserve As Long
@@ -10815,8 +10815,8 @@ Public Type IMAGE_OPTIONAL_HEADER64
     SizeOfImage As Long
     SizeOfHeaders As Long
     CheckSum As Long
-    Subsystem As Integer
-    DllCharacteristics As Integer
+    /* [ TypeHint(ImageSubsystemType) ] */ Subsystem As Integer
+    /* [ TypeHint(ImageDllCharacteristics) ] */ DllCharacteristics As Integer
     SizeOfStackReserve As LongLong
     SizeOfStackCommit As LongLong
     SizeOfHeapReserve As LongLong
@@ -10915,10 +10915,10 @@ Public Type IMAGE_SECTION_HEADER
 	PointerToLinenumbers As Long
 	NumberOfRelocations As Integer
 	NumberOfLinenumbers As Integer
-	Characteristics As Long
+	Characteristics As ImageSectionCharacteristics
 End Type
 
-Public Enum ImageSymbolCharacteristics
+Public Enum ImageSectionCharacteristics
 	IMAGE_SCN_TYPE_REG  = &H00000000  ' Reserved.
 	IMAGE_SCN_TYPE_DSECT  = &H00000001  ' Reserved.
 	IMAGE_SCN_TYPE_NOLOAD  = &H00000002  ' Reserved.
@@ -11055,8 +11055,8 @@ Public Type IMAGE_SYMBOL
     N(7) As Byte
     Value As Long
     SectionNumber As Integer
-    Type As Integer
-    StorageClass As BYTE
+    /* [ TypeHint(IMAGE_SYM_TYPE_DERIVED) ] */ Type As Integer
+    /* [ TypeHint(IMAGE_STORAGE_CLASS) ] */ StorageClass As BYTE
     NumberOfAuxSymbols As BYTE
 End Type
 Public Type IMAGE_SYMBOL_EX
@@ -11071,8 +11071,8 @@ Public Type IMAGE_SYMBOL_EX
     N(7) As Byte
     Value As Long
     SectionNumber As Long
-    Type As Integer
-    StorageClass As BYTE
+    /* [ TypeHint(IMAGE_SYM_TYPE_DERIVED) ] */ Type As Integer
+    /* [ TypeHint(IMAGE_STORAGE_CLASS) ] */ StorageClass As BYTE
     NumberOfAuxSymbols As BYTE
 End Type
 
@@ -13874,6 +13874,30 @@ Public Type PEB_LDR_DATA
     ShutdownThreadId As LongPtr
 End Type
 
+Public Enum IrpFlags
+    IRP_NOCACHE = &H1
+    IRP_PAGING_IO = &H2
+    IRP_MOUNT_COMPLETION = &H2
+    IRP_SYNCHRONOUS_API = &H4
+    IRP_ASSOCIATED_IRP = &H8
+    IRP_BUFFERED_IO = &H10
+    IRP_DEALLOCATE_BUFFER = &H20
+    IRP_INPUT_OPERATION = &H40
+    IRP_SYNCHRONOUS_PAGING_IO = &H40
+    IRP_CREATE_OPERATION = &H80
+    IRP_READ_OPERATION = &H100
+    IRP_WRITE_OPERATION = &H200
+    IRP_CLOSE_OPERATION = &H400
+    IRP_DEFER_IO_COMPLETION = &H800
+    IRP_OB_QUERY_NAME = &H1000
+    IRP_HOLD_DEVICE_QUEUE = &H2000
+'  Define I/O request packet (IRP) alternate flags for allocation control.
+    IRP_QUOTA_CHARGED = &H1
+    IRP_ALLOCATED_MUST_SUCCEED = &H2
+    IRP_ALLOCATED_FIXED_SIZE = &H4
+    IRP_LOOKASIDE_ALLOCATION = &H8
+End Enum
+
 Public Enum LDR_DATA_TABLE_FLAGS
     LDRP_STATIC_LINK  = &H00000002  ' ntdll
     LDRP_IMAGE_DLL  = &H00000004  ' ntdll
@@ -14384,6 +14408,15 @@ Public Enum PS_PROTECTED_SIGNER
     PsProtectedSignerMax          = &B01110000
 End Enum
 
+Public Type RTL_MODULE_BASIC_INFO
+    ImageBase As LongPtr
+End Type
+Public Type RTL_MODULE_EXTENDED_INFO
+    BasicInfo As RTL_MODULE_BASIC_INFO
+    ImageSize As Long
+    FileNameOffset As Integer
+    FullPathName(0 To 255) As Byte
+End Type
 
 
 'NTDLL APIs should only be added if they don't have higher level equivalents. If the NTDLL version has substantially more functionality, it's not equivalent and should be added.
@@ -14450,12 +14483,14 @@ Public Declare PtrSafe Sub RtlReleasePebLock Lib "ntdll" ()
 Public Declare PtrSafe Function RtlNtStatusToDosError Lib "ntdll" (ByVal ntStatus As NTSTATUS) As Long
 [Description("Generates a uniform random number using D.H. Lehmer's 1948 algorithm.")]
 Public Declare PtrSafe Function RtlUniform Lib "ntdll" (Seed As Long) As Long
-Public Declare PtrSafe Function RtlImageNtHeader Lib "ntdll" (ByVal ModuleBase as LongPtr) As IMAGE_NT_HEADERS
-Public Declare PtrSafe Function RtlImageRvaToVa Lib "ntdll" (ByVal NtHeaders As LongPtr, ByVal ModuleBase as LongPtr, ByVal Rva As Long, pLastSection As IMAGE_SECTION_HEADER) As LongPtr
+Public Declare PtrSafe Function RtlImageNtHeader Lib "ntdll" (ByVal ModuleBase As LongPtr) As LongPtr
+Public Declare PtrSafe Function RtlImageRvaToVa Lib "ntdll" (ByVal NtHeaders As LongPtr, ByVal ModuleBase As LongPtr, ByVal Rva As Long, pLastSection As IMAGE_SECTION_HEADER) As LongPtr
+Public Declare PtrSafe Function RtlImageRvaToSection Lib "ntdll" (nt As IMAGE_NT_HEADERS, ByVal BaseAddress As LongPtr, ByVal rva As Long) As LongPtr
+Public Declare PtrSafe Function RtlImageDirectoryEntryToData Lib "ntdll" (ByVal BaseAddress As LongPtr, ByVal MappedAsImage As Byte, [ TypeHint (ImageDirectories) ] ByVal Directory As Integer, size As Long) As LongPtr
 Public Declare PtrSafe Function RtlGetNtGlobalFlags Lib "ntdll" () As NTGLB_Flags
 Public Declare PtrSafe Function RtlAllocateHeap Lib "ntdll" (ByVal HeapHandle As LongPtr, ByVal Flags As HeapFlags, ByVal Size As LongPtr) As LongPtr
 Public Declare PtrSafe Function RtlCreateHeap Lib "ntdll" (ByVal Flags As HeapFlags, ByVal HeapBase As LongPtr, ByVal ReserveSize As LongPtr, ByVal CommitSize As LongPtr, ByVal Lock As LongPtr, Parameters As RTL_HEAP_PARAMETERS) As LongPtr
-Public Declare PtrSafe Function RtlFreeHeapp Lib "ntdll" (ByVal HeapHandle As LongPtr, ByVal Flags As HeapFlags, ByVal BaseAddress As LongPtr) As Long
+Public Declare PtrSafe Function RtlFreeHeap Lib "ntdll" (ByVal HeapHandle As LongPtr, ByVal Flags As HeapFlags, ByVal BaseAddress As LongPtr) As Long
 Public Declare PtrSafe Function RtlDestroyHeap Lib "ntdll" (ByVal HeapHandle As LongPtr) As LongPtr
 Public Declare PtrSafe Function RtlCreateProcessParametersEx Lib "ntdll" (pProcessParameters As Any, ImagePathName As UNICODE_STRING, DllPath As UNICODE_STRING, CurrentDirectory As UNICODE_STRING, CommandLine As UNICODE_STRING, _
                                                Environment As Any, WindowTitle As UNICODE_STRING, DesktopInfo As UNICODE_STRING, ShellInfo As UNICODE_STRING, RuntimeData As UNICODE_STRING, ByVal Flags As RTL_UPP_FLAGS) As NTSTATUS
@@ -14463,7 +14498,7 @@ Public Declare PtrSafe Function RtlCreateProcessParameters Lib "ntdll" (pProcess
                                                ByVal Environment As LongPtr, WindowTitle As UNICODE_STRING, DesktopInfo As UNICODE_STRING, ShellInfo As UNICODE_STRING, RuntimeData As UNICODE_STRING) As NTSTATUS
 Public Declare PtrSafe Function RtlCreateEnvironment Lib "ntdll" (ByVal bInherit As Byte, Environment As LongPtr) As NTSTATUS
 Public Declare PtrSafe Function RtlDestroyProcessParameters Lib "ntdll" (pProcessParameters As Any) As NTSTATUS
-
+Public Declare PtrSafe Function RtlQueryModuleInformation Lib "ntdll" (InformationLength As Long, ByVal SizePerModule As Long, InformationBuffer As Any) As NTSTATUS
 Public Declare PtrSafe Function RtlIpv4AddressToStringA Lib "ntdll" (Addr As in_addr, ByVal s As String) As LongPtr
 Public Declare PtrSafe Function RtlIpv4AddressToStringW Lib "ntdll" (Addr As in_addr, ByVal s As LongPtr) As LongPtr
 Public DeclareWide PtrSafe Function RtlIpv4AddressToString Lib "ntdll" Alias "RtlIpv4AddressToStringW" (Addr As in_addr, ByVal s As String) As LongPtr
@@ -14657,7 +14692,8 @@ End Enum
 
 
 
-Public Declare PtrSafe Function CoCreateInstance Lib "ole32" (rclsid As Any, ByVal pUnkOuter As LongPtr, ByVal dwClsContext As CLSCTX, riid As Any, pvarResult As Any) As Long
+' Public Declare PtrSafe Function CoCreateInstance Lib "ole32" (rclsid As Any, ByVal pUnkOuter As LongPtr, ByVal dwClsContext As CLSCTX, riid As Any, pvarResult As Any) As Long
+Public Declare PtrSafe Function CoCreateInstance Lib "ole32" (ByRef clsid As UUID, ByVal pUnkOuter As stdole.IUnknown, ByVal dwClsContext As CLSCTX, ByRef iid As UUID, ByRef ppv As Any) As Long
 Public Declare PtrSafe Sub CoTaskMemFree Lib "ole32" (ByVal pv As LongPtr)
 Public Declare PtrSafe Function OleRegEnumFormatEtc Lib "ole32" (clsid As UUID, ByVal dwDirection As DATADIR, ppenum As IEnumFormatETC) As Long
 Public Declare PtrSafe Function StgOpenStorageEx Lib "ole32" (ByVal pwcsName As LongPtr, ByVal grfMode As STGM, ByVal stgfmt As STGFMT, ByVal grfAttrs As Long, pStgOptions As STGOPTIONS, ByVal reserved2 As LongPtr, riid As UUID, ppObjectOpen As Any) As Long
@@ -14725,7 +14761,6 @@ Public Declare PtrSafe Sub CoUninitialize Lib "ole32" ()
 Public Declare PtrSafe Function vbCoInitialize Lib "ole32" Alias "CoInitialize" (ByRef pvReserved As Any) As Long
 Public Declare PtrSafe Sub vbCoUninitialize Lib "ole32" Alias "CoUninitialize" ()
 Public Declare PtrSafe Function CoGetMalloc Lib "ole32" (ByVal dwMemContext As MEMCTX, ppMalloc As IMalloc) As Long
-Public Declare PtrSafe Function CoCreateInstance Lib "ole32" (ByRef clsid As UUID, ByVal pUnkOuter As stdole.IUnknown, ByVal dwClsContext As CLSCTX, ByRef iid As UUID, ByRef ppv As Any) As Long
 Public Declare PtrSafe Function CoCreateInstanceEx Lib "ole32" (ByRef clsid As UUID, ByVal pUnkOuter As stdole.IUnknown, ByVal dwClsContext As CLSCTX, pServerInfo As COSERVERINFO, ByVal dwCount As Long, pResults As MULTI_QI) As Long
 Public Declare PtrSafe Function CoGetCurrentProcess Lib "ole32" () As Long
 Public Declare PtrSafe Function CoCreateStandardMalloc Lib "ole32" (ByVal MEMCTX As MEMCTX, ppMalloc As IMalloc) As Long
@@ -14870,7 +14905,7 @@ End Enum
 
 Public Type PARAMDATA
     szName As LongPtr '/ parameter name
-    vt As Integer      '  / parameter type [ TypeHint (DispatchTypes) ] ByVal wFlags As Integer
+    /* [ TypeHint (VARENUM) ] */ vt As Integer      '  / parameter type 
 End Type
  
 Public Type METHODDATA
@@ -14881,10 +14916,8 @@ Public Type METHODDATA
     iMeth As Long
     cc As CALLCONV
     cArgs As Long
-    '[ TypeHint (DispatchTypes) ] 
-    wFlags As Integer
-    '[ TypeHint (VARENUM) ]
-    vtReturn As Integer
+    /* [ TypeHint (DispatchTypes) ] */ wFlags As Integer
+    /* [ TypeHint (VARENUM) ] */ vtReturn As Integer
 End Type
 
 [Description("Takes a pointer to an array of METHODDATA and a count of the array.") ]
@@ -14894,6 +14927,9 @@ Public Type INTERFACEDATA
 End Type
         
 Public Declare PtrSafe Function DispCallFunc Lib "oleaut32" (ByRef pvInstance As Any, ByVal oVft As LongPtr, ByVal cc As CALLCONV, [ TypeHint (VARENUM) ] ByVal vtReturn As Integer, ByVal cActuals As Long, ByRef prgvt As Any, ByRef prgpvarg As Any, ByRef pvargResult As Any) As Long
+Public Declare PtrSafe Function DispGetParam Lib "oleaut32" (ByRef pDispParams As DISPPARAMS, ByVal position As Long, ByVal vtTarg As Integer, ByRef pVarResult As Variant, ByRef puArgErr As Long) As Long
+Public DeclareWide PtrSafe Function DispGetIDsOfNames Lib "oleaut32" (ByVal pTInfo As ITypeInfo, ByRef rgszNames As String, ByVal cNames As Long, ByRef rgdispid As Long) As Long
+Public Declare PtrSafe Function DispInvoke Lib "oleaut32" (ByRef this As Any, ByVal pTInfo As ITypeInfo, ByVal dispidMember As Long, ByVal wFlags As Integer, ByRef pparams As DISPPARAMS, ByRef pVarResult As Variant, ByRef pExcepInfo As EXCEPINFO, ByRef puArgErr As Long) As Long
 Public Declare PtrSafe Function SystemTimeToVariantTime Lib "oleaut32" (ByRef lpSystemTime As SYSTEMTIME, ByRef pvtime As Double) As Long
 Public Declare PtrSafe Function VariantTimeToSystemTime Lib "oleaut32" (ByVal vtime As Double, ByRef lpSystemTime As SYSTEMTIME) As Long
 Public Declare PtrSafe Function DosDateTimeToVariantTime Lib "oleaut32" (ByVal wDosDate As Integer, ByVal wDosTime As Integer, ByRef pvtime As Double) As Long
@@ -14901,6 +14937,7 @@ Public Declare PtrSafe Function VariantTimeToDosDateTime Lib "oleaut32" (ByVal v
 
 Public DeclareWide PtrSafe Function LHashValOfName Lib "oleaut32" (ByVal lcid As Long, ByVal szName As String) As Long
 Public DeclareWide PtrSafe Function LHashValOfNameSys Lib "oleaut32" (ByVal SYSKIND As SYSKIND, ByVal lcid As Long, ByVal szName As String) As Long
+Public Declare PtrSafe Function LHashValOfNameSysA Lib "oleaut32" (ByVal SYSKIND As SYSKIND, ByVal lcid As Long, ByVal szName As String) As Long
 Public DeclareWide PtrSafe Function RegisterTypeLib Lib "oleaut32" (ByVal ptlib As ITypeLib, ByVal szFullPath As String, ByVal szHelpDir As String) As Long
 Public Declare PtrSafe Function UnRegisterTypeLib Lib "oleaut32" (ByRef libID As UUID, ByVal wVerMajor As Integer, ByVal wVerMinor As Integer, ByVal lcid As Long, ByVal SYSKIND As SYSKIND) as Long
 Public DeclareWide PtrSafe Function RegisterTypeLibForUser Lib "oleaut32" (ByVal ptlib As ITypeLib, ByVal szFullPath As String, ByVal szHelpDir As String) As Long
@@ -14912,7 +14949,7 @@ Public DeclareWide PtrSafe Function LoadTypeLibEx Lib "oleaut32" (ByVal szFile A
 Public DeclareWide PtrSafe Function LoadTypeLib Lib "oleaut32" (ByVal szFile As String, pptlib As ITypeLib) As Long
 Public DeclareWide PtrSafe Function QueryPathOfRegTypeLib Lib "oleaut32" (ByRef guid As UUID, ByVal wVerMajor As Integer, ByVal wVerMinor As Integer, ByVal lcid As Long, lpbstrPathName As String) As Long
 Public DeclareWide PtrSafe Function CreateDispTypeInfo Lib "oleaut32" (pidata As INTERFACEDATA, ByVal lcid As Long, pptinfo As ITypeInfo) As Long
-
+Public DeclareWide PtrSafe Sub ClearCustData Lib "oleaut32" (pCustData As CUSTDATA)
 
 
 Public DeclareWide PtrSafe Function SysAllocString Lib "oleaut32" (ByVal pStr As Long) As String
@@ -14932,6 +14969,7 @@ Public DeclareWide PtrSafe Sub SysFreeString Lib "oleaut32" (ByRef bstr As Strin
 Public DeclareWide PtrSafe Function SysStringLen Lib "oleaut32" (ByVal str As String) As Long
 Public DeclareWide PtrSafe Function SysStringByteLen Lib "oleaut32" (ByVal bstr As String) As Long
 Public DeclareWide PtrSafe Function SysAllocStringByteLen Lib "oleaut32" (ByRef psz As Any, ByVal len As Long) As String
+Public DeclareWide PtrSafe Function SysAddRefString Lib "oleaut32" (ByVal bstr As String) As Long
 Public Declare PtrSafe Function VarR8Round Lib "oleaut32" (ByVal dblIn As Double, ByVal cDecimals As Long, pdblResult As Double) As Long
 Public Declare PtrSafe Function GetAltMonthNames Lib "oleaut32" (ByVal lcid As Long, ByRef prgp As LongPtr) As Long
 Public DeclareWide PtrSafe Function VarFormat Lib "oleaut32" (ByRef pvarIn As Variant, ByVal pstrFormat As String, ByVal iFirstDay As Long, ByVal iFirstWeek As Long, ByVal dwFlags As VARFORMAT_FLAGS, pbstrOut As String) As Long
@@ -14943,9 +14981,6 @@ Public Declare PtrSafe Function VarWeekdayName Lib "oleaut32" (ByVal iWeekday As
 Public Declare PtrSafe Function VarMonthName Lib "oleaut32" (ByVal iMonth As Long, ByVal fAbbrev As Long, ByVal dwFlags As VARFORMAT_FLAGS, pbstrOut As String) As Long
 Public DeclareWide PtrSafe Function VarFormatFromTokens Lib "oleaut32" (ByRef pvarIn As Variant, ByVal pstrFormat As String, ByRef pbTokCur As Any, ByVal dwFlags As VARFORMAT_FLAGS, ByRef pbstrOut As String, ByVal lcid As Long) As Long
 Public DeclareWide PtrSafe Function VarTokenizeFormatString Lib "oleaut32" (ByVal pstrFormat As String, ByRef rgbTok As Any, ByVal cbTok As Long, ByVal iFirstDay As Long, ByVal iFirstWeek As Long, ByVal lcid As Long, Optional ByRef pcbActual As Long = 0) As Long
-Public Declare PtrSafe Function DispGetParam Lib "oleaut32" (ByRef pDispParams As DISPPARAMS, ByVal position As Long, ByVal vtTarg As Integer, ByRef pVarResult As Variant, ByRef puArgErr As Long) As Long
-Public DeclareWide PtrSafe Function DispGetIDsOfNames Lib "oleaut32" (ByVal pTInfo As ITypeInfo, ByRef rgszNames As String, ByVal cNames As Long, ByRef rgdispid As Long) As Long
-Public Declare PtrSafe Function DispInvoke Lib "oleaut32" (ByRef this As Any, ByVal pTInfo As ITypeInfo, ByVal dispidMember As Long, ByVal wFlags As Integer, ByRef pparams As DISPPARAMS, ByRef pVarResult As Variant, ByRef pExcepInfo As EXCEPINFO, ByRef puArgErr As Long) As Long
 Public Declare PtrSafe Function CreateStdDispatch Lib "oleaut32" (ByVal pUnkOuter As stdole.IUnknown, ByRef pvThis As Any, ByVal pTInfo As ITypeInfo, ppunkStdDisp As stdole.IUnknown) As Long
 Public Declare PtrSafe Function RegisterActiveObject Lib "oleaut32" (ByVal pUnk As stdole.IUnknown, ByRef rclsid As UUID, ByVal dwFlags As ACTIVEOBJECTFLAGS, pdwRegister As Long) As Long
 Public Declare PtrSafe Function RevokeActiveObject Lib "oleaut32" (ByVal dwRegister As Long,  ByVal pvReserved As LongPtr) as Long
@@ -15101,7 +15136,7 @@ Public Type WINDOWPOS
     Y As Long
     cx As Long
     cy As Long
-    dwFlags As Long 'SWP_*
+    dwFlags As SWP_Flags 'SWP_*
 End Type
 
 Public Enum LoadResourceFlags
@@ -16608,7 +16643,7 @@ Public Declare PtrSafe Function GetWindowModuleFileNameA Lib "user32" (ByVal hWn
 Public Declare PtrSafe Function GetWindowModuleFileNameW Lib "user32" (ByVal hWnd As LongPtr, ByVal pszFileName As LongPtr, ByVal cchFileNameMax As Long) As Long
 Public DeclareWide PtrSafe Function GetWindowModuleFileName Lib "user32" Alias "GetWindowModuleFileNameW" (ByVal hWnd As LongPtr, ByVal pszFileName As String, ByVal cchFileNameMax As Long) As Long
 
-[Description ("⚠️ **WARNING:** Maps to ANSI version.") ]
+[ Description ("⚠️ **NOTE:** Maps to ANSI version (SendMessageA).") ]
 Public Declare PtrSafe Function SendMessage Lib "user32" Alias "SendMessageA" (ByVal hWnd As LongPtr, ByVal wMsg As Long, ByVal wParam As LongPtr, lParam As Any) As LongPtr
 Public Declare PtrSafe Function SendMessageA Lib "user32" (ByVal hWnd As LongPtr, ByVal wMsg As Long, ByVal wParam As LongPtr, lParam As Any) As LongPtr
 Public DeclareWide PtrSafe Function SendMessageW Lib "user32" (ByVal hWnd As LongPtr, ByVal wMsg As Long, ByVal wParam As LongPtr, lParam As Any) As LongPtr
@@ -16623,7 +16658,7 @@ Public Declare PtrSafe Function SendNotifyMessageA Lib "user32" (ByVal hWnd As L
 Public DeclareWide PtrSafe Function SendNotifyMessageW Lib "user32" (ByVal hWnd As LongPtr, ByVal wMsg As Long, ByVal wParam As LongPtr, lParam As Any) As LongPtr
 Public DeclareWide PtrSafe Function InSendMessage Lib "user32" () As BOOL
 Public DeclareWide PtrSafe Function InSendMessageEx Lib "user32" () As ISMEX_FLAGS
-[Description ("⚠️ **WARNING:** Maps to ANSI version.") ]
+[Description ("⚠️ **NOTE:** Maps to ANSI version (PostMessageA).") ]
 Public DeclareWide PtrSafe Function PostMessage Lib "user32" Alias "PostMessageA" (ByVal hwnd As LongPtr, ByVal wMsg As Long, ByVal wParam As Long, ByRef lParam As Any) As Long
 Public DeclareWide PtrSafe Function PostMessageW Lib "user32" (ByVal hwnd As LongPtr, ByVal wMsg As Long, ByVal wParam As Long, ByRef lParam As Any) As Long
 Public Declare PtrSafe Function PostThreadMessage Lib "user32" (ByVal idThread As Long, ByVal wMsg As Long, ByVal wParam As LongPtr, lParam As Any) As Long
@@ -18843,6 +18878,7 @@ Public Declare PtrSafe Function ShowWindowAsync Lib "user32" (ByVal hWnd As Long
 Public Declare PtrSafe Function TileWindows Lib "user32" (ByVal hwndParent As LongPtr, ByVal wHow As MDITILE_FLAGS, lpRect As RECT, ByVal cKids As Long, lpKids As LongPtr) As Integer
 Public Declare PtrSafe Function CascadeWindows Lib "user32" (ByVal hwndParent As LongPtr, ByVal wHow As MDITILE_FLAGS, lpRect As RECT, ByVal cKids As Long, lpKids As LongPtr) As Integer
 Public Declare PtrSafe Function UpdateWindow Lib "user32" (ByVal hWnd As LongPtr) As Long
+[ Description("Reminder: Use `vbNullPtr` for optional UDTs where you'd have passed 0 or ByVal 0 in VBx.")]
 Public Declare PtrSafe Function RedrawWindow Lib "user32" (ByVal hWnd As LongPtr, lprcUpdate As RECT, ByVal hrgnUpdate As LongPtr, ByVal flags As RDW_Flags) As Long
 Public Declare PtrSafe Function LockWindowUpdate Lib "user32" (ByVal hWndLock As LongPtr) As BOOL
 Public Declare PtrSafe Function AnimateWindow Lib "user32" (ByVal hWnd As LongPtr, ByVal dwTime As Long, ByVal dwFlags As AnimateWindowFlags) As Long
@@ -24953,8 +24989,21 @@ Public DeclareWide PtrSafe Function GetAspectRatioFilterEx Lib "gdi32" (ByVal hD
 
 Public Declare PtrSafe Function SetTextColor Lib "gdi32" (ByVal hDC As LongPtr, ByVal crColor As Long) As Long
 Public Declare PtrSafe Function GetTextColor Lib "gdi32" (ByVal hDC As LongPtr) As Long
-Public Declare PtrSafe Function GetTextExtentPoint32W Lib "gdi32" (ByVal hDC As LongPtr, ByVal lpsz As LongPtr, ByVal cbString As Long, lpSize As SIZE) As Long
-Public DeclareWide PtrSafe Function GetTextExtentPoint32 Lib "gdi32" (ByVal hDC As LongPtr, ByVal lpsz As String, ByVal cbString As Long, lpSize As SIZE) As Long
+[ Description ("**Note**  This function is a Windows 9x compatbility function. Call the GetTextExtentPoint32 function instead, which provides more accurate results.") ]
+Public Declare PtrSafe Function GetTextExtentPointA Lib "gdi32" (ByVal hdc As LongPtr, ByVal lpString As String, ByVal c As Long, ByRef lpsz As SIZE) As BOOL
+[ Description ("**Note**  This function is a Windows 9x compatbility function. Call the GetTextExtentPoint32 function instead, which provides more accurate results.") ]
+Public Declare PtrSafe Function GetTextExtentPointW Lib "gdi32" (ByVal hdc As LongPtr, ByVal lpString As LongPtr, ByVal c As Long, ByRef lpsz As SIZE) As BOOL
+[ Description ("**Note**  This function is a Windows 9x compatbility function. Call the GetTextExtentPoint32 function instead, which provides more accurate results.") ]
+Public DeclareWide PtrSafe Function GetTextExtentPoint Lib "gdi32" Alias "GetTextExtentPointW" (ByVal hdc As LongPtr, ByVal lpString As String, ByVal c As Long, ByRef lpsz As SIZE) As BOOL
+Public Declare PtrSafe Function GetTextExtentExPointA Lib "gdi32" (ByVal hDC As LongPtr, ByVal lpszString As String, ByVal cchString As Long, ByVal nMaxExtent As Long, lpnFit As Long, lpnDx As Long, lpSize As SIZE) As BOOL
+Public Declare PtrSafe Function GetTextExtentExPointW Lib "gdi32" (ByVal hDC As LongPtr, ByVal lpszString As LongPtr, ByVal cchString As Long, ByVal nMaxExtent As Long, lpnFit As Long, lpnDx As Long, lpSize As SIZE) As BOOL
+Public DeclareWide PtrSafe Function GetTextExtentExPoint Lib "gdi32" Alias "GetTextExtentExPointW" (ByVal hDC As LongPtr, ByVal lpszString As String, ByVal cchString As Long, ByVal nMaxExtent As Long, lpnFit As Long, lpnDx As Long, lpSize As SIZE) As BOOL
+Public Declare PtrSafe Function GetTextExtentExPointI Lib "gdi32" (ByVal hDC As LongPtr, lpszString As Integer, ByVal cwchString As Long, ByVal nMaxExtent As Long, lpnFit As Long, lpnDx As Long, lpSize As SIZE) As BOOL
+Public Declare PtrSafe Function GetTextExtentPoint32A Lib "gdi32" (ByVal hDC As LongPtr, ByVal lpsz As String, ByVal cbString As Long, lpSize As SIZE) As BOOL
+Public Declare PtrSafe Function GetTextExtentPoint32W Lib "gdi32" (ByVal hDC As LongPtr, ByVal lpsz As LongPtr, ByVal cbString As Long, lpSize As SIZE) As BOOL
+Public DeclareWide PtrSafe Function GetTextExtentPoint32 Lib "gdi32" Alias "GetTextExtentPoint32W" (ByVal hDC As LongPtr, ByVal lpsz As String, ByVal cbString As Long, lpSize As SIZE) As BOOL
+Public DeclareWide PtrSafe Function GetTextExtentPointI Lib "gdi32" (ByVal hDC As LongPtr, pgiIn As Integer, ByVal cgi As Long, psize As SIZE) As BOOL
+Public Declare PtrSafe Function GetTabbedTextExtentA Lib "user32" (ByVal HDC As LongPtr, ByVal lpString As String, ByVal StringLen As Long, ByVal nTabPositions As Long, ByRef arrayOfPositions As Long) As Long  ' we only pass 1 value to arrayOfPositions, so this definition is OK for our needs    
 Public DeclareWide PtrSafe Function GetTabbedTextExtentW Lib "user32" (ByVal HDC As LongPtr, ByVal lpString As LongPtr, ByVal StringLen As Long, ByVal nTabPositions As Long, ByRef arrayOfPositions As Long) As Long  ' we only pass 1 value to arrayOfPositions, so this definition is OK for our needs    
 Public DeclareWide PtrSafe Function GetTabbedTextExtent Lib "user32" Alias "GetTabbedTextExtentW" (ByVal HDC As LongPtr, ByVal lpString As String, ByVal StringLen As Long, ByVal nTabPositions As Long, ByRef arrayOfPositions As Long) As Long  ' we only pass 1 value to arrayOfPositions, so this definition is OK for our needs    
 Public DeclareWide PtrSafe Function GetTextMetricsW Lib "gdi32" (ByVal hdc As LongPtr, lptm As TEXTMETRICW) As BOOL
@@ -25877,9 +25926,10 @@ Public Type LUID_AND_ATTRIBUTES
     Attributes  As SE_PRIVILEGE_ATTR
 End Type
 
+[ Description("This is buffered to the maximum number of privileges that exist of of 2023; the Privileges member is meant to be a variable C-style array so be mindful that most will be invalid and ensure you only look within the count.")]
 Public Type TOKEN_PRIVILEGES
     PrivilegeCount      As Long
-    Privileges(0 To 1)  As LUID_AND_ATTRIBUTES
+    Privileges(0 To 34)  As LUID_AND_ATTRIBUTES
 End Type
 
 Public Enum TOKEN_TYPE
@@ -28240,7 +28290,39 @@ Public Type PACKEDEVENTINFO
 	ulOffsets(0) As Long 'the offsets from the start of this structure to the EVENTSFORLOGFILE structure
 End Type
 
+Public Enum CRYPT_AT_FLAGS
+    AT_KEYEXCHANGE  = 1
+    AT_SIGNATURE  = 2
+End Enum
+
+Public Enum CRYPT_SIG_FLAGS
+    CRYPT_NOHASHOID  = &H00000001
+    CRYPT_TYPE2_FORMAT = &H00000002  ' Not supported
+    CRYPT_X931_FORMAT  = &H00000004  ' Not supported
+End Enum
+
+#Region "Crypto"
+
+Public Enum CryptExportKeyFlags
+    CRYPT_Y_ONLY  = &H00000001
+    CRYPT_SSL2_FALLBACK = &H00000002
+    CRYPT_DESTROYKEY  = &H00000004
+    CRYPT_OAEP = &H00000040  ' used with RSA encryptions/decryptions
+'  CryptExportKey, CryptImportKey,
+'  CryptEncrypt and CryptDecrypt
+    CRYPT_BLOB_VER3  = &H00000080  ' export version 3 of a blob type
+
+End Enum
+
+Public Declare PtrSafe Function CryptSignHashA Lib "advapi32" (ByVal hHash As LongPtr, ByVal dwKeySpec As CRYPT_AT_FLAGS, ByVal szDescription As String, ByVal dwFlags As CRYPT_SIG_FLAGS, pbSignature As Any, pdwSigLen As Long) As BOOL
+Public Declare PtrSafe Function CryptSignHashW Lib "advapi32" (ByVal hHash As LongPtr, ByVal dwKeySpec As CRYPT_AT_FLAGS, ByVal szDescription As LongPtr, ByVal dwFlags As CRYPT_SIG_FLAGS, pbSignature As Any, pdwSigLen As Long) As BOOL
+Public DeclareWide PtrSafe Function CryptSignHash Lib "advapi32" Alias "CryptSignHashW" (ByVal hHash As LongPtr, ByVal dwKeySpec As CRYPT_AT_FLAGS, ByVal szDescription As String, ByVal dwFlags As CRYPT_SIG_FLAGS, pbSignature As Any, pdwSigLen As Long) As BOOL
+Public Declare PtrSafe Function CryptVerifySignatureA Lib "advapi32" (ByVal hHash As LongPtr, pbSignature As Any, ByVal dwSigLen As Long, ByVal hPubKey As LongPtr, ByVal szDescription As String, ByVal dwFlags As CRYPT_SIG_FLAGS) As BOOL
+Public Declare PtrSafe Function CryptVerifySignatureW Lib "advapi32" (ByVal hHash As LongPtr, pbSignature As Any, ByVal dwSigLen As Long, ByVal hPubKey As LongPtr, ByVal szDescription As LongPtr, ByVal dwFlags As CRYPT_SIG_FLAGS) As BOOL
+Public DeclareWide PtrSafe Function CryptVerifySignature Lib "advapi32" Alias "CryptVerifySignatureW" (ByVal hHash As LongPtr, pbSignature As Any, ByVal dwSigLen As Long, ByVal hPubKey As LongPtr, ByVal szDescription As String, ByVal dwFlags As CRYPT_SIG_FLAGS) As BOOL
+Public Declare PtrSafe Function CryptGetUserKey Lib "advapi32" (ByVal hProv As LongPtr, ByVal dwKeySpec As CRYPT_AT_FLAGS, phUserKey As LongPtr) As BOOL
 Public DeclareWide PtrSafe Function RtlGenRandom Lib "advapi32" Alias "SystemFunction036" (RandomBuffer As Any, ByVal RandomBufferLength As Long) As Long
+Public Declare PtrSafe Function CryptAcquireContextA Lib "advapi32" (hProv As LongPtr, ByVal pszContainer As LongPtr, ByVal pszProvider As LongPtr, ByVal dwProvType As Crypt_Providers, ByVal dwFlags As Crypt_AC_Flags) As BOOL
 Public DeclareWide PtrSafe Function CryptAcquireContext Lib "advapi32" Alias "CryptAcquireContextW" (hProv As LongPtr, ByVal pszContainer As String, ByVal pszProvider As String, ByVal dwProvType As Crypt_Providers, ByVal dwFlags As Crypt_AC_Flags) As BOOL
 Public DeclareWide PtrSafe Function CryptAcquireContextW Lib "advapi32" (hProv As LongPtr, ByVal pszContainer As LongPtr, ByVal pszProvider As LongPtr, ByVal dwProvType As Crypt_Providers, ByVal dwFlags As Crypt_AC_Flags) As BOOL
 Public Declare PtrSafe Function CryptReleaseContext Lib "advapi32" (ByVal hProv As LongPtr, ByVal dwFlags As Long) As BOOL
@@ -28252,8 +28334,18 @@ Public Declare PtrSafe Function CryptHashData Lib "advapi32" (ByVal hHash As Lon
 Public Declare PtrSafe Function CryptGetHashParam Lib "advapi32" (ByVal hHash As LongPtr, ByVal dwParam As CryptHashParams, pbData As Any, ByRef pcbData As Long, ByVal dwFlags As Long) As BOOL
 Public Declare PtrSafe Function CryptSetHashParam Lib "advapi32" (ByVal hHash As LongPtr, ByVal dwParam As CryptHashParams, pbData As Any, ByVal dwFlags As Long) As Long
 Public Declare PtrSafe Function CryptImportKey Lib "advapi32" (ByVal hProv As LongPtr, pbData As Any, ByVal dwDataLen As Long, ByVal hPubKey As LongPtr, ByVal dwFlags As CryptKeyFlags, phKey As LongPtr) As Long
+Public Declare PtrSafe Function CryptExportKey Lib "advapi32" (ByVal hProv As LongPtr, ByVal hExpKey As LongPtr, ByVal dwBlobType As CryptKeyBlobTypes, ByVal dwFlags As CryptExportKeyFlags, pbData As Any, pdwDataLen As Long) As BOOL
 Public Declare PtrSafe Function CryptDeriveKey Lib "advapi32" (ByVal hProv As LongPtr, ByVal Algid As ALG_ID, ByVal hBaseData As LongPtr, ByVal dwFlags As CryptKeyFlags, ByRef phKey As LongPtr) As Long
 Public Declare PtrSafe Function CryptDestroyKey Lib "advapi32" (ByVal hKey As LongPtr) As Long
+Public Declare PtrSafe Function CryptEnumProvidersA Lib "advapi32" (ByVal dwIndex As Long, pdwReserved As Long, ByVal dwFlags As Long, pdwProvType As Crypt_Providers, ByVal szProvName As String, pcbProvName As Long) As BOOL
+Public Declare PtrSafe Function CryptEnumProvidersW Lib "advapi32" (ByVal dwIndex As Long, pdwReserved As Long, ByVal dwFlags As Long, pdwProvType As Crypt_Providers, ByVal szProvName As LongPtr, pcbProvName As Long) As BOOL
+Public DeclareWide PtrSafe Function CryptEnumProviders Lib "advapi32" Alias "CryptEnumProvidersW" (ByVal dwIndex As Long, pdwReserved As Long, ByVal dwFlags As Long, pdwProvType As Crypt_Providers, ByVal szProvName As String, pcbProvName As Long) As BOOL
+Public Declare PtrSafe Function CryptEnumProviderTypesA Lib "advapi32" (ByVal dwIndex As Long, pdwReserved As Long, ByVal dwFlags As Long, pdwProvType As Crypt_Providers, ByVal szTypeName As String, pcbTypeName As Long) As BOOL
+Public Declare PtrSafe Function CryptEnumProviderTypesW Lib "advapi32" (ByVal dwIndex As Long, pdwReserved As Long, ByVal dwFlags As Long, pdwProvType As Crypt_Providers, ByVal szTypeName As LongPtr, pcbTypeName As Long) As BOOL
+Public DeclareWide PtrSafe Function CryptEnumProviderTypes Lib "advapi32" Alias "CryptEnumProviderTypesW" (ByVal dwIndex As Long, pdwReserved As Long, ByVal dwFlags As Long, pdwProvType As Crypt_Providers, ByVal szPrszTypeNameovName As String, pcbTypeName As Long) As BOOL
+
+
+
 Public Declare PtrSafe Function CryptEncrypt Lib "advapi32" _
     (ByVal hKey As LongPtr, ByVal hHash As LongPtr, ByVal Final As BOOL, ByVal dwFlags As Long, _
      pbData As Any, pdwDataLen As Long, ByVal dwBufLen As Long) As BOOL
@@ -28274,11 +28366,9 @@ Public Declare PtrSafe Function CryptGetProvParam Lib "advapi32" _
      ByVal dwFlags As Long) As Long
 
 Public Const CRYPT_DECRYPT_RSA_NO_PADDING_CHECK = &H20
-Public Const CRYPT_OAEP = &H40
 
 
-
-
+#End Region
 
 
 
@@ -43354,6 +43444,10 @@ Public Declare PtrSafe Function ws_gethostname Lib "ws2_32" Alias "gethostname" 
 
 
 #Region "Misc"
+
+Public Declare PtrSafe Function IsNTAdmin Lib "advpack.dll" (ByVal dwReserved As Long, ByRef lpdwReserved As Long) As Long
+
+
 Public Enum BCRYPT_GR_FLAGS
     BCRYPT_RNG_USE_ENTROPY_IN_BUFFER  = &H00000001
     BCRYPT_USE_SYSTEM_PREFERRED_RNG = &H00000002
@@ -43594,6 +43688,158 @@ Public Type BCRYPT_ALGORITHM_IDENTIFIER
     dwFlags As Long
 End Type
 
+Public Const BCRYPT_PUBLIC_KEY_BLOB  = "PUBLICBLOB"
+Public Const BCRYPT_PRIVATE_KEY_BLOB  = "PRIVATEBLOB"
+
+Public Type BCRYPT_KEY_BLOB
+    Magic As Long
+End Type
+
+Public Const BCRYPT_RSAPUBLIC_BLOB = "RSAPUBLICBLOB"
+Public Const BCRYPT_RSAPRIVATE_BLOB = "RSAPRIVATEBLOB"
+Public Const LEGACY_RSAPUBLIC_BLOB = "CAPIPUBLICBLOB"
+Public Const LEGACY_RSAPRIVATE_BLOB = "CAPIPRIVATEBLOB"
+Public Const BCRYPT_RSAPUBLIC_MAGIC  = &H31415352  ' RSA1
+Public Const BCRYPT_RSAPRIVATE_MAGIC  = &H32415352  ' RSA2
+
+Public Type BCRYPT_RSAKEY_BLOB
+    Magic As Long
+    BitLength As Long
+    cbPublicExp As Long
+    cbModulus As Long
+    cbPrime1 As Long
+    cbPrime2 As Long
+End Type
+
+Public Const BCRYPT_RSAFULLPRIVATE_BLOB = "RSAFULLPRIVATEBLOB"
+Public Const BCRYPT_RSAFULLPRIVATE_MAGIC  = &H33415352  ' RSA3
+' Properties of secret agreement algorithms
+' #if (NTDDI_VERSION >= NTDDI_WIN8)
+Public Const BCRYPT_GLOBAL_PARAMETERS = "SecretAgreementParam"
+Public Const BCRYPT_PRIVATE_KEY  = "PrivKeyVal"
+' #endif
+'  The BCRYPT_ECCPUBLIC_BLOB and BCRYPT_ECCPRIVATE_BLOB blob types are used
+'  to transport plaintext ECC keys. These blob types will be supported by
+'  all ECC primitive providers.
+Public Const BCRYPT_ECCPUBLIC_BLOB = "ECCPUBLICBLOB"
+Public Const BCRYPT_ECCPRIVATE_BLOB = "ECCPRIVATEBLOB"
+' #if (NTDDI_VERSION >= NTDDI_WINTHRESHOLD)
+Public Const BCRYPT_ECCFULLPUBLIC_BLOB = "ECCFULLPUBLICBLOB"
+Public Const BCRYPT_ECCFULLPRIVATE_BLOB = "ECCFULLPRIVATEBLOB"
+Public Const SSL_ECCPUBLIC_BLOB = "SSLECCPUBLICBLOB"
+' #endif
+Public Const BCRYPT_ECDH_PUBLIC_P256_MAGIC  = &H314B4345  ' ECK1
+Public Const BCRYPT_ECDH_PRIVATE_P256_MAGIC  = &H324B4345  ' ECK2
+Public Const BCRYPT_ECDH_PUBLIC_P384_MAGIC  = &H334B4345  ' ECK3
+Public Const BCRYPT_ECDH_PRIVATE_P384_MAGIC  = &H344B4345  ' ECK4
+Public Const BCRYPT_ECDH_PUBLIC_P521_MAGIC  = &H354B4345  ' ECK5
+Public Const BCRYPT_ECDH_PRIVATE_P521_MAGIC  = &H364B4345  ' ECK6
+' #if (NTDDI_VERSION >= NTDDI_WINTHRESHOLD)
+Public Const BCRYPT_ECDH_PUBLIC_GENERIC_MAGIC  = &H504B4345  ' ECKP
+Public Const BCRYPT_ECDH_PRIVATE_GENERIC_MAGIC  = &H564B4345  ' ECKV
+' #endif
+Public Const BCRYPT_ECDSA_PUBLIC_P256_MAGIC  = &H31534345  ' ECS1
+Public Const BCRYPT_ECDSA_PRIVATE_P256_MAGIC  = &H32534345  ' ECS2
+Public Const BCRYPT_ECDSA_PUBLIC_P384_MAGIC  = &H33534345  ' ECS3
+Public Const BCRYPT_ECDSA_PRIVATE_P384_MAGIC  = &H34534345  ' ECS4
+Public Const BCRYPT_ECDSA_PUBLIC_P521_MAGIC  = &H35534345  ' ECS5
+Public Const BCRYPT_ECDSA_PRIVATE_P521_MAGIC  = &H36534345  ' ECS6
+' #if (NTDDI_VERSION >= NTDDI_WINTHRESHOLD)
+Public Const BCRYPT_ECDSA_PUBLIC_GENERIC_MAGIC  = &H50444345  ' ECDP
+Public Const BCRYPT_ECDSA_PRIVATE_GENERIC_MAGIC  = &H56444345  ' ECDV
+
+Public Type BCRYPT_ECCKEY_BLOB
+    dwMagic As Long
+    cbKey As Long
+End Type
+Public Type SSL_ECCKEY_BLOB
+    dwCurveType As Long
+    cbKey As Long
+End Type
+
+Public Const BCRYPT_ECC_FULLKEY_BLOB_V1 = &H1
+
+Public Enum ECC_CURVE_TYPE_ENUM
+    BCRYPT_ECC_PRIME_SHORT_WEIERSTRASS_CURVE = &H1
+    BCRYPT_ECC_PRIME_TWISTED_EDWARDS_CURVE = &H2
+    BCRYPT_ECC_PRIME_MONTGOMERY_CURVE = &H3
+End Enum
+Public Enum ECC_CURVE_ALG_ID_ENUM
+    BCRYPT_NO_CURVE_GENERATION_ALG_ID = &H0
+End Enum
+
+Public Type BCRYPT_ECCFULLKEY_BLOB
+    dwMagic As Long
+    dwVersion As Long 'Version of the structure
+    dwCurveType As ECC_CURVE_TYPE_ENUM 'Supported curve types.
+    dwCurveGenerationAlgId As ECC_CURVE_ALG_ID_ENUM 'For X.592 verification purposes, if we include Seed we will need to include the algorithm ID.
+    cbFieldLength As Long 'Byte length of the fields P, A, B, X, Y.
+    cbSubgroupOrder As Long 'Byte length of the subgroup.
+    cbCofactor As Long 'Byte length of cofactor of G in E.
+    cbSeed As Long 'Byte length of the seed used to generate the curve.
+    'P[cbFieldLength]              Prime specifying the base field.
+    'A[cbFieldLength]              Coefficient A of the equation y^2 = x^3 + A*x + B mod p
+    'B[cbFieldLength]              Coefficient B of the equation y^2 = x^3 + A*x + B mod p
+    'Gx[cbFieldLength]             X-coordinate of the base point.
+    'Gy[cbFieldLength]             Y-coordinate of the base point.
+    'n[cbSubgroupOrder]            Order of the group generated by G = (x,y)
+    'h[cbCofactor]                 Cofactor of G in E.
+    'S[cbSeed]                     Seed of the curve.
+    'Qx[cbFieldLength]             X-coordinate of the public point.
+    'Qy[cbFieldLength]             Y-coordinate of the public point.
+    'd[cbSubgroupOrder]            Private key.  Not always present.
+End Type
+
+Public Const BCRYPT_DH_PUBLIC_BLOB = "DHPUBLICBLOB"
+Public Const BCRYPT_DH_PRIVATE_BLOB = "DHPRIVATEBLOB"
+Public Const LEGACY_DH_PUBLIC_BLOB = "CAPIDHPUBLICBLOB"
+Public Const LEGACY_DH_PRIVATE_BLOB = "CAPIDHPRIVATEBLOB"
+Public Const BCRYPT_DH_PUBLIC_MAGIC  = &H42504844  ' DHPB
+Public Const BCRYPT_DH_PRIVATE_MAGIC  = &H56504844  ' DHPV
+
+Public Type BCRYPT_DH_KEY_BLOB
+    dwMagic As Long
+    cbKey As Long
+End Type
+
+Public Const BCRYPT_DH_PARAMETERS = "DHParameters"
+Public Const BCRYPT_DH_PARAMETERS_MAGIC  = &H4d504844  ' DHPM
+
+Public Type BCRYPT_DH_PARAMETER_HEADER
+    cbLength As Long
+    dwMagic As Long
+    cbKeyLength As Long
+End Type
+
+Public Const BCRYPT_DSA_PUBLIC_BLOB = "DSAPUBLICBLOB"
+Public Const BCRYPT_DSA_PRIVATE_BLOB = "DSAPRIVATEBLOB"
+Public Const LEGACY_DSA_PUBLIC_BLOB = "CAPIDSAPUBLICBLOB"
+Public Const LEGACY_DSA_PRIVATE_BLOB = "CAPIDSAPRIVATEBLOB"
+Public Const LEGACY_DSA_V2_PUBLIC_BLOB = "V2CAPIDSAPUBLICBLOB"
+Public Const LEGACY_DSA_V2_PRIVATE_BLOB = "V2CAPIDSAPRIVATEBLOB"
+Public Const BCRYPT_DSA_PUBLIC_MAGIC  = &H42505344  ' DSPB
+Public Const BCRYPT_DSA_PRIVATE_MAGIC  = &H56505344  ' DSPV
+'(NTDDI_VERSION  = >= NTDDI_WIN8)
+Public Const BCRYPT_DSA_PUBLIC_MAGIC_V2  = &H32425044  ' DPB2
+Public Const BCRYPT_DSA_PRIVATE_MAGIC_V2  = &H32565044  ' DPV2
+
+Public Type BCRYPT_DSA_KEY_BLOB
+    dwMagic As Long
+    cbKey As Long
+    Count(0 To 3) As Byte
+    Seed(0 To 19) As Byte
+    q(0 To 19) As Byte
+End Type
+
+Public Enum BCRYPT_KEYPAIR_IMPORT_FLAGS
+    BCRYPT_NO_KEY_VALIDATION  = &H00000008
+' #if (NTDDI_VERSION >= NTDDI_WIN10_CO)
+    BCRYPT_KEY_VALIDATION_RANGE  = &H00000010  ' BCryptImportKeyPair
+    BCRYPT_KEY_VALIDATION_RANGE_AND_ORDER  = &H00000018  ' BCryptImportKeyPair & BCryptFinalizeKeyPair
+    BCRYPT_KEY_VALIDATION_REGENERATE  = &H00000020  ' BCryptImportKeyPair
+End Enum
+
+
 
 
 Public DeclareWide PtrSafe Function BCryptOpenAlgorithmProvider Lib "bcrypt" (phAlgorithm As LongPtr, ByVal pszAlgId As String, ByVal pszImplementation As String, ByVal dwFlags As BCRYPT_OA_FLAGS) As NTSTATUS
@@ -43612,11 +43858,12 @@ Public Declare PtrSafe Function BCryptHashData Lib "bcrypt" (ByVal hHash As Long
 Public Declare PtrSafe Function BCryptFinishHash Lib "bcrypt" (ByVal hHash As LongPtr, pbOutput As Any, ByVal cbOutput As Long, ByVal dwFlags As Long) As NTSTATUS
 Public Declare PtrSafe Function BCryptEnumAlgorithms Lib "bcrypt" (ByVal dwAlgOperations As BCRYPT_ENUM_ALG_OPS, pAlgCount As Long, ppAlgList As LongPtr, ByVal dwFlags As Long) As NTSTATUS
 Public Declare PtrSafe Sub BCryptFreeBuffer Lib "bcrypt" (ByVal pvBuffer As LongPtr)
+Public DeclareWide PtrSafe Function BCryptImportKeyPair Lib "bcrypt" (ByVal hAlgorithm As LongPtr, ByVal hImportKey As LongPtr, ByVal pszBlobType As String, phKey As LongPtr, pbInput As Any, ByVal cbInput As Long, ByVal dwFlags As BCRYPT_KEYPAIR_IMPORT_FLAGS) As NTSTATUS
+Public DeclareWide PtrSafe Function BCryptExportKey Lib "bcrypt" (ByVal hKey As LongPtr, ByVal hExportKey As LongPtr, ByVal pszBlobType As String, pbOutput As Any, ByVal cbOutput As Long, pcbResult As Long, ByVal dwFlags As Long) As NTSTATUS
+Public DeclareWide PtrSafe Function BCryptSecretAgreement Lib "bcrypt" (ByVal hPrivKey As LongPtr, ByVal hPubKey As LongPtr, phAgreedSecret As LongPtr, ByVal dwFlags As Long) As NTSTATUS
+Public DeclareWide PtrSafe Function BCryptDestroySecret Lib "bcrypt" (ByVal hSecret As LongPtr) As NTSTATUS
 
-Public Type DATA_BLOB
-        cbData As Long
-        pbData As LongPtr
-End Type
+
 
 Public Enum CryptPromptFlags
     CRYPTPROTECT_PROMPT_ON_UNPROTECT  = &H1  ' 1<<0
@@ -43685,6 +43932,648 @@ Public Enum CRYPT_STRING_OPTIONS
     CRYPT_STRING_NOCR  = &H80000000
 End Enum
 
+Public Enum CRYPT_QUERY_OBJ_TYPE
+    CERT_QUERY_OBJECT_FILE  = &H00000001
+    CERT_QUERY_OBJECT_BLOB  = &H00000002
+End Enum
+Public Enum CRYPT_QUERY_CONTENT_TYPE
+    CERT_QUERY_CONTENT_CERT  = 1
+' encoded single CTL
+    CERT_QUERY_CONTENT_CTL  = 2
+' encoded single CRL
+    CERT_QUERY_CONTENT_CRL  = 3
+' serialized store
+    CERT_QUERY_CONTENT_SERIALIZED_STORE  = 4
+' serialized single certificate
+    CERT_QUERY_CONTENT_SERIALIZED_CERT  = 5
+' serialized single CTL
+    CERT_QUERY_CONTENT_SERIALIZED_CTL  = 6
+' serialized single CRL
+    CERT_QUERY_CONTENT_SERIALIZED_CRL  = 7
+' a PKCS#7 signed message
+    CERT_QUERY_CONTENT_PKCS7_SIGNED  = 8
+' a PKCS#7 message, such as enveloped message.  But it is not a signed message,
+    CERT_QUERY_CONTENT_PKCS7_UNSIGNED  = 9
+' a PKCS7 signed message embedded in a file
+    CERT_QUERY_CONTENT_PKCS7_SIGNED_EMBED  = 10
+' an encoded PKCS#10
+    CERT_QUERY_CONTENT_PKCS10  = 11
+' an encoded PFX BLOB
+    CERT_QUERY_CONTENT_PFX  = 12
+' an encoded CertificatePair (contains forward and/or reverse cross certs)
+    CERT_QUERY_CONTENT_CERT_PAIR  = 13
+' an encoded PFX BLOB, which was loaded to phCertStore
+    CERT_QUERY_CONTENT_PFX_AND_LOAD  = 14
+End Enum
+Public Enum CRYPT_QUERY_CONTENT_FLAGS
+    CERT_QUERY_CONTENT_FLAG_CERT  = ( 1 << CERT_QUERY_CONTENT_CERT)
+' encoded single CTL
+    CERT_QUERY_CONTENT_FLAG_CTL  = ( 1 << CERT_QUERY_CONTENT_CTL)
+' encoded single CRL
+    CERT_QUERY_CONTENT_FLAG_CRL  = ( 1 << CERT_QUERY_CONTENT_CRL)
+' serialized store
+    CERT_QUERY_CONTENT_FLAG_SERIALIZED_STORE  = ( 1 << CERT_QUERY_CONTENT_SERIALIZED_STORE)
+' serialized single certificate
+    CERT_QUERY_CONTENT_FLAG_SERIALIZED_CERT  = ( 1 << CERT_QUERY_CONTENT_SERIALIZED_CERT)
+' serialized single CTL
+    CERT_QUERY_CONTENT_FLAG_SERIALIZED_CTL  = ( 1 << CERT_QUERY_CONTENT_SERIALIZED_CTL)
+' serialized single CRL
+    CERT_QUERY_CONTENT_FLAG_SERIALIZED_CRL  = ( 1 << CERT_QUERY_CONTENT_SERIALIZED_CRL)
+' an encoded PKCS#7 signed message
+    CERT_QUERY_CONTENT_FLAG_PKCS7_SIGNED  = ( 1 << CERT_QUERY_CONTENT_PKCS7_SIGNED)
+' an encoded PKCS#7 message.  But it is not a signed message
+    CERT_QUERY_CONTENT_FLAG_PKCS7_UNSIGNED  = ( 1 << CERT_QUERY_CONTENT_PKCS7_UNSIGNED)
+' the content includes an embedded PKCS7 signed message
+    CERT_QUERY_CONTENT_FLAG_PKCS7_SIGNED_EMBED  = ( 1 << CERT_QUERY_CONTENT_PKCS7_SIGNED_EMBED)
+' an encoded PKCS#10
+    CERT_QUERY_CONTENT_FLAG_PKCS10  = ( 1 << CERT_QUERY_CONTENT_PKCS10)
+' an encoded PFX BLOB
+    CERT_QUERY_CONTENT_FLAG_PFX  = ( 1 << CERT_QUERY_CONTENT_PFX)
+' an encoded CertificatePair (contains forward and/or reverse cross certs)
+    CERT_QUERY_CONTENT_FLAG_CERT_PAIR  = ( 1 << CERT_QUERY_CONTENT_CERT_PAIR)
+' an encoded PFX BLOB, and we do want to load it (not included in
+' CERT_QUERY_CONTENT_FLAG_ALL)
+    CERT_QUERY_CONTENT_FLAG_PFX_AND_LOAD  = ( 1 << CERT_QUERY_CONTENT_PFX_AND_LOAD)
+' content can be any type
+    CERT_QUERY_CONTENT_FLAG_ALL  = ( CERT_QUERY_CONTENT_FLAG_CERT  Or  CERT_QUERY_CONTENT_FLAG_CTL  Or  CERT_QUERY_CONTENT_FLAG_CRL  Or  CERT_QUERY_CONTENT_FLAG_SERIALIZED_STORE  Or  CERT_QUERY_CONTENT_FLAG_SERIALIZED_CERT  Or  CERT_QUERY_CONTENT_FLAG_SERIALIZED_CTL  Or  CERT_QUERY_CONTENT_FLAG_SERIALIZED_CRL  Or  CERT_QUERY_CONTENT_FLAG_PKCS7_SIGNED  Or  CERT_QUERY_CONTENT_FLAG_PKCS7_UNSIGNED  Or  CERT_QUERY_CONTENT_FLAG_PKCS7_SIGNED_EMBED  Or  CERT_QUERY_CONTENT_FLAG_PKCS10  Or  CERT_QUERY_CONTENT_FLAG_PFX  Or  CERT_QUERY_CONTENT_FLAG_CERT_PAIR )
+' content types allowed for Issuer certificates
+    CERT_QUERY_CONTENT_FLAG_ALL_ISSUER_CERT  = ( CERT_QUERY_CONTENT_FLAG_CERT  Or  CERT_QUERY_CONTENT_FLAG_SERIALIZED_STORE  Or  CERT_QUERY_CONTENT_FLAG_SERIALIZED_CERT  Or  CERT_QUERY_CONTENT_FLAG_PKCS7_SIGNED  Or  CERT_QUERY_CONTENT_FLAG_PKCS7_UNSIGNED )
+End Enum
+Public Enum CRYPT_QUERY_FORMAT
+    CERT_QUERY_FORMAT_BINARY  = 1
+' the content is base64 encoded
+    CERT_QUERY_FORMAT_BASE64_ENCODED  = 2
+' the content is ascii hex encoded with "{ASN}" prefix
+    CERT_QUERY_FORMAT_ASN_ASCII_HEX_ENCODED  = 3
+End Enum
+Public Enum CRYPT_QUERY_FORMAT_TYPE_FLAGS
+    CERT_QUERY_FORMAT_FLAG_BINARY  = ( 1 << CERT_QUERY_FORMAT_BINARY)
+' the content is base64 encoded
+    CERT_QUERY_FORMAT_FLAG_BASE64_ENCODED  = ( 1 << CERT_QUERY_FORMAT_BASE64_ENCODED)
+' the content is ascii hex encoded with "{ASN}" prefix
+    CERT_QUERY_FORMAT_FLAG_ASN_ASCII_HEX_ENCODED  = ( 1 << CERT_QUERY_FORMAT_ASN_ASCII_HEX_ENCODED)
+' the content can be of any format
+    CERT_QUERY_FORMAT_FLAG_ALL  = ( CERT_QUERY_FORMAT_FLAG_BINARY  Or  CERT_QUERY_FORMAT_FLAG_BASE64_ENCODED  Or  CERT_QUERY_FORMAT_FLAG_ASN_ASCII_HEX_ENCODED )
+End Enum
+
+Public Enum CRYPT_CERT_ENCODING_TYPE
+    CRYPT_ASN_ENCODING  = &H00000001
+    CRYPT_NDR_ENCODING  = &H00000002
+    X509_ASN_ENCODING  = &H00000001
+    X509_NDR_ENCODING  = &H00000002
+    PKCS_7_ASN_ENCODING  = &H00010000
+    PKCS_7_NDR_ENCODING  = &H00020000
+End Enum
+
+Public Enum CERT_STORE_CLOSE_FLAGS
+    CERT_CLOSE_STORE_FORCE_FLAG  = &H00000001
+    CERT_CLOSE_STORE_CHECK_FLAG  = &H00000002
+End Enum
+
+Public Enum CRYPT_CMSG_PARAM_TYPE
+    CMSG_TYPE_PARAM  = 1
+    CMSG_CONTENT_PARAM  = 2
+    CMSG_BARE_CONTENT_PARAM  = 3
+    CMSG_INNER_CONTENT_TYPE_PARAM  = 4
+    CMSG_SIGNER_COUNT_PARAM  = 5
+    CMSG_SIGNER_INFO_PARAM  = 6
+    CMSG_SIGNER_CERT_INFO_PARAM  = 7
+    CMSG_SIGNER_HASH_ALGORITHM_PARAM  = 8
+    CMSG_SIGNER_AUTH_ATTR_PARAM  = 9
+    CMSG_SIGNER_UNAUTH_ATTR_PARAM  = 10
+    CMSG_CERT_COUNT_PARAM  = 11
+    CMSG_CERT_PARAM  = 12
+    CMSG_CRL_COUNT_PARAM  = 13
+    CMSG_CRL_PARAM  = 14
+    CMSG_ENVELOPE_ALGORITHM_PARAM  = 15
+    CMSG_RECIPIENT_COUNT_PARAM  = 17
+    CMSG_RECIPIENT_INDEX_PARAM  = 18
+    CMSG_RECIPIENT_INFO_PARAM  = 19
+    CMSG_HASH_ALGORITHM_PARAM  = 20
+    CMSG_HASH_DATA_PARAM  = 21
+    CMSG_COMPUTED_HASH_PARAM  = 22
+    CMSG_ENCRYPT_PARAM  = 26
+    CMSG_ENCRYPTED_DIGEST  = 27
+    CMSG_ENCODED_SIGNER  = 28
+    CMSG_ENCODED_MESSAGE  = 29
+    CMSG_VERSION_PARAM  = 30
+    CMSG_ATTR_CERT_COUNT_PARAM  = 31
+    CMSG_ATTR_CERT_PARAM  = 32
+    CMSG_CMS_RECIPIENT_COUNT_PARAM  = 33
+    CMSG_CMS_RECIPIENT_INDEX_PARAM  = 34
+    CMSG_CMS_RECIPIENT_ENCRYPTED_KEY_INDEX_PARAM  = 35
+    CMSG_CMS_RECIPIENT_INFO_PARAM  = 36
+    CMSG_UNPROTECTED_ATTR_PARAM  = 37
+    CMSG_SIGNER_CERT_ID_PARAM  = 38
+    CMSG_CMS_SIGNER_INFO_PARAM  = 39
+End Enum
+
+Public Type CRYPTOAPI_BLOB
+    cbData As Long
+    pbData As LongPtr
+End Type
+'Alias CRYPT_INTEGER_BLOB As CRYPTOAPI_BLOB
+'Alias CRYPT_UINT_BLOB As CRYPTOAPI_BLOB
+'Alias CRYPT_OBJID_BLOB As CRYPTOAPI_BLOB
+'Alias CERT_NAME_BLOB As CRYPTOAPI_BLOB
+'Alias CERT_RDN_VALUE_BLOB As CRYPTOAPI_BLOB
+'Alias CERT_BLOB As CRYPTOAPI_BLOB
+'Alias CRL_BLOB As CRYPTOAPI_BLOB
+'Alias DATA_BLOB As CRYPTOAPI_BLOB
+'Alias CRYPT_DATA_BLOB As CRYPTOAPI_BLOB
+'Alias CRYPT_HASH_BLOB As CRYPTOAPI_BLOB
+'Alias CRYPT_DIGEST_BLOB As CRYPTOAPI_BLOB
+'Alias CRYPT_DERT_BLOB As CRYPTOAPI_BLOB
+'Alias CRYPT_ATTR_BLOB As CRYPTOAPI_BLOB
+Public Type CRYPT_INTEGER_BLOB
+    cbData As Long
+    pbData As LongPtr
+End Type
+Public Type CRYPT_UINT_BLOB
+    cbData As Long
+    pbData As LongPtr
+End Type
+Public Type CRYPT_OBJID_BLOB
+    cbData As Long
+    pbData As LongPtr
+End Type
+Public Type CERT_NAME_BLOB
+    cbData As Long
+    pbData As LongPtr
+End Type
+Public Type CERT_RDN_VALUE_BLOB
+    cbData As Long
+    pbData As LongPtr
+End Type
+Public Type CERT_BLOB
+    cbData As Long
+    pbData As LongPtr
+End Type
+Public Type CRL_BLOB
+    cbData As Long
+    pbData As LongPtr
+End Type
+Public Type DATA_BLOB
+    cbData As Long
+    pbData As LongPtr
+End Type
+Public Type CRYPT_DATA_BLOB
+    cbData As Long
+    pbData As LongPtr
+End Type
+Public Type CRYPT_HASH_BLOB
+    cbData As Long
+    pbData As LongPtr
+End Type
+Public Type CRYPT_DIGEST_BLOB
+    cbData As Long
+    pbData As LongPtr
+End Type
+Public Type CRYPT_DERT_BLOB
+    cbData As Long
+    pbData As LongPtr
+End Type
+Public Type CRYPT_ATTR_BLOB
+    cbData As Long
+    pbData As LongPtr
+End Type
+
+
+Public Type CRYPT_ALGORITHM_IDENTIFIER
+    pszObjId As String
+    Parameters As CRYPT_OBJID_BLOB
+End Type
+
+Public Const szOID_RSA  = "1.2.840.113549"
+Public Const szOID_PKCS  = "1.2.840.113549.1"
+Public Const szOID_RSA_HASH  = "1.2.840.113549.2"
+Public Const szOID_RSA_ENCRYPT  = "1.2.840.113549.3"
+Public Const szOID_PKCS_1  = "1.2.840.113549.1.1"
+Public Const szOID_PKCS_2  = "1.2.840.113549.1.2"
+Public Const szOID_PKCS_3  = "1.2.840.113549.1.3"
+Public Const szOID_PKCS_4  = "1.2.840.113549.1.4"
+Public Const szOID_PKCS_5  = "1.2.840.113549.1.5"
+Public Const szOID_PKCS_6  = "1.2.840.113549.1.6"
+Public Const szOID_PKCS_7  = "1.2.840.113549.1.7"
+Public Const szOID_PKCS_8  = "1.2.840.113549.1.8"
+Public Const szOID_PKCS_9  = "1.2.840.113549.1.9"
+Public Const szOID_PKCS_10  = "1.2.840.113549.1.10"
+Public Const szOID_PKCS_12  = "1.2.840.113549.1.12"
+Public Const szOID_RSA_RSA  = "1.2.840.113549.1.1.1"
+Public Const szOID_RSA_MD2RSA  = "1.2.840.113549.1.1.2"
+Public Const szOID_RSA_MD4RSA  = "1.2.840.113549.1.1.3"
+Public Const szOID_RSA_MD5RSA  = "1.2.840.113549.1.1.4"
+Public Const szOID_RSA_SHA1RSA  = "1.2.840.113549.1.1.5"
+Public Const szOID_RSA_SETOAEP_RSA  = "1.2.840.113549.1.1.6"
+Public Const szOID_RSAES_OAEP  = "1.2.840.113549.1.1.7"
+Public Const szOID_RSA_MGF1  = "1.2.840.113549.1.1.8"
+Public Const szOID_RSA_PSPECIFIED  = "1.2.840.113549.1.1.9"
+Public Const szOID_RSA_SSA_PSS  = "1.2.840.113549.1.1.10"
+Public Const szOID_RSA_SHA256RSA  = "1.2.840.113549.1.1.11"
+Public Const szOID_RSA_SHA384RSA  = "1.2.840.113549.1.1.12"
+Public Const szOID_RSA_SHA512RSA  = "1.2.840.113549.1.1.13"
+Public Const szOID_RSA_DH  = "1.2.840.113549.1.3.1"
+Public Const szOID_RSA_data  = "1.2.840.113549.1.7.1"
+Public Const szOID_RSA_signedData  = "1.2.840.113549.1.7.2"
+Public Const szOID_RSA_envelopedData  = "1.2.840.113549.1.7.3"
+Public Const szOID_RSA_signEnvData  = "1.2.840.113549.1.7.4"
+Public Const szOID_RSA_digestedData  = "1.2.840.113549.1.7.5"
+Public Const szOID_RSA_hashedData  = "1.2.840.113549.1.7.5"
+Public Const szOID_RSA_encryptedData  = "1.2.840.113549.1.7.6"
+Public Const szOID_RSA_emailAddr  = "1.2.840.113549.1.9.1"
+Public Const szOID_RSA_unstructName  = "1.2.840.113549.1.9.2"
+Public Const szOID_RSA_contentType  = "1.2.840.113549.1.9.3"
+Public Const szOID_RSA_messageDigest  = "1.2.840.113549.1.9.4"
+Public Const szOID_RSA_signingTime  = "1.2.840.113549.1.9.5"
+Public Const szOID_RSA_counterSign  = "1.2.840.113549.1.9.6"
+Public Const szOID_RSA_challengePwd  = "1.2.840.113549.1.9.7"
+Public Const szOID_RSA_unstructAddr  = "1.2.840.113549.1.9.8"
+Public Const szOID_RSA_extCertAttrs  = "1.2.840.113549.1.9.9"
+Public Const szOID_RSA_certExtensions  = "1.2.840.113549.1.9.14"
+Public Const szOID_RSA_SMIMECapabilities  = "1.2.840.113549.1.9.15"
+Public Const szOID_RSA_preferSignedData  = "1.2.840.113549.1.9.15.1"
+Public Const szOID_TIMESTAMP_TOKEN  = "1.2.840.113549.1.9.16.1.4"
+Public Const szOID_RFC3161_counterSign  = "1.3.6.1.4.1.311.3.3.1"
+Public Const szOID_RFC3161v21_counterSign  = "1.3.6.1.4.1.311.3.3.2"
+Public Const szOID_RFC3161v21_thumbprints  = "1.3.6.1.4.1.311.3.3.3"
+Public Const szOID_RSA_SMIMEalg  = "1.2.840.113549.1.9.16.3"
+Public Const szOID_RSA_SMIMEalgESDH  = "1.2.840.113549.1.9.16.3.5"
+Public Const szOID_RSA_SMIMEalgCMS3DESwrap  = "1.2.840.113549.1.9.16.3.6"
+Public Const szOID_RSA_SMIMEalgCMSRC2wrap  = "1.2.840.113549.1.9.16.3.7"
+Public Const szOID_RSA_MD2  = "1.2.840.113549.2.2"
+Public Const szOID_RSA_MD4  = "1.2.840.113549.2.4"
+Public Const szOID_RSA_MD5  = "1.2.840.113549.2.5"
+Public Const szOID_RSA_RC2CBC  = "1.2.840.113549.3.2"
+Public Const szOID_RSA_RC4  = "1.2.840.113549.3.4"
+Public Const szOID_RSA_DES_EDE3_CBC  = "1.2.840.113549.3.7"
+Public Const szOID_RSA_RC5_CBCPad  = "1.2.840.113549.3.9"
+Public Const szOID_ANSI_X942  = "1.2.840.10046"
+Public Const szOID_ANSI_X942_DH  = "1.2.840.10046.2.1"
+Public Const szOID_X957  = "1.2.840.10040"
+Public Const szOID_X957_DSA  = "1.2.840.10040.4.1"
+Public Const szOID_X957_SHA1DSA  = "1.2.840.10040.4.3"
+'  iso(1) member-body(2) us(840) 10045 keyType(2) unrestricted(1)
+Public Const szOID_ECC_PUBLIC_KEY  = "1.2.840.10045.2.1"
+'  iso(1) member-body(2) us(840) 10045 curves(3) prime(1) 7
+Public Const szOID_ECC_CURVE_P256  = "1.2.840.10045.3.1.7"
+'  iso(1) identified-organization(3) certicom(132) curve(0) 34
+Public Const szOID_ECC_CURVE_P384  = "1.3.132.0.34"
+'  iso(1) identified-organization(3) certicom(132) curve(0) 35
+Public Const szOID_ECC_CURVE_P521  = "1.3.132.0.35"
+'  Generic ECC Curve OIDS
+Public Const szOID_ECC_CURVE_BRAINPOOLP160R1  = "1.3.36.3.3.2.8.1.1.1"
+Public Const szOID_ECC_CURVE_BRAINPOOLP160T1  = "1.3.36.3.3.2.8.1.1.2"
+Public Const szOID_ECC_CURVE_BRAINPOOLP192R1  = "1.3.36.3.3.2.8.1.1.3"
+Public Const szOID_ECC_CURVE_BRAINPOOLP192T1  = "1.3.36.3.3.2.8.1.1.4"
+Public Const szOID_ECC_CURVE_BRAINPOOLP224R1  = "1.3.36.3.3.2.8.1.1.5"
+Public Const szOID_ECC_CURVE_BRAINPOOLP224T1  = "1.3.36.3.3.2.8.1.1.6"
+Public Const szOID_ECC_CURVE_BRAINPOOLP256R1  = "1.3.36.3.3.2.8.1.1.7"
+Public Const szOID_ECC_CURVE_BRAINPOOLP256T1  = "1.3.36.3.3.2.8.1.1.8"
+Public Const szOID_ECC_CURVE_BRAINPOOLP320R1  = "1.3.36.3.3.2.8.1.1.9"
+Public Const szOID_ECC_CURVE_BRAINPOOLP320T1  = "1.3.36.3.3.2.8.1.1.10"
+Public Const szOID_ECC_CURVE_BRAINPOOLP384R1  = "1.3.36.3.3.2.8.1.1.11"
+Public Const szOID_ECC_CURVE_BRAINPOOLP384T1  = "1.3.36.3.3.2.8.1.1.12"
+Public Const szOID_ECC_CURVE_BRAINPOOLP512R1  = "1.3.36.3.3.2.8.1.1.13"
+Public Const szOID_ECC_CURVE_BRAINPOOLP512T1  = "1.3.36.3.3.2.8.1.1.14"
+Public Const szOID_ECC_CURVE_EC192WAPI  = "1.2.156.11235.1.1.2.1"
+Public Const szOID_CN_ECDSA_SHA256  = "1.2.156.11235.1.1.1"
+Public Const szOID_ECC_CURVE_NISTP192  = "1.2.840.10045.3.1.1"
+Public Const szOID_ECC_CURVE_NISTP224  = "1.3.132.0.33"
+Public Const szOID_ECC_CURVE_NISTP256  = szOID_ECC_CURVE_P256
+Public Const szOID_ECC_CURVE_NISTP384  = szOID_ECC_CURVE_P384
+Public Const szOID_ECC_CURVE_NISTP521  = szOID_ECC_CURVE_P521
+Public Const szOID_ECC_CURVE_SECP160K1  = "1.3.132.0.9"
+Public Const szOID_ECC_CURVE_SECP160R1  = "1.3.132.0.8"
+Public Const szOID_ECC_CURVE_SECP160R2  = "1.3.132.0.30"
+Public Const szOID_ECC_CURVE_SECP192K1  = "1.3.132.0.31"
+Public Const szOID_ECC_CURVE_SECP192R1  = szOID_ECC_CURVE_NISTP192
+Public Const szOID_ECC_CURVE_SECP224K1  = "1.3.132.0.32"
+Public Const szOID_ECC_CURVE_SECP224R1  = szOID_ECC_CURVE_NISTP224
+Public Const szOID_ECC_CURVE_SECP256K1  = "1.3.132.0.10"
+Public Const szOID_ECC_CURVE_SECP256R1  = szOID_ECC_CURVE_P256
+Public Const szOID_ECC_CURVE_SECP384R1  = szOID_ECC_CURVE_P384
+Public Const szOID_ECC_CURVE_SECP521R1  = szOID_ECC_CURVE_P521
+Public Const szOID_ECC_CURVE_WTLS7  = szOID_ECC_CURVE_SECP160R2
+Public Const szOID_ECC_CURVE_WTLS9  = "2.23.43.1.4.9"
+Public Const szOID_ECC_CURVE_WTLS12  = szOID_ECC_CURVE_NISTP224
+Public Const szOID_ECC_CURVE_X962P192V1  = "1.2.840.10045.3.1.1"
+Public Const szOID_ECC_CURVE_X962P192V2  = "1.2.840.10045.3.1.2"
+Public Const szOID_ECC_CURVE_X962P192V3  = "1.2.840.10045.3.1.3"
+Public Const szOID_ECC_CURVE_X962P239V1  = "1.2.840.10045.3.1.4"
+Public Const szOID_ECC_CURVE_X962P239V2  = "1.2.840.10045.3.1.5"
+Public Const szOID_ECC_CURVE_X962P239V3  = "1.2.840.10045.3.1.6"
+Public Const szOID_ECC_CURVE_X962P256V1  = szOID_ECC_CURVE_P256
+'  iso(1) member-body(2) us(840) 10045 signatures(4) sha1(1)
+Public Const szOID_ECDSA_SHA1  = "1.2.840.10045.4.1"
+'  iso(1) member-body(2) us(840) 10045 signatures(4) specified(3)
+Public Const szOID_ECDSA_SPECIFIED  = "1.2.840.10045.4.3"
+'  iso(1) member-body(2) us(840) 10045 signatures(4) specified(3) 2
+Public Const szOID_ECDSA_SHA256  = "1.2.840.10045.4.3.2"
+'  iso(1) member-body(2) us(840) 10045 signatures(4) specified(3) 3
+Public Const szOID_ECDSA_SHA384  = "1.2.840.10045.4.3.3"
+'  iso(1) member-body(2) us(840) 10045 signatures(4) specified(3) 4
+Public Const szOID_ECDSA_SHA512  = "1.2.840.10045.4.3.4"
+'  NIST AES CBC Algorithms
+'  joint-iso-itu-t(2) country(16) us(840) organization(1) gov(101) csor(3) nistAlgorithms(4)  aesAlgs(1) }
+Public Const szOID_NIST_AES128_CBC  = "2.16.840.1.101.3.4.1.2"
+Public Const szOID_NIST_AES192_CBC  = "2.16.840.1.101.3.4.1.22"
+Public Const szOID_NIST_AES256_CBC  = "2.16.840.1.101.3.4.1.42"
+'  For the above Algorithms, the AlgorithmIdentifier parameters must be
+'  present and the parameters field MUST contain an AES-IV:
+'   AES-IV ::= OCTET STRING (SIZE(16))
+'  NIST AES WRAP Algorithms
+Public Const szOID_NIST_AES128_WRAP  = "2.16.840.1.101.3.4.1.5"
+Public Const szOID_NIST_AES192_WRAP  = "2.16.840.1.101.3.4.1.25"
+Public Const szOID_NIST_AES256_WRAP  = "2.16.840.1.101.3.4.1.45"
+'       x9-63-scheme OBJECT IDENTIFIER ::= { iso(1)
+'          identified-organization(3) tc68(133) country(16) x9(840)
+'          x9-63(63) schemes(0) }
+'  ECDH single pass ephemeral-static KeyAgreement KeyEncryptionAlgorithm
+Public Const szOID_DH_SINGLE_PASS_STDDH_SHA1_KDF  = "1.3.133.16.840.63.0.2"
+Public Const szOID_DH_SINGLE_PASS_STDDH_SHA256_KDF  = "1.3.132.1.11.1"
+Public Const szOID_DH_SINGLE_PASS_STDDH_SHA384_KDF  = "1.3.132.1.11.2"
+'  For the above KeyEncryptionAlgorithm the following wrap algorithms are
+'  supported:
+'   szOID_RSA_SMIMEalgCMS3DESwrap
+'   szOID_RSA_SMIMEalgCMSRC2wrap
+'   szOID_NIST_AES128_WRAP
+'   szOID_NIST_AES192_WRAP
+'   szOID_NIST_AES256_WRAP
+'  ITU-T UsefulDefinitions
+Public Const szOID_DS  = "2.5"
+Public Const szOID_DSALG  = "2.5.8"
+Public Const szOID_DSALG_CRPT  = "2.5.8.1"
+Public Const szOID_DSALG_HASH  = "2.5.8.2"
+Public Const szOID_DSALG_SIGN  = "2.5.8.3"
+Public Const szOID_DSALG_RSA  = "2.5.8.1.1"
+'  NIST OSE Implementors' Workshop (OIW)
+'  http://nemo.ncsl.nist.gov/oiw/agreements/stable/OSI/12s_9506.w51
+'  http://nemo.ncsl.nist.gov/oiw/agreements/working/OSI/12w_9503.w51
+Public Const szOID_OIW  = "1.3.14"
+'  NIST OSE Implementors' Workshop (OIW) Security SIG algorithm identifiers
+Public Const szOID_OIWSEC  = "1.3.14.3.2"
+Public Const szOID_OIWSEC_md4RSA  = "1.3.14.3.2.2"
+Public Const szOID_OIWSEC_md5RSA  = "1.3.14.3.2.3"
+Public Const szOID_OIWSEC_md4RSA2  = "1.3.14.3.2.4"
+Public Const szOID_OIWSEC_desECB  = "1.3.14.3.2.6"
+Public Const szOID_OIWSEC_desCBC  = "1.3.14.3.2.7"
+Public Const szOID_OIWSEC_desOFB  = "1.3.14.3.2.8"
+Public Const szOID_OIWSEC_desCFB  = "1.3.14.3.2.9"
+Public Const szOID_OIWSEC_desMAC  = "1.3.14.3.2.10"
+Public Const szOID_OIWSEC_rsaSign  = "1.3.14.3.2.11"
+Public Const szOID_OIWSEC_dsa  = "1.3.14.3.2.12"
+Public Const szOID_OIWSEC_shaDSA  = "1.3.14.3.2.13"
+Public Const szOID_OIWSEC_mdc2RSA  = "1.3.14.3.2.14"
+Public Const szOID_OIWSEC_shaRSA  = "1.3.14.3.2.15"
+Public Const szOID_OIWSEC_dhCommMod  = "1.3.14.3.2.16"
+Public Const szOID_OIWSEC_desEDE  = "1.3.14.3.2.17"
+Public Const szOID_OIWSEC_sha  = "1.3.14.3.2.18"
+Public Const szOID_OIWSEC_mdc2  = "1.3.14.3.2.19"
+Public Const szOID_OIWSEC_dsaComm  = "1.3.14.3.2.20"
+Public Const szOID_OIWSEC_dsaCommSHA  = "1.3.14.3.2.21"
+Public Const szOID_OIWSEC_rsaXchg  = "1.3.14.3.2.22"
+Public Const szOID_OIWSEC_keyHashSeal  = "1.3.14.3.2.23"
+Public Const szOID_OIWSEC_md2RSASign  = "1.3.14.3.2.24"
+Public Const szOID_OIWSEC_md5RSASign  = "1.3.14.3.2.25"
+Public Const szOID_OIWSEC_sha1  = "1.3.14.3.2.26"
+Public Const szOID_OIWSEC_dsaSHA1  = "1.3.14.3.2.27"
+Public Const szOID_OIWSEC_dsaCommSHA1  = "1.3.14.3.2.28"
+Public Const szOID_OIWSEC_sha1RSASign  = "1.3.14.3.2.29"
+'  NIST OSE Implementors' Workshop (OIW) Directory SIG algorithm identifiers
+Public Const szOID_OIWDIR  = "1.3.14.7.2"
+Public Const szOID_OIWDIR_CRPT  = "1.3.14.7.2.1"
+Public Const szOID_OIWDIR_HASH  = "1.3.14.7.2.2"
+Public Const szOID_OIWDIR_SIGN  = "1.3.14.7.2.3"
+Public Const szOID_OIWDIR_md2  = "1.3.14.7.2.2.1"
+Public Const szOID_OIWDIR_md2RSA  = "1.3.14.7.2.3.1"
+'  INFOSEC Algorithms
+'  joint-iso-ccitt(2) country(16) us(840) organization(1) us-government(101) dod(2) id-infosec(1)
+Public Const szOID_INFOSEC  = "2.16.840.1.101.2.1"
+Public Const szOID_INFOSEC_sdnsSignature  = "2.16.840.1.101.2.1.1.1"
+Public Const szOID_INFOSEC_mosaicSignature  = "2.16.840.1.101.2.1.1.2"
+Public Const szOID_INFOSEC_sdnsConfidentiality  = "2.16.840.1.101.2.1.1.3"
+Public Const szOID_INFOSEC_mosaicConfidentiality  = "2.16.840.1.101.2.1.1.4"
+Public Const szOID_INFOSEC_sdnsIntegrity  = "2.16.840.1.101.2.1.1.5"
+Public Const szOID_INFOSEC_mosaicIntegrity  = "2.16.840.1.101.2.1.1.6"
+Public Const szOID_INFOSEC_sdnsTokenProtection  = "2.16.840.1.101.2.1.1.7"
+Public Const szOID_INFOSEC_mosaicTokenProtection  = "2.16.840.1.101.2.1.1.8"
+Public Const szOID_INFOSEC_sdnsKeyManagement  = "2.16.840.1.101.2.1.1.9"
+Public Const szOID_INFOSEC_mosaicKeyManagement  = "2.16.840.1.101.2.1.1.10"
+Public Const szOID_INFOSEC_sdnsKMandSig  = "2.16.840.1.101.2.1.1.11"
+Public Const szOID_INFOSEC_mosaicKMandSig  = "2.16.840.1.101.2.1.1.12"
+Public Const szOID_INFOSEC_SuiteASignature  = "2.16.840.1.101.2.1.1.13"
+Public Const szOID_INFOSEC_SuiteAConfidentiality  = "2.16.840.1.101.2.1.1.14"
+Public Const szOID_INFOSEC_SuiteAIntegrity  = "2.16.840.1.101.2.1.1.15"
+Public Const szOID_INFOSEC_SuiteATokenProtection  = "2.16.840.1.101.2.1.1.16"
+Public Const szOID_INFOSEC_SuiteAKeyManagement  = "2.16.840.1.101.2.1.1.17"
+Public Const szOID_INFOSEC_SuiteAKMandSig  = "2.16.840.1.101.2.1.1.18"
+Public Const szOID_INFOSEC_mosaicUpdatedSig  = "2.16.840.1.101.2.1.1.19"
+Public Const szOID_INFOSEC_mosaicKMandUpdSig  = "2.16.840.1.101.2.1.1.20"
+Public Const szOID_INFOSEC_mosaicUpdatedInteg  = "2.16.840.1.101.2.1.1.21"
+'  NIST Hash Algorithms
+'  joint-iso-itu-t(2) country(16) us(840) organization(1) gov(101) csor(3) nistalgorithm(4) hashalgs(2)
+Public Const szOID_NIST_sha256  = "2.16.840.1.101.3.4.2.1"
+Public Const szOID_NIST_sha384  = "2.16.840.1.101.3.4.2.2"
+Public Const szOID_NIST_sha512  = "2.16.840.1.101.3.4.2.3"
+
+Public Type CRYPT_BIT_BLOB
+    cbData As Long
+    pbData As BYTE
+    cUnusedBits As Long
+End Type
+
+Public Type CERT_PUBLIC_KEY_INFO
+    Algorithm As CRYPT_ALGORITHM_IDENTIFIER
+    PublicKey As CRYPT_BIT_BLOB
+End Type
+
+Public Type CERT_EXTENSION
+    pszObjId As String
+    fCritical As Long
+    Value As CRYPT_OBJID_BLOB
+End Type
+
+Public Enum CRYPT_CERT_VERSION
+    CERT_V1  = 0
+    CERT_V2  = 1
+    CERT_V3  = 2
+End Enum
+
+Public Type CERT_INFO
+    dwVersion As CRYPT_CERT_VERSION
+    SerialNumber As CRYPT_INTEGER_BLOB
+    SignatureAlgorithm As CRYPT_ALGORITHM_IDENTIFIER
+    Issuer As CERT_NAME_BLOB
+    NotBefore As FILETIME
+    NotAfter As FILETIME
+    Subject As CERT_NAME_BLOB
+    SubjectPublicKeyInfo As CERT_PUBLIC_KEY_INFO
+    IssuerUniqueId As CRYPT_BIT_BLOB
+    SubjectUniqueId As CRYPT_BIT_BLOB
+    cExtension As Long
+    rgExtension As LongPtr 'PCERT_EXTENSION
+End Type
+
+Public Type CRYPT_ATTRIBUTE
+    pszObjId As String
+    cValue As Long
+    rgValue As LongPtr 'PCRYPT_ATTR_BLOB
+End Type
+Public Type CRYPT_ATTRIBUTES
+    cAttr As Long
+    rgAttr As LongPtr ' PCRYPT_ATTRIBUTE
+End Type
+
+Public Type CERT_ISSUER_SERIAL_NUMBER
+    Issuer As CERT_NAME_BLOB
+    SerialNumber As CRYPT_INTEGER_BLOB
+End Type
+
+Public Enum CRYPT_CERT_ID_OPTON
+    CERT_ID_ISSUER_SERIAL_NUMBER  = 1
+    CERT_ID_KEY_IDENTIFIER  = 2
+    CERT_ID_SHA1_HASH  = 3
+End Enum
+
+Public Type CERT_ID
+    dwIdChoice As CRYPT_CERT_ID_OPTON
+    ' union {
+        ' // CERT_ID_ISSUER_SERIAL_NUMBER
+        ' CERT_ISSUER_SERIAL_NUMBER   IssuerSerialNumber;
+        ' // CERT_ID_KEY_IDENTIFIER
+        ' CRYPT_HASH_BLOB             KeyId;
+        ' // CERT_ID_SHA1_HASH
+        ' CRYPT_HASH_BLOB             HashId;
+    ' } DUMMYUNIONNAME;
+    #If Win64 Then
+        data(15) As Byte
+    #Else
+        data(7) As Byte
+    #End If
+End Type
+
+Public Type CMSG_CMS_SIGNER_INFO
+    dwVersion As Long
+    SignerId As CERT_ID
+    HashAlgorithm As CRYPT_ALGORITHM_IDENTIFIER
+    HashEncryptionAlgorithm As CRYPT_ALGORITHM_IDENTIFIER
+    EncryptedHash As CRYPT_DATA_BLOB
+    AuthAttrs As CRYPT_ATTRIBUTES
+    UnauthAttrs As CRYPT_ATTRIBUTES
+End Type
+
+Public Enum CERT_NAME_TYPES
+    CERT_NAME_EMAIL_TYPE  = 1
+    CERT_NAME_RDN_TYPE  = 2
+    CERT_NAME_ATTR_TYPE  = 3
+    CERT_NAME_SIMPLE_DISPLAY_TYPE  = 4
+    CERT_NAME_FRIENDLY_DISPLAY_TYPE  = 5
+    CERT_NAME_DNS_TYPE  = 6
+    CERT_NAME_URL_TYPE  = 7
+    CERT_NAME_UPN_TYPE  = 8
+End Enum
+
+Public Enum CERT_NAME_FLAGS
+    CERT_NAME_ISSUER_FLAG  = &H1
+    CERT_NAME_DISABLE_IE4_UTF8_FLAG  = &H00010000
+'  Following is only applicable to CERT_NAME_DNS_TYPE. When set returns
+'  all names not just the first one. Returns a multi-string. Each string
+'  will be null terminated. The last string will be double null terminated.
+    CERT_NAME_SEARCH_ALL_NAMES_FLAG  = &H2
+End Enum
+
+Public Enum CryptCertFindFlags
+    CERT_FIND_OPTIONAL_ENHKEY_USAGE_FLAG  = &H1
+    CERT_FIND_EXT_ONLY_ENHKEY_USAGE_FLAG  = &H2
+    CERT_FIND_PROP_ONLY_ENHKEY_USAGE_FLAG  = &H4
+    CERT_FIND_NO_ENHKEY_USAGE_FLAG  = &H8
+    CERT_FIND_OR_ENHKEY_USAGE_FLAG  = &H10
+    CERT_FIND_VALID_ENHKEY_USAGE_FLAG  = &H20
+    CERT_FIND_OPTIONAL_CTL_USAGE_FLAG  = CERT_FIND_OPTIONAL_ENHKEY_USAGE_FLAG
+    CERT_FIND_EXT_ONLY_CTL_USAGE_FLAG  = CERT_FIND_EXT_ONLY_ENHKEY_USAGE_FLAG
+    CERT_FIND_PROP_ONLY_CTL_USAGE_FLAG  = CERT_FIND_PROP_ONLY_ENHKEY_USAGE_FLAG
+    CERT_FIND_NO_CTL_USAGE_FLAG  = CERT_FIND_NO_ENHKEY_USAGE_FLAG
+    CERT_FIND_OR_CTL_USAGE_FLAG  = CERT_FIND_OR_ENHKEY_USAGE_FLAG
+    CERT_FIND_VALID_CTL_USAGE_FLAG = CERT_FIND_VALID_ENHKEY_USAGE_FLAG
+End Enum
+Public Enum CryptCertCompareFunctions
+    CERT_COMPARE_MASK = &HFFFF&
+    CERT_COMPARE_SHIFT  = 16
+    CERT_COMPARE_ANY  = 0
+    CERT_COMPARE_SHA1_HASH  = 1
+    CERT_COMPARE_NAME  = 2
+    CERT_COMPARE_ATTR  = 3
+    CERT_COMPARE_MD5_HASH  = 4
+    CERT_COMPARE_PROPERTY  = 5
+    CERT_COMPARE_PUBLIC_KEY  = 6
+    CERT_COMPARE_HASH  = CERT_COMPARE_SHA1_HASH
+    CERT_COMPARE_NAME_STR_A  = 7
+    CERT_COMPARE_NAME_STR_W  = 8
+    CERT_COMPARE_KEY_SPEC  = 9
+    CERT_COMPARE_ENHKEY_USAGE  = 10
+    CERT_COMPARE_CTL_USAGE  = CERT_COMPARE_ENHKEY_USAGE
+    CERT_COMPARE_SUBJECT_CERT  = 11
+    CERT_COMPARE_ISSUER_OF  = 12
+    CERT_COMPARE_EXISTING  = 13
+    CERT_COMPARE_SIGNATURE_HASH  = 14
+    CERT_COMPARE_KEY_IDENTIFIER  = 15
+    CERT_COMPARE_CERT_ID  = 16
+    CERT_COMPARE_CROSS_CERT_DIST_POINTS  = 17
+    CERT_COMPARE_PUBKEY_MD5_HASH  = 18
+    CERT_COMPARE_SUBJECT_INFO_ACCESS  = 19
+    CERT_COMPARE_HASH_STR  = 20
+    CERT_COMPARE_HAS_PRIVATE_KEY  = 21
+    CERT_COMPARE_SHA256_HASH  = 22
+    CERT_COMPARE_SHA1_SHA256_HASH  = 23
+End Enum
+Public Enum CryptCertInfoFlags
+    CERT_INFO_VERSION_FLAG  = 1
+    CERT_INFO_SERIAL_NUMBER_FLAG  = 2
+    CERT_INFO_SIGNATURE_ALGORITHM_FLAG  = 3
+    CERT_INFO_ISSUER_FLAG = 4
+    CERT_INFO_NOT_BEFORE_FLAG  = 5
+    CERT_INFO_NOT_AFTER_FLAG  = 6
+    CERT_INFO_SUBJECT_FLAG  = 7
+    CERT_INFO_SUBJECT_PUBLIC_KEY_INFO_FLAG  = 8
+    CERT_INFO_ISSUER_UNIQUE_ID_FLAG  = 9
+    CERT_INFO_SUBJECT_UNIQUE_ID_FLAG  = 10
+    CERT_INFO_EXTENSION_FLAG  = 11
+End Enum
+Public Enum CryptCertFindType
+    CERT_FIND_ANY  = (CERT_COMPARE_ANY << CERT_COMPARE_SHIFT)
+    CERT_FIND_SHA1_HASH  = (CERT_COMPARE_SHA1_HASH << CERT_COMPARE_SHIFT)
+    CERT_FIND_SHA256_HASH  = (CERT_COMPARE_SHA256_HASH << CERT_COMPARE_SHIFT)
+    CERT_FIND_SHA1_SHA256_HASH  = (CERT_COMPARE_SHA1_SHA256_HASH << CERT_COMPARE_SHIFT)
+    CERT_FIND_MD5_HASH  = (CERT_COMPARE_MD5_HASH << CERT_COMPARE_SHIFT)
+    CERT_FIND_SIGNATURE_HASH  = (CERT_COMPARE_SIGNATURE_HASH << CERT_COMPARE_SHIFT)
+    CERT_FIND_KEY_IDENTIFIER  = (CERT_COMPARE_KEY_IDENTIFIER << CERT_COMPARE_SHIFT)
+    CERT_FIND_HASH  = CERT_FIND_SHA1_HASH
+    CERT_FIND_PROPERTY  = (CERT_COMPARE_PROPERTY << CERT_COMPARE_SHIFT)
+    CERT_FIND_PUBLIC_KEY  = (CERT_COMPARE_PUBLIC_KEY << CERT_COMPARE_SHIFT)
+    CERT_FIND_SUBJECT_NAME  = (CERT_COMPARE_NAME << CERT_COMPARE_SHIFT  Or CERT_INFO_SUBJECT_FLAG)
+    CERT_FIND_SUBJECT_ATTR  = (CERT_COMPARE_ATTR << CERT_COMPARE_SHIFT  Or  CERT_INFO_SUBJECT_FLAG)
+    CERT_FIND_ISSUER_NAME  = (CERT_COMPARE_NAME << CERT_COMPARE_SHIFT  Or  CERT_INFO_ISSUER_FLAG)
+    CERT_FIND_ISSUER_ATTR  = (CERT_COMPARE_ATTR << CERT_COMPARE_SHIFT  Or  CERT_INFO_ISSUER_FLAG)
+    CERT_FIND_SUBJECT_STR_A  = (CERT_COMPARE_NAME_STR_A << CERT_COMPARE_SHIFT  Or  CERT_INFO_SUBJECT_FLAG)
+    CERT_FIND_SUBJECT_STR_W  = (CERT_COMPARE_NAME_STR_W << CERT_COMPARE_SHIFT  Or  CERT_INFO_SUBJECT_FLAG)
+    CERT_FIND_SUBJECT_STR  = CERT_FIND_SUBJECT_STR_W
+    CERT_FIND_ISSUER_STR_A  = (CERT_COMPARE_NAME_STR_A << CERT_COMPARE_SHIFT  Or  CERT_INFO_ISSUER_FLAG)
+    CERT_FIND_ISSUER_STR_W  = (CERT_COMPARE_NAME_STR_W << CERT_COMPARE_SHIFT  Or  CERT_INFO_ISSUER_FLAG)
+    CERT_FIND_ISSUER_STR  = CERT_FIND_ISSUER_STR_W
+    CERT_FIND_KEY_SPEC  = (CERT_COMPARE_KEY_SPEC << CERT_COMPARE_SHIFT)
+    CERT_FIND_ENHKEY_USAGE  = (CERT_COMPARE_ENHKEY_USAGE << CERT_COMPARE_SHIFT)
+    CERT_FIND_CTL_USAGE  = CERT_FIND_ENHKEY_USAGE
+    CERT_FIND_SUBJECT_CERT  = (CERT_COMPARE_SUBJECT_CERT << CERT_COMPARE_SHIFT)
+    CERT_FIND_ISSUER_OF  = (CERT_COMPARE_ISSUER_OF << CERT_COMPARE_SHIFT)
+    CERT_FIND_EXISTING  = (CERT_COMPARE_EXISTING << CERT_COMPARE_SHIFT)
+    CERT_FIND_CERT_ID  = (CERT_COMPARE_CERT_ID << CERT_COMPARE_SHIFT)
+    CERT_FIND_CROSS_CERT_DIST_POINTS  = (CERT_COMPARE_CROSS_CERT_DIST_POINTS << CERT_COMPARE_SHIFT)
+    CERT_FIND_PUBKEY_MD5_HASH  = (CERT_COMPARE_PUBKEY_MD5_HASH << CERT_COMPARE_SHIFT)
+    CERT_FIND_SUBJECT_INFO_ACCESS  = (CERT_COMPARE_SUBJECT_INFO_ACCESS << CERT_COMPARE_SHIFT)
+    CERT_FIND_HASH_STR  = (CERT_COMPARE_HASH_STR << CERT_COMPARE_SHIFT)
+    CERT_FIND_HAS_PRIVATE_KEY  = (CERT_COMPARE_HAS_PRIVATE_KEY << CERT_COMPARE_SHIFT)
+End Enum
+
 
 Public DeclareWide PtrSafe Function CryptProtectData Lib "crypt32" (pDataIn As DATA_BLOB, ByVal szDataDescr As String, pOptionalEntropy As DATA_BLOB, ByVal pvReserved As LongPtr, pPromptStruct As CRYPTPROTECT_PROMPTSTRUCT, ByVal dwFlags As CryptProtectFlags, pDataOut As DATA_BLOB) As BOOL
 Public DeclareWide PtrSafe Function CryptUnprotectData Lib "crypt32" (pDataIn As DATA_BLOB, szDataDescr As LongPtr, pOptionalEntropy As DATA_BLOB, ByVal pvReserved As LongPtr, pPromptStruct As CRYPTPROTECT_PROMPTSTRUCT, ByVal dwFlags As CryptProtectFlags, pDataOut As DATA_BLOB) As BOOL
@@ -43696,8 +44585,17 @@ Public DeclareWide PtrSafe Function CryptStringToBinary Lib "crypt32" Alias "Cry
 Public Declare PtrSafe Function CryptBinaryToStringA Lib "crypt32" (pbBinary As Any, ByVal cbBinary As Long, ByVal dwFlags As CRYPT_STRING_OPTIONS, ByVal pszString As String, pcchString As Long) As BOOL
 Public DeclareWide PtrSafe Function CryptBinaryToStringW Lib "crypt32" (pbBinary As Any, ByVal cbBinary As Long, ByVal dwFlags As CRYPT_STRING_OPTIONS, ByVal pszString As LongPtr, pcchString As Long) As BOOL
 Public DeclareWide PtrSafe Function CryptBinaryToString Lib "crypt32" Alias "CryptBinaryToStringW" (pbBinary As Any, ByVal cbBinary As Long, ByVal dwFlags As CRYPT_STRING_OPTIONS, ByVal pszString As String, pcchString As Long) As BOOL
+Public DeclareWide PtrSafe Function CryptQueryObject Lib "crypt32" (ByVal dwObjectType As CRYPT_QUERY_OBJ_TYPE, pvObject As Any, ByVal dwExpectedContentTypeFlags As CRYPT_QUERY_CONTENT_FLAGS, ByVal dwExpectedFormatTypeFlags As CRYPT_QUERY_FORMAT_TYPE_FLAGS, ByVal dwFlags As Long, pdwMsgAndCertEncodingType As CRYPT_CERT_ENCODING_TYPE, pdwContentType As CRYPT_QUERY_CONTENT_TYPE, pdwFormatType As CRYPT_QUERY_FORMAT, phCertStore As LongPtr, phMsg As LongPtr, ppvContext As Any) As BOOL
+Public DeclareWide PtrSafe Function CertCloseStore Lib "crypt32" (ByVal hCertStore As LongPtr, ByVal dwFlags As CERT_STORE_CLOSE_FLAGS) As BOOL
+Public DeclareWide PtrSafe Function CryptMsgClose Lib "crypt32" (ByVal hCryptMsg As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function CryptMsgGetParam Lib "crypt32" (ByVal hCryptMsg As LongPtr, ByVal dwParamType As CRYPT_CMSG_PARAM_TYPE, ByVal dwIndex As Long, pvData As Any, pcbData As Long) As BOOL
+Public Declare PtrSafe Function CertGetNameStringA Lib "crypt32" (pCertContext As CERT_CONTEXT, ByVal dwType As CERT_NAME_TYPES, ByVal dwFlags As CERT_NAME_FLAGS, pvTypePara As Any, ByVal pszNameString As String, ByVal cchNameString As Long) As Long
+Public Declare PtrSafe Function CertGetNameStringW Lib "crypt32" (pCertContext As CERT_CONTEXT, ByVal dwType As CERT_NAME_TYPES, ByVal dwFlags As CERT_NAME_FLAGS, pvTypePara As Any, ByVal pszNameString As LongPtr, ByVal cchNameString As Long) As Long
+Public DeclareWide PtrSafe Function CertGetNameString Lib "crypt32" Alias "CertGetNameStringW" (pCertContext As CERT_CONTEXT, ByVal dwType As CERT_NAME_TYPES, ByVal dwFlags As CERT_NAME_FLAGS, pvTypePara As Any, ByVal pszNameString As String, ByVal cchNameString As Long) As Long
+Public Declare PtrSafe Function CertFindCertificateInStore Lib "crypt32" (ByVal hCertStore As LongPtr, ByVal dwCertEncodingType As CRYPT_CERT_ENCODING_TYPE, ByVal dwFindFlags As CryptCertFindFlags, ByVal dwFindType As CryptCertFindType, pvFindPara As Any, pPrevCertContext As CERT_CONTEXT) As CERT_CONTEXT
+Public Declare PtrSafe Function CertFreeCertificateContext Lib "Crypt32" (ByVal pCertContext As Long) As BOOL
 
-
+' 
 
 
 
@@ -45110,7 +46008,7 @@ End Type
 Public Enum WINTRUST_DATA_UICHOICE
     WTD_UI_ALL  = 1
     WTD_UI_NONE  = 2
-    WTD_UI_NOBAD  = 3
+    WTD_UI_NOBAD = 3
     WTD_UI_NOGOOD  = 4
 End Enum
 Public Enum WINTRUST_DATA_REVCHECK
@@ -45288,23 +46186,6 @@ Public Const OFFICE_CLEANUPPOLICY_FUNCTION  = "OfficeCleanupPolicy"
 Public Const DRIVER_INITPROV_FUNCTION  = "DriverInitializePolicy"
 Public Const DRIVER_FINALPOLPROV_FUNCTION  = "DriverFinalPolicy"
 Public Const DRIVER_CLEANUPPOLICY_FUNCTION  = "DriverCleanupPolicy"
-
-[ Description ("A system-level error occured while verifying trust.") ]
-Public Const TRUST_E_SYSTEM_ERROR  = &H80096001
-[ Description ("The certificate for the signer of the message is invalid or not found.") ]
-Public Const TRUST_E_NO_SIGNER_CERT  = &H80096002
-[ Description ("One of the counter signers was invalid.") ]
-Public Const TRUST_E_COUNTER_SIGNER  = &H80096003
-[ Description ("The signature of the certificate can not be verified.") ]
-Public Const TRUST_E_CERT_SIGNATURE  = &H80096004
-[ Description ("The time stamp signer and or certificate could not be verified or is malformed.") ]
-Public Const TRUST_E_TIME_STAMP  = &H80096005
-[ Description ("The objects digest did not verify.") ]
-Public Const TRUST_E_BAD_DIGEST  = &H80096010
-[ Description ("The cerficates basic constraints are invalid or missing.") ]
-Public Const TRUST_E_BASIC_CONSTRAINTS  = &H80096019
-[ Description ("The certificate does not meet or contain the Authenticode financial extensions.") ]
-Public Const TRUST_E_FINANCIAL_CRITERIA  = &H8009601E
 
 Public DeclareWide PtrSafe Function WinVerifyTrust Lib "wintrust" (ByVal hwnd As LongPtr, pgActionId As UUID, pWVTData As Any) As Long
 Public DeclareWide PtrSafe Function WinVerifyTrustEx Lib "wintrust" (ByVal hwnd As LongPtr, pgActionId As UUID, pWVTData As WINTRUST_DATA) As Long
@@ -45730,7 +46611,10 @@ Public Declare PtrSafe Function ImageGetCertificateData Lib "imagehlp" (ByVal Fi
 Public Declare PtrSafe Function ImageGetCertificateHeader Lib "imagehlp" (ByVal FileHandle As LongPtr, ByVal CertificateIndex As Long, Certificate As WIN_CERTIFICATE) As BOOL
 Public Declare PtrSafe Function ImageRemoveCertificate Lib "imagehlp" (ByVal FileHandle As LongPtr, ByVal Index As Long) As BOOL
 Public Declare PtrSafe Function MakeSureDirectoryPathExists Lib "Imagehlp" (ByVal DirPath As String) As Boolean
-
+Public Declare PtrSafe Function ImageNtHeader Lib "imagehlp" (ByVal Base As LongPtr) As LongPtr
+Public Declare PtrSafe Function ImageDirectoryEntryToDataEx Lib "imagehlp" (ByVal Base As LongPtr, ByVal MappedAsImage As Byte, [ TypeHint(ImageDirectories) ] ByVal DirectoryEntry As Integer, Size As Long, FoundHeader As IMAGE_SECTION_HEADER) As LongPtr
+Public Declare PtrSafe Function ImageRvaToSection Lib "imagehlp" (NtHeaders As IMAGE_NT_HEADERS, ByVal Base As LongPtr, ByVal Rva As Long) As LongPtr
+Public Declare PtrSafe Function ImageRvaToVa Lib "imagehlp" (NtHeaders As IMAGE_NT_HEADERS, ByVal Base As LongPtr, ByVal Rva As Long, LastRvaSection As IMAGE_SECTION_HEADER) As LongPtr
 
 
 
@@ -46081,7 +46965,16 @@ End If
 
 End Function
 
-[Description("Ensures a block of memory is zeroed where compiler optimizations may prevent that with ZeroMemory")]
+[Description("Returns an error name given it's number, e.g. 5 returns ERROR_ACCESS_DENIED. Leave lpSource off for standard system messages.") ]
+Public Function GetSystemErrorString(lErrNum As Long, Optional ByVal lpSource As LongPtr = 0) As String
+    Dim sError As String, ret As Long
+    sError = Space$(MAX_PATH)
+    ret = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM Or FORMAT_MESSAGE_IGNORE_INSERTS, ByVal lpSource, lErrNum, 0&, sError, Len(sError), 0)
+    If ret > 0 Then Return Left$(sError, ret)
+End Function
+
+
+[Description("Ensures a block of memory is zeroed where compiler optimizations may prevent that with ZeroMemory") ]
 Public Sub SecureZeroMemory(ByVal pv As LongPtr, cb As LongPtr)
 	Dim i As LongPtr
     For i = 0 To cb - 1
