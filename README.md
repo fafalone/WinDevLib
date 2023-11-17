@@ -6,7 +6,7 @@
 
 ---
 
-**Current Version: 6.3.252 (November 11th, 2023)**
+**Current Version: 6.3.253 (November 17th, 2023)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -122,6 +122,14 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, vbNullPtr, ...)
 ```
 
 ### Updates
+
+**Update (v6.3.253, 17 Nov 2023):**\
+-Additional crypto APIs (both classic and nextgen)\
+-Added GetSystemErrorString helper function to look up system error messages.\
+-(Bug fix) FormatMessage did not follow W/DeclareWideString convention; last param not ByVal.\
+-(Bug fix) RtlDestroyHeap has but one p.\
+-(Bug fix) CoCreateInstance overloads not playing nice. Only a single form available now.
+
 
 **Update (v6.3.252, 11 Nov 2023):**\
 -Expanded bcrypt coverage\
