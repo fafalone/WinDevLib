@@ -6,7 +6,7 @@
 
 ---
 
-**Current Version: 6.3.253 (November 17th, 2023)**
+**Current Version: 6.4.256 (November 25th, 2023)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -123,13 +123,25 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, vbNullPtr, ...)
 
 ### Updates
 
+**Update (v6.4.256, 25 Nov 2023):**
+-Added inexplicably missing basic versioning and sysinfo APIs from kernel32.\
+-Added ListView subitem control undocumented CLSIDs.\
+-Additional sys info classes (NtQuerySystemInformation).\
+-Misc. API additions.\
+-(Bug fix) GetAtomName[A,W] and GlobalGetAtomName[A,W] definitions incorrect.\
+-(Bug fix) Multiple ole32 functions incorrectly passing ANSI strings.\
+-(Bug fix) ListView_GetItemText was thoroughly broken.\
+-(Bug fix) GetSystemDirectory definition incorrect.\
+-(Bug fix) EnumPrintersA definition incorrect; GetPrinter, SetPrinter, and GetJob definitions technically incorrect but no impact unless you had redefined associated UDTs.\
+-(Bug fix) UNICODE_STRING members renamed to their proper SDK names. I realize this is a substantial breaking change but it's a minor adjustment and I feel it's important to be faithful to the SDK.
+
+
 **Update (v6.3.253, 17 Nov 2023):**\
 -Additional crypto APIs (both classic and nextgen)\
 -Added GetSystemErrorString helper function to look up system error messages.\
 -(Bug fix) FormatMessage did not follow W/DeclareWideString convention; last param not ByVal.\
 -(Bug fix) RtlDestroyHeap has but one p.\
 -(Bug fix) CoCreateInstance overloads not playing nice. Only a single form available now.
-
 
 **Update (v6.3.252, 11 Nov 2023):**\
 -Expanded bcrypt coverage\
@@ -235,123 +247,6 @@ CoUnMarshalIface, IsValidLocaleName, EnumDateFormatsExEx, EnumCalendarInfoExEx, 
 -Bug fix: ShowWindow relocated to slShellCore.twin to avoid amibiguity with SHOWWINDOW enum.\
 -Bug fix: Misc. bug fixes to APIs.
 
-
-**Update (v4.16.191):** Critical bug fix: Multiple instances of errors for auto-declaring Variants. Bug fix: `GetClipboardData` incorrectly returned a Long (should be LongPtr).
-
-**Update (v4.16.190):**\
--Critical bug fix: `TB_SHELLLIB_LITE` mode was broken.\
--Added additional DirectX errors w/ desciprtions.\
--Added initial D3D compiler apis, note that by default, these direct to d3dcompiler_47.dll, however you can specify compiler flag D3D_COMPILER = 44, 45, and 46 to use those.
-
-**Update (v4.15.188):** Added `SAFEARRAY` APIs for manual operations on them and some more TypeLib-related APIs.
-
-**Update (v4.15.185):** Bug fix: lstrcmp, lstrcmpi, and lstrcat declarations were incorrect. Some additional `[ TypeHint ]` attributes add.
-
-**Update (v4.14.184):** Added SxS Assembly interfaces and APIs. Added MAKEINTRESOURCE macro. Added additional error messages. Made TaskDialogIndirect returns Optional per MSDN.
-
-**Update (v4.14.182):** Added missing kernel32 string functions. Added SUCCEEDED helper function.
-
-**Update (v4.14.181):** Bug fix: CHARFORMAT2[A|W] was incorrectly declared.
-
-**Update (v4.14.180):** Much more extensive coverage of PROPVARIANT and Variant helpers for supported VB types (use changetype first to use them with unsigned et al).
-
-**Update (v4.14.178):** Added partial Virtual Disk APIs and unsigned PROPVARIANT helpers.
-
-**Update (v4.13.177):** Bug fix: Helper function UI_HSB had a syntax error.
-
-**Update (v4.13.175):** Bug fix: UI Ribbon IIDs were missing.
-
-**Update (v4.13.174):** Added caret APIs. Bug fix: Certain DirectWrite interfaces had members incompatible with x64. *IMPORTANT:* Having a single format for both 32 and 64bit breaks compatibility with the 32bit-only version. Previously `DWRITE_TEXT_RANGE` arguments were passed as two separate arguments, you'll now need to copy them to a single LongLong to pass.
-
-**Update (v4.12.172):** User info APIs added.
-
- **Update (v4.12.170):** Bug fix: IOleInPlaceSite::Scroll scrollExtant should be ByVal. Added common error consts w/ descriptions. (171 is a version number change only for testing the package manager).
- 
-**Update (v4.12.166):**
--Added HTMLHelp APIs and misc ones that should be grouped with existing sets.
-
--New option: tbShellLib now has a 'Lite mode' designed to increase performance for users who typically define APIs themselves. In this mode, all API definitions in slAPI and slAPIComCtl are excluded, as are all misc API enums/types/consts in slDefs, and mPKEY.
-
--To use Lite mode, go to your project settings, go to 'Project: Conditional compilation constants', ensure it's checked to enable, and add `TB_SHELLLIB_LITE = 1`. This is applied during design time, so provides large benefits for Intellisense, syntax coloring/completion, etc.
-
-**Update (v4.11.164):** Added Sensor APIs and Location APIs, including all related GUIDs/PKEYs from sensors.h. Added some APIs that belong with the previously added ones; major additions are likely over for now. Misc bugfixes to APIs.
-
-**Update (v4.10.160):** Added IStorageProviderHandler and IStorageProviderPropertyHandler. Substantial updates to API sets.
-
-**Update (v4.9.154):** Updated WebView2 interface set to latest stable release, v1.0.1774.30. Added additional APIs, focusing on Setup APIs, NTDLL, and data protection APIs. 
-
-**Update (v4.8.147):** The OPENFILENAME[A,W] definitions were, inexplicably, still incorrect even though I thought I modified them when I made the issue for the pending fix.
-
-**Update (v4.8.146):** The Common Controls API set did not conform to the project API standards at all; sometimes even within a single control's definitions. Be mindful if you've been using untagged aliases of A/W here. Numerous other small bug fixes. Many additional APIs.
-
-**Update (v4.7.144):** Numerous bug fixes, including changing all olepro32.dll APIs to oleaut32, as the former doesn't exist in 64bit Windows and the functions have been exported by the latter since Win2k. Also added another large batch of APIs, with a focus on GDI drawing.
-
-**Update (v4.6.142):** Some improvements/fixes to certain argument types in DirectX ifaces. Added a large number of font and text APIs in preparation for an upcoming project.
-
-**Update (v4.6.139):** Bug fix: DirectComposition uses numerous overloaded methods; it's apparently an undocumented compiler behavior that these appear in reverse order from their declarations in the v-table, so the order had to be swapped for all overloads. These are currently uniquely named rather than taking advantage of tB's overloading supporting until I hear back from Wayne about the internals of support/implementation for it.
-
-**Update (v4.6.138):** Several bug fixes, added misc commonly used APIs so far overlooked, and a number of additional APIs, focusing on registery, setup apis, and display settings apis.
-
-**Update (v4.6.134): Critical bug fix:** A second `WM_USER` was accidentally made Public, which would cause numerous ambiguity and constant expression errors in any project using it or a constant derived from it. Also added keyboard APIs and some misc common ones that had been overlooked.
-
-**Update (v4.6.132):** Numerous bug fixes related to string handling (ByRef LongPtrs that should have been ByVal), added another large batch of APIs.
-
-**Update (v4.5.130):** Some minor bug fixes, added IInputPaneAnimationCoordinator, added another batch of APIs (focused on GDI, thread synchronization, and activation contexts). 
-
-**Update (v4.5.128):** A number of DirectX interfaces were incompatible with x64 due to ByVal UDTs; these were imported from VB6 declares as e.g. 2 ByVal Longs for a point, but that won't work on x64 because of an 8 byte stack alignment. To keep codebases simple, points now use a single LongLong for *both* 32 and 64 bit. You declare a LongLong to pass, then use CopyMemory to copy your D2D1_POINT_F or other type into it. Also added some more APIs.
-
-**Update (v4.5.126):** Added DirectComposition Presentation Manager interfaces, added additional APIs (focused on window management and file i/o), some minor bugfixes.
-
-**Update (v4.4.124):** Important bug fixes and additional APIs (GDI printing and window transparency).
-
-**Update (v4.4.122):**
-
--Critical bug fix for new tB builds (correctly) flagging Optional UDTs as errors. 
-
--Added UI Ribbon interfaces, coclasses, and PKEYs. (UIRibbon.h).
-
--Added interface IContextCallback with coclass ContextSwitcher (and related APIs).
-
-
-**Update (v4.3.120):** 
-
--Added Disk Quota interfaces IDiskQuotaControl (with coclass DiskQuotaControl), IDiskQuotaUser, IDiskQuotaUserBatch, IEnumDiskQuotaUsers, and IDiskQuotaEvents.
-
--Bug fixes for certain `Optional` issues
-
--Added missing Direct2D flag to enable color fonts
-
--Expanded APIs focusing on subclassing, file mapping, memory management, and NT objects.
-
-**Update (v4.3.114):** Important bug fixes for CreateThread ([#14](https://github.com/fafalone/tbShellLib/issues/14)), other bug fixes including IDataObject::DAdvise sink arg, and additional APIs.
-
-**Update (v4.3.112):** Added some base OLE/COM interfaces I feel were substantial oversights from both olelib and oleexp; IDataAdviseHolder, IOleAdviseHolder, IDropSourceNotify, IEnterpriseDropTarget, and IContinue.
-
-**Update (v4.3.102):** 
-
--Added some missing base OLE/COM interfaces: IQuickActivate, IAdviseSinkEx, IPointerInactive, IOleUndoManager, IEnumOleUndoUnits, IOleParentUndoUnit, IOleUndoUnit, IViewObjectEx, IOleInPlaceSiteWindowless, IOleInPlaceSiteEx, IOleInPlaceObjectWindowless.
-
--Additional APIs, focused on desktop/winstation APIs and DPI awareness APIs.
-
-**Update (v4.2.98):** Numerous new APIs; some minor bugfixes.
-
-**Update (v4.2.96):** Added missing Core Audio interfaces/GUIDs. Significant API coverage expansion.
-
-**Update (v4.1.94):** Added Packaging API interfaces (msopc.idl). Added Netaddress control defs (newer version of old IP address control, msctls_netaddress; the old one, SysIPAddress32, is still there).
-
-**Update (v4.0.93):** `Currency` in new interfaces changed to `LongLong`. 
-
-**Update (v4.0.92):** 
-
--Completed Media Foundation interfaces up through the most recent Windows 11 SDK. This includes the capture engine and other entirely new feature sets.
-
--Added CoreAudio Spatial Audio interfaces (newer Win10 versions/Win11 only)
-
--Added IPropertyPage[2] and IPropertyPageSite interfaces.
-
--Added ISimpleFrameSite interface
-
--Bug fix: AUDCLNT_RETURNCODES were all incorrect.
 
 ---
 
