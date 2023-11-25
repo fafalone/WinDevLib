@@ -109,13 +109,13 @@ twinBASIC has direct support for passing a null pointer instead of a UDT. You ca
 Example:
 
 VB6:
-```
+```vb6
 Public Declare Function CreateFileW Lib "kernel32" (ByVal lpFileName As Long, ByVal dwDesiredAccess As Long, ByVal dwShareMode As Long, lpSecurityAttributes As Any, ByVal dwCreationDisposition As Long, ByVal dwFlagsAndAttributes As Long, ByVal hTemplateFile As Long) As Long
 
 hFile = CreateFileW(StrPtr("name"), 0, 0, ByVal 0, ...)
 ```
 twinBASIC:
-```
+```vb6
 Public Declare PtrSafe Function CreateFileW Lib "kernel32" (ByVal lpFileName As LongPtr, ByVal dwDesiredAccess As Long, ByVal dwShareMode As Long, lpSecurityAttributes As SECURITY_ATTRIBUTES, ByVal dwCreationDisposition As Long, ByVal dwFlagsAndAttributes As Long, ByVal hTemplateFile As LongPtr) As LongPtr
 
 hFile = CreateFileW(StrPtr("name"), 0, 0, vbNullPtr, ...)
