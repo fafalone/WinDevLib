@@ -123,7 +123,7 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, vbNullPtr, ...)
 
 ### Updates
 
-**Update (v6.4.256, 25 Nov 2023):**
+**Update (v6.4.256, 25 Nov 2023):**\
 -Added inexplicably missing basic versioning and sysinfo APIs from kernel32.\
 -Added ListView subitem control undocumented CLSIDs.\
 -Additional sys info classes (NtQuerySystemInformation).\
