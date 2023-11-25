@@ -3,6 +3,7 @@
 'Note: urlmon.dll and hlink.dll APIs are in slInternet.twin. comctl32.dll and uxtheme.dll APIs are in slAPIComCtl, along with the common control APIs from user32. 
 '      Media Foundation DLLs have their APIs in slMF.twin; Webview2Loader.dll in slWebview2. A few other very small sets for specific features are in their modules.
 
+
 #If TB_SHELLLIB_LITE = 0 Then
 Module slAPI
 
@@ -2413,10 +2414,12 @@ End Type
 
 
 Public Type UNICODE_STRING
-    uLength As Integer
-    uMaximumLength As Integer
-    pBuffer As LongPtr
+    Length As Integer
+    MaximumLength As Integer
+    Buffer As LongPtr
 End Type
+Public Const UNICODE_STRING_MAX_BYTES As Long = 65534
+Public Const UNICODE_STRING_MAX_CHARS As Integer = 32767
 
 Public Enum PROCESSINFOCLASS
     ProcessBasicInformation = &H00
@@ -2592,14 +2595,18 @@ End Enum
 
 
 #Region "PEB/UPP"
+
+Public Enum UPP_CONSOLE_FLAGS
+    CONSOLE_IGNORE_CTRL_C = &H1 'Only defined flag in XP; later ones unknown
+End Enum
 [ Description ("RTL_USER_PROCESS_PARAMETERS for Windows XP and Server 2003 and above.") ]
 Public Type RTL_USER_PROCESS_PARAMETERS_XP
     MaximumLength As Long
     Length As Long
     Flags As RTL_UPP_FLAGS
-    DebugFlags As Long
+    DebugFlags As Long 'This is essentially a boolean that if non-zero triggers DbgBreakPoint() at certain points
     ConsoleHandle As LongPtr
-    ConsoleFlags As Long
+    ConsoleFlags As UPP_CONSOLE_FLAGS
     StandardInput As LongPtr
     StandardOutput As LongPtr
     StandardError As LongPtr
@@ -2630,7 +2637,7 @@ Public Type RTL_USER_PROCESS_PARAMETERS
     Flags As RTL_UPP_FLAGS
     DebugFlags As Long
     ConsoleHandle As LongPtr
-    ConsoleFlags As Long
+    ConsoleFlags As UPP_CONSOLE_FLAGS
     StandardInput As LongPtr
     StandardOutput As LongPtr
     StandardError As LongPtr
@@ -2662,7 +2669,7 @@ Public Type RTL_USER_PROCESS_PARAMETERS_WIN7
     Flags As RTL_UPP_FLAGS
     DebugFlags As Long
     ConsoleHandle As LongPtr
-    ConsoleFlags As Long
+    ConsoleFlags As UPP_CONSOLE_FLAGS
     StandardInput As LongPtr
     StandardOutput As LongPtr
     StandardError As LongPtr
@@ -2695,7 +2702,7 @@ Public Type RTL_USER_PROCESS_PARAMETERS_WIN8
     Flags As RTL_UPP_FLAGS
     DebugFlags As Long
     ConsoleHandle As LongPtr
-    ConsoleFlags As Long
+    ConsoleFlags As UPP_CONSOLE_FLAGS
     StandardInput As LongPtr
     StandardOutput As LongPtr
     StandardError As LongPtr
@@ -2730,7 +2737,7 @@ Public Type RTL_USER_PROCESS_PARAMETERS_WIN10
     Flags As RTL_UPP_FLAGS
     DebugFlags As Long
     ConsoleHandle As LongPtr
-    ConsoleFlags As Long
+    ConsoleFlags As UPP_CONSOLE_FLAGS
     StandardInput As LongPtr
     StandardOutput As LongPtr
     StandardError As LongPtr
@@ -2766,7 +2773,7 @@ Public Type RTL_USER_PROCESS_PARAMETERS_WIN10_R5
     Flags As RTL_UPP_FLAGS
     DebugFlags As Long
     ConsoleHandle As LongPtr
-    ConsoleFlags As Long
+    ConsoleFlags As UPP_CONSOLE_FLAGS
     StandardInput As LongPtr
     StandardOutput As LongPtr
     StandardError As LongPtr
@@ -2803,7 +2810,7 @@ Public Type RTL_USER_PROCESS_PARAMETERS_WIN10_19H1
     Flags As RTL_UPP_FLAGS
     DebugFlags As Long
     ConsoleHandle As LongPtr
-    ConsoleFlags As Long
+    ConsoleFlags As UPP_CONSOLE_FLAGS
     StandardInput As LongPtr
     StandardOutput As LongPtr
     StandardError As LongPtr
@@ -2843,7 +2850,7 @@ Public Type RTL_USER_PROCESS_PARAMETERS_WIN10_20H1
     Flags As RTL_UPP_FLAGS
     DebugFlags As Long
     ConsoleHandle As LongPtr
-    ConsoleFlags As Long
+    ConsoleFlags As UPP_CONSOLE_FLAGS
     StandardInput As LongPtr
     StandardOutput As LongPtr
     StandardError As LongPtr
@@ -2884,7 +2891,7 @@ Public Type RTL_USER_PROCESS_PARAMETERS_WIN11_21H2
     Flags As RTL_UPP_FLAGS
     DebugFlags As Long
     ConsoleHandle As LongPtr
-    ConsoleFlags As Long
+    ConsoleFlags As UPP_CONSOLE_FLAGS
     StandardInput As LongPtr
     StandardOutput As LongPtr
     StandardError As LongPtr
@@ -2998,6 +3005,9 @@ Public Type PEB
     UnicodeCaseTableData As LongPtr
     NumberOfProcessors As Long
     NtGlobalFlag As NTGLB_Flags
+    #If (TWINBASIC = 0) And (Win64 = 0) Then
+    pad(3) As Byte
+    #End If
     CriticalSectionTimeout As QLARGE_INTEGER
     HeapSegmentReserve As LongPtr
     HeapSegmentCommit As LongPtr
@@ -3030,7 +3040,7 @@ Public Type PEB
     SessionId As Long
     AppCompatFlagsHi As Long
     AppCompatFlags As APP_COMPAT_FLAGS 'ULARGE_INTEGER
-    AppCompatFlagUser As ULARGE_INTEGER
+    AppCompatFlagUser As QLARGE_INTEGER
     pShimData As LongPtr
     AppCompatInfo As LongPtr
     CSDVersion As UNICODE_STRING
@@ -3039,6 +3049,9 @@ Public Type PEB
     SystemDefaultActivationContextData As LongPtr
     SystemAssemblyStorageMap As LongPtr
     MinimumStackCommit As LongPtr
+    #If (TWINBASIC = 0) And (Win64 = 0) Then
+    pad2(3) As Byte
+    #End If
 End Type
 
 
@@ -5389,6 +5402,15 @@ Public Enum PROC_THREAD_ATTRIBUTES ' attributes for ProcThreadAttributeList
 	PROC_THREAD_ATTRIBUTE_PROTECTION_LEVEL = &H0002000b
 	PROC_THREAD_ATTRIBUTE_SECURITY_CAPABILITIES = &H00020009
 	PROC_THREAD_ATTRIBUTE_PSEUDOCONSOLE = &H00020016
+    PROC_THREAD_ATTRIBUTE_ENABLE_OPTIONAL_XSTATE_FEATURES = &H0003001B
+    PROC_THREAD_ATTRIBUTE_JOB_LIST = &H2000d
+    PROC_THREAD_ATTRIBUTE_CHILD_PROCESS_POLICY = &H2000e
+    PROC_THREAD_ATTRIBUTE_ALL_APPLICATION_PACKAGES_POLICY = &H2000f
+    PROC_THREAD_ATTRIBUTE_WIN32K_FILTER = &H20010
+    PROC_THREAD_ATTRIBUTE_DESKTOP_APP_POLICY = &H20012
+    PROC_THREAD_ATTRIBUTE_MITIGATION_AUDIT_POLICY = &H20018
+    PROC_THREAD_ATTRIBUTE_COMPONENT_FILTER = &H2001a
+    PROC_THREAD_ATTRIBUTE_TRUSTED_APP = &H2001d
 End Enum
 
 Public Const PROCESS_CREATION_MITIGATION_POLICY_DEP_ENABLE  = &H01
@@ -5585,6 +5607,46 @@ Public Const PROCESS_CREATION_MITIGATION_POLICY2_RESTRICT_CORE_SHARING_ALWAYS_ON
 Public Const PROCESS_CREATION_MITIGATION_POLICY2_RESTRICT_CORE_SHARING_ALWAYS_OFF  = (&H00000002 << 52)
 Public Const PROCESS_CREATION_MITIGATION_POLICY2_RESTRICT_CORE_SHARING_RESERVED  = (&H00000003 << 52)
 
+
+Public Const PROCESS_CREATION_CHILD_PROCESS_RESTRICTED  = &H01
+Public Const PROCESS_CREATION_CHILD_PROCESS_OVERRIDE  = &H02
+Public Const PROCESS_CREATION_CHILD_PROCESS_RESTRICTED_UNLESS_SECURE  = &H04
+
+Public Const PROCESS_CREATION_ALL_APPLICATION_PACKAGES_OPT_OUT  = &H01
+Public Const PROCESS_CREATION_DESKTOP_APP_BREAKAWAY_ENABLE_PROCESS_TREE  = &H01
+Public Const PROCESS_CREATION_DESKTOP_APP_BREAKAWAY_DISABLE_PROCESS_TREE  = &H02
+Public Const PROCESS_CREATION_DESKTOP_APP_BREAKAWAY_OVERRIDE  = &H04
+'  Define the user-mode shadow stack mitigation audit policy options.
+Public Const PROCESS_CREATION_MITIGATION_AUDIT_POLICY2_CET_USER_SHADOW_STACKS_MASK As LongLong = (&H00000003 << 28)
+Public Const PROCESS_CREATION_MITIGATION_AUDIT_POLICY2_CET_USER_SHADOW_STACKS_DEFER As LongLong = (&H00000000 << 28)
+Public Const PROCESS_CREATION_MITIGATION_AUDIT_POLICY2_CET_USER_SHADOW_STACKS_ALWAYS_ON As LongLong = (&H00000001 << 28)
+Public Const PROCESS_CREATION_MITIGATION_AUDIT_POLICY2_CET_USER_SHADOW_STACKS_ALWAYS_OFF As LongLong = (&H00000002 << 28)
+Public Const PROCESS_CREATION_MITIGATION_AUDIT_POLICY2_CET_USER_SHADOW_STACKS_RESERVED As LongLong = (&H00000003 << 28)
+' Define the user-mode CET set context instruction pointer validation mitigation audit policy options.
+Public Const PROCESS_CREATION_MITIGATION_AUDIT_POLICY2_USER_CET_SET_CONTEXT_IP_VALIDATION_MASK As LongLong = (&H00000003 << 32)
+Public Const PROCESS_CREATION_MITIGATION_AUDIT_POLICY2_USER_CET_SET_CONTEXT_IP_VALIDATION_DEFER As LongLong = (&H00000000 << 32)
+Public Const PROCESS_CREATION_MITIGATION_AUDIT_POLICY2_USER_CET_SET_CONTEXT_IP_VALIDATION_ALWAYS_ON As LongLong = (&H00000001 << 32)
+Public Const PROCESS_CREATION_MITIGATION_AUDIT_POLICY2_USER_CET_SET_CONTEXT_IP_VALIDATION_ALWAYS_OFF As LongLong = (&H00000002 << 32)
+Public Const PROCESS_CREATION_MITIGATION_AUDIT_POLICY2_USER_CET_SET_CONTEXT_IP_VALIDATION_RESERVED As LongLong = (&H00000003 << 32)
+' Define the block non-CET/non-EHCONT binaries mitigation audit policy options.
+Public Const PROCESS_CREATION_MITIGATION_AUDIT_POLICY2_BLOCK_NON_CET_BINARIES_MASK As LongLong = (&H00000003 << 36)
+Public Const PROCESS_CREATION_MITIGATION_AUDIT_POLICY2_BLOCK_NON_CET_BINARIES_DEFER As LongLong = (&H00000000 << 36)
+Public Const PROCESS_CREATION_MITIGATION_AUDIT_POLICY2_BLOCK_NON_CET_BINARIES_ALWAYS_ON As LongLong = (&H00000001 << 36)
+Public Const PROCESS_CREATION_MITIGATION_AUDIT_POLICY2_BLOCK_NON_CET_BINARIES_ALWAYS_OFF As LongLong = (&H00000002 << 36)
+Public Const PROCESS_CREATION_MITIGATION_AUDIT_POLICY2_BLOCK_NON_CET_BINARIES_RESERVED As LongLong = (&H00000003 << 36)
+' Define the XFG mitigation audit policy options.
+Public Const PROCESS_CREATION_MITIGATION_AUDIT_POLICY2_XTENDED_CONTROL_FLOW_GUARD_MASK As LongLong = (&H00000003 << 40)
+Public Const PROCESS_CREATION_MITIGATION_AUDIT_POLICY2_XTENDED_CONTROL_FLOW_GUARD_DEFER As LongLong = (&H00000000 << 40)
+Public Const PROCESS_CREATION_MITIGATION_AUDIT_POLICY2_XTENDED_CONTROL_FLOW_GUARD_ALWAYS_ON As LongLong = (&H00000001 << 40)
+Public Const PROCESS_CREATION_MITIGATION_AUDIT_POLICY2_XTENDED_CONTROL_FLOW_GUARD_ALWAYS_OFF As LongLong = (&H00000002 << 40)
+Public Const PROCESS_CREATION_MITIGATION_AUDIT_POLICY2_XTENDED_CONTROL_FLOW_GUARD_RESERVED As LongLong = (&H00000003 << 40)
+
+
+
+
+
+
+
 Public Type ENUM_PAGE_FILE_INFORMATION
     cb As Long
     Reserved As Long
@@ -5661,7 +5723,35 @@ Public Enum EXCEPTION_FLAGS
     EXCEPTION_TARGET_UNWIND  = &H20  ' Target unwind in progress
     EXCEPTION_COLLIDED_UNWIND  = &H40  ' Collided exception handler call
     EXCEPTION_SOFTWARE_ORIGINATE  = &H80  ' Exception originated in software
-    EXCEPTION_UNWIND  = (EXCEPTION_UNWINDING  Or  EXCEPTION_EXIT_UNWIND  Or  EXCEPTION_TARGET_UNWIND  Or  EXCEPTION_COLLIDED_UNWIND)
+    EXCEPTION_UNWIND  = (EXCEPTION_UNWINDING  Or  EXCEPTION_EXIT_UNWIND  Or  EXCEPTION_TARGET_UNWIND  Or EXCEPTION_COLLIDED_UNWIND)
+End Enum
+Public Enum ExceptionCodes
+    STILL_ACTIVE  = STATUS_PENDING
+    EXCEPTION_GUARD_PAGE_VIOLATION = &H80000001
+    EXCEPTION_ACCESS_VIOLATION = STATUS_ACCESS_VIOLATION
+    EXCEPTION_DATATYPE_MISALIGNMENT  = STATUS_DATATYPE_MISALIGNMENT
+    EXCEPTION_BREAKPOINT  = STATUS_BREAKPOINT
+    EXCEPTION_SINGLE_STEP  = STATUS_SINGLE_STEP
+    EXCEPTION_ARRAY_BOUNDS_EXCEEDED  = STATUS_ARRAY_BOUNDS_EXCEEDED
+    EXCEPTION_FLT_DENORMAL_OPERAND  = STATUS_FLOAT_DENORMAL_OPERAND
+    EXCEPTION_FLT_DIVIDE_BY_ZERO  = STATUS_FLOAT_DIVIDE_BY_ZERO
+    EXCEPTION_FLT_INEXACT_RESULT  = STATUS_FLOAT_INEXACT_RESULT
+    EXCEPTION_FLT_INVALID_OPERATION  = STATUS_FLOAT_INVALID_OPERATION
+    EXCEPTION_FLT_OVERFLOW  = STATUS_FLOAT_OVERFLOW
+    EXCEPTION_FLT_STACK_CHECK  = STATUS_FLOAT_STACK_CHECK
+    EXCEPTION_FLT_UNDERFLOW  = STATUS_FLOAT_UNDERFLOW
+    EXCEPTION_INT_DIVIDE_BY_ZERO  = STATUS_INTEGER_DIVIDE_BY_ZERO
+    EXCEPTION_INT_OVERFLOW  = STATUS_INTEGER_OVERFLOW
+    EXCEPTION_PRIV_INSTRUCTION  = STATUS_PRIVILEGED_INSTRUCTION
+    EXCEPTION_IN_PAGE_ERROR  = STATUS_IN_PAGE_ERROR
+    EXCEPTION_ILLEGAL_INSTRUCTION  = STATUS_ILLEGAL_INSTRUCTION
+    EXCEPTION_NONCONTINUABLE_EXCEPTION  = STATUS_NONCONTINUABLE_EXCEPTION
+    EXCEPTION_STACK_OVERFLOW  = STATUS_STACK_OVERFLOW
+    EXCEPTION_INVALID_DISPOSITION  = STATUS_INVALID_DISPOSITION
+    EXCEPTION_GUARD_PAGE = STATUS_GUARD_PAGE_VIOLATION
+    EXCEPTION_INVALID_HANDLE  = STATUS_INVALID_HANDLE
+    EXCEPTION_POSSIBLE_DEADLOCK  = STATUS_POSSIBLE_DEADLOCK
+    CONTROL_C_EXIT  = STATUS_CONTROL_C_EXIT
 End Enum
 Public Const EXCEPTION_MAXIMUM_PARAMETERS = 15
 Public Type EXCEPTION_RECORD
@@ -6055,21 +6145,9 @@ Public Const EXCEPTION_CONTINUE_EXECUTION  = (-1)
 
 Public Enum SET_SEARCH_PATH_FLAGS
     BASE_SEARCH_PATH_ENABLE_SAFE_SEARCHMODE  = &H1
-    BASE_SEARCH_PATH_DISABLE_SAFE_SEARCHMODE  = &H10000
+    BASE_SEARCH_PATH_DISABLE_SAFE_SEARCHMODE = &H10000
     BASE_SEARCH_PATH_PERMANENT = &H8000&
     BASE_SEARCH_PATH_INVALID_FLAGS = Not &H18001
-End Enum
-
-Public Enum LOGICAL_PROCESSOR_RELATIONSHIP
-    RelationProcessorCore = 0
-    RelationNumaNode = 1
-    RelationCache = 2
-    RelationProcessorPackage = 3
-    RelationGroup = 4
-    RelationProcessorDie = 5
-    RelationNumaNodeEx = 6
-    RelationProcessorModule = 7
-    RelationAll = &Hffff&
 End Enum
 
 Public Enum PROCESS_FULL_IMAGENAME_FLAGS
@@ -6143,42 +6221,28 @@ Public Type RIP_INFO
     dwType As SetLastErrorEx_Flags
 End Type
 
+[ Description("Go to definition for comments. Union options defined under their respective names, e.g. EXCEPTION_DEBUG_INFO")]
 Public Type DEBUG_EVENT
     dwDebugEventCode As DBG_EVENT_TYPES
     dwProcessId As Long
     dwThreadId As Long
+    ' union {
+        ' EXCEPTION_DEBUG_INFO Exception;
+        ' CREATE_THREAD_DEBUG_INFO CreateThread;
+        ' CREATE_PROCESS_DEBUG_INFO CreateProcessInfo;
+        ' EXIT_THREAD_DEBUG_INFO ExitThread;
+        ' EXIT_PROCESS_DEBUG_INFO ExitProcess;
+        ' LOAD_DLL_DEBUG_INFO LoadDll;
+        ' UNLOAD_DLL_DEBUG_INFO UnloadDll;
+        ' OUTPUT_DEBUG_STRING_INFO DebugString;
+        ' RIP_INFO RipInfo;
+    ' } u;
     #If Win64 Then
     u(71) As Byte
     #Else
     u(39) As Byte
     #End If
 End Type
-
-Public Const STILL_ACTIVE  = STATUS_PENDING
-Public Const EXCEPTION_ACCESS_VIOLATION  = STATUS_ACCESS_VIOLATION
-Public Const EXCEPTION_DATATYPE_MISALIGNMENT  = STATUS_DATATYPE_MISALIGNMENT
-Public Const EXCEPTION_BREAKPOINT  = STATUS_BREAKPOINT
-Public Const EXCEPTION_SINGLE_STEP  = STATUS_SINGLE_STEP
-Public Const EXCEPTION_ARRAY_BOUNDS_EXCEEDED  = STATUS_ARRAY_BOUNDS_EXCEEDED
-Public Const EXCEPTION_FLT_DENORMAL_OPERAND  = STATUS_FLOAT_DENORMAL_OPERAND
-Public Const EXCEPTION_FLT_DIVIDE_BY_ZERO  = STATUS_FLOAT_DIVIDE_BY_ZERO
-Public Const EXCEPTION_FLT_INEXACT_RESULT  = STATUS_FLOAT_INEXACT_RESULT
-Public Const EXCEPTION_FLT_INVALID_OPERATION  = STATUS_FLOAT_INVALID_OPERATION
-Public Const EXCEPTION_FLT_OVERFLOW  = STATUS_FLOAT_OVERFLOW
-Public Const EXCEPTION_FLT_STACK_CHECK  = STATUS_FLOAT_STACK_CHECK
-Public Const EXCEPTION_FLT_UNDERFLOW  = STATUS_FLOAT_UNDERFLOW
-Public Const EXCEPTION_INT_DIVIDE_BY_ZERO  = STATUS_INTEGER_DIVIDE_BY_ZERO
-Public Const EXCEPTION_INT_OVERFLOW  = STATUS_INTEGER_OVERFLOW
-Public Const EXCEPTION_PRIV_INSTRUCTION  = STATUS_PRIVILEGED_INSTRUCTION
-Public Const EXCEPTION_IN_PAGE_ERROR  = STATUS_IN_PAGE_ERROR
-Public Const EXCEPTION_ILLEGAL_INSTRUCTION  = STATUS_ILLEGAL_INSTRUCTION
-Public Const EXCEPTION_NONCONTINUABLE_EXCEPTION  = STATUS_NONCONTINUABLE_EXCEPTION
-Public Const EXCEPTION_STACK_OVERFLOW  = STATUS_STACK_OVERFLOW
-Public Const EXCEPTION_INVALID_DISPOSITION  = STATUS_INVALID_DISPOSITION
-Public Const EXCEPTION_GUARD_PAGE  = STATUS_GUARD_PAGE_VIOLATION
-Public Const EXCEPTION_INVALID_HANDLE  = STATUS_INVALID_HANDLE
-Public Const EXCEPTION_POSSIBLE_DEADLOCK  = STATUS_POSSIBLE_DEADLOCK
-Public Const CONTROL_C_EXIT  = STATUS_CONTROL_C_EXIT
 
 Public Enum DBG_CONTROL_FLAGS
     DBG_EXCEPTION_HANDLED = &H00010001
@@ -6838,17 +6902,155 @@ Public Enum SYSNLS_FUNCTION
     COMPARE_STRING = &H0001
 End Enum
 
+Public Enum QUEUE_USER_APC_FLAGS
+    QUEUE_USER_APC_FLAGS_NONE  
+    QUEUE_USER_APC_FLAGS_SPECIAL_USER_APC  
+    QUEUE_USER_APC_CALLBACK_DATA_CONTEXT  
+End Enum
+
+Public Type APC_CALLBACK_DATA
+    Parameter As LongPtr
+    ContextRecord As LongPtr 'PCONTEXT
+    Reserved0 As LongPtr
+    Reserved1 As LongPtr
+End Type
+
+Public Enum LOGICAL_PROCESSOR_RELATIONSHIP
+    RelationProcessorCore  
+    RelationNumaNode 
+    RelationCache 
+    RelationProcessorPackage 
+    RelationGroup
+    RelationProcessorDie  
+    RelationNumaNodeEx  
+    RelationProcessorModule 
+    RelationAll = &Hffff&
+End Enum
+
+Public Enum PROCESSOR_CACHE_TYPE
+    CacheUnified 
+    CacheInstruction 
+    CacheData 
+    CacheTrace 
+End Enum
+
+Public Enum ProcessorRelationshipFlags
+     LTP_PC_SMT = &H1
+End Enum
+
+Public Enum ProcessorCacheAssociativity
+    CACHE_FULLY_ASSOCIATIVE = &HFF
+End Enum
+
+Public Type CACHE_DESCRIPTOR
+    Level As BYTE
+    /* [ TypeHint(ProcessorCacheAssociativity) ] */ Associativity As Byte
+    LineSize As Integer
+    Size As Long
+    Type As PROCESSOR_CACHE_TYPE
+End Type
+
+[ Description("Go to definition to see comments on contents of member u, representing an unsupported union.")]
+Public Type SYSTEM_LOGICAL_PROCESSOR_INFORMATION
+	ProcessorMask As LongPtr
+    Relationship As LOGICAL_PROCESSOR_RELATIONSHIP 
+    ' union {
+      ' struct {
+        ' BYTE Flags;
+      ' } ProcessorCore;
+      ' struct {
+        ' DWORD NodeNumber;
+      ' } NumaNode;
+      ' CACHE_DESCRIPTOR Cache;
+      ' ULONGLONG        Reserved[2];
+    ' } DUMMYUNIONNAME;
+    u(15) As Byte
+End Type
+
+Public Type PROCESSOR_RELATIONSHIP
+    /* [ TypeHint(ProcessorRelationshipFlags) ] */ Flags As BYTE
+    EfficiencyClass As BYTE
+    Reserved(0 To 19) As BYTE
+    GroupCount As Integer
+    GroupMask(0) As GROUP_AFFINITY
+End Type
+Public Type NUMA_NODE_RELATIONSHIP
+    NodeNumber As Long
+    Reserved(0 To 17) As BYTE
+    GroupCount As Integer
+    'union {
+    '    GROUP_AFFINITY GroupMask;
+    '     _Field_size_(GroupCount)
+    '     GROUP_AFFINITY GroupMasks[ANYSIZE_ARRAY];
+    ' } DUMMYUNIONNAME;
+    GroupMasks(0) As GROUP_AFFINITY
+End Type
+Public Type CACHE_RELATIONSHIP
+    Level As BYTE
+    /* [ TypeHint(ProcessorCacheAssociativity) ] */ Associativity As Byte
+    LineSize As Integer
+    Size As Long
+    Type As PROCESSOR_CACHE_TYPE
+    Reserved(0 To 17) As Byte
+    GroupCount As Integer
+    GroupMasks(0) As GROUP_AFFINITY
+End Type
+
+Public Type PROCESSOR_GROUP_INFO
+    MaximumProcessorCount As BYTE
+    ActiveProcessorCount As BYTE
+    Reserved(0 To 37) As BYTE
+    ActiveProcessorMask As LongPtr 'KAFFINITY
+End Type
+Public Type GROUP_RELATIONSHIP
+    MaximumGroupCount As Integer
+    ActiveGroupCount As Integer
+    Reserved(0 To 19) As BYTE
+    '_Field_size_(ActiveGroupCount) PROCESSOR_GROUP_INFO GroupInfo[ANYSIZE_ARRAY];
+    GroupInfo(0) As PROCESSOR_GROUP_INFO
+End Type
+
+[ Description("Go to definition to see comments on contents of member u, representing an unsupported union.")]
+Public Type SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX
+    Relationship As LOGICAL_PROCESSOR_RELATIONSHIP 
+    Size As Long
+    ' union {
+        ' PROCESSOR_RELATIONSHIP Processor;
+        ' NUMA_NODE_RELATIONSHIP NumaNode;
+        ' CACHE_RELATIONSHIP Cache;
+        ' GROUP_RELATIONSHIP Group;
+    ' } DUMMYUNIONNAME;
+    u(&H43) As Byte
+End Type
+
+Public Type SYSTEM_POOL_ZEROING_INFORMATION
+    PoolZeroingSupportPresent As Byte
+End Type
+
+Public Type SYSTEM_PROCESSOR_CYCLE_TIME_INFORMATION
+    CycleTime As LongLong
+End Type
+
 
 
 Public DeclareWide PtrSafe Sub GetSystemInfo Lib "kernel32" (lpSystemInfo As SYSTEM_INFO)
+Public DeclareWide PtrSafe Sub GetNativeSystemInfo Lib "kernel32" (lpSystemInfo As SYSTEM_INFO)
+Public DeclareWide PtrSafe Function VerSetConditionMask Lib "kernel32" (ByVal ConditionMask As LongLong, ByVal TypeMask As VersionTypeMask, [ TypeHint (VersionInfoConditions) ] ByVal Condition As Byte) As LongLong
+Public Declare PtrSafe Function VerifyVersionInfoA Lib "kernel32" (lpVersionInformation As OSVERSIONINFOEXA, ByVal TypeMask As VersionTypeMask, ByVal dwlConditionMask As LongLong) As BOOL
+Public Declare PtrSafe Function VerifyVersionInfoW Lib "kernel32" (lpVersionInformation As OSVERSIONINFOEXW, ByVal TypeMask As VersionTypeMask, ByVal dwlConditionMask As LongLong) As BOOL
+Public DeclareWide PtrSafe Function VerifyVersionInfo Lib "kernel32" Alias "VerifyVersionInfoW" (lpVersionInformation As OSVERSIONINFOEX, ByVal TypeMask As VersionTypeMask, ByVal dwlConditionMask As LongLong) As BOOL
+Public DeclareWide PtrSafe Function GetProcessorSystemCycleTime Lib "kernel32" (ByVal Group As Integer, Buffer As SYSTEM_PROCESSOR_CYCLE_TIME_INFORMATION) As BOOL
 Public DeclareWide PtrSafe Function GetPerformanceInfo Lib "kernel32" (pPerformanceInformation As PERFORMANCE_INFORMATION, ByVal cb As Long) As BOOL
+Public DeclareWide PtrSafe Function GetIntegratedDisplaySize Lib "kernel32" (sizeInInches As Double) As Long
+Public DeclareWide PtrSafe Function GetOsManufacturingMode Lib "kernel32" (pbEnabled As BOOL) As BOOL
 Public Declare PtrSafe Function GetSystemWindowsDirectoryA Lib "kernel32" (ByVal lpBuffer As String, ByVal uSize As Long) As Long
 Public DeclareWide PtrSafe Function GetSystemWindowsDirectoryW Lib "kernel32" (ByVal lpBuffer As LongPtr, ByVal uSize As Long) As Long
 Public DeclareWide PtrSafe Function GetSystemWindowsDirectory Lib "kernel32" Alias "GetSystemWindowsDirectoryW" (ByVal lpBuffer As String, ByVal uSize As Long) As Long
 Public Declare PtrSafe Function GetSystemDirectoryA Lib "kernel32" (ByVal lpBuffer As String, ByVal uSize As Long) As Long
 Public DeclareWide PtrSafe Function GetSystemDirectoryW Lib "kernel32" (ByVal lpBuffer As LongPtr, ByVal uSize As Long) As Long
-Public DeclareWide PtrSafe Function GetSystemDirectory Lib "kernel32" Alias "GetSystemWindowsDirectoryW" (ByVal lpBuffer As String, ByVal uSize As Long) As Long
-
+Public DeclareWide PtrSafe Function GetSystemDirectory Lib "kernel32" Alias "GetSystemWDirectoryW" (ByVal lpBuffer As String, ByVal uSize As Long) As Long
+Public DeclareWide PtrSafe Function GetLogicalProcessorInformation Lib "kernel32" (Buffer As SYSTEM_LOGICAL_PROCESSOR_INFORMATION, ReturnedLength As Long) As BOOL
+Public DeclareWide PtrSafe Function GetLogicalProcessorInformationEx Lib "kernel32" (ByVal Relationship As LOGICAL_PROCESSOR_RELATIONSHIP, Buffer As Any, ReturnedLength As Long) As BOOL
 Public DeclareWide PtrSafe Function GetSystemDefaultLangID Lib "kernel32" () As Integer
 Public DeclareWide PtrSafe Function GetSystemDefaultLCID Lib "kernel32" () As Long
 Public DeclareWide PtrSafe Function GetSystemDefaultLocaleName Lib "kernel32" (ByVal lpLocaleName As String, ByVal cchLocaleName As Long) As Long
@@ -7020,6 +7222,17 @@ Public DeclareWide PtrSafe Function QueryFullProcessImageNameW Lib "kernel32" (B
 Public Declare PtrSafe Function ReadProcessMemory Lib "kernel32" (ByVal hProcess As LongPtr, ByVal lpBaseAddress As LongPtr, lpBuffer As Any, ByVal nSize As LongPtr, lpNumberOfBytesRead As LongPtr) As Long
 Public Declare PtrSafe Function WriteProcessMemory Lib "kernel32" (ByVal hProcess As LongPtr, ByVal lpBaseAddress As LongPtr, lpBuffer As Any, ByVal nSize As LongPtr, lpNumberOfBytesWritten As LongPtr) As Long
 Public Declare PtrSafe Function GetCurrentProcess Lib "kernel32" () As LongPtr
+Public Declare PtrSafe Sub GetStartupInfoA Lib "kernel32" (lpStartupInfo As STARTUPINFOA)
+Public Declare PtrSafe Sub GetStartupInfoW Lib "kernel32" (lpStartupInfo As STARTUPINFOW)
+Public DeclareWide PtrSafe Sub GetStartupInfo Lib "kernel32" (lpStartupInfo As STARTUPINFO)
+Public Declare PtrSafe Function IsProcessCritical Lib "kernel32" (ByVal hProcess As LongPtr, Critical As BOOL) As BOOL
+Public Declare PtrSafe Function GetProcessTimes Lib "kernel32" (ByVal hProcess As LongPtr, lpCreationTime As FILETIME, lpExitTime As FILETIME, lpKernelTime As FILETIME, lpUserTime As FILETIME) As BOOL
+Public Declare PtrSafe Function SetThreadDescription Lib "kernel32" (ByVal hThread As LongPtr,  ByVal lpThreadDescription As LongPtr) As Long
+Public Declare PtrSafe Function GetThreadDescription Lib "kernel32" (ByVal hThread As LongPtr, ppszThreadDescription As LongPtr) As Long
+
+Public Declare PtrSafe Function QueueUserAPC Lib "kernel32" (ByVal pfnAPC As LongPtr, ByVal hThread As LongPtr, ByVal dwData As LongPtr) As Long
+Public Declare PtrSafe Function QueueUserAPC2 Lib "kernel32" (ByVal ApcRoutine As LongPtr, ByVal Thread As LongPtr, ByVal Data As LongPtr, ByVal Flags As QUEUE_USER_APC_FLAGS ) As BOOL
+
 
 Public Declare PtrSafe Function GlobalAlloc Lib "kernel32" (ByVal uFlags As GMEM, ByVal dwBytes As LongPtr) As LongPtr
 Public Declare PtrSafe Function GlobalReAlloc Lib "kernel32" (ByVal hMem As LongPtr, ByVal dwBytes As LongPtr, ByVal uFlags As GMEM) As LongPtr
@@ -7063,7 +7276,7 @@ Public Declare PtrSafe Function GetProcessHeap Lib "kernel32" () As LongPtr
         
 Public Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
 Public Declare PtrSafe Function SleepEx Lib "kernel32" (ByVal dwMilliseconds As Long, ByVal bAlertable As BOOL) As Long
-Public Declare PtrSafe Function CloseHandle Lib "kernel32" (ByVal hObject As LongPtr) As Long
+Public Declare PtrSafe Function CloseHandle Lib "kernel32" (ByVal hObject As LongPtr) As BOOL
 Public Declare PtrSafe Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As LongPtr)
 Public Declare PtrSafe Sub MoveMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As LongPtr)
 Public Declare PtrSafe Sub ZeroMemory Lib "kernel32" Alias "RtlZeroMemory" (Destination As Any, ByVal Length As LongPtr)
@@ -7498,6 +7711,7 @@ Public DeclareWide PtrSafe Function GetModuleHandleEx Lib "kernel32" Alias "GetM
 Public Declare PtrSafe Function GetModuleHandleExA Lib "kernel32" (ByVal dwFlags As GET_MODULE_EX_FLAGS, ByVal lpModuleName As String, phModule As LongPtr) As BOOL
 Public Declare PtrSafe Function GetModuleHandleExW Lib "kernel32" (ByVal dwFlags As GET_MODULE_EX_FLAGS, ByVal lpModuleName As LongPtr, phModule As LongPtr) As BOOL
 Public Declare PtrSafe Sub FreeLibraryAndExitThread Lib "kernel32" (ByVal hLibModule As LongPtr, ByVal dwExitCode As Long)
+Public Declare PtrSafe Function GetWindowsDirectoryA Lib "kernel32" (ByVal lpBuffer As String, ByVal nSize As Long) As Long
 Public DeclareWide PtrSafe Function GetWindowsDirectoryW Lib "kernel32" (ByVal lpBuffer As LongPtr, ByVal nSize As Long) As Long
 Public DeclareWide PtrSafe Function GetWindowsDirectory Lib "kernel32" Alias "GetWindowsDirectoryW" (ByVal lpBuffer As String, ByVal nSize As Long) As Long
 Public Declare PtrSafe Function GetModuleFileNameA Lib "kernel32" (ByVal hModule As LongPtr, ByVal lpFileName As String, ByVal nSize As Long) As Long
@@ -7952,6 +8166,7 @@ Public DeclareWide PtrSafe Function lstrcpy Lib "kernel32" Alias "lstrcpyW" (ByV
 Public Declare PtrSafe Function lstrcpyW Lib "kernel32" (ByVal lpString1 As LongPtr, ByVal lpString2 As LongPtr) As LongPtr
 Public Declare PtrSafe Function lstrlenA Lib "kernel32" (lpString As Any) As Long
 Public Declare PtrSafe Function lstrlenW Lib "kernel32" (lpString As Any) As Long
+Public Declare PtrSafe Function lstrlen Lib "kernel32" Alias "lstrlenW" (lpString As Any) As Long
 
 Public Declare PtrSafe Function WritePrivateProfileStringA Lib "kernel32" (ByVal lpAppName As String, ByVal lpKeyName As String, ByVal lsString As String, ByVal lplFilename As String) As Long
 Public Declare PtrSafe Function GetPrivateProfileStringA Lib "kernel32" (ByVal lpAppName As String, ByVal lpKeyName As String, ByVal lpDefault As String, ByVal lpReturnedString As String, ByVal nSize As Long, ByVal lpFileName As String) As Long
@@ -8835,7 +9050,7 @@ Public Declare PtrSafe Function Wow64SuspendThread Lib "kernel32" (ByVal hThread
 Public Declare PtrSafe Function TerminateThread Lib "kernel32" (ByVal hThread As LongPtr, ByVal dwExitCode As Long) As Long
 Public Declare PtrSafe Function TerminateProcess Lib "kernel32" (ByVal hProcess As LongPtr, ByVal dwExitCode As Long) As Long
 Public Declare PtrSafe Function OpenThread Lib "kernel32" (ByVal dwDesiredAccess As ThreadAccessRights, ByVal bInheritHandle As BOOL, ByVal dwThreadId As Long) As LongPtr
-Public Declare PtrSafe Function OpenProcess Lib "kernel32" (ByVal dwDesiredAccess As Long, ByVal bInheritHandle As BOOL, ByVal dwProcessId As Long) As LongPtr
+Public Declare PtrSafe Function OpenProcess Lib "kernel32" (ByVal dwDesiredAccess As ProcessAccessRights, ByVal bInheritHandle As BOOL, ByVal dwProcessId As Long) As LongPtr
 Public Declare PtrSafe Function GetProcessHandleCount Lib "kernel32" (ByVal hProcess As LongPtr, pdwHandleCount As Long) As BOOL
 Public Declare PtrSafe Function GetProcessInformation Lib "kernel32" (ByVal hProcess As LongPtr, ByVal ProcessInformationClass As PROCESS_INFORMATION_CLASS, ProcessInformation As Any, ByVal ProcessInformationSize As Long) As BOOL
 Public Declare PtrSafe Function SetProcessInformation Lib "kernel32" (ByVal hProcess As LongPtr, ByVal ProcessInformationClass As PROCESS_INFORMATION_CLASS, ProcessInformation As Any, ByVal ProcessInformationSize As Long) As BOOL
@@ -9333,6 +9548,11 @@ End Enum
 
 Public Const MAX_COMPUTERNAME_LENGTH = 15
 
+Public Enum SCNEX2_Flags
+    SCEX2_ALT_NETBIOS_NAME = &H1
+End ENum
+
+
 Public Declare PtrSafe Function GetComputerNameA Lib "kernel32" (ByVal lpBuffer As String, nSize As Long) As BOOL
 Public Declare PtrSafe Function GetComputerNameW Lib "kernel32" (ByVal lpBuffer As LongPtr, nSize As Long) As BOOL
 Public Declare PtrSafe Function GetComputerName Lib "kernel32" Alias "GetComputerNameW" (ByVal lpBuffer As String, nSize As Long) As BOOL
@@ -9345,6 +9565,9 @@ Public Declare PtrSafe Function GetComputerNameEx Lib "kernel32" Alias "GetCompu
 Public Declare PtrSafe Function SetComputerNameExA Lib "kernel32" (ByVal nameType As COMPUTER_NAME_FORMAT, ByVal lpBuffer As String) As BOOL
 Public Declare PtrSafe Function SetComputerNameExW Lib "kernel32" (ByVal nameType As COMPUTER_NAME_FORMAT, ByVal lpBuffer As LongPtr) As BOOL
 Public Declare PtrSafe Function SetComputerNameEx Lib "kernel32" Alias "SetComputerNameExW" (ByVal nameType As COMPUTER_NAME_FORMAT, ByVal lpBuffer As String) As BOOL
+'SetComputerNameEx2A does not exist.
+Public Declare PtrSafe Function SetComputerNameEx2W Lib "kernel32" (ByVal nameType As COMPUTER_NAME_FORMAT, ByVal Flags As SCNEX2_Flags, ByVal lpBuffer As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function SetComputerNameEx2 Lib "kernel32" Alias "SetComputerNameEx2W" (ByVal nameType As COMPUTER_NAME_FORMAT, ByVal Flags As SCNEX2_Flags, ByVal lpBuffer As String) As BOOL
 Public Declare PtrSafe Function DnsHostnameToComputerNameA Lib "kernel32" (ByVal Hostname As String, ByVal ComputerName As String, nSize As Long) As BOOL
 Public Declare PtrSafe Function DnsHostnameToComputerNameW Lib "kernel32" (ByVal Hostname As LongPtr, ByVal ComputerName As LongPtr, nSize As Long) As BOOL
 Public DeclareWide PtrSafe Function DnsHostnameToComputerName Lib "kernel32" Alias "DnsHostnameToComputerNameW" (ByVal Hostname As String, ByVal ComputerName As String, nSize As Long) As BOOL
@@ -9365,12 +9588,12 @@ Public DeclareWide PtrSafe Function FindAtom Lib "kernel32" Alias "FindAtomW" (B
 Public DeclareWide PtrSafe Function GlobalFindAtomW Lib "kernel32" (ByVal lpString As LongPtr) As Integer
 Public Declare PtrSafe Function GlobalFindAtomA Lib "kernel32" (ByVal lpString As String) As Integer
 Public DeclareWide PtrSafe Function GlobalFindAtom Lib "kernel32" Alias "GlobalFindAtomW" (ByVal lpString As LongPtr) As Integer
-Public DeclareWide PtrSafe Function GetAtomNameW Lib "kernel32" (ByVal nAtom As Integer, lpBuffer As LongPtr, ByVal nSize As Long) As Long
-Public Declare PtrSafe Function GetAtomNameA Lib "kernel32" (ByVal nAtom As Integer, lpBuffer As String, ByVal nSize As Long) As Long
-Public DeclareWide PtrSafe Function GetAtomName Lib "kernel32" Alias "GetAtomNameW" (ByVal nAtom As Integer, lpBuffer As LongPtr, ByVal nSize As Long) As Long
-Public DeclareWide PtrSafe Function GlobalGetAtomNameW Lib "kernel32" (ByVal nAtom As Integer, lpBuffer As LongPtr, ByVal nSize As Long) As Long
-Public Declare PtrSafe Function GlobalGetAtomNameA Lib "kernel32" (ByVal nAtom As Integer, lpBuffer As String, ByVal nSize As Long) As Long
-Public DeclareWide PtrSafe Function GlobalGetAtomName Lib "kernel32" Alias "GetAtomNameW" (ByVal nAtom As Integer, lpBuffer As LongPtr, ByVal nSize As Long) As Long
+Public DeclareWide PtrSafe Function GetAtomNameW Lib "kernel32" (ByVal nAtom As Integer, ByVal lpBuffer As LongPtr, ByVal nSize As Long) As Long
+Public Declare PtrSafe Function GetAtomNameA Lib "kernel32" (ByVal nAtom As Integer, ByVal lpBuffer As String, ByVal nSize As Long) As Long
+Public DeclareWide PtrSafe Function GetAtomName Lib "kernel32" Alias "GetAtomNameW" (ByVal nAtom As Integer, ByVal lpBuffer As LongPtr, ByVal nSize As Long) As Long
+Public DeclareWide PtrSafe Function GlobalGetAtomNameW Lib "kernel32" (ByVal nAtom As Integer, ByVal lpBuffer As LongPtr, ByVal nSize As Long) As Long
+Public Declare PtrSafe Function GlobalGetAtomNameA Lib "kernel32" (ByVal nAtom As Integer, ByVal lpBuffer As String, ByVal nSize As Long) As Long
+Public DeclareWide PtrSafe Function GlobalGetAtomName Lib "kernel32" Alias "GetAtomNameW" (ByVal nAtom As Integer, ByVal lpBuffer As LongPtr, ByVal nSize As Long) As Long
 
 Public Declare PtrSafe Function CreateNamedPipeA Lib "kernel32" (ByVal lpName As String, [TypeHint(PipeOpenMode, FILE_FLAGS, StandardAccessTypes) ] ByVal dwOpenMode As Long, ByVal dwPipeMode As PipeModeFlags, ByVal nMaxInstances As Long, ByVal nOutBufferSize As Long, ByVal nInBufferSize As Long, ByVal nDefaultTimeOut As Long, lpSecurityAttributes As SECURITY_ATTRIBUTES) As LongPtr
 Public DeclareWide PtrSafe Function CreateNamedPipe Lib "kernel32" Alias "CreateNamedPipeW" (ByVal lpName As String, [TypeHint(PipeOpenMode, FILE_FLAGS, StandardAccessTypes) ] ByVal dwOpenMode As Long, ByVal dwPipeMode As PipeModeFlags, ByVal nMaxInstances As Long, ByVal nOutBufferSize As Long, ByVal nInBufferSize As Long, ByVal nDefaultTimeOut As Long, lpSecurityAttributes As SECURITY_ATTRIBUTES) As LongPtr
@@ -9396,6 +9619,7 @@ Public Declare PtrSafe Function GetNamedPipeHandleStateA Lib "kernel32" (ByVal h
 Public DeclareWide PtrSafe Function GetNamedPipeHandleStateW Lib "kernel32" (ByVal hNamedPipe As LongPtr, lpState As PipeModeFlags, lpCurInstances As Long, lpMaxCollectionCount As Long, lpCollectionDataTimeout As Long, lpUserName As LongPtr, ByVal nMaxUserNameSize As Long) As BOOL
 Public DeclareWide PtrSafe Function GetNamedPipeHandleState Lib "kernel32" Alias "GetNamedPipeHandleStateW" (ByVal hNamedPipe As LongPtr, lpState As PipeModeFlags, lpCurInstances As Long, lpMaxCollectionCount As Long, lpCollectionDataTimeout As Long, lpUserName As LongPtr, ByVal nMaxUserNameSize As Long) As BOOL
 
+Public DeclareWide PtrSafe Function GetPhysicallyInstalledSystemMemory Lib "kernel32" (TotalMemoryInKilobytes As LongLong) As BOOL
 Public DeclareWide PtrSafe Function QueryPerformanceCounter Lib "kernel32" (lpPerformanceCount As LongLong) As BOOL
 Public DeclareWide PtrSafe Function QueryPerformanceFrequency Lib "kernel32" (lpFrequency As LongLong) As BOOL
 Public DeclareWide PtrSafe Function GetLogicalDriveStringsA Lib "kernel32" (ByVal nBufferLength As Long, ByVal lpBuffer As String) As Long
@@ -9688,6 +9912,29 @@ Public Enum FileMoveMethods
     FILE_END
 End Enum
 
+Public Enum VersionInfoConditions
+    VER_EQUAL  = 1
+    VER_GREATER  = 2
+    VER_GREATER_EQUAL  = 3
+    VER_LESS  = 4
+    VER_LESS_EQUAL  = 5
+    VER_AND  = 6
+    VER_OR  = 7
+    VER_CONDITION_MASK  = 7
+    VER_NUM_BITS_PER_CONDITION_MASK  = 3
+End Enum
+Public Enum VersionTypeMask
+    VER_MINORVERSION  = &H0000001
+    VER_MAJORVERSION  = &H0000002
+    VER_BUILDNUMBER  = &H0000004
+    VER_PLATFORMID  = &H0000008
+    VER_SERVICEPACKMINOR  = &H0000010
+    VER_SERVICEPACKMAJOR  = &H0000020
+    VER_SUITENAME  = &H0000040
+    VER_PRODUCT_TYPE  = &H0000080
+End Enum
+
+
 Public Enum VERSION_PLATFORM
     VER_PLATFORM_WIN32s  = 0
     VER_PLATFORM_WIN32_WINDOWS  = 1
@@ -9695,7 +9942,7 @@ Public Enum VERSION_PLATFORM
 End Enum
 
 Public Enum VERSION_PRODUCT_TYPE
-    VER_NT_WORKSTATION  = &H0000001
+    VER_NT_WORKSTATION = &H0000001
     VER_NT_DOMAIN_CONTROLLER  = &H0000002
     VER_NT_SERVER  = &H0000003
 End Enum
@@ -9705,7 +9952,7 @@ Public Type OSVERSIONINFOW
 	dwMajorVersion As Long
 	dwMinorVersion As Long
 	dwBuildNumber As Long
-	/* [ TypeHiint(VERSION_PLATFORM) ] */ dwPlatformId As Long
+    dwPlatformId As VERSION_PLATFORM
 	szCSDVersion(0 To 127) As Integer ' Maintenance string for PSS usage
 End Type
 Public Type OSVERSIONINFOEXW
@@ -9713,7 +9960,7 @@ Public Type OSVERSIONINFOEXW
 	dwMajorVersion As Long
 	dwMinorVersion As Long
 	dwBuildNumber As Long
-    /* [ TypeHiint(VERSION_PLATFORM) ] */ dwPlatformId As Long
+    dwPlatformId As VERSION_PLATFORM
 	szCSDVersion(0 To 127) As Integer ' Maintenance string for PSS usage
 	wServicePackMajor As Integer
 	wServicePackMinor As Integer
@@ -9721,20 +9968,22 @@ Public Type OSVERSIONINFOEXW
 	/* [ TypeHint(VERSION_PRODUCT_TYPE) ] */ wProductType As Byte
 	wReserved As Byte
 End Type
+'Alias OSVERSIONINFO As OSVERSIONINFOW
 Public Type OSVERSIONINFO
     dwOSVersionInfoSize As Long
     dwMajorVersion As Long
     dwMinorVersion As Long
     dwBuildNumber As Long
-    /* [ TypeHiint(VERSION_PLATFORM) ] */ dwPlatformId As Long
+    dwPlatformId As VERSION_PLATFORM
     szCSDVersion(0 To 127) As Integer ' Maintenance string for PSS usage
 End Type
+'Alias OSVERSIONINFOEX As OSVERSIONINFOEXW
 Public Type OSVERSIONINFOEX
     dwOSVersionInfoSize As Long
     dwMajorVersion As Long
     dwMinorVersion As Long
     dwBuildNumber As Long
-    /* [ TypeHiint(VERSION_PLATFORM) ] */ dwPlatformId As Long
+    dwPlatformId As VERSION_PLATFORM
     szCSDVersion(0 To 127) As Integer ' Maintenance string for PSS usage
     wServicePackMajor As Integer
     wServicePackMinor As Integer
@@ -9747,7 +9996,7 @@ Public Type OSVERSIONINFOA
     dwMajorVersion As Long
     dwMinorVersion As Long
     dwBuildNumber As Long
-    /* [ TypeHiint(VERSION_PLATFORM) ] */ dwPlatformId As Long
+    dwPlatformId As VERSION_PLATFORM
     szCSDVersion(0 To 127) As Byte ' Maintenance string for PSS usage
 End Type
 Public Type OSVERSIONINFOEXA
@@ -9755,7 +10004,7 @@ Public Type OSVERSIONINFOEXA
     dwMajorVersion As Long
     dwMinorVersion As Long
     dwBuildNumber As Long
-    /* [ TypeHiint(VERSION_PLATFORM) ] */ dwPlatformId As Long
+    dwPlatformId As VERSION_PLATFORM
     szCSDVersion(0 To 127) As Byte ' Maintenance string for PSS usage
     wServicePackMajor As Integer
     wServicePackMinor As Integer
@@ -9763,6 +10012,75 @@ Public Type OSVERSIONINFOEXA
     /* [ TypeHint(VERSION_PRODUCT_TYPE) ] */ wProductType As Byte
     wReserved As Byte
 End Type
+
+Public Type RTL_OSVERSIONINFOW
+    dwOSVersionInfoSize As Long
+    dwMajorVersion As Long
+    dwMinorVersion As Long
+    dwBuildNumber As Long
+    dwPlatformId As VERSION_PLATFORM
+    szCSDVersion(0 To 127) As Integer ' Maintenance string for PSS usage
+End Type
+Public Type RTL_OSVERSIONINFOEXW
+    dwOSVersionInfoSize As Long
+    dwMajorVersion As Long
+    dwMinorVersion As Long
+    dwBuildNumber As Long
+    dwPlatformId As VERSION_PLATFORM
+    szCSDVersion(0 To 127) As Integer ' Maintenance string for PSS usage
+    wServicePackMajor As Integer
+    wServicePackMinor As Integer
+    /* [ TypeHint(VER_SUITE_VALUES) ] */ wSuiteMask As Integer
+    /* [ TypeHint(VERSION_PRODUCT_TYPE) ] */ wProductType As Byte
+    wReserved As Byte
+End Type
+'Alias RTL_OSVERSIONINFO As RTL_OSVERSIONINFOW
+Public Type RTL_OSVERSIONINFO
+    dwOSVersionInfoSize As Long
+    dwMajorVersion As Long
+    dwMinorVersion As Long
+    dwBuildNumber As Long
+    dwPlatformId As VERSION_PLATFORM
+    szCSDVersion(0 To 127) As Integer ' Maintenance string for PSS usage
+End Type
+'Alias RTL_OSVERSIONINFOEX As RTL_OSVERSIONINFOEXW
+Public Type RTL_OSVERSIONINFOEX
+    dwOSVersionInfoSize As Long
+    dwMajorVersion As Long
+    dwMinorVersion As Long
+    dwBuildNumber As Long
+    dwPlatformId As VERSION_PLATFORM
+    szCSDVersion(0 To 127) As Integer ' Maintenance string for PSS usage
+    wServicePackMajor As Integer
+    wServicePackMinor As Integer
+    /* [ TypeHint(VER_SUITE_VALUES) ] */ wSuiteMask As Integer
+    /* [ TypeHint(VERSION_PRODUCT_TYPE) ] */ wProductType As Byte
+    wReserved As Byte
+End Type
+Public Type RTL_OSVERSIONINFOA
+    dwOSVersionInfoSize As Long
+    dwMajorVersion As Long
+    dwMinorVersion As Long
+    dwBuildNumber As Long
+    dwPlatformId As VERSION_PLATFORM
+    szCSDVersion(0 To 127) As Byte ' Maintenance string for PSS usage
+End Type
+Public Type RTL_OSVERSIONINFOEXA
+    dwOSVersionInfoSize As Long
+    dwMajorVersion As Long
+    dwMinorVersion As Long
+    dwBuildNumber As Long
+    dwPlatformId As VERSION_PLATFORM
+    szCSDVersion(0 To 127) As Byte ' Maintenance string for PSS usage
+    wServicePackMajor As Integer
+    wServicePackMinor As Integer
+    /* [ TypeHint(VER_SUITE_VALUES) ] */ wSuiteMask As Integer
+    /* [ TypeHint(VERSION_PRODUCT_TYPE) ] */ wProductType As Byte
+    wReserved As Byte
+End Type
+
+
+
 
 Public Enum COMM_BAUD_RATES
     CBR_110  = 110
@@ -11775,6 +12093,69 @@ Public Type IMAGE_DEBUG_MISC
     Data(0 To 0) As BYTE ' Actual data
 End Type
 
+Public Const IMAGE_POLICY_METADATA_VERSION  = 1
+Public Const IMAGE_POLICY_SECTION_NAME  = ".tPolicy"
+Public Const IMAGE_POLICY_METADATA_NAME  = "__ImagePolicyMetadata"
+
+Public Enum IMAGE_POLICY_ENTRY_TYPE
+    ImagePolicyEntryTypeNone=0
+    ImagePolicyEntryTypeBool 
+    ImagePolicyEntryTypeInt8 
+    ImagePolicyEntryTypeUInt8 
+    ImagePolicyEntryTypeInt16 
+    ImagePolicyEntryTypeUInt16 
+    ImagePolicyEntryTypeInt32
+    ImagePolicyEntryTypeUInt32 
+    ImagePolicyEntryTypeInt64 
+    ImagePolicyEntryTypeUInt64 
+    ImagePolicyEntryTypeAnsiString 
+    ImagePolicyEntryTypeUnicodeString 
+    ImagePolicyEntryTypeOverride 
+    ImagePolicyEntryTypeMaximum  
+End Enum
+Public Enum IMAGE_POLICY_ID
+    ImagePolicyIdNone=0
+    ImagePolicyIdEtw 
+    ImagePolicyIdDebug 
+    ImagePolicyIdCrashDump 
+    ImagePolicyIdCrashDumpKey 
+    ImagePolicyIdCrashDumpKeyGuid 
+    ImagePolicyIdParentSd 
+    ImagePolicyIdParentSdRev 
+    ImagePolicyIdSvn  
+    ImagePolicyIdDeviceId 
+    ImagePolicyIdCapability 
+    ImagePolicyIdScenarioId 
+    ImagePolicyIdMaximum  
+End Enum
+
+Public Type IMAGE_POLICY_ENTRY
+    Type As IMAGE_POLICY_ENTRY_TYPE
+    PolicyId As IMAGE_POLICY_ID
+' union {
+    ' const VOID* None;
+    ' BOOLEAN BoolValue;
+    ' INT8 Int8Value;
+    ' UINT8 UInt8Value;
+    ' INT16 Int16Value;
+    ' UINT16 UInt16Value;
+    ' INT32 Int32Value;
+    ' UINT32 UInt32Value;
+    ' INT64 Int64Value;
+    ' UINT64 UInt64Value;
+    ' PCSTR AnsiStringValue;
+    ' PCWSTR UnicodeStringValue;
+' } u;    
+    u As LongLong
+End Type
+Public Type IMAGE_POLICY_METADATA
+    Version As BYTE
+    Reserved0(0 To 6) As BYTE
+    ApplicationId As LongLong
+    Policies(ImagePolicyIdMaximum - 1) As IMAGE_POLICY_ENTRY
+End Type
+
+
 
 Public Type KSYSTEM_TIME
     LowPart As Long '0x0
@@ -12356,9 +12737,9 @@ Public Type SYSTEM_PROCESS_INFORMATION
     CreateTime As QLARGE_INTEGER
     UserTime As QLARGE_INTEGER
     KernelTime As QLARGE_INTEGER
-    'Resume documented members
 	ImageName As UNICODE_STRING
 	BasePriority As Long
+    'Resume documented members
 	UniqueProcessId As Long
 	InheritedFromUniqueProcessId As LongPtr
 	HandleCount As Long
@@ -12447,6 +12828,14 @@ Public Type RTL_PROCESS_MODULE_INFORMATION
     LoadCount As Integer
     OffsetToFileName As Integer
     FullPathName(0 To 255) As Byte
+End Type
+
+Public Type RTL_PROCESS_MODULE_INFORMATION_EX
+    NextOffset As Integer
+    BaseInfo As RTL_PROCESS_MODULE_INFORMATION
+    ImageChecksum As Long
+    TimeDateStamp As Long
+    DefaultBase As LongPtr
 End Type
 
 Public Type RTL_PROCESS_LOCK_INFORMATION
@@ -12743,6 +13132,224 @@ Public Type SYSTEM_BOOT_GRAPHICS_INFORMATION
     Format As SYSTEM_PIXEL_FORMAT
 End Type
 
+Public Type SYSTEM_PROCESSOR_MICROCODE_UPDATE_INFORMATION
+    Operation As Long
+End Type
+
+Public Type SYSTEM_PHYSICAL_MEMORY_INFORMATION
+    TotalPhysicalBytes As LongLong
+    LowestPhysicalAddress As LongLong
+    HighestPhysicalAddress As LongLong
+End Type
+
+Public Enum SYSTEM_ACTIVITY_MODERATION_STATE
+    SystemActivityModerationStateSystemManaged = 0
+    SystemActivityModerationStateUserManagedAllowThrottling = 1
+    SystemActivityModerationStateUserManagedDisableThrottling = 2
+    MaxSystemActivityModerationState = 3
+End Enum
+Public Type SYSTEM_ACTIVITY_MODERATION_EXE_STATE ' REDSTONE3: Renamed SYSTEM_ACTIVITY_MODERATION_INFO
+    ExePathNt As UNICODE_STRING
+    ModerationState As SYSTEM_ACTIVITY_MODERATION_STATE
+End Type
+
+Public Enum SYSTEM_ACTIVITY_MODERATION_APP_TYPE
+    SystemActivityModerationAppTypeClassic = 0
+    SystemActivityModerationAppTypePackaged = 1
+    MaxSystemActivityModerationAppType = 2
+End Enum
+Public Type SYSTEM_ACTIVITY_MODERATION_INFO
+    Identifier As UNICODE_STRING
+    ModerationState As SYSTEM_ACTIVITY_MODERATION_STATE
+    AppType As SYSTEM_ACTIVITY_MODERATION_APP_TYPE
+End Type
+
+Public Type SYSTEM_ACTIVITY_MODERATION_USER_SETTINGS
+    UserKeyHandle As LongPtr
+End Type
+
+Public Type SYSTEM_SPECULATION_CONTROL_INFORMATION
+	Flags As Long
+    ' union
+    ' {
+        ' ULONG Flags;
+        ' struct
+        ' {
+            ' ULONG BpbEnabled : 1;
+            ' ULONG BpbDisabledSystemPolicy : 1;
+            ' ULONG BpbDisabledNoHardwareSupport : 1;
+            ' ULONG SpecCtrlEnumerated : 1;
+            ' ULONG SpecCmdEnumerated : 1;
+            ' ULONG IbrsPresent : 1;
+            ' ULONG StibpPresent : 1;
+            ' ULONG SmepPresent : 1;
+            ' ULONG SpeculativeStoreBypassDisableAvailable : 1; // REDSTONE4 (CVE-2018-3639)
+            ' ULONG SpeculativeStoreBypassDisableSupported : 1;
+            ' ULONG SpeculativeStoreBypassDisabledSystemWide : 1;
+            ' ULONG SpeculativeStoreBypassDisabledKernel : 1;
+            ' ULONG SpeculativeStoreBypassDisableRequired : 1;
+            ' ULONG BpbDisabledKernelToUser : 1;
+            ' ULONG SpecCtrlRetpolineEnabled : 1;
+            ' ULONG SpecCtrlImportOptimizationEnabled : 1;
+            ' ULONG EnhancedIbrs : 1; // since 19H1
+            ' ULONG HvL1tfStatusAvailable : 1;
+            ' ULONG HvL1tfProcessorNotAffected : 1;
+            ' ULONG HvL1tfMigitationEnabled : 1;
+            ' ULONG HvL1tfMigitationNotEnabled_Hardware : 1;
+            ' ULONG HvL1tfMigitationNotEnabled_LoadOption : 1;
+            ' ULONG HvL1tfMigitationNotEnabled_CoreScheduler : 1;
+            ' ULONG EnhancedIbrsReported : 1;
+            ' ULONG MdsHardwareProtected : 1; // since 19H2
+            ' ULONG MbClearEnabled : 1;
+            ' ULONG MbClearReported : 1;
+            ' ULONG Reserved : 5;
+        ' };
+    ' };
+End Type
+
+Public Enum SYSTEM_VA_TYPE
+    SystemVaTypeAll = 0
+    SystemVaTypeNonPagedPool = 1
+    SystemVaTypePagedPool = 2
+    SystemVaTypeSystemCache = 3
+    SystemVaTypeSystemPtes = 4
+    SystemVaTypeSessionSpace = 5
+    SystemVaTypeMax = 6
+End Enum
+Public Type SYSTEM_VA_LIST_INFORMATION
+    VirtualSize As LongPtr
+    VirtualPeak As LongPtr
+    VirtualLimit As LongPtr
+    AllocationFailures As LongPtr
+End Type
+
+Public Type SYSTEM_PROCESSOR_POWER_INFORMATION
+    CurrentFrequency As Byte
+    ThermalLimitFrequency As Byte
+    ConstantThrottleFrequency As Byte
+    DegradedThrottleFrequency As Byte
+    LastBusyFrequency As Byte
+    LastC3Frequency As Byte
+    LastAdjustedBusyFrequency As Byte
+    ProcessorMinThrottle As Byte
+    ProcessorMaxThrottle As Byte
+    NumberOfFrequencies As Long
+    PromotionCount As Long
+    DemotionCount As Long
+    ErrorCount As Long
+    RetryCount As Long
+    CurrentFrequencyTime As LongLong
+    CurrentProcessorTime As LongLong
+    CurrentProcessorIdleTime As LongLong
+    LastProcessorTime As LongLong
+    LastProcessorIdleTime As LongLong
+    Energy As LongLong
+End Type
+
+Public Type SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX
+    Object As LongPtr
+    UniqueProcessId As LongPtr
+    HandleValue As LongPtr
+    GrantedAccess As Long
+    CreatorBackTraceIndex As Integer
+    ObjectTypeIndex As Integer
+    HandleAttributes As Long
+    Reserved As Long
+End Type
+[Description("⚠️ **WARNING:** This structure cannot be used as-is directly due to SAFEARRAY considerations. Copy count and array separately.") ]
+Public Type SYSTEM_HANDLE_INFORMATION_EX
+    NumberOfHandles As LongPtr
+    Reserved As LongPtr
+    Handles() As SYSTEM_HANDLE_TABLE_ENTRY_INFO_EX
+End Type
+
+Public Type SYSTEM_BIGPOOL_ENTRY
+    ' union
+    ' {
+        ' PVOID VirtualAddress;
+        ' ULONG_PTR NonPaged : 1;
+    ' };
+    ' SIZE_T SizeInBytes;
+    ' union
+    ' {
+        ' UCHAR Tag[4];
+        ' ULONG TagUlong;
+    ' };
+    VirtualAddressOrNonPaged As LongPtr
+    SizeInBytes As LongPtr
+    Tag As Long
+End Type
+
+Public Type SYSTEM_POOL_ENTRY
+    Allocated As Byte
+    Spare0 As Byte
+    AllocatorBackTraceIndex As Integer
+    Size As Long
+    'union
+    '{
+    '    UCHAR Tag[4];
+    '    ULONG TagUlong;
+    ProcessChargedQuotaOrTag As LongPtr
+    '};
+End Type
+[Description("⚠️ **WARNING:** This structure cannot be used as-is directly due to SAFEARRAY considerations. Copy count and array separately.") ]
+Public Type SYSTEM_POOL_INFORMATION
+    TotalSize As LongPtr
+    FirstEntry As LongPtr
+    EntryOverhead As Integer
+    PoolTagPresent As Byte
+    Spare0 As Byte
+    NumberOfEntries As Long
+    Entries() As SYSTEM_POOL_ENTRY
+End Type
+
+Public Type SYSTEM_SINGLE_MODULE_INFORMATION
+    TargetModuleAddress As LongPtr
+    ExInfo As RTL_PROCESS_MODULE_INFORMATION_EX
+End Type
+
+Public Type SYSTEM_INTERRUPT_CPU_SET_INFORMATION
+    Gsiv As Long
+    Group As Integer
+    CpuSets As LongLong
+End Type
+
+Public Type SYSTEM_SECURITY_MODEL_INFORMATION
+    SecurityModelFlags As Long
+    ' union
+    ' {
+        ' ULONG SecurityModelFlags;
+        ' struct
+        ' {
+            ' ULONG SModeAdminlessEnabled : 1;
+            ' ULONG AllowDeviceOwnerProtectionDowngrade : 1;
+            ' ULONG Reserved : 30;
+        ' };
+    ' };
+End Type
+
+Public Type SYSTEM_SYSTEM_PARTITION_INFORMATION
+    SystemPartition As UNICODE_STRING
+End Type
+Public Type SYSTEM_SYSTEM_DISK_INFORMATION
+    SystemDisk As UNICODE_STRING
+End Type
+
+
+
+
+Public Type SYSTEM_REGISTRY_APPEND_STRING_PARAMETERS
+    KeyHandle As LongPtr
+    ValueNamePointer As LongPtr 'PUNICODE_STRING
+    RequiredLengthPointer As LongPtr
+    Buffer As LongPtr 'PUCHAR
+    BufferLength As Long
+    Type As Long
+    AppendBuffer As LongPtr 'PUCHAR
+    AppendBufferLength As Long
+    CreateIfDoesntExist As Byte
+    TruncateExistingValue As Byte
+End Type
 
 
 Public Type FILE_DIRECTORY_INFORMATION
@@ -14473,6 +15080,7 @@ Public Declare PtrSafe Sub RtlInitUnicodeString Lib "ntdll" (DestinationString A
 Public Declare PtrSafe Function RtlUpcaseUnicodeString Lib "ntdll" (DestinationString As UNICODE_STRING, SourceString As UNICODE_STRING, ByVal AllocateDestinationString As Byte) As Long
 Public Declare PtrSafe Function RtlEqualUnicodeString Lib "ntdll" (String1 As UNICODE_STRING, String2 As UNICODE_STRING, ByVal CaseInSensitive As Byte) As Byte
 Public Declare PtrSafe Function CompareMemory Lib "ntdll" Alias "RtlCompareMemory" (Source1 As Any, Source2 As Any, ByVal Length As LongPtr) As LongPtr
+Public Declare PtrSafe Function RtlIsZeroMemory Lib "ntdll" (Buffer As Any, ByVal Length As LongPtr) As Byte 'BOOLEAN
 [Description("Returns true Windows version. Takes either OSVERSIONINFO or OSVERSIONINFOEX types (RTL_OSV... is an alias for these).") ]
 Public Declare PtrSafe Function RtlGetVersion Lib "ntdll" (lpVersionInformation As Any) As Long
 Public Declare PtrSafe Sub RtlGetNtVersionNumbers Lib "ntdll" (Major As Long, Minor As Long, Build As Long)
@@ -14499,6 +15107,11 @@ Public Declare PtrSafe Function RtlCreateProcessParameters Lib "ntdll" (pProcess
 Public Declare PtrSafe Function RtlCreateEnvironment Lib "ntdll" (ByVal bInherit As Byte, Environment As LongPtr) As NTSTATUS
 Public Declare PtrSafe Function RtlDestroyProcessParameters Lib "ntdll" (pProcessParameters As Any) As NTSTATUS
 Public Declare PtrSafe Function RtlQueryModuleInformation Lib "ntdll" (InformationLength As Long, ByVal SizePerModule As Long, InformationBuffer As Any) As NTSTATUS
+Public Declare PtrSafe Function RtlCrc32 Lib "ntdll" (Buffer As Any, ByVal size As LongPtr, ByVal InitialCrc As Long) As Long
+Public Declare PtrSafe Function RtlCrc64 Lib "ntdll" (Buffer As Any, ByVal size As LongPtr, ByVal InitialCrc As LongLong) As Long
+
+
+
 Public Declare PtrSafe Function RtlIpv4AddressToStringA Lib "ntdll" (Addr As in_addr, ByVal s As String) As LongPtr
 Public Declare PtrSafe Function RtlIpv4AddressToStringW Lib "ntdll" (Addr As in_addr, ByVal s As LongPtr) As LongPtr
 Public DeclareWide PtrSafe Function RtlIpv4AddressToString Lib "ntdll" Alias "RtlIpv4AddressToStringW" (Addr As in_addr, ByVal s As String) As LongPtr
@@ -14696,14 +15309,14 @@ End Enum
 Public Declare PtrSafe Function CoCreateInstance Lib "ole32" (ByRef clsid As UUID, ByVal pUnkOuter As stdole.IUnknown, ByVal dwClsContext As CLSCTX, ByRef iid As UUID, ByRef ppv As Any) As Long
 Public Declare PtrSafe Sub CoTaskMemFree Lib "ole32" (ByVal pv As LongPtr)
 Public Declare PtrSafe Function OleRegEnumFormatEtc Lib "ole32" (clsid As UUID, ByVal dwDirection As DATADIR, ppenum As IEnumFormatETC) As Long
-Public Declare PtrSafe Function StgOpenStorageEx Lib "ole32" (ByVal pwcsName As LongPtr, ByVal grfMode As STGM, ByVal stgfmt As STGFMT, ByVal grfAttrs As Long, pStgOptions As STGOPTIONS, ByVal reserved2 As LongPtr, riid As UUID, ppObjectOpen As Any) As Long
+Public DeclareWide PtrSafe Function StgOpenStorageEx Lib "ole32" (ByVal pwcsName As LongPtr, ByVal grfMode As STGM, ByVal stgfmt As STGFMT, ByVal grfAttrs As Long, pStgOptions As STGOPTIONS, ByVal reserved2 As LongPtr, riid As UUID, ppObjectOpen As Any) As Long
 Public Declare PtrSafe Function StgCreateStorageEx Lib "ole32" (ByVal pwcsName As LongPtr, ByVal grfMode As STGM, ByVal stgfmt As STGFMT, ByVal grfAttrs As Long, ByVal pStgOptions As LongPtr, ByVal pSecurityDescriptor As LongPtr, riid As UUID, ppObjectOpen As Any) As Long
 Public Declare PtrSafe Function CoCreateGuid Lib "ole32" (ByRef pGUID As UUID) As Long
 Public Declare PtrSafe Function CoTaskMemAlloc Lib "ole32" (ByVal cb As LongPtr) As LongPtr
 Public Declare PtrSafe Function CoTaskMemRealloc Lib "ole32" (ByVal pv As LongPtr, ByVal cb As LongPtr) As LongPtr
 Public DeclareWide PtrSafe Function StgIsStorageFile Lib "ole32" (ByVal lpwcsFileName As String) As Long
 Public DeclareWide PtrSafe Function StgOpenStorage Lib "ole32" (ByVal pwcsName As String, ByVal pstgPriority As IStorage, ByVal grfMode As STGM, ByVal snbExclude As String, ByVal reserved As Long, ppstgOpen As IStorage) As Long
-Public Declare PtrSafe Function StgCreateDocfile Lib "ole32" (ByVal pwcsName As String, ByVal grfMode As STGM, ByVal reserved As Long, ppstgOpen As IStorage) As Long
+Public DeclareWide PtrSafe Function StgCreateDocfile Lib "ole32" (ByVal pwcsName As String, ByVal grfMode As STGM, ByVal reserved As Long, ppstgOpen As IStorage) As Long
 Public Declare PtrSafe Function GetHGlobalFromILockBytes Lib "ole32" (ByVal plkbyt As ILockBytes, phglobal As LongPtr) As Long
 Public Declare PtrSafe Function CreateILockBytesOnHGlobal Lib "ole32" (ByVal hGlobal As LongPtr, ByVal fDeleteOnRelease As Long, pplkbyt As ILockBytes) As Long
 Public Declare PtrSafe Function GetHGlobalFromStream Lib "ole32" (ByVal pStm As IStream, phglobal As LongPtr) As Long
@@ -14717,12 +15330,16 @@ Public Declare PtrSafe Function ReadClassStm Lib "ole32" (ByVal pStg As IStream,
 Public Declare PtrSafe Function WriteClassStm Lib "ole32" (ByVal pStg As IStream, ByRef rclsid As UUID) As Long
 Public Declare PtrSafe Function PropVariantClear Lib "ole32" (ByRef pvarg As Variant) As Long
 Public Declare PtrSafe Function PropVariantCopy Lib "ole32" (ByRef pvarDest As Variant, ByRef pvarSrc As Variant) As Long
-Public Declare PtrSafe Function CLSIDFromProgID Lib "ole32" (ByVal lpszProgID As String, ByRef lpclsid As UUID) As Long
-Public Declare PtrSafe Function CLSIDFromString Lib "ole32" (ByVal lpszProgID As String, ByRef lpclsid As UUID) As Long
+Public DeclareWide PtrSafe Function CLSIDFromProgID Lib "ole32" (ByVal lpszProgID As String, ByRef lpclsid As UUID) As Long
+Public DeclareWide PtrSafe Function CLSIDFromProgIDEx Lib "ole32" (ByVal lpszProgID As String, ByRef lpclsid As UUID) As Long
+Public DeclareWide PtrSafe Function CLSIDFromString Lib "ole32" (ByVal lpszProgID As String, ByRef lpclsid As UUID) As Long
 Public Declare PtrSafe Function ProgIDFromCLSID Lib "ole32" (ByRef clsid As UUID, ByRef lplpszProgID As LongPtr) As Long
+Public DeclareWide PtrSafe Function IIDFromString Lib "ole32" (ByVal lpsz As String, lpiid As UUID) As Long
+Public DeclareWide PtrSafe Function StringFromIID Lib "ole32" (ByRef rclsid As UUID, ByRef lplpsz As LongPtr) As Long
+Public DeclareWide PtrSafe Function StringFromCLSID Lib "ole32" (ByRef rclsid As UUID, ByRef lplpsz As LongPtr) As Long
 Public Declare PtrSafe Function StringFromGUID2 Lib "ole32" (ByRef UUID As UUID, ByVal lplpsz As LongPtr, ByVal cbMax As Long) As Long
 Public Declare PtrSafe Function BindMoniker Lib "ole32" (ByVal pmk As IMoniker, ByVal grfOpt As Long, ByRef iidResult As UUID, ByRef ppvResult As Any) As Long
-Public Declare PtrSafe Function CoGetObject Lib "ole32" (ByVal pszName As String, ByRef pBindOptions As BIND_OPTS, ByRef riid As UUID, ByRef ppv As Any) As Long
+Public DeclareWide PtrSafe Function CoGetObject Lib "ole32" (ByVal pszName As String, ByRef pBindOptions As BIND_OPTS, ByRef riid As UUID, ByRef ppv As Any) As Long
 Public Declare PtrSafe Function MkParseDisplayName Lib "ole32" (ByVal pbc As IBindCtx, ByVal szUserName As String, ByRef pchEaten As Long, ppmk As IMoniker) As Long
 Public Declare PtrSafe Function MonikerRelativePathTo Lib "ole32" (ByVal pmkSrc As IMoniker, ByVal pmkDest As IMoniker, ByRef ppmkRelPath As IMoniker, ByVal dwReserved As Long) As Long
 Public Declare PtrSafe Function MonikerCommonPrefixWith Lib "ole32" (ByVal pmkThis As IMoniker, ByVal pmkOther As IMoniker, ppmkCommon As IMoniker) As Long
@@ -14804,10 +15421,10 @@ Public Declare PtrSafe Function OleCreateLinkFromDataEx Lib "ole32" (ByVal pSrcD
 Public Declare PtrSafe Function OleCreateStaticFromData Lib "ole32" (ByVal pSrcDataObj As IDataObject, ByRef iid As UUID, ByVal renderopt As OLERENDER, ByRef pformatetc As Any, ByVal pClientSite As IOleClientSite, ByVal pStg As IStorage, ByRef ppvObj As Any) As Long
 Public Declare PtrSafe Function OleCreateLink Lib "ole32" (ByVal pmkLinkSrc As IMoniker, ByRef riid As UUID, ByVal renderopt As OLERENDER, ByRef rgFormatEtc As Any, ByVal pClientSite As IOleClientSite, ByVal pStg As IStorage, ByRef ppvObj As Any) As Long
 Public Declare PtrSafe Function OleCreateLinkEx Lib "ole32" (ByVal pmkLinkSrc As IMoniker, ByRef riid As UUID, ByVal dwFlags As OLECREATE_UDT, ByVal renderopt As OLERENDER, ByVal cFormats As Long, ByRef rgAdvf As ADVF, ByRef rgFormatEtc As Any, ByVal lpAdviseSink As IAdviseSink, ByRef rgdwConnection As Long, ByVal pClientSite As IOleClientSite, ByVal pStg As IStorage, ByRef ppvObj As Any) As Long
-Public Declare PtrSafe Function OleCreateLinkToFile Lib "ole32" (ByVal lpszFileName As String, ByRef riid As UUID, ByVal renderopt As OLERENDER, ByRef rgFormatEtc As Any, ByVal pClientSite As IOleClientSite, ByVal pStg As IStorage, ByRef ppvObj As Any) As Long
-Public Declare PtrSafe Function OleCreateLinkToFileEx Lib "ole32" (ByVal lpszFileName As String, ByRef riid As UUID, ByVal dwFlags As OLECREATE_UDT, ByVal renderopt As OLERENDER, ByVal cFormats As Long, ByRef rgAdvf As Long, ByRef rgFormatEtc As Any, ByVal lpAdviseSink As IAdviseSink, ByRef rgdwConnection As Long, ByVal pClientSite As IOleClientSite, ByVal pStg As IStorage, ByRef ppvObj As Any) As Long
-Public Declare PtrSafe Function OleCreateFromFile Lib "ole32" (ByRef rclsid As Any, ByVal lpszFileName As String, ByRef riid As UUID, ByVal renderopt As OLERENDER, ByRef rgFormatEtc As Any, ByVal pClientSite As IOleClientSite, ByVal pStg As IStorage, ByRef ppvObj As Any) As Long
-Public Declare PtrSafe Function OleCreateFromFileEx Lib "ole32" (ByRef rclsid As UUID, ByVal lpszFileName As String, ByRef riid As UUID, ByVal dwFlags As OLECREATE_UDT, ByVal renderopt As OLERENDER, ByVal cFormats As Long, ByRef rgAdvf As ADVF, ByRef rgFormatEtc As FORMATETC, ByVal lpAdviseSink As IAdviseSink, ByRef rgdwConnection As Long, ByVal pClientSite As IOleClientSite, ByVal pStg As IStorage, ByRef ppvObj As Any) As Long
+Public DeclareWide PtrSafe Function OleCreateLinkToFile Lib "ole32" (ByVal lpszFileName As String, ByRef riid As UUID, ByVal renderopt As OLERENDER, ByRef rgFormatEtc As Any, ByVal pClientSite As IOleClientSite, ByVal pStg As IStorage, ByRef ppvObj As Any) As Long
+Public DeclareWide PtrSafe Function OleCreateLinkToFileEx Lib "ole32" (ByVal lpszFileName As String, ByRef riid As UUID, ByVal dwFlags As OLECREATE_UDT, ByVal renderopt As OLERENDER, ByVal cFormats As Long, ByRef rgAdvf As Long, ByRef rgFormatEtc As Any, ByVal lpAdviseSink As IAdviseSink, ByRef rgdwConnection As Long, ByVal pClientSite As IOleClientSite, ByVal pStg As IStorage, ByRef ppvObj As Any) As Long
+Public DeclareWide PtrSafe Function OleCreateFromFile Lib "ole32" (ByRef rclsid As Any, ByVal lpszFileName As String, ByRef riid As UUID, ByVal renderopt As OLERENDER, ByRef rgFormatEtc As Any, ByVal pClientSite As IOleClientSite, ByVal pStg As IStorage, ByRef ppvObj As Any) As Long
+Public DeclareWide PtrSafe Function OleCreateFromFileEx Lib "ole32" (ByRef rclsid As UUID, ByVal lpszFileName As String, ByRef riid As UUID, ByVal dwFlags As OLECREATE_UDT, ByVal renderopt As OLERENDER, ByVal cFormats As Long, ByRef rgAdvf As ADVF, ByRef rgFormatEtc As FORMATETC, ByVal lpAdviseSink As IAdviseSink, ByRef rgdwConnection As Long, ByVal pClientSite As IOleClientSite, ByVal pStg As IStorage, ByRef ppvObj As Any) As Long
 Public Declare PtrSafe Function OleLoad Lib "ole32" (ByVal pStg As IStorage, ByRef riid As UUID, ByVal pClientSite As IOleClientSite, ByRef ppvObj As Any) As Long
 Public Declare PtrSafe Function OleSave Lib "ole32" (ByVal pps As IPersistStorage, ByVal pStg As IStorage, ByVal fSameAsLoad As Long) As Long
 Public Declare PtrSafe Function OleLoadFromStream Lib "ole32" (ByVal pStm As IStream, ByRef iidInterface As UUID, ByRef ppvObj As Any) As Long
@@ -26538,7 +27155,7 @@ Public Enum SERVICE_CONTROL
 	SERVICE_CONTROL_NETBINDREMOVE  = &H00000008
 	SERVICE_CONTROL_NETBINDENABLE  = &H00000009
 	SERVICE_CONTROL_NETBINDDISABLE  = &H0000000A
-	SERVICE_CONTROL_DEVICEEVENT  = &H0000000B
+	SERVICE_CONTROL_DEVICEEVENT = &H0000000B
 	SERVICE_CONTROL_HARDWAREPROFILECHANGE  = &H0000000C
 	SERVICE_CONTROL_POWEREVENT  = &H0000000D
 	SERVICE_CONTROL_SESSIONCHANGE  = &H0000000E
@@ -35042,7 +35659,7 @@ Public Type PRINTER_INFO_2A
     pDriverName As String
     pComment As String
     pLocation As String
-    pDevMode As LongPtr 'LPDEVMODEW
+    pDevMode As LongPtr 'LPDEVMODEA
     pSepFile As String
     pPrintProcessor As String
     pDatatype As String
@@ -36220,19 +36837,20 @@ Public Declare PtrSafe Function GetPrinterA Lib "winspool.drv" (ByVal hPrinter A
 Public Declare PtrSafe Function SetPrinterA Lib "winspool.drv" (ByVal hPrinter As LongPtr, ByVal Level As Long, pPrinter As Any, ByVal Command As PRINTER_CONTROL_COMMANDS) As Long
 Public Declare PtrSafe Function GetPrinterW Lib "winspool.drv" (ByVal hPrinter As LongPtr, ByVal Level As Long, pPrinter As Any, ByVal cbBuf As Long, pcbNeeded As Long) As Long
 Public Declare PtrSafe Function SetPrinterW Lib "winspool.drv" (ByVal hPrinter As LongPtr, ByVal Level As Long, pPrinter As Any, ByVal Command As PRINTER_CONTROL_COMMANDS) As Long
-Public Declare PtrSafe Function GetPrinter Lib "winspool.drv" Alias "GetPrinterW" (ByVal hPrinter As LongPtr, ByVal Level As Long, pPrinter As Any, ByVal cbBuf As Long, pcbNeeded As Long) As Long
-Public Declare PtrSafe Function SetPrinter Lib "winspool.drv" Alias "SetPrinterW" (ByVal hPrinter As LongPtr, ByVal Level As Long, pPrinter As Any, ByVal Command As PRINTER_CONTROL_COMMANDS) As Long
+Public DeclareWide PtrSafe Function GetPrinter Lib "winspool.drv" Alias "GetPrinterW" (ByVal hPrinter As LongPtr, ByVal Level As Long, pPrinter As Any, ByVal cbBuf As Long, pcbNeeded As Long) As Long
+Public DeclareWide PtrSafe Function SetPrinter Lib "winspool.drv" Alias "SetPrinterW" (ByVal hPrinter As LongPtr, ByVal Level As Long, pPrinter As Any, ByVal Command As PRINTER_CONTROL_COMMANDS) As Long
 Public Declare PtrSafe Function DeviceCapabilitiesA Lib "winspool.drv" (ByVal pDevice As String, ByVal pPort As String, [TypeHint (DEVCAP_INDEX) ] ByVal fwCapability As Integer, ByVal pOutput As String, pDevMode As DEVMODEA) As Long
 Public Declare PtrSafe Function DeviceCapabilitiesW Lib "winspool.drv" (ByVal pDevice As LongPtr, ByVal pPort As LongPtr, [ TypeHint (DEVCAP_INDEX) ] ByVal fwCapability As Integer, ByVal pOutput As LongPtr, pDevMode As DEVMODEW) As Long
 Public DeclareWide PtrSafe Function DeviceCapabilities Lib "winspool.drv" Alias "DeviceCapabilitiesW" (ByVal pDevice As String, ByVal pPort As String, [ TypeHint (DEVCAP_INDEX) ] ByVal fwCapability As Integer, ByVal pOutput As String, pDevMode As DEVMODE) As Long
 
+Public Declare PtrSafe Function EnumPrintersW Lib "winspool.drv" (ByVal flags As ENUM_PRINTER_FLAGS, ByVal name As LongPtr, ByVal Level As Long, pPrinterEnum As Any, ByVal cbBuf As Long, pcbNeeded As Long, pcReturned As Long) As Long
+Public Declare PtrSafe Function EnumPrintersA Lib "winspool.drv" (ByVal flags As ENUM_PRINTER_FLAGS, ByVal name As String, ByVal Level As Long, pPrinterEnum As Any, ByVal cbBuf As Long, pcbNeeded As Long, pcReturned As Long) As Long
 Public DeclareWide PtrSafe Function EnumPrinters Lib "winspool.drv" Alias "EnumPrintersW" (ByVal flags As ENUM_PRINTER_FLAGS, ByVal name As String, ByVal Level As Long, pPrinterEnum As Any, ByVal cbBuf As Long, pcbNeeded As Long, pcReturned As Long) As Long
-Public DeclareWide PtrSafe Function EnumPrintersW Lib "winspool.drv" (ByVal flags As ENUM_PRINTER_FLAGS, ByVal name As LongPtr, ByVal Level As Long, pPrinterEnum As Any, ByVal cbBuf As Long, pcbNeeded As Long, pcReturned As Long) As Long
-Public DeclareWide PtrSafe Function EnumPrintersA Lib "winspool.drv" (ByVal flags As ENUM_PRINTER_FLAGS, ByVal name As String, ByVal Level As Long, pPrinterEnum As Any, ByVal cbBuf As Long, pcbNeeded As Long, pcReturned As Long) As Long
 Public Declare PtrSafe Function OpenPrinterA Lib "winspool.drv" (ByVal pPrinterName As String, phPrinter As LongPtr, pDefault As PRINTER_DEFAULTSA) As BOOL
-Public DeclareWide PtrSafe Function OpenPrinterW Lib "winspool.drv" (ByVal pPrinterName As LongPtr, phPrinter As LongPtr, pDefault As PRINTER_DEFAULTSW) As BOOL
+Public Declare PtrSafe Function OpenPrinterW Lib "winspool.drv" (ByVal pPrinterName As LongPtr, phPrinter As LongPtr, pDefault As PRINTER_DEFAULTSW) As BOOL
 Public DeclareWide PtrSafe Function OpenPrinter Lib "winspool.drv" Alias "OpenPrinterW" (ByVal pPrinterName As String, phPrinter As LongPtr, pDefault As PRINTER_DEFAULTS) As BOOL
-Public DeclareWide PtrSafe Function OpenPrinter2W Lib "winspool.drv" (ByVal pPrinterName As LongPtr, phPrinter As LongPtr, pDefault As PRINTER_DEFAULTSW, pOptions As PRINTER_OPTIONS) As BOOL
+Public Declare PtrSafe Function OpenPrinter2A Lib "winspool.drv" (ByVal pPrinterName As String, phPrinter As LongPtr, pDefault As PRINTER_DEFAULTSA, pOptions As PRINTER_OPTIONS) As BOOL
+Public Declare PtrSafe Function OpenPrinter2W Lib "winspool.drv" (ByVal pPrinterName As LongPtr, phPrinter As LongPtr, pDefault As PRINTER_DEFAULTSW, pOptions As PRINTER_OPTIONS) As BOOL
 Public DeclareWide PtrSafe Function OpenPrinter2 Lib "winspool.drv" Alias "OpenPrinter2W" (ByVal pPrinterName As String, phPrinter As LongPtr, pDefault As PRINTER_DEFAULTS, pOptions As PRINTER_OPTIONS) As BOOL
 Public Declare PtrSafe Function ResetPrinterA Lib "winspool.drv" (ByVal hPrinter As LongPtr, pDefault As PRINTER_DEFAULTSA) As BOOL
 Public DeclareWide PtrSafe Function ResetPrinterW Lib "winspool.drv" (ByVal hPrinter As LongPtr, pDefault As PRINTER_DEFAULTSW) As BOOL
@@ -36255,7 +36873,7 @@ Public Declare PtrSafe Function SetJobW Lib "winspool.drv" (ByVal hPrinter As Lo
 Public DeclareWide PtrSafe Function SetJob Lib "winspool.drv" Alias "SetJobW" (ByVal hPrinter As LongPtr, ByVal JobId As Long, ByVal Level As Long, pJob As Any, ByVal Command As PRINT_JOB_CONTROL) As BOOL
 Public Declare PtrSafe Function GetJobA Lib "winspool.drv" (ByVal hPrinter As LongPtr, ByVal JobId As Long, ByVal Level As Long, pJob As Any, ByVal cbBuf As Long, pcbNeeded As Long) As BOOL
 Public Declare PtrSafe Function GetJobW Lib "winspool.drv" (ByVal hPrinter As LongPtr, ByVal JobId As Long, ByVal Level As Long, pJob As Any, ByVal cbBuf As Long, pcbNeeded As Long) As BOOL
-Public Declare PtrSafe Function GetJob Lib "winspool.drv" Alias "GetJobW" (ByVal hPrinter As LongPtr, ByVal JobId As Long, ByVal Level As Long, pJob As Any, ByVal cbBuf As Long, pcbNeeded As Long) As BOOL
+Public DeclareWide PtrSafe Function GetJob Lib "winspool.drv" Alias "GetJobW" (ByVal hPrinter As LongPtr, ByVal JobId As Long, ByVal Level As Long, pJob As Any, ByVal cbBuf As Long, pcbNeeded As Long) As BOOL
 Public Declare PtrSafe Function EnumJobsA Lib "winspool.drv" (ByVal hPrinter As LongPtr, ByVal FirstJob As Long, ByVal NoJobs As Long, ByVal Level As Long, pJob As Any, ByVal cbBuf As Long, pcbNeeded As Long, pcReturned As Long) As BOOL
 Public Declare PtrSafe Function EnumJobsW Lib "winspool.drv" (ByVal hPrinter As LongPtr, ByVal FirstJob As Long, ByVal NoJobs As Long, ByVal Level As Long, pJob As Any, ByVal cbBuf As Long, pcbNeeded As Long, pcReturned As Long) As BOOL
 Public DeclareWide PtrSafe Function EnumJobs Lib "winspool.drv" Alias "EnumJobsW" (ByVal hPrinter As LongPtr, ByVal FirstJob As Long, ByVal NoJobs As Long, ByVal Level As Long, pJob As Any, ByVal cbBuf As Long, pcbNeeded As Long, pcReturned As Long) As BOOL
@@ -36351,7 +36969,7 @@ Public Declare PtrSafe Function DeletePrinterKeyW Lib "winspool.drv" (ByVal hPri
 Public DeclareWide PtrSafe Function DeletePrinterKey Lib "winspool.drv" Alias "DeletePrinterKeyW" (ByVal hPrinter As LongPtr, ByVal pKeyName As String) As Long
 
 [ Description ("If anyone ever uses this, I hope you appreciate how difficult it was to track down the meaning of Flags.") ]
-Public Declare PtrSafe Function WaitForPrinterChange Lib "winspool.drv" Alias "WaitForPrinterChange" (ByVal hPrinter As LongPtr, ByVal flags As PrinterChangeEvents) As LongPtr
+Public Declare PtrSafe Function WaitForPrinterChange Lib "winspool.drv" (ByVal hPrinter As LongPtr, ByVal flags As PrinterChangeEvents) As LongPtr
 Public Declare PtrSafe Function PrinterMessageBoxA Lib "winspool.drv" (ByVal hPrinter As LongPtr, ByVal error As PRINTER_ERROR_TYPES, ByVal hwnd As LongPtr, ByVal pText As String, ByVal pCaption As String, [ TypeHint (MessageBoxFlags, PRINTER_ERROR_LEVELS) ] ByVal dwType As Long) As MessageBoxResults
 Public Declare PtrSafe Function PrinterMessageBoxW Lib "winspool.drv" (ByVal hPrinter As LongPtr, ByVal error As PRINTER_ERROR_TYPES, ByVal hwnd As LongPtr, ByVal pText As LongPtr, ByVal pCaption As LongPtr, [ TypeHint (MessageBoxFlags, PRINTER_ERROR_LEVELS) ] ByVal dwType As Long) As MessageBoxResults
 Public DeclareWide PtrSafe Function PrinterMessageBox Lib "winspool.drv" Alias "PrinterMessageBoxW" (ByVal hPrinter As LongPtr, ByVal error As PRINTER_ERROR_TYPES, ByVal hwnd As LongPtr, ByVal pText As String, ByVal pCaption As String, [ TypeHint (MessageBoxFlags, PRINTER_ERROR_LEVELS) ] ByVal dwType As Long) As MessageBoxResults
@@ -43442,428 +44060,7 @@ Public Declare PtrSafe Function ws_gethostname Lib "ws2_32" Alias "gethostname" 
 	
 #End Region
 
-
-#Region "Misc"
-
-Public Declare PtrSafe Function IsNTAdmin Lib "advpack.dll" (ByVal dwReserved As Long, ByRef lpdwReserved As Long) As Long
-
-
-Public Enum BCRYPT_GR_FLAGS
-    BCRYPT_RNG_USE_ENTROPY_IN_BUFFER  = &H00000001
-    BCRYPT_USE_SYSTEM_PREFERRED_RNG = &H00000002
-End Enum
-
-Public Const BCRYPT_MD2_ALG_HANDLE                As LongPtr = (&H00000001)
-Public Const BCRYPT_MD4_ALG_HANDLE                As LongPtr = (&H00000011)
-Public Const BCRYPT_MD5_ALG_HANDLE                As LongPtr = (&H00000021)
-Public Const BCRYPT_SHA1_ALG_HANDLE               As LongPtr = (&H00000031)
-Public Const BCRYPT_SHA256_ALG_HANDLE             As LongPtr = (&H00000041)
-Public Const BCRYPT_SHA384_ALG_HANDLE             As LongPtr = (&H00000051)
-Public Const BCRYPT_SHA512_ALG_HANDLE             As LongPtr = (&H00000061)
-Public Const BCRYPT_RC4_ALG_HANDLE                As LongPtr = (&H00000071)
-Public Const BCRYPT_RNG_ALG_HANDLE                As LongPtr = (&H00000081)
-Public Const BCRYPT_HMAC_MD5_ALG_HANDLE           As LongPtr = (&H00000091)
-Public Const BCRYPT_HMAC_SHA1_ALG_HANDLE          As LongPtr = (&H000000a1)
-Public Const BCRYPT_HMAC_SHA256_ALG_HANDLE        As LongPtr = (&H000000b1)
-Public Const BCRYPT_HMAC_SHA384_ALG_HANDLE        As LongPtr = (&H000000c1)
-Public Const BCRYPT_HMAC_SHA512_ALG_HANDLE        As LongPtr = (&H000000d1)
-Public Const BCRYPT_RSA_ALG_HANDLE                As LongPtr = (&H000000e1)
-Public Const BCRYPT_ECDSA_ALG_HANDLE              As LongPtr = (&H000000f1)
-Public Const BCRYPT_AES_CMAC_ALG_HANDLE           As LongPtr = (&H00000101)
-Public Const BCRYPT_AES_GMAC_ALG_HANDLE           As LongPtr = (&H00000111)
-Public Const BCRYPT_HMAC_MD2_ALG_HANDLE           As LongPtr = (&H00000121)
-Public Const BCRYPT_HMAC_MD4_ALG_HANDLE           As LongPtr = (&H00000131)
-Public Const BCRYPT_3DES_CBC_ALG_HANDLE           As LongPtr = (&H00000141)
-Public Const BCRYPT_3DES_ECB_ALG_HANDLE           As LongPtr = (&H00000151)
-Public Const BCRYPT_3DES_CFB_ALG_HANDLE           As LongPtr = (&H00000161)
-Public Const BCRYPT_3DES_112_CBC_ALG_HANDLE       As LongPtr = (&H00000171)
-Public Const BCRYPT_3DES_112_ECB_ALG_HANDLE       As LongPtr = (&H00000181)
-Public Const BCRYPT_3DES_112_CFB_ALG_HANDLE       As LongPtr = (&H00000191)
-Public Const BCRYPT_AES_CBC_ALG_HANDLE            As LongPtr = (&H000001a1)
-Public Const BCRYPT_AES_ECB_ALG_HANDLE            As LongPtr = (&H000001b1)
-Public Const BCRYPT_AES_CFB_ALG_HANDLE            As LongPtr = (&H000001c1)
-Public Const BCRYPT_AES_CCM_ALG_HANDLE            As LongPtr = (&H000001d1)
-Public Const BCRYPT_AES_GCM_ALG_HANDLE            As LongPtr = (&H000001e1)
-Public Const BCRYPT_DES_CBC_ALG_HANDLE            As LongPtr = (&H000001f1)
-Public Const BCRYPT_DES_ECB_ALG_HANDLE            As LongPtr = (&H00000201)
-Public Const BCRYPT_DES_CFB_ALG_HANDLE            As LongPtr = (&H00000211)
-Public Const BCRYPT_DESX_CBC_ALG_HANDLE           As LongPtr = (&H00000221)
-Public Const BCRYPT_DESX_ECB_ALG_HANDLE           As LongPtr = (&H00000231)
-Public Const BCRYPT_DESX_CFB_ALG_HANDLE           As LongPtr = (&H00000241)
-Public Const BCRYPT_RC2_CBC_ALG_HANDLE            As LongPtr = (&H00000251)
-Public Const BCRYPT_RC2_ECB_ALG_HANDLE            As LongPtr = (&H00000261)
-Public Const BCRYPT_RC2_CFB_ALG_HANDLE            As LongPtr = (&H00000271)
-Public Const BCRYPT_DH_ALG_HANDLE                 As LongPtr = (&H00000281)
-Public Const BCRYPT_ECDH_ALG_HANDLE               As LongPtr = (&H00000291)
-Public Const BCRYPT_ECDH_P256_ALG_HANDLE          As LongPtr = (&H000002a1)
-Public Const BCRYPT_ECDH_P384_ALG_HANDLE          As LongPtr = (&H000002b1)
-Public Const BCRYPT_ECDH_P521_ALG_HANDLE          As LongPtr = (&H000002c1)
-Public Const BCRYPT_DSA_ALG_HANDLE                As LongPtr = (&H000002d1)
-Public Const BCRYPT_ECDSA_P256_ALG_HANDLE         As LongPtr = (&H000002e1)
-Public Const BCRYPT_ECDSA_P384_ALG_HANDLE         As LongPtr = (&H000002f1)
-Public Const BCRYPT_ECDSA_P521_ALG_HANDLE         As LongPtr = (&H00000301)
-Public Const BCRYPT_RSA_SIGN_ALG_HANDLE           As LongPtr = (&H00000311)
-Public Const BCRYPT_CAPI_KDF_ALG_HANDLE           As LongPtr = (&H00000321)
-Public Const BCRYPT_PBKDF2_ALG_HANDLE             As LongPtr = (&H00000331)
-Public Const BCRYPT_SP800108_CTR_HMAC_ALG_HANDLE  As LongPtr = (&H00000341)
-Public Const BCRYPT_SP80056A_CONCAT_ALG_HANDLE    As LongPtr = (&H00000351)
-Public Const BCRYPT_TLS1_1_KDF_ALG_HANDLE         As LongPtr = (&H00000361)
-Public Const BCRYPT_TLS1_2_KDF_ALG_HANDLE         As LongPtr = (&H00000371)
-Public Const BCRYPT_XTS_AES_ALG_HANDLE            As LongPtr = (&H00000381)
-Public Const BCRYPT_HKDF_ALG_HANDLE               As LongPtr = (&H00000391)
-
-Public Const BCRYPT_CHACHA20_POLY1305_ALG_HANDLE  As LongPtr = (&H000003A1)
-
-
-Public Const BCRYPT_RSA_ALGORITHM  = "RSA"
-Public Const BCRYPT_RSA_SIGN_ALGORITHM  = "RSA_SIGN"
-Public Const BCRYPT_DH_ALGORITHM  = "DH"
-Public Const BCRYPT_DSA_ALGORITHM  = "DSA"
-Public Const BCRYPT_RC2_ALGORITHM  = "RC2"
-Public Const BCRYPT_RC4_ALGORITHM  = "RC4"
-Public Const BCRYPT_AES_ALGORITHM  = "AES"
-Public Const BCRYPT_DES_ALGORITHM  = "DES"
-Public Const BCRYPT_DESX_ALGORITHM  = "DESX"
-Public Const BCRYPT_3DES_ALGORITHM  = "3DES"
-Public Const BCRYPT_3DES_112_ALGORITHM  = "3DES_112"
-Public Const BCRYPT_MD2_ALGORITHM  = "MD2"
-Public Const BCRYPT_MD4_ALGORITHM  = "MD4"
-Public Const BCRYPT_MD5_ALGORITHM  = "MD5"
-Public Const BCRYPT_SHA1_ALGORITHM  = "SHA1"
-Public Const BCRYPT_SHA256_ALGORITHM  = "SHA256"
-Public Const BCRYPT_SHA384_ALGORITHM  = "SHA384"
-Public Const BCRYPT_SHA512_ALGORITHM  = "SHA512"
-Public Const BCRYPT_AES_GMAC_ALGORITHM  = "AES-GMAC"
-Public Const BCRYPT_AES_CMAC_ALGORITHM  = "AES-CMAC"
-Public Const BCRYPT_ECDSA_P256_ALGORITHM  = "ECDSA_P256"
-Public Const BCRYPT_ECDSA_P384_ALGORITHM  = "ECDSA_P384"
-Public Const BCRYPT_ECDSA_P521_ALGORITHM  = "ECDSA_P521"
-Public Const BCRYPT_ECDH_P256_ALGORITHM  = "ECDH_P256"
-Public Const BCRYPT_ECDH_P384_ALGORITHM  = "ECDH_P384"
-Public Const BCRYPT_ECDH_P521_ALGORITHM  = "ECDH_P521"
-Public Const BCRYPT_RNG_ALGORITHM  = "RNG"
-Public Const BCRYPT_RNG_FIPS186_DSA_ALGORITHM  = "FIPS186DSARNG"
-Public Const BCRYPT_RNG_DUAL_EC_ALGORITHM  = "DUALECRNG"
-' #if (NTDDI_VERSION >= NTDDI_WIN8)
-Public Const BCRYPT_SP800108_CTR_HMAC_ALGORITHM  = "SP800_108_CTR_HMAC"
-Public Const BCRYPT_SP80056A_CONCAT_ALGORITHM  = "SP800_56A_CONCAT"
-Public Const BCRYPT_PBKDF2_ALGORITHM  = "PBKDF2"
-Public Const BCRYPT_CAPI_KDF_ALGORITHM  = "CAPI_KDF"
-Public Const BCRYPT_TLS1_1_KDF_ALGORITHM  = "TLS1_1_KDF"
-Public Const BCRYPT_TLS1_2_KDF_ALGORITHM  = "TLS1_2_KDF"
-' #endif
-' #if (NTDDI_VERSION >= NTDDI_WINTHRESHOLD)
-Public Const BCRYPT_ECDSA_ALGORITHM  = "ECDSA"
-Public Const BCRYPT_ECDH_ALGORITHM  = "ECDH"
-Public Const BCRYPT_XTS_AES_ALGORITHM  = "XTS-AES"
-' #endif
-' #if (NTDDI_VERSION >= NTDDI_WIN10_RS4)
-Public Const BCRYPT_HKDF_ALGORITHM  = "HKDF"
-' #endif
-' #if (NTDDI_VERSION >= NTDDI_WIN10_FE)
-Public Const BCRYPT_CHACHA20_POLY1305_ALGORITHM  = "CHACHA20_POLY1305"
-' #endif
-
-Public Const MS_PRIMITIVE_PROVIDER  = "Microsoft Primitive Provider"
-Public Const MS_PLATFORM_CRYPTO_PROVIDER  = "Microsoft Platform Crypto Provider"
-
-Public Enum BCRYPT_OA_FLAGS
-    BCRYPT_PROV_DISPATCH = &H00000001  ' BCryptOpenAlgorithmProvider
-    BCRYPT_ALG_HANDLE_HMAC_FLAG  = &H00000008
-    BCRYPT_HASH_REUSABLE_FLAG  = &H00000020
-End Enum
-
-Public Enum BCRYPT_PADDING_TYPES
-    BCRYPT_SUPPORTED_PAD_ROUTER  = &H00000001
-    BCRYPT_SUPPORTED_PAD_PKCS1_ENC  = &H00000002
-    BCRYPT_SUPPORTED_PAD_PKCS1_SIG  = &H00000004
-    BCRYPT_SUPPORTED_PAD_OAEP  = &H00000008
-    BCRYPT_SUPPORTED_PAD_PSS  = &H00000010
-End Enum
-
-
-Public Const BCRYPT_AUTHENTICATED_CIPHER_MODE_INFO_VERSION = 1
-Public Enum BCRYPT_AUTH_CIPHER_MODE_FLAGS
-    BCRYPT_AUTH_MODE_CHAIN_CALLS_FLAG  = &H00000001
-    BCRYPT_AUTH_MODE_IN_PROGRESS_FLAG  = &H00000002
-End Enum
-Public Type BCRYPT_AUTHENTICATED_CIPHER_MODE_INFO
-    cbSize As Long
-    dwInfoVersion As Long
-    pbNonce As LongPtr
-    cbNonce As Long
-    pbAuthData As LongPtr
-    cbAuthData As Long
-    pbTag As LongPtr
-    cbTag As Long
-    pbMacContext As LongPtr
-    cbMacContext As Long
-    cbAAD As Long
-    cbData As LongLong
-    dwFlags As BCRYPT_AUTH_CIPHER_MODE_FLAGS
-End Type
-
-Public Const BCRYPT_OPAQUE_KEY_BLOB = "OpaqueKeyBlob"
-Public Const BCRYPT_KEY_DATA_BLOB = "KeyDataBlob"
-Public Const BCRYPT_AES_WRAP_KEY_BLOB = "Rfc3565KeyWrapBlob"
-Public Const BCRYPT_OBJECT_LENGTH = "ObjectLength"
-Public Const BCRYPT_ALGORITHM_NAME = "AlgorithmName"
-Public Const BCRYPT_PROVIDER_HANDLE = "ProviderHandle"
-Public Const BCRYPT_CHAINING_MODE = "ChainingMode"
-Public Const BCRYPT_BLOCK_LENGTH = "BlockLength"
-Public Const BCRYPT_KEY_LENGTH = "KeyLength"
-Public Const BCRYPT_KEY_OBJECT_LENGTH = "KeyObjectLength"
-Public Const BCRYPT_KEY_STRENGTH = "KeyStrength"
-Public Const BCRYPT_KEY_LENGTHS = "KeyLengths"
-Public Const BCRYPT_BLOCK_SIZE_LIST = "BlockSizeList"
-Public Const BCRYPT_EFFECTIVE_KEY_LENGTH = "EffectiveKeyLength"
-Public Const BCRYPT_HASH_LENGTH = "HashDigestLength"
-Public Const BCRYPT_HASH_OID_LIST = "HashOIDList"
-Public Const BCRYPT_PADDING_SCHEMES = "PaddingSchemes"
-Public Const BCRYPT_SIGNATURE_LENGTH = "SignatureLength"
-Public Const BCRYPT_HASH_BLOCK_LENGTH = "HashBlockLength"
-Public Const BCRYPT_AUTH_TAG_LENGTH = "AuthTagLength"
-' #if (NTDDI_VERSION >= NTDDI_WIN7)
-Public Const BCRYPT_PRIMITIVE_TYPE = "PrimitiveType"
-Public Const BCRYPT_IS_KEYED_HASH = "IsKeyedHash"
-' #if (NTDDI_VERSION >= NTDDI_WIN8)
-Public Const BCRYPT_IS_REUSABLE_HASH = "IsReusableHash"
-Public Const BCRYPT_MESSAGE_BLOCK_LENGTH = "MessageBlockLength"
-Public Const BCRYPT_PUBLIC_KEY_LENGTH = "PublicKeyLength"
-Public Const BCRYPT_PCP_PLATFORM_TYPE_PROPERTY = "PCP_PLATFORM_TYPE"
-Public Const BCRYPT_PCP_PROVIDER_VERSION_PROPERTY = "PCP_PROVIDER_VERSION"
-Public Const BCRYPT_MULTI_OBJECT_LENGTH = "MultiObjectLength"
-Public Const BCRYPT_IS_IFX_TPM_WEAK_KEY = "IsIfxTpmWeakKey"
-Public Const BCRYPT_HKDF_HASH_ALGORITHM = "HkdfHashAlgorithm"
-Public Const BCRYPT_HKDF_SALT_AND_FINALIZE = "HkdfSaltAndFinalize"
-Public Const BCRYPT_HKDF_PRK_AND_FINALIZE = "HkdfPrkAndFinalize"
-' BCryptSetProperty strings
-Public Const BCRYPT_INITIALIZATION_VECTOR = "IV"
-' Property Strings
-Public Const BCRYPT_CHAIN_MODE_NA = "ChainingModeN/A"
-Public Const BCRYPT_CHAIN_MODE_CBC = "ChainingModeCBC"
-Public Const BCRYPT_CHAIN_MODE_ECB = "ChainingModeECB"
-Public Const BCRYPT_CHAIN_MODE_CFB = "ChainingModeCFB"
-Public Const BCRYPT_CHAIN_MODE_CCM = "ChainingModeCCM"
-Public Const BCRYPT_CHAIN_MODE_GCM = "ChainingModeGCM"
-
-Public Enum BCRYPT_RSA_PADDING
-    BCRYPT_PAD_NONE  = &H00000001
-    BCRYPT_PAD_PKCS1  = &H00000002  ' BCryptEncrypt/Decrypt BCryptSignHash/VerifySignature
-    BCRYPT_PAD_OAEP  = &H00000004  ' BCryptEncrypt/Decrypt
-    BCRYPT_PAD_PSS  = &H00000008  ' BCryptSignHash/VerifySignature
-' #if (NTDDI_VERSION >= NTDDI_WINBLUE)
-    BCRYPT_PAD_PKCS1_OPTIONAL_HASH_OID  = &H00000010  'BCryptVerifySignature
-End Enum
-
-Public Enum BCRYPT_FLAGS
-    BCRYPT_BLOCK_PADDING = &H00000001
-End Enum
-
-Public Enum BCRYPT_ENUM_ALG_OPS
-    BCRYPT_CIPHER_OPERATION  = &H00000001
-    BCRYPT_HASH_OPERATION  = &H00000002
-    BCRYPT_ASYMMETRIC_ENCRYPTION_OPERATION  = &H00000004
-    BCRYPT_SECRET_AGREEMENT_OPERATION  = &H00000008
-    BCRYPT_SIGNATURE_OPERATION  = &H00000010
-    BCRYPT_RNG_OPERATION  = &H00000020
-' #if (NTDDI_VERSION >= NTDDI_WIN8)
-    BCRYPT_KEY_DERIVATION_OPERATION  = &H00000040
-End Enum
-
-Public Enum BCRYPT_CNG_INTERFACES
-    BCRYPT_CIPHER_INTERFACE  = &H00000001
-    BCRYPT_HASH_INTERFACE  = &H00000002
-    BCRYPT_ASYMMETRIC_ENCRYPTION_INTERFACE  = &H00000003
-    BCRYPT_SECRET_AGREEMENT_INTERFACE  = &H00000004
-    BCRYPT_SIGNATURE_INTERFACE  = &H00000005
-    BCRYPT_RNG_INTERFACE  = &H00000006
-' #if (NTDDI_VERSION >= NTDDI_WIN8)
-    BCRYPT_KEY_DERIVATION_INTERFACE  = &H00000007
-End Enum
-
-Public Type BCRYPT_ALGORITHM_IDENTIFIER
-    pszName As LongPtr
-    dwClass As BCRYPT_CNG_INTERFACES
-    dwFlags As Long
-End Type
-
-Public Const BCRYPT_PUBLIC_KEY_BLOB  = "PUBLICBLOB"
-Public Const BCRYPT_PRIVATE_KEY_BLOB  = "PRIVATEBLOB"
-
-Public Type BCRYPT_KEY_BLOB
-    Magic As Long
-End Type
-
-Public Const BCRYPT_RSAPUBLIC_BLOB = "RSAPUBLICBLOB"
-Public Const BCRYPT_RSAPRIVATE_BLOB = "RSAPRIVATEBLOB"
-Public Const LEGACY_RSAPUBLIC_BLOB = "CAPIPUBLICBLOB"
-Public Const LEGACY_RSAPRIVATE_BLOB = "CAPIPRIVATEBLOB"
-Public Const BCRYPT_RSAPUBLIC_MAGIC  = &H31415352  ' RSA1
-Public Const BCRYPT_RSAPRIVATE_MAGIC  = &H32415352  ' RSA2
-
-Public Type BCRYPT_RSAKEY_BLOB
-    Magic As Long
-    BitLength As Long
-    cbPublicExp As Long
-    cbModulus As Long
-    cbPrime1 As Long
-    cbPrime2 As Long
-End Type
-
-Public Const BCRYPT_RSAFULLPRIVATE_BLOB = "RSAFULLPRIVATEBLOB"
-Public Const BCRYPT_RSAFULLPRIVATE_MAGIC  = &H33415352  ' RSA3
-' Properties of secret agreement algorithms
-' #if (NTDDI_VERSION >= NTDDI_WIN8)
-Public Const BCRYPT_GLOBAL_PARAMETERS = "SecretAgreementParam"
-Public Const BCRYPT_PRIVATE_KEY  = "PrivKeyVal"
-' #endif
-'  The BCRYPT_ECCPUBLIC_BLOB and BCRYPT_ECCPRIVATE_BLOB blob types are used
-'  to transport plaintext ECC keys. These blob types will be supported by
-'  all ECC primitive providers.
-Public Const BCRYPT_ECCPUBLIC_BLOB = "ECCPUBLICBLOB"
-Public Const BCRYPT_ECCPRIVATE_BLOB = "ECCPRIVATEBLOB"
-' #if (NTDDI_VERSION >= NTDDI_WINTHRESHOLD)
-Public Const BCRYPT_ECCFULLPUBLIC_BLOB = "ECCFULLPUBLICBLOB"
-Public Const BCRYPT_ECCFULLPRIVATE_BLOB = "ECCFULLPRIVATEBLOB"
-Public Const SSL_ECCPUBLIC_BLOB = "SSLECCPUBLICBLOB"
-' #endif
-Public Const BCRYPT_ECDH_PUBLIC_P256_MAGIC  = &H314B4345  ' ECK1
-Public Const BCRYPT_ECDH_PRIVATE_P256_MAGIC  = &H324B4345  ' ECK2
-Public Const BCRYPT_ECDH_PUBLIC_P384_MAGIC  = &H334B4345  ' ECK3
-Public Const BCRYPT_ECDH_PRIVATE_P384_MAGIC  = &H344B4345  ' ECK4
-Public Const BCRYPT_ECDH_PUBLIC_P521_MAGIC  = &H354B4345  ' ECK5
-Public Const BCRYPT_ECDH_PRIVATE_P521_MAGIC  = &H364B4345  ' ECK6
-' #if (NTDDI_VERSION >= NTDDI_WINTHRESHOLD)
-Public Const BCRYPT_ECDH_PUBLIC_GENERIC_MAGIC  = &H504B4345  ' ECKP
-Public Const BCRYPT_ECDH_PRIVATE_GENERIC_MAGIC  = &H564B4345  ' ECKV
-' #endif
-Public Const BCRYPT_ECDSA_PUBLIC_P256_MAGIC  = &H31534345  ' ECS1
-Public Const BCRYPT_ECDSA_PRIVATE_P256_MAGIC  = &H32534345  ' ECS2
-Public Const BCRYPT_ECDSA_PUBLIC_P384_MAGIC  = &H33534345  ' ECS3
-Public Const BCRYPT_ECDSA_PRIVATE_P384_MAGIC  = &H34534345  ' ECS4
-Public Const BCRYPT_ECDSA_PUBLIC_P521_MAGIC  = &H35534345  ' ECS5
-Public Const BCRYPT_ECDSA_PRIVATE_P521_MAGIC  = &H36534345  ' ECS6
-' #if (NTDDI_VERSION >= NTDDI_WINTHRESHOLD)
-Public Const BCRYPT_ECDSA_PUBLIC_GENERIC_MAGIC  = &H50444345  ' ECDP
-Public Const BCRYPT_ECDSA_PRIVATE_GENERIC_MAGIC  = &H56444345  ' ECDV
-
-Public Type BCRYPT_ECCKEY_BLOB
-    dwMagic As Long
-    cbKey As Long
-End Type
-Public Type SSL_ECCKEY_BLOB
-    dwCurveType As Long
-    cbKey As Long
-End Type
-
-Public Const BCRYPT_ECC_FULLKEY_BLOB_V1 = &H1
-
-Public Enum ECC_CURVE_TYPE_ENUM
-    BCRYPT_ECC_PRIME_SHORT_WEIERSTRASS_CURVE = &H1
-    BCRYPT_ECC_PRIME_TWISTED_EDWARDS_CURVE = &H2
-    BCRYPT_ECC_PRIME_MONTGOMERY_CURVE = &H3
-End Enum
-Public Enum ECC_CURVE_ALG_ID_ENUM
-    BCRYPT_NO_CURVE_GENERATION_ALG_ID = &H0
-End Enum
-
-Public Type BCRYPT_ECCFULLKEY_BLOB
-    dwMagic As Long
-    dwVersion As Long 'Version of the structure
-    dwCurveType As ECC_CURVE_TYPE_ENUM 'Supported curve types.
-    dwCurveGenerationAlgId As ECC_CURVE_ALG_ID_ENUM 'For X.592 verification purposes, if we include Seed we will need to include the algorithm ID.
-    cbFieldLength As Long 'Byte length of the fields P, A, B, X, Y.
-    cbSubgroupOrder As Long 'Byte length of the subgroup.
-    cbCofactor As Long 'Byte length of cofactor of G in E.
-    cbSeed As Long 'Byte length of the seed used to generate the curve.
-    'P[cbFieldLength]              Prime specifying the base field.
-    'A[cbFieldLength]              Coefficient A of the equation y^2 = x^3 + A*x + B mod p
-    'B[cbFieldLength]              Coefficient B of the equation y^2 = x^3 + A*x + B mod p
-    'Gx[cbFieldLength]             X-coordinate of the base point.
-    'Gy[cbFieldLength]             Y-coordinate of the base point.
-    'n[cbSubgroupOrder]            Order of the group generated by G = (x,y)
-    'h[cbCofactor]                 Cofactor of G in E.
-    'S[cbSeed]                     Seed of the curve.
-    'Qx[cbFieldLength]             X-coordinate of the public point.
-    'Qy[cbFieldLength]             Y-coordinate of the public point.
-    'd[cbSubgroupOrder]            Private key.  Not always present.
-End Type
-
-Public Const BCRYPT_DH_PUBLIC_BLOB = "DHPUBLICBLOB"
-Public Const BCRYPT_DH_PRIVATE_BLOB = "DHPRIVATEBLOB"
-Public Const LEGACY_DH_PUBLIC_BLOB = "CAPIDHPUBLICBLOB"
-Public Const LEGACY_DH_PRIVATE_BLOB = "CAPIDHPRIVATEBLOB"
-Public Const BCRYPT_DH_PUBLIC_MAGIC  = &H42504844  ' DHPB
-Public Const BCRYPT_DH_PRIVATE_MAGIC  = &H56504844  ' DHPV
-
-Public Type BCRYPT_DH_KEY_BLOB
-    dwMagic As Long
-    cbKey As Long
-End Type
-
-Public Const BCRYPT_DH_PARAMETERS = "DHParameters"
-Public Const BCRYPT_DH_PARAMETERS_MAGIC  = &H4d504844  ' DHPM
-
-Public Type BCRYPT_DH_PARAMETER_HEADER
-    cbLength As Long
-    dwMagic As Long
-    cbKeyLength As Long
-End Type
-
-Public Const BCRYPT_DSA_PUBLIC_BLOB = "DSAPUBLICBLOB"
-Public Const BCRYPT_DSA_PRIVATE_BLOB = "DSAPRIVATEBLOB"
-Public Const LEGACY_DSA_PUBLIC_BLOB = "CAPIDSAPUBLICBLOB"
-Public Const LEGACY_DSA_PRIVATE_BLOB = "CAPIDSAPRIVATEBLOB"
-Public Const LEGACY_DSA_V2_PUBLIC_BLOB = "V2CAPIDSAPUBLICBLOB"
-Public Const LEGACY_DSA_V2_PRIVATE_BLOB = "V2CAPIDSAPRIVATEBLOB"
-Public Const BCRYPT_DSA_PUBLIC_MAGIC  = &H42505344  ' DSPB
-Public Const BCRYPT_DSA_PRIVATE_MAGIC  = &H56505344  ' DSPV
-'(NTDDI_VERSION  = >= NTDDI_WIN8)
-Public Const BCRYPT_DSA_PUBLIC_MAGIC_V2  = &H32425044  ' DPB2
-Public Const BCRYPT_DSA_PRIVATE_MAGIC_V2  = &H32565044  ' DPV2
-
-Public Type BCRYPT_DSA_KEY_BLOB
-    dwMagic As Long
-    cbKey As Long
-    Count(0 To 3) As Byte
-    Seed(0 To 19) As Byte
-    q(0 To 19) As Byte
-End Type
-
-Public Enum BCRYPT_KEYPAIR_IMPORT_FLAGS
-    BCRYPT_NO_KEY_VALIDATION  = &H00000008
-' #if (NTDDI_VERSION >= NTDDI_WIN10_CO)
-    BCRYPT_KEY_VALIDATION_RANGE  = &H00000010  ' BCryptImportKeyPair
-    BCRYPT_KEY_VALIDATION_RANGE_AND_ORDER  = &H00000018  ' BCryptImportKeyPair & BCryptFinalizeKeyPair
-    BCRYPT_KEY_VALIDATION_REGENERATE  = &H00000020  ' BCryptImportKeyPair
-End Enum
-
-
-
-
-Public DeclareWide PtrSafe Function BCryptOpenAlgorithmProvider Lib "bcrypt" (phAlgorithm As LongPtr, ByVal pszAlgId As String, ByVal pszImplementation As String, ByVal dwFlags As BCRYPT_OA_FLAGS) As NTSTATUS
-Public DeclareWide PtrSafe Function BCryptCloseAlgorithmProvider Lib "bcrypt" (ByVal hAlgorithm As LongPtr, ByVal dwFlags As Long) As NTSTATUS
-Public DeclareWide PtrSafe Function BCryptGenRandom Lib "bcrypt" (ByVal hAlgorithm As LongPtr, pbBuffer As Any, ByVal cbBuffer As Long, ByVal dwFlags As BCRYPT_GR_FLAGS) As NTSTATUS
-Public Declare PtrSafe Function BCryptGetProperty Lib "bcrypt" (ByVal hObject As LongPtr, ByVal pszProperty As LongPtr, pbOutput As Any, ByVal cbOutput As Long, cbResult As Long, ByVal dwFlags As Long) As NTSTATUS
-Public Declare PtrSafe Function BCryptSetProperty Lib "bcrypt" (ByVal hObject As LongPtr, ByVal pszProperty As LongPtr, ByVal pbInput As LongPtr, ByVal cbInput As Long, ByVal dwFlags As Long) As NTSTATUS
-Public Declare PtrSafe Function BCryptGenerateSymmetricKey Lib "bcrypt" (ByVal hAlgorithm As LongPtr, phKey As LongPtr, pbKeyObject As Any, ByVal cbKeyObject As Long, pbSecret As Any, ByVal cbSecret As Long, ByVal dwFlags As Long) As NTSTATUS
-Public Declare PtrSafe Function BCryptDestroyKey Lib "bcrypt" (ByVal hKey As LongPtr) As NTSTATUS
-Public Declare PtrSafe Function BCryptEncrypt Lib "bcrypt" (ByVal hKey As LongPtr, pbInput As Any, ByVal cbInput As Long, ByVal pPaddingInfo As LongPtr, ByVal pbIV As LongPtr, ByVal cbIV As Long, pbOutput As Any, ByVal cbOutput As Long, pcbResult As Long, [ TypeHint (BCRYPT_FLAGS, BCRYPT_RSA_PADDING) ] ByVal dwFlags As Long) As NTSTATUS
-Public Declare PtrSafe Function BCryptDecrypt Lib "bcrypt" (ByVal hKey As LongPtr, pbInput As Any, ByVal cbInput As Long, ByVal pPaddingInfo As LongPtr, ByVal pbIV As LongPtr, ByVal cbIV As Long, pbOutput As Any, ByVal cbOutput As Long, pcbResult As Long, [ TypeHint (BCRYPT_FLAGS, BCRYPT_RSA_PADDING) ] ByVal dwFlags As Long) As NTSTATUS
-Public Declare PtrSafe Function BCryptDeriveKeyPBKDF2 Lib "bcrypt" (ByVal hPrf As LongPtr, pbPassword As Any, ByVal cbPassword As Long, pbSalt As Any, ByVal cbSalt As Long, ByVal cIterations As LongLong, pbDerivedKey As Any, ByVal cbDerivedKey As Long, ByVal dwFlags As Long) As NTSTATUS
-Public Declare PtrSafe Function BCryptCreateHash Lib "bcrypt" (ByVal hAlgorithm As LongPtr, phHash As LongPtr, ByVal pbHashObject As LongPtr, ByVal cbHashObject As Long, pbSecret As Any, ByVal cbSecret As Long, [ TypeHint (BCRYPT_OA_FLAGS) ] ByVal dwFlags As Long) As NTSTATUS
-Public Declare PtrSafe Function BCryptDestroyHash Lib "bcrypt" (ByVal hHash As LongPtr) As NTSTATUS
-Public Declare PtrSafe Function BCryptHashData Lib "bcrypt" (ByVal hHash As LongPtr, pbInput As Any, ByVal cbInput As Long, ByVal dwFlags As Long) As NTSTATUS
-Public Declare PtrSafe Function BCryptFinishHash Lib "bcrypt" (ByVal hHash As LongPtr, pbOutput As Any, ByVal cbOutput As Long, ByVal dwFlags As Long) As NTSTATUS
-Public Declare PtrSafe Function BCryptEnumAlgorithms Lib "bcrypt" (ByVal dwAlgOperations As BCRYPT_ENUM_ALG_OPS, pAlgCount As Long, ppAlgList As LongPtr, ByVal dwFlags As Long) As NTSTATUS
-Public Declare PtrSafe Sub BCryptFreeBuffer Lib "bcrypt" (ByVal pvBuffer As LongPtr)
-Public DeclareWide PtrSafe Function BCryptImportKeyPair Lib "bcrypt" (ByVal hAlgorithm As LongPtr, ByVal hImportKey As LongPtr, ByVal pszBlobType As String, phKey As LongPtr, pbInput As Any, ByVal cbInput As Long, ByVal dwFlags As BCRYPT_KEYPAIR_IMPORT_FLAGS) As NTSTATUS
-Public DeclareWide PtrSafe Function BCryptExportKey Lib "bcrypt" (ByVal hKey As LongPtr, ByVal hExportKey As LongPtr, ByVal pszBlobType As String, pbOutput As Any, ByVal cbOutput As Long, pcbResult As Long, ByVal dwFlags As Long) As NTSTATUS
-Public DeclareWide PtrSafe Function BCryptSecretAgreement Lib "bcrypt" (ByVal hPrivKey As LongPtr, ByVal hPubKey As LongPtr, phAgreedSecret As LongPtr, ByVal dwFlags As Long) As NTSTATUS
-Public DeclareWide PtrSafe Function BCryptDestroySecret Lib "bcrypt" (ByVal hSecret As LongPtr) As NTSTATUS
-
-
+#Region "crypt32"
 
 Public Enum CryptPromptFlags
     CRYPTPROTECT_PROMPT_ON_UNPROTECT  = &H1  ' 1<<0
@@ -44574,6 +44771,22 @@ Public Enum CryptCertFindType
     CERT_FIND_HAS_PRIVATE_KEY  = (CERT_COMPARE_HAS_PRIVATE_KEY << CERT_COMPARE_SHIFT)
 End Enum
 
+Public Enum CRYPT_STORE_SAVEAS_FLAGS
+    CERT_STORE_SAVE_AS_STORE  = 1
+    CERT_STORE_SAVE_AS_PKCS7  = 2
+    CERT_STORE_SAVE_AS_PKCS12  = 3
+End Enum
+Public Enum CRYPT_STORE_SAVETO_FLAGS
+    CERT_STORE_SAVE_TO_FILE  = 1
+    CERT_STORE_SAVE_TO_MEMORY  = 2
+    CERT_STORE_SAVE_TO_FILENAME_A  = 3
+    CERT_STORE_SAVE_TO_FILENAME_W  = 4
+    CERT_STORE_SAVE_TO_FILENAME  = CERT_STORE_SAVE_TO_FILENAME_W
+End Enum
+
+
+
+
 
 Public DeclareWide PtrSafe Function CryptProtectData Lib "crypt32" (pDataIn As DATA_BLOB, ByVal szDataDescr As String, pOptionalEntropy As DATA_BLOB, ByVal pvReserved As LongPtr, pPromptStruct As CRYPTPROTECT_PROMPTSTRUCT, ByVal dwFlags As CryptProtectFlags, pDataOut As DATA_BLOB) As BOOL
 Public DeclareWide PtrSafe Function CryptUnprotectData Lib "crypt32" (pDataIn As DATA_BLOB, szDataDescr As LongPtr, pOptionalEntropy As DATA_BLOB, ByVal pvReserved As LongPtr, pPromptStruct As CRYPTPROTECT_PROMPTSTRUCT, ByVal dwFlags As CryptProtectFlags, pDataOut As DATA_BLOB) As BOOL
@@ -44586,17 +44799,457 @@ Public Declare PtrSafe Function CryptBinaryToStringA Lib "crypt32" (pbBinary As 
 Public DeclareWide PtrSafe Function CryptBinaryToStringW Lib "crypt32" (pbBinary As Any, ByVal cbBinary As Long, ByVal dwFlags As CRYPT_STRING_OPTIONS, ByVal pszString As LongPtr, pcchString As Long) As BOOL
 Public DeclareWide PtrSafe Function CryptBinaryToString Lib "crypt32" Alias "CryptBinaryToStringW" (pbBinary As Any, ByVal cbBinary As Long, ByVal dwFlags As CRYPT_STRING_OPTIONS, ByVal pszString As String, pcchString As Long) As BOOL
 Public DeclareWide PtrSafe Function CryptQueryObject Lib "crypt32" (ByVal dwObjectType As CRYPT_QUERY_OBJ_TYPE, pvObject As Any, ByVal dwExpectedContentTypeFlags As CRYPT_QUERY_CONTENT_FLAGS, ByVal dwExpectedFormatTypeFlags As CRYPT_QUERY_FORMAT_TYPE_FLAGS, ByVal dwFlags As Long, pdwMsgAndCertEncodingType As CRYPT_CERT_ENCODING_TYPE, pdwContentType As CRYPT_QUERY_CONTENT_TYPE, pdwFormatType As CRYPT_QUERY_FORMAT, phCertStore As LongPtr, phMsg As LongPtr, ppvContext As Any) As BOOL
-Public DeclareWide PtrSafe Function CertCloseStore Lib "crypt32" (ByVal hCertStore As LongPtr, ByVal dwFlags As CERT_STORE_CLOSE_FLAGS) As BOOL
 Public DeclareWide PtrSafe Function CryptMsgClose Lib "crypt32" (ByVal hCryptMsg As LongPtr) As BOOL
 Public DeclareWide PtrSafe Function CryptMsgGetParam Lib "crypt32" (ByVal hCryptMsg As LongPtr, ByVal dwParamType As CRYPT_CMSG_PARAM_TYPE, ByVal dwIndex As Long, pvData As Any, pcbData As Long) As BOOL
+
+
 Public Declare PtrSafe Function CertGetNameStringA Lib "crypt32" (pCertContext As CERT_CONTEXT, ByVal dwType As CERT_NAME_TYPES, ByVal dwFlags As CERT_NAME_FLAGS, pvTypePara As Any, ByVal pszNameString As String, ByVal cchNameString As Long) As Long
 Public Declare PtrSafe Function CertGetNameStringW Lib "crypt32" (pCertContext As CERT_CONTEXT, ByVal dwType As CERT_NAME_TYPES, ByVal dwFlags As CERT_NAME_FLAGS, pvTypePara As Any, ByVal pszNameString As LongPtr, ByVal cchNameString As Long) As Long
 Public DeclareWide PtrSafe Function CertGetNameString Lib "crypt32" Alias "CertGetNameStringW" (pCertContext As CERT_CONTEXT, ByVal dwType As CERT_NAME_TYPES, ByVal dwFlags As CERT_NAME_FLAGS, pvTypePara As Any, ByVal pszNameString As String, ByVal cchNameString As Long) As Long
 Public Declare PtrSafe Function CertFindCertificateInStore Lib "crypt32" (ByVal hCertStore As LongPtr, ByVal dwCertEncodingType As CRYPT_CERT_ENCODING_TYPE, ByVal dwFindFlags As CryptCertFindFlags, ByVal dwFindType As CryptCertFindType, pvFindPara As Any, pPrevCertContext As CERT_CONTEXT) As CERT_CONTEXT
 Public Declare PtrSafe Function CertFreeCertificateContext Lib "Crypt32" (ByVal pCertContext As Long) As BOOL
+Public Declare PtrSafe Function CertOpenSystemStoreA Lib "crypt32" (ByVal hProv As LongPtr, ByVal szSubsystemProtocol As String) As LongPtr
+Public Declare PtrSafe Function CertOpenSystemStoreW Lib "crypt32" (ByVal hProv As LongPtr, ByVal szSubsystemProtocol As LongPtr) As LongPtr
+Public DeclareWide PtrSafe Function CertOpenSystemStore Lib "crypt32" Alias "CertOpenSystemStoreW" (ByVal hProv As LongPtr, ByVal szSubsystemProtocol As String) As LongPtr
+Public Declare PtrSafe Function CertAddEncodedCertificateToSystemStoreA Lib "crypt32" (ByVal szCertStoreName As String, pbCertEncoded As Any, ByVal cbCertEncoded As Long) As BOOL
+Public Declare PtrSafe Function CertAddEncodedCertificateToSystemStoreW Lib "crypt32" (ByVal szCertStoreName As LongPtr, pbCertEncoded As Any, ByVal cbCertEncoded As Long) As BOOL
+Public DeclareWide PtrSafe Function CertAddEncodedCertificateToSystemStore Lib "crypt32" Alias "CertAddEncodedCertificateToSystemStoreW" (ByVal szCertStoreName As String, pbCertEncoded As Any, ByVal cbCertEncoded As Long) As BOOL
+Public DeclareWide PtrSafe Function CertCloseStore Lib "crypt32" (ByVal hCertStore As LongPtr, ByVal dwFlags As CERT_STORE_CLOSE_FLAGS) As BOOL
+Public Declare PtrSafe Function CertSaveStore Lib "crypt32" (ByVal hCertStore As LongPtr, ByVal dwEncodingType As CRYPT_CERT_ENCODING_TYPE, ByVal dwSaveAs As CRYPT_STORE_SAVEAS_FLAGS, ByVal dwSaveTo As CRYPT_STORE_SAVETO_FLAGS, pvSaveToPara As Any, ByVal dwFlags As Long) As BOOL
+
+
+#End Region
+
+#Region "bcrypt"
+
+
+
+
+Public Enum BCRYPT_GR_FLAGS
+    BCRYPT_RNG_USE_ENTROPY_IN_BUFFER  = &H00000001
+    BCRYPT_USE_SYSTEM_PREFERRED_RNG = &H00000002
+End Enum
+
+Public Const BCRYPT_MD2_ALG_HANDLE                As LongPtr = (&H00000001)
+Public Const BCRYPT_MD4_ALG_HANDLE                As LongPtr = (&H00000011)
+Public Const BCRYPT_MD5_ALG_HANDLE                As LongPtr = (&H00000021)
+Public Const BCRYPT_SHA1_ALG_HANDLE               As LongPtr = (&H00000031)
+Public Const BCRYPT_SHA256_ALG_HANDLE             As LongPtr = (&H00000041)
+Public Const BCRYPT_SHA384_ALG_HANDLE             As LongPtr = (&H00000051)
+Public Const BCRYPT_SHA512_ALG_HANDLE             As LongPtr = (&H00000061)
+Public Const BCRYPT_RC4_ALG_HANDLE                As LongPtr = (&H00000071)
+Public Const BCRYPT_RNG_ALG_HANDLE                As LongPtr = (&H00000081)
+Public Const BCRYPT_HMAC_MD5_ALG_HANDLE           As LongPtr = (&H00000091)
+Public Const BCRYPT_HMAC_SHA1_ALG_HANDLE          As LongPtr = (&H000000a1)
+Public Const BCRYPT_HMAC_SHA256_ALG_HANDLE        As LongPtr = (&H000000b1)
+Public Const BCRYPT_HMAC_SHA384_ALG_HANDLE        As LongPtr = (&H000000c1)
+Public Const BCRYPT_HMAC_SHA512_ALG_HANDLE        As LongPtr = (&H000000d1)
+Public Const BCRYPT_RSA_ALG_HANDLE                As LongPtr = (&H000000e1)
+Public Const BCRYPT_ECDSA_ALG_HANDLE              As LongPtr = (&H000000f1)
+Public Const BCRYPT_AES_CMAC_ALG_HANDLE           As LongPtr = (&H00000101)
+Public Const BCRYPT_AES_GMAC_ALG_HANDLE           As LongPtr = (&H00000111)
+Public Const BCRYPT_HMAC_MD2_ALG_HANDLE           As LongPtr = (&H00000121)
+Public Const BCRYPT_HMAC_MD4_ALG_HANDLE           As LongPtr = (&H00000131)
+Public Const BCRYPT_3DES_CBC_ALG_HANDLE           As LongPtr = (&H00000141)
+Public Const BCRYPT_3DES_ECB_ALG_HANDLE           As LongPtr = (&H00000151)
+Public Const BCRYPT_3DES_CFB_ALG_HANDLE           As LongPtr = (&H00000161)
+Public Const BCRYPT_3DES_112_CBC_ALG_HANDLE       As LongPtr = (&H00000171)
+Public Const BCRYPT_3DES_112_ECB_ALG_HANDLE       As LongPtr = (&H00000181)
+Public Const BCRYPT_3DES_112_CFB_ALG_HANDLE       As LongPtr = (&H00000191)
+Public Const BCRYPT_AES_CBC_ALG_HANDLE            As LongPtr = (&H000001a1)
+Public Const BCRYPT_AES_ECB_ALG_HANDLE            As LongPtr = (&H000001b1)
+Public Const BCRYPT_AES_CFB_ALG_HANDLE            As LongPtr = (&H000001c1)
+Public Const BCRYPT_AES_CCM_ALG_HANDLE            As LongPtr = (&H000001d1)
+Public Const BCRYPT_AES_GCM_ALG_HANDLE            As LongPtr = (&H000001e1)
+Public Const BCRYPT_DES_CBC_ALG_HANDLE            As LongPtr = (&H000001f1)
+Public Const BCRYPT_DES_ECB_ALG_HANDLE            As LongPtr = (&H00000201)
+Public Const BCRYPT_DES_CFB_ALG_HANDLE            As LongPtr = (&H00000211)
+Public Const BCRYPT_DESX_CBC_ALG_HANDLE           As LongPtr = (&H00000221)
+Public Const BCRYPT_DESX_ECB_ALG_HANDLE           As LongPtr = (&H00000231)
+Public Const BCRYPT_DESX_CFB_ALG_HANDLE           As LongPtr = (&H00000241)
+Public Const BCRYPT_RC2_CBC_ALG_HANDLE            As LongPtr = (&H00000251)
+Public Const BCRYPT_RC2_ECB_ALG_HANDLE            As LongPtr = (&H00000261)
+Public Const BCRYPT_RC2_CFB_ALG_HANDLE            As LongPtr = (&H00000271)
+Public Const BCRYPT_DH_ALG_HANDLE                 As LongPtr = (&H00000281)
+Public Const BCRYPT_ECDH_ALG_HANDLE               As LongPtr = (&H00000291)
+Public Const BCRYPT_ECDH_P256_ALG_HANDLE          As LongPtr = (&H000002a1)
+Public Const BCRYPT_ECDH_P384_ALG_HANDLE          As LongPtr = (&H000002b1)
+Public Const BCRYPT_ECDH_P521_ALG_HANDLE          As LongPtr = (&H000002c1)
+Public Const BCRYPT_DSA_ALG_HANDLE                As LongPtr = (&H000002d1)
+Public Const BCRYPT_ECDSA_P256_ALG_HANDLE         As LongPtr = (&H000002e1)
+Public Const BCRYPT_ECDSA_P384_ALG_HANDLE         As LongPtr = (&H000002f1)
+Public Const BCRYPT_ECDSA_P521_ALG_HANDLE         As LongPtr = (&H00000301)
+Public Const BCRYPT_RSA_SIGN_ALG_HANDLE           As LongPtr = (&H00000311)
+Public Const BCRYPT_CAPI_KDF_ALG_HANDLE           As LongPtr = (&H00000321)
+Public Const BCRYPT_PBKDF2_ALG_HANDLE             As LongPtr = (&H00000331)
+Public Const BCRYPT_SP800108_CTR_HMAC_ALG_HANDLE  As LongPtr = (&H00000341)
+Public Const BCRYPT_SP80056A_CONCAT_ALG_HANDLE    As LongPtr = (&H00000351)
+Public Const BCRYPT_TLS1_1_KDF_ALG_HANDLE         As LongPtr = (&H00000361)
+Public Const BCRYPT_TLS1_2_KDF_ALG_HANDLE         As LongPtr = (&H00000371)
+Public Const BCRYPT_XTS_AES_ALG_HANDLE            As LongPtr = (&H00000381)
+Public Const BCRYPT_HKDF_ALG_HANDLE               As LongPtr = (&H00000391)
+
+Public Const BCRYPT_CHACHA20_POLY1305_ALG_HANDLE  As LongPtr = (&H000003A1)
+
+
+Public Const BCRYPT_RSA_ALGORITHM  = "RSA"
+Public Const BCRYPT_RSA_SIGN_ALGORITHM  = "RSA_SIGN"
+Public Const BCRYPT_DH_ALGORITHM  = "DH"
+Public Const BCRYPT_DSA_ALGORITHM  = "DSA"
+Public Const BCRYPT_RC2_ALGORITHM  = "RC2"
+Public Const BCRYPT_RC4_ALGORITHM  = "RC4"
+Public Const BCRYPT_AES_ALGORITHM  = "AES"
+Public Const BCRYPT_DES_ALGORITHM  = "DES"
+Public Const BCRYPT_DESX_ALGORITHM  = "DESX"
+Public Const BCRYPT_3DES_ALGORITHM  = "3DES"
+Public Const BCRYPT_3DES_112_ALGORITHM  = "3DES_112"
+Public Const BCRYPT_MD2_ALGORITHM  = "MD2"
+Public Const BCRYPT_MD4_ALGORITHM  = "MD4"
+Public Const BCRYPT_MD5_ALGORITHM  = "MD5"
+Public Const BCRYPT_SHA1_ALGORITHM  = "SHA1"
+Public Const BCRYPT_SHA256_ALGORITHM  = "SHA256"
+Public Const BCRYPT_SHA384_ALGORITHM  = "SHA384"
+Public Const BCRYPT_SHA512_ALGORITHM  = "SHA512"
+Public Const BCRYPT_AES_GMAC_ALGORITHM  = "AES-GMAC"
+Public Const BCRYPT_AES_CMAC_ALGORITHM  = "AES-CMAC"
+Public Const BCRYPT_ECDSA_P256_ALGORITHM  = "ECDSA_P256"
+Public Const BCRYPT_ECDSA_P384_ALGORITHM  = "ECDSA_P384"
+Public Const BCRYPT_ECDSA_P521_ALGORITHM  = "ECDSA_P521"
+Public Const BCRYPT_ECDH_P256_ALGORITHM  = "ECDH_P256"
+Public Const BCRYPT_ECDH_P384_ALGORITHM  = "ECDH_P384"
+Public Const BCRYPT_ECDH_P521_ALGORITHM  = "ECDH_P521"
+Public Const BCRYPT_RNG_ALGORITHM  = "RNG"
+Public Const BCRYPT_RNG_FIPS186_DSA_ALGORITHM  = "FIPS186DSARNG"
+Public Const BCRYPT_RNG_DUAL_EC_ALGORITHM  = "DUALECRNG"
+' #if (NTDDI_VERSION >= NTDDI_WIN8)
+Public Const BCRYPT_SP800108_CTR_HMAC_ALGORITHM  = "SP800_108_CTR_HMAC"
+Public Const BCRYPT_SP80056A_CONCAT_ALGORITHM  = "SP800_56A_CONCAT"
+Public Const BCRYPT_PBKDF2_ALGORITHM  = "PBKDF2"
+Public Const BCRYPT_CAPI_KDF_ALGORITHM  = "CAPI_KDF"
+Public Const BCRYPT_TLS1_1_KDF_ALGORITHM  = "TLS1_1_KDF"
+Public Const BCRYPT_TLS1_2_KDF_ALGORITHM  = "TLS1_2_KDF"
+' #endif
+' #if (NTDDI_VERSION >= NTDDI_WINTHRESHOLD)
+Public Const BCRYPT_ECDSA_ALGORITHM  = "ECDSA"
+Public Const BCRYPT_ECDH_ALGORITHM  = "ECDH"
+Public Const BCRYPT_XTS_AES_ALGORITHM  = "XTS-AES"
+' #endif
+' #if (NTDDI_VERSION >= NTDDI_WIN10_RS4)
+Public Const BCRYPT_HKDF_ALGORITHM  = "HKDF"
+' #endif
+' #if (NTDDI_VERSION >= NTDDI_WIN10_FE)
+Public Const BCRYPT_CHACHA20_POLY1305_ALGORITHM  = "CHACHA20_POLY1305"
+' #endif
+
+Public Const MS_PRIMITIVE_PROVIDER  = "Microsoft Primitive Provider"
+Public Const MS_PLATFORM_CRYPTO_PROVIDER  = "Microsoft Platform Crypto Provider"
+
+Public Enum BCRYPT_OA_FLAGS
+    BCRYPT_PROV_DISPATCH = &H00000001  ' BCryptOpenAlgorithmProvider
+    BCRYPT_ALG_HANDLE_HMAC_FLAG  = &H00000008
+    BCRYPT_HASH_REUSABLE_FLAG  = &H00000020
+End Enum
+
+Public Enum BCRYPT_PADDING_TYPES
+    BCRYPT_SUPPORTED_PAD_ROUTER  = &H00000001
+    BCRYPT_SUPPORTED_PAD_PKCS1_ENC  = &H00000002
+    BCRYPT_SUPPORTED_PAD_PKCS1_SIG  = &H00000004
+    BCRYPT_SUPPORTED_PAD_OAEP  = &H00000008
+    BCRYPT_SUPPORTED_PAD_PSS  = &H00000010
+End Enum
+
+
+Public Const BCRYPT_AUTHENTICATED_CIPHER_MODE_INFO_VERSION = 1
+Public Enum BCRYPT_AUTH_CIPHER_MODE_FLAGS
+    BCRYPT_AUTH_MODE_CHAIN_CALLS_FLAG  = &H00000001
+    BCRYPT_AUTH_MODE_IN_PROGRESS_FLAG  = &H00000002
+End Enum
+Public Type BCRYPT_AUTHENTICATED_CIPHER_MODE_INFO
+    cbSize As Long
+    dwInfoVersion As Long
+    pbNonce As LongPtr
+    cbNonce As Long
+    pbAuthData As LongPtr
+    cbAuthData As Long
+    pbTag As LongPtr
+    cbTag As Long
+    pbMacContext As LongPtr
+    cbMacContext As Long
+    cbAAD As Long
+    cbData As LongLong
+    dwFlags As BCRYPT_AUTH_CIPHER_MODE_FLAGS
+End Type
+
+Public Const BCRYPT_OPAQUE_KEY_BLOB = "OpaqueKeyBlob"
+Public Const BCRYPT_KEY_DATA_BLOB = "KeyDataBlob"
+Public Const BCRYPT_AES_WRAP_KEY_BLOB = "Rfc3565KeyWrapBlob"
+Public Const BCRYPT_OBJECT_LENGTH = "ObjectLength"
+Public Const BCRYPT_ALGORITHM_NAME = "AlgorithmName"
+Public Const BCRYPT_PROVIDER_HANDLE = "ProviderHandle"
+Public Const BCRYPT_CHAINING_MODE = "ChainingMode"
+Public Const BCRYPT_BLOCK_LENGTH = "BlockLength"
+Public Const BCRYPT_KEY_LENGTH = "KeyLength"
+Public Const BCRYPT_KEY_OBJECT_LENGTH = "KeyObjectLength"
+Public Const BCRYPT_KEY_STRENGTH = "KeyStrength"
+Public Const BCRYPT_KEY_LENGTHS = "KeyLengths"
+Public Const BCRYPT_BLOCK_SIZE_LIST = "BlockSizeList"
+Public Const BCRYPT_EFFECTIVE_KEY_LENGTH = "EffectiveKeyLength"
+Public Const BCRYPT_HASH_LENGTH = "HashDigestLength"
+Public Const BCRYPT_HASH_OID_LIST = "HashOIDList"
+Public Const BCRYPT_PADDING_SCHEMES = "PaddingSchemes"
+Public Const BCRYPT_SIGNATURE_LENGTH = "SignatureLength"
+Public Const BCRYPT_HASH_BLOCK_LENGTH = "HashBlockLength"
+Public Const BCRYPT_AUTH_TAG_LENGTH = "AuthTagLength"
+' #if (NTDDI_VERSION >= NTDDI_WIN7)
+Public Const BCRYPT_PRIMITIVE_TYPE = "PrimitiveType"
+Public Const BCRYPT_IS_KEYED_HASH = "IsKeyedHash"
+' #if (NTDDI_VERSION >= NTDDI_WIN8)
+Public Const BCRYPT_IS_REUSABLE_HASH = "IsReusableHash"
+Public Const BCRYPT_MESSAGE_BLOCK_LENGTH = "MessageBlockLength"
+Public Const BCRYPT_PUBLIC_KEY_LENGTH = "PublicKeyLength"
+Public Const BCRYPT_PCP_PLATFORM_TYPE_PROPERTY = "PCP_PLATFORM_TYPE"
+Public Const BCRYPT_PCP_PROVIDER_VERSION_PROPERTY = "PCP_PROVIDER_VERSION"
+Public Const BCRYPT_MULTI_OBJECT_LENGTH = "MultiObjectLength"
+Public Const BCRYPT_IS_IFX_TPM_WEAK_KEY = "IsIfxTpmWeakKey"
+Public Const BCRYPT_HKDF_HASH_ALGORITHM = "HkdfHashAlgorithm"
+Public Const BCRYPT_HKDF_SALT_AND_FINALIZE = "HkdfSaltAndFinalize"
+Public Const BCRYPT_HKDF_PRK_AND_FINALIZE = "HkdfPrkAndFinalize"
+' BCryptSetProperty strings
+Public Const BCRYPT_INITIALIZATION_VECTOR = "IV"
+' Property Strings
+Public Const BCRYPT_CHAIN_MODE_NA = "ChainingModeN/A"
+Public Const BCRYPT_CHAIN_MODE_CBC = "ChainingModeCBC"
+Public Const BCRYPT_CHAIN_MODE_ECB = "ChainingModeECB"
+Public Const BCRYPT_CHAIN_MODE_CFB = "ChainingModeCFB"
+Public Const BCRYPT_CHAIN_MODE_CCM = "ChainingModeCCM"
+Public Const BCRYPT_CHAIN_MODE_GCM = "ChainingModeGCM"
+
+Public Enum BCRYPT_RSA_PADDING
+    BCRYPT_PAD_NONE  = &H00000001
+    BCRYPT_PAD_PKCS1  = &H00000002  ' BCryptEncrypt/Decrypt BCryptSignHash/VerifySignature
+    BCRYPT_PAD_OAEP  = &H00000004  ' BCryptEncrypt/Decrypt
+    BCRYPT_PAD_PSS  = &H00000008  ' BCryptSignHash/VerifySignature
+' #if (NTDDI_VERSION >= NTDDI_WINBLUE)
+    BCRYPT_PAD_PKCS1_OPTIONAL_HASH_OID  = &H00000010  'BCryptVerifySignature
+End Enum
+
+Public Enum BCRYPT_FLAGS
+    BCRYPT_BLOCK_PADDING = &H00000001
+End Enum
+
+Public Enum BCRYPT_ENUM_ALG_OPS
+    BCRYPT_CIPHER_OPERATION  = &H00000001
+    BCRYPT_HASH_OPERATION  = &H00000002
+    BCRYPT_ASYMMETRIC_ENCRYPTION_OPERATION  = &H00000004
+    BCRYPT_SECRET_AGREEMENT_OPERATION  = &H00000008
+    BCRYPT_SIGNATURE_OPERATION  = &H00000010
+    BCRYPT_RNG_OPERATION  = &H00000020
+' #if (NTDDI_VERSION >= NTDDI_WIN8)
+    BCRYPT_KEY_DERIVATION_OPERATION  = &H00000040
+End Enum
+
+Public Enum BCRYPT_CNG_INTERFACES
+    BCRYPT_CIPHER_INTERFACE  = &H00000001
+    BCRYPT_HASH_INTERFACE  = &H00000002
+    BCRYPT_ASYMMETRIC_ENCRYPTION_INTERFACE  = &H00000003
+    BCRYPT_SECRET_AGREEMENT_INTERFACE  = &H00000004
+    BCRYPT_SIGNATURE_INTERFACE  = &H00000005
+    BCRYPT_RNG_INTERFACE  = &H00000006
+' #if (NTDDI_VERSION >= NTDDI_WIN8)
+    BCRYPT_KEY_DERIVATION_INTERFACE  = &H00000007
+End Enum
+
+Public Type BCRYPT_ALGORITHM_IDENTIFIER
+    pszName As LongPtr
+    dwClass As BCRYPT_CNG_INTERFACES
+    dwFlags As Long
+End Type
+
+Public Const BCRYPT_PUBLIC_KEY_BLOB  = "PUBLICBLOB"
+Public Const BCRYPT_PRIVATE_KEY_BLOB  = "PRIVATEBLOB"
+
+Public Type BCRYPT_KEY_BLOB
+    Magic As Long
+End Type
+
+Public Const BCRYPT_RSAPUBLIC_BLOB = "RSAPUBLICBLOB"
+Public Const BCRYPT_RSAPRIVATE_BLOB = "RSAPRIVATEBLOB"
+Public Const LEGACY_RSAPUBLIC_BLOB = "CAPIPUBLICBLOB"
+Public Const LEGACY_RSAPRIVATE_BLOB = "CAPIPRIVATEBLOB"
+Public Const BCRYPT_RSAPUBLIC_MAGIC  = &H31415352  ' RSA1
+Public Const BCRYPT_RSAPRIVATE_MAGIC  = &H32415352  ' RSA2
+
+Public Type BCRYPT_RSAKEY_BLOB
+    Magic As Long
+    BitLength As Long
+    cbPublicExp As Long
+    cbModulus As Long
+    cbPrime1 As Long
+    cbPrime2 As Long
+End Type
+
+Public Const BCRYPT_RSAFULLPRIVATE_BLOB = "RSAFULLPRIVATEBLOB"
+Public Const BCRYPT_RSAFULLPRIVATE_MAGIC  = &H33415352  ' RSA3
+' Properties of secret agreement algorithms
+' #if (NTDDI_VERSION >= NTDDI_WIN8)
+Public Const BCRYPT_GLOBAL_PARAMETERS = "SecretAgreementParam"
+Public Const BCRYPT_PRIVATE_KEY  = "PrivKeyVal"
+' #endif
+'  The BCRYPT_ECCPUBLIC_BLOB and BCRYPT_ECCPRIVATE_BLOB blob types are used
+'  to transport plaintext ECC keys. These blob types will be supported by
+'  all ECC primitive providers.
+Public Const BCRYPT_ECCPUBLIC_BLOB = "ECCPUBLICBLOB"
+Public Const BCRYPT_ECCPRIVATE_BLOB = "ECCPRIVATEBLOB"
+' #if (NTDDI_VERSION >= NTDDI_WINTHRESHOLD)
+Public Const BCRYPT_ECCFULLPUBLIC_BLOB = "ECCFULLPUBLICBLOB"
+Public Const BCRYPT_ECCFULLPRIVATE_BLOB = "ECCFULLPRIVATEBLOB"
+Public Const SSL_ECCPUBLIC_BLOB = "SSLECCPUBLICBLOB"
+' #endif
+Public Const BCRYPT_ECDH_PUBLIC_P256_MAGIC  = &H314B4345  ' ECK1
+Public Const BCRYPT_ECDH_PRIVATE_P256_MAGIC  = &H324B4345  ' ECK2
+Public Const BCRYPT_ECDH_PUBLIC_P384_MAGIC  = &H334B4345  ' ECK3
+Public Const BCRYPT_ECDH_PRIVATE_P384_MAGIC  = &H344B4345  ' ECK4
+Public Const BCRYPT_ECDH_PUBLIC_P521_MAGIC  = &H354B4345  ' ECK5
+Public Const BCRYPT_ECDH_PRIVATE_P521_MAGIC  = &H364B4345  ' ECK6
+' #if (NTDDI_VERSION >= NTDDI_WINTHRESHOLD)
+Public Const BCRYPT_ECDH_PUBLIC_GENERIC_MAGIC  = &H504B4345  ' ECKP
+Public Const BCRYPT_ECDH_PRIVATE_GENERIC_MAGIC  = &H564B4345  ' ECKV
+' #endif
+Public Const BCRYPT_ECDSA_PUBLIC_P256_MAGIC  = &H31534345  ' ECS1
+Public Const BCRYPT_ECDSA_PRIVATE_P256_MAGIC  = &H32534345  ' ECS2
+Public Const BCRYPT_ECDSA_PUBLIC_P384_MAGIC  = &H33534345  ' ECS3
+Public Const BCRYPT_ECDSA_PRIVATE_P384_MAGIC  = &H34534345  ' ECS4
+Public Const BCRYPT_ECDSA_PUBLIC_P521_MAGIC  = &H35534345  ' ECS5
+Public Const BCRYPT_ECDSA_PRIVATE_P521_MAGIC  = &H36534345  ' ECS6
+' #if (NTDDI_VERSION >= NTDDI_WINTHRESHOLD)
+Public Const BCRYPT_ECDSA_PUBLIC_GENERIC_MAGIC  = &H50444345  ' ECDP
+Public Const BCRYPT_ECDSA_PRIVATE_GENERIC_MAGIC  = &H56444345  ' ECDV
+
+Public Type BCRYPT_ECCKEY_BLOB
+    dwMagic As Long
+    cbKey As Long
+End Type
+Public Type SSL_ECCKEY_BLOB
+    dwCurveType As Long
+    cbKey As Long
+End Type
+
+Public Const BCRYPT_ECC_FULLKEY_BLOB_V1 = &H1
+
+Public Enum ECC_CURVE_TYPE_ENUM
+    BCRYPT_ECC_PRIME_SHORT_WEIERSTRASS_CURVE = &H1
+    BCRYPT_ECC_PRIME_TWISTED_EDWARDS_CURVE = &H2
+    BCRYPT_ECC_PRIME_MONTGOMERY_CURVE = &H3
+End Enum
+Public Enum ECC_CURVE_ALG_ID_ENUM
+    BCRYPT_NO_CURVE_GENERATION_ALG_ID = &H0
+End Enum
+
+Public Type BCRYPT_ECCFULLKEY_BLOB
+    dwMagic As Long
+    dwVersion As Long 'Version of the structure
+    dwCurveType As ECC_CURVE_TYPE_ENUM 'Supported curve types.
+    dwCurveGenerationAlgId As ECC_CURVE_ALG_ID_ENUM 'For X.592 verification purposes, if we include Seed we will need to include the algorithm ID.
+    cbFieldLength As Long 'Byte length of the fields P, A, B, X, Y.
+    cbSubgroupOrder As Long 'Byte length of the subgroup.
+    cbCofactor As Long 'Byte length of cofactor of G in E.
+    cbSeed As Long 'Byte length of the seed used to generate the curve.
+    'P[cbFieldLength]              Prime specifying the base field.
+    'A[cbFieldLength]              Coefficient A of the equation y^2 = x^3 + A*x + B mod p
+    'B[cbFieldLength]              Coefficient B of the equation y^2 = x^3 + A*x + B mod p
+    'Gx[cbFieldLength]             X-coordinate of the base point.
+    'Gy[cbFieldLength]             Y-coordinate of the base point.
+    'n[cbSubgroupOrder]            Order of the group generated by G = (x,y)
+    'h[cbCofactor]                 Cofactor of G in E.
+    'S[cbSeed]                     Seed of the curve.
+    'Qx[cbFieldLength]             X-coordinate of the public point.
+    'Qy[cbFieldLength]             Y-coordinate of the public point.
+    'd[cbSubgroupOrder]            Private key.  Not always present.
+End Type
+
+Public Const BCRYPT_DH_PUBLIC_BLOB = "DHPUBLICBLOB"
+Public Const BCRYPT_DH_PRIVATE_BLOB = "DHPRIVATEBLOB"
+Public Const LEGACY_DH_PUBLIC_BLOB = "CAPIDHPUBLICBLOB"
+Public Const LEGACY_DH_PRIVATE_BLOB = "CAPIDHPRIVATEBLOB"
+Public Const BCRYPT_DH_PUBLIC_MAGIC  = &H42504844  ' DHPB
+Public Const BCRYPT_DH_PRIVATE_MAGIC  = &H56504844  ' DHPV
+
+Public Type BCRYPT_DH_KEY_BLOB
+    dwMagic As Long
+    cbKey As Long
+End Type
+
+Public Const BCRYPT_DH_PARAMETERS = "DHParameters"
+Public Const BCRYPT_DH_PARAMETERS_MAGIC  = &H4d504844  ' DHPM
+
+Public Type BCRYPT_DH_PARAMETER_HEADER
+    cbLength As Long
+    dwMagic As Long
+    cbKeyLength As Long
+End Type
+
+Public Const BCRYPT_DSA_PUBLIC_BLOB = "DSAPUBLICBLOB"
+Public Const BCRYPT_DSA_PRIVATE_BLOB = "DSAPRIVATEBLOB"
+Public Const LEGACY_DSA_PUBLIC_BLOB = "CAPIDSAPUBLICBLOB"
+Public Const LEGACY_DSA_PRIVATE_BLOB = "CAPIDSAPRIVATEBLOB"
+Public Const LEGACY_DSA_V2_PUBLIC_BLOB = "V2CAPIDSAPUBLICBLOB"
+Public Const LEGACY_DSA_V2_PRIVATE_BLOB = "V2CAPIDSAPRIVATEBLOB"
+Public Const BCRYPT_DSA_PUBLIC_MAGIC  = &H42505344  ' DSPB
+Public Const BCRYPT_DSA_PRIVATE_MAGIC  = &H56505344  ' DSPV
+'(NTDDI_VERSION  = >= NTDDI_WIN8)
+Public Const BCRYPT_DSA_PUBLIC_MAGIC_V2  = &H32425044  ' DPB2
+Public Const BCRYPT_DSA_PRIVATE_MAGIC_V2  = &H32565044  ' DPV2
+
+Public Type BCRYPT_DSA_KEY_BLOB
+    dwMagic As Long
+    cbKey As Long
+    Count(0 To 3) As Byte
+    Seed(0 To 19) As Byte
+    q(0 To 19) As Byte
+End Type
+
+Public Enum BCRYPT_KEYPAIR_IMPORT_FLAGS
+    BCRYPT_NO_KEY_VALIDATION  = &H00000008
+' #if (NTDDI_VERSION >= NTDDI_WIN10_CO)
+    BCRYPT_KEY_VALIDATION_RANGE  = &H00000010  ' BCryptImportKeyPair
+    BCRYPT_KEY_VALIDATION_RANGE_AND_ORDER  = &H00000018  ' BCryptImportKeyPair & BCryptFinalizeKeyPair
+    BCRYPT_KEY_VALIDATION_REGENERATE  = &H00000020  ' BCryptImportKeyPair
+End Enum
+
+
+
+
+Public DeclareWide PtrSafe Function BCryptOpenAlgorithmProvider Lib "bcrypt" (phAlgorithm As LongPtr, ByVal pszAlgId As String, ByVal pszImplementation As String, ByVal dwFlags As BCRYPT_OA_FLAGS) As NTSTATUS
+Public DeclareWide PtrSafe Function BCryptCloseAlgorithmProvider Lib "bcrypt" (ByVal hAlgorithm As LongPtr, ByVal dwFlags As Long) As NTSTATUS
+Public DeclareWide PtrSafe Function BCryptGenRandom Lib "bcrypt" (ByVal hAlgorithm As LongPtr, pbBuffer As Any, ByVal cbBuffer As Long, ByVal dwFlags As BCRYPT_GR_FLAGS) As NTSTATUS
+Public Declare PtrSafe Function BCryptGetProperty Lib "bcrypt" (ByVal hObject As LongPtr, ByVal pszProperty As LongPtr, pbOutput As Any, ByVal cbOutput As Long, cbResult As Long, ByVal dwFlags As Long) As NTSTATUS
+Public Declare PtrSafe Function BCryptSetProperty Lib "bcrypt" (ByVal hObject As LongPtr, ByVal pszProperty As LongPtr, ByVal pbInput As LongPtr, ByVal cbInput As Long, ByVal dwFlags As Long) As NTSTATUS
+Public Declare PtrSafe Function BCryptGenerateSymmetricKey Lib "bcrypt" (ByVal hAlgorithm As LongPtr, phKey As LongPtr, pbKeyObject As Any, ByVal cbKeyObject As Long, pbSecret As Any, ByVal cbSecret As Long, ByVal dwFlags As Long) As NTSTATUS
+Public Declare PtrSafe Function BCryptDestroyKey Lib "bcrypt" (ByVal hKey As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function BCryptEncrypt Lib "bcrypt" (ByVal hKey As LongPtr, pbInput As Any, ByVal cbInput As Long, ByVal pPaddingInfo As LongPtr, ByVal pbIV As LongPtr, ByVal cbIV As Long, pbOutput As Any, ByVal cbOutput As Long, pcbResult As Long, [ TypeHint (BCRYPT_FLAGS, BCRYPT_RSA_PADDING) ] ByVal dwFlags As Long) As NTSTATUS
+Public Declare PtrSafe Function BCryptDecrypt Lib "bcrypt" (ByVal hKey As LongPtr, pbInput As Any, ByVal cbInput As Long, ByVal pPaddingInfo As LongPtr, ByVal pbIV As LongPtr, ByVal cbIV As Long, pbOutput As Any, ByVal cbOutput As Long, pcbResult As Long, [ TypeHint (BCRYPT_FLAGS, BCRYPT_RSA_PADDING) ] ByVal dwFlags As Long) As NTSTATUS
+Public Declare PtrSafe Function BCryptDeriveKeyPBKDF2 Lib "bcrypt" (ByVal hPrf As LongPtr, pbPassword As Any, ByVal cbPassword As Long, pbSalt As Any, ByVal cbSalt As Long, ByVal cIterations As LongLong, pbDerivedKey As Any, ByVal cbDerivedKey As Long, ByVal dwFlags As Long) As NTSTATUS
+Public Declare PtrSafe Function BCryptCreateHash Lib "bcrypt" (ByVal hAlgorithm As LongPtr, phHash As LongPtr, ByVal pbHashObject As LongPtr, ByVal cbHashObject As Long, pbSecret As Any, ByVal cbSecret As Long, [ TypeHint (BCRYPT_OA_FLAGS) ] ByVal dwFlags As Long) As NTSTATUS
+Public Declare PtrSafe Function BCryptDestroyHash Lib "bcrypt" (ByVal hHash As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function BCryptHashData Lib "bcrypt" (ByVal hHash As LongPtr, pbInput As Any, ByVal cbInput As Long, ByVal dwFlags As Long) As NTSTATUS
+Public Declare PtrSafe Function BCryptFinishHash Lib "bcrypt" (ByVal hHash As LongPtr, pbOutput As Any, ByVal cbOutput As Long, ByVal dwFlags As Long) As NTSTATUS
+Public Declare PtrSafe Function BCryptEnumAlgorithms Lib "bcrypt" (ByVal dwAlgOperations As BCRYPT_ENUM_ALG_OPS, pAlgCount As Long, ppAlgList As LongPtr, ByVal dwFlags As Long) As NTSTATUS
+Public Declare PtrSafe Sub BCryptFreeBuffer Lib "bcrypt" (ByVal pvBuffer As LongPtr)
+Public DeclareWide PtrSafe Function BCryptImportKeyPair Lib "bcrypt" (ByVal hAlgorithm As LongPtr, ByVal hImportKey As LongPtr, ByVal pszBlobType As String, phKey As LongPtr, pbInput As Any, ByVal cbInput As Long, ByVal dwFlags As BCRYPT_KEYPAIR_IMPORT_FLAGS) As NTSTATUS
+Public DeclareWide PtrSafe Function BCryptExportKey Lib "bcrypt" (ByVal hKey As LongPtr, ByVal hExportKey As LongPtr, ByVal pszBlobType As String, pbOutput As Any, ByVal cbOutput As Long, pcbResult As Long, ByVal dwFlags As Long) As NTSTATUS
+Public DeclareWide PtrSafe Function BCryptSecretAgreement Lib "bcrypt" (ByVal hPrivKey As LongPtr, ByVal hPubKey As LongPtr, phAgreedSecret As LongPtr, ByVal dwFlags As Long) As NTSTATUS
+Public DeclareWide PtrSafe Function BCryptDestroySecret Lib "bcrypt" (ByVal hSecret As LongPtr) As NTSTATUS
+
+
+
 
 ' 
 
+#End Region
+
+#Region "Misc"
+
+Public Declare PtrSafe Function IsNTAdmin Lib "advpack.dll" (ByVal dwReserved As Long, ByRef lpdwReserved As Long) As Long
 
 
 
