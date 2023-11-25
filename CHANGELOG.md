@@ -1,4 +1,23 @@
 
+**Update (v6.4.256, 25 Nov 2023):**
+-Added inexplicably missing basic versioning and sysinfo APIs from kernel32.
+-Added ListView subitem control undocumented CLSIDs.
+-Additional sys info classes (NtQuerySystemInformation).
+-Misc. API additions.
+-(Bug fix) GetAtomName[A,W] and GlobalGetAtomName[A,W] definitions incorrect.
+-(Bug fix) Multiple ole32 functions incorrectly passing ANSI strings.
+-(Bug fix) ListView_GetItemText was thoroughly broken.
+-(Bug fix) GetSystemDirectory definition incorrect.
+-(Bug fix) EnumPrintersA definition incorrect; GetPrinter, SetPrinter, and GetJob definitions technically incorrect but no impact unless you had redefined associated UDTs.
+-(Bug fix) UNICODE_STRING members renamed to their proper SDK names. I realize this is a substantial breaking change but it's a minor adjustment and I feel it's important to be faithful to the SDK.
+
+**Update (v6.3.253, 17 Nov 2023):**
+-Additional crypto APIs (both classic and nextgen)
+-Added GetSystemErrorString helper function to look up system error messages.
+-(Bug fix) FormatMessage did not follow W/DeclareWideString convention; last param not ByVal.
+-(Bug fix) RtlDestroyHeap has but one p.
+-(Bug fix) CoCreateInstance overloads not playing nice. Only a single form available now.
+
 **Update (v6.3.252, 11 Nov 2023):**
 -Expanded bcrypt coverage
 -Added RegisterDeviceChangeNotification and the numerous assorted consts/types (dbt.h, 100% coverage)
