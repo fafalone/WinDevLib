@@ -6,7 +6,7 @@
 
 ---
 
-**Current Version: 6.4.256 (November 25th, 2023)**
+**Current Version: 6.4.257 (November 26th, 2023)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -123,6 +123,9 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, vbNullPtr, ...)
 
 ### Updates
 
+**Update (v6.4.257), 26 Nov 2023):** GdipGetImageEncoders/GdipGetImageDecoders definitions "incorrect" for unclear reasons... Documentation indicates it's an array of ImageCodecInfo, which does not contain any C-style arrays, but there's a mismatch between the byte size and number of structs * sizeof. Changed to As Any to allow byte buffers in addition to oversized ImageCodecInfo buffers.
+
+
 **Update (v6.4.256, 25 Nov 2023):**\
 -Added inexplicably missing basic versioning and sysinfo APIs from kernel32.\
 -Added ListView subitem control undocumented CLSIDs.\
@@ -134,7 +137,6 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, vbNullPtr, ...)
 -(Bug fix) GetSystemDirectory definition incorrect.\
 -(Bug fix) EnumPrintersA definition incorrect; GetPrinter, SetPrinter, and GetJob definitions technically incorrect but no impact unless you had redefined associated UDTs.\
 -(Bug fix) UNICODE_STRING members renamed to their proper SDK names. I realize this is a substantial breaking change but it's a minor adjustment and I feel it's important to be faithful to the SDK.
-
 
 **Update (v6.3.253, 17 Nov 2023):**\
 -Additional crypto APIs (both classic and nextgen)\
