@@ -1,4 +1,5 @@
 
+**Update (v6.4.257), 26 Nov 2023):** GdipGetImageEncoders/GdipGetImageDecoders definitions "incorrect" for unclear reasons... Documentation indicates it's an array of ImageCodecInfo, which does not contain any C-style arrays, but there's a mismatch between the byte size and number of structs * sizeof. Changed to As Any to allow byte buffers in addition to oversized ImageCodecInfo buffers.
 **Update (v6.4.256, 25 Nov 2023):**
 -Added inexplicably missing basic versioning and sysinfo APIs from kernel32.
 -Added ListView subitem control undocumented CLSIDs.
