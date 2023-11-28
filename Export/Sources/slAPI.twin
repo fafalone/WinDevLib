@@ -2012,6 +2012,7 @@ End Enum
 Public Enum FINDEX_EXTRA_FLAGS
     FIND_FIRST_EX_CASE_SENSITIVE = 1
     FIND_FIRST_EX_LARGE_FETCH = 2
+    FIND_FIRST_EX_ON_DISK_ENTRIES_ONLY = 4
 End Enum
 
 Public Type FILE_BASIC_INFO
@@ -4693,7 +4694,7 @@ Public Enum FileAccessRights
 	FILE_ALL_ACCESS  = (STANDARD_RIGHTS_REQUIRED  Or  SYNCHRONIZE  Or  &H1FF)
 	FILE_GENERIC_READ  = (STANDARD_RIGHTS_READ  Or  FILE_READ_DATA  Or  FILE_READ_ATTRIBUTES  Or  FILE_READ_EA  Or SYNCHRONIZE)
 	FILE_GENERIC_WRITE  = (STANDARD_RIGHTS_WRITE  Or  FILE_WRITE_DATA  Or  FILE_WRITE_ATTRIBUTES  Or  FILE_WRITE_EA  Or  FILE_APPEND_DATA  Or  SYNCHRONIZE)
-	FILE_GENERIC_EXECUTE  = (STANDARD_RIGHTS_EXECUTE  Or  FILE_READ_ATTRIBUTES  Or  FILE_EXECUTE  Or  SYNCHRONIZE)
+	FILE_GENERIC_EXECUTE  = (STANDARD_RIGHTS_EXECUTE  Or  FILE_READ_ATTRIBUTES  Or  FILE_EXECUTE  Or SYNCHRONIZE)
 End Enum
 Public Enum DirectoryAccessRights
     DIRECTORY_QUERY  = (&H0001)
@@ -27826,6 +27827,546 @@ Public Type QUOTA_LIMITS
     TimeLimit As QLARGE_INTEGER
 End Type
 
+Public enum SE_OBJECT_TYPE
+    SE_UNKNOWN_OBJECT_TYPE
+    SE_FILE_OBJECT
+    SE_SERVICE
+    SE_PRINTER
+    SE_REGISTRY_KEY
+    SE_LMSHARE
+    SE_KERNEL_OBJECT
+    SE_WINDOW_OBJECT
+    SE_DS_OBJECT
+    SE_DS_OBJECT_ALL
+    SE_PROVIDER_DEFINED_OBJECT
+    SE_WMIGUID_OBJECT
+    SE_REGISTRY_WOW64_32KEY
+    SE_REGISTRY_WOW64_64KEY
+End Enum
+
+Public Enum ACCESS_MODE
+    NOT_USED_ACCESS 
+    GRANT_ACCESS 
+    SET_ACCESS 
+    DENY_ACCESS  
+    REVOKE_ACCESS  
+    SET_AUDIT_SUCCESS  
+    SET_AUDIT_FAILURE
+End Enum
+
+
+
+Public Enum TRUSTEE_TYPE
+    TRUSTEE_IS_UNKNOWN
+    TRUSTEE_IS_USER
+    TRUSTEE_IS_GROUP  
+    TRUSTEE_IS_DOMAIN 
+    TRUSTEE_IS_ALIAS 
+    TRUSTEE_IS_WELL_KNOWN_GROUP 
+    TRUSTEE_IS_DELETED 
+    TRUSTEE_IS_INVALID 
+    TRUSTEE_IS_COMPUTER 
+End Enum
+Public Enum TRUSTEE_FORM
+    TRUSTEE_IS_SID = 0
+    TRUSTEE_IS_NAME = 1
+    TRUSTEE_BAD_FORM = 2
+    TRUSTEE_IS_OBJECTS_AND_SID = 3
+    TRUSTEE_IS_OBJECTS_AND_NAME = 4
+End Enum
+Public Enum MULTIPLE_TRUSTEE_OPERATION
+    NO_MULTIPLE_TRUSTEE 
+    TRUSTEE_IS_IMPERSONATE  
+End Enum
+Public Type OBJECTS_AND_SID
+    ObjectsPresent As Long
+    ObjectTypeGuid As UUID
+    InheritedObjectTypeGuid As UUID
+    pSid As LongPtr '*SID     
+End Type
+Public Type OBJECTS_AND_NAME_A
+    ObjectsPresent As Long
+    ObjectType As SE_OBJECT_TYPE
+    ObjectTypeName As String
+    InheritedObjectTypeName As String
+    ptstrName As String
+End Type
+Public Type OBJECTS_AND_NAME_W
+    ObjectsPresent As Long
+    ObjectType As SE_OBJECT_TYPE
+    ObjectTypeName As LongPtr
+    InheritedObjectTypeName As LongPtr
+    ptstrName As LongPtr
+End Type
+'Alias OBJECTS_AND_NAME As OBJECTS_AND_NAME_W
+Public Type OBJECTS_AND_NAME
+    ObjectsPresent As Long
+    ObjectType As SE_OBJECT_TYPE
+    ObjectTypeName As LongPtr
+    InheritedObjectTypeName As LongPtr
+    ptstrName As LongPtr
+End Type
+
+Public Type TRUSTEE_A
+    pMultipleTrustee As LongPtr 'TRUSTEE_A*
+    MultipleTrusteeOperation As MULTIPLE_TRUSTEE_OPERATION
+    TrusteeForm As TRUSTEE_FORM
+    TrusteeType As TRUSTEE_TYPE
+    NameSidOrObject As LongPtr
+End Type
+    ' #ifdef __midl
+    ' [switch_is(TrusteeForm)]
+    ' union
+    ' {
+    ' [case(TRUSTEE_IS_NAME)]
+        ' LPSTR                   ptstrName;
+    ' [case(TRUSTEE_IS_SID)]
+        ' SID                    *pSid;
+    ' [case(TRUSTEE_IS_OBJECTS_AND_SID)]
+        ' OBJECTS_AND_SID        *pObjectsAndSid;
+    ' [case(TRUSTEE_IS_OBJECTS_AND_NAME)]
+        ' OBJECTS_AND_NAME_A     *pObjectsAndName;
+    ' };
+' #else
+    ' // This member is not null-terminated as it may be used to hold strings, which are null-terminated or 
+    ' // SIDs, which are not null-terminated.
+    ' LPCH                        ptstrName;
+' #endif
+Public Type TRUSTEE_W
+    pMultipleTrustee As LongPtr 'TRUSTEE_W*
+    MultipleTrusteeOperation As MULTIPLE_TRUSTEE_OPERATION
+    TrusteeForm As TRUSTEE_FORM
+    TrusteeType As TRUSTEE_TYPE
+    NameSidOrObject As LongPtr
+End Type
+Public Type TRUSTEE
+    pMultipleTrustee As LongPtr 'TRUSTEE_W*
+    MultipleTrusteeOperation As MULTIPLE_TRUSTEE_OPERATION
+    TrusteeForm As TRUSTEE_FORM
+    TrusteeType As TRUSTEE_TYPE
+    NameSidOrObject As LongPtr
+End Type
+
+Public Enum INHERIT_FLAGS
+    NO_INHERITANCE  = &H0
+    SUB_OBJECTS_ONLY_INHERIT  = &H1
+    SUB_CONTAINERS_ONLY_INHERIT  = &H2
+    SUB_CONTAINERS_AND_OBJECTS_INHERIT  = &H3
+    INHERIT_NO_PROPAGATE  = &H4
+    'INHERIT_ONLY  = &H8
+'  Informational bit that is returned
+    INHERITED_ACCESS_ENTRY = &H10
+'  Informational bit that tells where a node was inherited from.  Valid only
+'  for NT 5 APIs
+    INHERITED_PARENT  = &H10000000
+    INHERITED_GRANDPARENT = &H20000000
+End Enum
+
+Public Type EXPLICIT_ACCESS_A
+    grfAccessPermissions As Long
+    grfAccessMode As ACCESS_MODE
+    /* [ TypeHint(INHERIT_FLAGS, ACE_FLAGS) ] */ grfInheritance As ACE_FLAGS
+    Trustee As TRUSTEE_A
+End Type
+Public Type EXPLICIT_ACCESS_W
+    grfAccessPermissions As Long
+    grfAccessMode As ACCESS_MODE
+    /* [ TypeHint(INHERIT_FLAGS, ACE_FLAGS) ] */ grfInheritance As ACE_FLAGS
+    Trustee As TRUSTEE_W
+End Type
+'Alias EXPLICIT_ACCESS As EXPLICIT_ACCESS_W
+Public Type EXPLICIT_ACCESS
+    grfAccessPermissions As Long
+    grfAccessMode As ACCESS_MODE
+    /* [ TypeHint(INHERIT_FLAGS, ACE_FLAGS) ] */ grfInheritance As ACE_FLAGS
+    Trustee As TRUSTEE_W
+End Type
+
+Public Const ACCCTRL_DEFAULT_PROVIDERA  = "Windows NT Access Provider"
+Public Const ACCCTRL_DEFAULT_PROVIDERW  = "Windows NT Access Provider"
+Public Const ACCCTRL_DEFAULT_PROVIDER  = "Windows NT Access Provider"
+
+Public Enum ACTRL_ACCESS_PERMS
+    ACTRL_ACCESS_ALLOWED  = &H00000001
+    ACTRL_ACCESS_DENIED  = &H00000002
+    ACTRL_AUDIT_SUCCESS  = &H00000004
+    ACTRL_AUDIT_FAILURE  = &H00000008
+End Enum
+
+Public Type ACTRL_ACCESS_ENTRYA
+    Trustee As TRUSTEE_A
+    fAccessFlags As ACTRL_ACCESS_PERMS
+    Access As ACCESS_RIGHTS
+    ProvSpecificAccess As ACCESS_RIGHTS
+    /* [ TypeHint(INHERIT_FLAGS, ACE_FLAGS) ] */ Inheritance As INHERIT_FLAGS
+    lpInheritProperty As String
+End Type
+Public Type ACTRL_ACCESS_ENTRYW
+    Trustee As TRUSTEE_A
+    fAccessFlags As ACTRL_ACCESS_PERMS
+    Access As ACCESS_RIGHTS
+    ProvSpecificAccess As ACCESS_RIGHTS
+    /* [ TypeHint(INHERIT_FLAGS, ACE_FLAGS) ] */ Inheritance As INHERIT_FLAGS
+    lpInheritProperty As LongPtr
+End Type
+Public Type ACTRL_ACCESS_ENTRY
+    Trustee As TRUSTEE_A
+    fAccessFlags As ACTRL_ACCESS_PERMS
+    Access As ACCESS_RIGHTS
+    ProvSpecificAccess As ACCESS_RIGHTS
+    /* [ TypeHint(INHERIT_FLAGS, ACE_FLAGS) ] */ Inheritance As INHERIT_FLAGS
+    lpInheritProperty As LongPtr
+End Type
+
+Public Type ACTRL_ACCESS_ENTRY_LISTA
+    cEntries As Long
+    pAccessList As LongPtr '*ACTRL_ACCESS_ENTRYA
+End Type
+Public Type ACTRL_ACCESS_ENTRY_LISTW
+    cEntries As Long
+    pAccessList As LongPtr '*ACTRL_ACCESS_ENTRYW
+End Type
+'Alias ACTRL_ACCESS_ENTRY_LIST As ACTRL_ACCESS_ENTRY_LISTW
+Public Type ACTRL_ACCESS_ENTRY_LIST
+    cEntries As Long
+    pAccessList As LongPtr '*ACTRL_ACCESS_ENTRY
+End Type
+
+Public Type ACTRL_PROPERTY_ENTRYA
+    lpProperty As String
+    pAccessEntryList As LongPtr 'PACTRL_ACCESS_ENTRY_LISTA
+    fListFlags As ACTRL_PROPLIST_FLAGS
+End Type
+Public Type ACTRL_PROPERTY_ENTRYW
+    lpProperty As LongPtr
+    pAccessEntryList As LongPtr 'PACTRL_ACCESS_ENTRY_LISTA
+    fListFlags As ACTRL_PROPLIST_FLAGS
+End Type
+'Alias ACTRL_PROPERTY_ENTRY As ACTRL_PROPERTY_ENTRYW
+Public Type ACTRL_PROPERTY_ENTRY
+    lpProperty As LongPtr
+    pAccessEntryList As LongPtr 'PACTRL_ACCESS_ENTRY_LISTA
+    fListFlags As ACTRL_PROPLIST_FLAGS
+End Type
+Public Type ACTRL_ALISTA
+    cEntries As Long
+    pPropertyAccessList As LongPtr 'PACTRL_PROPERTY_ENTRYA
+End Type
+Public Type ACTRL_ALISTW
+    cEntries As Long
+    pPropertyAccessList As LongPtr 'PACTRL_PROPERTY_ENTRYA
+End Type
+'Alias ACTRL_ALIST As ACTRL_ALISTW
+Public Type ACTRL_ALIST
+    cEntries As Long
+    pPropertyAccessList As LongPtr 'PACTRL_PROPERTY_ENTRYA
+End Type
+
+Public Enum TrusteeAccessFlags
+    TRUSTEE_ACCESS_ALLOWED  = &H00000001
+    TRUSTEE_ACCESS_READ  = &H00000002
+    TRUSTEE_ACCESS_WRITE  = &H00000004
+    TRUSTEE_ACCESS_EXPLICIT  = &H00000001
+    TRUSTEE_ACCESS_READ_WRITE  = (TRUSTEE_ACCESS_READ  Or  TRUSTEE_ACCESS_WRITE)
+    TRUSTEE_ACCESS_ALL = &HFFFFFFFF
+End Enum
+
+Public Type TRUSTEE_ACCESSA
+    lpProperty As String
+    Access As ACCESS_RIGHTS
+    fAccessFlags As TrusteeAccessFlags
+    fReturnedAccess As Long
+End Type
+Public Type TRUSTEE_ACCESSW
+    lpProperty As LongPtr
+    Access As ACCESS_RIGHTS
+    fAccessFlags As TrusteeAccessFlags
+    fReturnedAccess As Long
+End Type
+'Alias TRUSTEE_ACCESS As TRUSTEE_ACCESSW
+Public Type TRUSTEE_ACCESS
+    lpProperty As LongPtr
+    Access As ACCESS_RIGHTS
+    fAccessFlags As TrusteeAccessFlags
+    fReturnedAccess As Long
+End Type
+
+Public Enum ACTRL_GENERIC_PERMS
+    ACTRL_RESERVED  = &H00000000
+    ACTRL_PERM_1  = &H00000001
+    ACTRL_PERM_2  = &H00000002
+    ACTRL_PERM_3  = &H00000004
+    ACTRL_PERM_4  = &H00000008
+    ACTRL_PERM_5  = &H00000010
+    ACTRL_PERM_6  = &H00000020
+    ACTRL_PERM_7  = &H00000040
+    ACTRL_PERM_8  = &H00000080
+    ACTRL_PERM_9  = &H00000100
+    ACTRL_PERM_10  = &H00000200
+    ACTRL_PERM_11  = &H00000400
+    ACTRL_PERM_12  = &H00000800
+    ACTRL_PERM_13  = &H00001000
+    ACTRL_PERM_14  = &H00002000
+    ACTRL_PERM_15  = &H00004000
+    ACTRL_PERM_16  = &H00008000&
+    ACTRL_PERM_17  = &H00010000
+    ACTRL_PERM_18  = &H00020000
+    ACTRL_PERM_19  = &H00040000
+    ACTRL_PERM_20  = &H00080000
+End Enum
+
+Public Enum ACTRL_PROPLIST_FLAGS
+    ACTRL_ACCESS_PROTECTED = &H1
+End Enum
+
+Public Enum ACCESS_RIGHTS
+    ACTRL_SYSTEM_ACCESS  = &H04000000
+    ACTRL_DELETE  = &H08000000
+    ACTRL_READ_CONTROL  = &H10000000
+    ACTRL_CHANGE_ACCESS  = &H20000000
+    ACTRL_CHANGE_OWNER  = &H40000000
+    ACTRL_SYNCHRONIZE  = &H80000000
+    ACTRL_STD_RIGHTS_ALL  = &Hf8000000
+    ACTRL_STD_RIGHT_REQUIRED  = ( ACTRL_STD_RIGHTS_ALL And Not ACTRL_SYNCHRONIZE )
+    COM_RIGHTS_EXECUTE  = 1
+    COM_RIGHTS_EXECUTE_LOCAL  = 2
+    COM_RIGHTS_EXECUTE_REMOTE  = 4
+    COM_RIGHTS_ACTIVATE_LOCAL  = 8
+    COM_RIGHTS_ACTIVATE_REMOTE  = 16
+    COM_RIGHTS_RESERVED1  = 32
+    COM_RIGHTS_RESERVED2 = 64
+End Enum
+
+
+Public Enum ActrlDsRights
+    ACTRL_DS_OPEN  = ACTRL_RESERVED
+    ACTRL_DS_CREATE_CHILD  = ACTRL_PERM_1
+    ACTRL_DS_DELETE_CHILD  = ACTRL_PERM_2
+    ACTRL_DS_LIST  = ACTRL_PERM_3
+    ACTRL_DS_SELF  = ACTRL_PERM_4
+    ACTRL_DS_READ_PROP  = ACTRL_PERM_5
+    ACTRL_DS_WRITE_PROP  = ACTRL_PERM_6
+    ACTRL_DS_DELETE_TREE  = ACTRL_PERM_7
+    ACTRL_DS_LIST_OBJECT  = ACTRL_PERM_8
+    ACTRL_DS_CONTROL_ACCESS  = ACTRL_PERM_9
+End Enum
+
+Public Enum ActrlObjRights
+    ACTRL_FILE_READ  = ACTRL_PERM_1
+    ACTRL_FILE_WRITE  = ACTRL_PERM_2
+    ACTRL_FILE_APPEND  = ACTRL_PERM_3
+    ACTRL_FILE_READ_PROP  = ACTRL_PERM_4
+    ACTRL_FILE_WRITE_PROP  = ACTRL_PERM_5
+    ACTRL_FILE_EXECUTE  = ACTRL_PERM_6
+    ACTRL_FILE_READ_ATTRIB  = ACTRL_PERM_8
+    ACTRL_FILE_WRITE_ATTRIB  = ACTRL_PERM_9
+    ACTRL_FILE_CREATE_PIPE  = ACTRL_PERM_10
+    ACTRL_DIR_LIST  = ACTRL_PERM_1
+    ACTRL_DIR_CREATE_OBJECT  = ACTRL_PERM_2
+    ACTRL_DIR_CREATE_CHILD  = ACTRL_PERM_3
+    ACTRL_DIR_DELETE_CHILD  = ACTRL_PERM_7
+    ACTRL_DIR_TRAVERSE  = ACTRL_PERM_6
+    ACTRL_KERNEL_TERMINATE  = ACTRL_PERM_1
+    ACTRL_KERNEL_THREAD  = ACTRL_PERM_2
+    ACTRL_KERNEL_VM  = ACTRL_PERM_3
+    ACTRL_KERNEL_VM_READ  = ACTRL_PERM_4
+    ACTRL_KERNEL_VM_WRITE  = ACTRL_PERM_5
+    ACTRL_KERNEL_DUP_HANDLE  = ACTRL_PERM_6
+    ACTRL_KERNEL_PROCESS  = ACTRL_PERM_7
+    ACTRL_KERNEL_SET_INFO  = ACTRL_PERM_8
+    ACTRL_KERNEL_GET_INFO  = ACTRL_PERM_9
+    ACTRL_KERNEL_CONTROL  = ACTRL_PERM_10
+    ACTRL_KERNEL_ALERT  = ACTRL_PERM_11
+    ACTRL_KERNEL_GET_CONTEXT  = ACTRL_PERM_12
+    ACTRL_KERNEL_SET_CONTEXT  = ACTRL_PERM_13
+    ACTRL_KERNEL_TOKEN  = ACTRL_PERM_14
+    ACTRL_KERNEL_IMPERSONATE  = ACTRL_PERM_15
+    ACTRL_KERNEL_DIMPERSONATE  = ACTRL_PERM_16
+    ACTRL_PRINT_SADMIN  = ACTRL_PERM_1
+    ACTRL_PRINT_SLIST  = ACTRL_PERM_2
+    ACTRL_PRINT_PADMIN  = ACTRL_PERM_3
+    ACTRL_PRINT_PUSE  = ACTRL_PERM_4
+    ACTRL_PRINT_JADMIN  = ACTRL_PERM_5
+    ACTRL_SVC_GET_INFO  = ACTRL_PERM_1
+    ACTRL_SVC_SET_INFO  = ACTRL_PERM_2
+    ACTRL_SVC_STATUS  = ACTRL_PERM_3
+    ACTRL_SVC_LIST  = ACTRL_PERM_4
+    ACTRL_SVC_START  = ACTRL_PERM_5
+    ACTRL_SVC_STOP  = ACTRL_PERM_6
+    ACTRL_SVC_PAUSE  = ACTRL_PERM_7
+    ACTRL_SVC_INTERROGATE  = ACTRL_PERM_8
+    ACTRL_SVC_UCONTROL  = ACTRL_PERM_9
+    ACTRL_REG_QUERY  = ACTRL_PERM_1
+    ACTRL_REG_SET  = ACTRL_PERM_2
+    ACTRL_REG_CREATE_CHILD  = ACTRL_PERM_3
+    ACTRL_REG_LIST  = ACTRL_PERM_4
+    ACTRL_REG_NOTIFY  = ACTRL_PERM_5
+    ACTRL_REG_LINK  = ACTRL_PERM_6
+    ACTRL_WIN_CLIPBRD  = ACTRL_PERM_1
+    ACTRL_WIN_GLOBAL_ATOMS  = ACTRL_PERM_2
+    ACTRL_WIN_CREATE  = ACTRL_PERM_3
+    ACTRL_WIN_LIST_DESK  = ACTRL_PERM_4
+    ACTRL_WIN_LIST  = ACTRL_PERM_5
+    ACTRL_WIN_READ_ATTRIBS  = ACTRL_PERM_6
+    ACTRL_WIN_WRITE_ATTRIBS  = ACTRL_PERM_7
+    ACTRL_WIN_SCREEN  = ACTRL_PERM_8
+    ACTRL_WIN_EXIT  = ACTRL_PERM_9
+End Enum
+
+Public Type ACTRL_OVERLAPPED
+    'union {
+    Provider As LongPtr
+    '    ULONG Reserved1;
+    '} DUMMYUNIONNAME;
+    Reserved2 As Long
+    hEvent As LongPtr
+End Type
+
+Public Type ACTRL_ACCESS_INFOA
+    fAccessPermission As Long
+    lpAccessPermissionName As String
+End Type
+Public Type ACTRL_ACCESS_INFOW
+    fAccessPermission As Long
+    lpAccessPermissionName As LongPtr
+End Type
+'Alias ACTRL_ACCESS_INFO As ACTRL_ACCESS_INFOW
+Public Type ACTRL_ACCESS_INFO
+    fAccessPermission As Long
+    lpAccessPermissionName As LongPtr
+End Type
+
+Public Type ACTRL_CONTROL_INFOA
+    lpControlId As String
+    lpControlName As String
+End Type
+Public Type ACTRL_CONTROL_INFOW
+    lpControlId As LongPtr
+    lpControlName As LongPtr
+End Type
+'Alias ACTRL_CONTROL_INFO As ACTRL_CONTROL_INFOW
+Public Type ACTRL_CONTROL_INFO
+    lpControlId As LongPtr
+    lpControlName As LongPtr
+End Type
+
+Public Enum ActrlAccessOpts
+    ACTRL_ACCESS_NO_OPTIONS  = &H00000000
+    ACTRL_ACCESS_SUPPORTS_OBJECT_ENTRIES  = &H00000001
+End Enum
+
+Public Enum ActrlTreeSecFlags
+    TREE_SEC_INFO_SET  = &H00000001
+    TREE_SEC_INFO_RESET  = &H00000002
+    TREE_SEC_INFO_RESET_KEEP_EXPLICIT  = &H00000003
+End Enum
+
+Public Enum PROG_INVOKE_SETTING
+    ProgressInvokeNever = 1 ' Never invoke the progress function
+    ProgressInvokeEveryObject ' Invoke for each object
+    ProgressInvokeOnError ' Invoke only for each error case
+    ProgressCancelOperation ' Stop propagation and return
+    ProgressRetryOperation ' Retry operation on subtree
+    ' #if (NTDDI_VERSION >= NTDDI_VISTA)
+    ProgressInvokePrePostError ' Invoke Pre, Post, Error
+    ' #endif // (NTDDI_VERSION >= NTDDI_VISTA)
+End Enum
+
+Public Type FN_OBJECT_MGR_FUNCTIONS
+    Placeholder As Long
+End Type
+
+Public Type INHERITED_FROMA
+    GenerationGap As Long
+    AncestorName As String
+End Type
+Public Type INHERITED_FROMW
+    GenerationGap As Long
+    AncestorName As LongPtr
+End Type
+'Alias INHERITED_FROM As INHERITED_FROMW
+Public Type INHERITED_FROM
+    GenerationGap As Long
+    AncestorName As LongPtr
+End Type
+
+Public Declare PtrSafe Function SetEntriesInAclA Lib "advapi32" (ByVal cCountOfExplicitEntries As Long, pListOfExplicitEntries As EXPLICIT_ACCESS_A, ByVal OldAcl As LongPtr, NewAcl As LongPtr) As Long
+Public Declare PtrSafe Function SetEntriesInAclW Lib "advapi32" (ByVal cCountOfExplicitEntries As Long, pListOfExplicitEntries As EXPLICIT_ACCESS_W, ByVal OldAcl As LongPtr, NewAcl As LongPtr) As Long
+Public DeclareWide PtrSafe Function SetEntriesInAcl Lib "advapi32" Alias "SetEntriesInAclW" (ByVal cCountOfExplicitEntries As Long, pListOfExplicitEntries As EXPLICIT_ACCESS, ByVal OldAcl As LongPtr, NewAcl As LongPtr) As Long
+Public Declare PtrSafe Function GetExplicitEntriesFromAclA Lib "advapi32" (ByVal pacl As LongPtr, pcCountOfExplicitEntries As Long, pListOfExplicitEntries As EXPLICIT_ACCESS_A) As Long
+Public Declare PtrSafe Function GetExplicitEntriesFromAclW Lib "advapi32" Alias "GetExplicitEntriesFromAclW" (ByVal pacl As LongPtr, pcCountOfExplicitEntries As Long, pListOfExplicitEntries As EXPLICIT_ACCESS_W) As Long
+Public DeclareWide PtrSafe Function GetExplicitEntriesFromAcl Lib "advapi32" (ByVal pacl As LongPtr, pcCountOfExplicitEntries As Long, pListOfExplicitEntries As EXPLICIT_ACCESS) As Long
+Public Declare PtrSafe Function GetEffectiveRightsFromAclA Lib "advapi32" (ByVal pacl As LongPtr, pTrustee As TRUSTEE_A, [ TypeHint (GenericRights, FileAccessRights) ] pAccessRights As Long) As Long
+Public Declare PtrSafe Function GetEffectiveRightsFromAclW Lib "advapi32" (ByVal pacl As LongPtr, pTrustee As TRUSTEE_W, [ TypeHint(GenericRights, FileAccessRights) ] pAccessRights As Long) As Long
+Public DeclareWide PtrSafe Function GetEffectiveRightsFromAcl Lib "advapi32" Alias "GetEffectiveRightsFromAclW" (ByVal pacl As LongPtr, pTrustee As TRUSTEE, [ TypeHint(GenericRights, FileAccessRights) ] pAccessRights As Long) As Long
+Public Declare PtrSafe Function GetAuditedPermissionsFromAclA Lib "advapi32" (ByVal pacl As LongPtr, pTrustee As TRUSTEE_A, [ TypeHint(GenericRights, FileAccessRights) ] pSuccessfulAuditedRights As Long, [ TypeHint(GenericRights, FileAccessRights) ] pFailedAuditRights As Long) As Long
+Public Declare PtrSafe Function GetAuditedPermissionsFromAclW Lib "advapi32" (ByVal pacl As LongPtr, pTrustee As TRUSTEE_W, [ TypeHint(GenericRights, FileAccessRights) ] pSuccessfulAuditedRights As Long, [ TypeHint(GenericRights, FileAccessRights) ] pFailedAuditRights As Long) As Long
+Public DeclareWide PtrSafe Function GetAuditedPermissionsFromAcl Lib "advapi32" Alias "GetAuditedPermissionsFromAclW" (ByVal pacl As LongPtr, pTrustee As TRUSTEE, [ TypeHint(GenericRights, FileAccessRights) ] pSuccessfulAuditedRights As Long, [ TypeHint(GenericRights, FileAccessRights) ] pFailedAuditRights As Long) As Long
+Public Declare PtrSafe Function GetNamedSecurityInfoA Lib "advapi32" (ByVal pObjectName As String, ByVal ObjectType As SE_OBJECT_TYPE, ByVal SecurityInfo As SECURITY_INFORMATION, ppsidOwner As LongPtr, ppsidGroup As LongPtr, ppDacl As LongPtr, ppSacl As LongPtr, ppSecurityDescriptor As SECURITY_DESCRIPTOR) As Long
+Public Declare PtrSafe Function GetNamedSecurityInfoW Lib "advapi32" (ByVal pObjectName As LongPtr, ByVal ObjectType As SE_OBJECT_TYPE, ByVal SecurityInfo As SECURITY_INFORMATION, ppsidOwner As LongPtr, ppsidGroup As LongPtr, ppDacl As LongPtr, ppSacl As LongPtr, ppSecurityDescriptor As SECURITY_DESCRIPTOR) As Long
+Public DeclareWide PtrSafe Function GetNamedSecurityInfo Lib "advapi32" Alias "GetNamedSecurityInfoW" (ByVal pObjectName As String, ByVal ObjectType As SE_OBJECT_TYPE, ByVal SecurityInfo As SECURITY_INFORMATION, ppsidOwner As LongPtr, ppsidGroup As LongPtr, ppDacl As LongPtr, ppSacl As LongPtr, ppSecurityDescriptor As SECURITY_DESCRIPTOR) As Long
+Public Declare PtrSafe Function GetSecurityInfo Lib "advapi32" (ByVal handle As LongPtr, ByVal ObjectType As SE_OBJECT_TYPE, ByVal SecurityInfo As SECURITY_INFORMATION, ppsidOwner As LongPtr, ppsidGroup As LongPtr, ppDacl As LongPtr, ppSacl As LongPtr, ppSecurityDescriptor As SECURITY_DESCRIPTOR) As Long
+Public Declare PtrSafe Function SetNamedSecurityInfoA Lib "advapi32" (ByVal pObjectName As String, ByVal ObjectType As SE_OBJECT_TYPE, ByVal SecurityInfo As SECURITY_INFORMATION, Optional ByVal psidOwner As LongPtr, Optional ByVal psidGroup As LongPtr, Optional ByVal pDacl As LongPtr, Optional ByVal pSacl As LongPtr) As Long
+Public Declare PtrSafe Function SetNamedSecurityInfoW Lib "advapi32" (ByVal pObjectName As LongPtr, ByVal ObjectType As SE_OBJECT_TYPE, ByVal SecurityInfo As SECURITY_INFORMATION, Optional ByVal psidOwner As LongPtr, Optional ByVal psidGroup As LongPtr, Optional ByVal pDacl As LongPtr, Optional ByVal pSacl As LongPtr) As Long
+Public DeclareWide PtrSafe Function SetNamedSecurityInfo Lib "advapi32" Alias "SetNamedSecurityInfoW" (ByVal pObjectName As String, ByVal ObjectType As SE_OBJECT_TYPE, ByVal SecurityInfo As SECURITY_INFORMATION, Optional ByVal psidOwner As LongPtr, Optional ByVal psidGroup As LongPtr, Optional ByVal pDacl As LongPtr, Optional ByVal pSacl As LongPtr) As Long
+Public Declare PtrSafe Function SetSecurityInfo Lib "advapi32" (ByVal handle As LongPtr, ByVal ObjectType As SE_OBJECT_TYPE, ByVal SecurityInfo As SECURITY_INFORMATION, Optional ByVal psidOwner As LongPtr, Optional ByVal psidGroup As LongPtr, Optional ByVal pDacl As LongPtr, Optional ByVal pSacl As LongPtr) As Long
+Public Declare PtrSafe Function GetInheritanceSourceA Lib "advapi32" (ByVal pObjectName As String, ByVal ObjectType As SE_OBJECT_TYPE, ByVal SecurityInfo As SECURITY_INFORMATION, ByVal Container As BOOL, pObjectClassGuids As LongPtr, ByVal GuidCount As LongPtr, ByVal pAcl As LongPtr, ByVal pfnArray As LongPtr, pGenericMapping As GENERIC_MAPPING, pInheritArray As INHERITED_FROMA) As Long
+Public Declare PtrSafe Function GetInheritanceSourceW Lib "advapi32" (ByVal pObjectName As LongPtr, ByVal ObjectType As SE_OBJECT_TYPE, ByVal SecurityInfo As SECURITY_INFORMATION, ByVal Container As BOOL, pObjectClassGuids As LongPtr, ByVal GuidCount As LongPtr, ByVal pAcl As LongPtr, ByVal pfnArray As LongPtr, pGenericMapping As GENERIC_MAPPING, pInheritArray As INHERITED_FROMW) As Long
+Public DeclareWide PtrSafe Function GetInheritanceSource Lib "advapi32" Alias "GetInheritanceSourceW" (ByVal pObjectName As String, ByVal ObjectType As SE_OBJECT_TYPE, ByVal SecurityInfo As SECURITY_INFORMATION, ByVal Container As BOOL, pObjectClassGuids As LongPtr, ByVal GuidCount As LongPtr, ByVal pAcl As LongPtr, ByVal pfnArray As LongPtr, pGenericMapping As GENERIC_MAPPING, pInheritArray As INHERITED_FROM) As Long
+Public Declare PtrSafe Function FreeInheritedFromArray Lib "advapi32" (pInheritArray As Any, ByVal AceCnt As Integer, Optional ByVal pfnArray As LongPtr) As Long
+Public Declare PtrSafe Function TreeResetNamedSecurityInfoA Lib "advapi32" (ByVal pObjectName As String, ByVal ObjectType As SE_OBJECT_TYPE, ByVal SecurityInfo As SECURITY_INFORMATION, ByVal psidOwner As LongPtr, ByVal psidGroup As LongPtr, ByVal pDacl As LongPtr, ByVal pSacl As LongPtr, ByVal KeepExplicit As BOOL, ByVal fnProgress As LongPtr, ByVal ProgressInvokeSetting As PROG_INVOKE_SETTING, Args As Any) As Long
+Public Declare PtrSafe Function TreeResetNamedSecurityInfoW Lib "advapi32" (ByVal pObjectName As LongPtr, ByVal ObjectType As SE_OBJECT_TYPE, ByVal SecurityInfo As SECURITY_INFORMATION, ByVal psidOwner As LongPtr, ByVal psidGroup As LongPtr, ByVal pDacl As LongPtr, ByVal pSacl As LongPtr, ByVal KeepExplicit As BOOL, ByVal fnProgress As LongPtr, ByVal ProgressInvokeSetting As PROG_INVOKE_SETTING, Args As Any) As Long
+Public DeclareWide PtrSafe Function TreeResetNamedSecurityInfo Lib "advapi32" Alias "TreeResetNamedSecurityInfoW" (ByVal pObjectName As String, ByVal ObjectType As SE_OBJECT_TYPE, ByVal SecurityInfo As SECURITY_INFORMATION, ByVal psidOwner As LongPtr, ByVal psidGroup As LongPtr, ByVal pDacl As LongPtr, ByVal pSacl As LongPtr, ByVal KeepExplicit As BOOL, ByVal fnProgress As LongPtr, ByVal ProgressInvokeSetting As PROG_INVOKE_SETTING, Args As Any) As Long
+Public Declare PtrSafe Function TreeSetNamedSecurityInfoA Lib "advapi32" (ByVal pObjectName As String, ByVal ObjectType As SE_OBJECT_TYPE, ByVal SecurityInfo As SECURITY_INFORMATION, ByVal psidOwner As LongPtr, ByVal psidGroup As LongPtr, ByVal pDacl As LongPtr, ByVal pSacl As LongPtr, ByVal dwAction As ActrlTreeSecFlags, ByVal fnProgress As LongPtr, ByVal ProgressInvokeSetting As PROG_INVOKE_SETTING, Args As Any) As Long
+Public Declare PtrSafe Function TreeSetNamedSecurityInfoW Lib "advapi32" (ByVal pObjectName As LongPtr, ByVal ObjectType As SE_OBJECT_TYPE, ByVal SecurityInfo As SECURITY_INFORMATION, ByVal psidOwner As LongPtr, ByVal psidGroup As LongPtr, ByVal pDacl As LongPtr, ByVal pSacl As LongPtr, ByVal dwAction As ActrlTreeSecFlags, ByVal fnProgress As LongPtr, ByVal ProgressInvokeSetting As PROG_INVOKE_SETTING, Args As Any) As Long
+Public DeclareWide PtrSafe Function TreeSetNamedSecurityInfo Lib "advapi32" Alias "TreeSetNamedSecurityInfoW" (ByVal pObjectName As String, ByVal ObjectType As SE_OBJECT_TYPE, ByVal SecurityInfo As SECURITY_INFORMATION, ByVal psidOwner As LongPtr, ByVal psidGroup As LongPtr, ByVal pDacl As LongPtr, ByVal pSacl As LongPtr, ByVal dwAction As ActrlTreeSecFlags, ByVal fnProgress As LongPtr, ByVal ProgressInvokeSetting As PROG_INVOKE_SETTING, Args As Any) As Long
+Public Declare PtrSafe Function BuildSecurityDescriptorA Lib "advapi32" (pOwner As TRUSTEE_A, pGroup As TRUSTEE_A, ByVal cCountOfAccessEntries As Long, pListOfAccessEntries As EXPLICIT_ACCESS_A, ByVal cCountOfAuditEntries As Long, pListOfAccessEntries As EXPLICIT_ACCESS_A, pOldSD As SECURITY_DESCRIPTOR, pSizeNewSD As Long, pNewSD As LongPtr) As Long
+Public Declare PtrSafe Function BuildSecurityDescriptorW Lib "advapi32" (pOwner As TRUSTEE_W, pGroup As TRUSTEE_W, ByVal cCountOfAccessEntries As Long, pListOfAccessEntries As EXPLICIT_ACCESS_W, ByVal cCountOfAuditEntries As Long, pListOfAccessEntries As EXPLICIT_ACCESS_W, pOldSD As SECURITY_DESCRIPTOR, pSizeNewSD As Long, pNewSD As LongPtr) As Long
+Public DeclareWide PtrSafe Function BuildSecurityDescriptor Lib "advapi32" Alias "BuildSecurityDescriptorW" (pOwner As TRUSTEE_A, pGroup As TRUSTEE, ByVal cCountOfAccessEntries As Long, pListOfAccessEntries As EXPLICIT_ACCESS, ByVal cCountOfAuditEntries As Long, pListOfAccessEntries As EXPLICIT_ACCESS, pOldSD As SECURITY_DESCRIPTOR, pSizeNewSD As Long, pNewSD As LongPtr) As Long
+Public Declare PtrSafe Function LookupSecurityDescriptorPartsA Lib "advapi32" (ppOwner As LongPtr, ppGroup As LongPtr, pcCountOfAccessEntries As Long, ppListOfAccessEntries As LongPtr, pcCountOfAuditEntries As Long, ppListOfAuditEntries As LongPtr, pSD As SECURITY_DESCRIPTOR) As Long
+Public Declare PtrSafe Function LookupSecurityDescriptorPartsW Lib "advapi32" (ppOwner As LongPtr, ppGroup As LongPtr, pcCountOfAccessEntries As Long, ppListOfAccessEntries As LongPtr, pcCountOfAuditEntries As Long, ppListOfAuditEntries As LongPtr, pSD As SECURITY_DESCRIPTOR) As Long
+Public DeclareWide PtrSafe Function LookupSecurityDescriptorParts Lib "advapi32" Alias "LookupSecurityDescriptorPartsW" (ppOwner As LongPtr, ppGroup As LongPtr, pcCountOfAccessEntries As Long, ppListOfAccessEntries As LongPtr, pcCountOfAuditEntries As Long, ppListOfAuditEntries As LongPtr, pSD As SECURITY_DESCRIPTOR) As Long
+Public Declare PtrSafe Sub BuildExplicitAccessWithNameA Lib "advapi32" (pExplicitAccess As EXPLICIT_ACCESS_A, ByVal pTrusteeName As String, ByVal AccessPermissions As Long, ByVal AccessMode As ACCESS_MODE, [ TypeHint (INHERIT_FLAGS, ACE_FLAGS) ] Inheritance As Long)
+Public Declare PtrSafe Sub BuildExplicitAccessWithNameW Lib "advapi32" (pExplicitAccess As EXPLICIT_ACCESS_W, ByVal pTrusteeName As LongPtr, ByVal AccessPermissions As Long, ByVal AccessMode As ACCESS_MODE, [ TypeHint (INHERIT_FLAGS, ACE_FLAGS) ] Inheritance As Long)
+Public DeclareWide PtrSafe Sub BuildExplicitAccessWithName Lib "advapi32" Alias "BuildExplicitAccessWithNameW" (pExplicitAccess As EXPLICIT_ACCESS, ByVal pTrusteeName As String, ByVal AccessPermissions As Long, ByVal AccessMode As ACCESS_MODE,  [ TypeHint(INHERIT_FLAGS, ACE_FLAGS) ] Inheritance As Long)
+Public Declare PtrSafe Sub BuildImpersonateExplicitAccessWithNameA Lib "advapi32" (pExplicitAccess As EXPLICIT_ACCESS_A, ByVal pTrusteeName As String, pTrustee As TRUSTEE_A, ByVal AccessPermissions As Long, ByVal AccessMode As ACCESS_MODE,  [ TypeHint (INHERIT_FLAGS, ACE_FLAGS) ] Inheritance As Long)
+Public Declare PtrSafe Sub BuildImpersonateExplicitAccessWithNameW Lib "advapi32" (pExplicitAccess As EXPLICIT_ACCESS_W, ByVal pTrusteeName As LongPtr, pTrustee As TRUSTEE_W, ByVal AccessPermissions As Long, ByVal AccessMode As ACCESS_MODE, [ TypeHint (INHERIT_FLAGS, ACE_FLAGS) ] Inheritance As Long)
+Public DeclareWide PtrSafe Sub BuildImpersonateExplicitAccessWithName Lib "advapi32" Alias "BuildImpersonateExplicitAccessWithNameW" (pExplicitAccess As EXPLICIT_ACCESS, ByVal pTrusteeName As String, pTrustee As TRUSTEE, ByVal AccessPermissions As Long, ByVal AccessMode As ACCESS_MODE,  [ TypeHint (INHERIT_FLAGS, ACE_FLAGS) ] Inheritance As Long)
+Public Declare PtrSafe Sub BuildTrusteeWithNameA Lib "advapi32" (pTrustee As TRUSTEE_A, ByVal pName As String)
+Public Declare PtrSafe Sub BuildTrusteeWithNameW Lib "advapi32" (pTrustee As TRUSTEE_W, ByVal pName As LongPtr)
+Public DeclareWide PtrSafe Sub BuildTrusteeWithName Lib "advapi32" Alias "BuildTrusteeWithNameW" (pTrustee As TRUSTEE, ByVal pName As String)
+Public Declare PtrSafe Sub BuildImpersonateTrusteeA Lib "advapi32" (pTrustee As TRUSTEE_A, pImpersonateTrustee As TRUSTEE_A)
+Public Declare PtrSafe Sub BuildImpersonateTrusteeW Lib "advapi32" (pTrustee As TRUSTEE_W, pImpersonateTrustee As TRUSTEE_W)
+Public DeclareWide PtrSafe Sub BuildImpersonateTrustee Lib "advapi32" Alias "BuildImpersonateTrusteeW" (pTrustee As TRUSTEE, pImpersonateTrustee As TRUSTEE)
+Public Declare PtrSafe Sub BuildTrusteeWithSidA Lib "advapi32" (pTrustee As TRUSTEE_A, ByVal pSid As LongPtr)
+Public Declare PtrSafe Sub BuildTrusteeWithSidW Lib "advapi32" (pTrustee As TRUSTEE_W, ByVal pSid As LongPtr)
+Public DeclareWide PtrSafe Sub BuildTrusteeWithSid Lib "advapi32" Alias "BuildTrusteeWithSidW" (pTrustee As TRUSTEE, ByVal pSid As LongPtr)
+Public Declare PtrSafe Sub BuildTrusteeWithObjectsAndSidA Lib "advapi32" (pTrustee As TRUSTEE_A, pObjSid As OBJECTS_AND_SID, pObjectGuid As UUID, pInheritedObjectGuid As UUID, Optional ByVal pSid As LongPtr)
+Public Declare PtrSafe Sub BuildTrusteeWithObjectsAndSidW Lib "advapi32" (pTrustee As TRUSTEE_W, pObjSid As OBJECTS_AND_SID, pObjectGuid As UUID, pInheritedObjectGuid As UUID, Optional ByVal pSid As LongPtr)
+Public DeclareWide PtrSafe Sub BuildTrusteeWithObjectsAndSid Lib "advapi32" Alias "BuildTrusteeWithObjectsAndSidW" (pTrustee As TRUSTEE, pObjSid As OBJECTS_AND_SID, pObjectGuid As UUID, pInheritedObjectGuid As UUID, Optional ByVal pSid As LongPtr)
+Public Declare PtrSafe Sub BuildTrusteeWithObjectsAndNameA Lib "advapi32" (pTrustee As TRUSTEE_A, pObjName As OBJECTS_AND_NAME_A, Optional ByVal ObjectType As SE_OBJECT_TYPE, Optional ByVal ObjectTypeName As String, Optional ByVal InheritedObjectTypeName As String, Optional ByVal pName As String)
+Public Declare PtrSafe Sub BuildTrusteeWithObjectsAndNameW Lib "advapi32" (pTrustee As TRUSTEE_W, pObjName As OBJECTS_AND_NAME_W, Optional ByVal ObjectType As SE_OBJECT_TYPE, Optional ByVal ObjectTypeName As LongPtr, Optional ByVal InheritedObjectTypeName As LongPtr, Optional ByVal pName As LongPtr)
+Public DeclareWide PtrSafe Sub BuildTrusteeWithObjectsAndName Lib "advapi32" Alias "BuildTrusteeWithObjectsAndNameW" (pTrustee As TRUSTEE, pObjName As OBJECTS_AND_NAME, Optional ByVal ObjectType As SE_OBJECT_TYPE, Optional ByVal ObjectTypeName As String, Optional ByVal InheritedObjectTypeName As String, Optional ByVal pName As String)
+Public Declare PtrSafe Function GetTrusteeNameA Lib "advapi32" (pTrustee As TRUSTEE_A) As LongPtr
+Public Declare PtrSafe Function GetTrusteeNameW Lib "advapi32" (pTrustee As TRUSTEE_W) As LongPtr
+Public DeclareWide PtrSafe Function GetTrusteeName Lib "advapi32" Alias "GetTrusteeNameW" (pTrustee As TRUSTEE) As LongPtr
+Public Declare PtrSafe Function GetTrusteeTypeA Lib "advapi32" (pTrustee As TRUSTEE_A) As TRUSTEE_TYPE
+Public Declare PtrSafe Function GetTrusteeTypeW Lib "advapi32" (pTrustee As TRUSTEE_W) As TRUSTEE_TYPE
+Public DeclareWide PtrSafe Function GetTrusteeType Lib "advapi32" ALias "GetTrusteeTypeW" (pTrustee As TRUSTEE) As TRUSTEE_TYPE
+Public Declare PtrSafe Function GetTrusteeFormA Lib "advapi32" (pTrustee As TRUSTEE_A) As TRUSTEE_FORM
+Public Declare PtrSafe Function GetTrusteeFormW Lib "advapi32" (pTrustee As TRUSTEE_W) As TRUSTEE_FORM
+Public DeclareWide PtrSafe Function GetTrusteeForm Lib "advapi32" Alias "GetTrusteeFormW" (pTrustee As TRUSTEE) As TRUSTEE_FORM
+Public Declare PtrSafe Function GetMultipleTrusteeOperationA Lib "advapi32" (pTrustee As TRUSTEE_A) As MULTIPLE_TRUSTEE_OPERATION
+Public Declare PtrSafe Function GetMultipleTrusteeOperationW Lib "advapi32" (pTrustee As TRUSTEE_W) As MULTIPLE_TRUSTEE_OPERATION
+Public DeclareWide PtrSafe Function GetMultipleTrusteeOperation Lib "advapi32" Alias "GetMultipleTrusteeOperationW" (pTrustee As TRUSTEE) As MULTIPLE_TRUSTEE_OPERATION
+Public Declare PtrSafe Function GetMultipleTrusteeA Lib "advapi32" (pTrustee As TRUSTEE_A) As TRUSTEE_A
+Public Declare PtrSafe Function GetMultipleTrusteeW Lib "advapi32" (pTrustee As TRUSTEE_W) As TRUSTEE_W
+Public DeclareWide PtrSafe Function GetMultipleTrustee Lib "advapi32" ALias "GetMultipleTrusteeW" (pTrustee As TRUSTEE) As TRUSTEE
+
+
+
+
+
 Public Declare PtrSafe Function LogonUserA Lib "advapi32" (ByVal lpszUsername As String, ByVal lpszDomain As String, ByVal lpszPassword As String, ByVal dwLogonType As LogonOperations, ByVal dwLogonProvider As LogonProviders, phToken As LongPtr) As BOOL
 Public Declare PtrSafe Function LogonUserW Lib "advapi32" (ByVal lpszUsername As LongPtr, ByVal lpszDomain As LongPtr, ByVal lpszPassword As LongPtr, ByVal dwLogonType As LogonOperations, ByVal dwLogonProvider As LogonProviders, phToken As LongPtr) As BOOL
 Public DeclareWide PtrSafe Function LogonUser Lib "advapi32" Alias "LogonUserW" (ByVal lpszUsername As String, ByVal lpszDomain As String, ByVal lpszPassword As String, ByVal dwLogonType As LogonOperations, ByVal dwLogonProvider As LogonProviders, phToken As LongPtr) As BOOL
@@ -44821,144 +45362,89 @@ Public Declare PtrSafe Function CertSaveStore Lib "crypt32" (ByVal hCertStore As
 
 #Region "bcrypt"
 
+Public Const BCRYPT_OBJECT_ALIGNMENT = 16
 
-
-
-Public Enum BCRYPT_GR_FLAGS
-    BCRYPT_RNG_USE_ENTROPY_IN_BUFFER  = &H00000001
-    BCRYPT_USE_SYSTEM_PREFERRED_RNG = &H00000002
-End Enum
-
-Public Const BCRYPT_MD2_ALG_HANDLE                As LongPtr = (&H00000001)
-Public Const BCRYPT_MD4_ALG_HANDLE                As LongPtr = (&H00000011)
-Public Const BCRYPT_MD5_ALG_HANDLE                As LongPtr = (&H00000021)
-Public Const BCRYPT_SHA1_ALG_HANDLE               As LongPtr = (&H00000031)
-Public Const BCRYPT_SHA256_ALG_HANDLE             As LongPtr = (&H00000041)
-Public Const BCRYPT_SHA384_ALG_HANDLE             As LongPtr = (&H00000051)
-Public Const BCRYPT_SHA512_ALG_HANDLE             As LongPtr = (&H00000061)
-Public Const BCRYPT_RC4_ALG_HANDLE                As LongPtr = (&H00000071)
-Public Const BCRYPT_RNG_ALG_HANDLE                As LongPtr = (&H00000081)
-Public Const BCRYPT_HMAC_MD5_ALG_HANDLE           As LongPtr = (&H00000091)
-Public Const BCRYPT_HMAC_SHA1_ALG_HANDLE          As LongPtr = (&H000000a1)
-Public Const BCRYPT_HMAC_SHA256_ALG_HANDLE        As LongPtr = (&H000000b1)
-Public Const BCRYPT_HMAC_SHA384_ALG_HANDLE        As LongPtr = (&H000000c1)
-Public Const BCRYPT_HMAC_SHA512_ALG_HANDLE        As LongPtr = (&H000000d1)
-Public Const BCRYPT_RSA_ALG_HANDLE                As LongPtr = (&H000000e1)
-Public Const BCRYPT_ECDSA_ALG_HANDLE              As LongPtr = (&H000000f1)
-Public Const BCRYPT_AES_CMAC_ALG_HANDLE           As LongPtr = (&H00000101)
-Public Const BCRYPT_AES_GMAC_ALG_HANDLE           As LongPtr = (&H00000111)
-Public Const BCRYPT_HMAC_MD2_ALG_HANDLE           As LongPtr = (&H00000121)
-Public Const BCRYPT_HMAC_MD4_ALG_HANDLE           As LongPtr = (&H00000131)
-Public Const BCRYPT_3DES_CBC_ALG_HANDLE           As LongPtr = (&H00000141)
-Public Const BCRYPT_3DES_ECB_ALG_HANDLE           As LongPtr = (&H00000151)
-Public Const BCRYPT_3DES_CFB_ALG_HANDLE           As LongPtr = (&H00000161)
-Public Const BCRYPT_3DES_112_CBC_ALG_HANDLE       As LongPtr = (&H00000171)
-Public Const BCRYPT_3DES_112_ECB_ALG_HANDLE       As LongPtr = (&H00000181)
-Public Const BCRYPT_3DES_112_CFB_ALG_HANDLE       As LongPtr = (&H00000191)
-Public Const BCRYPT_AES_CBC_ALG_HANDLE            As LongPtr = (&H000001a1)
-Public Const BCRYPT_AES_ECB_ALG_HANDLE            As LongPtr = (&H000001b1)
-Public Const BCRYPT_AES_CFB_ALG_HANDLE            As LongPtr = (&H000001c1)
-Public Const BCRYPT_AES_CCM_ALG_HANDLE            As LongPtr = (&H000001d1)
-Public Const BCRYPT_AES_GCM_ALG_HANDLE            As LongPtr = (&H000001e1)
-Public Const BCRYPT_DES_CBC_ALG_HANDLE            As LongPtr = (&H000001f1)
-Public Const BCRYPT_DES_ECB_ALG_HANDLE            As LongPtr = (&H00000201)
-Public Const BCRYPT_DES_CFB_ALG_HANDLE            As LongPtr = (&H00000211)
-Public Const BCRYPT_DESX_CBC_ALG_HANDLE           As LongPtr = (&H00000221)
-Public Const BCRYPT_DESX_ECB_ALG_HANDLE           As LongPtr = (&H00000231)
-Public Const BCRYPT_DESX_CFB_ALG_HANDLE           As LongPtr = (&H00000241)
-Public Const BCRYPT_RC2_CBC_ALG_HANDLE            As LongPtr = (&H00000251)
-Public Const BCRYPT_RC2_ECB_ALG_HANDLE            As LongPtr = (&H00000261)
-Public Const BCRYPT_RC2_CFB_ALG_HANDLE            As LongPtr = (&H00000271)
-Public Const BCRYPT_DH_ALG_HANDLE                 As LongPtr = (&H00000281)
-Public Const BCRYPT_ECDH_ALG_HANDLE               As LongPtr = (&H00000291)
-Public Const BCRYPT_ECDH_P256_ALG_HANDLE          As LongPtr = (&H000002a1)
-Public Const BCRYPT_ECDH_P384_ALG_HANDLE          As LongPtr = (&H000002b1)
-Public Const BCRYPT_ECDH_P521_ALG_HANDLE          As LongPtr = (&H000002c1)
-Public Const BCRYPT_DSA_ALG_HANDLE                As LongPtr = (&H000002d1)
-Public Const BCRYPT_ECDSA_P256_ALG_HANDLE         As LongPtr = (&H000002e1)
-Public Const BCRYPT_ECDSA_P384_ALG_HANDLE         As LongPtr = (&H000002f1)
-Public Const BCRYPT_ECDSA_P521_ALG_HANDLE         As LongPtr = (&H00000301)
-Public Const BCRYPT_RSA_SIGN_ALG_HANDLE           As LongPtr = (&H00000311)
-Public Const BCRYPT_CAPI_KDF_ALG_HANDLE           As LongPtr = (&H00000321)
-Public Const BCRYPT_PBKDF2_ALG_HANDLE             As LongPtr = (&H00000331)
-Public Const BCRYPT_SP800108_CTR_HMAC_ALG_HANDLE  As LongPtr = (&H00000341)
-Public Const BCRYPT_SP80056A_CONCAT_ALG_HANDLE    As LongPtr = (&H00000351)
-Public Const BCRYPT_TLS1_1_KDF_ALG_HANDLE         As LongPtr = (&H00000361)
-Public Const BCRYPT_TLS1_2_KDF_ALG_HANDLE         As LongPtr = (&H00000371)
-Public Const BCRYPT_XTS_AES_ALG_HANDLE            As LongPtr = (&H00000381)
-Public Const BCRYPT_HKDF_ALG_HANDLE               As LongPtr = (&H00000391)
-
-Public Const BCRYPT_CHACHA20_POLY1305_ALG_HANDLE  As LongPtr = (&H000003A1)
-
-
-Public Const BCRYPT_RSA_ALGORITHM  = "RSA"
-Public Const BCRYPT_RSA_SIGN_ALGORITHM  = "RSA_SIGN"
-Public Const BCRYPT_DH_ALGORITHM  = "DH"
-Public Const BCRYPT_DSA_ALGORITHM  = "DSA"
-Public Const BCRYPT_RC2_ALGORITHM  = "RC2"
-Public Const BCRYPT_RC4_ALGORITHM  = "RC4"
-Public Const BCRYPT_AES_ALGORITHM  = "AES"
-Public Const BCRYPT_DES_ALGORITHM  = "DES"
-Public Const BCRYPT_DESX_ALGORITHM  = "DESX"
-Public Const BCRYPT_3DES_ALGORITHM  = "3DES"
-Public Const BCRYPT_3DES_112_ALGORITHM  = "3DES_112"
-Public Const BCRYPT_MD2_ALGORITHM  = "MD2"
-Public Const BCRYPT_MD4_ALGORITHM  = "MD4"
-Public Const BCRYPT_MD5_ALGORITHM  = "MD5"
-Public Const BCRYPT_SHA1_ALGORITHM  = "SHA1"
-Public Const BCRYPT_SHA256_ALGORITHM  = "SHA256"
-Public Const BCRYPT_SHA384_ALGORITHM  = "SHA384"
-Public Const BCRYPT_SHA512_ALGORITHM  = "SHA512"
-Public Const BCRYPT_AES_GMAC_ALGORITHM  = "AES-GMAC"
-Public Const BCRYPT_AES_CMAC_ALGORITHM  = "AES-CMAC"
-Public Const BCRYPT_ECDSA_P256_ALGORITHM  = "ECDSA_P256"
-Public Const BCRYPT_ECDSA_P384_ALGORITHM  = "ECDSA_P384"
-Public Const BCRYPT_ECDSA_P521_ALGORITHM  = "ECDSA_P521"
-Public Const BCRYPT_ECDH_P256_ALGORITHM  = "ECDH_P256"
-Public Const BCRYPT_ECDH_P384_ALGORITHM  = "ECDH_P384"
-Public Const BCRYPT_ECDH_P521_ALGORITHM  = "ECDH_P521"
-Public Const BCRYPT_RNG_ALGORITHM  = "RNG"
-Public Const BCRYPT_RNG_FIPS186_DSA_ALGORITHM  = "FIPS186DSARNG"
-Public Const BCRYPT_RNG_DUAL_EC_ALGORITHM  = "DUALECRNG"
-' #if (NTDDI_VERSION >= NTDDI_WIN8)
-Public Const BCRYPT_SP800108_CTR_HMAC_ALGORITHM  = "SP800_108_CTR_HMAC"
-Public Const BCRYPT_SP80056A_CONCAT_ALGORITHM  = "SP800_56A_CONCAT"
-Public Const BCRYPT_PBKDF2_ALGORITHM  = "PBKDF2"
-Public Const BCRYPT_CAPI_KDF_ALGORITHM  = "CAPI_KDF"
-Public Const BCRYPT_TLS1_1_KDF_ALGORITHM  = "TLS1_1_KDF"
-Public Const BCRYPT_TLS1_2_KDF_ALGORITHM  = "TLS1_2_KDF"
+Public Const BCRYPT_KDF_HASH  = "HASH"
+Public Const BCRYPT_KDF_HMAC  = "HMAC"
+Public Const BCRYPT_KDF_TLS_PRF  = "TLS_PRF"
+' #if (NTDDI_VERSION >= NTDDI_WIN7)
+Public Const BCRYPT_KDF_SP80056A_CONCAT  = "SP800_56A_CONCAT"
 ' #endif
-' #if (NTDDI_VERSION >= NTDDI_WINTHRESHOLD)
-Public Const BCRYPT_ECDSA_ALGORITHM  = "ECDSA"
-Public Const BCRYPT_ECDH_ALGORITHM  = "ECDH"
-Public Const BCRYPT_XTS_AES_ALGORITHM  = "XTS-AES"
+' #if (NTDDI_VERSION >= NTDDI_WINBLUE)
+Public Const BCRYPT_KDF_RAW_SECRET  = "TRUNCATE"
 ' #endif
 ' #if (NTDDI_VERSION >= NTDDI_WIN10_RS4)
-Public Const BCRYPT_HKDF_ALGORITHM  = "HKDF"
-' #endif
-' #if (NTDDI_VERSION >= NTDDI_WIN10_FE)
-Public Const BCRYPT_CHACHA20_POLY1305_ALGORITHM  = "CHACHA20_POLY1305"
-' #endif
+Public Const BCRYPT_KDF_HKDF  = "HKDF"
 
-Public Const MS_PRIMITIVE_PROVIDER  = "Microsoft Primitive Provider"
-Public Const MS_PLATFORM_CRYPTO_PROVIDER  = "Microsoft Platform Crypto Provider"
-
-Public Enum BCRYPT_OA_FLAGS
-    BCRYPT_PROV_DISPATCH = &H00000001  ' BCryptOpenAlgorithmProvider
-    BCRYPT_ALG_HANDLE_HMAC_FLAG  = &H00000008
-    BCRYPT_HASH_REUSABLE_FLAG  = &H00000020
+Public Enum BCryptKdfBufferTypes
+    KDF_HASH_ALGORITHM  = &H0
+    KDF_SECRET_PREPEND  = &H1
+    KDF_SECRET_APPEND  = &H2
+    KDF_HMAC_KEY  = &H3
+    KDF_TLS_PRF_LABEL  = &H4
+    KDF_TLS_PRF_SEED  = &H5
+    KDF_SECRET_HANDLE  = &H6
+' #if (NTDDI_VERSION >= NTDDI_WIN7)
+    KDF_TLS_PRF_PROTOCOL  = &H7
+    KDF_ALGORITHMID  = &H8
+    KDF_PARTYUINFO  = &H9
+    KDF_PARTYVINFO  = &HA
+    KDF_SUPPPUBINFO  = &HB
+    KDF_SUPPPRIVINFO  = &HC
+' #endif
+' #if (NTDDI_VERSION >= NTDDI_WIN8)
+    KDF_LABEL  = &HD
+    KDF_CONTEXT  = &HE
+    KDF_SALT  = &HF
+    KDF_ITERATION_COUNT  = &H10
+    KDF_GENERIC_PARAMETER  = &H11
+    KDF_KEYBITLENGTH  = &H12
+    KDF_HKDF_SALT  = &H13  ' This is used only for testing purposes
+    KDF_HKDF_INFO  = &H14
 End Enum
 
-Public Enum BCRYPT_PADDING_TYPES
-    BCRYPT_SUPPORTED_PAD_ROUTER  = &H00000001
-    BCRYPT_SUPPORTED_PAD_PKCS1_ENC  = &H00000002
-    BCRYPT_SUPPORTED_PAD_PKCS1_SIG  = &H00000004
-    BCRYPT_SUPPORTED_PAD_OAEP  = &H00000008
-    BCRYPT_SUPPORTED_PAD_PSS  = &H00000010
+
+Public Enum BCryptDeriveKeyFlags
+    KDF_USE_SECRET_AS_HMAC_KEY_FLAG = &H1	
 End Enum
 
+Public Type BCRYPT_KEY_LENGTHS_STRUCT
+    dwMinLength As Long
+    dwMaxLength As Long
+    dwIncrement As Long
+End Type
+'Alias BCRYPT_AUTH_TAG_LENGTHS_STRUCT As BCRYPT_KEY_LENGTHS_STRUCT
+Public Type BCRYPT_AUTH_TAG_LENGTHS_STRUCT
+    dwMinLength As Long
+    dwMaxLength As Long
+    dwIncrement As Long
+End Type
 
-Public Const BCRYPT_AUTHENTICATED_CIPHER_MODE_INFO_VERSION = 1
+Public Type BCRYPT_OID
+    cbOID As Long
+    pbOID As LongPtr 'PUCHAR
+End Type
+Public Type BCRYPT_OID_LIST
+    dwOIDCount As Long
+    pOIDs As LongPtr '*BCRYPT_OID
+End Type
+
+Public Type BCRYPT_PKCS1_PADDING_INFO
+    pszAlgId As LongPtr
+End Type
+Public Type BCRYPT_PSS_PADDING_INFO
+    pszAlgId As LongPtr
+    cbSalt As Long
+End Type
+Public Type BCRYPT_OAEP_PADDING_INFO
+    pszAlgId As LongPtr
+    pbLabel As LongPtr 'PUCHAR
+    cbLabel As Long
+End Type
+
+Public Enum BCryptAuthCipherModeVers
+    BCRYPT_AUTHENTICATED_CIPHER_MODE_INFO_VERSION = 1	
+End Enum
 Public Enum BCRYPT_AUTH_CIPHER_MODE_FLAGS
     BCRYPT_AUTH_MODE_CHAIN_CALLS_FLAG  = &H00000001
     BCRYPT_AUTH_MODE_IN_PROGRESS_FLAG  = &H00000002
@@ -44978,6 +45464,56 @@ Public Type BCRYPT_AUTHENTICATED_CIPHER_MODE_INFO
     cbData As LongLong
     dwFlags As BCRYPT_AUTH_CIPHER_MODE_FLAGS
 End Type
+
+
+
+Public Enum BCryptBufferVersions
+    BCRYPTBUFFER_VERSION = 0
+End Enum
+Public Type BCryptBuffer
+    cbBuffer As Long ' Length of buffer, in bytes
+    BufferType As BCryptKdfBufferTypes ' Buffer type
+    pvBuffer As LongPtr ' Pointer to buffer
+End Type
+Public Type BCryptBufferDesc
+    ulVersion As Long ' Version number
+    cBuffers As Long ' Number of buffers
+    pBuffers As LongPtr 'PBCryptBuffer ' Pointer to array of buffers
+End Type
+
+
+Public Enum BCRYPT_GR_FLAGS
+    BCRYPT_RNG_USE_ENTROPY_IN_BUFFER  = &H00000001
+    BCRYPT_USE_SYSTEM_PREFERRED_RNG = &H00000002
+End Enum
+
+
+
+
+Public Enum BCRYPT_OA_FLAGS
+    BCRYPT_PROV_DISPATCH = &H00000001  ' BCryptOpenAlgorithmProvider
+    BCRYPT_ALG_HANDLE_HMAC_FLAG  = &H00000008
+    BCRYPT_HASH_REUSABLE_FLAG  = &H00000020
+End Enum
+
+Public Enum BCRYPT_PADDING_TYPES
+    BCRYPT_SUPPORTED_PAD_ROUTER  = &H00000001
+    BCRYPT_SUPPORTED_PAD_PKCS1_ENC  = &H00000002
+    BCRYPT_SUPPORTED_PAD_PKCS1_SIG  = &H00000004
+    BCRYPT_SUPPORTED_PAD_OAEP  = &H00000008
+    BCRYPT_SUPPORTED_PAD_PSS  = &H00000010
+End Enum
+
+Public Const BCRYPT_CAPI_AES_FLAG  = &H00000010
+Public Const BCRYPT_MULTI_FLAG  = &H00000040
+
+Public Enum BCryptGenSymFlags
+    BCRYPT_TLS_CBC_HMAC_VERIFY_FLAG  = &H00000004
+    BCRYPT_BUFFERS_LOCKED_FLAG  = &H00000040
+    BCRYPT_EXTENDED_KEYSIZE  = &H00000080
+    BCRYPT_ENABLE_INCOMPATIBLE_FIPS_CHECKS  = &H00000100
+End Enum
+
 
 Public Const BCRYPT_OPAQUE_KEY_BLOB = "OpaqueKeyBlob"
 Public Const BCRYPT_KEY_DATA_BLOB = "KeyDataBlob"
@@ -45023,6 +45559,14 @@ Public Const BCRYPT_CHAIN_MODE_CFB = "ChainingModeCFB"
 Public Const BCRYPT_CHAIN_MODE_CCM = "ChainingModeCCM"
 Public Const BCRYPT_CHAIN_MODE_GCM = "ChainingModeGCM"
 
+Public Enum BCryptRSAPaddingTypes
+    BCRYPT_SUPPORTED_PAD_ROUTER  = &H00000001
+    BCRYPT_SUPPORTED_PAD_PKCS1_ENC  = &H00000002
+    BCRYPT_SUPPORTED_PAD_PKCS1_SIG  = &H00000004
+    BCRYPT_SUPPORTED_PAD_OAEP  = &H00000008
+    BCRYPT_SUPPORTED_PAD_PSS  = &H00000010
+End Enum
+
 Public Enum BCRYPT_RSA_PADDING
     BCRYPT_PAD_NONE  = &H00000001
     BCRYPT_PAD_PKCS1  = &H00000002  ' BCryptEncrypt/Decrypt BCryptSignHash/VerifySignature
@@ -45034,6 +45578,7 @@ End Enum
 
 Public Enum BCRYPT_FLAGS
     BCRYPT_BLOCK_PADDING = &H00000001
+    BCRYPT_GENERATE_IV = &H00000020
 End Enum
 
 Public Enum BCRYPT_ENUM_ALG_OPS
@@ -45047,16 +45592,6 @@ Public Enum BCRYPT_ENUM_ALG_OPS
     BCRYPT_KEY_DERIVATION_OPERATION  = &H00000040
 End Enum
 
-Public Enum BCRYPT_CNG_INTERFACES
-    BCRYPT_CIPHER_INTERFACE  = &H00000001
-    BCRYPT_HASH_INTERFACE  = &H00000002
-    BCRYPT_ASYMMETRIC_ENCRYPTION_INTERFACE  = &H00000003
-    BCRYPT_SECRET_AGREEMENT_INTERFACE  = &H00000004
-    BCRYPT_SIGNATURE_INTERFACE  = &H00000005
-    BCRYPT_RNG_INTERFACE  = &H00000006
-' #if (NTDDI_VERSION >= NTDDI_WIN8)
-    BCRYPT_KEY_DERIVATION_INTERFACE  = &H00000007
-End Enum
 
 Public Type BCRYPT_ALGORITHM_IDENTIFIER
     pszName As LongPtr
@@ -45207,6 +45742,262 @@ Public Type BCRYPT_DSA_KEY_BLOB
     q(0 To 19) As Byte
 End Type
 
+Public Enum HASHALGORITHM_ENUM
+    DSA_HASH_ALGORITHM_SHA1 
+    DSA_HASH_ALGORITHM_SHA256 
+    DSA_HASH_ALGORITHM_SHA512
+End Enum
+Public Enum DSAFIPSVERSION_ENUM
+    DSA_FIPS186_2  
+    DSA_FIPS186_3
+End Enum
+Public Type BCRYPT_DSA_KEY_BLOB_V2
+    dwMagic As Long
+    cbKey As Long
+    hashAlgorithm As HASHALGORITHM_ENUM
+    standardVersion As DSAFIPSVERSION_ENUM
+    cbSeedLength As Long
+    cbGroupSize As Long
+    Count(0 To 3) As Byte
+End Type
+
+Public Type BCRYPT_KEY_DATA_BLOB_HEADER
+    dwMagic As Long
+    dwVersion As Long
+    cbKeyData As Long
+End Type
+
+Public Const BCRYPT_KEY_DATA_BLOB_MAGIC  = &H4d42444b  'Key Data Blob Magic (KDBM)
+Public Enum BCryptDataBlobVersions
+    BCRYPT_KEY_DATA_BLOB_VERSION1  = &H1
+End Enum
+'  Property Strings for DSA
+Public Const BCRYPT_DSA_PARAMETERS  = "DSAParameters"
+Public Enum BCryptDSAParamMagic
+    BCRYPT_DSA_PARAMETERS_MAGIC  = &H4d505344  ' DSPM	
+'(NTDDI_VERSION  = >= NTDDI_WIN8)
+    BCRYPT_DSA_PARAMETERS_MAGIC_V2  = &H324d5044  ' DPM2
+End Enum
+Public Type BCRYPT_DSA_PARAMETER_HEADER
+    cbLength As Long
+    dwMagic As BCryptDSAParamMagic
+    cbKeyLength As Long
+    Count(0 To 3) As Byte
+    Seed(0 To 19) As Byte
+    q(0 To 19) As Byte
+End Type
+Public Type BCRYPT_DSA_PARAMETER_HEADER_V2
+    cbLength As Long
+    dwMagic As BCryptDSAParamMagic
+    cbKeyLength As Long
+    hashAlgorithm As HASHALGORITHM_ENUM
+    standardVersion As DSAFIPSVERSION_ENUM
+    cbSeedLength As Long
+    cbGroupSize As Long
+    Count(0 To 3) As Byte
+End Type
+
+Public Const BCRYPT_ECC_PARAMETERS  = "ECCParameters"
+Public Const BCRYPT_ECC_CURVE_NAME  = "ECCCurveName"
+Public Const BCRYPT_ECC_CURVE_NAME_LIST  = "ECCCurveNameList"
+Public Const BCRYPT_ECC_PARAMETERS_MAGIC  = &H50434345  ' ECCP
+
+Public Type BCRYPT_ECC_CURVE_NAMES
+    dwEccCurveNames As Long
+    pEccCurveNames As LongPtr 'LPWSTR*  !! take note
+End Type
+
+Public Const BCRYPT_ECC_CURVE_BRAINPOOLP160R1  = "brainpoolP160r1"
+Public Const BCRYPT_ECC_CURVE_BRAINPOOLP160T1  = "brainpoolP160t1"
+Public Const BCRYPT_ECC_CURVE_BRAINPOOLP192R1  = "brainpoolP192r1"
+Public Const BCRYPT_ECC_CURVE_BRAINPOOLP192T1  = "brainpoolP192t1"
+Public Const BCRYPT_ECC_CURVE_BRAINPOOLP224R1  = "brainpoolP224r1"
+Public Const BCRYPT_ECC_CURVE_BRAINPOOLP224T1  = "brainpoolP224t1"
+Public Const BCRYPT_ECC_CURVE_BRAINPOOLP256R1  = "brainpoolP256r1"
+Public Const BCRYPT_ECC_CURVE_BRAINPOOLP256T1  = "brainpoolP256t1"
+Public Const BCRYPT_ECC_CURVE_BRAINPOOLP320R1  = "brainpoolP320r1"
+Public Const BCRYPT_ECC_CURVE_BRAINPOOLP320T1  = "brainpoolP320t1"
+Public Const BCRYPT_ECC_CURVE_BRAINPOOLP384R1  = "brainpoolP384r1"
+Public Const BCRYPT_ECC_CURVE_BRAINPOOLP384T1  = "brainpoolP384t1"
+Public Const BCRYPT_ECC_CURVE_BRAINPOOLP512R1  = "brainpoolP512r1"
+Public Const BCRYPT_ECC_CURVE_BRAINPOOLP512T1  = "brainpoolP512t1"
+Public Const BCRYPT_ECC_CURVE_25519  = "curve25519"
+Public Const BCRYPT_ECC_CURVE_EC192WAPI  = "ec192wapi"
+Public Const BCRYPT_ECC_CURVE_NISTP192  = "nistP192"
+Public Const BCRYPT_ECC_CURVE_NISTP224  = "nistP224"
+Public Const BCRYPT_ECC_CURVE_NISTP256  = "nistP256"
+Public Const BCRYPT_ECC_CURVE_NISTP384  = "nistP384"
+Public Const BCRYPT_ECC_CURVE_NISTP521  = "nistP521"
+Public Const BCRYPT_ECC_CURVE_NUMSP256T1  = "numsP256t1"
+Public Const BCRYPT_ECC_CURVE_NUMSP384T1  = "numsP384t1"
+Public Const BCRYPT_ECC_CURVE_NUMSP512T1  = "numsP512t1"
+Public Const BCRYPT_ECC_CURVE_SECP160K1  = "secP160k1"
+Public Const BCRYPT_ECC_CURVE_SECP160R1  = "secP160r1"
+Public Const BCRYPT_ECC_CURVE_SECP160R2  = "secP160r2"
+Public Const BCRYPT_ECC_CURVE_SECP192K1  = "secP192k1"
+Public Const BCRYPT_ECC_CURVE_SECP192R1  = "secP192r1"
+Public Const BCRYPT_ECC_CURVE_SECP224K1  = "secP224k1"
+Public Const BCRYPT_ECC_CURVE_SECP224R1  = "secP224r1"
+Public Const BCRYPT_ECC_CURVE_SECP256K1  = "secP256k1"
+Public Const BCRYPT_ECC_CURVE_SECP256R1  = "secP256r1"
+Public Const BCRYPT_ECC_CURVE_SECP384R1  = "secP384r1"
+Public Const BCRYPT_ECC_CURVE_SECP521R1  = "secP521r1"
+Public Const BCRYPT_ECC_CURVE_WTLS7  = "wtls7"
+Public Const BCRYPT_ECC_CURVE_WTLS9  = "wtls9"
+Public Const BCRYPT_ECC_CURVE_WTLS12  = "wtls12"
+Public Const BCRYPT_ECC_CURVE_X962P192V1  = "x962P192v1"
+Public Const BCRYPT_ECC_CURVE_X962P192V2  = "x962P192v2"
+Public Const BCRYPT_ECC_CURVE_X962P192V3  = "x962P192v3"
+Public Const BCRYPT_ECC_CURVE_X962P239V1  = "x962P239v1"
+Public Const BCRYPT_ECC_CURVE_X962P239V2  = "x962P239v2"
+Public Const BCRYPT_ECC_CURVE_X962P239V3  = "x962P239v3"
+Public Const BCRYPT_ECC_CURVE_X962P256V1  = "x962P256v1"
+
+Public Enum BCRYPT_HASH_OPERATION_TYPE
+    BCRYPT_HASH_OPERATION_HASH_DATA = 1
+    BCRYPT_HASH_OPERATION_FINISH_HASH = 2
+End Enum
+Public Type BCRYPT_MULTI_HASH_OPERATION
+    iHash As Long ' index of hash object
+    hashOperation As BCRYPT_HASH_OPERATION_TYPE ' operation to be performed
+    pbBuffer As LongPtr 'PUCHAR ' data to be hashed, or result buffer
+    cbBuffer As Long
+End Type
+
+Public Enum BCRYPT_MULTI_OPERATION_TYPE
+    BCRYPT_OPERATION_TYPE_HASH = 1 ' structure type is BCRYPT_MULTI_HASH_OPERATION
+End Enum
+
+Public Type BCRYPT_MULTI_OBJECT_LENGTH_STRUCT
+    cbPerObject As Long
+    cbPerElement As Long ' required size for N elements is (cbPerObject + N * cbPerElement)
+End Type
+
+Public Const MS_PRIMITIVE_PROVIDER  = "Microsoft Primitive Provider"
+Public Const MS_PLATFORM_CRYPTO_PROVIDER  = "Microsoft Platform Crypto Provider"
+
+Public Const BCRYPT_RSA_ALGORITHM  = "RSA"
+Public Const BCRYPT_RSA_SIGN_ALGORITHM  = "RSA_SIGN"
+Public Const BCRYPT_DH_ALGORITHM  = "DH"
+Public Const BCRYPT_DSA_ALGORITHM  = "DSA"
+Public Const BCRYPT_RC2_ALGORITHM  = "RC2"
+Public Const BCRYPT_RC4_ALGORITHM  = "RC4"
+Public Const BCRYPT_AES_ALGORITHM  = "AES"
+Public Const BCRYPT_DES_ALGORITHM  = "DES"
+Public Const BCRYPT_DESX_ALGORITHM  = "DESX"
+Public Const BCRYPT_3DES_ALGORITHM  = "3DES"
+Public Const BCRYPT_3DES_112_ALGORITHM  = "3DES_112"
+Public Const BCRYPT_MD2_ALGORITHM  = "MD2"
+Public Const BCRYPT_MD4_ALGORITHM  = "MD4"
+Public Const BCRYPT_MD5_ALGORITHM  = "MD5"
+Public Const BCRYPT_SHA1_ALGORITHM  = "SHA1"
+Public Const BCRYPT_SHA256_ALGORITHM  = "SHA256"
+Public Const BCRYPT_SHA384_ALGORITHM  = "SHA384"
+Public Const BCRYPT_SHA512_ALGORITHM  = "SHA512"
+Public Const BCRYPT_AES_GMAC_ALGORITHM  = "AES-GMAC"
+Public Const BCRYPT_AES_CMAC_ALGORITHM  = "AES-CMAC"
+Public Const BCRYPT_ECDSA_P256_ALGORITHM  = "ECDSA_P256"
+Public Const BCRYPT_ECDSA_P384_ALGORITHM  = "ECDSA_P384"
+Public Const BCRYPT_ECDSA_P521_ALGORITHM  = "ECDSA_P521"
+Public Const BCRYPT_ECDH_P256_ALGORITHM  = "ECDH_P256"
+Public Const BCRYPT_ECDH_P384_ALGORITHM  = "ECDH_P384"
+Public Const BCRYPT_ECDH_P521_ALGORITHM  = "ECDH_P521"
+Public Const BCRYPT_RNG_ALGORITHM  = "RNG"
+Public Const BCRYPT_RNG_FIPS186_DSA_ALGORITHM  = "FIPS186DSARNG"
+Public Const BCRYPT_RNG_DUAL_EC_ALGORITHM  = "DUALECRNG"
+' #if (NTDDI_VERSION >= NTDDI_WIN8)
+Public Const BCRYPT_SP800108_CTR_HMAC_ALGORITHM  = "SP800_108_CTR_HMAC"
+Public Const BCRYPT_SP80056A_CONCAT_ALGORITHM  = "SP800_56A_CONCAT"
+Public Const BCRYPT_PBKDF2_ALGORITHM  = "PBKDF2"
+Public Const BCRYPT_CAPI_KDF_ALGORITHM  = "CAPI_KDF"
+Public Const BCRYPT_TLS1_1_KDF_ALGORITHM  = "TLS1_1_KDF"
+Public Const BCRYPT_TLS1_2_KDF_ALGORITHM  = "TLS1_2_KDF"
+' #endif
+' #if (NTDDI_VERSION >= NTDDI_WINTHRESHOLD)
+Public Const BCRYPT_ECDSA_ALGORITHM  = "ECDSA"
+Public Const BCRYPT_ECDH_ALGORITHM  = "ECDH"
+Public Const BCRYPT_XTS_AES_ALGORITHM  = "XTS-AES"
+' #endif
+' #if (NTDDI_VERSION >= NTDDI_WIN10_RS4)
+Public Const BCRYPT_HKDF_ALGORITHM  = "HKDF"
+' #endif
+' #if (NTDDI_VERSION >= NTDDI_WIN10_FE)
+Public Const BCRYPT_CHACHA20_POLY1305_ALGORITHM  = "CHACHA20_POLY1305"
+' #endif
+
+Public Enum BCRYPT_CNG_INTERFACES
+    BCRYPT_CIPHER_INTERFACE  = &H00000001
+    BCRYPT_HASH_INTERFACE  = &H00000002
+    BCRYPT_ASYMMETRIC_ENCRYPTION_INTERFACE  = &H00000003
+    BCRYPT_SECRET_AGREEMENT_INTERFACE  = &H00000004
+    BCRYPT_SIGNATURE_INTERFACE  = &H00000005
+    BCRYPT_RNG_INTERFACE  = &H00000006
+' #if (NTDDI_VERSION >= NTDDI_WIN8)
+    BCRYPT_KEY_DERIVATION_INTERFACE  = &H00000007
+End Enum
+
+
+Public Const BCRYPT_MD2_ALG_HANDLE                As LongPtr = (&H00000001)
+Public Const BCRYPT_MD4_ALG_HANDLE                As LongPtr = (&H00000011)
+Public Const BCRYPT_MD5_ALG_HANDLE                As LongPtr = (&H00000021)
+Public Const BCRYPT_SHA1_ALG_HANDLE               As LongPtr = (&H00000031)
+Public Const BCRYPT_SHA256_ALG_HANDLE             As LongPtr = (&H00000041)
+Public Const BCRYPT_SHA384_ALG_HANDLE             As LongPtr = (&H00000051)
+Public Const BCRYPT_SHA512_ALG_HANDLE             As LongPtr = (&H00000061)
+Public Const BCRYPT_RC4_ALG_HANDLE                As LongPtr = (&H00000071)
+Public Const BCRYPT_RNG_ALG_HANDLE                As LongPtr = (&H00000081)
+Public Const BCRYPT_HMAC_MD5_ALG_HANDLE           As LongPtr = (&H00000091)
+Public Const BCRYPT_HMAC_SHA1_ALG_HANDLE          As LongPtr = (&H000000a1)
+Public Const BCRYPT_HMAC_SHA256_ALG_HANDLE        As LongPtr = (&H000000b1)
+Public Const BCRYPT_HMAC_SHA384_ALG_HANDLE        As LongPtr = (&H000000c1)
+Public Const BCRYPT_HMAC_SHA512_ALG_HANDLE        As LongPtr = (&H000000d1)
+Public Const BCRYPT_RSA_ALG_HANDLE                As LongPtr = (&H000000e1)
+Public Const BCRYPT_ECDSA_ALG_HANDLE              As LongPtr = (&H000000f1)
+Public Const BCRYPT_AES_CMAC_ALG_HANDLE           As LongPtr = (&H00000101)
+Public Const BCRYPT_AES_GMAC_ALG_HANDLE           As LongPtr = (&H00000111)
+Public Const BCRYPT_HMAC_MD2_ALG_HANDLE           As LongPtr = (&H00000121)
+Public Const BCRYPT_HMAC_MD4_ALG_HANDLE           As LongPtr = (&H00000131)
+Public Const BCRYPT_3DES_CBC_ALG_HANDLE           As LongPtr = (&H00000141)
+Public Const BCRYPT_3DES_ECB_ALG_HANDLE           As LongPtr = (&H00000151)
+Public Const BCRYPT_3DES_CFB_ALG_HANDLE           As LongPtr = (&H00000161)
+Public Const BCRYPT_3DES_112_CBC_ALG_HANDLE       As LongPtr = (&H00000171)
+Public Const BCRYPT_3DES_112_ECB_ALG_HANDLE       As LongPtr = (&H00000181)
+Public Const BCRYPT_3DES_112_CFB_ALG_HANDLE       As LongPtr = (&H00000191)
+Public Const BCRYPT_AES_CBC_ALG_HANDLE            As LongPtr = (&H000001a1)
+Public Const BCRYPT_AES_ECB_ALG_HANDLE            As LongPtr = (&H000001b1)
+Public Const BCRYPT_AES_CFB_ALG_HANDLE            As LongPtr = (&H000001c1)
+Public Const BCRYPT_AES_CCM_ALG_HANDLE            As LongPtr = (&H000001d1)
+Public Const BCRYPT_AES_GCM_ALG_HANDLE            As LongPtr = (&H000001e1)
+Public Const BCRYPT_DES_CBC_ALG_HANDLE            As LongPtr = (&H000001f1)
+Public Const BCRYPT_DES_ECB_ALG_HANDLE            As LongPtr = (&H00000201)
+Public Const BCRYPT_DES_CFB_ALG_HANDLE            As LongPtr = (&H00000211)
+Public Const BCRYPT_DESX_CBC_ALG_HANDLE           As LongPtr = (&H00000221)
+Public Const BCRYPT_DESX_ECB_ALG_HANDLE           As LongPtr = (&H00000231)
+Public Const BCRYPT_DESX_CFB_ALG_HANDLE           As LongPtr = (&H00000241)
+Public Const BCRYPT_RC2_CBC_ALG_HANDLE            As LongPtr = (&H00000251)
+Public Const BCRYPT_RC2_ECB_ALG_HANDLE            As LongPtr = (&H00000261)
+Public Const BCRYPT_RC2_CFB_ALG_HANDLE            As LongPtr = (&H00000271)
+Public Const BCRYPT_DH_ALG_HANDLE                 As LongPtr = (&H00000281)
+Public Const BCRYPT_ECDH_ALG_HANDLE               As LongPtr = (&H00000291)
+Public Const BCRYPT_ECDH_P256_ALG_HANDLE          As LongPtr = (&H000002a1)
+Public Const BCRYPT_ECDH_P384_ALG_HANDLE          As LongPtr = (&H000002b1)
+Public Const BCRYPT_ECDH_P521_ALG_HANDLE          As LongPtr = (&H000002c1)
+Public Const BCRYPT_DSA_ALG_HANDLE                As LongPtr = (&H000002d1)
+Public Const BCRYPT_ECDSA_P256_ALG_HANDLE         As LongPtr = (&H000002e1)
+Public Const BCRYPT_ECDSA_P384_ALG_HANDLE         As LongPtr = (&H000002f1)
+Public Const BCRYPT_ECDSA_P521_ALG_HANDLE         As LongPtr = (&H00000301)
+Public Const BCRYPT_RSA_SIGN_ALG_HANDLE           As LongPtr = (&H00000311)
+Public Const BCRYPT_CAPI_KDF_ALG_HANDLE           As LongPtr = (&H00000321)
+Public Const BCRYPT_PBKDF2_ALG_HANDLE             As LongPtr = (&H00000331)
+Public Const BCRYPT_SP800108_CTR_HMAC_ALG_HANDLE  As LongPtr = (&H00000341)
+Public Const BCRYPT_SP80056A_CONCAT_ALG_HANDLE    As LongPtr = (&H00000351)
+Public Const BCRYPT_TLS1_1_KDF_ALG_HANDLE         As LongPtr = (&H00000361)
+Public Const BCRYPT_TLS1_2_KDF_ALG_HANDLE         As LongPtr = (&H00000371)
+Public Const BCRYPT_XTS_AES_ALG_HANDLE            As LongPtr = (&H00000381)
+Public Const BCRYPT_HKDF_ALG_HANDLE               As LongPtr = (&H00000391)
+
+Public Const BCRYPT_CHACHA20_POLY1305_ALG_HANDLE  As LongPtr = (&H000003A1)
+
 Public Enum BCRYPT_KEYPAIR_IMPORT_FLAGS
     BCRYPT_NO_KEY_VALIDATION  = &H00000008
 ' #if (NTDDI_VERSION >= NTDDI_WIN10_CO)
@@ -45238,7 +46029,7 @@ Public DeclareWide PtrSafe Function BCryptImportKeyPair Lib "bcrypt" (ByVal hAlg
 Public DeclareWide PtrSafe Function BCryptExportKey Lib "bcrypt" (ByVal hKey As LongPtr, ByVal hExportKey As LongPtr, ByVal pszBlobType As String, pbOutput As Any, ByVal cbOutput As Long, pcbResult As Long, ByVal dwFlags As Long) As NTSTATUS
 Public DeclareWide PtrSafe Function BCryptSecretAgreement Lib "bcrypt" (ByVal hPrivKey As LongPtr, ByVal hPubKey As LongPtr, phAgreedSecret As LongPtr, ByVal dwFlags As Long) As NTSTATUS
 Public DeclareWide PtrSafe Function BCryptDestroySecret Lib "bcrypt" (ByVal hSecret As LongPtr) As NTSTATUS
-
+Public DeclareWide PtrSafe Function BCryptDeriveKey Lib "bcrypt" (ByVal hSharedSecret As LongPtr, ByVal pwszKDF As String, pParametersList As BCryptBufferDesc, pbDerivedKey As Any, ByVal cbDerivedKey As Long, pcbResult As Long, ByVal dwFlags As BCryptDeriveKeyFlags) As NTSTATUS
 
 
 
