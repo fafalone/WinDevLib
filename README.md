@@ -6,7 +6,7 @@
 
 ---
 
-**Current Version: 6.4.258 (November 28th, 2023)**
+**Current Version: 6.5.260 (December 3rd, 2023)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -123,11 +123,21 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, vbNullPtr, ...)
 
 ### Updates
 
+**Update (v6.5.260, 04 Dec 2023):**
+-Added all authz APIs/consts/types from authz.h; note that AuthzReportSecurityEvent is currently unsupported by the language. However, it internally calls AuthzReportSecurityEventFromParams.\
+-Added many missing shlwapi APIs; URL flags enum missing values\
+-Updated shlwapi "Is" functions to use BOOL instead of Long where that way in sdk.\
+-Completed all currently known PROCESSINFOCLASS structs for NtQueryInformationProcess.\
+-Added custom enums for PROCESS_MITIGATION_* structs\
+-(Bug fix) SHGetThreadRef/SHSetThreadRef definitions incorrect\
+-(Bug fix) SHMessageBoxCheck definition incorrect\
+-(Bug fix) Path[Un]QuoteSpaces definitions incorrect
+
+
 **Update (v6.4.258), 28 Nov 2023):**\
 -Large number of additional advapi security APIs (AccCtrl.h and AclAPI.h, 100% coverage)\
 -Additional crypto APIs\
 -(Bug fix) Missing FindFirstFileEx flag FIND_FIRST_EX_ON_DISK_ENTRIES_ONLY.
-
 
 **Update (v6.4.257), 26 Nov 2023):** GdipGetImageEncoders/GdipGetImageDecoders definitions "incorrect" for unclear reasons... Documentation indicates it's an array of ImageCodecInfo, which does not contain any C-style arrays, but there's a mismatch between the byte size and number of structs * sizeof. Changed to As Any to allow byte buffers in addition to oversized ImageCodecInfo buffers.
 
