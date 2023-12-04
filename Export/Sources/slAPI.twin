@@ -1192,26 +1192,69 @@ Public Enum URLIS
 End Enum
 
 Public Enum URL
-	URL_UNESCAPE = &H10000000
-	URL_ESCAPE_UNSAFE = &H20000000
-	URL_PLUGGABLE_PROTOCOL = &H40000000
-	URL_WININET_COMPATIBILITY = &H80000000
-	URL_DONT_ESCAPE_EXTRA_INFO = &H02000000
-	URL_DONT_UNESCAPE_EXTRA_INFO = &H02000000
-	URL_BROWSER_MODE = &H02000000
-	URL_ESCAPE_SPACES_ONLY = &H04000000
-	URL_DONT_SIMPLIFY = &H08000000
-	URL_NO_META = &H08000000
-	URL_UNESCAPE_INPLACE = &H00100000
-	URL_CONVERT_IF_DOSPATH = &H00200000
-	URL_UNESCAPE_HIGH_ANSI_ONLY = &H00400000
-	URL_INTERNAL_PATH = &H00800000 ' Will escape #'s in paths
-	URL_FILE_USE_PATHURL = &H00010000
-	URL_ESCAPE_PERCENT = &H00001000
-	URL_ESCAPE_SEGMENT_ONLY = &H00002000 ' Treat the entire URL param as one URL segment
-    URL_ESCAPE_AS_UTF8 = &h00040000
-    URL_ESCAPE_ASCII_URI_COMPONENT = &h00080000
+    URL_UNESCAPE  = &H10000000
+    URL_ESCAPE_UNSAFE  = &H20000000
+    URL_PLUGGABLE_PROTOCOL  = &H40000000
+    URL_WININET_COMPATIBILITY  = &H80000000
+    URL_DONT_ESCAPE_EXTRA_INFO  = &H02000000
+    URL_DONT_UNESCAPE_EXTRA_INFO  = URL_DONT_ESCAPE_EXTRA_INFO
+    URL_BROWSER_MODE  = URL_DONT_ESCAPE_EXTRA_INFO
+    URL_ESCAPE_SPACES_ONLY  = &H04000000
+    URL_DONT_SIMPLIFY  = &H08000000
+    URL_NO_META  = URL_DONT_SIMPLIFY
+    URL_UNESCAPE_INPLACE  = &H00100000
+    URL_CONVERT_IF_DOSPATH  = &H00200000
+    URL_UNESCAPE_HIGH_ANSI_ONLY  = &H00400000
+    URL_INTERNAL_PATH  = &H00800000  ' Will escape #'s in paths
+    URL_FILE_USE_PATHURL  = &H00010000
+' #if (_WIN32_IE >= _WIN32_IE_IE60SP2)
+    URL_DONT_UNESCAPE  = &H00020000  ' Do not unescape the path/url at all
+' #endif // _WIN32_IE_IE60SP2
+' #if (NTDDI_VERSION >= NTDDI_WIN7)
+    URL_ESCAPE_AS_UTF8  = &H00040000  ' Percent-encode all non-ASCII characters as their UTF-8 equivalents.
+' #endif // (NTDDI_VERSION >= NTDDI_WIN7)
+' #if (NTDDI_VERSION >= NTDDI_WIN8)
+    URL_UNESCAPE_AS_UTF8  = URL_ESCAPE_AS_UTF8
+    URL_ESCAPE_ASCII_URI_COMPONENT  = &H00080000  ' Percent-encode all ASCII characters outside of the unreserved set from URI RFC 3986 (a-zA-Z0-9-.~_) (i.e.) No need for URL_ESCAPE_PERCENT along with this.
+    URL_ESCAPE_URI_COMPONENT  = (URL_ESCAPE_ASCII_URI_COMPONENT  Or  URL_ESCAPE_AS_UTF8)
+    URL_UNESCAPE_URI_COMPONENT  = URL_UNESCAPE_AS_UTF8
+' #endif // (NTDDI_VERSION >= NTDDI_WIN8)
+    URL_ESCAPE_PERCENT  = &H00001000
+    URL_ESCAPE_SEGMENT_ONLY  = &H00002000  ' Treat the entire URL param as one URL segment.
+    URL_PARTFLAG_KEEPSCHEME  = &H00000001
+    URL_APPLY_DEFAULT  = &H00000001
+    URL_APPLY_GUESSSCHEME  = &H00000002
+    URL_APPLY_GUESSFILE  = &H00000004
+    URL_APPLY_FORCEAPPLY  = &H00000008
 End Enum
+
+Public Type PARSEDURLA
+    cbSize As Long
+    ' Pointers into the buffer that was provided to ParseURL
+    pszProtocol As String
+    cchProtocol As Long
+    pszSuffix As String
+    cchSuffix As Long
+    nScheme As URL_SCHEME ' One of URL_SCHEME_*
+End Type
+Public Type PARSEDURLW
+    cbSize As Long
+    ' Pointers into the buffer that was provided to ParseURL
+    pszProtocol As LongPtr
+    cchProtocol As Long
+    pszSuffix As LongPtr
+    cchSuffix As Long
+    nScheme As URL_SCHEME ' One of URL_SCHEME_*
+End Type
+Public Type PARSEDURL
+    cbSize As Long
+    ' Pointers into the buffer that was provided to ParseURL
+    pszProtocol As LongPtr
+    cchProtocol As Long
+    pszSuffix As LongPtr
+    cchSuffix As Long
+    nScheme As URL_SCHEME ' One of URL_SCHEME_*
+End Type
 
 Public Enum URL_PARTFLAG
 	URL_PARTFLAG_KEEPSCHEME = &H00000001
@@ -1346,11 +1389,23 @@ Public Enum PMS_Flags
     PMSF_NORMAL = &H0
     PMSF_MULTIPLE = &H1
     PMSF_DONT_STRIP_SPACES = &H10000
-End Enum        
+End Enum    
+
+Public Const SZ_CONTENTTYPE_HTMLA  = "text/html"
+Public Const SZ_CONTENTTYPE_HTMLW  = "text/html"
+Public Const SZ_CONTENTTYPE_CDFA  = "application/x-cdf"
+Public Const SZ_CONTENTTYPE_CDFW  = "application/x-cdf"
+Public Const SZ_CONTENTTYPE_HTML  = "text/html"
+Public Const SZ_CONTENTTYPE_CDF  = "application/x-cdf"
+
+Public Enum SFBS_FLAGS
+    SFBS_FLAGS_ROUND_TO_NEAREST_DISPLAYED_DIGIT = &H0001 ' round to the nearest displayed digit
+    SFBS_FLAGS_TRUNCATE_UNDISPLAYED_DECIMAL_DIGITS = &H0002 ' discard undisplayed digits
+End Enum
+    
         
 Public Declare PtrSafe Function AssocGetPerceivedType Lib "shlwapi.dll" (ByVal pszExt As LongPtr, ptype As PERCEIVED, pflag As PERCEIVEDFLAG, ppszType As LongPtr) As Long
 Public Declare PtrSafe Function StrRetToStrW Lib "shlwapi" (pStr As STRRET, ByVal pidl As LongPtr, ppsz As LongPtr) As Long
-Public Declare PtrSafe Function IUnknown_QueryService Lib "shlwapi" (ByVal pUnk As IUnknown, ByRef guidService As UUID, ByRef riid As UUID, ByRef ppv As Any) As Long
 Public Declare PtrSafe Function StrChrA Lib "shlwapi" (ByVal lpStart As String, ByVal wMatch As Integer) As LongPtr
 Public Declare PtrSafe Function StrChrW Lib "shlwapi" (ByVal lpStart As LongPtr, ByVal wMatch As Integer) As LongPtr
 Public Declare PtrSafe Function StrChrIA Lib "shlwapi" (ByVal lpStart As String, ByVal wMatch As Integer) As LongPtr
@@ -1377,6 +1432,7 @@ Public Declare PtrSafe Function StrFormatByteSizeA Lib "shlwapi" (ByVal dw As Lo
 Public Declare PtrSafe Function StrFormatByteSize64A Lib "shlwapi" (ByVal qdw As LongLong, ByVal szBuf As String, ByVal uiBufSize As Long) As LongPtr
 Public Declare PtrSafe Function StrFormatByteSizeW Lib "shlwapi" (ByVal qdw As LongLong, ByVal szBuf As LongPtr, ByVal uiBufSize As Long) As LongPtr
 Public DeclareWide PtrSafe Function StrFormatByteSize Lib "shlwapi" Alias "StrFormatByteSizeW" (ByVal qdw As LongLong, ByVal szBuf As String, ByVal uiBufSize As Long) As LongPtr
+Public DeclareWide PtrSafe Function StrFormatByteSizeEx Lib "shlwapi" (ByVal ull As LongLong, ByVal flags As SFBS_FLAGS, ByVal pszBuf As String, ByVal cchBuf As Long) As Long
 Public Declare PtrSafe Function StrFormatKBSizeW Lib "shlwapi" (ByVal qdw As LongLong, ByVal szBuf As LongPtr, ByVal uiBufSize As Long) As LongPtr
 Public Declare PtrSafe Function StrFormatKBSizeA Lib "shlwapi" (ByVal qdw As LongLong, ByVal szBuf As String, ByVal uiBufSize As Long) As LongPtr
 Public DeclareWide PtrSafe Function StrFormatKBSize Lib "shlwapi" Alias "StrFormatKBSizeW" (ByVal qdw As LongLong, ByVal szBuf As String, ByVal uiBufSize As Long) As LongPtr
@@ -1416,10 +1472,15 @@ Public Declare PtrSafe Function wvnsprintfA Lib "shlwapi" (ByVal lpOut As String
 Public Declare PtrSafe Function wvnsprintfW Lib "shlwapi" (ByVal lpOut As LongPtr, ByVal cchLimitIn As Long, ByVal lpFmt As LongPtr, ByRef arglist As Any) As Long
 Public Declare PtrSafe Function StrRetToStrA Lib "shlwapi" (ByVal pstrret As LongPtr, ByVal pidl As LongPtr) As LongPtr
 Public DeclareWide PtrSafe Function StrRetToStr Lib "shlwapi" Alias "StrRetToStrW" (ByVal pstrret As LongPtr, ByVal pidl As LongPtr) As LongPtr
-Public Declare PtrSafe Sub StrRetToBufA Lib "shlwapi" (ByVal pstrret As LongPtr, ByVal pidl As LongPtr, ByVal pszBuf As String, ByVal cchBuf As Long)
-Public Declare PtrSafe Sub StrRetToBufW Lib "shlwapi" (ByVal pStr As LongPtr, ByVal pidl As LongPtr, ByVal pszBuf As LongPtr, ByVal cchBuf As Long)
-Public DeclareWide PtrSafe Sub StrRetToBuf Lib "shlwapi" Alias "StrRetToBufW" (ByVal pstrret As LongPtr, ByVal pidl As LongPtr, ByVal pszBuf As String, ByVal cchBuf As Long)
+Public Declare PtrSafe Function StrRetToBufA Lib "shlwapi" (ByVal pstrret As LongPtr, ByVal pidl As LongPtr, ByVal pszBuf As String, ByVal cchBuf As Long) As Long
+Public Declare PtrSafe Function StrRetToBufW Lib "shlwapi" (ByVal pStr As LongPtr, ByVal pidl As LongPtr, ByVal pszBuf As LongPtr, ByVal cchBuf As Long) As Long
+Public DeclareWide PtrSafe Function StrRetToBuf Lib "shlwapi" Alias "StrRetToBufW" (ByVal pstrret As LongPtr, ByVal pidl As LongPtr, ByVal pszBuf As String, ByVal cchBuf As Long) As Long
+Public DeclareWide PtrSafe Function StrRetToBSTR Lib "shlwapi" (pstr As STRRET, ByVal pidl As LongPtr, pbstr As String) As Long
 Public Declare PtrSafe Function SHStrDupW Lib "shlwapi" Alias "SHStrDupW" (ByVal psz As LongPtr, ppwsz As LongPtr) As Long
+Public Declare PtrSafe Function IsCharSpaceA Lib "shlwapi" (ByVal wch As Byte) As BOOL
+Public Declare PtrSafe Function IsCharSpaceW Lib "shlwapi" (ByVal wch As Integer) As BOOL
+Public Declare PtrSafe Function IsCharSpace Lib "shlwapi" Alias "IsCharSpaceW" (ByVal wch As Integer) As BOOL
+
 Public Declare PtrSafe Function IntlStrEqWorkerA Lib "shlwapi" (ByVal fCaseSens As Long, ByVal lpString1 As String, ByVal lpString2 As String, ByVal nChar As Long) As Long
 Public Declare PtrSafe Function IntlStrEqWorkerW Lib "shlwapi" (ByVal fCaseSens As Long, ByVal lpString1 As LongPtr, ByVal lpString2 As LongPtr, ByVal nChar As Long) As Long
 Public DeclareWide PtrSafe Function IntlStrEqWorker Lib "shlwapi" Alias "IntlStrEqWorkerW" (ByVal fCaseSens As Long, ByVal lpString1 As String, ByVal lpString2 As String, ByVal nChar As Long) As Long
@@ -1471,69 +1532,69 @@ Public DeclareWide PtrSafe Function PathGetArgs Lib "shlwapi" Alias "PathGetArgs
 Public Declare PtrSafe Function PathFindSuffixArrayA Lib "shlwapi" (ByVal pszPath As String, ByRef apszSuffix As String, ByVal iArraySize As Long) As LongPtr
 Public Declare PtrSafe Function PathFindSuffixArrayW Lib "shlwapi" (ByVal pszPath As LongPtr, ByRef apszSuffix As LongPtr, ByVal iArraySize As Long) As LongPtr
 Public DeclareWide PtrSafe Function PathFindSuffixArray Lib "shlwapi" Alias "PathFindSuffixArrayW" (ByVal pszPath As String, ByRef apszSuffix As String, ByVal iArraySize As Long) As LongPtr
-Public Declare PtrSafe Function PathIsLFNFileSpecA Lib "shlwapi" (ByVal lpName As String) As Long
-Public Declare PtrSafe Function PathIsLFNFileSpecW Lib "shlwapi" (ByVal lpName As LongPtr) As Long
-Public DeclareWide PtrSafe Function PathIsLFNFileSpec Lib "shlwapi" Alias "PathIsLFNFileSpecW" (ByVal lpName As String) As Long
+Public Declare PtrSafe Function PathIsLFNFileSpecA Lib "shlwapi" (ByVal lpName As String) As BOOL
+Public Declare PtrSafe Function PathIsLFNFileSpecW Lib "shlwapi" (ByVal lpName As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function PathIsLFNFileSpec Lib "shlwapi" Alias "PathIsLFNFileSpecW" (ByVal lpName As String) As BOOL
 Public Declare PtrSafe Function PathGetCharTypeA Lib "shlwapi" (ByVal ch As Byte) As GCTFlags
 Public Declare PtrSafe Function PathGetCharTypeW Lib "shlwapi" (ByVal ch As Integer) As GCTFlags
 Public Declare PtrSafe Function PathGetCharType Lib "shlwapi" Alias "PathGetCharTypeW" (ByVal ch As Integer) As GCTFlags
 Public Declare PtrSafe Function PathGetDriveNumberA Lib "shlwapi" (ByVal pszPath As String) As Long
 Public Declare PtrSafe Function PathGetDriveNumberW Lib "shlwapi" (ByVal pszPath As LongPtr) As Long
 Public DeclareWide PtrSafe Function PathGetDriveNumber Lib "shlwapi" Alias "PathGetDriveNumberW" (ByVal pszPath As String) As Long
-Public Declare PtrSafe Function PathIsDirectoryA Lib "shlwapi" Alias "(" (ByVal pszPath As String) As Long
-Public Declare PtrSafe Function PathIsDirectoryW Lib "shlwapi" Alias "(" (ByVal pszPath As LongPtr) As Long
-Public DeclareWide PtrSafe Function PathIsDirectory Lib "shlwapi" Alias "PathIsDirectoryW" (ByVal pszPath As String) As Long
-Public Declare PtrSafe Function PathIsDirectoryEmptyA Lib "shlwapi" (ByVal pszPath As String) As Long
-Public Declare PtrSafe Function PathIsDirectoryEmptyW Lib "shlwapi" (ByVal pszPath As LongPtr) As Long
-Public DeclareWide PtrSafe Function PathIsDirectoryEmpty Lib "shlwapi" Alias "PathIsDirectoryEmptyW" (ByVal pszPath As String) As Long
-Public Declare PtrSafe Function PathIsFileSpecA Lib "shlwapi" (ByVal pszPath As String) As Long
-Public Declare PtrSafe Function PathIsFileSpecW Lib "shlwapi" (ByVal pszPath As LongPtr) As Long
-Public DeclareWide PtrSafe Function PathIsFileSpec Lib "shlwapi" Alias "PathIsFileSpecW" (ByVal pszPath As String) As Long
-Public Declare PtrSafe Function PathIsPrefixA Lib "shlwapi" (ByVal pszPrefix As String, ByVal pszPath As String) As Long
-Public Declare PtrSafe Function PathIsPrefixW Lib "shlwapi" (ByVal pszPrefix As LongPtr, ByVal pszPath As LongPtr) As Long
-Public DeclareWide PtrSafe Function PathIsPrefix Lib "shlwapi" Alias "PathIsPrefixW" (ByVal pszPrefix As String, ByVal pszPath As String) As Long
-Public Declare PtrSafe Function PathIsRelativeA Lib "shlwapi" (ByVal pszPath As String) As Long
-Public Declare PtrSafe Function PathIsRelativeW Lib "shlwapi" (ByVal pszPath As LongPtr) As Long
-Public DeclareWide PtrSafe Function PathIsRelative Lib "shlwapi" Alias "PathIsRelativeW" (ByVal pszPath As String) As Long
-Public Declare PtrSafe Function PathIsRootA Lib "shlwapi" (ByVal pszPath As String) As Long
-Public Declare PtrSafe Function PathIsRootW Lib "shlwapi" (ByVal pszPath As LongPtr) As Long
-Public DeclareWide PtrSafe Function PathIsRoot Lib "shlwapi" Alias "PathIsRootW" (ByVal pszPath As String) As Long
-Public Declare PtrSafe Function PathIsSameRootA Lib "shlwapi" (ByVal pszPath1 As String, ByVal pszPath2 As String) As Long
-Public Declare PtrSafe Function PathIsSameRootW Lib "shlwapi" (ByVal pszPath1 As LongPtr, ByVal pszPath2 As LongPtr) As Long
-Public DeclareWide PtrSafe Function PathIsSameRoot Lib "shlwapi" Alias "PathIsSameRootW" (ByVal pszPath1 As String, ByVal pszPath2 As String) As Long
-Public Declare PtrSafe Function PathIsUNCA Lib "shlwapi" (ByVal pszPath As String) As Long
-Public Declare PtrSafe Function PathIsUNCW Lib "shlwapi" (ByVal pszPath As LongPtr) As Long
-Public DeclareWide PtrSafe Function PathIsUNC Lib "shlwapi" Alias "PathIsUNCW" (ByVal pszPath As String) As Long
-Public Declare PtrSafe Function PathIsNetworkPathA Lib "shlwapi" (ByVal pszPath As String) As Long
-Public Declare PtrSafe Function PathIsNetworkPathA Lib "shlwapi" (ByVal pszPath As LongPtr) As Long
-Public DeclareWide PtrSafe Function PathIsNetworkPath Lib "shlwapi" Alias "PathIsNetworkPathW" (ByVal pszPath As String) As Long
-Public Declare PtrSafe Function PathIsUNCServerA Lib "shlwapi" (ByVal pszPath As String) As Long
-Public Declare PtrSafe Function PathIsUNCServerW Lib "shlwapi" (ByVal pszPath As LongPtr) As Long
-Public DeclareWide PtrSafe Function PathIsUNCServer Lib "shlwapi" Alias "PathIsUNCServerW" (ByVal pszPath As String) As Long
-Public Declare PtrSafe Function PathIsUNCServerShareA Lib "shlwapi" (ByVal pszPath As String) As Long
-Public Declare PtrSafe Function PathIsUNCServerShareW Lib "shlwapi" (ByVal pszPath As LongPtr) As Long
-Public DeclareWide PtrSafe Function PathIsUNCServerShare Lib "shlwapi" Alias "PathIsUNCServerShareW" (ByVal pszPath As String) As Long
-Public Declare PtrSafe Function PathIsContentTypeA Lib "shlwapi" (ByVal pszPath As String, ByVal pszContentType As String) As Long
-Public Declare PtrSafe Function PathIsContentTypeW Lib "shlwapi" (ByVal pszPath As LongPtr, ByVal pszContentType As LongPtr) As Long
-Public DeclareWide PtrSafe Function PathIsContentType Lib "shlwapi" Alias "PathIsContentTypeW" (ByVal pszPath As String, ByVal pszContentType As String) As Long
-Public Declare PtrSafe Function PathIsURLA Lib "shlwapi" (ByVal pszPath As String) As Long
-Public Declare PtrSafe Function PathIsURLW Lib "shlwapi" (ByVal pszPath As LongPtr) As Long
-Public DeclareWide PtrSafe Function PathIsURL Lib "shlwapi" Alias "PathIsURLW" (ByVal pszPath As String) As Long
-Public Declare PtrSafe Function PathMakePrettyA Lib "shlwapi" (ByVal pszPath As String) As Long
-Public Declare PtrSafe Function PathMakePrettyW Lib "shlwapi" (ByVal pszPath As LongPtr) As Long
-Public DeclareWide PtrSafe Function PathMakePretty Lib "shlwapi" Alias "PathMakePrettyW" (ByVal pszPath As String) As Long
-Public Declare PtrSafe Function PathMatchSpecA Lib "shlwapi" (ByVal pszFile As String, ByVal pszSpec As String) As Long
-Public Declare PtrSafe Function PathMatchSpecW Lib "shlwapi" (ByVal pszFile As LongPtr, ByVal pszSpec As LongPtr) As Long
-Public DeclareWide PtrSafe Function PathMatchSpec Lib "shlwapi" Alias "PathMatchSpecW" (ByVal pszFile As String, ByVal pszSpec As String) As Long
+Public Declare PtrSafe Function PathIsDirectoryA Lib "shlwapi" Alias "(" (ByVal pszPath As String) As BOOL
+Public Declare PtrSafe Function PathIsDirectoryW Lib "shlwapi" Alias "(" (ByVal pszPath As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function PathIsDirectory Lib "shlwapi" Alias "PathIsDirectoryW" (ByVal pszPath As String) As BOOL
+Public Declare PtrSafe Function PathIsDirectoryEmptyA Lib "shlwapi" (ByVal pszPath As String) As BOOL
+Public Declare PtrSafe Function PathIsDirectoryEmptyW Lib "shlwapi" (ByVal pszPath As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function PathIsDirectoryEmpty Lib "shlwapi" Alias "PathIsDirectoryEmptyW" (ByVal pszPath As String) As BOOL
+Public Declare PtrSafe Function PathIsFileSpecA Lib "shlwapi" (ByVal pszPath As String) As BOOL
+Public Declare PtrSafe Function PathIsFileSpecW Lib "shlwapi" (ByVal pszPath As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function PathIsFileSpec Lib "shlwapi" Alias "PathIsFileSpecW" (ByVal pszPath As String) As BOOL
+Public Declare PtrSafe Function PathIsPrefixA Lib "shlwapi" (ByVal pszPrefix As String, ByVal pszPath As String) As BOOL
+Public Declare PtrSafe Function PathIsPrefixW Lib "shlwapi" (ByVal pszPrefix As LongPtr, ByVal pszPath As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function PathIsPrefix Lib "shlwapi" Alias "PathIsPrefixW" (ByVal pszPrefix As String, ByVal pszPath As String) As BOOL
+Public Declare PtrSafe Function PathIsRelativeA Lib "shlwapi" (ByVal pszPath As String) As BOOL
+Public Declare PtrSafe Function PathIsRelativeW Lib "shlwapi" (ByVal pszPath As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function PathIsRelative Lib "shlwapi" Alias "PathIsRelativeW" (ByVal pszPath As String) As BOOL
+Public Declare PtrSafe Function PathIsRootA Lib "shlwapi" (ByVal pszPath As String) As BOOL
+Public Declare PtrSafe Function PathIsRootW Lib "shlwapi" (ByVal pszPath As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function PathIsRoot Lib "shlwapi" Alias "PathIsRootW" (ByVal pszPath As String) As BOOL
+Public Declare PtrSafe Function PathIsSameRootA Lib "shlwapi" (ByVal pszPath1 As String, ByVal pszPath2 As String) As BOOL
+Public Declare PtrSafe Function PathIsSameRootW Lib "shlwapi" (ByVal pszPath1 As LongPtr, ByVal pszPath2 As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function PathIsSameRoot Lib "shlwapi" Alias "PathIsSameRootW" (ByVal pszPath1 As String, ByVal pszPath2 As String) As BOOL
+Public Declare PtrSafe Function PathIsUNCA Lib "shlwapi" (ByVal pszPath As String) As BOOL
+Public Declare PtrSafe Function PathIsUNCW Lib "shlwapi" (ByVal pszPath As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function PathIsUNC Lib "shlwapi" Alias "PathIsUNCW" (ByVal pszPath As String) As BOOL
+Public Declare PtrSafe Function PathIsNetworkPathA Lib "shlwapi" (ByVal pszPath As String) As BOOL
+Public Declare PtrSafe Function PathIsNetworkPathA Lib "shlwapi" (ByVal pszPath As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function PathIsNetworkPath Lib "shlwapi" Alias "PathIsNetworkPathW" (ByVal pszPath As String) As BOOL
+Public Declare PtrSafe Function PathIsUNCServerA Lib "shlwapi" (ByVal pszPath As String) As BOOL
+Public Declare PtrSafe Function PathIsUNCServerW Lib "shlwapi" (ByVal pszPath As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function PathIsUNCServer Lib "shlwapi" Alias "PathIsUNCServerW" (ByVal pszPath As String) As BOOL
+Public Declare PtrSafe Function PathIsUNCServerShareA Lib "shlwapi" (ByVal pszPath As String) As BOOL
+Public Declare PtrSafe Function PathIsUNCServerShareW Lib "shlwapi" (ByVal pszPath As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function PathIsUNCServerShare Lib "shlwapi" Alias "PathIsUNCServerShareW" (ByVal pszPath As String) As BOOL
+Public Declare PtrSafe Function PathIsContentTypeA Lib "shlwapi" (ByVal pszPath As String, ByVal pszContentType As String) As BOOL
+Public Declare PtrSafe Function PathIsContentTypeW Lib "shlwapi" (ByVal pszPath As LongPtr, ByVal pszContentType As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function PathIsContentType Lib "shlwapi" Alias "PathIsContentTypeW" (ByVal pszPath As String, ByVal pszContentType As String) As BOOL
+Public Declare PtrSafe Function PathIsURLA Lib "shlwapi" (ByVal pszPath As String) As BOOL
+Public Declare PtrSafe Function PathIsURLW Lib "shlwapi" (ByVal pszPath As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function PathIsURL Lib "shlwapi" Alias "PathIsURLW" (ByVal pszPath As String) As BOOL
+Public Declare PtrSafe Function PathMakePrettyA Lib "shlwapi" (ByVal pszPath As String) As BOOL
+Public Declare PtrSafe Function PathMakePrettyW Lib "shlwapi" (ByVal pszPath As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function PathMakePretty Lib "shlwapi" Alias "PathMakePrettyW" (ByVal pszPath As String) As BOOL
+Public Declare PtrSafe Function PathMatchSpecA Lib "shlwapi" (ByVal pszFile As String, ByVal pszSpec As String) As BOOL
+Public Declare PtrSafe Function PathMatchSpecW Lib "shlwapi" (ByVal pszFile As LongPtr, ByVal pszSpec As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function PathMatchSpec Lib "shlwapi" Alias "PathMatchSpecW" (ByVal pszFile As String, ByVal pszSpec As String) As BOOL
 Public Declare PtrSafe Function PathMatchSpecExA Lib "shlwapi" (ByVal pszFile As String, ByVal pszSpec As String, ByVal dwFlags As PMS_Flags) As Long
 Public Declare PtrSafe Function PathMatchSpecExW Lib "shlwapi" (ByVal pszFile As LongPtr, ByVal pszSpec As LongPtr, ByVal dwFlags As PMS_Flags) As Long
 Public DeclareWide PtrSafe Function PathMatchSpecEx Lib "shlwapi" Alias "PathMatchSpecExW" (ByVal pszFile As String, ByVal pszSpec As String, ByVal dwFlags As PMS_Flags) As Long
 Public Declare PtrSafe Function PathParseIconLocationA Lib "shlwapi" (ByVal pszIconFile As String) As Long
 Public Declare PtrSafe Function PathParseIconLocationW Lib "shlwapi" (ByVal pszIconFile As LongPtr) As Long
 Public DeclareWide PtrSafe Function PathParseIconLocation Lib "shlwapi" Alias "PathParseIconLocationW" (ByVal pszIconFile As String) As Long
-Public Declare PtrSafe Sub PathQuoteSpacesA Lib "shlwapi" (ByVal lpsz As String)
-Public Declare PtrSafe Sub PathQuoteSpacesW Lib "shlwapi" (ByVal lpsz As LongPtr)
-Public DeclareWide PtrSafe Sub PathQuoteSpaces Lib "shlwapi" Alias "PathQuoteSpacesW" (ByVal lpsz As String)
+Public Declare PtrSafe Function PathQuoteSpacesA Lib "shlwapi" (ByVal lpsz As String) As BOOL
+Public Declare PtrSafe Function PathQuoteSpacesW Lib "shlwapi" (ByVal lpsz As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function PathQuoteSpaces Lib "shlwapi" Alias "PathQuoteSpacesW" (ByVal lpsz As String) As BOOL
 Public Declare PtrSafe Function PathRelativePathToA Lib "shlwapi" (ByVal pszPath As String, ByVal pszFrom As String, ByVal dwAttrFrom As Long, ByVal pszTo As String, ByVal dwAttrTo As Long) As Long
 Public Declare PtrSafe Function PathRelativePathToW Lib "shlwapi" (pszPath As LongPtr, ByVal pszFrom As LongPtr, ByVal dwAttrFrom As Long, ByVal pszTo As LongPtr, ByVal dwAttrTo As Long) As Long
 Public DeclareWide PtrSafe Function PathRelativePathTo Lib "shlwapi" Alias "PathRelativePathToW" (ByVal pszPath As String, ByVal pszFrom As String, ByVal dwAttrFrom As Long, ByVal pszTo As String, ByVal dwAttrTo As Long) As Long
@@ -1568,24 +1629,24 @@ Public DeclareWide PtrSafe Sub PathStripPath Lib "shlwapi" Alias "PathStripPathW
 Public Declare PtrSafe Function PathStripToRootA Lib "shlwapi" (ByVal pszPath As String) As Long
 Public Declare PtrSafe Function PathStripToRootW Lib "shlwapi" (ByVal pszPath As LongPtr) As Long
 Public DeclareWide PtrSafe Function PathStripToRoot Lib "shlwapi" Alias "PathStripToRootW" (ByVal pszPath As String) As Long
-Public Declare PtrSafe Sub PathUnquoteSpacesA Lib "shlwapi" (ByVal lpsz As String)
-Public Declare PtrSafe Sub PathUnquoteSpacesW Lib "shlwapi" (ByVal lpsz As LongPtr)
-Public DeclareWide PtrSafe Sub PathUnquoteSpaces Lib "shlwapi" Alias "PathUnquoteSpacesW" (ByVal lpsz As String)
-Public Declare PtrSafe Function PathMakeSystemFolderA Lib "shlwapi" (ByVal pszPath As String) As Long
-Public Declare PtrSafe Function PathMakeSystemFolderW Lib "shlwapi" (ByVal pszPath As LongPtr) As Long
-Public DeclareWide PtrSafe Function PathMakeSystemFolder Lib "shlwapi" Alias "PathMakeSystemFolderW" (ByVal pszPath As String) As Long
-Public Declare PtrSafe Function PathUnmakeSystemFolderA Lib "shlwapi" (ByVal pszPath As String) As Long
-Public Declare PtrSafe Function PathUnmakeSystemFolderW Lib "shlwapi" (ByVal pszPath As LongPtr) As Long
-Public DeclareWide PtrSafe Function PathUnmakeSystemFolder Lib "shlwapi" Alias "PathUnmakeSystemFolderW" (ByVal pszPath As String) As Long
-Public Declare PtrSafe Function PathIsSystemFolderA Lib "shlwapi" (ByVal pszPath As String, ByVal dwAttrb As Long) As Long
-Public Declare PtrSafe Function PathIsSystemFolderW Lib "shlwapi" (ByVal pszPath As String, ByVal dwAttrb As Long) As Long
-Public DeclareWide PtrSafe Function PathIsSystemFolder Lib "shlwapi" Alias "PathIsSystemFolderW" (ByVal pszPath As LongPtr, ByVal dwAttrb As Long) As Long
+Public Declare PtrSafe Function PathUnquoteSpacesA Lib "shlwapi" (ByVal lpsz As String) As BOOL
+Public Declare PtrSafe Function PathUnquoteSpacesW Lib "shlwapi" (ByVal lpsz As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function PathUnquoteSpaces Lib "shlwapi" Alias "PathUnquoteSpacesW" (ByVal lpsz As String) As BOOL
+Public Declare PtrSafe Function PathMakeSystemFolderA Lib "shlwapi" (ByVal pszPath As String) As BOOL
+Public Declare PtrSafe Function PathMakeSystemFolderW Lib "shlwapi" (ByVal pszPath As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function PathMakeSystemFolder Lib "shlwapi" Alias "PathMakeSystemFolderW" (ByVal pszPath As String) As BOOL
+Public Declare PtrSafe Function PathUnmakeSystemFolderA Lib "shlwapi" (ByVal pszPath As String) As BOOL
+Public Declare PtrSafe Function PathUnmakeSystemFolderW Lib "shlwapi" (ByVal pszPath As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function PathUnmakeSystemFolder Lib "shlwapi" Alias "PathUnmakeSystemFolderW" (ByVal pszPath As String) As BOOL
+Public Declare PtrSafe Function PathIsSystemFolderA Lib "shlwapi" (ByVal pszPath As String, ByVal dwAttrb As Long) As BOOL
+Public Declare PtrSafe Function PathIsSystemFolderW Lib "shlwapi" (ByVal pszPath As String, ByVal dwAttrb As Long) As BOOL
+Public DeclareWide PtrSafe Function PathIsSystemFolder Lib "shlwapi" Alias "PathIsSystemFolderW" (ByVal pszPath As LongPtr, ByVal dwAttrb As Long) As BOOL
 Public Declare PtrSafe Sub PathUndecorateA Lib "shlwapi" (ByVal pszPath As String)
 Public Declare PtrSafe Sub PathUndecorateW Lib "shlwapi" (ByVal pszPath As LongPtr)
 Public DeclareWide PtrSafe Sub PathUndecorate Lib "shlwapi" Alias "PathUndecorateW" (ByVal pszPath As String)
-Public Declare PtrSafe Function PathUnExpandEnvStringsA Lib "shlwapi" (ByVal pszPath As String, ByVal pszBuf As String, ByVal cchBuf As Long) As Long
-Public Declare PtrSafe Function PathUnExpandEnvStringsW Lib "shlwapi" (ByVal pszPath As LongPtr, ByVal pszBuf As LongPtr, ByVal cchBuf As Long) As Long
-Public DeclareWide PtrSafe Function PathUnExpandEnvStrings Lib "shlwapi" Alias "PathUnExpandEnvStringsW" (ByVal pszPath As String, ByVal pszBuf As String, ByVal cchBuf As Long) As Long
+Public Declare PtrSafe Function PathUnExpandEnvStringsA Lib "shlwapi" (ByVal pszPath As String, ByVal pszBuf As String, ByVal cchBuf As Long) As BOOL
+Public Declare PtrSafe Function PathUnExpandEnvStringsW Lib "shlwapi" (ByVal pszPath As LongPtr, ByVal pszBuf As LongPtr, ByVal cchBuf As Long) As BOOL
+Public DeclareWide PtrSafe Function PathUnExpandEnvStrings Lib "shlwapi" Alias "PathUnExpandEnvStringsW" (ByVal pszPath As String, ByVal pszBuf As String, ByVal cchBuf As Long) As BOOL
 Public Declare PtrSafe Function PathUnExpandEnvStringsForUserA Lib "shlwapi" (ByVal hUserToken As LongPtr, ByVal pszPath As String, ByVal pszBuf As String, ByVal cchBuf As Long) As BOOL
 Public Declare PtrSafe Function PathUnExpandEnvStringsForUserW Lib "shlwapi" (ByVal hUserToken As LongPtr, ByVal pszPath As LongPtr, ByVal pszBuf As LongPtr, ByVal cchBuf As Long) As BOOL
 Public DeclareWide PtrSafe Function PathUnExpandEnvStringsForUser Lib "shlwapi" Alias "PathUnExpandEnvStringsForUserW" (ByVal hUserToken As LongPtr, ByVal pszPath As String, ByVal pszBuf As String, ByVal cchBuf As Long) As BOOL
@@ -1598,15 +1659,15 @@ Public DeclareWide PtrSafe Sub UrlCombine Lib "shlwapi" Alias "UrlCombineW" (ByV
 Public Declare PtrSafe Sub UrlCanonicalizeA Lib "shlwapi" (ByVal pszUrl As String, ByVal pszCanonicalized As String, ByRef pcchCanonicalized As Long, ByVal dwFlags As URL)
 Public Declare PtrSafe Sub UrlCanonicalizeW Lib "shlwapi" (ByVal pszUrl As LongPtr, ByVal pszCanonicalized As LongPtr, ByRef pcchCanonicalized As Long, ByVal dwFlags As URL)
 Public DeclareWide PtrSafe Sub UrlCanonicalize Lib "shlwapi" Alias "UrlCanonicalizeW" (ByVal pszUrl As String, ByVal pszCanonicalized As String, ByRef pcchCanonicalized As Long, ByVal dwFlags As URL)
-Public Declare PtrSafe Function UrlIsOpaqueA Lib "shlwapi" (ByVal pszUrl As String) As Long
-Public Declare PtrSafe Function UrlIsOpaqueW Lib "shlwapi" (ByVal pszUrl As LongPtr) As Long
-Public DeclareWide PtrSafe Function UrlIsOpaque Lib "shlwapi" Alias "UrlIsOpaqueW" (ByVal pszUrl As String) As Long
-Public Declare PtrSafe Function UrlIsNoHistoryA Lib "shlwapi" (ByVal pszUrl As String) As Long
-Public Declare PtrSafe Function UrlIsNoHistoryW Lib "shlwapi" (ByVal pszUrl As LongPtr) As Long
-Public DeclareWide PtrSafe Function UrlIsNoHistory Lib "shlwapi" Alias "UrlIsNoHistoryW" (ByVal pszUrl As String) As Long
-Public Declare PtrSafe Function UrlIsA Lib "shlwapi" (ByVal pszUrl As String, ByVal URLIS As URLIS) As Long
-Public Declare PtrSafe Function UrlIsW Lib "shlwapi" (ByVal pszUrl As LongPtr, ByVal URLIS As URLIS) As Long
-Public DeclareWide PtrSafe Function URLIs Lib "shlwapi" Alias "UrlIsW" (ByVal pszUrl As String, ByVal URLIS As URLIS) As Long
+Public Declare PtrSafe Function UrlIsOpaqueA Lib "shlwapi" (ByVal pszUrl As String) As BOOL
+Public Declare PtrSafe Function UrlIsOpaqueW Lib "shlwapi" (ByVal pszUrl As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function UrlIsOpaque Lib "shlwapi" Alias "UrlIsOpaqueW" (ByVal pszUrl As String) As BOOL
+Public Declare PtrSafe Function UrlIsNoHistoryA Lib "shlwapi" (ByVal pszUrl As String) As BOOL
+Public Declare PtrSafe Function UrlIsNoHistoryW Lib "shlwapi" (ByVal pszUrl As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function UrlIsNoHistory Lib "shlwapi" Alias "UrlIsNoHistoryW" (ByVal pszUrl As String) As BOOL
+Public Declare PtrSafe Function UrlIsA Lib "shlwapi" (ByVal pszUrl As String, ByVal URLIS As URLIS) As BOOL
+Public Declare PtrSafe Function UrlIsW Lib "shlwapi" (ByVal pszUrl As LongPtr, ByVal URLIS As URLIS) As BOOL
+Public DeclareWide PtrSafe Function URLIs Lib "shlwapi" Alias "UrlIsW" (ByVal pszUrl As String, ByVal URLIS As URLIS) As BOOL
 Public Declare PtrSafe Function UrlGetLocationA Lib "shlwapi" (ByVal psz1 As String) As LongPtr
 Public Declare PtrSafe Function UrlGetLocationW Lib "shlwapi" (ByVal psz1 As LongPtr) As LongPtr
 Public DeclareWide PtrSafe Function UrlGetLocation Lib "shlwapi" Alias "UrlGetLocationW" (ByVal psz1 As String) As LongPtr
@@ -1619,9 +1680,13 @@ Public DeclareWide PtrSafe Function UrlEscape Lib "shlwapi" Alias "UrlEscapeW" (
 Public Declare PtrSafe Function UrlCreateFromPathA Lib "shlwapi" (ByVal pszPath As String, ByVal pszUrl As String, ByRef pcchUrl As Long, ByVal dwFlags As Long) As Long
 Public Declare PtrSafe Function UrlCreateFromPathW Lib "shlwapi" (ByVal pszPath As String, ByVal pszUrl As String, ByRef pcchUrl As Long, ByVal dwFlags As Long) As Long
 Public DeclareWide PtrSafe Function UrlCreateFromPath Lib "shlwapi" Alias "UrlCreateFromPathW" (ByVal pszPath As String, ByVal pszUrl As String, ByRef pcchUrl As Long, ByVal dwFlags As Long) As Long
+Public Declare PtrSafe Function ParseURLA Lib "shlwapi" (ByVal pszUrl As String, ppu As PARSEDURLA) As Long
+Public Declare PtrSafe Function ParseURLW Lib "shlwapi" (ByVal pszUrl As LongPtr, ppu As PARSEDURLW) As Long
+Public DeclareWide PtrSafe Function ParseURL Lib "shlwapi" Alias "ParseURLW" (ByVal pszUrl As String, ppu As PARSEDURL) As Long
 Public Declare PtrSafe Function PathCreateFromUrlA Lib "shlwapi" (ByVal pszUrl As String, ByVal pszPath As String, ByRef pcchPath As Long, ByVal dwFlags As Long) As Long
 Public Declare PtrSafe Function PathCreateFromUrlW Lib "shlwapi" (ByVal pszUrl As LongPtr, ByVal pszPath As LongPtr, ByRef pcchPath As Long, ByVal dwFlags As Long) As Long
 Public DeclareWide PtrSafe Function PathCreateFromUrl Lib "shlwapi" Alias "PathCreateFromUrlW" (ByVal pszUrl As String, ByVal pszPath As String, ByRef pcchPath As Long, ByVal dwFlags As Long) As Long
+Public DeclareWide PtrSafe Function PathCreateFromUrlAlloc Lib "shlwapi" (ByVal pszUrl As String, ppszOut As LongPtr, ByVal dwFlags As Long) As Long
 Public Declare PtrSafe Function UrlHashA Lib "shlwapi" (ByVal pszUrl As String, ByRef pbHash As Byte, ByVal cbHash As Long) As Long
 Public Declare PtrSafe Function UrlHashW Lib "shlwapi" (ByVal pszUrl As LongPtr, ByRef pbHash As Byte, ByVal cbHash As Long) As Long
 Public DeclareWide PtrSafe Function UrlHash Lib "shlwapi" Alias "UrlHashW" (ByVal pszUrl As String, ByRef pbHash As Byte, ByVal cbHash As Long) As Long
@@ -1631,6 +1696,9 @@ Public DeclareWide PtrSafe Function UrlGetPart Lib "shlwapi"  Alias "UrlGetPartW
 Public Declare PtrSafe Function UrlApplySchemeA Lib "shlwapi" (ByVal pszIn As String, ByVal pszOut As String, ByRef pcchOut As Long, ByVal dwFlags As URL_APPLY) As Long
 Public Declare PtrSafe Function UrlApplySchemeW Lib "shlwapi" (ByVal pszIn As LongPtr, pszOut As LongPtr, ByRef pcchOut As Long, ByVal dwFlags As URL_APPLY) As Long
 Public DeclareWide PtrSafe Function UrlApplyScheme Lib "shlwapi" Alias "UrlApplySchemeW" (ByVal pszIn As String, ByVal pszOut As String, ByRef pcchOut As Long, ByVal dwFlags As URL_APPLY) As Long
+' UrlFixupA does not exist.
+Public Declare PtrSafe Function UrlFixupW Lib "shlwapi" (ByVal pcszUrl As LongPtr, ByVal pszTranslatedUrl As LongPtr, ByVal cchMax As Long) As Long
+Public DeclareWide PtrSafe Function UrlFixup Lib "shlwapi" Alias "UrlFixupW" (ByVal pcszUrl As String, ByVal pszTranslatedUrl As String, ByVal cchMax As Long) As Long
 Public Declare PtrSafe Function HashData Lib "shlwapi" (ByRef pbData As Byte, ByVal cbData As Long, ByRef pbHash As Byte, ByVal cbHash As Long) As Long
 Public Declare PtrSafe Function SHDeleteEmptyKeyA Lib "shlwapi" (ByVal hkey As LongPtr, ByVal pszSubKey As String) As Long
 Public DeclareWide PtrSafe Function SHDeleteEmptyKey Lib "shlwapi" Alias "SHDeleteEmptyKeyW" (ByVal hkey As LongPtr, ByVal pszSubKey As String) As Long
@@ -1640,9 +1708,9 @@ Public Declare PtrSafe Function SHRegDuplicateHKey Lib "shlwapi" (ByVal hkey As 
 Public Declare PtrSafe Function SHDeleteValueA Lib "shlwapi" (ByVal hkey As LongPtr, ByVal pszSubKey As String, ByVal pszValue As String) As Long
 Public DeclareWide PtrSafe Function SHDeleteValue Lib "shlwapi" Alias "SHDeleteValueW" (ByVal hkey As LongPtr, ByVal pszSubKey As String, ByVal pszValue As String) As Long
 Public Declare PtrSafe Function SHGetValueA Lib "shlwapi" (ByVal hkey As LongPtr, ByVal pszSubKey As String, ByVal pszValue As String, ByRef pdwType As REGTYPES, ByRef pvData As Any, ByRef pcbData As Long) As Long
-Public DeclareWide PtrSafe Function SHGetValue Lib "shlwapi" Alias "SHGetValueW" (ByVal hkey As LongPtr, ByVal pszSubKey As String, ByVal pszValue As String, ByRef pdwType As Long, ByRef pvData As Any, ByRef pcbData As Long) As Long
-Public Declare PtrSafe Function SHSetValueA Lib "shlwapi" (ByVal hkey As LongPtr, ByVal pszSubKey As String, ByVal pszValue As String, ByVal dwType As Long, ByRef pvData As Any, ByVal cbData As Long) As Long
-Public DeclareWide PtrSafe Function SHSetValue Lib "shlwapi" Alias "SHSetValueW" (ByVal hkey As LongPtr, ByVal pszSubKey As String, ByVal pszValue As String, ByVal dwType As Long, ByRef pvData As Any, ByVal cbData As Long) As Long
+Public DeclareWide PtrSafe Function SHGetValue Lib "shlwapi" Alias "SHGetValueW" (ByVal hkey As LongPtr, ByVal pszSubKey As String, ByVal pszValue As String, ByRef pdwType As REGTYPES, ByRef pvData As Any, ByRef pcbData As Long) As Long
+Public Declare PtrSafe Function SHSetValueA Lib "shlwapi" (ByVal hkey As LongPtr, ByVal pszSubKey As String, ByVal pszValue As String, ByVal dwType As REGTYPES, ByRef pvData As Any, ByVal cbData As Long) As Long
+Public DeclareWide PtrSafe Function SHSetValue Lib "shlwapi" Alias "SHSetValueW" (ByVal hkey As LongPtr, ByVal pszSubKey As String, ByVal pszValue As String, ByVal dwType As REGTYPES, ByRef pvData As Any, ByVal cbData As Long) As Long
 Public Declare PtrSafe Function SHQueryValueExA Lib "shlwapi" (ByVal hkey As LongPtr, ByVal pszValue As String, ByRef pdwReserved As Long, ByRef pdwType As REGTYPES, ByRef pvData As Any, ByRef pcbData As Long) As Long
 Public DeclareWide PtrSafe Function SHQueryValueEx Lib "shlwapi" Alias "SHQueryValueExW" (ByVal hkey As LongPtr, ByVal pszValue As String, ByRef pdwReserved As Long, ByRef pdwType As REGTYPES, ByRef pvData As Any, ByRef pcbData As Long) As Long
 Public Declare PtrSafe Function SHEnumKeyExA Lib "shlwapi" (ByVal hkey As LongPtr, ByVal dwIndex As Long, ByVal pszName As String, ByRef pcchName As Long) As Long
@@ -1709,15 +1777,19 @@ Public DeclareWide PtrSafe Function SHCreateStreamOnFile Lib "shlwapi" Alias "SH
 Public Declare PtrSafe Function SHCreateStreamOnFileEx Lib "shlwapi" (ByVal pszFile As LongPtr, ByVal grfMode As STGM, ByVal dwAttributes As FILE_ATTRIBUTES, ByVal fCreate As Long, ByVal pstmTemplate As IStream, ByRef ppstm As IStream) As Long
 Public DeclareWide PtrSafe Function SHCreateMemStream Lib "shlwapi" (pInit As Any, ByVal cbInit As Long) As IStream
 Public Declare PtrSafe Function SHAutoComplete Lib "shlwapi" (ByVal hwndEdit As LongPtr, ByVal dwFlags As SHACF) As Long
-Public Declare PtrSafe Sub SHSetThreadRef Lib "shlwapi" (ByVal pUnk As stdole.IUnknown)
-Public Declare PtrSafe Function SHGetThreadRef Lib "shlwapi" (ByVal ppunk As stdole.IUnknown) As Long
+Public Declare PtrSafe Function SHSetThreadRef Lib "shlwapi" (ByVal pUnk As IUnknown) As Long
+Public Declare PtrSafe Function SHGetThreadRef Lib "shlwapi" (ppunk As IUnknown) As Long
+Public Declare PtrSafe Function SHReleaseThreadRef Lib "shlwapi" () As Long
 Public Declare PtrSafe Function SHSkipJunction Lib "shlwapi" (ByVal pbc As IBindCtx, ByRef pclsid As UUID) As Long
-Public Declare PtrSafe Function SHCreateThread Lib "shlwapi" (ByVal pfnThreadProc As LongPtr, ByRef pData As Any, ByVal dwFlags As SHCT_FLAGS, ByVal pfnCallback As LongPtr) As Long
+Public Declare PtrSafe Function SHCreateThread Lib "shlwapi" (ByVal pfnThreadProc As LongPtr, ByRef pData As Any, ByVal dwFlags As SHCT_FLAGS, ByVal pfnCallback As LongPtr) As BOOL
+Public Declare PtrSafe Function SHCreateThreadWithHandle Lib "shlwapi" (ByVal pfnThreadProc As LongPtr, ByRef pData As Any, ByVal dwFlags As SHCT_FLAGS, ByVal pfnCallback As LongPtr, pHandle As LongPtr) As BOOL
 Public Declare PtrSafe Function SHCreateShellPalette Lib "shlwapi" (ByVal hDC As LongPtr) As LongPtr
 Public Declare PtrSafe Sub ColorRGBToHLS Lib "shlwapi" (ByVal clrRGB As Long, ByRef pwHue As Integer, ByRef pwLuminance As Integer, ByRef pwSaturation As Integer)
 Public Declare PtrSafe Function ColorHLSToRGB Lib "shlwapi" (ByVal wHue As Integer, ByVal wLuminance As Integer, ByVal wSaturation As Integer) As Long
 Public Declare PtrSafe Function ColorAdjustLuma Lib "shlwapi" (ByVal clrRGB As Long, ByVal n As Long, ByVal fScale As Long) As Long
-Public Declare PtrSafe Function SHMessageBoxCheck Lib "shlwapi" (ByVal hwnd As LongPtr, ByVal pszText As LongPtr, ByVal pszCaption As LongPtr, ByVal uType As MessageBoxFlags, iDefault As Long, ByVal pszRegVal As LongPtr) As MessageBoxResults
+Public Declare PtrSafe Function SHMessageBoxCheckA Lib "shlwapi" (ByVal hwnd As LongPtr, ByVal pszText As String, ByVal pszCaption As String, ByVal uType As MessageBoxFlags, iDefault As Long, ByVal pszRegVal As String) As MessageBoxResults
+Public Declare PtrSafe Function SHMessageBoxCheckW Lib "shlwapi" (ByVal hwnd As LongPtr, ByVal pszText As LongPtr, ByVal pszCaption As LongPtr, ByVal uType As MessageBoxFlags, iDefault As Long, ByVal pszRegVal As LongPtr) As MessageBoxResults
+Public DeclareWide PtrSafe Function SHMessageBoxCheck Lib "shlwapi" Alias "SHMessageBoxCheckW" (ByVal hwnd As LongPtr, ByVal pszText As String, ByVal pszCaption As String, ByVal uType As MessageBoxFlags, iDefault As Long, ByVal pszRegVal As String) As MessageBoxResults
 Public Declare PtrSafe Function SHSendMessageBroadcastA Lib "shlwapi" (ByVal uMsg As Long, ByVal wParam As LongPtr, lParam As Any) As LongPtr
 Public DeclareWide PtrSafe Function SHSendMessageBroadcastW Lib "shlwapi" (ByVal uMsg As Long, ByVal wParam As LongPtr, lParam As Any) As LongPtr
 Public DeclareWide PtrSafe Function SHSendMessageBroadcast Lib "shlwapi" Alias "SHSendMessageBroadcastW" (ByVal uMsg As Long, ByVal wParam As LongPtr, lParam As Any) As LongPtr
@@ -1730,7 +1802,191 @@ Public DeclareWide PtrSafe Function SHCreateStreamOnModuleResource Lib "shlwapi"
 [ Description("This function compares the bits of the color mask bitmaps retrived by GetIconInfo.") ] Public DeclareWide PtrSafe Function SHAreIconsEqual Lib "shlwapi" (ByVal hIcon1 As LongPtr, ByVal hIcon2 As LongPtr) As BOOL
 Public DeclareWide PtrSafe Function SHWindowsPolicyGetValue Lib "shlwapi" (rpolid As UUID, pvData As Any, pcbData As Long) As Long
 Public DeclareWide PtrSafe Function SHWindowsPolicy Lib "shlwapi" (rpolid As UUID) As BOOL
+Public DeclareWide PtrSafe Function SHIsLowMemoryMachine Lib "shlwapi" (ByVal dwType As SHLowMemMachineTypes) As BOOL
+Public DeclareWide PtrSafe Function SHGetViewStatePropertyBag Lib "shlwapi" (ByVal pidl As LongPtr, ByVal pszBagName As String, ByVal dwFlags As SHViewStatePropBagFlags, riid As UUID, ppv As Any) As Long
+Public Declare PtrSafe Function SHFormatDateTimeA Lib "shlwapi" (pft As FILETIME, pdwFlags As SHFormatDateTimeFlags, ByVal pszBuf As String, ByVal cchBuf As Long) As Long
+Public Declare PtrSafe Function SHFormatDateTimeW Lib "shlwapi" (pft As FILETIME, pdwFlags As SHFormatDateTimeFlags, ByVal pszBuf As LongPtr, ByVal cchBuf As Long) As Long
+Public DeclareWide PtrSafe Function SHFormatDateTime Lib "shlwapi" Alias "SHFormatDateTimeW" (pft As FILETIME, pdwFlags As SHFormatDateTimeFlags, ByVal pszBuf As String, ByVal cchBuf As Long) As Long
+Public DeclareWide PtrSafe Function GetMenuPosFromID Lib "shlwapi" (ByVal hMenu As LongPtr, ByVal id As Long) As Long
+Public Declare PtrSafe Function GetAcceptLanguagesA Lib "shlwapi" (ByVal pszLanguages As String, pcchLanguages As Long) As Long
+Public Declare PtrSafe Function GetAcceptLanguagesW Lib "shlwapi" (ByVal pszLanguages As LongPtr, pcchLanguages As Long) As Long
+Public DeclareWide PtrSafe Function GetAcceptLanguages Lib "shlwapi" Alias "GetAcceptLanguagesW" (ByVal pszLanguages As String, pcchLanguages As Long) As Long
+Public DeclareWide PtrSafe Function ConnectToConnectionPoint Lib "shlwapi" (ByVal pUnk As IUnknown, riidEvent As UUID, ByVal fConnect As BOOL, ByVal punkTarget As IUnknown, pdwCookie As Long, ppcpOut As IConnectionPoint) As Long
+Public DeclareWide PtrSafe Function IStream_ReadPidl Lib "shlwapi" (ByVal pstm As IStream, ppidlOut As LongPtr) As Long
+Public DeclareWide PtrSafe Function IStream_WritePidl Lib "shlwapi" (ByVal pstm As IStream, ByVal pidlWrite As LongPtr) As Long
+Public DeclareWide PtrSafe Function IStream_Read Lib "shlwapi" (ByVal pstm As IStream, pv As Any, ByVal cb As Long) As Long
+Public DeclareWide PtrSafe Function IStream_Write Lib "shlwapi" (ByVal pstm As IStream, pv As Any, ByVal cb As Long) As Long
+Public DeclareWide PtrSafe Function IStream_Reset Lib "shlwapi" (ByVal pstm As IStream) As Long
+Public DeclareWide PtrSafe Function IStream_Size Lib "shlwapi" (ByVal pstm As IStream, pui As ULARGE_INTEGER) As Long
+Public DeclareWide PtrSafe Function IStream_ReadStr Lib "shlwapi" (ByVal pstm As IStream, ppsz As LongPtr) As Long
+Public DeclareWide PtrSafe Function IStream_WriteStr Lib "shlwapi" (ByVal pstm As IStream, ByVal psz As String) As Long
+Public DeclareWide PtrSafe Function IStream_Copy Lib "shlwapi" (ByVal pstmFrom As IStream, ByVal pstmTo As IStream, ByVal cb As Long) As Long
+Public Declare PtrSafe Function IUnknown_QueryService Lib "shlwapi" (ByVal pUnk As IUnknown, ByRef guidService As UUID, ByRef riid As UUID, ByRef ppv As Any) As Long
+Public DeclareWide PtrSafe Sub IUnknown_Set Lib "shlwapi" (ppunk As IUnknown, ByVal punk As IUnknown)
+Public DeclareWide PtrSafe Sub IUnknown_AtomicRelease Lib "shlwapi" (ppUnk As IUnknown)
+Public DeclareWide PtrSafe Function IUnknown_GetWindow Lib "shlwapi" (ByVal punk As IUnknown, phwnd As LongPtr) As Long
+Public DeclareWide PtrSafe Function IUnknown_SetSite Lib "shlwapi" (ByVal punk As IUnknown, ByVal punkSite As IUnknown) As Long
+Public DeclareWide PtrSafe Function IUnknown_GetSite Lib "shlwapi" (ByVal punk As IUnknown, riid As UUID, ppv As Any) As Long
+Public DeclareWide PtrSafe Function SHAnsiToUnicode Lib "shlwapi" (ByVal pszSrc As LongPtr, ByVal pwszDst As String, ByVal cwchBuf As Long) As Long
+Public DeclareWide PtrSafe Function SHAnsiToAnsi Lib "shlwapi" (ByVal pszSrc As LongPtr, ByVal pwszDst As String, ByVal cchBuf As Long) As Long
+Public DeclareWide PtrSafe Function SHUnicodeToAnsi Lib "shlwapi" (ByVal pszSrc As LongPtr, ByVal pwszDst As String, ByVal cchBuf As Long) As Long
+Public DeclareWide PtrSafe Function SHUnicodeToUnicode Lib "shlwapi" (ByVal pszSrc As LongPtr, ByVal pwszDst As String, ByVal cwchBuf As Long) As Long
+Public DeclareWide PtrSafe Function SHStripMneumonicW Lib "shlwapi" (ByVal hMenu As LongPtr) As Integer
+Public DeclareWide PtrSafe Function SHStripMneumonicA Lib "shlwapi" (ByVal hMenu As LongPtr) As Byte
+Public DeclareWide PtrSafe Function SHStripMneumonic Lib "shlwapi" Alias "SHStripMneumonicW" (ByVal hMenu As LongPtr) As Integer
+Public DeclareWide PtrSafe Function IsOS Lib "shlwapi" (ByVal dwOS As ShellIsOS) As BOOL
+Public DeclareWide PtrSafe Function SHGlobalCounterGetValue Lib "shlwapi" (ByVal id As SHGLOBALCOUNTER) As Long
+Public DeclareWide PtrSafe Function SHGlobalCounterIncrement Lib "shlwapi" (ByVal id As SHGLOBALCOUNTER) As Long
+Public DeclareWide PtrSafe Function SHGlobalCounterDecrement Lib "shlwapi" (ByVal id As SHGLOBALCOUNTER) As Long
+Public DeclareWide PtrSafe Function SHAllocShared Lib "shlwapi" (pv As Any, ByVal dwSize As Long, ByVal dwProcessId As Long) As LongPtr
+Public DeclareWide PtrSafe Function SHFreeShared Lib "shlwapi" (ByVal hData As LongPtr, ByVal dwProcessId As Long) As BOOL
+Public DeclareWide PtrSafe Function SHLockShared Lib "shlwapi" (ByVal hData As LongPtr, ByVal dwProcessId As Long) As LongPtr
+Public DeclareWide PtrSafe Function SHUnlockShared Lib "shlwapi" (pvData As Any) As BOOL
 
+
+Public Enum SHGLOBALCOUNTER
+    GLOBALCOUNTER_SEARCHMANAGER = 0
+    GLOBALCOUNTER_SEARCHOPTIONS = 1
+    GLOBALCOUNTER_FOLDERSETTINGSCHANGE = 2
+    GLOBALCOUNTER_RATINGS = 3
+    GLOBALCOUNTER_APPROVEDSITES = 4
+    GLOBALCOUNTER_RESTRICTIONS = 5
+    GLOBALCOUNTER_SHELLSETTINGSCHANGED = 6
+    GLOBALCOUNTER_SYSTEMPIDLCHANGE = 7
+    GLOBALCOUNTER_OVERLAYMANAGER = 8
+    GLOBALCOUNTER_QUERYASSOCIATIONS = 9
+    GLOBALCOUNTER_IESESSIONS = 10
+    GLOBALCOUNTER_IEONLY_SESSIONS = 11
+    GLOBALCOUNTER_APPLICATION_DESTINATIONS = 12
+    __UNUSED_RECYCLE_WAS_GLOBALCOUNTER_CSCSYNCINPROGRESS = 13
+    GLOBALCOUNTER_BITBUCKETNUMDELETERS = 14
+    GLOBALCOUNTER_RECYCLEDIRTYCOUNT_SHARES = 15
+    GLOBALCOUNTER_RECYCLEDIRTYCOUNT_DRIVE_A = 16
+    GLOBALCOUNTER_RECYCLEDIRTYCOUNT_DRIVE_B = 17
+    GLOBALCOUNTER_RECYCLEDIRTYCOUNT_DRIVE_C = 18
+    GLOBALCOUNTER_RECYCLEDIRTYCOUNT_DRIVE_D = 19
+    GLOBALCOUNTER_RECYCLEDIRTYCOUNT_DRIVE_E = 20
+    GLOBALCOUNTER_RECYCLEDIRTYCOUNT_DRIVE_F = 21
+    GLOBALCOUNTER_RECYCLEDIRTYCOUNT_DRIVE_G = 22
+    GLOBALCOUNTER_RECYCLEDIRTYCOUNT_DRIVE_H = 23
+    GLOBALCOUNTER_RECYCLEDIRTYCOUNT_DRIVE_I = 24
+    GLOBALCOUNTER_RECYCLEDIRTYCOUNT_DRIVE_J = 25
+    GLOBALCOUNTER_RECYCLEDIRTYCOUNT_DRIVE_K = 26
+    GLOBALCOUNTER_RECYCLEDIRTYCOUNT_DRIVE_L = 27
+    GLOBALCOUNTER_RECYCLEDIRTYCOUNT_DRIVE_M = 28
+    GLOBALCOUNTER_RECYCLEDIRTYCOUNT_DRIVE_N = 29
+    GLOBALCOUNTER_RECYCLEDIRTYCOUNT_DRIVE_O = 30
+    GLOBALCOUNTER_RECYCLEDIRTYCOUNT_DRIVE_P = 31
+    GLOBALCOUNTER_RECYCLEDIRTYCOUNT_DRIVE_Q = 32
+    GLOBALCOUNTER_RECYCLEDIRTYCOUNT_DRIVE_R = 33
+    GLOBALCOUNTER_RECYCLEDIRTYCOUNT_DRIVE_S = 34
+    GLOBALCOUNTER_RECYCLEDIRTYCOUNT_DRIVE_T = 35
+    GLOBALCOUNTER_RECYCLEDIRTYCOUNT_DRIVE_U = 36
+    GLOBALCOUNTER_RECYCLEDIRTYCOUNT_DRIVE_V = 37
+    GLOBALCOUNTER_RECYCLEDIRTYCOUNT_DRIVE_W = 38
+    GLOBALCOUNTER_RECYCLEDIRTYCOUNT_DRIVE_X = 39
+    GLOBALCOUNTER_RECYCLEDIRTYCOUNT_DRIVE_Y = 40
+    GLOBALCOUNTER_RECYCLEDIRTYCOUNT_DRIVE_Z = 41
+    __UNUSED_RECYCLE_WAS_GLOBALCOUNTER_RECYCLEDIRTYCOUNT_SERVERDRIVE = 42
+    __UNUSED_RECYCLE_WAS_GLOBALCOUNTER_RECYCLEGLOBALDIRTYCOUNT = 43
+    GLOBALCOUNTER_RECYCLEBINENUM = 44
+    GLOBALCOUNTER_RECYCLEBINCORRUPTED = 45
+    GLOBALCOUNTER_RATINGS_STATECOUNTER = 46
+    GLOBALCOUNTER_PRIVATE_PROFILE_CACHE = 47
+    GLOBALCOUNTER_INTERNETTOOLBAR_LAYOUT = 48
+    GLOBALCOUNTER_FOLDERDEFINITION_CACHE = 49
+    GLOBALCOUNTER_COMMONPLACES_LIST_CACHE = 50
+    GLOBALCOUNTER_PRIVATE_PROFILE_CACHE_MACHINEWIDE = 51
+    GLOBALCOUNTER_ASSOCCHANGED = 52 ' throttles reading of the registry value "GlobalAssocChangedCounter" from HKLM\Software\Microsoft\Windows\CurrentVersion\Explorer
+    ' #if (NTDDI_VERSION >= NTDDI_WIN8)
+    GLOBALCOUNTER_APP_ITEMS_STATE_STORE_CACHE = 53
+    GLOBALCOUNTER_SETTINGSYNC_ENABLED = 54
+    GLOBALCOUNTER_APPSFOLDER_FILETYPEASSOCIATION_COUNTER = 55
+    GLOBALCOUNTER_USERINFOCHANGED = 56
+    ' #if (NTDDI_VERSION >= NTDDI_WINBLUE)
+    GLOBALCOUNTER_SYNC_ENGINE_INFORMATION_CACHE_MACHINEWIDE = 57
+    ' #endif // (NTDDI_VERSION >= NTDDI_WINBLUE)
+    ' #endif // (NTDDI_VERSION >= NTDDI_WIN8)
+    ' #if (NTDDI_VERSION >= NTDDI_WIN10_RS1)
+    GLOBALCOUNTER_BANNERS_DATAMODEL_CACHE_MACHINEWIDE = 58
+    ' #endif // (NTDDI_VERSION >= NTDDI_WIN10_RS1)
+    GLOBALCOUNTER_MAXIMUMVALUE = 59 ' should always be last value
+End Enum
+
+
+Public Enum ShellIsOS
+    OS_WINDOWS  = 0  ' Windows 9x vs. NT
+    OS_NT  = 1  ' Windows 9x vs. NT
+    OS_WIN95ORGREATER  = 2  ' Win95 or greater
+    OS_NT4ORGREATER  = 3  ' NT4 or greater
+    OS_WIN98ORGREATER  = 5  ' Win98 or greater
+    OS_WIN98_GOLD  = 6  ' Win98 Gold (Version 4.10 build 1998)
+    OS_WIN2000ORGREATER  = 7  ' Some derivative of Win2000
+'  NOTE: these flags check explicitly for (dwMajorVersion == 5)
+    OS_WIN2000PRO  = 8  ' Windows 2000 Professional (Workstation)
+    OS_WIN2000SERVER  = 9  ' Windows 2000 Server
+    OS_WIN2000ADVSERVER  = 10  ' Windows 2000 Advanced Server
+    OS_WIN2000DATACENTER  = 11  ' Windows 2000 Data Center Server
+    OS_WIN2000TERMINAL  = 12  ' Windows 2000 Terminal Server in "Application Server" mode (now simply called "Terminal Server")
+    OS_EMBEDDED  = 13  ' Embedded Windows Edition
+    OS_TERMINALCLIENT  = 14  ' Windows Terminal Client (eg user is comming in via tsclient)
+    OS_TERMINALREMOTEADMIN  = 15  ' Terminal Server in "Remote Administration" mode
+    OS_WIN95_GOLD  = 16  ' Windows 95 Gold (Version 4.0 Build 1995)
+    OS_MEORGREATER  = 17  ' Windows Millennium (Version 5.0)
+    OS_XPORGREATER  = 18  ' Windows XP or greater
+    OS_HOME  = 19  ' Home Edition (eg NOT Professional, Server, Advanced Server, or Datacenter)
+    OS_PROFESSIONAL  = 20  ' Professional     (aka Workstation; eg NOT Server, Advanced Server, or Datacenter)
+    OS_DATACENTER  = 21  ' Datacenter       (eg NOT Server, Advanced Server, Professional, or Personal)
+    OS_ADVSERVER  = 22  ' Advanced Server  (eg NOT Datacenter, Server, Professional, or Personal)
+    OS_SERVER  = 23  ' Server           (eg NOT Datacenter, Advanced Server, Professional, or Personal)
+    OS_TERMINALSERVER  = 24  ' Terminal Server - server running in what used to be called "Application Server" mode (now simply called "Terminal Server")
+    OS_PERSONALTERMINALSERVER  = 25  ' Personal Terminal Server - per/pro machine running in single user TS mode
+    OS_FASTUSERSWITCHING  = 26  ' Fast User Switching
+    OS_WELCOMELOGONUI  = 27  ' New friendly logon UI
+    OS_DOMAINMEMBER  = 28  ' Is this machine a member of a domain (eg NOT a workgroup)
+    OS_ANYSERVER  = 29  ' is this machine any type of server? (eg datacenter or advanced server or server)?
+    OS_WOW6432  = 30  ' Is this process a 32-bit process running on an 64-bit platform?
+    OS_WEBSERVER  = 31  ' Web Edition Server
+    OS_SMALLBUSINESSSERVER  = 32  ' SBS Server
+    OS_TABLETPC  = 33  ' Are we running on a TabletPC?
+    OS_SERVERADMINUI  = 34  ' Should defaults lean towards those preferred by server administrators?
+    OS_MEDIACENTER  = 35  ' eHome Freestyle Project
+    OS_APPLIANCE  = 36  ' Windows .NET Appliance Server
+End Enum
+
+Public Enum SHFormatDateTimeFlags
+    FDTF_SHORTTIME  = &H00000001  ' eg, "7:48 PM"
+    FDTF_SHORTDATE  = &H00000002  ' eg, "3/29/98"
+    FDTF_DEFAULT  = (FDTF_SHORTDATE  Or  FDTF_SHORTTIME)  ' eg, "3/29/98 7:48 PM"
+    FDTF_LONGDATE  = &H00000004  ' eg, "Monday, March 29, 1998"
+    FDTF_LONGTIME  = &H00000008  ' eg. "7:48:33 PM"
+    FDTF_RELATIVE  = &H00000010  ' uses "Yesterday", etc. if possible
+    FDTF_LTRDATE  = &H00000100  ' Left To Right reading order
+    FDTF_RTLDATE  = &H00000200  ' Right To Left reading order
+    FDTF_NOAUTOREADINGORDER  = &H00000400  ' Don't detect reading order automatically. Useful if you will be converting to Ansi and don't want Unicode reading order characters
+End Enum
+
+Public Enum SHViewStatePropBagFlags
+    SHGVSPB_PERUSER  = &H00000001  ' must have one of PERUSER or ALLUSERS
+    SHGVSPB_ALLUSERS  = &H00000002
+    SHGVSPB_PERFOLDER  = &H00000004  ' must have one of PERFOLDER ALLFOLDERS or INHERIT
+    SHGVSPB_ALLFOLDERS  = &H00000008
+    SHGVSPB_INHERIT  = &H00000010
+    SHGVSPB_ROAM  = &H00000020  ' modifies the above
+    SHGVSPB_NOAUTODEFAULTS  = &H80000000  ' turns off read delegation to more general property bags
+    SHGVSPB_FOLDER  = (SHGVSPB_PERUSER  Or  SHGVSPB_PERFOLDER)
+    SHGVSPB_FOLDERNODEFAULTS  = (SHGVSPB_PERUSER  Or  SHGVSPB_PERFOLDER  Or  SHGVSPB_NOAUTODEFAULTS)
+    SHGVSPB_USERDEFAULTS  = (SHGVSPB_PERUSER  Or  SHGVSPB_ALLFOLDERS)
+    SHGVSPB_GLOBALDEFAULTS  = (SHGVSPB_ALLUSERS  Or  SHGVSPB_ALLFOLDERS)
+End Enum
+
+Public Enum SHLowMemMachineTypes
+ILMM_IE4
+End Enum
+
+'The following are in all ways shlwapi APIs; they're in shlwapi.h and shlwapi.lib, but only exported from SHCore.dll, which seems to get many shlwapi APIs forwarded to it
+Public DeclareWide PtrSafe Sub SetProcessReference Lib "SHCore" (ByVal pUnk As stdole.IUnknown)
+Public DeclareWide PtrSafe Function GetProcessReference Lib "SHCore" (ppunk As stdole.IUnknown) As Long
 #End Region
 
 #Region "kernel32"
@@ -2422,107 +2678,119 @@ Public Const UNICODE_STRING_MAX_BYTES As Long = 65534
 Public Const UNICODE_STRING_MAX_CHARS As Integer = 32767
 
 Public Enum PROCESSINFOCLASS
-    ProcessBasicInformation = &H00
-    ProcessQuotaLimits = &H01
-    ProcessIoCounters = &H02
-    ProcessVmCounters = &H03
-    ProcessTimes = &H04
-    ProcessBasePriority = &H05
-    ProcessRaisePriority = &H06
-    ProcessDebugPort = &H07
-    ProcessExceptionPort = &H08
-    ProcessAccessToken = &H09
-    ProcessLdtInformation = &H0A
-    ProcessLdtSize = &H0B
-    ProcessDefaultHardErrorMode = &H0C
-    ProcessIoPortHandlers = &H0D
-    ProcessPooledUsageAndLimits = &H0E
-    ProcessWorkingSetWatch = &H0F
-    ProcessUserModeIOPL = &H10
-    ProcessEnableAlignmentFaultFixup = &H11
-    ProcessPriorityClass = &H12
-    ProcessWx86Information = &H13
-    ProcessHandleCount = &H14
-    ProcessAffinityMask = &H15
-    ProcessPriorityBoost = &H16
-    ProcessDeviceMap = &H17
-    ProcessSessionInformation = &H18
-    ProcessForegroundInformation = &H19
-    ProcessWow64Information = &H1A
-    ProcessImageFileName = &H1B
-    ProcessLUIDDeviceMapsEnabled = &H1C
-    ProcessBreakOnTermination = &H1D
-    ProcessDebugObjectHandle = &H1E
-    ProcessDebugFlags = &H1F
-    ProcessHandleTracing = &H20
-    ProcessIoPriority = &H21
-    ProcessExecuteFlags = &H22
-    ProcessResourceManagement = &H23
-    ProcessCookie = &H24
-    ProcessImageInformation = &H25
-    ProcessCycleTime = &H26
-    ProcessPagePriority = &H27
-    ProcessInstrumentationCallback = &H28
-    ProcessThreadStackAllocation = &H29
-    ProcessWorkingSetWatchEx = &H2A
-    ProcessImageFileNameWin32 = &H2B
-    ProcessImageFileMapping = &H2C
-    ProcessAffinityUpdateMode = &H2D
-    ProcessMemoryAllocationMode = &H2E
-    ProcessGroupInformation = &H2F
-    ProcessTokenVirtualizationEnabled = &H30
-    ProcessConsoleHostProcess = &H31
-    ProcessWindowInformation = &H32
-    ProcessHandleInformation = &H33
-    ProcessMitigationPolicy = &H34
-    ProcessDynamicFunctionTableInformation = &H35
-    ProcessHandleCheckingMode = &H36
-    ProcessKeepAliveCount = &H37
-    ProcessRevokeFileHandles = &H38
-    ProcessWorkingSetControl = &H39
-    ProcessHandleTable = &H3A
-    ProcessCheckStackExtentsMode = &H3B
-    ProcessCommandLineInformation = &H3C
-    ProcessProtectionInformation = &H3D
-    ProcessMemoryExhaustion = &H3E
-    ProcessFaultInformation = &H3F
-    ProcessTelemetryIdInformation = &H40
-    ProcessCommitReleaseInformation = &H41
-    ProcessDefaultCpuSetsInformation = &H42
-    ProcessAllowedCpuSetsInformation = &H43
-    ProcessSubsystemProcess = &H44
-    ProcessJobMemoryInformation = &H45
-    ProcessInPublic = &H46
-    ProcessRaiseUMExceptionOnInvalidHandleClose = &H47
-    ProcessIumChallengeResponse = &H48
-    ProcessChildProcessInformation = &H49
-    ProcessHighGraphicsPriorityInformation = &H4A
-    ProcessSubsystemInformation = &H4B
-    ProcessEnergyValues = &H4C
-    ProcessActivityThrottleState = &H4D
-    ProcessActivityThrottlePolicy = &H4E
-    ProcessWin32kSyscallFilterInformation = &H4F
-    ProcessDisableSystemAllowedCpuSets = &H50
-    ProcessWakeInformation = &H51
-    ProcessEnergyTrackingState = &H52
-    ProcessManageWritesToExecutableMemory = &H53
-    ProcessCaptureTrustletLiveDump = &H54
-    ProcessTelemetryCoverage = &H55
-    ProcessEnclaveInformation = &H56
-    ProcessEnableReadWriteVmLogging = &H57
-    ProcessUptimeInformation = &H58
-    ProcessImageSection = &H59
-    ProcessDebugAuthInformation = &H5A
-    ProcessSystemResourceManagement = &H5B
-    ProcessSequenceNumber = &H5C
-    ProcessLoaderDetour = &H5D
-    ProcessSecurityDomainInformation = &H5E
-    ProcessCombineSecurityDomainsInformation = &H5F
-    ProcessEnableLogging = &H60
-    ProcessLeapSecondInformation = &H61
-    ProcessFiberShadowStackAllocation = &H62
-    ProcessFreeFiberShadowStackAllocation = &H63
-    MaxProcessInfoClass = &H64
+    ProcessBasicInformation ' q: PROCESS_BASIC_INFORMATION, PROCESS_EXTENDED_BASIC_INFORMATION
+    ProcessQuotaLimits ' qs: QUOTA_LIMITS, QUOTA_LIMITS_EX
+    ProcessIoCounters ' q: IO_COUNTERS
+    ProcessVmCounters ' q: VM_COUNTERS, VM_COUNTERS_EX, VM_COUNTERS_EX2
+    ProcessTimes ' q: KERNEL_USER_TIMES
+    ProcessBasePriority ' s: KPRIORITY
+    ProcessRaisePriority ' s: ULONG
+    ProcessDebugPort ' q: HANDLE
+    ProcessExceptionPort ' s: PROCESS_EXCEPTION_PORT
+    ProcessAccessToken ' s: PROCESS_ACCESS_TOKEN
+    ProcessLdtInformation ' qs: PROCESS_LDT_INFORMATION // 10
+    ProcessLdtSize ' s: PROCESS_LDT_SIZE
+    ProcessDefaultHardErrorMode ' qs: ULONG
+    ProcessIoPortHandlers ' (kernel-mode only) // PROCESS_IO_PORT_HANDLER_INFORMATION
+    ProcessPooledUsageAndLimits ' q: POOLED_USAGE_AND_LIMITS
+    ProcessWorkingSetWatch ' q: PROCESS_WS_WATCH_INFORMATION[]; s: void
+    ProcessUserModeIOPL ' qs: ULONG (requires SeTcbPrivilege)
+    ProcessEnableAlignmentFaultFixup ' s: BOOLEAN
+    ProcessPriorityClass ' qs: PROCESS_PRIORITY_CLASS
+    ProcessWx86Information ' qs: ULONG (requires SeTcbPrivilege) (VdmAllowed)
+    ProcessHandleCount ' q: ULONG, PROCESS_HANDLE_INFORMATION // 20
+    ProcessAffinityMask ' s: KAFFINITY
+    ProcessPriorityBoost ' qs: ULONG
+    ProcessDeviceMap ' qs: PROCESS_DEVICEMAP_INFORMATION, PROCESS_DEVICEMAP_INFORMATION_EX
+    ProcessSessionInformation ' q: PROCESS_SESSION_INFORMATION
+    ProcessForegroundInformation ' s: PROCESS_FOREGROUND_BACKGROUND
+    ProcessWow64Information ' q: ULONG_PTR
+    ProcessImageFileName ' q: UNICODE_STRING
+    ProcessLUIDDeviceMapsEnabled ' q: ULONG
+    ProcessBreakOnTermination ' qs: ULONG
+    ProcessDebugObjectHandle ' q: HANDLE // 30
+    ProcessDebugFlags ' qs: ULONG
+    ProcessHandleTracing ' q: PROCESS_HANDLE_TRACING_QUERY; s: size 0 disables, otherwise enables
+    ProcessIoPriority ' qs: IO_PRIORITY_HINT
+    ProcessExecuteFlags ' qs: ULONG
+    ProcessTlsInformation ' PROCESS_TLS_INFORMATION // ProcessResourceManagement 
+    ProcessCookie ' q: ULONG
+    ProcessImageInformation ' q: SECTION_IMAGE_INFORMATION
+    ProcessCycleTime ' q: PROCESS_CYCLE_TIME_INFORMATION // since VISTA
+    ProcessPagePriority ' q: PAGE_PRIORITY_INFORMATION
+    ProcessInstrumentationCallback ' s: PVOID or PROCESS_INSTRUMENTATION_CALLBACK_INFORMATION // 40
+    ProcessThreadStackAllocation ' s: PROCESS_STACK_ALLOCATION_INFORMATION, PROCESS_STACK_ALLOCATION_INFORMATION_EX
+    ProcessWorkingSetWatchEx ' q: PROCESS_WS_WATCH_INFORMATION_EX[]
+    ProcessImageFileNameWin32 ' q: UNICODE_STRING
+    ProcessImageFileMapping ' q: HANDLE (input)
+    ProcessAffinityUpdateMode ' qs: PROCESS_AFFINITY_UPDATE_MODE
+    ProcessMemoryAllocationMode ' qs: PROCESS_MEMORY_ALLOCATION_MODE
+    ProcessGroupInformation ' q: USHORT[]
+    ProcessTokenVirtualizationEnabled ' s: ULONG
+    ProcessConsoleHostProcess ' q: ULONG_PTR // ProcessOwnerInformation
+    ProcessWindowInformation ' q: PROCESS_WINDOW_INFORMATION // 50
+    ProcessHandleInformation ' q: PROCESS_HANDLE_SNAPSHOT_INFORMATION // since WIN8
+    ProcessMitigationPolicy ' s: PROCESS_MITIGATION_POLICY_INFORMATION
+    ProcessDynamicFunctionTableInformation
+    ProcessHandleCheckingMode ' qs: ULONG; s: 0 disables, otherwise enables
+    ProcessKeepAliveCount ' q: PROCESS_KEEPALIVE_COUNT_INFORMATION
+    ProcessRevokeFileHandles ' s: PROCESS_REVOKE_FILE_HANDLES_INFORMATION
+    ProcessWorkingSetControl ' s: PROCESS_WORKING_SET_CONTROL
+    ProcessHandleTable ' q: ULONG[] // since WINBLUE
+    ProcessCheckStackExtentsMode ' qs: ULONG // KPROCESS->CheckStackExtents (CFG)
+    ProcessCommandLineInformation ' q: UNICODE_STRING // 60
+    ProcessProtectionInformation ' q: PS_PROTECTION
+    ProcessMemoryExhaustion ' PROCESS_MEMORY_EXHAUSTION_INFO // since THRESHOLD
+    ProcessFaultInformation ' PROCESS_FAULT_INFORMATION
+    ProcessTelemetryIdInformation ' q: PROCESS_TELEMETRY_ID_INFORMATION
+    ProcessCommitReleaseInformation ' PROCESS_COMMIT_RELEASE_INFORMATION
+    ProcessDefaultCpuSetsInformation
+    ProcessAllowedCpuSetsInformation
+    ProcessSubsystemProcess
+    ProcessJobMemoryInformation ' q: PROCESS_JOB_MEMORY_INFO
+    ProcessInPrivate ' s: void // ETW // since THRESHOLD2 // 70
+    ProcessRaiseUMExceptionOnInvalidHandleClose ' qs: ULONG; s: 0 disables, otherwise enables
+    ProcessIumChallengeResponse
+    ProcessChildProcessInformation ' q: PROCESS_CHILD_PROCESS_INFORMATION
+    ProcessHighGraphicsPriorityInformation ' qs: BOOLEAN (requires SeTcbPrivilege)
+    ProcessSubsystemInformation ' q: SUBSYSTEM_INFORMATION_TYPE // since REDSTONE2
+    ProcessEnergyValues ' q: PROCESS_ENERGY_VALUES, PROCESS_EXTENDED_ENERGY_VALUES
+    ProcessPowerThrottlingState ' qs: POWER_THROTTLING_PROCESS_STATE
+    ProcessActivityThrottlePolicy 'ProcessReserved3Information  // PROCESS_ACTIVITY_THROTTLE_POLICY -???? no def; should be ACTIVITY_THROTTLE_POLICY?
+    ProcessWin32kSyscallFilterInformation ' q: WIN32K_SYSCALL_FILTER
+    ProcessDisableSystemAllowedCpuSets ' 80
+    ProcessWakeInformation ' PROCESS_WAKE_INFORMATION
+    ProcessEnergyTrackingState ' PROCESS_ENERGY_TRACKING_STATE
+    ProcessManageWritesToExecutableMemory ' MANAGE_WRITES_TO_EXECUTABLE_MEMORY // since REDSTONE3
+    ProcessCaptureTrustletLiveDump
+    ProcessTelemetryCoverage
+    ProcessEnclaveInformation
+    ProcessEnableReadWriteVmLogging ' PROCESS_READWRITEVM_LOGGING_INFORMATION
+    ProcessUptimeInformation ' q: PROCESS_UPTIME_INFORMATION
+    ProcessImageSection ' q: HANDLE
+    ProcessDebugAuthInformation ' since REDSTONE4 // 90
+    ProcessSystemResourceManagement ' PROCESS_SYSTEM_RESOURCE_MANAGEMENT
+    ProcessSequenceNumber ' q: ULONGLONG
+    ProcessLoaderDetour ' since REDSTONE5
+    ProcessSecurityDomainInformation ' PROCESS_SECURITY_DOMAIN_INFORMATION
+    ProcessCombineSecurityDomainsInformation ' PROCESS_COMBINE_SECURITY_DOMAINS_INFORMATION
+    ProcessEnableLogging ' PROCESS_LOGGING_INFORMATION
+    ProcessLeapSecondInformation ' PROCESS_LEAP_SECOND_INFORMATION
+    ProcessFiberShadowStackAllocation ' PROCESS_FIBER_SHADOW_STACK_ALLOCATION_INFORMATION // since 19H1
+    ProcessFreeFiberShadowStackAllocation ' PROCESS_FREE_FIBER_SHADOW_STACK_ALLOCATION_INFORMATION
+    ProcessAltSystemCallInformation ' qs: BOOLEAN (kernel-mode only) // INT2E // since 20H1 // 100
+    ProcessDynamicEHContinuationTargets ' PROCESS_DYNAMIC_EH_CONTINUATION_TARGETS_INFORMATION
+    ProcessDynamicEnforcedCetCompatibleRanges ' PROCESS_DYNAMIC_ENFORCED_ADDRESS_RANGES_INFORMATION // since 20H2
+    ProcessCreateStateChange ' since WIN11
+    ProcessApplyStateChange
+    ProcessEnableOptionalXStateFeatures
+    ProcessAltPrefetchParam ' since 11H1
+    ProcessAssignCpuPartitions
+    ProcessPriorityClassEx
+    ProcessMembershipInformation
+    ProcessEffectiveIoPriority
+    ProcessEffectivePagePriority
+    MaxProcessInfoClass
 End Enum
 Public Type PROCESS_BASIC_INFORMATION
     ExitStatus                      As Long
@@ -2534,6 +2802,768 @@ Public Type PROCESS_BASIC_INFORMATION
     uUniqueProcessId                As LongPtr
     uInheritedFromUniqueProcessId   As LongPtr
 End Type
+
+Public Type VM_COUNTERS
+    PeakVirtualSize As LongPtr
+    VirtualSize As LongPtr
+    PageFaultCount As Long
+    PeakWorkingSetSize As LongPtr
+    WorkingSetSize As LongPtr
+    QuotaPeakPagedPoolUsage As LongPtr
+    QuotaPagedPoolUsage As LongPtr
+    QuotaPeakNonPagedPoolUsage As LongPtr
+    QuotaNonPagedPoolUsage As LongPtr
+    PagefileUsage As LongPtr
+    PeakPagefileUsage As LongPtr
+End Type
+Public Type VM_COUNTERS_EX
+    PeakVirtualSize As LongPtr
+    VirtualSize As LongPtr
+    PageFaultCount As Long
+    PeakWorkingSetSize As LongPtr
+    WorkingSetSize As LongPtr
+    QuotaPeakPagedPoolUsage As LongPtr
+    QuotaPagedPoolUsage As LongPtr
+    QuotaPeakNonPagedPoolUsage As LongPtr
+    QuotaNonPagedPoolUsage As LongPtr
+    PagefileUsage As LongPtr
+    PeakPagefileUsage As LongPtr
+    PrivateUsage As LongPtr
+End Type
+Public Type VM_COUNTERS_EX2
+    CountersEx As VM_COUNTERS_EX
+    PrivateWorkingSetSize As LongPtr
+    SharedCommitUsage As LongPtr
+End Type
+
+Public Type KERNEL_USER_TIMES
+    CreateTime As LARGE_INTEGER
+    ExitTime As LARGE_INTEGER
+    KernelTime As LARGE_INTEGER
+    UserTime As LARGE_INTEGER
+End Type
+
+[Description("**WARNING:** The actual KPRIORITY is a single byte type. Do not substitute this enum for it, this is to compare against the results or assign with CByte ONLY")]
+Public Enum KPRIORITY
+    LOW_PRIORITY = 0  ' Lowest thread priority level
+    LOW_REALTIME_PRIORITY = 16  ' Lowest realtime priority level
+    HIGH_PRIORITY = 31  ' Highest thread priority level
+    MAXIMUM_PRIORITY = 32  ' Number of thread priority levels
+End Enum
+
+Public Enum ProcessExceptionPortFlags
+    PROCESS_EXCEPTION_PORT_ALL_STATE_BITS  = 3
+    PROCESS_EXCEPTION_PORT_ALL_STATE_FLAGS = ((1 << PROCESS_EXCEPTION_PORT_ALL_STATE_BITS) - 1)
+End Enum
+
+Public Type PROCESS_EXCEPTION_PORT
+    ' Handle to the exception port. No particular access required.
+    ExceptionPortHandle As LongPtr
+    ' Miscellaneous state flags to be cached along with the exception
+    ' port in the kernel.
+    StateFlags As ProcessExceptionPortFlags
+End Type
+
+Public Type PROCESS_ACCESS_TOKEN
+    ' Handle to Primary token to assign to the process.
+    ' TOKEN_ASSIGN_PRIMARY access to this token is needed.
+    Token As LongPtr
+    ' Handle to the initial thread of the process.
+    ' A process's access token can only be changed if the process has
+    ' no threads or a single thread that has not yet begun execution.
+    ' N.B. This field is unused.
+    Thread As LongPtr
+End Type
+
+Public Enum EMULATOR_PORT_ACCESS_TYPE
+    EPAT_Uchar = 0
+    EPAT_Ushort = 1
+    EPAT_Ulong = 2
+End Enum
+Public Enum EmulatorAccessEntryMode
+    EMULATOR_READ_ACCESS  = &H01
+    EMULATOR_WRITE_ACCESS  = &H02
+End Enum
+Public Type EMULATOR_ACCESS_ENTRY
+    BasePort As Long
+    NumConsecutivePorts As Long
+    AccessType As EMULATOR_PORT_ACCESS_TYPE
+    AccessMode As Byte 'EmulatorAccessEntryMode?
+    StringSupport As Byte
+    Routine As LongPtr
+End Type
+Public Type PROCESS_IO_PORT_HANDLER_INFORMATION
+    Install As Byte ' true if handlers to be installed
+    NumEntries As Long
+    Context As Long
+    EmulatorAccessEntries As LongPtr 'PEMULATOR_ACCESS_ENTRY
+End Type
+
+Public Type POOLED_USAGE_AND_LIMITS
+    PeakPagedPoolUsage As LongPtr
+    PagedPoolUsage As LongPtr
+    PagedPoolLimit As LongPtr
+    PeakNonPagedPoolUsage As LongPtr
+    NonPagedPoolUsage As LongPtr
+    NonPagedPoolLimit As LongPtr
+    PeakPagefileUsage As LongPtr
+    PagefileUsage As LongPtr
+    PagefileLimit As LongPtr
+End Type
+
+Public Type PROCESS_WS_WATCH_INFORMATION
+    FaultingPc As LongPtr
+    FaultingVa As LongPtr
+End Type
+
+Public Enum ProcessPriorityClassValues
+    PROCESS_PRIORITY_CLASS_UNKNOWN  = 0
+    PROCESS_PRIORITY_CLASS_IDLE  = 1
+    PROCESS_PRIORITY_CLASS_NORMAL  = 2
+    PROCESS_PRIORITY_CLASS_HIGH  = 3
+    PROCESS_PRIORITY_CLASS_REALTIME  = 4
+    PROCESS_PRIORITY_CLASS_BELOW_NORMAL  = 5
+    PROCESS_PRIORITY_CLASS_ABOVE_NORMAL  = 6
+End Enum
+Public Type PROCESS_PRIORITY_CLASS
+    Foreground As Byte
+    /* [ TypeHint(ProcessPriorityClassValues) ] */ PriorityClass As Byte
+End Type
+
+Public Type PROCESS_HANDLE_INFORMATION
+    HandleCount As Long
+    HandleCountHighWatermark As Long
+End Type
+
+Public Type PROCESS_DEVICEMAP_INFORMATION
+	SetOrQuery As LongPtr
+    ' union {
+        ' struct {
+            ' HANDLE DirectoryHandle;
+        ' } Set;
+        ' struct {
+            ' ULONG DriveMap;
+            ' UCHAR DriveType[ 32 ];
+        ' } Query;
+    ' } DUMMYUNIONNAME;
+End Type
+Public Enum ProcessDevmapExFlags
+    PROCESS_LUID_DOSDEVICES_ONLY = &H1
+End Enum
+
+
+Public Type PROCESS_DEVICEMAP_INFORMATION_EX
+    SetOrQuery As LongPtr
+    ' union {
+        ' struct {
+            ' HANDLE DirectoryHandle;
+        ' } Set;
+        ' struct {
+            ' ULONG DriveMap;
+            ' UCHAR DriveType[ 32 ];
+        ' } Query;
+    ' } DUMMYUNIONNAME;
+    Flags As ProcessDevmapExFlags
+End Type
+
+Public Type PROCESS_SESSION_INFORMATION
+    SessionId As Long
+End Type
+
+Public Type PROCESS_FOREGROUND_BACKGROUND
+    Foreground As Byte
+End Type
+
+Public Enum ProcessHandleTraceTypes
+    HANDLE_TRACE_DB_OPEN  = 1
+    HANDLE_TRACE_DB_CLOSE  = 2
+    HANDLE_TRACE_DB_BADREF  = 3
+End Enum
+Public Const PROCESS_HANDLE_TRACING_MAX_STACKS = 16
+Public Type PROCESS_HANDLE_TRACING_ENTRY
+    Handle As LongPtr
+    ClientId As CLIENT_ID
+    Type As ProcessHandleTraceTypes
+    Stacks(0 To (PROCESS_HANDLE_TRACING_MAX_STACKS - 1)) As LongPtr
+End Type
+[ Description("WARNING: This structure cannot be used as-is. You must receive all info as a byte buffer, copy the first two members, redim, then copy the appropriate size to HandleTrace(0)")]
+Public Type PROCESS_HANDLE_TRACING_QUERY
+    Handle As LongPtr
+    TotalTraces As Long
+    HandleTrace() As PROCESS_HANDLE_TRACING_ENTRY
+End Type
+
+Public Enum ProcessHandleTracingFlags
+    PROCESS_HANDLE_EXCEPTIONS_ENABLED = &H1
+End Enum
+Public Type PROCESS_HANDLE_TRACING_ENABLE
+    Flags As ProcessHandleTracingFlags
+End Type
+Public Enum ProcessHandleTracingExFlags
+    PROCESS_HANDLE_RAISE_UM_EXCEPTION_ON_INVALID_HANDLE_CLOSE_DISABLED  = &H00000000
+    PROCESS_HANDLE_RAISE_UM_EXCEPTION_ON_INVALID_HANDLE_CLOSE_ENABLED  = &H00000001
+End Enum
+Public Type PROCESS_HANDLE_TRACING_ENABLE_EX
+    Flags As ProcessHandleTracingExFlags
+    TotalSlots As Long
+End Type
+
+Public Type THREAD_TLS_INFORMATION
+    Flags As Long
+    'union {
+    '    PVOID* TlsVector;
+    '    PVOID TlsModulePointer;
+    '};
+    VectorOrModulePointer As LongPtr
+    ThreadId As LongPtr
+End Type
+Public Enum PROCESS_TLS_INFORMATION_TYPE
+    ProcessTlsReplaceIndex = 0
+    ProcessTlsReplaceVector = 1
+    MaxProcessTlsOperation = 2
+End Enum
+[ Description("WARNING: This structure cannot be used as-is. You must receive all info as a byte buffer, copy the first five members, redim, then copy the appropriate size to ThreadData(0)")]
+Public Type PROCESS_TLS_INFORMATION
+    Flags As Long
+    OperationType As PROCESS_TLS_INFORMATION_TYPE
+    ThreadDataCount As Long
+    TlsIndex As Long
+    PreviousCount As Long
+    ThreadData() As THREAD_TLS_INFORMATION
+End Type
+
+
+
+Public Enum PBI_BITFIELD
+    PBI_IsProtectedProcess = &B00000000_00000000_00000001
+    PBI_IsWow64Process = &B00000000_00000000_00000010
+    PBI_IsProcessDeleting = &B00000000_00000000_00000100
+    PBI_IsCrossSessionCreate = &B10000
+    PBI_IsFrozen = &B100000
+    PBI_IsBackground = &B1000000
+    PBI_IsStronglyNamed = &B10000000
+    PBI_IsSecureProcess = &B100000000
+    PBI_IsSubsystemProcess = &B1000000000
+End Enum   
+Public Type PROCESS_EXTENDED_BASIC_INFORMATION
+	Size As LongPtr
+    BasicInfo As PROCESS_BASIC_INFORMATION
+    Flags As PBI_BITFIELD
+End Type
+
+Public Type PROCESS_MEMBERSHIP_INFORMATION
+    ServerSiloId As Long
+End Type
+
+Public Enum SectionImageBitfield
+    SECIMG_ComPlusNativeReady = &B1
+    SECIMG_ComPlusILOnly = &B10
+    SECIMG_ImageDynamicallyRelocated = &B100
+    SECIMG_ImageMappedFlat = &B1000
+    SECIMG_BaseBelow4gb = &B10000
+    SECIMG_ComPlusPrefer32bit = &B100000
+End Enum
+Public Type SECTION_IMAGE_INFORMATION
+    TransferAddress As LongPtr '0x0
+    ZeroBits As Long '0x8
+    MaximumStackSize As LongPtr '0x10
+    CommittedStackSize As LongPtr '0x18
+    SubSystemType As ImageSubsystemType
+    SubSystemVersion As Long
+    [ Description("GpValue on 6.2")]
+    OperatingSystemVersion As Long
+    ImageCharacteristics As Integer
+    DllCharacteristics As Integer
+    Machine As Integer
+    ImageContainsCode As Byte
+    ' union
+    ' {
+        ' UCHAR ImageFlags;                                                   //0x33
+        ' struct
+        ' {
+            ' UCHAR ComPlusNativeReady : 1;                                     //0x33
+            ' UCHAR ComPlusILOnly : 1;                                          //0x33
+            ' UCHAR ImageDynamicallyRelocated : 1;                              //0x33
+            ' UCHAR ImageMappedFlat : 1;                                        //0x33
+            ' UCHAR BaseBelow4gb : 1;                                           //0x33
+            ' UCHAR ComPlusPrefer32bit : 1;                                     //0x33
+            ' UCHAR Reserved : 2;                                               //0x33
+        ' };
+    ' };
+    [ Description("Values in SectionImageBitfield")]
+    /* [ TypeHint(SectionImageBitfield) ] */ ImageFlags As Byte
+    LoaderFlags As Long
+    ImageFileSize As Long
+    Checksum As Long
+End Type
+
+Public Type PROCESS_CYCLE_TIME_INFORMATION
+    AccumulatedCycles As LongLong
+    CurrentCycleCount As LongLong
+End Type
+
+Public Type PAGE_PRIORITY_INFORMATION
+    PagePriority As MEMORY_PRIORITY_VALUES
+End Type
+
+Public Type PROCESS_INSTRUMENTATION_CALLBACK_INFORMATION
+    Version As Long
+    Reserved As Long
+    Callback As LongPtr
+End Type
+
+Public Type PROCESS_STACK_ALLOCATION_INFORMATION
+    ReserveSize As LongPtr
+    ZeroBits As LongPtr
+    StackBase As LongPtr
+End Type
+Public Type PROCESS_STACK_ALLOCATION_INFORMATION_EX
+    PreferredNode As Long
+    Reserved0 As Long
+    Reserved1 As Long
+    Reserved2 As Long
+    AllocInfo As PROCESS_STACK_ALLOCATION_INFORMATION
+End Type
+
+Public Type PROCESS_WS_WATCH_INFORMATION_EX
+    BasicInfo As PROCESS_WS_WATCH_INFORMATION
+    FaultingThreadId As LongPtr
+    Flags As LongPtr
+End Type
+
+' typedef union _PROCESS_AFFINITY_UPDATE_MODE
+' {
+    ' ULONG Flags;
+    ' struct
+    ' {
+        ' ULONG EnableAutoUpdate : 1;
+        ' ULONG Permanent : 1;
+        ' ULONG Reserved : 30;
+    ' };
+' } PROCESS_AFFINITY_UPDATE_MODE, 
+Public Enum ProcessAffinityUpdateModes
+	PAUM_EnableAutoUpdate = &H1
+    PAUM_Permanent = &H2
+End Enum
+Public Type PROCESS_AFFINITY_UPDATE_MODE
+	Flags As ProcessAffinityUpdateModes
+End Type
+
+' typedef union _PROCESS_MEMORY_ALLOCATION_MODE
+' {
+    ' ULONG Flags;
+    ' struct
+    ' {
+        ' ULONG TopDown : 1;
+        ' ULONG Reserved : 31;
+    ' };
+' } PROCESS_MEMORY_ALLOCATION_MODE
+Public Enum ProcessMemAllocModes
+    PMAM_TopDown = 1
+End Enum
+Public Type PROCESS_MEMORY_ALLOCATION_MODE
+	Flags As ProcessMemAllocModes
+End Type
+
+Public Type PROCESS_WINDOW_INFORMATION
+    WindowFlags As Long
+    WindowTitleLength As Integer
+    WindowTitle(1024) As Integer
+End Type
+
+Public Type PROCESS_HANDLE_TABLE_ENTRY_INFO
+    HandleValue As LongPtr
+    HandleCount As LongPtr
+    PointerCount As LongPtr
+    GrantedAccess As Long
+    ObjectTypeIndex As Long
+    HandleAttributes As Long
+    Reserved As Long
+End Type
+[ Description("WARNING: This structure cannot be used as-is. You must receive all info as a byte buffer, copy the first two members, redim, then copy the appropriate size to Handles(0)")]
+Public Type PROCESS_HANDLE_SNAPSHOT_INFORMATION
+    NumberOfHandles As LongPtr
+    Reserved As LongPtr
+    Handles() As PROCESS_HANDLE_TABLE_ENTRY_INFO
+End Type
+
+Public Type PROCESS_KEEPALIVE_COUNT_INFORMATION
+    WakeCount As Long
+    NoWakeCount As Long
+End Type
+
+Public Type PROCESS_REVOKE_FILE_HANDLES_INFORMATION
+    TargetDevicePath As UNICODE_STRING
+End Type
+
+Public Enum PROCESS_WORKING_SET_OPERATION
+    ProcessWorkingSetSwap 
+    ProcessWorkingSetEmpty
+    ProcessWorkingSetOperationMax
+End Enum
+
+Public Type PROCESS_WORKING_SET_CONTROL
+    Version As Long
+    Operation As PROCESS_WORKING_SET_OPERATION
+    Flags As Long
+End Type
+
+Public Type PROCESS_FAULT_INFORMATION
+    FaultFlags As Long
+    AdditionalInfo As Long
+End Type
+
+Public Type PROCESS_TELEMETRY_ID_INFORMATION
+    HeaderSize As Long
+    ProcessId As Long
+    ProcessStartKey As LongLong
+    CreateTime As LongLong
+    CreateInterruptTime As LongLong
+    CreateUnbiasedInterruptTime As LongLong
+    ProcessSequenceNumber As LongLong
+    SessionCreateTime As LongLong
+    SessionId As Long
+    BootId As Long
+    ImageChecksum As Long
+    ImageTimeDateStamp As Long
+    UserSidOffset As Long
+    ImagePathOffset As Long
+    PackageNameOffset As Long
+    RelativeAppNameOffset As Long
+    CommandLineOffset As Long
+End Type
+
+Public Enum ProcessCommitReleaseFlags
+    PCRF_Eligible = &H1
+    PCRF_ReleaseRepurposedMemResetCommit = &H2
+    PCRF_ForceReleaseMemResetCommit = &H4
+End Enum
+Public Type PROCESS_COMMIT_RELEASE_INFORMATION
+    Version As Long
+    '    struct
+    '    {
+    '        ULONG Eligible : 1;
+    '        ULONG ReleaseRepurposedMemResetCommit : 1;
+    '        ULONG ForceReleaseMemResetCommit : 1;
+    '        ULONG Spare : 29;
+    '    };
+    Flags As ProcessCommitReleaseFlags
+    CommitDebt As LongPtr
+    CommittedMemResetSize As LongPtr
+    RepurposedMemResetSize As LongPtr
+End Type
+
+Public Type PROCESS_JOB_MEMORY_INFO
+    SharedCommitUsage As LongLong
+    PrivateCommitUsage As LongLong
+    PeakPrivateCommitUsage As LongLong
+    PrivateCommitLimit As LongLong
+    TotalCommitLimit As LongLong
+End Type
+
+Public Type PROCESS_CHILD_PROCESS_INFORMATION
+    ProhibitChildProcesses As Byte
+    AlwaysAllowSecureChildProcess As Byte ' REDSTONE3
+    AuditProhibitChildProcesses As Byte
+End Type
+
+Public Enum SUBSYSTEM_INFORMATION_TYPE
+    SubsystemInformationTypeWin32 
+    SubsystemInformationTypeWSL
+    MaxSubsystemInformationType
+End Enum
+
+' union _ENERGY_STATE_DURATION
+' {
+    ' ULONGLONG Value;                                                        //0x0
+    ' struct
+    ' {
+        ' ULONG LastChangeTime;                                               //0x0
+    ' ULONG Duration:31;                                                      //0x4
+    ' };
+    ' ULONG IsInState:1;                                                      //0x4
+' };
+Public Type ENERGY_STATE_DURATION
+    Value As LongLong
+End Type
+
+Public Enum ProcessEnergyValuesWindowFlags
+	PEVWF_Foreground = &H1
+    PEVWF_DesktopVisible = &H2
+End Enum
+
+[ Description("Through Redstone 1 (Win10 1607). For WindowInformation, use ProcessEnergyValuesWindowFlags")]
+Public Type PROCESS_ENERGY_VALUES_7
+    Cycles(1, 3) As LongLong '0x0
+    DiskEnergy As LongLong '0x40
+    NetworkTailEnergy As LongLong '0x48
+    MBBTailEnergy As LongLong '0x50
+    NetworakTxRxBytes As LongLong '0x58
+    MBBTxRxBytes As LongLong '0x60
+    /* [ TypeHint(ProcessEnergyValuesWindowFlags) ] */ WindowInformation As Integer
+    CompositorRendered As Integer '0x6a
+    DirtyGenerated As Integer '0x6c
+    DirtyPropagated As Integer '0x6e
+    DesktopVisibilityReportTimestamp As LONGLONG '0x70
+    DesktopVisibleTime As LongLong '0x78
+    ForegroundReportTimestamp As LONGLONG '0x80
+    ForegroundTime As LongLong '0x88
+End Type
+
+[ Description("For Windows 10 Redstone 2 and newer (Last verified: Win11 22H2). For earlier, use PROCESS_ENERGY_VALUES_7")]
+Public Type PROCESS_ENERGY_VALUES
+    Cycles(1, 3) As LongLong '0x0
+    DiskEnergy As LongLong '0x40
+    NetworkTailEnergy As LongLong '0x48
+    MBBTailEnergy As LongLong '0x50
+    NetworakTxRxBytes As LongLong '0x58
+    MBBTxRxBytes As LongLong '0x60
+    ' union
+    ' {
+    '     union _ENERGY_STATE_DURATION Durations[3];                          //0x68
+    '     struct
+    '     {
+    '         union _ENERGY_STATE_DURATION ForegroundDuration;                //0x68
+    '         union _ENERGY_STATE_DURATION DesktopVisibleDuration;            //0x70
+    '         union _ENERGY_STATE_DURATION PSMForegroundDuration;             //0x78
+    '     };
+    ' };
+    ForegroundDuration As ENERGY_STATE_DURATION
+    DesktopVisiableDuration As ENERGY_STATE_DURATION
+    PMSForegroundDuration As ENERGY_STATE_DURATION
+    CompositionRendered As Long
+    CompositionDirtyGenerated As Long
+    CompositionDirtyPropagated As Long
+    Reserved1 As Long
+    AttributedCycles(1, 3) As LongLong '0x78
+    WorkOnBehalfCycles(1, 3) As LongLong '0x88
+End Type
+
+Public Type TIMELINE_BITMAP
+    ' union _TIMELINE_BITMAP
+    ' {
+        ' ULONGLONG Value;                                                        //0x0
+        ' struct
+        ' {
+            ' ULONG EndTime;                                                      //0x0
+        ' };
+        ' ULONG Bitmap;                                                           //0x4
+    ' }; 
+    Value As LongLong
+End Type
+[ Description("Win10 Redstone 2 (1703/Creators Update) **ONLY**") ]
+Public Type PROCESS_ENERGY_VALUES_EXTENSION_1703
+	CpuTimeline As TIMELINE_BITMAP
+    DiskTimeline As TIMELINE_BITMAP
+    NetworkTimeline As TIMELINE_BITMAP
+    MBBTimeline As TIMELINE_BITMAP
+    ForegroundTimeline As TIMELINE_BITMAP
+    DesktopVisibleTimeline As TIMELINE_BITMAP
+    CompositionRenderedTimeline As TIMELINE_BITMAP
+    CompositionDirtyGeneratedTimeline As TIMELINE_BITMAP
+    CompositionDirtyPropagatedTimeline As TIMELINE_BITMAP
+End Type
+[ Description("Win10 Redstone 3+ (Last verified: Win11 22H2). For Redstone 2 use _1703 variant.")]
+Public Type PROCESS_ENERGY_VALUES_EXTENSION
+    CpuTimeline As TIMELINE_BITMAP
+    DiskTimeline As TIMELINE_BITMAP
+    NetworkTimeline As TIMELINE_BITMAP
+    MBBTimeline As TIMELINE_BITMAP
+    ForegroundTimeline As TIMELINE_BITMAP
+    DesktopVisibleTimeline As TIMELINE_BITMAP
+    CompositionRenderedTimeline As TIMELINE_BITMAP
+    CompositionDirtyGeneratedTimeline As TIMELINE_BITMAP
+    CompositionDirtyPropagatedTimeline As TIMELINE_BITMAP
+    InputTimeline As TIMELINE_BITMAP
+    AudioInTimeline As TIMELINE_BITMAP
+    AudioOutTimeline As TIMELINE_BITMAP
+    DisplayRequiredTimeline As TIMELINE_BITMAP
+    KeyboardInputTimeline As TIMELINE_BITMAP
+    InputDuration As ENERGY_STATE_DURATION
+    AudioInDuration As ENERGY_STATE_DURATION
+    AudioOutDuration As ENERGY_STATE_DURATION
+    DisplayRequiredDuration As ENERGY_STATE_DURATION
+    PSMBackgroundDuration As ENERGY_STATE_DURATION
+    KeyboardInput As Long
+    MouseInput As Long
+End Type
+[ Description("Win10 Redstone 2 (1703/Creators Update) **ONLY**") ]
+Public Type PROCESS_EXTENDED_ENERGY_VALUES_1703
+	Base As PROCESS_ENERGY_VALUES
+    Extension As PROCESS_ENERGY_VALUES_EXTENSION_1703
+End Type
+[ Description("Win10 Redstone 3+ (Last verified: Win11 22H2). For Redstone 2 use _1703 variant.")]
+Public Type PROCESS_EXTENDED_ENERGY_VALUES
+    Base As PROCESS_ENERGY_VALUES
+    Extension As PROCESS_ENERGY_VALUES_EXTENSION
+End Type
+
+Public Enum ProcessPowerThrottlingVersions
+    POWER_THROTTLING_PROCESS_CURRENT_VERSION = 1
+End Enum
+Public Enum ProcessPowerThrottlingFlags
+    POWER_THROTTLING_PROCESS_EXECUTION_SPEED  = &H1
+    POWER_THROTTLING_PROCESS_DELAYTIMERS  = &H2
+    POWER_THROTTLING_PROCESS_VALID_FLAGS  = ((POWER_THROTTLING_PROCESS_EXECUTION_SPEED  Or  POWER_THROTTLING_PROCESS_DELAYTIMERS))
+End Enum
+Public Type POWER_THROTTLING_PROCESS_STATE
+    Version As ProcessPowerThrottlingVersions
+    ControlMask As ProcessPowerThrottlingFlags
+    StateMask As ProcessPowerThrottlingFlags
+End Type
+
+Public Enum ACTIVITY_THROTTLE_POLICY_OP
+    ActivityThrottlePolicyDisable=0
+    ActivityThrottlePolicyEnable=1
+    ActivityThrottlePolicyDefault=2
+    MaxActivityThrottlePolicy = 2
+End Enum
+Public Enum ProcessPowerThrottlePolicyFlags
+    ACTIVITY_THROTTLE_EXECUTIONSPEED  = &H1
+    ACTIVITY_THROTTLE_DELAYTIMERS  = &H2
+    ACTIVITY_THROTTLE_ALL  = ((ACTIVITY_THROTTLE_EXECUTIONSPEED  Or  ACTIVITY_THROTTLE_DELAYTIMERS))
+End Enum
+Public Enum ProcessPowerThrottlePolicyVersions
+    ACTIVITY_THROTTLE_POLICY_VERSION = 1
+End Enum
+Public Type ACTIVITY_THROTTLE_POLICY
+    Version As ProcessPowerThrottlePolicyVersions
+    Operation As ACTIVITY_THROTTLE_POLICY_OP
+    PolicyFlags As ProcessPowerThrottlePolicyFlags
+End Type
+
+Public Type WIN32K_SYSCALL_FILTER
+    FilterState As Long
+    FilterSet As Long
+End Type
+
+Public Type JOBOBJECT_WAKE_FILTER
+    HighEdgeFilter As Long
+    LowEdgeFilter As Long
+End Type
+Public Type PROCESS_WAKE_INFORMATION
+    NotificationChannel As LongLong
+    WakeCounters(0 To 6) As Long
+    WakeFilter As LongPtr '*struct _JOBOBJECT_WAKE_FILTER
+End Type
+
+Public Type PROCESS_ENERGY_TRACKING_STATE
+    StateUpdateMask As Long
+    StateDesiredValue As Long
+    StateSequence As Long
+    ' ULONG UpdateTag : 1;
+    UpdateTag As Long
+    Tag(0 To 63) As Integer
+End Type
+
+Public Type MANAGE_WRITES_TO_EXECUTABLE_MEMORY
+	VerionAndFlags As Long
+    ' ULONG Version : 8;
+    ' ULONG ProcessEnableWriteExceptions : 1;
+    ' ULONG ThreadAllowWrites : 1;
+    ' ULONG Spare : 22;
+    KernelWriteToExecutableSignal As LongPtr '19H1
+End Type
+
+Public Enum ProcessReadWriteLoggingInfoFlags
+    PRWLIF_EnableReadVmLogging = &H1
+    PRWLIF_EnableWriteVmLogging = &H2
+End Enum
+[ Description("Flags in ProcessReadWriteLoggingInfoFlags")]
+Public Type PROCESS_READWRITEVM_LOGGING_INFORMATION
+	/* [ TypeHint(ProcessReadWriteLoggingInfoFlags) ] */ Flags As Byte
+End Type
+
+Public Type PROCESS_UPTIME_INFORMATION
+    QueryInterruptTime As LongLong
+    QueryUnbiasedTime As LongLong
+    EndInterruptTime As LongLong
+    TimeSinceCreation As LongLong
+    Uptime As LongLong
+    SuspendedTime As LongLong
+    ' union
+    ' {
+        ' ULONG HangCount : 4;
+        ' ULONG GhostCount : 4;
+        ' ULONG Crashed : 1;
+        ' ULONG Terminated : 1;       
+    ' };
+    HangCount As Byte
+    GhostCount As Byte
+    CrashedTerminated As Byte
+End Type
+
+Public Type PROCESS_SYSTEM_RESOURCE_MANAGEMENT
+    ' typedef union _PROCESS_SYSTEM_RESOURCE_MANAGEMENT
+    ' {
+        ' ULONG Flags;
+        ' struct
+        ' {
+            ' ULONG Foreground : 1;
+            ' ULONG Reserved : 31;
+        ' };
+    ' } PROCESS_SYSTEM_RESOURCE_MANAGEMENT, *PPROCESS_SYSTEM_RESOURCE_MANAGEMENT;
+	FlagForeground As Long
+End Type
+
+Public Type PROCESS_SECURITY_DOMAIN_INFORMATION
+    SecurityDomain As LongLong
+End Type
+
+Public Type PROCESS_COMBINE_SECURITY_DOMAINS_INFORMATION
+    ProcessHandle As LongPtr
+End Type
+
+Public Enum ProcessLoggingInfoFlags
+	PLIF_EnableReadVmLogging = &H1
+    PLIF_EnableWriteVmLogging = &H2
+    PLIF_EnableProcessSuspendResumeLogging = &H4
+    PLIF_EnableThreadSuspendResumeLogging = &H8
+End Enum
+Public Type PROCESS_LOGGING_INFORMATION
+    Flags As ProcessLoggingInfoFlags	
+End Type
+
+Public Type PROCESS_FIBER_SHADOW_STACK_ALLOCATION_INFORMATION
+    ReserveSize As LongLong
+    CommitSize As LongLong
+    PreferredNode As Long
+    Reserved As Long
+    Ssp As LongPtr
+End Type
+Public Type PROCESS_FREE_FIBER_SHADOW_STACK_ALLOCATION_INFORMATION
+    Ssp As LongPtr
+End Type
+
+Public Enum ProcessDynamicEHFlags
+    DYNAMIC_EH_CONTINUATION_TARGET_ADD  = &H01
+    DYNAMIC_EH_CONTINUATION_TARGET_PROCESSED  = &H02
+End Enum
+[ Description("Flags: ProcessDynamicEHFlags")]
+Public Type PROCESS_DYNAMIC_EH_CONTINUATION_TARGET
+    TargetAddress As LongPtr
+    [ Description("Flags: ProcessDynamicEHFlags")]
+    Flags As LongLong
+End Type
+Public Type PROCESS_DYNAMIC_EH_CONTINUATION_TARGETS_INFORMATION
+    NumberOfTargets As Integer
+    Reserved As Integer
+    Reserved2 As Long
+    Targets As LongPtr '*PROCESS_DYNAMIC_EH_CONTINUATION_TARGET
+End Type
+
+Public Type PROCESS_DYNAMIC_ENFORCED_ADDRESS_RANGE
+    BaseAddress As LongPtr
+    Size As LongPtr
+    Flags As Long
+End Type
+Public Type PROCESS_DYNAMIC_ENFORCED_ADDRESS_RANGES_INFORMATION
+    NumberOfRanges As Integer
+    Reserved As Integer
+    Reserved2 As Long
+    Ranges As LongPtr 'PPROCESS_DYNAMIC_ENFORCED_ADDRESS_RANGE
+End Type
+
 Public Type RTL_DRIVE_LETTER_CURDIR
     Flags As Integer
     Length As Integer
@@ -5335,60 +6365,207 @@ Public Enum PROCESS_MITIGATION_POLICY
 	MaxProcessMitigationPolicy = 19
 End Enum
 
-Public Type PROCESS_MITIGATION_ASLR_POLICY
-    dwFlags As Long
+Public Type PROCESS_MITIGATION_POLICY_INFORMATION
+	Policy As PROCESS_MITIGATION_POLICY
+    u(5) As Byte
 End Type
+
+Public Enum ProcessMitigationAslrFlags
+    PMASF_EnableBottomUpRandomization = &H01
+    PMASF_EnableForceRelocateImages = &H02
+    PMASF_EnableHighEntropy = &H04
+    PMASF_DisallowStrippedImages = &H08
+End Enum
+Public Type PROCESS_MITIGATION_ASLR_POLICY
+    dwFlags As ProcessMitigationAslrFlags
+End Type
+Public Enum ProcessMitigationDepFlags
+    PMDF_Enable = &H1	
+	PMDF_DisableAtlThunkEmulation = &H2
+End Enum
 Public Type PROCESS_MITIGATION_DEP_POLICY
-    dwFlags As Long
+    dwFlags As ProcessMitigationDepFlags
     Permanent As Byte
 End Type
+Public Enum ProcessMitigationSehopFlags
+	PMSF_EnableSehop = &H1
+End Enum
 Public Type PROCESS_MITIGATION_SEHOP_POLICY
-    dwFlags As Long
+    dwFlags As ProcessMitigationSehopFlags
 End Type
+Public Enum ProcessMitigationHandleChkFlags
+    PMHCF_RaiseExceptionOnInvalidHandleReference = &H1
+    PMHCF_HandleExceptionsPermanentlyEnabled = &H2
+End Enum
 Public Type PROCESS_MITIGATION_STRICT_HANDLE_CHECK_POLICY
-    dwFlags As Long
+    dwFlags As ProcessMitigationHandleChkFlags
 End Type
+Public Enum ProcessMitigationSysCallFlags
+    PMSCF_DisallowWin32kSystemCalls = &H1
+    PMSCF_AuditDisallowWin32kSystemCalls = &H2
+End Enum
 Public Type PROCESS_MITIGATION_SYSTEM_CALL_DISABLE_POLICY
-    dwFlags As Long
+    dwFlags As ProcessMitigationSysCallFlags
 End Type
+Public Enum ProcessMitigationExtPtFlags
+    PMEPF_DisableExtensionPoints = &H1
+End Enum
 Public Type PROCESS_MITIGATION_EXTENSION_POINT_DISABLE_POLICY
-    dwFlags As Long
+    dwFlags As ProcessMitigationExtPtFlags
 End Type
+Public Enum ProcessMitigationDynCodeFlags
+    PMDCF_ProhibitDynamicCode = &H01
+    PMDCF_AllowThreadOptOut = &H02
+    PMDCF_AllowRemoteDowngrade = &H04
+    PMDCF_AuditProhibitDynamicCode = &H08
+End Enum
 Public Type PROCESS_MITIGATION_DYNAMIC_CODE_POLICY
-    dwFlags As Long
+    dwFlags As ProcessMitigationDynCodeFlags
 End Type
+Public Enum ProcessMitigationCFGFlags
+    PMCFGF_EnableControlFlowGuard = &H01
+    PMCFGF_EnableExportSuppression = &H02
+    PMCFGF_StrictMode = &H04
+    PMCFGF_EnableXfg = &H08
+    PMCFGF_EnableXfgAuditMode = &H10
+End Enum
 Public Type PROCESS_MITIGATION_CONTROL_FLOW_GUARD_POLICY
-    dwFlags As Long
+    dwFlags As ProcessMitigationCFGFlags
 End Type
+Public Enum ProcessMitigationBinarySigFlags
+    PMBSF_MicrosoftSignedOnly = &H01
+    PMBSF_StoreSignedOnly = &H02
+    PMBSF_MitigationOptIn = &H04
+    PMBSF_AuditMicrosoftSignedOnly = &H08
+    PMBSF_AuditStoreSignedOnly = &H10
+End Enum
 Public Type PROCESS_MITIGATION_BINARY_SIGNATURE_POLICY
-    dwFlags As Long
+    dwFlags As ProcessMitigationBinarySigFlags
 End Type
+Public Enum ProcessMitigationFontFlags
+	PMFF_DisableNonSystemFonts = &H1
+    PMFF_AuditNonSystemFontLoading = &H2
+End Enum
 Public Type PROCESS_MITIGATION_FONT_DISABLE_POLICY
-    dwFlags As Long
+    dwFlags As ProcessMitigationFontFlags
 End Type
+Public Enum ProcessMitigationImageLoadFlags
+    PMILF_NoRemoteImages = &H01
+    PMILF_NoLowMandatoryLabelImages = &H02
+    PMILF_PreferSystem32Images = &H04
+    PMILF_AuditNoRemoteImages = &H08
+    PMILF_AuditNoLowMandatoryLabelImages = &H10
+End Enum
 Public Type PROCESS_MITIGATION_IMAGE_LOAD_POLICY
-    dwFlags As Long
+    dwFlags As ProcessMitigationImageLoadFlags
 End Type
 Public Type PROCESS_MITIGATION_SYSTEM_CALL_FILTER_POLICY
-    dwFlags As Long
+    FilterId As Byte	
+    Reserved(2) As Byte
 End Type
+Public Enum ProcessMitigationPayloadFlags
+    PMPF_EnableExportAddressFilter      = &H01
+    PMPF_AuditExportAddressFilter       = &H02
+
+    PMPF_EnableExportAddressFilterPlus  = &H04
+    PMPF_AuditExportAddressFilterPlus   = &H08
+
+    PMPF_EnableImportAddressFilter      = &H10
+    PMPF_AuditImportAddressFilter       = &H20
+
+    PMPF_EnableRopStackPivot            = &H40
+    PMPF_AuditRopStackPivot             = &H80
+
+    PMPF_EnableRopCallerCheck           = &H100
+    PMPF_AuditRopCallerCheck            = &H200
+
+    PMPF_EnableRopSimExec               = &H400
+    PMPF_AuditRopSimExec                = &H800
+End Enum
 Public Type PROCESS_MITIGATION_PAYLOAD_RESTRICTION_POLICY
-    dwFlags As Long
+    dwFlags As ProcessMitigationPayloadFlags
 End Type
+Public Enum ProcessMitigationChildProcFlags
+    PMCP_NoChildProcessCreation = &H1
+    PMCP_AuditNoChildProcessCreation = &H2
+    PMCP_AllowSecureProcessCreation = &H4
+End Enum
 Public Type PROCESS_MITIGATION_CHILD_PROCESS_POLICY
-    dwFlags As Long
+    dwFlags As ProcessMitigationChildProcFlags
 End Type
+Public Enum ProcessMitigationSideChanIsolationFlags
+    ' //
+    ' // Prevent branch target pollution cross-SMT-thread in user mode.
+    ' //
+
+    SmtBranchTargetIsolation = &H1
+
+    ' //
+    ' // Isolate this process into a distinct security domain, even from
+    ' // other processes running as the same security context.  This
+    ' // prevents branch target injection cross-process (normally such
+    ' // branch target injection is only inhibited across different
+    ' // security contexts).
+    ' //
+    ' // Page combining is limited to processes within the same security
+    ' // domain.  This flag thus also effectively limits the process to
+    ' // only being able to combine internally to the process itself,
+    ' // except for common pages (unless further restricted by the
+    ' // DisablePageCombine policy).
+    ' //
+
+    IsolateSecurityDomain = &H2
+
+    ' //
+    ' // Disable all page combining for this process, even internally to
+    ' // the process itself, except for common pages (zeroes or ones).
+    ' //
+
+    DisablePageCombine = &H4
+
+    ' //
+    ' // Memory Disambiguation Disable.
+    ' //
+
+    SpeculativeStoreBypassDisable = &H8
+
+    ' //
+    ' // Prevent this process' threads from being scheduled on the same
+    ' // core as threads outside its security domain.
+    ' //
+
+    RestrictCoreSharing = &H10
+End Enum
 Public Type PROCESS_MITIGATION_SIDE_CHANNEL_ISOLATION_POLICY
-    dwFlags As Long
+    dwFlags As ProcessMitigationSideChanIsolationFlags
 End Type
+Public Enum ProcessMitigationUserShadowStackFlags
+    EnableUserShadowStack = &H0001
+    AuditUserShadowStack = &H0002
+    SetContextIpValidation = &H0004
+    AuditSetContextIpValidation = &H0008
+    EnableUserShadowStackStrictMode = &H0010
+    BlockNonCetBinaries = &H0020
+    BlockNonCetBinariesNonEhcont = &H0040
+    AuditBlockNonCetBinaries = &H0080
+    CetDynamicApisOutOfProcOnly = &H0100
+    SetContextIpValidationRelaxedMode = &H0200
+End Enum
 Public Type PROCESS_MITIGATION_USER_SHADOW_STACK_POLICY
-    dwFlags As Long
+    dwFlags As ProcessMitigationUserShadowStackFlags
 End Type
+Public Enum ProcessMitigationUserPtrAuthFlags
+    EnablePointerAuthUserIp = &H1
+End Enum
 Public Type PROCESS_MITIGATION_USER_POINTER_AUTH_POLICY
-    dwFlags As Long
+    dwFlags As ProcessMitigationUserPtrAuthFlags
 End Type
+Public Enum ProcessMitigationRedirTrustFlags
+	PMRTF_EnforceRedirectionTrust = &H1
+    PMRTF_AuditRedirectionTrust = &H2
+End Enum
 Public Type PROCESS_MITIGATION_REDIRECTION_TRUST_POLICY
-	dwFlags As Long
+	dwFlags As ProcessMitigationRedirTrustFlags
 End Type
 
 Public Enum PROC_THREAD_ATTRIBUTES ' attributes for ProcThreadAttributeList
@@ -10932,7 +12109,7 @@ End Type
 [ Description("⚠️ **WARNING:** Do not copy this all at once. Use length to determine what to copy.")]
 Public Type IMAGE_RESOURCE_DIR_STRING_U
     Length As Integer
-    NameString(0 To 0) As Integer
+    NameString(0 To 79) As Integer
 End Type
 
 Public Type IMAGE_RESOURCE_DATA_ENTRY
@@ -12329,7 +13506,7 @@ Public Type OBJECT_TYPE_INFORMATION
    SecurityRequired            As Byte    'BOOLEAN '
    MaintainHandleCount         As Byte    'BOOLEAN '
    MaintainTypeList            As Integer
-   PoolType                    As Long    'ULONG   '
+   PoolType                    As POOL_TYPE    'ULONG   '
    DefaultPagedPoolCharge      As Long    'ULONG   '
    DefaultNonPagedPoolCharge   As Long    'ULONG   ' total 22 x ULONG
 End Type
@@ -13336,8 +14513,6 @@ Public Type SYSTEM_SYSTEM_DISK_INFORMATION
 End Type
 
 
-
-
 Public Type SYSTEM_REGISTRY_APPEND_STRING_PARAMETERS
     KeyHandle As LongPtr
     ValueNamePointer As LongPtr 'PUNICODE_STRING
@@ -13350,6 +14525,89 @@ Public Type SYSTEM_REGISTRY_APPEND_STRING_PARAMETERS
     CreateIfDoesntExist As Byte
     TruncateExistingValue As Byte
 End Type
+
+Public Type SYSTEM_DEVICE_DATA_INFORMATION
+    DeviceId As UNICODE_STRING
+    DataName As UNICODE_STRING
+    DataType As Long
+    DataBufferLength As Long
+    DataBuffer As LongPtr
+End Type
+
+Public Type SYSTEM_POOL_LIMIT_MEM_INFO
+    MemoryLimit As LongLong
+    NotificationLimit As LongLong
+End Type
+Public Type WNF_STATE_NAME
+    Data(0 To 1) As Long
+End Type
+Public Type SYSTEM_POOL_LIMIT_INFO
+    PoolTag As Long
+    MemLimits(0 To 1) As SYSTEM_POOL_LIMIT_MEM_INFO
+    NotificationHandle As WNF_STATE_NAME
+End Type
+[ Description("WARNING - Struct cannot be used as-is; LimitEntries is a C-style array.")]
+Public Type SYSTEM_POOL_LIMIT_INFORMATION
+    Version As Long
+    EntryCount As Long
+    LimitEntries() As SYSTEM_POOL_LIMIT_INFO
+End Type
+
+Public Enum SYSTEM_BUILD_VERSION_INFORMATION_FLAGS
+	BVI_IsTopLevel = &H1
+    BVI_IsChecked = &h2
+End Enum
+Public Type SYSTEM_BUILD_VERSION_INFORMATION
+    LayerNumber As Integer
+    LayerCount As Integer
+    OsMajorVersion As Long
+    OsMinorVersion As Long
+    NtBuildNumber As Long
+    NtBuildQfe As Long
+    LayerName(0 To 127) As Byte
+    NtBuildBranch(0 To 127) As Byte
+    NtBuildLab(0 To 127) As Byte
+    NtBuildLabEx(0 To 127) As Byte
+    NtBuildStamp(0 To 25) As Byte
+    NtBuildArch(0 To 15) As Byte
+    Flags As SYSTEM_BUILD_VERSION_INFORMATION_FLAGS
+End Type
+
+' typedef struct _SYSTEM_SHADOW_STACK_INFORMATION
+' {
+    ' union
+    ' {
+        ' ULONG Flags;
+        ' struct
+        ' {
+            ' ULONG CetCapable : 1;
+            ' ULONG UserCetAllowed : 1;
+            ' ULONG ReservedForUserCet : 6;
+            ' ULONG KernelCetEnabled : 1;
+            ' ULONG KernelCetAuditModeEnabled : 1;
+            ' ULONG ReservedForKernelCet : 6;       // since Windows 10 build 21387
+            ' ULONG Reserved : 16;
+        ' };
+    ' };
+' } SYSTEM_SHADOW_STACK_INFORMATION, *PSYSTEM_SHADOW_STACK_INFORMATION;
+Public Enum SystemShadowStackFlags
+    SSSF_CetCapable = &H1
+    SSSF_UserCetAllowed = &H2
+    SSSF_KernelCetEnabled = &H80
+    SSSF_KernelCetAuditModeEnabled = &H100
+End Enum
+Public Type SYSTEM_SHADOW_STACK_INFORMATION
+	Flags As SystemShadowStackFlags
+End Type
+
+Public Type SYSTEM_FIRMWARE_RAMDISK_INFORMATION
+    Version As Long
+    BlockSize As Long
+    BaseAddress As LongPtr
+    Size As LongPtr
+End Type
+
+
 
 
 Public Type FILE_DIRECTORY_INFORMATION
@@ -15012,7 +16270,9 @@ Public Enum PS_PROTECTED_SIGNER
     PsProtectedSignerLsa          = &B01000000
     PsProtectedSignerWindows      = &B01010000
     PsProtectedSignerWinTcb       = &B01100000
-    PsProtectedSignerMax          = &B01110000
+    PsProtectedSignerWinSystem    = &B01110000
+    PsProtectedSignerApp          = &B10000000
+    PsProtectedSignerMax = &B10010000
 End Enum
 
 Public Type RTL_MODULE_BASIC_INFO
@@ -15025,11 +16285,17 @@ Public Type RTL_MODULE_EXTENDED_INFO
     FullPathName(0 To 255) As Byte
 End Type
 
+Public Enum SECTION_INHERIT
+    SECINH_ViewShare=1
+    SECINH_ViewUnmap= 2
+End Enum
+
 
 'NTDLL APIs should only be added if they don't have higher level equivalents. If the NTDLL version has substantially more functionality, it's not equivalent and should be added.
 Public Declare PtrSafe Function NtQuerySystemInformation Lib "ntdll" (ByVal SystemInformationClass As SYSTEM_INFORMATION_CLASS, SystemInformation As Any, ByVal SystemInformationLength As Long, ReturnLength As Long) As Long
 Public Declare PtrSafe Function NtSetSystemInformation Lib "ntdll" (ByVal SystemInformationClass As SYSTEM_INFORMATION_CLASS, SystemInformation As Any, ByVal SystemInformationLength As Long) As Long
-Public Declare PtrSafe Function NtQueryInformationProcess Lib "ntdll" (ByVal ProcessHandle As LongPtr, ByVal ProcessInformationClass As PROCESSINFOCLASS, ProccessInformation As Any, ByVal ProcessInformationLength As Long, ReturnLength As Long) As Long
+Public Declare PtrSafe Function NtQueryInformationProcess Lib "ntdll" (ByVal ProcessHandle As LongPtr, ByVal ProcessInformationClass As PROCESSINFOCLASS, ProcessInformation As Any, ByVal ProcessInformationLength As Long, ReturnLength As Long) As NTSTATUS
+Public Declare PtrSafe Function NtSetInformationProcess Lib "ntdll" (ByVal ProcessHandle As LongPtr, ByVal ProcessInformationClass As PROCESSINFOCLASS, ProcessInformation As Any, ByVal ProcessInformationLength As Long) As NTSTATUS
 Public Declare PtrSafe Function NtClose Lib "ntdll" (ByVal ObjectHandle As LongPtr) As Long
 Public Declare PtrSafe Function NtCreateFile Lib "ntdll" (FileHandle As LongPtr, [ TypeHint (GenericRights, FileAccessRights) ] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, IoStatusBlock As IO_STATUS_BLOCK, AllocationSize As Any, ByVal FileAttributes As FILE_ATTRIBUTES, ByVal ShareAccess As FileShareMode, ByVal CreateDisposition As FileCreateDisposition, ByVal CreateOptions As FileAccessFlags, EaBuffer As Any, ByVal EaLength As Long) As Long
 Public Declare PtrSafe Function NtOpenFile Lib "ntdll" (FileHandle As LongPtr, [ TypeHint (GenericRights, FileAccessRights) ] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, IoStatusBlock As IO_STATUS_BLOCK, ByVal ShareAccess As FileShareMode, ByVal OpenOptions As Long) As Long
@@ -15051,6 +16317,9 @@ Public Declare PtrSafe Function NtCompareTokens Lib "ntdll" (ByVal FirstTokenHan
 Public Declare PtrSafe Function NtDuplicateToken Lib "ntdll" (ByVal ExistingTokenHandle As LongPtr, [ TypeHint (TokenAccessRights, StandardAccessTypes) ] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, ByVal EffectiveOnly As Byte, ByVal TokenType As TOKEN_TYPE, NewTokenHandle As LongPtr) As Long
 Public Declare PtrSafe Function NtCreateSection Lib "ntdll" (SectionHandle As LongPtr, [TypeHint (StandardAccessTypes, NTSectionAccessRights) ] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, MaximumSize As QLARGE_INTEGER, ByVal SectionPageProtection As MemProtectFlags, ByVal AllocationAttributes As NTSectionFlags, Optional ByVal FileHandle As LongPtr) As Long
 Public Declare PtrSafe Function NtCreateSectionEx Lib "ntdll" (SectionHandle As LongPtr, [ TypeHint (StandardAccessTypes, NTSectionAccessRights) ] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, MaximumSize As QLARGE_INTEGER, ByVal SectionPageProtection As MemProtectFlags, ByVal AllocationAttributes As NTSectionFlags, ByVal FileHandle As LongPtr, ExtendedParameters As MEM_EXTENDED_PARAMETER, ByVal ExtendedParameterCount As Long) As Long
+Public Declare PtrSafe Function NtOpenSection Lib "ntdll" (SectionHandle As LongPtr, [ TypeHint (StandardAccessTypes, NTSectionAccessRights) ] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES) As NTSTATUS
+Public Declare PtrSafe Function NtMapViewOfSection Lib "ntdll" (ByVal SectionHandle As LongPtr, ByVal ProcessHandle As LongPtr, BaseAddress As LongPtr, ByVal ZeroBits As LongPtr, ByVal CommitSize As LongPtr, SectionOffset As QLARGE_INTEGER, ViewSize As LongPtr, ByVal AllocationType As MemAllocType, ByVal Win32Protect As MemProtectFlags) As NTSTATUS
+Public Declare PtrSafe Function NtUnmapViewOfSection Lib "ntdll" (ByVal ProcessHandle As LongPtr, Optional ByVal BaseAddress As LongPtr) As NTSTATUS
 Public Declare PtrSafe Function NtCreateProfile Lib "ntdll" (ProfileHandle As LongPtr, ByVal Process As LongPtr, ByVal ProfileBase As LongPtr, ByVal ProfileSize As LongPtr, Buffer As Long, ByVal BufferSize As Long, ByVal ProfileSource As KPROFILE_SOURCE, ByVal Affinity As LongPtr) As Long
 Public Declare PtrSafe Function NtCreateProfileEx Lib "ntdll" (ProfileHandle As LongPtr, ByVal Process As LongPtr, ByVal ProfileBase As LongPtr, ByVal ProfileSize As LongPtr, Buffer As Long, ByVal BufferSize As Long, ByVal ProfileSource As KPROFILE_SOURCE, ByVal GroupCount As Long, AffinityArray As GROUP_AFFINITY) As Long
 Public Declare PtrSafe Function NtSetIntervalProfile Lib "ntdll" (ByVal Interval As Long, ByVal ProfileSource As KPROFILE_SOURCE) As Long
@@ -27826,6 +29095,34 @@ Public Type QUOTA_LIMITS
     PagefileLimit As LongPtr
     TimeLimit As QLARGE_INTEGER
 End Type
+Public Enum QuotaLimitFlags
+    QUOTA_LIMITS_HARDWS_MIN_ENABLE  = &H00000001
+    QUOTA_LIMITS_HARDWS_MIN_DISABLE  = &H00000002
+    QUOTA_LIMITS_HARDWS_MAX_ENABLE  = &H00000004
+    QUOTA_LIMITS_HARDWS_MAX_DISABLE  = &H00000008
+    QUOTA_LIMITS_USE_DEFAULT_LIMITS  = &H00000010
+End Enum
+Public Type RATE_QUOTA_LIMIT 'Union
+    RateData As Long
+    '    struct {
+    '        DWORD RatePercent : 7;
+    '        DWORD Reserved0   : 25;
+    '    } DUMMYSTRUCTNAME;
+End Type
+Public Type QUOTA_LIMITS_EX
+    PagedPoolLimit As LongPtr
+    NonPagedPoolLimit As LongPtr
+    MinimumWorkingSetSize As LongPtr
+    MaximumWorkingSetSize As LongPtr
+    PagefileLimit As LongPtr ' Limit expressed in pages
+    TimeLimit As QLARGE_INTEGER
+    WorkingSetLimit As LongPtr ' Limit expressed in pages
+    Reserved2 As LongPtr
+    Reserved3 As LongPtr
+    Reserved4 As LongPtr
+    Flags As QuotaLimitFlags
+    CpuRateLimit As RATE_QUOTA_LIMIT
+End Type
 
 Public enum SE_OBJECT_TYPE
     SE_UNKNOWN_OBJECT_TYPE
@@ -30393,6 +31690,611 @@ Public Declare PtrSafe Function TraceMessage Lib "advapi32" (ByVal TraceHandle A
 Public Declare PtrSafe Function TraceQueryInformation Lib "advapi32" (ByVal SessionHandle As LongLong, ByVal InformationClass As TRACE_QUERY_INFO_CLASS, TraceInformation As Long, ByVal InformationLength As Long, ReturnLength As Long) As Long
 Public Declare PtrSafe Function TraceSetInformation Lib "advapi32" (ByVal SessionHandle As LongLong, ByVal InformationClass As TRACE_QUERY_INFO_CLASS, TraceInformation As Any, ByVal InformationLength As Long) As Long
 Public Declare PtrSafe Function UpdateTraceW Lib "advapi32" (ByVal TraceHandle As LongLong, ByVal InstanceName As LongPtr, Properties As EVENT_TRACE_PROPERTIES) As Long
+
+
+#End Region
+
+#Region "authz"
+
+'adtgen.h, authz.h 100% coverage of supported calls (AuthzReportSecurityEvent is unsupported)
+Public Enum AuthzAuditType
+    AUDIT_TYPE_LEGACY  = 1
+    AUDIT_TYPE_WMI  = 2
+End Enum
+
+Public Enum AUDIT_PARAM_TYPE
+    ' 
+    '  do we need this?
+    ' 
+    APT_None=1
+    ' 
+    '  NULL terminated string
+    ' 
+    APT_String = 2
+    ' 
+    '  unsigned long
+    ' 
+    APT_Ulong = 3
+    ' 
+    '  a pointer. use for specifying handles/pointers
+    '  (32 bit on 32 bit systems and 64 bit on 64 bit systems)
+    '  Note that the memory to which the pointer points to
+    '  is not marshalled when using this type. Use this when you
+    '  are interested in the absolute value of the pointer.
+    '  A good example of this is when specifying HANDLE values.
+    ' 
+    APT_Pointer = 4
+    ' 
+    '  SID
+    ' 
+    APT_Sid = 5
+    ' 
+    '  Logon ID (LUID), this results in 3 output parameters.
+    '  1. Account Name 2. Authority Name 3. LogonID
+    ' 
+    APT_LogonId = 6
+    ' 
+    '  Object Type List
+    ' 
+    APT_ObjectTypeList = 7
+    ' 
+    '  Luid (not translated to LogonId)
+    ' 
+    APT_Luid = 8
+    ' 
+    '  Guid
+    ' 
+    APT_Guid = 9
+    ' 
+    '  Time (FILETIME)
+    ' 
+    APT_Time = 10
+    ' 
+    '  ULONGLONG
+    ' 
+    APT_Int64 = 11
+    ' 
+    '  IP Addess (IPv4 and IPv6). This logs the address as the
+    '  first parameter and the port as the second. So ensure
+    '  that 2 entries are added in the event message file, one
+    '  for the address and the immediate next entry as the port
+    ' 
+    APT_IpAddress = 12
+    ' 
+    '  Logon ID with SID (LUID) results in 4 output parameters.
+    '  1. SID 2. Account Name 3. Authority Name 4. LogonID
+    ' 
+    APT_LogonIdWithSid = 13
+    
+    
+    
+'  the flags values below have overlapping values. this is ok since
+'  the scope of each flag is limited to the type to which it applies.
+'  APT_Ulong : format flag : causes a number to appear in hex    
+    AP_FormatHex  = (&H0001 << AP_ParamTypeBits)
+'  APT_Ulong : format flag : causes a number to be treated as access-mask.
+'                            The meaning of each bit depends on the associated
+'                            object type.
+    AP_AccessMask  = (&H0002 << AP_ParamTypeBits)
+'  APT_String : format flag : causes a string to be treated as a file-path
+    AP_Filespec  = (&H0001 << AP_ParamTypeBits)
+'  APT_Sid : format flag : causes a sid to be treated as a logon-id
+    AP_SidAsLogonId  = (&H0001 << AP_ParamTypeBits)
+'  APT_LogonId : control flag : logon-id is captured from the process token
+    AP_PrimaryLogonId = (&H0001 << AP_ParamTypeBits)
+'  APT_LogonId : control flag : logon-id is captured from the thread token
+    AP_ClientLogonId  = (&H0002 << AP_ParamTypeBits)
+End Enum
+
+Public Const AP_ParamTypeBits  = 8
+Public Const AP_ParamTypeMask  = &H000000ff
+
+
+
+Public Type AUDIT_OBJECT_TYPE
+    ObjectType As UUID ' guid of the (sub)object
+    Flags As Integer ' currently not defined
+    Level As Integer ' level within the hierarchy. 
+    ' 0 is the root level
+    AccessMask As Long 'ACCESS_MASK ' access-mask for this (sub)object
+End Type
+Public Type AUDIT_OBJECT_TYPES
+    Count As Integer ' number of object-types in pObjectTypes
+    Flags As Integer ' currently not defined
+    pObjectTypes As LongPtr '*AUDIT_OBJECT_TYPE ' array of object-types
+End Type
+
+Public Const _AUTHZ_SS_MAXSIZE = 128
+Public Type AUDIT_IP_ADDRESS
+    pIpAddress(0 To (_AUTHZ_SS_MAXSIZE - 1)) As BYTE
+End Type
+
+Public Type AUDIT_PARAM
+    Type As AUDIT_PARAM_TYPE ' type
+    Length As Long ' currently unused
+    Flags As Long ' currently unused
+    u1 As LongPtr
+    u2 As LongPtr
+    ' #ifdef MIDL_PASS
+    ' [switch_type(AUDIT_PARAM_TYPE),switch_is(Type)]
+' #endif
+    ' union 
+    ' {
+' #ifdef MIDL_PASS
+        ' [default]
+' #endif
+        ' ULONG_PTR Data0;
+
+' #ifdef MIDL_PASS
+        ' [case(APT_String)]
+        ' [string]
+' #endif
+        ' PWSTR  String;
+
+        
+' #ifdef MIDL_PASS
+        ' [case(APT_Ulong,
+              ' APT_Pointer)]
+' #endif
+        ' ULONG_PTR u;
+        
+' #ifdef MIDL_PASS
+        ' [case(APT_Sid)]
+' #endif
+        ' SID* psid;
+        
+' #ifdef MIDL_PASS
+        ' [case(APT_Guid)]
+' #endif
+        ' GUID* pguid;
+
+' #ifdef MIDL_PASS
+        ' [case(APT_LogonId)]
+' #endif
+        ' ULONG LogonId_LowPart;
+
+' #ifdef MIDL_PASS
+        ' [case(APT_ObjectTypeList)]
+' #endif
+        ' AUDIT_OBJECT_TYPES* pObjectTypes;
+        
+' #ifdef MIDL_PASS
+        ' [case(APT_IpAddress)]
+' #endif
+        ' AUDIT_IP_ADDRESS* pIpAddress;
+    ' } DUMMYUNIONNAME;
+
+' #ifdef MIDL_PASS
+    ' [switch_type(AUDIT_PARAM_TYPE),switch_is(Type)]
+' #endif
+    ' union 
+    ' {
+' #ifdef MIDL_PASS
+        ' [default]
+' #endif
+        ' ULONG_PTR Data1;
+
+' #ifdef MIDL_PASS
+        ' [case(APT_LogonId)]
+' #endif
+        ' LONG LogonId_HighPart;
+    ' } DUMMYUNIONNAME2;
+End Type
+
+Public Enum AUDIT_CONTROL_FLAGS
+    APF_AuditFailure  = &H00000000  ' generate a failure audit
+    APF_AuditSuccess  = &H00000001  ' generate a success audit when set, a failure audit otherwise.
+    APF_ValidFlags = APF_AuditSuccess
+End Enum
+
+Public Type AUDIT_PARAMS
+    Length As Long ' size in bytes
+    Flags As Long ' currently unused
+    Count As Integer ' number of parameters
+    Parameters As LongPtr 'AUDIT_PARAM ' array of parameters
+End Type
+
+Public Type AUTHZ_AUDIT_EVENT_TYPE_LEGACY
+    ' Audit category ID
+    CategoryId As Integer
+    ' Audit event ID
+    AuditId As Integer
+    ' Parameter count
+    ParameterCount As Integer
+End Type
+
+Public Type AUTHZ_AUDIT_EVENT_TYPE_UNION
+    Legacy As AUTHZ_AUDIT_EVENT_TYPE_LEGACY
+End Type
+
+Public Type AUTHZ_AUDIT_EVENT_TYPE_OLD
+    ' version number
+    Version As Long
+    dwFlags As AuthzEvtTypeOldFlags
+    RefCount As LONG
+    hAudit As LongPtr
+    LinkId As LUID
+    u As AUTHZ_AUDIT_EVENT_TYPE_UNION
+End Type
+
+Public Enum AuthzEvtTypeOldFlags
+    AUTHZP_WPD_EVENT = &H10
+End Enum
+
+Public Enum AuthzAuditRegFlags
+    AUTHZ_ALLOW_MULTIPLE_SOURCE_INSTANCES  = &H1
+    AUTHZ_MIGRATED_LEGACY_PUBLISHER  = &H2
+End Enum
+
+Public Enum AuthzAuditGenFlags
+    AUTHZ_AUDIT_INSTANCE_INFORMATION = &H2
+End Enum
+
+'end AdtGen.h
+
+'authz.h
+Public Enum AuthzClientCreateFlags
+    AUTHZ_SKIP_TOKEN_GROUPS  = &H2
+    AUTHZ_REQUIRE_S4U_LOGON  = &H4
+    AUTHZ_COMPUTE_PRIVILEGES  = &H8
+End Enum
+
+Public Type AUTHZ_ACCESS_REQUEST
+    DesiredAccess As Long 'ACCESS_MASK
+    ' To replace the principal self sid in the acl.
+    PrincipalSelfSid As LongPtr 'PSID
+    ' Object type list represented by an array of (level, guid) pair and the
+    ' number of elements in the array. This is a post-fix representation of the
+    ' object tree.
+    ' These fields should be set to NULL and 0 respectively except when per
+    ' property access is desired.
+    ObjectTypeList As LongPtr 'POBJECT_TYPE_LIST
+    ObjectTypeListLength As Long
+    ' To support completely business rules based access. This will be passed as
+    ' input to the callback access check function. Access check algorithm does
+    ' not interpret these.
+    OptionalArguments As LongPtr
+End Type
+
+Public Enum AuthzSaclEvalRes
+    AUTHZ_GENERATE_SUCCESS_AUDIT  = &H1
+    AUTHZ_GENERATE_FAILURE_AUDIT  = &H2
+End Enum
+
+Public Type AUTHZ_ACCESS_REPLY
+    ' The length of the array representing the object type list structure. If
+    ' no object type is used to represent the object, then the length must be
+    ' set to 1.
+    ' Note: This parameter must be filled!
+    ResultListLength As Long
+    ' Array of granted access masks. This memory is allocated by the RM. Access
+    ' check routines just fill in the values.
+    GrantedAccessMask As LongPtr '_Field_size_(ResultListLength) PACCESS_MASK
+    ' Array of SACL evaluation results.  This memory is allocated by the RM, if SACL
+    ' evaluation results are desired. Access check routines just fill in the values.
+    ' Sacl evaluation will only be performed if auditing is requested.
+    /* [ TypeHint(AuthzSaclEvalRes) ] */ SaclEvaluationResults As LongPtr
+    ' Array of results for each element of the array. This memory is allocated
+    ' by the RM. Access check routines just fill in the values.
+    Error As LongPtr
+End Type
+
+Public Enum AuthzSecAttrDataTypes
+    AUTHZ_SECURITY_ATTRIBUTE_TYPE_INVALID  = &H00
+    AUTHZ_SECURITY_ATTRIBUTE_TYPE_INT64  = &H01
+    AUTHZ_SECURITY_ATTRIBUTE_TYPE_UINT64  = &H02
+'   Case insensitive attribute value string by default.
+'   Unless the flag AUTHZ_SECURITY_ATTRIBUTE_VALUE_CASE_SENSITIVE
+'   is set indicating otherwise.
+    AUTHZ_SECURITY_ATTRIBUTE_TYPE_STRING  = &H03
+    AUTHZ_SECURITY_ATTRIBUTE_TYPE_FQBN  = &H04
+    ' _WIN32_WINNT_WIN8)
+    AUTHZ_SECURITY_ATTRIBUTE_TYPE_SID  = &H05
+    AUTHZ_SECURITY_ATTRIBUTE_TYPE_BOOLEAN  = &H06
+    AUTHZ_SECURITY_ATTRIBUTE_TYPE_OCTET_STRING  = &H10
+End Enum
+
+Public Type AUTHZ_SECURITY_ATTRIBUTE_FQBN_VALUE
+    Version As LongLong
+    pName As LongPtr
+End Type
+Public Type AUTHZ_SECURITY_ATTRIBUTE_OCTET_STRING_VALUE
+    pValue As LongPtr '  Pointer is BYTE aligned.
+    ValueLength As Long '  In bytes
+End Type
+
+Public Enum AUTHZ_SECURITY_ATTRIBUTE_OPERATION
+    ' 
+    '   No-op
+    ' 
+    AUTHZ_SECURITY_ATTRIBUTE_OPERATION_NONE 
+    ' 
+    '   Delete all existing security attributes and their values in
+    '   the NT token and replace it with the specified attributes/values.
+    '   If attributes to replace with are not specified, all existing
+    '   attributes and values are deleted.
+    ' 
+    '   This operation can be specified at most once and must be the
+    '   only operation specified.
+    ' 
+    AUTHZ_SECURITY_ATTRIBUTE_OPERATION_REPLACE_ALL 
+    ' 
+    '   Add a new attribute or a new value to an existing attribute.
+    '   If the value specified for any attribute already exists for
+    '   that attribute, the call fails.
+    ' 
+    AUTHZ_SECURITY_ATTRIBUTE_OPERATION_ADD 
+    ' 
+    '   Delete the specified value(s) of the specified attribute(s).
+    '   If the last value is deleted from an attribute, the attribute
+    '   itself is removed. If no matching attribute name was found, no
+    '   modifications are done and the call fails. If no value is specified
+    '   for the attribute, the attribute itself will be deleted.
+    ' 
+    AUTHZ_SECURITY_ATTRIBUTE_OPERATION_DELETE  
+    ' 
+    '   The value(s) of the specified security attribute(s) completely
+    '   replace(s) the existing value(s) of the attribute(s). If the
+    '   attribute does not already exist, it is added.  When no value
+    '   is specified, the attribute is deleted, if it exists; otherwise,
+    '   the operation is simply ignored and no failure is reported.
+    ' 
+    AUTHZ_SECURITY_ATTRIBUTE_OPERATION_REPLACE  
+End Enum
+
+Public Enum AUTHZ_SID_OPERATION
+    ' 
+    '   No-op
+    ' 
+    AUTHZ_SID_OPERATION_NONE=0
+    ' 
+    '   Delete all existing SIDs in the NT token and replace them with
+    '   the specified SIDs.
+    '   If the SIDs to replace with are not specified, all existing
+    '   SIDs are deleted.
+    ' 
+    '   This operation can be specified at most once and must be the
+    '   only operation specified.
+    ' 
+    AUTHZ_SID_OPERATION_REPLACE_ALL = 1
+    ' 
+    '   Add a new SID.
+    '   If the SID specified already exists, the call fails.
+    ' 
+    AUTHZ_SID_OPERATION_ADD = 2
+    ' 
+    '   Delete the specified SID(s).
+    '   If no matching SID was found, no modifications are done and
+    '   the call fails.
+    ' 
+    AUTHZ_SID_OPERATION_DELETE = 3
+    ' 
+    '   The specified SID(s) completely replace(s) the existing SID(s).
+    '   If the SID does not already exist, it is added.
+    ' 
+    AUTHZ_SID_OPERATION_REPLACE = 4
+End Enum
+
+Public Enum AuthzSecAttrFlags
+    AUTHZ_SECURITY_ATTRIBUTE_NON_INHERITABLE  = &H0001
+'   Attribute value is compared in a case sensitive way. It is valid with string value
+'   or composite type containing string value. For other types of value, this flag
+'   will be ignored. Currently, it is valid with the two types:
+'   AUTHZ_SECURITY_ATTRIBUTE_TYPE_STRING and AUTHZ_SECURITY_ATTRIBUTE_TYPE_FQBN.
+    AUTHZ_SECURITY_ATTRIBUTE_VALUE_CASE_SENSITIVE  = &H0002
+    AUTHZ_SECURITY_ATTRIBUTE_VALID_FLAGS  = ( AUTHZ_SECURITY_ATTRIBUTE_NON_INHERITABLE  Or  AUTHZ_SECURITY_ATTRIBUTE_VALUE_CASE_SENSITIVE )
+End Enum
+
+Public Type AUTHZ_SECURITY_ATTRIBUTE_V1
+    '  Name of the attribute.
+    '  Case insensitive Windows Unicode string.
+    pName As LongPtr
+    '  Data type of attribute.
+    ValueType As Integer
+    '  Pass 0 in a set operation and check for 0 in
+    '  a get operation.
+    Reserved As Integer
+    Flags As Long
+    '  Number of values.
+    ValueCount As Long
+    Values As LongPtr
+    ' union {
+        ' PLONG64                                         pInt64;
+        ' PULONG64                                        pUint64;
+        ' PWSTR                                           *ppString;
+        ' PAUTHZ_SECURITY_ATTRIBUTE_FQBN_VALUE            pFqbn;
+        ' PAUTHZ_SECURITY_ATTRIBUTE_OCTET_STRING_VALUE    pOctetString;
+    ' } Values;
+End Type
+
+Public Const AUTHZ_SECURITY_ATTRIBUTES_INFORMATION_VERSION_V1 = 1
+Public Const AUTHZ_SECURITY_ATTRIBUTES_INFORMATION_VERSION = 1
+
+Public Type AUTHZ_SECURITY_ATTRIBUTES_INFORMATION
+    '  Versioning. The interpretation of the pointers in the
+    '  Attribute field below is dependent on the version field.
+    '  Get operations return the version while the set operation
+    '  MUST specify the version of the data structure passed in.
+    '  MUST BE first.
+    [ Description("AUTHZ_SECURITY_ATTRIBUTES_INFORMATION_VERSION") ]
+    Version As Integer
+    '  Pass 0 in set operations and ignore on get operations.
+    Reserved As Integer
+    AttributeCount As Long
+    Attribute As LongPtr
+    ' union {
+        ' PAUTHZ_SECURITY_ATTRIBUTE_V1    pAttributeV1;
+    ' } Attribute;
+End Type
+
+Public Enum AuthzAccessCheckFlags
+    AUTHZ_ACCESS_CHECK_NO_DEEP_COPY_SD = &H1
+End Enum
+
+
+
+
+Public Declare PtrSafe Function AuthzAccessCheck Lib "authz.dll" (ByVal Flags As AuthzAccessCheckFlags, ByVal hAuthzClientContext As LongPtr, pRequest As AUTHZ_ACCESS_REQUEST, ByVal hAuditEvent As LongPtr, pSecurityDescriptor As SECURITY_DESCRIPTOR, OptionalSecurityDescriptorArray As LongPtr, ByVal OptionalSecurityDescriptorCount As Long, pReply As AUTHZ_ACCESS_REPLY, phAccessCheckResults As LongPtr) As BOOL
+Public Declare PtrSafe Function AuthzCachedAccessCheck Lib "authz.dll" (ByVal Flags As AuthzAccessCheckFlags, ByVal hAccessCheckResults As LongPtr, ByVal hAuditEvent As LongPtr, pReply As AUTHZ_ACCESS_REPLY) As BOOL
+Public Declare PtrSafe Function AuthzOpenObjectAudit Lib "authz.dll" (ByVal Flags As Long, ByVal hAuthzClientContext As LongPtr, pRequest As AUTHZ_ACCESS_REQUEST, ByVal hAuditEvent As LongPtr, pSecurityDescriptor As SECURITY_DESCRIPTOR, OptionalSecurityDescriptorArray As LongPtr, ByVal OptionalSecurityDescriptorCount As Long, pReply As AUTHZ_ACCESS_REPLY) As BOOL
+Public Declare PtrSafe Function AuthzFreeHandle Lib "authz.dll" (ByVal hAccessCheckResults As LongPtr) As BOOL
+
+Public Enum AuthzResManFlags
+    AUTHZ_RM_FLAG_NO_AUDIT  = &H1
+    AUTHZ_RM_FLAG_INITIALIZE_UNDER_IMPERSONATION  = &H2
+    AUTHZ_RM_FLAG_NO_CENTRAL_ACCESS_POLICIES  = &H4
+    AUTHZ_VALID_RM_INIT_FLAGS  = (AUTHZ_RM_FLAG_NO_AUDIT  Or  AUTHZ_RM_FLAG_INITIALIZE_UNDER_IMPERSONATION  Or  AUTHZ_RM_FLAG_NO_CENTRAL_ACCESS_POLICIES)
+End Enum
+
+Public DeclareWide PtrSafe Function AuthzInitializeResourceManager Lib "authz.dll" (ByVal Flags As AuthzResManFlags, ByVal pfnDynamicAccessCheck As LongPtr, ByVal pfnComputeDynamicGroups As LongPtr, ByVal pfnFreeDynamicGroups As LongPtr, ByVal szResourceManagerName As String, phAuthzResourceManager As LongPtr) As BOOL
+
+Public Const AUTHZ_RPC_INIT_INFO_CLIENT_VERSION_V1 = 1
+Public Type AUTHZ_RPC_INIT_INFO_CLIENT
+    [ Description("AUTHZ_RPC_INIT_INFO_CLIENT_VERSION_V1") ] version As Integer
+    ObjectUuid As LongPtr
+    ProtSeq As LongPtr
+    NetworkAddr As LongPtr
+    Endpoint As LongPtr
+    Options As LongPtr
+    ServerSpn As LongPtr
+End Type
+
+Public Const AUTHZ_INIT_INFO_VERSION_V1 = 1
+Public Type AUTHZ_INIT_INFO
+    version As Integer
+    szResourceManagerName As LongPtr
+    pfnDynamicAccessCheck As LongPtr 'PFN_AUTHZ_DYNAMIC_ACCESS_CHECK
+    pfnComputeDynamicGroups As LongPtr 'PFN_AUTHZ_COMPUTE_DYNAMIC_GROUPS
+    pfnFreeDynamicGroups As LongPtr 'PFN_AUTHZ_FREE_DYNAMIC_GROUPS
+    pfnGetCentralAccessPolicy As LongPtr 'PFN_AUTHZ_GET_CENTRAL_ACCESS_POLICY
+    pfnFreeCentralAccessPolicy As LongPtr 'PFN_AUTHZ_FREE_CENTRAL_ACCESS_POLICY
+End Type
+
+Public DeclareWide PtrSafe Function AuthzInitializeResourceManagerEx Lib "authz.dll" (ByVal Flags As AuthzResManFlags, pAuthzInitInfo As AUTHZ_INIT_INFO, phAuthzResourceManager As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function AuthzInitializeRemoteResourceManager Lib "authz.dll" (pRpcInitInfo As AUTHZ_RPC_INIT_INFO_CLIENT, phAuthzResourceManager As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function AuthzFreeResourceManager Lib "authz.dll" (ByVal hAuthzResourceManager As LongPtr) As BOOL
+[Description("Note: 'Identifier' is a ByVal LUID")]
+Public DeclareWide PtrSafe Function AuthzInitializeContextFromToken Lib "authz.dll" (ByVal Flags As Long, ByVal TokenHandle As LongPtr, ByVal hAuthzResourceManager As LongPtr, pExpirationTime As QLARGE_INTEGER, ByVal Identifier As LongLong, DynamicGroupArgs As Any, phAuthzClientContext As LongPtr) As BOOL
+[Description("Note: 'Identifier' is a ByVal LUID")]
+Public DeclareWide PtrSafe Function AuthzInitializeContextFromSid Lib "authz.dll" (ByVal Flags As AuthzClientCreateFlags, ByVal UserSid As LongPtr, ByVal hAuthzResourceManager As LongPtr, pExpirationTime As QLARGE_INTEGER, ByVal Identifier As LongLong, DynamicGroupArgs As Any, phAuthzClientContext As LongPtr) As BOOL
+[Description("Note: 'Identifier' is a ByVal LUID")]
+Public DeclareWide PtrSafe Function AuthzInitializeContextFromAuthzContext Lib "authz.dll" (ByVal Flags As Long, ByVal UserSid As LongPtr, ByVal hAuthzResourceManager As LongPtr, pExpirationTime As QLARGE_INTEGER, ByVal Identifier As LongLong, DynamicGroupArgs As Any, phNewAuthzClientContext As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function AuthzInitializeCompoundContext Lib "authz.dll" (ByVal UserContext As LongPtr, ByVal DeviceContext As LongPtr, phCompoundContext As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function AuthzAddSidsToContext Lib "authz.dll" (ByVal hAuthzClientContext As LongPtr, Sids As SID_AND_ATTRIBUTES, ByVal SidCount As Long, RestrictedSids As SID_AND_ATTRIBUTES, ByVal RestrictedSidCount As Long, phNewAuthzClientContext As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function AuthzModifySecurityAttributes Lib "authz.dll" (ByVal hAuthzClientContext As LongPtr, pOperations As AUTHZ_SECURITY_ATTRIBUTE_OPERATION, pAttributes As AUTHZ_SECURITY_ATTRIBUTES_INFORMATION) As BOOL
+
+Public Enum AUTHZ_CONTEXT_INFORMATION_CLASS
+    AuthzContextInfoUserSid = 1
+    AuthzContextInfoGroupsSids
+    AuthzContextInfoRestrictedSids
+    AuthzContextInfoPrivileges
+    AuthzContextInfoExpirationTime
+    AuthzContextInfoServerContext
+    AuthzContextInfoIdentifier
+    AuthzContextInfoSource
+    AuthzContextInfoAll
+    AuthzContextInfoAuthenticationId
+    AuthzContextInfoSecurityAttributes
+    AuthzContextInfoDeviceSids
+    AuthzContextInfoUserClaims
+    AuthzContextInfoDeviceClaims
+    AuthzContextInfoAppContainerSid
+    AuthzContextInfoCapabilitySids
+End Enum
+
+Public DeclareWide PtrSafe Function AuthzModifyClaims Lib "authz.dll" (ByVal hAuthzClientContext As LongPtr, ByVal ClaimClass As AUTHZ_CONTEXT_INFORMATION_CLASS, pClaimOperations As AUTHZ_SECURITY_ATTRIBUTE_OPERATION, pClaims As AUTHZ_SECURITY_ATTRIBUTES_INFORMATION) As BOOL
+Public DeclareWide PtrSafe Function AuthzModifySids Lib "authz.dll" (ByVal hAuthzClientContext As LongPtr, ByVal ClaimClass As AUTHZ_CONTEXT_INFORMATION_CLASS, pSidOperations As AUTHZ_SID_OPERATION, pSids As TOKEN_GROUPS) As BOOL
+Public DeclareWide PtrSafe Function AuthzSetAppContainerInformation Lib "authz.dll" (ByVal hAuthzClientContext As LongPtr, ByVal pAppContainerSid As LongPtr, ByVal CapabilityCount As Long, pCapabilitySids As SID_AND_ATTRIBUTES) As BOOL
+Public DeclareWide PtrSafe Function AuthzGetInformationFromContext Lib "authz.dll" (ByVal hAuthzClientContext As LongPtr, ByVal InfoClass As AUTHZ_CONTEXT_INFORMATION_CLASS, ByVal BufferSize As Long, pSizeRequired As Long, Buffer As Any) As BOOL
+Public DeclareWide PtrSafe Function AuthzFreeContext Lib "authz.dll" (ByVal hAuthzClientContext As LongPtr) As BOOL
+
+Public Enum AuthzInitObjAccessAndAuditEvtFlags
+    AUTHZ_NO_SUCCESS_AUDIT  = &H00000001
+    AUTHZ_NO_FAILURE_AUDIT  = &H00000002
+    AUTHZ_NO_ALLOC_STRINGS  = &H00000004
+    AUTHZ_WPD_CATEGORY_FLAG  = &H00000010
+    AUTHZ_VALID_OBJECT_ACCESS_AUDIT_FLAGS  = (AUTHZ_NO_SUCCESS_AUDIT  Or  AUTHZ_NO_FAILURE_AUDIT  Or  AUTHZ_NO_ALLOC_STRINGS  Or  AUTHZ_WPD_CATEGORY_FLAG)
+End Enum
+
+Public DeclareWide PtrSafe Function AuthzInitializeObjectAccessAuditEvent Lib "authz.dll" (ByVal Flags As AuthzInitObjAccessAndAuditEvtFlags, ByVal hAuditEventType As LongPtr, ByVal szOperationType As String, ByVal szObjectType As String, ByVal szObjectName As String, ByVal szAdditionalInfo As String, phAuditEvent As LongPtr, ByVal dwAdditionalParameterCount As Long) As BOOL
+Public DeclareWide PtrSafe Function AuthzInitializeObjectAccessAuditEvent2 Lib "authz.dll" (ByVal Flags As AuthzInitObjAccessAndAuditEvtFlags, ByVal hAuditEventType As LongPtr, ByVal szOperationType As String, ByVal szObjectType As String, ByVal szObjectName As String, ByVal szAdditionalInfo As String, ByVal szAdditionalInfo2 As String, phAuditEvent As LongPtr, ByVal dwAdditionalParameterCount As Long) As BOOL
+
+Public Enum AUTHZ_AUDIT_EVENT_INFORMATION_CLASS
+    AuthzAuditEventInfoFlags=1
+    AuthzAuditEventInfoOperationType  
+    AuthzAuditEventInfoObjectType 
+    AuthzAuditEventInfoObjectName  
+    AuthzAuditEventInfoAdditionalInfo 
+End Enum
+
+Public DeclareWide PtrSafe Function AuthzFreeAuditEvent Lib "authz.dll" (ByVal hAuditEvent As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function AuthzEvaluateSacl Lib "authz.dll" (ByVal AuthzClientContext As LongPtr, pRequest As AUTHZ_ACCESS_REQUEST, ByVal Sacl As LongPtr, ByVal GrantedAccess As Long, ByVal AccessGranted As BOOL, pbGenerateAudit As BOOL) As BOOL
+
+Public Type AUTHZ_REGISTRATION_OBJECT_TYPE_NAME_OFFSET
+    szObjectTypeName As LongPtr
+    dwOffset As Long
+End Type
+
+Public Type AUTHZ_SOURCE_SCHEMA_REGISTRATION
+    dwFlags As AuthzAuditRegFlags
+    szEventSourceName As LongPtr
+    szEventMessageFile As LongPtr
+    szEventSourceXmlSchemaFile As LongPtr
+    szEventAccessStringsFile As LongPtr
+    szExecutableImagePath As LongPtr
+    ' The meaning of the data is defined by dwFlags. Make sure
+    ' new types are pointers.
+    'union
+    '{
+    '     PVOID pReserved;
+    ' Must be supplied when dwFlags contains AUTHZ_MIGRATED_LEGACY_PUBLISHER
+    pProviderGuid As LongPtr '*UUID
+    '} DUMMYUNIONNAME;
+    dwObjectTypeNameCount As Long
+    ObjectTypeNames(100) As AUTHZ_REGISTRATION_OBJECT_TYPE_NAME_OFFSET
+End Type
+
+Public Enum AuthzSecInstallFlags
+    AUTHZ_FLAG_ALLOW_MULTIPLE_SOURCE_INSTANCES = &H1
+End Enum
+
+Public DeclareWide PtrSafe Function AuthzInstallSecurityEventSource Lib "authz.dll" (ByVal dwFlags As AuthzSecInstallFlags, pRegistration As Any) As BOOL
+Public DeclareWide PtrSafe Function AuthzUninstallSecurityEventSource Lib "authz.dll" (ByVal dwFlags As Long, ByVal szEventSourceName As String) As BOOL
+Public DeclareWide PtrSafe Function AuthzEnumerateSecurityEventSources Lib "authz.dll" (ByVal dwFlags As Long, Buffer As Any, pdwCount As Long, pdwLength As Long) As BOOL
+Public DeclareWide PtrSafe Function AuthzRegisterSecurityEventSource Lib "authz.dll" (ByVal dwFlags As Long, ByVal szEventSourceName As String, phEventProvider As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function AuthzUnregisterSecurityEventSource Lib "authz.dll" (ByVal dwFlags As Long, phEventProvider As LongPtr) As BOOL
+
+[ Description("This function cannot be called directly due to ... (variable arguments) being unsupported. This is a custom handler that calls it via DispCallFunc. Supply a type array and matching value array (of Variants that can be coerced into types.")]
+[ Unimplemented ]
+Public Function AuthzReportSecurityEvent(ByVal dwFlags As AUDIT_CONTROL_FLAGS, ByVal hEventProvider As LongPtr, ByVal dwAuditId As Long, ByVal pUserSid As LongPtr, ByVal dwCount As Long, va_types() As AUDIT_PARAM_TYPE, va_values() As Variant) As BOOL
+
+' Dim hAZ As LongPtr = LoadLibrary("authz.dll")
+' If hAZ Then
+' 	Dim lpfn As LongPtr = GetProcAddress(hAZ, "AuthzReportSecurityEvent")
+'     Dim nArgs As Long
+'     Dim pVA() As Variant
+    
+'     nArgs = 5 + (dwCount * 2)
+    
+    
+' End If
+
+Dim i As Long
+Dim aParam() As AUDIT_PARAM
+ReDim aParam(dwCount - 1)
+
+For i = 0 To dwCount - 1
+    aParam(i).Type = va_types(i)
+    
+Next
+
+
+End Function
+
+Public DeclareWide PtrSafe Function AuthzReportSecurityEventFromParams Lib "authz.dll" (ByVal dwFlags As AUDIT_CONTROL_FLAGS, ByVal hEventProvider As LongPtr, ByVal dwAuditId As Long, ByVal pUserSid As LongPtr, pParameters As AUDIT_PARAMS) As BOOL
+Public DeclareWide PtrSafe Function AuthzRegisterCapChangeNotification Lib "authz.dll" (phCapChangeSubscription As LongPtr, ByVal pfnCapChangeCallback As LongPtr, Optional ByVal pCallbackContext As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function AuthzUnregisterCapChangeNotification Lib "authz.dll" (ByVal hCapChangeSubscription As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function AuthzFreeCentralAccessPolicyCache Lib "authz.dll" () As BOOL
 
 
 #End Region
@@ -48061,75 +49963,7 @@ Public Declare PtrSafe Function ImageRvaToVa Lib "imagehlp" (NtHeaders As IMAGE_
 
 
 
-Public Enum AUDIT_PARAM_TYPE
-    ' 
-    '  do we need this?
-    ' 
-    APT_None=1
-    ' 
-    '  NULL terminated string
-    ' 
-    APT_String = 2
-    ' 
-    '  unsigned long
-    ' 
-    APT_Ulong = 3
-    ' 
-    '  a pointer. use for specifying handles/pointers
-    '  (32 bit on 32 bit systems and 64 bit on 64 bit systems)
-    '  Note that the memory to which the pointer points to
-    '  is not marshalled when using this type. Use this when you
-    '  are interested in the absolute value of the pointer.
-    '  A good example of this is when specifying HANDLE values.
-    ' 
-    APT_Pointer = 4
-    ' 
-    '  SID
-    ' 
-    APT_Sid = 5
-    ' 
-    '  Logon ID (LUID), this results in 3 output parameters.
-    '  1. Account Name 2. Authority Name 3. LogonID
-    ' 
-    APT_LogonId = 6
-    ' 
-    '  Object Type List
-    ' 
-    APT_ObjectTypeList = 7
-    ' 
-    '  Luid (not translated to LogonId)
-    ' 
-    APT_Luid = 8
-    ' 
-    '  Guid
-    ' 
-    APT_Guid = 9
-    ' 
-    '  Time (FILETIME)
-    ' 
-    APT_Time = 10
-    ' 
-    '  ULONGLONG
-    ' 
-    APT_Int64 = 11
-    ' 
-    '  IP Addess (IPv4 and IPv6). This logs the address as the
-    '  first parameter and the port as the second. So ensure
-    '  that 2 entries are added in the event message file, one
-    '  for the address and the immediate next entry as the port
-    ' 
-    APT_IpAddress = 12
-    ' 
-    '  Logon ID with SID (LUID) results in 4 output parameters.
-    '  1. SID 2. Account Name 3. Authority Name 4. LogonID
-    ' 
-    APT_LogonIdWithSid = 13
-End Enum
-Public Enum AUDIT_CONTROL_FLAGS
-    APF_AuditFailure  = &H00000000  ' generate a failure audit
-    APF_AuditSuccess  = &H00000001  ' generate a success audit when set,
-'  a failure audit otherwise.
-End Enum
+
 
 
 [ Description ("📝**NOTE:** twinBASIC patches this to an internal implementation, it will not actually call msvbvm60 (or any other DLL).") ]
