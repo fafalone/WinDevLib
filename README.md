@@ -6,7 +6,7 @@
 
 ---
 
-**Current Version: 6.5.260 (December 3rd, 2023)**
+**Current Version: 6.5.263 (December 6th, 2023)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -123,6 +123,19 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, vbNullPtr, ...)
 
 ### Updates
 
+**Update (v6.5.263, 06 Dec 2023):**\
+-Added numerous missing shell32 APIs.\
+-Some additional kernel32 APIs, bringing coverage of fileapi.h to 100%.\
+-Added numerous IOCTL_DISK_* constants and associated UDTs.\
+-Converted some ListView-related consts to enums to use with their associated UDTs.\
+-Added missing name mappings structs for SHFileOperation.\
+-(Bug fix) BITMAPFILEHEADER, DISK_EXTENT, VOLUME_DISK_EXTENT, and STORAGE_PROPERTY_QUERY typed improperly marked Private.\
+-(Bug fix) STORAGE_PROPERTY_QUERY definition incorrect\
+-(Bug fix) SCSI_PASS_THROUGH_BUFFERED24 definition incorrect.\
+-(Bug fix) GetVolumeInformationByHandle definition incorrect.\
+-(Bug fix) ReadFile did not conform to tbShellLib API conventions (ByVal As Any instead of OVERLAPPED)
+
+
 **Update (v6.5.260, 04 Dec 2023):**
 -Added all authz APIs/consts/types from authz.h; note that AuthzReportSecurityEvent is currently unsupported by the language. However, it internally calls AuthzReportSecurityEventFromParams.\
 -Added many missing shlwapi APIs; URL flags enum missing values\
@@ -132,7 +145,6 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, vbNullPtr, ...)
 -(Bug fix) SHGetThreadRef/SHSetThreadRef definitions incorrect\
 -(Bug fix) SHMessageBoxCheck definition incorrect\
 -(Bug fix) Path[Un]QuoteSpaces definitions incorrect
-
 
 **Update (v6.4.258), 28 Nov 2023):**\
 -Large number of additional advapi security APIs (AccCtrl.h and AclAPI.h, 100% coverage)\
