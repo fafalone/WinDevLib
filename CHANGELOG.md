@@ -1,4 +1,17 @@
 
+**Update (v6.5.263, 06 Dec 2023):**
+-Added numerous missing shell32 APIs.
+-Some additional kernel32 APIs, bringing coverage of fileapi.h to 100%.
+-Added numerous IOCTL_DISK_* constants and associated UDTs.
+-Converted some ListView-related consts to enums to use with their associated UDTs.
+-Added missing name mappings structs for SHFileOperation.
+-(Bug fix) BITMAPFILEHEADER, DISK_EXTENT, VOLUME_DISK_EXTENT, and STORAGE_PROPERTY_QUERY typed improperly marked Private.
+-(Bug fix) STORAGE_PROPERTY_QUERY definition incorrect
+-(Bug fix) SCSI_PASS_THROUGH_BUFFERED24 definition incorrect.
+-(Bug fix) GetVolumeInformationByHandle definition incorrect.
+-(Bug fix) ReadFile did not conform to tbShellLib API conventions (ByVal As Any instead of OVERLAPPED)
+
+
 **Update (v6.5.260, 04 Dec 2023):**
 -Added all authz APIs/consts/types from authz.h; note that AuthzReportSecurityEvent is currently unsupported by the language. However, it internally calls AuthzReportSecurityEventFromParams.
 -Added many missing shlwapi APIs; URL flags enum missing values
@@ -13,7 +26,6 @@
 -Large number of additional advapi security APIs (AccCtrl.h and AclAPI.h, 100% coverage)
 -Additional crypto APIs
 -(Bug fix) Missing FindFirstFileEx flag FIND_FIRST_EX_ON_DISK_ENTRIES_ONLY.
-
 
 **Update (v6.4.257), 26 Nov 2023):** GdipGetImageEncoders/GdipGetImageDecoders definitions "incorrect" for unclear reasons... Documentation indicates it's an array of ImageCodecInfo, which does not contain any C-style arrays, but there's a mismatch between the byte size and number of structs * sizeof. Changed to As Any to allow byte buffers in addition to oversized ImageCodecInfo buffers.
 **Update (v6.4.256, 25 Nov 2023):**
@@ -121,6 +133,12 @@ ModifyMenu
 InsertMenu
 
 StgMakeUniqueName
+
+SHEvaluateSystemCommandTemplate
+SHIsFileAvailableOffline
+SHSetLocalizedName
+SHGetLocalizedName
+SHRemoveLocalizedName
 
 **Update (v6.1.229):** Bug fix: A number of APIs had missing 'As <type>` statements, which were upgraded to errors. tB had previosly not caught these.
 
