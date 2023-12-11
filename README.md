@@ -6,7 +6,7 @@
 
 ---
 
-**Current Version: 6.6.265 (December 11th, 2023)**
+**Current Version: 6.6.268 (December 11th, 2023)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -123,12 +123,13 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, vbNullPtr, ...)
 
 ### Updates
 
-**Update (v6.6.265, 11 Dec 2023):**\
+**Update (v6.6.268, 11 Dec 2023):**\
 -Added UI Animation interfaces and coclasses\
 -Added Radio Manager interfaces and some undocumented coclasses to use them. Added undocumented interface IRadioManager with coclass RadioManagementAPI: This controls 'Airplane mode' on newer Windows.\
 -Added IThumbnailStreamCache and coclass ThumbnailStreamCache. Note: Due to simple name potential conflicts, flags prefixed with TSC_. A ByVal SIZE is replaced with ByVal LongLong; copy into one.\
 -Added additional event trace APIs; coverage of evntrace.h is now 100%.\
 -Additional BCrypt APIs sufficient for basic public key crypto implementations.\
+-Added additional language settings APIs from WinNls.h; coverage is near or at 100% now.\
 -Added remaining transaction manager APIs; coverage of ktmw32.h is now 100%.\
 -Added all remaining .ini/win.ini file APIs.\
 -Added misc other APIs.\
