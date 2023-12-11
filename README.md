@@ -6,7 +6,7 @@
 
 ---
 
-**Current Version: 6.5.263 (December 6th, 2023)**
+**Current Version: 6.6,264 (December 11th, 2023)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -123,6 +123,21 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, vbNullPtr, ...)
 
 ### Updates
 
+**Update (v6.6.254, 11 Dec 2023):**\
+-Added UI Animation interfaces and coclasses\
+-Added Radio Manager interfaces and some undocumented coclasses to use them.\
+-Added IThumbnailStreamCache and coclass ThumbnailStreamCache. Note: Due to simple name potential conflicts, flags prefixed with TSC_. A ByVal SIZE is replaced with ByVal LongLong; copy into one.\
+-Added additional event trace APIs; coverage of evntrace.h is now 100%.\
+-Additional BCrypt APIs sufficient for basic public key crypto implementations.\
+-Added remaining transaction manager APIs; coverage of ktmw32.h is now 100%.\
+-Added all remaining .ini/win.ini file APIs.\
+-Added misc other APIs.\
+-Added memcpy alias for RtlMoveMemory (in addition to CopyMemory and MoveMemory)\
+-Several event trace APIs and transaction API improperly used 'As GUID', which is undefined in tbShellLib and will refer to the unsupported stdole GUID.\
+-Reworked the way the REASON_CONTEXT union was set up; the old version would likely not work as implied.\
+-(Bug fix) KSIDENTIFIER union size incorrect.
+
+
 **Update (v6.5.263, 06 Dec 2023):**\
 -Added numerous missing shell32 APIs.\
 -Some additional kernel32 APIs, bringing coverage of fileapi.h to 100%.\
@@ -134,7 +149,6 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, vbNullPtr, ...)
 -(Bug fix) SCSI_PASS_THROUGH_BUFFERED24 definition incorrect.\
 -(Bug fix) GetVolumeInformationByHandle definition incorrect.\
 -(Bug fix) ReadFile did not conform to tbShellLib API conventions (ByVal As Any instead of OVERLAPPED)
-
 
 **Update (v6.5.260, 04 Dec 2023):**
 -Added all authz APIs/consts/types from authz.h; note that AuthzReportSecurityEvent is currently unsupported by the language. However, it internally calls AuthzReportSecurityEventFromParams.\
