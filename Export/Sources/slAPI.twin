@@ -636,8 +636,9 @@ Public DeclareWide PtrSafe Function SHCreateDirectoryExW Lib "shell32" (ByVal hw
 [Description("Can be used to create folders inside folders that also do not yet exist. This call supports Unicode.")]
 Public DeclareWide PtrSafe Function SHCreateDirectoryEx Lib "shell32" (ByVal hwnd As LongPtr, ByVal pszPath As String, psa As SECURITY_ATTRIBUTES) As Long
 [Description("IShellFolder is the official type for psf, however MSDN states it must 'also' implement IItemNameLimits; IShellFolder is not validated nor used so the class may implement *only* IItemNameLimits.") ]
-Public DeclareWide PtrSafe Function SHLimitInputEdit Lib "shell32" (ByVal hwndEdit As LongPtr, psf As Any) As Long
-Public DeclareWide PtrSafe Function SHLimitInputEditWithFlags Lib "shell32" Alias "#754" (ByVal hwndEdit As LongPtr, pil As LIMITINPUTSTRUCT) As Long
+Public DeclareWide PtrSafe Function SHLimitInputEdit Lib "shell32" (ByVal hwndEdit As LongPtr, ByVal psf As Any) As Long
+Public DeclareWide PtrSafe Function SHLimitInputEditWithFlags Lib "shell32" Alias "#754" (ByVal hwndEdit As LongPtr, pil As LIMITINPUT) As Long
+Public Declare PtrSafe Function SHLimitInputCombo Lib "shell32" Alias "#748" (ByVal hwndEdit As LongPtr, ByVal psf As Any) As Long
 Public Declare PtrSafe Function SHLoadNonloadedIconOverlayIdentifiers Lib "shell32" () As Long
 Public DeclareWide PtrSafe Function SHGetDriveMedia Lib "shell32" (ByVal pszDrive As String, pdwMediaContent As ARCONTENT) As Long
 Public DeclareWide PtrSafe Function SHGetPropertyStoreFromParsingName Lib "shell32" (ByVal pszPath As String, pbc As Any, ByVal Flags As GETPROPERTYSTOREFLAGS, riid As UUID, ppv As Any) As Long
@@ -1206,7 +1207,7 @@ Public Enum RESTRICTIONS
 	REST_USEDESKTOPINICACHE = &H41000005
 End Enum
 
-'Values for LIMITINPUTSTRUCT.dwMask
+'Values for LIMITINPUT.dwMask
 Public Enum LI_Mask
     LIM_FLAGS = &H1      'dwFlags used
     LIM_FILTER = &H2     'pszFilter used
@@ -1219,7 +1220,7 @@ Public Enum LI_Mask
     LIM_TIPWIDTH = &H200 'cxTipWidth used. Default 500px.
 End Enum
 
-'Values for LIMITINPUTSTRUCT.dwFlags
+'Values for LIMITINPUT.dwFlags
 Public Enum LI_Flags
     LIF_INCLUDEFILTER = &H0     'Default: pszFilter specifies what to include.
     LIF_EXCLUDEFILTER = &H1     'pszFilter specifies what to exclude.
@@ -1268,18 +1269,23 @@ Public Const LIN_GETDISPINFO = &H1   'Need tooltip display info (pszTitle and ps
 Public Const LIN_GETFILTERINFO = &H2 'Need pszFilter and dwMask if modifying it.
 Public Const LIN_BADCHAR = &H3       'Bad character notification from LIF_NOTIFYONBADCHAR
 
+[ Description ("⛔ **DO NOT USE** ⛔" & vbCrLf & "This has been renamed LIMITINPUT, simply substitute that name for this one, which is now just an invalid placeholder so you see this message.") ]
 Public Type LIMITINPUTSTRUCT
-    cbSize As Long       'Size of structure. Must set.
-    dwMask As LI_Mask    'LIM_* values.
-    dwFlags As LI_Flags  'LIF_* values.
-    hInst As LongPtr     'App.hInstance or loaded module hInstance.
-    pszFilter As LongPtr 'String via StrPtr, LICF_* category, LPSTR_TEXTCALLBACK to set via LIN_GETDISPINFO, or resource id in .hInst.
-    pszTitle As LongPtr  'Optional. String via StrPtr, LPSTR_TEXTCALLBACK to set via LIN_GETDISPINFO, or resource id in .hInst.
-    pszMessage As LongPtr'Ignore if tooltip disabled. String via StrPtr, LPSTR_TEXTCALLBACK to set via LIN_GETDISPINFO, or resource id in .hInst.
-    hIcon As LongPtr     'See TTM_SETTITLE. Can be TTI_* default icon, hIcon, or I_ICONCALLBACK to set via LIN_GETDISPINFO.
-    hwndNotify As LongPtr'Window to send notifications to. Must specify if any callbacks used or bad character notifications enabled.
-    iTimeout As Long     'Timeout in milliseconds. Defaults to 10000 if not set.
-    cxTipWidth As Long   'Tooltip width. Default 500px.
+    DO_NOT_USE_SEE_DESCRIPTION As Byte
+End Type
+
+Public Type LIMITINPUT
+    cbSize As Long        'Size of structure. Must set.
+    dwMask As LI_Mask     'LIM_* values.
+    dwFlags As LI_Flags   'LIF_* values.
+    hInst As LongPtr      'App.hInstance or loaded module hInstance.
+    pszFilter As LongPtr  'String via StrPtr, LICF_* category, LPSTR_TEXTCALLBACK to set via LIN_GETDISPINFO, or resource id in .hInst.
+    pszTitle As LongPtr   'Optional. String via StrPtr, LPSTR_TEXTCALLBACK to set via LIN_GETDISPINFO, or resource id in .hInst.
+    pszMessage As LongPtr 'Ignore if tooltip disabled. String via StrPtr, LPSTR_TEXTCALLBACK to set via LIN_GETDISPINFO, or resource id in .hInst.
+    hIcon As LongPtr      'See TTM_SETTITLE. Can be TTI_* default icon, hIcon, or I_ICONCALLBACK to set via LIN_GETDISPINFO.
+    hwndNotify As LongPtr 'Window to send notifications to. Must specify if any callbacks used or bad character notifications enabled.
+    iTimeout As Long      'Timeout in milliseconds. Defaults to 10000 if not set.
+    cxTipWidth As Long    'Tooltip width. Default 500px.
 End Type
        
 Public Type NMLIBADCHAR
@@ -1290,7 +1296,7 @@ End Type
 
 Public Type NMLIDISPINFO
     hdr As NMHDR
-    li As LIMITINPUTSTRUCT 'Set all values requested in dwMask.
+    li As LIMITINPUT 'Set all values requested in dwMask.
 End Type
 
 Public Enum OPEN_AS_INFO_FLAGS
@@ -2690,6 +2696,32 @@ Public Enum REMOTE_PROTOCOL_FLAGS
     REMOTE_PROTOCOL_FLAG_INTEGRITY  = &H00000010
     REMOTE_PROTOCOL_FLAG_MUTUAL_AUTH  = &H00000020
 End Enum
+Public Enum FileRemoteProtocolGenericFlags
+    REMOTE_PROTOCOL_INFO_FLAG_LOOPBACK  = &H00000001
+    REMOTE_PROTOCOL_INFO_FLAG_OFFLINE  = &H00000002
+' #if (_WIN32_WINNT >= _WIN32_WINNT_WIN8)
+    REMOTE_PROTOCOL_INFO_FLAG_PERSISTENT_HANDLE  = &H00000004
+End Enum
+Public Enum FileRemoteProtocoSMB2Cap
+    RPI_FLAG_SMB2_SHARECAP_TIMEWARP  = &H00000002
+    RPI_FLAG_SMB2_SHARECAP_DFS  = &H00000008
+    RPI_FLAG_SMB2_SHARECAP_CONTINUOUS_AVAILABILITY  = &H00000010
+    RPI_FLAG_SMB2_SHARECAP_SCALEOUT  = &H00000020
+    RPI_FLAG_SMB2_SHARECAP_CLUSTER  = &H00000040
+End Enum
+Public Enum FileRemoteProtocoSMB2Share
+    RPI_SMB2_SHAREFLAG_ENCRYPT_DATA  = &H00000001
+    RPI_SMB2_SHAREFLAG_COMPRESS_DATA  = &H00000002
+End Enum
+Public Enum FileRemoteProtocoSMB2ServerCap
+    RPI_SMB2_FLAG_SERVERCAP_DFS  = &H00000001
+    RPI_SMB2_FLAG_SERVERCAP_LEASING  = &H00000002
+    RPI_SMB2_FLAG_SERVERCAP_LARGEMTU  = &H00000004
+    RPI_SMB2_FLAG_SERVERCAP_MULTICHANNEL  = &H00000008
+    RPI_SMB2_FLAG_SERVERCAP_PERSISTENT_HANDLES  = &H00000010
+    RPI_SMB2_FLAG_SERVERCAP_DIRECTORY_LEASING  = &H00000020
+End Enum
+
 Public Type FILE_REMOTE_PROTOCOL_INFO
     StructureVersion As Integer
     StructureSize As Integer
@@ -10583,6 +10615,19 @@ Public Enum FileCompletionModeFlags
     FILE_SKIP_SET_EVENT_ON_HANDLE  = &H2
 End Enum
 
+Public Enum CreateSymLinkFlags
+    SYMBOLIC_LINK_FLAG_DIRECTORY  = (&H1)
+'   Specify this flag if you want to allow creation of symbolic links when the
+'   process is not elevated.  As of now enabling DEVELOPER MODE on a system
+'   is the only scenario that allow unprivileged symlink creation. There may
+'   be future scenarios that this flag will enable in the future.
+'   Also be aware that the behavior of this API with this flag set will likely
+'   be different between a development environment and an and customers
+'   environment so please be careful with the usage of this flag.
+    SYMBOLIC_LINK_FLAG_ALLOW_UNPRIVILEGED_CREATE  = (&H2)
+End Enum
+
+
 Public DeclareWide PtrSafe Function GetOverlappedResult Lib "kernel32" (ByVal hFile As LongPtr, lpOverlapped As OVERLAPPED, lpNumberOfBytesTransferred As Long, ByVal bWait As BOOL) As BOOL
 Public DeclareWide PtrSafe Function GetOverlappedResultEx Lib "kernel32" (ByVal hFile As LongPtr, lpOverlapped As OVERLAPPED, lpNumberOfBytesTransferred As Long, ByVal dwMilliseconds As Long, ByVal bAlertable As BOOL) As BOOL
 Public DeclareWide PtrSafe Function CancelIo Lib "kernel32" (ByVal hFile As LongPtr) As BOOL
@@ -10643,6 +10688,12 @@ Public DeclareWide PtrSafe Function CreateHardLink Lib "kernel32" Alias "CreateH
 Public Declare PtrSafe Function CreateHardLinkTransactedA Lib "kernel32" (ByVal lpFileName As String, ByVal lpExistingFileName As String, lpSecurityAttributes As SECURITY_ATTRIBUTES, ByVal hTransaction As LongPtr) As BOOL
 Public DeclareWide PtrSafe Function CreateHardLinkTransactedW Lib "kernel32" (ByVal lpFileName As LongPtr, ByVal lpExistingFileName As LongPtr, lpSecurityAttributes As SECURITY_ATTRIBUTES, ByVal hTransaction As LongPtr) As BOOL
 Public DeclareWide PtrSafe Function CreateHardLinkTransacted Lib "kernel32" Alias "CreateHardLinkTransactedW" (ByVal lpFileName As String, ByVal lpExistingFileName As String, lpSecurityAttributes As SECURITY_ATTRIBUTES, ByVal hTransaction As LongPtr) As BOOL
+Public Declare PtrSafe Function CreateSymbolicLinkA Lib "kernel32" (ByVal lpSymlinkFileName As String, ByVal lpTargetFileName As String, ByVal dwFlags As CreateSymLinkFlags) As Byte 'boolean
+Public Declare PtrSafe Function CreateSymbolicLinkW Lib "kernel32" (ByVal lpSymlinkFileName As LongPtr, ByVal lpTargetFileName As LongPtr, ByVal dwFlags As CreateSymLinkFlags) As Byte 'boolean
+Public DeclareWide PtrSafe Function CreateSymbolicLink Lib "kernel32" Alias "CreateSymbolicLinkW" (ByVal lpSymlinkFileName As String, ByVal lpTargetFileName As String, ByVal dwFlags As CreateSymLinkFlags) As Byte 'boolean
+Public Declare PtrSafe Function CreateSymbolicLinkTransactedA Lib "kernel32" (ByVal lpSymlinkFileName As String, ByVal lpTargetFileName As String, ByVal dwFlags As CreateSymLinkFlags, ByVal hTransaction As LongPtr) As Byte 'boolean
+Public Declare PtrSafe Function CreateSymbolicLinkTransactedW Lib "kernel32" (ByVal lpSymlinkFileName As LongPtr, ByVal lpTargetFileName As LongPtr, ByVal dwFlags As CreateSymLinkFlags, ByVal hTransaction As LongPtr) As Byte 'boolean
+Public DeclareWide PtrSafe Function CreateSymbolicLinkTransacted Lib "kernel32" Alias "CreateSymbolicLinkTransactedW" (ByVal lpSymlinkFileName As String, ByVal lpTargetFileName As String, ByVal dwFlags As CreateSymLinkFlags, ByVal hTransaction As LongPtr) As Byte 'boolean
 
 
 Public Declare PtrSafe Function SetVolumeMountPointA Lib "kernel32" (ByVal lpszVolumeMountPoint As String, ByVal lpszVolumeName As String) As BOOL
@@ -51592,14 +51643,21 @@ End If
 
 End Function
 
-[Description("Returns an error name given it's number, e.g. 5 returns ERROR_ACCESS_DENIED. Leave lpSource off for standard system messages.") ]
+[Description("Returns an HRESULT error name given it's number, e.g. 5 returns ERROR_ACCESS_DENIED. Leave lpSource off for standard system messages.") ]
 Public Function GetSystemErrorString(lErrNum As Long, Optional ByVal lpSource As LongPtr = 0) As String
     Dim sError As String, ret As Long
     sError = Space$(MAX_PATH)
     ret = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM Or FORMAT_MESSAGE_IGNORE_INSERTS, ByVal lpSource, lErrNum, 0&, sError, Len(sError), 0)
     If ret > 0 Then Return Left$(sError, ret)
 End Function
-
+[Description("Returns an NTSTATUS error name given it's number, e.g. &HC0000005 returns STATUS_ACCESS_DENIED. Leave lpSource off for standard system messages.") ]
+Public Function GetNtErrorString(lErrNum As Long) As String
+    Dim sError As String, ret As Long
+    Dim lpSource As LongPtr = LoadLibrary("ntdll.dll")
+    sError = Space$(MAX_PATH)
+    ret = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM Or FORMAT_MESSAGE_IGNORE_INSERTS Or FORMAT_MESSAGE_FROM_HMODULE, ByVal lpSource, lErrNum, 0&, sError, Len(sError), 0)
+    If ret > 0 Then Return Left$(sError, ret)
+End Function
 
 [Description("Ensures a block of memory is zeroed where compiler optimizations may prevent that with ZeroMemory") ]
 Public Sub SecureZeroMemory(ByVal pv As LongPtr, cb As LongPtr)
