@@ -6,7 +6,7 @@
 
 ---
 
-**Current Version: 6.6.268 (December 11th, 2023)**
+**Current Version: 6.6.269 (December 13th, 2023)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -123,6 +123,13 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, vbNullPtr, ...)
 
 ### Updates
 
+**Update (v6.6.269):**\
+-Added helper function GetNtErrorString that gets strings for NTSTATUS values. GetSystemErrorString already exists for HRESULT.\
+-SHLimitInputEdit didn't have the ByVal attribute included, making it easy to not realize it's then required when called.\
+-CreateSymbolicLink API inexplicable missing.\
+-LIMITINPUTSTRUCT has been renamed to the original, correct name LIMITINPUT. The original documentation and demos have made this change too with the recently released universal compatibility update.
+
+
 **Update (v6.6.268, 11 Dec 2023):**\
 -Added UI Animation interfaces and coclasses\
 -Added Radio Manager interfaces and some undocumented coclasses to use them. Added undocumented interface IRadioManager with coclass RadioManagementAPI: This controls 'Airplane mode' on newer Windows.\
@@ -137,7 +144,6 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, vbNullPtr, ...)
 -Several event trace APIs and transaction API improperly used 'As GUID', which is undefined in tbShellLib and will refer to the unsupported stdole GUID.\
 -Reworked the way the REASON_CONTEXT union was set up; the old version would likely not work as implied.\
 -(Bug fix) KSIDENTIFIER union size incorrect.
-
 
 **Update (v6.5.263, 06 Dec 2023):**\
 -Added numerous missing shell32 APIs.\
