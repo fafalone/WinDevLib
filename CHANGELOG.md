@@ -1,4 +1,10 @@
 
+**Update (v6.6.269):**
+-Added helper function GetNtErrorString that gets strings for NTSTATUS values. GetSystemErrorString already exists for HRESULT.
+-SHLimitInputEdit didn't have the ByVal attribute included, making it easy to not realize it's then required when called.
+-CreateSymbolicLink API inexplicable missing.
+-LIMITINPUTSTRUCT has been renamed to the original, correct name LIMITINPUT. The original documentation and demos have made this change too with the recently released universal compatibility update.
+
 **Update (v6.6.268, 11 Dec 2023):**
 -Added UI Animation interfaces and coclasses
 -Added Radio Manager interfaces and some undocumented coclasses to use them. Added undocumented interface IRadioManager with coclass RadioManagementAPI: This controls 'Airplane mode' on newer Windows.
