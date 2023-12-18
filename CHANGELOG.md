@@ -1,4 +1,83 @@
 
+**Update (v7.0.272, 17 Dec 2023):**
+
+***tbShellLib is now WinDevLib - Windows Development Library for twinBASIC***
+
+
+
+
+***MAJOR CHANGES***
+*LARGE_INTEGER*
+I've been considering these for a long time, and decided to pull the trigger before tB goes 1.0. 
+
+The LARGE_INTEGER type is defined  in C as:
+
+```
+typedef union _LARGE_INTEGER {
+    struct {
+        DWORD LowPart;
+        LONG HighPart;
+    } DUMMYSTRUCTNAME;
+    struct {
+        DWORD LowPart;
+        LONG HighPart;
+    } u;
+    LONGLONG QuadPart;
+} LARGE_INTEGER;
+```
+
+The Windows API, from user to native to kernel, all recognize the QuadPart member and apply 8-byte packing rules.
+VB6 and VBA (except 64bit) lack a LongLong type, so programmers have traditionally used the LowPart/HighPart option.
+This *does not* trigger 8 byte packing rules, and while problems from this are rare in 32bit mode, they're quite common
+in 64bit mode. As a result of this, WinDevLib has up until now kept the traditional definition for LARGE_INTEGER and 
+instead substituted a QLARGE_INTEGER or ULARGE_INTEGER in it's own definitions.
+This will now change. The original plan was to wait for union support which would allow both while still triggering
+the 8 byte alignment rules, but that has recently been confirmed as a post-1.0 feature. When that is added, the old
+option will be added back in.
+LARGE_INTEGER now by default uses QuadPart, and all QLARGE_INTEGER have been changed to LARGE_INTEGER.
+
+Reminder: This does greatly simplify things; you can remove all conversions to Currency and related multiply/divide 
+          by 10,000. Also, note that if you use your own local definition, WinDevLib does not supercede it for your
+          own code. It is strongly recommended to switch away from Currency when doing 64bit updates.
+
+A compiler flag is available to restore the old definition (but not the use of QLARGE_INTEGER in WinDevLib defs):
+WINDEVLIB_NOQUADLI
+
+*SendMessage and PostMessage*
+These will now conform to the same API standards as all other functions; the undenominated (without A or W suffix)
+will now point to SendMessageW and PostMessageW and use DeclareWide. Note that these have never affected the target
+itself, it's always just modified how String arguments are interpreted. 99% of usage of these will not be impacted
+by this, since you'll still be able to use String and not nee to modify the result for ANSI/Unicode conversion.
+PostMessage already used DeclareWide, which was perhaps causing unexpected issues in the edge cases.
+
+**Addtional changes:**
+-Added interface IActCtx and coclass ActCtx.
+-Missing WH_ enum values and associated types for SetWindowsHookEx
+-Numerous missing VK_* virtual key codes
+-Missing WM_* wParam enums.
+-Several service APIs did not conform to tbShellLib API standards with respect to A/W/DeclareWide UDT naming.
+-Added a lot of additional user32 content.
+-Added variable min/max constants from limits.h (100% coverage)
+-Redid FILEDESCRIPTOR[A,W] to use proper FILETIME types and Integer for WCHAR instead of 2x Byte.
+-Added several types associated with clipboard formats.
+-Added unsigned variable helper functions (thanks to Krool for these): UnsignedAdd, CUIntToInt, CIntToUInt, CULngToLng, and CLngToULng. CULngToLng has an override between the original Double and LongLong, CLngToULng does too but rewrites the output into an argument since tB can't overload purely based on function return type.
+-Added gesture angle macros GID_ROTATE_ANGLE_TO_ARGUMENT/GID_ROTATE_ANGLE_FROM_ARGUMENT
+-Added hundreds of additional NTSTATUS values.
+-Added overloads to LOWORD and HIWORD to handle LongLong directly.
+-winuser.h now has 100% coverage of language-supported definitions (10.0.25309 SDK); the largest header to date with this distinction with over 16000 lines in the original.
+-(Bug fix) LBItemFromPt was marked Private.
+-(Bug fix) RealGetWindowClass definition incorrect (invalid alias).
+-(Bug fix) Duplicated constant: CCHILDREN_SCROLLBAR
+-(Bug fix) PostThreadMessage definition incorrect and did not meet API standards.
+-(Bug fix) InsertMenuItem[A,W] definitions technically incorrect although not causing an error. Also did not conform to API standards.
+-(Bug fix) PostThreadMessage definition incorrect.
+-(Bug fix) PostMessageA incorrectly had DeclareWide.
+-(Bug fix) ILCreateFromPathEx was removed as it's not exported from shell32 either by name or ordinal.
+-(Bug fix) ILCloneChild, ILCloneFull, ILIsAligned, ILIsChild, ILIsEmpty, ILNext, and ILSkip are only macros; they were declared as shell32.dll functions. Some of these were aliases and modified appropriate, the rest were implemented as functions.
+-(Bug fix) ILLoadFromStream is exported by ordinal only.
+-(Bug fix, WinDevLibImpl) IPersistFile method definition incorrect.
+
+
 **Update (v6.6.269):**
 -Added helper function GetNtErrorString that gets strings for NTSTATUS values. GetSystemErrorString already exists for HRESULT.
 -SHLimitInputEdit didn't have the ByVal attribute included, making it easy to not realize it's then required when called.
