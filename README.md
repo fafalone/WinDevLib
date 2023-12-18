@@ -2,7 +2,7 @@
 ## Windows Development Library for twinBASIC
 ### Formerly tbShellLib
 
-### ***tbShellLib is now WinDevLib - Windows Development Library for twinBASIC***\
+### ***tbShellLib is now WinDevLib - Windows Development Library for twinBASIC***
 There are some major chanages associated with this update, please see the full changelog below.
 
 ### Big News!
