@@ -3,7 +3,7 @@
 ### Formerly tbShellLib
 
 ### ***tbShellLib is now WinDevLib - Windows Development Library for twinBASIC***
-This project has grown well beyond it's original mission of shell programming. While that's still the largest single part, it's no longer a majority of the code, and the name change now much better reflects the purpose of providing a general Windows API experience like windows.h. There are some major chanages associated with this update, please see the full changelog below.
+This project has grown well beyond it's original mission of shell programming. While that's still the largest single part, it's no longer a majority of the code, and the name change now much better reflects the purpose of providing a general Windows API experience like windows.h. Compiler constants and module names/file names have been updated to reflect the name change. tbShellLibImpl is now WinDevLibImpl. There are also some major chanages associated with this update, please see the full changelog below.
 
 ### Big News!
 **As of the [twinBASIC version Beta 368 and newer](https://github.com/twinbasic/twinbasic/releases), massive improvements to Intellisense mean that tbShellLib is vastly more usable, with no long delays. Intellisense is now cached and lag-free.** Thanks to Wayne for tackling this issue and continuing to make twinBASIC the programming tool of the future 👍
