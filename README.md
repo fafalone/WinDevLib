@@ -207,7 +207,9 @@ PostMessage already used `DeclareWide`, which was perhaps causing unexpected iss
 -(Bug fix) PostMessageA incorrectly had DeclareWide.\
 -(Bug fix) ILCreateFromPathEx was removed as it's not exported from shell32 either by name or ordinal.\
 -(Bug fix) ILCloneChild, ILCloneFull, ILIsAligned, ILIsChild, ILIsEmpty, ILNext, and ILSkip are only macros; they were declared as shell32.dll functions. Some of these were aliases and modified appropriate, the rest were implemented as functions.\
--(Bug fix) ILLoadFromStream is exported by ordinal only.\
+-(Bug fix) ILLoadFromStream is exported by ordinal only.
+
+**WinDevLibImpl v1.2.11.272**
 -(Bug fix, WinDevLibImpl) IPersistFile method definition incorrect.
 
 
