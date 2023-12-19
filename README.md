@@ -113,7 +113,7 @@ Finally, there's small API sets for features, like DirectX DLLs, Webview2Loader,
 
 The best example of this is many APIs, like file APIs, where in traditional VB declarations, you see 'As Any' and in tbShellLib you see e.g. `SECURITY_ATTRIBUTES` or `OVERLAPPED`. These are the correct the definitions, but VB6 had no facility to specify 'NULL', which is what they usually would be set to as optional arguments. So the VB6 way was a workaround, where you could pass ByVal 0. 
 
-twinBASIC has direct support for passing a null pointer instead of a UDT. You can pass `vbNullPtr` to these arguments where previously you would have used ByVal 0 on an `As Any` argument that you've found is now a UDT. 
+twinBASIC has direct support for passing a null pointer instead of a UDT. You can pass `vbNullPtr` to these arguments where previously you would have used ByVal 0 on an `As Any` argument that you've found is now a UDT. You can also pass a non-null pointer; simply pass a `LongPtr` *without* `ByVal` (for now, twinBASIC will be changing this to require `ByVal` as that makes it far more clear you intend this kind of substitution and doesn't imply you're passing ByRef LongPtr). 
 
 Example:
 
@@ -128,6 +128,10 @@ twinBASIC:
 Public Declare PtrSafe Function CreateFileW Lib "kernel32" (ByVal lpFileName As LongPtr, ByVal dwDesiredAccess As Long, ByVal dwShareMode As Long, lpSecurityAttributes As SECURITY_ATTRIBUTES, ByVal dwCreationDisposition As Long, ByVal dwFlagsAndAttributes As Long, ByVal hTemplateFile As LongPtr) As LongPtr
 
 hFile = CreateFileW(StrPtr("name"), 0, 0, vbNullPtr, ...)
+'---or---
+Dim pSec As SECURITY_ATTRIBUTES
+Dim lPtr As LongPtr = VarPtr(pSec)
+hFile = CreateFileW(StrPtr("name"), 0, 0, lPtr, ...)
 ```
 
 ### Updates
