@@ -10,7 +10,7 @@ This project has grown well beyond it's original mission of shell programming. W
 
 ---
 
-**Current Version: 7.0.272 (December 17th, 2023)**
+**Current Version: 7.0.276 (December 20th, 2023)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -39,7 +39,7 @@ You can download the project from this repository and use the WinDevLib.twinpack
 
 
 ### Optional Features
-tbShellLib has some compiler constants:
+WinDevLib has some compiler constants:
 
 `WINDEVLIB_LITE` - This flag disables most API declares and misc WinAPI definitions, including everything in slAPIComCtl, slAPI, and slDefs. I used to like doing my APIs separate too, which is why oleexp never had the expansive coverage. But with that coverage now present, I think it's worth using, but this option will still be supported.
 
@@ -118,13 +118,13 @@ twinBASIC has direct support for passing a null pointer instead of a UDT. You ca
 Example:
 
 VB6:
-```vb6
+```vba
 Public Declare Function CreateFileW Lib "kernel32" (ByVal lpFileName As Long, ByVal dwDesiredAccess As Long, ByVal dwShareMode As Long, lpSecurityAttributes As Any, ByVal dwCreationDisposition As Long, ByVal dwFlagsAndAttributes As Long, ByVal hTemplateFile As Long) As Long
 
 hFile = CreateFileW(StrPtr("name"), 0, 0, ByVal 0, ...)
 ```
 twinBASIC:
-```vb6
+```vba
 Public Declare PtrSafe Function CreateFileW Lib "kernel32" (ByVal lpFileName As LongPtr, ByVal dwDesiredAccess As Long, ByVal dwShareMode As Long, lpSecurityAttributes As SECURITY_ATTRIBUTES, ByVal dwCreationDisposition As Long, ByVal dwFlagsAndAttributes As Long, ByVal hTemplateFile As LongPtr) As LongPtr
 
 hFile = CreateFileW(StrPtr("name"), 0, 0, vbNullPtr, ...)
@@ -135,6 +135,17 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, lPtr, ...)
 ```
 
 ### Updates
+
+**Update (v7.0.276, 20 Dec 2023):**\
+-Added cryptui.dll APIs (cryptuiapi.h, 100% coverage)\
+-Some additional SetupAPI and Cfgmgr32 defs, as well as devmgr.dll APIs documented and not (show device manager, prop pages, problem wizard, etc)\
+-More inexplicably missing shell32 APIs\
+-Additional APIs from ShellScalingAPI.h (now 100% coverage)\
+-(Bug fix) Duplicated DEVPROP_TYPE_* values.\
+-(Bug fix) GetExplicitEntriesFromAcl definition incorrect (misplaced Alias)\
+-(Bug fix) Wow64RevertWow64FsRedirection lacked explicit ByVal modifier.\
+-(Bug fix) Get/SetProcessDpiAwareness definitions incorrect.
+
 
 **Update (v7.0.272, 17 Dec 2023):**
 
