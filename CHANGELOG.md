@@ -1,4 +1,14 @@
 
+**Update (v7.0.276, 20 Dec 2023):**
+-Added cryptui.dll APIs (cryptuiapi.h, 100% coverage)
+-Some additional SetupAPI and Cfgmgr32 defs, as well as devmgr.dll APIs documented and not (show device manager, prop pages, problem wizard, etc)
+-More inexplicably missing shell32 APIs
+-Additional APIs from ShellScalingAPI.h (now 100% coverage)
+-(Bug fix) Duplicated DEVPROP_TYPE_* values.
+-(Bug fix) GetExplicitEntriesFromAcl definition incorrect (misplaced Alias)
+-(Bug fix) Wow64RevertWow64FsRedirection lacked explicit ByVal modifier.
+-(Bug fix) Get/SetProcessDpiAwareness definitions incorrect.
+
 **Update (v7.0.272, 17 Dec 2023):**
 
 ***tbShellLib is now WinDevLib - Windows Development Library for twinBASIC***
@@ -55,7 +65,7 @@ PostMessage already used DeclareWide, which was perhaps causing unexpected issue
 -Missing WH_ enum values and associated types for SetWindowsHookEx
 -Numerous missing VK_* virtual key codes
 -Missing WM_* wParam enums.
--Several service APIs did not conform to tbShellLib API standards with respect to A/W/DeclareWide UDT naming.
+-Several service APIs did not conform to WinDevLib API standards with respect to A/W/DeclareWide UDT naming.
 -Added a lot of additional user32 content.
 -Added variable min/max constants from limits.h (100% coverage)
 -Redid FILEDESCRIPTOR[A,W] to use proper FILETIME types and Integer for WCHAR instead of 2x Byte.
@@ -73,7 +83,7 @@ PostMessage already used DeclareWide, which was perhaps causing unexpected issue
 -(Bug fix) PostThreadMessage definition incorrect.
 -(Bug fix) PostMessageA incorrectly had DeclareWide.
 -(Bug fix) ILCreateFromPathEx was removed as it's not exported from shell32 either by name or ordinal.
--(Bug fix) ILCloneChild, ILCloneFull, ILIsAligned, ILIsChild, ILIsEmpty, ILNext, and ILSkip are only macros; they were declared as shell32.dll functions. Some of these were aliases and modified appropriate, the rest were implemented as functions.
+-(Bug fix) ILCloneChild, ILCloneFull, ILIsAligned, ILIsChild, ILIsEmpty, ILNext, and ILSkip are only macros; they were declared as shell32.dll functions. Some of these were aliases and modified as appropriate, the rest were implemented as functions.
 -(Bug fix) ILLoadFromStream is exported by ordinal only.
 -(Bug fix, WinDevLibImpl) IPersistFile method definition incorrect.
 
