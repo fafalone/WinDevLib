@@ -1,4 +1,20 @@
 
+**Update (v7.0.277, 21 Dec 2023):**
+-Added customer caller for AuthzReportSecurityEvent (experimental).
+-(Bug fix) SHEmptyRecycleBinW, PathRemoveBackslash, PathSkipRoot, CreateMailslot did not conform to API standards
+-(Bug fix) All SHReg* APIs missing W variants
+-(Bug fix) PathAddExtension, PathAddRoot, EnumSystemLanguageGroups, LoadCursorFromFile, waveInGetErrorText definitions incorrect (misplaced alias)
+-(Bug fix) PathIsDirectoryA/W, PdhAddEnglishCounterA definitions incorrect (invalid alias)
+-(Bug fix) GetLogicalDriveStringsA definition incorrect (DeclareWide on ANSI)
+-(Bug fix) Mising DeclareWide:
+    Get/SetComputerName[Ex]
+    All THelp32.h APIs
+    SHUpdateImage
+    ShellNotify_Icon
+    WaveIn/OutDevCaps
+    HttpQueryInfo
+
+
 **Update (v7.0.276, 20 Dec 2023):**
 -Added cryptui.dll APIs (cryptuiapi.h, 100% coverage)
 -Some additional SetupAPI and Cfgmgr32 defs, as well as devmgr.dll APIs documented and not (show device manager, prop pages, problem wizard, etc)
