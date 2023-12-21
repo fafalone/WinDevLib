@@ -10,7 +10,7 @@ This project has grown well beyond it's original mission of shell programming. W
 
 ---
 
-**Current Version: 7.0.276 (December 20th, 2023)**
+**Current Version: 7.0.277 (December 21st, 2023)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -136,6 +136,23 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, lPtr, ...)
 
 ### Updates
 
+**Update (v7.0.277, 21 Dec 2023):**\
+-Added customer caller for AuthzReportSecurityEvent (experimental).\
+-(Bug fix) SHEmptyRecycleBinW, PathRemoveBackslash, PathSkipRoot, CreateMailslot did not conform to API standards\
+-(Bug fix) All SHReg* APIs missing W variants\
+-(Bug fix) PathAddExtension, PathAddRoot, EnumSystemLanguageGroups, LoadCursorFromFile, waveInGetErrorText definitions incorrect (misplaced alias)\
+-(Bug fix) PathIsDirectoryA/W, PdhAddEnglishCounterA definitions incorrect (invalid alias)\
+-(Bug fix) GetLogicalDriveStringsA definition incorrect (DeclareWide on ANSI)\
+-(Bug fix) Mising DeclareWide:\
+    Get/SetComputerName[Ex]\
+    All THelp32.h APIs\
+    SHUpdateImage\
+    ShellNotify_Icon\
+    WaveIn/OutDevCaps\
+    HttpQueryInfo
+
+
+
 **Update (v7.0.276, 20 Dec 2023):**\
 -Added cryptui.dll APIs (cryptuiapi.h, 100% coverage)\
 -Some additional SetupAPI and Cfgmgr32 defs, as well as devmgr.dll APIs documented and not (show device manager, prop pages, problem wizard, etc)\
@@ -145,7 +162,6 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, lPtr, ...)
 -(Bug fix) GetExplicitEntriesFromAcl definition incorrect (misplaced Alias)\
 -(Bug fix) Wow64RevertWow64FsRedirection lacked explicit ByVal modifier.\
 -(Bug fix) Get/SetProcessDpiAwareness definitions incorrect.
-
 
 **Update (v7.0.272, 17 Dec 2023):**
 
