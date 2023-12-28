@@ -1,4 +1,12 @@
 
+**Update (v7.0.280, 28 Dec 2023):**
+-INDEXTOOVERLAYMASK was inexplicably missing; also added inverse, OVERLAYMASKTOINDEX.
+-Additional setup APIs-- newdev.h, 100% coverage, and additional cfgmgr32 APIs.
+-Additional kernel32 APIs-- processthreadsapi.h now has 100% coverage
+-(Bug fix) SetupDiGetClassDevsW did not conform to WinDevLib API standards.
+-(Bug fix) Some SetupAPI defs did not have the required 1-byte packing on 32bit
+-(Bug fix) NMLVKEYDOWN and NMTVKEYDOWN did not have required packing alignment
+
 **Update (v7.0.277, 21 Dec 2023):**
 -Added customer caller for AuthzReportSecurityEvent (experimental).
 -(Bug fix) SHEmptyRecycleBinW, PathRemoveBackslash, PathSkipRoot, CreateMailslot did not conform to API standards
