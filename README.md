@@ -10,7 +10,7 @@ This project has grown well beyond it's original mission of shell programming. W
 
 ---
 
-**Current Version: 7.0.277 (December 21st, 2023)**
+**Current Version: 7.0.280 (December 28th, 2023)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -136,6 +136,15 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, lPtr, ...)
 
 ### Updates
 
+**Update (v7.0.280, 28 Dec 2023):**\
+-INDEXTOOVERLAYMASK was inexplicably missing; also added inverse, OVERLAYMASKTOINDEX.\
+-Additional setup APIs-- newdev.h, 100% coverage, and additional cfgmgr32 APIs.\
+-Additional kernel32 APIs-- processthreadsapi.h now has 100% coverage\
+-(Bug fix) SetupDiGetClassDevsW did not conform to WinDevLib API standards.\
+-(Bug fix) Some SetupAPI defs did not have the required 1-byte packing on 32bit\
+-(Bug fix) NMLVKEYDOWN and NMTVKEYDOWN did not have required packing alignment
+
+
 **Update (v7.0.277, 21 Dec 2023):**\
 -Added customer caller for AuthzReportSecurityEvent (experimental).\
 -(Bug fix) SHEmptyRecycleBinW, PathRemoveBackslash, PathSkipRoot, CreateMailslot did not conform to API standards\
@@ -150,7 +159,6 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, lPtr, ...)
     ShellNotify_Icon\
     WaveIn/OutDevCaps\
     HttpQueryInfo
-
 
 
 **Update (v7.0.276, 20 Dec 2023):**\
