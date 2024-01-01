@@ -10,7 +10,7 @@ This project has grown well beyond it's original mission of shell programming. W
 
 ---
 
-**Current Version: 7.0.282 (January 1st, 2024)**
+**Current Version: 7.0.283 (January 1st, 2024)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -135,6 +135,11 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, lPtr, ...)
 ```
 
 ### Updates
+
+**Update (v7.0.283, 01 Jan 2024):**\
+-Improved enum associations/formatting for WIC.\
+-Added numerous missing GUIDs from wincodecsdk.h\
+-(Bug fix) IWICPalette, IWICFormatConverter, IWICBitmapDecoderInfo, IWICPixelFormatInfo2, IWICMetadataReaderInfo, IWICMetadataHandlerInfo, IWICBitmapCodecInfo, IWICComponentInfo, WICMapGuidToShortName, WICMapSchemaToName had numerous ByVal/ByRef mixups.
 
 **Update (v7.0.282, 01 Jan 2024):**\
 -Added all variable conversion and arithmetic helpers from oleauto.h; coverage of that header now 100% (of supported by language).\
