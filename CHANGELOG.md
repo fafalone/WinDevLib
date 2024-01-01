@@ -1,4 +1,18 @@
 
+**Update (v7.0.282, 01 Jan 2024):**
+-Added all variable conversion and arithmetic helpers from oleauto.h; coverage of that header now 100% (of supported by language). 
+-Additional GUIDs and error consts from olectl.h to bring that header's coverage to 100%.
+-VARCMP enum renamed VARCMPRES to avoid conflict with VarCmp API.
+-Added missing flags for VariantChangeType[Ex]
+-SHFileOperation and SHFILEOPSTRUCT did not conform to API standards. Struct names were incorrect; the operations aborted member was incorrectly defined as Boolean, but the padding bytes prevented it from failing the entire function.
+-SysAllocStringByteLen now use ByVal As Any, since either a String or LongPtr would be ByVal.
+-(Bug fix) SysAllocString definition incorrect (Long instead of LongPtr, impacting 64bit)
+-(Bug fix) SysFreeString definition incorrect (ByRef instead of ByVal)
+-(Bug fix) SysReAllocStringLen should use DeclareWide
+-(Bug fix) LHashValOfName is a macro, not an export; now implemented properly.
+-(Bug fix) FORMATETC used a Long for CLIPFORMAT, which is incorrect.
+-(MAJOR BUG FIX) IStream was missing UnlockRegion. This impacted numerous derived interfaces, throwing off their vtables, completely breaking them.
+
 **Update (v7.0.280, 28 Dec 2023):**
 -INDEXTOOVERLAYMASK was inexplicably missing; also added inverse, OVERLAYMASKTOINDEX.
 -Additional setup APIs-- newdev.h, 100% coverage, and additional cfgmgr32 APIs.
