@@ -148,7 +148,7 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, lPtr, ...)
 -(Bug fix) SysReAllocStringLen should use DeclareWide\
 -(Bug fix) LHashValOfName is a macro, not an export; now implemented properly.\
 -(Bug fix) FORMATETC used a Long for CLIPFORMAT, which is incorrect.\
--(MAJOR BUG FIX) IStream was missing UnlockRegion. This impacted numerous derived interfaces, throwing off their vtables, completely breaking them.
+-(MAJOR BUG FIX) IStream was missing UnlockRegion. This impacted numerous derived interfaces, throwing off their vtables, completely breaking them. This bug was also present in WinDevLibImpl.
 
 
 **Update (v7.0.280, 28 Dec 2023):**\
