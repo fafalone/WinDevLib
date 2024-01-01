@@ -1,4 +1,10 @@
 
+**Update (v7.0.283, 01 Jan 2024):**
+-Improved enum associations/formatting for WIC.
+-Added numerous missing GUIDs from wincodecsdk.h
+-(Bug fix) IWICPalette, IWICFormatConverter, IWICBitmapDecoderInfo, IWICPixelFormatInfo2, IWICMetadataReaderInfo, IWICMetadataHandlerInfo, IWICBitmapCodecInfo, IWICComponentInfo, WICMapGuidToShortName, WICMapSchemaToName had numerous ByVal/ByRef mixups.
+
+
 **Update (v7.0.282, 01 Jan 2024):**
 -Added all variable conversion and arithmetic helpers from oleauto.h; coverage of that header now 100% (of supported by language). 
 -Additional GUIDs and error consts from olectl.h to bring that header's coverage to 100%.
