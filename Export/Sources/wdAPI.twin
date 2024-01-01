@@ -677,7 +677,9 @@ Public Declare PtrSafe Function SHGetFileInfoW Lib "shell32" (ByVal pszPath As A
 Public DeclareWide PtrSafe Function SHGetFileInfo Lib "shell32" Alias "SHGetFileInfoW" (ByVal pszPath As Any, ByVal dwFileAttributes As Long, psfi As SHFILEINFO, ByVal cbFileInfo As Long, ByVal uFlags As SHGFI_flags) As LongPtr
 Public Declare PtrSafe Function SHMultiFileProperties Lib "shell32" (ByVal pdtobj As LongPtr, ByVal dwFlags As Long) As Long
 [Description ("Performs a copy, move, rename, or delete operation on a file system object") ] 
-Public DeclareWide PtrSafe Function SHFileOperationW Lib "shell32" (lpFileOp As SHFILEOPSTRUCT) As SHFileOpErrors
+Public Declare PtrSafe Function SHFileOperationA Lib "shell32" (lpFileOp As SHFILEOPSTRUCTA) As SHFileOpErrors
+[Description ("Performs a copy, move, rename, or delete operation on a file system object") ] 
+Public DeclareWide PtrSafe Function SHFileOperationW Lib "shell32" (lpFileOp As SHFILEOPSTRUCTW) As SHFileOpErrors
 [ Description ("Performs a copy, move, rename, or delete operation on a file system object") ] 
 Public DeclareWide PtrSafe Function SHFileOperation Lib "shell32" Alias "SHFileOperationW" (lpFileOp As SHFILEOPSTRUCT) As SHFileOpErrors
 Public Declare PtrSafe Function SHOpenFolderAndSelectItems Lib "shell32" (ByVal pidlFolder As LongPtr, ByVal cidl As Long, ByVal apidl As LongPtr, ByVal dwFlags As SHOFASI_Flags) As Long
@@ -1399,16 +1401,37 @@ Public Enum SHOFASI_Flags
     OFASI_OPENDESKTOP = &H2 'Highlights files on the desktop.
 End Enum
 
-Public Type SHFILEOPSTRUCT
+Public Type SHFILEOPSTRUCTA
    hWnd        As LongPtr
    wFunc       As FILEOP
    pFrom       As LongPtr
    pTo         As LongPtr
    fFlags      As FILEOP_FLAGS
-   fAborted    As Boolean
-   hNameMaps   As LongPtr
-   sProgress   As LongPtr
+   fAnyOperationsAborted    As BOOL
+   hNameMappings   As LongPtr
+   lpszProgressTitle   As String
  End Type
+ Public Type SHFILEOPSTRUCTW
+    hWnd        As LongPtr
+    wFunc       As FILEOP
+    pFrom       As LongPtr
+    pTo         As LongPtr
+    fFlags      As FILEOP_FLAGS
+    fAnyOperationsAborted    As BOOL
+    hNameMappings   As LongPtr
+    lpszProgressTitle   As LongPtr
+  End Type
+  'Alias SHFILEOPSTRUCT As SHFILEOPSTRUCTW
+  Public Type SHFILEOPSTRUCT
+     hWnd        As LongPtr
+     wFunc       As FILEOP
+     pFrom       As LongPtr
+     pTo         As LongPtr
+     fFlags      As FILEOP_FLAGS
+     fAnyOperationsAborted    As BOOL
+     hNameMappings   As LongPtr
+     lpszProgressTitle   As LongPtr
+   End Type
  
 Public Type SHFILEINFOA   ' shfi
   hIcon As LongPtr
@@ -17688,6 +17711,8 @@ Public Declare PtrSafe Function IsAccelerator Lib "ole32" (ByVal haccel As LongP
 #Region "oleaut32"
 '****************************************************
 'oleaut32.dll
+'oleauto.h 100% coverage
+'olectl.h 100% coverage
 
 Public Enum REGKIND
     REGKIND_DEFAULT = 0                                  
@@ -17702,7 +17727,15 @@ Public Enum VARFORMAT_FLAGS
 	VAR_CALENDAR_HIJRI = &H00000008 ' use Hijri calender */
 	VAR_LOCALBOOL = &H00000010
 	VAR_FORMAT_NOSUBSTITUTE = &H00000020
+    VAR_FOURDIGITYEARS = &H00000040
+    VAR_CALENDAR_THAI = &H00000080
+    VAR_CALENDAR_GREGORIAN = &H00000100
+    LOCALE_USE_NLS = &H10000000
 End Enum
+
+Public Const VTDATEGRE_MAX  = 2958465 /* Dec 31, 9999, 0:0:0 in Gregorain Calendar */
+Public Const VTDATEGRE_MIN  = -657434 /* Jan 1, 100, 0:0:0 in Gregorain Calendar */
+
 
 Public Enum NAMEDFORMATS
     GeneralDate = 0                                      ' &H00000000&
@@ -17745,7 +17778,23 @@ Public Type NUMPARSE
     nPwr10 As Long                                       ' offset &H0014
 End Type                                                 ' LenB() = &H0018, Len() = &H0018, UDT Alignment = &H0004
 
-Public Enum VARCMP
+Public Enum VarNPNBits
+    VTBIT_I1  = (1 << VT_I1)
+    VTBIT_UI1  = (1 << VT_UI1)
+    VTBIT_I2  = (1 << VT_I2)
+    VTBIT_UI2  = (1 << VT_UI2)
+    VTBIT_I4  = (1 << VT_I4)
+    VTBIT_UI4  = (1 << VT_UI4)
+    VTBIT_I8  = (1 << VT_I8)
+    VTBIT_UI8  = (1 << VT_UI8)
+    VTBIT_R4  = (1 << VT_R4)
+    VTBIT_R8  = (1 << VT_R8)
+    VTBIT_CY  = (1 << VT_CY)
+    VTBIT_DECIMAL  = (1 << VT_DECIMAL)
+End Enum
+
+
+Public Enum VARCMPRES
     VARCMP_LT = 0                                        ' &H00000000&
     VARCMP_EQ = 1                                        ' &H00000001&
     VARCMP_GT = 2                                        ' &H00000002&
@@ -17775,6 +17824,28 @@ Public Type INTERFACEDATA
     cMembers As Long
 End Type
         
+Public Enum VariantChangeTypeFlags
+    VARIANT_NOVALUEPROP  = &H01
+    VARIANT_ALPHABOOL  = &H02  ' For VT_BOOL to VT_BSTR conversions, convert to "True"/"False" instead of "-1"/"0"
+    VARIANT_NOUSEROVERRIDE  = &H04  ' For conversions to/from VT_BSTR, passes LOCALE_NOUSEROVERRIDE to core coercion routines
+    VARIANT_CALENDAR_HIJRI  = &H08
+    VARIANT_LOCALBOOL  = &H10  ' For VT_BOOL to VT_BSTR and back, convert to local language rather than English
+    VARIANT_CALENDAR_THAI  = &H20  ' SOUTHASIA calendar support
+    VARIANT_CALENDAR_GREGORIAN  = &H40  ' SOUTHASIA calendar support
+    VARIANT_USE_NLS  = &H80  ' NLS function call support
+End Enum
+
+Public Const MEMBERID_NIL  = DISPID_UNKNOWN
+Public Const ID_DEFAULTINST  = -2
+
+
+Public Enum LoadTlbBitnessFlags
+    LOAD_TLB_AS_32BIT  = &H20
+    LOAD_TLB_AS_64BIT  = &H40
+    MASK_TO_RESET_TLB_BITS  =  Not (LOAD_TLB_AS_32BIT  Or  LOAD_TLB_AS_64BIT)
+End Enum
+
+
 Public Declare PtrSafe Function DispCallFunc Lib "oleaut32" (ByRef pvInstance As Any, ByVal oVft As LongPtr, ByVal cc As CALLCONV, [ TypeHint (VARENUM) ] ByVal vtReturn As Integer, ByVal cActuals As Long, ByRef prgvt As Any, ByRef prgpvarg As Any, ByRef pvargResult As Any) As Long
 Public Declare PtrSafe Function DispGetParam Lib "oleaut32" (ByRef pDispParams As DISPPARAMS, ByVal position As Long, ByVal vtTarg As Integer, ByRef pVarResult As Variant, ByRef puArgErr As Long) As Long
 Public DeclareWide PtrSafe Function DispGetIDsOfNames Lib "oleaut32" (ByVal pTInfo As ITypeInfo, ByRef rgszNames As String, ByVal cNames As Long, ByRef rgdispid As Long) As Long
@@ -17783,43 +17854,49 @@ Public Declare PtrSafe Function SystemTimeToVariantTime Lib "oleaut32" (ByRef lp
 Public Declare PtrSafe Function VariantTimeToSystemTime Lib "oleaut32" (ByVal vtime As Double, ByRef lpSystemTime As SYSTEMTIME) As Long
 Public Declare PtrSafe Function DosDateTimeToVariantTime Lib "oleaut32" (ByVal wDosDate As Integer, ByVal wDosTime As Integer, ByRef pvtime As Double) As Long
 Public Declare PtrSafe Function VariantTimeToDosDateTime Lib "oleaut32" (ByVal vtime As Double, ByRef pwDosDate As Integer, ByRef pwDosTime As Integer) As Long
+Public DeclareWide PtrSafe Function VectorFromBstr Lib "oleaut32" (ByVal bstr As String, ppsa() As String) As Long
+Public DeclareWide PtrSafe Function BstrFromVector Lib "oleaut32" (psa As Any, pbstr As String) As Long
 
-Public DeclareWide PtrSafe Function LHashValOfName Lib "oleaut32" (ByVal lcid As Long, ByVal szName As String) As Long
+Public Function LHashValOfName(ByVal lcid As Long, ByVal szName As String) As Long: Return LHashValOfNameSys(SYS_WIN32, lcid, szName): End Function
 Public DeclareWide PtrSafe Function LHashValOfNameSys Lib "oleaut32" (ByVal SYSKIND As SYSKIND, ByVal lcid As Long, ByVal szName As String) As Long
 Public Declare PtrSafe Function LHashValOfNameSysA Lib "oleaut32" (ByVal SYSKIND As SYSKIND, ByVal lcid As Long, ByVal szName As String) As Long
-Public DeclareWide PtrSafe Function RegisterTypeLib Lib "oleaut32" (ByVal ptlib As ITypeLib, ByVal szFullPath As String, ByVal szHelpDir As String) As Long
+Public DeclareWide PtrSafe Function RegisterTypeLib Lib "oleaut32" (ByVal ptlib As ITypeLib, ByVal szFullPath As String, Optional ByVal szHelpDir As String) As Long
 Public Declare PtrSafe Function UnRegisterTypeLib Lib "oleaut32" (ByRef libID As UUID, ByVal wVerMajor As Integer, ByVal wVerMinor As Integer, ByVal lcid As Long, ByVal SYSKIND As SYSKIND) as Long
 Public DeclareWide PtrSafe Function RegisterTypeLibForUser Lib "oleaut32" (ByVal ptlib As ITypeLib, ByVal szFullPath As String, ByVal szHelpDir As String) As Long
 Public Declare PtrSafe Function UnRegisterTypeLibForUser Lib "oleaut32" (ByRef libID As UUID, ByVal wVerMajor As Integer, ByVal wVerMinor As Integer, ByVal lcid As Long, ByVal SYSKIND As SYSKIND) as Long
 Public DeclareWide PtrSafe Function CreateTypeLib Lib "oleaut32" (ByVal SYSKIND As SYSKIND, ByVal szFile As String, ppctlib As ICreateTypeLib) As Long
 Public DeclareWide PtrSafe Function CreateTypeLib2 Lib "oleaut32" (ByVal SYSKIND As SYSKIND, ByVal szFile As String, ppctlib As ICreateTypeLib2) As Long
 Public Declare PtrSafe Function LoadRegTypeLib Lib "oleaut32" (ByRef rguid As UUID, ByVal wVerMajor As Integer, ByVal wVerMinor As Integer, ByVal lcid As Long, pptlib As ITypeLib) As Long
-Public DeclareWide PtrSafe Function LoadTypeLibEx Lib "oleaut32" (ByVal szFile As String, ByVal REGKIND As REGKIND, pptlib As ITypeLib) As Long
+Public DeclareWide PtrSafe Function LoadTypeLibEx Lib "oleaut32" (ByVal szFile As String, [ TypeHint (REGKIND, LoadTlbBitnessFlags) ] ByVal REGKIND As Long, pptlib As ITypeLib) As Long
 Public DeclareWide PtrSafe Function LoadTypeLib Lib "oleaut32" (ByVal szFile As String, pptlib As ITypeLib) As Long
 Public DeclareWide PtrSafe Function QueryPathOfRegTypeLib Lib "oleaut32" (ByRef guid As UUID, ByVal wVerMajor As Integer, ByVal wVerMinor As Integer, ByVal lcid As Long, lpbstrPathName As String) As Long
 Public DeclareWide PtrSafe Function CreateDispTypeInfo Lib "oleaut32" (pidata As INTERFACEDATA, ByVal lcid As Long, pptinfo As ITypeInfo) As Long
 Public DeclareWide PtrSafe Sub ClearCustData Lib "oleaut32" (pCustData As CUSTDATA)
 
 
-Public DeclareWide PtrSafe Function SysAllocString Lib "oleaut32" (ByVal pStr As Long) As String
+Public DeclareWide PtrSafe Function SysAllocString Lib "oleaut32" (ByVal pStr As LongPtr) As String
 Public DeclareWide PtrSafe Function SysAllocStringLen Lib "oleaut32" (ByVal Value As String, ByVal Length As Long) As String
 Public Declare PtrSafe Function SysAllocStringPtrPtr Lib "oleaut32" Alias "SysAllocString" (ByVal pStr As LongPtr) As LongPtr
 Public Declare PtrSafe Function SysAllocStringPtr Lib "oleaut32" Alias "SysAllocString" (ByVal pStr As String) As LongPtr
 [ Description ("This is an alias for SysAllocString") ]
 Public DeclareWide PtrSafe Function RTrimNull Lib "oleaut32" Alias "SysAllocString" (ByVal pStr As String) As String
-[Description("Use SysReAllocStringW to supply a pointer.") ]
+[Description ("Use SysReAllocStringW to supply a pointer.") ]
 Public DeclareWide PtrSafe Function SysReAllocString Lib "oleaut32" (ByRef in As String, ByVal pStr As LongPtr) As Long
 [ Description ("Alias for SysReAllocString supporting Unicode.") ]
 Public Declare PtrSafe Function SysReAllocStringW Lib "oleaut32" Alias "SysReAllocString" (ByVal pBSTR As LongPtr, Optional ByVal pszStrPtr As LongPtr) As Long
 Public Declare PtrSafe Function SysReAllocStringLenW Lib "oleaut32" Alias "SysReAllocStringLen" (ByVal pBSTR As LongPtr, Optional ByVal pszStrPtr As LongPtr, Optional ByVal Length As Long) As Long
 [Description("Use SysReAllocStringLenW to supply a pointer.") ]
-Public Declare PtrSafe Function SysReAllocStringLen Lib "oleaut32" (ByRef bstr As String, ByVal pStr As LongPtr, ByVal cb As Long) As Long
-Public DeclareWide PtrSafe Sub SysFreeString Lib "oleaut32" (ByRef bstr As String)
+Public DeclareWide PtrSafe Function SysReAllocStringLen Lib "oleaut32" (ByRef bstr As String, ByVal pStr As LongPtr, ByVal cb As Long) As Long
+Public DeclareWide PtrSafe Sub SysFreeStringW Lib "oleaut32" Alias "SysFreeString" (ByVal bstr As LongPtr)
+Public DeclareWide PtrSafe Sub SysReleaseStringW Lib "oleaut32" Alias "SysReleaseString" (ByVal bstr As LongPtr)
+[Description ("Use SysFreeStringW to supply a pointer.") ]
+Public DeclareWide PtrSafe Sub SysFreeString Lib "oleaut32" (ByVal bstr As String)
+[Description("Use SysReleaseStringW to supply a pointer.") ]
+Public DeclareWide PtrSafe Sub SysReleaseString Lib "oleaut32" (ByVal bstr As String)
 Public DeclareWide PtrSafe Function SysStringLen Lib "oleaut32" (ByVal str As String) As Long
 Public DeclareWide PtrSafe Function SysStringByteLen Lib "oleaut32" (ByVal bstr As String) As Long
-Public DeclareWide PtrSafe Function SysAllocStringByteLen Lib "oleaut32" (ByRef psz As Any, ByVal len As Long) As String
+Public DeclareWide PtrSafe Function SysAllocStringByteLen Lib "oleaut32" (ByVal psz As Any, ByVal len As Long) As String
 Public DeclareWide PtrSafe Function SysAddRefString Lib "oleaut32" (ByVal bstr As String) As Long
-Public Declare PtrSafe Function VarR8Round Lib "oleaut32" (ByVal dblIn As Double, ByVal cDecimals As Long, pdblResult As Double) As Long
 Public Declare PtrSafe Function GetAltMonthNames Lib "oleaut32" (ByVal lcid As Long, ByRef prgp As LongPtr) As Long
 Public DeclareWide PtrSafe Function VarFormat Lib "oleaut32" (ByRef pvarIn As Variant, ByVal pstrFormat As String, ByVal iFirstDay As Long, ByVal iFirstWeek As Long, ByVal dwFlags As VARFORMAT_FLAGS, pbstrOut As String) As Long
 Public Declare PtrSafe Function VarFormatDateTime Lib "oleaut32" (ByRef pvarIn As Variant, ByVal iNamedFormat As NAMEDFORMATS, ByVal dwFlags As VARFORMAT_FLAGS, pbstrOut As String) As Long
@@ -17839,12 +17916,13 @@ Public Declare PtrSafe Function GetErrorInfo Lib "oleaut32" (ByVal dwReserved As
 Public Declare PtrSafe Function CreateErrorInfo Lib "oleaut32" (pperrinfo As ICreateErrorInfo) As Long
 Public Declare PtrSafe Function GetRecordInfoFromTypeInfo Lib "oleaut32" (ByVal pTypeInfo As ITypeInfo, ppRecInfo As IRecordInfo) As Long
 Public Declare PtrSafe Function GetRecordInfoFromGuids Lib "oleaut32" (ByRef rGuidTypeLib As UUID, ByVal uVerMajor As Long, ByVal uVerMinor As Long, ByVal lcid As Long, ByRef rGuidTypeInfo As UUID, ppRecInfo As IRecordInfo) As Long
+Public Declare PtrSafe Function OaBuildVersion Lib "oleaut32" () As Long
+Public DeclareWide PtrSafe Sub OaEnablePerUserTLibRegistration Lib "oleaut32" ()
+
 Public DeclareWide PtrSafe Function VarParseNumFromStr Lib "oleaut32" (ByVal strIn As String, ByVal lcid As Long, ByVal dwFlags As NUMPRS, ByRef pnumprs As NUMPARSE, ByRef rgbDig As Byte) As Long
-Public Declare PtrSafe Function VarNumFromParseNum Lib "oleaut32" (ByRef pnumprs As NUMPARSE, ByRef rgbDig As Byte, ByVal dwVtBits As Long, pvar As Variant) As Long
-Public DeclareWide PtrSafe Function VarBstrCat Lib "oleaut32" (ByVal bstrLeft As String, ByVal bstrRight As String, pbstrResult As String) As Long
-Public Declare PtrSafe Function VarBstrCmp Lib "oleaut32" (ByVal bstrLeft As String, ByVal bstrRight As String, ByVal lcid As Long, ByVal dwFlags As COMPARE_FLAGS) As VARCMP
-Public Declare PtrSafe Function VariantChangeType Lib "oleaut32" (ByRef pvargDest As Variant, ByRef pvarSrc As Variant, ByVal wFlags As Integer, [TypeHint(VARENUM) ] ByVal vt As Integer) As Long
-Public Declare PtrSafe Function VariantChangeTypeEx Lib "oleaut32" (ByRef pvargDest As Variant, ByRef pvarSrc As Variant, ByVal lcid As Long, ByVal wFlags As Integer, [TypeHint(VARENUM)] ByVal vt As Integer) As Long
+Public Declare PtrSafe Function VarNumFromParseNum Lib "oleaut32" (ByRef pnumprs As NUMPARSE, ByRef rgbDig As Byte, ByVal dwVtBits As VarNPNBits, pvar As Variant) As Long
+Public Declare PtrSafe Function VariantChangeType Lib "oleaut32" (ByRef pvargDest As Variant, ByRef pvarSrc As Variant, [ TypeHint (VariantChangeTypeFlags) ] ByVal wFlags As Integer, [ TypeHint (VARENUM) ] ByVal vt As Integer) As Long
+Public Declare PtrSafe Function VariantChangeTypeEx Lib "oleaut32" (ByRef pvargDest As Variant, ByRef pvarSrc As Variant, ByVal lcid As Long, [ TypeHint(VariantChangeTypeFlags) ] ByVal wFlags As Integer, [TypeHint(VARENUM) ] ByVal vt As Integer) As Long
 Public Declare PtrSafe Function VariantClear Lib "oleaut32" (ByRef pvarg As Variant) As Long
 Public Declare PtrSafe Function VariantCopy Lib "oleaut32" (ByRef pvargDest As Variant, ByRef pvargSrc As Variant) As Long
 Public Declare PtrSafe Function VariantCopyPtrVar Lib "oleaut32" Alias "VariantCopy" (ByVal pvargDest As Long, ByRef pvargSrc As Variant) As Long
@@ -17855,11 +17933,6 @@ Public Declare PtrSafe Function VariantCopyIndPtrVar Lib "oleaut32" Alias "Varia
 Public Declare PtrSafe Function VariantCopyIndVarPtr Lib "oleaut32" Alias "VariantCopyInd" (ByRef pvargDest As Variant, ByVal pvargSrc As LongPtr) As Long
 Public Declare PtrSafe Function VariantCopyIndPtr Lib "oleaut32" Alias "VariantCopyInd" (ByVal pvargDest As LongPtr, ByVal pvargSrc As LongPtr) As Long
 Public Declare PtrSafe Sub VariantInit Lib "oleaut32" (ByRef pvarg As Variant)
-Public Declare PtrSafe Function OleLoadPictureEx Lib "oleaut32" (ByVal lpstream As IStream, ByVal lSize As Long, ByVal fRunmode As Long, ByRef riid As UUID, ByVal xSizeDesired As Long, ByVal ySizeDesired As Long, ByVal dwFlags As stdole.LoadPictureConstants, lplpvObj As Any) As Long
-Public DeclareWide PtrSafe Function OleLoadPicturePath Lib "oleaut32" (ByVal szURLorPath As String, ByVal punkCaller As IUnknown, ByVal dwReserved As Long, ByVal clrReserved As stdole.OLE_COLOR, ByRef riid As UUID, ppvRet As Any) As Long
-Public Declare PtrSafe Function OleLoadPictureFile Lib "oleaut32" (ByVal varFileName As Variant, lplpdispPicture As stdole.IPictureDisp) As Long
-Public Declare PtrSafe Function OleLoadPictureFileEx Lib "oleaut32" (ByVal varFileName As Variant, ByVal xSizeDesired As Long, ByVal ySizeDesired As Long, ByVal dwFlags As stdole.LoadPictureConstants, lplpdispPicture As stdole.IPictureDisp) As Long
-Public DeclareWide PtrSafe Function OleSavePictureFile Lib "oleaut32" (ByVal lpdispPicture As stdole.IPictureDisp, ByVal bstrFileName As String) As Long
 
 Public DeclareWide PtrSafe Function SafeArrayCreate Lib "oleaut32" ([ TypeHint (VARENUM) ] ByVal vt As Integer, ByVal cDims As Long, rgsabound As SAFEARRAYBOUND) As LongPtr
 Public DeclareWide PtrSafe Function SafeArrayCreateVector Lib "oleaut32" ([ TypeHint (VARENUM) ] ByVal vt As Integer, ByVal lLbound As Long, ByVal cElements As Long) As LongPtr
@@ -17892,14 +17965,405 @@ Public DeclareWide PtrSafe Function SafeArrayGetVartype Lib "oleaut32" (ByVal ps
 Public DeclareWide PtrSafe Function SafeArrayAccessData Lib "oleaut32" (ByVal psa As LongPtr, ppvData As LongPtr) As Long
 Public DeclareWide PtrSafe Function SafeArrayUnaccessData Lib "oleaut32" (ByVal psa As LongPtr) As Long
 
+Public DeclareWide PtrSafe Function VarUI1FromI2 Lib "oleaut32" (ByVal sIn As Integer, pbOut As Byte) As Long
+Public DeclareWide PtrSafe Function VarUI1FromI4 Lib "oleaut32" (ByVal lIn As Long, pbOut As Byte) As Long
+Public DeclareWide PtrSafe Function VarUI1FromI8 Lib "oleaut32" (ByVal i64In As LongLong, pbOut As Byte) As Long
+Public DeclareWide PtrSafe Function VarUI1FromR4 Lib "oleaut32" (ByVal fltIn As Single, pbOut As Byte) As Long
+Public DeclareWide PtrSafe Function VarUI1FromR8 Lib "oleaut32" (ByVal dblIn As Double, pbOut As Byte) As Long
+Public DeclareWide PtrSafe Function VarUI1FromCy Lib "oleaut32" (ByVal cyIn As Currency, pbOut As Byte) As Long
+Public DeclareWide PtrSafe Function VarUI1FromDate Lib "oleaut32" (ByVal dateIn As Date, pbOut As Byte) As Long
+Public DeclareWide PtrSafe Function VarUI1FromStr Lib "oleaut32" (ByVal strIn As String, ByVal lcid As Long, ByVal dwFlags As Long, pbOut As Byte) As Long
+Public DeclareWide PtrSafe Function VarUI1FromDisp Lib "oleaut32" (ByVal pdispIn As IDispatch, ByVal lcid As Long, pbOut As Byte) As Long
+Public DeclareWide PtrSafe Function VarUI1FromBool Lib "oleaut32" (ByVal boolIn As Boolean, pbOut As Byte) As Long
+Public DeclareWide PtrSafe Function VarUI1FromI1 Lib "oleaut32" (ByVal cIn As Byte, pbOut As Byte) As Long
+Public DeclareWide PtrSafe Function VarUI1FromUI2 Lib "oleaut32" (ByVal uiIn As Integer, pbOut As Byte) As Long
+Public DeclareWide PtrSafe Function VarUI1FromUI4 Lib "oleaut32" (ByVal ulIn As Long, pbOut As Byte) As Long
+Public DeclareWide PtrSafe Function VarUI1FromUI8 Lib "oleaut32" (ByVal ui64In As LongLong, pbOut As Byte) As Long
+Public DeclareWide PtrSafe Function VarUI1FromDec Lib "oleaut32" (pdecIn As Decimal, pbOut As Byte) As Long
+
+Public DeclareWide PtrSafe Function VarI2FromUI1 Lib "oleaut32" (ByVal bIn As Byte, psOut As Integer) As Long
+Public DeclareWide PtrSafe Function VarI2FromI4 Lib "oleaut32" (ByVal lIn As Long, psOut As Integer) As Long
+Public DeclareWide PtrSafe Function VarI2FromI8 Lib "oleaut32" (ByVal i64In As LongLong, psOut As Integer) As Long
+Public DeclareWide PtrSafe Function VarI2FromR4 Lib "oleaut32" (ByVal fltIn As Single, psOut As Integer) As Long
+Public DeclareWide PtrSafe Function VarI2FromR8 Lib "oleaut32" (ByVal dblIn As Double, psOut As Integer) As Long
+Public DeclareWide PtrSafe Function VarI2FromCy Lib "oleaut32" (ByVal cyIn As Currency, psOut As Integer) As Long
+Public DeclareWide PtrSafe Function VarI2FromDate Lib "oleaut32" (ByVal dateIn As Date, psOut As Integer) As Long
+Public DeclareWide PtrSafe Function VarI2FromStr Lib "oleaut32" (ByVal strIn As String, ByVal lcid As Long, ByVal dwFlags As Long, psOut As Integer) As Long
+Public DeclareWide PtrSafe Function VarI2FromDisp Lib "oleaut32" (ByVal pdispIn As IDispatch, ByVal lcid As Long, psOut As Integer) As Long
+Public DeclareWide PtrSafe Function VarI2FromBool Lib "oleaut32" (ByVal boolIn As Boolean, psOut As Integer) As Long
+Public DeclareWide PtrSafe Function VarI2FromI1 Lib "oleaut32" (ByVal cIn As Byte, psOut As Integer) As Long
+Public DeclareWide PtrSafe Function VarI2FromUI2 Lib "oleaut32" (ByVal uiIn As Integer, psOut As Integer) As Long
+Public DeclareWide PtrSafe Function VarI2FromUI4 Lib "oleaut32" (ByVal ulIn As Long, psOut As Integer) As Long
+Public DeclareWide PtrSafe Function VarI2FromUI8 Lib "oleaut32" (ByVal ui64In As LongLong, psOut As Integer) As Long
+Public DeclareWide PtrSafe Function VarI2FromDec Lib "oleaut32" (pdecIn As Decimal, psOut As Integer) As Long
+
+Public DeclareWide PtrSafe Function VarI4FromUI1 Lib "oleaut32" (ByVal bIn As Byte, plOut As Long) As Long
+Public DeclareWide PtrSafe Function VarI4FromI2 Lib "oleaut32" (ByVal sIn As Integer, plOut As Long) As Long
+Public DeclareWide PtrSafe Function VarI4FromI8 Lib "oleaut32" (ByVal i64In As LongLong, plOut As Long) As Long
+Public DeclareWide PtrSafe Function VarI4FromR4 Lib "oleaut32" (ByVal fltIn As Single, plOut As Long) As Long
+Public DeclareWide PtrSafe Function VarI4FromR8 Lib "oleaut32" (ByVal dblIn As Double, plOut As Long) As Long
+Public DeclareWide PtrSafe Function VarI4FromCy Lib "oleaut32" (ByVal cyIn As Currency, plOut As Long) As Long
+Public DeclareWide PtrSafe Function VarI4FromDate Lib "oleaut32" (ByVal dateIn As Date, plOut As Long) As Long
+Public DeclareWide PtrSafe Function VarI4FromStr Lib "oleaut32" (ByVal strIn As String, ByVal lcid As Long, ByVal dwFlags As Long, plOut As Long) As Long
+Public DeclareWide PtrSafe Function VarI4FromDisp Lib "oleaut32" (ByVal pdispIn As IDispatch, ByVal lcid As Long, plOut As Long) As Long
+Public DeclareWide PtrSafe Function VarI4FromBool Lib "oleaut32" (ByVal boolIn As Boolean, plOut As Long) As Long
+Public DeclareWide PtrSafe Function VarI4FromI1 Lib "oleaut32" (ByVal cIn As Byte, plOut As Long) As Long
+Public DeclareWide PtrSafe Function VarI4FromUI2 Lib "oleaut32" (ByVal uiIn As Integer, plOut As Long) As Long
+Public DeclareWide PtrSafe Function VarI4FromUI4 Lib "oleaut32" (ByVal ulIn As Long, plOut As Long) As Long
+Public DeclareWide PtrSafe Function VarI4FromUI8 Lib "oleaut32" (ByVal ui64In As LongLong, plOut As Long) As Long
+Public DeclareWide PtrSafe Function VarI4FromDec Lib "oleaut32" (pdecIn As Decimal, plOut As Long) As Long
+
+Public DeclareWide PtrSafe Function VarI8FromUI1 Lib "oleaut32" (ByVal bIn As Byte, pi64Out As LongLong) As Long
+Public DeclareWide PtrSafe Function VarI8FromI2 Lib "oleaut32" (ByVal sIn As Integer, pi64Out As LongLong) As Long
+Public DeclareWide PtrSafe Function VarI8FromI4 Lib "oleaut32" (ByVal lIn As Long, pi64Out As LongLong) As Long
+Public DeclareWide PtrSafe Function VarI8FromR4 Lib "oleaut32" (ByVal fltIn As Single, pi64Out As LongLong) As Long
+Public DeclareWide PtrSafe Function VarI8FromR8 Lib "oleaut32" (ByVal dblIn As Double, pi64Out As LongLong) As Long
+Public DeclareWide PtrSafe Function VarI8FromCy Lib "oleaut32" (ByVal cyIn As Currency, pi64Out As LongLong) As Long
+Public DeclareWide PtrSafe Function VarI8FromDate Lib "oleaut32" (ByVal dateIn As Date, pi64Out As LongLong) As Long
+Public DeclareWide PtrSafe Function VarI8FromStr Lib "oleaut32" (ByVal strIn As String, ByVal lcid As Long, ByVal dwFlags As Long, pi64Out As LongLong) As Long
+Public DeclareWide PtrSafe Function VarI8FromDisp Lib "oleaut32" (ByVal pdispIn As IDispatch, ByVal lcid As Long, pi64Out As LongLong) As Long
+Public DeclareWide PtrSafe Function VarI8FromBool Lib "oleaut32" (ByVal boolIn As Boolean, pi64Out As LongLong) As Long
+Public DeclareWide PtrSafe Function VarI8FromI1 Lib "oleaut32" (ByVal cIn As Byte, pi64Out As LongLong) As Long
+Public DeclareWide PtrSafe Function VarI8FromUI2 Lib "oleaut32" (ByVal uiIn As Integer, pi64Out As LongLong) As Long
+Public DeclareWide PtrSafe Function VarI8FromUI4 Lib "oleaut32" (ByVal ulIn As Long, pi64Out As LongLong) As Long
+Public DeclareWide PtrSafe Function VarI8FromUI8 Lib "oleaut32" (ByVal ui64In As LongLong, pi64Out As LongLong) As Long
+Public DeclareWide PtrSafe Function VarI8FromDec Lib "oleaut32" (pdecIn As Decimal, pi64Out As LongLong) As Long
+
+Public DeclareWide PtrSafe Function VarR4FromUI1 Lib "oleaut32" (ByVal bIn As Byte, pfltOut As Single) As Long
+Public DeclareWide PtrSafe Function VarR4FromI2 Lib "oleaut32" (ByVal sIn As Integer, pfltOut As Single) As Long
+Public DeclareWide PtrSafe Function VarR4FromI4 Lib "oleaut32" (ByVal lIn As Long, pfltOut As Single) As Long
+Public DeclareWide PtrSafe Function VarR4FromI8 Lib "oleaut32" (ByVal i64In As LongLong, pfltOut As Single) As Long
+Public DeclareWide PtrSafe Function VarR4FromR8 Lib "oleaut32" (ByVal dblIn As Double, pfltOut As Single) As Long
+Public DeclareWide PtrSafe Function VarR4FromCy Lib "oleaut32" (ByVal cyIn As Currency, pfltOut As Single) As Long
+Public DeclareWide PtrSafe Function VarR4FromDate Lib "oleaut32" (ByVal dateIn As Date, pfltOut As Single) As Long
+Public DeclareWide PtrSafe Function VarR4FromStr Lib "oleaut32" (ByVal strIn As String, ByVal lcid As Long, ByVal dwFlags As Long, pfltOut As Single) As Long
+Public DeclareWide PtrSafe Function VarR4FromDisp Lib "oleaut32" (ByVal pdispIn As IDispatch, ByVal lcid As Long, pfltOut As Single) As Long
+Public DeclareWide PtrSafe Function VarR4FromBool Lib "oleaut32" (ByVal boolIn As Boolean, pfltOut As Single) As Long
+Public DeclareWide PtrSafe Function VarR4FromI1 Lib "oleaut32" (ByVal cIn As Byte, pfltOut As Single) As Long
+Public DeclareWide PtrSafe Function VarR4FromUI2 Lib "oleaut32" (ByVal uiIn As Integer, pfltOut As Single) As Long
+Public DeclareWide PtrSafe Function VarR4FromUI4 Lib "oleaut32" (ByVal ulIn As Long, pfltOut As Single) As Long
+Public DeclareWide PtrSafe Function VarR4FromUI8 Lib "oleaut32" (ByVal ui64In As LongLong, pfltOut As Single) As Long
+Public DeclareWide PtrSafe Function VarR4FromDec Lib "oleaut32" (pdecIn As Decimal, pfltOut As Single) As Long
+
+Public DeclareWide PtrSafe Function VarR8FromUI1 Lib "oleaut32" (ByVal bIn As Byte, pdblOut As Double) As Long
+Public DeclareWide PtrSafe Function VarR8FromI2 Lib "oleaut32" (ByVal sIn As Integer, pdblOut As Double) As Long
+Public DeclareWide PtrSafe Function VarR8FromI4 Lib "oleaut32" (ByVal lIn As Long, pdblOut As Double) As Long
+Public DeclareWide PtrSafe Function VarR8FromI8 Lib "oleaut32" (ByVal i64In As LongLong, pdblOut As Double) As Long
+Public DeclareWide PtrSafe Function VarR8FromR4 Lib "oleaut32" (ByVal fltIn As Single, pdblOut As Double) As Long
+Public DeclareWide PtrSafe Function VarR8FromCy Lib "oleaut32" (ByVal cyIn As Currency, pdblOut As Double) As Long
+Public DeclareWide PtrSafe Function VarR8FromDate Lib "oleaut32" (ByVal dateIn As Date, pdblOut As Double) As Long
+Public DeclareWide PtrSafe Function VarR8FromStr Lib "oleaut32" (ByVal strIn As String, ByVal lcid As Long, ByVal dwFlags As Long, pdblOut As Double) As Long
+Public DeclareWide PtrSafe Function VarR8FromDisp Lib "oleaut32" (ByVal pdispIn As IDispatch, ByVal lcid As Long, pdblOut As Double) As Long
+Public DeclareWide PtrSafe Function VarR8FromBool Lib "oleaut32" (ByVal boolIn As Boolean, pdblOut As Double) As Long
+Public DeclareWide PtrSafe Function VarR8FromI1 Lib "oleaut32" (ByVal cIn As Byte, pdblOut As Double) As Long
+Public DeclareWide PtrSafe Function VarR8FromUI2 Lib "oleaut32" (ByVal uiIn As Integer, pdblOut As Double) As Long
+Public DeclareWide PtrSafe Function VarR8FromUI4 Lib "oleaut32" (ByVal ulIn As Long, pdblOut As Double) As Long
+Public DeclareWide PtrSafe Function VarR8FromUI8 Lib "oleaut32" (ByVal ui64In As LongLong, pdblOut As Double) As Long
+Public DeclareWide PtrSafe Function VarR8FromDec Lib "oleaut32" (pdecIn As Decimal, pdblOut As Double) As Long
+
+Public DeclareWide PtrSafe Function VarDateFromUI1 Lib "oleaut32" (ByVal bIn As Byte, pdateOut As Date) As Long
+Public DeclareWide PtrSafe Function VarDateFromI2 Lib "oleaut32" (ByVal sIn As Integer, pdateOut As Date) As Long
+Public DeclareWide PtrSafe Function VarDateFromI4 Lib "oleaut32" (ByVal lIn As Long, pdateOut As Date) As Long
+Public DeclareWide PtrSafe Function VarDateFromI8 Lib "oleaut32" (ByVal i64In As LongLong, pdateOut As Date) As Long
+Public DeclareWide PtrSafe Function VarDateFromR4 Lib "oleaut32" (ByVal fltIn As Single, pdateOut As Date) As Long
+Public DeclareWide PtrSafe Function VarDateFromR8 Lib "oleaut32" (ByVal dblIn As Double, pdateOut As Date) As Long
+Public DeclareWide PtrSafe Function VarDateFromCy Lib "oleaut32" (ByVal cyIn As Currency, pdateOut As Date) As Long
+Public DeclareWide PtrSafe Function VarDateFromStr Lib "oleaut32" (ByVal strIn As String, ByVal lcid As Long, ByVal dwFlags As Long, pdateOut As Date) As Long
+Public DeclareWide PtrSafe Function VarDateFromDisp Lib "oleaut32" (ByVal pdispIn As IDispatch, ByVal lcid As Long, pdateOut As Date) As Long
+Public DeclareWide PtrSafe Function VarDateFromBool Lib "oleaut32" (ByVal boolIn As Boolean, pdateOut As Date) As Long
+Public DeclareWide PtrSafe Function VarDateFromI1 Lib "oleaut32" (ByVal cIn As Byte, pdateOut As Date) As Long
+Public DeclareWide PtrSafe Function VarDateFromUI2 Lib "oleaut32" (ByVal uiIn As Integer, pdateOut As Date) As Long
+Public DeclareWide PtrSafe Function VarDateFromUI4 Lib "oleaut32" (ByVal ulIn As Long, pdateOut As Date) As Long
+Public DeclareWide PtrSafe Function VarDateFromUI8 Lib "oleaut32" (ByVal ui64In As LongLong, pdateOut As Date) As Long
+Public DeclareWide PtrSafe Function VarDateFromDec Lib "oleaut32" (pdecIn As Decimal, pdateOut As Date) As Long
+
+Public DeclareWide PtrSafe Function VarCyFromUI1 Lib "oleaut32" (ByVal bIn As Byte, pcyOut As Currency) As Long
+Public DeclareWide PtrSafe Function VarCyFromI2 Lib "oleaut32" (ByVal sIn As Integer, pcyOut As Currency) As Long
+Public DeclareWide PtrSafe Function VarCyFromI4 Lib "oleaut32" (ByVal lIn As Long, pcyOut As Currency) As Long
+Public DeclareWide PtrSafe Function VarCyFromI8 Lib "oleaut32" (ByVal i64In As LongLong, pcyOut As Currency) As Long
+Public DeclareWide PtrSafe Function VarCyFromR4 Lib "oleaut32" (ByVal fltIn As Single, pcyOut As Currency) As Long
+Public DeclareWide PtrSafe Function VarCyFromR8 Lib "oleaut32" (ByVal dblIn As Double, pcyOut As Currency) As Long
+Public DeclareWide PtrSafe Function VarCyFromDate Lib "oleaut32" (ByVal dateIn As Date, pcyOut As Currency) As Long
+Public DeclareWide PtrSafe Function VarCyFromStr Lib "oleaut32" (ByVal strIn As String, ByVal lcid As Long, ByVal dwFlags As Long, pcyOut As Currency) As Long
+Public DeclareWide PtrSafe Function VarCyFromDisp Lib "oleaut32" (ByVal pdispIn As IDispatch, ByVal lcid As Long, pcyOut As Currency) As Long
+Public DeclareWide PtrSafe Function VarCyFromBool Lib "oleaut32" (ByVal boolIn As Boolean, pcyOut As Currency) As Long
+Public DeclareWide PtrSafe Function VarCyFromI1 Lib "oleaut32" (ByVal cIn As Byte, pcyOut As Currency) As Long
+Public DeclareWide PtrSafe Function VarCyFromUI2 Lib "oleaut32" (ByVal uiIn As Integer, pcyOut As Currency) As Long
+Public DeclareWide PtrSafe Function VarCyFromUI4 Lib "oleaut32" (ByVal ulIn As Long, pcyOut As Currency) As Long
+Public DeclareWide PtrSafe Function VarCyFromUI8 Lib "oleaut32" (ByVal ui64In As LongLong, pcyOut As Currency) As Long
+Public DeclareWide PtrSafe Function VarCyFromDec Lib "oleaut32" (pdecIn As Decimal, pcyOut As Currency) As Long
+
+Public DeclareWide PtrSafe Function VarBstrFromUI1 Lib "oleaut32" (ByVal bIn As Byte, ByVal lcid As Long, ByVal dwFlags As Long, pbstrOut As String) As Long
+Public DeclareWide PtrSafe Function VarBstrFromI2 Lib "oleaut32" (ByVal sIn As Integer, ByVal lcid As Long, ByVal dwFlags As Long, pbstrOut As String) As Long
+Public DeclareWide PtrSafe Function VarBstrFromI4 Lib "oleaut32" (ByVal lIn As Long, ByVal lcid As Long, ByVal dwFlags As Long, pbstrOut As String) As Long
+Public DeclareWide PtrSafe Function VarBstrFromI8 Lib "oleaut32" (ByVal i64In As LongLong, ByVal lcid As Long, ByVal dwFlags As Long, pbstrOut As String) As Long
+Public DeclareWide PtrSafe Function VarBstrFromR4 Lib "oleaut32" (ByVal fltIn As Single, ByVal lcid As Long, ByVal dwFlags As Long, pbstrOut As String) As Long
+Public DeclareWide PtrSafe Function VarBstrFromR8 Lib "oleaut32" (ByVal dblIn As Double, ByVal lcid As Long, ByVal dwFlags As Long, pbstrOut As String) As Long
+Public DeclareWide PtrSafe Function VarBstrFromDate Lib "oleaut32" (ByVal dateIn As Date, ByVal lcid As Long, ByVal dwFlags As Long, pbstrOut As String) As Long
+Public DeclareWide PtrSafe Function VarBstrFromCy Lib "oleaut32" (ByVal cyIn As Currency, ByVal lcid As Long, ByVal dwFlags As Long, ByVal lcid As Long, ByVal dwFlags As Long, pbstrOut As String) As Long
+Public DeclareWide PtrSafe Function VarBstrFromDisp Lib "oleaut32" (ByVal pdispIn As IDispatch, ByVal lcid As Long, ByVal lcid As Long, ByVal dwFlags As Long, pbstrOut As String) As Long
+Public DeclareWide PtrSafe Function VarBstrFromBool Lib "oleaut32" (ByVal boolIn As Boolean, ByVal lcid As Long, ByVal dwFlags As Long, pbstrOut As String) As Long
+Public DeclareWide PtrSafe Function VarBstrFromI1 Lib "oleaut32" (ByVal cIn As Byte, ByVal lcid As Long, ByVal dwFlags As Long, pbstrOut As String) As Long
+Public DeclareWide PtrSafe Function VarBstrFromUI2 Lib "oleaut32" (ByVal uiIn As Integer, ByVal lcid As Long, ByVal dwFlags As Long, pbstrOut As String) As Long
+Public DeclareWide PtrSafe Function VarBstrFromUI4 Lib "oleaut32" (ByVal ulIn As Long, ByVal lcid As Long, ByVal dwFlags As Long, pbstrOut As String) As Long
+Public DeclareWide PtrSafe Function VarBstrFromUI8 Lib "oleaut32" (ByVal ui64In As LongLong, ByVal lcid As Long, ByVal dwFlags As Long, pbstrOut As String) As Long
+Public DeclareWide PtrSafe Function VarBstrFromDec Lib "oleaut32" (pdecIn As Decimal, ByVal lcid As Long, ByVal dwFlags As Long, pbstrOut As String) As Long
+
+Public DeclareWide PtrSafe Function VarBoolFromUI1 Lib "oleaut32" (ByVal bIn As Byte, pboolOut As Boolean) As Long
+Public DeclareWide PtrSafe Function VarBoolFromI2 Lib "oleaut32" (ByVal sIn As Integer, pboolOut As Boolean) As Long
+Public DeclareWide PtrSafe Function VarBoolFromI4 Lib "oleaut32" (ByVal lIn As Long, pboolOut As Boolean) As Long
+Public DeclareWide PtrSafe Function VarBoolFromI8 Lib "oleaut32" (ByVal i64In As LongLong, pboolOut As Boolean) As Long
+Public DeclareWide PtrSafe Function VarBoolFromR4 Lib "oleaut32" (ByVal fltIn As Single, pboolOut As Boolean) As Long
+Public DeclareWide PtrSafe Function VarBoolFromR8 Lib "oleaut32" (ByVal dblIn As Double, pboolOut As Boolean) As Long
+Public DeclareWide PtrSafe Function VarBoolFromDate Lib "oleaut32" (ByVal dateIn As Date, pboolOut As Boolean) As Long
+Public DeclareWide PtrSafe Function VarBoolFromStr Lib "oleaut32" (ByVal strIn As String, ByVal lcid As Long, ByVal dwFlags As Long, pboolOut As Boolean) As Long
+Public DeclareWide PtrSafe Function VarBoolFromDisp Lib "oleaut32" (ByVal pdispIn As IDispatch, ByVal lcid As Long, pboolOut As Boolean) As Long
+Public DeclareWide PtrSafe Function VarBoolFromCy Lib "oleaut32" (ByVal cyIn As Currency, pboolOut As Boolean) As Long
+Public DeclareWide PtrSafe Function VarBoolFromI1 Lib "oleaut32" (ByVal cIn As Byte, pboolOut As Boolean) As Long
+Public DeclareWide PtrSafe Function VarBoolFromUI2 Lib "oleaut32" (ByVal uiIn As Integer, pboolOut As Boolean) As Long
+Public DeclareWide PtrSafe Function VarBoolFromUI4 Lib "oleaut32" (ByVal ulIn As Long, pboolOut As Boolean) As Long
+Public DeclareWide PtrSafe Function VarBoolFromUI8 Lib "oleaut32" (ByVal ui64In As LongLong, pboolOut As Boolean) As Long
+Public DeclareWide PtrSafe Function VarBoolFromDec Lib "oleaut32" (pdecIn As Decimal, pboolOut As Boolean) As Long
+
+Public DeclareWide PtrSafe Function VarI1FromUI1 Lib "oleaut32" (ByVal bIn As Byte, pcOut As Byte) As Long
+Public DeclareWide PtrSafe Function VarI1FromI2 Lib "oleaut32" (ByVal sIn As Integer, pcOut As Byte) As Long
+Public DeclareWide PtrSafe Function VarI1FromI4 Lib "oleaut32" (ByVal lIn As Long, pcOut As Byte) As Long
+Public DeclareWide PtrSafe Function VarI1FromI8 Lib "oleaut32" (ByVal i64In As LongLong, pcOut As Byte) As Long
+Public DeclareWide PtrSafe Function VarI1FromR4 Lib "oleaut32" (ByVal fltIn As Single, pcOut As Byte) As Long
+Public DeclareWide PtrSafe Function VarI1FromR8 Lib "oleaut32" (ByVal dblIn As Double, pcOut As Byte) As Long
+Public DeclareWide PtrSafe Function VarI1FromDate Lib "oleaut32" (ByVal dateIn As Date, pcOut As Byte) As Long
+Public DeclareWide PtrSafe Function VarI1FromStr Lib "oleaut32" (ByVal strIn As String, ByVal lcid As Long, ByVal dwFlags As Long, pcOut As Byte) As Long
+Public DeclareWide PtrSafe Function VarI1FromDisp Lib "oleaut32" (ByVal pdispIn As IDispatch, ByVal lcid As Long, pcOut As Byte) As Long
+Public DeclareWide PtrSafe Function VarI1FromCy Lib "oleaut32" (ByVal cyIn As Currency, pcOut As Byte) As Long
+Public DeclareWide PtrSafe Function VarI1FromBool Lib "oleaut32" (ByVal boolIn As Boolean, pcOut As Byte) As Long
+Public DeclareWide PtrSafe Function VarI1FromUI2 Lib "oleaut32" (ByVal uiIn As Integer, pcOut As Byte) As Long
+Public DeclareWide PtrSafe Function VarI1FromUI4 Lib "oleaut32" (ByVal ulIn As Long, pcOut As Byte) As Long
+Public DeclareWide PtrSafe Function VarI1FromUI8 Lib "oleaut32" (ByVal ui64In As LongLong, pcOut As Byte) As Long
+Public DeclareWide PtrSafe Function VarI1FromDec Lib "oleaut32" (pdecIn As Decimal, pcOut As Byte) As Long
+
+Public DeclareWide PtrSafe Function VarUI2FromUI1 Lib "oleaut32" (ByVal bIn As Byte, puiOut As Integer) As Long
+Public DeclareWide PtrSafe Function VarUI2FromI2 Lib "oleaut32" (ByVal sIn As Integer, puiOut As Integer) As Long
+Public DeclareWide PtrSafe Function VarUI2FromI4 Lib "oleaut32" (ByVal lIn As Long, puiOut As Integer) As Long
+Public DeclareWide PtrSafe Function VarUI2FromI8 Lib "oleaut32" (ByVal i64In As LongLong, puiOut As Integer) As Long
+Public DeclareWide PtrSafe Function VarUI2FromR4 Lib "oleaut32" (ByVal fltIn As Single, puiOut As Integer) As Long
+Public DeclareWide PtrSafe Function VarUI2FromR8 Lib "oleaut32" (ByVal dblIn As Double, puiOut As Integer) As Long
+Public DeclareWide PtrSafe Function VarUI2FromDate Lib "oleaut32" (ByVal dateIn As Date, puiOut As Integer) As Long
+Public DeclareWide PtrSafe Function VarUI2FromStr Lib "oleaut32" (ByVal strIn As String, ByVal lcid As Long, ByVal dwFlags As Long, puiOut As Integer) As Long
+Public DeclareWide PtrSafe Function VarUI2FromDisp Lib "oleaut32" (ByVal pdispIn As IDispatch, ByVal lcid As Long, puiOut As Integer) As Long
+Public DeclareWide PtrSafe Function VarUI2FromCy Lib "oleaut32" (ByVal cyIn As Currency, puiOut As Integer) As Long
+Public DeclareWide PtrSafe Function VarUI2FromBool Lib "oleaut32" (ByVal boolIn As Boolean, puiOut As Integer) As Long
+Public DeclareWide PtrSafe Function VarUI2FromI1 Lib "oleaut32" (ByVal cIn As Byte, puiOut As Integer) As Long
+Public DeclareWide PtrSafe Function VarUI2FromUI4 Lib "oleaut32" (ByVal ulIn As Long, puiOut As Integer) As Long
+Public DeclareWide PtrSafe Function VarUI2FromUI8 Lib "oleaut32" (ByVal ui64In As LongLong, puiOut As Integer) As Long
+Public DeclareWide PtrSafe Function VarUI2FromDec Lib "oleaut32" (pdecIn As Decimal, puiOut As Integer) As Long
+
+Public DeclareWide PtrSafe Function VarUI4FromUI1 Lib "oleaut32" (ByVal bIn As Byte, pulOut As Long) As Long
+Public DeclareWide PtrSafe Function VarUI4FromI2 Lib "oleaut32" (ByVal sIn As Integer, pulOut As Long) As Long
+Public DeclareWide PtrSafe Function VarUI4FromI4 Lib "oleaut32" (ByVal lIn As Long, pulOut As Long) As Long
+Public DeclareWide PtrSafe Function VarUI4FromI8 Lib "oleaut32" (ByVal i64In As LongLong, pulOut As Long) As Long
+Public DeclareWide PtrSafe Function VarUI4FromR4 Lib "oleaut32" (ByVal fltIn As Single, pulOut As Long) As Long
+Public DeclareWide PtrSafe Function VarUI4FromR8 Lib "oleaut32" (ByVal dblIn As Double, pulOut As Long) As Long
+Public DeclareWide PtrSafe Function VarUI4FromDate Lib "oleaut32" (ByVal dateIn As Date, pulOut As Long) As Long
+Public DeclareWide PtrSafe Function VarUI4FromStr Lib "oleaut32" (ByVal strIn As String, ByVal lcid As Long, ByVal dwFlags As Long, pulOut As Long) As Long
+Public DeclareWide PtrSafe Function VarUI4FromDisp Lib "oleaut32" (ByVal pdispIn As IDispatch, ByVal lcid As Long, pulOut As Long) As Long
+Public DeclareWide PtrSafe Function VarUI4FromCy Lib "oleaut32" (ByVal cyIn As Currency, pulOut As Long) As Long
+Public DeclareWide PtrSafe Function VarUI4FromBool Lib "oleaut32" (ByVal boolIn As Boolean, pulOut As Long) As Long
+Public DeclareWide PtrSafe Function VarUI4FromI1 Lib "oleaut32" (ByVal cIn As Byte, pulOut As Long) As Long
+Public DeclareWide PtrSafe Function VarUI4FromUI2 Lib "oleaut32" (ByVal uiIn As Integer, pulOut As Long) As Long
+Public DeclareWide PtrSafe Function VarUI4FromUI8 Lib "oleaut32" (ByVal ui64In As LongLong, pulOut As Long) As Long
+Public DeclareWide PtrSafe Function VarUI4FromDec Lib "oleaut32" (pdecIn As Decimal, pulOut As Long) As Long
+
+Public DeclareWide PtrSafe Function VarUI8FromUI1 Lib "oleaut32" (ByVal bIn As Byte, pi64Out As LongLong) As Long
+Public DeclareWide PtrSafe Function VarUI8FromI2 Lib "oleaut32" (ByVal sIn As Integer, pi64Out As LongLong) As Long
+Public DeclareWide PtrSafe Function VarUI8FromI4 Lib "oleaut32" (ByVal lIn As Long, pi64Out As LongLong) As Long
+Public DeclareWide PtrSafe Function VarUI8FromI8 Lib "oleaut32" (ByVal i64In As LongLong, pi64Out As LongLong) As Long
+Public DeclareWide PtrSafe Function VarUI8FromR4 Lib "oleaut32" (ByVal fltIn As Single, pi64Out As LongLong) As Long
+Public DeclareWide PtrSafe Function VarUI8FromR8 Lib "oleaut32" (ByVal dblIn As Double, pi64Out As LongLong) As Long
+Public DeclareWide PtrSafe Function VarUI8FromDate Lib "oleaut32" (ByVal dateIn As Date, pi64Out As LongLong) As Long
+Public DeclareWide PtrSafe Function VarUI8FromStr Lib "oleaut32" (ByVal strIn As String, ByVal lcid As Long, ByVal dwFlags As Long, pi64Out As LongLong) As Long
+Public DeclareWide PtrSafe Function VarUI8FromDisp Lib "oleaut32" (ByVal pdispIn As IDispatch, ByVal lcid As Long, pi64Out As LongLong) As Long
+Public DeclareWide PtrSafe Function VarUI8FromCy Lib "oleaut32" (ByVal cyIn As Currency, pi64Out As LongLong) As Long
+Public DeclareWide PtrSafe Function VarUI8FromBool Lib "oleaut32" (ByVal boolIn As Boolean, pi64Out As LongLong) As Long
+Public DeclareWide PtrSafe Function VarUI8FromI1 Lib "oleaut32" (ByVal cIn As Byte, pi64Out As LongLong) As Long
+Public DeclareWide PtrSafe Function VarUI8FromUI2 Lib "oleaut32" (ByVal uiIn As Integer, pi64Out As LongLong) As Long
+Public DeclareWide PtrSafe Function VarUI8FromUI4 Lib "oleaut32" (ByVal ulIn As Long, pi64Out As LongLong) As Long
+Public DeclareWide PtrSafe Function VarUI8FromDec Lib "oleaut32" (pdecIn As Decimal, pi64Out As LongLong) As Long
+
+Public DeclareWide PtrSafe Function VarDecFromUI1 Lib "oleaut32" (ByVal bIn As Byte, pdecOut As Decimal) As Long
+Public DeclareWide PtrSafe Function VarDecFromI2 Lib "oleaut32" (ByVal sIn As Integer, pdecOut As Decimal) As Long
+Public DeclareWide PtrSafe Function VarDecFromI4 Lib "oleaut32" (ByVal lIn As Long, pdecOut As Decimal) As Long
+Public DeclareWide PtrSafe Function VarDecFromI8 Lib "oleaut32" (ByVal i64In As LongLong, pdecOut As Decimal) As Long
+Public DeclareWide PtrSafe Function VarDecFromR4 Lib "oleaut32" (ByVal fltIn As Single, pdecOut As Decimal) As Long
+Public DeclareWide PtrSafe Function VarDecFromR8 Lib "oleaut32" (ByVal dblIn As Double, pdecOut As Decimal) As Long
+Public DeclareWide PtrSafe Function VarDecFromDate Lib "oleaut32" (ByVal dateIn As Date, pdecOut As Decimal) As Long
+Public DeclareWide PtrSafe Function VarDecFromStr Lib "oleaut32" (ByVal strIn As String, ByVal lcid As Long, ByVal dwFlags As Long, pdecOut As Decimal) As Long
+Public DeclareWide PtrSafe Function VarDecFromDisp Lib "oleaut32" (ByVal pdispIn As IDispatch, ByVal lcid As Long, pdecOut As Decimal) As Long
+Public DeclareWide PtrSafe Function VarDecFromCy Lib "oleaut32" (ByVal cyIn As Currency, pdecOut As Decimal) As Long
+Public DeclareWide PtrSafe Function VarDecFromBool Lib "oleaut32" (ByVal boolIn As Boolean, pdecOut As Decimal) As Long
+Public DeclareWide PtrSafe Function VarDecFromI1 Lib "oleaut32" (ByVal cIn As Byte, pdecOut As Decimal) As Long
+Public DeclareWide PtrSafe Function VarDecFromUI2 Lib "oleaut32" (ByVal uiIn As Integer, pdecOut As Decimal) As Long
+Public DeclareWide PtrSafe Function VarDecFromUI4 Lib "oleaut32" (ByVal ulIn As Long, pdecOut As Decimal) As Long
+Public DeclareWide PtrSafe Function VarDecFromUI8 Lib "oleaut32" (ByVal ui64In As LongLong, pdecOut As Decimal) As Long
+
+Public Function VarUI4FromUI4(ByVal in As Long, pOut As Long) As Long: pOut = in: End Function
+Public Function VarI4FromI4(ByVal in As Long, pOut As Long) As Long: pOut = in: End Function
+
+Public Function VarUI8FromUI8(ByVal in As LongLong, pOut As LongLong) As Long: pOut = in: End Function
+Public Function VarI8FromI8(ByVal in As LongLong, pOut As LongLong) As Long: pOut = in: End Function    
+
+Public DeclareWide PtrSafe Function VarI4FromUint Lib "oleaut32" Alias "VarI4FromUI4" (ByVal ulIn As Long, plOut As Long) As Long
+Public DeclareWide PtrSafe Function VarI8FromUint Lib "oleaut32" Alias "VarI8FromUI4" (ByVal ulIn As Long, pi64Out As LongLong) As Long
+Public DeclareWide PtrSafe Function VarR4FromInt Lib "oleaut32" Alias "VarR4FromI4" (ByVal lIn As Long, pfltOut As Single) As Long
+Public DeclareWide PtrSafe Function VarR4FromUint Lib "oleaut32" Alias "VarR4FromUI4" (ByVal lIn As Long, pfltOut As Single) As Long
+Public DeclareWide PtrSafe Function VarR8FromInt Lib "oleaut32" Alias "VarR4FromI4" (ByVal lIn As Long, pdblOut As Double) As Long
+Public DeclareWide PtrSafe Function VarR8FromUint Lib "oleaut32" Alias "VarR4FromUI4" (ByVal lIn As Long, pdblOut As Double) As Long
+Public DeclareWide PtrSafe Function VarDateFromInt Lib "oleaut32" Alias "VarDateFromI4" (ByVal lIn As Long, pdateOut As Date) As Long
+Public DeclareWide PtrSafe Function VarDateFromUint Lib "oleaut32" Alias "VarDateFromUI4" (ByVal lIn As Long, pdateOut As Date) As Long
+Public DeclareWide PtrSafe Function VarCyFromInt Lib "oleaut32" Alias "VarCyFromI4" (ByVal lIn As Long, pcyOut As Currency) As Long
+Public DeclareWide PtrSafe Function VarCyFromUint Lib "oleaut32" Alias "VarCyFromUI4" (ByVal lIn As Long, pcyOut As Currency) As Long
+Public DeclareWide PtrSafe Function VarBstrFromInt Lib "oleaut32" Alias "VarBstrFromI4" (ByVal lIn As Long, ByVal lcid As Long, ByVal dwFlags As Long, pbstrOut As String) As Long
+Public DeclareWide PtrSafe Function VarBstrFromUint Lib "oleaut32" Alias "VarBstrFromUI4" (ByVal lIn As Long, ByVal lcid As Long, ByVal dwFlags As Long, pbstrOut As String) As Long
+Public DeclareWide PtrSafe Function VarBoolFromInt Lib "oleaut32" Alias "VarBoolFromI4" (ByVal lIn As Long, pboolOut As Boolean) As Long
+Public DeclareWide PtrSafe Function VarBoolFromUint Lib "oleaut32" Alias "VarBoolFromUI4" (ByVal lIn As Long, pboolOut As Boolean) As Long
+Public DeclareWide PtrSafe Function VarI1FromInt Lib "oleaut32" Alias "VarI1FromI4" (ByVal lIn As Long, pcOut As Byte) As Long
+Public DeclareWide PtrSafe Function VarI1FromUint Lib "oleaut32" Alias "VarI1FromUI4" (ByVal lIn As Long, pcOut As Byte) As Long
+Public DeclareWide PtrSafe Function VarUI2FromInt Lib "oleaut32" Alias "VarUI2FromI4" (ByVal lIn As Long, puiOut As Integer) As Long
+Public DeclareWide PtrSafe Function VarUI2FromUint Lib "oleaut32" Alias "VarUI2FromUI4" (ByVal lIn As Long, puiOut As Integer) As Long
+Public DeclareWide PtrSafe Function VarUI4FromInt Lib "oleaut32" Alias "VarUI4FromI4" (ByVal lIn As Long, pulOut As Long) As Long
+Public Function VarUI4FromUint(ByVal in As Long, pOut As Long) As Long: pOut = in: End Function
+Public DeclareWide PtrSafe Function VarDecFromInt Lib "oleaut32" Alias "VarDecFromI4" (ByVal lIn As Long, pdecOut As Decimal) As Long
+Public DeclareWide PtrSafe Function VarDecFromUint Lib "oleaut32" Alias "VarDecFromUI4" (ByVal lIn As Long, pdecOut As Decimal) As Long
+Public DeclareWide PtrSafe Function VarIntFromUI1 Lib "oleaut32" Alias "VarI4FromUI1" (ByVal bIn As Byte, plOut As Long) As Long
+Public DeclareWide PtrSafe Function VarIntFromI2 Lib "oleaut32" Alias "VarI4FromI2" (ByVal sIn As Integer, plOut As Long) As Long
+Public Function VarIntFromI4(ByVal in As Long, pOut As Long) As Long: pOut = in: End Function
+Public DeclareWide PtrSafe Function VarIntFromI8 Lib "oleaut32" Alias "VarI4FromI8" (ByVal i64In As LongLong, plOut As Long) As Long
+Public DeclareWide PtrSafe Function VarIntFromR4 Lib "oleaut32" Alias "VarI4FromR4" (ByVal fltIn As Single, plOut As Long) As Long
+Public DeclareWide PtrSafe Function VarIntFromR8 Lib "oleaut32" Alias "VarI4FromR8" (ByVal dblIn As Double, plOut As Long) As Long
+Public DeclareWide PtrSafe Function VarIntFromCy Lib "oleaut32" Alias "VarI4FromCy" (ByVal cyIn As Currency, plOut As Long) As Long
+Public DeclareWide PtrSafe Function VarIntFromDate Lib "oleaut32" Alias "VarI4FromDate" (ByVal dateIn As Date, plOut As Long) As Long
+Public DeclareWide PtrSafe Function VarIntFromStr Lib "oleaut32" Alias "VarI4FromStr" (ByVal strIn As String, ByVal lcid As Long, ByVal dwFlags As Long, plOut As Long) As Long
+Public DeclareWide PtrSafe Function VarIntFromDisp Lib "oleaut32" Alias "VarI4FromDisp" (ByVal pdispIn As IDispatch, ByVal lcid As Long, plOut As Long) As Long
+Public DeclareWide PtrSafe Function VarIntFromBool Lib "oleaut32" Alias "VarI4FromBool" (ByVal boolIn As Boolean, plOut As Long) As Long
+Public DeclareWide PtrSafe Function VarIntFromI1 Lib "oleaut32" Alias "VarI4FromI1" (ByVal cIn As Byte, plOut As Long) As Long
+Public DeclareWide PtrSafe Function VarIntFromUI2 Lib "oleaut32" Alias "VarI4FromUI2" (ByVal uiIn As Integer, plOut As Long) As Long
+Public DeclareWide PtrSafe Function VarIntFromUI4 Lib "oleaut32" Alias "VarI4FromUI4" (ByVal ulIn As Long, plOut As Long) As Long
+Public DeclareWide PtrSafe Function VarIntFromUI8 Lib "oleaut32" Alias "VarI4FromUI8" (ByVal ui64In As LongLong, plOut As Long) As Long
+Public DeclareWide PtrSafe Function VarIntFromDec Lib "oleaut32" Alias "VarI4FromDec" (pdecIn As Decimal, plOut As Long) As Long
+Public DeclareWide PtrSafe Function VarIntFromUint Lib "oleaut32" Alias "VarI4FromUI4" (ByVal ulIn As Long, plOut As Long) As Long
+Public DeclareWide PtrSafe Function VarUintFromUI1 Lib "oleaut32" Alias "VarUI4FromUI1" (ByVal bIn As Byte, plOut As Long) As Long
+Public DeclareWide PtrSafe Function VarUintFromI2 Lib "oleaut32" Alias "VarUI4FromI2" (ByVal sIn As Integer, plOut As Long) As Long
+Public DeclareWide PtrSafe Function VarUintFromI8 Lib "oleaut32" Alias "VarUI4FromI8" (ByVal i64In As LongLong, plOut As Long) As Long
+Public DeclareWide PtrSafe Function VarUintFromR4 Lib "oleaut32" Alias "VarUI4FromR4" (ByVal fltIn As Single, plOut As Long) As Long
+Public DeclareWide PtrSafe Function VarUintFromR8 Lib "oleaut32" Alias "VarUI4FromR8" (ByVal dblIn As Double, plOut As Long) As Long
+Public DeclareWide PtrSafe Function VarUintFromCy Lib "oleaut32" Alias "VarUI4FromCy" (ByVal cyIn As Currency, plOut As Long) As Long
+Public DeclareWide PtrSafe Function VarUintFromDate Lib "oleaut32" Alias "VarUI4FromDate" (ByVal dateIn As Date, plOut As Long) As Long
+Public DeclareWide PtrSafe Function VarUintFromStr Lib "oleaut32" Alias "VarUI4FromStr" (ByVal strIn As String, ByVal lcid As Long, ByVal dwFlags As Long, plOut As Long) As Long
+Public DeclareWide PtrSafe Function VarUintFromDisp Lib "oleaut32" Alias "VarUI4FromDisp" (ByVal pdispIn As IDispatch, ByVal lcid As Long, plOut As Long) As Long
+Public DeclareWide PtrSafe Function VarUintFromBool Lib "oleaut32" Alias "VarUI4FromBool" (ByVal boolIn As Boolean, plOut As Long) As Long
+Public DeclareWide PtrSafe Function VarUintFromI1 Lib "oleaut32" Alias "VarUI4FromI1" (ByVal cIn As Byte, plOut As Long) As Long
+Public DeclareWide PtrSafe Function VarUintFromUI2 Lib "oleaut32" Alias "VarUI4FromUI2" (ByVal uiIn As Integer, plOut As Long) As Long
+Public Function VarUintFromUI4(ByVal in As Long, pOut As Long) As Long: pOut = in: End Function
+Public DeclareWide PtrSafe Function VarUintFromUI8 Lib "oleaut32" Alias "VarUI4FromUI8" (ByVal ui64In As LongLong, plOut As Long) As Long
+Public DeclareWide PtrSafe Function VarUintFromDec Lib "oleaut32" Alias "VarUI4FromDec" (pdecIn As Decimal, plOut As Long) As Long
+Public DeclareWide PtrSafe Function VarUintFromInt Lib "oleaut32" Alias "VarUI4FromI4" (ByVal ulIn As Long, plOut As Long) As Long
+
+Public DeclareWide PtrSafe Function VarAdd Lib "oleaut32" (pvarLeft As Variant, pvarRight As Variant, pvarResult As Variant) As Long
+Public DeclareWide PtrSafe Function VarAnd Lib "oleaut32" (pvarLeft As Variant, pvarRight As Variant, pvarResult As Variant) As Long
+Public DeclareWide PtrSafe Function VarCat Lib "oleaut32" (pvarLeft As Variant, pvarRight As Variant, pvarResult As Variant) As Long
+Public DeclareWide PtrSafe Function VarDiv Lib "oleaut32" (pvarLeft As Variant, pvarRight As Variant, pvarResult As Variant) As Long
+Public DeclareWide PtrSafe Function VarEqv Lib "oleaut32" (pvarLeft As Variant, pvarRight As Variant, pvarResult As Variant) As Long
+Public DeclareWide PtrSafe Function VarIdiv Lib "oleaut32" (pvarLeft As Variant, pvarRight As Variant, pvarResult As Variant) As Long
+Public DeclareWide PtrSafe Function VarImp Lib "oleaut32" (pvarLeft As Variant, pvarRight As Variant, pvarResult As Variant) As Long
+Public DeclareWide PtrSafe Function VarMod Lib "oleaut32" (pvarLeft As Variant, pvarRight As Variant, pvarResult As Variant) As Long
+Public DeclareWide PtrSafe Function VarMul Lib "oleaut32" (pvarLeft As Variant, pvarRight As Variant, pvarResult As Variant) As Long
+Public DeclareWide PtrSafe Function VarOr Lib "oleaut32" (pvarLeft As Variant, pvarRight As Variant, pvarResult As Variant) As Long
+Public DeclareWide PtrSafe Function VarPow Lib "oleaut32" (pvarLeft As Variant, pvarRight As Variant, pvarResult As Variant) As Long
+Public DeclareWide PtrSafe Function VarSub Lib "oleaut32" (pvarLeft As Variant, pvarRight As Variant, pvarResult As Variant) As Long
+Public DeclareWide PtrSafe Function VarXor Lib "oleaut32" (pvarLeft As Variant, pvarRight As Variant, pvarResult As Variant) As Long
+
+Public DeclareWide PtrSafe Function VarAbs Lib "oleaut32" (pvarIn As Variant, pvarResult As Variant) As Long
+Public DeclareWide PtrSafe Function VarFix Lib "oleaut32" (pvarIn As Variant, pvarResult As Variant) As Long
+Public DeclareWide PtrSafe Function VarInt Lib "oleaut32" (pvarIn As Variant, pvarResult As Variant) As Long
+Public DeclareWide PtrSafe Function VarNeg Lib "oleaut32" (pvarIn As Variant, pvarResult As Variant) As Long
+Public DeclareWide PtrSafe Function VarNot Lib "oleaut32" (pvarIn As Variant, pvarResult As Variant) As Long
+
+Public DeclareWide PtrSafe Function VarRound Lib "oleaut32" (pvarIn As Variant, ByVal cDecimals As Long, pvarResult As Variant) As Long
+
+Public DeclareWide PtrSafe Function VarCmp Lib "oleaut32" (pvarLeft As Variant, pvarRight As Variant, ByVal lcid As Long, ByVal dwFlags As COMPARE_FLAGS) As VARCMPRES
+
+Public DeclareWide PtrSafe Function VarDecAdd Lib "oleaut32" (pdecLeft As Decimal, pdecRight As Decimal, pdecResult As Decimal) As Long
+Public DeclareWide PtrSafe Function VarDecDiv Lib "oleaut32" (pdecLeft As Decimal, pdecRight As Decimal, pdecResult As Decimal) As Long
+Public DeclareWide PtrSafe Function VarDecMul Lib "oleaut32" (pdecLeft As Decimal, pdecRight As Decimal, pdecResult As Decimal) As Long
+Public DeclareWide PtrSafe Function VarDecSub Lib "oleaut32" (pdecLeft As Decimal, pdecRight As Decimal, pdecResult As Decimal) As Long
+
+Public DeclareWide PtrSafe Function VarDecAbs Lib "oleaut32" (pdecIn As Decimal, pdecResult As Decimal) As Long
+Public DeclareWide PtrSafe Function VarDecFix Lib "oleaut32" (pdecIn As Decimal, pdecResult As Decimal) As Long
+Public DeclareWide PtrSafe Function VarDecInt Lib "oleaut32" (pdecIn As Decimal, pdecResult As Decimal) As Long
+Public DeclareWide PtrSafe Function VarDecNeg Lib "oleaut32" (pdecIn As Decimal, pdecResult As Decimal) As Long
+
+Public DeclareWide PtrSafe Function VarDecRound Lib "oleaut32" (pdecIn As Decimal, ByVal cDecimals As Long, pdecResult As Decimal) As Long
+
+Public DeclareWide PtrSafe Function VarDecCmp Lib "oleaut32" (pdecLeft As Decimal, pdecRight As Decimal) As VARCMPRES
+Public DeclareWide PtrSafe Function VarDecCmpR8 Lib "oleaut32" (pdecLeft As Decimal, ByVal dblRight As Double) As VARCMPRES
+
+Public DeclareWide PtrSafe Function VarCyAdd Lib "oleaut32" (ByVal cyLeft As Currency, ByVal cyRight As Currency, pcyResult As Currency) As Long
+Public DeclareWide PtrSafe Function VarCyMul Lib "oleaut32" (ByVal cyLeft As Currency, ByVal cyRight As Currency, pcyResult As Currency) As Long
+Public DeclareWide PtrSafe Function VarCyMulI4 Lib "oleaut32" (ByVal cyLeft As Currency, ByVal lRight As Long, pcyResult As Currency) As Long
+Public DeclareWide PtrSafe Function VarCyMulI8 Lib "oleaut32" (ByVal cyLeft As Currency, ByVal lRight As LongLong, pcyResult As Currency) As Long
+Public DeclareWide PtrSafe Function VarCySub Lib "oleaut32" (ByVal cyLeft As Currency, ByVal cyRight As Currency, pcyResult As Currency) As Long
+
+Public DeclareWide PtrSafe Function VarCyAbs Lib "oleaut32" (ByVal cyIn As Currency, pcyResult As Currency) As Long
+Public DeclareWide PtrSafe Function VarCyFix Lib "oleaut32" (ByVal cyIn As Currency, pcyResult As Currency) As Long
+Public DeclareWide PtrSafe Function VarCyInt Lib "oleaut32" (ByVal cyIn As Currency, pcyResult As Currency) As Long
+Public DeclareWide PtrSafe Function VarCyNeg Lib "oleaut32" (ByVal cyIn As Currency, pcyResult As Currency) As Long
+
+Public DeclareWide PtrSafe Function VarCyRound Lib "oleaut32" (ByVal cyIn As Currency, ByVal cDecimals As Long, pcyResult As Currency) As Long
+
+Public DeclareWide PtrSafe Function VarCyCmp Lib "oleaut32" (ByVal cyLeft As Currency, ByVal cyRight As Currency) As VARCMPRES
+Public DeclareWide PtrSafe Function VarCyCmpR8 Lib "oleaut32" (ByVal cyLeft As Currency, ByVal dblRight As Double) As VARCMPRES
+
+Public DeclareWide PtrSafe Function VarBstrCat Lib "oleaut32" (ByVal bstrLeft As String, ByVal bstrRight As String, pbstrResult As String) As Long
+Public Declare PtrSafe Function VarBstrCmp Lib "oleaut32" (ByVal bstrLeft As String, ByVal bstrRight As String, ByVal lcid As Long, ByVal dwFlags As COMPARE_FLAGS) As VARCMPRES
+Public Declare PtrSafe Function VarR8Pow Lib "oleaut32" (ByVal dblLeft As Double, ByVal dblRight As Double, pdblResult As Double) As Long
+Public Declare PtrSafe Function VarR4CmpR8 Lib "oleaut32" (ByVal fltLeft As Single,  ByVal dblRight As Double) As VARCMPRES
+Public Declare PtrSafe Function VarR8Round Lib "oleaut32" (ByVal dblIn As Double, ByVal cDecimals As Long, pdblResult As Double) As Long
+
+Public Type UDATE
+    st As SYSTEMTIME
+    wDayOfYear As Integer
+End Type
+
+Public DeclareWide PtrSafe Function VarDateFromUdate Lib "oleaut32" (pudateIn As UDATE, ByVal dwFlags As VARFORMAT_FLAGS, pdateOut As Date) As Long
+Public DeclareWide PtrSafe Function VarDateFromUdateEx Lib "oleaut32" (pudateIn As UDATE, ByVal lcid As Long, ByVal dwFlags As VARFORMAT_FLAGS, pdateOut As Date) As Long
+Public DeclareWide PtrSafe Function VarUdateFromDate Lib "oleaut32" (ByVal dateIn As Date, ByVal dwFlags As VARFORMAT_FLAGS, pudateOut As UDATE) As Long
+
 
 Public Declare PtrSafe Function OleTranslateColor Lib "oleaut32" (ByVal clr As stdole.OLE_COLOR, ByVal hpal As LongPtr, lpcolorref As Long) As Long
 Public DeclareWide PtrSafe Function OleCreatePropertyFrame Lib "oleaut32" (ByVal hWndOwner As LongPtr, ByVal x As Long, ByVal y As Long, ByVal lpszCaption As String, ByVal cObjects As Long, ByRef ppunk As IUnknown, ByVal cPages As Long, ByRef pPageClsID As Any, ByVal lcid As Long, ByVal dwReserved As Long, ByVal pvReserved As LongPtr) As Long
 Public Declare PtrSafe Function OleCreatePropertyFrameIndirect Lib "oleaut32" (ByRef lpParams As OCPFIPARAMS) As Long
 Public Declare PtrSafe Function OleCreateFontIndirect Lib "oleaut32" (ByRef lpFontDesc As FONTDESC, ByRef riid As UUID, lplpvObj As stdole.IFont) As Long
-Public Declare PtrSafe Function OleCreatePictureIndirect Lib "oleaut32" (ByRef lpPictDesc As PICTDESC, ByRef riid As UUID, ByVal fOwn As Long, lplpvObj As stdole.IPicture) As Long
+Public Declare PtrSafe Function OleCreatePictureIndirect Lib "oleaut32" (ByRef lpPictDesc As PICTDESC, ByRef riid As UUID, ByVal fOwn As BOOL, lplpvObj As stdole.IPicture) As Long
 Public Declare PtrSafe Function OleIconToCursor Lib "oleaut32" (ByVal hinstExe As LongPtr, ByVal hIcon As LongPtr) As LongPtr
-Public Declare PtrSafe Function OleLoadPicture Lib "oleaut32" (ByVal lpstream As IStream, ByVal lSize As Long, ByVal fRunmode As Long, ByRef riid As UUID, lplpvObj As Any) As Long
+Public Declare PtrSafe Function OleLoadPicture Lib "oleaut32" (ByVal lpstream As IStream, ByVal lSize As Long, ByVal fRunmode As BOOL, ByRef riid As UUID, lplpvObj As Any) As Long
+Public Declare PtrSafe Function OleLoadPictureEx Lib "oleaut32" (ByVal lpstream As IStream, ByVal lSize As Long, ByVal fRunmode As BOOL, ByRef riid As UUID, ByVal xSizeDesired As Long, ByVal ySizeDesired As Long, ByVal dwFlags As OleLoadPicFlags, lplpvObj As Any) As Long
+Public DeclareWide PtrSafe Function OleLoadPicturePath Lib "oleaut32" (ByVal szURLorPath As String, ByVal punkCaller As IUnknown, ByVal dwReserved As Long, ByVal clrReserved As stdole.OLE_COLOR, ByRef riid As UUID, ppvRet As Any) As Long
+Public Declare PtrSafe Function OleLoadPictureFile Lib "oleaut32" (ByVal varFileName As Variant, lplpdispPicture As stdole.IPictureDisp) As Long
+Public Declare PtrSafe Function OleLoadPictureFileEx Lib "oleaut32" (ByVal varFileName As Variant, ByVal xSizeDesired As Long, ByVal ySizeDesired As Long, ByVal dwFlags As OleLoadPicFlags, lplpdispPicture As stdole.IPictureDisp) As Long
+Public DeclareWide PtrSafe Function OleSavePictureFile Lib "oleaut32" (ByVal lpdispPicture As stdole.IPictureDisp, ByVal bstrFileName As String) As Long
+
+Public Enum OLE_TRISTATE
+    triUnchecked = 0                                        ' &H00000000&
+    triChecked = 1                                          ' &H00000001&
+    triGray = 2                                             ' &H00000002&
+End Enum
+
+
+Public Enum OleLoadPicFlags
+    LP_DEFAULT  = &H00
+    LP_MONOCHROME  = &H01
+    LP_VGACOLOR  = &H02
+    LP_COLOR  = &H04
+End Enum
 
 Public Type OCPFIPARAMS
 	cbStructSize As Long
@@ -20728,6 +21192,8 @@ Public Enum AR_STATE
     AR_LAPTOP = &H80
 End Enum
 
+Public Const MI_WP_SIGNATURE = &HFF515700
+Public Const SIGNATURE_MASK = &HFFFFFF00
 
 Public DeclareWide PtrSafe Function GetMessageExtraInfo Lib "user32" () As LongPtr
 Public DeclareWide PtrSafe Function SetMessageExtraInfo Lib "user32" (lParam As Any) As LongPtr
@@ -22942,6 +23408,7 @@ Public Enum MouseEventFlags
 	MOUSEEVENTF_MOVE_NOCOALESCE  = &H2000 /* do not coalesce mouse moves */
 	MOUSEEVENTF_VIRTUALDESK  = &H4000 /* map to entire virtual desktop */
 	MOUSEEVENTF_ABSOLUTE = &H8000& /* absolute move */
+    MOUSEEVENTF_FROMTOUCH = &HFF515700
 End Enum
 Public Enum KeybdEventFlags
     KEYEVENTF_EXTENDEDKEY = &H0001
@@ -54054,6 +54521,29 @@ Public Const HIGH_SURROGATE_END  = &Hdbff
 Public Const LOW_SURROGATE_START  = &Hdc00
 Public Const LOW_SURROGATE_END  = &Hdfff
 
+
+Public Function WHashValOfLHashVal(ByVal lhashval As Long) As Integer
+	Return CUIntToInt(&H0000FFFF& And lhashval)
+End Function
+Public Function IsHashValCompatible(ByVal lhashval1 As Long, ByVal lhashval2 As Long) As Boolean
+	Return ((&H00ff0000 And (lhashval1)) = (&H00ff0000 and (lhashval2)))
+End Function
+Public Function V_ISBYREF(x As Variant) As Boolean
+	If (VarType(x) And VT_BYREF) Then Return True
+End Function
+Public Function V_ISARRAY(x As Variant) As Boolean
+    If (VarType(x) And VT_ARRAY) Then Return True
+End Function
+Public Function V_ISVECTOR(x As Variant) As Boolean
+    If (VarType(x) And VT_VECTOR) Then Return True
+End Function
+
+
+Public Function IsPenEvent(ByVal dw As LongPtr) As Boolean
+	Return (((dw) And SIGNATURE_MASK) = MI_WP_SIGNATURE)
+End Function
+
+
 ' #define TOUCH_COORD_TO_PIXEL(l)         ((l) / 100)
 
 Public Function TOUCH_COORD_TO_PIXEL(ByVal l As Long) As Long
@@ -54247,6 +54737,16 @@ End Function
 [ ConstantFoldable ]
 Public Function MAKE_HRESULT(sev As Long, fac As HRESULT_Facility, code As Long) As Long
     Return (sev << 31) Or (fac << 16) Or code
+End Function
+[ ConstantFoldable ]
+Public Function MAKE_SCODE(sev As Long, fac As HRESULT_Facility, code As Long) As Long
+    Return (sev << 31) Or (fac << 16) Or code
+End Function
+Public Function HRESULT_SEVERITY(ByVal hr As Long) As Long
+	Return (((hr) << 31) And 1)
+End Function
+Public Function SCODE_SEVERITY(ByVal sc As Long) As Long
+    Return (((sc) << 31) And 1)
 End Function
 
 [ ConstantFoldable ]
@@ -55708,6 +56208,149 @@ End Function
 #End Region
 
 #Region "MiscGUIDs"
+Public Function IID_IPropertyFrame() As UUID
+'{B196B28B-BAB4-101A-B69C-00AA00341D07}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HB196B28B, CInt(&HBAB4), CInt(&H101A), &HB6, &H9C, &H00, &HAA, &H00, &H34, &H1D, &H07)
+ IID_IPropertyFrame = iid
+End Function
+Public Function CLSID_CFontPropPage() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H0be35200,&H8f91,&H11ce,&H9d,&He3,&H00,&Haa,&H00,&H4b,&Hb8,&H51)
+CLSID_CFontPropPage = iid
+End Function
+Public Function CLSID_CColorPropPage() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H0be35201,&H8f91,&H11ce,&H9d,&He3,&H00,&Haa,&H00,&H4b,&Hb8,&H51)
+CLSID_CColorPropPage = iid
+End Function
+Public Function CLSID_CPicturePropPage() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H0be35202,&H8f91,&H11ce,&H9d,&He3,&H00,&Haa,&H00,&H4b,&Hb8,&H51)
+CLSID_CPicturePropPage = iid
+End Function
+Public Function CLSID_PersistPropset() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hfb8f0821,&H0164,&H101b,&H84,&Hed,&H08,&H00,&H2b,&H2e,&Hc7,&H13)
+CLSID_PersistPropset = iid
+End Function
+Public Function CLSID_ConvertVBX() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hfb8f0822,&H0164,&H101b,&H84,&Hed,&H08,&H00,&H2b,&H2e,&Hc7,&H13)
+CLSID_ConvertVBX = iid
+End Function
+Public Function CLSID_StdFont() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H0be35203,&H8f91,&H11ce,&H9d,&He3,&H00,&Haa,&H00,&H4b,&Hb8,&H51)
+CLSID_StdFont = iid
+End Function
+Public Function CLSID_StdPicture() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H0be35204,&H8f91,&H11ce,&H9d,&He3,&H00,&Haa,&H00,&H4b,&Hb8,&H51)
+CLSID_StdPicture = iid
+End Function
+Public Function GUID_HIMETRIC() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H66504300,&HBE0F,&H101A,&H8B,&HBB,&H00,&HAA,&H00,&H30,&H0C,&HAB)
+GUID_HIMETRIC = iid
+End Function
+Public Function GUID_COLOR() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H66504301,&HBE0F,&H101A,&H8B,&HBB,&H00,&HAA,&H00,&H30,&H0C,&HAB)
+GUID_COLOR = iid
+End Function
+Public Function GUID_XPOSPIXEL() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H66504302,&HBE0F,&H101A,&H8B,&HBB,&H00,&HAA,&H00,&H30,&H0C,&HAB)
+GUID_XPOSPIXEL = iid
+End Function
+Public Function GUID_YPOSPIXEL() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H66504303,&HBE0F,&H101A,&H8B,&HBB,&H00,&HAA,&H00,&H30,&H0C,&HAB)
+GUID_YPOSPIXEL = iid
+End Function
+Public Function GUID_XSIZEPIXEL() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H66504304,&HBE0F,&H101A,&H8B,&HBB,&H00,&HAA,&H00,&H30,&H0C,&HAB)
+GUID_XSIZEPIXEL = iid
+End Function
+Public Function GUID_YSIZEPIXEL() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H66504305,&HBE0F,&H101A,&H8B,&HBB,&H00,&HAA,&H00,&H30,&H0C,&HAB)
+GUID_YSIZEPIXEL = iid
+End Function
+Public Function GUID_XPOS() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H66504306,&HBE0F,&H101A,&H8B,&HBB,&H00,&HAA,&H00,&H30,&H0C,&HAB)
+GUID_XPOS = iid
+End Function
+Public Function GUID_YPOS() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H66504307,&HBE0F,&H101A,&H8B,&HBB,&H00,&HAA,&H00,&H30,&H0C,&HAB)
+GUID_YPOS = iid
+End Function
+Public Function GUID_XSIZE() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H66504308,&HBE0F,&H101A,&H8B,&HBB,&H00,&HAA,&H00,&H30,&H0C,&HAB)
+GUID_XSIZE = iid
+End Function
+Public Function GUID_YSIZE() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H66504309,&HBE0F,&H101A,&H8B,&HBB,&H00,&HAA,&H00,&H30,&H0C,&HAB)
+GUID_YSIZE = iid
+End Function
+Public Function GUID_TRISTATE() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H6650430A,&HBE0F,&H101A,&H8B,&HBB,&H00,&HAA,&H00,&H30,&H0C,&HAB)
+GUID_TRISTATE = iid
+End Function
+Public Function GUID_OPTIONVALUEEXCLUSIVE() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H6650430B,&HBE0F,&H101A,&H8B,&HBB,&H00,&HAA,&H00,&H30,&H0C,&HAB)
+GUID_OPTIONVALUEEXCLUSIVE = iid
+End Function
+Public Function GUID_CHECKVALUEEXCLUSIVE() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H6650430C,&HBE0F,&H101A,&H8B,&HBB,&H00,&HAA,&H00,&H30,&H0C,&HAB)
+GUID_CHECKVALUEEXCLUSIVE = iid
+End Function
+Public Function GUID_FONTNAME() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H6650430D,&HBE0F,&H101A,&H8B,&HBB,&H00,&HAA,&H00,&H30,&H0C,&HAB)
+GUID_FONTNAME = iid
+End Function
+Public Function GUID_FONTSIZE() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H6650430E,&HBE0F,&H101A,&H8B,&HBB,&H00,&HAA,&H00,&H30,&H0C,&HAB)
+GUID_FONTSIZE = iid
+End Function
+Public Function GUID_FONTBOLD() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H6650430F,&HBE0F,&H101A,&H8B,&HBB,&H00,&HAA,&H00,&H30,&H0C,&HAB)
+GUID_FONTBOLD = iid
+End Function
+Public Function GUID_FONTITALIC() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H66504310,&HBE0F,&H101A,&H8B,&HBB,&H00,&HAA,&H00,&H30,&H0C,&HAB)
+GUID_FONTITALIC = iid
+End Function
+Public Function GUID_FONTUNDERSCORE() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H66504311,&HBE0F,&H101A,&H8B,&HBB,&H00,&HAA,&H00,&H30,&H0C,&HAB)
+GUID_FONTUNDERSCORE = iid
+End Function
+Public Function GUID_FONTSTRIKETHROUGH() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H66504312,&HBE0F,&H101A,&H8B,&HBB,&H00,&HAA,&H00,&H30,&H0C,&HAB)
+GUID_FONTSTRIKETHROUGH = iid
+End Function
+Public Function GUID_HANDLE() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H66504313,&HBE0F,&H101A,&H8B,&HBB,&H00,&HAA,&H00,&H30,&H0C,&HAB)
+GUID_HANDLE = iid
+End Function
+
+
 Public Function EventTraceGuid() As UUID
 '{68fdd900-4a3e-11d1-84f4-0000f80464e3}
 Static iid As UUID

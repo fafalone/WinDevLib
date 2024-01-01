@@ -1,7 +1,7 @@
 '************************************************************************************
 'WinDevLib - Windows Development Library for twinBASIC
-'Version 7.0.280
-'(c) 2022-2023 Jon Johnson (fafalone)
+'Version 7.0.282
+'(c) 2022-2024 Jon Johnson (fafalone)
 'Project GUID: {1FCDB98D-617D-4995-9736-2ED0E4746A10}
 '
 '(formerly tbShellLib)
@@ -1211,7 +1211,7 @@ End Interface
 Interface IFileOperation Extends stdole.IUnknown
     [ PreserveSig ] Function Advise(ByVal pfops As IFileOperationProgressSink, pdwCookie As Long) As Long
     [ PreserveSig ] Function UnAdvise(ByVal dwCookie As Long) As Long
-    [ PreserveSig ] Function SetOperationFlags(ByVal dwOperationFlags As IFO_Flags) As Long
+    [ PreserveSig ] Function SetOperationFlags([ TypeHint (FILEOP_FLAGS, FILEOP_FLAGSEX) ] ByVal dwOperationFlags As Long) As Long
     [ PreserveSig ] Function SetProgressMessage(ByVal pszMessage As LongPtr) As Long
     [ PreserveSig ] Function SetProgressDialog(ByVal popd As IOperationsProgressDialog) As Long
     [ PreserveSig ] Function SetProperties(ByVal pproparray As IPropertyChangeArray) As Long
@@ -2657,6 +2657,7 @@ Interface IWinEventHandler Extends IUnknown
 End Interface
 
 [ InterfaceId ("47c01f95-e185-412c-b5c5-4f27df965aea") ]
+[ OleAutomation (False) ]
 Interface IFolderBandPriv Extends IUnknown
     Sub SetCascade(ByVal fCascase As BOOL)
     Sub SetAccelerators(ByVal fAccelerators As BOOL)
@@ -2757,8 +2758,9 @@ Interface ICreatingProcess Extends stdole.IUnknown
 End Interface
 
 [ InterfaceId ("7bf992a9-af7a-4dba-b2e5-4d080b1ecbc6") ]
+[ OleAutomation (False) ]
 Interface IStorageProviderCopyHook Extends stdole.IUnknown
-    Sub CopyCallback(ByVal hwnd As LongPtr, ByVal operation As FILEOP, ByVal flags As FILEOP_FLAGS, ByVal srcFile As LongPtr, ByVal srcAttribs As FILE_ATTRIBUTES, ByVal destFile As LongPtr, ByVal destAttribs As FILE_ATTRIBUTES, result As Long)
+    Sub CopyCallback(ByVal hwnd As LongPtr, [ TypeHint (FILEOP, ShellPrinterOperations) ] ByVal operation As Long, ByVal flags As FILEOP_FLAGS, ByVal srcFile As LongPtr, ByVal srcAttribs As FILE_ATTRIBUTES, ByVal destFile As LongPtr, ByVal destAttribs As FILE_ATTRIBUTES, result As MessageBoxResults)
 End Interface
 
 
@@ -2948,12 +2950,13 @@ End Interface
 [ InterfaceId ("0000000c-0000-0000-C000-000000000046") ]
 [ OleAutomation (False) ]
 Interface IStream Extends ISequentialStream
-    Function Seek(ByVal dlibMove As LongLong, ByVal dwOrigin As Long) As LongLong
+    Function Seek(ByVal dlibMove As LongLong, ByVal dwOrigin As STREAM_SEEK) As LongLong
     Sub SetSize(ByVal libNewSize As LongLong)
     Sub CopyTo(ByVal pStm As IStream, ByVal cb As LongLong, pcbRead As LongLong, pcbWritten As LongLong)
     Sub Commit(ByVal grfCommitFlags As STGC)
     Sub Revert()
-    Sub LockRegion(ByVal libOffset As LongLong, ByVal cb As LongLong, ByVal dwLockType As Long)
+    Sub LockRegion(ByVal libOffset As LongLong, ByVal cb As LongLong, ByVal dwLockType As LOCKTYPE)
+	Sub UnlockRegion(ByVal libOffset As LongLong, ByVal cb As LongLong, ByVal dwLockType As LOCKTYPE)
     Sub Stat(pstatstg As STATSTG, ByVal grfStatFlag As STATFLAG)
     Function Clone() As IStream
 End Interface
@@ -3923,7 +3926,11 @@ Public Type RECTF
     Bottom As Single
 End Type
 
-
+Public Enum STREAM_SEEK
+    STREAM_SEEK_SET = 0
+    STREAM_SEEK_CUR = 1
+    STREAM_SEEK_END = 2
+End Enum
 Public Enum LOCKTYPE
 	LOCK_WRITE = 1
 	LOCK_EXCLUSIVE = 2
@@ -4055,15 +4062,15 @@ Public Type DVTARGETDEVICE
 End Type
 
 Public Type FORMATETC
-	cfFormat As Long
+	cfFormat As Integer
     pDVTARGETDEVICE As LongPtr
     dwAspect As DVASPECT
     lIndex As Long
-    TYMED As TYMED
+    tymed As TYMED
 End Type
 
 Public Type STGMEDIUM
-	TYMED As TYMED
+    tymed As TYMED
 	data As LongPtr
 	pUnkForRelease As LongPtr
 End Type
@@ -5295,6 +5302,17 @@ Public Enum FILEOP
     FO_DELETE = &H0003
     FO_RENAME = &H0004
 End Enum
+Public Enum ShellPrinterOperations
+    PO_DELETE = &H0013  ' printer is being deleted
+    PO_RENAME = &H0014  ' printer is being renamed
+    PO_PORTCHANGE = &H0020  ' port this printer connected to is being changed
+'  if this id is set, the strings received by
+'  the copyhook are a doubly-null terminated
+'  list of strings.  The first is the printer
+'  name and the second is the printer port.
+    PO_REN_PORT = &H0034  ' PO_RENAME and PO_PORTCHANGE at same time.
+End Enum
+
 Public Enum FILEOP_FLAGS
     FOF_MULTIDESTFILES = &H0001
     FOF_CONFIRMMOUSE = &H0002
@@ -5313,7 +5331,6 @@ Public Enum FILEOP_FLAGS
     FOF_WANTNUKEWARNING = &H4000
     FOF_NORECURSEREPARSE = &H8000&
 End Enum
-
 Public Enum FILEOP_FLAGSEX
 	FOFX_ADDUNDORECORD = &H20000000 'WINDOWS 8+
 	FOFX_NOSKIPJUNCTIONS = &H00010000
@@ -5361,6 +5378,25 @@ Public Enum IFO_Flags
 	IFOX_COPYASDOWNLOAD = &H40000000 'WINDOWS 7+
 	IFOX_DONTDISPLAYLOCATIONS = &H80000000
 End Enum
+
+Public Enum MessageBoxResults
+    IDOK = 1
+    IDCANCEL = 2
+    IDABORT = 3
+    IDRETRY = 4
+    IDIGNORE = 5
+    IDYES = 6
+    IDNO = 7
+    IDCLOSE = 8
+    IDHELP = 9
+    /*  = WINVER >= &H0400 */
+    IDTRYAGAIN = 10
+    IDCONTINUE = 11
+    /*  = WINVER >= &H0500 */
+    IDTIMEOUT = 32000
+End Enum
+
+
 Public Enum TRANSFER_SOURCE_FLAGS
 	TSF_NORMAL = 0
 	TSF_FAIL_EXIST = 0
@@ -5953,6 +5989,21 @@ Public Enum VARENUM
 	VT_ARRAY = &H2000
 	VT_BYREF = &H4000
 	VT_RESERVED = &H8000&
+    VT_HARDTYPE = VT_RESERVED
+    VT_COLOR = VT_I4
+    VT_XPOS_PIXELS = VT_I4
+    VT_YPOS_PIXELS = VT_I4
+    VT_XSIZE_PIXELS = VT_I4
+    VT_YSIZE_PIXELS = VT_I4
+    VT_XPOS_HIMETRIC = VT_I4
+    VT_YPOS_HIMETRIC = VT_I4
+    VT_XSIZE_HIMETRIC = VT_I4
+    VT_YSIZE_HIMETRIC = VT_I4
+    VT_TRISTATE = VT_I2
+    VT_OPTEXCLUSIVE = VT_BOOL
+    VT_FONT = VT_DISPATCH
+    VT_PICTURE = VT_DISPATCH
+    VT_HANDLE = VT_I4
 	VT_ILLEGAL = &Hffff&
 	VT_ILLEGALMASKED = &H0fff
 	VT_TYPEMASK = &H0fff
