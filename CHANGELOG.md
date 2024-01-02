@@ -1,6 +1,6 @@
 
 **Update (v7.1.286, 02 Jan 2024):**
--Added initial coverage of Lsa* APIs from advapi32.dll/NTSecAPI.h/LSALookup.h
+-Added initial coverage of Lsa* APIs from advapi32.dll/NTSecAPI.h/LSALookup.h/ntlsa.h
 -WIC: Converted LongPtr buffer arguments to As Any, for more flexibility in what can be supplied.
 -WIC: Converted all ByVal VarPtr(WICRect) LongPtr's to ByRef WICRect.
 -(Bug fix) IWICBitmapSourceTransform::CopyPixels definition incorrect.
