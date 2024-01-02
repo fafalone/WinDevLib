@@ -1,4 +1,10 @@
 
+**Update (v7.0.284, 01 Jan 2024):**
+-WIC: Converted LongPtr buffer arguments to As Any, for more flexibility in what can be supplied.
+-WIC: Converted all ByVal VarPtr(WICRect) LongPtr's to ByRef WICRect.
+-(Bug fix) IWICBitmapSourceTransform::CopyPixels definition incorrect.
+-(WinDevLibImpl) Added Implements-compatible WIC interfaces for custom codec creation.
+
 **Update (v7.0.283, 01 Jan 2024):**
 -Improved enum associations/formatting for WIC.
 -Added numerous missing GUIDs from wincodecsdk.h
