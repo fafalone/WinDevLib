@@ -16470,7 +16470,7 @@ End Type
 
 Public Type TOKEN_GROUPS
     GroupCount As Long
-    Groups(0) As SID_AND_ATTRIBUTES
+    Groups(100) As SID_AND_ATTRIBUTES
 End Type
 
 Public Type TOKEN_OWNER
@@ -18413,7 +18413,6 @@ Public Type PICTDESC
 End Type
 
 #End Region
-
 
 
 #Region "user32"
@@ -31814,10 +31813,1532 @@ Public DeclareWide PtrSafe Function GetAclInformation Lib "advapi32" (ByVal pAcl
 Public DeclareWide PtrSafe Function SetAclInformation Lib "advapi32" (ByVal pAcl As LongPtr, pAclInformation As Any, ByVal nAclInformationLength As Long, ByVal dwAclInformationClass As ACL_INFORMATION_CLASS) As BOOL
 Public DeclareWide PtrSafe Function IsValidAcl Lib "advapi32" (ByVal pAcl As LongPtr) As BOOL
 
+
+Public Type LSA_UNICODE_STRING
+    Length As Integer
+    MaximumLength As Integer
+    Buffer As LongPtr
+End Type
+Public Type LSA_STRING
+    Length As Integer
+    MaximumLength As Integer
+    Buffer As String
+End Type
+
+Public Type LSA_OBJECT_ATTRIBUTES
+    Length As Long
+    RootDirectory As LongPtr
+    ObjectName As LongPtr 'PLSA_UNICODE_STRING
+    Attributes As Long
+    SecurityDescriptor As LongPtr ' Points to type SECURITY_DESCRIPTOR
+    SecurityQualityOfService As LongPtr ' Points to type SECURITY_QUALITY_OF_SERVICE
+End Type
+
+Public Type LSA_TRUST_INFORMATION
+    Name As LSA_UNICODE_STRING
+    Sid As LongPtr 'PSID
+End Type
+
+Public Type LSA_REFERENCED_DOMAIN_LIST
+    Entries As Long
+    Domains As LongPtr ' PLSA_TRUST_INFORMATION
+End Type
+
+Public Type LSA_TRANSLATED_SID2
+    Use As SID_NAME_USE
+    Sid As LongPtr 'PSID
+    DomainIndex As LONG
+    Flags As Long
+End Type
+
+Public Type LSA_TRANSLATED_NAME
+    Use As SID_NAME_USE
+    Name As LSA_UNICODE_STRING
+    DomainIndex As LONG
+End Type
+
+Public Type POLICY_ACCOUNT_DOMAIN_INFO
+    DomainName As LSA_UNICODE_STRING
+    DomainSid As LongPtr 'PSID
+End Type
+
+Public Type POLICY_DNS_DOMAIN_INFO
+    Name As LSA_UNICODE_STRING
+    DnsDomainName As LSA_UNICODE_STRING
+    DnsForestName As LSA_UNICODE_STRING
+    DomainGuid As UUID
+    Sid As LongPtr 'PSID
+End Type
+
+Public Enum LsaLookupPolicyObjAccessTypes
+    LOOKUP_VIEW_LOCAL_INFORMATION  = &H00000001
+    LOOKUP_TRANSLATE_NAMES  = &H00000800
+End Enum
+
+Public Enum LSA_LOOKUP_DOMAIN_INFO_CLASS
+    AccountDomainInformation=5
+    DnsDomainInformation=12
+End Enum
+
+Public Enum LSA_OPERATIONAL_MODE
+    LSA_MODE_PASSWORD_PROTECTED  = (&H00000001)
+    LSA_MODE_INDIVIDUAL_ACCOUNTS  = (&H00000002)
+    LSA_MODE_MANDATORY_ACCESS  = (&H00000004)
+    LSA_MODE_LOG_FULL  = (&H00000008)
+End Enum
+
+Public Enum SECURITY_LOGON_TYPE
+    SLT_UndefinedLogonType=0 ' This is used to specify an undefied logon type
+    SLT_Interactive=2 ' Interactively logged on (locally or remotely)
+    SLT_Network  ' Accessing system via network
+    SLT_Batch  ' Started via a batch queue
+    SLT_Service   ' Service started by service controller
+    SLT_Proxy  ' Proxy logon
+    SLT_Unlock  ' Unlock workstation
+    SLT_NetworkCleartext   ' Network logon with cleartext credentials
+    SLT_NewCredentials   ' Clone caller, new default credentials
+    ' The types below only exist in Windows XP and greater
+    ' #if (_WIN32_WINNT >= 0x0501)
+    SLT_RemoteInteractive  ' Remote, yet interactive. Terminal server
+    SLT_CachedInteractive   ' Try cached credentials without hitting the net.
+    '  The types below only exist in Windows Server 2003 and greater
+    ' #endif
+    ' #if (_WIN32_WINNT >= 0x0502)
+    SLT_CachedRemoteInteractive  ' Same as RemoteInteractive, this is used internally for auditing purpose
+    SLT_CachedUnlock   ' Cached Unlock workstation
+    ' #endif
+End Enum
+
+Public Enum SE_ADT_PARAMETER_TYPE
+    SeAdtParmTypeNone=0 'Produces 1 parameter
+    ' Received value:
+    ' 
+    '   None.
+    ' 
+    ' Results in:
+    ' 
+    '   a unicode string containing "-".
+    ' 
+    ' Note:  This is typically used to
+    '        indicate that a parameter value
+    '        was not available.
+    ' 
+    SeAdtParmTypeString = 1 'Produces 1 parameter.
+    ' Received Value:
+    ' 
+    '   Unicode String (variable length)
+    ' 
+    ' Results in:
+    ' 
+    '   No transformation.  The string
+    '   entered into the event record as
+    '   received.
+    ' 
+    '  The Address value of the audit info
+    '  should be a pointer to a UNICODE_STRING
+    '  structure.
+    SeAdtParmTypeFileSpec = 2 'Produces 1 parameter.
+    ' Received value:
+    ' 
+    '   Unicode string containing a file or
+    '   directory name.
+    ' 
+    ' Results in:
+    ' 
+    '   Unicode string with the prefix of the
+    '   file's path replaced by a drive letter
+    '   if possible.
+    ' 
+    SeAdtParmTypeUlong = 3 'Produces 1 parameter
+    ' Received value:
+    ' 
+    '   Ulong
+    ' 
+    ' Results in:
+    ' 
+    '   Unicode string representation of
+    '   unsigned integer value.
+    SeAdtParmTypeSid = 4 'Produces 1 parameter.
+    ' Received value:
+    ' 
+    '   SID (variable length)
+    ' 
+    ' Results in:
+    ' 
+    '   String representation of SID
+    ' 
+    SeAdtParmTypeLogonId = 5 'Produces 4 parameters.
+    ' Received Value:
+    ' 
+    '   LUID (fixed length)
+    ' 
+    ' Results in:
+    ' 
+    '   param 1: Sid string
+    '   param 2: Username string
+    '   param 3: domain name string
+    '   param 4: Logon ID (Luid) string
+    SeAdtParmTypeNoLogonId = 6 'Produces 3 parameters.
+    ' Received value:
+    ' 
+    '   None.
+    ' 
+    ' Results in:
+    ' 
+    '   param 1: "-"
+    '   param 2: "-"
+    '   param 3: "-"
+    '   param 4: "-"
+    ' 
+    ' Note:
+    ' 
+    '   This type is used when a logon ID
+    '   is needed, but one is not available
+    '   to pass.  For example, if an
+    '   impersonation logon ID is expected
+    '   but the subject is not impersonating
+    '   anyone.
+    ' 
+    SeAdtParmTypeAccessMask = 7 'Produces 1 parameter with formatting.
+    ' Received value:
+    ' 
+    '   ACCESS_MASK followed by
+    '   a Unicode string.  The unicode
+    '   string contains the name of the
+    '   type of object the access mask
+    '   applies to.  The event's source
+    '   further qualifies the object type.
+    ' 
+    ' Results in:
+    ' 
+    '   formatted unicode string built to
+    '   take advantage of the specified
+    '   source's parameter message file.
+    ' 
+    ' Note:
+    ' 
+    '   An access mask containing three
+    '   access types for a Widget object
+    '   type (defined by the Foozle source)
+    '   might end up looking like:
+    ' 
+    '       %%1062\n\t\t%1066\n\t\t%%601
+    ' 
+    '   The %%numbers are signals to the
+    '   event viewer to perform parameter
+    '   substitution before display.
+    ' 
+    SeAdtParmTypePrivs = 8 'Produces 1 parameter with formatting.
+    ' Received value:
+    ' 
+    ' Results in:
+    ' 
+    '   formatted unicode string similar to
+    '   that for access types.  Each priv
+    '   will be formatted to be displayed
+    '   on its own line.  E.g.,
+    ' 
+    '       %%642\n\t\t%%651\n\t\t%%655
+    ' 
+    SeAdtParmTypeObjectTypes = 9 'Produces 10 parameters with formatting.
+    ' Received value:
+    ' 
+    '  Produces a list a stringized GUIDS along
+    '  with information similar to that for
+    '  an access mask.
+    SeAdtParmTypeHexUlong = 10 'Produces 1 parameter
+    ' Received value:
+    ' 
+    '   Ulong
+    ' 
+    ' Results in:
+    ' 
+    '   Unicode string representation of
+    '   unsigned integer value in hexadecimal.
+    '  In W2k this value did not exist, it was ParmTypeLUID
+    SeAdtParmTypePtr = 11 'Produces 1 parameter
+    ' Received value:
+    ' 
+    '   pointer
+    ' 
+    ' Results in:
+    ' 
+    '   Unicode string representation of
+    '   unsigned integer value in hexadecimal.
+    ' 
+    '  Everything below exists only in Windows XP and greater
+    ' 
+    SeAdtParmTypeTime = 12 'Produces 2 parameters
+    ' Received value:
+    ' 
+    '   LARGE_INTEGER
+    ' 
+    ' Results in:
+    ' 
+    '  Unicode string representation of
+    '  date and time.
+    ' 
+    SeAdtParmTypeGuid = 13 'Produces 1 parameter
+    ' Received value:
+    ' 
+    '   GUID pointer
+    ' 
+    ' Results in:
+    ' 
+    '  Unicode string representation of GUID
+    '  {xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}
+    ' 
+    ' 
+    '  Everything below exists only in Windows Server 2003 and Greater
+    ' 
+    SeAdtParmTypeLuid = 14 '
+    ' Produces 1 parameter
+    ' Received value:
+    ' 
+    '  LUID
+    ' 
+    ' Results in:
+    ' 
+    '  Hex LUID
+    ' 
+    SeAdtParmTypeHexInt64 = 15 'Produces 1 parameter
+    ' Received value:
+    ' 
+    '   64 bit integer
+    ' 
+    ' Results in:
+    ' 
+    '   Unicode string representation of
+    '   unsigned integer value in hexadecimal.
+    SeAdtParmTypeStringList = 16 'Produces 1 parameter
+    ' Received value:
+    ' 
+    '  ptr to LSAP_ADT_STRING_LIST
+    ' 
+    ' Results in:
+    ' 
+    '  Unicode string representation of
+    '  concatenation of the strings in the list
+    SeAdtParmTypeSidList = 17 'Produces 1 parameter
+    ' Received value:
+    ' 
+    '  ptr to LSAP_ADT_SID_LIST
+    ' 
+    ' Results in:
+    ' 
+    '  Unicode string representation of
+    '  concatenation of the SIDs in the list
+    SeAdtParmTypeDuration = 18 'Produces 1 parameters
+    ' Received value:
+    ' 
+    '   LARGE_INTEGER
+    ' 
+    ' Results in:
+    ' 
+    '  Unicode string representation of
+    '  a duration.
+    SeAdtParmTypeUserAccountControl = 19 'Produces 3 parameters
+    ' Received value:
+    ' 
+    '  old and new UserAccountControl values
+    ' 
+    ' Results in:
+    ' 
+    '  Unicode string representations of
+    '  the flags in UserAccountControl.
+    '  1 - old value in hex
+    '  2 - new value in hex
+    '  3 - difference as strings
+    SeAdtParmTypeNoUac = 20 'Produces 3 parameters
+    ' Received value:
+    ' 
+    '  none
+    ' 
+    ' Results in:
+    ' 
+    '  Three dashes ('-') as unicode strings.
+    SeAdtParmTypeMessage = 21 'Produces 1 Parameter
+    ' Received value:
+    ' 
+    '   ULONG (MessageNo from msobjs.mc)
+    ' 
+    ' Results in:
+    ' 
+    '  Unicode string representation of
+    '  %%MessageNo which the event viewer
+    '  will replace with the message string
+    '  from msobjs.mc
+    SeAdtParmTypeDateTime = 22 'Produces 1 Parameter
+    ' Received value:
+    ' 
+    '   LARGE_INTEGER
+    ' 
+    ' Results in:
+    ' 
+    '  Unicode string representation of
+    '  date and time (in _one_ string).
+    SeAdtParmTypeSockAddr = 23 ' Produces 2 parameters
+    ' 
+    '  Received value:
+    ' 
+    '  pointer to SOCKADDR_IN/SOCKADDR_IN6
+    '  structure
+    ' 
+    '  Results in:
+    ' 
+    '  param 1: IP address string
+    '  param 2: Port number string
+    ' 
+    ' 
+    '  Everything below this exists only in Windows Server 2008 and greater
+    ' 
+    SeAdtParmTypeSD = 24 ' Produces 1 parameters
+    ' 
+    '  Received value:
+    ' 
+    '  pointer to SECURITY_DESCRIPTOR
+    '  structure. This HAS to appear in pairs.
+    '  The first parameter will represent the
+    '  old SD and the second parameter will
+    '  represent the New SD
+    ' 
+    '  Results in:
+    ' 
+    '  SDDL string representation of SD
+    ' 
+    SeAdtParmTypeLogonHours = 25 ' Produces 1 parameters
+    ' 
+    '  Received value:
+    ' 
+    '  pointer to LOGON_HOURS
+    '  structure
+    ' 
+    '  Results in:
+    ' 
+    '  String representation of allowed logon hours
+    ' 
+    SeAdtParmTypeLogonIdNoSid = 26 'Produces 3 parameters.
+    ' Received Value:
+    ' 
+    '   LUID (fixed length)
+    ' 
+    ' Results in:
+    ' 
+    '   param 1: Username string
+    '   param 2: domain name string
+    '   param 3: Logon ID (Luid) string
+    SeAdtParmTypeUlongNoConv = 27 ' Produces 1 parameter.
+    '  Received Value:
+    '  Ulong
+    ' 
+    ' Results in:
+    '  Not converted to string
+    ' 
+    SeAdtParmTypeSockAddrNoPort = 28 ' Produces 1 parameter
+    ' 
+    '  Received value:
+    ' 
+    '  pointer to SOCKADDR_IN/SOCKADDR_IN6
+    '  structure
+    ' 
+    '  Results in:
+    ' 
+    '  param 1: IPv4/IPv6 address string
+    ' 
+    ' 
+    '  Everything below this exists only in Windows Server 2008 and greater
+    ' 
+    SeAdtParmTypeAccessReason = 29 ' Produces 1 parameters
+    ' 
+    '  Received value:
+    ' 
+    '  pointer to SE_ADT_ACCESS_REASON structure
+    ' 
+    '  Results in:
+    ' 
+    '  String representation of the access reason.
+    ' 
+    ' 
+    '  Everything below this exists only in Windows Server 2012 and greater
+    ' 
+    SeAdtParmTypeStagingReason = 30 ' Produces 1 parameters
+    ' 
+    '  Received value:
+    ' 
+    '  pointer to SE_ADT_ACCESS_REASON structure
+    ' 
+    '  Results in:
+    ' 
+    '  String representation of Staging policy's
+    '  access reason.
+    ' 
+    SeAdtParmTypeResourceAttribute = 31 ' Produces 1 parameters
+    ' 
+    '  Received value:
+    ' 
+    '  pointer to SECURITY_DESCRIPTOR
+    '  structure
+    ' 
+    '  Results in:
+    ' 
+    '  SDDL string representation of the
+    '  Resource Attribute ACEs in the SD
+    ' 
+    SeAdtParmTypeClaims = 32 ' Produces 1 parameters
+    ' 
+    '  Received value:
+    ' 
+    '  pointer to the structure -
+    '  CLAIM_SECURITY_ATTRIBUTES_INFORMATION
+    '  structure
+    ' 
+    '  Results in:
+    ' 
+    '  Claims information as attributes, value
+    '  pairs
+    ' 
+    SeAdtParmTypeLogonIdAsSid = 33 ' Produces 4 parameters.
+    '  Received Value:
+    ' 
+    '   SID  (variable length)
+    ' 
+    ' Results in:
+    ' 
+    '   param 1: Sid string (based on SID and not derived from the LUID)
+    '   param 2: -
+    '   param 3: -
+    '   param 4: -
+    SeAdtParmTypeMultiSzString = 34 'Produces 1 parameter
+    ' Received value:
+    ' 
+    '  PZZWSTR string
+    ' 
+    ' Results in:
+    ' 
+    '  Unicode string with each null replaced with /r/n
+    SeAdtParmTypeLogonIdEx = 35 'Produces 4 parameters.
+    ' Received Value:
+    ' 
+    '   LUID (fixed length)
+    ' 
+    ' Results in:
+    ' 
+    '   param 1: Sid string
+    '   param 2: Username string
+    '   param 3: domain name string
+    '   param 4: Logon ID (Luid) string
+End Enum
+
+Public Enum LsaAdtObjectTypeFlags
+    SE_ADT_OBJECT_ONLY = &h1
+End Enum
+
+Public Type SE_ADT_OBJECT_TYPE
+    ObjectType As UUID
+    /* [ TypeHint(LsaAdtObjectTypeFlags) ] */ Flags As Integer
+    '#define SE_ADT_OBJECT_ONLY 0x1
+    Level As Integer
+    AccessMask As Long 'ACCESS_MASK
+End Type
+
+Public Type SE_ADT_PARAMETER_ARRAY_ENTRY
+    Type As SE_ADT_PARAMETER_TYPE
+    Length As Long
+    Data(0 To 1) As LongPtr
+    Address As LongPtr
+End Type
+
+Public Type SE_ADT_ACCESS_REASON
+    AccessMask As Long 'ACCESS_MASK
+    AccessReasons(0 To 31) As Long
+    ObjectTypeIndex As Long
+    AccessGranted As Long
+    SecurityDescriptor As LongPtr
+End Type
+
+Public Enum SecurityCapabilityConstants
+    SECURITY_CAPABILITY_INTERNET_CLIENT = (&H00000001)
+    SECURITY_CAPABILITY_INTERNET_CLIENT_SERVER  = (&H00000002)
+    SECURITY_CAPABILITY_PRIVATE_NETWORK_CLIENT_SERVER  = (&H00000003)
+    SECURITY_CAPABILITY_PICTURES_LIBRARY  = (&H00000004)
+    SECURITY_CAPABILITY_VIDEOS_LIBRARY  = (&H00000005)
+    SECURITY_CAPABILITY_MUSIC_LIBRARY  = (&H00000006)
+    SECURITY_CAPABILITY_DOCUMENTS_LIBRARY  = (&H00000007)
+    SECURITY_CAPABILITY_ENTERPRISE_AUTHENTICATION  = (&H00000008)
+    SECURITY_CAPABILITY_SHARED_USER_CERTIFICATES  = (&H00000009)
+    SECURITY_CAPABILITY_REMOVABLE_STORAGE  = (&H0000000A)
+    SECURITY_CAPABILITY_APPOINTMENTS  = (&H0000000B)
+    SECURITY_CAPABILITY_CONTACTS  = (&H0000000C)
+    SECURITY_CAPABILITY_INTERNET_EXPLORER  = (&H00001000)
+End Enum
+
+Public Enum SecurityMandatoryLabelAuthority
+    SECURITY_MANDATORY_UNTRUSTED_RID  = (&H00000000)
+    SECURITY_MANDATORY_LOW_RID  = (&H00001000)
+    SECURITY_MANDATORY_MEDIUM_RID  = (&H00002000)
+    SECURITY_MANDATORY_MEDIUM_PLUS_RID = (SECURITY_MANDATORY_MEDIUM_RID + &H100)
+    SECURITY_MANDATORY_HIGH_RID  = (&H00003000)
+    SECURITY_MANDATORY_SYSTEM_RID  = (&H00004000)
+    SECURITY_MANDATORY_PROTECTED_PROCESS_RID  = (&H00005000)
+    SECURITY_MANDATORY_MAXIMUM_USER_RID = SECURITY_MANDATORY_SYSTEM_RID
+End Enum
+
+Public Enum SecurityAuthenticationAuthority
+    SECURITY_AUTHENTICATION_AUTHORITY_RID_COUNT  = (1)
+    SECURITY_AUTHENTICATION_AUTHORITY_ASSERTED_RID  = (&H00000001)
+    SECURITY_AUTHENTICATION_SERVICE_ASSERTED_RID  = (&H00000002)
+    SECURITY_AUTHENTICATION_FRESH_KEY_AUTH_RID  = (&H00000003)
+    SECURITY_AUTHENTICATION_KEY_TRUST_RID  = (&H00000004)
+    SECURITY_AUTHENTICATION_KEY_PROPERTY_MFA_RID  = (&H00000005)
+    SECURITY_AUTHENTICATION_KEY_PROPERTY_ATTESTATION_RID  = (&H00000006)
+End Enum
+
+Public Const SE_INTERACTIVE_LOGON_NAME  = "SeInteractiveLogonRight"
+Public Const SE_NETWORK_LOGON_NAME  = "SeNetworkLogonRight"
+Public Const SE_BATCH_LOGON_NAME  = "SeBatchLogonRight"
+Public Const SE_SERVICE_LOGON_NAME  = "SeServiceLogonRight"
+Public Const SE_DENY_INTERACTIVE_LOGON_NAME  = "SeDenyInteractiveLogonRight"
+Public Const SE_DENY_NETWORK_LOGON_NAME  = "SeDenyNetworkLogonRight"
+Public Const SE_DENY_BATCH_LOGON_NAME  = "SeDenyBatchLogonRight"
+Public Const SE_DENY_SERVICE_LOGON_NAME  = "SeDenyServiceLogonRight"
+Public Const SE_REMOTE_INTERACTIVE_LOGON_NAME  = "SeRemoteInteractiveLogonRight"
+Public Const SE_DENY_REMOTE_INTERACTIVE_LOGON_NAME  = "SeDenyRemoteInteractiveLogonRight"
+
+Public Type LSA_TRANSLATED_SID
+    Use As SID_NAME_USE
+    RelativeId As Long
+    DomainIndex As LONG
+End Type
+
+Public Enum SCESTATUS
+    SCESTATUS_SUCCESS  = 0
+    SCESTATUS_INVALID_PARAMETER  = 1
+    SCESTATUS_RECORD_NOT_FOUND  = 2
+    SCESTATUS_INVALID_DATA  = 3
+    SCESTATUS_OBJECT_EXIST  = 4
+    SCESTATUS_BUFFER_TOO_SMALL  = 5
+    SCESTATUS_PROFILE_NOT_FOUND  = 6
+    SCESTATUS_BAD_FORMAT  = 7
+    SCESTATUS_NOT_ENOUGH_RESOURCE  = 8
+    SCESTATUS_ACCESS_DENIED  = 9
+    SCESTATUS_CANT_DELETE  = 10
+    SCESTATUS_PREFIX_OVERFLOW  = 11
+    SCESTATUS_OTHER_ERROR  = 12
+    SCESTATUS_ALREADY_RUNNING  = 13
+    SCESTATUS_SERVICE_NOT_SUPPORT  = 14
+    SCESTATUS_MOD_NOT_FOUND  = 15
+    SCESTATUS_EXCEPTION_IN_SERVER  = 16
+    SCESTATUS_NO_TEMPLATE_GIVEN  = 17
+    SCESTATUS_NO_MAPPING  = 18
+    SCESTATUS_TRUST_FAIL  = 19
+End Enum
+
+Public Enum KERB_LOGON_SUBMIT_TYPE
+    KerbInteractiveLogon=2
+    KerbSmartCardLogon=6
+    KerbWorkstationUnlockLogon=7
+    KerbSmartCardUnlockLogon=8
+    KerbProxyLogon=9
+    KerbTicketLogon=10
+    KerbTicketUnlockLogon=11
+    KerbS4ULogon=12
+    KerbCertificateLogon=13
+    KerbCertificateS4ULogon=14
+    KerbCertificateUnlockLogon=15
+    KerbNoElevationLogon=83
+    KerbLuidLogon=84
+End Enum
+Public Type KERB_INTERACTIVE_LOGON
+    MessageType As KERB_LOGON_SUBMIT_TYPE
+    LogonDomainName As UNICODE_STRING
+    UserName As UNICODE_STRING
+    Password As UNICODE_STRING
+End Type
+Public Type KERB_INTERACTIVE_UNLOCK_LOGON
+    Logon As KERB_INTERACTIVE_LOGON
+    LogonId As LUID
+End Type
+Public Type KERB_SMART_CARD_LOGON
+    MessageType As KERB_LOGON_SUBMIT_TYPE
+    Pin As UNICODE_STRING
+    CspDataLength As Long
+    CspData As LongPtr 'PUCHAR
+End Type
+Public Type KERB_SMART_CARD_UNLOCK_LOGON
+    Logon As KERB_SMART_CARD_LOGON
+    LogonId As LUID
+End Type
+
+Public Enum KerbCertLogonFlags
+    KERB_CERTIFICATE_LOGON_FLAG_CHECK_DUPLICATES  = &H1
+    KERB_CERTIFICATE_LOGON_FLAG_USE_CERTIFICATE_INFO  = &H2
+End Enum
+Public Type KERB_CERTIFICATE_LOGON
+    MessageType As KERB_LOGON_SUBMIT_TYPE ' KerbCertificateLogon
+    DomainName As UNICODE_STRING ' OPTIONAL, if supplied, used to locate the account forest
+    UserName As UNICODE_STRING ' OPTIONAL, if supplied, used to locate the account
+    Pin As UNICODE_STRING
+    Flags As KerbCertLogonFlags ' additional flags
+    CspDataLength As Long
+    CspData As LongPtr 'PUCHAR; contains the smartcard CSP data
+End Type
+Public Type KERB_CERTIFICATE_UNLOCK_LOGON
+    Logon As KERB_CERTIFICATE_LOGON
+    LogonId As LUID
+End Type
+
+Public Enum KerbCertS4ULogonFlags
+    KERB_CERTIFICATE_S4U_LOGON_FLAG_CHECK_DUPLICATES  = &H1
+    KERB_CERTIFICATE_S4U_LOGON_FLAG_CHECK_LOGONHOURS  = &H2
+    KERB_CERTIFICATE_S4U_LOGON_FLAG_FAIL_IF_NT_AUTH_POLICY_REQUIRED  = &H4
+    KERB_CERTIFICATE_S4U_LOGON_FLAG_IDENTIFY  = &H8  ' request for identify token, must have the same value as KERB_S4U_LOGON_FLAG_IDENTIFY
+End Enum
+Public Type KERB_CERTIFICATE_S4U_LOGON
+    MessageType As KERB_LOGON_SUBMIT_TYPE
+    Flags As KerbCertS4ULogonFlags
+    UserPrincipalName As UNICODE_STRING
+    ' OPTIONAL, certificate mapping hints: username or username@domain
+    DomainName As UNICODE_STRING ' used to locate the forest
+    ' OPTIONAL, certificate mapping hints: if missing, using the local machine's domain
+    CertificateLength As Long ' for the client certificate 
+    Certificate As LongPtr 'PUCHAR; for the client certificate, BER encoded
+End Type
+
+Public Enum KerbTicketLogonFlags
+    KERB_LOGON_FLAG_ALLOW_EXPIRED_TICKET  = &H1
+    KERB_LOGON_FLAG_REDIRECTED  = &H2
+End Enum
+Public Type KERB_TICKET_LOGON
+    MessageType As KERB_LOGON_SUBMIT_TYPE
+    Flags As KerbTicketLogonFlags
+    ServiceTicketLength As Long
+    TicketGrantingTicketLength As Long
+    ServiceTicket As LongPtr ' REQUIRED: Service ticket "host"
+    TicketGrantingTicket As LongPtr ' OPTIONAL: User's encdoded in a KERB_CRED message, encrypted with session key from service ticket
+End Type
+Public Type KERB_TICKET_UNLOCK_LOGON
+    Logon As KERB_TICKET_LOGON
+    LogonId As LUID
+End Type
+
+
+Public Enum KERB_S4U_LOGON_FLAGS
+    KERB_S4U_LOGON_FLAG_CHECK_LOGONHOURS  = &H2
+    KERB_S4U_LOGON_FLAG_IDENTIFY  = &H8  ' request for identify token
+End Enum
+Public Type KERB_S4U_LOGON
+    MessageType As KERB_LOGON_SUBMIT_TYPE
+    Flags As KERB_S4U_LOGON_FLAGS
+    ClientUpn As UNICODE_STRING
+    ClientRealm As UNICODE_STRING
+End Type
+
+Public Const KERBEROS_VERSION  = 5
+Public Const KERBEROS_REVISION  = 6
+
+Public Enum KerbETypeValues
+    KERB_ETYPE_NULL  = 0
+    KERB_ETYPE_DES_CBC_CRC  = 1
+    KERB_ETYPE_DES_CBC_MD4  = 2
+    KERB_ETYPE_DES_CBC_MD5  = 3
+    KERB_ETYPE_AES128_CTS_HMAC_SHA1_96  = 17
+    KERB_ETYPE_AES256_CTS_HMAC_SHA1_96  = 18
+    KERB_ETYPE_RC4_MD4  = -128  ' FFFFFF80
+    KERB_ETYPE_RC4_PLAIN2  = -129
+    KERB_ETYPE_RC4_LM  = -130
+    KERB_ETYPE_RC4_SHA  = -131
+    KERB_ETYPE_DES_PLAIN  = -132
+    KERB_ETYPE_RC4_HMAC_OLD  = -133  ' FFFFFF7B
+    KERB_ETYPE_RC4_PLAIN_OLD  = -134
+    KERB_ETYPE_RC4_HMAC_OLD_EXP  = -135
+    KERB_ETYPE_RC4_PLAIN_OLD_EXP  = -136
+    KERB_ETYPE_RC4_PLAIN  = -140
+    KERB_ETYPE_RC4_PLAIN_EXP  = -141
+'  used internally by userapi.cxx
+    KERB_ETYPE_AES128_CTS_HMAC_SHA1_96_PLAIN  = -148
+    KERB_ETYPE_AES256_CTS_HMAC_SHA1_96_PLAIN  = -149
+'  Pkinit encryption types
+    KERB_ETYPE_DSA_SHA1_CMS  = 9
+    KERB_ETYPE_RSA_MD5_CMS  = 10
+    KERB_ETYPE_RSA_SHA1_CMS  = 11
+    KERB_ETYPE_RC2_CBC_ENV  = 12
+    KERB_ETYPE_RSA_ENV  = 13
+    KERB_ETYPE_RSA_ES_OEAP_ENV  = 14
+    KERB_ETYPE_DES_EDE3_CBC_ENV  = 15
+'  Deprecated
+    KERB_ETYPE_DSA_SIGN  = 8
+    KERB_ETYPE_RSA_PRIV  = 9
+    KERB_ETYPE_RSA_PUB  = 10
+    KERB_ETYPE_RSA_PUB_MD5  = 11
+    KERB_ETYPE_RSA_PUB_SHA1  = 12
+    KERB_ETYPE_PKCS7_PUB  = 13
+' #if(_WIN32_WINNT >= 0x0502)
+'  Unsupported but defined types
+    KERB_ETYPE_DES3_CBC_MD5  = 5
+    KERB_ETYPE_DES3_CBC_SHA1  = 7
+    KERB_ETYPE_DES3_CBC_SHA1_KD  = 16
+' #endif
+'  In use types
+    KERB_ETYPE_DES_CBC_MD5_NT  = 20
+    KERB_ETYPE_RC4_HMAC_NT  = 23
+    KERB_ETYPE_RC4_HMAC_NT_EXP  = 24
+End Enum
+Public Enum KerbAlgChecksums
+    KERB_CHECKSUM_MD5  = 7
+    KERB_CHECKSUM_MD5_DES  = 8
+    KERB_CHECKSUM_SHA1_NEW  = 14  ' defined in RFC3961
+    KERB_CHECKSUM_HMAC_SHA1_96_AES128  = 15
+    KERB_CHECKSUM_HMAC_SHA1_96_AES256  = 16
+    KERB_CHECKSUM_LM  = -130
+    KERB_CHECKSUM_SHA1  = -131
+    KERB_CHECKSUM_REAL_CRC32  = -132
+    KERB_CHECKSUM_DES_MAC  = -133
+    KERB_CHECKSUM_DES_MAC_MD5  = -134
+    KERB_CHECKSUM_MD25  = -135
+    KERB_CHECKSUM_RC4_MD5  = -136
+    KERB_CHECKSUM_MD5_HMAC  = -137  ' used by netlogon
+    KERB_CHECKSUM_HMAC_MD5  = -138  ' used by Kerberos
+    KERB_CHECKSUM_SHA256  = -139
+    KERB_CHECKSUM_SHA384  = -140
+    KERB_CHECKSUM_SHA512  = -141
+'  used internally by userapi.cxx
+    KERB_CHECKSUM_HMAC_SHA1_96_AES128_Ki  = -150
+    KERB_CHECKSUM_HMAC_SHA1_96_AES256_Ki  = -151
+End Enum
+Public Enum KerbAuthReqFlags
+    AUTH_REQ_ALLOW_FORWARDABLE  = &H00000001
+    AUTH_REQ_ALLOW_PROXIABLE = &H00000002
+    AUTH_REQ_ALLOW_POSTDATE  = &H00000004
+    AUTH_REQ_ALLOW_RENEWABLE  = &H00000008
+    AUTH_REQ_ALLOW_NOADDRESS  = &H00000010
+    AUTH_REQ_ALLOW_ENC_TKT_IN_SKEY  = &H00000020
+    AUTH_REQ_ALLOW_VALIDATE  = &H00000040
+    AUTH_REQ_VALIDATE_CLIENT  = &H00000080
+    AUTH_REQ_OK_AS_DELEGATE  = &H00000100
+    AUTH_REQ_PREAUTH_REQUIRED  = &H00000200
+    AUTH_REQ_TRANSITIVE_TRUST  = &H00000400
+    AUTH_REQ_ALLOW_S4U_DELEGATE  = &H00000800
+    AUTH_REQ_PER_USER_FLAGS  = (AUTH_REQ_ALLOW_FORWARDABLE  Or  AUTH_REQ_ALLOW_PROXIABLE  Or  AUTH_REQ_ALLOW_POSTDATE  Or  AUTH_REQ_ALLOW_RENEWABLE  Or  AUTH_REQ_ALLOW_VALIDATE )
+End Enum
+Public Enum KerbTicketFlags
+    KERB_TICKET_FLAGS_reserved  = &H80000000
+    KERB_TICKET_FLAGS_forwardable  = &H40000000
+    KERB_TICKET_FLAGS_forwarded  = &H20000000
+    KERB_TICKET_FLAGS_proxiable  = &H10000000
+    KERB_TICKET_FLAGS_proxy  = &H08000000
+    KERB_TICKET_FLAGS_may_postdate  = &H04000000
+    KERB_TICKET_FLAGS_postdated  = &H02000000
+    KERB_TICKET_FLAGS_invalid  = &H01000000
+    KERB_TICKET_FLAGS_renewable  = &H00800000
+    KERB_TICKET_FLAGS_initial  = &H00400000
+    KERB_TICKET_FLAGS_pre_authent  = &H00200000
+    KERB_TICKET_FLAGS_hw_authent  = &H00100000
+    KERB_TICKET_FLAGS_ok_as_delegate  = &H00040000
+    KERB_TICKET_FLAGS_name_canonicalize  = &H00010000
+    KERB_TICKET_FLAGS_cname_in_pa_data  = &H00040000
+    KERB_TICKET_FLAGS_enc_pa_rep  = &H00010000
+    KERB_TICKET_FLAGS_reserved1  = &H00000001
+End Enum
+Public Enum KerbNameTypes
+    KRB_NT_UNKNOWN  = 0  ' Name type not known
+    KRB_NT_PRINCIPAL  = 1  ' Just the name of the principal as in DCE, or for users
+    KRB_NT_PRINCIPAL_AND_ID  = -131  ' Name of the principal and its SID.
+    KRB_NT_SRV_INST  = 2  ' Service and other unique instance (krbtgt)
+    KRB_NT_SRV_INST_AND_ID  = -132  ' SPN and SID
+    KRB_NT_SRV_HST  = 3  ' Service with host name as instance (telnet, rcommands)
+    KRB_NT_SRV_XHST  = 4  ' Service with host as remaining components
+    KRB_NT_UID  = 5  ' Unique ID
+    KRB_NT_ENTERPRISE_PRINCIPAL  = 10  ' UPN **ONLY**
+    KRB_NT_WELLKNOWN  = 11  ' Well-known principal names
+    KRB_NT_ENT_PRINCIPAL_AND_ID  = -130  ' UPN and SID
+'  MS extensions, negative according to the RFC
+    KRB_NT_MS_PRINCIPAL  = -128  ' NT4 style name
+    KRB_NT_MS_PRINCIPAL_AND_ID  = -129  ' nt4 style name with sid
+    KRB_NT_MS_BRANCH_ID = -133  ' Branch ID
+' #if (_WIN32_WINNT >= 0x0600)
+    KRB_NT_X500_PRINCIPAL  = 6  ' Encoded X.500 Distingished name [RFC 2253]
+End Enum
+
+
+Public Const KRB_WELLKNOWN_STRING  = "WELLKNOWN"
+Public Const KRB_ANONYMOUS_STRING  = "ANONYMOUS"
+Public Const MICROSOFT_KERBEROS_NAME_A  = "Kerberos"
+Public Const MICROSOFT_KERBEROS_NAME_W  = "Kerberos"
+Public Const MICROSOFT_KERBEROS_NAME  = "Kerberos"
+
+Public Enum KerbEncryptMsgFlags
+    KERB_WRAP_NO_ENCRYPT = &H1
+End Enum
+
+Public Enum MSV1_0_LOGON_SUBMIT_TYPE
+    MsV1_0InteractiveLogon=2
+    MsV1_0Lm20Logon 
+    MsV1_0NetworkLogon 
+    MsV1_0SubAuthLogon 
+    MsV1_0WorkstationUnlockLogon=7
+    '  defined in Windows Server 2008 and up
+    MsV1_0S4ULogon=12
+    MsV1_0VirtualLogon=82
+    '  defined in Windows 8 and up
+    MsV1_0NoElevationLogon=83
+    '  defined in Windows 8.1 and up
+    MsV1_0LuidLogon=84
+End Enum
+Public Enum MSV1_0_PROFILE_BUFFER_TYPE
+    MsV1_0InteractiveProfile=2
+    MsV1_0Lm20LogonProfile  
+    MsV1_0SmartCardProfile 
+End Enum
+Public Type MSV1_0_INTERACTIVE_LOGON
+    MessageType As MSV1_0_LOGON_SUBMIT_TYPE
+    LogonDomainName As UNICODE_STRING
+    UserName As UNICODE_STRING
+    Password As UNICODE_STRING
+End Type
+Public Type MSV1_0_INTERACTIVE_PROFILE
+    MessageType As MSV1_0_PROFILE_BUFFER_TYPE
+    LogonCount As Integer
+    BadPasswordCount As Integer
+    LogonTime As LARGE_INTEGER
+    LogoffTime As LARGE_INTEGER
+    KickOffTime As LARGE_INTEGER
+    PasswordLastSet As LARGE_INTEGER
+    PasswordCanChange As LARGE_INTEGER
+    PasswordMustChange As LARGE_INTEGER
+    LogonScript As UNICODE_STRING
+    HomeDirectory As UNICODE_STRING
+    FullName As UNICODE_STRING
+    ProfilePath As UNICODE_STRING
+    HomeDirectoryDrive As UNICODE_STRING
+    LogonServer As UNICODE_STRING
+    UserFlags As Long
+End Type
+
+Public Const MSV1_0_CHALLENGE_LENGTH  = 8
+Public Const MSV1_0_USER_SESSION_KEY_LENGTH  = 16
+Public Const MSV1_0_LANMAN_SESSION_KEY_LENGTH  = 8
+
+Public Enum MSV1ParameterControlFlags
+    MSV1_0_CLEARTEXT_PASSWORD_ALLOWED  = &H02
+    MSV1_0_UPDATE_LOGON_STATISTICS  = &H04
+    MSV1_0_RETURN_USER_PARAMETERS  = &H08
+    MSV1_0_DONT_TRY_GUEST_ACCOUNT  = &H10
+    MSV1_0_ALLOW_SERVER_TRUST_ACCOUNT  = &H20
+    MSV1_0_RETURN_PASSWORD_EXPIRY  = &H40
+'  this next flag says that CaseInsensitiveChallengeResponse
+'   (aka LmResponse) contains a client challenge in the first 8 bytes
+    MSV1_0_USE_CLIENT_CHALLENGE  = &H80
+    MSV1_0_TRY_GUEST_ACCOUNT_ONLY  = &H100
+    MSV1_0_RETURN_PROFILE_PATH  = &H200
+    MSV1_0_TRY_SPECIFIED_DOMAIN_ONLY  = &H400
+    MSV1_0_ALLOW_WORKSTATION_TRUST_ACCOUNT  = &H800
+' #if (_WIN32_WINNT >= 0x0501) -- Disabled until IIS fixes their target version.
+    MSV1_0_DISABLE_PERSONAL_FALLBACK  = &H00001000
+    MSV1_0_ALLOW_FORCE_GUEST  = &H00002000
+' #endif
+' #if (_WIN32_WINNT >= 0x0502)
+    MSV1_0_CLEARTEXT_PASSWORD_SUPPLIED  = &H00004000
+'  Start
+'  Doesnt exist in Windows XP but does exist in Windows 2000 Security Rollup and up
+    MSV1_0_USE_DOMAIN_FOR_ROUTING_ONLY = &H00008000&
+' #endif
+    MSV1_0_SUBAUTHENTICATION_DLL_EX  = &H00100000
+'  Defined in Windows Server 2003 SP1 and above
+    MSV1_0_ALLOW_MSVCHAPV2  = &H00010000
+' #if (_WIN32_WINNT >= 0x0600)
+' Defined in Windows Server 2008 and up
+    MSV1_0_S4U2SELF  = &H00020000  ' no password is needed
+    MSV1_0_CHECK_LOGONHOURS_FOR_S4U  = &H00040000  ' check logon hours for S4U logon
+' #endif
+' #if (_WIN32_WINNT >= 0x0602)
+'  Logon for internet users. To be used by calls from auth package
+'  directly, not from netlogon.
+    MSV1_0_INTERNET_DOMAIN  = &H00080000
+' #endif
+'  The high order byte is a value indicating the SubAuthentication DLL.
+'   Zero indicates no SubAuthentication DLL.
+    MSV1_0_SUBAUTHENTICATION_DLL  = &HFF000000
+    MSV1_0_SUBAUTHENTICATION_DLL_SHIFT  = 24
+    MSV1_0_MNS_LOGON  = &H01000000
+End Enum
+
+Public Const MSV1_0_SUBAUTHENTICATION_DLL_RAS  = 2
+Public Const MSV1_0_SUBAUTHENTICATION_DLL_IIS  = 132
+
+Public Type MSV1_0_LM20_LOGON
+    MessageType As MSV1_0_LOGON_SUBMIT_TYPE
+    LogonDomainName As UNICODE_STRING
+    UserName As UNICODE_STRING
+    Workstation As UNICODE_STRING
+    ChallengeToClient(0 To (MSV1_0_CHALLENGE_LENGTH - 1)) As Byte
+    CaseSensitiveChallengeResponse As LSA_STRING
+    CaseInsensitiveChallengeResponse As LSA_STRING
+    ParameterControl As MSV1ParameterControlFlags
+End Type
+Public Type MSV1_0_SUBAUTH_LOGON
+    MessageType As MSV1_0_LOGON_SUBMIT_TYPE
+    LogonDomainName As UNICODE_STRING
+    UserName As UNICODE_STRING
+    Workstation As UNICODE_STRING
+    ChallengeToClient(0 To (MSV1_0_CHALLENGE_LENGTH - 1)) As Byte
+    AuthenticationInfo1 As LSA_STRING
+    AuthenticationInfo2 As LSA_STRING
+    ParameterControl As MSV1ParameterControlFlags
+    SubAuthPackageId As Long
+End Type
+
+Public Enum MSV1S4ULogonFlags
+    MSV1_0_S4U_LOGON_FLAG_CHECK_LOGONHOURS = &H2
+End Enum
+Public Type MSV1_0_S4U_LOGON
+    MessageType As MSV1_0_LOGON_SUBMIT_TYPE
+    Flags As MSV1S4ULogonFlags
+    UserPrincipalName As UNICODE_STRING ' username or username@domain
+    DomainName As UNICODE_STRING ' Optional: if missing, using the local machine
+End Type
+
+Public Enum LsaProfileUserFlags
+    LOGON_GUEST  = &H01
+    LOGON_NOENCRYPTION  = &H02
+    LOGON_CACHED_ACCOUNT  = &H04
+    LOGON_USED_LM_PASSWORD  = &H08
+    LOGON_EXTRA_SIDS  = &H20
+    LOGON_SUBAUTH_SESSION_KEY  = &H40
+    LOGON_SERVER_TRUST_ACCOUNT  = &H80
+    LOGON_NTLMV2_ENABLED  = &H100  ' says DC understands NTLMv2
+    LOGON_RESOURCE_GROUPS  = &H200
+    LOGON_PROFILE_PATH_RETURNED  = &H400
+'  Defined in Windows Server 2008 and above
+    LOGON_NT_V2  = &H800  ' NT response was used for validation
+    LOGON_LM_V2  = &H1000  ' LM response was used for validation
+    LOGON_NTLM_V2  = &H2000  ' LM response was used to authenticate but NT response was used to derive the session key
+    LOGON_OPTIMIZED  = &H4000  ' this is an optimized logon
+    LOGON_WINLOGON = &H8000&  ' the logon session was created for winlogon
+    LOGON_PKINIT  = &H10000  ' Kerberos PKINIT extension was used to authenticate the user
+    LOGON_NO_OPTIMIZED  = &H20000  ' optimized logon has been disabled for this account
+' #if (_WIN32_WINNT >= 0x0602)
+    LOGON_NO_ELEVATION  = &H40000  ' Do not allow elevation for this logon
+    LOGON_MANAGED_SERVICE  = &H80000  ' Managed service account
+'  The high order byte is reserved for return by SubAuthentication DLLs.
+    MSV1_0_SUBAUTHENTICATION_FLAGS  = &HFF000000
+'  Values returned by the MSV1_0_MNS_LOGON SubAutheentication DLL
+    LOGON_GRACE_LOGON  = &H01000000
+End Enum
+Public Type MSV1_0_LM20_LOGON_PROFILE
+    MessageType As MSV1_0_PROFILE_BUFFER_TYPE
+    KickOffTime As LARGE_INTEGER
+    LogoffTime As LARGE_INTEGER
+    UserFlags As LsaProfileUserFlags
+    UserSessionKey(0 To (MSV1_0_USER_SESSION_KEY_LENGTH - 1)) As Byte
+    LogonDomainName As UNICODE_STRING
+    LanmanSessionKey(0 To (MSV1_0_LANMAN_SESSION_KEY_LENGTH - 1)) As Byte
+    LogonServer As UNICODE_STRING
+    UserParameters As UNICODE_STRING
+End Type
+
+Public Const MSV1_0_PACKAGE_NAME  = "MICROSOFT_AUTHENTICATION_PACKAGE_V1_0"
+Public Const MSV1_0_PACKAGE_NAMEW  = "MICROSOFT_AUTHENTICATION_PACKAGE_V1_0"
+Public Const MSV1_0_PACKAGE_NAMEW_LENGTH  = LenB(MSV1_0_PACKAGE_NAMEW) - 2 ' sizeof(WCHAR)
+'  Location of MSV authentication package data
+Public Const MSV1_0_SUBAUTHENTICATION_KEY  = "SYSTEM\CurrentControlSet\Control\Lsa\MSV1_0"
+Public Const MSV1_0_SUBAUTHENTICATION_VALUE  = "Auth"
+
+
+Public Enum POLICY_AUDIT_EVENT_TYPE 
+    AuditCategorySystem = 0
+    AuditCategoryLogon
+    AuditCategoryObjectAccess
+    AuditCategoryPrivilegeUse
+    AuditCategoryDetailedTracking
+    AuditCategoryPolicyChange
+    AuditCategoryAccountManagement
+    AuditCategoryDirectoryServiceAccess
+    AuditCategoryAccountLogon
+End Enum
+Public Enum POLICY_AUDIT_EVENT_OPTIONS
+    POLICY_AUDIT_EVENT_UNCHANGED  = (&H00000000)
+'  Audit successful occurrences of events of this type
+    POLICY_AUDIT_EVENT_SUCCESS  = (&H00000001)
+'  Audit failed attempts to cause an event of this type to occur
+    POLICY_AUDIT_EVENT_FAILURE  = (&H00000002)
+    POLICY_AUDIT_EVENT_NONE = (&H00000004)
+'  Mask of valid event auditing options
+    POLICY_AUDIT_EVENT_MASK  = (POLICY_AUDIT_EVENT_SUCCESS  Or  POLICY_AUDIT_EVENT_FAILURE  Or  POLICY_AUDIT_EVENT_UNCHANGED  Or  POLICY_AUDIT_EVENT_NONE)
+End Enum
+
+
+Public Enum POLICY_INFORMATION_CLASS
+   PolicyAuditLogInformation = 1
+   PolicyAuditEventsInformation
+   PolicyPrimaryDomainInformation
+   PolicyPdAccountInformation
+   PolicyAccountDomainInformation
+   PolicyLsaServerRoleInformation
+   PolicyReplicaSourceInformation
+   PolicyDefaultQuotaInformation
+   PolicyModificationInformation
+   PolicyAuditFullSetInformation
+   PolicyAuditFullQueryInformation
+   PolicyDnsDomainInformation
+   PolicyDnsDomainInformationInt
+   PolicyLocalAccountDomainInformation
+   PolicyMachineAccountInformation
+   PolicyMachineAccountInformation2
+   PolicyLastEntry
+End Enum
+
+Public Type POLICY_AUDIT_LOG_INFO
+    AuditLogPercentFull As Long
+    MaximumLogSize As Long
+    AuditRetentionPeriod As LARGE_INTEGER
+    AuditLogFullShutdownInProgress As Byte
+    TimeToShutdown As LARGE_INTEGER
+    NextAuditRecordId As Long
+End Type
+Public Type POLICY_AUDIT_EVENTS_INFO
+    AuditingMode As Byte
+    EventAuditingOptions As LongPtr 'PPOLICY_AUDIT_EVENT_OPTIONS
+    MaximumAuditEventCount As Long
+End Type
+Public Type POLICY_AUDIT_SUBCATEGORIES_INFO
+    MaximumSubCategoryCount As Long
+    EventAuditingOptions As LongPtr 'PPOLICY_AUDIT_EVENT_OPTIONS
+End Type
+Public Type POLICY_AUDIT_CATEGORIES_INFO
+    MaximumCategoryCount As Long
+    SubCategoriesInfo As LongPtr 'PPOLICY_AUDIT_SUBCATEGORIES_INFO
+End Type
+
+Public Type POLICY_PD_ACCOUNT_INFO
+    Name As LSA_UNICODE_STRING
+End Type
+
+Public Enum PolicyAccessRights
+    POLICY_VIEW_LOCAL_INFORMATION  = &H00000001
+    POLICY_VIEW_AUDIT_INFORMATION  = &H00000002
+    POLICY_GET_PRIVATE_INFORMATION  = &H00000004
+    POLICY_TRUST_ADMIN  = &H00000008
+    POLICY_CREATE_ACCOUNT = &H00000010
+    POLICY_CREATE_SECRET  = &H00000020
+    POLICY_CREATE_PRIVILEGE  = &H00000040
+    POLICY_SET_DEFAULT_QUOTA_LIMITS  = &H00000080
+    POLICY_SET_AUDIT_REQUIREMENTS  = &H00000100
+    POLICY_AUDIT_LOG_ADMIN  = &H00000200
+    POLICY_SERVER_ADMIN  = &H00000400
+    POLICY_LOOKUP_NAMES  = &H00000800
+    POLICY_NOTIFICATION  = &H00001000
+    POLICY_ALL_ACCESS  = (STANDARD_RIGHTS_REQUIRED  Or  POLICY_VIEW_LOCAL_INFORMATION  Or  POLICY_VIEW_AUDIT_INFORMATION  Or  POLICY_GET_PRIVATE_INFORMATION  Or  POLICY_TRUST_ADMIN  Or  POLICY_CREATE_ACCOUNT  Or  POLICY_CREATE_SECRET  Or  POLICY_CREATE_PRIVILEGE  Or  POLICY_SET_DEFAULT_QUOTA_LIMITS  Or  POLICY_SET_AUDIT_REQUIREMENTS  Or  POLICY_AUDIT_LOG_ADMIN  Or  POLICY_SERVER_ADMIN  Or  POLICY_LOOKUP_NAMES)
+    POLICY_READ  = (STANDARD_RIGHTS_READ  Or  POLICY_VIEW_AUDIT_INFORMATION  Or  POLICY_GET_PRIVATE_INFORMATION)
+    POLICY_WRITE  = (STANDARD_RIGHTS_WRITE  Or  POLICY_TRUST_ADMIN  Or  POLICY_CREATE_ACCOUNT  Or  POLICY_CREATE_SECRET  Or  POLICY_CREATE_PRIVILEGE  Or  POLICY_SET_DEFAULT_QUOTA_LIMITS  Or  POLICY_SET_AUDIT_REQUIREMENTS  Or  POLICY_AUDIT_LOG_ADMIN  Or  POLICY_SERVER_ADMIN)
+    POLICY_EXECUTE  = (STANDARD_RIGHTS_EXECUTE  Or  POLICY_VIEW_LOCAL_INFORMATION  Or  POLICY_LOOKUP_NAMES)
+End Enum
+
+Public Enum POLICY_LSA_SERVER_ROLE
+    PolicyServerRoleBackup = 2
+    PolicyServerRolePrimary  
+End Enum
+Public Type POLICY_LSA_SERVER_ROLE_INFO
+    LsaServerRole As POLICY_LSA_SERVER_ROLE
+End Type
+
+Public Type POLICY_REPLICA_SOURCE_INFO
+    ReplicaSource As LSA_UNICODE_STRING
+    ReplicaAccountName As LSA_UNICODE_STRING
+End Type
+
+Public Type POLICY_DEFAULT_QUOTA_INFO
+    QuotaLimits As QUOTA_LIMITS
+End Type
+
+Public Type POLICY_MODIFICATION_INFO
+    ModifiedId As LARGE_INTEGER
+    DatabaseCreationTime As LARGE_INTEGER
+End Type
+
+Public Type POLICY_AUDIT_FULL_SET_INFO
+    ShutDownOnFull As Byte
+End Type
+
+Public Type POLICY_AUDIT_FULL_QUERY_INFO
+    ShutDownOnFull As Byte
+    LogIsFull As Byte
+End Type
+
+Public Enum POLICY_DOMAIN_INFORMATION_CLASS
+    ' #if (_WIN32_WINNT <= 0x0500)
+    PolicyDomainQualityOfServiceInformation=1
+    ' #endif
+    PolicyDomainEfsInformation=2
+    PolicyDomainKerberosTicketInformation  
+End Enum
+Public Enum PolicyQosFlags
+    POLICY_QOS_SCHANNEL_REQUIRED  = &H00000001
+    POLICY_QOS_OUTBOUND_INTEGRITY  = &H00000002
+    POLICY_QOS_OUTBOUND_CONFIDENTIALITY  = &H00000004
+    POLICY_QOS_INBOUND_INTEGRITY  = &H00000008
+    POLICY_QOS_INBOUND_CONFIDENTIALITY  = &H00000010
+    POLICY_QOS_ALLOW_LOCAL_ROOT_CERT_STORE  = &H00000020
+    POLICY_QOS_RAS_SERVER_ALLOWED  = &H00000040
+    POLICY_QOS_DHCP_SERVER_ALLOWED  = &H00000080
+End Enum
+Public Type POLICY_DOMAIN_QUALITY_OF_SERVICE_INFO
+    QualityOfService As PolicyQosFlags
+End Type
+
+Public Type POLICY_DOMAIN_EFS_INFO
+    InfoLength As Long
+    EfsBlob As LongPtr 'PUCHAR
+End Type
+
+Public Enum PolicyKerbValidateOpts
+    POLICY_KERBEROS_VALIDATE_CLIENT = &H00000080
+End Enum
+
+Public Type POLICY_DOMAIN_KERBEROS_TICKET_INFO
+    AuthenticationOptions As PolicyKerbValidateOpts
+    MaxServiceTicketAge As LARGE_INTEGER
+    MaxTicketAge As LARGE_INTEGER
+    MaxRenewAge As LARGE_INTEGER
+    MaxClockSkew As LARGE_INTEGER
+    Reserved As LARGE_INTEGER
+End Type
+
+Public Type POLICY_MACHINE_ACCT_INFO
+    Rid As Long
+    Sid As LongPtr 'PSID
+End Type
+Public Type POLICY_MACHINE_ACCT_INFO2
+    Rid As Long
+    Sid As LongPtr 'PSID
+    ObjectGuid As UUID
+End Type
+
+Public Type LSA_LAST_INTER_LOGON_INFO
+    LastSuccessfulLogon As LARGE_INTEGER
+    LastFailedLogon As LARGE_INTEGER
+    FailedAttemptCountSinceLastSuccessfulLogon As Long
+End Type
+
+Public Type SECURITY_LOGON_SESSION_DATA
+    Size As Long
+    LogonId As LUID
+    UserName As LSA_UNICODE_STRING
+    LogonDomain As LSA_UNICODE_STRING
+    AuthenticationPackage As LSA_UNICODE_STRING
+    LogonType As SECURITY_LOGON_TYPE
+    Session As Long
+    Sid As LongPtr 'PSID
+    LogonTime As LARGE_INTEGER
+    LogonServer As LSA_UNICODE_STRING
+    DnsDomainName As LSA_UNICODE_STRING
+    Upn As LSA_UNICODE_STRING
+    UserFlags As LsaProfileUserFlags
+    LastLogonInfo As LSA_LAST_INTER_LOGON_INFO
+    LogonScript As LSA_UNICODE_STRING
+    ProfilePath As LSA_UNICODE_STRING
+    HomeDirectory As LSA_UNICODE_STRING
+    HomeDirectoryDrive As LSA_UNICODE_STRING
+    LogoffTime As LARGE_INTEGER
+    KickOffTime As LARGE_INTEGER
+    PasswordLastSet As LARGE_INTEGER
+    PasswordCanChange As LARGE_INTEGER
+    PasswordMustChange As LARGE_INTEGER
+End Type
+
+Public Enum LsaLookupOptions
+LSA_LOOKUP_RETURN_LOCAL_NAMES = 0 
+LSA_LOOKUP_PREFER_INTERNET_NAMES = &H40000000 
+LSA_LOOKUP_DISALLOW_CONNECTED_ACCOUNT_INTERNET_SID = &H80000000
+End Enum
+
+Public Enum TRUSTED_INFORMATION_CLASS
+    TrustedDomainNameInformation = 1
+    TrustedControllersInformation
+    TrustedPosixOffsetInformation
+    TrustedPasswordInformation
+    TrustedDomainInformationBasic
+    TrustedDomainInformationEx
+    TrustedDomainAuthInformation
+    TrustedDomainFullInformation
+    TrustedDomainAuthInformationInternal
+    TrustedDomainFullInformationInternal
+    TrustedDomainInformationEx2Internal
+    TrustedDomainFullInformation2Internal
+    TrustedDomainSupportedEncryptionTypes
+    TrustedDomainAuthInformationInternalAes
+    TrustedDomainFullInformationInternalAes
+End Enum
+
+Public Type TRUSTED_DOMAIN_NAME_INFO
+    Name As LSA_UNICODE_STRING
+End Type
+Public Type TRUSTED_CONTROLLERS_INFO
+    Entries As Long
+    Names As LongPtr 'PLSA_UNICODE_STRING
+End Type
+
+Public Type TRUSTED_POSIX_OFFSET_INFO
+    Offset As Long
+End Type
+
+Public Type TRUSTED_PASSWORD_INFO
+    Password As LSA_UNICODE_STRING
+    OldPassword As LSA_UNICODE_STRING
+End Type
+
+'Alias TRUSTED_DOMAIN_INFORMATION_BASIC As LSA_TRUST_INFORMATION
+Public Type TRUSTED_DOMAIN_INFORMATION_BASIC 
+    Name As LSA_UNICODE_STRING
+    Sid As LongPtr 'PSID
+End Type
+
+Public Enum LsaTrustDirection
+    TRUST_DIRECTION_DISABLED  = &H00000000
+    TRUST_DIRECTION_INBOUND  = &H00000001
+    TRUST_DIRECTION_OUTBOUND  = &H00000002
+    TRUST_DIRECTION_BIDIRECTIONAL  = (TRUST_DIRECTION_INBOUND  Or  TRUST_DIRECTION_OUTBOUND)
+End Enum
+Public Enum LsaTrustType
+    TRUST_TYPE_DOWNLEVEL  = &H00000001  ' NT4 and before
+    TRUST_TYPE_UPLEVEL  = &H00000002  ' NT5
+    TRUST_TYPE_MIT  = &H00000003  ' Trust with a MIT Kerberos realm
+    TRUST_TYPE_DCE  = &H00000004  ' Trust with a DCE realm
+End Enum
+Public Enum LsaTrustAttributes
+    TRUST_ATTRIBUTE_NON_TRANSITIVE  = &H00000001  ' Disallow transitivity
+    TRUST_ATTRIBUTE_UPLEVEL_ONLY  = &H00000002  ' Trust link only valid for uplevel client
+    TRUST_ATTRIBUTE_QUARANTINED_DOMAIN = &H00000004 ' Used to quarantine domains
+    TRUST_ATTRIBUTE_FOREST_TRANSITIVE = &H00000008  ' This link may contain forest trust information
+    TRUST_ATTRIBUTE_CROSS_ORGANIZATION  = &H00000010  ' This trust is to a domain/forest which is not part of this enterprise
+    TRUST_ATTRIBUTE_WITHIN_FOREST  = &H00000020  ' Trust is internal to this forest
+    TRUST_ATTRIBUTE_TREAT_AS_EXTERNAL  = &H00000040  ' Trust is to be treated as external for trust boundary purposes
+' #if (_WIN32_WINNT >= 0x0600)
+    TRUST_ATTRIBUTE_TRUST_USES_RC4_ENCRYPTION  = &H00000080  ' MIT trust with RC4
+    TRUST_ATTRIBUTE_TRUST_USES_AES_KEYS  = &H00000100  ' Use AES keys to encrypte KRB TGTs
+' #endif
+' #if (_WIN32_WINNT >= 0x0602)
+    TRUST_ATTRIBUTE_CROSS_ORGANIZATION_NO_TGT_DELEGATION  = &H00000200  ' do not forward TGT to the other side of the trust which is not part of this enterprise
+    TRUST_ATTRIBUTE_PIM_TRUST  = &H00000400  ' Outgoing trust to a PIM forest.
+' #endif
+' #if (_WIN32_WINNT >= 0x0603)
+'  Forward the TGT to the other side of the trust which is not part of this enterprise
+'  This flag has the opposite meaning of TRUST_ATTRIBUTE_CROSS_ORGANIZATION_NO_TGT_DELEGATION which is now deprecated.
+'  Note: setting TRUST_ATTRIBUTE_CROSS_ORGANIZATION_ENABLE_TGT_DELEGATION is not recommended from a security standpoint.
+    TRUST_ATTRIBUTE_CROSS_ORGANIZATION_ENABLE_TGT_DELEGATION  = &H00000800
+' #endif
+'  Disables authentication target validation for all NTLM pass-through authentication
+'  requests using this trust.
+    TRUST_ATTRIBUTE_DISABLE_AUTH_TARGET_VALIDATION = &H00001000
+    TRUST_ATTRIBUTE_TREE_PARENT  = &H00400000  ' Denotes that we are setting the trust to our parent in the org tree...
+    TRUST_ATTRIBUTE_TREE_ROOT  = &H00800000  ' Denotes that we are setting the trust to another tree root in a forest...
+    TRUST_ATTRIBUTES_VALID  = &HFF03FFFF
+    TRUST_ATTRIBUTES_USER  = &HFF000000
+End Enum
+Public Type TRUSTED_DOMAIN_INFORMATION_EX
+    Name As LSA_UNICODE_STRING
+    FlatName As LSA_UNICODE_STRING
+    Sid As LongPtr 'PSID
+    TrustDirection As LsaTrustDirection
+    TrustType As LsaTrustType
+    TrustAttributes As LsaTrustAttributes
+End Type
+Public Type TRUSTED_DOMAIN_INFORMATION_EX2
+    Name As LSA_UNICODE_STRING
+    FlatName As LSA_UNICODE_STRING
+    Sid As LongPtr 'PSID
+    TrustDirection As LsaTrustDirection
+    TrustType As LsaTrustType
+    TrustAttributes As LsaTrustAttributes
+    ForestTrustInfo As LongPtr
+End Type
+
+Public Enum LsaTrustAuthInfo
+    TRUST_AUTH_TYPE_NONE  = 0  ' Ignore this entry
+    TRUST_AUTH_TYPE_NT4OWF  = 1  ' NT4 OWF password
+    TRUST_AUTH_TYPE_CLEAR  = 2  ' Cleartext password
+    TRUST_AUTH_TYPE_VERSION  = 3  ' Cleartext password version number
+End Enum
+Public Type LSA_AUTH_INFORMATION
+    LastUpdateTime As LARGE_INTEGER
+    AuthType As LsaTrustAuthInfo
+    AuthInfoLength As Long
+    AuthInfo As LongPtr 'PUCHAR
+End Type
+
+Public Type TRUSTED_DOMAIN_AUTH_INFORMATION
+    IncomingAuthInfos As Long
+    IncomingAuthenticationInformation As LongPtr 'PLSA_AUTH_INFORMATION
+    IncomingPreviousAuthenticationInformation As LongPtr 'PLSA_AUTH_INFORMATION
+    OutgoingAuthInfos As Long
+    OutgoingAuthenticationInformation As LongPtr 'PLSA_AUTH_INFORMATION
+    OutgoingPreviousAuthenticationInformation As LongPtr 'PLSA_AUTH_INFORMATION
+End Type
+
+Public Type TRUSTED_DOMAIN_FULL_INFORMATION
+    Information As TRUSTED_DOMAIN_INFORMATION_EX
+    PosixOffset As TRUSTED_POSIX_OFFSET_INFO
+    AuthInformation As TRUSTED_DOMAIN_AUTH_INFORMATION
+End Type
+Public Type TRUSTED_DOMAIN_FULL_INFORMATION2
+    Information As TRUSTED_DOMAIN_INFORMATION_EX2
+    PosixOffset As TRUSTED_POSIX_OFFSET_INFO
+    AuthInformation As TRUSTED_DOMAIN_AUTH_INFORMATION
+End Type
+
+Public Type TRUSTED_DOMAIN_SUPPORTED_ENCRYPTION_TYPES
+    SupportedEncryptionTypes As Long
+End Type
+
+Public Enum POLICY_NOTIFICATION_INFORMATION_CLASS
+    PolicyNotifyAuditEventsInformation = 1
+    PolicyNotifyAccountDomainInformation
+    PolicyNotifyServerRoleInformation
+    PolicyNotifyDnsDomainInformation
+    PolicyNotifyDomainEfsInformation
+    PolicyNotifyDomainKerberosTicketInformation
+    PolicyNotifyMachineAccountPasswordInformation
+    PolicyNotifyGlobalSaclInformation
+    PolicyNotifyMax ' must always be the last entry
+End Enum
+
+'LsaLookup.h 100% coverage
+Public Declare PtrSafe Function LsaLookupOpenLocalPolicy Lib "advapi32" (ObjectAttributes As LSA_OBJECT_ATTRIBUTES, ByVal AccessMask As Long, PolicyHandle As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function LsaLookupClose Lib "advapi32" (ByVal ObjectHandle As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function LsaLookupTranslateSids Lib "advapi32" (ByVal PolicyHandle As LongPtr, ByVal Count As Long, Sids As LongPtr, ReferencedDomains As LongPtr, Names As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function LsaLookupTranslateNames Lib "advapi32" (ByVal PolicyHandle As LongPtr, ByVal Count As Long, Names As LSA_UNICODE_STRING, ReferencedDomains As LongPtr, Sids As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function LsaLookupGetDomainInfo Lib "advapi32" (ByVal PolicyHandle As LongPtr, ByVal DomainInfoClass As LSA_LOOKUP_DOMAIN_INFO_CLASS, DomainInfo As LongPtr) As NTSTATUS
+
+Public Declare PtrSafe Function LsaAddAccountRights Lib "advapi32" (ByVal PolicyHandle As LongPtr, ByVal AccountSid As LongPtr, UserRights As LSA_UNICODE_STRING, ByVal CountOfRights As Long) As NTSTATUS
+Public Declare PtrSafe Function LsaRemoveAccountRights Lib "advapi32" (ByVal PolicyHandle As LongPtr, ByVal AccountSid As LongPtr, ByVal AllRights As Byte, UserRights As LSA_UNICODE_STRING, ByVal CountOfRights As Long) As NTSTATUS
+Public Declare PtrSafe Function LsaEnumerateAccountRights Lib "advapi32" (ByVal PolicyHandle As LongPtr, ByVal AccountSid As LongPtr, UserRights As LongPtr, CountOfRights As Long) As NTSTATUS
+Public Declare PtrSafe Function LsaEnumerateAccountsWithUserRight Lib "advapi32" (ByVal PolicyHandle As LongPtr, UserRight As LSA_UNICODE_STRING, Buffer As LongPtr, CountReturned As Long) As NTSTATUS
+Public Declare PtrSafe Function LsaLookupNames Lib "advapi32" (ByVal PolicyHandle As LongPtr, ByVal Count As Long, Names As LSA_UNICODE_STRING, ReferencedDomains As LongPtr, Sids As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function LsaLookupNames2 Lib "advapi32" (ByVal PolicyHandle As LongPtr, ByVal Flags As Long, ByVal Count As Long, Names As LSA_UNICODE_STRING, ReferencedDomains As LongPtr, Sids As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function LsaLookupSids Lib "advapi32" (ByVal PolicyHandle As LongPtr, ByVal Count As Long, Sids As LongPtr, ReferencedDomains As LongPtr, Names As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function LsaLookupSids2 Lib "advapi32" (ByVal PolicyHandle As LongPtr, ByVal LookupOptions As LsaLookupOptions, ByVal Count As Long, Sids As LongPtr, ReferencedDomains As LongPtr, Names As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function LsaOpenPolicy Lib "advapi32" (SystemName As LSA_UNICODE_STRING, ObjectAttributes As LSA_OBJECT_ATTRIBUTES, [ TypeHint (PolicyAccessRights) ] ByVal DesiredAccess As Long, PolicyHandle As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function LsaClose Lib "advapi32" (ByVal ObjectHandle As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function LsaOpenTrustedDomainByName Lib "advapi32" (ByVal PolicyHandle As LongPtr, TrustedDomainName As LSA_UNICODE_STRING, ByVal DesiredAccess As Long, TrustedDomainHandle As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function LsaNtStatusToWinError Lib "advapi32" (ByVal status As NTSTATUS) As Long
+Public Declare PtrSafe Function LsaRegisterLogonProcess Lib "advapi32" (LogonProcessName As LSA_STRING, LsaHandle As LongPtr, SecurityMode As LSA_OPERATIONAL_MODE) As NTSTATUS
+Public Declare PtrSafe Function LsaDeregisterLogonProcess Lib "advapi32" (ByVal LsaHandle As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function LsaLogonUser Lib "advapi32" (ByVal LsaHandle As LongPtr, OriginName As LSA_STRING, ByVal LogonType As SECURITY_LOGON_TYPE, ByVal AuthenticationPackage As Long, AuthenticationInformation As Any, ByVal AuthenticationInformationLength As Long, LocalGroups As TOKEN_GROUPS, SourceContext As TOKEN_SOURCE, ProfileBuffer As LongPtr, ProfileBufferLength As Long, LogonId As LUID, Token As LongPtr, Quotas As QUOTA_LIMITS, SubStatus As NTSTATUS) As NTSTATUS
+Public Declare PtrSafe Function LsaLookupAuthenticationPackage Lib "advapi32" (ByVal LsaHandle As LongPtr, PackageName As LSA_STRING, AuthenticationPackage As Long) As NTSTATUS
+Public Declare PtrSafe Function LsaQueryInformationPolicy Lib "advapi32" (ByVal PolicyHandle As LongPtr, ByVal InformationClass As POLICY_INFORMATION_CLASS, Buffer As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function LsaSetInformationPolicy Lib "advapi32" (ByVal PolicyHandle As LongPtr, ByVal InformationClass As POLICY_INFORMATION_CLASS, Buffer As Any) As NTSTATUS
+Public Declare PtrSafe Function LsaRetrievePrivateData Lib "advapi32" (ByVal PolicyHandle As LongPtr, KeyName As LSA_UNICODE_STRING, PrivateData As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function LsaStorePrivateData Lib "advapi32" (ByVal PolicyHandle As LongPtr, KeyName As LSA_UNICODE_STRING, PrivateData As LSA_UNICODE_STRING) As NTSTATUS
+Public Declare PtrSafe Function LsaFreeMemory Lib "advapi32" (ByVal Buffer As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function LsaFreeReturnBuffer Lib "advapi32" (ByVal Buffer As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function LsaEnumerateLogonSessions Lib "advapi32" (LogonSessionCount As Long, LogonSessionList As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function LsaGetLogonSessionData Lib "advapi32" (LogonId As LUID, ppLogonSessionData As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function LsaQueryTrustedDomainInfo Lib "advapi32" (ByVal PolicyHandle As LongPtr, ByVal TrustedDomainSid As LongPtr, ByVal InformationClass As TRUSTED_INFORMATION_CLASS, Buffer As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function LsaSetTrustedDomainInformation Lib "advapi32" (ByVal PolicyHandle As LongPtr, ByVal TrustedDomainSid As LongPtr, ByVal InformationClass As TRUSTED_INFORMATION_CLASS, Buffer As Any) As NTSTATUS
+Public Declare PtrSafe Function LsaEnumerateTrustedDomains Lib "advapi32" (ByVal PolicyHandle As LongPtr, EnumerationContext As Long, Buffer As LongPtr, ByVal PreferredMaximumLength As Long, CountReturned As Long) As NTSTATUS
+Public Declare PtrSafe Function LsaEnumerateTrustedDomainsEx Lib "advapi32" (ByVal PolicyHandle As LongPtr, EnumerationContext As Long, Buffer As LongPtr, ByVal PreferredMaximumLength As Long, CountReturned As Long) As NTSTATUS
+Public Declare PtrSafe Function LsaQueryTrustedDomainInfoByName Lib "advapi32" (ByVal PolicyHandle As LongPtr, TrustedDomainName As LSA_UNICODE_STRING, ByVal InformationClass As TRUSTED_INFORMATION_CLASS, Buffer As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function LsaSetTrustedDomainInfoByName Lib "advapi32" (ByVal PolicyHandle As LongPtr, TrustedDomainName As LSA_UNICODE_STRING, ByVal InformationClass As TRUSTED_INFORMATION_CLASS, Buffer As Any) As NTSTATUS
+Public Declare PtrSafe Function LsaCreateTrustedDomainEx Lib "advapi32" (ByVal PolicyHandle As LongPtr, TrustedDomainInformation As TRUSTED_DOMAIN_INFORMATION_EX, AuthenticationInformation As TRUSTED_DOMAIN_AUTH_INFORMATION, ByVal DesiredAccess As Long, TrustedDomainHandle As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function LsaDeleteTrustedDomain Lib "advapi32" (ByVal PolicyHandle As LongPtr, ByVal TrustedDomainSid As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function LsaRegisterPolicyChangeNotification Lib "advapi32" (ByVal InformationClass As POLICY_NOTIFICATION_INFORMATION_CLASS, ByVal NotificationEventHandle As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function LsaUnregisterPolicyChangeNotification Lib "advapi32" (ByVal InformationClass As POLICY_NOTIFICATION_INFORMATION_CLASS, ByVal NotificationEventHandle As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function LsaQueryDomainInformationPolicy Lib "advapi32" (ByVal PolicyHandle As LongPtr, ByVal InformationClass As POLICY_DOMAIN_INFORMATION_CLASS, Buffer As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function LsaSetDomainInformationPolicy Lib "advapi32" (ByVal PolicyHandle As LongPtr, ByVal InformationClass As POLICY_DOMAIN_INFORMATION_CLASS, Buffer As Any) As NTSTATUS
+
+
+
+Public Type LSA_ENUMERATION_INFORMATION
+    Sid As LongPtr 'PSID
+End Type
+
+Public Enum LsaAccountAccessRights
+    ACCOUNT_VIEW  = &H00000001
+    ACCOUNT_ADJUST_PRIVILEGES  = &H00000002
+    ACCOUNT_ADJUST_QUOTAS  = &H00000004
+    ACCOUNT_ADJUST_SYSTEM_ACCESS  = &H00000008
+    ACCOUNT_ALL_ACCESS  = (STANDARD_RIGHTS_REQUIRED  Or  ACCOUNT_VIEW  Or  ACCOUNT_ADJUST_PRIVILEGES  Or  ACCOUNT_ADJUST_QUOTAS  Or  ACCOUNT_ADJUST_SYSTEM_ACCESS)
+    ACCOUNT_READ  = (STANDARD_RIGHTS_READ  Or  ACCOUNT_VIEW)
+    ACCOUNT_WRITE  = (STANDARD_RIGHTS_WRITE  Or  ACCOUNT_ADJUST_PRIVILEGES  Or  ACCOUNT_ADJUST_QUOTAS  Or  ACCOUNT_ADJUST_SYSTEM_ACCESS)
+    ACCOUNT_EXECUTE  = (STANDARD_RIGHTS_EXECUTE)
+End Enum
+
+Public Enum LsaSystemAccessFlags
+    SECURITY_ACCESS_INTERACTIVE_LOGON  = (&H00000001)
+    SECURITY_ACCESS_NETWORK_LOGON  = (&H00000002)
+    SECURITY_ACCESS_BATCH_LOGON  = (&H00000004)
+    SECURITY_ACCESS_SERVICE_LOGON  = (&H00000010)
+    SECURITY_ACCESS_PROXY_LOGON  = (&H00000020)
+    SECURITY_ACCESS_DENY_INTERACTIVE_LOGON  = (&H00000040)
+    SECURITY_ACCESS_DENY_NETWORK_LOGON  = (&H00000080)
+    SECURITY_ACCESS_DENY_BATCH_LOGON  = (&H00000100)
+    SECURITY_ACCESS_DENY_SERVICE_LOGON  = (&H00000200)
+    SECURITY_ACCESS_REMOTE_INTERACTIVE_LOGON  = (&H00000400)
+    SECURITY_ACCESS_DENY_REMOTE_INTERACTIVE_LOGON  = (&H00000800)
+End Enum
+
+Public Enum POLICY_SYSTEM_ACCESS_MODE
+    POLICY_MODE_INTERACTIVE  = SECURITY_ACCESS_INTERACTIVE_LOGON
+    POLICY_MODE_NETWORK  = SECURITY_ACCESS_NETWORK_LOGON
+    POLICY_MODE_BATCH  = SECURITY_ACCESS_BATCH_LOGON
+    POLICY_MODE_SERVICE  = SECURITY_ACCESS_SERVICE_LOGON
+    POLICY_MODE_PROXY  = SECURITY_ACCESS_PROXY_LOGON
+    POLICY_MODE_DENY_INTERACTIVE  = SECURITY_ACCESS_DENY_INTERACTIVE_LOGON
+    POLICY_MODE_DENY_NETWORK  = SECURITY_ACCESS_DENY_NETWORK_LOGON
+    POLICY_MODE_DENY_BATCH  = SECURITY_ACCESS_DENY_BATCH_LOGON
+    POLICY_MODE_DENY_SERVICE  = SECURITY_ACCESS_DENY_SERVICE_LOGON
+    POLICY_MODE_REMOTE_INTERACTIVE  = SECURITY_ACCESS_REMOTE_INTERACTIVE_LOGON
+    POLICY_MODE_DENY_REMOTE_INTERACTIVE  = SECURITY_ACCESS_DENY_REMOTE_INTERACTIVE_LOGON
+    POLICY_MODE_ALL  = (POLICY_MODE_INTERACTIVE  Or  POLICY_MODE_NETWORK  Or  POLICY_MODE_BATCH  Or  POLICY_MODE_SERVICE  Or  POLICY_MODE_PROXY  Or  POLICY_MODE_DENY_INTERACTIVE  Or  POLICY_MODE_DENY_NETWORK  Or  SECURITY_ACCESS_DENY_BATCH_LOGON  Or  SECURITY_ACCESS_DENY_SERVICE_LOGON  Or  POLICY_MODE_REMOTE_INTERACTIVE  Or  POLICY_MODE_DENY_REMOTE_INTERACTIVE )
+'  The following is the bits allowed in NT4.0
+    POLICY_MODE_ALL_NT4  = (POLICY_MODE_INTERACTIVE  Or  POLICY_MODE_NETWORK  Or  POLICY_MODE_BATCH  Or  POLICY_MODE_SERVICE  Or  POLICY_MODE_PROXY )
+End Enum
+
+Public Enum LsaSecretAccessRights
+    SECRET_SET_VALUE  = &H00000001
+    SECRET_QUERY_VALUE  = &H00000002
+    SECRET_ALL_ACCESS  = (STANDARD_RIGHTS_REQUIRED  Or  SECRET_SET_VALUE  Or  SECRET_QUERY_VALUE)
+    SECRET_READ  = (STANDARD_RIGHTS_READ  Or  SECRET_QUERY_VALUE)
+    SECRET_WRITE  = (STANDARD_RIGHTS_WRITE  Or  SECRET_SET_VALUE)
+    SECRET_EXECUTE  = (STANDARD_RIGHTS_EXECUTE)
+End Enum
+
+Public Const LSA_GLOBAL_SECRET_PREFIX  = "G$"
+Public Const LSA_GLOBAL_SECRET_PREFIX_LENGTH  = 2
+Public Const LSA_LOCAL_SECRET_PREFIX  = "L$"
+Public Const LSA_LOCAL_SECRET_PREFIX_LENGTH  = 2
+Public Const LSA_MACHINE_SECRET_PREFIX  = "M$"
+Public Const LSA_MACHINE_SECRET_PREFIX_LENGTH = 2
+
+Public Declare PtrSafe Function LsaEnumerateAccounts Lib "advapi32" (ByVal PolicyHandle As LongPtr, EnumerationContext As Long, Buffer As LongPtr, ByVal PreferredMaximumLength As Long, CountReturned As Long) As NTSTATUS
+Public Declare PtrSafe Function LsaDelete Lib "advapi32" (ByVal ObjectHandle As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function LsaQuerySecurityObject Lib "advapi32" (ByVal ObjectHandle As LongPtr, ByVal SecurityInformation As SECURITY_INFORMATION, SecurityDescriptor As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function LsaSetSecurityObject Lib "advapi32" (ByVal ObjectHandle As LongPtr, ByVal SecurityInformation As SECURITY_INFORMATION, SecurityDescriptor As SECURITY_DESCRIPTOR) As NTSTATUS
+Public Declare PtrSafe Function LsaChangePassword Lib "advapi32" (ServerName As LSA_UNICODE_STRING, DomainName As LSA_UNICODE_STRING, AccountName As LSA_UNICODE_STRING, OldPassword As LSA_UNICODE_STRING, NewPassword As LSA_UNICODE_STRING) As NTSTATUS
+Public Declare PtrSafe Function LsaOpenPolicySce Lib "advapi32" (SystemName As LSA_UNICODE_STRING, ObjectAttributes As LSA_OBJECT_ATTRIBUTES, ByVal DesiredAccess As Long, PolicyHandle As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function LsaEnumeratePrivileges Lib "advapi32" (ByVal PolicyHandle As LongPtr, EnumerationContext As Long, Buffer As LongPtr, ByVal PreferredMaximumLength As Long, CountReturned As Long) As NTSTATUS
+Public Declare PtrSafe Function LsaCreateAccount Lib "advapi32" (ByVal PolicyHandle As LongPtr, ByVal AccountSid As LongPtr, [ TypeHint(LsaAccountAccessRights) ] ByVal DesiredAccess As Long, AccountHandle As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function LsaOpenAccount Lib "advapi32" (ByVal PolicyHandle As LongPtr, ByVal AccountSid As LongPtr, [ TypeHint(LsaAccountAccessRights) ] ByVal DesiredAccess As Long, AccountHandle As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function LsaAddPrivilegesToAccount Lib "advapi32" (ByVal AccountHandle As LongPtr, Privileges As PRIVILEGE_SET) As NTSTATUS
+Public Declare PtrSafe Function LsaRemovePrivilegesFromAccount Lib "advapi32" (ByVal AccountHandle As LongPtr, ByVal AllPrivileges As Byte, Privileges As PRIVILEGE_SET) As NTSTATUS
+Public Declare PtrSafe Function LsaGetQuotasForAccount Lib "advapi32" (ByVal AccountHandle As LongPtr, QuotaLimits As QUOTA_LIMITS) As NTSTATUS
+Public Declare PtrSafe Function LsaSetQuotasForAccount Lib "advapi32" (ByVal AccountHandle As LongPtr, QuotaLimits As QUOTA_LIMITS) As NTSTATUS
+Public Declare PtrSafe Function LsaGetSystemAccessAccount Lib "advapi32" (ByVal AccountHandle As LongPtr, [ TypeHint(POLICY_SYSTEM_ACCESS_MODE) ] SystemAccess As Long) As NTSTATUS
+Public Declare PtrSafe Function LsaSetSystemAccessAccount Lib "advapi32" (ByVal AccountHandle As LongPtr, [ TypeHint(POLICY_SYSTEM_ACCESS_MODE) ] ByVal SystemAccess As Long) As NTSTATUS
+Public Declare PtrSafe Function LsaLookupPrivilegeDisplayName Lib "advapi32" (ByVal PolicyHandle As LongPtr, pName As LSA_UNICODE_STRING, DisplayName As LongPtr, LanguageReturned As Integer) As NTSTATUS
+Public Declare PtrSafe Function LsaLookupPrivilegeName Lib "advapi32" (ByVal PolicyHandle As LongPtr, Value As LUID, pName As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function LsaLookupPrivilegeValue Lib "advapi32" (ByVal PolicyHandle As LongPtr, pName As LSA_UNICODE_STRING, Value As LUID) As NTSTATUS
+Public Declare PtrSafe Function LsaOpenSecret Lib "advapi32" (ByVal PolicyHandle As LongPtr, SecretName As LSA_UNICODE_STRING, [ TypeHint(LsaSecretAccessRights) ] ByVal DesiredAccess As Long, SecretHandle As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function LsaSetSecret Lib "advapi32" (ByVal SecretHandle As LongPtr, CurrentValue As LSA_UNICODE_STRING, OldValue As LSA_UNICODE_STRING) As NTSTATUS
+Public Declare PtrSafe Function LsaQuerySecret Lib "advapi32" (ByVal SecretHandle As LongPtr, CurrentValue As LongPtr, CurrentValueSetTime As LARGE_INTEGER, OldValue As LongPtr, OldValueSetTime As LARGE_INTEGER) As NTSTATUS
+Public Declare PtrSafe Function LsaCreateSecret Lib "advapi32" (ByVal PolicyHandle As LongPtr, SecretName As LSA_UNICODE_STRING, [ TypeHint (LsaSecretAccessRights) ] ByVal DesiredAccess As Long, SecretHandle As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function LsaGetUserName Lib "advapi32" (UserName As LongPtr, DomainName As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function LsaGetRemoteUserName Lib "advapi32" (SystemName As LSA_UNICODE_STRING, UserName As LongPtr, DomainName As LongPtr) As NTSTATUS
+
+
 Public DeclareWide PtrSafe Function IsTextUnicode Lib "advapi32" (lpv As Any, ByVal iSize As Long, lpiResult As ISTXTUTF_RESULT) As BOOL
 Public Enum ISTXTUTF_RESULT
-    IS_TEXT_UNICODE_ASCII16  = &H0001
-    IS_TEXT_UNICODE_REVERSE_ASCII16  = &H0010
+    IS_TEXT_UNICODE_ASCII16 = &H0001
+    IS_TEXT_UNICODE_REVERSE_ASCII16 = &H0010
     IS_TEXT_UNICODE_STATISTICS  = &H0002
     IS_TEXT_UNICODE_REVERSE_STATISTICS  = &H0020
     IS_TEXT_UNICODE_CONTROLS  = &H0004
@@ -32428,7 +33949,7 @@ End Enum
 Public Type PRIVILEGE_SET
         PrivilegeCount As Long
         Control As Long
-        Privilege(0) As LUID_AND_ATTRIBUTES
+        Privilege(50) As LUID_AND_ATTRIBUTES
 End Type
 
 Public Enum CheckTokenMembershipExFlags
@@ -54521,6 +56042,8 @@ Public Const HIGH_SURROGATE_END  = &Hdbff
 Public Const LOW_SURROGATE_START  = &Hdc00
 Public Const LOW_SURROGATE_END  = &Hdfff
 
+
+Public Function KERB_IS_MS_PRINCIPAL(ByvAL x As Long) As Boolean: Return ((x <= KRB_NT_MS_PRINCIPAL) Or (x >= KRB_NT_ENTERPRISE_PRINCIPAL)): End Function
 
 Public Function WHashValOfLHashVal(ByVal lhashval As Long) As Integer
 	Return CUIntToInt(&H0000FFFF& And lhashval)
