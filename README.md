@@ -10,7 +10,7 @@ This project has grown well beyond it's original mission of shell programming. W
 
 ---
 
-**Current Version: 7.1.286 (January 2nd, 2024)**
+**Current Version: 7.2.288 (January 6th, 2024)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -136,13 +136,28 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, lPtr, ...)
 
 ### Updates
 
+
+**Update (v7.2.288, 06 Jan 2024):**\
+-Added Photo Acquisition interfaces and coclasses (photoacquire.h, 100%)\
+-Added accessibility APIs from oleacc.dll (oleacc.h now 100% coverage). Really thought these were already added; there's a bug in oleexp where most are missing from that too despite presence in source.\
+-Added inline Library helper functions from ShObjIdl_core.h; also some additional shell32.dll APIs.\
+-Added SDDL language string constants; coverage of sddl.h now 100%.\
+-Additional advapi32.dll security APIs, to bring coverage of securitybaseapi.h to 100%.\
+-Added 100% coverage of dssec.h.\
+-Cleaned up PROCESS_BASIC_INFORMATION\
+-(Bug fix) LogonUserEx[A,W] definitions incorrect.\
+-(Bug fix) CreateWellKnownSid definition incorrect.\
+-(Bug fix) GetSidIdentifierAuthority definition likely incorrect.\
+-(Bug fix) SHChangeUpdateImageIDList missing 1-byte packing attribute.\
+-(Bug fix) A couple setup APIs missing 32bit 1-byte packing attribute.
+
+
 **Update (v7.1.286, 02 Jan 2024):**\
 -Added initial coverage of Lsa* APIs from advapi32.dll/NTSecAPI.h/LSALookup.h/ntlsa.h\
 -WIC: Converted LongPtr buffer arguments to As Any, for more flexibility in what can be supplied.\
 -WIC: Converted all ByVal VarPtr(WICRect) LongPtr's to ByRef WICRect.\
 -(Bug fix) IWICBitmapSourceTransform::CopyPixels definition incorrect.\
 -(WinDevLibImpl) Added Implements-compatible WIC interfaces for custom codec creation.
-
 
 **Update (v7.0.283, 01 Jan 2024):**\
 -Improved enum associations/formatting for WIC.\
