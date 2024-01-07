@@ -10,7 +10,7 @@ This project has grown well beyond it's original mission of shell programming. W
 
 ---
 
-**Current Version: 7.2.288 (January 6th, 2024)**
+**Current Version: 7.2.289 (January 6th, 2024)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -136,7 +136,7 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, lPtr, ...)
 
 ### Updates
 
-
+**Update (v7.2.289, 06 Jan 2024):** Bug fix: InternetConnect definition incorrect.\
 **Update (v7.2.288, 06 Jan 2024):**\
 -Added Photo Acquisition interfaces and coclasses (photoacquire.h, 100%)\
 -Added accessibility APIs from oleacc.dll (oleacc.h now 100% coverage). Really thought these were already added; there's a bug in oleexp where most are missing from that too despite presence in source.\
