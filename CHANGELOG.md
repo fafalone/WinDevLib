@@ -1,4 +1,16 @@
 
+**Update (v7.2.300, 09 Jan 2024):**:
+-Added wincred advapi32.dll APIs; wincred.h, 100% coverage
+-Completed adding WinHttp APIs, winhttp.h coverage now 100% (note: The WinHttp interface/coclass is )
+-Added remaining websocket.dll APIs, websocket.h coverage now 100%
+-Added pointer encode/decodes functions (and kernel32's Beep): utilapiset.h 100% coverage
+-A few missing WinInet APIs
+-Around 100 additional HRESULT error constants w/ descriptions.
+-Base WinRT IInspectable and some initialization APIs and HSTRING APIs added.
+-(Bug fix) All ERROR_DS_x constants were wrong. ICM ERROR_x constants were wrong.
+
+**Update (v7.2.289, 06 Jan 2024):** Bug fix: InternetConnect definition incorrect.
+
 **Update (v7.2.288, 06 Jan 2024):**
 -Added Photo Acquisition interfaces and coclasses (photoacquire.h, 100%)
 -Added accessibility APIs from oleacc.dll (oleacc.h now 100% coverage). Really thought these were already added; there's a bug in oleexp where most are missing from that too despite presence in source.
