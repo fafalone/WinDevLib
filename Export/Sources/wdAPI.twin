@@ -9582,6 +9582,14 @@ Public DeclareWide PtrSafe Function CallEnclave Lib "kernel32" (ByVal lpRoutine 
 Public DeclareWide PtrSafe Function TerminateEnclave Lib "kernel32" (ByVal lpAddress As LongPtr, ByVal fWait As BOOL) As BOOL
 Public DeclareWide PtrSafe Function DeleteEnclave Lib "kernel32" (ByVal lpAddress As LongPtr) As BOOL
 
+Public Declare PtrSafe Function EncodePointer Lib "kernel32" (ByVal Ptr As LongPtr) As LongPtr
+Public Declare PtrSafe Function DecodePointer Lib "kernel32" (ByVal Ptr As LongPtr) As LongPtr
+Public Declare PtrSafe Function EncodeSystemPointer Lib "kernel32" (ByVal Ptr As LongPtr) As LongPtr
+Public Declare PtrSafe Function DecodeSystemPointer Lib "kernel32" (ByVal Ptr As LongPtr) As LongPtr
+Public Declare PtrSafe Function EncodeRemotePointer Lib "kernel32" (ByVal ProcessHandle As LongPtr, ByVal Ptr As LongPtr, EncodedPtr As LongPtr) As Long
+Public Declare PtrSafe Function DecodeRemotePointer Lib "kernel32" (ByVal ProcessHandle As LongPtr, ByVal Ptr As LongPtr, DecodedPtr As LongPtr) As Long
+
+
 
 Public Declare PtrSafe Function LocalFileTimeToFileTime Lib "kernel32" (lpFileTime As FILETIME, lpLocalFileTime As FILETIME) As Long
 Public Declare PtrSafe Function FileTimeToLocalFileTime Lib "kernel32" (lpFileTime As FILETIME, lpLocalFileTime As FILETIME) As Long
@@ -9652,6 +9660,7 @@ Public Declare PtrSafe Function LoadLibraryExW Lib "kernel32" (ByVal lpLibFileNa
 Public DeclareWide PtrSafe Function LoadLibraryEx Lib "kernel32" Alias "LoadLibraryExW" (ByVal lpLibFileName As String, ByVal hFile As LongPtr, ByVal dwFlags As LoadLibraryFlags) As LongPtr
 Public Declare PtrSafe Function GetProcAddress Lib "kernel32" (ByVal hModule As LongPtr, ByVal lpProcName As String) As LongPtr
 Public Declare PtrSafe Function FreeLibrary Lib "kernel32" (ByVal hLibModule As LongPtr) As Long
+Public Declare PtrSafe Function FreeModule Lib "kernel32" Alias "FreeLibrary" (ByVal hLibModule As LongPtr) As Long
 Public DeclareWide PtrSafe Function GetModuleHandle Lib "kernel32" Alias "GetModuleHandleW" (Optional lpModuleName As Any) As LongPtr
 Public Declare PtrSafe Function GetModuleHandleA Lib "kernel32" (Optional ByVal lpModuleName As String) As LongPtr
 Public Declare PtrSafe Function GetModuleHandleW Lib "kernel32" (Optional ByVal lpModuleName As LongPtr) As LongPtr
@@ -10325,7 +10334,7 @@ End Enum
 
 
 Public Enum ReplaceFileFlags
-    REPLACEFILE_WRITE_THROUGH  = &H00000001
+    REPLACEFILE_WRITE_THROUGH = &H00000001
     REPLACEFILE_IGNORE_MERGE_ERRORS  = &H00000002
     REPLACEFILE_IGNORE_ACL_ERRORS  = &H00000004
 End Enum
@@ -10403,7 +10412,10 @@ End Enum
 
 Public Const EFS_USE_RECOVERY_KEYS = &H1
 
-
+Public Enum FailFastExceptionFlags
+    FAIL_FAST_GENERATE_EXCEPTION_ADDRESS  = &H1
+    FAIL_FAST_NO_HARD_ERROR_DLG  = &H2
+End Enum
 
 
 
@@ -10786,7 +10798,7 @@ Public Const CALLBACK_STREAM_SWITCH  = &H00000001
 Public Enum CopyProgressReturns
 	PROGRESS_CONTINUE  = 0
 	PROGRESS_CANCEL  = 1
-	PROGRESS_STOP  = 2
+	PROGRESS_STOP = 2
 	PROGRESS_QUIET  = 3
 End Enum
 
@@ -11278,7 +11290,7 @@ Public DeclareWide PtrSafe Function QueryProcessAffinityUpdateMode Lib "kernel32
 Public DeclareWide PtrSafe Function GetSystemTimes Lib "kernel32" (lpIdleTime As FILETIME, lpKernelTime As FILETIME, lpUserTime As FILETIME) As BOOL
 Public DeclareWide PtrSafe Function SetProtectedPolicy Lib "kernel32" (PolicyGuid As UUID, ByVal PolicyValue As LongPtr, Optional OldPolicyValue As LongPtr) As BOOL
 Public DeclareWide PtrSafe Function QueryProtectedPolicy Lib "kernel32" (PolicyGuid As UUID, PolicyValue As LongPtr) As BOOL
-
+Public DeclareWide PtrSafe Sub RaiseFailFastException Lib "kernel32" (pExceptionRecord As EXCEPTION_RECORD, pContextRecord As Any, ByVal dwFlags As FailFastExceptionFlags)
 
 Public Function GetCurrentProcessToken() As LongPtr: Return (-4): End Function
 Public Function GetCurrentThreadToken() As LongPtr: Return (-5): End Function
@@ -23119,6 +23131,7 @@ Public Declare PtrSafe Function MessageBoxIndirectA Lib "user32" (lpmbp As MSGBO
 Public DeclareWide PtrSafe Function MessageBoxIndirectW Lib "user32" (lpmbp As MSGBOXPARAMSW) As MessageBoxResults
 Public DeclareWide PtrSafe Function MessageBoxIndirect Lib "user32" Alias "MessageBoxIndirectW" (lpmbp As MSGBOXPARAMS) As MessageBoxResults
 Public DeclareWide PtrSafe Function MessageBeep Lib "user32" (ByVal uType As MessageBoxFlags) As BOOL
+Public DeclareWide PtrSafe Function Beep Lib "kernel32" (ByVal dwFreq As Long, ByVal dwDuration As Long) As BOOL
 
 Public Declare PtrSafe Function BlockInput Lib "user32" (ByVal fBlockIt As BOOL) As BOOL
 Public Declare PtrSafe Function GetAncestor Lib "user32" (ByVal hwnd As LongPtr, ByVal gaFlags As GA_FLAGS) As LongPtr
@@ -34699,7 +34712,461 @@ Public Const CRYPT_DECRYPT_RSA_NO_PADDING_CHECK = &H20
 
 #End Region
 
+'wincred.h, 100% coverage
 
+Public Const CRED_MAX_STRING_LENGTH  = 256
+'  Maximum length of the UserName field.  The worst case is <User>@<DnsDomain>
+Public Const CRED_MAX_USERNAME_LENGTH  = (256+1+256)
+'  Maximum length of the TargetName field for CRED_TYPE_GENERIC (in characters)
+Public Const CRED_MAX_GENERIC_TARGET_NAME_LENGTH  = 32767
+'  Maximum length of the TargetName field for CRED_TYPE_DOMAIN_* (in characters)
+'       Largest one is <DfsRoot>\<DfsShare>
+Public Const CRED_MAX_DOMAIN_TARGET_NAME_LENGTH  = (256+1+80)
+'  Maximum length of a target namespace
+Public Const CRED_MAX_TARGETNAME_NAMESPACE_LENGTH  = (256)
+'  Maximum length of a target attribute
+Public Const CRED_MAX_TARGETNAME_ATTRIBUTE_LENGTH  = (256)
+'  Maximum size of the Credential Attribute Value field (in bytes)
+Public Const CRED_MAX_VALUE_SIZE  = (256)
+'  Maximum number of attributes per credential
+Public Const CRED_MAX_ATTRIBUTES  = 64
+
+Public Type CREDENTIAL_ATTRIBUTEA
+    Keyword As String
+    Flags As Long
+    ValueSize As Long
+    Value As LongPtr 'LPBYTE
+End Type
+Public Type CREDENTIAL_ATTRIBUTEW
+    Keyword As LongPtr
+    Flags As Long
+    ValueSize As Long
+    Value As LongPtr 'LPBYTE
+End Type
+'Alias CREDENTIAL_ATTRIBUTE As CREDENTIAL_ATTRIBUTEW
+Public Type CREDENTIAL_ATTRIBUTE
+    Keyword As LongPtr
+    Flags As Long
+    ValueSize As Long
+    Value As LongPtr 'LPBYTE
+End Type
+
+Public Const CRED_SESSION_WILDCARD_NAME_W  = "*Session"
+Public Const CRED_SESSION_WILDCARD_NAME_A  = "*Session"
+Public Const CRED_UNIVERSAL_WILDCARD_W  = "*"
+Public Const CRED_UNIVERSAL_WILDCARD_A  = "*"
+Public Const CRED_SESSION_WILDCARD_NAME_LENGTH  = (Len(CRED_SESSION_WILDCARD_NAME_A)- 1)
+Public Const CRED_TARGETNAME_DOMAIN_NAMESPACE_W  = "Domain"
+Public Const CRED_TARGETNAME_DOMAIN_NAMESPACE_A  = "Domain"
+Public Const CRED_TARGETNAME_DOMAIN_NAMESPACE_LENGTH  = (Len(CRED_TARGETNAME_DOMAIN_NAMESPACE_A)-1)
+' Public Const CRED_UNIVERSAL_WILDCARD_W  = "*"
+' Public Const CRED_UNIVERSAL_WILDCARD_A  = "*"
+Public Const CRED_TARGETNAME_LEGACYGENERIC_NAMESPACE_W  = "LegacyGeneric"
+Public Const CRED_TARGETNAME_LEGACYGENERIC_NAMESPACE_A  = "LegacyGeneric"
+Public Const CRED_TARGETNAME_LEGACYGENERIC_NAMESPACE_LENGTH  = (Len(CRED_TARGETNAME_LEGACYGENERIC_NAMESPACE_A)-1)
+Public Const CRED_TARGETNAME_NAMESPACE_SEPERATOR_W  = ":"
+Public Const CRED_TARGETNAME_NAMESPACE_SEPERATOR_A  = ":"
+Public Const CRED_TARGETNAME_ATTRIBUTE_SEPERATOR_W  = "="
+Public Const CRED_TARGETNAME_ATTRIBUTE_SEPERATOR_A  = "="
+Public Const CRED_TARGETNAME_DOMAIN_EXTENDED_USERNAME_SEPARATOR_W  = "|"
+Public Const CRED_TARGETNAME_DOMAIN_EXTENDED_USERNAME_SEPARATOR_A  = "|"
+Public Const CRED_TARGETNAME_ATTRIBUTE_TARGET_W  = "target"
+Public Const CRED_TARGETNAME_ATTRIBUTE_TARGET_A  = "target"
+Public Const CRED_TARGETNAME_ATTRIBUTE_TARGET_LENGTH  = (Len(CRED_TARGETNAME_ATTRIBUTE_TARGET_A)-1)
+Public Const CRED_TARGETNAME_ATTRIBUTE_NAME_W  = "name"
+Public Const CRED_TARGETNAME_ATTRIBUTE_NAME_A  = "name"
+Public Const CRED_TARGETNAME_ATTRIBUTE_NAME_LENGTH  = (Len(CRED_TARGETNAME_ATTRIBUTE_NAME_A)-1)
+Public Const CRED_TARGETNAME_ATTRIBUTE_BATCH_W  = "batch"
+Public Const CRED_TARGETNAME_ATTRIBUTE_BATCH_A  = "batch"
+Public Const CRED_TARGETNAME_ATTRIBUTE_BATCH_LENGTH  = (Len(CRED_TARGETNAME_ATTRIBUTE_BATCH_A)-1)
+Public Const CRED_TARGETNAME_ATTRIBUTE_INTERACTIVE_W  = "interactive"
+Public Const CRED_TARGETNAME_ATTRIBUTE_INTERACTIVE_A  = "interactive"
+Public Const CRED_TARGETNAME_ATTRIBUTE_INTERACTIVE_LENGTH  = (Len(CRED_TARGETNAME_ATTRIBUTE_INTERACTIVE_A)-1)
+Public Const CRED_TARGETNAME_ATTRIBUTE_SERVICE_W  = "service"
+Public Const CRED_TARGETNAME_ATTRIBUTE_SERVICE_A  = "service"
+Public Const CRED_TARGETNAME_ATTRIBUTE_SERVICE_LENGTH  = (Len(CRED_TARGETNAME_ATTRIBUTE_SERVICE_A)-1)
+Public Const CRED_TARGETNAME_ATTRIBUTE_NETWORK_W  = "network"
+Public Const CRED_TARGETNAME_ATTRIBUTE_NETWORK_A  = "network"
+Public Const CRED_TARGETNAME_ATTRIBUTE_NETWORK_LENGTH  = (Len(CRED_TARGETNAME_ATTRIBUTE_NETWORK_A)-1)
+Public Const CRED_TARGETNAME_ATTRIBUTE_NETWORKCLEARTEXT_W  = "networkcleartext"
+Public Const CRED_TARGETNAME_ATTRIBUTE_NETWORKCLEARTEXT_A  = "networkcleartext"
+Public Const CRED_TARGETNAME_ATTRIBUTE_NETWORKCLEARTEXT_LENGTH  = (Len(CRED_TARGETNAME_ATTRIBUTE_NETWORKCLEARTEXT_A)-1)
+Public Const CRED_TARGETNAME_ATTRIBUTE_REMOTEINTERACTIVE_W  = "remoteinteractive"
+Public Const CRED_TARGETNAME_ATTRIBUTE_REMOTEINTERACTIVE_A  = "remoteinteractive"
+Public Const CRED_TARGETNAME_ATTRIBUTE_REMOTEINTERACTIVE_LENGTH  = (Len(CRED_TARGETNAME_ATTRIBUTE_REMOTEINTERACTIVE_A)-1)
+Public Const CRED_TARGETNAME_ATTRIBUTE_CACHEDINTERACTIVE_W  = "cachedinteractive"
+Public Const CRED_TARGETNAME_ATTRIBUTE_CACHEDINTERACTIVE_A  = "cachedinteractive"
+Public Const CRED_TARGETNAME_ATTRIBUTE_CACHEDINTERACTIVE_LENGTH  = (Len(CRED_TARGETNAME_ATTRIBUTE_CACHEDINTERACTIVE_A)-1)
+
+Public Const CRED_SESSION_WILDCARD_NAME  = CRED_SESSION_WILDCARD_NAME_W
+Public Const CRED_TARGETNAME_DOMAIN_NAMESPACE  = CRED_TARGETNAME_DOMAIN_NAMESPACE_W
+Public Const CRED_UNIVERSAL_WILDCARD  = CRED_UNIVERSAL_WILDCARD_W
+Public Const CRED_TARGETNAME_NAMESPACE_SEPERATOR  = CRED_TARGETNAME_NAMESPACE_SEPERATOR_W
+Public Const CRED_TARGETNAME_ATTRIBUTE_SEPERATOR  = CRED_TARGETNAME_ATTRIBUTE_SEPERATOR_W
+Public Const CRED_TARGETNAME_ATTRIBUTE_NAME  = CRED_TARGETNAME_ATTRIBUTE_NAME_W
+Public Const CRED_TARGETNAME_ATTRIBUTE_TARGET  = CRED_TARGETNAME_ATTRIBUTE_TARGET_W
+Public Const CRED_TARGETNAME_ATTRIBUTE_BATCH  = CRED_TARGETNAME_ATTRIBUTE_BATCH_W
+Public Const CRED_TARGETNAME_ATTRIBUTE_INTERACTIVE  = CRED_TARGETNAME_ATTRIBUTE_INTERACTIVE_W
+Public Const CRED_TARGETNAME_ATTRIBUTE_SERVICE  = CRED_TARGETNAME_ATTRIBUTE_SERVICE_W
+Public Const CRED_TARGETNAME_ATTRIBUTE_NETWORK  = CRED_TARGETNAME_ATTRIBUTE_NETWORK_W
+Public Const CRED_TARGETNAME_ATTRIBUTE_NETWORKCLEARTEXT  = CRED_TARGETNAME_ATTRIBUTE_NETWORKCLEARTEXT_W
+Public Const CRED_TARGETNAME_ATTRIBUTE_REMOTEINTERACTIVE  = CRED_TARGETNAME_ATTRIBUTE_REMOTEINTERACTIVE_W
+Public Const CRED_TARGETNAME_ATTRIBUTE_CACHEDINTERACTIVE  = CRED_TARGETNAME_ATTRIBUTE_CACHEDINTERACTIVE_W
+
+Public Const  CRED_LOGON_TYPES_MASK = &HF000
+
+Public Enum WinCredFlags
+    CRED_FLAGS_PASSWORD_FOR_CERT  = &H0001
+    CRED_FLAGS_PROMPT_NOW  = &H0002
+    CRED_FLAGS_USERNAME_TARGET  = &H0004
+    CRED_FLAGS_OWF_CRED_BLOB  = &H0008
+    CRED_FLAGS_REQUIRE_CONFIRMATION  = &H0010
+'   Valid only for return and only with CredReadDomainCredentials().
+'   Indicates credential was returned due to wildcard match
+'   of targetname with credential.
+    CRED_FLAGS_WILDCARD_MATCH  = &H0020
+'  Valid only for return
+'  Indicates that the credential is VSM protected
+    CRED_FLAGS_VSM_PROTECTED  = &H0040
+    CRED_FLAGS_NGC_CERT  = &H0080
+'  Mask of all valid flags
+    CRED_FLAGS_VALID_FLAGS  = &HF0FF&
+    CRED_FLAGS_VALID_INPUT_FLAGS = &HF09F&
+End Enum
+
+Public Enum WinCredTypes
+    CRED_TYPE_GENERIC  = 1
+    CRED_TYPE_DOMAIN_PASSWORD  = 2
+    CRED_TYPE_DOMAIN_CERTIFICATE  = 3
+    CRED_TYPE_DOMAIN_VISIBLE_PASSWORD  = 4
+    CRED_TYPE_GENERIC_CERTIFICATE  = 5
+    CRED_TYPE_DOMAIN_EXTENDED  = 6
+    CRED_TYPE_MAXIMUM = 7  ' Maximum supported cred type
+    CRED_TYPE_MAXIMUM_EX  = (CRED_TYPE_MAXIMUM+1000)  ' Allow new applications to run on old OSes
+End Enum
+
+Public Const CRED_MAX_CREDENTIAL_BLOB_SIZE = (5 * 512)
+
+Public Enum WinCredPersist
+    CRED_PERSIST_NONE  = 0
+    CRED_PERSIST_SESSION  = 1
+    CRED_PERSIST_LOCAL_MACHINE  = 2
+    CRED_PERSIST_ENTERPRISE  = 3
+End Enum
+
+Public Type CREDENTIALA
+    Flags As WinCredFlags
+    Type As WinCredTypes
+    TargetName As String
+    Comment As String
+    LastWritten As FILETIME
+    CredentialBlobSize As Long
+    CredentialBlob As LongPtr 'LPBYTE
+    Persist As WinCredPersist
+    AttributeCount As Long
+    Attributes As LongPtr 'PCREDENTIAL_ATTRIBUTEA
+    TargetAlias As String
+    UserName As String
+End Type
+Public Type CREDENTIALW
+    Flags As WinCredFlags
+    Type As WinCredTypes
+    TargetName As LongPtr
+    Comment As LongPtr
+    LastWritten As FILETIME
+    CredentialBlobSize As Long
+    CredentialBlob As LongPtr 'LPBYTE
+    Persist As WinCredPersist
+    AttributeCount As Long
+    Attributes As LongPtr 'PCREDENTIAL_ATTRIBUTEA
+    TargetAlias As LongPtr
+    UserName As LongPtr
+End Type
+'Alias CREDENTIAL as CREDENTIALW
+Public Type CREDENTIAL
+    Flags As WinCredFlags
+    Type As WinCredTypes
+    TargetName As LongPtr
+    Comment As LongPtr
+    LastWritten As FILETIME
+    CredentialBlobSize As Long
+    CredentialBlob As LongPtr 'LPBYTE
+    Persist As WinCredPersist
+    AttributeCount As Long
+    Attributes As LongPtr 'PCREDENTIAL_ATTRIBUTEA
+    TargetAlias As LongPtr
+    UserName As LongPtr
+End Type
+
+Public Enum WinCredTargetFlags
+    CRED_TI_SERVER_FORMAT_UNKNOWN  = &H0001  ' Don't know if server name is DNS or netbios format
+    CRED_TI_DOMAIN_FORMAT_UNKNOWN  = &H0002  ' Don't know if domain name is DNS or netbios format
+    CRED_TI_ONLY_PASSWORD_REQUIRED  = &H0004  ' Server only requires a password and not a username
+    CRED_TI_USERNAME_TARGET  = &H0008  ' TargetName is username
+    CRED_TI_CREATE_EXPLICIT_CRED  = &H0010  ' When creating a cred, create one named TargetInfo->TargetName
+    CRED_TI_WORKGROUP_MEMBER  = &H0020  ' Indicates the machine is a member of a workgroup
+    CRED_TI_DNSTREE_IS_DFS_SERVER  = &H0040  ' used to tell credman that the DNSTreeName could be DFS server
+    CRED_TI_VALID_FLAGS  = &HF07F&
+End Enum
+
+Public Type CREDENTIAL_TARGET_INFORMATIONA
+    TargetName As String
+    NetbiosServerName As String
+    DnsServerName As String
+    NetbiosDomainName As String
+    DnsDomainName As String
+    DnsTreeName As String
+    PackageName As String
+    Flags As WinCredTargetFlags
+    CredTypeCount As Long
+    CredTypes As LongPtr 'PWinCredTypes
+End Type
+Public Type CREDENTIAL_TARGET_INFORMATIONW
+    TargetName As LongPtr
+    NetbiosServerName As LongPtr
+    DnsServerName As LongPtr
+    NetbiosDomainName As LongPtr
+    DnsDomainName As LongPtr
+    DnsTreeName As LongPtr
+    PackageName As LongPtr
+    Flags As WinCredTargetFlags
+    CredTypeCount As Long
+    CredTypes As LongPtr 'PWinCredTypes
+End Type
+'Alias CREDENTIAL_TARGET_INFORMATION as CREDENTIAL_TARGET_INFORMATIONW
+Public Type CREDENTIAL_TARGET_INFORMATION
+    TargetName As LongPtr
+    NetbiosServerName As LongPtr
+    DnsServerName As LongPtr
+    NetbiosDomainName As LongPtr
+    DnsDomainName As LongPtr
+    DnsTreeName As LongPtr
+    PackageName As LongPtr
+    Flags As WinCredTargetFlags
+    CredTypeCount As Long
+    CredTypes As LongPtr 'PWinCredTypes
+End Type
+
+Public Const CERT_HASH_LENGTH = 20
+Public Type CERT_CREDENTIAL_INFO
+    cbSize As Long
+    rgbHashOfCert(0 To (CERT_HASH_LENGTH - 1)) As Byte
+End Type
+
+Public Type USERNAME_TARGET_CREDENTIAL_INFO
+    UserName As LongPtr
+End Type
+
+Public Type BINARY_BLOB_CREDENTIAL_INFO
+    cbBlob As Long
+    pbBlob As LongPtr 'LPBYTE
+End Type
+
+Public Enum CRED_MARSHAL_TYPE
+    CertCredential=1
+    UsernameTargetCredential  
+    BinaryBlobCredential 
+    UsernameForPackedCredentials = 4 ' internal only, reserved
+    BinaryBlobForSystem = 5 ' internal only, via CredProtectEx
+End Enum
+
+Public Enum CRED_PROTECTION_TYPE
+    CredUnprotected 
+    CredUserProtection  
+    CredTrustedProtection  
+    CredForSystemProtection  
+End Enum
+
+Public Enum WinCredPackingFlags
+    CRED_PACK_PROTECTED_CREDENTIALS  = &H1
+    CRED_PACK_WOW_BUFFER  = &H2
+    CRED_PACK_GENERIC_CREDENTIALS  = &H4
+    CRED_PACK_ID_PROVIDER_CREDENTIALS  = &H8
+End Enum
+
+Public Type CREDUI_INFOA
+    cbSize As Long
+    hwndParent As LongPtr
+    pszMessageText As String
+    pszCaptionText As String
+    hbmBanner As LongPtr
+End Type
+Public Type CREDUI_INFOW
+    cbSize As Long
+    hwndParent As LongPtr
+    pszMessageText As LongPtr
+    pszCaptionText As LongPtr
+    hbmBanner As LongPtr
+End Type
+'Alias CREDUI_INFO As CREDUI_INFOW
+Public Type CREDUI_INFO
+    cbSize As Long
+    hwndParent As LongPtr
+    pszMessageText As LongPtr
+    pszCaptionText As LongPtr
+    hbmBanner As LongPtr
+End Type
+
+Public Const CREDUI_MAX_MESSAGE_LENGTH  = 1024
+Public Const CREDUI_MAX_CAPTION_LENGTH  = 128
+Public Const CREDUI_MAX_GENERIC_TARGET_LENGTH  = CRED_MAX_GENERIC_TARGET_NAME_LENGTH
+Public Const CREDUI_MAX_DOMAIN_TARGET_LENGTH  = CRED_MAX_DOMAIN_TARGET_NAME_LENGTH
+'   Username can be in <domain>\<user> or <user>@<domain>
+'   Length in characters, not including NULL termination.
+Public Const CREDUI_MAX_USERNAME_LENGTH  = CRED_MAX_USERNAME_LENGTH
+Public Const CREDUI_MAX_PASSWORD_LENGTH  = (512 / 2)
+'   Packed credential returned by SspiEncodeAuthIdentityAsStrings().
+'   Length in characters, not including NULL termination.
+Public Const CREDUI_MAX_PACKED_CREDENTIALS_LENGTH  = ((MAXUSHORT / 2) - 2)
+'  maximum length in bytes for binary credential blobs
+Public Const CREDUI_MAX_CREDENTIALS_BLOB_SIZE  = (MAXUSHORT)
+
+Public Enum WinCredPromptFlags
+    CREDUI_FLAGS_INCORRECT_PASSWORD  = &H00001  ' indicates the username is valid, but password is not
+    CREDUI_FLAGS_DO_NOT_PERSIST  = &H00002  ' Do not show "Save" checkbox, and do not persist credentials
+    CREDUI_FLAGS_REQUEST_ADMINISTRATOR  = &H00004  ' Populate list box with admin accounts
+    CREDUI_FLAGS_EXCLUDE_CERTIFICATES  = &H00008  ' do not include certificates in the drop list
+    CREDUI_FLAGS_REQUIRE_CERTIFICATE  = &H00010
+    CREDUI_FLAGS_SHOW_SAVE_CHECK_BOX  = &H00040
+    CREDUI_FLAGS_ALWAYS_SHOW_UI  = &H00080
+    CREDUI_FLAGS_REQUIRE_SMARTCARD  = &H00100
+    CREDUI_FLAGS_PASSWORD_ONLY_OK  = &H00200
+    CREDUI_FLAGS_VALIDATE_USERNAME  = &H00400
+    CREDUI_FLAGS_COMPLETE_USERNAME  = &H00800  '
+    CREDUI_FLAGS_PERSIST  = &H01000  ' Do not show "Save" checkbox, but persist credentials anyway
+    CREDUI_FLAGS_SERVER_CREDENTIAL  = &H04000
+    CREDUI_FLAGS_EXPECT_CONFIRMATION  = &H20000  ' do not persist unless caller later confirms credential via CredUIConfirmCredential() api
+    CREDUI_FLAGS_GENERIC_CREDENTIALS  = &H40000  ' Credential is a generic credential
+    CREDUI_FLAGS_USERNAME_TARGET_CREDENTIALS  = &H80000  ' Credential has a username as the target
+    CREDUI_FLAGS_KEEP_USERNAME  = &H100000  ' don't allow the user to change the supplied username
+    
+    CREDUI_FLAGS_PROMPT_VALID  = (CREDUI_FLAGS_INCORRECT_PASSWORD  Or  CREDUI_FLAGS_DO_NOT_PERSIST  Or  CREDUI_FLAGS_REQUEST_ADMINISTRATOR  Or  CREDUI_FLAGS_EXCLUDE_CERTIFICATES  Or  CREDUI_FLAGS_REQUIRE_CERTIFICATE  Or  CREDUI_FLAGS_SHOW_SAVE_CHECK_BOX  Or  CREDUI_FLAGS_ALWAYS_SHOW_UI  Or  CREDUI_FLAGS_REQUIRE_SMARTCARD  Or  CREDUI_FLAGS_PASSWORD_ONLY_OK  Or  CREDUI_FLAGS_VALIDATE_USERNAME  Or  CREDUI_FLAGS_COMPLETE_USERNAME  Or  CREDUI_FLAGS_PERSIST  Or  CREDUI_FLAGS_SERVER_CREDENTIAL  Or  CREDUI_FLAGS_EXPECT_CONFIRMATION  Or  CREDUI_FLAGS_GENERIC_CREDENTIALS  Or  CREDUI_FLAGS_USERNAME_TARGET_CREDENTIALS  Or  CREDUI_FLAGS_KEEP_USERNAME)
+End Enum
+
+Public Enum WinCredPromptUIWinFlags
+    CREDUIWIN_GENERIC  = &H00000001  ' Plain text username/password is being requested
+    CREDUIWIN_CHECKBOX  = &H00000002  ' Show the Save Credential checkbox
+    CREDUIWIN_AUTHPACKAGE_ONLY  = &H00000010  ' Only Cred Providers that support the input auth package should enumerate
+    CREDUIWIN_IN_CRED_ONLY  = &H00000020  ' Only the incoming cred for the specific auth package should be enumerated
+    CREDUIWIN_ENUMERATE_ADMINS  = &H00000100  ' Cred Providers should enumerate administrators only
+    CREDUIWIN_ENUMERATE_CURRENT_USER  = &H00000200  ' Only the incoming cred for the specific auth package should be enumerated
+    CREDUIWIN_SECURE_PROMPT  = &H00001000  ' The Credui prompt should be displayed on the secure desktop
+    CREDUIWIN_PREPROMPTING  = &H00002000  ' CredUI is invoked by SspiPromptForCredentials and the client is prompting before a prior handshake
+    CREDUIWIN_PACK_32_WOW  = &H10000000  ' Tell the credential provider it should be packing its Auth Blob 32 bit even though it is running 64 native
+' #if (NTDDI_VERSION >= NTDDI_WIN10_RS1)
+    CREDUIWIN_IGNORE_CLOUDAUTHORITY_NAME  = &H00040000  ' Tell the credential provider it should not pack AAD authority name
+' #endif
+' #if (NTDDI_VERSION >= NTDDI_WIN10_RS5)
+    CREDUIWIN_DOWNLEVEL_HELLO_AS_SMART_CARD  = &H80000000  ' Force collected Hello credentials to be packed in a smart card auth buffer.
+' #endif
+' #if (NTDDI_VERSION >= NTDDI_WIN10_RS5)
+    CREDUIWIN_VALID_FLAGS  = ( CREDUIWIN_GENERIC  Or  CREDUIWIN_CHECKBOX  Or  CREDUIWIN_AUTHPACKAGE_ONLY  Or  CREDUIWIN_IN_CRED_ONLY  Or  CREDUIWIN_ENUMERATE_ADMINS  Or  CREDUIWIN_ENUMERATE_CURRENT_USER  Or  CREDUIWIN_SECURE_PROMPT  Or  CREDUIWIN_PREPROMPTING  Or  CREDUIWIN_PACK_32_WOW  Or  CREDUIWIN_IGNORE_CLOUDAUTHORITY_NAME  Or  CREDUIWIN_DOWNLEVEL_HELLO_AS_SMART_CARD )
+End Enum
+
+Public Enum CredUiWriteFlags
+    CRED_PRESERVE_CREDENTIAL_BLOB = &H1
+End Enum
+
+Public Enum WinCredEnumFlags
+    CRED_ENUMERATE_ALL_CREDENTIALS = &H1
+End Enum
+
+Public Enum WinCredReadDomainFlags
+    CRED_CACHE_TARGET_INFORMATION = &H1
+End Enum
+
+Public Enum WinCredGetTargetFlags
+    CRED_ALLOW_NAME_RESOLUTION = &H1
+End Enum
+
+Public Enum WinCredProtectExFlags
+    CRED_PROTECT_AS_SELF  = &H1
+    CRED_PROTECT_TO_SYSTEM  = &H2
+    CRED_PROTECT_VALID_FLAGS  = (CRED_PROTECT_AS_SELF  Or  CRED_PROTECT_TO_SYSTEM)
+End Enum
+
+Public Enum WinCredUnprotectExFlags
+    CRED_UNPROTECT_AS_SELF  = &H1
+    CRED_UNPROTECT_ALLOW_TO_SYSTEM  = &H2
+    CRED_UNPROTECT_VALID_FLAGS  = (CRED_UNPROTECT_AS_SELF  Or  CRED_UNPROTECT_ALLOW_TO_SYSTEM)
+End Enum
+
+Public Declare PtrSafe Function CredWriteA Lib "advapi32" (Credential As CREDENTIALA, ByVal dwFlags as CredUiWriteFlags) As BOOL
+Public Declare PtrSafe Function CredWriteW Lib "advapi32" (Credential As CREDENTIALW, ByVal dwFlags as CredUiWriteFlags) As BOOL
+Public DeclareWide PtrSafe Function CredWrite Lib "advapi32" Alias "CredWriteW" (Credential As CREDENTIAL, ByVal dwFlags as CredUiWriteFlags) As BOOL
+Public Declare PtrSafe Function CredReadA Lib "advapi32" (ByVal TargetName As String, ByVal nType as WinCredTypes, ByVal Flags As Long, Credential As LongPtr) As BOOL
+Public Declare PtrSafe Function CredReadW Lib "advapi32" (ByVal TargetName As LongPtr, ByVal nType as WinCredTypes, ByVal Flags as Long, Credential As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function CredRead Lib "advapi32" Alias "CredReadW" (ByVal TargetName As String, ByVal nType as WinCredTypes, ByVal Flags as Long, Credential As LongPtr) As BOOL
+Public Declare PtrSafe Function CredEnumerateA Lib "advapi32" (ByVal Filter As String, ByVal Flags as WinCredEnumFlags, Count as Long, Credential as LongPtr) As BOOL
+Public Declare PtrSafe Function CredEnumerateW Lib "advapi32" (ByVal Filter As LongPtr, ByVal Flags as WinCredEnumFlags, Count as Long, Credential As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function CredEnumerate Lib "advapi32" Alias "CredEnumerateW" (ByVal Filter As String, ByVal Flags as WinCredEnumFlags, Count as Long, Credential as LongPtr) As BOOL
+Public Declare PtrSafe Function CredWriteDomainCredentialsA Lib "advapi32" (TargetInfo As CREDENTIAL_TARGET_INFORMATIONA, Credential As CREDENTIALA, ByVal dwFlags As CredUiWriteFlags) As BOOL
+Public Declare PtrSafe Function CredWriteDomainCredentialsW Lib "advapi32" (TargetInfo As CREDENTIAL_TARGET_INFORMATIONW, Credential As CREDENTIALW, ByVal dwFlags As CredUiWriteFlags) As BOOL
+Public DeclareWide PtrSafe Function CredWriteDomainCredentials Lib "advapi32" Alias "CredWriteDomainCredentialsW" (TargetInfo As CREDENTIAL_TARGET_INFORMATION, Credential As CREDENTIAL, ByVal dwFlags As CredUiWriteFlags) As BOOL
+Public Declare PtrSafe Function CredReadDomainCredentialsA Lib "advapi32" (TargetInfo As CREDENTIAL_TARGET_INFORMATIONA, ByVal Flags As WinCredReadDomainFlags, Count As Long, Credential As LongPtr) As BOOL
+Public Declare PtrSafe Function CredReadDomainCredentialsW Lib "advapi32" (TargetInfo As CREDENTIAL_TARGET_INFORMATIONW, ByVal Flags As WinCredReadDomainFlags, Count As Long, Credential As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function CredReadDomainCredentials Lib "advapi32" Alias "CredReadDomainCredentialsW" (TargetInfo As CREDENTIAL_TARGET_INFORMATION, ByVal Flags As WinCredReadDomainFlags, Count As Long, Credential As LongPtr) As BOOL
+Public Declare PtrSafe Function CredDeleteA Lib "advapi32" (ByVal TargetName As String, ByVal nType as WinCredTypes, ByVal Flags As Long) As BOOL
+Public Declare PtrSafe Function CredDeleteW Lib "advapi32" (ByVal TargetName As LongPtr, ByVal nType as WinCredTypes, ByVal Flags as Long) As BOOL
+Public DeclareWide PtrSafe Function CredDelete Lib "advapi32" Alias "CredDeleteW" (ByVal TargetName As String, ByVal nType as WinCredTypes, ByVal Flags as Long) As BOOL
+Public Declare PtrSafe Function CredRenameA Lib "advapi32" (ByVal OldTargetName As String, ByVal NewTargetName As String, ByVal nType as WinCredTypes, ByVal Flags as Long) As BOOL
+Public Declare PtrSafe Function CredRenameW Lib "advapi32" (ByVal OldTargetName As LongPtr, ByVal NewTargetName As LongPtr, ByVal nType as WinCredTypes, ByVal Flags as Long) As BOOL
+Public DeclareWide PtrSafe Function CredRename Lib "advapi32" Alias "CredRenameW" (ByVal OldTargetName As String, ByVal NewTargetName As String, ByVal nType as WinCredTypes, ByVal Flags as Long) As BOOL
+Public Declare PtrSafe Function CredGetTargetInfoA Lib "advapi32" (ByVal TargetName As String, ByVal Flags As WinCredGetTargetFlags, TargetInfo As CREDENTIAL_TARGET_INFORMATIONA) As BOOL
+Public Declare PtrSafe Function CredGetTargetInfoW Lib "advapi32" (ByVal TargetName As LongPtr, ByVal Flags As WinCredGetTargetFlags, TargetInfo As CREDENTIAL_TARGET_INFORMATIONW) As BOOL
+Public DeclareWide PtrSafe Function CredGetTargetInfo Lib "advapi32" Alias "CredGetTargetInfoW" (ByVal TargetName As String, ByVal Flags As WinCredGetTargetFlags, TargetInfo As CREDENTIAL_TARGET_INFORMATION) As BOOL
+Public Declare PtrSafe Function CredMarshalCredentialA Lib "advapi32" (ByVal CredType As CRED_MARSHAL_TYPE, Credential As Any, MarshaledCredential As String) As BOOL
+Public Declare PtrSafe Function CredMarshalCredentialW Lib "advapi32" (ByVal CredType As CRED_MARSHAL_TYPE, Credential As Any, MarshaledCredential As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function CredMarshalCredential Lib "advapi32" Alias "CredMarshalCredentialW" (ByVal CredType As CRED_MARSHAL_TYPE, Credential As Any, MarshaledCredential As String) As BOOL
+Public Declare PtrSafe Function CredUnmarshalCredentialA Lib "advapi32" (ByVal MarshaledCredential As String, CredType As CRED_MARSHAL_TYPE, Credential As LongPtr) As BOOL
+Public Declare PtrSafe Function CredUnmarshalCredentialW Lib "advapi32" (ByVal MarshaledCredential As LongPtr, CredType As CRED_MARSHAL_TYPE, Credential As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function CredUnmarshalCredential Lib "advapi32" Alias "CredUnmarshalCredentialW" (ByVal MarshaledCredential As String, CredType As CRED_MARSHAL_TYPE, Credential As LongPtr) As BOOL
+Public Declare PtrSafe Function CredIsMarshaledCredentialA Lib "advapi32" (ByVal MarshaledCredential As String) As BOOL
+Public Declare PtrSafe Function CredIsMarshaledCredentialW Lib "advapi32" (ByVal MarshaledCredential As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function CredIsMarshaledCredential Lib "advapi32" Alias "CredIsMarshaledCredentialW" (ByVal MarshaledCredential As String) As BOOL
+Public Declare PtrSafe Function CredUnPackAuthenticationBufferA Lib "advapi32" (ByVal dwFlags As WinCredPackingFlags, pAuthBuffer As Any, ByVal cbAuthBuffer As Long, ByVal pszUserName As String, pcchlMaxUserName As Long, ByVal pszDomainName As String, pcchMaxDomainName As Long, ByVal pszPassword As String, pcchMaxPassword As Long) As BOOL
+Public Declare PtrSafe Function CredUnPackAuthenticationBufferW Lib "advapi32" (ByVal dwFlags As WinCredPackingFlags, pAuthBuffer As Any, ByVal cbAuthBuffer As Long, ByVal pszUserName As LongPtr, pcchlMaxUserName As Long, ByVal pszDomainName As LongPtr, pcchMaxDomainName As Long, ByVal pszPassword As LongPtr, pcchMaxPassword As Long) As BOOL
+Public DeclareWide PtrSafe Function CredUnPackAuthenticationBuffer Lib "advapi32" Alias "CredUnPackAuthenticationBufferW" (ByVal dwFlags As WinCredPackingFlags, pAuthBuffer As Any, ByVal cbAuthBuffer As Long, ByVal pszUserName As String, pcchlMaxUserName As Long, ByVal pszDomainName As String, pcchMaxDomainName As Long, ByVal pszPassword As String, pcchMaxPassword As Long) As BOOL
+Public Declare PtrSafe Function CredPackAuthenticationBufferA Lib "advapi32" (ByVal dwFlags As WinCredPackingFlags, ByVal pszUserName As String, ByVal pszPassword As String, pPackedCredentials As Any, pcbPackedCredentials As Long) As BOOL
+Public Declare PtrSafe Function CredPackAuthenticationBufferW Lib "advapi32" (ByVal dwFlags As WinCredPackingFlags, ByVal pszUserName As LongPtr, ByVal pszPassword As LongPtr, pPackedCredentials As Any, pcbPackedCredentials As Long) As BOOL
+Public DeclareWide PtrSafe Function CredPackAuthenticationBuffer Lib "advapi32" Alias "CredPackAuthenticationBufferW" (ByVal dwFlags As WinCredPackingFlags, ByVal pszUserName As String, ByVal pszPassword As String, pPackedCredentials As Any, pcbPackedCredentials As Long) As BOOL
+Public Declare PtrSafe Function CredProtectA Lib "advapi32" (ByVal fAsSelf As BOOL, ByVal pszCredentials As String, ByVal cchCredentials As Long, ByVal pszProtectedCredentials As String, pcchMaxChars As Long, ProtectionType As CRED_PROTECTION_TYPE) As BOOL
+Public Declare PtrSafe Function CredProtectW Lib "advapi32" (ByVal fAsSelf As BOOL, ByVal pszCredentials As LongPtr, ByVal cchCredentials As Long, ByVal pszProtectedCredentials As LongPtr, pcchMaxChars As Long, ProtectionType As CRED_PROTECTION_TYPE) As BOOL
+Public DeclareWide PtrSafe Function CredProtect Lib "advapi32" Alias "CredProtectW" (ByVal fAsSelf As BOOL, ByVal pszCredentials As String, ByVal cchCredentials As Long, ByVal pszProtectedCredentials As String, pcchMaxChars As Long, ProtectionType As CRED_PROTECTION_TYPE) As BOOL
+Public DeclareWide PtrSafe Function CredProtectEx Lib "advapi32" (ByVal Flags As WinCredProtectExFlags, ByVal pszCredentials As String, ByVal cchCredentials As Long, ByVal pszProtectedCredentials As String, pcchMaxChars As Long, ProtectionType As CRED_PROTECTION_TYPE) As BOOL
+Public Declare PtrSafe Function CredUnprotectA Lib "advapi32" (ByVal fAsSelf As BOOL, ByVal pszProtectedCredentials As String, ByVal cchProtectedCredentials As Long, ByVal pszCredentials As String, pcchMaxChars As Long) As BOOL
+Public Declare PtrSafe Function CredUnprotectW Lib "advapi32" (ByVal fAsSelf As BOOL, ByVal pszProtectedCredentials As LongPtr, ByVal cchProtectedCredentials As Long, ByVal pszCredentials As LongPtr, pcchMaxChars As Long) As BOOL
+Public DeclareWide PtrSafe Function CredUnprotect Lib "advapi32" Alias "CredUnprotectW" (ByVal fAsSelf As BOOL, ByVal pszProtectedCredentials As String, ByVal cchProtectedCredentials As Long, ByVal pszCredentials As String, pcchMaxChars As Long) As BOOL
+Public DeclareWide PtrSafe Function CredUnprotectEx Lib "advapi32" (ByVal Flags As WinCredUnprotectExFlags, ByVal pszProtectedCredentials As String, ByVal cchProtectedCredentials As Long, ByVal pszCredentials As String, pcchMaxChars As Long) As BOOL
+Public Declare PtrSafe Function CredIsProtectedA Lib "advapi32" (ByVal pszCredentials As String, ProtectionType As CRED_PROTECTION_TYPE) As BOOL
+Public Declare PtrSafe Function CredIsProtectedW Lib "advapi32" (ByVal pszCredentials As LongPtr, ProtectionType As CRED_PROTECTION_TYPE) As BOOL
+Public DeclareWide PtrSafe Function CredIsProtected Lib "advapi32" Alias "CredIsProtectedW" (ByVal pszCredentials As String, ProtectionType As CRED_PROTECTION_TYPE) As BOOL
+Public Declare PtrSafe Function CredFindBestCredentialA Lib "advapi32" (ByVal TargetName As String, ByVal nType as WinCredTypes, ByVal Flags As Long, Credential As LongPtr) As BOOL
+Public Declare PtrSafe Function CredFindBestCredentialW Lib "advapi32" (ByVal TargetName As LongPtr, ByVal nType as WinCredTypes, ByVal Flags As Long, Credential As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function CredFindBestCredential Lib "advapi32" Alias "CredFindBestCredentialW" (ByVal TargetName As String, ByVal nType as WinCredTypes, ByVal Flags As Long, Credential As LongPtr) As BOOL
+Public Declare PtrSafe Function CredGetSessionTypes Lib "advapi32" (ByVal MaximumPersistCount As Long, MaximumPersist As Long) As BOOL
+Public Declare PtrSafe Sub CredFree Lib "advapi32" (ByVal Buffer As LongPtr)
+Public Declare PtrSafe Function CredUIPromptForCredentialsA Lib "credui.dll" (pUiInfo As CREDUI_INFOA, ByVal pszTargetName As String, ByVal pContext As LongPtr, ByVal dwAuthError As Long, ByVal pszUserName As String, ByVal ulUserNameBufferSize As Long, ByVal pszPassword As String, ByVal ulPasswordBufferSize As Long, save As BOOL, ByVal dwFlags As WinCredPromptFlags) As Long
+Public Declare PtrSafe Function CredUIPromptForCredentialsW Lib "credui.dll" (pUiInfo As CREDUI_INFOW, ByVal pszTargetName As LongPtr, ByVal pContext As LongPtr, ByVal dwAuthError As Long, ByVal pszUserName As LongPtr, ByVal ulUserNameBufferSize As Long, ByVal pszPassword As LongPtr, ByVal ulPasswordBufferSize As Long, save As BOOL, ByVal dwFlags As WinCredPromptFlags) As Long
+Public DeclareWide PtrSafe Function CredUIPromptForCredentials Lib "credui.dll" Alias "CredUIPromptForCredentialsW" (pUiInfo As CREDUI_INFO, ByVal pszTargetName As String, ByVal pContext As LongPtr, ByVal dwAuthError As Long, ByVal pszUserName As String, ByVal ulUserNameBufferSize As Long, ByVal pszPassword As String, ByVal ulPasswordBufferSize As Long, save As BOOL, ByVal dwFlags As WinCredPromptFlags) As Long
+Public Declare PtrSafe Function CredUIPromptForWindowsCredentialsA Lib "credui.dll" (pUiInfo As CREDUI_INFOA, ByVal dwAuthError As Long, pulAuthPackage As Long, pvInAuthBuffer As Any, ByVal ulInAuthBufferSize As Long, ppvOutAuthBuffer As LongPtr, pulOutAuthBufferSize As Long, pfSave As BOOL, ByVal dwFlags As WinCredPromptFlags) As Long
+Public Declare PtrSafe Function CredUIPromptForWindowsCredentialsW Lib "credui.dll" (pUiInfo As CREDUI_INFOW, ByVal dwAuthError As Long, pulAuthPackage As Long, pvInAuthBuffer As Any, ByVal ulInAuthBufferSize As Long, ppvOutAuthBuffer As LongPtr, pulOutAuthBufferSize As Long, pfSave As BOOL, ByVal dwFlags As WinCredPromptFlags) As Long
+Public DeclareWide PtrSafe Function CredUIPromptForWindowsCredentials Lib "credui.dll" Alias "CredUIPromptForWindowsCredentialsW" (pUiInfo As CREDUI_INFO, ByVal dwAuthError As Long, pulAuthPackage As Long, pvInAuthBuffer As Any, ByVal ulInAuthBufferSize As Long, ppvOutAuthBuffer As LongPtr, pulOutAuthBufferSize As Long, pfSave As BOOL, ByVal dwFlags As WinCredPromptFlags) As Long
+Public Declare PtrSafe Function CredUIParseUserNameA Lib "credui.dll" (ByVal userName As String, ByVal user As String, ByVal userBufferSize As Long, ByVal domain As String, ByVal domainBufferSize As Long) As Long
+Public Declare PtrSafe Function CredUIParseUserNameW Lib "credui.dll" (ByVal userName As LongPtr, ByVal user As LongPtr, ByVal userBufferSize As Long, ByVal domain As LongPtr, ByVal domainBufferSize As Long) As Long
+Public DeclareWide PtrSafe Function CredUIParseUserName Lib "credui.dll" Alias "CredUIParseUserNameW" (ByVal userName As String, ByVal user As String, ByVal userBufferSize As Long, ByVal domain As String, ByVal domainBufferSize As Long) As Long
+Public Declare PtrSafe Function CredUICmdLinePromptForCredentialsA Lib "credui.dll" (ByVal pszTargetName As String, ByVal pContext As LongPtr, ByVal dwAuthError As Long, ByVal UserName As String, ByVal ulUserNameBufferSize As Long, ByVal pszPassword As String, ByVal ulPasswordBufferSize As Long, pfSave As BOOL, ByVal dwFlags As WinCredPromptFlags) As Long
+Public Declare PtrSafe Function CredUICmdLinePromptForCredentialsW Lib "credui.dll" (ByVal pszTargetName As LongPtr, ByVal pContext As LongPtr, ByVal dwAuthError As Long, ByVal UserName As LongPtr, ByVal ulUserNameBufferSize As Long, ByVal pszPassword As LongPtr, ByVal ulPasswordBufferSize As Long, pfSave As BOOL, ByVal dwFlags As WinCredPromptFlags) As Long
+Public DeclareWide PtrSafe Function CredUICmdLinePromptForCredentials Lib "credui.dll" Alias "CredUICmdLinePromptForCredentialsW" (ByVal pszTargetName As String, ByVal pContext As LongPtr, ByVal dwAuthError As Long, ByVal UserName As String, ByVal ulUserNameBufferSize As Long, ByVal pszPassword As String, ByVal ulPasswordBufferSize As Long, pfSave As BOOL, ByVal dwFlags As WinCredPromptFlags) As Long
+Public Declare PtrSafe Function CredUIConfirmCredentialsA Lib "credui.dll" (ByVal pszTargetName As String, ByVal bConfirm As BOOL) As Long
+Public Declare PtrSafe Function CredUIConfirmCredentialsW Lib "credui.dll" (ByVal pszTargetName As LongPtr, ByVal bConfirm As BOOL) As Long
+Public DeclareWide PtrSafe Function CredUIConfirmCredentials Lib "credui.dll" Alias "CredUIConfirmCredentialsW" (ByVal pszTargetName As String, ByVal bConfirm As BOOL) As Long
+Public DeclareWide PtrSafe Function CredUIStoreSSOCredW Lib "credui.dll" (ByVal pszRealm As String, ByVal pszUsername As String, ByVal pszPassword As String, ByVal bPersist As BOOL) As Long
+Public DeclareWide PtrSafe Function CCredUIReadSSOCredW Lib "credui.dll" (ByVal pszRealm As String, ppszUsername As LongPtr) As Long
+
+
+
+'event tracing 
 
 Public Const KERNEL_LOGGER_NAMEW = "NT Kernel Logger"
 Public Const GLOBAL_LOGGER_NAMEW = "GlobalLogger"
@@ -45419,6 +45886,82 @@ Public Type WINHTTP_MATCH_CONNECTION_GUID
     /* [ TypeHint(WINHTTP_MATCH_CON_GUID_FLAGS) ] */ ullFlags As LongLong
 End Type
 
+Public Type WINHTTP_EXTENDED_HEADER
+    'union
+    '    {
+    pwszName As LongPtr
+    '        PCSTR  pszName;
+    '   };
+    '    union
+    '    {
+    pwszValue As LongPtr
+    '        PCSTR  pszValue;
+    '    };
+End Type
+
+' typedef union _WINHTTP_HEADER_NAME
+' {
+    ' PCWSTR pwszName;
+    ' PCSTR  pszName;
+' } WINHTTP_HEADER_NAME, 
+Public Type WINHTTP_HEADER_NAME
+    pwszName As LongPtr
+End Type
+
+Public Enum WinHttpResolverCacheCfgFlags
+    WINHTTP_RESOLVER_CACHE_CONFIG_FLAG_SOFT_LIMIT  = &H00000001
+    WINHTTP_RESOLVER_CACHE_CONFIG_FLAG_BYPASS_CACHE  = &H00000002
+    WINHTTP_RESOLVER_CACHE_CONFIG_FLAG_USE_DNS_TTL  = &H00000004
+    WINHTTP_RESOLVER_CACHE_CONFIG_FLAG_CONN_USE_TTL  = &H00000008
+End Enum
+
+Public Enum WINHTTP_SECURE_DNS_SETTING
+    WinHttpSecureDnsSettingDefault=0
+    WinHttpSecureDnsSettingForcePlaintext=1
+    WinHttpSecureDnsSettingRequireEncryption=2
+    WinHttpSecureDnsSettingTryEncryptionWithFallback=3
+    WinHttpSecureDnsSettingMax=4
+End Enum
+
+Public Type WINHTTP_RESOLVER_CACHE_CONFIG
+    ulMaxResolverCacheEntries As Long
+    ' ulMaxCacheEntryAge is the maximum allowed age of a cache entry specified in minutes.
+    ulMaxCacheEntryAge As Long
+    ' ulMinCacheEntryTtl the minimum TTL of a cache entry specified in seconds.
+    ulMinCacheEntryTtl As Long
+    SecureDnsSetting As WINHTTP_SECURE_DNS_SETTING
+    ' If WINHTTP_RESOLVER_CACHE_CONFIG_FLAG_CONN_USE_TTL is set, then ullCOnnResolutionWaitTime
+    ' can be used to control how frequently a re-resolution attempt is made for any connection.
+    ' It is specified in 100 nanosecond units, and the default is 600000000 (one minute).
+    ullConnResolutionWaitTime As LongLong
+    /* [ TypeHint(WinHttpResolverCacheCfgFlags) ] */ ullFlags As LongLong
+End Type
+
+Public Type WINHTTP_CONNECTION_GROUP
+    cConnections As Long
+    guidGroup As UUID
+End Type
+
+Public Type WINHTTP_HOST_CONNECTION_GROUP
+    pwszHost As LongPtr
+    cConnectionGroups As Long
+    pConnectionGroups As LongPtr 'PWINHTTP_CONNECTION_GROUP
+End Type
+Public Type WINHTTP_QUERY_CONNECTION_GROUP_RESULT
+    cHosts As Long
+    pHostConnectionGroups As LongPtr 'PWINHTTP_HOST_CONNECTION_GROUP
+End Type
+
+Public Type WINHTTP_HTTP2_RECEIVE_WINDOW
+    ulStreamWindow As Long
+    ulStreamWindowUpdateDelta As Long
+End Type
+
+Public Const WINHTTP_TIME_FORMAT_BUFSIZE = 62
+
+
+
+
 Public Enum WINHTTP_OPTIONS
     WINHTTP_FIRST_OPTION  = WINHTTP_OPTION_CALLBACK
     WINHTTP_OPTION_CALLBACK  = 1
@@ -45549,27 +46092,154 @@ Public Enum WINHTTP_OPTIONS
     WINHTTP_OPTION_PROXY_PASSWORD  = &H1003
 End Enum
 
-Public Enum WINHTTP_WEB_SOCKET_BUFFER_TYPE
-    WINHTTP_WEB_SOCKET_BINARY_MESSAGE_BUFFER_TYPE=0
-    WINHTTP_WEB_SOCKET_BINARY_FRAGMENT_BUFFER_TYPE=1
-    WINHTTP_WEB_SOCKET_UTF8_MESSAGE_BUFFER_TYPE=2
-    WINHTTP_WEB_SOCKET_UTF8_FRAGMENT_BUFFER_TYPE=3
-    WINHTTP_WEB_SOCKET_CLOSE_BUFFER_TYPE=4
+Public Const WINHTTP_CONNS_PER_SERVER_UNLIMITED As Long = -1
+
+Public Enum WinHttpConRetryConditions
+    WINHTTP_CONNECTION_RETRY_CONDITION_408  = &H1
+    WINHTTP_CONNECTION_RETRY_CONDITION_SSL_HANDSHAKE  = &H2
+    WINHTTP_CONNECTION_RETRY_CONDITION_STALE_CONNECTION  = &H4
+    WINHTTP_CONNECTION_RETRY_CONDITION_MASK  = (WINHTTP_CONNECTION_RETRY_CONDITION_408  Or  WINHTTP_CONNECTION_RETRY_CONDITION_SSL_HANDSHAKE  Or  WINHTTP_CONNECTION_RETRY_CONDITION_STALE_CONNECTION)
 End Enum
-Public Enum WINHTTP_WEB_SOCKET_CLOSE_STATUS
-    WINHTTP_WEB_SOCKET_SUCCESS_CLOSE_STATUS=1000
-    WINHTTP_WEB_SOCKET_ENDPOINT_TERMINATED_CLOSE_STATUS=1001
-    WINHTTP_WEB_SOCKET_PROTOCOL_ERROR_CLOSE_STATUS=1002
-    WINHTTP_WEB_SOCKET_INVALID_DATA_TYPE_CLOSE_STATUS=1003
-    WINHTTP_WEB_SOCKET_EMPTY_CLOSE_STATUS=1005
-    WINHTTP_WEB_SOCKET_ABORTED_CLOSE_STATUS=1006
-    WINHTTP_WEB_SOCKET_INVALID_PAYLOAD_CLOSE_STATUS=1007
-    WINHTTP_WEB_SOCKET_POLICY_VIOLATION_CLOSE_STATUS=1008
-    WINHTTP_WEB_SOCKET_MESSAGE_TOO_BIG_CLOSE_STATUS=1009
-    WINHTTP_WEB_SOCKET_UNSUPPORTED_EXTENSIONS_CLOSE_STATUS=1010
-    WINHTTP_WEB_SOCKET_SERVER_ERROR_CLOSE_STATUS=1011
-    WINHTTP_WEB_SOCKET_SECURE_HANDSHAKE_ERROR_CLOSE_STATUS=1015
+Public Type WINHTTP_FAILED_CONNECTION_RETRIES
+    dwMaxRetries As Long
+    dwAllowedRetryConditions As WinHttpConRetryConditions
+End Type
+
+Public Enum WinHttpDecompFlags
+    WINHTTP_DECOMPRESSION_FLAG_GZIP  = &H00000001
+    WINHTTP_DECOMPRESSION_FLAG_DEFLATE  = &H00000002
+    WINHTTP_DECOMPRESSION_FLAG_ALL  = ( WINHTTP_DECOMPRESSION_FLAG_GZIP  Or  WINHTTP_DECOMPRESSION_FLAG_DEFLATE)
 End Enum
+
+Public Enum WinHttpHttpProtocolFlags
+    WINHTTP_PROTOCOL_FLAG_HTTP2  = &H1
+    WINHTTP_PROTOCOL_FLAG_HTTP3  = &H2
+    WINHTTP_PROTOCOL_MASK  = (WINHTTP_PROTOCOL_FLAG_HTTP2  Or  WINHTTP_PROTOCOL_FLAG_HTTP3)
+End Enum
+
+Public Const WINHTTP_OPTION_REQUEST_ANNOTATION_MAX_LENGTH = &HFA00
+
+Public Enum WinHttpAutoLogonSecurity
+    WINHTTP_AUTOLOGON_SECURITY_LEVEL_MEDIUM  = 0
+    WINHTTP_AUTOLOGON_SECURITY_LEVEL_LOW  = 1
+    WINHTTP_AUTOLOGON_SECURITY_LEVEL_HIGH  = 2
+    WINHTTP_AUTOLOGON_SECURITY_LEVEL_PROXY_ONLY  = 3
+    WINHTTP_AUTOLOGON_SECURITY_LEVEL_DEFAULT  = WINHTTP_AUTOLOGON_SECURITY_LEVEL_MEDIUM
+    WINHTTP_AUTOLOGON_SECURITY_LEVEL_MAX  = WINHTTP_AUTOLOGON_SECURITY_LEVEL_PROXY_ONLY
+End Enum
+
+Public Enum WinHttpRedirectFlags
+    WINHTTP_OPTION_REDIRECT_POLICY_NEVER  = 0
+    WINHTTP_OPTION_REDIRECT_POLICY_DISALLOW_HTTPS_TO_HTTP  = 1
+    WINHTTP_OPTION_REDIRECT_POLICY_ALWAYS  = 2
+    WINHTTP_OPTION_REDIRECT_POLICY_LAST  = WINHTTP_OPTION_REDIRECT_POLICY_ALWAYS
+    WINHTTP_OPTION_REDIRECT_POLICY_DEFAULT  = WINHTTP_OPTION_REDIRECT_POLICY_DISALLOW_HTTPS_TO_HTTP
+    WINHTTP_DISABLE_PASSPORT_AUTH  = &H00000000
+    WINHTTP_ENABLE_PASSPORT_AUTH  = &H10000000
+    WINHTTP_DISABLE_PASSPORT_KEYRING  = &H20000000
+    WINHTTP_ENABLE_PASSPORT_KEYRING  = &H40000000
+End Enum
+
+Public Enum WinHttpProxyDisableFlags
+    WINHTTP_PROXY_DISABLE_SCHEME_BASIC  = &H00000001
+    WINHTTP_PROXY_DISABLE_SCHEME_DIGEST  = &H00000002
+    WINHTTP_PROXY_DISABLE_SCHEME_NTLM  = &H00000004
+    WINHTTP_PROXY_DISABLE_SCHEME_KERBEROS  = &H00000008
+    WINHTTP_PROXY_DISABLE_SCHEME_NEGOTIATE  = &H00000010
+    WINHTTP_PROXY_DISABLE_AUTH_LOCAL_SERVICE  = &H00000100
+End Enum
+
+Public Enum WinHttpFeatureDisableFlags
+    WINHTTP_DISABLE_COOKIES  = &H00000001
+    WINHTTP_DISABLE_REDIRECTS  = &H00000002
+    WINHTTP_DISABLE_AUTHENTICATION  = &H00000004
+    WINHTTP_DISABLE_KEEP_ALIVE  = &H00000008
+End Enum
+
+Public Enum WinHttpFeatureEnableFlags
+    WINHTTP_ENABLE_SSL_REVOCATION  = &H00000001
+    WINHTTP_ENABLE_SSL_REVERT_IMPERSONATION = &H00000002
+End Enum
+
+Public Enum WinHttpSPNFlags
+    WINHTTP_DISABLE_SPN_SERVER_PORT  = &H00000000
+    WINHTTP_ENABLE_SPN_SERVER_PORT  = &H00000001
+    WINHTTP_OPTION_SPN_MASK  = WINHTTP_ENABLE_SPN_SERVER_PORT
+End Enum
+
+Public Enum WinHttpHandleTypes
+    WINHTTP_HANDLE_TYPE_SESSION  = 1
+    WINHTTP_HANDLE_TYPE_CONNECT  = 2
+    WINHTTP_HANDLE_TYPE_REQUEST  = 3
+    WINHTTP_HANDLE_TYPE_PROXY_RESOLVER  = 4
+    WINHTTP_HANDLE_TYPE_WEBSOCKET  = 5
+End Enum
+
+Public Enum WinHttpAuthSchemes
+    WINHTTP_AUTH_SCHEME_BASIC  = &H00000001
+    WINHTTP_AUTH_SCHEME_NTLM  = &H00000002
+    WINHTTP_AUTH_SCHEME_PASSPORT  = &H00000004
+    WINHTTP_AUTH_SCHEME_DIGEST  = &H00000008
+    WINHTTP_AUTH_SCHEME_NEGOTIATE  = &H00000010
+End Enum
+
+Public Type WINHTTP_CREDS
+    lpszUserName As String
+    lpszPassword As String
+    lpszRealm As String
+    dwAuthScheme As WinHttpAuthSchemes
+    lpszHostName As String
+    dwPort As Long
+End Type
+Public Type WINHTTP_CREDS_EX
+    lpszUserName As String
+    lpszPassword As String
+    lpszRealm As String
+    dwAuthScheme As Long
+    lpszHostName As String
+    dwPort As Long
+    lpszUrl As String
+End Type
+
+Public Enum WinHttpAuthTargets
+    WINHTTP_AUTH_TARGET_SERVER = &H00000000
+    WINHTTP_AUTH_TARGET_PROXY  = &H00000001
+End Enum
+
+Public Enum WinHttpCallbackStatusFlags
+    WINHTTP_CALLBACK_STATUS_FLAG_CERT_REV_FAILED  = &H00000001
+    WINHTTP_CALLBACK_STATUS_FLAG_INVALID_CERT  = &H00000002
+    WINHTTP_CALLBACK_STATUS_FLAG_CERT_REVOKED  = &H00000004
+    WINHTTP_CALLBACK_STATUS_FLAG_INVALID_CA  = &H00000008
+    WINHTTP_CALLBACK_STATUS_FLAG_CERT_CN_INVALID  = &H00000010
+    WINHTTP_CALLBACK_STATUS_FLAG_CERT_DATE_INVALID  = &H00000020
+    WINHTTP_CALLBACK_STATUS_FLAG_CERT_WRONG_USAGE  = &H00000040
+    WINHTTP_CALLBACK_STATUS_FLAG_SECURITY_CHANNEL_ERROR  = &H80000000
+End Enum
+
+Public Enum WinHttpSecureProtocolFlags
+    WINHTTP_FLAG_SECURE_PROTOCOL_SSL2  = &H00000008
+    WINHTTP_FLAG_SECURE_PROTOCOL_SSL3  = &H00000020
+    WINHTTP_FLAG_SECURE_PROTOCOL_TLS1  = &H00000080
+    WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_1  = &H00000200
+    WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_2  = &H00000800
+    WINHTTP_FLAG_SECURE_PROTOCOL_TLS1_3  = &H00002000
+    WINHTTP_FLAG_SECURE_PROTOCOL_ALL  = (WINHTTP_FLAG_SECURE_PROTOCOL_SSL2  Or  WINHTTP_FLAG_SECURE_PROTOCOL_SSL3  Or  WINHTTP_FLAG_SECURE_PROTOCOL_TLS1)
+End Enum
+
+Public Enum WinHttpCBReqErr
+    API_RECEIVE_RESPONSE  = (1)
+    API_QUERY_DATA_AVAILABLE  = (2)
+    API_READ_DATA  = (3)
+    API_WRITE_DATA  = (4)
+    API_SEND_REQUEST  = (5)
+    API_GET_PROXY_FOR_URL  = (6)
+    API_GET_PROXY_SETTINGS  = (7)
+End Enum
+
+Public Const WINHTTP_INVALID_STATUS_CALLBACK = (-1)
+
+
 
 Public Enum WINHTTP_QUERY_HEADER
     WINHTTP_QUERY_MIME_VERSION  = 0
@@ -45734,11 +46404,361 @@ Public Enum WINHTTP_CALLBACK_STATUS_FLAGS
     WINHTTP_CALLBACK_FLAG_ALL_NOTIFICATIONS  = &Hffffffff
 End Enum
 
-Public Enum WEB_SOCKET_ACTION_QUEUE
-    WEB_SOCKET_SEND_ACTION_QUEUE = &H1
-    WEB_SOCKET_RECEIVE_ACTION_QUEUE = &H2
-    WEB_SOCKET_ALL_ACTION_QUEUE 
+
+Public Enum INTERNET_SCHEME_WINHTTP
+    INTERNET_SCHEME_HTTP_WINHTTP = (1)
+    INTERNET_SCHEME_HTTPS_WINHTTP  = (2)
+    INTERNET_SCHEME_FTP_WINHTTP  = (3)
+    INTERNET_SCHEME_SOCKS_WINHTTP = (4)
 End Enum
+
+Public Const WINHTTP_NO_PROXY_NAME As LongPtr = vbNullPtr
+Public Const WINHTTP_NO_PROXY_BYPASS As LongPtr = vbNullPtr
+Public Const WINHTTP_NO_CLIENT_CERT_CONTEXT  As LongPtr = vbNullPtr
+'  WinHttpOpenRequest prettifers for optional parameters
+Public Const WINHTTP_NO_REFERER  As LongPtr = vbNullPtr
+Public Const WINHTTP_DEFAULT_ACCEPT_TYPES As LongPtr = vbNullPtr
+
+Public Enum WinHttpAddHeaderFlags
+    WINHTTP_ADDREQ_INDEX_MASK  = &H0000FFFF&
+    WINHTTP_ADDREQ_FLAGS_MASK  = &HFFFF0000
+'  WINHTTP_ADDREQ_FLAG_ADD_IF_NEW - the header will only be added if it doesn't
+'  already exist
+    WINHTTP_ADDREQ_FLAG_ADD_IF_NEW  = &H10000000
+'  WINHTTP_ADDREQ_FLAG_ADD - if WINHTTP_ADDREQ_FLAG_REPLACE is set but the header is
+'  not found then if this flag is set, the header is added anyway, so long as
+'  there is a valid header-value
+    WINHTTP_ADDREQ_FLAG_ADD  = &H20000000
+'  WINHTTP_ADDREQ_FLAG_COALESCE - coalesce headers with same name. e.g.
+'  "Accept: text/*" and "Accept: audio/*" with this flag results in a single
+'  header: "Accept: text/*, audio/*"
+    WINHTTP_ADDREQ_FLAG_COALESCE_WITH_COMMA  = &H40000000
+    WINHTTP_ADDREQ_FLAG_COALESCE_WITH_SEMICOLON = &H01000000
+    WINHTTP_ADDREQ_FLAG_COALESCE  = WINHTTP_ADDREQ_FLAG_COALESCE_WITH_COMMA
+'  WINHTTP_ADDREQ_FLAG_REPLACE - replaces the specified header. Only one header can
+'  be supplied in the buffer. If the header to be replaced is not the first
+'  in a list of headers with the same name, then the relative index should be
+'  supplied in the low 8 bits of the dwModifiers parameter. If the header-value
+'  part is missing, then the header is removed
+    WINHTTP_ADDREQ_FLAG_REPLACE  = &H80000000
+'  values for ullFlags member of WINHTTP_EXTENDED_HEADER
+'  WINHTTP_EXTENDED_HEADER_FLAG_UNICODE - indicates the value of the request header
+'  is unicode.
+End Enum
+Public Enum WinHttpExHeaderFlags
+    WINHTTP_EXTENDED_HEADER_FLAG_UNICODE = &H00000001
+End Enum
+
+Public Const WINHTTP_IGNORE_REQUEST_TOTAL_LENGTH  = 0
+'  WinHttpSendRequest prettifiers for optional parameters.
+Public Const WINHTTP_NO_ADDITIONAL_HEADERS  As LongPtr = vbNullPtr
+Public Const WINHTTP_NO_REQUEST_DATA  As LongPtr = vbNullPtr
+'  WinHttpQueryHeaders prettifiers for optional parameters.
+Public Const WINHTTP_HEADER_NAME_BY_INDEX  As LongPtr = vbNullPtr
+Public Const WINHTTP_NO_OUTPUT_BUFFER  As LongPtr = vbNullPtr
+Public Const WINHTTP_NO_HEADER_INDEX  As LongPtr = vbNullPtr
+
+Public Type WINHTTP_CURRENT_USER_IE_PROXY_CONFIG
+    fAutoDetect As BOOL
+    lpszAutoConfigUrl As LongPtr
+    lpszProxy As LongPtr
+    lpszProxyBypass As LongPtr
+End Type
+
+Public Enum WinHttpErrors
+    WINHTTP_ERROR_BASE  = 12000
+    ERROR_WINHTTP_OUT_OF_HANDLES  = (WINHTTP_ERROR_BASE + 1)
+    ERROR_WINHTTP_TIMEOUT  = (WINHTTP_ERROR_BASE + 2)
+    ERROR_WINHTTP_INTERNAL_ERROR  = (WINHTTP_ERROR_BASE + 4)
+    ERROR_WINHTTP_INVALID_URL  = (WINHTTP_ERROR_BASE + 5)
+    ERROR_WINHTTP_UNRECOGNIZED_SCHEME  = (WINHTTP_ERROR_BASE + 6)
+    ERROR_WINHTTP_NAME_NOT_RESOLVED  = (WINHTTP_ERROR_BASE + 7)
+    ERROR_WINHTTP_INVALID_OPTION  = (WINHTTP_ERROR_BASE + 9)
+    ERROR_WINHTTP_OPTION_NOT_SETTABLE  = (WINHTTP_ERROR_BASE + 11)
+    ERROR_WINHTTP_SHUTDOWN  = (WINHTTP_ERROR_BASE + 12)
+    ERROR_WINHTTP_LOGIN_FAILURE  = (WINHTTP_ERROR_BASE + 15)
+    ERROR_WINHTTP_OPERATION_CANCELLED  = (WINHTTP_ERROR_BASE + 17)
+    ERROR_WINHTTP_INCORRECT_HANDLE_TYPE  = (WINHTTP_ERROR_BASE + 18)
+    ERROR_WINHTTP_INCORRECT_HANDLE_STATE  = (WINHTTP_ERROR_BASE + 19)
+    ERROR_WINHTTP_CANNOT_CONNECT  = (WINHTTP_ERROR_BASE + 29)
+    ERROR_WINHTTP_CONNECTION_ERROR  = (WINHTTP_ERROR_BASE + 30)
+    ERROR_WINHTTP_RESEND_REQUEST  = (WINHTTP_ERROR_BASE + 32)
+    ERROR_WINHTTP_CLIENT_AUTH_CERT_NEEDED  = (WINHTTP_ERROR_BASE + 44)
+'  WinHttpRequest Component errors
+    ERROR_WINHTTP_CANNOT_CALL_BEFORE_OPEN  = (WINHTTP_ERROR_BASE + 100)
+    ERROR_WINHTTP_CANNOT_CALL_BEFORE_SEND  = (WINHTTP_ERROR_BASE + 101)
+    ERROR_WINHTTP_CANNOT_CALL_AFTER_SEND  = (WINHTTP_ERROR_BASE + 102)
+    ERROR_WINHTTP_CANNOT_CALL_AFTER_OPEN  = (WINHTTP_ERROR_BASE + 103)
+'  HTTP API errors
+    ERROR_WINHTTP_HEADER_NOT_FOUND  = (WINHTTP_ERROR_BASE + 150)
+    ERROR_WINHTTP_INVALID_SERVER_RESPONSE  = (WINHTTP_ERROR_BASE + 152)
+    ERROR_WINHTTP_INVALID_HEADER  = (WINHTTP_ERROR_BASE + 153)
+    ERROR_WINHTTP_INVALID_QUERY_REQUEST  = (WINHTTP_ERROR_BASE + 154)
+    ERROR_WINHTTP_HEADER_ALREADY_EXISTS  = (WINHTTP_ERROR_BASE + 155)
+    ERROR_WINHTTP_REDIRECT_FAILED  = (WINHTTP_ERROR_BASE + 156)
+'  additional WinHttp API error codes
+'  additional WinHttp API error codes
+    ERROR_WINHTTP_AUTO_PROXY_SERVICE_ERROR  = (WINHTTP_ERROR_BASE + 178)
+    ERROR_WINHTTP_BAD_AUTO_PROXY_SCRIPT  = (WINHTTP_ERROR_BASE + 166)
+    ERROR_WINHTTP_UNABLE_TO_DOWNLOAD_SCRIPT  = (WINHTTP_ERROR_BASE + 167)
+    ERROR_WINHTTP_UNHANDLED_SCRIPT_TYPE  = (WINHTTP_ERROR_BASE + 176)
+    ERROR_WINHTTP_SCRIPT_EXECUTION_ERROR  = (WINHTTP_ERROR_BASE + 177)
+    ERROR_WINHTTP_NOT_INITIALIZED  = (WINHTTP_ERROR_BASE + 172)
+    ERROR_WINHTTP_SECURE_FAILURE  = (WINHTTP_ERROR_BASE + 175)
+'  Certificate security errors. These are raised only by the WinHttpRequest
+'  component. The WinHTTP Win32 API will return ERROR_WINHTTP_SECURE_FAILE and
+'  provide additional information via the WINHTTP_CALLBACK_STATUS_SECURE_FAILURE
+'  callback notification.
+    ERROR_WINHTTP_SECURE_CERT_DATE_INVALID  = (WINHTTP_ERROR_BASE + 37)
+    ERROR_WINHTTP_SECURE_CERT_CN_INVALID  = (WINHTTP_ERROR_BASE + 38)
+    ERROR_WINHTTP_SECURE_INVALID_CA  = (WINHTTP_ERROR_BASE + 45)
+    ERROR_WINHTTP_SECURE_CERT_REV_FAILED  = (WINHTTP_ERROR_BASE + 57)
+    ERROR_WINHTTP_SECURE_CHANNEL_ERROR  = (WINHTTP_ERROR_BASE + 157)
+    ERROR_WINHTTP_SECURE_INVALID_CERT  = (WINHTTP_ERROR_BASE + 169)
+    ERROR_WINHTTP_SECURE_CERT_REVOKED  = (WINHTTP_ERROR_BASE + 170)
+    ERROR_WINHTTP_SECURE_CERT_WRONG_USAGE  = (WINHTTP_ERROR_BASE + 179)
+    ERROR_WINHTTP_AUTODETECTION_FAILED  = (WINHTTP_ERROR_BASE + 180)
+    ERROR_WINHTTP_HEADER_COUNT_EXCEEDED  = (WINHTTP_ERROR_BASE + 181)
+    ERROR_WINHTTP_HEADER_SIZE_OVERFLOW  = (WINHTTP_ERROR_BASE + 182)
+    ERROR_WINHTTP_CHUNKED_ENCODING_HEADER_SIZE_OVERFLOW  = (WINHTTP_ERROR_BASE + 183)
+    ERROR_WINHTTP_RESPONSE_DRAIN_OVERFLOW  = (WINHTTP_ERROR_BASE + 184)
+    ERROR_WINHTTP_CLIENT_CERT_NO_PRIVATE_KEY  = (WINHTTP_ERROR_BASE + 185)
+    ERROR_WINHTTP_CLIENT_CERT_NO_ACCESS_PRIVATE_KEY  = (WINHTTP_ERROR_BASE + 186)
+    ERROR_WINHTTP_CLIENT_AUTH_CERT_NEEDED_PROXY  = (WINHTTP_ERROR_BASE + 187)
+    ERROR_WINHTTP_SECURE_FAILURE_PROXY  = (WINHTTP_ERROR_BASE + 188)
+    ERROR_WINHTTP_RESERVED_189  = (WINHTTP_ERROR_BASE + 189)
+    ERROR_WINHTTP_HTTP_PROTOCOL_MISMATCH = (WINHTTP_ERROR_BASE + 190)
+    ERROR_WINHTTP_GLOBAL_CALLBACK_FAILED  = (WINHTTP_ERROR_BASE + 191)
+    ERROR_WINHTTP_FEATURE_DISABLED  = (WINHTTP_ERROR_BASE + 192)
+    WINHTTP_ERROR_LAST  = ERROR_WINHTTP_FEATURE_DISABLED
+End Enum
+
+Public Enum WinHttpReadDataExFlags
+    WINHTTP_READ_DATA_EX_FLAG_FILL_BUFFER = &h1
+End Enum
+
+Public Enum WinHttpQueryConGroupFlags
+    WINHTTP_QUERY_CONNECTION_GROUP_FLAG_INSECURE = &H1
+End Enum
+
+Public Enum WinHttpResetFlags
+    WINHTTP_RESET_STATE  = &H00000001
+    WINHTTP_RESET_SWPAD_CURRENT_NETWORK  = &H00000002
+    WINHTTP_RESET_SWPAD_ALL  = &H00000004
+    WINHTTP_RESET_SCRIPT_CACHE  = &H00000008
+    WINHTTP_RESET_ALL  = &H0000FFFF&
+    WINHTTP_RESET_NOTIFY_NETWORK_CHANGED  = &H00010000
+    WINHTTP_RESET_OUT_OF_PROC  = &H00020000
+    WINHTTP_RESET_DISCARD_RESOLVERS  = &H00040000
+End Enum
+
+Public Declare PtrSafe Function WinHttpSetStatusCallback Lib "winhttp" (ByVal hInternet As LongPtr, ByVal lpfnInternetCallback As LongPtr, ByVal dwNotificationFlags As WINHTTP_CALLBACK_STATUS_FLAGS, ByVal dwReserved As LongPtr) As LongPtr
+[ Description("Set buffer to WINHTTP_TIME_FORMAT_BUFSIZE")]
+Public DeclareWide PtrSafe Function WinHttpTimeFromSystemTime Lib "winhttp" (pst As SYSTEMTIME, ByVal pwszTime As String) As BOOL
+Public DeclareWide PtrSafe Function WinHttpTimeToSystemTime Lib "winhttp" (ByVal pwszTime As String, pst As SYSTEMTIME) As BOOL
+Public Declare PtrSafe Function WinHttpCrackUrl Lib "winhttp" (ByVal pwszUrl As LongPtr, ByVal dwUrlLength As Long, ByVal dwFlags As INET_ICU_FLAGS, lpUrlComponents As URL_COMPONENTS) As BOOL
+Public Declare PtrSafe Function WinHttpCreateUrl Lib "winhttp" (lpUrlComponents As URL_COMPONENTS, ByVal dwFlags As INET_ICU_FLAGS, ByVal pwszUrl As LongPtr, pdwUrlLength As Long) As BOOL
+Public Declare PtrSafe Function WinHttpCheckPlatform Lib "winhttp" () As BOOL
+Public Declare PtrSafe Function WinHttpGetDefaultProxyConfiguration Lib "winhttp" (pProxyInfo As WINHTTP_PROXY_INFO) As BOOL
+Public Declare PtrSafe Function WinHttpSetDefaultProxyConfiguration Lib "winhttp" (pProxyInfo As WINHTTP_PROXY_INFO) As BOOL
+Public Declare PtrSafe Function WinHttpOpen Lib "winhttp" (ByVal pszAgentW As LongPtr, ByVal dwAccessType As WINHTTP_ACCESS_TYPES, ByVal pszProxyW As LongPtr, ByVal pszProxyBypassW As LongPtr, ByVal dwFlags As WINHTTP_OPEN_FLAGS) As LongPtr
+Public Declare PtrSafe Function WinHttpCloseHandle Lib "winhttp" (ByVal hInternet As LongPtr) As BOOL
+Public Declare PtrSafe Function WinHttpConnect Lib "winhttp" (ByVal hSession As LongPtr, ByVal pswzServerName As LongPtr, ByVal nServerPort As Long, ByVal dwReserved As Long) As LongPtr
+Public Declare PtrSafe Function WinHttpReadData Lib "winhttp" (ByVal hRequest As LongPtr, lpBuffer As Any, ByVal dwNumberOfBytesToRead As Long, lpdwNumberOfBytesRead As Long) As BOOL
+Public Declare PtrSafe Function WinHttpReadDataEx Lib "winhttp" (ByVal hRequest As LongPtr, lpBuffer As Any, ByVal dwNumberOfBytesToRead As Long, lpdwNumberOfBytesRead As Long, [ TypeHint (WinHttpReadDataExFlags) ] ByVal ullFlags As LongLong, ByVal cbProperty As Long, pvProperty As Any) As BOOL
+Public Declare PtrSafe Function WinHttpWriteData Lib "winhttp" (ByVal hRequest As LongPtr, lpBuffer As Any, ByVal dwNumberOfBytesToWrite As Long, lpdwNumberOfBytesWritten As Long) As BOOL
+Public Declare PtrSafe Function WinHttpQueryDataAvailable Lib "winhttp" (ByVal hRequest As LongPtr, lpdwNumberOfBytesAvailable As Long) As BOOL
+Public Declare PtrSafe Function WinHttpQueryOption Lib "winhttp" (ByVal hInternet As LongPtr, ByVal dwOption As WINHTTP_OPTIONS, lpBuffer As Any, lpdwBufferLength As Long) As BOOL
+Public Declare PtrSafe Function WinHttpSetOption Lib "winhttp" (ByVal hInternet As LongPtr, ByVal dwOption As WINHTTP_OPTIONS, lpBuffer As Any, ByVal dwBufferLength As Long) As BOOL
+Public Declare PtrSafe Function WinHttpSetTimeouts Lib "winhttp" (ByVal hInternet As LongPtr, ByVal nResolveTimeout As Long, ByVal nConnectTimeout As Long, ByVal nSendTimeout As Long, ByVal nReceiveTimeout As Long) As BOOL
+Public DeclareWide PtrSafe Function WinHttpIsHostInProxyBypassList Lib "winhttp" (pProxyInfo As WINHTTP_PROXY_INFO, ByVal pwszHost As String, ByVal tScheme As INTERNET_SCHEME_WINHTTP, [ TypeHint(INET_DEF_PORTS)] ByVal nPort As Integer, pfIsInBypassList As BOOL) As Long
+Public Declare PtrSafe Function WinHttpOpenRequest Lib "winhttp" (ByVal hConnect As LongPtr, ByVal pwszVerb As LongPtr, ByVal pwszObjectName As LongPtr, ByVal pwszVersion As LongPtr, ByVal pwszReferrer As LongPtr, ByVal ppwszAcceptTypes As LongPtr, ByVal dwFlags As WINHTTP_OPEN_REQ_FLAGS) As LongPtr
+Public Declare PtrSafe Function WinHttpAddRequestHeaders Lib "winhttp" (ByVal hRequest As LongPtr, ByVal lpszHeaders As LongPtr, ByVal dwHeadersLength As Long, ByVal dwModifiers As WinHttpAddHeaderFlags) As BOOL
+Public Declare PtrSafe Function WinHttpAddRequestHeadersEx Lib "winhttp" (ByVal hRequest As LongPtr, ByVal dwModifiers As WinHttpAddHeaderFlags, [ TypeHint(WinHttpExHeaderFlags) ] ByVal ullFlags As LongLong, ByVal ullExtra As LongLong, ByVal cHeaders As Long, pHeaders As WINHTTP_EXTENDED_HEADER) As Long
+Public Declare PtrSafe Function WinHttpSendRequest Lib "winhttp" (ByVal hRequest As LongPtr, ByVal lpszHeaders As LongPtr, ByVal dwHeadersLength As Long, lpOptional As Any, ByVal dwOptionalLength As Long, ByVal dwTotalLength As Long, ByVal dwContext As LongPtr) As BOOL
+Public Declare PtrSafe Function WinHttpSetCredentials Lib "winhttp" (ByVal hRequest As LongPtr, ByVal AuthTargets As WinHttpAuthTargets, ByVal AuthScheme As WinHttpAuthSchemes, ByVal pwszUserName As LongPtr, ByVal pwszPassword As LongPtr, pAuthParams As Any) As BOOL
+Public Declare PtrSafe Function WinHttpQueryAuthSchemes Lib "winhttp" (ByVal hRequest As LongPtr, lpdwSupportedSchemes As WinHttpAuthSchemes, lpdwFirstScheme As WinHttpAuthSchemes, pdwAuthTarget As WinHttpAuthTargets) As BOOL
+Public Declare PtrSafe Function WinHttpQueryAuthParams Lib "winhttp" (ByVal hRequest As LongPtr, ByVal AuthScheme As WinHttpAuthSchemes, pAuthParams As LongPtr) As BOOL
+Public Declare PtrSafe Function WinHttpReceiveResponse Lib "winhttp" (ByVal hRequest As LongPtr, ByVal lpReserved As LongPtr) As BOOL
+Public Declare PtrSafe Function WinHttpQueryHeaders Lib "winhttp" (ByVal hRequest As LongPtr, ByVal dwInfoLevel As WINHTTP_QUERY_HEADER, ByVal pwszName As LongPtr, ByRef lpBuffer As Any, ByRef lpdwBufferLength As Long, ByRef lpdwIndex As Long) As BOOL
+Public Declare PtrSafe Function WinHttpQueryHeadersEx Lib "winhttp" (ByVal hRequest As LongPtr, ByVal dwInfoLevel As WINHTTP_QUERY_HEADER, ByVal ullFlags As LongLong, [ TypeHint(CodePageDefaults) ] ByVal uiCodePage As Long, ByRef pdwIndex As Long, pHeaderName As WINHTTP_HEADER_NAME, ByRef pBuffer As Any, ByRef pdwBufferLength As Long, ppHeaders As LongPtr, pdwHeadersCount As Long) As Long
+Public Declare PtrSafe Function WinHttpQueryConnectionGroup Lib "winhttp" (ByVal hInternet As LongPtr, pGuidConnection As UUID, [ TypeHint(WinHttpQueryConGroupFlags) ] ByVal ullFlags As LongLong, ppResult As LongPtr) As Long
+Public Declare PtrSafe Sub WinHttpFreeQueryConnectionGroupResult Lib "winhttp" (pResult As WINHTTP_QUERY_CONNECTION_GROUP_RESULT)
+Public Declare PtrSafe Function WinHttpDetectAutoProxyConfigUrl Lib "winhttp" (ByVal dwAutoDetectFlags As WINHTTP_AUTOPROXY_AUTODETECT_FLAGS, ppwstrAutoConfigUrl As LongPtr) As BOOL
+Public Declare PtrSafe Function WinHttpGetProxyForUrl Lib "winhttp" (ByVal hSession As LongPtr, ByVal lpcwszUrl As LongPtr, pAutoProxyOptions As WINHTTP_AUTOPROXY_OPTIONS, pProxyInfo As WINHTTP_PROXY_INFO) As BOOL
+Public Declare PtrSafe Function WinHttpCreateProxyResolver Lib "winhttp" (ByVal hSession As LongPtr, phResolver As LongPtr) As Long
+Public Declare PtrSafe Function WinHttpGetProxyForUrlEx Lib "winhttp" (ByVal hResolver As LongPtr, ByVal pcwszUrl As LongPtr, pAutoProxyOptions As WINHTTP_AUTOPROXY_OPTIONS, ByVal pContext As LongPtr) As Long
+Public Declare PtrSafe Function WinHttpGetProxyForUrlEx2 Lib "winhttp" (ByVal hResolver As LongPtr, ByVal pcwszUrl As LongPtr, pAutoProxyOptions As WINHTTP_AUTOPROXY_OPTIONS, ByVal cbInterfaceSelectionContext As Long, pInterfaceSelectionContext As Any, ByVal pContext As LongPtr) As Long
+Public Declare PtrSafe Function WinHttpGetProxyResult Lib "winhttp" (ByVal hResolver As LongPtr, pProxyResult As WINHTTP_PROXY_RESULT) As Long
+Public Declare PtrSafe Function WinHttpGetProxyResultEx Lib "winhttp" (ByVal hResolver As LongPtr, pProxyResultEx As WINHTTP_PROXY_RESULT_EX) As Long
+Public Declare PtrSafe Sub WinHttpFreeProxyResult Lib "winhttp" (pProxyResult As WINHTTP_PROXY_RESULT)
+Public Declare PtrSafe Sub WinHttpFreeProxyResultEx Lib "winhttp" (pProxyResultEx As WINHTTP_PROXY_RESULT_EX)
+Public Declare PtrSafe Function WinHttpResetAutoProxy Lib "winhttp" (ByVal hSession As LongPtr, ByVal dwFlags As WinHttpResetFlags) As BOOL
+Public Declare PtrSafe Function WinHttpGetIEProxyConfigForCurrentUser Lib "winhttp" (pProxyConfig As WINHTTP_CURRENT_USER_IE_PROXY_CONFIG) As BOOL
+Public Declare PtrSafe Function WinHttpWriteProxySettings Lib "winhttp" (ByVal hSession As LongPtr, ByVal fForceUpdate As BOOL, pWinHttpProxySettings As WINHTTP_PROXY_SETTINGS) As Long
+Public Declare PtrSafe Function WinHttpReadProxySettings Lib "winhttp" (ByVal hSession As LongPtr, ByVal pcwszConnectionName As LongPtr, ByVal fFallBackToDefaultSettings As BOOL, ByVal fSetAutoDiscoverForDefaultSettings As BOOL, pdwSettingsVersion As Long, pfDefaultSettingsAreReturned As BOOL, pWinHttpProxySettings As WINHTTP_PROXY_SETTINGS) As Long
+Public Declare PtrSafe Sub WinHttpFreeProxySettings Lib "winhttp" (pWinHttpProxySettings As WINHTTP_PROXY_SETTINGS)
+Public Declare PtrSafe Function WinHttpGetProxySettingsVersion Lib "winhttp" (ByVal hSession As LongPtr, pdwProxySettingsVersion As Long) As Long
+Public Declare PtrSafe Function WinHttpSetProxySettingsPerUser Lib "winhttp" (ByVal fProxySettingsPerUser As BOOL) As Long
+
+Public Enum WINHTTP_WEB_SOCKET_OPERATION
+    WINHTTP_WEB_SOCKET_SEND_OPERATION=0
+    WINHTTP_WEB_SOCKET_RECEIVE_OPERATION=1
+    WINHTTP_WEB_SOCKET_CLOSE_OPERATION=2
+    WINHTTP_WEB_SOCKET_SHUTDOWN_OPERATION=3
+End Enum
+
+Public Enum WINHTTP_WEB_SOCKET_BUFFER_TYPE
+    WINHTTP_WEB_SOCKET_BINARY_MESSAGE_BUFFER_TYPE=0
+    WINHTTP_WEB_SOCKET_BINARY_FRAGMENT_BUFFER_TYPE=1
+    WINHTTP_WEB_SOCKET_UTF8_MESSAGE_BUFFER_TYPE=2
+    WINHTTP_WEB_SOCKET_UTF8_FRAGMENT_BUFFER_TYPE=3
+    WINHTTP_WEB_SOCKET_CLOSE_BUFFER_TYPE=4
+End Enum
+Public Enum WINHTTP_WEB_SOCKET_CLOSE_STATUS
+    WINHTTP_WEB_SOCKET_SUCCESS_CLOSE_STATUS=1000
+    WINHTTP_WEB_SOCKET_ENDPOINT_TERMINATED_CLOSE_STATUS=1001
+    WINHTTP_WEB_SOCKET_PROTOCOL_ERROR_CLOSE_STATUS=1002
+    WINHTTP_WEB_SOCKET_INVALID_DATA_TYPE_CLOSE_STATUS=1003
+    WINHTTP_WEB_SOCKET_EMPTY_CLOSE_STATUS=1005
+    WINHTTP_WEB_SOCKET_ABORTED_CLOSE_STATUS=1006
+    WINHTTP_WEB_SOCKET_INVALID_PAYLOAD_CLOSE_STATUS=1007
+    WINHTTP_WEB_SOCKET_POLICY_VIOLATION_CLOSE_STATUS=1008
+    WINHTTP_WEB_SOCKET_MESSAGE_TOO_BIG_CLOSE_STATUS=1009
+    WINHTTP_WEB_SOCKET_UNSUPPORTED_EXTENSIONS_CLOSE_STATUS=1010
+    WINHTTP_WEB_SOCKET_SERVER_ERROR_CLOSE_STATUS=1011
+    WINHTTP_WEB_SOCKET_SECURE_HANDSHAKE_ERROR_CLOSE_STATUS=1015
+End Enum
+
+Public Type WINHTTP_WEB_SOCKET_ASYNC_RESULT
+    AsyncResult As WINHTTP_ASYNC_RESULT
+    Operation As WINHTTP_WEB_SOCKET_OPERATION
+End Type
+
+Public Type WINHTTP_WEB_SOCKET_STATUS
+    dwBytesTransferred As Long
+    eBufferType As WINHTTP_WEB_SOCKET_BUFFER_TYPE
+End Type
+
+Public Const WINHTTP_WEB_SOCKET_MAX_CLOSE_REASON_LENGTH  = 123
+Public Const WINHTTP_WEB_SOCKET_MIN_KEEPALIVE_VALUE  = 15000
+
+Public Enum WinHttpProxyNotifyFlags
+    WINHTTP_PROXY_NOTIFY_CHANGE = &H1
+End Enum
+
+Public Declare PtrSafe Function WinHttpWebSocketCompleteUpgrade Lib "winhttp" (ByVal hRequest As LongPtr, ByVal pContext As LongPtr) As LongPtr
+Public Declare PtrSafe Function WinHttpWebSocketSend Lib "winhttp" (ByVal hWebSocket As LongPtr, ByVal eEBufferType As WINHTTP_WEB_SOCKET_BUFFER_TYPE, pvBuffer As Any, ByVal dwBufferLength As Long) As Long
+Public Declare PtrSafe Function WinHttpWebSocketReceive Lib "winhttp" (ByVal hWebSocket As LongPtr, ByRef pvBuffer As Any, ByVal dwBufferLength As Long, ByRef pdwBytesRead As Long, ByRef peEBufferType As WINHTTP_WEB_SOCKET_BUFFER_TYPE) As Long
+Public Declare PtrSafe Function WinHttpWebSocketShutdown Lib "winhttp" (ByVal hWebSocket As LongPtr, [ TypeHint(WINHTTP_WEB_SOCKET_CLOSE_STATUS) ] ByVal usStatus As Integer, pvReason As Any, ByVal dwReasonLength As Long) As Long
+Public Declare PtrSafe Function WinHttpWebSocketClose Lib "winhttp" (ByVal hWebSocket As LongPtr, [ TypeHint (WINHTTP_WEB_SOCKET_CLOSE_STATUS) ] ByVal usStatus As Integer, ByVal pvReason As LongPtr, ByVal dwReasonLength As Long) As Long
+Public Declare PtrSafe Function WinHttpWebSocketQueryCloseStatus Lib "winhttp" (ByVal hWebSocket As LongPtr, [ TypeHint (WINHTTP_WEB_SOCKET_CLOSE_STATUS) ] ByRef usStatus As Integer, ByRef pvReason As Any, ByVal dwReasonLength As Long, ByRef pdwReasonLengthConsumed As Long) As Long
+Public Declare PtrSafe Function WinHttpRegisterProxyChangeNotificatione Lib "winhttp" ([ TypeHint(WinHttpProxyNotifyFlags) ] ByVal ullFlags As LongLong, ByVal pfnCallback As LongPtr, ByVal pvContext As LongPtr, hRegistration As LongPtr) As Long
+Public Declare PtrSafe Function WinHttpUnregisterProxyChangeNotification Lib "winhttp" (ByVal hRegistration As LongPtr) As Long
+
+Public Enum WINHTTP_PROXY_SETTINGS_TYPE
+    WinHttpProxySettingsTypeUnknown 
+    WinHttpProxySettingsTypeWsl 
+    WinHttpProxySettingsTypeWsa  
+End Enum
+
+#If Win64 = 0 Then
+[ PackingAlignment(4) ]
+#End If
+Public Type WINHTTP_PROXY_SETTINGS_EX
+    ullGenerationId As LongLong
+    /* [ TypeHint(WINHTTP_PROXY_TYPES) ] */ ullFlags As LongLong
+    pcwszAutoconfigUrl As LongPtr 'PCWSTR
+    pcwszProxy As LongPtr 'PCWSTR
+    pcwszSecureProxy As LongPtr 'PCWSTR
+    cProxyBypasses As Long
+    rgpcwszProxyBypasses As LongPtr 'PCWSTR
+    dwInterfaceIndex As Long
+    pcwszConnectionName As LongPtr 'PCWSTR
+End Type
+
+Public Type WINHTTP_PROXY_SETTINGS_PARAM
+    ullFlags As LongLong
+    pcwszConnectionName As LongPtr 'PCWSTR
+    pcwszProbeHost As LongPtr 'PCWSTR
+End Type
+
+Public Declare PtrSafe Function WinHttpGetProxySettingsEx Lib "winhttp" (ByVal hResolver As LongPtr, ByVal ProxySettingsType As WINHTTP_PROXY_SETTINGS_TYPE, pProxySettingsParam As WINHTTP_PROXY_SETTINGS_PARAM, Optional ByVal pContext As LongPtr) As Long
+Public Declare PtrSafe Function WinHttpGetProxySettingsResultEx Lib "winhttp" (ByVal hResolver As LongPtr, pProxySettingsEx As Any) As Long
+Public Declare PtrSafe Function WinHttpFreeProxySettingsEx Lib "winhttp" (ByVal ProxySettingsType As WINHTTP_PROXY_SETTINGS_TYPE, pProxySettingsEx As Any) As Long
+
+Public Enum WinHttpFeatures
+    WINHTTP_FEATURE_DISABLE_STREAM_QUEUE  = 1
+    WINHTTP_FEATURE_IPV6_FAST_FALLBACK  = 2
+    WINHTTP_FEATURE_CONNECTION_STATS_V0  = 3
+    WINHTTP_FEATURE_REQUEST_TIMES  = 4
+    WINHTTP_FEATURE_EXPIRE_CONNECTION  = 5
+    WINHTTP_FEATURE_DISABLE_SECURE_PROTOCOL_FALLBACK  = 6
+    WINHTTP_FEATURE_HTTP_PROTOCOL_REQUIRED  = 7
+    WINHTTP_FEATURE_REQUEST_STATS  = 8
+    WINHTTP_FEATURE_SERVER_CERT_CHAIN_CONTEXT  = 9
+    WINHTTP_FEATURE_CONNECTION_STATS_V1  = 12
+    WINHTTP_FEATURE_SECURITY_INFO  = 13
+    WINHTTP_FEATURE_TCP_KEEPALIVE  = 14
+    WINHTTP_FEATURE_TCP_FAST_OPEN  = 15
+    WINHTTP_FEATURE_TLS_FALSE_START  = 16
+    WINHTTP_FEATURE_IGNORE_CERT_REVOCATION_OFFLINE  = 17
+    WINHTTP_FEATURE_TLS_PROTOCOL_INSECURE_FALLBACK  = 20
+    WINHTTP_FEATURE_STREAM_ERROR_CODE  = 21
+    WINHTTP_FEATURE_REQUIRE_STREAM_END  = 22
+    WINHTTP_FEATURE_ENABLE_HTTP2_PLUS_CLIENT_CERT  = 23
+    WINHTTP_FEATURE_FAILED_CONNECTION_RETRIES  = 24
+    WINHTTP_FEATURE_HTTP2_KEEPALIVE  = 26
+    WINHTTP_FEATURE_RESOLUTION_HOSTNAME  = 27
+    WINHTTP_FEATURE_SET_TOKEN_BINDING  = 28
+    WINHTTP_FEATURE_TOKEN_BINDING_PUBLIC_KEY  = 29
+    WINHTTP_FEATURE_REFERER_TOKEN_BINDING_HOSTNAME  = 30
+    WINHTTP_FEATURE_HTTP2_PLUS_TRANSFER_ENCODING  = 31
+    WINHTTP_FEATURE_RESOLVER_CACHE_CONFIG  = 32
+    WINHTTP_FEATURE_DISABLE_CERT_CHAIN_BUILDING  = 33
+    WINHTTP_FEATURE_BACKGROUND_CONNECTIONS  = 34
+    WINHTTP_FEATURE_FIRST_AVAILABLE_CONNECTION  = 35
+    WINHTTP_FEATURE_TCP_PRIORITY_STATUS  = 37
+    WINHTTP_FEATURE_CONNECTION_GUID  = 38
+    WINHTTP_FEATURE_MATCH_CONNECTION_GUID  = 39
+    WINHTTP_FEATURE_HTTP2_RECEIVE_WINDOW  = 43
+    WINHTTP_FEATURE_IS_FEATURE_SUPPORTED  = 44
+    WINHTTP_FEATURE_ADD_REQUEST_HEADERS_EX  = 46
+    WINHTTP_FEATURE_SET_PROXY_SETINGS_PER_USER  = 47
+    WINHTTP_FEATURE_READ_DATA_EX  = 48
+    WINHTTP_FEATURE_QUERY_HEADERS_EX  = 49
+    WINHTTP_FEATURE_QUERY_CONNECTION_GROUP  = 50
+    WINHTTP_FEATURE_FREE_QUERY_CONNECTION_GROUP_RESULT  = 51
+    WINHTTP_FEATURE_SECURITY_FLAG_IGNORE_ALL_CERT_ERRORS  = 52
+    WINHTTP_FEATURE_FLAG_SECURE_DEFAULTS  = 53
+    WINHTTP_FEATURE_EXTENDED_HEADER_FLAG_UNICODE  = 54
+    WINHTTP_FEATURE_QUERY_FLAG_TRAILERS  = 55
+    WINHTTP_FEATURE_QUERY_FLAG_WIRE_ENCODING  = 56
+    WINHTTP_FEATURE_RESOLVER_CACHE_CONFIG_FLAG_SOFT_LIMIT  = 57
+    WINHTTP_FEATURE_RESOLVER_CACHE_CONFIG_FLAG_BYPASS_CACHE  = 58
+    WINHTTP_FEATURE_FLAG_AUTOMATIC_CHUNKING  = 59
+    WINHTTP_FEATURE_QUERY_CONNECTION_GROUP_FLAG_INSECURE  = 60
+    WINHTTP_FEATURE_MATCH_CONNECTION_GUID_FLAG_REQUIRE_MARKED_CONNECTION  = 61
+    WINHTTP_FEATURE_QUERY_EX_ALL_HEADERS  = 62
+    WINHTTP_FEATURE_READ_DATA_EX_FLAG_FILL_BUFFER  = 63
+    WINHTTP_FEATURE_RESOLVER_CACHE_CONFIG_FLAG_USE_DNS_TTL  = 64
+    WINHTTP_FEATURE_RESOLVER_CACHE_CONFIG_FLAG_CONN_USE_TTL  = 65
+    WINHTTP_FEATURE_QUIC_STATS  = 66
+    WINHTTP_FEATURE_HTTP3_KEEPALIVE  = 69
+    WINHTTP_FEATURE_HTTP3_HANDSHAKE_TIMEOUT  = 70
+    WINHTTP_FEATURE_HTTP3_INITIAL_RTT  = 71
+    WINHTTP_FEATURE_HTTP3_STREAM_ERROR_CODE  = 72
+    WINHTTP_FEATURE_REQUEST_ANNOTATION  = 73
+    WINHTTP_FEATURE_DISABLE_PROXY_AUTH_SCHEMES  = 74
+    WINHTTP_FEATURE_REVERT_IMPERSONATION_SERVER_CERT  = 75
+End Enum
+
+#End Region
+
+#Region "websocket"
+'websocket.h, 100% coverage
+
+Public Const WEB_SOCKET_MAX_CLOSE_REASON_LENGTH = 123
 
 Public Enum WEB_SOCKET_CLOSE_STATUS
     WEB_SOCKET_SUCCESS_CLOSE_STATUS=1000
@@ -45755,24 +46775,20 @@ Public Enum WEB_SOCKET_CLOSE_STATUS
     WEB_SOCKET_SECURE_HANDSHAKE_ERROR_CLOSE_STATUS=1015
 End Enum
 
-Public Type WEB_SOCKET_BUFFER_DATA
-	pbBuffer As LongPtr
-    ulBufferLength As Long
-    align(3) As Byte	
-End Type
+Public Enum WEB_SOCKET_PROPERTY_TYPE
+    WEB_SOCKET_RECEIVE_BUFFER_SIZE_PROPERTY_TYPE=0
+    WEB_SOCKET_SEND_BUFFER_SIZE_PROPERTY_TYPE=1
+    WEB_SOCKET_DISABLE_MASKING_PROPERTY_TYPE=2
+    WEB_SOCKET_ALLOCATED_BUFFER_PROPERTY_TYPE=3
+    WEB_SOCKET_DISABLE_UTF8_VERIFICATION_PROPERTY_TYPE=4
+    WEB_SOCKET_KEEPALIVE_INTERVAL_PROPERTY_TYPE=5
+    WEB_SOCKET_SUPPORTED_VERSIONS_PROPERTY_TYPE=6
+End Enum
 
-Public Type WEB_SOCKET_BUFFER_CLOSESTATUS
-	pbReason As LongPtr
-    ulReasonLength As Long
-    /* TypeHint(WEB_SOCKET_CLOSE_STATUS) ] */ usStatus As Integer
-End Type
-
-Public Enum WEB_SOCKET_ACTION
-    WEB_SOCKET_NO_ACTION=0
-    WEB_SOCKET_SEND_TO_NETWORK_ACTION=1
-    WEB_SOCKET_INDICATE_SEND_COMPLETE_ACTION=2
-    WEB_SOCKET_RECEIVE_FROM_NETWORK_ACTION=3
-    WEB_SOCKET_INDICATE_RECEIVE_COMPLETE_ACTION=4
+Public Enum WEB_SOCKET_ACTION_QUEUE
+    WEB_SOCKET_SEND_ACTION_QUEUE = &H1
+    WEB_SOCKET_RECEIVE_ACTION_QUEUE = &H2
+    WEB_SOCKET_ALL_ACTION_QUEUE 
 End Enum
 
 Public Enum WEB_SOCKET_BUFFER_TYPE
@@ -45785,23 +46801,77 @@ Public Enum WEB_SOCKET_BUFFER_TYPE
     WEB_SOCKET_UNSOLICITED_PONG_BUFFER_TYPE = &H80000006
 End Enum
 
+Public Enum WEB_SOCKET_ACTION
+    WEB_SOCKET_NO_ACTION=0
+    WEB_SOCKET_SEND_TO_NETWORK_ACTION=1
+    WEB_SOCKET_INDICATE_SEND_COMPLETE_ACTION=2
+    WEB_SOCKET_RECEIVE_FROM_NETWORK_ACTION=3
+    WEB_SOCKET_INDICATE_RECEIVE_COMPLETE_ACTION=4
+End Enum
 
-Public Declare PtrSafe Function WinHttpOpen Lib "winhttp" (ByVal pszAgentW As LongPtr, ByVal dwAccessType As WINHTTP_ACCESS_TYPES, ByVal pszProxyW As LongPtr, ByVal pszProxyBypassW As LongPtr, ByVal dwFlags As WINHTTP_OPEN_FLAGS) As LongPtr
-Public Declare PtrSafe Function WinHttpConnect Lib "winhttp" (ByVal hSession As LongPtr, ByVal pswzServerName As LongPtr, ByVal nServerPort As Long, ByVal dwReserved As Long) As LongPtr
-Public Declare PtrSafe Function WinHttpOpenRequest Lib "winhttp" (ByVal hConnect As LongPtr, ByVal pwszVerb As LongPtr, ByVal pwszObjectName As LongPtr, ByVal pwszVersion As LongPtr, ByVal pwszReferrer As LongPtr, ByVal ppwszAcceptTypes As LongPtr, ByVal dwFlags As WINHTTP_OPEN_REQ_FLAGS) As LongPtr
-Public Declare PtrSafe Function WinHttpSetOption Lib "winhttp" (ByVal hInternet As LongPtr, ByVal dwOption As WINHTTP_OPTIONS, lpBuffer As Any, ByVal dwBufferLength As Long) As BOOL
-Public Declare PtrSafe Function WinHttpSendRequest Lib "winhttp" (ByVal hRequest As LongPtr, ByVal lpszHeaders As LongPtr, ByVal dwHeadersLength As Long, lpOptional As Any, ByVal dwOptionalLength As Long, ByVal dwTotalLength As Long, ByVal dwContext As LongPtr) As BOOL
-Public Declare PtrSafe Function WinHttpReceiveResponse Lib "winhttp" (ByVal hRequest As LongPtr, ByVal lpReserved As LongPtr) As BOOL
-Public Declare PtrSafe Function WinHttpWebSocketCompleteUpgrade Lib "winhttp" (ByVal hRequest As LongPtr, ByVal pContext As LongPtr) As LongPtr
-Public Declare PtrSafe Function WinHttpCloseHandle Lib "winhttp" (ByVal hRequest As LongPtr) As BOOL
-Public Declare PtrSafe Function WinHttpWebSocketSend Lib "winhttp" (ByVal hWebSocket As LongPtr, ByVal eEBufferType As WINHTTP_WEB_SOCKET_BUFFER_TYPE, pvBuffer As Any, ByVal dwBufferLength As Long) As Long
-Public Declare PtrSafe Function WinHttpWebSocketReceive Lib "winhttp" (ByVal hWebSocket As LongPtr, ByRef pvBuffer As Any, ByVal dwBufferLength As Long, ByRef pdwBytesRead As Long, ByRef peEBufferType As WINHTTP_WEB_SOCKET_BUFFER_TYPE) As Long
-Public Declare PtrSafe Function WinHttpWebSocketClose Lib "winhttp" (ByVal hWebSocket As LongPtr, [ TypeHint (WINHTTP_WEB_SOCKET_CLOSE_STATUS) ] ByVal usStatus As Integer, ByVal pvReason As LongPtr, ByVal dwReasonLength As Long) As Long
-Public Declare PtrSafe Function WinHttpWebSocketQueryCloseStatus Lib "winhttp" (ByVal hWebSocket As LongPtr, [ TypeHint (WINHTTP_WEB_SOCKET_CLOSE_STATUS) ] ByRef usStatus As Integer, ByRef pvReason As Any, ByVal dwReasonLength As Long, ByRef pdwReasonLengthConsumed As Long) As Long
-Public Declare PtrSafe Function WinHttpQueryHeaders Lib "winhttp" (ByVal hRequest As LongPtr, ByVal dwInfoLevel As WINHTTP_QUERY_HEADER, ByVal pwszName As LongPtr, ByRef lpBuffer As Any, ByRef lpdwBufferLength As Long, ByRef lpdwIndex As Long) As BOOL
-Public Declare PtrSafe Function WinHttpSetStatusCallback Lib "winhttp" (ByVal hWebSocket As LongPtr, ByVal lpfnInternetCallback As LongPtr, ByVal dwNotificationFlags As WINHTTP_CALLBACK_STATUS_FLAGS, ByVal dwReserved As LongPtr) As Long
+Public Type WEB_SOCKET_PROPERTY
+    Type As WEB_SOCKET_PROPERTY_TYPE
+    pvValue As LongPtr
+    ulValueSize As Long
+End Type
+
+Public Type WEB_SOCKET_HTTP_HEADER
+    pcName As LongPtr
+    ulNameLength As Long
+    pcValue As LongPtr
+    ulValueLength As Long
+End Type
+
+
+Public Type WEB_SOCKET_BUFFER_DATA
+    pbBuffer As LongPtr
+    ulBufferLength As Long
+    Reserved As Integer
+End Type
+
+Public Type WEB_SOCKET_BUFFER_CLOSESTATUS
+    pbReason As LongPtr
+    ulReasonLength As Long
+    /* TypeHint(WEB_SOCKET_CLOSE_STATUS) ] */ usStatus As Integer
+End Type
+
+[ Description("Single versions of the union options are available via `WEB_SOCKET_BUFFER_DATA` and `WEB_SOCKET_BUFFER_CLOSESTATUS`.")]
+Public Type WEB_SOCKET_BUFFER
+' typedef union _WEB_SOCKET_BUFFER
+' {
+    ' struct
+    ' {
+        ' _Field_size_bytes_(ulBufferLength) PBYTE pbBuffer;
+        ' ULONG ulBufferLength;
+    ' } Data;
+
+    ' struct
+    ' {
+        ' _Field_size_bytes_(ulReasonLength) PBYTE pbReason;
+        ' _Field_range_(0, WEB_SOCKET_MAX_CLOSE_REASON_LENGTH) ULONG ulReasonLength;
+        ' USHORT usStatus;
+    ' } CloseStatus;
+' } WEB_SOCKET_BUFFER, 
+    BufferOrReason As LongPtr
+    BufferOrReasonLength As Long
+    usStatus As Integer
+End Type
+
+
+Public Declare PtrSafe Function WebSocketCreateClientHandle Lib "websocket" (pProperties As WEB_SOCKET_PROPERTY, ByVal ulPropertyCount As Long, phWebSocket As LongPtr) As Long
+Public Declare PtrSafe Function WebSocketBeginClientHandshake Lib "websocket" (ByVal hWebSocket As LongPtr, pszSubprotocols As String, ByVal ulSubprotocolCount As Long, pszExtentions As String, ByVal ulExtensionCount As Long, pInitialHeaders As WEB_SOCKET_HTTP_HEADER, ByVal ulInitialHeaderCount As Long, pAdditionalHeaders As LongPtr, pulAdditionalHeaderCount As Long) As Long
+Public Declare PtrSafe Function WebSocketEndClientHandshake Lib "websocket" (ByVal hWebSocket As LongPtr, pResponseHeaders As WEB_SOCKET_HTTP_HEADER, ByVal ulReponseHeaderCount As Long, Optional pulSelectedExtensions As Long, Optional pulSelectedExtensionCount As Long, Optional pulSelectedSubprotocol As Long) As Long
+Public Declare PtrSafe Function WebSocketCreateServerHandle Lib "websocket" (pProperties As WEB_SOCKET_PROPERTY, ByVal ulPropertyCount As Long, phWebSocket As LongPtr) As Long
+Public Declare PtrSafe Function WebSocketBeginServerHandshake Lib "websocket" (ByVal hWebSocket As LongPtr, ByVal pszSubprotocolSelected As String, pszExtensionsSelected As String, ByVal ulExtensionSelectedCount As Long, pRequestHeaders As WEB_SOCKET_HTTP_HEADER, ByVal ulRequestHeaderCount As Long, pResponseHeaders As LongPtr, pulResponseHeaderCount As Long) As Long
+Public Declare PtrSafe Function WebSocketEndServerHandshake Lib "websocket" (ByVal hWebSocket As LongPtr) As Long
+Public Declare PtrSafe Function WebSocketSend Lib "websocket" (ByVal hWebSocket As LongPtr, ByVal BufferType As WEB_SOCKET_BUFFER_TYPE, pBuffer As WEB_SOCKET_BUFFER, Optional ByVal pvContext As LongPtr) As Long
+Public Declare PtrSafe Function WebSocketReceive Lib "websocket" (ByVal hWebSocket As LongPtr, pBuffer As WEB_SOCKET_BUFFER, Optional ByVal pvContext As LongPtr) As Long
 Public Declare PtrSafe Function WebSocketGetAction Lib "websocket" (ByVal hWebSocket As LongPtr, ByVal eActionQueue As WEB_SOCKET_ACTION_QUEUE, pDataBuffers As Any, ByRef pulDataBufferCount As Long, ByRef pAction As WEB_SOCKET_ACTION, ByRef pBufferType As WEB_SOCKET_BUFFER_TYPE, ByRef pvApplicationContext As LongPtr, ByRef pvActionContext As LongPtr) As Long
-    
+Public Declare PtrSafe Sub WebSocketCompleteAction Lib "websocket" (ByVal hWebSocket As LongPtr, ByVal pvActionContext As LongPtr, ByVal ulBytesTransferred As Long)
+Public Declare PtrSafe Sub WebSocketAbortHandle Lib "websocket" (ByVal hWebSocket As LongPtr)
+Public Declare PtrSafe Sub WebSocketDeleteHandle Lib "websocket" (ByVal hWebSocket As LongPtr)
+Public Declare PtrSafe Function WebSocketGetGlobalProperty Lib "websocket" (ByVal hWebSocket As LongPtr, ByVal eType As WEB_SOCKET_PROPERTY_TYPE, pvValue As Any, ulSize As Long) As Long
+
 #End Region
 
 
@@ -45811,9 +46881,9 @@ Public Declare PtrSafe Function WebSocketGetAction Lib "websocket" (ByVal hWebSo
 
 Public Enum INET_DEF_PORTS
     INTERNET_INVALID_PORT_NUMBER  = 0  ' use the protocol-specific default
-    INTERNET_DEFAULT_FTP_PORT  = 21  ' default for FTP servers
+    INTERNET_DEFAULT_FTP_PORT = 21  ' default for FTP servers
     INTERNET_DEFAULT_GOPHER_PORT  = 70  '    "     "  gopher "
-    INTERNET_DEFAULT_HTTP_PORT  = 80  '    "     "  HTTP   "
+    INTERNET_DEFAULT_HTTP_PORT = 80  '    "     "  HTTP   "
     INTERNET_DEFAULT_HTTPS_PORT  = 443  '    "     "  HTTPS  "
     INTERNET_DEFAULT_SOCKS_PORT = 1080  ' default for SOCKS firewall servers.
 End Enum
@@ -45868,7 +46938,7 @@ Public Enum INET_SECURITY_FLAGS
     SECURITY_FLAG_56BIT = SECURITY_FLAG_STRENGTH_MEDIUM
 '  settable flags
     SECURITY_FLAG_IGNORE_REVOCATION  = &H00000080
-    SECURITY_FLAG_IGNORE_UNKNOWN_CA  = &H00000100
+    SECURITY_FLAG_IGNORE_UNKNOWN_CA = &H00000100
     SECURITY_FLAG_IGNORE_WRONG_USAGE  = &H00000200
     SECURITY_FLAG_IGNORE_CERT_CN_INVALID  = &H00001000  'INTERNET_FLAG_IGNORE_CERT_CN_INVALID
     SECURITY_FLAG_IGNORE_CERT_DATE_INVALID  = &H00002000  'INTERNET_FLAG_IGNORE_CERT_DATE_INVALID
@@ -45961,7 +47031,7 @@ Public Enum INTERNET_SCHEME
     INTERNET_SCHEME_FILE  
     INTERNET_SCHEME_NEWS
     INTERNET_SCHEME_MAILTO  
-    INTERNET_SCHEME_SOCKS  
+    INTERNET_SCHEME_SOCKS
     INTERNET_SCHEME_JAVASCRIPT 
     INTERNET_SCHEME_VBSCRIPT  
     INTERNET_SCHEME_RES 
@@ -46246,6 +47316,10 @@ Public Enum INET_ICU_FLAGS
     ICU_ENCODE_SPACES_ONLY  = &H04000000  ' Encode spaces only
     ICU_BROWSER_MODE  = &H02000000  ' Special encode/decode rules for browser
     ICU_ENCODE_PERCENT = &H00001000  ' Encode any percent (ASCII25)
+    ICU_ESCAPE_AUTHORITY = &H00002000 ' Escape chars in authority components (user, pwd, host)
+    ICU_REJECT_USERPWD = &H000040000  ' Rejects URLs whick have username/pwd sections
+    ICU_INCLUDE_DEFAULT_PORT = &H00008000& ' Include default port numbers in URLs
+    
 End Enum
 
 Public Const PRE_CONFIG_INTERNET_ACCESS  = INTERNET_OPEN_TYPE_PRECONFIG
@@ -47355,6 +48429,16 @@ Public Enum PrivacyType
     PRIVACY_TYPE_THIRD_PARTY  = 1
 End Enum
 
+Public Enum WinInetProxAutodetectTypes
+    PROXY_AUTO_DETECT_TYPE_DHCP  = 1
+    PROXY_AUTO_DETECT_TYPE_DNS_A  = 2
+End Enum
+
+Public Type AUTO_PROXY_SCRIPT_BUFFER
+    dwStructSize As Long ' Size of struct
+    lpszScriptBuffer As String ' Buffer to Pass
+    dwScriptBufferSize As Long ' Size of buffer above
+End Type
 
 
 Public Declare PtrSafe Function InternetTimeFromSystemTimeA Lib "wininet" (pst As SYSTEMTIME, ByVal dwRFC As INET_SYSTIME_RFCS, ByVal lpszTime As String, ByVal cbTime As Long) As BOOL
@@ -47565,12 +48649,16 @@ Public DeclareWide PtrSafe Function InternetHangUp Lib "wininet" (ByVal dwConnec
 Public Declare PtrSafe Function InternetGoOnlineA Lib "wininet" (ByVal lpszURL As String, ByVal hwndParent As LongPtr, ByVal dwFlags As INET_GOONLINE_FLAGS) As BOOL
 Public Declare PtrSafe Function InternetGoOnlineW Lib "wininet" (ByVal lpszURL As LongPtr, ByVal hwndParent As LongPtr, ByVal dwFlags As INET_GOONLINE_FLAGS) As BOOL
 Public DeclareWide PtrSafe Function InternetGoOnline Lib "wininet" Alias "InternetGoOnlineW" (ByVal lpszURL As String, ByVal hwndParent As LongPtr, ByVal dwFlags As INET_GOONLINE_FLAGS) As BOOL
-Public DeclareWide PtrSafe Function InternetAutoDial Lib "wininet" (ByVal dwFlags As INET_DIAL_FLAGS, ByVal hwndParent As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function InternetAutodial Lib "wininet" (ByVal dwFlags As INET_DIAL_FLAGS, ByVal hwndParent As LongPtr) As BOOL
 Public DeclareWide PtrSafe Function InternetAutodialHangup Lib "wininet" (ByVal dwReserved As Long) As BOOL
 Public DeclareWide PtrSafe Function InternetGetConnectedState Lib "wininet" (lpdwFlags As INET_CONSTATE_FLAGS, ByVal dwReserved As Long) As BOOL
 Public Declare PtrSafe Function InternetGetConnectedStateExA Lib "wininet" (lpdwFlags As INET_CONSTATE_FLAGS, ByVal lpszConnectionName As String, ByVal cchNameLen As Long, ByVal dwReserved As Long) As BOOL
 Public Declare PtrSafe Function InternetGetConnectedStateExW Lib "wininet" (lpdwFlags As INET_CONSTATE_FLAGS, ByVal lpszConnectionName As LongPtr, ByVal cchNameLen As Long, ByVal dwReserved As Long) As BOOL
 Public DeclareWide PtrSafe Function InternetGetConnectedStateEx Lib "wininet" Alias "InternetGetConnectedStateExW" (lpdwFlags As INET_CONSTATE_FLAGS, ByVal lpszConnectionName As String, ByVal cchNameLen As Long, ByVal dwReserved As Long) As BOOL
+Public Declare PtrSafe Function DeleteWpadCacheForNetworks Lib "wininet" (ByVal wcd As WPAD_CACHE_DELETE) As BOOL
+Public Declare PtrSafe Function InternetInitializeAutoProxyDll Lib "wininet" (ByVal dwReserved As Long) As BOOL
+Public Declare PtrSafe Function DetectAutoProxyUrl Lib "wininet" (ByVal pszAutoProxyUrl As String, ByVal cchAutoProxyUrl As Long, ByVal dwDetectFlags As WinInetProxAutodetectTypes) As BOOL
+Public DeclareWide PtrSafe Function CreateMD5SSOHash Lib "wininet" (ByVal pszChallengeInfo As String, ByVal pwszRealm As String, ByVal pwszTarget As String, pbHexHash As Any) As BOOL
 Public Declare PtrSafe Function InternetSetDialStateA Lib "wininet" (ByVal lpszConnectoid As String, ByVal dwState As INET_SETDIALSTATE_FLAGS, ByVal dwReserved As Long) As BOOL
 Public Declare PtrSafe Function InternetSetDialStateW Lib "wininet" (ByVal lpszConnectoid As LongPtr, ByVal dwState As INET_SETDIALSTATE_FLAGS, ByVal dwReserved As Long) As BOOL
 Public DeclareWide PtrSafe Function InternetSetDialState Lib "wininet" Alias "InternetSetDialStateW" (ByVal lpszConnectoid As String, ByVal dwState As INET_SETDIALSTATE_FLAGS, ByVal dwReserved As Long) As BOOL
@@ -47586,6 +48674,9 @@ Public DeclareWide PtrSafe Function InternetEnumPerSiteCookieDecision Lib "winin
 Public DeclareWide PtrSafe Function PrivacySetZonePreferenceW Lib "wininet" (ByVal dwZone As URLZONE, ByVal dwType As PrivacyType, ByVal dwTemplate As INET_PRIVACY_TEMPLATES, Optional ByVal pszPreference As String) As Long
 Public DeclareWide PtrSafe Function PrivacyGetZonePreferenceW Lib "wininet" (ByVal dwZone As URLZONE, ByVal dwType As PrivacyType, pdwTemplate As INET_PRIVACY_TEMPLATES, Optional ByVal pszBuffer As String, Optional pdwBufferLength As Long) As Long
 Public DeclareWide PtrSafe Function HttpIsHostHstsEnabled Lib "wininet" (ByVal pcwszUrl As String, pfIsHsts As BOOL) As Long
+
+
+
 
 #End Region
 
@@ -53201,7 +54292,124 @@ Public Enum CertSetPropFlags
     CERT_SET_PROPERTY_INHIBIT_PERSIST_FLAG  = &H40000000
 End Enum
 
+Public Enum CertStorePropIds
+    CERT_STORE_LOCALIZED_NAME_PROP_ID = &H1000
+End Enum
 
+Public Type CERT_REVOCATION_CRL_INFO
+    cbSize As Long
+    pBaseCrlContext As LongPtr 'PCCRL_CONTEXT
+    pDeltaCrlContext As LongPtr 'PCCRL_CONTEXT
+    ' When revoked, points to entry in either of the above CRL contexts.
+    ' Don't free.
+    pCrlEntry As LongPtr 'PCRL_ENTRY
+    fDeltaCrlEntry As BOOL ' TRUE if in pDeltaCrlContext
+End Type
+
+Public Type CRL_ENTRY
+    SerialNumber As CRYPT_INTEGER_BLOB
+    RevocationDate As FILETIME
+    cExtension As Long
+    rgExtension As LongPtr 'PCERT_EXTENSION
+End Type
+
+Public Type CERT_REVOCATION_PARA
+    cbSize As Long
+    pIssuerCert As LongPtr 'PCCERT_CONTEXT
+    cCertStore As Long
+    rgCertStore As LongPtr 'HCERTSTORE
+    hCrlStore As LongPtr 'HCERTSTORE
+    pftTimeToUse As LongPtr 'LPFILETIME
+    '#ifdef CERT_REVOCATION_PARA_HAS_EXTRA_FIELDS
+    ' Note, if you #define CERT_REVOCATION_PARA_HAS_EXTRA_FIELDS, then, you
+    ' must zero all unused fields in this data structure.
+    ' More fields could be added in a future release.
+    ' 0 uses revocation handler's default timeout.
+    dwUrlRetrievalTimeout As Long ' milliseconds
+    ' When set, checks and attempts to retrieve a CRL where
+    ' ThisUpdate >= (CurrentTime - dwFreshnessTime). Otherwise, defaults
+    ' to using the CRL's NextUpdate.
+    fCheckFreshnessTime As BOOL
+    dwFreshnessTime As Long ' seconds
+    ' If NULL, revocation handler gets the current time
+    pftCurrentTime As LongPtr 'LPFILETIME
+    ' If nonNULL, a CRL revocation type handler updates with the base and
+    ' possibly the delta CRL used. Note, *pCrlInfo must be initialized
+    ' by the caller. Any nonNULL CRL contexts are freed. Any updated
+    ' CRL contexts must be freed by the caller.
+    ' The CRL info is only applicable to the last context checked. If
+    ' interested in this information, then, CertVerifyRevocation should be
+    ' called with cContext = 1.
+    pCrlInfo As LongPtr 'PCERT_REVOCATION_CRL_INFO
+    ' If nonNULL, any cached information before this time is considered
+    ' time invalid and forces a wire retrieval.
+    pftCacheResync As LongPtr 'LPFILETIME
+    ' If nonNULL, CertGetCertificateChain() parameters used by the caller.
+    ' Enables independent OCSP signer certificate chain verification.
+    pChainPara As LongPtr 'PCERT_REVOCATION_CHAIN_PARA
+    '#endif
+End Type
+Public Enum CertCRLReason
+    CRL_REASON_UNSPECIFIED  = 0
+    CRL_REASON_KEY_COMPROMISE  = 1
+    CRL_REASON_CA_COMPROMISE  = 2
+    CRL_REASON_AFFILIATION_CHANGED  = 3
+    CRL_REASON_SUPERSEDED  = 4
+    CRL_REASON_CESSATION_OF_OPERATION  = 5
+    CRL_REASON_CERTIFICATE_HOLD  = 6
+    CRL_REASON_REMOVE_FROM_CRL  = 8
+    CRL_REASON_PRIVILEGE_WITHDRAWN  = 9
+    CRL_REASON_AA_COMPROMISE  = 10
+End Enum
+Public Type CERT_REVOCATION_STATUS
+    cbSize As Long
+    dwIndex As Long
+    dwError As Long
+    dwReason As CertCRLReason
+    ' Depending on cbSize, the following fields may optionally be returned.
+    ' The Freshness time is only applicable to the last context checked. If
+    ' interested in this information, then, CertVerifyRevocation should be
+    ' called with cContext = 1.
+    ' fHasFreshnessTime is only set if we are able to retrieve revocation
+    ' information. For a CRL its CurrentTime - ThisUpdate.
+    fHasFreshnessTime As BOOL
+    dwFreshnessTime As Long ' seconds
+End Type
+
+Public Enum CertRevocationTypes
+    CERT_CONTEXT_REVOCATION_TYPE = 1
+End Enum
+Public Enum CertVerifyRevFlags
+    CERT_VERIFY_REV_CHAIN_FLAG  = &H00000001
+' +-------------------------------------------------------------------------
+'  CERT_VERIFY_CACHE_ONLY_BASED_REVOCATION prevents the revocation handler from
+'  accessing any network based resources for revocation checking
+' --------------------------------------------------------------------------
+    CERT_VERIFY_CACHE_ONLY_BASED_REVOCATION  = &H00000002
+' +-------------------------------------------------------------------------
+'   By default, the dwUrlRetrievalTimeout in pRevPara is the timeout used
+'   for each URL wire retrieval. When the following flag is set,
+'   dwUrlRetrievalTimeout is the accumulative timeout across all URL wire
+'   retrievals.
+' --------------------------------------------------------------------------
+    CERT_VERIFY_REV_ACCUMULATIVE_TIMEOUT_FLAG  = &H00000004
+' +-------------------------------------------------------------------------
+'   When the following flag is set, only OCSP responses are used for
+'   doing revocation checking. If the certificate doesn't have any
+'   OCSP AIA URLs, dwError is set to CRYPT_E_NOT_IN_REVOCATION_DATABASE.
+' --------------------------------------------------------------------------
+    CERT_VERIFY_REV_SERVER_OCSP_FLAG  = &H00000008
+' +-------------------------------------------------------------------------
+'   When the following flag is set, only the OCSP AIA URL is used if
+'   present in the subject. If the subject doesn't have an OCSP AIA URL, then,
+'   the CDP URLs are used.
+' --------------------------------------------------------------------------
+    CERT_VERIFY_REV_NO_OCSP_FAILOVER_TO_CRL_FLAG  = &H00000010
+' +-------------------------------------------------------------------------
+'   When the following flag is set, only wire retrieval for OCSP responses.
+' --------------------------------------------------------------------------
+    CERT_VERIFY_REV_SERVER_OCSP_WIRE_ONLY_FLAG  = &H00000020
+End Enum
 
 Public DeclareWide PtrSafe Function CryptProtectData Lib "crypt32" (pDataIn As DATA_BLOB, ByVal szDataDescr As String, pOptionalEntropy As DATA_BLOB, ByVal pvReserved As LongPtr, pPromptStruct As CRYPTPROTECT_PROMPTSTRUCT, ByVal dwFlags As CryptProtectFlags, pDataOut As DATA_BLOB) As BOOL
 Public DeclareWide PtrSafe Function CryptUnprotectData Lib "crypt32" (pDataIn As DATA_BLOB, szDataDescr As LongPtr, pOptionalEntropy As DATA_BLOB, ByVal pvReserved As LongPtr, pPromptStruct As CRYPTPROTECT_PROMPTSTRUCT, ByVal dwFlags As CryptProtectFlags, pDataOut As DATA_BLOB) As BOOL
@@ -53236,6 +54444,11 @@ Public Declare PtrSafe Function CertOpenStore Lib "crypt32" (ByVal lpszStoreProv
 Public Declare PtrSafe Function CertEnumCertificateContextProperties Lib "crypt32" (pCertContext As CERT_CONTEXT, ByVal dwPropId As CertPropertyIDs) As Long
 Public DeclareWide PtrSafe Function CertGetCertificateContextProperty Lib "crypt32" (pCertContext As CERT_CONTEXT, ByVal dwPropId As CertPropertyIDs, pvData As Any, pcbData As Long) As BOOL
 Public DeclareWide PtrSafe Function CertSetCertificateContextProperty Lib "crypt32" (pCertContext As CERT_CONTEXT, ByVal dwPropId As CertPropertyIDs, [ TypeHint (CertSetPropFlags, CertStoreOpenFlags) ] ByVal dwFlags As Long, pvData As Any, pcbData As Long) As BOOL
+Public Declare PtrSafe Function CertVerifyTimeValidity Lib "crypt32" (pTimeToVerify As FILETIME, pCertInfo As CERT_INFO) As Long
+Public Declare PtrSafe Function CertGetValidUsages Lib "crypt32" (ByVal cCerts As Long, rghCerts As LongPtr, cNumOIDs As Long, rghOIDs As LongPtr, pcbOIDs As Long) As BOOL
+Public Declare PtrSafe Function CertGetStoreProperty Lib "crypt32" (ByVal hCertStore As LongPtr, ByVal dwPropId As CertStorePropIds, pvData As Any, pcbData As Long) As BOOL
+Public Declare PtrSafe Function CertSetStoreProperty Lib "crypt32" (ByVal hCertStore As LongPtr, ByVal dwPropId As CertStorePropIds, ByVal dwFlags As Long, pvData As Any) As BOOL
+Public Declare PtrSafe Function CertVerifyRevocation Lib "crypt32" (ByVal dwEncodingType As CRYPT_CERT_ENCODING_TYPE, ByVal dwRevType As CertRevocationTypes, rgpvContext as Any, ByVal dwFlags As CertVerifyRevFlags, pRevPara As CERT_REVOCATION_PARA, pRevStatus As CERT_REVOCATION_STATUS) As BOOL
 
 
 #End Region
@@ -54313,8 +55526,10 @@ Public DeclareWide PtrSafe Function BCryptGenerateKeyPair Lib "bcrypt" (ByVal hA
 
 #Region "Misc"
 
-Public Declare PtrSafe Function IsNTAdmin Lib "advpack.dll" (ByVal dwReserved As Long, ByRef lpdwReserved As Long) As Long
 
+
+
+Public Declare PtrSafe Function IsNTAdmin Lib "advpack.dll" (ByVal dwReserved As Long, ByRef lpdwReserved As Long) As Long
 
 
 
@@ -56465,6 +57680,102 @@ Public Const HIGH_SURROGATE_END  = &Hdbff
 Public Const LOW_SURROGATE_START  = &Hdc00
 Public Const LOW_SURROGATE_END  = &Hdfff
 
+Public Function CREDUIP_IS_USER_PASSWORD_ERROR(_Status As Long) As Boolean
+        Return _
+        ((_Status) = STATUS_SMB_GUEST_LOGON_BLOCKED) Or _
+        ((_Status) = HRESULT_FROM_NT(STATUS_SMB_GUEST_LOGON_BLOCKED)) Or _
+        ((_Status) = ERROR_SMB_GUEST_LOGON_BLOCKED) Or _
+        ((_Status) = __HRESULT_FROM_WIN32( ERROR_SMB_GUEST_LOGON_BLOCKED)) Or _
+        ((_Status) = ERROR_LOGON_FAILURE) Or _
+        ((_Status) = __HRESULT_FROM_WIN32( ERROR_LOGON_FAILURE)) Or _
+        ((_Status) = STATUS_LOGON_FAILURE) Or _
+        ((_Status) = HRESULT_FROM_NT(STATUS_LOGON_FAILURE)) Or _
+        ((_Status) = ERROR_ACCESS_DENIED) Or _
+        ((_Status) = __HRESULT_FROM_WIN32( ERROR_ACCESS_DENIED)) Or _
+        ((_Status) = STATUS_ACCESS_DENIED) Or _
+        ((_Status) = HRESULT_FROM_NT(STATUS_ACCESS_DENIED)) Or _
+        ((_Status) = ERROR_INVALID_PASSWORD) Or _
+        ((_Status) = __HRESULT_FROM_WIN32( ERROR_INVALID_PASSWORD)) Or _
+        ((_Status) = STATUS_WRONG_PASSWORD) Or _
+        ((_Status) = HRESULT_FROM_NT(STATUS_WRONG_PASSWORD)) Or _
+        ((_Status) = STATUS_NO_SUCH_USER) Or _
+        ((_Status) = HRESULT_FROM_NT(STATUS_NO_SUCH_USER)) Or _
+        ((_Status) = ERROR_NO_SUCH_USER) Or _
+        ((_Status) = __HRESULT_FROM_WIN32( ERROR_NO_SUCH_USER)) Or _
+        ((_Status) = ERROR_NO_SUCH_LOGON_SESSION) Or _
+        ((_Status) = __HRESULT_FROM_WIN32( ERROR_NO_SUCH_LOGON_SESSION)) Or _
+        ((_Status) = STATUS_NO_SUCH_LOGON_SESSION) Or _
+        ((_Status) = HRESULT_FROM_NT(STATUS_NO_SUCH_LOGON_SESSION)) Or _
+        ((_Status) = SEC_E_NO_CREDENTIALS) Or _
+        ((_Status) = SEC_E_LOGON_DENIED) Or _
+        ((_Status) = SEC_E_NO_CONTEXT) Or _
+        ((_Status) = STATUS_NO_SECURITY_CONTEXT)
+End Function
+Public Function CREDUIP_IS_DOWNGRADE_ERROR(ByVal _Status As Long) As Boolean
+	Return _
+    ((_Status) = ERROR_DOWNGRADE_DETECTED) Or _
+    ((_Status) = __HRESULT_FROM_WIN32( ERROR_DOWNGRADE_DETECTED)) Or _
+    ((_Status) = STATUS_DOWNGRADE_DETECTED) Or _
+    ((_Status) = HRESULT_FROM_NT(STATUS_DOWNGRADE_DETECTED)) Or _
+    ((_Status) = SEC_E_DOWNGRADE_DETECTED)
+End Function
+Public Function CREDUIP_IS_EXPIRED_ERROR(ByVal _Status As Long) As Boolean
+	Return _
+    ((_Status) = ERROR_PASSWORD_EXPIRED) Or _
+    ((_Status) = __HRESULT_FROM_WIN32( ERROR_PASSWORD_EXPIRED)) Or _
+    ((_Status) = STATUS_PASSWORD_EXPIRED) Or _
+    ((_Status) = HRESULT_FROM_NT(STATUS_PASSWORD_EXPIRED)) Or _
+    ((_Status) = ERROR_PASSWORD_MUST_CHANGE) Or _
+    ((_Status) = __HRESULT_FROM_WIN32( ERROR_PASSWORD_MUST_CHANGE)) Or _
+    ((_Status) = STATUS_PASSWORD_MUST_CHANGE) Or _
+    ((_Status) = HRESULT_FROM_NT(STATUS_PASSWORD_MUST_CHANGE)) Or _
+    ((_Status) = NERR_PasswordExpired) Or _
+    ((_Status) = __HRESULT_FROM_WIN32(NERR_PasswordExpired))
+End Function
+Public Function CREDUI_IS_AUTHENTICATION_ERROR(ByVal _Status As Long) As Boolean
+	Return _
+    CREDUIP_IS_USER_PASSWORD_ERROR(_Status) Or _
+    CREDUIP_IS_DOWNGRADE_ERROR(_Status) Or _
+    CREDUIP_IS_EXPIRED_ERROR(_Status)
+End Function
+Public Function CREDUI_NO_PROMPT_AUTHENTICATION_ERROR(ByVal _Status As Long) As Boolean
+    Return _	
+    ((_Status) = ERROR_AUTHENTICATION_FIREWALL_FAILED) Or _
+    ((_Status) = __HRESULT_FROM_WIN32( ERROR_AUTHENTICATION_FIREWALL_FAILED)) Or _
+    ((_Status) = STATUS_AUTHENTICATION_FIREWALL_FAILED) Or _
+    ((_Status) = HRESULT_FROM_NT(STATUS_AUTHENTICATION_FIREWALL_FAILED)) Or _
+    ((_Status) = ERROR_ACCOUNT_DISABLED) Or _
+    ((_Status) = __HRESULT_FROM_WIN32( ERROR_ACCOUNT_DISABLED)) Or _
+    ((_Status) = STATUS_ACCOUNT_DISABLED) Or _
+    ((_Status) = HRESULT_FROM_NT(STATUS_ACCOUNT_DISABLED)) Or _
+    ((_Status) = ERROR_ACCOUNT_RESTRICTION) Or _
+    ((_Status) = __HRESULT_FROM_WIN32( ERROR_ACCOUNT_RESTRICTION)) Or _
+    ((_Status) = STATUS_ACCOUNT_RESTRICTION) Or _
+    ((_Status) = HRESULT_FROM_NT(STATUS_ACCOUNT_RESTRICTION)) Or _
+    ((_Status) = ERROR_ACCOUNT_LOCKED_OUT) Or _
+    ((_Status) = __HRESULT_FROM_WIN32( ERROR_ACCOUNT_LOCKED_OUT)) Or _
+    ((_Status) = STATUS_ACCOUNT_LOCKED_OUT) Or _
+    ((_Status) = HRESULT_FROM_NT(STATUS_ACCOUNT_LOCKED_OUT)) Or _
+    ((_Status) = ERROR_ACCOUNT_EXPIRED) Or _
+    ((_Status) = __HRESULT_FROM_WIN32( ERROR_ACCOUNT_EXPIRED)) Or _
+    ((_Status) = STATUS_ACCOUNT_EXPIRED) Or _
+    ((_Status) = HRESULT_FROM_NT(STATUS_ACCOUNT_EXPIRED)) Or _
+    ((_Status) = ERROR_LOGON_TYPE_NOT_GRANTED) Or _
+    ((_Status) = __HRESULT_FROM_WIN32( ERROR_LOGON_TYPE_NOT_GRANTED)) Or _
+    ((_Status) = STATUS_LOGON_TYPE_NOT_GRANTED) Or _
+    ((_Status) = HRESULT_FROM_NT(STATUS_LOGON_TYPE_NOT_GRANTED))
+End Function
+
+Public Sub CredAppendLogonTypeToFlags(Flags As Long, LogonType As Long) 
+Flags = Flags Or (LogonType << 12)
+End Sub
+Public Function CredGetLogonTypeFromFlags(ByVal Flags as Long) As Long
+ Return (Flags And CRED_LOGON_TYPES_MASK) >> 12
+End Function
+Public Function CredRemoveLogonTypeFromFlags(ByVal Flags As Long) As Long
+	Return (Flags And Not CRED_LOGON_TYPES_MASK)
+End Function
+
 Public Function SHCreateLibrary(riid As UUID, ppv As IUnknown) As Long
     Return CoCreateInstance(CLSID_ShellLibrary, Nothing, CLSCTX_INPROC_SERVER, riid, ppv)
 End Function
@@ -56773,8 +58084,18 @@ Public Function SCODE_SEVERITY(ByVal sc As Long) As Long
     Return (((sc) << 31) And 1)
 End Function
 
+[ConstantFoldable]
+Public Function HRESULT_FROM_NT(ByVal x As Long) As Long
+	Return (x Or FACILITY_NT_BIT)
+End Function
+
 [ ConstantFoldable ]
 Public Function HRESULT_FROM_WIN32(x As Long) As Long
+ '__HRESULT_FROM_WIN32(x) ((HRESULT)(x) <= 0 ? ((HRESULT)(x)) : ((HRESULT) (((x) & 0x0000FFFF) | (FACILITY_WIN32 << 16) | 0x80000000)))
+    Return IIf(x <= 0, x, (((x) And &H0000FFFF&) Or (FACILITY_WIN32 << 16) Or &H80000000))
+End Function
+[ ConstantFoldable ]
+Public Function __HRESULT_FROM_WIN32(x As Long) As Long
  '__HRESULT_FROM_WIN32(x) ((HRESULT)(x) <= 0 ? ((HRESULT)(x)) : ((HRESULT) (((x) & 0x0000FFFF) | (FACILITY_WIN32 << 16) | 0x80000000)))
     Return IIf(x <= 0, x, (((x) And &H0000FFFF&) Or (FACILITY_WIN32 << 16) Or &H80000000))
 End Function
