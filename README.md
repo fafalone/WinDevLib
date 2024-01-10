@@ -10,7 +10,7 @@ This project has grown well beyond it's original mission of shell programming. W
 
 ---
 
-**Current Version: 7.2.300 (January 9th, 2024)**
+**Current Version: 7.2.301 (January 10th, 2024)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -135,6 +135,8 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, lPtr, ...)
 ```
 
 ### Updates
+
+**Update (v7.2.301, 10 Jan 2024):** Bug fix: Numerous duplicated enum values.
 
 **Update (v7.2.300, 09 Jan 2024):**\
 -Added wincred advapi32.dll APIs; wincred.h, 100% coverage\
