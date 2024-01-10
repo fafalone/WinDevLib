@@ -1,4 +1,7 @@
 
+**Update (v7.2.301, 10 Jan 2024):** Bug fix: Numerous duplicated enum values.
+
+
 **Update (v7.2.300, 09 Jan 2024):**:
 -Added wincred advapi32.dll APIs; wincred.h, 100% coverage
 -Completed adding WinHttp APIs, winhttp.h coverage now 100% (note: The WinHttp interface/coclass is )
