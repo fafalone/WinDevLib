@@ -10,7 +10,7 @@ This project has grown well beyond it's original mission of shell programming. W
 
 ---
 
-**Current Version: 7.2.301 (January 10th, 2024)**
+**Current Version: 7.3.304 (January 15th, 2024)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -135,6 +135,19 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, lPtr, ...)
 ```
 
 ### Updates
+
+**Update (v7.3.304, 15 Jan 2024):**\
+-Added legacy Sync Manager interfaces/coclasses (mobsync.h, 100%)\
+-Added process snapshot APIs (ProcessSnapshot.h, 100% coverage)\
+-Added all consts (grouped as enums where possible) from propkey.h\
+-Added new property keys from propkey.h\
+-Added some missing STR_ binding strings.\
+-Small additions to get shellapi.h coverage to 100%\
+-Added undocumented interfaces IInfoBarMessage, IInfoBarHost, and IBrowserProgressSessionProvider (for the popup banner menus in NSEs)\
+-Added undocumented interfaces IShellFolder3, IFilterItem, IItemFilter\
+-Added undocumented interfaces IScope, IScopeItem (NSE filtering)\
+-(Bug fix) LockWorkStation incorrect case.\
+-(Bug fix) SHFILEOPSTRUCT[A,W] definition incorrect for x86
 
 **Update (v7.2.301, 10 Jan 2024):** Bug fix: Numerous duplicated enum values.
 
