@@ -559,10 +559,10 @@ Public Declare PtrSafe Function SHEmptyRecycleBinA Lib "shell32" (ByVal hwnd As 
 Public Declare PtrSafe Function SHEmptyRecycleBinW Lib "shell32" (ByVal hwnd As LongPtr, ByVal pszRootPath As LongPtr, ByVal dwFlags As SHERB_Flags) As Long
 Public DeclareWide PtrSafe Function SHEmptyRecycleBin Lib "shell32" Alias "SHEmptyRecycleBinW" (ByVal hwnd As LongPtr, ByVal pszRootPath As String, ByVal dwFlags As SHERB_Flags) As Long
 Public DeclareWide PtrSafe Function SHAppBarMessage Lib "shell32" ([ TypeHint(SHAppBarMessages) ] ByVal dwMessage As Long, pData As APPBARDATA) As LongPtr
+
 [Description("The data object created by this function offers the Shell clipboard format identifier CFSTR_SHELLIDLIST. This data object also supports IDataObject::SetData calls to pick up other clipboard formats.") ]
 Public Declare PtrSafe Function CIDLData_CreateFromIDArray Lib "shell32" (ByVal pidlFolder As LongPtr, ByVal cidl As Long, apidl As LongPtr, ppdtobj As IDataObject) As Long
-
-Public Declare PtrSafe Function ILAppendID Lib "shell32" (ByVal pidl As LongPtr, ByVal pmkid As LongPtr, ByVal fAppend As Long) As LongPtr
+Public Declare PtrSafe Function ILAppendID Lib "shell32" (ByVal pidl As LongPtr, ByVal pmkid As LongPtr, ByVal fAppend As BOOL) As LongPtr
 Public Declare PtrSafe Function ILClone Lib "shell32" (ByVal pidl As LongPtr) As LongPtr
 Public Declare PtrSafe Function ILCloneChild Lib "shell32" Alias "ILCloneFirst" (ByVal pidl As LongPtr) As LongPtr
 Public Declare PtrSafe Function ILCloneFirst Lib "shell32" (ByVal pidl As LongPtr) As LongPtr
@@ -825,12 +825,14 @@ Public Declare PtrSafe Sub SHFreeNameMappings Lib "shell32" (Optional ByVal hNam
 Public DeclareWide PtrSafe Function SHEvaluateSystemCommandTemplate Lib "shell32" (ByVal pszCmdTemplate As String, ppszApplication As LongPtr, Optional ppszCommandLine As LongPtr, Optional ppszParameters As LongPtr) As Long
 [ Description("Enforces strict validation of parameters used in a call to CreateProcess or ShellExecute.") ]
 Public DeclareWide PtrSafe Function SHEvaluateSystemCommandTemplate Lib "shell32" (ByVal pszCmdTemplate As LongPtr, ppszApplication As LongPtr, Optional ppszCommandLine As LongPtr, Optional ppszParameters As LongPtr) As Long
-[ Description("Retrieves an object that implements an IQueryAssociations interface.") ]
+[ Description ("Retrieves an object that implements an IQueryAssociations interface.") ]
 Public DeclareWide PtrSafe Function AssocCreateForClasses Lib "shell32" (rgClasses As ASSOCIATIONELEMENT, ByVal cClasses As Long, riid As UUID, ppv As Any) As Long
 Public Declare PtrSafe Function SHGetDiskFreeSpaceExA Lib "shell32" (ByVal pszDirectoryName As String, pulFreeBytesAvailableToCaller As ULARGE_INTEGER, pulTotalNumberOfBytes As ULARGE_INTEGER, pulTotalNumberOfFreeBytes As ULARGE_INTEGER) As BOOL
 Public Declare PtrSafe Function SHGetDiskFreeSpaceExW Lib "shell32" (ByVal pszDirectoryName As LongPtr, pulFreeBytesAvailableToCaller As ULARGE_INTEGER, pulTotalNumberOfBytes As ULARGE_INTEGER, pulTotalNumberOfFreeBytes As ULARGE_INTEGER) As BOOL
 Public DeclareWide PtrSafe Function SHGetDiskFreeSpaceEx Lib "shell32" Alias "SHGetDiskFreeSpaceExW" (ByVal pszDirectoryName As String, pulFreeBytesAvailableToCaller As ULARGE_INTEGER, pulTotalNumberOfBytes As ULARGE_INTEGER, pulTotalNumberOfFreeBytes As ULARGE_INTEGER) As BOOL
-[ Description("Creates a name for a new shortcut based on the shortcut's proposed target. This function does not create the shortcut, just the name.") ]
+Public DeclareWide PtrSafe Function SHGetDiskFreeSpace Lib "shell32" Alias "SHGetDiskFreeSpaceExW" (ByVal pszDirectoryName As String, pulFreeBytesAvailableToCaller As ULARGE_INTEGER, pulTotalNumberOfBytes As ULARGE_INTEGER, pulTotalNumberOfFreeBytes As ULARGE_INTEGER) As BOOL
+
+[ Description ("Creates a name for a new shortcut based on the shortcut's proposed target. This function does not create the shortcut, just the name.") ]
 Public Declare PtrSafe Function SHGetNewLinkInfoA Lib "shell32" (ByVal pszLinkTo As String, ByVal pszDir As String, ByVal pszName As String, pfMustCopy As BOOL, ByVal uFlags As SHNewLinkInfoFlags) As BOOL
 [ Description("Creates a name for a new shortcut based on the shortcut's proposed target. This function does not create the shortcut, just the name.") ]
 Public Declare PtrSafe Function SHGetNewLinkInfoW Lib "shell32" (ByVal pszLinkTo As LongPtr, ByVal pszDir As LongPtr, ByVal pszName As LongPtr, pfMustCopy As BOOL, ByVal uFlags As SHNewLinkInfoFlags) As BOOL
@@ -982,7 +984,7 @@ Public Enum SHNewLinkInfoFlags
     SHGNLI_NOLOCNAME  = &H000000010  ' use non localized (parsing) name from the target
 ' #endif
 ' #if (NTDDI_VERSION >= NTDDI_WIN7)
-    SHGNLI_USEURLEXT  = &H000000020  ' use ".url" extension instead of ".lnk"
+    SHGNLI_USEURLEXT = &H000000020  ' use ".url" extension instead of ".lnk"
 End Enum
 
 Public Type HANDLETOMAPPINGS
@@ -1442,37 +1444,58 @@ Public Enum SHOFASI_Flags
     OFASI_OPENDESKTOP = &H2 'Highlights files on the desktop.
 End Enum
 
+#If Win64 = 0 Then
+[ PackingAlignment(1) ]
+#End If
 Public Type SHFILEOPSTRUCTA
    hWnd        As LongPtr
    wFunc       As FILEOP
    pFrom       As LongPtr
    pTo         As LongPtr
-   fFlags      As FILEOP_FLAGS
+   #If Win64 Then
+   fFlags As FILEOP_FLAGS 'We can use this trick since on Win64, this UDT isn't byte-packed
+   #Else
+   /* [ TypeHint(FILEOP_FLAGS) */ fFlags      As Integer
+   #End If
    fAnyOperationsAborted    As BOOL
    hNameMappings   As LongPtr
    lpszProgressTitle   As String
  End Type
- Public Type SHFILEOPSTRUCTW
+ #If Win64 = 0 Then
+ [ PackingAlignment(1) ]
+ #End If
+Public Type SHFILEOPSTRUCTW
     hWnd        As LongPtr
     wFunc       As FILEOP
     pFrom       As LongPtr
     pTo         As LongPtr
-    fFlags      As FILEOP_FLAGS
+    #If Win64 Then
+    fFlags As FILEOP_FLAGS 'We can use this trick since on Win64, this UDT isn't byte-packed
+    #Else
+    /* [ TypeHint(FILEOP_FLAGS) */ fFlags      As Integer
+    #End If
     fAnyOperationsAborted    As BOOL
     hNameMappings   As LongPtr
     lpszProgressTitle   As LongPtr
-  End Type
-  'Alias SHFILEOPSTRUCT As SHFILEOPSTRUCTW
-  Public Type SHFILEOPSTRUCT
-     hWnd        As LongPtr
-     wFunc       As FILEOP
-     pFrom       As LongPtr
-     pTo         As LongPtr
-     fFlags      As FILEOP_FLAGS
-     fAnyOperationsAborted    As BOOL
-     hNameMappings   As LongPtr
-     lpszProgressTitle   As LongPtr
-   End Type
+End Type
+'Alias SHFILEOPSTRUCT As SHFILEOPSTRUCTW
+#If Win64 = 0 Then
+[ PackingAlignment(1) ]
+#End If
+Public Type SHFILEOPSTRUCT
+    hWnd        As LongPtr
+    wFunc       As FILEOP
+    pFrom       As LongPtr
+    pTo         As LongPtr
+    #If Win64 Then
+    fFlags As FILEOP_FLAGS 'We can use this trick since on Win64, this UDT isn't byte-packed
+    #Else
+    /* [ TypeHint(FILEOP_FLAGS) */ fFlags      As Integer
+    #End If
+    fAnyOperationsAborted    As BOOL
+    hNameMappings   As LongPtr
+    lpszProgressTitle   As LongPtr
+End Type
  
 Public Type SHFILEINFOA   ' shfi
   hIcon As LongPtr
@@ -1521,6 +1544,8 @@ Public Enum SHGFI_flags
   SHGFI_SELECTED = &H10000        ' sfi.hIcon is selected icon
   SHGFI_ATTR_SPECIFIED = &H20000    ' get only attributes specified in sfi.dwAttributes
 End Enum
+
+
 
 #End Region
 
@@ -12045,6 +12070,348 @@ Public DeclareWide PtrSafe Function GetVersionExW Lib "kernel32" (lpVersionInfor
 Public Declare PtrSafe Function GetVersionExA Lib "kernel32" (lpVersionInformation As OSVERSIONINFOEXA) As BOOL
 Public DeclareWide PtrSafe Function GetProductInfo Lib "kernel32" (ByVal dwOSMajorVersion As Long, ByVal dwOSMinorVersion As Long, ByVal dwSpMajorVersion As Long, ByVal dwSpMinorVersion As Long, pdwReturnedProductInfo As WINDOWS_OS_PRODUCT_TYPES) As BOOL
 
+'processsnapshot.h, 100%
+Public Enum PSS_HANDLE_FLAGS
+    PSS_HANDLE_NONE = &H00
+    PSS_HANDLE_HAVE_TYPE = &H01
+    PSS_HANDLE_HAVE_NAME = &H02
+    PSS_HANDLE_HAVE_BASIC_INFORMATION = &H04
+    PSS_HANDLE_HAVE_TYPE_SPECIFIC_INFORMATION = &H08
+End Enum
+
+Public Enum PSS_OBJECT_TYPE
+    PSS_OBJECT_TYPE_UNKNOWN=0
+    PSS_OBJECT_TYPE_PROCESS=1
+    PSS_OBJECT_TYPE_THREAD=2
+    PSS_OBJECT_TYPE_MUTANT=3
+    PSS_OBJECT_TYPE_EVENT=4
+    PSS_OBJECT_TYPE_SECTION=5
+    '  BUGBUG WINBLUE 571662 2013-12-31 GenghisK: #ifdef this for OS after
+    '  WINBLUE
+    PSS_OBJECT_TYPE_SEMAPHORE=6
+End Enum
+
+Public Enum PSS_CAPTURE_FLAGS
+    PSS_CAPTURE_NONE = &H00000000
+    PSS_CAPTURE_VA_CLONE = &H00000001
+    PSS_CAPTURE_RESERVED_00000002 = &H00000002
+    PSS_CAPTURE_HANDLES = &H00000004
+    PSS_CAPTURE_HANDLE_NAME_INFORMATION = &H00000008
+    PSS_CAPTURE_HANDLE_BASIC_INFORMATION = &H00000010
+    PSS_CAPTURE_HANDLE_TYPE_SPECIFIC_INFORMATION = &H00000020
+    PSS_CAPTURE_HANDLE_TRACE = &H00000040
+    PSS_CAPTURE_THREADS = &H00000080
+    PSS_CAPTURE_THREAD_CONTEXT = &H00000100
+    PSS_CAPTURE_THREAD_CONTEXT_EXTENDED = &H00000200
+    PSS_CAPTURE_RESERVED_00000400 = &H00000400
+    PSS_CAPTURE_VA_SPACE = &H00000800
+    PSS_CAPTURE_VA_SPACE_SECTION_INFORMATION = &H00001000
+    PSS_CAPTURE_IPT_TRACE = &H00002000
+    PSS_CAPTURE_RESERVED_00004000 = &H00004000
+    PSS_CREATE_BREAKAWAY_OPTIONAL = &H04000000
+    PSS_CREATE_BREAKAWAY = &H08000000
+    PSS_CREATE_FORCE_BREAKAWAY = &H10000000
+    PSS_CREATE_USE_VM_ALLOCATIONS = &H20000000
+    PSS_CREATE_MEASURE_PERFORMANCE = &H40000000
+    PSS_CREATE_RELEASE_SECTION = &H80000000
+End Enum
+
+Public Const PSS_PERF_RESOLUTION = 1000000
+
+Public Enum PSS_QUERY_INFORMATION_CLASS
+    PSS_QUERY_PROCESS_INFORMATION=0
+    PSS_QUERY_VA_CLONE_INFORMATION=1
+    PSS_QUERY_AUXILIARY_PAGES_INFORMATION=2
+    PSS_QUERY_VA_SPACE_INFORMATION=3
+    PSS_QUERY_HANDLE_INFORMATION=4
+    PSS_QUERY_THREAD_INFORMATION=5
+    PSS_QUERY_HANDLE_TRACE_INFORMATION=6
+    PSS_QUERY_PERFORMANCE_COUNTERS=7
+End Enum
+
+Public Enum PSS_WALK_INFORMATION_CLASS
+    PSS_WALK_AUXILIARY_PAGES=0
+    PSS_WALK_VA_SPACE=1
+    PSS_WALK_HANDLES=2
+    PSS_WALK_THREADS=3
+End Enum
+
+Public Enum PSS_DUPLICATE_FLAGS
+    PSS_DUPLICATE_NONE = &H00
+    PSS_DUPLICATE_CLOSE_SOURCE = &H01
+End Enum
+
+Public Enum PSS_PROCESS_FLAGS
+    PSS_PROCESS_FLAGS_NONE = &H00000000
+    PSS_PROCESS_FLAGS_PROTECTED = &H00000001
+    PSS_PROCESS_FLAGS_WOW64 = &H00000002
+    PSS_PROCESS_FLAGS_RESERVED_03 = &H00000004
+    PSS_PROCESS_FLAGS_RESERVED_04 = &H00000008
+    PSS_PROCESS_FLAGS_FROZEN = &H00000010
+End Enum
+
+Public Type PSS_PROCESS_INFORMATION
+    ExitStatus As Long
+    PebBaseAddress As LongPtr
+    AffinityMask As LongPtr
+    BasePriority As LONG
+    ProcessId As Long
+    ParentProcessId As Long
+    Flags As PSS_PROCESS_FLAGS
+    CreateTime As FILETIME
+    ExitTime As FILETIME
+    KernelTime As FILETIME
+    UserTime As FILETIME
+    PriorityClass As Long
+    PeakVirtualSize As LongPtr
+    VirtualSize As LongPtr
+    PageFaultCount As Long
+    PeakWorkingSetSize As LongPtr
+    WorkingSetSize As LongPtr
+    QuotaPeakPagedPoolUsage As LongPtr
+    QuotaPagedPoolUsage As LongPtr
+    QuotaPeakNonPagedPoolUsage As LongPtr
+    QuotaNonPagedPoolUsage As LongPtr
+    PagefileUsage As LongPtr
+    PeakPagefileUsage As LongPtr
+    PrivateUsage As LongPtr
+    ExecuteFlags As Long
+    ImageFileName(0 To (MAX_PATH - 1)) As Integer
+End Type
+
+Public Type PSS_VA_CLONE_INFORMATION
+    VaCloneHandle As LongPtr
+End Type
+
+Public Type PSS_AUXILIARY_PAGES_INFORMATION
+    AuxPagesCaptured As Long
+End Type
+
+Public Type PSS_VA_SPACE_INFORMATION
+    RegionCount As Long
+End Type
+
+Public Type PSS_HANDLE_INFORMATION
+    HandlesCaptured As Long
+End Type
+
+Public Type PSS_THREAD_INFORMATION
+    ThreadsCaptured As Long
+    ContextLength As Long
+End Type
+
+Public Type PSS_HANDLE_TRACE_INFORMATION
+    SectionHandle As LongPtr
+    Size As Long
+End Type
+
+Public Type PSS_PERFORMANCE_COUNTERS
+    TotalCycleCount As LongLong
+    TotalWallClockPeriod As LongLong
+    VaCloneCycleCount As LongLong
+    VaCloneWallClockPeriod As LongLong
+    VaSpaceCycleCount As LongLong
+    VaSpaceWallClockPeriod As LongLong
+    AuxPagesCycleCount As LongLong
+    AuxPagesWallClockPeriod As LongLong
+    HandlesCycleCount As LongLong
+    HandlesWallClockPeriod As LongLong
+    ThreadsCycleCount As LongLong
+    ThreadsWallClockPeriod As LongLong
+End Type
+
+Public Type PSS_AUXILIARY_PAGE_ENTRY
+    Address As LongPtr 'void*
+    BasicInformation As MEMORY_BASIC_INFORMATION
+    CaptureTime As FILETIME
+    PageContents As LongPtr 'void*
+    PageSize As Long
+End Type
+
+Public Type PSS_VA_SPACE_ENTRY
+    BaseAddress As LongPtr 'void*
+    AllocationBase As LongPtr 'void*
+    AllocationProtect As MemProtectFlags
+    RegionSize As LongPtr
+    State As MemAllocType
+    Protect As MemProtectFlags
+    Type As MemAllocType
+    TimeDateStamp As Long ' IMAGE_NT_HEADERS.FileHeader.TimeDateStamp
+    SizeOfImage As Long ' IMAGE_NT_HEADERS.OptionalHeader.SizeOfImage
+    ImageBase As LongPtr 'void* ' IMAGE_NT_HEADERS.OptionalHeader.ImageBase
+    CheckSum As Long ' IMAGE_NT_HEADERS.OptionalHeader.CheckSum
+    MappedFileNameLength As Integer
+    MappedFileName As LongPtr '*wchar_t const ' valid for life time of walk marker
+End Type
+
+[ Description("Custom types are provided for the union options until supported. You can copy the contents of TypeSpecificInformation to types named for their union member; e.g. PSS_HANDLE_PROCESS, PSS_HANDLE_THREAD, for the Process and Thread sections, respectively.")]
+Public Type PSS_HANDLE_ENTRY
+    Handle As LongPtr
+    Flags As PSS_HANDLE_FLAGS
+    ObjectType As PSS_OBJECT_TYPE
+    CaptureTime As FILETIME
+    ' Object basic information.
+    Attributes As Long
+    GrantedAccess As Long
+    HandleCount As Long
+    PointerCount As Long
+    PagedPoolCharge As Long
+    NonPagedPoolCharge As Long
+    CreationTime As FILETIME
+    TypeNameLength As Integer
+    TypeName As LongPtr 'wchar_t const ' valid for life time of walk marker
+    ObjectNameLength As Integer
+    ObjectName As LongPtr 'wchar_t const ' valid for life time of walk marker
+    #If Win64 Then
+    TypeSpecificInformation(47) As Byte
+    #Else
+    pad As Long 'correct for 8 byte alignment because of Section.LARGE_INTEGER
+    TypeSpecificInformation(31) As Byte
+    #End If
+    ' union
+    ' {
+        ' // Valid for ObjectType = PSS_OBJECT_TYPE_PROCESS.
+        ' struct
+        ' {
+            ' DWORD ExitStatus;
+            ' void* PebBaseAddress;
+            ' ULONG_PTR AffinityMask;
+            ' LONG BasePriority;
+            ' DWORD ProcessId;
+            ' DWORD ParentProcessId;
+            ' DWORD Flags;
+        ' } Process;
+        ' // Valid for ObjectType = PSS_OBJECT_TYPE_THREAD.
+        ' struct
+        ' {
+            ' DWORD ExitStatus;
+            ' void* TebBaseAddress;
+            ' DWORD ProcessId;
+            ' DWORD ThreadId;
+            ' ULONG_PTR AffinityMask;
+            ' int Priority;
+            ' int BasePriority;
+            ' void* Win32StartAddress;
+        ' } Thread;
+        ' // Valid for ObjectType = PSS_OBJECT_TYPE_MUTANT.
+        ' struct
+        ' {
+            ' LONG CurrentCount;
+            ' BOOL Abandoned;
+            ' DWORD OwnerProcessId;
+            ' DWORD OwnerThreadId;
+        ' } Mutant;
+        ' // Valid for ObjectType = PSS_OBJECT_TYPE_EVENT.
+        ' struct
+        ' {
+            ' BOOL ManualReset;
+            ' BOOL Signaled;
+        ' } Event;
+        ' // Valid for ObjectType = PSS_OBJECT_TYPE_SECTION.
+        ' struct
+        ' {
+            ' void* BaseAddress;
+            ' DWORD AllocationAttributes;
+            ' LARGE_INTEGER MaximumSize;
+        ' } Section;
+        ' // Valid for ObjectType = PSS_OBJECT_TYPE_SEMAPHORE.
+
+        ' struct
+        ' {
+            ' LONG CurrentCount;
+            ' LONG MaximumCount;
+        ' } Semaphore;
+    ' } TypeSpecificInformation;
+End Type
+
+Public Type PSS_HANDLE_PROCESS
+    ExitStatus As Long
+    PebBaseAddress As LongPtr 'void*
+    AffinityMask As LongPtr
+    BasePriority As LONG
+    ProcessId As Long
+    ParentProcessId As Long
+    Flags As Long
+End Type
+Public Type PSS_HANDLE_THREAD
+    ExitStatus As Long
+    TebBaseAddress As LongPtr 'void*
+    ProcessId As Long
+    ThreadId As Long
+    AffinityMask As LongPtr
+    Priority As Long
+    BasePriority As Long
+    Win32StartAddress As LongPtr 'void*
+End Type
+Public Type PSS_HANDLE_SEMAHORE
+    CurrentCount As Long
+    MaximumCount As Long
+End Type
+Public Type PSS_HANDLE_SECTION
+    BaseAddress As LongPtr
+    AllocationAttributes As Long
+    MaximumSize As LARGE_INTEGER
+End Type
+Public Type PSS_HANDLE_EVENT
+	ManualReset As BOOL
+    Signaled As BOOL
+End Type
+Public Type PSS_HANDLE_MUTANT
+    CurrentCount As LONG
+    Abandoned As BOOL
+    OwnerProcessId As Long
+    OwnerThreadId As Long
+End Type
+
+Public Enum PSS_THREAD_FLAGS
+    PSS_THREAD_FLAGS_NONE = &H0000
+    PSS_THREAD_FLAGS_TERMINATED = &H0001
+End Enum
+
+Public Type PSS_THREAD_ENTRY
+    ExitStatus As Long
+    TebBaseAddress As LongPtr 'void*
+    ProcessId As Long
+    ThreadId As Long
+    AffinityMask As LongPtr
+    Priority As Long
+    BasePriority As Long
+    LastSyscallFirstArgument As LongPtr 'void*
+    LastSyscallNumber As Integer
+    CreateTime As FILETIME
+    ExitTime As FILETIME
+    KernelTime As FILETIME
+    UserTime As FILETIME
+    Win32StartAddress As LongPtr 'void*
+    CaptureTime As FILETIME
+    Flags As PSS_THREAD_FLAGS
+    SuspendCount As Integer
+    SizeOfContextRecord As Integer
+    ContextRecord As LongPtr 'PCONTEXT ' valid for life time of walk marker
+End Type
+
+Public Type PSS_ALLOCATOR
+    Context As LongPtr
+    AllocRoutine As LongPtr
+    FreeRoutine As LongPtr
+    ' void* Context;
+    ' void* (WINAPI *AllocRoutine) (_In_ void* Context, _In_ DWORD Size);
+    ' void (WINAPI *FreeRoutine) (_In_ void* Context, _In_opt_ void* Address);
+End Type
+
+Public Declare PtrSafe Function PssCaptureSnapshots Lib "kernel32" (ByVal ProcessHandle As LongPtr, ByVal CaptureFlags As PSS_CAPTURE_FLAGS, ByVal ThreadContextFlags As EXCEPTION_CONTEXT_FLAGS, SnapshotHandle As LongPtr) As Long
+Public Declare PtrSafe Function PssFreeSnapshot Lib "kernel32" (ByVal ProcessHandle As LongPtr, ByVal SnapshotHandle As LongPtr) As Long
+Public Declare PtrSafe Function PssQuerySnapshot Lib "kernel32" (ByVal SnapshotHandle As LongPtr, ByVal InformationCLass As PSS_QUERY_INFORMATION_CLASS, Buffer As Any, ByVal BufferLength As Long) As Long
+Public Declare PtrSafe Function PssWalkSnapshot Lib "kernel32" (ByVal SnapshotHandle As LongPtr, ByVal InformationCLass As PSS_WALK_INFORMATION_CLASS, ByVal WalkMarkerHandle As LongPtr, Buffer As Any, ByVal BufferLength As Long) As Long
+Public Declare PtrSafe Function PssDuplicateSnapshot Lib "kernel32" (ByVal SourceProcessHandle As LongPtr, ByVal SnapshotHandle As LongPtr, ByVal TargetProcessHandle As LongPtr, TargetSnapshotHandle As LongPtr, Optional ByVal Flags As PSS_DUPLICATE_FLAGS) As Long
+Public Declare PtrSafe Function PssWalkMarkerCreate Lib "kernel32" (Allocator As PSS_ALLOCATOR, WalkMarkerHandle As LongPtr) As Long
+Public Declare PtrSafe Function PssWalkMarkerFree Lib "kernel32" (ByVal WalkMarkerHandle As LongPtr) As Long
+Public Declare PtrSafe Function PssWalkMarkerGetPosition Lib "kernel32" (ByVal WalkMarkerHandle As LongPtr, Position As LongPtr) As Long
+Public Declare PtrSafe Function PssWalkMarkerSetPosition Lib "kernel32" (ByVal WalkMarkerHandle As LongPtr, ByVal Position As LongPtr) As Long
+Public Declare PtrSafe Function PssWalkMarkerSeekToBeginning Lib "kernel32" (ByVal WalkMarkerHandle As LongPtr) As Long
+
+
+
 
 
 Public Const RECOVERY_DEFAULT_PING_INTERVAL  = 5000
@@ -17368,6 +17735,7 @@ Public Declare PtrSafe Function NtSetInformationFile Lib "ntdll" (ByVal FileHand
 Public Declare PtrSafe Function NtQueryVolumeInformationFile Lib "ntdll" (ByVal FileHandle As LongPtr, IoStatusBlock As IO_STATUS_BLOCK, FsInformation As Any, ByVal Length As Long, ByVal FsInformationClass As FS_INFORMATION_CLASS) As Long
 Public Declare PtrSafe Function NtSetVolumeInformationFile Lib "ntdll" (ByVal FileHandle As LongPtr, IoStatusBlock As IO_STATUS_BLOCK, FsInformation As Any, ByVal Length As Long, ByVal FsInformationClass As FS_INFORMATION_CLASS) As Long
 Public Declare PtrSafe Function NtImpersonateThread Lib "ntdll" (ByVal hThread As LongPtr, ByVal hThreadToImpersonate As LongPtr, SecurityQualityOfService As SECURITY_QUALITY_OF_SERVICE) As Long
+Public Declare PtrSafe Function NtImpersonateAnonymousToken Lib "ntdll" (ByVal ThreadHandle As LongPtr) As NTSTATUS
 Public Declare PtrSafe Function NtQueryObject Lib "ntdll" (ByVal Handle As LongPtr, ByVal ObjectInformationClass As OBJECT_INFORMATION_CLASS, ObjectInformation As Any, ByVal ObjectInformationLength As Long, ReturnLength As Long) As Long
 Public Declare PtrSafe Function NtDuplicateObject Lib "ntdll" (ByVal SourceProcessHandle As LongPtr, ByVal SourceHandle As LongPtr, pTargetHandle As LongPtr, ByVal DesiredAccess As Long, ByVal HandleAttributes As ObjectAttributeValues, ByVal Options As DuplicateObjectOptions) As Long
 Public Declare PtrSafe Function NtOpenProcess Lib "ntdll" (ProcessHandle As LongPtr, [TypeHint (ProcessAccessRights, StandardAccessTypes) ] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, ClientID As CLIENT_ID) As Long
@@ -17378,6 +17746,7 @@ Public Declare PtrSafe Function NtOpenProcessToken Lib "ntdll" (ByVal ProcessHan
 Public Declare PtrSafe Function NtCreateToken Lib "ntdll" (TokenHandle As LongPtr, [ TypeHint (TokenAccessRights, StandardAccessTypes) ] ByVal DesiredAccess As Long, ByVal TokenType As TOKEN_TYPE, AuthenticationId As LUID, ExpirationTime As LongLong, TokenUser As Any, TokenGroups As Any, TokenPrivileges As Any, TokenOwner As TOKEN_OWNER, TokenPrimaryGroup As TOKEN_PRIMARY_GROUP, TokenDefaultDacl As TOKEN_DEFAULT_DACL, TokenSource As TOKEN_SOURCE) As Long
 Public Declare PtrSafe Function NtCompareTokens Lib "ntdll" (ByVal FirstTokenHandle As LongPtr, ByVal SecondTokenHandle As LongPtr, pEqual As Byte) As Long
 Public Declare PtrSafe Function NtDuplicateToken Lib "ntdll" (ByVal ExistingTokenHandle As LongPtr, [ TypeHint (TokenAccessRights, StandardAccessTypes) ] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, ByVal EffectiveOnly As Byte, ByVal TokenType As TOKEN_TYPE, NewTokenHandle As LongPtr) As Long
+Public Declare PtrSafe Function NtFilterToken Lib "ntdll" (ByVal ExistingTokenHandle As LongPtr, ByVal Flags As RestrictedTokenFlags, SidsToDisable As TOKEN_GROUPS, PrivilegesToDisable As TOKEN_PRIVILEGES, RestrictedSids As TOKEN_GROUPS, NewTokenHandle As LOngPtr) As NTSTATUS
 Public Declare PtrSafe Function NtCreateSection Lib "ntdll" (SectionHandle As LongPtr, [TypeHint (StandardAccessTypes, NTSectionAccessRights) ] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, MaximumSize As LARGE_INTEGER, ByVal SectionPageProtection As MemProtectFlags, ByVal AllocationAttributes As NTSectionFlags, Optional ByVal FileHandle As LongPtr) As Long
 Public Declare PtrSafe Function NtCreateSectionEx Lib "ntdll" (SectionHandle As LongPtr, [ TypeHint (StandardAccessTypes, NTSectionAccessRights) ] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, MaximumSize As LARGE_INTEGER, ByVal SectionPageProtection As MemProtectFlags, ByVal AllocationAttributes As NTSectionFlags, ByVal FileHandle As LongPtr, ExtendedParameters As MEM_EXTENDED_PARAMETER, ByVal ExtendedParameterCount As Long) As Long
 Public Declare PtrSafe Function NtOpenSection Lib "ntdll" (SectionHandle As LongPtr, [ TypeHint (StandardAccessTypes, NTSectionAccessRights) ] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES) As NTSTATUS
@@ -18476,6 +18845,33 @@ Public Type PICTDESC
     hPalette As LongPtr
     pad As Long
     #End If
+    ' union
+    ' {
+        ' struct
+        ' {
+            ' HBITMAP   hbitmap;        // Bitmap
+            ' HPALETTE  hpal;           // Accompanying palette
+        ' } bmp;
+
+        ' struct
+        ' {
+            ' HMETAFILE hmeta;          // Metafile
+            ' int       xExt;
+            ' int       yExt;           // Extent
+        ' } wmf;
+
+        ' struct
+        ' {
+            ' HICON hicon;              // Icon
+        ' } icon;
+
+' #ifdef _WIN32
+        ' struct
+        ' {
+            ' HENHMETAFILE hemf;        // Enhanced Metafile
+        ' } emf;
+' #endif
+    ' };
 End Type
 
 #End Region
@@ -22636,6 +23032,7 @@ Public Declare PtrSafe Function GetWindowInfo Lib "user32" (ByVal hWnd As LongPt
 Public DeclareWide PtrSafe Function GhostWindowFromHungWindow Lib "user32" (ByVal hwnd As LongPtr) As LongPtr
 Public DeclareWide PtrSafe Function HungWindowFromGhostWindow Lib "user32" (ByVal hwnd As LongPtr) As LongPtr
 Public DeclareWide PtrSafe Sub DisableProcessWindowsGhosting Lib "user32" ()
+Public Declare PtrSafe Function FrostCrashedWindow  Lib "user32" (ByVal hwndToReplace As LongPtr, ByVal hwndErrorReportOwnerWnd As LongPtr) As LongPtr
 
 Public Declare PtrSafe Function GetAsyncKeyState Lib "user32" (ByVal vKey As VirtualKeyCodes) As Integer
 Public Declare PtrSafe Function GetKeyState Lib "user32" (ByVal nVirtKey As VirtualKeyCodes) As Integer
@@ -23098,6 +23495,32 @@ Public Type MSGBOXPARAMS
     dwLanguageId As Long
 End Type
 
+Public Type MSGBOXDATA
+    'MSGBOXPARAMS
+    cbSize As Long
+    hwndOwner As LongPtr
+    hInstance As LongPtr
+    lpszText As LongPtr
+    lpszCaption As LongPtr
+    dwStyle As MessageBoxFlags
+    lpszIcon As LongPtr
+    dwContextHelpId As Long
+    lpfnMsgBoxCallback As LongPtr
+    dwLanguageId As Long
+    '----
+    pwndOwner As LongPtr
+    dwPadding As Long
+    wLanguageId As Integer
+    pidButton As LongPtr 'INT*
+    ppszButtonText As LongPtr 'LPWSTR *
+    cButtons As Long
+    DefButton As Long
+    CancelId As Long
+    dwTimeout As Long
+    phwndList As LongPtr 'HWND*
+    dwReserved(19) As Long
+End Type
+
 Public Enum CursorCreationScalingDefaults
     CURSOR_CREATION_SCALING_NONE  = 1
     CURSOR_CREATION_SCALING_DEFAULT  = 2
@@ -23131,6 +23554,11 @@ Public DeclareWide PtrSafe Function MessageBoxEx Lib "user32" Alias "MessageBoxE
 Public Declare PtrSafe Function MessageBoxIndirectA Lib "user32" (lpmbp As MSGBOXPARAMSA) As MessageBoxResults
 Public DeclareWide PtrSafe Function MessageBoxIndirectW Lib "user32" (lpmbp As MSGBOXPARAMSW) As MessageBoxResults
 Public DeclareWide PtrSafe Function MessageBoxIndirect Lib "user32" Alias "MessageBoxIndirectW" (lpmbp As MSGBOXPARAMS) As MessageBoxResults
+Public Declare PtrSafe Function MessageBoxTimeoutA Lib "user32" (ByVal hWnd As LongPtr, ByVal lpText As String, ByVal lpCaption As String, ByVal uType As MessageBoxFlags, ByVal wLanguageId As Integer, ByVal dwMilliseconds As Long) As MessageBoxResults
+Public Declare PtrSafe Function MessageBoxTimeoutW Lib "user32" (ByVal hWnd As LongPtr, ByVal lpText As LongPtr, ByVal lpCaption As LongPtr, ByVal uType As MessageBoxFlags, ByVal wLanguageId As Integer, ByVal dwMilliseconds As Long) As MessageBoxResults
+Public DeclareWide PtrSafe Function MessageBoxTimeout Lib "user32" Alias "MessageBoxTimeoutW" (ByVal hWnd As LongPtr, ByVal lpText As String, ByVal lpCaption As String, ByVal uType As MessageBoxFlags, ByVal wLanguageId As Integer, ByVal dwMilliseconds As Long) As MessageBoxResults
+Public DeclareWide PtrSafe Function SoftModalMessageBox Lib "user32" (lpmb As MSGBOXDATA) As MessageBoxResults
+
 Public DeclareWide PtrSafe Function MessageBeep Lib "user32" (ByVal uType As MessageBoxFlags) As BOOL
 Public DeclareWide PtrSafe Function Beep Lib "kernel32" (ByVal dwFreq As Long, ByVal dwDuration As Long) As BOOL
 
@@ -23184,12 +23612,11 @@ Public Declare PtrSafe Function GetWindowDpiHostingBehavior Lib "user32" (ByVal 
 
 [ Description("Deprecated. Use InitiateSystemShutdownEx instead.")]
 Public DeclareWide PtrSafe Function ExitWindowsEx Lib "user32" (ByVal uFlags As ExitWindowsExFlags, ByVal dwReason As SystemShutdownReasons) As BOOL
-Public DeclareWide PtrSafe Function LockWorkstation Lib "user32" () As BOOL
+Public DeclareWide PtrSafe Function LockWorkStation Lib "user32" () As BOOL
 Public DeclareWide PtrSafe Function ShutdownBlockReasonCreate Lib "user32" (ByVal hwnd As LongPtr, ByVal pwszReason As String) As BOOL
 Public DeclareWide PtrSafe Function ShutdownBlockReasonDestroy Lib "user32" (ByVal hwnd As LongPtr) As BOOL
 Public DeclareWide PtrSafe Function ShutdownBlockReasonQuery Lib "user32" (ByVal hwnd As LongPtr, ByVal pwszBuff As LongPtr, pcchBuff As Long) As BOOL
 Public DeclareWide PtrSafe Function CancelShutdown Lib "user32" () As BOOL
-
 
 Public Declare PtrSafe Function CreateDesktopA Lib "user32" (ByVal lpszDesktop As String, ByVal lpszDevice As String, pDevMode As DEVMODEW, ByVal dwFlags As OpenDesktop_Flags, [ TypeHint (StandardAccessTypes, DesktopAccessMaskValues , GenericRights) ] ByVal dwDesiredAccess As Long, lpsa As SECURITY_ATTRIBUTES) As LongPtr
 Public DeclareWide PtrSafe Function CreateDesktopW Lib "user32" (ByVal lpszDesktop As LongPtr, ByVal lpszDevice As LongPtr, pDevMode As DEVMODEW, ByVal dwFlags As OpenDesktop_Flags, [ TypeHint(StandardAccessTypes, DesktopAccessMaskValues , GenericRights) ] ByVal dwDesiredAccess As Long, lpsa As SECURITY_ATTRIBUTES) As LongPtr
@@ -31129,7 +31556,7 @@ Public DeclareWide PtrSafe Function SetThreadToken Lib "kernel32" (Optional ByVa
 Public Enum RestrictedTokenFlags
     DISABLE_MAX_PRIVILEGE  = &H1
     SANDBOX_INERT  = &H2
-    LUA_TOKEN  = &H4
+    LUA_TOKEN = &H4
     WRITE_RESTRICTED  = &H8
 End Enum
 
@@ -57367,7 +57794,8 @@ Public Declare PtrSafe Function ImageRvaToVa Lib "imagehlp" (NtHeaders As IMAGE_
 
 
 
-
+Public Declare PtrSafe Function RegisterAppStateChangeNotification Lib "Twinapi.core.dll" (ByVal Routine As LongPtr, ByVal Context As LongPtr, Registration As LongPtr) As Long
+Public Declare PtrSafe Sub UnregisterAppStateChangeNotification Lib "Twinapi.core.dll" (ByVal Registration As LongPtr)
 
 
 [ Description ("📝**NOTE:** twinBASIC patches this to an internal implementation, it will not actually call msvbvm60 (or any other DLL).") ]

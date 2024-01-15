@@ -1,6 +1,6 @@
 '************************************************************************************
 'WinDevLib - Windows Development Library for twinBASIC
-'Version 7.2.300
+'Version 7.3.304
 '(c) 2022-2024 Jon Johnson (fafalone)
 'Project GUID: {1FCDB98D-617D-4995-9736-2ED0E4746A10}
 '
@@ -59,6 +59,61 @@ Interface IShellFolder2 Extends IShellFolder
     [ PreserveSig ] Function GetDetailsOf(ByVal pidl As LongPtr, ByVal iColumn As Long, psd As SHELLDETAILS) As Long
     [ PreserveSig ] Function MapColumnToSCID(ByVal iColumn As Long, pscid As SHCOLUMNID) As Long
 End Interface
+
+[ InterfaceId ("2EC06C64-1296-4F53-89E5-ECCE4EFC2189") ]
+[ OleAutomation (False) ]
+Interface IShellFolder3 Extends IShellFolder2
+	Sub CreateFilteredIDList(ByVal pfc As IFilterCondition, ByVal type As Long, ByVal pps As IPropertyStore, pidlChild As LongPtr)
+	Sub GetFilteredIDListType(ByVal pidlChild As LongPtr, type As Long)
+	Sub ModifyFilteredIDList(ByVal pidlChild As LongPtr, ByVal pfc As IFilterCondition, pidlChildOut As LongPtr)
+	Sub ReparentFilteredIDList(ByVal pidlRel As LongPtr, pidlRelOut As LongPtr)
+	Sub CreateStackedIDList(pkey As PROPERTYKEY, pidlFull As LongPtr)
+	Sub GetStackedKey(pkey As PROPERTYKEY)
+	Sub EnumObjectsEx(ByVal hwnd As LongPtr, ByVal pbc As IBindCtx, ByVal unk As Long, ByVal pif As IItemFilter, ppEnum As IEnumIDList)
+	Sub GetConditions(pkey As PROPERTYKEY, ByVal pqu As IUnknown /*IQueryUnit*/, riid As UUID, ppv As Any)
+	Sub GetAutoListFlags(pdwFlags As Long)
+End Interface
+
+[ InterfaceId ("FCA2857D-1760-4AD3-8C63-C9B602FCBAEA") ]
+[ OleAutomation (False) ]
+Interface IFilterCondition Extends IPersistStream
+    Sub GetFilterName(ByVal filtername As Long, ByRef lpszName As LongPtr)
+    Sub GetTypeFlags(ByRef dwFlags As Long)
+    Sub GetPropertyKey(ByRef pkey As PROPERTYKEY)
+    Sub GetCondition(ByRef ppCondition As ICondition)
+End Interface
+[ InterfaceId ("7FCBEB25-ED60-45C9-9F5E-57B48493C4DD") ]
+[ OleAutomation (False) ]
+Interface IItemFilter Extends stdole.IUnknown
+    Sub HasFilter(ByVal idx As Long, ByRef result As BOOL)
+    Sub GetTextFilterCondition(ByVal textfilteroptions As Long, ByRef ppFilterCond As IFilterCondition)
+    Sub GetTextPropKeys(ByRef lpKey As Long, ByRef nKey As Long)
+    Sub GetFilterCondition(ByRef ppFilterCond As IFilterCondition)
+    Sub GetPropertyFilter(ByRef pkey As PROPERTYKEY, ByRef ppFilterCond As IFilterCondition)
+    Sub GetIDListFilters(ByRef ppObjs As IObjectArray)
+End Interface
+
+[ InterfaceId ("DD400FF4-A119-405F-970E-A9A5E7E828C0") ]
+[ OleAutomation (False) ]
+Interface IScopeItem Extends IUnknown
+	'unknown
+End Interface
+[ InterfaceId ("655D1685-2BFD-4F7F-AD22-5AB61C8D8798") ]
+[ OleAutomation (False) ]
+Interface IScope Extends IUnknown
+	Sub AddScopeItem(ByVal pItem As IScopeItem)
+	Sub RemoveScopeItem(ByVal pItem As IScopeItem)
+	Sub ItemIsIncluded(ByVal pItem As IScopeItem, ByVal index As Long)
+	Sub GetKnownScope(riid As UUID)
+	Sub IsEmpty()
+	Sub Flatten()
+	Sub IsEqual(ByVal pItem As IUnknown, ByVal cmpMode As Long)
+	Sub Clone(riid As UUID, ppv As Any)
+	Sub RemoveRootsMatchingUrlScheme(ByVal psz As LongPtr)
+	Sub AddScopeTreeItem(ByVal pItem As IUnknown, ppvOut As Any, pOut As Long)
+    Sub RemoveScopeTreeItem(ByVal pItem As IUnknown, ppvOut As Any, pOut As Long)
+End Interface
+
 
 [ InterfaceId ("43826D1E-E718-42EE-BC55-A1E261C37BFE") ]
 [ OleAutomation (False) ]
@@ -438,6 +493,32 @@ Interface ITrayNotifyWin8 Extends stdole.IUnknown
 	Sub DoAction(ByVal fArg As BOOL)
 End Interface
 
+[ InterfaceId ("819d1334-9d74-4254-9ac8-dc745ebc5386") ]
+[ OleAutomation (False) ]
+Interface IInfoBarMessage Extends IUnknown
+	Sub GetMessageID(guid As UUID, value As Long)
+	Sub GetMessageW(message As LongPtr)
+	Sub CreateMenu(pMenu As LongPtr)
+	Sub HandleMenu(ByVal hwnd As LongPtr, ByVal nItem As Long)
+End Interface
+[ InterfaceId ("e38fe0f3-3db0-47ee-a314-25cf7f4bf521") ]
+[ OleAutomation (False) ]
+Interface IInfoBarHost Extends IUnknown
+	Sub Inform(ByVal msg As IInfoBarMessage)
+	#If Win64 Then
+	Sub CancelInform(guid As UUID)
+	#Else
+	Sub CancelInform(ByVal guid1 As Long, ByVal guid2 As Long, ByVal guid3 As Long, ByVal guid4 As Long)
+	#End If
+End Interface
+[ InterfaceId ("18140CBD-AA23-4384-A38D-6A8D3E2BE505") ]
+[ OleAutomation (False) ]
+Interface IBrowserProgressSessionProvider Extends IUnknown
+	Sub BeginSession()
+	Sub EndSession()
+	Sub GetCurrentSession(sessionId As Long)
+	Sub ActivateSession()
+End Interface
 
 
 [ InterfaceId ("D782CCBA-AFB0-43F1-94DB-FDA3779EACCB") ]
@@ -5414,6 +5495,7 @@ Public Enum MessageBoxResults
     IDCONTINUE = 11
     /*  = WINVER >= &H0500 */
     IDTIMEOUT = 32000
+    MB_TIMEDOUT = 32000 'alias
 End Enum
 
 
@@ -6307,6 +6389,11 @@ Public Type NOTIFYICONDATA
     hBalloonIcon As LongPtr
 End Type
 
+Public Const NOTIFYICON_VERSION  = 3
+' #if (NTDDI_VERSION >= NTDDI_VISTA)
+Public Const NOTIFYICON_VERSION_4  = 4
+
+
 Public Enum NI_NOTIFY
 	NIN_SELECT = (&H400 + 0)
 	NINF_KEY = &H1
@@ -6664,6 +6751,9 @@ Public Const STR_PARSE_PREFER_FOLDER_BROWSING As String = "Parse Prefer Folder B
 Public Const STR_SKIP_BINDING_CLSID As String = "Skip Binding CLSID"
 Public Const STR_AVOID_DRIVE_RESTRICTION_POLICY As String = "Avoid Drive Restriction Policy"
 Public Const STR_BIND_FORCE_FOLDER_SHORTCUT_RESOLVE As String = "Force Folder Shortcut Resolve"
+Public Const STR_IFILTER_FORCE_TEXT_FILTER_FALLBACK As String = "Always bind persistent handlers"
+Public Const STR_IFILTER_LOAD_DEFINED_FILTER As String = "Only bind registered persistent handlers"
+
 
 Public Enum SHIL
 	SHIL_LARGE = 0
