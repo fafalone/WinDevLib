@@ -1,6 +1,19 @@
 
-**Update (v7.2.301, 10 Jan 2024):** Bug fix: Numerous duplicated enum values.
+**Update (v7.3.304, 15 Jan 2024):**
+-Added legacy Sync Manager interfaces/coclasses (mobsync.h, 100%)
+-Added process snapshot APIs (ProcessSnapshot.h, 100% coverage)
+-Added all consts (grouped as enums where possible) from propkey.h
+-Added new property keys from propkey.h
+-Added some missing STR_ binding strings.
+-Small additions to get shellapi.h coverage to 100%
+-Added undocumented interfaces IInfoBarMessage, IInfoBarHost, and IBrowserProgressSessionProvider (for the popup banner menus in NSEs)
+-Added undocumented interfaces IShellFolder3, IFilterItem, IItemFilter
+-Added undocumented interfaces IScope, IScopeItem (NSE filtering)
+-(Bug fix) LockWorkStation incorrect case.
+-(Bug fix) SHFILEOPSTRUCT[A,W] definition incorrect for x86
 
+
+**Update (v7.2.301, 10 Jan 2024):** Bug fix: Numerous duplicated enum values.
 
 **Update (v7.2.300, 09 Jan 2024):**:
 -Added wincred advapi32.dll APIs; wincred.h, 100% coverage
