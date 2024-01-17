@@ -1,5 +1,7 @@
 
-**Update (v7):**
+**Update (v7.3.306, 17 Jan 2024):**
+-Some additional crypto APIs.
+-Added undocumented TaskDialogIndirect button flags (Abort, Ignore, Continue, Retry, Help) and renamed the enum to the proper SDK-defined name (replace TDBUTTONS with TASKDIALOG_COMMON_BUTTON_FLAGS)
 -Added x,y option to PointToLongLong helper.
 -Added some missing GDI defs and macros.
 -(Bug fix) Numerous duplicated enum values undetected last time.
