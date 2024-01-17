@@ -1,4 +1,9 @@
 
+**Update (v7):**
+-Added x,y option to PointToLongLong helper.
+-Added some missing GDI defs and macros.
+-(Bug fix) Numerous duplicated enum values undetected last time.
+
 **Update (v7.3.304, 15 Jan 2024):**
 -Added legacy Sync Manager interfaces/coclasses (mobsync.h, 100%)
 -Added process snapshot APIs (ProcessSnapshot.h, 100% coverage)
