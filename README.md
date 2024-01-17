@@ -10,7 +10,7 @@ This project has grown well beyond it's original mission of shell programming. W
 
 ---
 
-**Current Version: 7.3.304 (January 15th, 2024)**
+**Current Version: 7.3.305 (January 17th, 2024)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -135,6 +135,11 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, lPtr, ...)
 ```
 
 ### Updates
+
+**Update (v7.3.305, 17 Jan 2024):**\
+-Added x,y option to PointToLongLong helper.\
+-Added some missing GDI defs and macros.\
+-(Bug fix) Numerous duplicated enum values undetected last time.
 
 **Update (v7.3.304, 15 Jan 2024):**\
 -Added legacy Sync Manager interfaces/coclasses (mobsync.h, 100%)\
