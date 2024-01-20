@@ -10,7 +10,7 @@ This project has grown well beyond it's original mission of shell programming. W
 
 ---
 
-**Current Version: 7.3.306 (January 17th, 2024)**
+**Current Version: 7.4.308 (January 17th, 2024)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -135,6 +135,15 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, lPtr, ...)
 ```
 
 ### Updates
+
+**Update (v7.4.308, 20 Jan 2024):**\
+-Added interface IAttachmentExecute and coclass AttachmentServices.\
+-Added interface IStorageProviderBanners, and coclass StorageProviderBanners.\
+-Substantial expanson of crypto APIs; bcrypt.h, ncrypt.h, and ncryptprotect.h all now have 100% coverage, and wincrypt.h coverage has doubled (though still has quite a bit to go)\
+-Crypto provider enum Crypt_Providers (dwProvType) renamed to CryptProviders to resolve conflict with SDK-defined CRYPT_PROVIDERS type.\
+-Numerous missing IShellMenu related consts/types; fixed incorrect intellisense associations.\
+-(Bug fix) MEMORYSTATUS definition incorrect (incompatible with 64bit). The associated API should not be used however, as it has problems with >4GB RAM. Use GlobalMemoryStatusEx.
+
 
 **Update (v7.3.306, 17 Jan 2024):**\
 -Some additional crypto APIs.\
@@ -414,93 +423,6 @@ PostMessage already used `DeclareWide`, which was perhaps causing unexpected iss
 -(Bug fix) Duplicate of NETRESOURCE type. Project was subsequently analyzed for further duplicated types, and 4 other bugs in this class were eliminated.\
 -(Bug fix) No base PEB type defined.\
 -(NOTICE) OpenGL is being deferred until twinBASIC has Alias support (planned).
-
-**Update (v6.3.240):**\
--Added interfaces IComputerAccounts, IEnumAccounts, IComputerAccountNotify, and IProfileNotify with coclasses LocalUserAccounts, LocalGroups, LoggedOnAccounts, ProfileAccounts, UserAccounts, and ProfileNotificationHandler. Also added numerous PROPERTYKEYs associated with this functionality.\
--Added a limited set of Winsock APIs. Note that with the exception of WSA* APIs, the short, generic names have been prefixed with ws_.\
--Misc API additions including undocumented shell32 APIs, and additional ntdll APIs.\
--Additional PE file structs\
--(Bug fix) Several WebView2 interface had incompatible Property Get defs for ByVal UDT workarounds.
-
-**Update (v6.2.238):**\
--Added a limited set of winhttp APIs\
--Added misc APIs for recent projects\
--(Bug fix) RegQueryValueEx/RegQueryValueExW/RegQueryValueExA definitions incorrect.
-
-**Update (v6.2.237):** Missing consts for upcoming project.
-
-**Update (v6.2.234):**
--Added additional file info structs, exe header structs, and ntdll API\
--(Bug fix) Some Disk Quota interface enums had incorrect names and in some cases values.
-
-**Update (v6.2.232):** 
--Added gdi32 Color Management (ICM) APIs.\
--Additional sysinfo UDTs.\
--TypeHints for NT functions missing them.
-
-**Update (v6.2.230):** 
--Added Windows Networking (WNet) APIs (winnetwk.h, 100% coverage (mpr.dll))\
--Major expansion of internationalization API coverage from winnls.h.\
--Added numerous missing common User32 functions.\
--Misc bug fixes, inc. InsertMenuItem entry-point not found, missing menu alternates (W or A variations)\
--Added overloads for a number of functions, if you have any trouble with the following, please file a bug report:\
-CoUnMarshalIface, IsValidLocaleName, EnumDateFormatsExEx, EnumCalendarInfoExEx, GetSystemDefaultLocaleName, GetCurrencyFormatEx, GetNumberFormatEx, GetCalendarInfoEx, SetUserGeoName, GetThreadPreferredUILanguages, SetThreadPreferredUILanguages, SetProcessPreferredUILanguages, GetProcessPreferredUILanguages, LocaleNameToLCID, GetDurationFormat, GetDurationFormatEx, GetLocaleInfoEx, ResolveLocaleName, GetNLSVersion, GetNLSVersionEx, ToUnicode, LoadBitmap[A,W], ModifyMenu, InsertMenu. 
-
-**Update (v6.1.229):** Bug fix: A number of APIs had missing 'As <type>` statements, which were upgraded to errors. tB had previosly not caught these.
-
-**Update (v6.1.228):**
--Completed imm32 APIs\
--Added Job Object APIs\
--Completed Virtual Disk APIs (virtdisk.h, 100% coverage)\
--Many missing gdi32.dll APIs\
--Misc APIs, inc. some power APIs\
--All UDTs for NtQueryInformationFile (through current Win11)\
--Bug fix: GDI object enum duplicate\
--Bug fix: Some incorrect UDTs
-
-**Update (v6.0.220):**\
--Added Network List Manager interfaces and coclass NetworkListManager.\
--Added WININET APis (wininet.h, 99% coverage-- autoproxy defs unsupported by language)\
--Added all APIs from iphlpapi.h (IP Helper; network stats); netioapi.h not included. Will be in future release.\
--Added all Console APIs (wincon.h/wincontypes.h/consoleapi[, 2,3].h) and Comm APIs. WinEvent APIs and consts.\
--FileDeviceTypes has been renamed DEVICE_TYPE, per usage in km\
--Added most UDTs for GetFileInformationByHandle and native equivalents\
--Added Vista+ Thread Pool APIs, including inlined ones (threadpoolapiset.h, 100% coverage)\
--Added Windows 10+ Secure Enclave APIs (enclaveapi.h, 100% coverage)\
--dlgs.h, part of windows.h, has been added *AS AN OPTIONAL EXTENSION* due to anticipated naming conflicts with common names like 'lst1'. Add the compiler constant `TB_SHELLLIB_DLGH = 1` to include these.\
--Bug fix: Numerous UDTs with LARGE_INTEGER changed to QLARGE_INTEGER where the lack of 8-byte QuadPart was throwing alignment off. Note that in the future, tB will have union support, at which point LARGE_INTEGER will be changed to one, and all QLARGE_INTEGER replaced.
-
-**Update (v5.3.214):** Added all DWM APIs from dwmapi.h. Added undoc'd shell app manager interfaces/coclasses. Added CPL applet defs. Misc API additions and bugfixes.
-
-**Update (v5.2.210/212):** Additional APIs for upcoming project release.
-
-**Update (v5.2.208):** Substantial API additions; inc. SystemParametersInfo structs/enums, display config, raw input, missing dialog stuff. Additional standard helper macros found in Windows headers.
-
-**Update (5.1.206/207):**\
--Added PropSheet macros.\
--Set PROPSHEETPAGE to V4 by default.\
--Add missing PropSheet consts.\
--Bug fix: PROPSHEETHEADER definitions incorrect.\
--Bug fix: PostMessage API not 64bit compatible.\
--Bug fix: Several ListView macros not 64bit compatible.\
--Updated WebView2 to match 1.0.1901.177.\
--Completed all advapi32 registry functions.\
--Expanded Media Foundation APIs.\
--Bug fix: Property Sheet callback enums were missing values and improperly organized.\
--Misc bug fixes and additions to APIs.\
-
-**Update (v5.0.203):** Bug fix: D3DMATRIX layout with 2d array was incorrect.
-
-**Update (v5.0.201):**\
--Added some missing DirectShow media stream interfaces.\
--Complete coverage of winmm API sets for wave, midi, time, sound, mmio, joystick, mci, aux, and mixer.\
--Complete coverage of printer and print spooler APIs from winspool.\
--Major expansion of security-related APIs\
--Added D3D compiler APIs and effects interfaces\ 
--Added basic DirectSound interfaces/apis.\
--Bug fix: ShowWindow relocated to slShellCore.twin to avoid amibiguity with SHOWWINDOW enum.\
--Bug fix: Misc. bug fixes to APIs.
-
 
 ---
 
