@@ -1,4 +1,13 @@
 
+**Update (v7.4.308, 20 Jan 2024):**
+-Added interface IAttachmentExecute and coclass AttachmentServices.
+-Added interface IStorageProviderBanners, and coclass StorageProviderBanners.
+-Substantial expanson of crypto APIs; bcrypt.h, ncrypt.h, and ncryptprotect.h all now have 100% coverage, and wincrypt.h coverage has doubled (though still has quite a bit to go)
+-Crypto provider enum Crypt_Providers (dwProvType) renamed to CryptProviders to resolve conflict with SDK-defined CRYPT_PROVIDERS type.
+-Numerous missing IShellMenu related consts/types; fixed incorrect intellisense associations.
+-(Bug fix) MEMORYSTATUS definition incorrect (incompatible with 64bit). The associated API should not be used however, as it has problems with >4GB RAM. Use GlobalMemoryStatusEx.
+
+
 **Update (v7.3.306, 17 Jan 2024):**
 -Some additional crypto APIs.
 -Added undocumented TaskDialogIndirect button flags (Abort, Ignore, Continue, Retry, Help) and renamed the enum to the proper SDK-defined name (replace TDBUTTONS with TASKDIALOG_COMMON_BUTTON_FLAGS)
