@@ -1,4 +1,15 @@
 
+**Update (v7.5.310, 26 Jan 2024):**
+-Massive expansion of crypt APIs; coverage of wincrypt.h, dpapi.h (crypto data protection) and mssip.h now 100%
+-Coverage of wintrust.h is now 99%; all but a couple of difficult to decipher macros and a byte sequence the order needs to be verified for.
+-Coverage of memoryapi.h is now 100% (excluding APIs only available to Store Apps)
+-Added UserNotification2 coclass; oleexp had this with a default of IUserNotification2, and while WinDevLib had UserNotification as a coclass, it had IUserNotification as a default without listing 2. Added 2 and the additional coclass.
+-EVENT_FILTER_EVENT_ID is now buffered to the maximum number of IDs. This allows using it directly, at the expense of not being able to use LenB for size.
+-Virtual* memory functions now use ByVal addresses instead of ByRef As Any; 99% of code uses this definition.
+-(Bug fix) CertFreeCertificateContext definition incompatible with x64
+-(Bug fix) SwapVTableEntry helper not working with old defs
+
+
 **Update (v7.4.308, 20 Jan 2024):**
 -Added interface IAttachmentExecute and coclass AttachmentServices.
 -Added interface IStorageProviderBanners, and coclass StorageProviderBanners.
