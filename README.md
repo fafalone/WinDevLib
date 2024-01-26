@@ -10,7 +10,7 @@ This project has grown well beyond it's original mission of shell programming. W
 
 ---
 
-**Current Version: 7.4.308 (January 17th, 2024)**
+**Current Version: 7.5.310 (January 26th, 2024)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -136,6 +136,17 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, lPtr, ...)
 
 ### Updates
 
+**Update (v7.5.310, 26 Jan 2024):**\
+-Massive expansion of crypt APIs; coverage of wincrypt.h, dpapi.h (crypto data protection) and mssip.h now 100%\
+-Coverage of wintrust.h is now 99%; all but a couple of difficult to decipher macros and a byte sequence the order needs to be verified for.\
+-Coverage of memoryapi.h is now 100% (excluding APIs only available to Store Apps)\
+-Added UserNotification2 coclass; oleexp had this with a default of IUserNotification2, and while WinDevLib had UserNotification as a coclass, it had IUserNotification as a default without listing 2. Added 2 and the additional coclass.\
+-EVENT_FILTER_EVENT_ID is now buffered to the maximum number of IDs. This allows using it directly, at the expense of not being able to use LenB for size.\
+-Virtual* memory functions now use ByVal addresses instead of ByRef As Any; 99% of code uses this definition.\
+-(Bug fix) CertFreeCertificateContext definition incompatible with x64\
+-(Bug fix) SwapVTableEntry helper not working with old defs
+
+
 **Update (v7.4.308, 20 Jan 2024):**\
 -Added interface IAttachmentExecute and coclass AttachmentServices.\
 -Added interface IStorageProviderBanners, and coclass StorageProviderBanners.\
@@ -143,7 +154,6 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, lPtr, ...)
 -Crypto provider enum Crypt_Providers (dwProvType) renamed to CryptProviders to resolve conflict with SDK-defined CRYPT_PROVIDERS type.\
 -Numerous missing IShellMenu related consts/types; fixed incorrect intellisense associations.\
 -(Bug fix) MEMORYSTATUS definition incorrect (incompatible with 64bit). The associated API should not be used however, as it has problems with >4GB RAM. Use GlobalMemoryStatusEx.
-
 
 **Update (v7.3.306, 17 Jan 2024):**\
 -Some additional crypto APIs.\
