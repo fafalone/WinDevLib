@@ -10,7 +10,7 @@ This project has grown well beyond it's original mission of shell programming. W
 
 ---
 
-**Current Version: 7.5.310 (January 26th, 2024)**
+**Current Version: 7.6.312 (February 10th, 2024)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -136,6 +136,25 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, lPtr, ...)
 
 ### Updates
 
+**Update (v7.6.312, 10 Feb 2024):**\
+-Added IAccessControl/IAuditControl interfaces\
+-Added numerous missing propsys APIs; propsys.h coverage now 100%\
+-Added a few missing registry functions, also previously excluded deprecated ones-- winreg.h coverage is now 100%.\
+-`GetProcessMemoryInfo` now uses As Any so `PROCESS_MEMORY_COUNTERS` and `PROCESS_MEMORY_COUNTERS_EX2` can also be used.\
+-Added System Restore APIs from SrRestorePtApi.h (100%). IMPORTANT: Event types have been prefixed with SRPT_ due to common name conflicts (e.g. it has `BACKUP, RESTORE`, etc, that are now `SRPT_BACKUP, SRPT_RESTORE`, etc)\
+-Added Compressor APIs from compressapi.h (100%). IMPORTANT: Compress and Decompress have been renamed CompressorCompress and CompressorDecompress, respectively, due to the short name conflict potential.\
+-(Internal) Moved crypto APIs to their own file, wdAPICrypto.twin. Internet APIs moved to new module wdAPIInternet with wdInternet.twin. DEVPKEY and MiscGUID regions moved to wdDefs.twin. wdAPI.twin was becoming unmanageable and running into performance issues; it was up to 65k lines before this reorganization.\
+-Implemented all basic Interlocked* APIs. These are implemented primarily as static libraries: Only a few of these are exported by the Windows API, and only on x86.\
+ To handle this, I've included my Interlocked64 project as a static library. I've also produced a 32bit version to handle all the inline/instrinsic ones besides the basics.\
+ If you wish to avoid static linking these obj files (while using the APIs), specify the compiler flag:\
+ `#WINDEVLIB_AVOID_INTRINSICS`\
+ This uses the kernel32 versions *where available*: You're limited to InterlockedIncrement, InterlockedDecrement, InterlockedExchange[Add], and InterlockedCompareExchange[64].
+ Using any besides those 6 will trigger the static library to be included.
+ NOTE: TEMPORARY: Due to editing instability, a default alternative of ONLY the kernel32s are set-- for use in Beta 423. See wdInterlocked.twin.
+-Added addtional error codes
+-Added cards.dll APIs for 32bit only (no 64bit build exists)
+
+
 **Update (v7.5.310, 26 Jan 2024):**\
 -Massive expansion of crypt APIs; coverage of wincrypt.h, dpapi.h (crypto data protection) and mssip.h now 100%\
 -Coverage of wintrust.h is now 99%; all but a couple of difficult to decipher macros and a byte sequence the order needs to be verified for.\
@@ -145,7 +164,6 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, lPtr, ...)
 -Virtual* memory functions now use ByVal addresses instead of ByRef As Any; 99% of code uses this definition.\
 -(Bug fix) CertFreeCertificateContext definition incompatible with x64\
 -(Bug fix) SwapVTableEntry helper not working with old defs
-
 
 **Update (v7.4.308, 20 Jan 2024):**\
 -Added interface IAttachmentExecute and coclass AttachmentServices.\
