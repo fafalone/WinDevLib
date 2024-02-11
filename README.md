@@ -39,7 +39,7 @@ You can download the project from this repository and use the WinDevLib.twinpack
 
 
 ### Optional Features
-WinDevLib has some compiler constants:
+WinDevLib has some compiler constants you can enable:
 
 `WINDEVLIB_LITE` - This flag disables most API declares and misc WinAPI definitions, including everything in wdAPIComCtl, wdAPI, and wdDefs. I used to like doing my APIs separate too, which is why oleexp never had the expansive coverage. But with that coverage now present, I think it's worth using, but this option will still be supported.
 
@@ -52,7 +52,7 @@ WinDevLib has some compiler constants:
 >[!WARNING]
 >The `WINDEVLIB_NOQUADLI` constant will break alignment on numerous Types; most only on x64, but some on both. 
 
-`
+`WINDEVLIB_AVOID_INTRINSICS` - Uses the `Interlocked*` APIs that are exported from kernel32.dll (32bit mode only) instead of the static library containing compiler intrinsic versions of those in addition to all the ones not exported and all the 64bit ones.
 
 ### Guide to switching from oleexp.tlb
 
