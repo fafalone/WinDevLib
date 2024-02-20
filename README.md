@@ -10,7 +10,7 @@ This project has grown well beyond it's original mission of shell programming. W
 
 ---
 
-**Current Version: 7.6.312 (February 10th, 2024)**
+**Current Version: 7.6.320 (February 20th, 2024)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -136,6 +136,27 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, lPtr, ...)
 
 ### Updates
 
+**Update (v7.6.320, 20 Feb 2024):**\
+-Added IPrintDocumentPackage* interfaces and coclasses (DocumentTarget.idl, 100%)\
+-Added un/under-documented MRU APIs from comctl32\
+-For compatibility with The trick's D2D and WIC typelibs:\
+   -D2D1_MATRIX_ types are now flat; the D2D alias versions remain the same, switch to these if you were using the previous defs.\
+   -ID2D1Effect data arguments are now As Any (no change needed)\
+   -Some arguments now optional (no change needed)\
+      NOTE: Unlike VB6, twinBASIC supports ByVal Nothing to pass a null pointer to a ByRef interface/object method.\
+   -ID2D1DeviceContext::CreateEffect last param now return value\
+   -IWICBitmapDecoder::GetFrame last param now return value\
+-Many Direct2D/DirectWrite types were changed from As Any to their real UDT, since tB supports vbNullPtr to pass the optional null.\
+   While this reduces compatibility with The trick's TLBs (and oleexp), the extra info and intellisense benefits are worth it.\
+-(Bug fix) PathRemoveBackslashW incorrectly used String.\
+-(Bug fix) LookupPrivilegeValue[A] used LongPtr instead of String.\
+-(Bug fix) PointToLongLong ambiguous overloads; new PointFToLongLong for POINTF.\
+-(Bug fix) All Direct2D effects CLSID functions incorrect (returning UUID_NULL)\
+-(Bug fix) IDWriteLocalizedStrings, IDWriteTextFormat, IDWriteTextLayout, IDWriteLocalFontFileLoader string arguments improperly ByRef\
+-(Bug fix) IDWriteInlineObject, IDWriteTextRenderer, and IDWritePixelSnapping argument clientDrawingContext should be ByVal LongPtr.\
+-(Bug fix) Several DirectWrite font UDTs had plocalename members incorrectly defined as Long, making them incompatible with 64bit
+
+
 **Update (v7.6.312, 10 Feb 2024):**\
 -Added IAccessControl/IAuditControl interfaces\
 -Added numerous missing propsys APIs; propsys.h coverage now 100%\
@@ -153,7 +174,6 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, lPtr, ...)
  NOTE: TEMPORARY: Due to editing instability, a default alternative of ONLY the kernel32s are set-- for use in Beta 423. See wdInterlocked.twin.
 -Added addtional error codes
 -Added cards.dll APIs for 32bit only (no 64bit build exists)
-
 
 **Update (v7.5.310, 26 Jan 2024):**\
 -Massive expansion of crypt APIs; coverage of wincrypt.h, dpapi.h (crypto data protection) and mssip.h now 100%\
