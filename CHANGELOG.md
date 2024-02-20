@@ -1,4 +1,25 @@
 
+**Update (v7.6.320, 20 Feb 2024):**
+-Added IPrintDocumentPackage* interfaces and coclasses (DocumentTarget.idl, 100%)
+-Added un/under-documented MRU APIs from comctl32
+-For compatibility with The trick's D2D and WIC typelibs:
+   -D2D1_MATRIX_ types are now flat; the D2D alias versions remain the same, switch to these if you were using the previous defs.
+   -ID2D1Effect data arguments are now As Any (no change needed)
+   -Some arguments now optional (no change needed)
+      NOTE: Unlike VB6, twinBASIC supports ByVal Nothing to pass a null pointer to a ByRef interface/object method.
+   -ID2D1DeviceContext::CreateEffect last param now return value
+   -IWICBitmapDecoder::GetFrame last param now return value
+-Many Direct2D/DirectWrite types were changed from As Any to their real UDT, since tB supports vbNullPtr to pass the optional null.
+   While this reduces compatibility with The trick's TLBs (and oleexp), the extra info and intellisense benefits are worth it.
+-(Bug fix) PathRemoveBackslashW incorrectly used String.
+-(Bug fix) LookupPrivilegeValue[A] used LongPtr instead of String.
+-(Bug fix) PointToLongLong ambiguous overloads; new PointFToLongLong for POINTF.
+-(Bug fix) All Direct2D effects CLSID functions incorrect (returning UUID_NULL)
+-(Bug fix) IDWriteLocalizedStrings, IDWriteTextFormat, IDWriteTextLayout, IDWriteLocalFontFileLoader string arguments improperly ByRef
+-(Bug fix) IDWriteInlineObject, IDWriteTextRenderer, and IDWritePixelSnapping argument clientDrawingContext should be ByVal LongPtr.
+-(Bug fix) Several DirectWrite font UDTs had plocalename members incorrectly defined as Long, making them incompatible with 64bit
+
+
 **Update (v7.6.312, 10 Feb 2024):**
 -Added IAccessControl/IAuditControl interfaces
 -Added numerous missing propsys APIs; propsys.h coverage now 100%
@@ -129,7 +150,7 @@
 -(Bug fix) PathAddExtension, PathAddRoot, EnumSystemLanguageGroups, LoadCursorFromFile, waveInGetErrorText definitions incorrect (misplaced alias)
 -(Bug fix) PathIsDirectoryA/W, PdhAddEnglishCounterA definitions incorrect (invalid alias)
 -(Bug fix) GetLogicalDriveStringsA definition incorrect (DeclareWide on ANSI)
--(Bug fix) Mising DeclareWide:
+-(Bug fix) Missing DeclareWide:
     Get/SetComputerName[Ex]
     All THelp32.h APIs
     SHUpdateImage
