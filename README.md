@@ -147,6 +147,8 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, lPtr, ...)
 -(Bug fix) PointFToLongLong helper function incorrect.\
 -(Bug fix) ID2D1RenderTarget::CreateBitmap definition incompatible with 64bit
 
+**Update: WinDevLibImpl v1.3.15** - `IPersistStream::GetMaxSize now LongLong instead of Currency, matching WinDevLib.
+
 
 **Update (v7.6.320, 20 Feb 2024):**\
 -Added IPrintDocumentPackage* interfaces and coclasses (DocumentTarget.idl, 100%)\
