@@ -1,4 +1,15 @@
 
+**Update (v7.6.322, 24 Feb 2024):**
+-Added DSA and DPA APIs (dpa_dsa.h, 100% coverage including macros)
+-Further compat updates for The trick's typelibs:
+   -IDWriteFontFileLoader.CreateStreamFromKey last arg now retval.
+   -ID2D1RenderTarget many arguments now optional, with correct default values where appropriate
+   -IWICBitmap.Lock last arg now retval
+-ID2D1Factory and ID2D1Geometry had many As Any arguments switched to their proper types
+-Added SizeToLongLong helper function
+-(Bug fix) PointFToLongLong helper function incorrect.   
+-(Bug fix) ID2D1RenderTarget::CreateBitmap definition incompatible with 64bit
+   
 **Update (v7.6.320, 20 Feb 2024):**
 -Added IPrintDocumentPackage* interfaces and coclasses (DocumentTarget.idl, 100%)
 -Added un/under-documented MRU APIs from comctl32
