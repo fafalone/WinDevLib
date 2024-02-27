@@ -10,7 +10,7 @@ This project has grown well beyond it's original mission of shell programming. W
 
 ---
 
-**Current Version: 7.6.322 (February 24th, 2024)**
+**Current Version: 7.6.324 (February 27th, 2024)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -135,6 +135,21 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, lPtr, ...)
 ```
 
 ### Updates
+
+**Update (v7.6.324, 27 Feb 2024):**\
+-Added additional Variant/PROPVARIANT helpers; propvarutil.h now 100% covered\
+-Additional DirectX As Any->proper type\
+-Substantial improvement to Task Scheduler 2.0 interfaces (intellisense, Boolean instead of Integer where appropriate, descriptions)\
+-(Bug fix) InitVariantFromString was not a dll export (replaced by macro)\
+-(Bug fix) VariantToFileTimeArray and VariantToFileTimeArrayAlloc don't exist\
+-(Bug fix) IScheduledWorkItem missing 3 methods and GetRunTimes, SetCreator methods incorrect.\
+-(Bug fix) ITaskSettings missing Compatibility Let/Get methods.\
+-(Bug fix) ITaskSettings3 missing CreateMaintenanceSettings method\
+-(Name change) ISchedulingAgent was apparently renamed ITaskScheduler by Windows 2000; coclass SchedulingAgent to CTaskScheduler.\
+               Further, IEnumWorkItems was IEnumTasks before that; why olelib was inconsistent here, I don't know.\
+               Since the SDK still defines these as aliases, WinDevLib now includes both names for all 3.\
+-(Name change) TASK_RUNLEVEL corrected to more appropriate TASK_RUNLEVEL_TYPE
+
 
 **Update (v7.6.322, 24 Feb 2024):**\
 -Added DSA and DPA APIs (dpa_dsa.h, 100% coverage including macros)\
