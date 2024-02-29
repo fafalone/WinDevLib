@@ -1,4 +1,8 @@
 
+**Update (v7.6.325, 29 Feb 2024):**
+-Suppress new tB warnings for msvbvm60 DLL redirects (this info is still noted in the descriptions for each API)
+-(Bug fix) DF_ALLOWOTHERACCOUNTHOOK value incorrect
+
 **Update (v7.6.324, 27 Feb 2024):**
 -Added additional Variant/PROPVARIANT helpers; propvarutil.h now 100% covered
 -Additional DirectX As Any->proper type
