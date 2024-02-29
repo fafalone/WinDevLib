@@ -10,7 +10,7 @@ This project has grown well beyond it's original mission of shell programming. W
 
 ---
 
-**Current Version: 7.6.324 (February 27th, 2024)**
+**Current Version: 7.6.325 (February 29th, 2024)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -135,6 +135,10 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, lPtr, ...)
 ```
 
 ### Updates
+
+**Update (v7.6.325, 29 Feb 2024):**
+-Suppress new tB warnings (configd as errors in WinDevLib) for msvbvm60 DLL redirects (this info is still noted in the descriptions for each API)
+-(Bug fix) DF_ALLOWOTHERACCOUNTHOOK value incorrect
 
 **Update (v7.6.324, 27 Feb 2024):**\
 -Added additional Variant/PROPVARIANT helpers; propvarutil.h now 100% covered\
