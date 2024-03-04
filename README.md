@@ -10,7 +10,7 @@ This project has grown well beyond it's original mission of shell programming. W
 twinBASIC now counts msvbvm60 redirects as legacy DLL redirects, which WinDevLib set to "Error". Please update to the latest version of WinDevLib to get rid of these errors and use it on twinBASIC Beta 456 and newer. Both this repo and the package server downloads have been updated.
  
 
-**Current Version: 7.6.325 (February 29th, 2024)**
+**Current Version: 7.6.330 (March 4th, 2024)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -135,6 +135,14 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, lPtr, ...)
 ```
 
 ### Updates
+
+**Update (v7.6.330, 04 Mar 2024):**\
+-Added some additional sync APIs; synchapi.h coverage now 100%.\
+-IObjectCollection now uses proper types (IUnknown and IObjectArray)\
+-(Bug fix) IsBadStringPtr missing alias\
+-(Bug fix) GetTimeZoneInformationForYear definition incorrect (used Long instead of Integer; no change needed, would work either way)\
+-(Bug fix) HIMC/HIMCC types for IME APIs were incorrectly Long instead of LongPtr; this was only true on early Windows versions
+
 
 **Update (v7.6.325, 29 Feb 2024):**
 -Suppress new tB warnings (configd as errors in WinDevLib) for msvbvm60 DLL redirects (this info is still noted in the descriptions for each API)
