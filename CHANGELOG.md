@@ -1,4 +1,11 @@
 
+**Update (v7.6.330, 04 Mar 2024):**
+-Added some additional sync APIs; synchapi.h coverage now 100%.
+-IObjectCollection now uses proper types (IUnknown and IObjectArray)
+-(Bug fix) IsBadStringPtr missing alias 
+-(Bug fix) GetTimeZoneInformationForYear definition incorrect (used Long instead of Integer; no change needed, would work either way)
+-(Bug fix) HIMC/HIMCC types for IME APIs were incorrectly Long instead of LongPtr; this was only true on early Windows versions
+
 **Update (v7.6.325, 29 Feb 2024):**
 -Suppress new tB warnings for msvbvm60 DLL redirects (this info is still noted in the descriptions for each API)
 -(Bug fix) DF_ALLOWOTHERACCOUNTHOOK value incorrect
