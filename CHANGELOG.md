@@ -1,4 +1,10 @@
 
+**Update (v7.6.332, 06 Mar 2024):**
+-NamespaceTreeControl default changed to INamespaceTreeControl2
+-Added inline helper SDK macros FreeIDListArray[Full|Child], SetContractDelegateWindow
+-(Bug fix) INameSpaceTreeControlEvents::OnGetTooltip should be ByVal pszTip
+-(Bug fix) MSGBOXPARAMS[A,W], MSGBOXDATA defs incorrect for x64.
+
 **Update (v7.6.330, 04 Mar 2024):**
 -Added some additional sync APIs; synchapi.h coverage now 100%.
 -IObjectCollection now uses proper types (IUnknown and IObjectArray)
