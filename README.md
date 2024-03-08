@@ -66,7 +66,7 @@ WinDevLib presented the best opportunity there would be to ditch some olelib leg
 4) Convert `Currency` to `LongLong` for interfaces and APIs: It's no longer neccessary to worry about multiplying and dividing by 10,000 since tB supports a true 64bit type in both 32bit and 64bit mode. So this change is ultimately for the better, but existing codebases will have had to have used `Currency` for all interfaces and oleexp APIs expecting a 64bit integer.
 
 5) Manually address any errors remaining. Interfaces should be mostly fine at this point, but if you've made use of the APIs in oleexp, many of them have syntax differences, mainly not being able to rewrite an ending [out] argument as the return value, and changing String arguments to `LongPtr` you'll need `StrPtr` with. Another major difference is that the default for almost all APIs with ANSI/Unicode (A/W) versions, is now the Unicode version. In most cases, the W version is declared with `LongPtr` for strings, and the untagged alias version uses tB's new `DeclareWide` keyword to disable ANSI conversion while using `String`.\
-Finally, a very small number of APIs and interfaces use ByVal UDTs. Since VB cannot do this, nor can tB yet, a typical workaround was to pass each member as an individual argument. This worked when arguments were 4 bytes each, but the x64 calling convention aligns arguments at 8 bytes. So the two options were to follow that convention, which also works for 32bit allowing a single call for both, or require two different calls for 32 and 64bit. Since one of the main points of twinBASIC is 64bit support, WinDevLib uses the former option. The downside of this is that VB-style calls will have to be rewritten. If you see, for example, `ByVal ptX As Long, ByVal ptY As Long` replaced with `ByVal pt As LongLong`, this was an unsupported `ByVal POINT`. You'd declare a LongLong, and use `CopyMemory` to fill it: `Dim pt As POINT: Dim ptt As Long: ...: CopyMemory ptt, pt, 8`.
+Finally, a very small number of APIs and interfaces use ByVal UDTs. Since VB cannot do this, nor can tB yet, a typical workaround was to pass each member as an individual argument. This worked when arguments were 4 bytes each, but the x64 calling convention aligns arguments at 8 bytes. So the two options were to follow that convention, which also works for 32bit allowing a single call for both, or require two different calls for 32 and 64bit. Since one of the main points of twinBASIC is 64bit support, WinDevLib uses the former option. The downside of this is that VB-style calls will have to be rewritten. If you see, for example, `ByVal ptX As Long, ByVal ptY As Long` replaced with `ByVal pt As LongLong`, this was an unsupported `ByVal POINT`. You'd declare a LongLong, and use `PointToLongLong` (there's also PointFToLongLong for Single-based points), helper functions added to help here.
 
 > [!NOTE]
 >  This is just for using WinDevLib-- you'll likely have a lot more changes to make if you want to make your project x64 compatible.
@@ -90,8 +90,6 @@ All APIs are provided, as a minimum, as the explicit W variant, and an untagged 
 
 UDTs used by these calls are also supplied in the same manner, the W variant, an untagged variant that's the same as the W version, and in some cases, an A version. UDTs always use `LongPtr` for strings, even the untagged versions for `DeclareWide`. 
 
-As noted before, an exception to the rule is `SendMessage`, due to the enourmous volume of existing code expecting SendMessage to map to SendMessageA.
-
 If you have any doubts about which API is being called, twinBASIC will show the full declaration when you hover your cursor over the API in your code.
 
 #### Scope of coverage
@@ -102,7 +100,7 @@ I've included the definitions, associated types, and associated constants, for e
 Limited coverage (or full coverage of very small sets) is provided for ntdll.dll, version.dll, msimg32.dll, crypt32.dll, virtdisk.dll, sxs.dll, secur32.dll, imm32.dll, userenv.dll, wintrust.dll, msacm32.dll, url.dll, htmlhelp.dll, imagehlp.dll, and ws2_32.dll. If you feel any missing ones from these should be included, or would like to contribute more, let me know.\
 Finally, there's small API sets for features, like DirectX DLLs, Webview2Loader, WIC, etc. Definitely let me know any missing from these.
 
-**Future coverage:** In the future I'm planning to expand crypto coverage from advapi32 and wintrust, expand native APIs with no equivalents, add additional Winsock coverage, and add OpenGL-- though for this last one I may wait for tB to have `Alias` support since existing OpenGL codebases make heavy use of them by way of NeHe's TLB. I welcome contributions of any of these. If you've done the consts->enums conversions already, I'd even take 32bit-only versions.
+**Future coverage:** In the future I'm planning to expand native APIs with no equivalents, add additional Winsock coverage, and add OpenGL-- though for this last one I may wait for tB to have `Alias` support since existing OpenGL codebases make heavy use of them by way of NeHe's TLB. I welcome contributions of any of these. If you've done the consts->enums conversions already, I'd even take 32bit-only versions.
 
 
 #### A note on seeing UDTs where before they were As Any
