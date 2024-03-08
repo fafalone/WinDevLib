@@ -1,6 +1,5 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
-### Formerly tbShellLib
 
 ### ***tbShellLib is now WinDevLib - Windows Development Library for twinBASIC***
 This project has grown well beyond it's original mission of shell programming. While that's still the largest single part, it's no longer a majority of the code, and the name change now much better reflects the purpose of providing a general Windows API experience like windows.h. Compiler constants and module names/file names have been updated to reflect the name change. tbShellLibImpl is now WinDevLibImpl. There are also some major chanages associated with this update, please see the full changelog below.
@@ -10,7 +9,7 @@ This project has grown well beyond it's original mission of shell programming. W
 twinBASIC now counts msvbvm60 redirects as legacy DLL redirects, which WinDevLib set to "Error". Please update to the latest version of WinDevLib to get rid of these errors and use it on twinBASIC Beta 456 and newer. Both this repo and the package server downloads have been updated.
  
 
-**Current Version: 7.6.332 (March 6th, 2024)**
+**Current Version: 7.6.334 (March 8th, 2024)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -26,7 +25,7 @@ Please report any bugs via the Issues feature here on GitHub.
 
 ### Requirements
 
-[twinBASIC Beta 269 or newer](https://github.com/twinbasic/twinbasic/releases) is required.
+[twinBASIC Beta 424 or newer](https://github.com/twinbasic/twinbasic/releases) is required, 461 or newer is recommended.
 
 ### Adding WinDevLib to your project
 You have 2 options for this:
@@ -135,6 +134,10 @@ hFile = CreateFileW(StrPtr("name"), 0, 0, lPtr, ...)
 ```
 
 ### Updates
+
+**Update (v7.6.334, 08 Mar 2024):**\
+-Added 100% coverage of winsafer.h\
+-Expanded power API coverage; powerbase.h, powersetting.h, powrprof.h 100%.
 
 **Update (v7.6.332, 06 Mar 2024):**\
 -NamespaceTreeControl default changed to INamespaceTreeControl2\
