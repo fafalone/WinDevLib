@@ -1,4 +1,8 @@
 
+**Update (v7.6.334, 08 Mar 2024):**
+-Added 100% coverage of winsafer.h
+-Expanded power API coverage; powerbase.h, powersetting.h, powrprof.h 100%.
+
 **Update (v7.6.332, 06 Mar 2024):**
 -NamespaceTreeControl default changed to INamespaceTreeControl2
 -Added inline helper SDK macros FreeIDListArray[Full|Child], SetContractDelegateWindow
