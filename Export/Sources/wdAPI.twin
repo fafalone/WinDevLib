@@ -1825,7 +1825,6 @@ Public Enum SFBS_FLAGS
 End Enum
     
         
-Public Declare PtrSafe Function AssocGetPerceivedType Lib "shlwapi.dll" (ByVal pszExt As LongPtr, ptype As PERCEIVED, pflag As PERCEIVEDFLAG, ppszType As LongPtr) As Long
 Public Declare PtrSafe Function StrRetToStrW Lib "shlwapi" (pStr As STRRET, ByVal pidl As LongPtr, ppsz As LongPtr) As Long
 Public Declare PtrSafe Function StrChrA Lib "shlwapi" (ByVal lpStart As String, ByVal wMatch As Integer) As LongPtr
 Public Declare PtrSafe Function StrChrW Lib "shlwapi" (ByVal lpStart As LongPtr, ByVal wMatch As Integer) As LongPtr
@@ -2217,6 +2216,7 @@ Public Declare PtrSafe Function AssocCreate Lib "shlwapi" (clsid As UUID, ByRef 
 #Else
 Public Declare PtrSafe Function AssocCreate Lib "shlwapi" (ByVal clsid_data1 As Long, ByVal clsid_data23 As Long, ByVal clsid_data4_0123 As Long, ByVal clsid_data4_4567 As Long, ByRef riid As UUID, ByRef ppv As Any) As Long
 #End If
+Public Declare PtrSafe Function AssocGetPerceivedType Lib "shlwapi" (ByVal pszExt As LongPtr, ptype As PERCEIVED, pflag As PERCEIVEDFLAG, ppszType As LongPtr) As Long
 Public Declare PtrSafe Function AssocQueryStringA Lib "shlwapi" (ByVal flags As ASSOCF, ByVal str As ASSOCSTR, ByVal pszAssoc As String, ByVal pszExtra As String, ByVal pszOut As String, ByRef pcchOut As Long) As Long
 Public Declare PtrSafe Function AssocQueryStringW Lib "shlwapi" (ByVal flags As ASSOCF, ByVal str As ASSOCSTR, ByVal pszAssoc As LongPtr, ByVal pszExtra As LongPtr, ByVal pszOut As LongPtr, ByRef pcchOut As Long) As Long
 Public DeclareWide PtrSafe Function AssocQueryString Lib "shlwapi" Alias "AssocQueryStringW" (ByVal flags As ASSOCF, ByVal str As ASSOCSTR, ByVal pszAssoc As String, ByVal pszExtra As String, ByVal pszOut As String, ByRef pcchOut As Long) As Long
@@ -2225,6 +2225,8 @@ Public Declare PtrSafe Function AssocQueryStringByKeyW Lib "shlwapi" (ByVal flag
 Public DeclareWide PtrSafe Function AssocQueryStringByKey Lib "shlwapi" Alias "AssocQueryStringByKeyW" (ByVal flags As ASSOCF, ByVal str As ASSOCSTR, ByVal hkAssoc As LongPtr, ByVal pszExtra As String, ByVal pszOut As String, ByRef pcchOut As Long) As Long
 Public Declare PtrSafe Function AssocQueryKeyA Lib "shlwapi" (ByVal flags As ASSOCF, ByVal key As ASSOCKEY, ByVal pszAssoc As String, ByVal pszExtra As String, ByRef phkeyOut As LongPtr) As Long
 Public Declare PtrSafe Function AssocQueryKeyW Lib "shlwapi" (ByVal flags As ASSOCF, ByVal key As ASSOCKEY, ByVal pszAssoc As LongPtr, ByVal pszExtra As LongPtr, ByRef phkeyOut As LongPtr) As Long
+Public Declare PtrSafe Function AssocIsDangerous Lib "shlwapi" (ByVal pszExt As LongPtr) As BOOL
+Public Declare PtrSafe Function AssocGetUrlAction Lib "shlwapi" (ByVal pszAssoc As LongPtr) As URLACTIONS
 Public DeclareWide PtrSafe Function AssocQueryKey Lib "shlwapi" Alias "AssocQueryKeyW" (ByVal flags As ASSOCF, ByVal key As ASSOCKEY, ByVal pszAssoc As String, ByVal pszExtra As String, ByRef phkeyOut As LongPtr) As Long
 Public Declare PtrSafe Function SHOpenRegStreamA Lib "shlwapi" (ByVal hkey As LongPtr, ByVal pszSubKey As String, ByVal pszValue As String, ByVal grfMode As STGM) As IStream
 Public Declare PtrSafe Function SHOpenRegStreamW Lib "shlwapi" (ByVal hkey As LongPtr, ByVal pszSubKey As LongPtr, ByVal pszValue As LongPtr, ByVal grfMode As STGM) As IStream
@@ -17754,6 +17756,7 @@ Public Declare PtrSafe Function NtPowerInformation Lib "ntdll" (ByVal Informatio
 Public Declare PtrSafe Function NtShutdownSystem Lib "ntdll" (ByVal Action As SHUTDOWN_ACTION) As Long
 [Description("⚠️ **WARNING:** For emergency shutdown only; one step above flipping the power switch. Requires SE_SHUTDOWN_PRIVILEGE")]
 Public Declare PtrSafe Function NtSetSystemPowerState Lib "ntdll" (ByVal SystemAction As POWER_ACTION, ByVal MinSystemState As SYSTEM_POWER_STATE, ByVal Flags As SystemShutdownReasons) As Long
+Public Declare PtrSafe Function NtGetDevicePowerState Lib "ntdll" (ByVal DeviceHandle As LongPtr, DevicePowerState As DEVICE_POWER_STATE) As NTSTATUS
 Public Declare PtrSafe Function NtOpenSymbolicLinkObject Lib "ntdll" (LinkHandle As LongPtr, [TypeHint(GenericRights, SymbolicLinkAccessRights)] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES) As Long
 Public Declare PtrSafe Function NtCreateSymbolicLinkObject Lib "ntdll" (LinkHandle As LongPtr, [TypeHint(GenericRights, SymbolicLinkAccessRights)] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, LinkTarget As UNICODE_STRING) As NTSTATUS
 Public Declare PtrSafe Function NtQuerySymbolicLinkObject Lib "ntdll" (ByVal LinkHandle As LongPtr, LinkTarget As UNICODE_STRING, Optional ReturnLenfth As Long) As NTSTATUS
@@ -34200,6 +34203,411 @@ Public Declare PtrSafe Function RemoveTraceCallback Lib "advapi32" (pGuid As UUI
 Public Declare PtrSafe Function TraceMessage Lib "advapi32" (ByVal TraceHandle As LongLong, ByVal MessageFlags As Long, MessageGuid As UUID, ByVal MessageNumber As Integer) As Long
 Public Declare PtrSafe Function TraceMessageVa Lib "advapi32" (ByVal TraceHandle As LongLong, ByVal MessageFlags As Long, MessageGuid As UUID, ByVal MessageNumber As Integer, MessageArgList As Any) As Long
 
+'winsafer.h
+
+Public Enum SaferScope
+    SAFER_SCOPEID_MACHINE = 1
+    SAFER_SCOPEID_USER = 2
+End Enum
+
+Public Enum SaferLevelIds
+    SAFER_LEVELID_FULLYTRUSTED = &H40000
+    SAFER_LEVELID_NORMALUSER = &H20000
+    SAFER_LEVELID_CONSTRAINED = &H10000
+    SAFER_LEVELID_UNTRUSTED = &H01000
+    SAFER_LEVELID_DISALLOWED = &H00000
+End Enum
+
+Public Enum SaferOpenFlags
+    SAFER_LEVEL_OPEN = 1
+End Enum
+
+Public Const SAFER_MAX_FRIENDLYNAME_SIZE  = 256
+Public Const SAFER_MAX_DESCRIPTION_SIZE  = 256
+Public Const SAFER_MAX_HASH_SIZE  = 64
+
+Public Enum SaferComputeTokenFlags
+    SAFER_TOKEN_NULL_IF_EQUAL = &H00000001
+    SAFER_TOKEN_COMPARE_ONLY = &H00000002
+    SAFER_TOKEN_MAKE_INERT = &H00000004
+    SAFER_TOKEN_WANT_FLAGS = &H00000008
+End Enum
+
+Public Enum SaferIdentifyLevelFlags
+    SAFER_CRITERIA_IMAGEPATH = &H00001
+    SAFER_CRITERIA_NOSIGNEDHASH = &H00002
+    SAFER_CRITERIA_IMAGEHASH = &H00004
+    SAFER_CRITERIA_AUTHENTICODE = &H00008
+    SAFER_CRITERIA_URLZONE = &H00010
+    SAFER_CRITERIA_APPX_PACKAGE = &H00020
+    SAFER_CRITERIA_IMAGEPATH_NT = &H01000
+End Enum
+
+Public Type SAFER_CODE_PROPERTIES_V1
+    ' Must be initialized to be the size of this structure,
+    ' for the purposes of future/backwards compatibility.
+    cbSize As Long
+    ' Must be initialized to the types of criteria that should
+    ' be considered when evaluating this structure.  This can be
+    ' a combination of the SAFER_CRITERIA_xxxx flags.  If not enough
+    ' of the structure elements needed to evaluate the criteria
+    ' types indicated were supplied, then some of those criteria
+    ' flags may be silently ignored.  Specifying 0 for this value
+    ' will cause the entire structure's contents to be ignored.
+    dwCheckFlags As SaferIdentifyLevelFlags
+    ' Optionally specifies the fully-qualified path and filename
+    ' to be used for discrimination checks based on the path.
+    ' The ImagePath will additionally be used to open and read the
+    ' file to identify any other discrimination criteria that was
+    ' unsupplied in this structure.
+    ImagePath As LongPtr
+    ' Optionally specifies a file handle that has been opened to
+    ' code image with at least GENERIC_READ access.  The handle will
+    ' be used instead of explicitly opening the file again to compute
+    ' other discrimination criteria that was unsupplied in this structure.
+    hImageFileHandle As LongPtr
+    ' Optionally specifies the pre-determined Internet Explorer
+    ' security zone.  These enums are defined within urlmon.h
+    ' For example: URLZONE_LOCAL_MACHINE, URLZONE_INTRANET,
+    '   URLZONE_TRUSTED, URLZONE_INTERNET, or URLZONE_UNTRUSTED.
+    UrlZoneId As URLZONE
+    ' Optionally specifies the pre-computed hash of the image.
+    ' The supplied hash is interpreted as being valid if ImageSize
+    ' is non-zero and dwImageHashSize is non-zero and HashAlgorithm
+    ' represents a valid hashing algorithm from wincrypt.h
+    ' If the supplied hash fails to meet the conditions above, then
+    ' the hash will be automatically computed against:
+    '      1) by using ImageSize and pByteBlock if both are non-zero.
+    '      2) by using hImageFileHandle if it is non-null.
+    '      3) by attempting to open ImagePath if it is non-null.
+    ImageHash(0 To (SAFER_MAX_HASH_SIZE - 1)) As Byte
+    dwImageHashSize As Long
+    ImageSize As LARGE_INTEGER
+    HashAlgorithm As ALG_ID
+    ' Optionally specifies a memory block of memory representing
+    ' the image for which the trust is being requested for.  When
+    ' this member is specified, ImageSize must also be supplied.
+    pByteBlock As LongPtr 'LPBYTE
+    ' Optionally gives the arguments used for Authenticode signer
+    ' certificate verification.  These arguments are supplied to the
+    ' WinVerifyTrust() API and control the user-interface prompting
+    ' to accept untrusted certificates.
+    hWndParent As LongPtr
+    dwWVTUIChoice As WINTRUST_DATA_UICHOICE
+End Type
+Public Type SAFER_CODE_PROPERTIES_V2
+    ' Begin SAFER_CODE_PROPERTIES_V1
+    ' These must be present for backwards compatability
+    ' Must be initialized to be the size of this structure,
+    ' for the purposes of future/backwards compatibility.
+    cbSize As Long
+    ' Must be initialized to the types of criteria that should
+    ' be considered when evaluating this structure.  This can be
+    ' a combination of the SAFER_CRITERIA_xxxx flags.  If not enough
+    ' of the structure elements needed to evaluate the criteria
+    ' types indicated were supplied, then some of those criteria
+    ' flags may be silently ignored.  Specifying 0 for this value
+    ' will cause the entire structure's contents to be ignored.
+    dwCheckFlags As SaferIdentifyLevelFlags
+    ' Optionally specifies the fully-qualified path and filename
+    ' to be used for discrimination checks based on the path.
+    ' The ImagePath will additionally be used to open and read the
+    ' file to identify any other discrimination criteria that was
+    ' unsupplied in this structure.
+    ImagePath As LongPtr
+    ' Optionally specifies a file handle that has been opened to
+    ' code image with at least GENERIC_READ access.  The handle will
+    ' be used instead of explicitly opening the file again to compute
+    ' other discrimination criteria that was unsupplied in this structure.
+    hImageFileHandle As LongPtr
+    ' Optionally specifies the pre-determined Internet Explorer
+    ' security zone.  These enums are defined within urlmon.h
+    ' For example: URLZONE_LOCAL_MACHINE, URLZONE_INTRANET,
+    '   URLZONE_TRUSTED, URLZONE_INTERNET, or URLZONE_UNTRUSTED.
+    UrlZoneId As URLZONE
+    ' Optionally specifies the pre-computed hash of the image.
+    ' The supplied hash is interpreted as being valid if ImageSize
+    ' is non-zero and dwImageHashSize is non-zero and HashAlgorithm
+    ' represents a valid hashing algorithm from wincrypt.h
+    ' If the supplied hash fails to meet the conditions above, then
+    ' the hash will be automatically computed against:
+    '      1) by using ImageSize and pByteBlock if both are non-zero.
+    '      2) by using hImageFileHandle if it is non-null.
+    '      3) by attempting to open ImagePath if it is non-null.
+    ImageHash(0 To (SAFER_MAX_HASH_SIZE - 1)) As Byte
+    dwImageHashSize As Long
+    ImageSize As LARGE_INTEGER
+    HashAlgorithm As ALG_ID
+    ' Optionally specifies a memory block of memory representing
+    ' the image for which the trust is being requested for.  When
+    ' this member is specified, ImageSize must also be supplied.
+    pByteBlock As LongPtr 'LPBYTE
+    ' Optionally gives the arguments used for Authenticode signer
+    ' certificate verification.  These arguments are supplied to the
+    ' WinVerifyTrust() API and control the user-interface prompting
+    ' to accept untrusted certificates.
+    hWndParent As LongPtr
+    dwWVTUIChoice As WINTRUST_DATA_UICHOICE
+    ' End SAFER_CODE_PROPERTIES_V1
+    ' Package properties for Modern applications
+    PackageMoniker As LongPtr
+    PackagePublisher As LongPtr
+    PackageName As LongPtr
+    PackageVersion As LongLong
+    PackageIsFramework As BOOL
+End Type
+'Alias SAFER_CODE_PROPERTIES As SAFER_CODE_PROPERTIES_V2
+Public Type SAFER_CODE_PROPERTIES
+    ' Begin SAFER_CODE_PROPERTIES_V1
+    ' These must be present for backwards compatability
+    ' Must be initialized to be the size of this structure,
+    ' for the purposes of future/backwards compatibility.
+    cbSize As Long
+    ' Must be initialized to the types of criteria that should
+    ' be considered when evaluating this structure.  This can be
+    ' a combination of the SAFER_CRITERIA_xxxx flags.  If not enough
+    ' of the structure elements needed to evaluate the criteria
+    ' types indicated were supplied, then some of those criteria
+    ' flags may be silently ignored.  Specifying 0 for this value
+    ' will cause the entire structure's contents to be ignored.
+    dwCheckFlags As SaferIdentifyLevelFlags
+    ' Optionally specifies the fully-qualified path and filename
+    ' to be used for discrimination checks based on the path.
+    ' The ImagePath will additionally be used to open and read the
+    ' file to identify any other discrimination criteria that was
+    ' unsupplied in this structure.
+    ImagePath As LongPtr
+    ' Optionally specifies a file handle that has been opened to
+    ' code image with at least GENERIC_READ access.  The handle will
+    ' be used instead of explicitly opening the file again to compute
+    ' other discrimination criteria that was unsupplied in this structure.
+    hImageFileHandle As LongPtr
+    ' Optionally specifies the pre-determined Internet Explorer
+    ' security zone.  These enums are defined within urlmon.h
+    ' For example: URLZONE_LOCAL_MACHINE, URLZONE_INTRANET,
+    '   URLZONE_TRUSTED, URLZONE_INTERNET, or URLZONE_UNTRUSTED.
+    UrlZoneId As URLZONE
+    ' Optionally specifies the pre-computed hash of the image.
+    ' The supplied hash is interpreted as being valid if ImageSize
+    ' is non-zero and dwImageHashSize is non-zero and HashAlgorithm
+    ' represents a valid hashing algorithm from wincrypt.h
+    ' If the supplied hash fails to meet the conditions above, then
+    ' the hash will be automatically computed against:
+    '      1) by using ImageSize and pByteBlock if both are non-zero.
+    '      2) by using hImageFileHandle if it is non-null.
+    '      3) by attempting to open ImagePath if it is non-null.
+    ImageHash(0 To (SAFER_MAX_HASH_SIZE - 1)) As Byte
+    dwImageHashSize As Long
+    ImageSize As LARGE_INTEGER
+    HashAlgorithm As ALG_ID
+    ' Optionally specifies a memory block of memory representing
+    ' the image for which the trust is being requested for.  When
+    ' this member is specified, ImageSize must also be supplied.
+    pByteBlock As LongPtr 'LPBYTE
+    ' Optionally gives the arguments used for Authenticode signer
+    ' certificate verification.  These arguments are supplied to the
+    ' WinVerifyTrust() API and control the user-interface prompting
+    ' to accept untrusted certificates.
+    hWndParent As LongPtr
+    dwWVTUIChoice As WINTRUST_DATA_UICHOICE
+    ' End SAFER_CODE_PROPERTIES_V1
+    ' Package properties for Modern applications
+    PackageMoniker As LongPtr
+    PackagePublisher As LongPtr
+    PackageName As LongPtr
+    PackageVersion As LongLong
+    PackageIsFramework As BOOL
+End Type
+
+Public Enum SaferPolicyFlags
+    SAFER_POLICY_JOBID_MASK = &HFF000000
+    SAFER_POLICY_JOBID_CONSTRAINED = &H04000000
+    SAFER_POLICY_JOBID_UNTRUSTED = &H03000000
+    SAFER_POLICY_ONLY_EXES = &H00010000
+    SAFER_POLICY_SANDBOX_INERT = &H00020000
+    SAFER_POLICY_HASH_DUPLICATE = &H00040000
+    SAFER_POLICY_ONLY_AUDIT = &H00001000
+    SAFER_POLICY_BLOCK_CLIENT_UI = &H00002000
+    SAFER_POLICY_UIFLAGS_MASK = &H000000FF
+    SAFER_POLICY_UIFLAGS_INFORMATION_PROMPT = &H00000001
+    SAFER_POLICY_UIFLAGS_OPTION_PROMPT = &H00000002
+    SAFER_POLICY_UIFLAGS_HIDDEN = &H00000004
+End Enum
+
+Public Enum SAFER_POLICY_INFO_CLASS
+    ' 
+    '  Accesses the list of all Levels defined in a policy.
+    '  The corresponding data element is a buffer that is filled
+    '  with multiple DWORDs, each representing the LevelIds that
+    '  are defined within this scope.
+    ' 
+    SaferPolicyLevelList = 1
+    ' 
+    '  for transparent enforcement of policy in the execution
+    '  framework -- will be used by native code execution but can
+    '  be used by any policy enforcement environment.
+    '  Corresponding data element is a DWORD holding a Boolean value.
+    ' 
+    SaferPolicyEnableTransparentEnforcement = 2
+    ' 
+    '  Returns the name of the Level that has been designed
+    '  as the default level within the specified scope.
+    '  The corresponding data element is a single DWORD buffer
+    '  representing the LevelId of the default Level.  If no
+    '  level has been configured to be the default, then the
+    '  GetInfo API will return FALSE and GetLastError will
+    '  return ERROR_NOT_FOUND.
+    ' 
+    SaferPolicyDefaultLevel = 3
+    ' 
+    '  Returns whether Code Identities or Default Level within the
+    '  user scope can be considered during identification.
+    ' 
+    SaferPolicyEvaluateUserScope = 4
+    ' 
+    '  Control Flags for safer policy scope.
+    ' 
+    SaferPolicyScopeFlags = 5
+    ' 
+    '  Flags which indicate "audit" or "block client UI" rules
+    ' 
+    SaferPolicyDefaultLevelFlags = 6
+    ' 
+    '  Flag which indicates if certificate rules are applied in CreateProcess
+    ' 
+    SaferPolicyAuthenticodeEnabled = 7
+End Enum
+Public Enum SAFER_OBJECT_INFO_CLASS
+    SaferObjectLevelId = 1 ' get: DWORD
+    SaferObjectScopeId = 2 ' get: DWORD
+    SaferObjectFriendlyName = 3 ' get/set: LPCWSTR
+    SaferObjectDescription = 4 ' get/set: LPCWSTR
+    SaferObjectBuiltin = 5 ' get: DWORD boolean
+    SaferObjectDisallowed = 6 ' get: DWORD boolean
+    SaferObjectDisableMaxPrivilege = 7 ' get: DWORD boolean
+    SaferObjectInvertDeletedPrivileges = 8 ' get: DWORD boolean
+    SaferObjectDeletedPrivileges = 9 ' get: TOKEN_PRIVILEGES
+    SaferObjectDefaultOwner = 10 ' get: TOKEN_OWNER
+    SaferObjectSidsToDisable = 11 ' get: TOKEN_GROUPS
+    SaferObjectRestrictedSidsInverted = 12 ' get: TOKEN_GROUPS
+    SaferObjectRestrictedSidsAdded = 13 ' get: TOKEN_GROUPS
+    ' 
+    '  To enumerate all identities, call GetInfo with
+    '       SaferObjectAllIdentificationGuids.
+    ' 
+    SaferObjectAllIdentificationGuids = 14 ' get: SAFER_IDENTIFICATION_GUIDS
+    ' 
+    '  To create a new identity, call SetInfo with
+    '       SaferObjectSingleIdentification with a new
+    '       unique GUID that you have generated.
+    '  To get details on a single identity, call GetInfo with
+    '       SaferObjectSingleIdentification with desired GUID.
+    '  To modify details of a single identity, call SetInfo with
+    '       SaferObjectSingleIdentification with desired info and GUID.
+    '  To delete an identity, call SetInfo with
+    '       SaferObjectSingleIdentification with the
+    '       header.dwIdentificationType set to 0.
+    ' 
+    SaferObjectSingleIdentification = 15 ' get/set: SAFER_IDENTIFICATION_*
+    SaferObjectExtendedError = 16 ' get: DWORD dwError
+End Enum
+
+Public Enum SAFER_IDENTIFICATION_TYPES
+    SaferIdentityDefault
+    SaferIdentityTypeImageName = 1
+    SaferIdentityTypeImageHash
+    SaferIdentityTypeUrlZone
+    SaferIdentityTypeCertificate
+End Enum
+
+Public Type SAFER_IDENTIFICATION_HEADER
+    ' indicates the type of the structure, one of SaferIdentityType*
+    dwIdentificationType As SAFER_IDENTIFICATION_TYPES
+    ' size of the whole structure, not just the common header.
+    cbStructSize As Long
+    ' the unique GUID of the Identity in question.
+    IdentificationGuid As UUID
+    ' last change of this identification.
+    lastModified As FILETIME
+End Type
+
+Public Type SAFER_PATHNAME_IDENTIFICATION
+    ' header.dwIdentificationType must be SaferIdentityTypeImageName
+    ' header.cbStructSize must be sizeof(SAFER_PATHNAME_IDENTIFICATION)
+    header As SAFER_IDENTIFICATION_HEADER
+    ' user-entered description
+    Description(0 To (SAFER_MAX_DESCRIPTION_SIZE - 1)) As Integer
+    ' filepath or name, possibly with vars
+    ImageName As LongPtr 'PWCHAR
+    ' any combo of SAFER_POLICY_* flags
+    dwSaferFlags As SaferPolicyFlags
+End Type
+
+Public Type SAFER_HASH_IDENTIFICATION
+    ' header.dwIdentificationType must be SaferIdentityTypeImageHash
+    ' header.cbStructSize must be sizeof(SAFER_HASH_IDENTIFICATION)
+    header As SAFER_IDENTIFICATION_HEADER
+    ' user-entered friendly name, initially from file's resources.
+    Description(0 To (SAFER_MAX_DESCRIPTION_SIZE - 1)) As Integer
+    ' user-entered description.
+    FriendlyName(0 To (SAFER_MAX_FRIENDLYNAME_SIZE - 1)) As Integer
+    ' amount of ImageHash actually used, in bytes (MD5 is 16 bytes).
+    HashSize As Long
+    ' computed hash data itself.
+    ImageHash(0 To (SAFER_MAX_HASH_SIZE - 1)) As Byte
+    ' algorithm in which the hash was computed (CALG_MD5, etc).
+    HashAlgorithm As ALG_ID
+    ' size of the original file in bytes.
+    ImageSize As LARGE_INTEGER
+    ' any combo of SAFER_POLICY_* flags
+    dwSaferFlags As SaferPolicyFlags
+End Type
+Public Type SAFER_HASH_IDENTIFICATION2
+    ' Start by including the original structure. It contains number of bytes
+    ' in this particular structure.
+    hashIdentification As SAFER_HASH_IDENTIFICATION
+    ' amount of ImageHash actually used, in bytes (SHA256 is 32 bytes).
+    HashSize As Long
+    ' computed hash data itself.
+    ImageHash(0 To (SAFER_MAX_HASH_SIZE - 1)) As Byte
+    ' algorithm in which the hash was computed (CALG_SHA256).
+    HashAlgorithm As ALG_ID
+End Type
+
+Public Type SAFER_URLZONE_IDENTIFICATION
+    ' header.dwIdentificationType must be SaferIdentityTypeUrlZone
+    ' header.cbStructSize must be sizeof(SAFER_URLZONE_IDENTIFICATION)
+    header As SAFER_IDENTIFICATION_HEADER
+    ' any single URLZONE_* from urlmon.h
+    UrlZoneId As URLZONE
+    ' any combo of SAFER_POLICY_* flags
+    dwSaferFlags As SaferPolicyFlags
+End Type
+
+Public Declare PtrSafe Function SaferGetPolicyInformation Lib "advapi32" (ByVal dwScopeId As SaferScope, ByVal SaferPolicyInfoClass As SAFER_POLICY_INFO_CLASS, ByVal InfoBufferSize As Long, InfoBuffer As Any, InfoBufferRetSize As Long, ByVal lpReserved As LongPtr) As BOOL
+Public Declare PtrSafe Function SaferSetPolicyInformation Lib "advapi32" (ByVal dwScopeId As SaferScope, ByVal SaferPolicyInfoClass As SAFER_POLICY_INFO_CLASS, ByVal InfoBufferSize As Long, InfoBuffer As Any, ByVal lpReserved As LongPtr) As BOOL
+Public Declare PtrSafe Function SaferCreateLevel Lib "advapi32" (ByVal dwScopeId As SaferScope, ByVal dwLevelId As SaferLevelIds, ByVal OpenFlags As SaferOpenFlags, pLevelHandle As LongPtr, ByVal lpReserved As LongPtr) As BOOL
+Public Declare PtrSafe Function SaferCloseLevel Lib "advapi32" (ByVal hLevelHandle As LongPtr) As BOOL
+Public Declare PtrSafe Function SaferIdentifyLevel Lib "advapi32" (ByVal dwNumProperties As Long, pCodeProperties As SAFER_CODE_PROPERTIES, pLevelHandle As LongPtr, ByVal lpReserved As LongPtr) As BOOL
+Public Declare PtrSafe Function SaferComputeTokenFromLevel Lib "advapi32" (ByVal LevelHandle As LongPtr, ByVal InAccessToken As LongPtr, OutAccessToken As LongPtr, ByVal dwFlags As SaferComputeTokenFlags, lpReserved As Any) As BOOL
+Public Declare PtrSafe Function SaferGetLevelInformation Lib "advapi32" (ByVal LevelHandle As LongPtr, ByVal dwInfoType As SAFER_OBJECT_INFO_CLASS, lpQueryBuffer As Any, ByVal dwInBufferSize As Long, lpdwOutBufferSize As Long) As BOOL
+Public Declare PtrSafe Function SaferSetLevelInformation Lib "advapi32" (ByVal LevelHandle As LongPtr, ByVal dwInfoType As SAFER_OBJECT_INFO_CLASS, lpQueryBuffer As Any, ByVal dwInBufferSize As Long) As BOOL
+Public Declare PtrSafe Function SaferRecordEventLogEntry Lib "advapi32" (ByVal hLevel As LongPtr, ByVal szTargetPath As LongPtr, ByVal lpReserved As LongPtr) As BOOL
+Public Declare PtrSafe Function SaferiIsExecutableFileType Lib "advapi32" (ByVal szFullPathName As LongPtr, ByVal bFromShellExecute As Byte) As BOOL
+
+Public Const SRP_POLICY_EXE  = "EXE"
+Public Const SRP_POLICY_DLL  = "DLL"
+Public Const SRP_POLICY_MSI  = "MSI"
+Public Const SRP_POLICY_SCRIPT  = "SCRIPT"
+Public Const SRP_POLICY_SHELL  = "SHELL"
+Public Const SRP_POLICY_NOV2  = "IGNORESRPV2"
+Public Const SRP_POLICY_APPX  = "APPX"
+Public Const SRP_POLICY_WLDPMSI  = "WLDPMSI"
+Public Const SRP_POLICY_WLDPSCRIPT  = "WLDPSCRIPT"
+Public Const SRP_POLICY_WLDPCONFIGCI  = "WLDPCONFIGCI"
+Public Const SRP_POLICY_MANAGEDINSTALLER  = "MANAGEDINSTALLER"
+
+
 
 
 #End Region
@@ -43868,6 +44276,706 @@ Public DeclareWide PtrSafe Function ImmGetIMCCSize Lib "imm32" (ByVal hIMCC As L
 	
 #End Region
 
+#Region "powrprof"
+/*
+Powerbase.h
+
+*/
+
+Public Enum POWER_USER_PRESENCE_TYPE
+    UserNotPresent = 0
+    UserPresent = 1
+    UserUnknown = &Hff
+End Enum
+Public Type POWER_USER_PRESENCE
+    UserPresence As POWER_USER_PRESENCE_TYPE
+End Type
+
+Public Type POWER_SESSION_CONNECT
+    Connected As Byte ' TRUE - connected, FALSE - disconnected
+    Console As Byte ' TRUE - console, FALSE - TS (not used for Connected = FALSE)
+End Type
+
+Public Type POWER_SESSION_TIMEOUTS
+    InputTimeout As Long
+    DisplayTimeout As Long
+End Type
+
+Public Type POWER_SESSION_RIT_STATE
+    Active As Byte ' TRUE - RIT input received, FALSE - RIT timeout
+    LastInputTime As LongLong ' last input time held for this session
+End Type
+
+Public Type POWER_SESSION_WINLOGON
+    SessionId As Long ' the Win32k session identifier
+    Console As Byte ' TRUE - for console session, FALSE - for remote session
+    Locked As Byte ' TRUE - lock, FALSE - unlock
+End Type
+
+Public Type POWER_SESSION_ALLOW_EXTERNAL_DMA_DEVICES
+    IsAllowed As Byte
+End Type
+
+Public Type POWER_IDLE_RESILIENCY
+    CoalescingTimeout As Long
+    IdleResiliencyPeriod As Long
+End Type
+
+Public Enum POWER_MONITOR_REQUEST_REASON
+    MonitorRequestReasonUnknown = 0
+    MonitorRequestReasonPowerButton = 1
+    MonitorRequestReasonRemoteConnection = 2
+    MonitorRequestReasonScMonitorpower = 3
+    MonitorRequestReasonUserInput = 4
+    MonitorRequestReasonAcDcDisplayBurst = 5
+    MonitorRequestReasonUserDisplayBurst = 6
+    MonitorRequestReasonPoSetSystemState = 7
+    MonitorRequestReasonSetThreadExecutionState = 8
+    MonitorRequestReasonFullWake = 9
+    MonitorRequestReasonSessionUnlock = 10
+    MonitorRequestReasonScreenOffRequest = 11
+    MonitorRequestReasonIdleTimeout = 12
+    MonitorRequestReasonPolicyChange = 13
+    MonitorRequestReasonSleepButton = 14
+    MonitorRequestReasonLid = 15
+    MonitorRequestReasonBatteryCountChange = 16
+    MonitorRequestReasonGracePeriod = 17
+    MonitorRequestReasonPnP = 18
+    MonitorRequestReasonDP = 19
+    MonitorRequestReasonSxTransition = 20
+    MonitorRequestReasonSystemIdle = 21
+    MonitorRequestReasonNearProximity = 22
+    MonitorRequestReasonThermalStandby = 23
+    MonitorRequestReasonResumePdc = 24
+    MonitorRequestReasonResumeS4 = 25
+    MonitorRequestReasonTerminal = 26
+    MonitorRequestReasonPdcSignal = 27
+    MonitorRequestReasonAcDcDisplayBurstSuppressed = 28
+    MonitorRequestReasonSystemStateEntered = 29 ' When CS exit happens because system
+    '  transition to S4/S5, please note this
+    '  reason is different than ReasonSxTransition.
+    MonitorRequestReasonWinrt = 30
+    MonitorRequestReasonUserInputKeyboard = 31
+    MonitorRequestReasonUserInputMouse = 32
+    MonitorRequestReasonUserInputTouchpad = 33
+    MonitorRequestReasonUserInputPen = 34
+    MonitorRequestReasonUserInputAccelerometer = 35
+    MonitorRequestReasonUserInputHid = 36
+    MonitorRequestReasonUserInputPoUserPresent = 37
+    MonitorRequestReasonUserInputSessionSwitch = 38
+    MonitorRequestReasonUserInputInitialization = 39
+    MonitorRequestReasonPdcSignalWindowsMobilePwrNotif = 40 ' PDC_SIGNAL_PROVIDER_PWRNOTIF_SVC
+    MonitorRequestReasonPdcSignalWindowsMobileShell = 41 ' PDC_SIGNAL_PROVIDER_UM_CS_CONTROL
+    MonitorRequestReasonPdcSignalHeyCortana = 42 ' PDC_SIGNAL_PROVIDER_HEY_CORTANA
+    MonitorRequestReasonPdcSignalHolographicShell = 43 ' PDC_SIGNAL_PROVIDER_HOLOSI_CRITICAL_BATTERY_WAKE
+    MonitorRequestReasonPdcSignalFingerprint = 44 ' PDC_SIGNAL_PROVIDER_WINBIO
+    MonitorRequestReasonDirectedDrips = 45
+    MonitorRequestReasonDim = 46
+    MonitorRequestReasonBuiltinPanel = 47
+    MonitorRequestReasonDisplayRequiredUnDim = 48
+    MonitorRequestReasonBatteryCountChangeSuppressed = 49
+    MonitorRequestReasonResumeModernStandby = 50
+    MonitorRequestReasonTerminalInit = 51
+    MonitorRequestReasonPdcSignalSensorsHumanPresence = 52 ' PDC_SIGNAL_PROVIDER_SENSORS_HUMAN_PRESENCE_MONITOR
+    MonitorRequestReasonBatteryPreCritical = 53
+    MonitorRequestReasonUserInputTouch = 54
+    MonitorRequestReasonAusterityBatteryDrain = 55
+    MonitorRequestReasonMax = 56
+End Enum
+Public Enum POWER_MONITOR_REQUEST_TYPE
+    MonitorRequestTypeOff = 0
+    MonitorRequestTypeOnAndPresent = 1
+    MonitorRequestTypeToggleOn = 2
+End Enum
+Public Type POWER_MONITOR_INVOCATION
+    Console As Byte
+    RequestReason As POWER_MONITOR_REQUEST_REASON
+End Type
+Public Type RESUME_PERFORMANCE
+    PostTimeMs As Long
+    TotalResumeTimeMs As LongLong
+    ResumeCompleteTimestamp As LongLong
+End Type
+
+Public Type BATTERY_REPORTING_SCALE
+    Granularity As Long
+    Capacity As Long
+End Type
+
+Public Type SET_POWER_SETTING_VALUE
+    ' Version of this structure.  Currently should be set to
+    ' POWER_SETTING_VALUE_VERSION.
+    Version As Long
+    ' GUID representing the power setting being applied.
+    Guid As UUID
+    ' What power state should this setting be applied to?  E.g.
+    ' AC, DC, thermal, ...
+    PowerCondition As SYSTEM_POWER_CONDITION
+    ' Length (in bytes) of the 'Data' member.
+    DataLength As Long
+    ' Data which contains the actual setting value.
+    Data(1023) As Byte
+End Type
+
+Public Type NOTIFY_USER_POWER_SETTING
+    Guid As UUID
+End Type
+
+Public Type SYSTEM_POWER_LEVEL
+    Enable As Byte
+    Spare(0 To 2) As Byte
+    BatteryLevel As Long
+    PowerPolicy As POWER_ACTION_POLICY
+    MinSystemState As SYSTEM_POWER_STATE
+End Type
+
+Public Type SYSTEM_POWER_CAPABILITIES
+    ' Misc supported system features
+    PowerButtonPresent As Byte
+    SleepButtonPresent As Byte
+    LidPresent As Byte
+    SystemS1 As Byte
+    SystemS2 As Byte
+    SystemS3 As Byte
+    SystemS4 As Byte ' hibernate
+    SystemS5 As Byte ' off
+    HiberFilePresent As Byte
+    FullWake As Byte
+    VideoDimPresent As Byte
+    ApmPresent As Byte
+    UpsPresent As Byte
+    ' Processors
+    ThermalControl As Byte
+    ProcessorThrottle As Byte
+    ProcessorMinThrottle As Byte
+    '#if (NTDDI_VERSION < NTDDI_WINXP)
+    '    BYTE                ProcessorThrottleScale;
+    '    BYTE                spare2[4];
+    '#else
+    ProcessorMaxThrottle As Byte
+    FastSystemS4 As Byte
+    Hiberboot As Byte
+    WakeAlarmPresent As Byte
+    AoAc As Byte
+    '#endif // (NTDDI_VERSION < NTDDI_WINXP)
+    ' Disk
+    DiskSpinDown As Byte
+    '#if (NTDDI_VERSION < NTDDI_WINTHRESHOLD)
+    '    BYTE                spare3[8];
+    '# else
+    ' HiberFile
+    HiberFileType As Byte
+    AoAcConnectivitySupported As Byte
+    spare3(0 To 5) As Byte
+    '#endif // (NTDDI_VERSION < NTDDI_WINTHRESHOLD)
+    ' System Battery
+    SystemBatteriesPresent As Byte
+    BatteriesAreShortTerm As Byte
+    BatteryScale(0 To 2) As BATTERY_REPORTING_SCALE
+    ' Wake
+    AcOnLineWake As SYSTEM_POWER_STATE
+    SoftLidWake As SYSTEM_POWER_STATE
+    RtcWake As SYSTEM_POWER_STATE
+    MinDeviceWakeState As SYSTEM_POWER_STATE ' note this may change on driver load
+    DefaultLowLatencyWake As SYSTEM_POWER_STATE
+End Type
+
+Public Type SYSTEM_BATTERY_STATE
+    AcOnLine As Byte
+    BatteryPresent As Byte
+    Charging As Byte
+    Discharging As Byte
+    Spare1(0 To 2) As Byte
+    Tag As Byte
+    MaxCapacity As Long
+    RemainingCapacity As Long
+    Rate As Long
+    EstimatedTime As Long
+    DefaultAlert1 As Long
+    DefaultAlert2 As Long
+End Type
+
+Public Const NUM_DISCHARGE_POLICIES = 4
+
+Public Enum PowerActionPolicyFlags
+    POWER_ACTION_QUERY_ALLOWED = &H00000001
+    POWER_ACTION_UI_ALLOWED = &H00000002
+    POWER_ACTION_OVERRIDE_APPS = &H00000004
+    POWER_ACTION_HIBERBOOT = &H00000008
+    POWER_ACTION_USER_NOTIFY = &H00000010  ' Indicate User-mode of an impending action.
+    POWER_ACTION_DOZE_TO_HIBERNATE = &H00000020
+    POWER_ACTION_ACPI_CRITICAL = &H01000000
+    POWER_ACTION_ACPI_USER_NOTIFY = &H02000000
+    POWER_ACTION_DIRECTED_DRIPS = &H04000000
+    POWER_ACTION_PSEUDO_TRANSITION = &H08000000
+    POWER_ACTION_LIGHTEST_FIRST = &H10000000
+    POWER_ACTION_LOCK_CONSOLE = &H20000000
+    POWER_ACTION_DISABLE_WAKES = &H40000000
+    POWER_ACTION_CRITICAL = &H80000000
+End Enum
+Public Enum PowerActionPolicyEvents
+    POWER_LEVEL_USER_NOTIFY_TEXT = &H00000001
+    POWER_LEVEL_USER_NOTIFY_SOUND = &H00000002
+    POWER_LEVEL_USER_NOTIFY_EXEC = &H00000004
+    POWER_USER_NOTIFY_BUTTON = &H00000008
+    POWER_USER_NOTIFY_SHUTDOWN = &H00000010  ' Application and Services are intimated of shutdown.
+    POWER_USER_NOTIFY_FORCED_SHUTDOWN = &H00000020  ' Immediate shutdown - Application and Services are not intimated.
+    POWER_FORCE_TRIGGER_RESET = &H80000000
+End Enum
+Public Type POWER_ACTION_POLICY
+    Action As POWER_ACTION
+    Flags As PowerActionPolicyFlags
+    EventCode As PowerActionPolicyEvents
+End Type
+
+Public Enum PO_THROTTLE_POLICY
+    PO_THROTTLE_NONE = 0
+    PO_THROTTLE_CONSTANT = 1
+    PO_THROTTLE_DEGRADE = 2
+    PO_THROTTLE_ADAPTIVE = 3
+    PO_THROTTLE_MAXIMUM = 4  ' not a policy, just a limit
+End Enum
+Public Enum PowerWinlogonFlags
+    WINLOGON_LOCK_ON_SLEEP = &H1
+End Enum
+
+Public Type SYSTEM_POWER_POLICY
+    Revision As Long ' 1
+    ' events
+    PowerButton As POWER_ACTION_POLICY
+    SleepButton As POWER_ACTION_POLICY
+    LidClose As POWER_ACTION_POLICY
+    LidOpenWake As SYSTEM_POWER_STATE
+    Reserved As Long
+    ' "system idle" detection
+    Idle As POWER_ACTION_POLICY
+    IdleTimeout As Long
+    IdleSensitivity As Byte
+    DynamicThrottle As Byte
+    Spare2(0 To 1) As Byte
+    ' meaning of power action "sleep"
+    MinSleep As SYSTEM_POWER_STATE
+    MaxSleep As SYSTEM_POWER_STATE
+    ReducedLatencySleep As SYSTEM_POWER_STATE
+    WinLogonFlags As PowerWinlogonFlags
+    Spare3 As Long
+    ' parameters for dozing
+    DozeS4Timeout As Long
+    ' battery policies
+    BroadcastCapacityResolution As Long
+    DischargePolicy(0 To (NUM_DISCHARGE_POLICIES - 1)) As SYSTEM_POWER_LEVEL
+    ' video policies
+    VideoTimeout As Long
+    VideoDimDisplay As Byte
+    VideoReserved(0 To 2) As Long
+    ' hard disk policies
+    SpindownTimeout As Long
+    ' processor policies
+    OptimizeForPower As Byte
+    FanThrottleTolerance As Byte
+    ForcedThrottle As Byte
+    MinThrottle As Byte
+    OverThrottled As POWER_ACTION_POLICY
+End Type
+
+Public Type PROCESSOR_POWER_POLICY_INFO
+    ' Time based information (will be converted to kernel units)
+    TimeCheck As Long ' in US
+    DemoteLimit As Long ' in US
+    PromoteLimit As Long ' in US
+    ' Percentage based information
+    DemotePercent As Byte
+    PromotePercent As Byte
+    Spare(0 To 1) As Byte
+    ' Flags
+    ' AllowDemotion:1 As Long
+    ' AllowPromotion:1 As Long
+    ' Reserved:30 As Long
+    DemotionPromotion As Long
+End Type
+Public Type PROCESSOR_POWER_POLICY
+    Revision As Long
+    DynamicThrottle As Byte
+    Spare(0 To 2) As Byte
+    DisableCStates As Long
+    PolicyCount As Long
+    Policy(0 To 2) As PROCESSOR_POWER_POLICY_INFO
+End Type
+
+
+
+'powrprof.h
+Public Type GLOBAL_MACHINE_POWER_POLICY
+    Revision As Long
+    LidOpenWakeAc As SYSTEM_POWER_STATE
+    LidOpenWakeDc As SYSTEM_POWER_STATE
+    BroadcastCapacityResolution As Long
+End Type
+Public Enum PowerGlobalFlags
+    EnableSysTrayBatteryMeter = &H01
+    EnableMultiBatteryDisplay = &H02
+    EnablePasswordLogon = &H04
+    EnableWakeOnRing = &H08
+    EnableVideoDimDisplay = &H10
+End Enum
+Public Type GLOBAL_USER_POWER_POLICY
+    Revision As Long
+    PowerButtonAc As POWER_ACTION_POLICY
+    PowerButtonDc As POWER_ACTION_POLICY
+    SleepButtonAc As POWER_ACTION_POLICY
+    SleepButtonDc As POWER_ACTION_POLICY
+    LidCloseAc As POWER_ACTION_POLICY
+    LidCloseDc As POWER_ACTION_POLICY
+    DischargePolicy(0 To (NUM_DISCHARGE_POLICIES - 1)) As SYSTEM_POWER_LEVEL
+    GlobalFlags As PowerGlobalFlags
+End Type
+
+Public Enum PowerSettingAttribFlags
+    POWER_ATTRIBUTE_HIDE = &H00000001
+    POWER_ATTRIBUTE_SHOW_AOAC = &H00000002
+End Enum
+
+Public Const NEWSCHEME = -1
+
+Public Type GLOBAL_POWER_POLICY
+    user As GLOBAL_USER_POWER_POLICY
+    mach As GLOBAL_MACHINE_POWER_POLICY
+End Type
+
+Public Type MACHINE_POWER_POLICY
+    Revision As Long ' 1
+    ' meaning of power action "sleep"
+    MinSleepAc As SYSTEM_POWER_STATE
+    MinSleepDc As SYSTEM_POWER_STATE
+    ReducedLatencySleepAc As SYSTEM_POWER_STATE
+    ReducedLatencySleepDc As SYSTEM_POWER_STATE
+    ' parameters for dozing
+    DozeTimeoutAc As Long
+    DozeTimeoutDc As Long
+    DozeS4TimeoutAc As Long
+    DozeS4TimeoutDc As Long
+    ' processor policies
+    MinThrottleAc As Byte
+    MinThrottleDc As Byte
+    pad1(0 To 1) As Byte
+    OverThrottledAc As POWER_ACTION_POLICY
+    OverThrottledDc As POWER_ACTION_POLICY
+End Type
+Public Type MACHINE_PROCESSOR_POWER_POLICY
+    Revision As Long ' 1
+    ProcessorPolicyAc As PROCESSOR_POWER_POLICY
+    ProcessorPolicyDc As PROCESSOR_POWER_POLICY
+End Type
+Public Type USER_POWER_POLICY
+    Revision As Long ' 1
+    ' "system idle" detection
+    IdleAc As POWER_ACTION_POLICY
+    IdleDc As POWER_ACTION_POLICY
+    IdleTimeoutAc As Long
+    IdleTimeoutDc As Long
+    IdleSensitivityAc As Byte
+    IdleSensitivityDc As Byte
+    ' Throttling Policy
+    ThrottlePolicyAc As Byte
+    ThrottlePolicyDc As Byte
+    ' meaning of power action "sleep"
+    MaxSleepAc As SYSTEM_POWER_STATE
+    MaxSleepDc As SYSTEM_POWER_STATE
+    ' For future use
+    Reserved(0 To 1) As Long
+    ' video policies
+    VideoTimeoutAc As Long
+    VideoTimeoutDc As Long
+    ' hard disk policies
+    SpindownTimeoutAc As Long
+    SpindownTimeoutDc As Long
+    ' processor policies
+    OptimizeForPowerAc As Byte
+    OptimizeForPowerDc As Byte
+    FanThrottleToleranceAc As Byte
+    FanThrottleToleranceDc As Byte
+    ForcedThrottleAc As Byte
+    ForcedThrottleDc As Byte
+End Type
+
+Public Type POWER_POLICY
+    user As USER_POWER_POLICY
+    mach As MACHINE_POWER_POLICY
+End Type
+
+Public Type ADMINISTRATOR_POWER_POLICY
+    MinSleep As SYSTEM_POWER_STATE
+    MaxSleep As SYSTEM_POWER_STATE
+    MinVideoTimeout As Long
+    MaxVideoTimeout As Long
+    MinSpindownTimeout As Long
+    MaxSpindownTimeout As Long
+End Type
+
+Public Enum POWER_PLATFORM_ROLE
+    PlatformRoleUnspecified = 0
+    PlatformRoleDesktop = 1
+    PlatformRoleMobile = 2
+    PlatformRoleWorkstation = 3
+    PlatformRoleEnterpriseServer = 4
+    PlatformRoleSOHOServer = 5
+    PlatformRoleAppliancePC = 6
+    PlatformRolePerformanceServer = 7
+    PlatformRoleSlate = 8
+    PlatformRoleMaximum = 9
+End Enum
+
+Public Const POWER_PLATFORM_ROLE_V1_MAX  = (PlatformRolePerformanceServer + 1)
+Public Const POWER_PLATFORM_ROLE_V2_MAX  = (PlatformRoleSlate + 1)
+' #if (NTDDI_VERSION >= NTDDI_WIN8)
+Public Const POWER_PLATFORM_ROLE_VERSION_MAX  = (PlatformRoleSlate + 1) 'POWER_PLATFORM_ROLE_V2_MAX
+
+[Description("Use POWER_PLATFORM_ROLE_VERSION (POWER_PLATFORM_ROLE_V2) for Windows 8 and up. Use POWER_PLATFORM_ROLE_V1 for Windows 7.")]
+Public Enum POWER_PLATFORM_ROLE_VERSIONS
+    POWER_PLATFORM_ROLE_V1 = (&H00000001)
+    POWER_PLATFORM_ROLE_V2 = (&H00000002)
+    POWER_PLATFORM_ROLE_VERSION = POWER_PLATFORM_ROLE_V2
+End Enum
+
+Public Enum EFFECTIVE_POWER_MODE
+    EffectivePowerModeBatterySaver = 0
+    EffectivePowerModeBetterBattery = 1
+    EffectivePowerModeBalanced = 2
+    EffectivePowerModeHighPerformance = 3
+    EffectivePowerModeMaxPerformance = 4 ' v1 last supported
+    EffectivePowerModeGameMode = 5
+    EffectivePowerModeMixedReality = 6 ' v2 last supported
+End Enum
+Public Enum EffectivePowerModesVersions
+    EFFECTIVE_POWER_MODE_V1 = (&H00000001)
+    EFFECTIVE_POWER_MODE_V2 = (&H00000002)
+End Enum
+
+'Byte returns are BOOLEAN
+Public Declare PtrSafe Function CallNtPowerInformation Lib "PowrProf.dll" (ByVal InformationLevel As POWER_INFORMATION_LEVEL, InputBuffer As Any, ByVal InputBufferLength As Long, OutputBuffer As Any, ByVal OutputBufferLength As Long) As Long
+Public Declare PtrSafe Function GetPwrCapabilities Lib "PowrProf.dll" (lpspc As SYSTEM_POWER_CAPABILITIES) As Byte
+[Description("Use PowerDeterminePlatformRole on Windows 7. POWER_PLATFORM_ROLE_VERSION (POWER_PLATFORM_ROLE_V2) for Windows 8 and up. Use POWER_PLATFORM_ROLE_V1 for Windows 7.")]
+Public Declare PtrSafe Function PowerDeterminePlatformRoleEx Lib "PowrProf.dll" (ByVal Version As POWER_PLATFORM_ROLE_VERSIONS) As POWER_PLATFORM_ROLE
+[Description("Use PowerDeterminePlatformRoleEx for Windows 8+.")]
+Public Declare PtrSafe Function PowerDeterminePlatformRole Lib "PowrProf.dll" () As POWER_PLATFORM_ROLE
+
+Public Declare PtrSafe Function PowerReadACValue Lib "PowrProf.dll" (ByVal RootPowerKey As LongPtr, SchemeGuid As UUID, SubGroupOfPowerSettingsGuid As UUID, PowerSettingGuid As UUID, pType As REGTYPES, Buffer As Any, BufferSize As Long) As Long
+Public Declare PtrSafe Function PowerReadDCValue Lib "PowrProf.dll" (ByVal RootPowerKey As LongPtr, SchemeGuid As UUID, SubGroupOfPowerSettingsGuid As UUID, PowerSettingGuid As UUID, pType As REGTYPES, Buffer As Any, BufferSize As Long) As Long
+Public Declare PtrSafe Function PowerWriteACValueIndex Lib "PowrProf.dll" (ByVal RootPowerKey As LongPtr, SchemeGuid As UUID, SubGroupOfPowerSettingsGuid As UUID, PowerSettingGuid As UUID, ByVal AcValueIndex As Long) As Long
+Public Declare PtrSafe Function PowerWriteDCValueIndex Lib "PowrProf.dll" (ByVal RootPowerKey As LongPtr, SchemeGuid As UUID, SubGroupOfPowerSettingsGuid As UUID, PowerSettingGuid As UUID, ByVal DcValueIndex As Long) As Long
+Public Declare PtrSafe Function PowerGetActiveScheme Lib "PowrProf.dll" (ByVal UserRootPowerKey As LongPtr, ActivePolicyGuid As UUID) As Long
+Public Declare PtrSafe Function PowerSetActiveScheme Lib "PowrProf.dll" (ByVal UserRootPowerKey As LongPtr, ActivePolicyGuid As UUID) As Long
+Public Declare PtrSafe Function PowerSettingRegisterNotification Lib "PowrProf.dll" (SettingGuid As UUID, ByVal Flags As DEVICE_NOTIFY_FLAGS, ByVal Recipient As LongPtr, RegistrationHandle As LongPtr) As Long
+Public Declare PtrSafe Function PowerSettingUnregisterNotification Lib "PowrProf.dll" (ByVal RegistrationHandle As LongPtr) As Long
+Public Declare PtrSafe Function PowerRegisterForEffectivePowerModeNotifications Lib "PowrProf.dll" (ByVal Version As EffectivePowerModesVersions, ByVal Callback As LongPtr, ByVal Context As LongPtr, RegistrationHandle As LongPtr) As Long
+Public Declare PtrSafe Function PowerUnregisterFromEffectivePowerModeNotifications Lib "PowrProf.dll" (ByVal RegistrationHandle As LongPtr) As Long
+
+Public Declare PtrSafe Function SetSuspendState Lib "PowrProf.dll" (ByVal bHibernate As Byte, ByVal bForce As Byte, ByVal bWakeupEventsDisabled As Byte) As Byte
+Public Declare PtrSafe Function PowerRegisterSuspendResumeNotification Lib "PowrProf.dll" (ByVal Flags As DEVICE_NOTIFY_FLAGS, ByVal Recipient As LongPtr, RegistrationHandle As LongPtr) As Long
+Public Declare PtrSafe Function PowerUnregisterSuspendResumeNotification Lib "PowrProf.dll" (ByVal RegistrationHandle As LongPtr) As Long
+Public Declare PtrSafe Function GetPwrDiskSpindownRange Lib "PowrProf.dll" (puiMax As Long, puiMin As Long) As Byte
+Public Declare PtrSafe Function EnumPwrSchemes Lib "PowrProf.dll" (ByVal lpfn As LongPtr, ByVal lParam As LongPtr) As Byte
+Public Declare PtrSafe Function ReadGlobalPwrPolicy Lib "PowrProf.dll" (pGlobalPowerPolicy As GLOBAL_POWER_POLICY) As Byte
+Public Declare PtrSafe Function ReadPwrScheme Lib "PowrProf.dll" (ByVal uiID As Long, pPowerPolicy As POWER_POLICY) As Byte
+Public Declare PtrSafe Function WritePwrScheme Lib "PowrProf.dll" (puiID As Long, ByVal lpszSchemeName As LongPtr, ByVal lpszDescription As LongPtr, pPowerPolicy As POWER_POLICY) As Byte
+Public Declare PtrSafe Function WriteGlobalPwrPolicy Lib "PowrProf.dll" (pGlobalPowerPolicy As GLOBAL_POWER_POLICY) As Byte
+Public Declare PtrSafe Function DeletePwrScheme Lib "PowrProf.dll" (ByVal uiID As Long) As Byte
+Public Declare PtrSafe Function GetActivePwrScheme Lib "PowrProf.dll" (puiID As Long) As Byte
+Public Declare PtrSafe Function SetActivePwrScheme Lib "PowrProf.dll" (ByVal uiID As Long, pGlobalPowerPolicy As GLOBAL_POWER_POLICY, pPowerPolicy As POWER_POLICY) As Byte
+Public Declare PtrSafe Function IsPwrSuspendAllowed Lib "PowrProf.dll" () As Byte
+Public Declare PtrSafe Function IsPwrHibernateAllowed Lib "PowrProf.dll" () As Byte
+Public Declare PtrSafe Function IsPwrShutdownAllowed Lib "PowrProf.dll" () As Byte
+Public Declare PtrSafe Function IsAdminOverrideActive Lib "PowrProf.dll" (papp As ADMINISTRATOR_POWER_POLICY) As Byte
+Public Declare PtrSafe Function GetCurrentPowerPolicies Lib "PowrProf.dll" (pGlobalPowerPolicy As GLOBAL_POWER_POLICY, pPowerPolicy As POWER_POLICY) As Byte
+Public Declare PtrSafe Function CanUserWritePwrScheme Lib "PowrProf.dll" () As Byte
+Public Declare PtrSafe Function ReadProcessorPwrScheme Lib "PowrProf.dll" (ByVal uiID As Long, pMachineProcessorPowerPolicy As MACHINE_PROCESSOR_POWER_POLICY) As Byte
+Public Declare PtrSafe Function WriteProcessorPwrScheme Lib "PowrProf.dll" (ByVal uiID As Long, pMachineProcessorPowerPolicy As MACHINE_PROCESSOR_POWER_POLICY) As Byte
+Public Declare PtrSafe Function ValidatePowerPolicies Lib "PowrProf.dll" (pGlobalPowerPolicy As GLOBAL_POWER_POLICY, pPowerPolicy As POWER_POLICY) As Byte
+
+Public Enum POWER_DATA_ACCESSOR
+
+    /*
+    // Used by read/write and enumeration engines
+    */
+    ACCESS_AC_POWER_SETTING_INDEX = 0
+    ACCESS_DC_POWER_SETTING_INDEX
+    ACCESS_FRIENDLY_NAME
+    ACCESS_DESCRIPTION
+    ACCESS_POSSIBLE_POWER_SETTING
+    ACCESS_POSSIBLE_POWER_SETTING_FRIENDLY_NAME
+    ACCESS_POSSIBLE_POWER_SETTING_DESCRIPTION
+    ACCESS_DEFAULT_AC_POWER_SETTING
+    ACCESS_DEFAULT_DC_POWER_SETTING
+    ACCESS_POSSIBLE_VALUE_MIN
+    ACCESS_POSSIBLE_VALUE_MAX
+    ACCESS_POSSIBLE_VALUE_INCREMENT
+    ACCESS_POSSIBLE_VALUE_UNITS
+    ACCESS_ICON_RESOURCE
+    ACCESS_DEFAULT_SECURITY_DESCRIPTOR
+    ACCESS_ATTRIBUTES
+
+    /*
+    // Used by enumeration engine.
+    */
+    ACCESS_SCHEME
+    ACCESS_SUBGROUP
+    ACCESS_INDIVIDUAL_SETTING
+
+    /*
+    // Used by access check
+    */
+    ACCESS_ACTIVE_SCHEME
+    ACCESS_CREATE_SCHEME
+
+    /*
+    // Used by override ranges.
+    */
+
+    ACCESS_AC_POWER_SETTING_MAX
+    ACCESS_DC_POWER_SETTING_MAX
+    ACCESS_AC_POWER_SETTING_MIN
+    ACCESS_DC_POWER_SETTING_MIN
+
+    /*
+    // Used by enumeration engine.
+    */
+
+    ACCESS_PROFILE
+    ACCESS_OVERLAY_SCHEME
+    ACCESS_ACTIVE_OVERLAY_SCHEME
+End Enum
+
+' typedef
+' ULONG
+' CALLBACK
+' DEVICE_NOTIFY_CALLBACK_ROUTINE (
+    ' _In_opt_ PVOID Context,
+    ' _In_ ULONG Type,
+    ' _In_ PVOID Setting
+    ' );
+Public Type DEVICE_NOTIFY_SUBSCRIBE_PARAMETERS
+    Callback As LongPtr 'PDEVICE_NOTIFY_CALLBACK_ROUTINE
+    Context As LongPtr
+End Type
+
+Public Declare PtrSafe Function PowerIsSettingRangeDefined Lib "PowrProf.dll" (SubKeyGuid As UUID, SettingGuid As UUID) As Byte
+Public Declare PtrSafe Function PowerSettingAccessCheckEx Lib "PowrProf.dll" (ByVal AccessFlags As POWER_DATA_ACCESSOR, PowerGuid As UUID, ByVal AccessType As REGSAM) As Long
+Public Declare PtrSafe Function PowerSettingAccessCheck Lib "PowrProf.dll" (ByVal AccessFlags As POWER_DATA_ACCESSOR, PowerGuid As UUID) As Long
+Public Declare PtrSafe Function PowerReadACValueIndex Lib "PowrProf.dll" (ByVal RootPowerKey As LongPtr, SchemeGuid As UUID, SubGroupOfPowerSettingsGuid As UUID, PowerSettingGuid As UUID, AcValueIndex As Long) As Long
+Public Declare PtrSafe Function PowerReadDCValueIndex Lib "PowrProf.dll" (ByVal RootPowerKey As LongPtr, SchemeGuid As UUID, SubGroupOfPowerSettingsGuid As UUID, PowerSettingGuid As UUID, DcValueIndex As Long) As Long
+Public Declare PtrSafe Function PowerReadFriendlyName Lib "PowrProf.dll" (ByVal RootPowerKey As LongPtr, SchemeGuid As UUID, SubGroupOfPowerSettingsGuid As UUID, PowerSettingGuid As UUID, Buffer As Any, BufferSize As Long) As Long
+Public Declare PtrSafe Function PowerReadDescription Lib "PowrProf.dll" (ByVal RootPowerKey As LongPtr, SchemeGuid As UUID, SubGroupOfPowerSettingsGuid As UUID, PowerSettingGuid As UUID, Buffer As Any, BufferSize As Long) As Long
+Public Declare PtrSafe Function PowerReadPossibleValue Lib "PowrProf.dll" (ByVal RootPowerKey As LongPtr, SubGroupOfPowerSettingsGuid As UUID, PowerSettingGuid As UUID, pType As REGTYPES, ByVal PossibleSettingIndex As Long, Buffer As Any, BufferSize As Long) As Long
+Public Declare PtrSafe Function PowerReadPossibleFriendlyName Lib "PowrProf.dll" (ByVal RootPowerKey As LongPtr, SubGroupOfPowerSettingsGuid As UUID, PowerSettingGuid As UUID, ByVal PossibleSettingIndex As Long, Buffer As Any, BufferSize As Long) As Long
+Public Declare PtrSafe Function PowerReadPossibleDescription Lib "PowrProf.dll" (ByVal RootPowerKey As LongPtr, SubGroupOfPowerSettingsGuid As UUID, PowerSettingGuid As UUID, ByVal PossibleSettingIndex As Long, Buffer As Any, BufferSize As Long) As Long
+Public Declare PtrSafe Function PowerReadValueMin Lib "PowrProf.dll" (ByVal RootPowerKey As LongPtr, SubGroupOfPowerSettingsGuid As UUID, PowerSettingGuid As UUID, ValueMinimum As Long) As Long
+Public Declare PtrSafe Function PowerReadValueMax Lib "PowrProf.dll" (ByVal RootPowerKey As LongPtr, SubGroupOfPowerSettingsGuid As UUID, PowerSettingGuid As UUID, ValueMaximum As Long) As Long
+Public Declare PtrSafe Function PowerReadValueIncrement Lib "PowrProf.dll" (ByVal RootPowerKey As LongPtr, SubGroupOfPowerSettingsGuid As UUID, PowerSettingGuid As UUID, ValueIncrement As Long) As Long
+Public Declare PtrSafe Function PowerReadValueUnitsSpecifier Lib "PowrProf.dll" (ByVal RootPowerKey As LongPtr, SubGroupOfPowerSettingsGuid As UUID, PowerSettingGuid As UUID, Buffer As Any, BufferSize As Long) As Long
+Public Declare PtrSafe Function PowerReadACDefaultIndex Lib "PowrProf.dll" (ByVal RootPowerKey As LongPtr, SchemePersonalityGuid As UUID, SubGroupOfPowerSettingsGuid As UUID, PowerSettingGuid As UUID, AcDefaultIndex As Long) As Long
+Public Declare PtrSafe Function PowerReadDCDefaultIndex Lib "PowrProf.dll" (ByVal RootPowerKey As LongPtr, SchemePersonalityGuid As UUID, SubGroupOfPowerSettingsGuid As UUID, PowerSettingGuid As UUID, DcDefaultIndex As Long) As Long
+Public Declare PtrSafe Function PowerReadIconResourceSpecifier Lib "PowrProf.dll" (ByVal RootPowerKey As LongPtr, SchemeGuid As UUID, SubGroupOfPowerSettingsGuid As UUID, PowerSettingGuid As UUID, Buffer As Any, BufferSize As Long) As Long
+Public Declare PtrSafe Function PowerReadSettingAttributes Lib "PowrProf.dll" (SubGroupGuid As UUID, PowerSettingGuid As UUID) As PowerSettingAttribFlags
+Public Declare PtrSafe Function PowerWriteFriendlyName Lib "PowrProf.dll" (ByVal RootPowerKey As LongPtr, SchemeGuid As UUID, SubGroupOfPowerSettingsGuid As UUID, PowerSettingGuid As UUID, Buffer As Any, ByVal BufferSize As Long) As Long
+Public Declare PtrSafe Function PowerWriteDescription Lib "PowrProf.dll" (ByVal RootPowerKey As LongPtr, SchemeGuid As UUID, SubGroupOfPowerSettingsGuid As UUID, PowerSettingGuid As UUID, Buffer As Any, ByVal BufferSize As Long) As Long
+Public Declare PtrSafe Function PowerWritePossibleValue Lib "PowrProf.dll" (ByVal RootPowerKey As LongPtr, SubGroupOfPowerSettingsGuid As UUID, PowerSettingGuid As UUID, ByVal nType As REGTYPES, ByVal PossibleSettingIndex As Long, Buffer As Any, ByVal BufferSize As Long) As Long
+Public Declare PtrSafe Function PowerWritePossibleFriendlyName Lib "PowrProf.dll" (ByVal RootPowerKey As LongPtr, SubGroupOfPowerSettingsGuid As UUID, PowerSettingGuid As UUID, ByVal PossibleSettingIndex As Long, Buffer As Any, ByVal BufferSize As Long) As Long
+Public Declare PtrSafe Function PowerWritePossibleDescription Lib "PowrProf.dll" (ByVal RootPowerKey As LongPtr, SubGroupOfPowerSettingsGuid As UUID, PowerSettingGuid As UUID, ByVal PossibleSettingIndex As Long, Buffer As Any, ByVal BufferSize As Long) As Long
+Public Declare PtrSafe Function PowerWriteValueMin Lib "PowrProf.dll" (ByVal RootPowerKey As LongPtr, SubGroupOfPowerSettingsGuid As UUID, PowerSettingGuid As UUID, ByVal ValueMinimum As Long) As Long
+Public Declare PtrSafe Function PowerWriteValueMax Lib "PowrProf.dll" (ByVal RootPowerKey As LongPtr, SubGroupOfPowerSettingsGuid As UUID, PowerSettingGuid As UUID, ByVal ValueMaximum As Long) As Long
+Public Declare PtrSafe Function PowerWriteValueIncrement Lib "PowrProf.dll" (ByVal RootPowerKey As LongPtr, SubGroupOfPowerSettingsGuid As UUID, PowerSettingGuid As UUID, ByVal ValueIncrement As Long) As Long
+Public Declare PtrSafe Function PowerWriteValueUnitsSpecifier Lib "PowrProf.dll" (ByVal RootPowerKey As LongPtr, SubGroupOfPowerSettingsGuid As UUID, PowerSettingGuid As UUID, Buffer As Any, ByVal BufferSize As Long) As Long
+Public Declare PtrSafe Function PowerWriteACDefaultIndex Lib "PowrProf.dll" (ByVal RootSystemPowerKey As LongPtr, SchemePersonalityGuid As UUID, SubGroupOfPowerSettingsGuid As UUID, PowerSettingGuid As UUID, ByVal AcDefaultIndex As Long) As Long
+Public Declare PtrSafe Function PowerWriteDCDefaultIndex Lib "PowrProf.dll" (ByVal RootSystemPowerKey As LongPtr, SchemePersonalityGuid As UUID, SubGroupOfPowerSettingsGuid As UUID, PowerSettingGuid As UUID, ByVal DcDefaultIndex As Long) As Long
+Public Declare PtrSafe Function PowerWriteIconResourceSpecifier Lib "PowrProf.dll" (ByVal RootPowerKey As LongPtr, SchemeGuid As UUID, SubGroupOfPowerSettingsGuid As UUID, PowerSettingGuid As UUID, Buffer As Any, BufferSize As Long) As Long
+Public Declare PtrSafe Function PowerWriteSettingAttributes Lib "PowrProf.dll" (SubGroupGuid As UUID, PowerSettingGuid As UUID, ByVal Attributes As PowerSettingAttribFlags) As Long
+
+Public Declare PtrSafe Function PowerDuplicateScheme Lib "PowrProf.dll" (ByVal RootPowerKey As LongPtr, SourceSchemeGuid As UUID, DestinationSchemeGuid As LongPtr) As Long
+Public Declare PtrSafe Function PowerImportPowerScheme Lib "PowrProf.dll" (ByVal RootPowerKey As LongPtr, ByVal ImportFileNamePath As LongPtr, DestinationSchemeGuid As LongPtr) As Long
+Public Declare PtrSafe Function PowerDeleteScheme Lib "PowrProf.dll" (ByVal RootPowerKey As LongPtr, SchemeGuid As UUID) As Long
+Public Declare PtrSafe Function PowerRemovePowerSetting Lib "PowrProf.dll" (SubGroupOfPowerSettingsGuid As UUID, PowerSettingGuid As UUID) As Long
+Public Declare PtrSafe Function PowerCreateSetting Lib "PowrProf.dll" (ByVal RootSystemPowerKey As LongPtr, SubGroupOfPowerSettingsGuid As UUID, PowerSettingGuid As UUID) As Long
+Public Declare PtrSafe Function PowerCreatePossibleSetting Lib "PowrProf.dll" (ByVal RootSystemPowerKey As LongPtr, SubGroupOfPowerSettingsGuid As UUID, PowerSettingGuid As UUID, ByVal PossibleSettingIndex As Long) As Long
+
+Public Declare PtrSafe Function PowerEnumerate Lib "PowrProf.dll" (ByVal RootPowerKey As LongPtr, SchemeGuid As UUID, SubGroupOfPowerSettingsGuid As UUID, ByVal AccessFlags As POWER_DATA_ACCESSOR, ByVal Index As Long, Buffer As Any, BufferSize As Long) As Long
+Public Declare PtrSafe Function PowerOpenUserPowerKey Lib "PowrProf.dll" (phUserPowerKey As LongPtr, ByVal Access As REGSAM, ByVal OpenExisting As BOOL) As Long
+Public Declare PtrSafe Function PowerOpenSystemPowerKey Lib "PowrProf.dll" (phSystemPowerKey As LongPtr, ByVal Access As REGSAM, ByVal OpenExisting As BOOL) As Long
+Public Declare PtrSafe Function PowerCanRestoreIndividualDefaultPowerScheme Lib "PowrProf.dll" (SchemeGuid As UUID) As Long
+Public Declare PtrSafe Function PowerRestoreIndividualDefaultPowerScheme Lib "PowrProf.dll" (SchemeGuid As UUID) As Long
+Public Declare PtrSafe Function PowerRestoreDefaultPowerSchemes Lib "PowrProf.dll" () As Long
+Public Declare PtrSafe Function PowerReplaceDefaultPowerSchemes Lib "PowrProf.dll" () As Long
+
+Public Enum PowerDeviceFlags
+    DEVICEPOWER_HARDWAREID = (&H80000000)
+'  'and' the requested power states.  I.e. if the user requested
+'  that we query devices supporting D1 and D3, this flag says
+'  "give me devices that support D1 *and* D3".  Without this
+'  flag, the query would be interpreted as "give me devices
+'  that support D1 *or* D3".
+    DEVICEPOWER_AND_OPERATION = (&H40000000)
+'  Only preform the query on devices that are present in the system.
+    DEVICEPOWER_FILTER_DEVICES_PRESENT = (&H20000000)
+'  Only preform the query on devices that are actual hardware.
+    DEVICEPOWER_FILTER_HARDWARE = (&H10000000)
+'  Only preform the query on devices that are armed to wake the
+'  system from a sleep state.
+    DEVICEPOWER_FILTER_WAKEENABLED = (&H08000000)
+'  Only preform the query on devices that are capable of being programmed
+'  to wake the system from a sleep state.
+    DEVICEPOWER_FILTER_WAKEPROGRAMMABLE = (&H04000000)
+'  Go find the device who's name is specifed by an input
+'  parameter, then see if it's got the capabilities specified
+'  in QueryFlags.
+    DEVICEPOWER_FILTER_ON_NAME = (&H02000000)
+End Enum
+Public Enum DevicePowerSetFlags
+'  Define flags to set/clear capabilities in the devices.
+'  Enable the device to wake the system from a sleep state.
+    DEVICEPOWER_SET_WAKEENABLED = (&H00000001)
+'  Disable the device from waking the system from a sleep
+'  state.
+    DEVICEPOWER_CLEAR_WAKEENABLED = (&H00000002)
+End Enum
+
+Public Enum PowerSupportedCapabilities
+    PDCAP_S0_SUPPORTED = &H00010000
+    PDCAP_S1_SUPPORTED = &H00020000
+    PDCAP_S2_SUPPORTED = &H00040000
+    PDCAP_S3_SUPPORTED = &H00080000
+    PDCAP_WAKE_FROM_S0_SUPPORTED = &H00100000
+    PDCAP_WAKE_FROM_S1_SUPPORTED = &H00200000
+    PDCAP_WAKE_FROM_S2_SUPPORTED = &H00400000
+    PDCAP_WAKE_FROM_S3_SUPPORTED = &H00800000
+    PDCAP_S4_SUPPORTED = &H01000000
+    PDCAP_S5_SUPPORTED = &H02000000
+End Enum
+
+Public Declare PtrSafe Function DevicePowerEnumDevices Lib "PowrProf.dll" (ByVal QueryIndex As Long, ByVal QueryInterpretationFlags As PowerDeviceFlags, [TypeHint(PowerSupportedCapabilities, ConfigMgrPowerCaps)] ByVal QueryFlags As Long, pReturnBuffer As Any, pBufferSize As Long) As Byte
+Public Declare PtrSafe Function DevicePowerSetDeviceState Lib "PowrProf.dll" (ByVal DeviceDescription As LongPtr, ByVal SetFlags As DevicePowerSetFlags, SetData As Any) As Long
+Public Declare PtrSafe Function DevicePowerOpen Lib "PowrProf.dll" (Optional ByVal DebugMask As Long = 0) As Byte
+Public Declare PtrSafe Function DevicePowerClose Lib "PowrProf.dll" () As Byte
+
+Public Enum ThermalEventVersions
+    THERMAL_EVENT_VERSION = 1
+End Enum
+Public Enum ThermalEventTypes
+    THERMAL_EVENT_SHUTDOWN = 0
+    THERMAL_EVENT_HIBERNATE = 1
+    THERMAL_EVENT_UNSPECIFIED = &Hffffffff
+End Enum
+Public Type THERMAL_EVENT
+    Version As ThermalEventVersions
+    Size As Long
+    Type As ThermalEventTypes
+    Temperature As Long
+    TripPointTemperature As Long
+    Initiator As LongPtr
+End Type
+
+Public Declare PtrSafe Function PowerReportThermalEvent Lib "PowrProf.dll" (Event As THERMAL_EVENT) As Byte
+
+
+#End Region
 
 #Region "Misc"
 
@@ -44176,152 +45284,6 @@ Public DeclareWide PtrSafe Function PdhGetFormattedCounterValue Lib "Pdh.dll" (B
 
 
 
-
-/*
-Powerbase.h
-
-*/
-
-Public Enum POWER_USER_PRESENCE_TYPE
-    UserNotPresent = 0
-    UserPresent = 1
-    UserUnknown = &Hff
-End Enum
-Public Type POWER_USER_PRESENCE
-    UserPresence As POWER_USER_PRESENCE_TYPE
-End Type
-Public Enum POWER_MONITOR_REQUEST_REASON
-    MonitorRequestReasonUnknown = 0
-    MonitorRequestReasonPowerButton = 1
-    MonitorRequestReasonRemoteConnection = 2
-    MonitorRequestReasonScMonitorpower = 3
-    MonitorRequestReasonUserInput = 4
-    MonitorRequestReasonAcDcDisplayBurst = 5
-    MonitorRequestReasonUserDisplayBurst = 6
-    MonitorRequestReasonPoSetSystemState = 7
-    MonitorRequestReasonSetThreadExecutionState = 8
-    MonitorRequestReasonFullWake = 9
-    MonitorRequestReasonSessionUnlock = 10
-    MonitorRequestReasonScreenOffRequest = 11
-    MonitorRequestReasonIdleTimeout = 12
-    MonitorRequestReasonPolicyChange = 13
-    MonitorRequestReasonSleepButton = 14
-    MonitorRequestReasonLid = 15
-    MonitorRequestReasonBatteryCountChange = 16
-    MonitorRequestReasonGracePeriod = 17
-    MonitorRequestReasonPnP = 18
-    MonitorRequestReasonDP = 19
-    MonitorRequestReasonSxTransition = 20
-    MonitorRequestReasonSystemIdle = 21
-    MonitorRequestReasonNearProximity = 22
-    MonitorRequestReasonThermalStandby = 23
-    MonitorRequestReasonResumePdc = 24
-    MonitorRequestReasonResumeS4 = 25
-    MonitorRequestReasonTerminal = 26
-    MonitorRequestReasonPdcSignal = 27
-    MonitorRequestReasonAcDcDisplayBurstSuppressed = 28
-    MonitorRequestReasonSystemStateEntered = 29 ' When CS exit happens because system
-    '  transition to S4/S5, please note this
-    '  reason is different than ReasonSxTransition.
-    MonitorRequestReasonWinrt = 30
-    MonitorRequestReasonUserInputKeyboard = 31
-    MonitorRequestReasonUserInputMouse = 32
-    MonitorRequestReasonUserInputTouchpad = 33
-    MonitorRequestReasonUserInputPen = 34
-    MonitorRequestReasonUserInputAccelerometer = 35
-    MonitorRequestReasonUserInputHid = 36
-    MonitorRequestReasonUserInputPoUserPresent = 37
-    MonitorRequestReasonUserInputSessionSwitch = 38
-    MonitorRequestReasonUserInputInitialization = 39
-    MonitorRequestReasonPdcSignalWindowsMobilePwrNotif = 40 ' PDC_SIGNAL_PROVIDER_PWRNOTIF_SVC
-    MonitorRequestReasonPdcSignalWindowsMobileShell = 41 ' PDC_SIGNAL_PROVIDER_UM_CS_CONTROL
-    MonitorRequestReasonPdcSignalHeyCortana = 42 ' PDC_SIGNAL_PROVIDER_HEY_CORTANA
-    MonitorRequestReasonPdcSignalHolographicShell = 43 ' PDC_SIGNAL_PROVIDER_HOLOSI_CRITICAL_BATTERY_WAKE
-    MonitorRequestReasonPdcSignalFingerprint = 44 ' PDC_SIGNAL_PROVIDER_WINBIO
-    MonitorRequestReasonDirectedDrips = 45
-    MonitorRequestReasonDim = 46
-    MonitorRequestReasonBuiltinPanel = 47
-    MonitorRequestReasonDisplayRequiredUnDim = 48
-    MonitorRequestReasonBatteryCountChangeSuppressed = 49
-    MonitorRequestReasonResumeModernStandby = 50
-    MonitorRequestReasonTerminalInit = 51
-    MonitorRequestReasonPdcSignalSensorsHumanPresence = 52 ' PDC_SIGNAL_PROVIDER_SENSORS_HUMAN_PRESENCE_MONITOR
-    MonitorRequestReasonBatteryPreCritical = 53
-    MonitorRequestReasonUserInputTouch = 54
-    MonitorRequestReasonAusterityBatteryDrain = 55
-    MonitorRequestReasonMax = 56
-End Enum
-Public Enum POWER_MONITOR_REQUEST_TYPE
-    MonitorRequestTypeOff = 0
-    MonitorRequestTypeOnAndPresent = 1
-    MonitorRequestTypeToggleOn = 2
-End Enum
-Public Type POWER_MONITOR_INVOCATION
-    Console As Byte
-    RequestReason As POWER_MONITOR_REQUEST_REASON
-End Type
-Public Type BATTERY_REPORTING_SCALE
-    Granularity As Long
-    Capacity As Long
-End Type
-
-Public Type SYSTEM_POWER_CAPABILITIES
-    ' Misc supported system features
-    PowerButtonPresent As Byte
-    SleepButtonPresent As Byte
-    LidPresent As Byte
-    SystemS1 As Byte
-    SystemS2 As Byte
-    SystemS3 As Byte
-    SystemS4 As Byte ' hibernate
-    SystemS5 As Byte ' off
-    HiberFilePresent As Byte
-    FullWake As Byte
-    VideoDimPresent As Byte
-    ApmPresent As Byte
-    UpsPresent As Byte
-    ' Processors
-    ThermalControl As Byte
-    ProcessorThrottle As Byte
-    ProcessorMinThrottle As Byte
-    '#if (NTDDI_VERSION < NTDDI_WINXP)
-    '    BYTE                ProcessorThrottleScale;
-    '    BYTE                spare2[4];
-    '#else
-    ProcessorMaxThrottle As Byte
-    FastSystemS4 As Byte
-    Hiberboot As Byte
-    WakeAlarmPresent As Byte
-    AoAc As Byte
-    '#endif // (NTDDI_VERSION < NTDDI_WINXP)
-    ' Disk
-    DiskSpinDown As Byte
-    '#if (NTDDI_VERSION < NTDDI_WINTHRESHOLD)
-    '    BYTE                spare3[8];
-    '# else
-    ' HiberFile
-    HiberFileType As Byte
-    AoAcConnectivitySupported As Byte
-    spare3(0 To 5) As Byte
-    '#endif // (NTDDI_VERSION < NTDDI_WINTHRESHOLD)
-    ' System Battery
-    SystemBatteriesPresent As Byte
-    BatteriesAreShortTerm As Byte
-    BatteryScale(0 To 2) As BATTERY_REPORTING_SCALE
-    ' Wake
-    AcOnLineWake As SYSTEM_POWER_STATE
-    SoftLidWake As SYSTEM_POWER_STATE
-    RtcWake As SYSTEM_POWER_STATE
-    MinDeviceWakeState As SYSTEM_POWER_STATE ' note this may change on driver load
-    DefaultLowLatencyWake As SYSTEM_POWER_STATE
-End Type
-
-
-Public Declare PtrSafe Function CallNtPowerInformation Lib "PowrProf.dll" (ByVal InformationLevel As POWER_INFORMATION_LEVEL, InputBuffer As Any, ByVal InputBufferLength As Long, OutputBuffer As Any, ByVal OutputBufferLength As Long) As Long
-Public Declare PtrSafe Function GetPwrCapabilities Lib "PowrProf.dll" (lpspc As SYSTEM_POWER_CAPABILITIES) As Byte
-Public Declare PtrSafe Function SetSuspendState Lib "PowrProf.dll" (ByVal bHibernate As Byte, ByVal bForce As Byte, ByVal bWakeupEventsDisabled As Byte) As Byte
-Public Declare PtrSafe Function PowerRegisterSuspendResumeNotification Lib "PowrProf.dll" (ByVal Flags As DEVICE_NOTIFY_FLAGS, ByVal Recipient As LongPtr, RegistrationHandle As LongPtr) As Long
-Public Declare PtrSafe Function PowerUnregisterSuspendResumeNotification Lib "PowrProf.dll" (ByVal RegistrationHandle As LongPtr) As Long
 
 /*
 secext.h
