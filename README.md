@@ -38,6 +38,8 @@ You can download the project from this repository and use the WinDevLib.twinpack
 
 
 ### Optional Features
+
+#### Compiler Flags
 WinDevLib has some compiler constants you can enable:
 
 `WINDEVLIB_LITE` - This flag disables most API declares and misc WinAPI definitions, including everything in wdAPIComCtl, wdAPI, and wdDefs. I used to like doing my APIs separate too, which is why oleexp never had the expansive coverage. But with that coverage now present, I think it's worth using, but this option will still be supported.
@@ -52,6 +54,52 @@ WinDevLib has some compiler constants you can enable:
 >The `WINDEVLIB_NOQUADLI` constant will break alignment on numerous Types; most only on x64, but some on both. 
 
 `WINDEVLIB_AVOID_INTRINSICS` - Uses the `Interlocked*` APIs that are exported from kernel32.dll (32bit mode only) instead of the static library containing compiler intrinsic versions of those in addition to all the ones not exported and all the 64bit ones.
+
+#### Custom Helper Functions
+In addition to coverage of common Windows SDK-defined macros and inlined functions, a small number of custom helper functions are provided to deal with Windows data types and similar not properly supported by the language. These are:
+
+`Public Function LPWSTRtoStr(lPtr As LongPtr, Optional ByVal fFree As Boolean = True) As String`\
+Converts a pointer to an LPWSTR/LPCWSTR/PWSTR/etc to an instrinsic `String` (BSTR)
+
+`Public Function UtfToANSI(sIn As String) As String`\
+Converts a Unicode string to ANSI. This function is `[ConstantFoldable]` -- it can be used to create strings resolved at compile time and stored as constants; this technique was developed to use ANSI strings in kernel mode, where the APIs that handle a normal `String` cannot  be used.
+
+`Public Function VariantLPWSTRtoSTR(pVar As Variant, pOut As String) As Boolean`\
+Retrieves a tB-style String from a VT_LPWSTR Variant. Returns False if pVar is a null pointer, or VT_LPWSTR or PropVariantToStringAlloc returns a nullptr.
+
+`Public Function GetSystemErrorString(lErrNum As Long, Optional ByVal lpSource As LongPtr = 0) As String`\
+`Public Function GetNtErrorString(lErrNum As Long) As String`\
+Retrieve descriptions of `HRESULT` and `NTSTATUS` error codes, respectively.
+
+`Public Function VariantSetType(pvar As Variant, [TypeHint(VARENUM)] ByVal vt As Integer, [TypeHint(VARENUM)] Optional ByVal vtOnlyIf As Integer = -1) As Boolean`\
+Sets a Variant to the specified type without any alteration to the data. vtOnlyIf returns False if the original type is other than specified. This should only be used when `VariantChangeType` is not applicable, and only with full understanding of consequences like automation errors if you attempt to use intrinsic operations on unsupported types; e.g. if you set the type to `VT_UI4`, then `CLng()` will raise a 'type unsupported' runtime error.
+
+`Public Function PointerAdd(ByVal Start As LongPtr, ByVal Incr As LongPtr) As LongPtr`\
+`Public Function UnsignedAdd(ByVal Start As Long, ByVal Incr As Long) As Long`\
+`Public Function UnsignedAdd(ByVal Start As Integer, ByVal Incr As Integer) As Integer`\
+`Public Function UnsignedAdd(ByVal Start As LongLong, ByVal Incr As LongLong) As LongLong`\
+Perform addition as if `Start` and `Incr` were unsigned, returning an unsigned result. Important for large address aware operations in 32bit.'
+
+`Public Function SwapVtableEntry(pObj As LongPtr, EntryNumber As Integer, ByVal lpFN As LongPtr) As LongPtr`\
+This is the common vtable redirection helper function rewritten to support both 32 and 64bit operations.
+
+`Public Function PointToLongLong(pt As POINT) As LongLong`\
+`Public Function PointToLongLong(ByVal ptx As Long, ByVal pty As Long) As LongLong`\
+`Public Function PointToLongLong(ByVal ptx As Integer, ByVal pty As Integer) As LongLong`\
+`Public Function PointFToLongLong(pt As POINTF) As LongLong`\
+`Public Function PointFToLongLong(ptx As Single, pty As Single) As LongLong`\
+`Public Function PointSToLong(pt As POINTS) As Long`\
+`Public Function SizeToLongLong(z As SIZE) As LongLong`\
+`Public Function SizeToLongLong(ByVal cx As Long, ByVal cy As Long) As LongLong`\
+Functions for converting POINT and SIZE types or coords to Long or LongLong for methods requiring them to be passed ByVal, which is currently unsupported.
+
+`Public Function CUIntToInt(ByVal Value As Long) As Integer` - Create unsigned Integer from a Long\
+`Public Function CIntToUInt(ByVal Value As Integer) As Long` - Convert an Integer to Long as if it were unsigned (&HFFFF = 65536 instead of -1)\
+`Public Function CULngToLng(ByVal Value As Double) As Long`\
+`Public Function CULngToLng(ByVal Value As LongLong) As Long`\
+`Public Function CLngToULng(ByVal Value As Long) As LongLong`\
+`Public Sub CLngToULng(ByVal Value As Long, pULng As Double)`
+
 
 ### Guide to switching from oleexp.tlb
 
