@@ -9,7 +9,7 @@ This project has grown well beyond it's original mission of shell programming. W
 twinBASIC now counts msvbvm60 redirects as legacy DLL redirects, which WinDevLib set to "Error". Please update to the latest version of WinDevLib to get rid of these errors and use it on twinBASIC Beta 456 and newer. Both this repo and the package server downloads have been updated.
  
 
-**Current Version: 7.7.340 (March 16th, 2024)**
+**Current Version: 7.7.341 (March 16th, 2024)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -184,7 +184,7 @@ Finally, there's small API sets for features, like DirectX DLLs, Webview2Loader,
 
 ### Updates
 
-**Update (v7.7.340, 16 Mar 2024):**\
+**Update (v7.7.341, 16 Mar 2024):**\
 -**MAJOR CHANGE:** The commonly used enum SFGAO_Flags has been renamed SFGAOF, in accordance with a previously overlooked official name for the enum: `typedef ULONG SFGAOF;` It is safe (as far as this package knows) to do a find/replace all for this. Also added missing value SFGAO_PLACEHOLDER.\
 -For code portability, over the coming weeks and months I'll be replacing `DeclareWide` with `Declare`.\
   This will only be done on functions where it doesn't matter; where no arguments or arg UDT members\
@@ -198,7 +198,9 @@ Finally, there's small API sets for features, like DirectX DLLs, Webview2Loader,
 -Some enums for shell automation have officially associated IIDs; added these with new EnumId attrib\
 -Added some missing registry constants and enum associations\
 -Added SDK helper macros ISLBUTTON, ISMBUTTON, ISRBUTTON, ISDBLCLICK\
+-EnumWindows, EnumChildWindows, and EnumTaskWindows APIs were inexplicably missing.\
 -(API Standards) GetAltTabInfo did not conform to WinDevLib API standards (LongPtr instead of String)\
+-(API Standards) GetKeyboardLayoutName did not conform to WinDevLib API standards (LongPtr instead of String)\
 -(API Standards) ShutdownBlockReasonQuery was inconsistent with ShutdownBlockReasonCreate for String vs LongPtr.\
 -(API Standards) CreateDesktop[A,ExA,Ex] did not use appropriate `DEVMODE[A,W]` variants.\
 -(API Standards) RegCreateKey[A,W,ExA,ExW] did not use SECURITY_ATTRIBUTES instead of ByVal LongPtr.\
