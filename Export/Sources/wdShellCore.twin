@@ -1,6 +1,6 @@
 '************************************************************************************
 'WinDevLib - Windows Development Library for twinBASIC
-'Version 7.6.334
+'Version 7.7.340
 '(c) 2022-2024 Jon Johnson (fafalone)
 'Project GUID: {1FCDB98D-617D-4995-9736-2ED0E4746A10}
 '
@@ -43,7 +43,7 @@ Interface IShellFolder Extends stdole.IUnknown
     [PreserveSig] Function BindToStorage(ByVal pidl As LongPtr, ByVal pbc As LongPtr, riid As UUID, ppvOut As Any) As Long
     [PreserveSig] Function CompareIDs([TypeHint(SHCIDs_Flags)] ByVal lParam As LongPtr, ByVal pidl1 As LongPtr, ByVal pidl2 As LongPtr) As Long
     [PreserveSig] Function CreateViewObject(ByVal hwndOwner As LongPtr, riid As UUID, ppvOut As Any) As Long
-    [PreserveSig] Function GetAttributesOf(ByVal cidl As Long, apidl As LongPtr, rgfInOut As SFGAO_Flags) As Long
+    [PreserveSig] Function GetAttributesOf(ByVal cidl As Long, apidl As LongPtr, rgfInOut As SFGAOF) As Long
     [PreserveSig] Function GetUIObjectOf(ByVal hwndOwner As LongPtr, ByVal cidl As Long, apidl As LongPtr, riid As UUID, rgfReserved As Long, ppvOut As Any) As Long
     [PreserveSig] Function GetDisplayNameOf(ByVal pidl As LongPtr, ByVal uFlags As SHGNO_Flags, lpName As STRRET) As Long
     [PreserveSig] Function SetNameOf(ByVal hwndOwner As LongPtr, ByVal pidl As LongPtr, ByVal lpszName As LongPtr, ByVal uFlags As SHGNO_Flags, ppidlOut As LongPtr) As Long
@@ -121,7 +121,7 @@ Interface IShellItem Extends stdole.IUnknown
     [PreserveSig] Function BindToHandler(ByVal pbc As LongPtr, rbhid As UUID, riid As UUID, ppvOut As Any) As Long
     [PreserveSig] Function GetParent(ppsi As IShellItem) As Long
     [PreserveSig] Function GetDisplayName(ByVal sigdnName As SIGDN, ppszName As LongPtr) As Long
-    [PreserveSig] Function GetAttributes(ByVal sfgaoMask As SFGAO_Flags, psfgaoAttributes As SFGAO_Flags) As Long
+    [PreserveSig] Function GetAttributes(ByVal sfgaoMask As SFGAOF, psfgaoAttributes As SFGAOF) As Long
     [PreserveSig] Function Compare(ByVal psi As IShellItem, ByVal hint As SICHINTF, piOrder As Long) As Long
 End Interface
 [InterfaceId("7e9fb0d3-919f-4307-ab2e-9b1860310c93")]
@@ -147,7 +147,7 @@ Interface IShellItemArray Extends stdole.IUnknown
     Sub BindToHandler(ByVal pbc As LongPtr, bhid As UUID, riid As UUID, ppvOut As Any)
     Sub GetPropertyStore(ByVal flags As GETPROPERTYSTOREFLAGS, riid As UUID, ppv As Any)
     Sub GetPropertyDescriptionList(keytype As PROPERTYKEY, riid As UUID, ppv As Any)
-    Sub GetAttributes(ByVal AttribFlags As SIATTRIBFLAGS, ByVal sfgaoMask As SFGAO_Flags, psfgaoAttribs As SFGAO_Flags)
+    Sub GetAttributes(ByVal AttribFlags As SIATTRIBFLAGS, ByVal sfgaoMask As SFGAOF, psfgaoAttribs As SFGAOF)
     Sub GetCount(pdwNumItems As Long)
     Sub GetItemAt(ByVal dwIndex As Long, ppsi As IShellItem)
     Sub EnumItems(ppenumShellItems As IEnumShellItems)
@@ -3343,6 +3343,18 @@ Interface IStorageProviderCopyHook Extends IUnknown
 	Sub CopyCallback(ByVal hwnd As LongPtr, ByVal operation As FILEOP, [TypeHint(FILEOP_FLAGS, ShellPrinterOperations)] ByVal flags As Long, ByVal srcFile As LongPtr, ByVal srcAttribs As FILE_ATTRIBUTES, ByVal destFile As LongPtr, ByVal destAttribs As FILE_ATTRIBUTES, result As MessageBoxResults)
 End Interface
 
+[InterfaceId("1791e8f6-21c7-4340-882a-a6a93e3fd73b")]
+[OleAutomation(False)]
+Interface ILaunchUIContext Extends IUnknown
+    Sub SetAssociatedWindow(ByVal value As LongPtr)
+    Sub SetTabGroupingPreference(ByVal value As Long) 'Windows::UI::ViewManagement::ViewGrouping DOES NOT EXIST!
+End Interface
+[InterfaceId("0d12c4c8-a3d9-4e24-94c1-0e20c5a956c4")]
+[OleAutomation(False)]
+Interface ILaunchUIContextProvider Extends IUnknown
+    Sub UpdateContext(ByVal context As ILaunchUIContext)
+End Interface
+
 [InterfaceId("6d5140c1-7436-11ce-8034-00aa006009fa")]
 [OleAutomation(False)]
 Interface IServiceProvider Extends stdole.IUnknown
@@ -4618,42 +4630,43 @@ Public Enum SHCONTF
 	SHCONTF_ENABLE_ASYNC = &H08000&
 	SHCONTF_INCLUDESUPERHIDDEN = &H10000
 End Enum
-Public Enum SFGAO_Flags
-	SFGAO_CANCOPY = &H00000001
-	SFGAO_CANMOVE = &H00000002
-	SFGAO_CANLINK = &H00000004
-	SFGAO_STORAGE = &H00000008
-	SFGAO_CANRENAME = &H00000010
-	SFGAO_CANDELETE = &H00000020
-	SFGAO_HASPROPSHEET = &H00000040
-	SFGAO_DROPTARGET = &H00000100
-	SFGAO_CAPABILITYMASK = &H00000177
-	SFGAO_SYSTEM = &H00001000
-	SFGAO_ENCRYPTED = &H00002000
-	SFGAO_ISSLOW = &H00004000
-	SFGAO_GHOSTED = &H00008000&
-	SFGAO_LINK = &H00010000
-	SFGAO_SHARE = &H00020000
-	SFGAO_READONLY = &H00040000
-	SFGAO_HIDDEN = &H00080000
-	SFGAO_DISPLAYATTRMASK = &H000FC000
-	SFGAO_FILESYSANCESTOR = &H10000000
-	SFGAO_FOLDER = &H20000000
-	SFGAO_FILESYSTEM = &H40000000
-	SFGAO_HASSUBFOLDER = &H80000000
-	SFGAO_CONTENTSMASK = &H80000000
-	SFGAO_VALIDATE = &H01000000
-	SFGAO_REMOVABLE = &H02000000
-	SFGAO_COMPRESSED = &H04000000
-	SFGAO_BROWSABLE = &H08000000
-	SFGAO_NONENUMERATED = &H00100000
-	SFGAO_NEWCONTENT = &H00200000
-	SFGAO_CANMONIKER = &H00400000
-	SFGAO_HASSTORAGE = &H00400000
-	SFGAO_STREAM = &H00400000
-	SFGAO_STORAGEANCESTOR = &H00800000
-	SFGAO_STORAGECAPMASK = &H70C50008
-	SFGAO_PKEYSFGAOMASK = &H81044000
+Public Enum SFGAOF
+    SFGAO_CANCOPY = DROPEFFECT_COPY  ' Objects can be copied    (0x1)
+    SFGAO_CANMOVE = DROPEFFECT_MOVE  ' Objects can be moved     (0x2)
+    SFGAO_CANLINK = DROPEFFECT_LINK  ' Objects can be linked    (0x4)
+    SFGAO_STORAGE = &H00000008  ' supports BindToObject(IID_IStorage)
+    SFGAO_CANRENAME = &H00000010  ' Objects can be renamed
+    SFGAO_CANDELETE = &H00000020  ' Objects can be deleted
+    SFGAO_HASPROPSHEET = &H00000040  ' Objects have property sheets
+    SFGAO_DROPTARGET = &H00000100  ' Objects are drop target
+    SFGAO_CAPABILITYMASK = &H00000177
+    SFGAO_PLACEHOLDER = &H00000800  ' File or folder is not fully present and recalled on open or access
+    SFGAO_SYSTEM = &H00001000  ' System object
+    SFGAO_ENCRYPTED = &H00002000  ' Object is encrypted (use alt color)
+    SFGAO_ISSLOW = &H00004000  ' 'Slow' object
+    SFGAO_GHOSTED = &H00008000&  ' Ghosted icon
+    SFGAO_LINK = &H00010000  ' Shortcut (link)
+    SFGAO_SHARE = &H00020000  ' Shared
+    SFGAO_READONLY = &H00040000  ' Read-only
+    SFGAO_HIDDEN = &H00080000  ' Hidden object
+    SFGAO_DISPLAYATTRMASK = &H000FC000
+    SFGAO_FILESYSANCESTOR = &H10000000  ' May contain children with SFGAO_FILESYSTEM
+    SFGAO_FOLDER = &H20000000  ' Support BindToObject(IID_IShellFolder)
+    SFGAO_FILESYSTEM = &H40000000  ' Is a win32 file system object (file/folder/root)
+    SFGAO_HASSUBFOLDER = &H80000000  ' May contain children with SFGAO_FOLDER (may be slow)
+    SFGAO_CONTENTSMASK = &H80000000
+    SFGAO_VALIDATE = &H01000000  ' Invalidate cached information (may be slow)
+    SFGAO_REMOVABLE = &H02000000  ' Is this removeable media?
+    SFGAO_COMPRESSED = &H04000000  ' Object is compressed (use alt color)
+    SFGAO_BROWSABLE = &H08000000  ' Supports IShellFolder, but only implements CreateViewObject() (non-folder view)
+    SFGAO_NONENUMERATED = &H00100000  ' Is a non-enumerated object (should be hidden)
+    SFGAO_NEWCONTENT = &H00200000  ' Should show bold in explorer tree
+    SFGAO_CANMONIKER = &H00400000  ' Obsolete
+    SFGAO_HASSTORAGE = &H00400000  ' Obsolete
+    SFGAO_STREAM = &H00400000  ' Supports BindToObject(IID_IStream)
+    SFGAO_STORAGEANCESTOR = &H00800000  ' May contain children with SFGAO_STORAGE or SFGAO_STREAM
+    SFGAO_STORAGECAPMASK = &H70C50008  ' For determining storage capabilities, ie for open/save semantics
+    SFGAO_PKEYSFGAOMASK = &H81044000  ' Attributes that are masked out for PKEY_SFGAOFlags because they are considered to cause slow calculations or lack context (SFGAO_VALIDATE | SFGAO_ISSLOW | SFGAO_HASSUBFOLDER and others)
 End Enum
 Public Enum SHGNO_Flags
 	SHGDN_NORMAL = 0
@@ -5350,6 +5363,8 @@ End Enum
 Public Enum SHCIDs_Flags
 	SHCIDS_ALLFIELDS = &H80000000
 	SHCIDS_CANONICALONLY = &H10000000
+	SHCIDS_BITMASK = &HFFFF0000
+	SHCIDS_COLUMNMASK = &H0000FFFF&
 End Enum
 
 Public Enum QueryContextMenuFlags
@@ -6373,6 +6388,20 @@ End Enum
 
 Public Enum FVTEXTTYPE
 	FVST_EMPTYTEXT = 0
+End Enum
+
+Public Enum SYNC_ENGINE_STATE_FLAGS
+    SESF_NONE = &H00 ' No state
+    SESF_SERVICE_QUOTA_NEARING_LIMIT = &H01 ' This value is set when the user's quota is nearing capacity. The values for this is dependent on the user's total quota space.
+    SESF_SERVICE_QUOTA_EXCEEDED_LIMIT = &H02 ' The user's quota is completely filled
+    SESF_AUTHENTICATION_ERROR = &H04 ' The credentials for the user's account are invalid
+    SESF_PAUSED_DUE_TO_METERED_NETWORK = &H08 ' Sync engine is paused due to metered network settings
+    SESF_PAUSED_DUE_TO_DISK_SPACE_FULL = &H10 ' The drive that contains the sync engine content has reached the maximum allowed space
+    SESF_PAUSED_DUE_TO_CLIENT_POLICY = &H20 ' User has gone over the daily limit of requests or data transfers to the service
+    SESF_PAUSED_DUE_TO_SERVICE_POLICY = &H40 ' Service has requested us to throttle all requests
+    SESF_SERVICE_UNAVAILABLE = &H80 ' Service can't be reached at this time
+    SESF_PAUSED_DUE_TO_USER_REQUEST = &H100 ' Sync engine was paused due to an explicit user request
+    SESF_ALL_FLAGS = (SESF_NONE Or SESF_SERVICE_QUOTA_NEARING_LIMIT Or SESF_SERVICE_QUOTA_EXCEEDED_LIMIT Or SESF_AUTHENTICATION_ERROR Or SESF_PAUSED_DUE_TO_METERED_NETWORK Or SESF_PAUSED_DUE_TO_DISK_SPACE_FULL Or SESF_PAUSED_DUE_TO_CLIENT_POLICY Or SESF_PAUSED_DUE_TO_SERVICE_POLICY Or SESF_SERVICE_UNAVAILABLE Or SESF_PAUSED_DUE_TO_USER_REQUEST)
 End Enum
 
 Public Enum FOLDERVIEWOPTIONS
@@ -8704,6 +8733,83 @@ Public Enum ObjectSafetyFlags
     INTERFACE_USES_DISPEX = &H00000004  ' Object knows to use IDispatchEx 
     INTERFACE_USES_SECURITY_MANAGER = &H00000008  ' Object knows to use IInternetHostSecurityManager 
 End Enum
+
+Public Enum ShellDetailsPIDs
+    PID_FINDDATA = 0
+    PID_NETRESOURCE = 1
+    PID_DESCRIPTIONID = 2
+    PID_WHICHFOLDER = 3
+    PID_NETWORKLOCATION = 4
+    PID_COMPUTERNAME = 5
+End Enum
+Public Enum ShellDetailsDisplacedPIDs
+    PID_DISPLACED_FROM = 2
+    PID_DISPLACED_DATE = 3
+End Enum
+Public Const PID_SYNC_COPY_IN = 2
+Public Enum ShellDetailsMiscPIDs
+    PID_MISC_STATUS = 2
+    PID_MISC_ACCESSCOUNT = 3
+    PID_MISC_OWNER = 4
+    PID_HTMLINFOTIPFILE = 5
+    PID_MISC_PICS = 6
+End Enum
+Public Enum ShellDetailsWebviewPIDs
+    PID_DISPLAY_PROPERTIES = 0
+    PID_INTROTEXT = 1
+End Enum
+Public Enum ShellDetailsMusicPIDs
+    PIDSI_ARTIST = 2
+    PIDSI_SONGTITLE = 3
+    PIDSI_ALBUM = 4
+    PIDSI_YEAR = 5
+    PIDSI_COMMENT = 6
+    PIDSI_TRACK = 7
+    PIDSI_GENRE = 11
+    PIDSI_LYRICS = 12
+End Enum
+Public Enum ShellDetailsDrmPIDs
+    PIDDRSI_PROTECTED = 2
+    PIDDRSI_DESCRIPTION = 3
+    PIDDRSI_PLAYCOUNT = 4
+    PIDDRSI_PLAYSTARTS = 5
+    PIDDRSI_PLAYEXPIRES = 6
+End Enum
+Public Enum ShellDetailsVideoPIDs
+    PIDVSI_STREAM_NAME = &H00000002  ' "System.Video.StreamName"   (old name "StreamName")
+    PIDVSI_FRAME_WIDTH = &H00000003  ' "System.Video.FrameWidth"   (old name "FrameWidth")
+    PIDVSI_FRAME_HEIGHT = &H00000004  ' "System.Video.FrameHeight"  (old name "FrameHeight")
+    PIDVSI_TIMELENGTH = &H00000007  '                             (old name "TimeLength")
+    PIDVSI_FRAME_COUNT = &H00000005  ' "System.Media.FrameCount"   (old name "FrameCount")
+    PIDVSI_FRAME_RATE = &H00000006  ' "System.Video.FrameRate"    (old name "FrameRate")
+    PIDVSI_DATA_RATE = &H00000008  ' "System.Video.DataRate"     (old name "DataRate")
+    PIDVSI_SAMPLE_SIZE = &H00000009  ' "System.Video.SampleSize"   (old name "SampleSize")
+    PIDVSI_COMPRESSION = &H0000000A  ' "System.Video.Compression"  (old name "Compression")
+    PIDVSI_STREAM_NUMBER = &H0000000B  ' "System.Video.StreamNumber" (old name "StreamNumber")
+End Enum
+Public Enum ShellDetailsAudioPIDs
+    PIDASI_FORMAT = &H00000002  ' VT_BSTR
+    PIDASI_TIMELENGTH = &H00000003  ' VT_UI4, milliseconds
+    PIDASI_AVG_DATA_RATE = &H00000004  ' VT_UI4,  Hz
+    PIDASI_SAMPLE_RATE = &H00000005  ' VT_UI4,  bits
+    PIDASI_SAMPLE_SIZE = &H00000006  ' VT_UI4,  bits
+    PIDASI_CHANNEL_COUNT = &H00000007  ' VT_UI4
+    PIDASI_STREAM_NUMBER = &H00000008  ' VT_UI2
+    PIDASI_STREAM_NAME = &H00000009  ' VT_LPWSTR
+    PIDASI_COMPRESSION = &H0000000A  ' VT_LPWSTR
+End Enum
+Public Const PID_CONTROLPANEL_CATEGORY = 2
+Public Enum ShellDetailsVolumePIDs
+    PID_VOLUME_FREE = 2
+    PID_VOLUME_CAPACITY = 3
+    PID_VOLUME_FILESYSTEM = 4
+End Enum
+Public Const PID_SHARE_CSC_STATUS = 2
+Public Enum ShellDetailsVLinkTargetPIDs
+    PID_LINK_TARGET = 2
+    PID_LINK_TARGET_TYPE = 3
+End Enum
+Public Const PID_QUERY_RANK = 2
 
 Public Const sCLSID_DragDropHelper = "new: {4657278A-411B-11D2-839A-00C04FD918D0}"
 Public Const sCLSID_KnownFolderManager = "new: {4df0c730-df9d-4ae3-9153-aa6b82e9795a}"
