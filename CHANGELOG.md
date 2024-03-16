@@ -1,5 +1,5 @@
  
-**Update (v7.7.340, 16 Mar 2024):**
+**Update (v7.7.341, 16 Mar 2024):**
 -**MAJOR CHANGE:** The commonly used enum SFGAO_Flags has been renamed SFGAOF, in accordance with a
                    previously overlooked official name for the enum: `typedef ULONG SFGAOF;`
                    It is safe (as far as this package knows) to do a find/replace all for this.
@@ -16,7 +16,9 @@
 -Some enums for shell automation have officially associated IIDs; added these with new EnumId attrib
 -Added some missing registry constants and enum associations
 -Added SDK helper macros ISLBUTTON, ISMBUTTON, ISRBUTTON, ISDBLCLICK
+-EnumWindows, EnumChildWindows, and EnumTaskWindows APIs were inexplicably missing.
 -(API Standards) GetAltTabInfo did not conform to WinDevLib API standards (LongPtr instead of String) 
+-(API Standards) GetKeyboardLayoutName did not conform to WinDevLib API standards (LongPtr instead of String) 
 -(API Standards) ShutdownBlockReasonQuery was inconsistent with ShutdownBlockReasonCreate for String vs LongPtr.
 -(API Standards) CreateDesktop[A,ExA,Ex] did not use appropriate `DEVMODE[A,W]` variants.
 -(API Standards) RegCreateKey[A,W,ExA,ExW] did not use SECURITY_ATTRIBUTES instead of ByVal LongPtr.
