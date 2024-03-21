@@ -9,7 +9,7 @@ This project has grown well beyond it's original mission of shell programming. W
 twinBASIC now counts msvbvm60 redirects as legacy DLL redirects, which WinDevLib set to "Error". Please update to the latest version of WinDevLib to get rid of these errors and use it on twinBASIC Beta 456 and newer. Both this repo and the package server downloads have been updated.
  
 
-**Current Version: 7.7.341 (March 16th, 2024)**
+**Current Version: 7.7.342 (March 21st, 2024)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -183,6 +183,14 @@ Finally, there's small API sets for features, like DirectX DLLs, Webview2Loader,
 
 
 ### Updates
+
+**Update (v7.7.342, 21 Mar 2024):**\
+-**MAJOR CHANGE:** The common used enum SHGNO_Flags has been renamed SHGDNF, the proper name per SDK.\
+-**MAJOR CHANGE:** The common used enum SVGIO_Flags has been renamed SVGIO, the proper name per SDK.\
+-**MAJOR CHANGE:** The common used enum SVSI_Flags has been renamed SVSIF, the proper name per SDK.\
+-Updated WebView2 to match current stable release 1.0.2365.46\
+-Filled out KUSER_SHARED_DATA more.\
+-(Bug fix) NET_ADDRESS_INFO union substitute sized incorrectly.
 
 **Update (v7.7.341, 16 Mar 2024):**\
 -**MAJOR CHANGE:** The commonly used enum SFGAO_Flags has been renamed SFGAOF, in accordance with a previously overlooked official name for the enum: `typedef ULONG SFGAOF;` It is safe (as far as this package knows) to do a find/replace all for this. Also added missing value SFGAO_PLACEHOLDER.\
