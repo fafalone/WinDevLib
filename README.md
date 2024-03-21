@@ -192,6 +192,8 @@ Finally, there's small API sets for features, like DirectX DLLs, Webview2Loader,
 -Filled out KUSER_SHARED_DATA more.\
 -(Bug fix) NET_ADDRESS_INFO union substitute sized incorrectly.
 
+**WinDevLibImpl v1.3.16:** Updatrd to use enum name changes associated with WinDevLib update.
+
 **Update (v7.7.341, 16 Mar 2024):**\
 -**MAJOR CHANGE:** The commonly used enum SFGAO_Flags has been renamed SFGAOF, in accordance with a previously overlooked official name for the enum: `typedef ULONG SFGAOF;` It is safe (as far as this package knows) to do a find/replace all for this. Also added missing value SFGAO_PLACEHOLDER.\
 -For code portability, over the coming weeks and months I'll be replacing `DeclareWide` with `Declare`.\
