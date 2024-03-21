@@ -1,4 +1,13 @@
- 
+
+**Update (v7.7.342, 21 Mar 2024):**
+-**MAJOR CHANGE:** The common used enum SHGDN_Flags has been renamed SHGDNF, the proper name per SDK.
+-**MAJOR CHANGE:** The common used enum SVGIO_Flags has been renamed SVGIO, the proper name per SDK.
+-**MAJOR CHANGE:** The common used enum SVSI_Flags has been renamed SVSIF, the proper name per SDK.
+-Updated WebView2 to match current stable release 1.0.2365.46
+-Filled out KUSER_SHARED_DATA more.
+-(Bug fix) NET_ADDRESS_INFO union substitute sized incorrectly.
+
+
 **Update (v7.7.341, 16 Mar 2024):**
 -**MAJOR CHANGE:** The commonly used enum SFGAO_Flags has been renamed SFGAOF, in accordance with a
                    previously overlooked official name for the enum: `typedef ULONG SFGAOF;`
