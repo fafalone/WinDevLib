@@ -1,4 +1,8 @@
 
+**Update (v7.7.343, 22 Mar 2024):**
+-(Bug fix) Coclass ActCtx conflicted with type ACTCTX; the former has been renamed CActCtx.
+-(Bug fix) ReleaseActCtx had typo in name.
+
 **Update (v7.7.342, 21 Mar 2024):**
 -**MAJOR CHANGE:** The common used enum SHGDN_Flags has been renamed SHGDNF, the proper name per SDK.
 -**MAJOR CHANGE:** The common used enum SVGIO_Flags has been renamed SVGIO, the proper name per SDK.
