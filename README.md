@@ -9,7 +9,7 @@ This project has grown well beyond it's original mission of shell programming. W
 twinBASIC now counts msvbvm60 redirects as legacy DLL redirects, which WinDevLib set to "Error". Please update to the latest version of WinDevLib to get rid of these errors and use it on twinBASIC Beta 456 and newer. Both this repo and the package server downloads have been updated.
  
 
-**Current Version: 7.7.342 (March 21st, 2024)**
+**Current Version: 7.7.343 (March 22nd, 2024)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -183,6 +183,11 @@ Finally, there's small API sets for features, like DirectX DLLs, Webview2Loader,
 
 
 ### Updates
+
+**Update (v7.7.343, 22 Mar 2024):**\
+-(Bug fix) Coclass ActCtx conflicted with type ACTCTX; the former has been renamed CActCtx.\
+-(Bug fix) ReleaseActCtx had typo in name.
+
 
 **Update (v7.7.342, 21 Mar 2024):**\
 -**MAJOR CHANGE:** The common used enum SHGNO_Flags has been renamed SHGDNF, the proper name per SDK.\
