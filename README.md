@@ -9,7 +9,7 @@ This project has grown well beyond it's original mission of shell programming. W
 twinBASIC now counts msvbvm60 redirects as legacy DLL redirects, which WinDevLib set to "Error". Please update to the latest version of WinDevLib to get rid of these errors and use it on twinBASIC Beta 456 and newer. Both this repo and the package server downloads have been updated.
  
 
-**Current Version: 7.7.343 (March 22nd, 2024)**
+**Current Version: 7.7.344 (March 26th, 2024)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -183,6 +183,12 @@ Finally, there's small API sets for features, like DirectX DLLs, Webview2Loader,
 
 
 ### Updates
+
+**Update (v7.7.344, 26 Mar 2024):**\
+-Added tdh.dll event trace helper APIs (tdh.h; all APIs/types complete but macros not yet added)\
+-Added some additional native APIs.\
+-FlushViewOfFile was missing.\
+-(Bug fix) IMAGE_OPTIONAL_HEADER64 had a pointer member incorrectly declared as LongPtr, making the UDT offsets incorrect when handling a 64bit PE from a 32bit build.
 
 **Update (v7.7.343, 22 Mar 2024):**\
 -(Bug fix) Coclass ActCtx conflicted with type ACTCTX; the former has been renamed CActCtx.\
