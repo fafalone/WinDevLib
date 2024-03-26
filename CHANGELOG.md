@@ -1,4 +1,11 @@
 
+**Update (v7.7.344, 26 Mar 2024):**
+-Added tdh.dll event trace helper APIs (tdh.h; all APIs/types complete but macros not yet added)
+-Added some additional native APIs.
+-FlushViewOfFile was missing.
+-(Bug fix) IMAGE_OPTIONAL_HEADER64 had a pointer member incorrectly declared as LongPtr, making
+           the UDT offsets incorrect when handling a 64bit PE from a 32bit build.
+
 **Update (v7.7.343, 22 Mar 2024):**
 -(Bug fix) Coclass ActCtx conflicted with type ACTCTX; the former has been renamed CActCtx.
 -(Bug fix) ReleaseActCtx had typo in name.
