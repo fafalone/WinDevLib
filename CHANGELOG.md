@@ -1,4 +1,19 @@
 
+**Update (v7.7.350, 31 Mar 2024):**
+-Large expansion of mfapi.h coverage; all APIs and GUIDs are covered, only missing the macros
+-processenv.h coverage now 100%
+-avrt.h 100% coverage in prep. for mfapi.h (limited current coverage)
+-Added 100% cover of netioapi.h
+-GetEnvironmentStrings now redirects to GetEnvironmentStringsW, per SDK.
+-Added security center interfaces from iwscapi.h and APIs from wscapi.h (both 100% covered)
+-Added WINDEVLIB_NOLIBS compiler option, completely disabling static library use (intended
+ mainly to be able to test with tB Beta 423 or earlier)
+-(Bug fix) SetCurrentDirectory[W] definitions incorrect.
+-(Bug fix) Certain obscure PE header types missing alternate alignment attribute
+-(Bug fix) GetNamedPipeClientComputerName[A.W] definitions incorrect
+-(Bug fix) GetNamedPipeHandleState[A,W] definitions incorrect
+
+
 **Update (v7.7.345, 26 Mar 2024):**
 -Added tdh.dll event trace helper APIs (tdh.h; all APIs/types complete but macros not yet added)
 -Added some additional native APIs.
