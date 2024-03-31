@@ -9,7 +9,7 @@ This project has grown well beyond it's original mission of shell programming. W
 twinBASIC now counts msvbvm60 redirects as legacy DLL redirects, which WinDevLib set to "Error". Please update to the latest version of WinDevLib to get rid of these errors and use it on twinBASIC Beta 456 and newer. Both this repo and the package server downloads have been updated.
  
 
-**Current Version: 7.7.345 (March 26th, 2024)**
+**Current Version: 7.7.350 (March 31st, 2024)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -54,6 +54,9 @@ WinDevLib has some compiler constants you can enable:
 >The `WINDEVLIB_NOQUADLI` constant will break alignment on numerous Types; most only on x64, but some on both. 
 
 `WINDEVLIB_AVOID_INTRINSICS` - Uses the `Interlocked*` APIs that are exported from kernel32.dll (32bit mode only) instead of the static library containing compiler intrinsic versions of those in addition to all the ones not exported and all the 64bit ones.
+
+`WINDEVLIB_NOLIBS` - Fully exclude static libraries (currently only Interlocked); mainly intended for comparing current tB versions to Beta 423 where the `Import Library` syntax is not yet supported.
+
 
 #### Custom Helper Functions
 In addition to coverage of common Windows SDK-defined macros and inlined functions, a small number of custom helper functions are provided to deal with Windows data types and similar not properly supported by the language. These are:
@@ -183,6 +186,20 @@ Finally, there's small API sets for features, like DirectX DLLs, Webview2Loader,
 
 
 ### Updates
+
+**Update (v7.7.350, 31 Mar 2024):**\
+-Large expansion of mfapi.h coverage; all APIs and GUIDs are covered, only missing the macros\
+-processenv.h coverage now 100%\
+-avrt.h 100% coverage in prep. for mfapi.h (limited current coverage)\
+-Added 100% cover of netioapi.h\
+-GetEnvironmentStrings now redirects to GetEnvironmentStringsW, per SDK.\
+-Added security center interfaces from iwscapi.h and APIs from wscapi.h (both 100% covered)\
+-Added WINDEVLIB_NOLIBS compiler option, completely disabling static library use (intended mainly to be able to test with tB Beta 423 or earlier)\
+-(Bug fix) SetCurrentDirectory[W] definitions incorrect.\
+-(Bug fix) Certain obscure PE header types missing alternate alignment attribute\
+-(Bug fix) GetNamedPipeClientComputerName[A.W] definitions incorrect\
+-(Bug fix) GetNamedPipeHandleState[A,W] definitions incorrect
+
 
 **Update (v7.7.345, 26 Mar 2024):**\
 -Added tdh.dll event trace helper APIs (tdh.h; all APIs/types complete but macros not yet added)\
@@ -534,93 +551,6 @@ PostMessage already used `DeclareWide`, which was perhaps causing unexpected iss
 -(Bug fix, WinDevLibImpl) IPersistFile method definition incorrect.
 
 
-**Update (v6.6.269):**\
--Added helper function GetNtErrorString that gets strings for NTSTATUS values. GetSystemErrorString already exists for HRESULT.\
--SHLimitInputEdit didn't have the ByVal attribute included, making it easy to not realize it's then required when called.\
--CreateSymbolicLink API inexplicable missing.\
--LIMITINPUTSTRUCT has been renamed to the original, correct name LIMITINPUT. The original documentation and demos have made this change too with the recently released universal compatibility update.
-
-
-**Update (v6.6.268, 11 Dec 2023):**\
--Added UI Animation interfaces and coclasses\
--Added Radio Manager interfaces and some undocumented coclasses to use them. Added undocumented interface IRadioManager with coclass RadioManagementAPI: This controls 'Airplane mode' on newer Windows.\
--Added IThumbnailStreamCache and coclass ThumbnailStreamCache. Note: Due to simple name potential conflicts, flags prefixed with TSC_. A ByVal SIZE is replaced with ByVal LongLong; copy into one.\
--Added additional event trace APIs; coverage of evntrace.h is now 100%.\
--Additional BCrypt APIs sufficient for basic public key crypto implementations.\
--Added additional language settings APIs from WinNls.h; coverage is near or at 100% now.\
--Added remaining transaction manager APIs; coverage of ktmw32.h is now 100%.\
--Added all remaining .ini/win.ini file APIs.\
--Added misc other APIs.\
--Added memcpy alias for RtlMoveMemory (in addition to CopyMemory and MoveMemory)\
--Several event trace APIs and transaction API improperly used 'As GUID', which is undefined in tbShellLib and will refer to the unsupported stdole GUID.\
--Reworked the way the REASON_CONTEXT union was set up; the old version would likely not work as implied.\
--(Bug fix) KSIDENTIFIER union size incorrect.
-
-**Update (v6.5.263, 06 Dec 2023):**\
--Added numerous missing shell32 APIs.\
--Some additional kernel32 APIs, bringing coverage of fileapi.h to 100%.\
--Added numerous IOCTL_DISK_* constants and associated UDTs.\
--Converted some ListView-related consts to enums to use with their associated UDTs.\
--Added missing name mappings structs for SHFileOperation.\
--(Bug fix) BITMAPFILEHEADER, DISK_EXTENT, VOLUME_DISK_EXTENT, and STORAGE_PROPERTY_QUERY typed improperly marked Private.\
--(Bug fix) STORAGE_PROPERTY_QUERY definition incorrect\
--(Bug fix) SCSI_PASS_THROUGH_BUFFERED24 definition incorrect.\
--(Bug fix) GetVolumeInformationByHandle definition incorrect.\
--(Bug fix) ReadFile did not conform to tbShellLib API conventions (ByVal As Any instead of OVERLAPPED)
-
-**Update (v6.5.260, 04 Dec 2023):**
--Added all authz APIs/consts/types from authz.h; note that AuthzReportSecurityEvent is currently unsupported by the language. However, it internally calls AuthzReportSecurityEventFromParams.\
--Added many missing shlwapi APIs; URL flags enum missing values\
--Updated shlwapi "Is" functions to use BOOL instead of Long where that way in sdk.\
--Completed all currently known PROCESSINFOCLASS structs for NtQueryInformationProcess.\
--Added custom enums for PROCESS_MITIGATION_* structs\
--(Bug fix) SHGetThreadRef/SHSetThreadRef definitions incorrect\
--(Bug fix) SHMessageBoxCheck definition incorrect\
--(Bug fix) Path[Un]QuoteSpaces definitions incorrect
-
-**Update (v6.4.258), 28 Nov 2023):**\
--Large number of additional advapi security APIs (AccCtrl.h and AclAPI.h, 100% coverage)\
--Additional crypto APIs\
--(Bug fix) Missing FindFirstFileEx flag FIND_FIRST_EX_ON_DISK_ENTRIES_ONLY.
-
-**Update (v6.4.257), 26 Nov 2023):** GdipGetImageEncoders/GdipGetImageDecoders definitions "incorrect" for unclear reasons... Documentation indicates it's an array of ImageCodecInfo, which does not contain any C-style arrays, but there's a mismatch between the byte size and number of structs * sizeof. Changed to As Any to allow byte buffers in addition to oversized ImageCodecInfo buffers.
-
-**Update (v6.4.256, 25 Nov 2023):**\
--Added inexplicably missing basic versioning and sysinfo APIs from kernel32.\
--Added ListView subitem control undocumented CLSIDs.\
--Additional sys info classes (NtQuerySystemInformation).\
--Misc. API additions.\
--(Bug fix) GetAtomName[A,W] and GlobalGetAtomName[A,W] definitions incorrect.\
--(Bug fix) Multiple ole32 functions incorrectly passing ANSI strings.\
--(Bug fix) ListView_GetItemText was thoroughly broken.\
--(Bug fix) GetSystemDirectory definition incorrect.\
--(Bug fix) EnumPrintersA definition incorrect; GetPrinter, SetPrinter, and GetJob definitions technically incorrect but no impact unless you had redefined associated UDTs.\
--(Bug fix) UNICODE_STRING members renamed to their proper SDK names. I realize this is a substantial breaking change but it's a minor adjustment and I feel it's important to be faithful to the SDK.
-
-**Update (v6.3.253, 17 Nov 2023):**\
--Additional crypto APIs (both classic and nextgen)\
--Added GetSystemErrorString helper function to look up system error messages.\
--(Bug fix) FormatMessage did not follow W/DeclareWideString convention; last param not ByVal.\
--(Bug fix) RtlDestroyHeap has but one p.\
--(Bug fix) CoCreateInstance overloads not playing nice. Only a single form available now.
-
-**Update (v6.3.252, 11 Nov 2023):**\
--Expanded bcrypt coverage\
--Added RegisterDeviceChangeNotification and the numerous assorted consts/types (dbt.h, 100% coverage)\
--Added DISP_E_* and TYPE_E_* error messages w/ descriptions. Added additional errors and descriptions for several original oleexp error sets.\
--The WBIDM enum that was full of IDM_* values has had the values changed to WBIDM_*. IDM_ is the standard prefix for menu resources, so these would often conflict with projects not using the same resource id, and the ids here are for Win9x legacy content.\
--All the fairly useless system info UDTs and an actually useful one, SYSTEM_PROCESS_ID_INFORMATION was missing.\
--Additional shell32 APIs\
--(Bug fix) Helper function NT_SUCCESS was improperly Private\
--(Bug fix) SetupDiGetClassDevPropertySheets[W] definitions incorrect
-
-**Update (v6.3.250, 5 Nov 2023):**\
--Added Credential Provider interfaces from credentialprovider.h\
--Added missing TlHelp32.h APIs/structs, now covered 100%.\
--Added several types/enums related to things already in project.\
--(Bug fix) Duplicate of NETRESOURCE type. Project was subsequently analyzed for further duplicated types, and 4 other bugs in this class were eliminated.\
--(Bug fix) No base PEB type defined.\
--(NOTICE) OpenGL is being deferred until twinBASIC has Alias support (planned).
 
 ---
 
