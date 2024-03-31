@@ -10,7 +10,7 @@
 
 'wdInternet :: WinDevLib Internet-related interfaces/defs
 '
-'
+#Region "NetInterfaces"
 [InterfaceId("79eac9ed-baf9-11ce-8c82-00aa004ba90b")]
 [OleAutomation(False)]
 Interface IInternetSecurityMgrSite Extends stdole.IUnknown
@@ -772,7 +772,8 @@ CoClass NetworkListManager
     Interface IEnumNetworkConnections
 End CoClass
 
-            
+#End Region
+
 Module wdInternet
 
 Public Const MAX_PROFILENAME_LENGTH = 256
@@ -5496,7 +5497,7 @@ Module wdAPIInternet
         NET_IF_OPER_STATUS_DORMANT_PAUSED = &H00000004
         NET_IF_OPER_STATUS_DORMANT_LOW_POWER = &H00000008
     End Enum
-    Public Enum NET_IF_COMPT_SCOPE
+    Public Enum NET_IF_COMPARTMENT_SCOPE
         NET_IF_COMPARTMENT_SCOPE_UNSPECIFIED = 0
         NET_IF_COMPARTMENT_SCOPE_ALL = (-1)
     End Enum
@@ -5527,7 +5528,11 @@ Module wdAPIInternet
         Value As LongLong
     End Type
     'Alias IF_LUID As NET_LUID_LH
+    'Alias NET_LUID As NET_LUID_LH
     Public /* Union */ Type IF_LUID
+        Value As LongLong
+    End Type
+    Public /* Union */ Type NET_LUID
         Value As LongLong
     End Type
     Public Const NET_IFINDEX_UNSPECIFIED  = (0)  ' Not a valid ifIndex
@@ -6430,10 +6435,10 @@ Module wdAPIInternet
     End Type
     Public Type MIB_TCP6ROW
         State As MIB_TCP_STATE
-        LocalAddr As in6_addr
+        LocalAddr As IN6_ADDR
         dwLocalScopeId As Long
         dwLocalPort As Long
-        RemoteAddr As in6_addr
+        RemoteAddr As IN6_ADDR
         dwRemoteScopeId As Long
         dwRemotePort As Long
     End Type
@@ -6443,10 +6448,10 @@ Module wdAPIInternet
         table() As MIB_TCP6ROW
     End Type
     Public Type MIB_TCP6ROW2
-        LocalAddr As in6_addr
+        LocalAddr As IN6_ADDR
         dwLocalScopeId As Long
         dwLocalPort As Long
-        RemoteAddr As in6_addr
+        RemoteAddr As IN6_ADDR
         dwRemoteScopeId As Long
         dwRemotePort As Long
         State As MIB_TCP_STATE
@@ -6623,7 +6628,7 @@ Module wdAPIInternet
         table() As MIB_UDPROW2
     End Type
     Public Type MIB_UDP6ROW
-        dwLocalAddr As in6_addr
+        dwLocalAddr As IN6_ADDR
         dwLocalScopeId As Long
         dwLocalPort As Long
     End Type
@@ -7607,7 +7612,7 @@ Module wdAPIInternet
     Public Declare PtrSafe Function GetUniDirectionalAdapterInfo Lib "Iphlpapi" (pIPIfTable As Any /* IP_UNIDIRECTIONAL_ADAPTER_ADDRESS */, dwOutBufLen As Long) As Long
     Public Declare PtrSafe Function NhpAllocateAndGetInterfaceInfoFromStack Lib "Iphlpapi" (ppTable As IP_INTERFACE_NAME_INFO, pdwCount As Long, ByVal bOrder As BOOL, ByVal hHeap As LongPtr, ByVal dwFlags As HeapFlags) As Long
     Public Declare PtrSafe Function GetBestInterface Lib "Iphlpapi" (ByVal dwDestAddr As Long, pdwBestIfIndex As Long) As Long
-    Public Declare PtrSafe Function GetBestInterfaceEx Lib "Iphlpapi" (pDestAddr As sockaddr, pdwBestIfIndex As Long) As Long
+    Public Declare PtrSafe Function GetBestInterfaceEx Lib "Iphlpapi" (pDestAddr As SOCKADDR, pdwBestIfIndex As Long) As Long
     Public Declare PtrSafe Function GetBestRoute Lib "Iphlpapi" (ByVal dwDestAddr As Long, ByVal dwSourceAddr As Long, pBestRoute As MIB_IPFORWARDROW) As Long
     Public Declare PtrSafe Function NotifyAddrChange Lib "Iphlpapi" (Handle As LongPtr, overlapped As OVERLAPPED) As Long
     Public Declare PtrSafe Function NotifyRouteChange Lib "Iphlpapi" (Handle As LongPtr, overlapped As OVERLAPPED) As Long
@@ -7631,7 +7636,7 @@ Module wdAPIInternet
     Public Declare PtrSafe Function DisableMediaSense Lib "Iphlpapi" (pHandle As LongPtr, pOverlapped As OVERLAPPED) As Long
     Public Declare PtrSafe Function RestoreMediaSense Lib "Iphlpapi" (pOverlapped As OVERLAPPED, Optional lpdwEnableCount As Long) As Long
     Public DeclareWide PtrSafe Function GetIpErrorString Lib "Iphlpapi" (ByVal ErrorCode As Long, ByVal Buffer As String, Size As Long) As Long
-    Public DeclareWide PtrSafe Function ResolveNeighbor Lib "Iphlpapi" (NetworkAddress As sockaddr, PhysicalAddress As Any, PhysicalAddressLength As Long) As Long
+    Public DeclareWide PtrSafe Function ResolveNeighbor Lib "Iphlpapi" (NetworkAddress As SOCKADDR, PhysicalAddress As Any, PhysicalAddressLength As Long) As Long
     Public Declare PtrSafe Function CreatePersistentTcpPortReservation Lib "Iphlpapi" (ByVal StartPort As Integer, ByVal NumberOfPorts As Integer, Token As LongLong) As Long
     Public Declare PtrSafe Function CreatePersistentUdpPortReservation Lib "Iphlpapi" (ByVal StartPort As Integer, ByVal NumberOfPorts As Integer, Token As LongLong) As Long
     Public Declare PtrSafe Function DeletePersistentTcpPortReservation Lib "Iphlpapi" (ByVal StartPort As Integer, ByVal NumberOfPorts As Integer) As Long
@@ -7641,13 +7646,681 @@ Module wdAPIInternet
     Public DeclareWide PtrSafe Function ParseNetworkString Lib "Iphlpapi" (NetworkString As Integer, ByVal Types As NET_STRING_Values, AddressInfo As NET_ADDRESS_INFO, Optional PortNumber As Integer, Optional PrefixLength As Byte) As Long
 
 
-    'todo: netioapi.h
+    'netioapi.h   
+    'todo: INCOMPLETE
 
+    Public Enum MIB_NOTIFICATION_TYPE
+        ' 
+        '  ParameterChange.
+        ' 
+        MibParameterNotification
+        ' 
+        '  Addition.
+        ' 
+        MibAddInstance
+        ' 
+        '  Deletion.
+        ' 
+        MibDeleteInstance
+        ' 
+        '  Initial notification.
+        ' 
+        MibInitialNotification
+    End Enum
+    
+    Public Enum NDIS_MEDIUM
+        NdisMedium802_3
+        NdisMedium802_5
+        NdisMediumFddi
+        NdisMediumWan
+        NdisMediumLocalTalk
+        NdisMediumDix              ' defined for convenience not a real medium
+        NdisMediumArcnetRaw
+        NdisMediumArcnet878_2
+        NdisMediumAtm
+        NdisMediumWirelessWan
+        NdisMediumIrda
+        NdisMediumBpc
+        NdisMediumCoWan
+        NdisMedium1394
+        NdisMediumInfiniBand
+    '#if ((NTDDI_VERSION >= NTDDI_VISTA) || NDIS_SUPPORT_NDIS6)
+        NdisMediumTunnel
+        NdisMediumNative802_11
+        NdisMediumLoopback
+    '#endif // (NTDDI_VERSION >= NTDDI_VISTA)
 
+    '#if (NTDDI_VERSION >= NTDDI_WIN7)
+        NdisMediumWiMAX
+        NdisMediumIP
+    '#endif
+
+        NdisMediumMax               ' Not a real medium, defined As an upper-bound
+    End Enum
+    Public Enum NDIS_PHYSICAL_MEDIUM
+        NdisPhysicalMediumUnspecified
+        NdisPhysicalMediumWirelessLan
+        NdisPhysicalMediumCableModem
+        NdisPhysicalMediumPhoneLine
+        NdisPhysicalMediumPowerLine
+        NdisPhysicalMediumDSL      ' includes ADSL and UADSL (G.Lite)
+        NdisPhysicalMediumFibreChannel
+        NdisPhysicalMedium1394
+        NdisPhysicalMediumWirelessWan
+        NdisPhysicalMediumNative802_11
+        NdisPhysicalMediumBluetooth
+        NdisPhysicalMediumInfiniband
+        NdisPhysicalMediumWiMax
+        NdisPhysicalMediumUWB
+        NdisPhysicalMedium802_3
+        NdisPhysicalMedium802_5
+        NdisPhysicalMediumIrda
+        NdisPhysicalMediumWiredWAN
+        NdisPhysicalMediumWiredCoWan
+        NdisPhysicalMediumOther
+        NdisPhysicalMediumNative802_15_4
+        NdisPhysicalMediumMax ' Not a real physical type, defined as an upper-bound
+    End Enum
+    Public Type MIB_IF_ROW2
+        ' Key structure.  Sorted by preference.
+        InterfaceLuid As NET_LUID
+        InterfaceIndex As Long 'NET_IFINDEX
+        ' Read-Only fields.
+        InterfaceGuid As UUID
+        Alias(IF_MAX_STRING_SIZE) As Integer
+        Description(IF_MAX_STRING_SIZE) As Integer
+        PhysicalAddressLength As Long
+        PhysicalAddress(0 To (IF_MAX_PHYS_ADDRESS_LENGTH - 1)) As Byte
+        PermanentPhysicalAddress(0 To (IF_MAX_PHYS_ADDRESS_LENGTH - 1)) As Byte
+        Mtu As Long
+        Type As IFTYPE ' Interface Type.
+        TunnelType As TUNNEL_TYPE ' Tunnel Type, if Type = IF_TUNNEL.
+        MediaType As NDIS_MEDIUM
+        PhysicalMediumType As NDIS_PHYSICAL_MEDIUM
+        AccessType As NET_IF_ACCESS_TYPE
+        DirectionType As NET_IF_DIRECTION_TYPE
+        '    struct {
+        '        BOOLEAN HardwareInterface : 1;
+        '        BOOLEAN FilterInterface : 1;
+        '        BOOLEAN ConnectorPresent : 1;
+        '        BOOLEAN NotAuthenticated : 1;
+        '        BOOLEAN NotMediaConnected : 1;
+        '        BOOLEAN Paused : 1;
+        '        BOOLEAN LowPower : 1;
+        '        BOOLEAN EndPointInterface : 1;
+        '    } InterfaceAndOperStatusFlags;
+        InterfaceAndOperStatusFlags As Byte
+        OperStatus As IF_OPER_STATUS
+        AdminStatus As NET_IF_ADMIN_STATUS
+        MediaConnectState As NET_IF_MEDIA_CONNECT_STATE
+        NetworkGuid As UUID 'NET_IF_NETWORK_UUID
+        ConnectionType As NET_IF_CONNECTION_TYPE
+        ' Statistics.
+        TransmitLinkSpeed As LongLong
+        ReceiveLinkSpeed As LongLong
+        InOctets As LongLong
+        InUcastPkts As LongLong
+        InNUcastPkts As LongLong
+        InDiscards As LongLong
+        InErrors As LongLong
+        InUnknownProtos As LongLong
+        InUcastOctets As LongLong
+        InMulticastOctets As LongLong
+        InBroadcastOctets As LongLong
+        OutOctets As LongLong
+        OutUcastPkts As LongLong
+        OutNUcastPkts As LongLong
+        OutDiscards As LongLong
+        OutErrors As LongLong
+        OutUcastOctets As LongLong
+        OutMulticastOctets As LongLong
+        OutBroadcastOctets As LongLong
+        OutQLen As LongLong
+    End Type
+    
+    [Description("⚠️ **WARNING:** Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))")]
+    Public Type MIB_IF_TABLE2
+        NumEntries As Long
+        Table() As MIB_IF_ROW2
+    End Type
+    
+    Public Declare PtrSafe Function GetIfEntry2 Lib "Iphlpapi" (Row As MIB_IF_ROW2) As Long
+    
+    Public Enum MIB_IF_ENTRY_LEVEL
+        MibIfEntryNormal = 0
+        MibIfEntryNormalWithoutStatistics = 2
+    End Enum
+    
+    Public Declare PtrSafe Function GetIfEntry2Ex Lib "Iphlpapi" (ByVal Level As MIB_IF_ENTRY_LEVEL, Row As MIB_IF_ROW2) As Long
+    Public Declare PtrSafe Function GetIfTable2 Lib "Iphlpapi" (Table As LongPtr) As Long
+    
+    Public Enum MIB_IF_TABLE_LEVEL
+        MibIfTableNormal
+        MibIfTableRaw
+        '     #if (NTDDI_VERSION >= NTDDI_WIN10_RS2)
+        MibIfTableNormalWithoutStatistics
+        '     #endif
+    End Enum
+    Public Declare PtrSafe Function GetIfTable2Ex Lib "Iphlpapi" (ByVal Level As MIB_IF_TABLE_LEVEL, Table As LongPtr) As Long
+    
+    Public Enum SCOPE_LEVEL
+        ScopeLevelInterface = 1
+        ScopeLevelLink = 2
+        ScopeLevelSubnet = 3
+        ScopeLevelAdmin = 4
+        ScopeLevelSite = 5
+        ScopeLevelOrganization = 8
+        ScopeLevelGlobal = 14
+        ScopeLevelCount = 16
+    End Enum
+    
+    Public Type MIB_IPINTERFACE_ROW
+        ' Key Structure;
+        /* [TypeHint(ADDRESS_FAMILIES)] */ Family As Integer 'ADDRESS_FAMILY
+        InterfaceLuid As NET_LUID
+        InterfaceIndex As Long 'NET_IFINDEX
+        ' Read-Write fields.
+        ' Fields currently not exposed.
+        MaxReassemblySize As Long
+        InterfaceIdentifier As LongLong
+        MinRouterAdvertisementInterval As Long
+        MaxRouterAdvertisementInterval As Long
+        ' Fileds currently exposed.
+        AdvertisingEnabled As Byte
+        ForwardingEnabled As Byte
+        WeakHostSend As Byte
+        WeakHostReceive As Byte
+        UseAutomaticMetric As Byte
+        UseNeighborUnreachabilityDetection As Byte
+        ManagedAddressConfigurationSupported As Byte
+        OtherStatefulConfigurationSupported As Byte
+        AdvertiseDefaultRoute As Byte
+        RouterDiscoveryBehavior As NL_ROUTER_DISCOVERY_BEHAVIOR
+        DadTransmits As Long ' DupAddrDetectTransmits in RFC 4862.
+        BaseReachableTime As Long
+        RetransmitTime As Long
+        PathMtuDiscoveryTimeout As Long ' Path MTU discovery timeout (in ms).
+        LinkLocalAddressBehavior As NL_LINK_LOCAL_ADDRESS_BEHAVIOR
+        LinkLocalAddressTimeout As Long ' In ms.
+        ZoneIndices(0 To (ScopeLevelCount - 1)) As Long ' Zone part of a SCOPE_ID.
+        SitePrefixLength As Long
+        Metric As Long
+        NlMtu As Long
+        ' Read Only fields.
+        Connected As Byte
+        SupportsWakeUpPatterns As Byte
+        SupportsNeighborDiscovery As Byte
+        SupportsRouterDiscovery As Byte
+        ReachableTime As Long
+        TransmitOffload As NL_INTERFACE_OFFLOAD_ROD
+        ReceiveOffload As NL_INTERFACE_OFFLOAD_ROD
+        ' Disables using default route on the interface. This flag
+        ' can be used by VPN clients to restrict Split tunnelling.
+        DisableDefaultRoutes As Byte
+    End Type
+    
+    [Description("⚠️ **WARNING:** Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))")]
+    Public Type MIB_IPINTERFACE_TABLE
+        NumEntries As Long
+        Table() As MIB_IPINTERFACE_ROW
+    End Type
+    
+    Public Type MIB_IFSTACK_ROW
+        HigherLayerInterfaceIndex As Long 'NET_IFINDEX
+        LowerLayerInterfaceIndex As Long 'NET_IFINDEX
+    End Type
+    Public Type MIB_INVERTEDIFSTACK_ROW
+        LowerLayerInterfaceIndex As Long 'NET_IFINDEX
+        HigherLayerInterfaceIndex As Long 'NET_IFINDEX
+    End Type
+    
+    [Description("⚠️ **WARNING:** Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))")]
+    Public Type MIB_IFSTACK_TABLE
+        NumEntries As Long
+        Table() As MIB_IFSTACK_ROW
+    End Type
+    [Description("⚠️ **WARNING:** Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))")]
+    Public Type MIB_INVERTEDIFSTACK_TABLE
+        NumEntries As Long
+        Table() As MIB_INVERTEDIFSTACK_ROW
+    End Type
+    
+    Public Type MIB_IP_NETWORK_CONNECTION_BANDWIDTH_ESTIMATES
+        InboundBandwidthInformation As NL_BANDWIDTH_INFORMATION
+        OutboundBandwidthInformation As NL_BANDWIDTH_INFORMATION
+    End Type
+    
+    Public Declare PtrSafe Function GetIfStackTable Lib "Iphlpapi" (Table As LongPtr) As Long
+    Public Declare PtrSafe Function GetInvertedIfStackTable Lib "Iphlpapi" (Table As LongPtr) As Long
+    Public Declare PtrSafe Function GetIpInterfaceEntry Lib "Iphlpapi" (Row As MIB_IPINTERFACE_ROW) As Long
+    Public Declare PtrSafe Function GetIpInterfaceTable Lib "Iphlpapi" ([TypeHint(ADDRESS_FAMILIES)] ByVal Family As Integer, Table As LongPtr) As Long
+    Public Declare PtrSafe Sub InitializeIpInterfaceEntry Lib "Iphlpapi" (Row As MIB_IPINTERFACE_ROW)
+    Public Declare PtrSafe Function NotifyIpInterfaceChange Lib "Iphlpapi" ([TypeHint(ADDRESS_FAMILIES)] ByVal Family As Integer, ByVal Callback As LongPtr, ByVal CallerContext As LongPtr, ByVal InitialNotification As Byte, NotificationHandle As LongPtr) As Long
+    Public Declare PtrSafe Function SetIpInterfaceEntry Lib "Iphlpapi" (Row As MIB_IPINTERFACE_ROW) As Long
+    Public Declare PtrSafe Function GetIpNetworkConnectionBandwidthEstimates Lib "Iphlpapi" (ByVal InterfaceIndex As Long, [TypeHint(ADDRESS_FAMILIES)] ByVal AddressFamily As Integer, BandwidthEstimates As MIB_IP_NETWORK_CONNECTION_BANDWIDTH_ESTIMATES) As Long
+    
+    ' typedef union _SOCKADDR_INET {
+    ' SOCKADDR_IN Ipv4;
+    ' SOCKADDR_IN6 Ipv6;
+    ' ADDRESS_FAMILY si_family;
+' } SOCKADDR_INET, *PSOCKADDR_INET;
+    Public Type SOCKADDR_INET
+        u(27) As Byte
+    End Type
+    
+    Public Type MIB_UNICASTIPADDRESS_ROW
+        ' Key Structure.
+        Address As SOCKADDR_INET
+        InterfaceLuid As NET_LUID
+        InterfaceIndex As Long 'NET_IFINDEX
+        ' Read-Write Fileds.
+        PrefixOrigin As NL_PREFIX_ORIGIN
+        SuffixOrigin As NL_SUFFIX_ORIGIN
+        ValidLifetime As Long
+        PreferredLifetime As Long
+        OnLinkPrefixLength As Byte 'UINT8
+        SkipAsSource As Byte
+        ' Read-Only Fields.
+        DadState As NL_DAD_STATE
+        ScopeId As Long 'SCOPE_ID
+        CreationTimeStamp As LARGE_INTEGER
+    End Type
+    
+    [Description("⚠️ **WARNING:** Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))")]
+    Public Type MIB_UNICASTIPADDRESS_TABLE
+        NumEntries As Long
+        Table() As MIB_UNICASTIPADDRESS_ROW
+    End Type
+    
+    Public Declare PtrSafe Function CreateUnicastIpAddressEntry Lib "Iphlpapi" (Row As MIB_UNICASTIPADDRESS_ROW) As Long
+    Public Declare PtrSafe Function DeleteUnicastIpAddressEntry Lib "Iphlpapi" (Row As MIB_UNICASTIPADDRESS_ROW) As Long
+    Public Declare PtrSafe Function GetUnicastIpAddressEntry Lib "Iphlpapi" (Row As MIB_UNICASTIPADDRESS_ROW) As Long
+    Public Declare PtrSafe Function GetUnicastIpAddressTable Lib "Iphlpapi" ([TypeHint(ADDRESS_FAMILIES)] ByVal Family As Integer, Table As LongPtr) As Long
+    Public Declare PtrSafe Sub InitializeUnicastIpAddressEntry Lib "Iphlpapi" (Row As MIB_UNICASTIPADDRESS_ROW)
+    Public Declare PtrSafe Function NotifyUnicastIpAddressChange Lib "Iphlpapi" ([TypeHint(ADDRESS_FAMILIES)] ByVal Family As Integer, ByVal Callback As LongPtr, ByVal CallerContext As LongPtr, ByVal InitialNotification As Byte, NotificationHandle As LongPtr) As Long
+    Public Declare PtrSafe Function NotifyStableUnicastIpAddressTable Lib "Iphlpapi" ([TypeHint(ADDRESS_FAMILIES)] ByVal Family As Integer, Table As LongPtr, ByVal CallerCallback As LongPtr, ByVal CallerContext As LongPtr, NotificationHandle As LongPtr) As Long
+    Public Declare PtrSafe Function SetUnicastIpAddressEntry Lib "Iphlpapi" (Row As MIB_UNICASTIPADDRESS_ROW) As Long
+    
+    Public Type MIB_ANYCASTIPADDRESS_ROW
+        ' Key Structure.
+        Address As SOCKADDR_INET
+        InterfaceLuid As NET_LUID
+        InterfaceIndex As Long 'NET_IFINDEX
+        ' Read-Only Fields.
+        ScopeId As Long 'SCOPE_ID
+    End Type
+    [Description("⚠️ **WARNING:** Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))")]
+    Public Type MIB_ANYCASTIPADDRESS_TABLE
+        NumEntries As Long
+        Table() As MIB_ANYCASTIPADDRESS_ROW
+    End Type
+    
+    Public Declare PtrSafe Function CreateAnycastIpAddressEntry Lib "Iphlpapi" (Row As MIB_ANYCASTIPADDRESS_ROW) As Long
+    Public Declare PtrSafe Function DeleteAnycastIpAddressEntry Lib "Iphlpapi" (Row As MIB_ANYCASTIPADDRESS_ROW) As Long
+    Public Declare PtrSafe Function GetAnycastIpAddressEntry Lib "Iphlpapi" (Row As MIB_ANYCASTIPADDRESS_ROW) As Long
+    Public Declare PtrSafe Function GetAnycastIpAddressTable Lib "Iphlpapi" ([TypeHint(ADDRESS_FAMILIES)] ByVal Family As Integer, Table As LongPtr) As Long
+    
+    Public Type MIB_MULTICASTIPADDRESS_ROW
+        ' Key Structure.
+        Address As SOCKADDR_INET
+        InterfaceIndex As Long 'NET_IFINDEX
+        InterfaceLuid As NET_LUID
+        ' Read-Only Fields.
+        ScopeId As Long 'SCOPE_ID
+    End Type
+    
+    [Description("⚠️ **WARNING:** Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))")]
+    Public Type MIB_MULTICASTIPADDRESS_TABLE
+        NumEntries As Long
+        Table() As MIB_MULTICASTIPADDRESS_ROW
+    End Type
+    
+    Public Declare PtrSafe Function GetMulticastIpAddressEntry Lib "Iphlpapi" (Row As MIB_MULTICASTIPADDRESS_ROW) As Long
+    Public Declare PtrSafe Function GetMulticastIpAddressTable Lib "Iphlpapi" ([TypeHint(ADDRESS_FAMILIES)] ByVal Family As Integer, Table As LongPtr) As Long
+    
+    Public Type IP_ADDRESS_PREFIX
+        Prefix As SOCKADDR_INET
+        PrefixLength As Byte 'UINT8
+    End Type
+    
+    Public Type MIB_IPFORWARD_ROW2
+        ' Key Structure.
+        InterfaceLuid As NET_LUID
+        InterfaceIndex As Long 'NET_IFINDEX
+        DestinationPrefix As IP_ADDRESS_PREFIX
+        NextHop As SOCKADDR_INET
+        ' Read-Write Fields.
+        SitePrefixLength As Byte
+        ValidLifetime As Long
+        PreferredLifetime As Long
+        Metric As Long
+        Protocol As NL_ROUTE_PROTOCOL
+        Loopback As Byte
+        AutoconfigureAddress As Byte
+        Publish As Byte
+        Immortal As Byte
+        ' Read-Only Fields.
+        Age As Long
+        Origin As NL_ROUTE_ORIGIN
+    End Type
+    [Description("⚠️ **WARNING:** Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))")]
+    Public Type MIB_IPFORWARD_TABLE2
+        NumEntries As Long
+        Table() As MIB_IPFORWARD_ROW2
+    End Type
+    
+    Public Type MIB_IPPATH_ROW
+        ' Key.
+        Source As SOCKADDR_INET
+        Destination As SOCKADDR_INET
+        InterfaceLuid As NET_LUID
+        InterfaceIndex As Long 'NET_IFINDEX
+        ' RO.
+        ' The current next hop.  This can change over the lifetime of a path.
+        CurrentNextHop As SOCKADDR_INET
+        ' MTU of path to destination. Includes the IP header length.
+        PathMtu As Long
+        ' Estimated mean RTT.
+        RttMean As Long
+        ' Mean deviation of RTT.
+        RttDeviation As Long
+        '    union {
+        '        ULONG LastReachable;    // Milliseconds.
+        '        ULONG LastUnreachable;  // Milliseconds.
+        '    };
+        LastReachableOrUnreachable As Long
+        IsReachable As Byte
+        ' Estimated speed.
+        LinkTransmitSpeed As LongLong
+        LinkReceiveSpeed As LongLong
+    End Type
+    [Description("⚠️ **WARNING:** Cannot be used as-is. For receiving data only. Copy first 4 bytes, redim properly, copy to VarPtr(table(0))")]
+    Public Type MIB_IPPATH_TABLE
+        NumEntries As Long
+        Table() As MIB_IPPATH_ROW
+    End Type
+    
+    Public Declare PtrSafe Function CreateIpForwardEntry2 Lib "Iphlpapi" (Row As MIB_IPFORWARD_ROW2) As Long
+    Public Declare PtrSafe Function DeleteIpForwardEntry2 Lib "Iphlpapi" (Row As MIB_IPFORWARD_ROW2) As Long
+    Public Declare PtrSafe Function GetBestRoute2 Lib "Iphlpapi" (InterfaceLuid As NET_LUID, ByVal InterfaceIndex As Long, SourceAddress As SOCKADDR_INET, ByVal AddressSortOptions As Long, BestRoute As MIB_IPFORWARD_ROW2, BestSourceAddress As SOCKADDR_INET) As Long
+    Public Declare PtrSafe Function GetIpForwardEntry2 Lib "Iphlpapi" (Row As MIB_IPFORWARD_ROW2) As Long
+    Public Declare PtrSafe Function GetIpForwardTable2 Lib "Iphlpapi" ([TypeHint(ADDRESS_FAMILIES)] ByVal Family As Integer, Table As LongPtr) As Long
+    Public Declare PtrSafe Sub InitializeIpForwardEntry Lib "Iphlpapi" (Row As MIB_IPFORWARD_ROW2)
+    Public Declare PtrSafe Function NotifyRouteChange2 Lib "Iphlpapi" ([TypeHint(ADDRESS_FAMILIES)] ByVal Family As Integer, ByVal Callback As LongPtr, ByVal CallerContext As LongPtr, ByVal InitialNotification As Byte, NotificationHandle As LongPtr) As Long
+    Public Declare PtrSafe Function SetIpForwardEntry2 Lib "Iphlpapi" (Row As MIB_IPFORWARD_ROW2) As Long
+    Public Declare PtrSafe Function FlushIpPathTable Lib "Iphlpapi" ([TypeHint(ADDRESS_FAMILIES)] ByVal Family As Integer) As Long
+    Public Declare PtrSafe Function GetIpPathEntry Lib "Iphlpapi" (Row As MIB_IPPATH_ROW) As Long
+    Public Declare PtrSafe Function GetIpPathTable Lib "Iphlpapi" ([TypeHint(ADDRESS_FAMILIES)] ByVal Family As Integer, Table As LongPtr) As Long
+    
+    Public Type MIB_IPNET_ROW2
+        ' Key Struture.
+        Address As SOCKADDR_INET
+        InterfaceIndex As Long 'NET_IFINDEX
+        InterfaceLuid As NET_LUID
+        ' Read-Write.
+        PhysicalAddress(0 To (IF_MAX_PHYS_ADDRESS_LENGTH - 1)) As Byte
+        ' Read-Only.
+        PhysicalAddressLength As Long
+        State As NL_NEIGHBOR_STATE
+        '   union {
+        '       struct {
+        '           BOOLEAN IsRouter : 1;
+        '           BOOLEAN IsUnreachable : 1;
+        '       };
+        Flags As Byte
+        '    };
+        '    union {
+        '        ULONG LastReachable;
+        '        ULONG LastUnreachable;
+        '    } ReachabilityTime;
+        ReachabilityTime As Long
+    End Type
+    Public Type MIB_IPNET_TABLE2
+        NumEntries As Long
+        Table() As MIB_IPNET_ROW2
+    End Type
+    
+    Public Declare PtrSafe Function CreateIpNetEntry2 Lib "Iphlpapi" (Row As MIB_IPNET_ROW2) As Long
+    Public Declare PtrSafe Function DeleteIpNetEntry2 Lib "Iphlpapi" (Row As MIB_IPNET_ROW2) As Long
+    Public Declare PtrSafe Function FlushIpNetTable2 Lib "Iphlpapi" ([TypeHint(ADDRESS_FAMILIES)] ByVal Family As Integer, ByVal InterfaceIndex As Long) As Long
+    Public Declare PtrSafe Function GetIpNetEntry2 Lib "Iphlpapi" (Row As MIB_IPNET_ROW2) As Long
+    Public Declare PtrSafe Function GetIpNetTable2 Lib "Iphlpapi" ([TypeHint(ADDRESS_FAMILIES)] ByVal Family As Integer, Table As LongPtr) As Long
+    Public Declare PtrSafe Function ResolveIpNetEntry2 Lib "Iphlpapi" (Row As MIB_IPNET_ROW2, SourceAddress As SOCKADDR_INET) As Long
+    Public Declare PtrSafe Function SetIpNetEntry2 Lib "Iphlpapi" (Row As MIB_IPNET_ROW2) As Long
+    
+    Public Const MIB_INVALID_TEREDO_PORT_NUMBER = 0
+    
+    Public Declare PtrSafe Function NotifyTeredoPortChange Lib "Iphlpapi" (ByVal Callback As LongPtr, ByVal CallerContext As LongPtr, ByVal InitialNotification As Byte, NotificationHandle As LongPtr) As Long
+    Public Declare PtrSafe Function GetTeredoPort Lib "Iphlpapi" (Port As Integer) As Long
+    
+    Public Declare PtrSafe Function CancelMibChangeNotify2 Lib "Iphlpapi" (ByVal NotificationHandle As LongPtr) As Long
+    Public Declare PtrSafe Sub FreeMibTable Lib "Iphlpapi" (ByVal Memory As LongPtr)
+    Public Declare PtrSafe Function CreateSortedAddressPairs Lib "Iphlpapi" (SourceAddressList As SOCKADDR_IN6, ByVal SourceAddressCount As Long, DestinationAddressList As SOCKADDR_IN6, ByVal DestinationAddressCount As Long, ByVal AddressSortOptions As Long, SortedAddressPairList As LongPtr, SortedAddressPairCount As Long) As Long
+    Public Declare PtrSafe Function ConvertCompartmentGuidToId Lib "Iphlpapi" (CompartmentGuid As UUID, CompartmentId As Long) As Long
+    Public Declare PtrSafe Function ConvertCompartmentIdToGuid Lib "Iphlpapi" (ByVal CompartmentId As Long, CompartmentGuid As UUID) As Long
+    Public Declare PtrSafe Function ConvertInterfaceNameToLuidA Lib "Iphlpapi" (ByVal InterfaceName As String, InterfaceLuid As NET_LUID) As Long
+    Public Declare PtrSafe Function ConvertInterfaceNameToLuidW Lib "Iphlpapi" (ByVal InterfaceName As LongPtr, InterfaceLuid As NET_LUID) As Long
+    Public DeclareWide PtrSafe Function ConvertInterfaceNameToLuid Lib "Iphlpapi" Alias "ConvertInterfaceNameToLuidW" (ByVal InterfaceName As String, InterfaceLuid As NET_LUID) As Long
+    Public Declare PtrSafe Function ConvertInterfaceLuidToNameA Lib "Iphlpapi" (InterfaceLuid As NET_LUID, ByVal InterfaceName As String, ByVal Length As LongPtr) As Long
+    Public Declare PtrSafe Function ConvertInterfaceLuidToNameW Lib "Iphlpapi" (InterfaceLuid As NET_LUID, ByVal InterfaceName As LongPtr, ByVal Length As LongPtr) As Long
+    Public DeclareWide PtrSafe Function ConvertInterfaceLuidToName Lib "Iphlpapi" Alias "ConvertInterfaceLuidToNameW" (InterfaceLuid As NET_LUID, ByVal InterfaceName As String, ByVal Length As LongPtr) As Long
+    Public Declare PtrSafe Function ConvertInterfaceLuidToIndex Lib "Iphlpapi" (InterfaceLuid As NET_LUID, InterfaceIndex As Long) As Long
+    Public Declare PtrSafe Function ConvertInterfaceIndexToLuid Lib "Iphlpapi" (ByVal InterfaceIndex As Long, InterfaceLuid As NET_LUID) As Long
+    Public DeclareWide PtrSafe Function ConvertInterfaceLuidToAlias Lib "Iphlpapi" (InterfaceLuid As NET_LUID, ByVal InterfaceAlias As String, ByVal Length As LongPtr) As Long
+    Public DeclareWide PtrSafe Function ConvertInterfaceAliasToLuid Lib "Iphlpapi" (ByVal InterfaceAlias As String, InterfaceLuid As NET_LUID) As Long
+    Public Declare PtrSafe Function ConvertInterfaceLuidToGuid Lib "Iphlpapi" (InterfaceLuid As NET_LUID, InterfaceGuid As UUID) As Long
+    Public Declare PtrSafe Function ConvertInterfaceGuidToLuid Lib "Iphlpapi" (InterfaceGuid As UUID, InterfaceLuid As NET_LUID) As Long
+    Public Declare PtrSafe Function if_nametoindex Lib "Iphlpapi" (ByVal InterfaceName As String) As Long
+    Public Declare PtrSafe Function if_indextoname Lib "Iphlpapi" (ByVal InterfaceIndex As Long, ByVal InterfaceName As String) As Long
+    Public Declare PtrSafe Function GetCurrentThreadCompartmentId Lib "Iphlpapi" () As Long
+    Public Declare PtrSafe Function SetCurrentThreadCompartmentId Lib "Iphlpapi" (ByVal CompartmentId As Long) As Long
+    Public Declare PtrSafe Sub GetCurrentThreadCompartmentScope Lib "Iphlpapi" (CompartmentScope As NET_IF_COMPARTMENT_SCOPE, CompartmentId As Long)
+    Public Declare PtrSafe Function SetCurrentThreadCompartmentScope Lib "Iphlpapi" (ByVal CompartmentScope As NET_IF_COMPARTMENT_SCOPE) As Long
+    Public Declare PtrSafe Function GetJobCompartmentId Lib "Iphlpapi" (ByVal JobHandle As LongPtr) As Long
+    Public Declare PtrSafe Function SetJobCompartmentId Lib "Iphlpapi" (ByVal JobHandle As LongPtr, ByVal CompartmentId As Long) As Long
+    Public Declare PtrSafe Function GetSessionCompartmentId Lib "Iphlpapi" (ByVal SessionId As Long) As Long
+    Public Declare PtrSafe Function SetSessionCompartmentId Lib "Iphlpapi" (ByVal SessionId As Long, ByVal CompartmentId As Long) As Long
+    Public Declare PtrSafe Function GetDefaultCompartmentId Lib "Iphlpapi" () As Long
+    Public DeclareWide PtrSafe Function GetNetworkInformation Lib "Iphlpapi" (NetworkGuid As UUID, CompartmentId As Long, SiteId As Long, ByVal NetworkName As String, ByVal Length As Long) As Long
+    Public DeclareWide PtrSafe Function SetNetworkInformation Lib "Iphlpapi" (NetworkGuid As UUID, ByVal CompartmentId As Long, ByVal NetworkName As String) As Long
+    Public Declare PtrSafe Function ConvertLengthToIpv4Mask Lib "Iphlpapi" (ByVal MaskLength As Long, Mask As Long) As Long
+    Public Declare PtrSafe Function ConvertIpv4MaskToLength Lib "Iphlpapi" (ByVal Mask As Long, MaskLength As Byte) As Long
+    
+    Public Enum IphlpDnsSettingsVersions
+        DNS_SETTINGS_VERSION1 = &H0001
+        DNS_SETTINGS_VERSION2 = &H0002
+    End Enum
+    Public Enum IphlpDnsIfaceSettingsVersions
+        DNS_INTERFACE_SETTINGS_VERSION1 = &H0001
+        DNS_INTERFACE_SETTINGS_VERSION2 = &H0002
+        DNS_INTERFACE_SETTINGS_VERSION3 = &H0003
+        DNS_INTERFACE_SETTINGS_VERSION4 = &H0004
+    End Enum
+    Public Enum IphlpDnsSettings
+        DNS_SETTING_IPV6 = &H0001
+        DNS_SETTING_NAMESERVER = &H0002
+        DNS_SETTING_SEARCHLIST = &H0004
+        DNS_SETTING_REGISTRATION_ENABLED = &H0008
+        DNS_SETTING_REGISTER_ADAPTER_NAME = &H0010
+        DNS_SETTING_DOMAIN = &H0020
+        DNS_SETTING_HOSTNAME = &H0040
+        DNS_SETTINGS_ENABLE_LLMNR = &H0080
+        DNS_SETTINGS_QUERY_ADAPTER_NAME = &H0100
+        DNS_SETTING_PROFILE_NAMESERVER = &H0200
+        DNS_SETTING_DISABLE_UNCONSTRAINED_QUERIES = &H0400
+        DNS_SETTING_SUPPLEMENTAL_SEARCH_LIST = &H0800
+        DNS_SETTING_DOH = &H1000
+        DNS_SETTING_DOH_PROFILE = &H2000
+        DNS_SETTING_ENCRYPTED_DNS_ADAPTER_FLAGS = &H4000
+        DNS_SETTING_DDR = &H8000&
+        DNS_SETTING_DOT = &H10000
+        DNS_SETTING_DOT_PROFILE = &H20000
+    End Enum
+    Public Enum IphlpDnsDohFlags
+        DNS_ENABLE_DOH = &H0001
+    End Enum
+    Public Enum IphlpDnsDohPolicyFlags
+        DNS_DOH_POLICY_NOT_CONFIGURED = &H0004
+        DNS_DOH_POLICY_DISABLE = &H0008
+        DNS_DOH_POLICY_AUTO = &H0010
+        DNS_DOH_POLICY_REQUIRED = &H0020
+        DNS_ENCRYPTION_POLICY_NOT_CONFIGURED = DNS_DOH_POLICY_NOT_CONFIGURED
+        DNS_ENCRYPTION_POLICY_DISABLE = DNS_DOH_POLICY_DISABLE
+        DNS_ENCRYPTION_POLICY_AUTO = DNS_DOH_POLICY_AUTO
+        DNS_ENCRYPTION_POLICY_REQUIRED = DNS_DOH_POLICY_REQUIRED
+        DNS_ENABLE_DDR = &H0040
+        DNS_ENABLE_DOT = &H0080
+        DNS_DOT_POLICY_BLOCK = &H0100
+        DNS_DOH_POLICY_BLOCK = &H0200
+    End Enum
+    Public Enum IphlpDnsServerVersions
+        DNS_SERVER_PROPERTY_VERSION1 = 1
+    End Enum
+    Public Enum IphlpDnsDohServerSettings
+        DNS_DOH_SERVER_SETTINGS_ENABLE_AUTO = &H0001
+        DNS_DOH_SERVER_SETTINGS_ENABLE = &H0002
+        DNS_DOH_SERVER_SETTINGS_FALLBACK_TO_UDP = &H0004
+        DNS_DOH_AUTO_UPGRADE_SERVER = &H0008
+        DNS_DOH_SERVER_SETTINGS_ENABLE_DDR = &H0010
+    End Enum
+    Public Enum IphlpDnsDotServerSettings
+        DNS_DOT_SERVER_SETTINGS_ENABLE = &H0001
+        DNS_DOT_SERVER_SETTINGS_FALLBACK_TO_UDP = &H0002
+        DNS_DOT_AUTO_UPGRADE_SERVER = &H0004
+        DNS_DOT_SERVER_SETTINGS_ENABLE_AUTO = &H0008
+        DNS_DOT_SERVER_SETTINGS_ENABLE_DDR = &H0010
+    End Enum
+    Public Enum IphlpDnsDdrAdapterFlags
+        DNS_DDR_ADAPTER_ENABLE_DOH = &H0001
+        DNS_DDR_ADAPTER_ENABLE = DNS_DDR_ADAPTER_ENABLE_DOH
+        DNS_DDR_ADAPTER_ENABLE_UDP_FALLBACK = &H0002
+    End Enum
+    
+    Public Type DNS_SETTINGS
+        Version As Long
+        Flags As LongLong
+        Hostname As LongPtr
+        Domain As LongPtr
+        SearchList As LongPtr
+    End Type
+    Public Type DNS_SETTINGS2
+        Version As Long
+        Flags As LongLong
+        Hostname As LongPtr
+        Domain As LongPtr
+        SearchList As LongPtr
+        SettingFlags As LongLong
+    End Type
+    
+    Public Type DNS_DOH_SERVER_SETTINGS
+        Template As LongPtr
+        /* [TypeHint(IphlpDnsDohServerSettings)] */ Flags As LongLong
+    End Type
+    Public Type DNS_DOT_SERVER_SETTINGS
+        Hostname As LongPtr
+        /* [TypeHint(IphlpDnsDotServerSettings)] */ Flags As LongLong
+        Port As Integer
+    End Type
+    
+    Public Enum DNS_SERVER_PROPERTY_TYPE
+        DnsServerInvalidProperty = 0
+        DnsServerDohProperty
+        DnsServerDotProperty
+    End Enum
+    
+    ' typedef union _DNS_SERVER_PROPERTY_TYPES
+    ' {
+        ' DNS_DOH_SERVER_SETTINGS *DohSettings;
+        ' DNS_DOT_SERVER_SETTINGS *DotSettings;
+    ' } DNS_SERVER_PROPERTY_TYPES;
+    Public Type DNS_SERVER_PROPERTY_TYPES
+        DohOrDnsSettings As LongPtr
+    End Type
+    
+    Public Type DNS_SERVER_PROPERTY
+        Version As IphlpDnsIfaceSettingsVersions
+        ServerIndex As Long
+        Type As DNS_SERVER_PROPERTY_TYPE
+        Property As DNS_SERVER_PROPERTY_TYPES
+    End Type
+    
+    Public Type DNS_INTERFACE_SETTINGS
+        Version As IphlpDnsIfaceSettingsVersions
+        /* [TypeHint(IphlpDnsSettings)] */ Flags As LongLong
+        Domain As LongPtr
+        NameServer As LongPtr
+        SearchList As LongPtr
+        RegistrationEnabled As Long
+        RegisterAdapterName As Long
+        EnableLLMNR As Long
+        QueryAdapterName As Long
+        ProfileNameServer As LongPtr
+    End Type
+    Public Type DNS_INTERFACE_SETTINGS_EX
+        SettingsV1 As DNS_INTERFACE_SETTINGS
+        DisableUnconstrainedQueries As Long
+        SupplementalSearchList As LongPtr
+    End Type
+    Public Type DNS_INTERFACE_SETTINGS3
+        Version As IphlpDnsIfaceSettingsVersions
+        /* [TypeHint(IphlpDnsSettings)] */ Flags As LongLong
+        Domain As LongPtr
+        NameServer As LongPtr
+        SearchList As LongPtr
+        RegistrationEnabled As Long
+        RegisterAdapterName As Long
+        EnableLLMNR As Long
+        QueryAdapterName As Long
+        ProfileNameServer As LongPtr
+        DisableUnconstrainedQueries As Long
+        SupplementalSearchList As LongPtr
+        cServerProperties As Long
+        ServerProperties As LongPtr '*DNS_SERVER_PROPERTY
+        cProfileServerProperties As Long
+        ProfileServerProperties As LongPtr 'DNS_SERVER_PROPERTY
+    End Type
+    Public Type DNS_INTERFACE_SETTINGS4
+        Version As IphlpDnsIfaceSettingsVersions
+        /* [TypeHint(IphlpDnsSettings)] */ Flags As LongLong
+        Domain As LongPtr
+        NameServer As LongPtr
+        SearchList As LongPtr
+        RegistrationEnabled As Long
+        RegisterAdapterName As Long
+        EnableLLMNR As Long
+        QueryAdapterName As Long
+        ProfileNameServer As LongPtr
+        DisableUnconstrainedQueries As Long
+        SupplementalSearchList As LongPtr
+        cServerProperties As Long
+        ServerProperties As LongPtr '*DNS_SERVER_PROPERTY
+        cProfileServerProperties As Long
+        ProfileServerProperties As LongPtr '*DNS_SERVER_PROPERTY
+        EncryptedDnsAdapterFlags As Long
+    End Type
+    
+    
+    Public Declare PtrSafe Function GetDnsSettings Lib "Iphlpapi" (Settings As Any) As Long
+    Public Declare PtrSafe Function FreeDnsSettings Lib "Iphlpapi" (Settings As Any) As Long
+    Public Declare PtrSafe Function SetDnsSettings Lib "Iphlpapi" (Settings As Any) As Long
+    #If Win64 Then
+    Public Declare PtrSafe Function GetInterfaceDnsSettings Lib "Iphlpapi" (Interface As UUID, Settings As Any) As Long 
+    Public Declare PtrSafe Function SetInterfaceDnsSettings Lib "Iphlpapi" (Interface As UUID, Settings As Any) As Long 
+    #Else
+    Public Declare PtrSafe Function GetInterfaceDnsSettings Lib "Iphlpapi" (ByVal Interface1 As Long, ByVal Interface2 As Long, ByVal Interface3 As Long, ByVal Interface4 As Long, Settings As Any) As Long
+    Public Declare PtrSafe Function SetInterfaceDnsSettings Lib "Iphlpapi" (ByVal Interface1 As Long, ByVal Interface2 As Long, ByVal Interface3 As Long, ByVal Interface4 As Long, Settings As Any) As Long
+    #End If
+    Public Declare PtrSafe Sub FreeInterfaceDnsSettings Lib "Iphlpapi" (Settings As Any)
+    Public Declare PtrSafe Function GetNetworkConnectivityHint Lib "Iphlpapi" (ConnectivityHint As NL_NETWORK_CONNECTIVITY_HINT) As Long
+    Public Declare PtrSafe Function GetNetworkConnectivityHintForInterface Lib "Iphlpapi" (ByVal InterfaceIndex As Long, ConnectivityHint As NL_NETWORK_CONNECTIVITY_HINT) As Long
+    Public Declare PtrSafe Function NotifyNetworkConnectivityHintChange Lib "Iphlpapi" (ByVal Callback As LongPtr, ByVal CallerContext As LongPtr, ByVal InitialNotification As Byte, NotificationHandle As LongPtr) As Long
+    
+    
+    
     /*
 
     I really don't know which to support (If Win10 21H1, ElseIf Win10 1809/Redstone 5) so I'm leaving the following unfinished for now:
-
+If
     #if (NTDDI_VERSION >= NTDDI_WIN10_FE)
 
     typedef struct _INTERFACE_HARDWARE_TIMESTAMP_CAPABILITIES
@@ -7866,7 +8539,7 @@ Module wdAPIInternet
     CancelIfTimestampConfigChange(
         _In_ HIFTIMESTAMPCHANGE NotificationHandle
         );
-
+ EndIf
     #endif // (NTDDI_VERSION >= NTDDI_WIN10_FE)
 
     */
@@ -8181,7 +8854,7 @@ Module wdAPIInternet
     Public Declare PtrSafe Function WNetRestoreSingleConnectionA Lib "mpr.dll" (ByVal hwndParent As LongPtr, ByVal lpDevice As String, ByVal fUseUI As BOOL) As Long
     Public DeclareWide PtrSafe Function WNetRestoreSingleConnectionW Lib "mpr.dll" (ByVal hwndParent As LongPtr, ByVal lpDevice As LongPtr, ByVal fUseUI As BOOL) As Long
     Public DeclareWide PtrSafe Function WNetRestoreSingleConnection Lib "mpr.dll" Alias "WNetRestoreSingleConnectionW" (ByVal hwndParent As LongPtr, ByVal lpDevice As String, ByVal fUseUI As BOOL) As Long
-    [Description("Unavailable on Vista+, use WNetRestoreSingleConnection.")] Public Declare PtrSafe Function WNetRestoreConnectionA Lib "mpr.dll" (ByVal hwnd As LongPtr, ByVal lpDevice As String) As Long
+    [Description("Unavailable on Vista+, use WNetRestoreSingleConnectionA.")] Public Declare PtrSafe Function WNetRestoreConnectionA Lib "mpr.dll" (ByVal hwnd As LongPtr, ByVal lpDevice As String) As Long
     [Description("Unavailable on Vista+, use WNetRestoreSingleConnectionW.")] Public DeclareWide PtrSafe Function WNetRestoreConnectionW Lib "mpr.dll" (ByVal hwnd As LongPtr, ByVal lpDevice As LongPtr) As Long
     [Description("Unavailable on Vista+, use WNetRestoreSingleConnection.")] Public DeclareWide PtrSafe Function WNetRestoreConnection Lib "mpr.dll" Alias "WNetRestoreSingleConnectionW" (ByVal hwnd As LongPtr, ByVal lpDevice As String) As Long
     Public Declare PtrSafe Function WNetUseConnectionA Lib "mpr.dll" (ByVal hwndOwner As LongPtr, lpNetResource As NETRESOURCEA, ByVal lpPassword As String, ByVal lpUserId As String, ByVal dwFlags As NETWK_CONNECTION_FLAGS, ByVal lpAccessName As String, lpBufferSize As Long, lpResult As Long) As Long
@@ -8795,9 +9468,9 @@ Module wdAPIInternet
     Public Declare PtrSafe Function WSAAsyncGetHostByAddr Lib "ws2_32" (ByVal hWnd As LongPtr, ByVal wMsg As Long, ByVal addr As String, ByVal nLen As Long, ByVal nType As WS_PROTO_FAMILY, lpBuf As Any, ByVal BufLen As Long) As LongPtr
     Public Declare PtrSafe Function WSAAsyncSelect Lib "ws2_32" (ByVal s As Long, ByVal hWnd As Long, ByVal wMsg As Long, ByVal lEvent As WS_FD_EVENTS) As Long
     Public Declare PtrSafe Function WSACancelAsyncRequest Lib "ws2_32" (ByVal hAsyncTaskHandle As LongPtr) As Long
-    Public Declare PtrSafe Function ws_connect Lib "ws2_32" Alias "connect" (ByVal s As LongPtr, ByRef Name As sockaddr_in, ByVal namelen As Long) As Long
+    Public Declare PtrSafe Function ws_connect Lib "ws2_32" Alias "connect" (ByVal s As LongPtr, ByRef Name As SOCKADDR_IN, ByVal namelen As Long) As Long
     Public Declare PtrSafe Function ws_socket Lib "ws2_32" Alias "socket" (ByVal af As ADDRESS_FAMILIES, ByVal s_type As WS_SOCKET_TYPES, ByVal Protocol As IPPROTO) As LongPtr
-    Public Declare PtrSafe Function ws_bind Lib "ws2_32" Alias "bind" (ByVal s As LongPtr, ByRef Name As sockaddr_in, ByRef namelen As Long) As Long
+    Public Declare PtrSafe Function ws_bind Lib "ws2_32" Alias "bind" (ByVal s As LongPtr, ByRef Name As SOCKADDR_IN, ByRef namelen As Long) As Long
     Public Declare PtrSafe Function ws_ntohl Lib "ws2_32" Alias "ntohl" (ByVal netlong As Long) As Long
     Public Declare PtrSafe Function ws_htonl Lib "ws2_32" Alias "htonl" (ByVal hostlong As Long) As Long
     Public Declare PtrSafe Function ws_htons Lib "ws2_32" Alias "htons" (ByVal hostshort As Long) As Integer
@@ -8808,12 +9481,12 @@ Module wdAPIInternet
     Public Declare PtrSafe Function htons Lib "ws2_32" (ByVal netlong As Integer) As Integer
     Public Declare PtrSafe Function ws_inet_ntoa Lib "ws2_32" Alias "inet_ntoa" (ByVal inn As Long) As LongPtr
     Public Declare PtrSafe Function ws_recv Lib "ws2_32" Alias "recv" (ByVal s As LongPtr, ByRef buf As Any, ByVal BufLen As Long, ByVal Flags As WS_SNDRCV_FLAGS) As Long
-    Public Declare PtrSafe Function ws_recvfrom Lib "ws2_32" Alias "recvfrom" (ByVal s As LongPtr, ByRef buf As Any, ByVal BufLen As Long, ByVal Flags As WS_SNDRCV_FLAGS, ByRef from As sockaddr_in, ByRef fromlen As Long) As Long
+    Public Declare PtrSafe Function ws_recvfrom Lib "ws2_32" Alias "recvfrom" (ByVal s As LongPtr, ByRef buf As Any, ByVal BufLen As Long, ByVal Flags As WS_SNDRCV_FLAGS, ByRef from As SOCKADDR_IN, ByRef fromlen As Long) As Long
     Public Declare PtrSafe Function ws_send Lib "ws2_32" Alias "send" (ByVal s As LongPtr, ByRef buf As Any, ByVal BufLen As Long, ByVal Flags As WS_SNDRCV_FLAGS) As Long
-    Public Declare PtrSafe Function ws_sendto Lib "ws2_32" Alias "sendto" (ByVal s As LongPtr, ByRef buf As Any, ByVal BufLen As Long, ByVal Flags As WS_SNDRCV_FLAGS, ByRef toaddr As sockaddr_in, ByVal tolen As Long) As Long
+    Public Declare PtrSafe Function ws_sendto Lib "ws2_32" Alias "sendto" (ByVal s As LongPtr, ByRef buf As Any, ByVal BufLen As Long, ByVal Flags As WS_SNDRCV_FLAGS, ByRef toaddr As SOCKADDR_IN, ByVal tolen As Long) As Long
     Public Declare PtrSafe Function ws_select Lib "ws2_32" Alias "select" (ByVal nfds As Long, readfds As Any, writefds As Any, exceptfds As Any, timeout As ws_timeval) As Long
-    Public Declare PtrSafe Function ws_getpeername Lib "ws2_32" Alias "getpeername" (ByVal s As LongPtr, ByRef Name As sockaddr_in, ByRef namelen As Long) As Long
-    Public Declare PtrSafe Function ws_getsockname Lib "ws2_32" Alias "getsockname" (ByVal s As LongPtr, ByRef Name As sockaddr_in, ByRef namelen As Long) As Long
+    Public Declare PtrSafe Function ws_getpeername Lib "ws2_32" Alias "getpeername" (ByVal s As LongPtr, ByRef Name As SOCKADDR_IN, ByRef namelen As Long) As Long
+    Public Declare PtrSafe Function ws_getsockname Lib "ws2_32" Alias "getsockname" (ByVal s As LongPtr, ByRef Name As SOCKADDR_IN, ByRef namelen As Long) As Long
     Public Declare PtrSafe Function ws_shutdown Lib "ws2_32" Alias "shutdown" (ByVal s As LongPtr, ByVal How As WS_SHUTDOWN_TYPES) As Long
     Public Declare PtrSafe Function ws_listen Lib "ws2_32" Alias "listen" (ByVal s As LongPtr, ByVal backlog As Long) As Long
     Public Declare PtrSafe Function ws_accept Lib "ws2_32" Alias "accept" (ByVal s As LongPtr, Addr As Any, addrlen As Any) As Long
@@ -8826,6 +9499,7 @@ Module wdAPIInternet
     
     #End Region
     
+ 
 End Module
 
 #End If
