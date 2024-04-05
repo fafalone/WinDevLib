@@ -9,7 +9,7 @@ This project has grown well beyond it's original mission of shell programming. W
 twinBASIC now counts msvbvm60 redirects as legacy DLL redirects, which WinDevLib set to "Error". Please update to the latest version of WinDevLib to get rid of these errors and use it on twinBASIC Beta 456 and newer. Both this repo and the package server downloads have been updated.
  
 
-**Current Version: 7.7.360 (April 4th, 2024)**
+**Current Version: 7.7.370 (April 5th, 2024)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -187,6 +187,10 @@ Finally, there's small API sets for features, like DirectX DLLs, Webview2Loader,
 
 ### Updates
 
+**Update (v7.7.370, 05 April 2024):**
+-Added all Background Intelligent Transfer Service interfaces; 100% coverage of:\
+ bits.idl, bits1_5.idl, bits2_0.idl, bits2_5.idl, bits3_0.idl, bits4_0.idl, bits5_0.idl, bits10_1.idl, bits10_2.idl, bits10_3.idl, bitscfg.idl, qmgr.idl.
+ 
 **Update (v7.7.360, 04 April 2024):**
 -Very large expansion of DirectWrite interfaces; only dwrite.h was covered; added 100%\
  coverage of dwrite_1.h, dwrite_2.h, and dwrite_3.h\
