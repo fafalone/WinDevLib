@@ -9,7 +9,7 @@ This project has grown well beyond it's original mission of shell programming. W
 twinBASIC now counts msvbvm60 redirects as legacy DLL redirects, which WinDevLib set to "Error". Please update to the latest version of WinDevLib to get rid of these errors and use it on twinBASIC Beta 456 and newer. Both this repo and the package server downloads have been updated.
  
 
-**Current Version: 7.7.350 (March 31st, 2024)**
+**Current Version: 7.7.360 (April 4th, 2024)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -186,6 +186,17 @@ Finally, there's small API sets for features, like DirectX DLLs, Webview2Loader,
 
 
 ### Updates
+
+**Update (v7.7.360, 04 April 2024):**
+-Very large expansion of DirectWrite interfaces; only dwrite.h was covered; added 100%\
+ coverage of dwrite_1.h, dwrite_2.h, and dwrite_3.h\
+-Added shdeprecated.h (100% coverage). Many of these are still in undocumented use.\
+-UserEnv.h expanded to 100% coverage\
+-Added crypto catalog APIs from mscat.h (100% coverage)\
+-(API Standards) GetClassInfo[A, ExA, Ex] did not conform to API standards. For compatibility, this has been resolved by adding overloads.\
+-CreateProfile does not have A/W variants. I have *zero* idea where I found otherwise, and with differently named arguments... no search results anywhere. Weird.\
+-Add DWRITE_RENDERING_MODE missing values
+
 
 **Update (v7.7.350, 31 Mar 2024):**\
 -Large expansion of mfapi.h coverage; all APIs and GUIDs are covered, only missing the macros\
