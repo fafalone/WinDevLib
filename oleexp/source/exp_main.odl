@@ -321,7 +321,7 @@ interface ICommDlgBrowser2 : ICommDlgBrowser
 
     HRESULT GetDefaultMenuText(
         [in] IShellView *ppshv,
-        [out] LONG *pszText,
+        [in] LONG pszText,
         [in] int cchMax);
 
     // returns CDB2GVF_XXX values to control the behavior of the view when in common dialog mode
@@ -338,7 +338,7 @@ interface ICommDlgBrowser3 : ICommDlgBrowser2
         [in] int iColumn);
 
     HRESULT GetCurrentFilter(
-        [out] LONG *pszFileSpec,
+        [in] LONG pszFileSpec,
         [in] int cchFileSpec);
 
     HRESULT OnPreViewCreated([in] IShellView *ppshv);
@@ -672,20 +672,24 @@ typedef enum FILE_USAGE_TYPE
     FUT_GENERIC
 } FILE_USAGE_TYPE;
 
-
+typedef enum FileInUseCapabilities
+{
+    OF_CAP_CANSWITCHTO    = 0x0001,
+    OF_CAP_CANCLOSE       = 0x0002
+} FileInUseCapabilities;
 [
 	odl,
     uuid(64a1cbf0-3a1a-4461-9158-376969693950)
 ]
 interface IFileIsInUse : stdole.IUnknown
 {
-    HRESULT GetAppName([out] LONG *ppszName);
+    HRESULT GetAppName([in, out] LONG *ppszName);
 
-    HRESULT GetUsage([out] FILE_USAGE_TYPE *pfut);
+    HRESULT GetUsage([in, out] FILE_USAGE_TYPE *pfut);
 
-    HRESULT GetCapabilities([out] DWORD *pdwCapFlags);
+    HRESULT GetCapabilities([in, out] FileInUseCapabilities *pdwCapFlags);
 
-    HRESULT GetSwitchToHWND([out] HWND *phwnd);
+    HRESULT GetSwitchToHWND([in, out] HWND *phwnd);
 
     HRESULT CloseFile();
 }
@@ -7888,6 +7892,42 @@ interface IStorageProviderHandler : stdole.IUnknown
     HRESULT GetPropertyHandlerFromUri([in] long uri, [out] IStorageProviderPropertyHandler** propertyHandler);
     HRESULT GetPropertyHandlerFromFileId([in] long fileId, [out] IStorageProviderPropertyHandler** propertyHandler);
 }
+
+
+typedef enum ThumbnailStreamCacheOptions
+{
+    TSC_ExtractIfNotCached = 0x00000000,
+    TSC_ReturnOnlyIfCached = 0x00000001,
+    TSC_ResizeThumbnail = 0x00000002,    // resize to match the requested size
+    TSC_AllowSmallerSize = 0x00000004,    // can return a cached thumbnail that is smaller than the requested size.
+} ThumbnailStreamCacheOptions;
+
+[
+    odl,
+    uuid(90E11430-9569-41D8-AE75-6D4D2AE7CCA0),
+]
+interface IThumbnailStreamCache : stdole.IUnknown
+{
+    HRESULT GetThumbnailStream(
+        [in] LPCWSTR path,
+        [in] ULONGLONG cacheId,
+        [in] ThumbnailStreamCacheOptions options,
+        [in] UINT requestedThumbnailSize,
+        [out] SIZE* thumbnailSize,
+        [out] IStream** thumbnailStream);
+
+    HRESULT SetThumbnailStream(
+        [in] LPCWSTR path,
+        [in] ULONGLONG cacheId,
+        [in] int thumbnailSizeX, [in] int thumbnailSizeY,
+        [in] IStream* thumbnailStream);
+}
+
+
+
+
+    // Thumbnail Stream Cache
+    [uuid(CBE0FED3-4B91-4E90-8354-8A8C84EC6872)] coclass ThumbnailStreamCache { interface IThumbnailStreamCache; }
 
 //CLSID_ContextSwitcher
 [uuid(0000034e-0000-0000-c000-000000000046)] coclass ContextSwitcher { interface IContextCallback; }
