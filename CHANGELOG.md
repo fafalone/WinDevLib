@@ -1,4 +1,16 @@
 
+**Update (v7.7.360, 04 April 2024):**
+-Very large expansion of DirectWrite interfaces; only dwrite.h was covered; added 100%
+ coverage of dwrite_1.h, dwrite_2.h, and dwrite_3.h
+-Added shdeprecated.h (100% coverage). Many of these are still in undocumented use.
+-UserEnv.h expanded to 100% coverage
+-Added crypto catalog APIs from mscat.h (100% coverage)
+-(API Standards) GetClassInfo[A, ExA, Ex] did not conform to API standards. For compatibility,
+                 this has been resolved by adding overloads.
+-CreateProfile does not have A/W variants. I have *zero* idea where I found otherwise, and with
+ differently named arguments... no search results anywhere. Weird.
+-Add DWRITE_RENDERING_MODE missing values
+                 
 **Update (v7.7.350, 31 Mar 2024):**
 -Large expansion of mfapi.h coverage; all APIs and GUIDs are covered, only missing the macros
 -processenv.h coverage now 100%
@@ -524,6 +536,8 @@ SHIsFileAvailableOffline
 SHSetLocalizedName
 SHGetLocalizedName
 SHRemoveLocalizedName
+
+GetClassInfo[A, Ex, ExA]
 
 **Update (v6.1.229):** Bug fix: A number of APIs had missing 'As <type>` statements, which were upgraded to errors. tB had previosly not caught these.
 
