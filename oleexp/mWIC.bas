@@ -1033,3 +1033,627 @@ Static iid As UUID
  If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H412D0C3A, CInt(&H9650), CInt(&H44FA), &HAF, &H5B, &HDD, &H2A, &H6, &HC8, &HE8, &HFB)
 IID_IWICComponentFactory = iid
 End Function
+
+Public Function GUID_MetadataFormatUnknown() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HA45E592F, &H9078, &H4A7C, &HAD, &HB5, &H4E, &HDC, &H4F, &HD6, &H1B, &H1F)
+GUID_MetadataFormatUnknown = iid
+End Function
+Public Function GUID_MetadataFormatIfd() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H537396C6, &H2D8A, &H4BB6, &H9B, &HF8, &H2F, &HA, &H8E, &H2A, &H3A, &HDF)
+GUID_MetadataFormatIfd = iid
+End Function
+Public Function GUID_MetadataFormatSubIfd() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H58A2E128, &H2DB9, &H4E57, &HBB, &H14, &H51, &H77, &H89, &H1E, &HD3, &H31)
+GUID_MetadataFormatSubIfd = iid
+End Function
+Public Function GUID_MetadataFormatExif() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H1C3C4F9D, &HB84A, &H467D, &H94, &H93, &H36, &HCF, &HBD, &H59, &HEA, &H57)
+GUID_MetadataFormatExif = iid
+End Function
+Public Function GUID_MetadataFormatGps() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H7134AB8A, &H9351, &H44AD, &HAF, &H62, &H44, &H8D, &HB6, &HB5, &H2, &HEC)
+GUID_MetadataFormatGps = iid
+End Function
+Public Function GUID_MetadataFormatInterop() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HED686F8E, &H681F, &H4C8B, &HBD, &H41, &HA8, &HAD, &HDB, &HF6, &HB3, &HFC)
+GUID_MetadataFormatInterop = iid
+End Function
+Public Function GUID_MetadataFormatApp0() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H79007028, &H268D, &H45D6, &HA3, &HC2, &H35, &H4E, &H6A, &H50, &H4B, &HC9)
+GUID_MetadataFormatApp0 = iid
+End Function
+Public Function GUID_MetadataFormatApp1() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H8FD3DFC3, &HF951, &H492B, &H81, &H7F, &H69, &HC2, &HE6, &HD9, &HA5, &HB0)
+GUID_MetadataFormatApp1 = iid
+End Function
+Public Function GUID_MetadataFormatApp13() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H326556A2, &HF502, &H4354, &H9C, &HC0, &H8E, &H3F, &H48, &HEA, &HF6, &HB5)
+GUID_MetadataFormatApp13 = iid
+End Function
+Public Function GUID_MetadataFormatIPTC() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H4FAB0914, &HE129, &H4087, &HA1, &HD1, &HBC, &H81, &H2D, &H45, &HA7, &HB5)
+GUID_MetadataFormatIPTC = iid
+End Function
+Public Function GUID_MetadataFormatIRB() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H16100D66, &H8570, &H4BB9, &HB9, &H2D, &HFD, &HA4, &HB2, &H3E, &HCE, &H67)
+GUID_MetadataFormatIRB = iid
+End Function
+Public Function GUID_MetadataFormat8BIMIPTC() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H10568C, &H852, &H4E6A, &HB1, &H91, &H5C, &H33, &HAC, &H5B, &H4, &H30)
+GUID_MetadataFormat8BIMIPTC = iid
+End Function
+Public Function GUID_MetadataFormat8BIMResolutionInfo() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H739F305D, &H81DB, &H43CB, &HAC, &H5E, &H55, &H1, &H3E, &HF9, &HF0, &H3)
+GUID_MetadataFormat8BIMResolutionInfo = iid
+End Function
+Public Function GUID_MetadataFormat8BIMIPTCDigest() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H1CA32285, &H9CCD, &H4786, &H8B, &HD8, &H79, &H53, &H9D, &HB6, &HA0, &H6)
+GUID_MetadataFormat8BIMIPTCDigest = iid
+End Function
+Public Function GUID_MetadataFormatXMP() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HBB5ACC38, &HF216, &H4CEC, &HA6, &HC5, &H5F, &H6E, &H73, &H97, &H63, &HA9)
+GUID_MetadataFormatXMP = iid
+End Function
+Public Function GUID_MetadataFormatThumbnail() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H243DCEE9, &H8703, &H40EE, &H8E, &HF0, &H22, &HA6, &H0, &HB8, &H5, &H8C)
+GUID_MetadataFormatThumbnail = iid
+End Function
+Public Function GUID_MetadataFormatChunktEXt() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H568D8936, &HC0A9, &H4923, &H90, &H5D, &HDF, &H2B, &H38, &H23, &H8F, &HBC)
+GUID_MetadataFormatChunktEXt = iid
+End Function
+Public Function GUID_MetadataFormatXMPStruct() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H22383CF1, &HED17, &H4E2E, &HAF, &H17, &HD8, &H5B, &H8F, &H6B, &H30, &HD0)
+GUID_MetadataFormatXMPStruct = iid
+End Function
+Public Function GUID_MetadataFormatXMPBag() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H833CCA5F, &HDCB7, &H4516, &H80, &H6F, &H65, &H96, &HAB, &H26, &HDC, &HE4)
+GUID_MetadataFormatXMPBag = iid
+End Function
+Public Function GUID_MetadataFormatXMPSeq() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H63E8DF02, &HEB6C, &H456C, &HA2, &H24, &HB2, &H5E, &H79, &H4F, &HD6, &H48)
+GUID_MetadataFormatXMPSeq = iid
+End Function
+Public Function GUID_MetadataFormatXMPAlt() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H7B08A675, &H91AA, &H481B, &HA7, &H98, &H4D, &HA9, &H49, &H8, &H61, &H3B)
+GUID_MetadataFormatXMPAlt = iid
+End Function
+Public Function GUID_MetadataFormatLSD() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HE256031E, &H6299, &H4929, &HB9, &H8D, &H5A, &HC8, &H84, &HAF, &HBA, &H92)
+GUID_MetadataFormatLSD = iid
+End Function
+Public Function GUID_MetadataFormatIMD() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HBD2BB086, &H4D52, &H48DD, &H96, &H77, &HDB, &H48, &H3E, &H85, &HAE, &H8F)
+GUID_MetadataFormatIMD = iid
+End Function
+Public Function GUID_MetadataFormatGCE() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H2A25CAD8, &HDEEB, &H4C69, &HA7, &H88, &HE, &HC2, &H26, &H6D, &HCA, &HFD)
+GUID_MetadataFormatGCE = iid
+End Function
+Public Function GUID_MetadataFormatAPE() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H2E043DC2, &HC967, &H4E05, &H87, &H5E, &H61, &H8B, &HF6, &H7E, &H85, &HC3)
+GUID_MetadataFormatAPE = iid
+End Function
+Public Function GUID_MetadataFormatJpegChrominance() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HF73D0DCF, &HCEC6, &H4F85, &H9B, &HE, &H1C, &H39, &H56, &HB1, &HBE, &HF7)
+GUID_MetadataFormatJpegChrominance = iid
+End Function
+Public Function GUID_MetadataFormatJpegLuminance() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H86908007, &HEDFC, &H4860, &H8D, &H4B, &H4E, &HE6, &HE8, &H3E, &H60, &H58)
+GUID_MetadataFormatJpegLuminance = iid
+End Function
+Public Function GUID_MetadataFormatJpegComment() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H220E5F33, &HAFD3, &H474E, &H9D, &H31, &H7D, &H4F, &HE7, &H30, &HF5, &H57)
+GUID_MetadataFormatJpegComment = iid
+End Function
+Public Function GUID_MetadataFormatGifComment() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HC4B6E0E0, &HCFB4, &H4AD3, &HAB, &H33, &H9A, &HAD, &H23, &H55, &HA3, &H4A)
+GUID_MetadataFormatGifComment = iid
+End Function
+Public Function GUID_MetadataFormatChunkgAMA() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HF00935A5, &H1D5D, &H4CD1, &H81, &HB2, &H93, &H24, &HD7, &HEC, &HA7, &H81)
+GUID_MetadataFormatChunkgAMA = iid
+End Function
+Public Function GUID_MetadataFormatChunkbKGD() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HE14D3571, &H6B47, &H4DEA, &HB6, &HA, &H87, &HCE, &HA, &H78, &HDF, &HB7)
+GUID_MetadataFormatChunkbKGD = iid
+End Function
+Public Function GUID_MetadataFormatChunkiTXt() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HC2BEC729, &HB68, &H4B77, &HAA, &HE, &H62, &H95, &HA6, &HAC, &H18, &H14)
+GUID_MetadataFormatChunkiTXt = iid
+End Function
+Public Function GUID_MetadataFormatChunkcHRM() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H9DB3655B, &H2842, &H44B3, &H80, &H67, &H12, &HE9, &HB3, &H75, &H55, &H6A)
+GUID_MetadataFormatChunkcHRM = iid
+End Function
+Public Function GUID_MetadataFormatChunkhIST() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HC59A82DA, &HDB74, &H48A4, &HBD, &H6A, &HB6, &H9C, &H49, &H31, &HEF, &H95)
+GUID_MetadataFormatChunkhIST = iid
+End Function
+Public Function GUID_MetadataFormatChunkiCCP() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HEB4349AB, &HB685, &H450F, &H91, &HB5, &HE8, &H2, &HE8, &H92, &H53, &H6C)
+GUID_MetadataFormatChunkiCCP = iid
+End Function
+Public Function GUID_MetadataFormatChunksRGB() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HC115FD36, &HCC6F, &H4E3F, &H83, &H63, &H52, &H4B, &H87, &HC6, &HB0, &HD9)
+GUID_MetadataFormatChunksRGB = iid
+End Function
+Public Function GUID_MetadataFormatChunktIME() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H6B00AE2D, &HE24B, &H460A, &H98, &HB6, &H87, &H8B, &HD0, &H30, &H72, &HFD)
+GUID_MetadataFormatChunktIME = iid
+End Function
+Public Function GUID_MetadataFormatDds() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H4A064603, &H8C33, &H4E60, &H9C, &H29, &H13, &H62, &H31, &H70, &H2D, &H8)
+GUID_MetadataFormatDds = iid
+End Function
+Public Function GUID_MetadataFormatHeif() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H817EF3E1, &H1288, &H45F4, &HA8, &H52, &H26, &HD, &H9E, &H7C, &HCE, &H83)
+GUID_MetadataFormatHeif = iid
+End Function
+Public Function GUID_MetadataFormatHeifHDR() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(GUID_MetadataFormatHeifHDR, &H568B8D8A, &H1E65, &H438C, &H89, &H68, &HD6, &HE, &H10, &H12, &HBE, &HB9)
+GUID_MetadataFormatHeifHDR = iid
+End Function
+Public Function GUID_MetadataFormatWebpANIM() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H6DC4FDA6, &H78E6, &H4102, &HAE, &H35, &HBC, &HFA, &H1E, &HDC, &HC7, &H8B)
+GUID_MetadataFormatWebpANIM = iid
+End Function
+Public Function GUID_MetadataFormatWebpANMF() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H43C105EE, &HB93B, &H4ABB, &HB0, &H3, &HA0, &H8C, &HD, &H87, &H4, &H71)
+GUID_MetadataFormatWebpANMF = iid
+End Function
+
+
+Public Function CLSID_WICUnknownMetadataReader() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H699745C2, &H5066, &H4B82, &HA8, &HE3, &HD4, &H4, &H78, &HDB, &HEC, &H8C)
+CLSID_WICUnknownMetadataReader = iid
+End Function
+Public Function CLSID_WICUnknownMetadataWriter() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HA09CCA86, &H27BA, &H4F39, &H90, &H53, &H12, &H1F, &HA4, &HDC, &H8, &HFC)
+CLSID_WICUnknownMetadataWriter = iid
+End Function
+Public Function CLSID_WICApp0MetadataWriter() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HF3C633A2, &H46C8, &H498E, &H8F, &HBB, &HCC, &H6F, &H72, &H1B, &HBC, &HDE)
+CLSID_WICApp0MetadataWriter = iid
+End Function
+Public Function CLSID_WICApp0MetadataReader() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H43324B33, &HA78F, &H480F, &H91, &H11, &H96, &H38, &HAA, &HCC, &HC8, &H32)
+CLSID_WICApp0MetadataReader = iid
+End Function
+Public Function CLSID_WICApp1MetadataWriter() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HEE366069, &H1832, &H420F, &HB3, &H81, &H4, &H79, &HAD, &H6, &H6F, &H19)
+CLSID_WICApp1MetadataWriter = iid
+End Function
+Public Function CLSID_WICApp1MetadataReader() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HDDE33513, &H774E, &H4BCD, &HAE, &H79, &H2, &HF4, &HAD, &HFE, &H62, &HFC)
+CLSID_WICApp1MetadataReader = iid
+End Function
+Public Function CLSID_WICApp13MetadataWriter() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H7B19A919, &HA9D6, &H49E5, &HBD, &H45, &H2, &HC3, &H4E, &H4E, &H4C, &HD5)
+CLSID_WICApp13MetadataWriter = iid
+End Function
+Public Function CLSID_WICApp13MetadataReader() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HAA7E3C50, &H864C, &H4604, &HBC, &H4, &H8B, &HB, &H76, &HE6, &H37, &HF6)
+CLSID_WICApp13MetadataReader = iid
+End Function
+Public Function CLSID_WICIfdMetadataReader() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H8F914656, &H9D0A, &H4EB2, &H90, &H19, &HB, &HF9, &H6D, &H8A, &H9E, &HE6)
+CLSID_WICIfdMetadataReader = iid
+End Function
+Public Function CLSID_WICIfdMetadataWriter() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HB1EBFC28, &HC9BD, &H47A2, &H8D, &H33, &HB9, &H48, &H76, &H97, &H77, &HA7)
+CLSID_WICIfdMetadataWriter = iid
+End Function
+Public Function CLSID_WICSubIfdMetadataReader() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H50D42F09, &HECD1, &H4B41, &HB6, &H5D, &HDA, &H1F, &HDA, &HA7, &H56, &H63)
+CLSID_WICSubIfdMetadataReader = iid
+End Function
+Public Function CLSID_WICSubIfdMetadataWriter() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H8ADE5386, &H8E9B, &H4F4C, &HAC, &HF2, &HF0, &H0, &H87, &H6, &HB2, &H38)
+CLSID_WICSubIfdMetadataWriter = iid
+End Function
+Public Function CLSID_WICExifMetadataReader() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HD9403860, &H297F, &H4A49, &HBF, &H9B, &H77, &H89, &H81, &H50, &HA4, &H42)
+CLSID_WICExifMetadataReader = iid
+End Function
+Public Function CLSID_WICExifMetadataWriter() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HC9A14CDA, &HC339, &H460B, &H90, &H78, &HD4, &HDE, &HBC, &HFA, &HBE, &H91)
+CLSID_WICExifMetadataWriter = iid
+End Function
+Public Function CLSID_WICGpsMetadataReader() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H3697790B, &H223B, &H484E, &H99, &H25, &HC4, &H86, &H92, &H18, &HF1, &H7A)
+CLSID_WICGpsMetadataReader = iid
+End Function
+Public Function CLSID_WICGpsMetadataWriter() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HCB8C13E4, &H62B5, &H4C96, &HA4, &H8B, &H6B, &HA6, &HAC, &HE3, &H9C, &H76)
+CLSID_WICGpsMetadataWriter = iid
+End Function
+Public Function CLSID_WICInteropMetadataReader() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HB5C8B898, &H74, &H459F, &HB7, &H0, &H86, &HD, &H46, &H51, &HEA, &H14)
+CLSID_WICInteropMetadataReader = iid
+End Function
+Public Function CLSID_WICInteropMetadataWriter() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H122EC645, &HCD7E, &H44D8, &HB1, &H86, &H2C, &H8C, &H20, &HC3, &HB5, &HF)
+CLSID_WICInteropMetadataWriter = iid
+End Function
+Public Function CLSID_WICThumbnailMetadataReader() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HFB012959, &HF4F6, &H44D7, &H9D, &H9, &HDA, &HA0, &H87, &HA9, &HDB, &H57)
+CLSID_WICThumbnailMetadataReader = iid
+End Function
+Public Function CLSID_WICThumbnailMetadataWriter() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HD049B20C, &H5DD0, &H44FE, &HB0, &HB3, &H8F, &H92, &HC8, &HE6, &HD0, &H80)
+CLSID_WICThumbnailMetadataWriter = iid
+End Function
+Public Function CLSID_WICIPTCMetadataReader() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H3012959, &HF4F6, &H44D7, &H9D, &H9, &HDA, &HA0, &H87, &HA9, &HDB, &H57)
+CLSID_WICIPTCMetadataReader = iid
+End Function
+Public Function CLSID_WICIPTCMetadataWriter() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H1249B20C, &H5DD0, &H44FE, &HB0, &HB3, &H8F, &H92, &HC8, &HE6, &HD0, &H80)
+CLSID_WICIPTCMetadataWriter = iid
+End Function
+Public Function CLSID_WICIRBMetadataReader() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HD4DCD3D7, &HB4C2, &H47D9, &HA6, &HBF, &HB8, &H9B, &HA3, &H96, &HA4, &HA3)
+CLSID_WICIRBMetadataReader = iid
+End Function
+Public Function CLSID_WICIRBMetadataWriter() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H5C5C1935, &H235, &H4434, &H80, &HBC, &H25, &H1B, &HC1, &HEC, &H39, &HC6)
+CLSID_WICIRBMetadataWriter = iid
+End Function
+Public Function CLSID_WIC8BIMIPTCMetadataReader() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H10668C, &H801, &H4DA6, &HA4, &HA4, &H82, &H65, &H22, &HB6, &HD2, &H8F)
+CLSID_WIC8BIMIPTCMetadataReader = iid
+End Function
+Public Function CLSID_WIC8BIMIPTCMetadataWriter() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H108226, &HEE41, &H44A2, &H9E, &H9C, &H4B, &HE4, &HD5, &HB1, &HD2, &HCD)
+CLSID_WIC8BIMIPTCMetadataWriter = iid
+End Function
+Public Function CLSID_WIC8BIMResolutionInfoMetadataReader() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H5805137A, &HE348, &H4F7C, &HB3, &HCC, &H6D, &HB9, &H96, &H5A, &H5, &H99)
+CLSID_WIC8BIMResolutionInfoMetadataReader = iid
+End Function
+Public Function CLSID_WIC8BIMResolutionInfoMetadataWriter() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H4FF2FE0E, &HE74A, &H4B71, &H98, &HC4, &HAB, &H7D, &HC1, &H67, &H7, &HBA)
+CLSID_WIC8BIMResolutionInfoMetadataWriter = iid
+End Function
+Public Function CLSID_WIC8BIMIPTCDigestMetadataReader() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H2805F1E, &HD5AA, &H415B, &H82, &HC5, &H61, &HC0, &H33, &HA9, &H88, &HA6)
+CLSID_WIC8BIMIPTCDigestMetadataReader = iid
+End Function
+Public Function CLSID_WIC8BIMIPTCDigestMetadataWriter() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H2DB5E62B, &HD67, &H495F, &H8F, &H9D, &HC2, &HF0, &H18, &H86, &H47, &HAC)
+CLSID_WIC8BIMIPTCDigestMetadataWriter = iid
+End Function
+Public Function CLSID_WICPngTextMetadataReader() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H4B59AFCC, &HB8C3, &H408A, &HB6, &H70, &H89, &HE5, &HFA, &HB6, &HFD, &HA7)
+CLSID_WICPngTextMetadataReader = iid
+End Function
+Public Function CLSID_WICPngTextMetadataWriter() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HB5EBAFB9, &H253E, &H4A72, &HA7, &H44, &H7, &H62, &HD2, &H68, &H56, &H83)
+CLSID_WICPngTextMetadataWriter = iid
+End Function
+Public Function CLSID_WICXMPMetadataReader() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H72B624DF, &HAE11, &H4948, &HA6, &H5C, &H35, &H1E, &HB0, &H82, &H94, &H19)
+CLSID_WICXMPMetadataReader = iid
+End Function
+Public Function CLSID_WICXMPMetadataWriter() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H1765E14E, &H1BD4, &H462E, &HB6, &HB1, &H59, &HB, &HF1, &H26, &H2A, &HC6)
+CLSID_WICXMPMetadataWriter = iid
+End Function
+Public Function CLSID_WICXMPStructMetadataReader() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H1B90D9A, &H8209, &H47F7, &H9C, &H52, &HE1, &H24, &H4B, &HF5, &HC, &HED)
+CLSID_WICXMPStructMetadataReader = iid
+End Function
+Public Function CLSID_WICXMPStructMetadataWriter() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H22C21F93, &H7DDB, &H411C, &H9B, &H17, &HC5, &HB7, &HBD, &H6, &H4A, &HBC)
+CLSID_WICXMPStructMetadataWriter = iid
+End Function
+Public Function CLSID_WICXMPBagMetadataReader() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HE7E79A30, &H4F2C, &H4FAB, &H8D, &H0, &H39, &H4F, &H2D, &H6B, &HBE, &HBE)
+CLSID_WICXMPBagMetadataReader = iid
+End Function
+Public Function CLSID_WICXMPBagMetadataWriter() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HED822C8C, &HD6BE, &H4301, &HA6, &H31, &HE, &H14, &H16, &HBA, &HD2, &H8F)
+CLSID_WICXMPBagMetadataWriter = iid
+End Function
+Public Function CLSID_WICXMPSeqMetadataReader() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H7F12E753, &HFC71, &H43D7, &HA5, &H1D, &H92, &HF3, &H59, &H77, &HAB, &HB5)
+CLSID_WICXMPSeqMetadataReader = iid
+End Function
+Public Function CLSID_WICXMPSeqMetadataWriter() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H6D68D1DE, &HD432, &H4B0F, &H92, &H3A, &H9, &H11, &H83, &HA9, &HBD, &HA7)
+CLSID_WICXMPSeqMetadataWriter = iid
+End Function
+Public Function CLSID_WICXMPAltMetadataReader() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HAA94DCC2, &HB8B0, &H4898, &HB8, &H35, &H0, &HA, &HAB, &HD7, &H43, &H93)
+CLSID_WICXMPAltMetadataReader = iid
+End Function
+Public Function CLSID_WICXMPAltMetadataWriter() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H76C2A6C, &HF78F, &H4C46, &HA7, &H23, &H35, &H83, &HE7, &H8, &H76, &HEA)
+CLSID_WICXMPAltMetadataWriter = iid
+End Function
+Public Function CLSID_WICLSDMetadataReader() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H41070793, &H59E4, &H479A, &HA1, &HF7, &H95, &H4A, &HDC, &H2E, &HF5, &HFC)
+CLSID_WICLSDMetadataReader = iid
+End Function
+Public Function CLSID_WICLSDMetadataWriter() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H73C037E7, &HE5D9, &H4954, &H87, &H6A, &H6D, &HA8, &H1D, &H6E, &H57, &H68)
+CLSID_WICLSDMetadataWriter = iid
+End Function
+Public Function CLSID_WICGCEMetadataReader() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HB92E345D, &HF52D, &H41F3, &HB5, &H62, &H8, &H1B, &HC7, &H72, &HE3, &HB9)
+CLSID_WICGCEMetadataReader = iid
+End Function
+Public Function CLSID_WICGCEMetadataWriter() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HAF95DC76, &H16B2, &H47F4, &HB3, &HEA, &H3C, &H31, &H79, &H66, &H93, &HE7)
+CLSID_WICGCEMetadataWriter = iid
+End Function
+Public Function CLSID_WICIMDMetadataReader() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H7447A267, &H15, &H42C8, &HA8, &HF1, &HFB, &H3B, &H94, &HC6, &H83, &H61)
+CLSID_WICIMDMetadataReader = iid
+End Function
+Public Function CLSID_WICIMDMetadataWriter() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H8C89071F, &H452E, &H4E95, &H96, &H82, &H9D, &H10, &H24, &H62, &H71, &H72)
+CLSID_WICIMDMetadataWriter = iid
+End Function
+Public Function CLSID_WICAPEMetadataReader() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H1767B93A, &HB021, &H44EA, &H92, &HF, &H86, &H3C, &H11, &HF4, &HF7, &H68)
+CLSID_WICAPEMetadataReader = iid
+End Function
+Public Function CLSID_WICAPEMetadataWriter() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HBD6EDFCA, &H2890, &H482F, &HB2, &H33, &H8D, &H73, &H39, &HA1, &HCF, &H8D)
+CLSID_WICAPEMetadataWriter = iid
+End Function
+Public Function CLSID_WICJpegChrominanceMetadataReader() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H50B1904B, &HF28F, &H4574, &H93, &HF4, &HB, &HAD, &HE8, &H2C, &H69, &HE9)
+CLSID_WICJpegChrominanceMetadataReader = iid
+End Function
+Public Function CLSID_WICJpegChrominanceMetadataWriter() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H3FF566F0, &H6E6B, &H49D4, &H96, &HE6, &HB7, &H88, &H86, &H69, &H2C, &H62)
+CLSID_WICJpegChrominanceMetadataWriter = iid
+End Function
+Public Function CLSID_WICJpegLuminanceMetadataReader() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H356F2F88, &H5A6, &H4728, &HB9, &HA4, &H1B, &HFB, &HCE, &H4, &HD8, &H38)
+CLSID_WICJpegLuminanceMetadataReader = iid
+End Function
+Public Function CLSID_WICJpegLuminanceMetadataWriter() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H1D583ABC, &H8A0E, &H4657, &H99, &H82, &HA3, &H80, &HCA, &H58, &HFB, &H4B)
+CLSID_WICJpegLuminanceMetadataWriter = iid
+End Function
+Public Function CLSID_WICJpegCommentMetadataReader() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H9F66347C, &H60C4, &H4C4D, &HAB, &H58, &HD2, &H35, &H86, &H85, &HF6, &H7)
+CLSID_WICJpegCommentMetadataReader = iid
+End Function
+Public Function CLSID_WICJpegCommentMetadataWriter() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HE573236F, &H55B1, &H4EDA, &H81, &HEA, &H9F, &H65, &HDB, &H2, &H90, &HD3)
+CLSID_WICJpegCommentMetadataWriter = iid
+End Function
+Public Function CLSID_WICGifCommentMetadataReader() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H32557D3B, &H69DC, &H4F95, &H83, &H6E, &HF5, &H97, &H2B, &H2F, &H61, &H59)
+CLSID_WICGifCommentMetadataReader = iid
+End Function
+Public Function CLSID_WICGifCommentMetadataWriter() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HA02797FC, &HC4AE, &H418C, &HAF, &H95, &HE6, &H37, &HC7, &HEA, &HD2, &HA1)
+CLSID_WICGifCommentMetadataWriter = iid
+End Function
+Public Function CLSID_WICPngGamaMetadataReader() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H3692CA39, &HE082, &H4350, &H9E, &H1F, &H37, &H4, &HCB, &H8, &H3C, &HD5)
+CLSID_WICPngGamaMetadataReader = iid
+End Function
+Public Function CLSID_WICPngGamaMetadataWriter() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HFF036D13, &H5D4B, &H46DD, &HB1, &HF, &H10, &H66, &H93, &HD9, &HFE, &H4F)
+CLSID_WICPngGamaMetadataWriter = iid
+End Function
+Public Function CLSID_WICPngBkgdMetadataReader() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HCE7A4A6, &H3E8, &H4A60, &H9D, &H15, &H28, &H2E, &HF3, &H2E, &HE7, &HDA)
+CLSID_WICPngBkgdMetadataReader = iid
+End Function
+Public Function CLSID_WICPngBkgdMetadataWriter() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H68E3F2FD, &H31AE, &H4441, &HBB, &H6A, &HFD, &H70, &H47, &H52, &H5F, &H90)
+CLSID_WICPngBkgdMetadataWriter = iid
+End Function
+Public Function CLSID_WICPngItxtMetadataReader() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HAABFB2FA, &H3E1E, &H4A8F, &H89, &H77, &H55, &H56, &HFB, &H94, &HEA, &H23)
+CLSID_WICPngItxtMetadataReader = iid
+End Function
+Public Function CLSID_WICPngItxtMetadataWriter() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H31879719, &HE751, &H4DF8, &H98, &H1D, &H68, &HDF, &HF6, &H77, &H4, &HED)
+CLSID_WICPngItxtMetadataWriter = iid
+End Function
+Public Function CLSID_WICPngChrmMetadataReader() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HF90B5F36, &H367B, &H402A, &H9D, &HD1, &HBC, &HF, &HD5, &H9D, &H8F, &H62)
+CLSID_WICPngChrmMetadataReader = iid
+End Function
+Public Function CLSID_WICPngChrmMetadataWriter() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HE23CE3EB, &H5608, &H4E83, &HBC, &HEF, &H27, &HB1, &H98, &H7E, &H51, &HD7)
+CLSID_WICPngChrmMetadataWriter = iid
+End Function
+Public Function CLSID_WICPngHistMetadataReader() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H877A0BB7, &HA313, &H4491, &H87, &HB5, &H2E, &H6D, &H5, &H94, &HF5, &H20)
+CLSID_WICPngHistMetadataReader = iid
+End Function
+Public Function CLSID_WICPngHistMetadataWriter() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H8A03E749, &H672E, &H446E, &HBF, &H1F, &H2C, &H11, &HD2, &H33, &HB6, &HFF)
+CLSID_WICPngHistMetadataWriter = iid
+End Function
+Public Function CLSID_WICPngIccpMetadataReader() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HF5D3E63B, &HCB0F, &H4628, &HA4, &H78, &H6D, &H82, &H44, &HBE, &H36, &HB1)
+CLSID_WICPngIccpMetadataReader = iid
+End Function
+Public Function CLSID_WICPngIccpMetadataWriter() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H16671E5F, &HCE6, &H4CC4, &H97, &H68, &HE8, &H9F, &HE5, &H1, &H8A, &HDE)
+CLSID_WICPngIccpMetadataWriter = iid
+End Function
+Public Function CLSID_WICPngSrgbMetadataReader() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HFB40360C, &H547E, &H4956, &HA3, &HB9, &HD4, &H41, &H88, &H59, &HBA, &H66)
+CLSID_WICPngSrgbMetadataReader = iid
+End Function
+Public Function CLSID_WICPngSrgbMetadataWriter() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HA6EE35C6, &H87EC, &H47DF, &H9F, &H22, &H1D, &H5A, &HAD, &H84, &HC, &H82)
+CLSID_WICPngSrgbMetadataWriter = iid
+End Function
+Public Function CLSID_WICPngTimeMetadataReader() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HD94EDF02, &HEFE5, &H4F0D, &H85, &HC8, &HF5, &HA6, &H8B, &H30, &H0, &HB1)
+CLSID_WICPngTimeMetadataReader = iid
+End Function
+Public Function CLSID_WICPngTimeMetadataWriter() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H1AB78400, &HB5A3, &H4D91, &H8A, &HCE, &H33, &HFC, &HD1, &H49, &H9B, &HE6)
+CLSID_WICPngTimeMetadataWriter = iid
+End Function
+Public Function CLSID_WICDdsMetadataReader() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H276C88CA, &H7533, &H4A86, &HB6, &H76, &H66, &HB3, &H60, &H80, &HD4, &H84)
+CLSID_WICDdsMetadataReader = iid
+End Function
+Public Function CLSID_WICDdsMetadataWriter() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HFD688BBD, &H31ED, &H4DB7, &HA7, &H23, &H93, &H49, &H27, &HD3, &H83, &H67)
+CLSID_WICDdsMetadataWriter = iid
+End Function
+Public Function CLSID_WICHeifMetadataReader() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HACDDFC3F, &H85EC, &H41BC, &HBD, &HEF, &H1B, &HC2, &H62, &HE4, &HDB, &H5)
+CLSID_WICHeifMetadataReader = iid
+End Function
+Public Function CLSID_WICHeifMetadataWriter() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H3AE45E79, &H40BC, &H4401, &HAC, &HE5, &HDD, &H3C, &HB1, &H6E, &H6A, &HFE)
+CLSID_WICHeifMetadataWriter = iid
+End Function
+Public Function CLSID_WICHeifHDRMetadataReader() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H2438DE3D, &H94D9, &H4BE8, &H84, &HA8, &H4D, &HE9, &H5A, &H57, &H5E, &H75)
+CLSID_WICHeifHDRMetadataReader = iid
+End Function
+Public Function CLSID_WICHeifHDRMetadataWriter() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HB83135A2, &H8E7E, &H485E, &HA5, &H33, &HF9, &H36, &H21, &HDD, &H93, &HC8)
+CLSID_WICHeifHDRMetadataWriter = iid
+End Function
+Public Function CLSID_WICWebpAnimMetadataReader() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H76F9911, &HA348, &H465C, &HA8, &H7, &HA2, &H52, &HF3, &HF2, &HD3, &HDE)
+CLSID_WICWebpAnimMetadataReader = iid
+End Function
+Public Function CLSID_WICWebpAnmfMetadataReader() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H85A10B03, &HC9F6, &H439F, &HBE, &H5E, &HC0, &HFB, &HEF, &H67, &H80, &H7C)
+CLSID_WICWebpAnmfMetadataReader = iid
+End Function
+

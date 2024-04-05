@@ -7135,3 +7135,100 @@ Static iid As UUID
  If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HB0210783, CInt(&H89CD), CInt(&H11D0), &HAF, &H8, &H0, &HA0, &HC9, &H25, &HCD, &H16)
 IID_IDirectSoundNotify = iid
 End Function
+
+Public Function IID_IMultiMediaStream() As UUID
+'{B502D1BC-9A57-11d0-8FDE-00C04FD9189D}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HB502D1BC, CInt(&H9A57), CInt(&H11D0), &H8F, &HDE, &H0, &HC0, &H4F, &HD9, &H18, &H9D)
+IID_IMultiMediaStream = iid
+End Function
+Public Function IID_IMediaStream() As UUID
+'{B502D1BD-9A57-11d0-8FDE-00C04FD9189D}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HB502D1BD, CInt(&H9A57), CInt(&H11D0), &H8F, &HDE, &H0, &HC0, &H4F, &HD9, &H18, &H9D)
+IID_IMediaStream = iid
+End Function
+Public Function IID_IStreamSample() As UUID
+'{B502D1BE-9A57-11d0-8FDE-00C04FD9189D}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HB502D1BE, CInt(&H9A57), CInt(&H11D0), &H8F, &HDE, &H0, &HC0, &H4F, &HD9, &H18, &H9D)
+IID_IStreamSample = iid
+End Function
+Public Function IID_IAMMultiMediaStream() As UUID
+'{BEBE595C-9A6F-11d0-8FDE-00C04FD9189D}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HBEBE595C, CInt(&H9A6F), CInt(&H11D0), &H8F, &HDE, &H0, &HC0, &H4F, &HD9, &H18, &H9D)
+IID_IAMMultiMediaStream = iid
+End Function
+Public Function IID_IAMMediaStream() As UUID
+'{BEBE595D-9A6F-11d0-8FDE-00C04FD9189D}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HBEBE595D, CInt(&H9A6F), CInt(&H11D0), &H8F, &HDE, &H0, &HC0, &H4F, &HD9, &H18, &H9D)
+IID_IAMMediaStream = iid
+End Function
+Public Function IID_IMediaStreamFilter() As UUID
+'{BEBE595E-9A6F-11d0-8FDE-00C04FD9189D}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HBEBE595E, CInt(&H9A6F), CInt(&H11D0), &H8F, &HDE, &H0, &HC0, &H4F, &HD9, &H18, &H9D)
+IID_IMediaStreamFilter = iid
+End Function
+Public Function IID_IDirectDrawMediaSampleAllocator() As UUID
+'{AB6B4AFC-F6E4-11d0-900D-00C04FD9189D}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HAB6B4AFC, CInt(&HF6E4), CInt(&H11D0), &H90, &HD, &H0, &HC0, &H4F, &HD9, &H18, &H9D)
+IID_IDirectDrawMediaSampleAllocator = iid
+End Function
+Public Function IID_IDirectDrawMediaSample() As UUID
+'{AB6B4AFE-F6E4-11d0-900D-00C04FD9189D}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HAB6B4AFE, CInt(&HF6E4), CInt(&H11D0), &H90, &HD, &H0, &HC0, &H4F, &HD9, &H18, &H9D)
+IID_IDirectDrawMediaSample = iid
+End Function
+Public Function IID_IAMMediaTypeStream() As UUID
+'{AB6B4AFA-F6E4-11d0-900D-00C04FD9189D}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HAB6B4AFA, CInt(&HF6E4), CInt(&H11D0), &H90, &HD, &H0, &HC0, &H4F, &HD9, &H18, &H9D)
+IID_IAMMediaTypeStream = iid
+End Function
+Public Function IID_IAMMediaTypeSample() As UUID
+'{AB6B4AFB-F6E4-11d0-900D-00C04FD9189D}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HAB6B4AFB, CInt(&HF6E4), CInt(&H11D0), &H90, &HD, &H0, &HC0, &H4F, &HD9, &H18, &H9D)
+IID_IAMMediaTypeSample = iid
+End Function
+Public Function IID_IAudioMediaStream() As UUID
+'{f7537560-a3be-11d0-8212-00c04fc32c45}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HF7537560, CInt(&HA3BE), CInt(&H11D0), &H82, &H12, &H0, &HC0, &H4F, &HC3, &H2C, &H45)
+IID_IAudioMediaStream = iid
+End Function
+Public Function IID_IAudioStreamSample() As UUID
+'{345fee00-aba5-11d0-8212-00c04fc32c45}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H345FEE00, CInt(&HABA5), CInt(&H11D0), &H82, &H12, &H0, &HC0, &H4F, &HC3, &H2C, &H45)
+IID_IAudioStreamSample = iid
+End Function
+Public Function IID_IMemoryData() As UUID
+'{327fc560-af60-11d0-8212-00c04fc32c45}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H327FC560, CInt(&HAF60), CInt(&H11D0), &H82, &H12, &H0, &HC0, &H4F, &HC3, &H2C, &H45)
+IID_IMemoryData = iid
+End Function
+Public Function IID_IAudioData() As UUID
+'{54c719c0-af60-11d0-8212-00c04fc32c45}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H54C719C0, CInt(&HAF60), CInt(&H11D0), &H82, &H12, &H0, &HC0, &H4F, &HC3, &H2C, &H45)
+IID_IAudioData = iid
+End Function
+Public Function IID_IDirectDrawMediaStream() As UUID
+'{F4104FCE-9A70-11d0-8FDE-00C04FD9189D}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HF4104FCE, CInt(&H9A70), CInt(&H11D0), &H8F, &HDE, &H0, &HC0, &H4F, &HD9, &H18, &H9D)
+IID_IDirectDrawMediaStream = iid
+End Function
+Public Function IID_IDirectDrawStreamSample() As UUID
+'{F4104FCF-9A70-11d0-8FDE-00C04FD9189D}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HF4104FCF, CInt(&H9A70), CInt(&H11D0), &H8F, &HDE, &H0, &HC0, &H4F, &HD9, &H18, &H9D)
+IID_IDirectDrawStreamSample = iid
+End Function

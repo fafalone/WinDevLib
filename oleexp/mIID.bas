@@ -5689,9 +5689,516 @@ Static iid As UUID
  If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H79427A2B, CInt(&HF895), CInt(&H40E0), &HBE, &H79, &HB5, &H7D, &HC8, &H2E, &HD2, &H31)
  IID_IKernelTransaction = iid
 End Function
-
-
-
+Public Function IID_INetworkListManager() As UUID
+'{DCB00000-570F-4A9B-8D69-199FDBA5723B}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HDCB00000, CInt(&H570F), CInt(&H4A9B), &H8D, &H69, &H19, &H9F, &HDB, &HA5, &H72, &H3B)
+IID_INetworkListManager = iid
+End Function
+Public Function IID_INetworkListManagerEvents() As UUID
+'{DCB00001-570F-4A9B-8D69-199FDBA5723B}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HDCB00001, CInt(&H570F), CInt(&H4A9B), &H8D, &H69, &H19, &H9F, &HDB, &HA5, &H72, &H3B)
+IID_INetworkListManagerEvents = iid
+End Function
+Public Function IID_INetwork() As UUID
+'{DCB00002-570F-4A9B-8D69-199FDBA5723B}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HDCB00002, CInt(&H570F), CInt(&H4A9B), &H8D, &H69, &H19, &H9F, &HDB, &HA5, &H72, &H3B)
+IID_INetwork = iid
+End Function
+Public Function IID_INetwork2() As UUID
+'{B5550ABB-3391-4310-804F-25DCC325ED81}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HB5550ABB, CInt(&H3391), CInt(&H4310), &H80, &H4F, &H25, &HDC, &HC3, &H25, &HED, &H81)
+IID_INetwork2 = iid
+End Function
+Public Function IID_IEnumNetworks() As UUID
+'{DCB00003-570F-4A9B-8D69-199FDBA5723B}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HDCB00003, CInt(&H570F), CInt(&H4A9B), &H8D, &H69, &H19, &H9F, &HDB, &HA5, &H72, &H3B)
+IID_IEnumNetworks = iid
+End Function
+Public Function IID_INetworkEvents() As UUID
+'{DCB00004-570F-4A9B-8D69-199FDBA5723B}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HDCB00004, CInt(&H570F), CInt(&H4A9B), &H8D, &H69, &H19, &H9F, &HDB, &HA5, &H72, &H3B)
+IID_INetworkEvents = iid
+End Function
+Public Function IID_INetworkConnection() As UUID
+'{DCB00005-570F-4A9B-8D69-199FDBA5723B}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HDCB00005, CInt(&H570F), CInt(&H4A9B), &H8D, &H69, &H19, &H9F, &HDB, &HA5, &H72, &H3B)
+IID_INetworkConnection = iid
+End Function
+Public Function IID_INetworkConnection2() As UUID
+'{00E676ED-5A35-4738-92EB-8581738D0F0A}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HE676ED, CInt(&H5A35), CInt(&H4738), &H92, &HEB, &H85, &H81, &H73, &H8D, &HF, &HA)
+IID_INetworkConnection2 = iid
+End Function
+Public Function IID_IEnumNetworkConnections() As UUID
+'{DCB00006-570F-4A9B-8D69-199FDBA5723B}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HDCB00006, CInt(&H570F), CInt(&H4A9B), &H8D, &H69, &H19, &H9F, &HDB, &HA5, &H72, &H3B)
+IID_IEnumNetworkConnections = iid
+End Function
+Public Function IID_INetworkConnectionEvents() As UUID
+'{DCB00007-570F-4A9B-8D69-199FDBA5723B}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HDCB00007, CInt(&H570F), CInt(&H4A9B), &H8D, &H69, &H19, &H9F, &HDB, &HA5, &H72, &H3B)
+IID_INetworkConnectionEvents = iid
+End Function
+Public Function IID_INetworkCostManager() As UUID
+'{DCB00008-570F-4A9B-8D69-199FDBA5723B}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HDCB00008, CInt(&H570F), CInt(&H4A9B), &H8D, &H69, &H19, &H9F, &HDB, &HA5, &H72, &H3B)
+IID_INetworkCostManager = iid
+End Function
+Public Function IID_INetworkCostManagerEvents() As UUID
+'{DCB00009-570F-4A9B-8D69-199FDBA5723B}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HDCB00009, CInt(&H570F), CInt(&H4A9B), &H8D, &H69, &H19, &H9F, &HDB, &HA5, &H72, &H3B)
+IID_INetworkCostManagerEvents = iid
+End Function
+Public Function IID_INetworkConnectionCost() As UUID
+'{DCB0000a-570F-4A9B-8D69-199FDBA5723B}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HDCB0000A, CInt(&H570F), CInt(&H4A9B), &H8D, &H69, &H19, &H9F, &HDB, &HA5, &H72, &H3B)
+IID_INetworkConnectionCost = iid
+End Function
+Public Function IID_INetworkConnectionCostEvents() As UUID
+'{DCB0000b-570F-4A9B-8D69-199FDBA5723B}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HDCB0000B, CInt(&H570F), CInt(&H4A9B), &H8D, &H69, &H19, &H9F, &HDB, &HA5, &H72, &H3B)
+IID_INetworkConnectionCostEvents = iid
+End Function
+Public Function IID_ICredentialProviderCredential() As UUID
+'{63913a93-40c1-481a-818d-4072ff8c70cc}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H63913A93, CInt(&H40C1), CInt(&H481A), &H81, &H8D, &H40, &H72, &HFF, &H8C, &H70, &HCC)
+IID_ICredentialProviderCredential = iid
+End Function
+Public Function IID_IQueryContinueWithStatus() As UUID
+'{9090be5b-502b-41fb-bccc-0049a6c7254b}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H9090BE5B, CInt(&H502B), CInt(&H41FB), &HBC, &HCC, &H0, &H49, &HA6, &HC7, &H25, &H4B)
+IID_IQueryContinueWithStatus = iid
+End Function
+Public Function IID_IConnectableCredentialProviderCredential() As UUID
+'{9387928b-ac75-4bf9-8ab2-2b93c4a55290}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H9387928B, CInt(&HAC75), CInt(&H4BF9), &H8A, &HB2, &H2B, &H93, &HC4, &HA5, &H52, &H90)
+IID_IConnectableCredentialProviderCredential = iid
+End Function
+Public Function IID_ICredentialProviderCredentialEvents() As UUID
+'{fa6fa76b-66b7-4b11-95f1-86171118e816}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HFA6FA76B, CInt(&H66B7), CInt(&H4B11), &H95, &HF1, &H86, &H17, &H11, &H18, &HE8, &H16)
+IID_ICredentialProviderCredentialEvents = iid
+End Function
+Public Function IID_ICredentialProvider() As UUID
+'{d27c3481-5a1c-45b2-8aaa-c20ebbe8229e}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HD27C3481, CInt(&H5A1C), CInt(&H45B2), &H8A, &HAA, &HC2, &HE, &HBB, &HE8, &H22, &H9E)
+IID_ICredentialProvider = iid
+End Function
+Public Function IID_ICredentialProviderEvents() As UUID
+'{34201e5a-a787-41a3-a5a4-bd6dcf2a854e}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H34201E5A, CInt(&HA787), CInt(&H41A3), &HA5, &HA4, &HBD, &H6D, &HCF, &H2A, &H85, &H4E)
+IID_ICredentialProviderEvents = iid
+End Function
+Public Function IID_ICredentialProviderFilter() As UUID
+'{a5da53f9-d475-4080-a120-910c4a739880}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HA5DA53F9, CInt(&HD475), CInt(&H4080), &HA1, &H20, &H91, &HC, &H4A, &H73, &H98, &H80)
+IID_ICredentialProviderFilter = iid
+End Function
+Public Function IID_ICredentialProviderCredential2() As UUID
+'{fd672c54-40ea-4d6e-9b49-cfb1a7507bd7}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HFD672C54, CInt(&H40EA), CInt(&H4D6E), &H9B, &H49, &HCF, &HB1, &HA7, &H50, &H7B, &HD7)
+IID_ICredentialProviderCredential2 = iid
+End Function
+Public Function IID_ICredentialProviderCredentialWithFieldOptions() As UUID
+'{DBC6FB30-C843-49E3-A645-573E6F39446A}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HDBC6FB30, CInt(&HC843), CInt(&H49E3), &HA6, &H45, &H57, &H3E, &H6F, &H39, &H44, &H6A)
+IID_ICredentialProviderCredentialWithFieldOptions = iid
+End Function
+Public Function IID_ICredentialProviderCredentialEvents2() As UUID
+'{B53C00B6-9922-4B78-B1F4-DDFE774DC39B}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HB53C00B6, CInt(&H9922), CInt(&H4B78), &HB1, &HF4, &HDD, &HFE, &H77, &H4D, &HC3, &H9B)
+IID_ICredentialProviderCredentialEvents2 = iid
+End Function
+Public Function IID_ICredentialProviderUser() As UUID
+'{13793285-3ea6-40fd-b420-15f47da41fbb}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H13793285, CInt(&H3EA6), CInt(&H40FD), &HB4, &H20, &H15, &HF4, &H7D, &HA4, &H1F, &HBB)
+IID_ICredentialProviderUser = iid
+End Function
+Public Function IID_ICredentialProviderUserArray() As UUID
+'{90C119AE-0F18-4520-A1F1-114366A40FE8}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H90C119AE, CInt(&HF18), CInt(&H4520), &HA1, &HF1, &H11, &H43, &H66, &HA4, &HF, &HE8)
+IID_ICredentialProviderUserArray = iid
+End Function
+Public Function IID_ICredentialProviderSetUserArray() As UUID
+'{095c1484-1c0c-4388-9c6d-500e61bf84bd}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H95C1484, CInt(&H1C0C), CInt(&H4388), &H9C, &H6D, &H50, &HE, &H61, &HBF, &H84, &HBD)
+IID_ICredentialProviderSetUserArray = iid
+End Function
+Public Function IID_IThumbnailStreamCache() As UUID
+'{90E11430-9569-41D8-AE75-6D4D2AE7CCA0}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H90E11430, CInt(&H9569), CInt(&H41D8), &HAE, &H75, &H6D, &H4D, &H2A, &HE7, &HCC, &HA0)
+ IID_IThumbnailStreamCache = iid
+End Function
+Public Function IID_IUIAnimationTimerUpdateHandler() As UUID
+'{195509B7-5D5E-4e3e-B278-EE3759B367AD}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H195509B7, CInt(&H5D5E), CInt(&H4E3E), &HB2, &H78, &HEE, &H37, &H59, &HB3, &H67, &HAD)
+IID_IUIAnimationTimerUpdateHandler = iid
+End Function
+Public Function IID_IUIAnimationTimerClientEventHandler() As UUID
+'{BEDB4DB6-94FA-4bfb-A47F-EF2D9E408C25}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HBEDB4DB6, CInt(&H94FA), CInt(&H4BFB), &HA4, &H7F, &HEF, &H2D, &H9E, &H40, &H8C, &H25)
+IID_IUIAnimationTimerClientEventHandler = iid
+End Function
+Public Function IID_IUIAnimationTimerEventHandler() As UUID
+'{274A7DEA-D771-4095-ABBD-8DF7ABD23CE3}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H274A7DEA, CInt(&HD771), CInt(&H4095), &HAB, &HBD, &H8D, &HF7, &HAB, &HD2, &H3C, &HE3)
+IID_IUIAnimationTimerEventHandler = iid
+End Function
+Public Function IID_IUIAnimationManager2() As UUID
+'{D8B6F7D4-4109-4d3f-ACEE-879926968CB1}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HD8B6F7D4, CInt(&H4109), CInt(&H4D3F), &HAC, &HEE, &H87, &H99, &H26, &H96, &H8C, &HB1)
+IID_IUIAnimationManager2 = iid
+End Function
+Public Function IID_IUIAnimationVariable2() As UUID
+'{4914B304-96AB-44d9-9E77-D5109B7E7466}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H4914B304, CInt(&H96AB), CInt(&H44D9), &H9E, &H77, &HD5, &H10, &H9B, &H7E, &H74, &H66)
+IID_IUIAnimationVariable2 = iid
+End Function
+Public Function IID_IUIAnimationTransition2() As UUID
+'{62FF9123-A85A-4e9b-A218-435A93E268FD}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H62FF9123, CInt(&HA85A), CInt(&H4E9B), &HA2, &H18, &H43, &H5A, &H93, &HE2, &H68, &HFD)
+IID_IUIAnimationTransition2 = iid
+End Function
+Public Function IID_IUIAnimationManagerEventHandler2() As UUID
+'{F6E022BA-BFF3-42EC-9033-E073F33E83C3}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HF6E022BA, CInt(&HBFF3), CInt(&H42EC), &H90, &H33, &HE0, &H73, &HF3, &H3E, &H83, &HC3)
+IID_IUIAnimationManagerEventHandler2 = iid
+End Function
+Public Function IID_IUIAnimationVariableChangeHandler2() As UUID
+'{63ACC8D2-6EAE-4bb0-B879-586DD8CFBE42}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H63ACC8D2, CInt(&H6EAE), CInt(&H4BB0), &HB8, &H79, &H58, &H6D, &HD8, &HCF, &HBE, &H42)
+IID_IUIAnimationVariableChangeHandler2 = iid
+End Function
+Public Function IID_IUIAnimationVariableIntegerChangeHandler2() As UUID
+'{829B6CF1-4F3A-4412-AE09-B243EB4C6B58}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H829B6CF1, CInt(&H4F3A), CInt(&H4412), &HAE, &H9, &HB2, &H43, &HEB, &H4C, &H6B, &H58)
+IID_IUIAnimationVariableIntegerChangeHandler2 = iid
+End Function
+Public Function IID_IUIAnimationVariableCurveChangeHandler2() As UUID
+'{72895E91-0145-4C21-9192-5AAB40EDDF80}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H72895E91, CInt(&H145), CInt(&H4C21), &H91, &H92, &H5A, &HAB, &H40, &HED, &HDF, &H80)
+IID_IUIAnimationVariableCurveChangeHandler2 = iid
+End Function
+Public Function IID_IUIAnimationStoryboardEventHandler2() As UUID
+'{BAC5F55A-BA7C-414C-B599-FBF850F553C6}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HBAC5F55A, CInt(&HBA7C), CInt(&H414C), &HB5, &H99, &HFB, &HF8, &H50, &HF5, &H53, &HC6)
+IID_IUIAnimationStoryboardEventHandler2 = iid
+End Function
+Public Function IID_IUIAnimationLoopIterationChangeHandler2() As UUID
+'{2D3B15A4-4762-47AB-A030-B23221DF3AE0}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H2D3B15A4, CInt(&H4762), CInt(&H47AB), &HA0, &H30, &HB2, &H32, &H21, &HDF, &H3A, &HE0)
+IID_IUIAnimationLoopIterationChangeHandler2 = iid
+End Function
+Public Function IID_IUIAnimationPriorityComparison2() As UUID
+'{5B6D7A37-4621-467C-8B05-70131DE62DDB}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H5B6D7A37, CInt(&H4621), CInt(&H467C), &H8B, &H5, &H70, &H13, &H1D, &HE6, &H2D, &HDB)
+IID_IUIAnimationPriorityComparison2 = iid
+End Function
+Public Function IID_IUIAnimationTransitionLibrary2() As UUID
+'{03CFAE53-9580-4ee3-B363-2ECE51B4AF6A}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H3CFAE53, CInt(&H9580), CInt(&H4EE3), &HB3, &H63, &H2E, &HCE, &H51, &HB4, &HAF, &H6A)
+IID_IUIAnimationTransitionLibrary2 = iid
+End Function
+Public Function IID_IUIAnimationPrimitiveInterpolation() As UUID
+'{BAB20D63-4361-45DA-A24F-AB8508846B5B}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HBAB20D63, CInt(&H4361), CInt(&H45DA), &HA2, &H4F, &HAB, &H85, &H8, &H84, &H6B, &H5B)
+IID_IUIAnimationPrimitiveInterpolation = iid
+End Function
+Public Function IID_IUIAnimationInterpolator2() As UUID
+'{EA76AFF8-EA22-4a23-A0EF-A6A966703518}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HEA76AFF8, CInt(&HEA22), CInt(&H4A23), &HA0, &HEF, &HA6, &HA9, &H66, &H70, &H35, &H18)
+IID_IUIAnimationInterpolator2 = iid
+End Function
+Public Function IID_IUIAnimationTransitionFactory2() As UUID
+'{937D4916-C1A6-42d5-88D8-30344D6EFE31}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H937D4916, CInt(&HC1A6), CInt(&H42D5), &H88, &HD8, &H30, &H34, &H4D, &H6E, &HFE, &H31)
+IID_IUIAnimationTransitionFactory2 = iid
+End Function
+Public Function IID_IUIAnimationStoryboard2() As UUID
+'{AE289CD2-12D4-4945-9419-9E41BE034DF2}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HAE289CD2, CInt(&H12D4), CInt(&H4945), &H94, &H19, &H9E, &H41, &HBE, &H3, &H4D, &HF2)
+IID_IUIAnimationStoryboard2 = iid
+End Function
+Public Function IID_IUIAnimationManager() As UUID
+'{9169896C-AC8D-4e7d-94E5-67FA4DC2F2E8}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H9169896C, CInt(&HAC8D), CInt(&H4E7D), &H94, &HE5, &H67, &HFA, &H4D, &HC2, &HF2, &HE8)
+IID_IUIAnimationManager = iid
+End Function
+Public Function IID_IUIAnimationVariable() As UUID
+'{8CEEB155-2849-4ce5-9448-91FF70E1E4D9}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H8CEEB155, CInt(&H2849), CInt(&H4CE5), &H94, &H48, &H91, &HFF, &H70, &HE1, &HE4, &HD9)
+IID_IUIAnimationVariable = iid
+End Function
+Public Function IID_IUIAnimationStoryboard() As UUID
+'{A8FF128F-9BF9-4af1-9E67-E5E410DEFB84}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HA8FF128F, CInt(&H9BF9), CInt(&H4AF1), &H9E, &H67, &HE5, &HE4, &H10, &HDE, &HFB, &H84)
+IID_IUIAnimationStoryboard = iid
+End Function
+Public Function IID_IUIAnimationTransition() As UUID
+'{DC6CE252-F731-41cf-B610-614B6CA049AD}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HDC6CE252, CInt(&HF731), CInt(&H41CF), &HB6, &H10, &H61, &H4B, &H6C, &HA0, &H49, &HAD)
+IID_IUIAnimationTransition = iid
+End Function
+Public Function IID_IUIAnimationManagerEventHandler() As UUID
+'{783321ED-78A3-4366-B574-6AF607A64788}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H783321ED, CInt(&H78A3), CInt(&H4366), &HB5, &H74, &H6A, &HF6, &H7, &HA6, &H47, &H88)
+IID_IUIAnimationManagerEventHandler = iid
+End Function
+Public Function IID_IUIAnimationVariableChangeHandler() As UUID
+'{6358B7BA-87D2-42d5-BF71-82E919DD5862}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H6358B7BA, CInt(&H87D2), CInt(&H42D5), &HBF, &H71, &H82, &HE9, &H19, &HDD, &H58, &H62)
+IID_IUIAnimationVariableChangeHandler = iid
+End Function
+Public Function IID_IUIAnimationVariableIntegerChangeHandler() As UUID
+'{BB3E1550-356E-44b0-99DA-85AC6017865E}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HBB3E1550, CInt(&H356E), CInt(&H44B0), &H99, &HDA, &H85, &HAC, &H60, &H17, &H86, &H5E)
+IID_IUIAnimationVariableIntegerChangeHandler = iid
+End Function
+Public Function IID_IUIAnimationStoryboardEventHandler() As UUID
+'{3D5C9008-EC7C-4364-9F8A-9AF3C58CBAE6}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H3D5C9008, CInt(&HEC7C), CInt(&H4364), &H9F, &H8A, &H9A, &HF3, &HC5, &H8C, &HBA, &HE6)
+IID_IUIAnimationStoryboardEventHandler = iid
+End Function
+Public Function IID_IUIAnimationPriorityComparison() As UUID
+'{83FA9B74-5F86-4618-BC6A-A2FAC19B3F44}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H83FA9B74, CInt(&H5F86), CInt(&H4618), &HBC, &H6A, &HA2, &HFA, &HC1, &H9B, &H3F, &H44)
+IID_IUIAnimationPriorityComparison = iid
+End Function
+Public Function IID_IUIAnimationTransitionLibrary() As UUID
+'{CA5A14B1-D24F-48b8-8FE4-C78169BA954E}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HCA5A14B1, CInt(&HD24F), CInt(&H48B8), &H8F, &HE4, &HC7, &H81, &H69, &HBA, &H95, &H4E)
+IID_IUIAnimationTransitionLibrary = iid
+End Function
+Public Function IID_IUIAnimationInterpolator() As UUID
+'{7815CBBA-DDF7-478c-A46C-7B6C738B7978}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H7815CBBA, CInt(&HDDF7), CInt(&H478C), &HA4, &H6C, &H7B, &H6C, &H73, &H8B, &H79, &H78)
+IID_IUIAnimationInterpolator = iid
+End Function
+Public Function IID_IUIAnimationTransitionFactory() As UUID
+'{FCD91E03-3E3B-45ad-BBB1-6DFC8153743D}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HFCD91E03, CInt(&H3E3B), CInt(&H45AD), &HBB, &HB1, &H6D, &HFC, &H81, &H53, &H74, &H3D)
+IID_IUIAnimationTransitionFactory = iid
+End Function
+Public Function IID_IUIAnimationTimer() As UUID
+'{6B0EFAD1-A053-41d6-9085-33A689144665}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H6B0EFAD1, CInt(&HA053), CInt(&H41D6), &H90, &H85, &H33, &HA6, &H89, &H14, &H46, &H65)
+IID_IUIAnimationTimer = iid
+End Function
+Public Function IID_IThumbnailCachePrimer() As UUID
+'{0f03f8fe-2b26-46f0-965a-212aa8d66b76}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HF03F8FE, CInt(&H2B26), CInt(&H46F0), &H97, &H5A, &H21, &H2A, &HA8, &HD6, &H6B, &H76)
+IID_IThumbnailCachePrimer = iid
+End Function
+Public Function IID_IMediaRadioManager() As UUID
+'{6CFDCAB5-FC47-42A5-9241-074B58830E73}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H6CFDCAB5, CInt(&HFC47), CInt(&H42A5), &H92, &H41, &H7, &H4B, &H58, &H83, &HE, &H73)
+IID_IMediaRadioManager = iid
+End Function
+Public Function IID_IRadioInstanceCollection() As UUID
+'{E5791FAE-5665-4E0C-95BE-5FDE31644185}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HE5791FAE, CInt(&H5665), CInt(&H4E0C), &H95, &HBE, &H5F, &HDE, &H31, &H64, &H41, &H85)
+IID_IRadioInstanceCollection = iid
+End Function
+Public Function IID_IRadioInstance() As UUID
+'{70AA1C9E-F2B4-4C61-86D3-6B9FB75FD1A2}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H70AA1C9E, CInt(&HF2B4), CInt(&H4C61), &H86, &HD3, &H6B, &H9F, &HB7, &H5F, &HD1, &HA2)
+IID_IRadioInstance = iid
+End Function
+Public Function IID_IMediaRadioManagerNotifySink() As UUID
+'{89D81F5F-C147-49ED-A11C-77B20C31E7C9}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H89D81F5F, CInt(&HC147), CInt(&H49ED), &HA1, &H1C, &H77, &HB2, &HC, &H31, &HE7, &HC9)
+IID_IMediaRadioManagerNotifySink = iid
+End Function
+Public Function IID_IPhotoAcquireItem() As UUID
+'{00f21c97-28bf-4c02-b842-5e4e90139a30}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HF21C97, CInt(&H28BF), CInt(&H4C02), &HB8, &H42, &H5E, &H4E, &H90, &H13, &H9A, &H30)
+IID_IPhotoAcquireItem = iid
+End Function
+Public Function IID_IUserInputString() As UUID
+'{00f243a1-205b-45ba-ae26-abbc53aa7a6f}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HF243A1, CInt(&H205B), CInt(&H45BA), &HAE, &H26, &HAB, &HBC, &H53, &HAA, &H7A, &H6F)
+IID_IUserInputString = iid
+End Function
+Public Function IID_IPhotoAcquireProgressCB() As UUID
+'{00f2ce1e-935e-4248-892c-130f32c45cb4}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HF2CE1E, CInt(&H935E), CInt(&H4248), &H89, &H2C, &H13, &HF, &H32, &HC4, &H5C, &HB4)
+IID_IPhotoAcquireProgressCB = iid
+End Function
+Public Function IID_IPhotoProgressActionCB() As UUID
+'{00f242d0-b206-4e7d-b4c1-4755bcbb9c9f}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HF242D0, CInt(&HB206), CInt(&H4E7D), &HB4, &HC1, &H47, &H55, &HBC, &HBB, &H9C, &H9F)
+IID_IPhotoProgressActionCB = iid
+End Function
+Public Function IID_IPhotoProgressDialog() As UUID
+'{00f246f9-0750-4f08-9381-2cd8e906a4ae}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HF246F9, CInt(&H750), CInt(&H4F08), &H93, &H81, &H2C, &HD8, &HE9, &H6, &HA4, &HAE)
+IID_IPhotoProgressDialog = iid
+End Function
+Public Function IID_IPhotoAcquireSource() As UUID
+'{00f2c703-8613-4282-a53b-6ec59c5883ac}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HF2C703, CInt(&H8613), CInt(&H4282), &HA5, &H3B, &H6E, &HC5, &H9C, &H58, &H83, &HAC)
+IID_IPhotoAcquireSource = iid
+End Function
+Public Function IID_IPhotoAcquire() As UUID
+'{00f23353-e31b-4955-a8ad-ca5ebf31e2ce}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HF23353, CInt(&HE31B), CInt(&H4955), &HA8, &HAD, &HCA, &H5E, &HBF, &H31, &HE2, &HCE)
+IID_IPhotoAcquire = iid
+End Function
+Public Function IID_IPhotoAcquireSettings() As UUID
+'{00f2b868-dd67-487c-9553-049240767e91}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HF2B868, CInt(&HDD67), CInt(&H487C), &H95, &H53, &H4, &H92, &H40, &H76, &H7E, &H91)
+IID_IPhotoAcquireSettings = iid
+End Function
+Public Function IID_IPhotoAcquireOptionsDialog() As UUID
+'{00f2b3ee-bf64-47ee-89f4-4dedd79643f2}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HF2B3EE, CInt(&HBF64), CInt(&H47EE), &H89, &HF4, &H4D, &HED, &HD7, &H96, &H43, &HF2)
+IID_IPhotoAcquireOptionsDialog = iid
+End Function
+Public Function IID_IPhotoAcquireDeviceSelectionDialog() As UUID
+'{00f28837-55dd-4f37-aaf5-6855a9640467}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HF28837, CInt(&H55DD), CInt(&H4F37), &HAA, &HF5, &H68, &H55, &HA9, &H64, &H4, &H67)
+IID_IPhotoAcquireDeviceSelectionDialog = iid
+End Function
+Public Function IID_IPhotoAcquirePlugin() As UUID
+'{00f2dceb-ecb8-4f77-8e47-e7a987c83dd0}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HF2DCEB, CInt(&HECB8), CInt(&H4F77), &H8E, &H47, &HE7, &HA9, &H87, &HC8, &H3D, &HD0)
+IID_IPhotoAcquirePlugin = iid
+End Function
+Public Function IID_ISyncMgrSynchronizeCallback() As UUID
+'{6295DF41-35EE-11d1-8707-00C04FD93327}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H6295DF41, CInt(&H35EE), CInt(&H11D1), &H87, &H7, &H0, &HC0, &H4F, &HD9, &H33, &H27)
+IID_ISyncMgrSynchronizeCallback = iid
+End Function
+Public Function IID_ISyncMgrEnumItems() As UUID
+'{6295DF2A-35EE-11d1-8707-00C04FD93327}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H6295DF2A, CInt(&H35EE), CInt(&H11D1), &H87, &H7, &H0, &HC0, &H4F, &HD9, &H33, &H27)
+ IID_ISyncMgrEnumItems = iid
+End Function
+Public Function IID_ISyncMgrSynchronize() As UUID
+'{6295DF40-35EE-11d1-8707-00C04FD93327}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H6295DF40, CInt(&H35EE), CInt(&H11D1), &H87, &H7, &H0, &HC0, &H4F, &HD9, &H33, &H27)
+IID_ISyncMgrSynchronize = iid
+End Function
+Public Function IID_ISyncMgrSynchronizeInvoke() As UUID
+'{6295DF2C-35EE-11d1-8707-00C04FD93327}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H6295DF2C, CInt(&H35EE), CInt(&H11D1), &H87, &H7, &H0, &HC0, &H4F, &HD9, &H33, &H27)
+IID_ISyncMgrSynchronizeInvoke = iid
+End Function
+Public Function IID_ISyncMgrRegister() As UUID
+'{6295DF42-35EE-11d1-8707-00C04FD93327}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H6295DF42, CInt(&H35EE), CInt(&H11D1), &H87, &H7, &H0, &HC0, &H4F, &HD9, &H33, &H27)
+IID_ISyncMgrRegister = iid
+End Function
+Public Function IID_IScopeItem() As UUID
+'{DD400FF4-A119-405F-970E-A9A5E7E828C0}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HDD400FF4, CInt(&HA119), CInt(&H405F), &H97, &HE, &HA9, &HA5, &HE7, &HE8, &H28, &HC0)
+ IID_IScopeItem = iid
+End Function
+Public Function IID_IScope() As UUID
+'{655D1685-2BFD-4F7F-AD22-5AB61C8D8798}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H655D1685, CInt(&H2BFD), CInt(&H4F7F), &HAD, &H22, &H5A, &HB6, &H1C, &H8D, &H87, &H98)
+ IID_IScope = iid
+End Function
+Public Function IID_IBindScopeDialog() As UUID
+'{655D1685-2BFD-4F7F-AD22-5AB61C8D8798}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H655D1685, CInt(&H2BFD), CInt(&H4F7F), &HAD, &H22, &H5A, &HB6, &H1C, &H8D, &H87, &H98)
+ IID_IBindScopeDialog = iid
+End Function
+Public Function IID_IAttachmentExecute() As UUID
+'{73db1241-1e85-4581-8e4f-a81e1d0f8c57}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H73DB1241, CInt(&H1E85), CInt(&H4581), &H8E, &H4F, &HA8, &H1E, &H1D, &HF, &H8C, &H57)
+IID_IAttachmentExecute = iid
+End Function
+Public Function IID_IStorageProviderBanners() As UUID
+'{5efb46d7-47C0-4b68-acda-ded47c90ec91}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H5EFB46D7, CInt(&H47C0), CInt(&H4B68), &HAC, &HDA, &HDE, &HD4, &H7C, &H90, &HEC, &H91)
+IID_IStorageProviderBanners = iid
+End Function
 
 Public Function GUID_DEVINTERFACE_SENSOR() As UUID
 '{BA1BB692-9B7A-4833-9A1E-525ED134E7E2}
