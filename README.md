@@ -1,14 +1,6 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-### ***tbShellLib is now WinDevLib - Windows Development Library for twinBASIC***
-This project has grown well beyond it's original mission of shell programming. While that's still the largest single part, it's no longer a majority of the code, and the name change now much better reflects the purpose of providing a general Windows API experience like windows.h. Compiler constants and module names/file names have been updated to reflect the name change. tbShellLibImpl is now WinDevLibImpl. There are also some major chanages associated with this update, please see the full changelog below.
-
-### DLL Redirection Errors 
- 
-twinBASIC now counts msvbvm60 redirects as legacy DLL redirects, which WinDevLib set to "Error". Please update to the latest version of WinDevLib to get rid of these errors and use it on twinBASIC Beta 456 and newer. Both this repo and the package server downloads have been updated.
- 
-
 **Current Version: 7.7.370 (April 5th, 2024)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
@@ -184,6 +176,14 @@ Finally, there's small API sets for features, like DirectX DLLs, Webview2Loader,
 
 **Future coverage:** In the future I'm planning to expand native APIs with no equivalents, add additional Winsock coverage, and add OpenGL-- though for this last one I may wait for tB to have `Alias` support since existing OpenGL codebases make heavy use of them by way of NeHe's TLB. I welcome contributions of any of these. If you've done the consts->enums conversions already, I'd even take 32bit-only versions.
 
+
+### ***tbShellLib is now WinDevLib - Windows Development Library for twinBASIC***
+This project has grown well beyond it's original mission of shell programming. While that's still the largest single part, it's no longer a majority of the code, and the name change now much better reflects the purpose of providing a general Windows API experience like windows.h. Compiler constants and module names/file names have been updated to reflect the name change. tbShellLibImpl is now WinDevLibImpl. There are also some major chanages associated with this update, please see the full changelog below.
+
+### DLL Redirection Errors in Older Versions
+ 
+twinBASIC now counts msvbvm60 redirects as legacy DLL redirects, which WinDevLib set to "Error". Please update to the latest version of WinDevLib to get rid of these errors and use it on twinBASIC Beta 456 and newer. Both this repo and the package server downloads have been updated.
+ 
 
 ### Updates
 
