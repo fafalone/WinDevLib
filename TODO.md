@@ -7,6 +7,4 @@ before release, or waiting on feature support:
 
 -POLID_ guids only partially complete
 
--mfapi.h missing macros
- 
- 
+ -New Direct2D; exp_d2d line 5050
