@@ -191,7 +191,7 @@ twinBASIC now counts msvbvm60 redirects as legacy DLL redirects, which WinDevLib
 -Minor additions to bring coverage of shellapi.h to 100%\
 -Added macros/helpers from mfapi.h and mfplay.idl\
 -Add missing gdip function GdipDrawImageFX\
--(Bug fix) GdipFillClosedCurve2[I] definitions incorrect. ((Issue #17)[https://github.com/fafalone/WinDevLib/issues/17])
+-(Bug fix) GdipFillClosedCurve2[I] definitions incorrect. [(Issue #17)](https://github.com/fafalone/WinDevLib/issues/17)
 
 **Update (v7.7.370, 05 April 2024):**\
 -Added all Background Intelligent Transfer Service interfaces; 100% coverage of:\
