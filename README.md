@@ -187,17 +187,17 @@ twinBASIC now counts msvbvm60 redirects as legacy DLL redirects, which WinDevLib
 
 ### Updates
 
-**Update (v7.7.372, 09 April 2024):**
+**Update (v7.7.372, 09 April 2024):**\
 -Minor additions to bring coverage of shellapi.h to 100%\
 -Added macros/helpers from mfapi.h and mfplay.idl\
 -Add missing gdip function GdipDrawImageFX\
 -(Bug fix) GdipFillClosedCurve2[I] definitions incorrect. ((Issue #17)[https://github.com/fafalone/WinDevLib/issues/17])
 
-**Update (v7.7.370, 05 April 2024):**
+**Update (v7.7.370, 05 April 2024):**\
 -Added all Background Intelligent Transfer Service interfaces; 100% coverage of:\
  bits.idl, bits1_5.idl, bits2_0.idl, bits2_5.idl, bits3_0.idl, bits4_0.idl, bits5_0.idl, bits10_1.idl, bits10_2.idl, bits10_3.idl, bitscfg.idl, qmgr.idl.
  
-**Update (v7.7.360, 04 April 2024):**
+**Update (v7.7.360, 04 April 2024):**\
 -Very large expansion of DirectWrite interfaces; only dwrite.h was covered; added 100%\
  coverage of dwrite_1.h, dwrite_2.h, and dwrite_3.h\
 -Added shdeprecated.h (100% coverage). Many of these are still in undocumented use.\
