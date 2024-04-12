@@ -187,7 +187,7 @@ twinBASIC now counts msvbvm60 redirects as legacy DLL redirects, which WinDevLib
 
 ### Updates
 
-**Update (v7.8.379, 12 April 2024):**
+**Update (v7.8.379, 12 April 2024):**\
 -Large expansion of Direct3D 12 interfaces to cover latest SDK version of d3d12.idl\
 -Added Direct3D 12 Video interfaces\
 -Added some missing Direct2D and Direct3D 11 interfaces\
