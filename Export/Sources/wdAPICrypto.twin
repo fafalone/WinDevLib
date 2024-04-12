@@ -11098,7 +11098,221 @@ Module wdAPICrypto
 
     #End Region
 
+    #Region "mssign32"
     
+    Public Enum SignerSubjectChoice
+        SIGNER_SUBJECT_FILE = &H01
+        SIGNER_SUBJECT_BLOB = &H02
+    End Enum
+    
+    Public Enum SignerAttrib
+        SIGNER_NO_ATTR = &H00
+        SIGNER_AUTHCODE_ATTR = &H01
+    End Enum
+    
+    Public Enum SignerPvkTypes
+        PVK_TYPE_FILE_NAME = &H01
+        PVK_TYPE_KEYCONTAINER = &H02
+    End Enum
+    
+    Public Enum SignerCertPolicy
+        SIGNER_CERT_POLICY_STORE = &H01
+        SIGNER_CERT_POLICY_CHAIN = &H02
+        SIGNER_CERT_POLICY_SPC = &H04
+        SIGNER_CERT_POLICY_CHAIN_NO_ROOT = &H08
+    End Enum
+    
+    Public Enum SignerCertSource
+        SIGNER_CERT_SPC_FILE = &H01
+        SIGNER_CERT_STORE = &H02
+        SIGNER_CERT_SPC_CHAIN = &H03
+    End Enum
+    
+    Public Enum SignerTimestampFlags
+        SIGNER_TIMESTAMP_AUTHENTICODE = 1
+        SIGNER_TIMESTAMP_RFC3161 = 2
+    End Enum
+    
+    Public Const SIG_APPEND  = &H1000
+    
+    ' typedef HRESULT (WINAPI *PFN_AUTHENTICODE_DIGEST_SIGN)(
+    ' _In_ PCCERT_CONTEXT pSigningCert,                        
+    ' _In_opt_ PCRYPT_DATA_BLOB pMetadataBlob,                 
+    ' _In_ ALG_ID digestAlgId,                                 
+    ' _In_ PBYTE pbToBeSignedDigest, 
+    ' _In_ DWORD cbToBeSignedDigest,                           
+    ' _Out_ PCRYPT_DATA_BLOB pSignedDigest      
+    ' );
+
+' typedef HRESULT (WINAPI *PFN_AUTHENTICODE_DIGEST_SIGN_EX)(
+    ' _In_opt_ PCRYPT_DATA_BLOB pMetadataBlob,         
+    ' _In_ ALG_ID digestAlgId,                                 
+    ' _In_ PBYTE pbToBeSignedDigest, 
+    ' _In_ DWORD cbToBeSignedDigest,                           
+    ' _Out_ PCRYPT_DATA_BLOB pSignedDigest,                    
+    ' _Out_ PCCERT_CONTEXT* ppSignerCert,                      
+    ' _Inout_ HCERTSTORE hCertChainStore  
+    ' );
+
+' typedef HRESULT (WINAPI *PFN_AUTHENTICODE_DIGEST_SIGN_EX_WITHFILEHANDLE)(
+    ' _In_opt_ PCRYPT_DATA_BLOB pMetadataBlob,                 
+    ' _In_ ALG_ID digestAlgId,                                 
+    ' _In_ PBYTE pbToBeSignedDigest, 
+    ' _In_ DWORD cbToBeSignedDigest,                           
+    ' _In_ HANDLE hFile,
+    ' _Out_ PCRYPT_DATA_BLOB pSignedDigest,                  
+    ' _Out_ PCCERT_CONTEXT* ppSignerCert,                      
+    ' _Inout_ HCERTSTORE hCertChainStore   
+    ' );
+
+' typedef HRESULT (WINAPI *PFN_AUTHENTICODE_DIGEST_SIGN_WITHFILEHANDLE)(
+    ' _In_ PCCERT_CONTEXT pSigningCert,                        
+    ' _In_opt_ PCRYPT_DATA_BLOB pMetadataBlob,                 
+    ' _In_ ALG_ID digestAlgId,                                 
+    ' _In_ PBYTE pbToBeSignedDigest, 
+    ' _In_ DWORD cbToBeSignedDigest,    
+    ' _In_ HANDLE hFile,                   
+    ' _Out_ PCRYPT_DATA_BLOB pSignedDigest 
+    ' );
+    
+    Public Type SIGNER_ATTR_AUTHCODE
+        cbSize As Long
+        fCommercial As BOOL
+        fIndividual As BOOL
+        pwszName As LongPtr
+        pwszInfo As LongPtr
+    End Type
+    
+    Public Type SIGNER_BLOB_INFO
+        cbSize As Long
+        pGuidSubject As LongPtr 'GUID*
+        cbBlob As Long
+        pbBlob As LongPtr 'BYTE*
+        pwszDisplayName As LongPtr
+    End Type
+    
+    Public Type SIGNER_CERT_STORE_INFO
+        cbSize As Long
+        pSigningCert As LongPtr 'PCCERT_CONTEXT
+        dwCertPolicy As SignerCertPolicy
+        hCertStore As LongPtr 'HCERTSTORE
+    End Type
+    
+    Public Type SIGNER_SPC_CHAIN_INFO
+        cbSize As Long
+        pwszSpcFile As LongPtr
+        dwCertPolicy As SignerCertPolicy
+        hCertStore As LongPtr 'HCERTSTORE
+    End Type
+    
+    Public Type SIGNER_CERT
+        cbSize As Long
+        dwCertChoice As SignerCertPolicy
+        '    union {
+        '       LPCWSTR                pwszSpcFile;
+        '       SIGNER_CERT_STORE_INFO *pCertStoreInfo;
+        '        SIGNER_SPC_CHAIN_INFO  *pSpcChainInfo;
+        '    };
+        u As LongPtr
+        hwnd As LongPtr
+    End Type
+    
+    Public Type SIGNER_CONTEXT
+        cbSize As Long
+        cbBlob As Long
+        pbBlob As LongPtr 'BYTE*
+    End Type
+    
+    Public Enum SignerDigestSignChoice
+        DIGEST_SIGN = &H0001
+        DIGEST_SIGN_WITHFILEHANDLE = &H0002
+        DIGEST_SIGN_EX = &H0004
+        DIGEST_SIGN_EX_WITHFILEHANDLE = &H0008
+    End Enum
+        
+        
+    Public Type SIGNER_DIGEST_SIGN_INFO
+        cbSize As Long
+        dwDigestSignChoice As SignerDigestSignChoice
+        '    union {
+        '        PFN_AUTHENTICODE_DIGEST_SIGN pfnAuthenticodeDigestSign;
+        '        PFN_AUTHENTICODE_DIGEST_SIGN_WITHFILEHANDLE pfnAuthenticodeDigestSignWithFileHandle;
+        '       PFN_AUTHENTICODE_DIGEST_SIGN_EX pfnAuthenticodeDigestSignEx;
+        '        PFN_AUTHENTICODE_DIGEST_SIGN_EX_WITHFILEHANDLE pfnAuthenticodeDigestSignExWithFileHandle;
+        '    };
+        pfn As LongPtr
+        pMetadataBlob As LongPtr 'PCRYPT_DATA_BLOB
+        dwReserved As Long
+        dwReserved2 As Long
+        dwReserved3 As Long
+    End Type
+    
+    Public Type SIGNER_DIGEST_SIGN_INFO_V1
+        cbSize As Long
+        pfnAuthenticodeDigestSign As LongPtr 'PFN_AUTHENTICODE_DIGEST_SIGN
+        pMetadataBlob As LongPtr 'PCRYPT_DATA_BLOB
+    End Type
+    Public Type SIGNER_DIGEST_SIGN_INFO_V2
+        cbSize As Long
+        pfnAuthenticodeDigestSign As LongPtr 'PFN_AUTHENTICODE_DIGEST_SIGN
+        pfnAuthenticodeDigestSignEx As LongPtr 'PFN_AUTHENTICODE_DIGEST_SIGN_EX
+        pMetadataBlob As LongPtr 'PCRYPT_DATA_BLOB
+    End Type
+    
+    Public Type SIGNER_FILE_INFO
+        cbSize As Long
+        pwszFileName As LongPtr
+        hFile As LongPtr
+    End Type
+    
+    Public Type SIGNER_PROVIDER_INFO
+        cbSize As Long
+        pwszProviderName As LongPtr
+        dwProviderType As Long
+        dwKeySpec As CRYPT_AT_FLAGS
+        dwPvkChoice As SignerPvkTypes
+        '    union {
+        '        LPWSTR pwszPvkFileName;
+        '        LPWSTR pwszKeyContainer;
+        '    };
+        pwsz As LongPtr
+    End Type
+    
+    Public Type SIGNER_SIGNATURE_INFO
+        cbSize As Long
+        algidHash As ALG_ID
+        dwAttrChoice As SignerAttrib
+        '    union {
+        pAttrAuthcode As SIGNER_ATTR_AUTHCODE
+        '    };
+        psAuthenticated As LongPtr 'PCRYPT_ATTRIBUTES
+        psUnauthenticated As LongPtr 'PCRYPT_ATTRIBUTES
+    End Type
+    
+    Public Type SIGNER_SUBJECT_INFO
+        cbSize As Long
+        pdwIndex As LongPtr 'DWORD*
+        dwSubjectChoice As SignerSubjectChoice
+        '    union {
+        '       SIGNER_FILE_INFO *pSignerFileInfo;
+        '        SIGNER_BLOB_INFO *pSignerBlobInfo;
+        '    };
+        pFileOrBlob As LongPtr
+    End Type
+    
+    
+    Public Declare PtrSafe Function SignError Lib "Mssign32.dll" () As Long
+    Public Declare PtrSafe Function SignerFreeSignerContext Lib "Mssign32.dll" (ByVal pSignerContext As LongPtr) As Long
+    Public Declare PtrSafe Function SignerSign Lib "Mssign32.dll" (pSubjectInfo As SIGNER_SUBJECT_INFO, pSignerCert As SIGNER_CERT, pSignatureInfo As SIGNER_SIGNATURE_INFO, pProviderInfo As SIGNER_PROVIDER_INFO, ByVal pwszHttpTimeStamp As LongPtr, psRequest As CRYPT_ATTRIBUTES, pSipData As Any) As Long
+    Public Declare PtrSafe Function SignerSignEx Lib "Mssign32.dll" (ByVal dwFlags As CryptSipSubjectInfoFlags, pSubjectInfo As SIGNER_SUBJECT_INFO, pSignerCert As SIGNER_CERT, pSignatureInfo As SIGNER_SIGNATURE_INFO, pProviderInfo As SIGNER_PROVIDER_INFO, ByVal pwszHttpTimeStamp As LongPtr, psRequest As CRYPT_ATTRIBUTES, pSipData As Any, ppSignerContext As LongPtr) As Long
+    Public Declare PtrSafe Function SignerSignEx2 Lib "Mssign32.dll" (ByVal dwFlags As CryptSipSubjectInfoFlags, pSubjectInfo As SIGNER_SUBJECT_INFO, pSignerCert As SIGNER_CERT, pSignatureInfo As SIGNER_SIGNATURE_INFO, pProviderInfo As SIGNER_PROVIDER_INFO, ByVal dwTimestampFlags As SignerTimestampFlags, ByVal pszTimestampAlgorithmOid As LongPtr, ByVal pwszHttpTimeStamp As LongPtr, psRequest As CRYPT_ATTRIBUTES, pSipData As Any, ppSignerContext As LongPtr, pCryptoPolicy As CERT_STRONG_SIGN_PARA, ByVal pReserved As LongPtr) As Long
+    Public Declare PtrSafe Function SignerSignEx3 Lib "Mssign32.dll" (ByVal dwFlags As CryptSipSubjectInfoFlags, pSubjectInfo As SIGNER_SUBJECT_INFO, pSignerCert As SIGNER_CERT, pSignatureInfo As SIGNER_SIGNATURE_INFO, pProviderInfo As SIGNER_PROVIDER_INFO, ByVal dwTimestampFlags As SignerTimestampFlags, ByVal pszTimestampAlgorithmOid As LongPtr, ByVal pwszHttpTimeStamp As LongPtr, psRequest As CRYPT_ATTRIBUTES, pSipData As Any, ppSignerContext As LongPtr, pCryptoPolicy As CERT_STRONG_SIGN_PARA, pDigestSignInfo As SIGNER_DIGEST_SIGN_INFO, ByVal pReserved As LongPtr) As Long
+    Public Declare PtrSafe Function SignerTimeStamp Lib "Mssign32.dll" (pSubjectInfo As SIGNER_SUBJECT_INFO, ByVal pwszHttpTimeStamp As LongPtr, psRequest As CRYPT_ATTRIBUTES, pSipData As Any) As Long
+    Public Declare PtrSafe Function SignerTimeStampEx Lib "Mssign32.dll" (ByVal dwFlags As Long, pSubjectInfo As SIGNER_SUBJECT_INFO, ByVal pwszHttpTimeStamp As LongPtr, psRequest As CRYPT_ATTRIBUTES, pSipData As Any, ppSignerContext As LongPtr) As Long
+    Public Declare PtrSafe Function SignerTimeStampEx2 Lib "Mssign32.dll" (ByVal dwFlags As SignerTimestampFlags, pSubjectInfo As SIGNER_SUBJECT_INFO, ByVal pwszHttpTimeStamp As LongPtr, ByVal dwAlgId As ALG_ID, psRequest As CRYPT_ATTRIBUTES, pSipData As Any, ppSignerContext As LongPtr) As Long
+    Public Declare PtrSafe Function SignerTimeStampEx3 Lib "Mssign32.dll" (ByVal dwFlags As SignerTimestampFlags, ByVal dwIndex As Long, pSubjectInfo As SIGNER_SUBJECT_INFO, ByVal pwszHttpTimeStamp As LongPtr, ByVal pszAlgorithmOid As LongPtr, psRequest As CRYPT_ATTRIBUTES, pSipData As Any, ppSignerContext As LongPtr, pCryptoPolicy As CERT_STRONG_SIGN_PARA, ByVal pReserved As LongPtr) As Long
+                
+    #End Region
 
 End Module
 #End If
