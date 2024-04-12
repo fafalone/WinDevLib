@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 7.7.372 (April 9th, 2024)**
+**Current Version: 7.8.379 (April 12th, 2024)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -186,6 +186,17 @@ twinBASIC now counts msvbvm60 redirects as legacy DLL redirects, which WinDevLib
  
 
 ### Updates
+
+**Update (v7.8.379, 12 April 2024):**
+-Large expansion of Direct3D 12 interfaces to cover latest SDK version of d3d12.idl\
+-Added Direct3D 12 Video interfaces\
+-Added some missing Direct2D and Direct3D 11 interfaces\
+-Added Windows Media Device Manager application interfaces (mswmdm.h, 50%- provider interfaces todo)\
+-Added cert signing APIs from Mssign32.dll (mssign.h, 100%)\
+-(Bug fix) GdipGetLineColors definition incorrect [(Issue #18)](https://github.com/fafalone/WinDevLib/issues/18)\
+-(Bug fix) GdipDrawImagePointsRect[I] definitions incorrect for 64bit [(Issue #19)](https://github.com/fafalone/WinDevLib/issues/19)\
+-(Bug fix) GdipEnumerateMetafileDestPoint[I] definitions incorrect for 64bit
+
 
 **Update (v7.7.372, 09 April 2024):**\
 -Minor additions to bring coverage of shellapi.h to 100%\
