@@ -1,0 +1,1590 @@
+'*****************************************************************************************
+'This file is a part of WinDevLib - Windows Development Library for twinBASIC
+'https://github.com/fafalone/WinDevLib
+'Code ported by Jon Johnson. 
+'"Windows" is a trademark of the Microsoft Corporation.
+'Certain Description attributes (c) Microsoft, taken from SDK headers and official docs.
+'Licensed under Creative Commons CC0 1.0 Universal
+'*****************************************************************************************
+
+'WinDevLib - wdAPIBio :: Windows Biometric Framework
+
+'winbio_types.h
+'winbio_err.h
+'winbio_ioctl.h
+'winbio_adapter.h (TODO)
+'winbio.h
+
+
+
+Module wdAPIBio
+
+#Region "winbio_types.h"
+
+Public Enum WINBIO_UNIT_ID
+    [_]
+End Enum
+
+Public Const WINBIO_MAX_STRING_LEN = 256
+' typedef WCHAR WINBIO_STRING[WINBIO_MAX_STRING_LEN];
+' typedef WINBIO_STRING *PWINBIO_STRING;
+
+Public Type WINBIO_STRING
+    str(WINBIO_MAX_STRING_LEN - 1) As Integer
+End Type
+
+Public Type WINBIO_VERSION
+    MajorVersion As Long
+    MinorVersion As Long
+End Type
+
+Public Enum WINBIO_IDENTITY_TYPE
+    WINBIO_ID_TYPE_NULL = (0)  ' The Identity structure is empty.
+    WINBIO_ID_TYPE_WILDCARD = (1)  ' The Identity matches "all identities"
+    WINBIO_ID_TYPE_GUID = (2)  ' A GUID identifies the template.
+    WINBIO_ID_TYPE_SID = (3)  ' An account SID identifies the template.
+    WINBIO_ID_TYPE_SECURE_ID = (4)  ' A secure ID identifies the template.
+End Enum
+
+Public Const WINBIO_IDENTITY_SECURE_ID_SIZE = 32
+
+Public Type WINBIO_IDENTITY
+    nType As WINBIO_IDENTITY_TYPE
+    ' union {
+        ' ULONG Null;
+        ' ULONG Wildcard;
+        ' GUID TemplateGuid;
+        ' struct {
+            ' ULONG Size;
+            ' UCHAR Data[SECURITY_MAX_SID_SIZE];
+        ' } AccountSid;
+' #if (NTDDI_VERSION >= NTDDI_WIN10_RS4)
+        ' UCHAR SecureId[WINBIO_IDENTITY_SECURE_ID_SIZE];
+' #endif
+    ' } Value;
+    Value(71) As Byte 'AccountSid = 4+68
+End Type
+
+Public Const WINBIO_IDENTITY_WILDCARD = (&H25066282)
+
+Public Enum WINBIO_BIOMETRIC_TYPE
+    WINBIO_STANDARD_TYPE_MASK = (&H00FFFFFF)
+    WINBIO_NO_TYPE_AVAILABLE = (&H00000000)
+'  Standard biometric types (from NISTIR 6529-A)
+    WINBIO_TYPE_MULTIPLE = (&H00000001)
+    WINBIO_TYPE_FACIAL_FEATURES = (&H00000002)
+    WINBIO_TYPE_VOICE = (&H00000004)
+    WINBIO_TYPE_FINGERPRINT = (&H00000008)
+    WINBIO_TYPE_IRIS = (&H00000010)
+    WINBIO_TYPE_RETINA = (&H00000020)
+    WINBIO_TYPE_HAND_GEOMETRY = (&H00000040)
+    WINBIO_TYPE_SIGNATURE_DYNAMICS = (&H00000080)
+    WINBIO_TYPE_KEYSTROKE_DYNAMICS = (&H00000100)
+    WINBIO_TYPE_LIP_MOVEMENT = (&H00000200)
+    WINBIO_TYPE_THERMAL_FACE_IMAGE = (&H00000400)
+    WINBIO_TYPE_THERMAL_HAND_IMAGE = (&H00000800)
+    WINBIO_TYPE_GAIT = (&H00001000)
+    WINBIO_TYPE_SCENT = (&H00002000)
+    WINBIO_TYPE_DNA = (&H00004000)
+    WINBIO_TYPE_EAR_SHAPE = (&H00008000&)
+    WINBIO_TYPE_FINGER_GEOMETRY = (&H00010000)
+    WINBIO_TYPE_PALM_PRINT = (&H00020000)
+    WINBIO_TYPE_VEIN_PATTERN = (&H00040000)
+    WINBIO_TYPE_FOOT_PRINT = (&H00080000)
+'  WinBio extended types
+    WINBIO_TYPE_OTHER = (&H40000000)
+    WINBIO_TYPE_PASSWORD = (&H80000000)
+    WINBIO_TYPE_ANY = (WINBIO_STANDARD_TYPE_MASK Or WINBIO_TYPE_OTHER Or WINBIO_TYPE_PASSWORD)
+End Enum
+
+Public Enum WINBIO_BIOMETRIC_SENSOR_SUBTYPE
+    WINBIO_SENSOR_SUBTYPE_UNKNOWN = &H00000000
+    WINBIO_FP_SENSOR_SUBTYPE_SWIPE = &H00000001
+    WINBIO_FP_SENSOR_SUBTYPE_TOUCH = &H00000002
+End Enum
+
+Public Enum WINBIO_CAPABILITIES
+    WINBIO_CAPABILITY_SENSOR = (&H00000001)
+    WINBIO_CAPABILITY_MATCHING = (&H00000002)
+    WINBIO_CAPABILITY_DATABASE = (&H00000004)
+    WINBIO_CAPABILITY_PROCESSING = (&H00000008)
+    WINBIO_CAPABILITY_ENCRYPTION = (&H00000010)
+    WINBIO_CAPABILITY_NAVIGATION = (&H00000020)
+    WINBIO_CAPABILITY_INDICATOR = (&H00000040)
+' #if (NTDDI_VERSION >= NTDDI_WINTHRESHOLD)
+    WINBIO_CAPABILITY_VIRTUAL_SENSOR = (&H00000080)
+' #endif // (NTDDI_VERSION >= NTDDI_WINTHRESHOLD)
+' #if (NTDDI_VERSION >= NTDDI_WIN10_RS1)
+    WINBIO_CAPABILITY_SECURE_SENSOR = (&H00000100)
+' #endif // (NTDDI_VERSION >= NTDDI_WIN10_RS1)
+' #if (NTDDI_VERSION >= NTDDI_WIN10_RS4)
+'  Secure Connection Protocol (SCP) V1 --> Secure Fingerprints
+    WINBIO_CAPABILITY_SCP_V1 = (&H00000200)
+'  Modern standby support
+    WINBIO_CAPABILITY_WAKE = (&H00000400)
+End Enum
+
+Public Const WINBIO_SCP_VERSION_1 As Integer = 1
+
+Public Const WINBIO_SCP_RANDOM_SIZE_V1  = 32
+Public Const WINBIO_SCP_DIGEST_SIZE_V1  = 32  ' SHA256
+Public Const WINBIO_SCP_CURVE_FIELD_SIZE_V1  = 32  ' NIST P256
+Public Const WINBIO_SCP_PUBLIC_KEY_SIZE_V1  = 65  ' 0x04||x||y
+Public Const WINBIO_SCP_PRIVATE_KEY_SIZE_V1  = 32  ' log_2(n)/8
+Public Const WINBIO_SCP_SIGNATURE_SIZE_V1  = 64  ' r||s
+Public Const WINBIO_SCP_ENCRYPTION_BLOCK_SIZE_V1  = 16  ' AES
+Public Const WINBIO_SCP_ENCRYPTION_KEY_SIZE_V1  = 32  ' AES256
+
+Public Enum WINBIO_SCP_FLAGS_Enum
+    WINBIO_SCP_FLAG_RECONNECT = 1
+End Enum
+
+Public Type WINBIO_SECURE_CONNECTION_PARAMS
+    PayloadSize As Long
+    Version As Integer 'WINBIO_SCP_VERSION ' WINBIO_SCP_VERSION_1
+    /* [TypeHint(WINBIO_SCP_FLAGS_Enum)*/ Flags As Integer 'WINBIO_SCP_FLAGS
+    ' Required fields:
+    '   HostRandom[WINBIO_SCP_RANDOM_SIZE_V1];
+    ' Fields omitted for reconnection:
+    '   PublicKey[WINBIO_SCP_PUBLIC_KEY_SIZE_V1]
+End Type
+
+Public Type WINBIO_SECURE_CONNECTION_DATA
+    Size As Long
+    Version As Integer 'WINBIO_SCP_VERSION ' WINBIO_SCP_VERSION_1
+    /* [TypeHint(WINBIO_SCP_FLAGS_Enum)*/ Flags As Integer 'WINBIO_SCP_FLAGS
+    ModelCertificateSize As Long
+    IntermediateCA1Size As Long
+    IntermediateCA2Size As Long
+    ' Required fields:
+    '   Mac[WINBIO_SCP_DIGEST_SIZE_V1];
+    ' Fields omitted for reconnection:
+    '   DeviceRandom[WINBIO_SCP_RANDOM_SIZE_V1]
+    '   ModelCertificate[ModelCertificateSize]
+    '   DevicePublicKey[WINBIO_SCP_PUBLIC_KEY_SIZE_V1]
+    '   FirmwarePublicKey[WINBIO_SPC_PUBLIC_KEY_SIZE_V1]
+    '   FirmwareHash[WINBIO_SCP_DIGEST_SIZE_V1]
+    '   ModelSignature[WINBIO_SCP_SIGNATURE_SIZE_V1]
+    '   DeviceSignature[WINBIO_SCP_SIGNATURE_SIZE_V1]
+    ' Field required the driver needs to append for full connection:
+    '   IntermediateCA1[IntermediateCA1Size]
+    '   IntermediateCA2[IntermediateCA2Size]
+End Type
+
+Public Enum WINBIO_WAKE_REASON
+    WINBIO_WAKE_REASON_UNKNOWN = &H00000000
+    WINBIO_WAKE_REASON_TOUCH = &H00000001
+End Enum
+
+Public Enum WINBIO_SENSOR_STATUS
+    WINBIO_SENSOR_STATUS_UNKNOWN = (0)
+    WINBIO_SENSOR_ACCEPT = (1)
+    WINBIO_SENSOR_REJECT = (2)
+    WINBIO_SENSOR_READY = (3)
+    WINBIO_SENSOR_BUSY = (4)
+    WINBIO_SENSOR_NOT_CALIBRATED = (5)
+    WINBIO_SENSOR_FAILURE = (6)
+    '(NTDDI_VERSION  = >= NTDDI_WINTHRESHOLD)
+'  The following only apply to VIRTUAL_SENSOR units
+    WINBIO_SENSOR_AVAILABLE = (7)
+    WINBIO_SENSOR_UNAVAILABLE = (8)
+End Enum
+
+Public Enum WINBIO_INDICATOR_STATUS
+    WINBIO_INDICATOR_ON = 1
+    WINBIO_INDICATOR_OFF = 2
+End Enum
+
+Public Enum WINBIO_SENSOR_MODE
+    WINBIO_SENSOR_UNKNOWN_MODE = (0)
+    WINBIO_SENSOR_BASIC_MODE = (1)
+    WINBIO_SENSOR_ADVANCED_MODE = (2)
+    WINBIO_SENSOR_NAVIGATION_MODE = (3)
+    WINBIO_SENSOR_SLEEP_MODE = (4)
+End Enum
+
+Public Enum WINBIO_BIOMETRIC_SUBTYPE_Enum
+    WINBIO_SUBTYPE_NO_INFORMATION = 0
+    WINBIO_SUBTYPE_ANY = &HFF
+    WINBIO_ANSI_381_POS_UNKNOWN = (0)
+    WINBIO_ANSI_381_POS_RH_THUMB = (1)
+    WINBIO_ANSI_381_POS_RH_INDEX_FINGER = (2)
+    WINBIO_ANSI_381_POS_RH_MIDDLE_FINGER = (3)
+    WINBIO_ANSI_381_POS_RH_RING_FINGER = (4)
+    WINBIO_ANSI_381_POS_RH_LITTLE_FINGER = (5)
+    WINBIO_ANSI_381_POS_LH_THUMB = (6)
+    WINBIO_ANSI_381_POS_LH_INDEX_FINGER = (7)
+    WINBIO_ANSI_381_POS_LH_MIDDLE_FINGER = (8)
+    WINBIO_ANSI_381_POS_LH_RING_FINGER = (9)
+    WINBIO_ANSI_381_POS_LH_LITTLE_FINGER = (10)
+    WINBIO_ANSI_381_POS_RH_FOUR_FINGERS = (13)
+    WINBIO_ANSI_381_POS_LH_FOUR_FINGERS = (14)
+    WINBIO_ANSI_381_POS_TWO_THUMBS = (15)
+    WINBIO_ANSI_381_POS_UNKNOWN_PALM = (20)
+    WINBIO_ANSI_381_POS_RH_FULL_PALM = (21)
+    WINBIO_ANSI_381_POS_RH_WRITERS_PALM = (22)
+    WINBIO_ANSI_381_POS_LH_FULL_PALM = (23)
+    WINBIO_ANSI_381_POS_LH_WRITERS_PALM = (24)
+    WINBIO_ANSI_381_POS_RH_LOWER_PALM = (25)
+    WINBIO_ANSI_381_POS_RH_UPPER_PALM = (26)
+    WINBIO_ANSI_381_POS_LH_LOWER_PALM = (27)
+    WINBIO_ANSI_381_POS_LH_UPPER_PALM = (28)
+    WINBIO_ANSI_381_POS_RH_OTHER = (29)
+    WINBIO_ANSI_381_POS_LH_OTHER = (30)
+    WINBIO_ANSI_381_POS_RH_INTERDIGITAL = (31)
+    WINBIO_ANSI_381_POS_RH_THENAR = (32)
+    WINBIO_ANSI_381_POS_RH_HYPOTHENAR = (33)
+    WINBIO_ANSI_381_POS_LH_INTERDIGITAL = (34)
+    WINBIO_ANSI_381_POS_LH_THENAR = (35)
+    WINBIO_ANSI_381_POS_LH_HYPOTHENAR = (36)
+    WINBIO_ANSI_381_IMP_TYPE_LIVE_SCAN_PLAIN = (0)
+    WINBIO_ANSI_381_IMP_TYPE_LIVE_SCAN_ROLLED = (1)
+    WINBIO_ANSI_381_IMP_TYPE_NONLIVE_SCAN_PLAIN = (2)
+    WINBIO_ANSI_381_IMP_TYPE_NONLIVE_SCAN_ROLLED = (3)
+    WINBIO_ANSI_381_IMP_TYPE_LATENT = (7)
+    WINBIO_ANSI_381_IMP_TYPE_SWIPE = (8)
+    WINBIO_ANSI_381_IMP_TYPE_LIVE_SCAN_CONTACTLESS = (9)
+    '(NTDDI_VERSION  = >= NTDDI_WIN9)
+    WINBIO_FINGER_UNSPECIFIED_POS_01 = (&HF5)
+    WINBIO_FINGER_UNSPECIFIED_POS_02 = (&HF6)
+    WINBIO_FINGER_UNSPECIFIED_POS_03 = (&HF7)
+    WINBIO_FINGER_UNSPECIFIED_POS_04 = (&HF8)
+    WINBIO_FINGER_UNSPECIFIED_POS_05 = (&HF9)
+    WINBIO_FINGER_UNSPECIFIED_POS_06 = (&HFA)
+    WINBIO_FINGER_UNSPECIFIED_POS_07 = (&HFB)
+    WINBIO_FINGER_UNSPECIFIED_POS_08 = (&HFC)
+    WINBIO_FINGER_UNSPECIFIED_POS_09 = (&HFD)
+    WINBIO_FINGER_UNSPECIFIED_POS_10 = (&HFE)
+    '(NTDDI_VERSION  = >= NTDDI_WINTHRESHOLD)
+    WINBIO_ANSI_385_FACE_TYPE_UNKNOWN = (0)
+    WINBIO_ANSI_385_FACE_FRONTAL_FULL = (1)
+    WINBIO_ANSI_385_FACE_FRONTAL_TOKEN = (2)
+    WINBIO_IRIS_TYPE_UNKNOWN = (0)
+    WINBIO_IRIS_LEFT_EYE = (&HF5)
+    WINBIO_IRIS_RIGHT_EYE = (&HF6)
+    WINBIO_IRIS_UNSPECIFIED_POS_01 = (&HF7)
+    WINBIO_IRIS_UNSPECIFIED_POS_02 = (&HF8)
+    WINBIO_IRIS_BOTH_EYES = (&HF9)
+    WINBIO_IRIS_EITHER_EYE = (&HFA)
+    WINBIO_VOICE_TYPE_UNKNOWN = (0)
+    WINBIO_VOICE_MIN_UTTERANCE = (1)
+    WINBIO_VOICE_MAX_UTTERANCE = (32)
+End Enum
+
+Public Enum WINBIO_UNIT_SECURITY_LEVEL
+    WINBIO_UNIT_SECURITY_LEVEL_NORMAL = 0
+    WINBIO_UNIT_SECURITY_LEVEL_VBS = 1
+End Enum
+
+Public Enum WINBIO_REJECT_DETAIL
+    WINBIO_FP_TOO_HIGH = (1)
+    WINBIO_FP_TOO_LOW = (2)
+    WINBIO_FP_TOO_LEFT = (3)
+    WINBIO_FP_TOO_RIGHT = (4)
+    WINBIO_FP_TOO_FAST = (5)
+    WINBIO_FP_TOO_SLOW = (6)
+    WINBIO_FP_POOR_QUALITY = (7)
+    WINBIO_FP_TOO_SKEWED = (8)
+    WINBIO_FP_TOO_SHORT = (9)
+    WINBIO_FP_MERGE_FAILURE = (10)
+' #if (NTDDI_VERSION >= NTDDI_WINTHRESHOLD)
+'  REJECT_DETAIL values for IRIS and FACIAL_FEATURES contain multiple fields:
+'   - Flags requesting proof-of-liveness behaviors from the user            [0xFF000000]
+'   - Flags indicating of position errors                                   [0x00FF0000]
+'   - A (single) enumerated value explaining the reason for the rejection.  [0x0000FFFF]
+'  This mask covers the upper 8 bits of the reject detail value, where
+'  the proof-of-liveness behaviors are located.
+    WINBIO_REJECT_DETAIL_ANTI_SPOOF_MASK = (&HFF000000)
+'  Anti-spoofing behaviors...
+    WINBIO_ANTI_SPOOF_TURN_SIDE_TO_SIDE = (&H01000000)
+'  This mask covers the range of bits devoted to position errors...
+    WINBIO_REJECT_DETAIL_POSITION_MASK = (&H00FF0000)
+'  This mask covers the lower 16 bits, where the enumerated reason for the
+'  rejection is located.
+    WINBIO_REJECT_DETAIL_REASON_MASK = (&H0000FFFF&)
+End Enum
+
+Public Enum WinBioIrisRejection
+    WINBIO_IRIS_POOR_QUALITY = (1)
+    WINBIO_IRIS_TOO_BRIGHT = (2)
+    WINBIO_IRIS_TOO_DARK = (3)
+    WINBIO_IRIS_SPOOF_DETECTED = (4)
+    WINBIO_IRIS_TOO_SKEWED = (5)
+    WINBIO_IRIS_TOO_CLOSED = (6)
+    WINBIO_IRIS_GLARE = (7)
+    WINBIO_IRIS_DIRTY_LENS = (8)
+    WINBIO_IRIS_POOR_FOCUS = (9)
+'  Camera orientation doesn't match mandatory value in EXTENDED_SENSOR_INFO
+    WINBIO_IRIS_WRONG_ORIENTATION = (10)
+'  Positioning errors...
+    WINBIO_IRIS_TOO_HIGH = (&H00010000)
+    WINBIO_IRIS_TOO_LOW = (&H00020000)
+    WINBIO_IRIS_TOO_LEFT = (&H00040000)
+    WINBIO_IRIS_TOO_RIGHT = (&H00080000)
+    WINBIO_IRIS_TOO_NEAR = (&H00100000)
+    WINBIO_IRIS_TOO_FAR = (&H00200000)
+End Enum
+Public Enum WinBioFaceRejection
+    WINBIO_FACE_POOR_QUALITY = (1)
+    WINBIO_FACE_TOO_BRIGHT = (2)
+    WINBIO_FACE_TOO_DARK = (3)
+'  SPOOF_DETECTED indicates that the recognition component believes the
+'  face is not live, but is coming from a replayed video feed, a photo,
+'  or a 3-D sculpture.
+    WINBIO_FACE_SPOOF_DETECTED = (4)
+    WINBIO_FACE_AMBIGUOUS_TARGET = (5)
+'  WINBIO_FACE_EYES_OCCLUDED is deprecated. Use WINBIO_FACE_OCCLUDED instead
+    WINBIO_FACE_EYES_OCCLUDED = (6)
+'  WINBIO_FACE_OCCLUDED indicates that the user's eyes, mouth or nose are occluded.
+'  This is create to replace WINBIO_FACE_EYES_OCCLUDED
+    WINBIO_FACE_OCCLUDED = (6)
+'  Camera orientation doesn't match mandatory value in EXTENDED_SENSOR_INFO
+    WINBIO_FACE_WRONG_ORIENTATION = (7)
+'  Positioning errors...
+    WINBIO_FACE_TOO_HIGH = (&H00010000)
+    WINBIO_FACE_TOO_LOW = (&H00020000)
+    WINBIO_FACE_TOO_LEFT = (&H00040000)
+    WINBIO_FACE_TOO_RIGHT = (&H00080000)
+    WINBIO_FACE_TOO_NEAR = (&H00100000)
+    WINBIO_FACE_TOO_FAR = (&H00200000)
+End Enum
+Public Enum WinBioVoiceRejection
+    WINBIO_VOICE_POOR_QUALITY = (1)
+    WINBIO_VOICE_TOO_SLOW = (2)
+    WINBIO_VOICE_TOO_FAST = (3)
+    WINBIO_VOICE_NO_KEYWORD = (4)
+    WINBIO_VOICE_PROCESSING_ERROR = (5)
+End Enum
+
+Public Const WINBIO_BIR_ALIGN_SIZE  = (8)
+'  Also define legacy typo to be synonymous
+Public Const WINBIO_BIR_ALGIN_SIZE  = WINBIO_BIR_ALIGN_SIZE
+
+Public Type WINBIO_BIR_DATA
+    Size As Long
+    Offset As Long
+End Type
+Public Type WINBIO_BIR
+    HeaderBlock As WINBIO_BIR_DATA
+    StandardDataBlock As WINBIO_BIR_DATA
+    VendorDataBlock As WINBIO_BIR_DATA
+    SignatureBlock As WINBIO_BIR_DATA
+End Type
+
+Public Enum WinBioValidFieldsFlags
+    WINBIO_BIR_FIELD_SUBHEAD_COUNT = (&H0001)
+    WINBIO_BIR_FIELD_PRODUCT_ID = (&H0002)
+    WINBIO_BIR_FIELD_PATRON_ID = (&H0004)
+    WINBIO_BIR_FIELD_INDEX = (&H0008)
+    WINBIO_BIR_FIELD_CREATION_DATE = (&H0010)
+    WINBIO_BIR_FIELD_VALIDITY_PERIOD = (&H0020)
+    WINBIO_BIR_FIELD_BIOMETRIC_TYPE = (&H0040)
+    WINBIO_BIR_FIELD_BIOMETRIC_SUBTYPE = (&H0080)
+    WINBIO_BIR_FIELD_CBEFF_HEADER_VERSION = (&H0100)
+    WINBIO_BIR_FIELD_PATRON_HEADER_VERSION = (&H0200)
+    WINBIO_BIR_FIELD_BIOMETRIC_PURPOSE = (&H0400)
+    WINBIO_BIR_FIELD_BIOMETRIC_CONDITION = (&H0800)
+    WINBIO_BIR_FIELD_QUALITY = (&H1000)
+    WINBIO_BIR_FIELD_CREATOR = (&H2000)
+    WINBIO_BIR_FIELD_CHALLENGE = (&H4000)
+    WINBIO_BIR_FIELD_PAYLOAD = (&H8000&)
+'  The following collection of optional fields will NEVER be
+'  part of a WinBio BIR. If any of these bits are asserted,
+'  the BIR is malformed.
+    WINBIO_BIR_FIELD_NEVER_VALID = (WINBIO_BIR_FIELD_SUBHEAD_COUNT Or WINBIO_BIR_FIELD_PATRON_ID Or WINBIO_BIR_FIELD_INDEX Or WINBIO_BIR_FIELD_CHALLENGE Or WINBIO_BIR_FIELD_PAYLOAD)
+End Enum
+
+Public Const WINBIO_CBEFF_HEADER_VERSION As Byte = &H11
+Public Const WINBIO_PATRON_HEADER_VERSION As Byte = &H11
+
+Public Enum WINBIO_BIR_DATA_FLAGS_Enum
+    WINBIO_DATA_FLAG_PRIVACY = (&H02)
+    WINBIO_DATA_FLAG_INTEGRITY = (&H01)
+    WINBIO_DATA_FLAG_SIGNED = (&H04)
+    WINBIO_DATA_FLAG_RAW = (&H20)
+    WINBIO_DATA_FLAG_INTERMEDIATE = (&H40)
+    WINBIO_DATA_FLAG_PROCESSED = (&H80)
+    WINBIO_DATA_FLAG_OPTION_MASK_PRESENT = (&H08)  ' Always '1'.
+End Enum
+
+Public Enum WINBIO_BIR_PURPOSE_Enum
+    WINBIO_NO_PURPOSE_AVAILABLE = (&H00)
+    WINBIO_PURPOSE_VERIFY = (&H01)
+    WINBIO_PURPOSE_IDENTIFY = (&H02)
+    WINBIO_PURPOSE_ENROLL = (&H04)
+    WINBIO_PURPOSE_ENROLL_FOR_VERIFICATION = (&H08)
+    WINBIO_PURPOSE_ENROLL_FOR_IDENTIFICATION = (&H10)
+    WINBIO_PURPOSE_AUDIT = (&H80)
+End Enum
+
+Public Const WINBIO_DATA_QUALITY_NOT_SET As Byte = &HFF
+Public Const WINBIO_DATA_QUALITY_NOT_SUPPORTED As Byte = &HFE
+
+Public Type WINBIO_REGISTERED_FORMAT
+    Owner As Integer
+    Type As Integer
+End Type
+
+Public Const WINBIO_NO_FORMAT_OWNER_AVAILABLE = 0
+Public Const WINBIO_NO_FORMAT_TYPE_AVAILABLE = 0
+
+Public Type WINBIO_BIR_HEADER
+    ' Mask indicating which fields are valid
+    ' Annex A -- Note (1) to Table A.1
+    /* [TypeHint(WinBioValidFieldsFlags)] */ ValidFields As Integer
+    ' CBEFF Header version
+    ' SECTION 5.2.1.3
+    HeaderVersion As Byte 'WINBIO_BIR_VERSION ' = WINBIO_CBEFF_HEADER_VERSION
+    ' Patron header version
+    ' SECTION 5.2.1.4
+    PatronHeaderVersion As Byte 'WINBIO_BIR_VERSION ' = WINBIO_PATRON_HEADER_VERSION
+    ' 'DataFlags' is a combination of the 'Security
+    ' Options' field and the 'Biometric Data Type'
+    ' (RAW, INTERMEDIATE,PROCESSED) field.
+    ' SECTION 5.2.1.1, 5.2.1.2, and 5.2.1.7
+    /* [TypeHint(WINBIO_BIR_DATA_FLAGS_Enum)] */ DataFlags As Byte 'WINBIO_BIR_DATA_FLAGS
+    ' Biometric type
+    ' SECTION 5.2.1.5
+    Type As WINBIO_BIOMETRIC_TYPE
+    ' Biometric subtype
+    ' SECTION 5.2.1.6
+    /* [TypeHint(WINBIO_BIOMETRIC_SUBTYPE_Enum)] */ Subtype As Byte
+    ' Intended use of the data
+    ' SECTION 5.2.1.8
+    /* [TypeHint(WINBIO_BIR_PURPOSE_Enum)] */ Purpose As Byte 'WINBIO_BIR_PURPOSE
+    ' Biometric data quality
+    ' SECTION 5.2.1.9
+    DataQuality As Byte 'WINBIO_BIR_QUALITY
+    ' Creation date and time of this BIR (in UTC)
+    ' SECTION 5.2.1.10
+    CreationDate As LARGE_INTEGER
+    ' Validity period of this BIR (in UTC)
+    ' SECTION 5.2.1.11
+    'ValidityPeriod As struct
+    ValidityPeriod_BeginDate As LARGE_INTEGER
+    ValidityPeriod_EndDate As LARGE_INTEGER
+ 
+    '/////////////////////////////////////////////////////////////////////////
+    ' Data format of Standard Data Block.
+    ' NOTE: If BIR doesn't contain 'StandardDataBlock'
+    ' element, this is set to "no owner/type available".
+    BiometricDataFormat As WINBIO_REGISTERED_FORMAT
+    ' Product identifier for the component that
+    ' generated the 'StandardDataBlock' element.
+    ' NOTE: If BIR doesn't contain 'StandardDataBlock'
+    ' element, this is set to "no owner/type available".
+    ProductId As WINBIO_REGISTERED_FORMAT
+End Type
+
+Public Const WINBIO_ANSI_381_FORMAT_OWNER  = (&H001B)  ' INCITS Technical Committee M1
+Public Const WINBIO_ANSI_381_FORMAT_TYPE  = (&H0401)  ' ANSI-381
+
+Public Type WINBIO_BDB_ANSI_381_HEADER
+    RecordLength As LongLong ' Only the low 6 bytes of this number are valid.
+    ' sizeof(WINBIO_BDB_ANSI_381_HEADER)
+    ' + sizeof( all WINBIO_BDB_ANSI_381_RECORD records)
+    FormatIdentifier As Long ' Must be 0x46495200 (ASCII: 'F' 'I' 'R' 0x0)
+    VersionNumber As Long ' Must be 0x30313000 (ASCII: '0' '1' '0' 0x0)
+    ProductId As WINBIO_REGISTERED_FORMAT
+    CaptureDeviceId As Integer
+    /* [TypeHint(WinBioImageAcquisitionLevels)] */ ImageAcquisitionLevel As Integer
+    HorizontalScanResolution As Integer
+    VerticalScanResolution As Integer
+    HorizontalImageResolution As Integer
+    VerticalImageResolution As Integer
+    ElementCount As Byte ' Number of finger/palm records in the block
+    /* [TypeHint(WinBioScaleUnits)] */ ScaleUnits As Byte ' cm or inch
+    PixelDepth As Byte ' 1-16 bits per pixel (2-64K gray levels)
+    /* [TypeHint(WinBioImageCompressionAlgs)] */ ImageCompressionAlg As Byte
+    Reserved As Integer
+    ' 38 bytes (because of unused 2 bytes in ULONG64) vs. 36 bytes defined in ANSI INCITS spec
+End Type
+
+Public Enum WinBioImageAcquisitionLevels
+    WINBIO_ANSI_381_IMG_ACQ_LEVEL_10 = (10)
+    WINBIO_ANSI_381_IMG_ACQ_LEVEL_20 = (20)
+    WINBIO_ANSI_381_IMG_ACQ_LEVEL_30 = (30)
+    WINBIO_ANSI_381_IMG_ACQ_LEVEL_31 = (31)
+    WINBIO_ANSI_381_IMG_ACQ_LEVEL_40 = (40)
+    WINBIO_ANSI_381_IMG_ACQ_LEVEL_41 = (41)
+End Enum
+Public Enum WinBioScaleUnits
+    WINBIO_ANSI_381_PIXELS_PER_INCH = (&H01)
+    WINBIO_ANSI_381_PIXELS_PER_CM = (&H02)
+End Enum
+
+Public Enum WinBioImageCompressionAlgs
+    WINBIO_ANSI_381_IMG_UNCOMPRESSED = (0)
+    WINBIO_ANSI_381_IMG_BIT_PACKED = (1)
+    WINBIO_ANSI_381_IMG_COMPRESSED_WSQ = (2)
+    WINBIO_ANSI_381_IMG_COMPRESSED_JPEG = (3)
+    WINBIO_ANSI_381_IMG_COMPRESSED_JPEG2000 = (4)
+    WINBIO_ANSI_381_IMG_COMPRESSED_PNG = (5)
+End Enum
+
+Public Type WINBIO_BDB_ANSI_381_RECORD
+    BlockLength As Long ' sizeof(WINBIO_BDB_ANSI_381_RECORD)
+    ' + sizeof(image data)
+    HorizontalLineLength As Integer ' Number of pixels in a horizontal line
+    VerticalLineLength As Integer ' Number of horizontal lines in the image
+    /* [TypeHint(WINBIO_BIOMETRIC_SUBTYPE_Enum)] */ Position As Byte
+    CountOfViews As Byte ' Must be set to one (1)
+    ViewNumber As Byte ' Must be set to one (1)
+    ImageQuality As Byte ' Reserved -- must be set to 254 (0xFE)
+    ImpressionType As Byte
+    Reserved As Byte ' Must be set to zero
+    ' 14 bytes of header data
+End Type
+
+ 
+Public Type WINBIO_SECURE_BUFFER_HEADER_V1
+    Type As WinBioSecureBufferTypes ' WINBIO_SECURE_BUFFER_TYPE_V1
+    Size As Long ' sizeof(this structure)
+    Flags As Long ' Buffer creator must set to zero
+    ValidationTag As LongLong ' Buffer creator must set
+End Type
+Public Enum WinBioSecureBufferTypes
+    WINBIO_SECURE_BUFFER_TYPE_V1 = (&HB9BE0001)
+End Enum
+
+Public Enum WINBIO_POOL_TYPE
+    WINBIO_POOL_UNKNOWN = (0)
+    WINBIO_POOL_SYSTEM = (1)
+    WINBIO_POOL_PRIVATE = (2)
+    WINBIO_POOL_UNASSIGNED = (3)  ' Reserved for Microsoft - do not use.
+End Enum
+
+Public Enum WinBioUnitAccessRights
+    BIO_UNIT_RAW = (&H0001)
+    BIO_UNIT_MAINTENANCE = (&H0002)
+    BIO_UNIT_OPEN_SESSION = (&H0004)
+    BIO_UNIT_EXTENDED_ACCESS = (&H0008)
+    BIO_UNIT_ENROLL = (&H0010)
+' #if (NTDDI_VERSION >= NTDDI_WIN9)
+    BIO_UNIT_DELETE_TEMPLATE = (&H0020)
+    BIO_UNIT_CONTROL_UNIT = (&H0040)
+End Enum
+
+Public Enum WINBIO_SESSION_FLAGS
+    WINBIO_FLAG_DEFAULT = (&H00000000)
+    WINBIO_FLAG_BASIC = (((WINBIO_SENSOR_BASIC_MODE And &HFFFF&) << 16))
+    WINBIO_FLAG_ADVANCED = (((WINBIO_SENSOR_ADVANCED_MODE And &HFFFF&) << 16))
+'  Desired access flags...
+    WINBIO_FLAG_RAW = (BIO_UNIT_RAW)
+    WINBIO_FLAG_MAINTENANCE = (BIO_UNIT_MAINTENANCE)
+End Enum
+
+Public Enum WinBioWellKnownDBIds
+    WINBIO_DB_DEFAULT = (1)
+    WINBIO_DB_BOOTSTRAP = (2)
+    WINBIO_DB_ONCHIP = (3)
+End Enum
+
+Public Enum WINBIO_COMPONENT
+    WINBIO_COMPONENT_SENSOR = (1)
+    WINBIO_COMPONENT_ENGINE = (2)
+    WINBIO_COMPONENT_STORAGE = (3)
+End Enum
+
+Public Enum WINBIO_EVENT_TYPE
+    WINBIO_EVENT_ERROR = (&HFFFFFFFF)
+'  Fingerprint events.
+    WINBIO_EVENT_FP_UNCLAIMED = (&H00000001)
+    WINBIO_EVENT_FP_UNCLAIMED_IDENTIFY = (&H00000002)
+End Enum
+
+Public Type WINBIO_EVENT
+    Type As WINBIO_EVENT_TYPE
+    ' union {
+        ' struct {
+            ' WINBIO_UNIT_ID UnitId;
+            ' WINBIO_REJECT_DETAIL RejectDetail;
+        ' } Unclaimed;
+        ' struct {
+            ' WINBIO_UNIT_ID UnitId;
+            ' WINBIO_IDENTITY Identity;
+            ' WINBIO_BIOMETRIC_SUBTYPE SubFactor;
+            ' WINBIO_REJECT_DETAIL RejectDetail;
+        ' } UnclaimedIdentify;
+        ' struct {
+            ' HRESULT ErrorCode;
+        ' } Error;
+    ' } Parameters;
+    Parameters(79) As Byte
+End Type
+
+Public Const WINBIO_OPAQUE_ENGINE_DATA_ITEM_COUNT = 78
+
+Public Enum WINBIO_PRESENCE_CHANGE
+    WINBIO_PRESENCE_CHANGE_TYPE_UNKNOWN = (0)
+    WINBIO_PRESENCE_CHANGE_TYPE_UPDATE_ALL = (1)
+    WINBIO_PRESENCE_CHANGE_TYPE_ARRIVE = (2)
+    WINBIO_PRESENCE_CHANGE_TYPE_RECOGNIZE = (3)
+    WINBIO_PRESENCE_CHANGE_TYPE_DEPART = (4)
+    WINBIO_PRESENCE_CHANGE_TYPE_TRACK = (5)
+End Enum
+
+' typedef union _WINBIO_PRESENCE_PROPERTIES {
+' struct {
+    ' RECT BoundingBox;
+    ' LONG Distance;
+    ' struct {
+        ' WINBIO_UUID AdapterId;
+        ' ULONG Data[WINBIO_OPAQUE_ENGINE_DATA_ITEM_COUNT];
+    ' } OpaqueEngineData;
+    ' // [...] other face-specific properties
+' } FacialFeatures;
+
+' struct {
+    ' RECT EyeBoundingBox_1;
+    ' RECT EyeBoundingBox_2;
+    ' POINT PupilCenter_1;
+    ' POINT PupilCenter_2;
+    ' LONG Distance;
+' } Iris;
+
+' /*
+' struct {
+    ' WINBIO_COORDINATES Location;
+    ' // [...] other voice-specific properties
+' } Voice;
+' */
+' } WINBIO_PRESENCE_PROPERTIES,
+Public Type WINBIO_PRESENCE_PROPERTIES
+    u(347) As Byte
+End Type
+Public Type WINBIO_PRESENCE
+    Factor As WINBIO_BIOMETRIC_TYPE
+    /* [TypeHint(WINBIO_BIOMETRIC_SUBTYPE_Enum)] */ SubFactor As Byte
+    Status As Long
+    RejectDetail As WINBIO_REJECT_DETAIL
+    Identity As WINBIO_IDENTITY
+    TrackingId As LongLong
+    Ticket As LongLong 'WINBIO_PROTECTION_TICKET
+    Properties As WINBIO_PRESENCE_PROPERTIES
+    '    struct {
+    Authorization_Size As Long
+    Authorization_Data(0 To 31) As Byte
+    '} Authorization;
+End Type
+
+Public Type WINBIO_BSP_SCHEMA
+    BiometricFactor As WINBIO_BIOMETRIC_TYPE
+    BspId As UUID 'WINBIO_UUID
+    Description As WINBIO_STRING
+    Vendor As WINBIO_STRING
+    Version As WINBIO_VERSION
+End Type
+
+Public Type WINBIO_UNIT_SCHEMA
+    UnitId As WINBIO_UNIT_ID
+    PoolType As WINBIO_POOL_TYPE
+    BiometricFactor As WINBIO_BIOMETRIC_TYPE
+    SensorSubType As WINBIO_BIOMETRIC_SENSOR_SUBTYPE
+    Capabilities As WINBIO_CAPABILITIES
+    DeviceInstanceId As WINBIO_STRING
+    Description As WINBIO_STRING
+    Manufacturer As WINBIO_STRING
+    Model As WINBIO_STRING
+    SerialNumber As WINBIO_STRING
+    FirmwareVersion As WINBIO_VERSION
+End Type
+
+Public Enum WinBioStorageSchemaAttrs
+    WINBIO_DATABASE_TYPE_MASK = (&H0000FFFF&)
+'  Type values...
+    WINBIO_DATABASE_TYPE_FILE = (&H00000001)
+    WINBIO_DATABASE_TYPE_DBMS = (&H00000002)
+    WINBIO_DATABASE_TYPE_ONCHIP = (&H00000003)
+    WINBIO_DATABASE_TYPE_SMARTCARD = (&H00000004)
+    WINBIO_DATABASE_FLAG_MASK = (&HFFFF0000)
+'  Flag values...
+    WINBIO_DATABASE_FLAG_REMOVABLE = (&H00010000)
+    WINBIO_DATABASE_FLAG_REMOTE = (&H00020000)
+End Enum
+
+Public Type WINBIO_STORAGE_SCHEMA
+    BiometricFactor As WINBIO_BIOMETRIC_TYPE
+    DatabaseId As UUID 'WINBIO_UUID
+    DataFormat As UUID 'WINBIO_UUID
+    Attributes As WinBioStorageSchemaAttrs
+    FilePath As WINBIO_STRING
+    ConnectionString As WINBIO_STRING
+End Type
+
+Public Enum WINBIO_FRAMEWORK_CHANGE_TYPE
+    WINBIO_FRAMEWORK_CHANGE_UNIT = &H00000001
+    WINBIO_FRAMEWORK_CHANGE_UNIT_STATUS = &H00000002
+End Enum
+
+Public Const WINBIO_MAX_SAMPLE_BUFFER_SIZE = &H7FFFFFFF
+
+Public Enum WINBIO_OPERATION_TYPE
+    WINBIO_OPERATION_NONE = (0)
+    WINBIO_OPERATION_OPEN = (1)
+    WINBIO_OPERATION_CLOSE = (2)
+    WINBIO_OPERATION_VERIFY = (3)
+    WINBIO_OPERATION_IDENTIFY = (4)
+    WINBIO_OPERATION_LOCATE_SENSOR = (5)
+    WINBIO_OPERATION_ENROLL_BEGIN = (6)
+    WINBIO_OPERATION_ENROLL_CAPTURE = (7)
+    WINBIO_OPERATION_ENROLL_COMMIT = (8)
+    WINBIO_OPERATION_ENROLL_DISCARD = (9)
+    WINBIO_OPERATION_ENUM_ENROLLMENTS = (10)
+    WINBIO_OPERATION_DELETE_TEMPLATE = (11)
+    WINBIO_OPERATION_CAPTURE_SAMPLE = (12)
+    WINBIO_OPERATION_GET_PROPERTY = (13)
+    WINBIO_OPERATION_SET_PROPERTY = (14)
+    WINBIO_OPERATION_GET_EVENT = (15)
+    WINBIO_OPERATION_LOCK_UNIT = (16)
+    WINBIO_OPERATION_UNLOCK_UNIT = (17)
+    WINBIO_OPERATION_CONTROL_UNIT = (18)
+    WINBIO_OPERATION_CONTROL_UNIT_PRIVILEGED = (19)
+'  Framework operations...
+    WINBIO_OPERATION_OPEN_FRAMEWORK = (20)
+    WINBIO_OPERATION_CLOSE_FRAMEWORK = (21)
+    WINBIO_OPERATION_ENUM_SERVICE_PROVIDERS = (22)
+    WINBIO_OPERATION_ENUM_BIOMETRIC_UNITS = (23)
+    WINBIO_OPERATION_ENUM_DATABASES = (24)
+    WINBIO_OPERATION_UNIT_ARRIVAL = (25)
+    WINBIO_OPERATION_UNIT_REMOVAL = (26)
+    WINBIO_OPERATION_IDENTIFY_AND_RELEASE_TICKET = (27)
+    WINBIO_OPERATION_VERIFY_AND_RELEASE_TICKET = (28)
+    WINBIO_OPERATION_MONITOR_PRESENCE = (29)
+    WINBIO_OPERATION_ENROLL_SELECT = (30)
+    WINBIO_OPERATION_ENROLL_AUTHORIZE = (31)
+    WINBIO_OPERATION_ENROLL_REVOKE = (32)
+    WINBIO_OPERATION_GET_PROTECTION_POLICY = (33)
+    WINBIO_OPERATION_NOTIFY_UNIT_STATUS_CHANGE = (34)
+    WINBIO_OPERATION_IMPROVE_BEGIN = (35)
+    WINBIO_OPERATION_IMPROVE_END = (36)
+End Enum
+
+Public Enum WINBIO_PROPERTY_TYPE
+    WINBIO_PROPERTY_TYPE_SESSION = (1)
+    WINBIO_PROPERTY_TYPE_UNIT = (2)
+    WINBIO_PROPERTY_TYPE_TEMPLATE = (3)
+' #if (NTDDI_VERSION >= NTDDI_WINTHRESHOLD)
+    WINBIO_PROPERTY_TYPE_ACCOUNT = (4)
+End Enum
+
+Public Const WINBIO_MAX_SET_PROPERTY_BUFFER_SIZE = &H1000
+
+Public Enum WINBIO_PROPERTY_ID
+    WINBIO_PROPERTY_SAMPLE_HINT = 1
+    WINBIO_PROPERTY_EXTENDED_SENSOR_INFO = 2
+    WINBIO_PROPERTY_EXTENDED_ENGINE_INFO = 3
+    WINBIO_PROPERTY_EXTENDED_STORAGE_INFO = 4
+    WINBIO_PROPERTY_EXTENDED_ENROLLMENT_STATUS = 5
+    WINBIO_PROPERTY_EXTENDED_UNIT_STATUS = 6
+    WINBIO_PROPERTY_UNIT_SECURITY_LEVEL = 7
+    WINBIO_PROPERTY_FP_BU_STATE = 8
+    WINBIO_PROPERTY_FP_IS_IMPROVING = 9
+    WINBIO_PROPERTY_ANTI_SPOOF_POLICY = 1
+End Enum
+
+Public Enum WINBIO_ORIENTATION
+    WINBIO_ORIENTATION_UNSPECIFIED = (0)
+    WINBIO_ORIENTATION_LANDSCAPE = (1)
+    WINBIO_ORIENTATION_PORTRAIT = (2)
+    WINBIO_ORIENTATION_ANY = (3)
+End Enum
+
+[Description("Union helper UDTs available, see definition.")]
+Public Type WINBIO_EXTENDED_SENSOR_INFO
+    GenericSensorCapabilities As WINBIO_CAPABILITIES
+    Factor As WINBIO_BIOMETRIC_TYPE
+    ' union
+    ' {
+        ' ULONG32 Null;
+
+        ' struct {
+            ' RECT FrameSize;     // Camera frame size, in pixels; (top, left) fields always (0,0)
+            ' POINT FrameOffset;  // Offset of face camera frame from video camera, in pixels. (0, 0) indicates complete overlap
+            ' WINBIO_ORIENTATION MandatoryOrientation;
+            ' struct {
+                ' WCHAR ColorSensorId[260];
+                ' WCHAR InfraredSensorId[260];
+                ' UINT32 InfraredSensorRotationAngle;
+            ' } HardwareInfo;
+        ' } FacialFeatures;
+
+        ' struct {
+            ' ULONG32 Reserved;   // Reserved for future expansion
+        ' } Fingerprint;
+
+        ' struct {
+            ' RECT FrameSize;     // Iris camera frame size, in pixels; (top, left) fields always (0,0)
+            ' POINT FrameOffset;  // Offset of iris camera frame from video camera, in pixels. (0, 0) indicates complete overlap
+            ' WINBIO_ORIENTATION MandatoryOrientation;
+        ' } Iris;
+
+        ' struct {
+            ' ULONG32 Reserved;   // Reserved for future expansion
+        ' } Voice;
+    ' } Specific;
+    Specific(1071) As Byte
+End Type
+Public Type WINBIO_EXTENDED_SENSOR_INFO_FacialFeatures
+    FrameSize As RECT ' Camera frame size, in pixels; (top, left) fields always (0,0)
+    FrameOffset As POINT ' Offset of face camera frame from video camera, in pixels. (0, 0) indicates complete overlap
+    MandatoryOrientation As WINBIO_ORIENTATION
+    'struct {
+    ColorSensorId(0 To 259) As Integer
+    InfraredSensorId(0 To 259) As Integer
+    InfraredSensorRotationAngle As Long
+    ' } HardwareInfo;
+End Type
+Public Type WINBIO_EXTENDED_SENSOR_INFO_Iris
+    FrameSize As RECT ' Iris camera frame size, in pixels; (top, left) fields always (0,0)
+    FrameOffset As POINT ' Offset of iris camera frame from video camera, in pixels. (0, 0) indicates complete overlap
+    MandatoryOrientation As WINBIO_ORIENTATION
+End Type
+
+Public Enum WinBioEngineCaps
+    WINBIO_ENG_CAP_ITERATIVE_IMPROVEMENT = (&H00000001)
+    WINBIO_ENG_CAP_SPOOF_DETECTION = (&H00000002)
+End Enum
+
+Public Type WINBIO_EXTENDED_ENGINE_INFO
+    GenericEngineCapabilities As WinBioEngineCaps
+    Factor As WINBIO_BIOMETRIC_TYPE
+    ' union
+    ' {
+        ' ULONG32 Null;
+
+        ' struct {
+            ' WINBIO_CAPABILITIES Capabilities;   // Reserved for future expansion
+            ' struct {
+                ' ULONG32 Null;
+            ' } EnrollmentRequirements;
+        ' } FacialFeatures;
+
+        ' struct {
+            ' WINBIO_CAPABILITIES Capabilities;   // Reserved for future expansion
+            ' struct {
+                ' ULONG GeneralSamples;
+                ' ULONG Center;
+                ' ULONG TopEdge;
+                ' ULONG BottomEdge;
+                ' ULONG LeftEdge;
+                ' ULONG RightEdge;
+            ' } EnrollmentRequirements;
+        ' } Fingerprint;
+
+        ' struct {
+            ' WINBIO_CAPABILITIES Capabilities;   // Reserved for future expansion
+            ' struct {
+                ' ULONG32 Null;
+            ' } EnrollmentRequirements;
+        ' } Iris;
+
+        ' struct {
+            ' WINBIO_CAPABILITIES Capabilities;   // Reserved for future expansion
+            ' struct {
+                ' ULONG32 Null;
+            ' } EnrollmentRequirements;
+        ' } Voice;
+    ' } Specific;
+    Specific(27) As Byte
+End Type
+
+Public Type WINBIO_EXTENDED_STORAGE_INFO
+    GenericStorageCapabilities As Long
+    Factor As WINBIO_BIOMETRIC_TYPE
+    ' union
+    ' {
+        ' ULONG32 Null;
+
+        ' struct {
+            ' WINBIO_CAPABILITIES Capabilities;
+            ' // Reserved for future expansion
+        ' } FacialFeatures;
+
+        ' struct {
+            ' WINBIO_CAPABILITIES Capabilities;
+            ' // Reserved for future expansion
+        ' } Fingerprint;
+
+        ' struct {
+            ' WINBIO_CAPABILITIES Capabilities;
+            ' // Reserved for future expansion
+        ' } Iris;
+
+        ' struct {
+            ' WINBIO_CAPABILITIES Capabilities;
+            ' // Reserved for future expansion
+        ' } Voice;
+    ' } Specific;
+    Specific As Long
+End Type
+
+[Description("Union helper UDTs available, see definition.")]
+Public Type WINBIO_EXTENDED_ENROLLMENT_STATUS
+    TemplateStatus As Long
+    RejectDetail As WINBIO_REJECT_DETAIL
+    PercentComplete As Long
+    Factor As WINBIO_BIOMETRIC_TYPE
+    SubFactor As Byte 'WINBIO_BIOMETRIC_SUBTYPE
+    pad(6) As Byte
+    ' BoundingBox As RECT '&H14
+    ' Distance As Long    '&24
+    ' AdapterId As UUID    '28
+    ' Data(WINBIO_OPAQUE_ENGINE_DATA_ITEM_COUNT - 1) As Long
+    ' union
+    ' {
+        ' ULONG32 Null;
+
+        ' struct {
+            ' RECT BoundingBox;
+            ' LONG Distance;
+            ' struct {
+                ' WINBIO_UUID AdapterId;
+                ' ULONG Data[WINBIO_OPAQUE_ENGINE_DATA_ITEM_COUNT];
+            ' } OpaqueEngineData;
+        ' } FacialFeatures;
+
+        ' struct {
+            ' ULONG GeneralSamples;
+            ' ULONG Center;
+            ' ULONG TopEdge;
+            ' ULONG BottomEdge;
+            ' ULONG LeftEdge;
+            ' ULONG RightEdge;
+        ' } Fingerprint;
+
+        ' struct {
+            ' RECT EyeBoundingBox_1;
+            ' RECT EyeBoundingBox_2;
+            ' POINT PupilCenter_1;
+            ' POINT PupilCenter_2;
+            ' LONG Distance;
+            ' ULONG GridPointCompletionPercent;
+            ' UINT16 GridPointIndex;
+            ' struct
+            ' {
+                ' double X;
+                ' double Y;
+                ' double Z;
+            ' } Point3D;
+            ' BOOL StopCaptureAndShowCriticalFeedback;
+        ' } Iris;
+
+        ' struct {
+            ' ULONG32 Reserved;               // Reserved for future expansion
+        ' } Voice;
+    ' } Specific;
+   Specific(&H15B) As Byte
+   'Specific As WINBIO_EXTENDED_ENROLLMENT_STATUS_Iris
+End Type
+Public Type WINBIO_EXTENDED_ENROLLMENT_STATUS_FacialFeatures
+    BoundingBox As RECT
+    Distance As Long
+    'struct {
+    OpaqueEngineData_AdapterId As UUID 'WINBIO_UUID
+    OpaqueEngineData_Data(0 To (WINBIO_OPAQUE_ENGINE_DATA_ITEM_COUNT - 1)) As Long
+    '} OpaqueEngineData;
+End Type
+Public Type WINBIO_EXTENDED_ENROLLMENT_STATUS_Fingerprint
+    GeneralSamples As Long
+    Center As Long
+    TopEdge As Long
+    BottomEdge As Long
+    LeftEdge As Long
+    RightEdge As Long
+End Type
+Public Type WINBIO_EXTENDED_ENROLLMENT_STATUS_Iris
+    EyeBoundingBox_1 As RECT
+    EyeBoundingBox_2 As RECT
+    PupilCenter_1 As POINT
+    PupilCenter_2 As POINT
+    Distance As Long
+    GridPointCompletionPercent As Long
+    GridPointIndex As Integer
+    'struct
+    ' {
+    Point3D_X As Double
+    Point3D_Y As Double
+    Point3D_Z As Double
+    '} Point3D;
+    StopCaptureAndShowCriticalFeedback As BOOL
+End Type
+
+Public Type WINBIO_EXTENDED_UNIT_STATUS
+    Availability As WINBIO_SENSOR_STATUS
+    ReasonCode As Long
+End Type
+
+Public Type WINBIO_FP_BU_STATE
+    SensorAttached As BOOL
+    CreationResult As Long
+End Type
+
+Public Enum WINBIO_ANTI_SPOOF_POLICY_ACTION
+    WINBIO_ANTI_SPOOF_DISABLE = &H00000000
+    WINBIO_ANTI_SPOOF_ENABLE = &H00000001
+    WINBIO_ANTI_SPOOF_REMOVE = &H00000002
+End Enum
+
+Public Enum WINBIO_POLICY_SOURCE
+    WINBIO_POLICY_UNKNOWN = &H00000000
+    WINBIO_POLICY_DEFAULT = &H00000001
+    WINBIO_POLICY_LOCAL = &H00000002
+    WINBIO_POLICY_ADMIN = &H00000003
+End Enum
+
+Public Type WINBIO_ANTI_SPOOF_POLICY
+    Action As WINBIO_ANTI_SPOOF_POLICY_ACTION
+    Source As WINBIO_POLICY_SOURCE
+End Type
+
+Public Enum WINBIO_CREDENTIAL_TYPE
+    WINBIO_CREDENTIAL_PASSWORD = &H00000001
+    WINBIO_CREDENTIAL_ALL = &Hffffffff
+End Enum
+
+Public Enum WINBIO_CREDENTIAL_FORMAT
+    WINBIO_PASSWORD_GENERIC = &H00000001
+    WINBIO_PASSWORD_PACKED = &H00000002
+    WINBIO_PASSWORD_PROTECTED = &H00000003
+End Enum
+
+Public Enum WINBIO_CREDENTIAL_STATE
+    WINBIO_CREDENTIAL_NOT_SET = &H00000001
+    WINBIO_CREDENTIAL_SET = &H00000002
+End Enum
+
+Public Enum WINBIO_SETTING_SOURCE_TYPE
+    WINBIO_SETTING_SOURCE_INVALID = (0)
+    WINBIO_SETTING_SOURCE_DEFAULT = (1)
+    WINBIO_SETTING_SOURCE_POLICY = (2)
+    WINBIO_SETTING_SOURCE_LOCAL = (3)
+End Enum
+
+Public Type WINBIO_EXTENDED_ENROLLMENT_PARAMETERS
+    Size As LongPtr
+    /* [TypeHint(WINBIO_BIOMETRIC_SUBTYPE)] */ SubFactor As Byte
+End Type
+
+Public Type WINBIO_ACCOUNT_POLICY
+    Identity As WINBIO_IDENTITY
+    AntiSpoofBehavior As WINBIO_ANTI_SPOOF_POLICY_ACTION
+End Type
+
+Public Type WINBIO_PROTECTION_POLICY
+    Version As Long
+    Identity As WINBIO_IDENTITY
+    DatabaseId As UUID 'WINBIO_UUID
+    UserState As LongLong
+    PolicySize As LongPtr
+    Policy(0 To 127) As Byte
+End Type
+
+Public Enum WINBIO_MATCH_TYPE
+    WINBIO_MATCH_SOFTWARE = (1)
+    WINBIO_MATCH_TRUSTED_EXECUTION_ENVIRONMENT = (2)
+    WINBIO_MATCH_ON_CHIP = (3)
+End Enum
+
+Public Enum WINBIO_PROTECTION_TYPE
+    WINBIO_PROTECTION_SOFTWARE = (1)
+    WINBIO_PROTECTION_TRUSTED_EXECUTION_ENVIRONMENT = (2)
+End Enum
+
+Public Type WINBIO_GESTURE_METADATA
+    Size As LongPtr
+    BiometricType As WINBIO_BIOMETRIC_TYPE
+    MatchType As WINBIO_MATCH_TYPE
+    ProtectionType As WINBIO_PROTECTION_TYPE
+End Type
+
+Public Enum WINBIO_TELEMETRY_TYPE
+    WINBIO_TELEMETRY_AUTH = (1)
+    WINBIO_TELEMETRY_ENROLLMENT = (2)
+End Enum
+
+Public Const WINBIO_MAX_PRIVATE_SENSOR_TYPE_INFO_BUFFER_SIZE = &H1000
+
+#End Region
+
+
+#Region "winbio_err.h"
+
+Public Const FACILITY_WINBIO  = &H9
+ 
+[Description("Windows Biometric Service doesn't support the specified biometric factor.")] Public Const WINBIO_E_UNSUPPORTED_FACTOR = (&H80098001)
+[Description("The unit ID number doesn't correspond to a valid biometric device.")] Public Const WINBIO_E_INVALID_UNIT = (&H80098002)
+[Description("The biometric sample doesn't match any known identity.")] Public Const WINBIO_E_UNKNOWN_ID = (&H80098003)
+[Description("The biometric operation was canceled before it could complete.")] Public Const WINBIO_E_CANCELED = (&H80098004)
+[Description("The biometric sample doesn't match the specified identity or sub-factor.")] Public Const WINBIO_E_NO_MATCH = (&H80098005)
+[Description("A biometric sample could not be captured because the operation was aborted.")] Public Const WINBIO_E_CAPTURE_ABORTED = (&H80098006)
+[Description("An enrollment transaction could not be started because another enrollment is already in progress.")] Public Const WINBIO_E_ENROLLMENT_IN_PROGRESS = (&H80098007)
+[Description("The captured sample cannot be used for any further biometric operations.")] Public Const WINBIO_E_BAD_CAPTURE = (&H80098008)
+[Description("The biometric unit doesn't support the specified unit control code.")] Public Const WINBIO_E_INVALID_CONTROL_CODE = (&H80098009)
+[Description("The driver already has a pending data collection operation in progress.")] Public Const WINBIO_E_DATA_COLLECTION_IN_PROGRESS = (&H8009800B)
+[Description("The biometric sensor driver does not support the requested data format.")] Public Const WINBIO_E_UNSUPPORTED_DATA_FORMAT = (&H8009800C)
+[Description("The biometric sensor driver does not support the requested data type.")] Public Const WINBIO_E_UNSUPPORTED_DATA_TYPE = (&H8009800D)
+[Description("The biometric sensor driver does not support the requested data purpose.")] Public Const WINBIO_E_UNSUPPORTED_PURPOSE = (&H8009800E)
+[Description("The biometric unit is not in the proper state to perform the specified operation.")] Public Const WINBIO_E_INVALID_DEVICE_STATE = (&H8009800F)
+[Description("The operation could not be performed because the sensor device was busy.")] Public Const WINBIO_E_DEVICE_BUSY = (&H80098010)
+[Description("The biometric unit's storage adapter was unable to create a new database.")] Public Const WINBIO_E_DATABASE_CANT_CREATE = (&H80098011)
+[Description("The biometric unit's storage adapter was unable to open an existing database.")] Public Const WINBIO_E_DATABASE_CANT_OPEN = (&H80098012)
+[Description("The biometric unit's storage adapter was unable to close a database.")] Public Const WINBIO_E_DATABASE_CANT_CLOSE = (&H80098013)
+[Description("The biometric unit's storage adapter was unable to erase a database.")] Public Const WINBIO_E_DATABASE_CANT_ERASE = (&H80098014)
+[Description("The biometric unit's storage adapter was unable to find a database.")] Public Const WINBIO_E_DATABASE_CANT_FIND = (&H80098015)
+[Description("The biometric unit's storage adapter was unable to create a database because that database already exists.")] Public Const WINBIO_E_DATABASE_ALREADY_EXISTS = (&H80098016)
+[Description("The biometric unit's storage adapter was unable to add a record to the database because the database is full.")] Public Const WINBIO_E_DATABASE_FULL = (&H80098018)
+[Description("The database is locked and its contents are inaccessible.")] Public Const WINBIO_E_DATABASE_LOCKED = (&H80098019)
+[Description("The contents of the database have become corrupted and are inaccessible.")] Public Const WINBIO_E_DATABASE_CORRUPTED = (&H8009801A)
+[Description("No records were deleted because the specified identity and sub-factor are not present in the database.")] Public Const WINBIO_E_DATABASE_NO_SUCH_RECORD = (&H8009801B)
+[Description("The specified identity and sub-factor are already enrolled in the database.")] Public Const WINBIO_E_DUPLICATE_ENROLLMENT = (&H8009801C)
+[Description("An error occurred while trying to read from the database.")] Public Const WINBIO_E_DATABASE_READ_ERROR = (&H8009801D)
+[Description("An error occurred while trying to write to the database.")] Public Const WINBIO_E_DATABASE_WRITE_ERROR = (&H8009801E)
+[Description("No records in the database matched the query.")] Public Const WINBIO_E_DATABASE_NO_RESULTS = (&H8009801F)
+[Description("All records from the most recent database query have been viewed.")] Public Const WINBIO_E_DATABASE_NO_MORE_RECORDS = (&H80098020)
+[Description("A database operation unexpectedly encountered the end of the file.")] Public Const WINBIO_E_DATABASE_EOF = (&H80098021)
+[Description("A database operation failed due to a malformed index vector.")] Public Const WINBIO_E_DATABASE_BAD_INDEX_VECTOR = (&H80098022)
+[Description("The biometric unit doesn't belong to the specified service provider.")] Public Const WINBIO_E_INCORRECT_BSP = (&H80098024)
+[Description("The biometric unit doesn't belong to the specified sensor pool.")] Public Const WINBIO_E_INCORRECT_SENSOR_POOL = (&H80098025)
+[Description("The sensor adapter's capture buffer is empty.")] Public Const WINBIO_E_NO_CAPTURE_DATA = (&H80098026)
+[Description("The sensor adapter doesn't support the sensor mode specified in the configuration.")] Public Const WINBIO_E_INVALID_SENSOR_MODE = (&H80098027)
+[Description("The requested operation cannot be performed due to a locking conflict.")] Public Const WINBIO_E_LOCK_VIOLATION = (&H8009802A)
+[Description("The data in a biometric template matches another template already in the database.")] Public Const WINBIO_E_DUPLICATE_TEMPLATE = (&H8009802B)
+[Description("The requested operation is not valid for the current state of the session or biometric unit.")] Public Const WINBIO_E_INVALID_OPERATION = (&H8009802C)
+[Description("The session cannot begin a new operation because another operation is already in progress.")] Public Const WINBIO_E_SESSION_BUSY = (&H8009802D)
+[Description("System policy settings have disabled the Windows biometric credential provider.")] Public Const WINBIO_E_CRED_PROV_DISABLED = (&H80098030)
+[Description("The requested credential was not found.")] Public Const WINBIO_E_CRED_PROV_NO_CREDENTIAL = (&H80098031)
+[Description("System policy settings have disabled the Windows biometric service.")] Public Const WINBIO_E_DISABLED = (&H80098032)
+[Description("The biometric unit could not be configured.")] Public Const WINBIO_E_CONFIGURATION_FAILURE = (&H80098033)
+[Description("A private pool cannot be created because one or more biometric units are not available.")] Public Const WINBIO_E_SENSOR_UNAVAILABLE = (&H80098034)
+[Description("A secure attention sequence (CTRL-ALT-DEL) is required for logon.")] Public Const WINBIO_E_SAS_ENABLED = (&H80098035)
+[Description("A biometric sensor has failed.")] Public Const WINBIO_E_DEVICE_FAILURE = (&H80098036)
+[Description("Fast user switching is disabled.")] Public Const WINBIO_E_FAST_USER_SWITCH_DISABLED = (&H80098037)
+[Description("The System sensor pool cannot be opened from Terminal Server client sessions.")] Public Const WINBIO_E_NOT_ACTIVE_CONSOLE = (&H80098038)
+[Description("There is already an active event monitor associated with the specified session.")] Public Const WINBIO_E_EVENT_MONITOR_ACTIVE = (&H80098039)
+[Description("The value specified is not a valid property type.")] Public Const WINBIO_E_INVALID_PROPERTY_TYPE = (&H8009803A)
+[Description("The value specified is not a valid property ID.")] Public Const WINBIO_E_INVALID_PROPERTY_ID = (&H8009803B)
+[Description("The biometric unit doesn't support the specified property.")] Public Const WINBIO_E_UNSUPPORTED_PROPERTY = (&H8009803C)
+[Description("The adapter binary did not pass its integrity check.")] Public Const WINBIO_E_ADAPTER_INTEGRITY_FAILURE = (&H8009803D)
+[Description("This operation requires a different type of session handle.")] Public Const WINBIO_E_INCORRECT_SESSION_TYPE = (&H8009803E)
+[Description("This session handle has already been closed.")] Public Const WINBIO_E_SESSION_HANDLE_CLOSED = (&H8009803F)
+[Description("The requested operation was aborted because it would have caused a deadlock.")] Public Const WINBIO_E_DEADLOCK_DETECTED = (&H80098040)
+[Description("There is no pre-boot logon identity available.")] Public Const WINBIO_E_NO_PREBOOT_IDENTITY = (&H80098041)
+[Description("The operation was aborted because there were too many errors.")] Public Const WINBIO_E_MAX_ERROR_COUNT_EXCEEDED = (&H80098042)
+[Description("System policy settings have disabled pre-boot auto-logon using biometrics.")] Public Const WINBIO_E_AUTO_LOGON_DISABLED = (&H80098043)
+[Description("The specified ticket is either incorrect or has expired.")] Public Const WINBIO_E_INVALID_TICKET = (&H80098044)
+[Description("The calling process has too many outstanding tickets.")] Public Const WINBIO_E_TICKET_QUOTA_EXCEEDED = (&H80098045)
+[Description("The biometric service could not decrypt the data.")] Public Const WINBIO_E_DATA_PROTECTION_FAILURE = (&H80098046)
+[Description("Biometric authentication has been disabled because of too many unregistered fingerpint scans.")] Public Const WINBIO_E_CRED_PROV_SECURITY_LOCKOUT = (&H80098047)
+[Description("The requested pool type is not supported by this biometric factor.")] Public Const WINBIO_E_UNSUPPORTED_POOL_TYPE = (&H80098048)
+[Description("A specific individual must be selected in order to perform an enrollment.")] Public Const WINBIO_E_SELECTION_REQUIRED = (&H80098049)
+[Description("A presence monitor is already active on that session.")] Public Const WINBIO_E_PRESENCE_MONITOR_ACTIVE = (&H8009804A)
+[Description("The specified sub-factor value is out of range or is not supported.")] Public Const WINBIO_E_INVALID_SUBFACTOR = (&H8009804B)
+[Description("The sensor adapter returned an invalid calibration format array.")] Public Const WINBIO_E_INVALID_CALIBRATION_FORMAT_ARRAY = (&H8009804C)
+[Description("The sensor and engine adapter don't share a common calibration format.")] Public Const WINBIO_E_NO_SUPPORTED_CALIBRATION_FORMAT = (&H8009804D)
+[Description("The sensor adapter does not support the requested calibration format.")] Public Const WINBIO_E_UNSUPPORTED_SENSOR_CALIBRATION_FORMAT = (&H8009804E)
+[Description("The requested calibration buffer size is too small.")] Public Const WINBIO_E_CALIBRATION_BUFFER_TOO_SMALL = (&H8009804F)
+[Description("The requested calibration buffer size is too large.")] Public Const WINBIO_E_CALIBRATION_BUFFER_TOO_LARGE = (&H80098050)
+[Description("The sensor adapter cannot process the contents of the calibration buffer.")] Public Const WINBIO_E_CALIBRATION_BUFFER_INVALID = (&H80098051)
+[Description("The key identifier is invalid.")] Public Const WINBIO_E_INVALID_KEY_IDENTIFIER = (&H80098052)
+[Description("The key cannot be created.")] Public Const WINBIO_E_KEY_CREATION_FAILED = (&H80098053)
+[Description("The key identifier buffer is too small.")] Public Const WINBIO_E_KEY_IDENTIFIER_BUFFER_TOO_SMALL = (&H80098054)
+[Description("The biometric unt is unable to provide data for this property at the present time.")] Public Const WINBIO_E_PROPERTY_UNAVAILABLE = (&H80098055)
+[Description("Policy protection is not available because a TPM 2.0 device is either not present or not supported.")] Public Const WINBIO_E_POLICY_PROTECTION_UNAVAILABLE = (&H80098056)
+[Description("The biometric sensor does not support a secure hardware data path.")] Public Const WINBIO_E_INSECURE_SENSOR = (&H80098057)
+[Description("The identifier does not refer to a valid buffer.")] Public Const WINBIO_E_INVALID_BUFFER_ID = (&H80098058)
+[Description("The contents of the buffer are not valid.")] Public Const WINBIO_E_INVALID_BUFFER = (&H80098059)
+[Description("The Windows Biometric Service secure component was compromised.")] Public Const WINBIO_E_TRUSTLET_INTEGRITY_FAIL = (&H8009805A)
+[Description("The Windows Biometric Service canceled the enrollment because the platform entered a suspended state.")] Public Const WINBIO_E_ENROLLMENT_CANCELED_BY_SUSPEND = (&H8009805B)
+[Description("Another sample is needed for the current enrollment template.")] Public Const WINBIO_I_MORE_DATA = (&H00090001)
+[Description("Return data includes multiple status values, which must be checked separately.")] Public Const WINBIO_I_EXTENDED_STATUS_INFORMATION = (&H00090002)
+ 
+
+
+#End Region
+
+#Region "winbio_ioctl.h"
+
+Public Function GUID_DEVINTERFACE_BIOMETRIC_READER() As UUID
+'{E2B5183A-99EA-4cc3-AD6B-80CA8D715B80}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HE2B5183A, CInt(&H99EA), CInt(&H4cc3), &HAD, &H6B, &H80, &HCA, &H8D, &H71, &H5B, &H80)
+ GUID_DEVINTERFACE_BIOMETRIC_READER = iid
+End Function
+
+Public Const IOCTL_BIOMETRIC_GET_ATTRIBUTES  = &H440004
+Public Const IOCTL_BIOMETRIC_RESET  = &H440008
+Public Const IOCTL_BIOMETRIC_CALIBRATE  = &H44000C
+Public Const IOCTL_BIOMETRIC_GET_SENSOR_STATUS  = &H440010
+Public Const IOCTL_BIOMETRIC_CAPTURE_DATA  = &H440014
+Public Const IOCTL_BIOMETRIC_UPDATE_FIRMWARE  = &H440018
+Public Const IOCTL_BIOMETRIC_GET_SUPPORTED_ALGORITHMS  = &H44001C
+Public Const IOCTL_BIOMETRIC_GET_INDICATOR  = &H440020
+Public Const IOCTL_BIOMETRIC_SET_INDICATOR  = &H440024
+Public Const IOCTL_BIOMETRIC_GET_PRIVATE_SENSOR_TYPE  = &H440028
+Public Const IOCTL_BIOMETRIC_CONNECT_SECURE  = &H44002C
+Public Const IOCTL_BIOMETRIC_CAPTURE_ENCRYPTED_DATA  = &H440030
+Public Const IOCTL_BIOMETRIC_NOTIFY_WAKE  = &H440034
+
+Public Const IOCTL_BIOMETRIC_VENDOR = &H442000
+
+Public Const WINBIO_WBDI_MAJOR_VERSION  = &H1
+Public Const WINBIO_WBDI_MINOR_VERSION  = &H0
+
+Public Type WINBIO_SENSOR_ATTRIBUTES
+    PayloadSize As Long
+    WinBioHresult As Long
+    WinBioVersion As WINBIO_VERSION
+    SensorType As WINBIO_BIOMETRIC_TYPE
+    SensorSubType As WINBIO_BIOMETRIC_SENSOR_SUBTYPE
+    Capabilities As WINBIO_CAPABILITIES
+    ManufacturerName As WINBIO_STRING
+    ModelName As WINBIO_STRING
+    SerialNumber As WINBIO_STRING
+    FirmwareVersion As WINBIO_VERSION
+    SupportedFormatEntries As Long
+    SupportedFormat(0 To 0) As WINBIO_REGISTERED_FORMAT
+End Type
+
+[Description("Buffer size is a guess. It can be any size, even larger. Never use LenB(WINBIO_DATA).")]
+Public Type WINBIO_DATA
+    Size As Long
+    Data(0 To 4095) As Byte
+End Type
+Public Type WINBIO_UPDATE_FIRMWARE
+    PayloadSize As Long
+    FirmwareData As WINBIO_DATA
+End Type
+
+Public Type WINBIO_CALIBRATION_INFO
+    PayloadSize As Long
+    WinBioHresult As Long
+    CalibrationData As WINBIO_DATA
+End Type
+
+Public Type WINBIO_DIAGNOSTICS
+    PayloadSize As Long
+    WinBioHresult As Long
+    SensorStatus As WINBIO_SENSOR_STATUS
+    VendorDiagnostics As WINBIO_DATA
+End Type
+
+Public Type WINBIO_BLANK_PAYLOAD
+    PayloadSize As Long
+    WinBioHresult As Long
+End Type
+
+Public Type WINBIO_CAPTURE_PARAMETERS
+    PayloadSize As Long
+    /* [TypeHint(WINBIO_BIR_PURPOSE_Enum)] */ Purpose As Byte
+    Format As WINBIO_REGISTERED_FORMAT
+    VendorFormat As UUID 'WINBIO_UUID
+    /* [TypeHint(WINBIO_BIR_DATA_FLAGS)] */ Flags As Byte 'WINBIO_BIR_DATA_FLAGS
+End Type
+
+Public Type WINBIO_CAPTURE_DATA
+    PayloadSize As Long
+    WinBioHresult As Long
+    SensorStatus As WINBIO_SENSOR_STATUS
+    RejectDetail As WINBIO_REJECT_DETAIL
+    CaptureData As WINBIO_DATA
+End Type
+
+Public Type WINBIO_SUPPORTED_ALGORITHMS
+    PayloadSize As Long
+    WinBioHresult As Long
+    NumberOfAlgorithms As Long
+    AlgorithmData As WINBIO_DATA
+End Type
+
+Public Type WINBIO_GET_INDICATOR
+    PayloadSize As Long
+    WinBioHresult As Long
+    IndicatorStatus As WINBIO_INDICATOR_STATUS
+End Type
+
+Public Type WINBIO_SET_INDICATOR
+    PayloadSize As Long
+    IndicatorStatus As WINBIO_INDICATOR_STATUS
+End Type
+
+Public Type WINBIO_PRIVATE_SENSOR_TYPE_INFO
+    PayloadSize As Long
+    WinBioHresult As Long
+    PrivateSensorTypeInfo As WINBIO_DATA
+End Type
+
+Public Type WINBIO_ENCRYPTED_CAPTURE_PARAMS
+    PayloadSize As Long
+    /* [TypeHint(WINBIO_BIR_PURPOSE_Enum)] */ Purpose As Byte 'WINBIO_BIR_PURPOSE
+    Format As WINBIO_REGISTERED_FORMAT
+    VendorFormat As UUID 'WINBIO_UUID
+    /* [TypeHint(WINBIO_BIR_DATA_FLAGS)] */ Flags As Byte 'WINBIO_BIR_DATA_FLAGS
+    NonceSize As Long
+End Type
+
+Public Type WINBIO_NOTIFY_WAKE
+    PayloadSize As Long
+    WinBioHresult As Long
+    Reason As WINBIO_WAKE_REASON
+End Type
+#End Region
+
+#Region "winbio.h"
+
+Public Enum WINBIO_ASYNC_NOTIFICATION_METHOD
+    WINBIO_ASYNC_NOTIFY_NONE = 0
+    WINBIO_ASYNC_NOTIFY_CALLBACK = 1
+    WINBIO_ASYNC_NOTIFY_MESSAGE = 2
+    WINBIO_ASYNC_NOTIFY_MAXIMUM_VALUE = 3
+End Enum
+
+[Description("Helper UDTs for the Parameters union are available, see source file (Goto definition)")]
+Public Type WINBIO_ASYNC_RESULT
+    SessionHandle As Long
+    Operation As WINBIO_OPERATION_TYPE
+    SequenceNumber As LongLong
+    TimeStamp As LongLong
+    ApiStatus As Long
+    UnitId As WINBIO_UNIT_ID
+    UserData As LongPtr
+    #If Win64 = 0 Then
+        pad As Long
+    #End If
+    Parameters(319) As Byte
+End Type
+Public Type WINBIO_ASYNC_RESULT_Verify
+    Match As Byte
+    RejectDetail As WINBIO_REJECT_DETAIL
+End Type
+Public Type WINBIO_ASYNC_RESULT_Identify
+    Identity As WINBIO_IDENTITY
+    SubFactor As Byte 'WINBIO_BIOMETRIC_SUBTYPE
+    RejectDetail As WINBIO_REJECT_DETAIL
+End Type
+Public Type WINBIO_ASYNC_RESULT_EnrollBegin
+    SubFactor As Byte 'WINBIO_BIOMETRIC_SUBTYPE
+End Type
+Public Type WINBIO_ASYNC_RESULT_EnrollCapture
+    RejectDetail As WINBIO_REJECT_DETAIL
+End Type
+Public Type WINBIO_ASYNC_RESULT_EnrollCommit
+    Identity As WINBIO_IDENTITY
+    IsNewTemplate As Byte
+End Type
+Public Type WINBIO_ASYNC_RESULT_EnumEnrollment
+    Identity As WINBIO_IDENTITY
+    SubFactorCount As LongPtr
+    SubFactorArray As LongPtr '*WINBIO_BIOMETRIC_SUBTYPE
+End Type
+Public Type WINBIO_ASYNC_RESULT_CaptureSample
+    Sample As LongPtr 'PWINBIO_BIR
+    SampleSize As LongPtr
+    RejectDetail As WINBIO_REJECT_DETAIL
+End Type
+Public Type WINBIO_ASYNC_RESULT_DeleteTemplate
+    Identity As WINBIO_IDENTITY
+    SubFactor As Byte 'WINBIO_BIOMETRIC_SUBTYPE
+End Type
+Public Type WINBIO_ASYNC_RESULT_GetProperty
+    PropertyType As WINBIO_PROPERTY_TYPE
+    PropertyId As WINBIO_PROPERTY_ID
+    Identity As WINBIO_IDENTITY
+    SubFactor As Byte 'WINBIO_BIOMETRIC_SUBTYPE
+    PropertyBufferSize As LongPtr
+    PropertyBuffer As LongPtr
+End Type
+Public Type WINBIO_ASYNC_RESULT_SetProperty
+    PropertyType As WINBIO_PROPERTY_TYPE
+    PropertyId As WINBIO_PROPERTY_ID
+    Identity As WINBIO_IDENTITY
+    SubFactor As Byte 'WINBIO_BIOMETRIC_SUBTYPE
+    PropertyBufferSize As LongPtr
+    PropertyBuffer As LongPtr
+End Type
+Public Type WINBIO_ASYNC_RESULT_GetEvent
+    Event As WINBIO_EVENT
+End Type
+Public Type WINBIO_ASYNC_RESULT_ControlUnitt
+    Component As WINBIO_COMPONENT
+    ControlCode As Long
+    OperationStatus As Long
+    SendBuffer As LongPtr 'PUCHAR
+    SendBufferSize As LongPtr
+    ReceiveBuffer As LongPtr 'PUCHAR
+    ReceiveBufferSize As LongPtr
+    ReceiveDataSize As LongPtr
+End Type
+Public Type WINBIO_ASYNC_RESULT_EnumServiceProviders
+    BspCount As LongPtr
+    BspSchemaArray As LongPtr '*WINBIO_BSP_SCHEMA
+End Type
+Public Type WINBIO_ASYNC_RESULT_EnumBiometricUnits
+    UnitCount As LongPtr
+    UnitSchemaArray As LongPtr '*WINBIO_UNIT_SCHEMA
+End Type
+Public Type WINBIO_ASYNC_RESULT_EnumDatabases
+    StorageCount As LongPtr
+    StorageSchemaArray As LongPtr '*WINBIO_STORAGE_SCHEMA
+End Type
+Public Type WINBIO_ASYNC_RESULT_VerifyAndReleaseTicket
+    Match As Byte
+    RejectDetail As WINBIO_REJECT_DETAIL
+    Ticket As LongLong 'WINBIO_PROTECTION_TICKET
+End Type
+Public Type IdentifyAndReleaseTicket
+    Identity As WINBIO_IDENTITY
+    SubFactor As Byte 'WINBIO_BIOMETRIC_SUBTYPE
+    RejectDetail As WINBIO_REJECT_DETAIL
+    Ticket As LongLong 'WINBIO_PROTECTION_TICKET
+End Type
+Public Type WINBIO_ASYNC_RESULT_EnrollSelect
+    SelectorValue As LongLong
+End Type
+Public Type WINBIO_ASYNC_RESULT_MonitorPresence
+    ChangeType As WINBIO_PRESENCE_CHANGE
+    PresenceCount As LongPtr
+    PresenceArray As LongPtr '*WINBIO_PRESENCE
+End Type
+Public Type WINBIO_ASYNC_RESULT_GetProtectionPolicy
+    Identity As WINBIO_IDENTITY
+    Policy As WINBIO_PROTECTION_POLICY
+End Type
+Public Type WINBIO_ASYNC_RESULT_NotifyUnitStatusChange
+    ExtendedStatus As WINBIO_EXTENDED_UNIT_STATUS
+End Type
+
+' typedef
+' VOID 
+' (CALLBACK *PWINBIO_ASYNC_COMPLETION_CALLBACK)(
+    ' _In_ PWINBIO_ASYNC_RESULT AsyncResult
+    ' );
+
+    
+Public Declare PtrSafe Function WinBioEnumServiceProviders Lib "Winbio.dll" (ByVal Factor As WINBIO_BIOMETRIC_TYPE, BspSchemaArray As LongPtr, BspCount As LongPtr) As Long
+Public Declare PtrSafe Function WinBioEnumBiometricUnits Lib "Winbio.dll" (ByVal Factor As WINBIO_BIOMETRIC_TYPE, UnitSchemaArray As LongPtr, UnitCount As LongPtr) As Long
+Public Declare PtrSafe Function WinBioEnumDatabases Lib "Winbio.dll" (ByVal Factor As WINBIO_BIOMETRIC_TYPE, StorageSchemaArray As LongPtr, StorageCount As LongPtr) As Long
+Public Declare PtrSafe Function WinBioAsyncOpenFramework Lib "Winbio.dll" (ByVal NotificationMethod As WINBIO_ASYNC_NOTIFICATION_METHOD, Optional ByVal TargetWindow As LongPtr, Optional ByVal MessageCode As Long, Optional ByVal CallbackRoutine As LongPtr, Optional ByVal UserData As LongPtr, Optional ByVal AsynchronousOpen As BOOL, Optional ByRef FrameworkHandle As Long) As Long
+Public Declare PtrSafe Function WinBioCloseFramework Lib "Winbio.dll" (ByVal FrameworkHandle As Long) As Long
+Public Declare PtrSafe Function WinBioAsyncEnumServiceProviders Lib "Winbio.dll" (ByVal FrameworkHandle As Long, ByVal Factor As WINBIO_BIOMETRIC_TYPE) As Long
+Public Declare PtrSafe Function WinBioAsyncEnumBiometricUnits Lib "Winbio.dll" (ByVal FrameworkHandle As Long, ByVal Factor As WINBIO_BIOMETRIC_TYPE) As Long
+Public Declare PtrSafe Function WinBioAsyncEnumDatabases Lib "Winbio.dll" (ByVal FrameworkHandle As Long, ByVal Factor As WINBIO_BIOMETRIC_TYPE) As Long
+Public Declare PtrSafe Function WinBioAsyncMonitorFrameworkChanges Lib "Winbio.dll" (ByVal FrameworkHandle As Long, ByVal ChangeTypes As WINBIO_FRAMEWORK_CHANGE_TYPE) As Long
+Public Declare PtrSafe Function WinBioOpenSession Lib "Winbio.dll" (ByVal Factor As WINBIO_BIOMETRIC_TYPE, ByVal PoolType As WINBIO_POOL_TYPE, ByVal Flags As WINBIO_SESSION_FLAGS, UnitArray As WINBIO_UNIT_ID, ByVal UnitCount As LongPtr, DatabaseId As UUID, SessionHandle As Long) As Long
+Public Declare PtrSafe Function WinBioAsyncOpenSession Lib "Winbio.dll" (ByVal Factor As WINBIO_BIOMETRIC_TYPE, ByVal PoolType As WINBIO_POOL_TYPE, ByVal Flags As WINBIO_SESSION_FLAGS, UnitArray As WINBIO_UNIT_ID, ByVal UnitCount As LongPtr, DatabaseId As UUID, ByVal NotificationMethod As WINBIO_ASYNC_NOTIFICATION_METHOD, Optional ByVal TargetWindow As LongPtr, Optional ByVal MessageCode As Long, Optional ByVal CallbackRoutine As LongPtr, Optional ByVal UserData As LongPtr, Optional ByVal AsynchronousOpen As BOOL, Optional ByRef SessionHandle As Long) As Long
+Public Declare PtrSafe Function WinBioCloseSession Lib "Winbio.dll" (ByVal SessionHandle As Long) As Long
+Public Declare PtrSafe Function WinBioVerify Lib "Winbio.dll" (ByVal SessionHandle As Long, Identity As WINBIO_IDENTITY, [TypeHint(WINBIO_BIOMETRIC_SUBTYPE_Enum)] ByVal SubFactor As Byte, UnitId As WINBIO_UNIT_ID, Optional Match As Byte, Optional RejectDetail As WINBIO_REJECT_DETAIL) As Long
+
+' typedef
+' VOID
+' (CALLBACK *PWINBIO_VERIFY_CALLBACK)(
+    ' _In_opt_ PVOID VerifyCallbackContext,
+    ' _In_ HRESULT OperationStatus,
+    ' _In_ WINBIO_UNIT_ID UnitId,
+    ' _In_ BOOLEAN Match,
+    ' _In_ WINBIO_REJECT_DETAIL RejectDetail
+    ' );
+Public Declare PtrSafe Function WinBioVerifyWithCallback Lib "Winbio.dll" (ByVal SessionHandle As Long, Identity As WINBIO_IDENTITY, [TypeHint(WINBIO_BIOMETRIC_SUBTYPE_Enum)] ByVal SubFactor As Byte, ByVal VerifyCallback As LongPtr, Optional ByVal VerifyCallbackContext As LongPtr) As Long
+Public Declare PtrSafe Function WinBioIdentify Lib "Winbio.dll" (ByVal SessionHandle As Long, UnitId As WINBIO_UNIT_ID, Identity As WINBIO_IDENTITY, [TypeHint(WINBIO_BIOMETRIC_SUBTYPE_Enum)] Optional SubFactor As Byte, Optional RejectDetail As WINBIO_REJECT_DETAIL) As Long
+    
+' typedef
+' VOID
+' (CALLBACK *PWINBIO_IDENTIFY_CALLBACK)(
+    ' _In_opt_ PVOID IdentifyCallbackContext,
+    ' _In_ HRESULT OperationStatus,
+    ' _In_ WINBIO_UNIT_ID UnitId,
+    ' _In_ WINBIO_IDENTITY *Identity,
+    ' _In_ WINBIO_BIOMETRIC_SUBTYPE SubFactor,
+    ' _In_ WINBIO_REJECT_DETAIL RejectDetail
+    ' );
+
+Public Declare PtrSafe Function WinBioIdentifyWithCallback Lib "Winbio.dll" (ByVal SessionHandle As Long, ByVal IdentifyCallback As LongPtr, Optional ByVal IdentifyCallbackContext As LongPtr) As Long
+Public Declare PtrSafe Function WinBioWait Lib "Winbio.dll" (ByVal SessionHandle As Long) As Long
+Public Declare PtrSafe Function WinBioCancel Lib "Winbio.dll" (ByVal SessionHandle As Long) As Long
+Public Declare PtrSafe Function WinBioLocateSensor Lib "Winbio.dll" (ByVal SessionHandle As Long, Optional UnitId As WINBIO_UNIT_ID) As Long
+
+
+' typedef
+' VOID
+' (CALLBACK *PWINBIO_LOCATE_SENSOR_CALLBACK)(
+    ' _In_opt_ PVOID LocateCallbackContext,
+    ' _In_ HRESULT OperationStatus,
+    ' _In_ WINBIO_UNIT_ID UnitId
+    ' );
+Public Declare PtrSafe Function WinBioLocateSensorWithCallback Lib "Winbio.dll" (ByVal SessionHandle As Long, ByVal LocateCallback As LongPtr, Optional ByVal LocateCallbackContext As LongPtr) As Long
+Public Declare PtrSafe Function WinBioEnrollBegin Lib "Winbio.dll" (ByVal SessionHandle As Long, [TypeHint(WINBIO_BIOMETRIC_SUBTYPE_Enum)] ByVal SubFactor As Byte, ByVal UnitId As WINBIO_UNIT_ID) As Long
+Public Declare PtrSafe Function WinBioEnrollSelect Lib "Winbio.dll" (ByVal SessionHandle As Long, ByVal SelectorValue As LongLong) As Long
+Public Declare PtrSafe Function WinBioEnrollCapture Lib "Winbio.dll" (ByVal SessionHandle As Long, Optional RejectDetail As WINBIO_REJECT_DETAIL) As Long
+
+' typedef
+' VOID
+' (CALLBACK *PWINBIO_ENROLL_CAPTURE_CALLBACK)(
+    ' _In_opt_ PVOID EnrollCallbackContext,
+    ' _In_ HRESULT OperationStatus,
+    ' _In_ WINBIO_REJECT_DETAIL RejectDetail
+    ' );
+    
+Public Declare PtrSafe Function WinBioEnrollCaptureWithCallback Lib "Winbio.dll" (ByVal SessionHandle As Long, ByVal EnrollCallback As LongPtr, Optional ByVal EnrollCallbackContext As LongPtr) As Long
+Public Declare PtrSafe Function WinBioEnrollCommit Lib "Winbio.dll" (ByVal SessionHandle As Long, Identity As WINBIO_IDENTITY, Optional IsNewTemplate As Byte) As Long
+Public Declare PtrSafe Function WinBioEnrollDiscard Lib "Winbio.dll" (ByVal SessionHandle As Long) As Long
+Public Declare PtrSafe Function WinBioEnumEnrollments Lib "Winbio.dll" (ByVal SessionHandle As Long, ByVal UnitId As WINBIO_UNIT_ID, Identity As WINBIO_IDENTITY, SubFactorArray As LongPtr, SubFactorCount As LongPtr) As Long
+Public Declare PtrSafe Function WinBioImproveBegin Lib "Winbio.dll" (ByVal SessionHandle As Long, ByVal UnitId As WINBIO_UNIT_ID) As Long
+Public Declare PtrSafe Function WinBioImproveEnd Lib "Winbio.dll" (ByVal SessionHandle As Long) As Long
+
+' typedef
+' VOID
+' (CALLBACK *PWINBIO_EVENT_CALLBACK)(
+    ' _In_opt_ PVOID EventCallbackContext,
+    ' _In_ HRESULT OperationStatus,
+    ' _In_ PWINBIO_EVENT Event
+    ' );
+Public Declare PtrSafe Function WinBioRegisterEventMonitor Lib "Winbio.dll" (ByVal SessionHandle As Long, ByVal EventMask As WINBIO_EVENT_TYPE, ByVal EventCallback As LongPtr, Optional ByVal EventCallbackContext As LongPtr) As Long
+Public Declare PtrSafe Function WinBioUnregisterEventMonitor Lib "Winbio.dll" (ByVal SessionHandle As Long) As Long
+Public Declare PtrSafe Function WinBioMonitorPresence Lib "Winbio.dll" (ByVal SessionHandle As Long, ByVal UnitId As WINBIO_UNIT_ID) As Long
+Public Declare PtrSafe Function WinBioCaptureSample Lib "Winbio.dll" (ByVal SessionHandle As Long, [TypeHint(WINBIO_BIR_PURPOSE_Enum)] ByVal Purpose As Byte, [TypeHint(WINBIO_BIR_DATA_FLAGS_Enum)] ByVal Flags As Byte, UnitId As WINBIO_UNIT_ID, Sample As LongPtr, SampleSize As LongPtr, Optional RejectDetail As WINBIO_REJECT_DETAIL) As Long
+
+' typedef
+' VOID
+' (CALLBACK *PWINBIO_CAPTURE_CALLBACK)(
+    ' _In_opt_ PVOID CaptureCallbackContext,
+    ' _In_ HRESULT OperationStatus,
+    ' _In_ WINBIO_UNIT_ID UnitId,
+    ' _In_reads_bytes_(SampleSize) PWINBIO_BIR Sample,
+    ' _In_ SIZE_T SampleSize,
+    ' _In_ WINBIO_REJECT_DETAIL RejectDetail
+    ' );
+Public Declare PtrSafe Function WinBioCaptureSampleWithCallback Lib "Winbio.dll" (ByVal SessionHandle As Long, [TypeHint(WINBIO_BIR_PURPOSE_Enum)] ByVal Purpose As Byte, [TypeHint(WINBIO_BIR_DATA_FLAGS_Enum)] ByVal Flags As Byte, ByVal CaptureCallback As LongPtr, Optional ByVal CaptureCallbackContext As LongPtr) As Long
+Public Declare PtrSafe Function WinBioDeleteTemplate Lib "Winbio.dll" (ByVal SessionHandle As Long, ByVal UnitId As WINBIO_UNIT_ID, Identity As WINBIO_IDENTITY, [TypeHint(WINBIO_BIOMETRIC_SUBTYPE_Enum)] ByVal SubFactor As Byte) As Long
+Public Declare PtrSafe Function WinBioLockUnit Lib "Winbio.dll" (ByVal SessionHandle As Long, ByVal UnitId As WINBIO_UNIT_ID) As Long
+Public Declare PtrSafe Function WinBioUnlockUnit Lib "Winbio.dll" (ByVal SessionHandle As Long, ByVal UnitId As WINBIO_UNIT_ID) As Long
+Public Declare PtrSafe Function WinBioControlUnit Lib "Winbio.dll" (ByVal SessionHandle As Long, ByVal UnitId As WINBIO_UNIT_ID, ByVal Component As WINBIO_COMPONENT, ByVal ControlCode As Long, SendBuffer As Any, ByVal SendBufferSize As LongPtr, ReceiveBuffer As Any, ByVal ReceiveBufferSize As LongPtr, ReceiveDataSize As LongPtr, Optional OperationStatus As Long) As Long
+Public Declare PtrSafe Function WinBioControlUnitPrivileged Lib "Winbio.dll" (ByVal SessionHandle As Long, ByVal UnitId As WINBIO_UNIT_ID, ByVal Component As WINBIO_COMPONENT, ByVal ControlCode As Long, SendBuffer As Any, ByVal SendBufferSize As LongPtr, ReceiveBuffer As Any, ByVal ReceiveBufferSize As LongPtr, ReceiveDataSize As LongPtr, Optional OperationStatus As Long) As Long
+Public Declare PtrSafe Function WinBioGetProperty Lib "Winbio.dll" (ByVal SessionHandle As Long, ByVal PropertyType As WINBIO_PROPERTY_TYPE, ByVal PropertyId As WINBIO_PROPERTY_ID, ByVal UnitId As WINBIO_UNIT_ID, Identity As WINBIO_IDENTITY, [TypeHint(WINBIO_BIOMETRIC_SUBTYPE_Enum)] ByVal SubFactor As Byte, PropertyBuffer As LongPtr, Optional PropertyBufferSize As LongPtr) As Long
+Public Declare PtrSafe Function WinBioSetProperty Lib "Winbio.dll" (ByVal SessionHandle As Long, ByVal PropertyType As WINBIO_PROPERTY_TYPE, ByVal PropertyId As WINBIO_PROPERTY_ID, ByVal UnitId As WINBIO_UNIT_ID, Identity As WINBIO_IDENTITY, [TypeHint(WINBIO_BIOMETRIC_SUBTYPE_Enum)] ByVal SubFactor As Byte, PropertyBuffer As Any, Optional ByVal PropertyBufferSize As LongPtr) As Long
+Public Declare PtrSafe Function WinBioFree Lib "Winbio.dll" (ByVal Address As LongPtr) As Long
+Public Declare PtrSafe Function WinBioSetCredential Lib "Winbio.dll" (ByVal Type As WINBIO_CREDENTIAL_TYPE, Credential As Any, ByVal CredentialSize As LongPtr, ByVal Format As WINBIO_CREDENTIAL_FORMAT) As Long
+#If Win64 Then
+Public Declare PtrSafe Function WinBioRemoveCredential Lib "Winbio.dll" (Identity As WINBIO_IDENTITY, ByVal Type As WINBIO_CREDENTIAL_TYPE) As Long
+#Else
+Public Declare PtrSafe Function WinBioRemoveCredential Lib "Winbio.dll" (ByVal i1 As Long, ByVal i2 As Long, ByVal i3 As Long, ByVal i4 As Long, ByVal i5 As Long, ByVal i6 As Long, ByVal i7 As Long, ByVal i8 As Long, ByVal i9 As Long, ByVal i10 As Long, ByVal i11 As Long, ByVal i12 As Long, ByVal i13 As Long, ByVal i14 As Long, ByVal i15 As Long, ByVal i16 As Long, ByVal i17 As Long, ByVal i18 As Long, ByVal i19 As Long, ByVal Type As WINBIO_CREDENTIAL_TYPE) As Long
+#End If
+Public Declare PtrSafe Function WinBioRemoveAllCredentials Lib "Winbio.dll" () As Long
+Public Declare PtrSafe Function WinBioRemoveAllDomainCredentials Lib "Winbio.dll" () As Long
+#If Win64 Then
+Public Declare PtrSafe Function WinBioGetCredentialState Lib "Winbio.dll" (Identity As WINBIO_IDENTITY, ByVal Type As WINBIO_CREDENTIAL_TYPE, CredentialState As WINBIO_CREDENTIAL_STATE) As Long
+#Else
+Public Declare PtrSafe Function WinBioGetCredentialState Lib "Winbio.dll" (ByVal i1 As Long, ByVal i2 As Long, ByVal i3 As Long, ByVal i4 As Long, ByVal i5 As Long, ByVal i6 As Long, ByVal i7 As Long, ByVal i8 As Long, ByVal i9 As Long, ByVal i10 As Long, ByVal i11 As Long, ByVal i12 As Long, ByVal i13 As Long, ByVal i14 As Long, ByVal i15 As Long, ByVal i16 As Long, ByVal i17 As Long, ByVal i18 As Long, ByVal i19 As Long, ByVal Type As WINBIO_CREDENTIAL_TYPE, CredentialState As WINBIO_CREDENTIAL_STATE) As Long
+#End If
+Public Declare PtrSafe Function WinBioLogonIdentifiedUser Lib "Winbio.dll" (ByVal SessionHandle As Long) As Long
+Public Declare PtrSafe Function WinBioGetEnrolledFactors Lib "Winbio.dll" (AccountOwner As WINBIO_IDENTITY, EnrolledFactors As WINBIO_BIOMETRIC_TYPE) As Long
+Public Declare PtrSafe Sub WinBioGetEnabledSetting Lib "Winbio.dll" (Value As Byte, Source As WINBIO_SETTING_SOURCE_TYPE)
+Public Declare PtrSafe Sub WinBioGetLogonSetting Lib "Winbio.dll" (Value As Byte, Source As WINBIO_SETTING_SOURCE_TYPE)
+Public Declare PtrSafe Sub WinBioGetDomainLogonSetting Lib "Winbio.dll" (Value As Byte, Source As WINBIO_SETTING_SOURCE_TYPE)
+Public Declare PtrSafe Function WinBioAcquireFocus Lib "Winbio.dll" () As Long
+Public Declare PtrSafe Function WinBioReleaseFocus Lib "Winbio.dll" () As Long
+
+
+
+#End Region
+
+End Module

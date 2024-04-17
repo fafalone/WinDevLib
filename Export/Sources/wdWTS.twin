@@ -1,0 +1,895 @@
+'*****************************************************************************************
+'This file is a part of WinDevLib - Windows Development Library for twinBASIC
+'https://github.com/fafalone/WinDevLib
+'Code ported by Jon Johnson. 
+'"Windows" is a trademark of the Microsoft Corporation.
+'Certain Description attributes (c) Microsoft, taken from SDK headers and official docs.
+'Licensed under Creative Commons CC0 1.0 Universal
+'*****************************************************************************************
+
+
+
+Module wdWTS
+
+Public Declare PtrSafe Function WTSGetActiveConsoleSessionId Lib "kernel32" () As Long
+Public Declare PtrSafe Function WTSGetServiceSessionId Lib "kernel32" () As Long
+Public Declare PtrSafe Function WTSIsServerContainer Lib "kernel32" () As Byte
+    
+'WtsApi32.h
+Public Const WTS_CURRENT_SERVER  = 0 ' ((HANDLE)NULL)
+Public Const WTS_CURRENT_SERVER_HANDLE  = 0 '((HANDLE)NULL)
+Public Const WTS_CURRENT_SERVER_NAME  = 0 '(NULL)
+Public Const WTS_CURRENT_SESSION  = (-1)
+Public Const WTS_ANY_SESSION  = (-2)
+
+Private Const USERNAME_LENGTH  = 20
+Private Const CLIENTNAME_LENGTH  = 20
+Private Const CLIENTADDRESS_LENGTH  = 30
+    
+    Public Enum WTSShutdownFlags
+        WTS_WSD_LOGOFF = &H00000001  ' log off all users except
+    '  current user; deletes
+    '  WinStations (a reboot is
+    '  required to recreate the
+    '  WinStations)
+        WTS_WSD_SHUTDOWN = &H00000002  ' shutdown system
+        WTS_WSD_REBOOT = &H00000004  ' shutdown and reboot
+        WTS_WSD_POWEROFF = &H00000008  ' shutdown and power off (on
+    '  machines that support power
+    '  off through software)
+        WTS_WSD_FASTREBOOT = &H00000010  ' reboot without logging users
+    '  off or shutting down
+    End Enum
+    
+    Public Const MAX_ELAPSED_TIME_LENGTH  = 15
+    Public Const MAX_DATE_TIME_LENGTH  = 56
+    Public Const WINSTATIONNAME_LENGTH  = 32
+    Public Const DOMAIN_LENGTH  = 17
+    Public Const WTS_DRIVE_LENGTH  = 3
+    Public Const WTS_LISTENER_NAME_LENGTH  = 32
+    Public Const WTS_COMMENT_LENGTH  = 60
+    
+    Public Enum WTSCreateListenerFlags
+        WTS_LISTENER_CREATE = &H00000001
+        WTS_LISTENER_UPDATE = &H00000010
+    End Enum
+    
+    Public Enum WTSListenerAccessRights
+        WTS_SECURITY_QUERY_INFORMATION = &H00000001
+        WTS_SECURITY_SET_INFORMATION = &H00000002
+        WTS_SECURITY_RESET = &H00000004
+        WTS_SECURITY_VIRTUAL_CHANNELS = &H00000008
+        WTS_SECURITY_REMOTE_CONTROL = &H00000010
+        WTS_SECURITY_LOGON = &H00000020
+        WTS_SECURITY_LOGOFF = &H00000040
+        WTS_SECURITY_MESSAGE = &H00000080
+        WTS_SECURITY_CONNECT = &H00000100
+        WTS_SECURITY_DISCONNECT = &H00000200
+        WTS_SECURITY_GUEST_ACCESS = (WTS_SECURITY_LOGON)
+        WTS_SECURITY_CURRENT_GUEST_ACCESS = (WTS_SECURITY_VIRTUAL_CHANNELS Or WTS_SECURITY_LOGOFF)
+        WTS_SECURITY_USER_ACCESS = (WTS_SECURITY_CURRENT_GUEST_ACCESS Or WTS_SECURITY_QUERY_INFORMATION Or WTS_SECURITY_CONNECT)
+        WTS_SECURITY_CURRENT_USER_ACCESS = (WTS_SECURITY_SET_INFORMATION Or WTS_SECURITY_RESET Or WTS_SECURITY_VIRTUAL_CHANNELS Or WTS_SECURITY_LOGOFF Or WTS_SECURITY_DISCONNECT)
+        WTS_SECURITY_ALL_ACCESS = (STANDARD_RIGHTS_REQUIRED Or WTS_SECURITY_QUERY_INFORMATION Or WTS_SECURITY_SET_INFORMATION Or WTS_SECURITY_RESET Or WTS_SECURITY_VIRTUAL_CHANNELS Or WTS_SECURITY_REMOTE_CONTROL Or WTS_SECURITY_LOGON Or WTS_SECURITY_MESSAGE Or WTS_SECURITY_CONNECT Or WTS_SECURITY_DISCONNECT)
+    End Enum
+
+    Public Enum WTS_CONNECTSTATE_CLASS
+        WTSActive  ' User logged on to WinStation
+        WTSConnected  ' WinStation connected to client
+        WTSConnectQuery  ' In the process of connecting to client
+        WTSShadow   ' Shadowing another WinStation
+        WTSDisconnected   ' WinStation logged on without client
+        WTSIdle  ' Waiting for client to connect
+        WTSListen  ' WinStation is listening for connection
+        WTSReset  ' WinStation is being reset
+        WTSDown  ' WinStation is down due to error
+        WTSInit  ' WinStation in initialization
+    End Enum
+
+    Public Type WTS_SERVER_INFOA
+        pServerName As String ' server name
+    End Type
+    Public Type WTS_SERVER_INFOW
+        pServerName As LongPtr ' server name
+    End Type
+    'Alias WTS_SERVER_INFO As WTS_SERVER_INFOW
+    Public Type WTS_SERVER_INFO
+        pServerName As LongPtr ' server name
+    End Type
+    
+    Public Type WTS_SESSION_INFOA
+        SessionId As Long ' session id
+        pWinStationName As String ' name of WinStation this session is
+        ' connected to
+        State As WTS_CONNECTSTATE_CLASS ' connection state (see enum)
+    End Type
+    Public Type WTS_SESSION_INFOW
+        SessionId As Long ' session id
+        pWinStationName As LongPtr ' name of WinStation this session is
+        ' connected to
+        State As WTS_CONNECTSTATE_CLASS ' connection state (see enum)
+    End Type
+    'Alias WTS_SESSION_INFO As WTS_SESSION_INFOW
+    Public Type WTS_SESSION_INFO
+        SessionId As Long ' session id
+        pWinStationName As LongPtr ' name of WinStation this session is
+        ' connected to
+        State As WTS_CONNECTSTATE_CLASS ' connection state (see enum)
+    End Type
+    
+    Public Type WTS_SESSION_INFO_1A
+        ExecEnvId As Long
+        State As WTS_CONNECTSTATE_CLASS
+        SessionId As Long
+        pSessionName As String
+        pHostName As String
+        pUserName As String
+        pDomainName As String
+        pFarmName As String
+    End Type
+    Public Type WTS_SESSION_INFO_1W
+        ExecEnvId As Long
+        State As WTS_CONNECTSTATE_CLASS
+        SessionId As Long
+        pSessionName As LongPtr
+        pHostName As LongPtr
+        pUserName As LongPtr
+        pDomainName As LongPtr
+        pFarmName As LongPtr
+    End Type
+    'Alias WTS_SESSION_INFO_1 As WTS_SESSION_INFO_1W
+    Public Type WTS_SESSION_INFO_1
+        ExecEnvId As Long
+        State As WTS_CONNECTSTATE_CLASS
+        SessionId As Long
+        pSessionName As LongPtr
+        pHostName As LongPtr
+        pUserName As LongPtr
+        pDomainName As LongPtr
+        pFarmName As LongPtr
+    End Type
+    
+    Public Type WTS_PROCESS_INFOA
+        SessionId As Long ' session id
+        ProcessId As Long ' process id
+        pProcessName As String ' name of process
+        pUserSid As LongPtr 'PSID ' user's SID
+    End Type
+    Public Type WTS_PROCESS_INFOW
+        SessionId As Long ' session id
+        ProcessId As Long ' process id
+        pProcessName As LongPtr ' name of process
+        pUserSid As LongPtr 'PSID ' user's SID
+    End Type
+    'Alias WTS_PROCESS_INFO As WTS_PROCESS_INFOW
+    Public Type WTS_PROCESS_INFO
+        SessionId As Long ' session id
+        ProcessId As Long ' process id
+        pProcessName As LongPtr ' name of process
+        pUserSid As LongPtr 'PSID ' user's SID
+    End Type
+    
+    Public Enum WTSProtocolTypes
+        WTS_PROTOCOL_TYPE_CONSOLE = 0  ' Console
+        WTS_PROTOCOL_TYPE_ICA = 1  ' ICA Protocol
+        WTS_PROTOCOL_TYPE_RDP = 2  ' RDP Protocol
+    End Enum
+        
+    Public Enum WTS_INFO_CLASS
+        WTSInitialProgram
+        WTSApplicationName
+        WTSWorkingDirectory
+        WTSOEMId
+        WTSSessionId
+        WTSUserName
+        WTSWinStationName
+        WTSDomainName
+        WTSConnectState
+        WTSClientBuildNumber
+        WTSClientName
+        WTSClientDirectory
+        WTSClientProductId
+        WTSClientHardwareId
+        WTSClientAddress
+        WTSClientDisplay
+        WTSClientProtocolType
+        WTSIdleTime
+        WTSLogonTime
+        WTSIncomingBytes
+        WTSOutgoingBytes
+        WTSIncomingFrames
+        WTSOutgoingFrames
+        WTSClientInfo
+        WTSSessionInfo
+        WTSSessionInfoEx
+        WTSConfigInfo
+        WTSValidationInfo   ' Info Class value used to fetch Validation Information through the WTSQuerySessionInformation
+        WTSSessionAddressV4
+        WTSIsRemoteSession
+    End Enum
+    
+    Public Type WTSCONFIGINFOA
+        version As Long
+        fConnectClientDrivesAtLogon As Long
+        fConnectPrinterAtLogon As Long
+        fDisablePrinterRedirection As Long
+        fDisableDefaultMainClientPrinter As Long
+        ShadowSettings As Long
+        LogonUserName(USERNAME_LENGTH) As Byte
+        LogonDomain(DOMAIN_LENGTH) As Byte
+        WorkDirectory(MAX_PATH) As Byte
+        InitialProgram(MAX_PATH) As Byte
+        ApplicationName(MAX_PATH) As Byte
+    End Type
+    Public Type WTSCONFIGINFOW
+        version As Long
+        fConnectClientDrivesAtLogon As Long
+        fConnectPrinterAtLogon As Long
+        fDisablePrinterRedirection As Long
+        fDisableDefaultMainClientPrinter As Long
+        ShadowSettings As Long
+        LogonUserName(USERNAME_LENGTH) As Integer
+        LogonDomain(DOMAIN_LENGTH) As Integer
+        WorkDirectory(MAX_PATH) As Integer
+        InitialProgram(MAX_PATH) As Integer
+        ApplicationName(MAX_PATH) As Integer
+    End Type
+    'Alias WTSCONFIGINFO As WTSCONFIGINFOW
+    Public Type WTSCONFIGINFO
+        version As Long
+        fConnectClientDrivesAtLogon As Long
+        fConnectPrinterAtLogon As Long
+        fDisablePrinterRedirection As Long
+        fDisableDefaultMainClientPrinter As Long
+        ShadowSettings As Long
+        LogonUserName(USERNAME_LENGTH) As Integer
+        LogonDomain(DOMAIN_LENGTH) As Integer
+        WorkDirectory(MAX_PATH) As Integer
+        InitialProgram(MAX_PATH) As Integer
+        ApplicationName(MAX_PATH) As Integer
+    End Type
+    
+    Public Type WTSINFOA
+        State As WTS_CONNECTSTATE_CLASS ' connection state (see enum)
+        SessionId As Long ' session id
+        IncomingBytes As Long
+        OutgoingBytes As Long
+        IncomingFrames As Long
+        OutgoingFrames As Long
+        IncomingCompressedBytes As Long
+        OutgoingCompressedBytes As Long
+        WinStationName(0 To (WINSTATIONNAME_LENGTH - 1)) As Byte
+        Domain(0 To (DOMAIN_LENGTH - 1)) As Byte
+        UserName(0 To (USERNAME_LENGTH)) As Byte ' name of WinStation this session is
+        ' connected to
+        ConnectTime As LARGE_INTEGER
+        DisconnectTime As LARGE_INTEGER
+        LastInputTime As LARGE_INTEGER
+        LogonTime As LARGE_INTEGER
+        CurrentTime As LARGE_INTEGER
+    End Type
+    Public Type WTSINFOW
+        State As WTS_CONNECTSTATE_CLASS ' connection state (see enum)
+        SessionId As Long ' session id
+        IncomingBytes As Long
+        OutgoingBytes As Long
+        IncomingFrames As Long
+        OutgoingFrames As Long
+        IncomingCompressedBytes As Long
+        OutgoingCompressedBytes As Long
+        WinStationName(0 To (WINSTATIONNAME_LENGTH - 1)) As Integer
+        Domain(0 To (DOMAIN_LENGTH - 1)) As Integer
+        UserName(0 To (USERNAME_LENGTH + 1 - 1)) As Integer ' name of WinStation this session is
+        ' connected to
+        ConnectTime As LARGE_INTEGER
+        DisconnectTime As LARGE_INTEGER
+        LastInputTime As LARGE_INTEGER
+        LogonTime As LARGE_INTEGER
+        CurrentTime As LARGE_INTEGER
+    End Type
+    'Alias WTSINFO As WTSINFOW
+    Public Type WTSINFO
+        State As WTS_CONNECTSTATE_CLASS ' connection state (see enum)
+        SessionId As Long ' session id
+        IncomingBytes As Long
+        OutgoingBytes As Long
+        IncomingFrames As Long
+        OutgoingFrames As Long
+        IncomingCompressedBytes As Long
+        OutgoingCompressedBytes As Long
+        WinStationName(0 To (WINSTATIONNAME_LENGTH - 1)) As Integer
+        Domain(0 To (DOMAIN_LENGTH - 1)) As Integer
+        UserName(0 To (USERNAME_LENGTH + 1 - 1)) As Integer ' name of WinStation this session is
+        ' connected to
+        ConnectTime As LARGE_INTEGER
+        DisconnectTime As LARGE_INTEGER
+        LastInputTime As LARGE_INTEGER
+        LogonTime As LARGE_INTEGER
+        CurrentTime As LARGE_INTEGER
+    End Type
+    
+    Public Enum WTSSessionStateExFlags
+        WTS_SESSIONSTATE_UNKNOWN = &HFFFFFFFF
+        WTS_SESSIONSTATE_LOCK = &H00000000
+        WTS_SESSIONSTATE_UNLOCK = &H00000001
+    End Enum
+    
+    Public Type WTSINFOEX_LEVEL1_A
+        SessionId As Long
+        SessionState As WTS_CONNECTSTATE_CLASS
+        SessionFlags As Long
+        WinStationName(0 To (WINSTATIONNAME_LENGTH)) As Byte
+        UserName(0 To (USERNAME_LENGTH)) As Byte
+        DomainName(0 To (DOMAIN_LENGTH)) As Byte
+        LogonTime As LARGE_INTEGER
+        ConnectTime As LARGE_INTEGER
+        DisconnectTime As LARGE_INTEGER
+        LastInputTime As LARGE_INTEGER
+        CurrentTime As LARGE_INTEGER
+        IncomingBytes As Long
+        OutgoingBytes As Long
+        IncomingFrames As Long
+        OutgoingFrames As Long
+        IncomingCompressedBytes As Long
+        OutgoingCompressedBytes As Long
+    End Type
+    Public Type WTSINFOEX_LEVEL1_W
+        SessionId As Long
+        SessionState As WTS_CONNECTSTATE_CLASS
+        SessionFlags As Long
+        WinStationName(0 To (WINSTATIONNAME_LENGTH)) As Integer
+        UserName(0 To (USERNAME_LENGTH)) As Integer
+        DomainName(0 To (DOMAIN_LENGTH)) As Integer
+        LogonTime As LARGE_INTEGER
+        ConnectTime As LARGE_INTEGER
+        DisconnectTime As LARGE_INTEGER
+        LastInputTime As LARGE_INTEGER
+        CurrentTime As LARGE_INTEGER
+        IncomingBytes As Long
+        OutgoingBytes As Long
+        IncomingFrames As Long
+        OutgoingFrames As Long
+        IncomingCompressedBytes As Long
+        OutgoingCompressedBytes As Long
+    End Type
+    'Alias WTSINFOEX_LEVEL1 As WTSINFOEX_LEVEL1_W
+    Public Type WTSINFOEX_LEVEL1
+        SessionId As Long
+        SessionState As WTS_CONNECTSTATE_CLASS
+        SessionFlags As Long
+        WinStationName(0 To (WINSTATIONNAME_LENGTH)) As Integer
+        UserName(0 To (USERNAME_LENGTH)) As Integer
+        DomainName(0 To (DOMAIN_LENGTH)) As Integer
+        LogonTime As LARGE_INTEGER
+        ConnectTime As LARGE_INTEGER
+        DisconnectTime As LARGE_INTEGER
+        LastInputTime As LARGE_INTEGER
+        CurrentTime As LARGE_INTEGER
+        IncomingBytes As Long
+        OutgoingBytes As Long
+        IncomingFrames As Long
+        OutgoingFrames As Long
+        IncomingCompressedBytes As Long
+        OutgoingCompressedBytes As Long
+    End Type
+    
+    
+    Public Type WTSINFOEXA
+        Level As Long
+        Data As WTSINFOEX_LEVEL1_A
+    End Type
+    Public Type WTSINFOEXW
+        Level As Long
+        Data As WTSINFOEX_LEVEL1_W
+    End Type
+    Public Type WTSINFOEX
+        Level As Long
+        Data As WTSINFOEX_LEVEL1
+    End Type
+    
+    Public Type WTSCLIENTA
+        ClientName(0 To (CLIENTNAME_LENGTH)) As Byte
+        Domain(0 To (DOMAIN_LENGTH)) As Byte
+        UserName(0 To (USERNAME_LENGTH)) As Byte
+        WorkDirectory(0 To (MAX_PATH)) As Byte
+        InitialProgram(0 To (MAX_PATH)) As Byte
+        EncryptionLevel As Byte ' security level of encryption pd
+        ClientAddressFamily As Long
+        ClientAddress(0 To (CLIENTADDRESS_LENGTH)) As Byte
+        HRes As Integer
+        VRes As Integer
+        ColorDepth As Integer
+        ClientDirectory(0 To (MAX_PATH)) As Byte
+        ClientBuildNumber As Long
+        ClientHardwareId As Long ' client software serial number
+        ClientProductId As Integer ' client software product id
+        OutBufCountHost As Integer ' number of outbufs on host
+        OutBufCountClient As Integer ' number of outbufs on client
+        OutBufLength As Integer ' length of outbufs in bytes
+        DeviceId(0 To (MAX_PATH)) As Byte
+    End Type
+    Public Type WTSCLIENTW
+        ClientName(0 To (CLIENTNAME_LENGTH)) As Integer
+        Domain(0 To (DOMAIN_LENGTH)) As Integer
+        UserName(0 To (USERNAME_LENGTH)) As Integer
+        WorkDirectory(0 To (MAX_PATH)) As Integer
+        InitialProgram(0 To (MAX_PATH)) As Integer
+        EncryptionLevel As Byte ' security level of encryption pd
+        ClientAddressFamily As Long
+        ClientAddress(0 To (CLIENTADDRESS_LENGTH)) As Integer
+        HRes As Integer
+        VRes As Integer
+        ColorDepth As Integer
+        ClientDirectory(0 To (MAX_PATH)) As Integer
+        ClientBuildNumber As Long
+        ClientHardwareId As Long ' client software serial number
+        ClientProductId As Integer ' client software product id
+        OutBufCountHost As Integer ' number of outbufs on host
+        OutBufCountClient As Integer ' number of outbufs on client
+        OutBufLength As Integer ' length of outbufs in bytes
+        DeviceId(0 To (MAX_PATH)) As Integer
+    End Type
+    'Alias WTSCLIENT As WTSCLIENTW
+    Public Type WTSCLIENT
+        ClientName(0 To (CLIENTNAME_LENGTH)) As Integer
+        Domain(0 To (DOMAIN_LENGTH)) As Integer
+        UserName(0 To (USERNAME_LENGTH)) As Integer
+        WorkDirectory(0 To (MAX_PATH)) As Integer
+        InitialProgram(0 To (MAX_PATH)) As Integer
+        EncryptionLevel As Byte ' security level of encryption pd
+        ClientAddressFamily As Long
+        ClientAddress(0 To (CLIENTADDRESS_LENGTH)) As Integer
+        HRes As Integer
+        VRes As Integer
+        ColorDepth As Integer
+        ClientDirectory(0 To (MAX_PATH)) As Integer
+        ClientBuildNumber As Long
+        ClientHardwareId As Long ' client software serial number
+        ClientProductId As Integer ' client software product id
+        OutBufCountHost As Integer ' number of outbufs on host
+        OutBufCountClient As Integer ' number of outbufs on client
+        OutBufLength As Integer ' length of outbufs in bytes
+        DeviceId(0 To (MAX_PATH)) As Integer
+    End Type
+    
+    Public Const PRODUCTINFO_COMPANYNAME_LENGTH  = 256
+    Public Const PRODUCTINFO_PRODUCTID_LENGTH  = 4
+    Public Type WTS_PRODUCT_INFOA
+        CompanyName(0 To (PRODUCTINFO_COMPANYNAME_LENGTH - 1)) As Byte
+        ProductID(0 To (PRODUCTINFO_PRODUCTID_LENGTH - 1)) As Byte
+    End Type
+    Public Type WTS_PRODUCT_INFOW
+        CompanyName(0 To (PRODUCTINFO_COMPANYNAME_LENGTH - 1)) As Integer
+        ProductID(0 To (PRODUCTINFO_PRODUCTID_LENGTH - 1)) As Integer
+    End Type
+    Public Type WTS_PRODUCT_INFO
+        CompanyName(0 To (PRODUCTINFO_COMPANYNAME_LENGTH - 1)) As Integer
+        ProductID(0 To (PRODUCTINFO_PRODUCTID_LENGTH - 1)) As Integer
+    End Type
+    
+    Public Const VALIDATIONINFORMATION_LICENSE_LENGTH  = 16384  '16 Kb
+    Public Const VALIDATIONINFORMATION_HARDWAREID_LENGTH  = 20
+    Public Type WTS_VALIDATION_INFORMATIONA
+        ProductInfo As WTS_PRODUCT_INFOA
+        License(0 To (VALIDATIONINFORMATION_LICENSE_LENGTH - 1)) As Byte
+        LicenseLength As Long
+        HardwareID(0 To (VALIDATIONINFORMATION_HARDWAREID_LENGTH - 1)) As Byte
+        HardwareIDLength As Long
+    End Type
+    Public Type WTS_VALIDATION_INFORMATIONW
+        ProductInfo As WTS_PRODUCT_INFOW
+        License(0 To (VALIDATIONINFORMATION_LICENSE_LENGTH - 1)) As Integer
+        LicenseLength As Long
+        HardwareID(0 To (VALIDATIONINFORMATION_HARDWAREID_LENGTH - 1)) As Integer
+        HardwareIDLength As Long
+    End Type
+    Public Type WTS_VALIDATION_INFORMATION
+        ProductInfo As WTS_PRODUCT_INFO
+        License(0 To (VALIDATIONINFORMATION_LICENSE_LENGTH - 1)) As Integer
+        LicenseLength As Long
+        HardwareID(0 To (VALIDATIONINFORMATION_HARDWAREID_LENGTH - 1)) As Integer
+        HardwareIDLength As Long
+    End Type
+    
+    Public Type WTS_CLIENT_ADDRESS
+        AddressFamily As ADDRESS_FAMILIES ' AF_INET, AF_INET6, AF_IPX, AF_NETBIOS, AF_UNSPEC
+        Address(0 To 19) As Byte ' client network address
+    End Type
+    
+    Public Type WTS_CLIENT_DISPLAY
+        HorizontalResolution As Long ' horizontal dimensions, in pixels
+        VerticalResolution As Long ' vertical dimensions, in pixels
+        ColorDepth As Long ' 1=16, 2=256, 4=64K, 8=16M
+    End Type
+    
+    Public Enum WTS_CONFIG_CLASS
+        ' Initial program settings
+        WTSUserConfigInitialProgram   ' string returned/expected
+        WTSUserConfigWorkingDirectory   ' string returned/expected
+        WTSUserConfigfInheritInitialProgram   ' DWORD returned/expected
+        ' 
+        WTSUserConfigfAllowLogonTerminalServer   'DWORD returned/expected
+        ' Timeout settings
+        WTSUserConfigTimeoutSettingsConnections   'DWORD returned/expected
+        WTSUserConfigTimeoutSettingsDisconnections   'DWORD returned/expected
+        WTSUserConfigTimeoutSettingsIdle   'DWORD returned/expected
+        ' Client device settings
+        WTSUserConfigfDeviceClientDrives   'DWORD returned/expected
+        WTSUserConfigfDeviceClientPrinters   'DWORD returned/expected
+        WTSUserConfigfDeviceClientDefaultPrinter    'DWORD returned/expected
+        ' Connection settings
+        WTSUserConfigBrokenTimeoutSettings   'DWORD returned/expected
+        WTSUserConfigReconnectSettings  'DWORD returned/expected
+        ' Modem settings
+        WTSUserConfigModemCallbackSettings  'DWORD returned/expected
+        WTSUserConfigModemCallbackPhoneNumber   ' string returned/expected
+        ' Shadow settings
+        WTSUserConfigShadowingSettings  'DWORD returned/expected
+        ' User Profile settings
+        WTSUserConfigTerminalServerProfilePath ' string returned/expected
+        ' Terminal Server home directory
+        WTSUserConfigTerminalServerHomeDir  ' string returned/expected
+        WTSUserConfigTerminalServerHomeDirDrive   ' string returned/expected
+        WTSUserConfigfTerminalServerRemoteHomeDir   ' DWORD 0:LOCAL 1:REMOTE
+        WTSUserConfigUser  ' returns WTSUSERCONFIG struct
+    End Enum
+    
+    Public Enum WTS_CONFIG_SOURCE
+        WTSUserConfigSourceSAM
+    End Enum
+    
+    Public Type WTSUSERCONFIGA
+        Source As Long
+        InheritInitialProgram As Long
+        AllowLogonTerminalServer As Long
+        TimeoutSettingsConnections As Long
+        TimeoutSettingsDisconnections As Long
+        TimeoutSettingsIdle As Long
+        DeviceClientDrives As Long
+        DeviceClientPrinters As Long
+        ClientDefaultPrinter As Long
+        BrokenTimeoutSettings As Long
+        ReconnectSettings As Long
+        ShadowingSettings As Long
+        TerminalServerRemoteHomeDir As Long
+        InitialProgram(0 To (MAX_PATH)) As Byte
+        WorkDirectory(0 To (MAX_PATH)) As Byte
+        TerminalServerProfilePath(0 To (MAX_PATH)) As Byte
+        TerminalServerHomeDir(0 To (MAX_PATH)) As Byte
+        TerminalServerHomeDirDrive(0 To (WTS_DRIVE_LENGTH)) As Byte
+    End Type
+    Public Type WTSUSERCONFIGW
+        Source As Long
+        InheritInitialProgram As Long
+        AllowLogonTerminalServer As Long
+        TimeoutSettingsConnections As Long
+        TimeoutSettingsDisconnections As Long
+        TimeoutSettingsIdle As Long
+        DeviceClientDrives As Long
+        DeviceClientPrinters As Long
+        ClientDefaultPrinter As Long
+        BrokenTimeoutSettings As Long
+        ReconnectSettings As Long
+        ShadowingSettings As Long
+        TerminalServerRemoteHomeDir As Long
+        InitialProgram(0 To (MAX_PATH)) As Integer
+        WorkDirectory(0 To (MAX_PATH)) As Integer
+        TerminalServerProfilePath(0 To (MAX_PATH)) As Integer
+        TerminalServerHomeDir(0 To (MAX_PATH)) As Integer
+        TerminalServerHomeDirDrive(0 To (WTS_DRIVE_LENGTH)) As Integer
+    End Type
+    Public Type WTSUSERCONFIG
+        Source As Long
+        InheritInitialProgram As Long
+        AllowLogonTerminalServer As Long
+        TimeoutSettingsConnections As Long
+        TimeoutSettingsDisconnections As Long
+        TimeoutSettingsIdle As Long
+        DeviceClientDrives As Long
+        DeviceClientPrinters As Long
+        ClientDefaultPrinter As Long
+        BrokenTimeoutSettings As Long
+        ReconnectSettings As Long
+        ShadowingSettings As Long
+        TerminalServerRemoteHomeDir As Long
+        InitialProgram(0 To (MAX_PATH)) As Integer
+        WorkDirectory(0 To (MAX_PATH)) As Integer
+        TerminalServerProfilePath(0 To (MAX_PATH)) As Integer
+        TerminalServerHomeDir(0 To (MAX_PATH)) As Integer
+        TerminalServerHomeDirDrive(0 To (WTS_DRIVE_LENGTH)) As Integer
+    End Type
+    
+    Public Enum WTSEventFlags
+        WTS_EVENT_NONE = &H00000000  ' return no event
+        WTS_EVENT_CREATE = &H00000001  ' new WinStation created
+        WTS_EVENT_DELETE = &H00000002  ' existing WinStation deleted
+        WTS_EVENT_RENAME = &H00000004  ' existing WinStation renamed
+        WTS_EVENT_CONNECT = &H00000008  ' WinStation connect to client
+        WTS_EVENT_DISCONNECT = &H00000010  ' WinStation logged on without
+    '      client
+        WTS_EVENT_LOGON = &H00000020  ' user logged on to existing
+    '      WinStation
+        WTS_EVENT_LOGOFF = &H00000040  ' user logged off from
+    '      existing WinStation
+        WTS_EVENT_STATECHANGE = &H00000080  ' WinStation state change
+        WTS_EVENT_LICENSE = &H00000100  ' license state change
+        WTS_EVENT_ALL = &H7fffffff  ' wait for all event types
+        WTS_EVENT_FLUSH = &H80000000  ' unblock all waiters
+    End Enum
+    
+    Public Enum WTSHotkeyModifiers
+        REMOTECONTROL_KBDSHIFT_HOTKEY = &H1  ' Shift key
+        REMOTECONTROL_KBDCTRL_HOTKEY = &H2  ' Ctrl key
+        REMOTECONTROL_KBDALT_HOTKEY = &H4  ' Alt key
+    End Enum
+    
+    Public Enum WTS_VIRTUAL_CLASS
+        WTSVirtualClientData   ' Virtual channel client module data
+        '      (C2H data)
+        WTSVirtualFileHandle
+    End Enum
+    
+    Public Type WTS_SESSION_ADDRESS
+        AddressFamily As ADDRESS_FAMILIES ' AF_INET only.
+        Address(0 To 19) As Byte ' client network address
+    End Type
+     
+    Public Declare PtrSafe Function WTSStopRemoteControlSession Lib "Wtsapi32" (ByVal LogonId As Long) As BOOL
+    Public Declare PtrSafe Function WTSStartRemoteControlSessionA Lib "Wtsapi32" (ByVal pTargetServerName As String, ByVal TargetLogonId As Long, ByVal HotkeyVk As Byte, [TypeHint(WTSHotkeyModifiers)] ByVal HotkeyModifiers As Integer) As BOOL
+    Public Declare PtrSafe Function WTSStartRemoteControlSessionW Lib "Wtsapi32" (ByVal pTargetServerName As LongPtr, ByVal TargetLogonId As Long, ByVal HotkeyVk As Byte, [TypeHint(WTSHotkeyModifiers)] ByVal HotkeyModifiers As Integer) As BOOL
+    Public DeclareWide PtrSafe Function WTSStartRemoteControlSession Lib "Wtsapi32" Alias "WTSStartRemoteControlSessionW" (ByVal pTargetServerName As String, ByVal TargetLogonId As Long, ByVal HotkeyVk As Byte, [TypeHint(WTSHotkeyModifiers)] ByVal HotkeyModifiers As Integer) As BOOL
+    Public Declare PtrSafe Function WTSConnectSessionA Lib "Wtsapi32" (ByVal LogonId As Long, ByVal TargetLogonId As Long, ByVal pPassword As String, ByVal bWait As BOOL) As BOOL
+    Public Declare PtrSafe Function WTSConnectSessionW Lib "Wtsapi32" (ByVal LogonId As Long, ByVal TargetLogonId As Long, ByVal pPassword As LongPtr, ByVal bWait As BOOL) As BOOL
+    Public DeclareWide PtrSafe Function WTSConnectSession Lib "Wtsapi32" Alias "WTSConnectSessionW" (ByVal LogonId As Long, ByVal TargetLogonId As Long, ByVal pPassword As String, ByVal bWait As BOOL) As BOOL
+    Public Declare PtrSafe Function WTSEnumerateServersA Lib "Wtsapi32" (ByVal pDomainName As String, ByVal Reserved As Long, ByVal Version As Long, ppServerInfo As LongPtr, pCount As Long) As BOOL
+    Public Declare PtrSafe Function WTSEnumerateServersW Lib "Wtsapi32" (ByVal pDomainName As LongPtr, ByVal Reserved As Long, ByVal Version As Long, ppServerInfo As LongPtr, pCount As Long) As BOOL
+    Public DeclareWide PtrSafe Function WTSEnumerateServers Lib "Wtsapi32" Alias "WTSEnumerateServersW" (ByVal pDomainName As String, ByVal Reserved As Long, ByVal Version As Long, ppServerInfo As LongPtr, pCount As Long) As BOOL
+    Public Declare PtrSafe Function WTSOpenServerA Lib "Wtsapi32" (ByVal pServerName As String) As LongPtr
+    Public Declare PtrSafe Function WTSOpenServerW Lib "Wtsapi32" (ByVal pServerName As LongPtr) As LongPtr
+    Public DeclareWide PtrSafe Function WTSOpenServer Lib "Wtsapi32" Alias "WTSOpenServerW" (ByVal pServerName As String) As LongPtr
+    Public Declare PtrSafe Function WTSOpenServerExA Lib "Wtsapi32" (ByVal pServerName As String) As LongPtr
+    Public Declare PtrSafe Function WTSOpenServerExW Lib "Wtsapi32" (ByVal pServerName As LongPtr) As LongPtr
+    Public DeclareWide PtrSafe Function WTSOpenServerEx Lib "Wtsapi32" Alias "WTSOpenServerExW" (ByVal pServerName As String) As LongPtr
+    Public Declare PtrSafe Sub WTSCloseServer Lib "Wtsapi32" (ByVal hServer As LongPtr)
+    Public Declare PtrSafe Function WTSEnumerateSessionsA Lib "Wtsapi32" (ByVal hServer As LongPtr, ByVal Reserved As Long, ByVal Version As Long, ppSessionInfo As LongPtr, pCount As Long) As BOOL
+    Public Declare PtrSafe Function WTSEnumerateSessionsW Lib "Wtsapi32" (ByVal hServer As LongPtr, ByVal Reserved As Long, ByVal Version As Long, ppSessionInfo As LongPtr, pCount As Long) As BOOL
+    Public DeclareWide PtrSafe Function WTSEnumerateSessions Lib "Wtsapi32" Alias "WTSEnumerateSessionsW" (ByVal hServer As LongPtr, ByVal Reserved As Long, ByVal Version As Long, ppSessionInfo As LongPtr, pCount As Long) As BOOL
+    Public Declare PtrSafe Function WTSEnumerateSessionsExA Lib "Wtsapi32" (ByVal hServer As LongPtr, pLevel As Long, ByVal Filter As Long, ppSessionInfo As LongPtr, pCount As Long) As BOOL
+    Public Declare PtrSafe Function WTSEnumerateSessionsExW Lib "Wtsapi32" (ByVal hServer As LongPtr, pLevel As Long, ByVal Filter As Long, ppSessionInfo As LongPtr, pCount As Long) As BOOL
+    Public DeclareWide PtrSafe Function WTSEnumerateSessionsEx Lib "Wtsapi32" Alias "WTSEnumerateSessionsExW" (ByVal hServer As LongPtr, pLevel As Long, ByVal Filter As Long, ppSessionInfo As LongPtr, pCount As Long) As BOOL
+    Public Declare PtrSafe Function WTSEnumerateProcessesA Lib "Wtsapi32" (ByVal hServer As LongPtr, ByVal Reserved As Long, ByVal Version As Long, ppProcessInfo As LongPtr, pCount As Long) As BOOL
+    Public Declare PtrSafe Function WTSEnumerateProcessesW Lib "Wtsapi32" (ByVal hServer As LongPtr, ByVal Reserved As Long, ByVal Version As Long, ppProcessInfo As LongPtr, pCount As Long) As BOOL
+    Public DeclareWide PtrSafe Function WTSEnumerateProcesses Lib "Wtsapi32" Alias "WTSEnumerateProcessesW" (ByVal hServer As LongPtr, ByVal Reserved As Long, ByVal Version As Long, ppProcessInfo As LongPtr, pCount As Long) As BOOL
+    Public Declare PtrSafe Function WTSTerminateProcess Lib "Wtsapi32" (ByVal hServer As LongPtr, ByVal ProcessId As Long, ByVal ExitCode As Long) As BOOL
+    Public Declare PtrSafe Function WTSQuerySessionInformationA Lib "Wtsapi32" (ByVal hServer As LongPtr, ByVal SessionId As Long, ByVal WTSInfoClass As WTS_INFO_CLASS, ppBuffer As LongPtr, pBytesReturned As Long) As BOOL
+    Public Declare PtrSafe Function WTSQuerySessionInformationW Lib "Wtsapi32" (ByVal hServer As LongPtr, ByVal SessionId As Long, ByVal WTSInfoClass As WTS_INFO_CLASS, ppBuffer As LongPtr, pBytesReturned As Long) As BOOL
+    Public DeclareWide PtrSafe Function WTSQuerySessionInformation Lib "Wtsapi32" Alias "WTSQuerySessionInformationW" (ByVal hServer As LongPtr, ByVal SessionId As Long, ByVal WTSInfoClass As WTS_INFO_CLASS, ppBuffer As LongPtr, pBytesReturned As Long) As BOOL
+    Public Declare PtrSafe Function WTSQueryUserConfigA Lib "Wtsapi32" (ByVal pServerName As String, ByVal pUserName As String, ByVal WTSConfigClass As WTS_CONFIG_CLASS, ppBuffer As LongPtr, pBytesReturned As Long) As BOOL
+    Public Declare PtrSafe Function WTSQueryUserConfigW Lib "Wtsapi32" (ByVal pServerName As LongPtr, ByVal pUserName As LongPtr, ByVal WTSConfigClass As WTS_CONFIG_CLASS, ppBuffer As LongPtr, pBytesReturned As Long) As BOOL
+    Public DeclareWide PtrSafe Function WTSQueryUserConfig Lib "Wtsapi32" Alias "WTSQueryUserConfigW" (ByVal pServerName As String, ByVal pUserName As String, ByVal WTSConfigClass As WTS_CONFIG_CLASS, ppBuffer As LongPtr, pBytesReturned As Long) As BOOL
+    [Description("Note: This call doesn't use String because it also accepts other types; tB can't e.g. substitute a Long for a string pointer.")]
+    Public Declare PtrSafe Function WTSSetUserConfigA Lib "Wtsapi32" (ByVal pServerName As String, ByVal pUserName As String, ByVal WTSConfigClass As WTS_CONFIG_CLASS, ByVal pBuffer As LongPtr, ByVal DataLength As Long) As BOOL
+    Public Declare PtrSafe Function WTSSetUserConfigW Lib "Wtsapi32" (ByVal pServerName As LongPtr, ByVal pUserName As LongPtr, ByVal WTSConfigClass As WTS_CONFIG_CLASS, ByVal ppBuffer As LongPtr, ByVal DataLength As Long) As BOOL
+    [Description("Note: This call doesn't use String because it also accepts other types; tB can't e.g. substitute a Long for a string pointer.")]
+    Public DeclareWide PtrSafe Function WTSSetUserConfig Lib "Wtsapi32" Alias "WTSQueryUserConfigW" (ByVal pServerName As String, ByVal pUserName As String, ByVal WTSConfigClass As WTS_CONFIG_CLASS, ByVal ppBuffer As LongPtr, ByVal DataLength As Long) As BOOL
+    Public Declare PtrSafe Function WTSSendMessageA Lib "Wtsapi32" (ByVal hServer As LongPtr, ByVal SessionId As Long, ByVal pTitle As String, ByVal TitleLength As Long, ByVal pMessage As String, ByVal MessageLength As Long, ByVal Style As MessageBoxFlags, ByVal Timeout As Long, pResponse As MessageBoxResults, ByVal bWait As BOOL) As BOOL
+    Public Declare PtrSafe Function WTSSendMessageW Lib "Wtsapi32" (ByVal hServer As LongPtr, ByVal SessionId As Long, ByVal pTitle As LongPtr, ByVal TitleLength As Long, ByVal pMessage As LongPtr, ByVal MessageLength As Long, ByVal Style As MessageBoxFlags, ByVal Timeout As Long, pResponse As MessageBoxResults, ByVal bWait As BOOL) As BOOL
+    Public DeclareWide PtrSafe Function WTSSendMessage Lib "Wtsapi32" Alias "WTSSendMessageW" (ByVal hServer As LongPtr, ByVal SessionId As Long, ByVal pTitle As String, ByVal TitleLength As Long, ByVal pMessage As String, ByVal MessageLength As Long, ByVal Style As MessageBoxFlags, ByVal Timeout As Long, pResponse As MessageBoxResults, ByVal bWait As BOOL) As BOOL
+    Public Declare PtrSafe Function WTSDisconnectSession Lib "Wtsapi32" (ByVal hServer As LongPtr, ByVal SessionId As Long, ByVal bWait As BOOL) As BOOL
+    Public Declare PtrSafe Function WTSLogoffSession Lib "Wtsapi32" (ByVal hServer As LongPtr, ByVal SessionId As Long, ByVal bWait As BOOL) As BOOL
+    Public Declare PtrSafe Function WTSShutdownSystem Lib "Wtsapi32" (ByVal hServer As LongPtr, ByVal ShutdownFlag As WTSShutdownFlags) As BOOL
+    Public Declare PtrSafe Function WTSWaitSystemEvent Lib "Wtsapi32" (ByVal hServer As LongPtr, ByVal EventMask As WTSEventFlags, pEventFlags As WTSEventFlags) As BOOL
+    
+    Public Enum WTSChannelOptions
+        WTS_CHANNEL_OPTION_DYNAMIC = &H00000001  ' dynamic channel
+        WTS_CHANNEL_OPTION_DYNAMIC_PRI_LOW = &H00000000  ' priorities
+        WTS_CHANNEL_OPTION_DYNAMIC_PRI_MED = &H00000002
+        WTS_CHANNEL_OPTION_DYNAMIC_PRI_HIGH = &H00000004
+        WTS_CHANNEL_OPTION_DYNAMIC_PRI_REAL = &H00000006
+        WTS_CHANNEL_OPTION_DYNAMIC_NO_COMPRESS = &H00000008
+    End Enum
+    
+    Public Declare PtrSafe Function WTSVirtualChannelOpenEx Lib "Wtsapi32" (ByVal SessionId As Long, ByVal pVirtualName As String, ByVal flags As WTSChannelOptions) As LongPtr
+    Public Declare PtrSafe Function WTSVirtualChannelClose Lib "Wtsapi32" (ByVal hChannelHandle As LongPtr) As BOOL
+    Public Declare PtrSafe Function WTSVirtualChannelRead Lib "Wtsapi32" (ByVal hChannelHandle As LongPtr, ByVal TimeOut As Long, Buffer As Any, ByVal BufferSize As Long, pBytesRead As Long) As BOOL
+    Public Declare PtrSafe Function WTSVirtualChannelWrite Lib "Wtsapi32" (ByVal hChannelHandle As LongPtr, Buffer As Any, ByVal Length As Long, pBytesWritten As Long) As BOOL
+    Public Declare PtrSafe Function WTSVirtualChannelPurgeInput Lib "Wtsapi32" (ByVal hChannelHandle As LongPtr) As BOOL
+    Public Declare PtrSafe Function WTSVirtualChannelPurgeOutput Lib "Wtsapi32" (ByVal hChannelHandle As LongPtr) As BOOL
+    Public Declare PtrSafe Function WTSVirtualChannelQuery Lib "Wtsapi32" (ByVal hChannelHandle As LongPtr, ByVal nClass As WTS_VIRTUAL_CLASS, ppBuffer As LongPtr, pBytesReturned As Long) As BOOL
+    Public Declare PtrSafe Sub WTSFreeMemory Lib "Wtsapi32" (ByVal pMemory As LongPtr)
+    
+    Public Enum WTSConsoleNotifyFlags
+        NOTIFY_FOR_ALL_SESSIONS = 1
+        NOTIFY_FOR_THIS_SESSION = 0
+    End Enum
+    
+    Public Declare PtrSafe Function WTSRegisterSessionNotification Lib "Wtsapi32" (ByVal hwnd As LongPtr, ByVal dwFlags As WTSConsoleNotifyFlags) As BOOL
+    Public Declare PtrSafe Function WTSUnRegisterSessionNotification Lib "Wtsapi32" (ByVal hwnd As LongPtr) As BOOL
+    Public Declare PtrSafe Function WTSRegisterSessionNotificationEx Lib "Wtsapi32" (ByVal hServer As LongPtr, ByVal hwnd As LongPtr, ByVal dwFlags As WTSConsoleNotifyFlags) As BOOL
+    Public Declare PtrSafe Function WTSUnRegisterSessionNotificationEx Lib "Wtsapi32" (ByVal hServer As LongPtr, ByVal hwnd As LongPtr) As BOOL
+    Public Declare PtrSafe Function WTSQueryUserToken Lib "Wtsapi32" (ByVal SessionId As Long, phToken As LongPtr) As BOOL
+    
+    Public Enum WTSProcessInfoLevels
+        WTS_PROCESS_INFO_LEVEL_0 = 0
+        WTS_PROCESS_INFO_LEVEL_1 = 1
+    End Enum
+    
+    
+    Public Type WTS_PROCESS_INFO_EXA
+        SessionId As Long
+        ProcessId As Long
+        pProcessName As LongPtr
+        pUserSid As String 'PSID
+        NumberOfThreads As Long
+        HandleCount As Long
+        PagefileUsage As Long
+        PeakPagefileUsage As Long
+        WorkingSetSize As Long
+        PeakWorkingSetSize As Long
+        UserTime As LARGE_INTEGER
+        KernelTime As LARGE_INTEGER
+    End Type
+    Public Type WTS_PROCESS_INFO_EXW
+        SessionId As Long
+        ProcessId As Long
+        pProcessName As LongPtr
+        pUserSid As LongPtr 'PSID
+        NumberOfThreads As Long
+        HandleCount As Long
+        PagefileUsage As Long
+        PeakPagefileUsage As Long
+        WorkingSetSize As Long
+        PeakWorkingSetSize As Long
+        UserTime As LARGE_INTEGER
+        KernelTime As LARGE_INTEGER
+    End Type
+    'Alias WTS_PROCESS_INFO_EX As WTS_PROCESS_INFO_EXW
+    Public Type WTS_PROCESS_INFO_EX
+        SessionId As Long
+        ProcessId As Long
+        pProcessName As LongPtr
+        pUserSid As LongPtr 'PSID
+        NumberOfThreads As Long
+        HandleCount As Long
+        PagefileUsage As Long
+        PeakPagefileUsage As Long
+        WorkingSetSize As Long
+        PeakWorkingSetSize As Long
+        UserTime As LARGE_INTEGER
+        KernelTime As LARGE_INTEGER
+    End Type
+    
+    Public Enum WTS_TYPE_CLASS
+        WTSTypeProcessInfoLevel0
+        WTSTypeProcessInfoLevel1
+        WTSTypeSessionInfoLevel1
+    End Enum
+    
+    Public Declare PtrSafe Function WTSFreeMemoryExA Lib "Wtsapi32" (ByVal WTSTypeClass As WTS_TYPE_CLASS, ByVal pMemory As LongPtr, ByVal NumberOfEntries As Long) As BOOL
+    Public Declare PtrSafe Function WTSFreeMemoryExW Lib "Wtsapi32" (ByVal WTSTypeClass As WTS_TYPE_CLASS, ByVal pMemory As LongPtr, ByVal NumberOfEntries As Long) As BOOL
+    Public DeclareWide PtrSafe Function WTSFreeMemoryEx Lib "Wtsapi32" Alias "WTSFreeMemoryExW" (ByVal WTSTypeClass As WTS_TYPE_CLASS, ByVal pMemory As LongPtr, ByVal NumberOfEntries As Long) As BOOL
+    Public Declare PtrSafe Function WTSEnumerateProcessesExA Lib "Wtsapi32" (ByVal hServer As LongPtr, pLevel As WTSProcessInfoLevels, ByVal SessionId As Long, ppProcessInfo As LongPtr, pCount As Long) As BOOL
+    Public Declare PtrSafe Function WTSEnumerateProcessesExW Lib "Wtsapi32" (ByVal hServer As LongPtr, pLevel As WTSProcessInfoLevels, ByVal SessionId As Long, ppProcessInfo As LongPtr, pCount As Long) As BOOL
+    Public DeclareWide PtrSafe Function WTSEnumerateProcessesEx Lib "Wtsapi32" Alias "WTSEnumerateProcessesExW" (ByVal hServer As LongPtr, pLevel As WTSProcessInfoLevels, ByVal SessionId As Long, ppProcessInfo As LongPtr, pCount As Long) As BOOL
+    Public Declare PtrSafe Function WTSEnumerateListenersA Lib "Wtsapi32" (ByVal hServer As LongPtr, ByVal pReserved As LongPtr, ByVal Reserved As Long, ByVal pListeners As String, pCount As Long) As BOOL
+    Public Declare PtrSafe Function WTSEnumerateListenersW Lib "Wtsapi32" (ByVal hServer As LongPtr, ByVal pReserved As LongPtr, ByVal Reserved As Long, ByVal pListeners As LongPtr, pCount As Long) As BOOL
+    Public DeclareWide PtrSafe Function WTSEnumerateListeners Lib "Wtsapi32" Alias "WTSEnumerateListenersW" (ByVal hServer As LongPtr, ByVal pReserved As LongPtr, ByVal Reserved As Long, ByVal pListeners As String, pCount As Long) As BOOL
+        
+    Public Type WTSLISTENERCONFIGA
+        version As Long
+        fEnableListener As Long
+        MaxConnectionCount As Long
+        fPromptForPassword As Long
+        fInheritColorDepth As Long
+        ColorDepth As Long
+        fInheritBrokenTimeoutSettings As Long
+        BrokenTimeoutSettings As Long
+        fDisablePrinterRedirection As Long
+        fDisableDriveRedirection As Long
+        fDisableComPortRedirection As Long
+        fDisableLPTPortRedirection As Long
+        fDisableClipboardRedirection As Long
+        fDisableAudioRedirection As Long
+        fDisablePNPRedirection As Long
+        fDisableDefaultMainClientPrinter As Long
+        LanAdapter As Long
+        PortNumber As Long
+        fInheritShadowSettings As Long
+        ShadowSettings As Long
+        TimeoutSettingsConnection As Long
+        TimeoutSettingsDisconnection As Long
+        TimeoutSettingsIdle As Long
+        SecurityLayer As Long
+        MinEncryptionLevel As Long
+        UserAuthentication As Long
+        Comment(0 To (WTS_COMMENT_LENGTH)) As Byte
+        LogonUserName(0 To (USERNAME_LENGTH)) As Byte
+        LogonDomain(0 To (DOMAIN_LENGTH)) As Byte
+        WorkDirectory(0 To (MAX_PATH)) As Byte
+        InitialProgram(0 To (MAX_PATH)) As Byte
+    End Type
+    Public Type WTSLISTENERCONFIGW
+        version As Long
+        fEnableListener As Long
+        MaxConnectionCount As Long
+        fPromptForPassword As Long
+        fInheritColorDepth As Long
+        ColorDepth As Long
+        fInheritBrokenTimeoutSettings As Long
+        BrokenTimeoutSettings As Long
+        fDisablePrinterRedirection As Long
+        fDisableDriveRedirection As Long
+        fDisableComPortRedirection As Long
+        fDisableLPTPortRedirection As Long
+        fDisableClipboardRedirection As Long
+        fDisableAudioRedirection As Long
+        fDisablePNPRedirection As Long
+        fDisableDefaultMainClientPrinter As Long
+        LanAdapter As Long
+        PortNumber As Long
+        fInheritShadowSettings As Long
+        ShadowSettings As Long
+        TimeoutSettingsConnection As Long
+        TimeoutSettingsDisconnection As Long
+        TimeoutSettingsIdle As Long
+        SecurityLayer As Long
+        MinEncryptionLevel As Long
+        UserAuthentication As Long
+        Comment(0 To (WTS_COMMENT_LENGTH)) As Integer
+        LogonUserName(0 To (USERNAME_LENGTH)) As Integer
+        LogonDomain(0 To (DOMAIN_LENGTH)) As Integer
+        WorkDirectory(0 To (MAX_PATH)) As Integer
+        InitialProgram(0 To (MAX_PATH)) As Integer
+    End Type
+    'Alias WTSLISTENERCONFIG As WTSLISTENERCONFIGW
+    Public Type WTSLISTENERCONFIG
+        version As Long
+        fEnableListener As Long
+        MaxConnectionCount As Long
+        fPromptForPassword As Long
+        fInheritColorDepth As Long
+        ColorDepth As Long
+        fInheritBrokenTimeoutSettings As Long
+        BrokenTimeoutSettings As Long
+        fDisablePrinterRedirection As Long
+        fDisableDriveRedirection As Long
+        fDisableComPortRedirection As Long
+        fDisableLPTPortRedirection As Long
+        fDisableClipboardRedirection As Long
+        fDisableAudioRedirection As Long
+        fDisablePNPRedirection As Long
+        fDisableDefaultMainClientPrinter As Long
+        LanAdapter As Long
+        PortNumber As Long
+        fInheritShadowSettings As Long
+        ShadowSettings As Long
+        TimeoutSettingsConnection As Long
+        TimeoutSettingsDisconnection As Long
+        TimeoutSettingsIdle As Long
+        SecurityLayer As Long
+        MinEncryptionLevel As Long
+        UserAuthentication As Long
+        Comment(0 To (WTS_COMMENT_LENGTH)) As Integer
+        LogonUserName(0 To (USERNAME_LENGTH)) As Integer
+        LogonDomain(0 To (DOMAIN_LENGTH)) As Integer
+        WorkDirectory(0 To (MAX_PATH)) As Integer
+        InitialProgram(0 To (MAX_PATH)) As Integer
+    End Type
+    
+    Public Declare PtrSafe Function WTSQueryListenerConfigA Lib "Wtsapi32" (ByVal hServer As LongPtr, ByVal pReserved As LongPtr, ByVal Reserved As Long, ByVal pListenerName As String, pBuffer As WTSLISTENERCONFIGA) As BOOL
+    Public Declare PtrSafe Function WTSQueryListenerConfigW Lib "Wtsapi32" (ByVal hServer As LongPtr, ByVal pReserved As LongPtr, ByVal Reserved As Long, ByVal pListenerName As LongPtr, pBuffer As WTSLISTENERCONFIGW) As BOOL
+    Public DeclareWide PtrSafe Function WTSQueryListenerConfig Lib "Wtsapi32" Alias "WTSQueryListenerConfigW" (ByVal hServer As LongPtr, ByVal pReserved As LongPtr, ByVal Reserved As Long, ByVal pListenerName As String, pBuffer As WTSLISTENERCONFIG) As BOOL
+    Public Declare PtrSafe Function WTSCreateListenerA Lib "Wtsapi32" (ByVal hServer As LongPtr, ByVal pReserved As LongPtr, ByVal Reserved As Long, ByVal pListenerName As String, pBuffer As WTSLISTENERCONFIGA, ByVal flag As WTSCreateListenerFlags) As BOOL
+    Public Declare PtrSafe Function WTSCreateListenerW Lib "Wtsapi32" (ByVal hServer As LongPtr, ByVal pReserved As LongPtr, ByVal Reserved As Long, ByVal pListenerName As LongPtr, pBuffer As WTSLISTENERCONFIGW, ByVal flag As WTSCreateListenerFlags) As BOOL
+    Public DeclareWide PtrSafe Function WTSCreateListener Lib "Wtsapi32" Alias "WTSCreateListenerW" (ByVal hServer As LongPtr, ByVal pReserved As LongPtr, ByVal Reserved As Long, ByVal pListenerName As String, pBuffer As WTSLISTENERCONFIG, ByVal flag As WTSCreateListenerFlags) As BOOL
+    Public Declare PtrSafe Function WTSSetListenerSecurityA Lib "Wtsapi32" (ByVal hServer As LongPtr, ByVal pReserved As LongPtr, ByVal Reserved As Long, ByVal pListenerName As String, SecurityInformation As SECURITY_INFORMATION, pSecurityDescriptor As SECURITY_DESCRIPTOR) As BOOL
+    Public Declare PtrSafe Function WTSSetListenerSecurityW Lib "Wtsapi32" (ByVal hServer As LongPtr, ByVal pReserved As LongPtr, ByVal Reserved As Long, ByVal pListenerName As LongPtr, SecurityInformation As SECURITY_INFORMATION, pSecurityDescriptor As SECURITY_DESCRIPTOR) As BOOL
+    Public DeclareWide PtrSafe Function WTSSetListenerSecurity Lib "Wtsapi32" Alias "WTSSetListenerSecurityW" (ByVal hServer As LongPtr, ByVal pReserved As LongPtr, ByVal Reserved As Long, ByVal pListenerName As String, SecurityInformation As SECURITY_INFORMATION, pSecurityDescriptor As SECURITY_DESCRIPTOR) As BOOL
+    Public Declare PtrSafe Function WTSGetListenerSecurityA Lib "Wtsapi32" (ByVal hServer As LongPtr, ByVal pReserved As LongPtr, ByVal Reserved As Long, ByVal pListenerName As String, SecurityInformation As SECURITY_INFORMATION, pSecurityDescriptor As SECURITY_DESCRIPTOR, ByVal nLength As Long, lpnLengthNeeded As Long) As BOOL
+    Public Declare PtrSafe Function WTSGetListenerSecurityW Lib "Wtsapi32" (ByVal hServer As LongPtr, ByVal pReserved As LongPtr, ByVal Reserved As Long, ByVal pListenerName As LongPtr, SecurityInformation As SECURITY_INFORMATION, pSecurityDescriptor As SECURITY_DESCRIPTOR, ByVal nLength As Long, lpnLengthNeeded As Long) As BOOL
+    Public DeclareWide PtrSafe Function WTSGetListenerSecurity Lib "Wtsapi32" Alias "WTSGetListenerSecurityW" (ByVal hServer As LongPtr, ByVal pReserved As LongPtr, ByVal Reserved As Long, ByVal pListenerName As String, SecurityInformation As SECURITY_INFORMATION, pSecurityDescriptor As SECURITY_DESCRIPTOR, ByVal nLength As Long, lpnLengthNeeded As Long) As BOOL
+    Public Declare PtrSafe Function WTSEnableChildSessions Lib "Wtsapi32" (ByVal bEnable As BOOL) As BOOL
+    Public Declare PtrSafe Function WTSIsChildSessionsEnabled Lib "Wtsapi32" (pbEnable As BOOL) As BOOL
+    Public Declare PtrSafe Function WTSGetChildSessionId Lib "Wtsapi32" (pSessionId As Long) As BOOL
+    
+    
+End Module
