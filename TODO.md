@@ -6,4 +6,6 @@ before release, or waiting on feature support:
 -DWebBrowserEvents[2] interfaces (needs dispinterface support)
 
 -POLID_ guids only partially complete
+
+-winbio_adapter.h
  
