@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 7.8.379 (April 12th, 2024)**
+**Current Version: 7.8.382 (April 17th, 2024)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -186,6 +186,18 @@ twinBASIC now counts msvbvm60 redirects as legacy DLL redirects, which WinDevLib
  
 
 ### Updates
+
+**Update (v7.8.382, 17 April 2024):**\
+-Added coverage of all Windows Biometric Framework application APIs (winbio_err.h, winbio_ioctl.h, winbio_types.h, winbio.h 100%)\
+-Added missing WMDM DRM interfaces/coclass (MS forgot to merge these into the SDK when it abandoned a separate WMDM sdk)\
+-Some additional defs to bring winsvc.h coverage to 100%\
+-Add some missing WIC GUIDs\
+-(Bug fix) SERVICE_REQUIRED_PRIVILEGES_INFO[W] definitions incorrect for 64bit\
+-(Bug fix) EnumServicesStatusEx, GetServiceDisplayName incorrect alias\
+-(Bug fix) QueryServiceStatusEx, QueryServiceDynamicInformation, GetServiceRegistryStateKey, GetServiceDirectory, GetSharedServiceDirectory, RegisterServiceCtrlHandler[A,W,Ex,ExA,ExW] definitions incorrect for 64bit (Ex incorrect alias as well)\
+-(Bug fix) QueryServiceStatusEx incorrect additional overload\
+-(Bug fix) SECURITY_MAX_SID_SIZE value incorrect
+
 
 **Update (v7.8.379, 12 April 2024):**\
 -Large expansion of Direct3D 12 interfaces to cover latest SDK version of d3d12.idl\
