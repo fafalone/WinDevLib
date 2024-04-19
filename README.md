@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 7.8.382 (April 17th, 2024)**
+**Current Version: 7.9.386 (April 19th, 2024)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -186,6 +186,14 @@ twinBASIC now counts msvbvm60 redirects as legacy DLL redirects, which WinDevLib
  
 
 ### Updates
+
+**Update (v7.9.386, 19 April 2024):**\
+-Added complete Virtual Disk Service interfaces and custom coclass VdsLoader\
+-Added DirectML interfaces\
+-Added Restart Manager APIs (restartmanager.h, 100% coverage)\
+-Added DDE APIs (dde.h, ddeml.h 100%)\
+-Added some misc missing extremely common APIs.
+
 
 **Update (v7.8.382, 17 April 2024):**\
 -Added coverage of all Windows Biometric Framework application APIs (winbio_err.h, winbio_ioctl.h, winbio_types.h, winbio.h 100%)\
