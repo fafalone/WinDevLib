@@ -1,4 +1,11 @@
 
+**Update (v7.9.386, 19 April 2024):**
+-Added complete Virtual Disk Service interfaces and custom coclass VdsLoader
+-Added DirectML interfaces
+-Added Restart Manager APIs (restartmanager.h, 100% coverage)
+-Added DDE APIs (dde.h, ddeml.h 100%)
+-Added some misc missing extremely common APIs.
+
 **Update (v7.8.382, 17 April 2024):**
 -Added coverage of all Windows Biometric Framework application APIs (winbio_err.h, winbio_ioctl.h, winbio_types.h, winbio.h 100%)
 -Added missing WMDM DRM interfaces/coclass (MS forgot to merge these into the SDK when it abandoned a separate WMDM sdk)
@@ -570,6 +577,10 @@ SHGetLocalizedName
 SHRemoveLocalizedName
 
 GetClassInfo[A, Ex, ExA]
+
+RmAddFilter
+RmRemoveFilter
+
 
 **Update (v6.1.229):** Bug fix: A number of APIs had missing 'As <type>` statements, which were upgraded to errors. tB had previosly not caught these.
 
