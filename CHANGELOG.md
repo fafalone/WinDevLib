@@ -1,7 +1,22 @@
 
+**Update (v7.9.390, 24 Apr 2024):**
+-Large expansion of security APIs from security.h, minschannel.h, sspi.h, issper16.h, and credssp.h
+   All are 100% covered with the exception of kernel-mode only defs in sspi.h.
+-Added new helper function for APIs/COM interfaces expecting a ByVal GUID:
+   UUIDtoLong(UUID, pl1 As Long, pl2 As Long, pl3 As Long, pl4 As Long)
+   UUIDtoLong(UUID, pls() As Long)
+-Added VBA-related interfaces from vbinterf.h (100% coverage)
+-Adjusted custom buffers on DEV_BROADCAST_* types to not leave padding bytes.
+-Added non-aliased versions of RtlMoveMemory, RtlZeroMemory, and RtlZeroMemory (Issue #20)
+-(Bug fix) LoadIconMetrics enum had incorrect values and is now also renamed 
+'          to the proper LI_METRIC name.
+
 **Update (v7.9.386, 19 April 2024):**
 -Added complete Virtual Disk Service interfaces and custom coclass VdsLoader
--Added DirectML interfaces
+   (vdserr.h, vdscmprv.idl, vsprvcm.idl, vdshwprv.idl, vdscmmn.idl, vdslun.idl, 
+    vdssp.idl, vdshp.idl, vdsvd.idl, vds.idl, vdshpcm.idl; (from derivation, also
+    vds.h, vdshwprv.h, vdslun.h, vdssys.idl/vdssys.h)-- 100%)
+-Added DirectML interfaces (directml.h, 100%)
 -Added Restart Manager APIs (restartmanager.h, 100% coverage)
 -Added DDE APIs (dde.h, ddeml.h 100%)
 -Added some misc missing extremely common APIs.
