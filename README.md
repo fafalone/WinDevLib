@@ -195,7 +195,7 @@ twinBASIC now counts msvbvm60 redirects as legacy DLL redirects, which WinDevLib
    UUIDtoLong(UUID, pls() As Long)\
 -Added VBA-related interfaces from vbinterf.h (100% coverage)\
 -Adjusted custom buffers on DEV_BROADCAST_* types to not leave padding bytes.\
--Added non-aliased versions of RtlMoveMemory, RtlZeroMemory, and RtlZeroMemory (Issue #20)\
+-Added non-aliased versions of RtlMoveMemory, RtlZeroMemory, and RtlFillMemory (Issue #20)\
 -(Bug fix) LoadIconMetrics enum had incorrect values and is now also renamed to the proper LI_METRIC name.
 
 
