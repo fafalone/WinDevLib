@@ -247,4 +247,1957 @@ Public DeclareWide PtrSafe Function DSCreateSecurityPage Lib "DSSec" (ByVal pwsz
 Public DeclareWide PtrSafe Function DSEditSecurity Lib "DSSec" (ByVal hwndOwner As LongPtr, ByVal pwszObjectPath As String, ByVal pwszObjectClass As String, ByVal dwFlags As DSSecObjFlags, ByVal pwszCaption As String, ByVal pfnReadSD As LongPtr, ByVal pfnWriteSD As LongPtr, ByVal lpContext As LongPtr) As Long
 
 
+'security.h (100%)
+Public Const NTLMSP_NAME_A  = "NTLM"
+Public Const NTLMSP_NAME  = "NTLM"  ' ntifs
+
+Public Const NEGOSSP_NAME_W  = "Negotiate"
+Public Const NEGOSSP_NAME_A  = "Negotiate"
+Public Const NEGOSSP_NAME  = NEGOSSP_NAME_W
+
+Public Const CLOUDAP_NAME_W  = "CloudAP"
+Public Const ClOUDAP_NAME_A  = "CloudAP"
+Public Const CLOUDAP_NAME  = CLOUDAP_NAME_W
+
+/*
+sspi.h
+Coverage: (in progress)
+*/
+
+Public Type SecHandle
+    dwLower As LongPtr
+    dwUpper As LongPtr
+End Type
+
+Public Sub SecInvalidateHandle(x As SecHandle)
+    x.dwLower = -1: x.dwUpper = -1
+End Sub
+Public Function SecIsValidHandle(x As SecHandle) As Boolean
+    If (x.dwLower <> -1) AndAlso (x.dwUpper <> -1) Then Return True
+End Function
+
+Public Const SEC_DELETED_HANDLE As LongPtr = -2
+
+'Alias CredHandle As SecHandle
+'Alias CtxtHandle As SecHandle
+Public Type CredHandle
+    dwLower As LongPtr
+    dwUpper As LongPtr
+End Type
+Public Type CtxtHandle
+    dwLower As LongPtr
+    dwUpper As LongPtr
+End Type
+
+'Alias SECURITY_INTEGER As LongLong
+
+'Alias SECURITY_STRING As UNICODE_STRING
+Public Type SECURITY_STRING
+    Length As Integer
+    MaximumLength As Integer
+    Buffer As LongPtr
+End Type
+
+Public Type SecPkgInfoA
+    fCapabilities As SecPackageCaps ' Capability bitmask
+    wVersion As Integer ' Version of driver
+    wRPCID As Integer ' ID for RPC Runtime
+    cbMaxToken As Long ' Size of authentication token (max)
+    Name As String  ' Text name
+    Comment As String  ' Comment
+End Type
+Public Type SecPkgInfoW
+    fCapabilities As SecPackageCaps ' Capability bitmask
+    wVersion As Integer ' Version of driver
+    wRPCID As Integer ' ID for RPC Runtime
+    cbMaxToken As Long ' Size of authentication token (max)
+    Name As LongPtr  ' Text name
+    Comment As LongPtr  ' Comment
+End Type
+'Alias SecPkgInfo As SecPkgInfoW
+Public Type SecPkgInfo
+    fCapabilities As SecPackageCaps ' Capability bitmask
+    wVersion As Integer ' Version of driver
+    wRPCID As Integer ' ID for RPC Runtime
+    cbMaxToken As Long ' Size of authentication token (max)
+    Name As LongPtr  ' Text name
+    Comment As LongPtr  ' Comment
+End Type
+
+Public Enum SecPackageCaps
+    SECPKG_FLAG_INTEGRITY = &H00000001  ' Supports integrity on messages
+    SECPKG_FLAG_PRIVACY = &H00000002  ' Supports privacy (confidentiality)
+    SECPKG_FLAG_TOKEN_ONLY = &H00000004  ' Only security token needed
+    SECPKG_FLAG_DATAGRAM = &H00000008  ' Datagram RPC support
+    SECPKG_FLAG_CONNECTION = &H00000010  ' Connection oriented RPC support
+    SECPKG_FLAG_MULTI_REQUIRED = &H00000020  ' Full 3-leg required for re-auth.
+    SECPKG_FLAG_CLIENT_ONLY = &H00000040  ' Server side functionality not available
+    SECPKG_FLAG_EXTENDED_ERROR = &H00000080  ' Supports extended error msgs
+    SECPKG_FLAG_IMPERSONATION = &H00000100  ' Supports impersonation
+    SECPKG_FLAG_ACCEPT_WIN32_NAME = &H00000200  ' Accepts Win32 names
+    SECPKG_FLAG_STREAM = &H00000400  ' Supports stream semantics
+    SECPKG_FLAG_NEGOTIABLE = &H00000800  ' Can be used by the negotiate package
+    SECPKG_FLAG_GSS_COMPATIBLE = &H00001000  ' GSS Compatibility Available
+    SECPKG_FLAG_LOGON = &H00002000  ' Supports common LsaLogonUser
+    SECPKG_FLAG_ASCII_BUFFERS = &H00004000  ' Token Buffers are in ASCII
+    SECPKG_FLAG_FRAGMENT = &H00008000&  ' Package can fragment to fit
+    SECPKG_FLAG_MUTUAL_AUTH = &H00010000  ' Package can perform mutual authentication
+    SECPKG_FLAG_DELEGATION = &H00020000  ' Package can delegate
+    SECPKG_FLAG_READONLY_WITH_CHECKSUM = &H00040000  ' Package can delegate
+    SECPKG_FLAG_RESTRICTED_TOKENS = &H00080000  ' Package supports restricted callers
+    SECPKG_FLAG_NEGO_EXTENDER = &H00100000  ' this package extends SPNEGO, there is at most one
+    SECPKG_FLAG_NEGOTIABLE2 = &H00200000  ' this package is negotiated under the NegoExtender
+    SECPKG_FLAG_APPCONTAINER_PASSTHROUGH = &H00400000  ' this package receives all calls from appcontainer apps
+    SECPKG_FLAG_APPCONTAINER_CHECKS = &H00800000  ' this package receives calls from appcontainer apps
+'  if the following checks succeed
+'  1. Caller has domain auth capability or
+'  2. Target is a proxy server or
+'  3. The caller has supplied creds
+    SECPKG_FLAG_CREDENTIAL_ISOLATION_ENABLED = &H01000000  ' this package is running with Credential Guard enabled
+    SECPKG_FLAG_APPLY_LOOPBACK = &H02000000  ' this package supports reliable detection of loopback
+'  1.) The client and server see the same sequence of tokens
+'  2.) The server enforces a unique exchange for each
+'      non-anonymous authentication. (Replay detection)
+End Enum
+
+Public Const SECPKG_ID_NONE = &HFFFF
+
+Public Enum SecPackageCallFlags
+    SECPKG_CALLFLAGS_APPCONTAINER = &H00000001
+    SECPKG_CALLFLAGS_APPCONTAINER_AUTHCAPABLE = &H00000002
+    SECPKG_CALLFLAGS_FORCE_SUPPLIED = &H00000004
+    SECPKG_CALLFLAGS_APPCONTAINER_UPNCAPABLE = &H00000008
+End Enum
+
+Public Enum SecPackageBufferTypes
+    SECBUFFER_EMPTY = 0  ' Undefined, replaced by provider
+    SECBUFFER_DATA = 1  ' Packet data
+    SECBUFFER_TOKEN = 2  ' Security token
+    SECBUFFER_PKG_PARAMS = 3  ' Package specific parameters
+    SECBUFFER_MISSING = 4  ' Missing Data indicator
+    SECBUFFER_EXTRA = 5  ' Extra data
+    SECBUFFER_STREAM_TRAILER = 6  ' Security Trailer
+    SECBUFFER_STREAM_HEADER = 7  ' Security Header
+    SECBUFFER_NEGOTIATION_INFO = 8  ' Hints from the negotiation pkg
+    SECBUFFER_PADDING = 9  ' non-data padding
+    SECBUFFER_STREAM = 10  ' whole encrypted message
+    SECBUFFER_MECHLIST = 11
+    SECBUFFER_MECHLIST_SIGNATURE = 12
+    SECBUFFER_TARGET = 13  ' obsolete
+    SECBUFFER_CHANNEL_BINDINGS = 14
+    SECBUFFER_CHANGE_PASS_RESPONSE = 15
+    SECBUFFER_TARGET_HOST = 16
+    SECBUFFER_ALERT = 17
+    SECBUFFER_APPLICATION_PROTOCOLS = 18  ' Lists of application protocol IDs, one per negotiation extension
+    SECBUFFER_SRTP_PROTECTION_PROFILES = 19  ' List of SRTP protection profiles, in descending order of preference
+    SECBUFFER_SRTP_MASTER_KEY_IDENTIFIER = 20  ' SRTP master key identifier
+    SECBUFFER_TOKEN_BINDING = 21  ' Supported Token Binding protocol version and key parameters
+    SECBUFFER_PRESHARED_KEY = 22  ' Preshared key
+    SECBUFFER_PRESHARED_KEY_IDENTITY = 23  ' Preshared key identity
+    SECBUFFER_DTLS_MTU = 24  ' DTLS path MTU setting
+    SECBUFFER_SEND_GENERIC_TLS_EXTENSION = 25  ' Buffer for sending generic TLS extensions.
+    SECBUFFER_SUBSCRIBE_GENERIC_TLS_EXTENSION = 26  ' Buffer for subscribing to generic TLS extensions.
+    SECBUFFER_FLAGS = 27  ' ISC/ASC REQ Flags
+    SECBUFFER_TRAFFIC_SECRETS = 28  ' Message sequence lengths and corresponding traffic secrets.
+    SECBUFFER_CERTIFICATE_REQUEST_CONTEXT = 29  ' TLS 1.3 certificate request context.
+    SECBUFFER_CHANNEL_BINDINGS_RESULT = 30  ' Output buffer for Channel Bindings Audit
+    SECBUFFER_ATTRMASK = &HF0000000
+    SECBUFFER_READONLY = &H80000000  ' Buffer is read-only, no checksum
+    SECBUFFER_READONLY_WITH_CHECKSUM = &H10000000  ' Buffer is read-only, and checksummed
+    SECBUFFER_RESERVED = &H60000000  ' Flags reserved to security system
+End Enum
+
+Public Type SecBuffer
+    cbBuffer As Long ' Size of the buffer, in bytes
+    BufferType As SecPackageBufferTypes ' Type of the buffer  
+    pvBuffer As LongPtr
+End Type
+
+Public Enum SecBufferVersions
+	SECBUFFER_VERSION
+End Enum
+
+Public Type SecBufferDesc
+    ulVersion As SecBufferVersions ' Version number
+    cBuffers As Long ' Number of buffers
+    pBuffers As LongPtr ' Pointer to array of buffers
+End Type
+
+Public Type SEC_NEGOTIATION_INFO
+    Size As Long ' Size of this structure
+    NameLength As Long ' Length of name hint
+    Name As LongPtr  ' Name hint
+    Reserved As LongPtr 'void*  ' Reserved
+End Type
+
+Public Type SEC_CHANNEL_BINDINGS
+    dwInitiatorAddrType As Long
+    cbInitiatorLength As Long
+    dwInitiatorOffset As Long
+    dwAcceptorAddrType As Long
+    cbAcceptorLength As Long
+    dwAcceptorOffset As Long
+    cbApplicationDataLength As Long
+    dwApplicationDataOffset As Long
+End Type
+
+Public Const SEC_CHANNEL_BINDINGS_EX_MAGIC = &H58454243 ' 'XEBC'
+
+Public Type SEC_CHANNEL_BINDINGS_EX
+    magicNumber As Long ' contains SEC_CHANNEL_BINDINGS_VERSION_2.  distinguish ex buffer from normal channel bindings buffer. Shouldn't collide with any of assigned dwInitiatorAddrType values
+    flags As SecChannelBindingsFlags ' audit flag is set to indicate if audit is needed 
+    cbHeaderLength As Long
+    cbStructureLength As Long
+    dwInitiatorAddrType As Long
+    cbInitiatorLength As Long
+    dwInitiatorOffset As Long
+    dwAcceptorAddrType As Long
+    cbAcceptorLength As Long
+    dwAcceptorOffset As Long
+    cbApplicationDataLength As Long
+    dwApplicationDataOffset As Long
+End Type
+
+Public Enum SecChannelBindingsFlags
+    SEC_CHANNEL_BINDINGS_AUDIT_BINDINGS = &H1
+    SEC_CHANNEL_BINDINGS_VALID_FLAGS = SEC_CHANNEL_BINDINGS_AUDIT_BINDINGS
+End Enum
+
+Public Enum SecChannelBindingsResultFlags
+    SEC_CHANNEL_BINDINGS_RESULT_CLIENT_SUPPORT = &H1  ' Auth package indicates client versions should support bindings
+    SEC_CHANNEL_BINDINGS_RESULT_ABSENT = &H2  ' The bindings are omitted or all zeroes
+    SEC_CHANNEL_BINDINGS_RESULT_NOTVALID_MISMATCH = &H4  ' The channel binding hash was incorrect
+    SEC_CHANNEL_BINDINGS_RESULT_NOTVALID_MISSING = &H8  ' Missing channel bindings are not allowed for this client
+    SEC_CHANNEL_BINDINGS_RESULT_VALID_MATCHED = &H10  ' The client and server bindings match
+    SEC_CHANNEL_BINDINGS_RESULT_VALID_PROXY = &H20  ' ASC_REQ_PROXY_BINDINGS required the client to provide a binding
+    SEC_CHANNEL_BINDINGS_RESULT_VALID_MISSING = &H40  ' Client permitted by ASC_REQ_ALLOW_MISSING_BINDINGS
+    SEC_CHANNEL_BINDINGS_RESULT_VALID = (SEC_CHANNEL_BINDINGS_RESULT_VALID_MATCHED Or SEC_CHANNEL_BINDINGS_RESULT_VALID_PROXY Or SEC_CHANNEL_BINDINGS_RESULT_VALID_MISSING)
+    SEC_CHANNEL_BINDINGS_RESULT_NOTVALID = (SEC_CHANNEL_BINDINGS_RESULT_NOTVALID_MISMATCH Or SEC_CHANNEL_BINDINGS_RESULT_NOTVALID_MISSING)
+End Enum
+Public Type SEC_CHANNEL_BINDINGS_RESULT
+    flags As SecChannelBindingsResultFlags
+End Type
+
+Public Enum SEC_APPLICATION_PROTOCOL_NEGOTIATION_EXT
+    SecApplicationProtocolNegotiationExt_None
+    SecApplicationProtocolNegotiationExt_NPN
+    SecApplicationProtocolNegotiationExt_ALPN
+End Enum
+
+[Description("WARNING: This type uses a buffer guess for a C-style array; careful specifying size.")]
+Public Type SEC_APPLICATION_PROTOCOL_LIST
+    ProtoNegoExt As SEC_APPLICATION_PROTOCOL_NEGOTIATION_EXT ' Protocol negotiation extension type to use with this list of protocols
+    ProtocolListSize As Integer ' Size in bytes of the protocol ID list
+    ProtocolList(4095) As Byte ' 8-bit length-prefixed application protocol IDs, most preferred first
+End Type
+
+[Description("WARNING: This type uses a buffer guess for a C-style array; careful specifying size.")]
+Public Type SEC_APPLICATION_PROTOCOLS
+    ProtocolListsSize As Long ' Size in bytes of the protocol ID lists array
+    ProtocolLists(99) As SEC_APPLICATION_PROTOCOL_LIST ' Array of protocol ID lists
+End Type
+
+[Description("WARNING: This type uses a buffer guess for a C-style array; careful specifying size.")]
+Public Type SEC_SRTP_PROTECTION_PROFILES
+    ProfilesSize As Integer ' Size in bytes of the SRTP protection profiles array
+    ProfilesList(1023) As Integer ' Array of SRTP protection profiles
+End Type
+
+[Description("WARNING: This type uses a buffer guess for a C-style array; careful specifying size.")]
+Public Type SEC_SRTP_MASTER_KEY_IDENTIFIER
+    MasterKeyIdentifierSize As Byte ' Size in bytes of the SRTP master key identifier
+    MasterKeyIdentifier(4095) As Byte ' SRTP master key identifier
+End Type
+
+[Description("WARNING: This type uses a buffer guess for a C-style array; careful specifying size.")]
+Public Type SEC_TOKEN_BINDING
+    MajorVersion As Byte ' Supported major version of the Token Binding protocol
+    MinorVersion As Byte ' Supported minor version of the Token Binding protocol
+    KeyParametersSize As Integer ' Size in bytes of the Token Binding key parameter IDs array
+    KeyParameters(99) As Byte ' Token Binding key parameter IDs, most preferred first
+End Type
+
+[Description("WARNING: This type uses a buffer guess for a C-style array; careful specifying size.")]
+Public Type SEC_PRESHAREDKEY
+    KeySize As Integer ' Size in bytes of the PSK
+    Key(4095) As Byte ' PSK
+End Type
+
+[Description("WARNING: This type uses a buffer guess for a C-style array; careful specifying size.")]
+Public Type SEC_PRESHAREDKEY_IDENTITY
+    KeyIdentitySize As Integer ' Size in bytes of the PSK Identity
+    KeyIdentity(4095) As Byte ' PSK Identity
+End Type
+
+Public Type SEC_DTLS_MTU
+    PathMTU As Integer ' Path MTU for the connection
+End Type
+
+Public Type SEC_FLAGS
+    Flags As LongLong ' The caller sets ISC/ASC REQ flags; the lower 32 bits are reserved, must be set to 0.
+End Type
+
+[Description("WARNING: This type uses a buffer guess for a C-style array; careful specifying size.")]
+Public Type SEC_CERTIFICATE_REQUEST_CONTEXT
+    cbCertificateRequestContext As Byte ' Size in bytes of the rgCertificateRequestContext array.
+    rgCertificateRequestContext(4095) As Byte ' The TLS 1.3 certificate request context.
+End Type
+
+Public Enum SEC_TRAFFIC_SECRET_TYPE
+    SecTrafficSecret_None
+    SecTrafficSecret_Client
+    SecTrafficSecret_Server
+End Enum
+
+Public Const SZ_ALG_MAX_SIZE = 64
+[Description("WARNING: This type uses a buffer guess for a C-style array; careful specifying size.")]
+Public Type SEC_TRAFFIC_SECRETS
+    SymmetricAlgId(0 To (SZ_ALG_MAX_SIZE - 1)) As Integer ' Negotiated symmetric key algorithm. e.g. BCRYPT_AES_ALGORITHM.
+    ChainingMode(0 To (SZ_ALG_MAX_SIZE - 1)) As Integer ' Negotiated symmetric key algorithm chaining mode. e.g. BCRYPT_CHAIN_MODE_GCM or BCRYPT_CHAIN_MODE_CCM.
+    HashAlgId(0 To (SZ_ALG_MAX_SIZE - 1)) As Integer ' Negotiated hash algorithm. e.g. BCRYPT_SHA256_ALGORITHM or BCRYPT_SHA384_ALGORITHM.
+    KeySize As Integer ' Size in bytes of the symmetric key to derive from this traffic secret.
+    IvSize As Integer ' Size in bytes of the IV to derive from this traffic secret.
+    MsgSequenceStart As Integer ' Offset of the first byte of the TLS message sequence to be protected with a key derived from TrafficSecret. Zero to indicate the first byte of the buffer.
+    MsgSequenceEnd As Integer ' Offset of the last byte of the TLS message sequence to be protected with a key derived from TrafficSecret. Zero if the secret is for the encryption of application data or decryption of incoming records.
+    TrafficSecretType As SEC_TRAFFIC_SECRET_TYPE ' Type of traffic secret from the TRAFFIC_SECRET_TYPE enumeration.
+    TrafficSecretSize As Integer ' Size in bytes of the traffic secret.
+    TrafficSecret(0 To 4095) As Byte ' Traffic secret of type TrafficSecretType, TrafficSecretSize bytes long, used to derive write key and IV for message protection.
+End Type
+
+Public Enum SecurityDataRepConstants
+    SECURITY_NATIVE_DREP = &H00000010
+    SECURITY_NETWORK_DREP = &H00000000
+End Enum
+
+Public Enum SecurityCredentialUseFlags
+    SECPKG_CRED_INBOUND = &H00000001
+    SECPKG_CRED_OUTBOUND = &H00000002
+    SECPKG_CRED_BOTH = &H00000003
+    SECPKG_CRED_DEFAULT = &H00000004
+    SECPKG_CRED_RESERVED = &HF0000000
+'   SSP SHOULD prompt the user for credentials/consent, independent
+'   of whether credentials to be used are the 'logged on' credentials
+'   or retrieved from credman.
+'   An SSP may choose not to prompt, however, in circumstances determined
+'   by the SSP.
+    SECPKG_CRED_AUTOLOGON_RESTRICTED = &H00000010
+'  auth will always fail, ISC() is called to process policy data only
+    SECPKG_CRED_PROCESS_POLICY_ONLY = &H00000020
+End Enum
+
+Public Enum SecurityInitContextReqFlags
+    ISC_REQ_DELEGATE = &H00000001
+    ISC_REQ_MUTUAL_AUTH = &H00000002
+    ISC_REQ_REPLAY_DETECT = &H00000004
+    ISC_REQ_SEQUENCE_DETECT = &H00000008
+    ISC_REQ_CONFIDENTIALITY = &H00000010
+    ISC_REQ_USE_SESSION_KEY = &H00000020
+    ISC_REQ_PROMPT_FOR_CREDS = &H00000040
+    ISC_REQ_USE_SUPPLIED_CREDS = &H00000080
+    ISC_REQ_ALLOCATE_MEMORY = &H00000100
+    ISC_REQ_USE_DCE_STYLE = &H00000200
+    ISC_REQ_DATAGRAM = &H00000400
+    ISC_REQ_CONNECTION = &H00000800
+    ISC_REQ_CALL_LEVEL = &H00001000
+    ISC_REQ_FRAGMENT_SUPPLIED = &H00002000
+    ISC_REQ_EXTENDED_ERROR = &H00004000
+    ISC_REQ_STREAM = &H00008000&
+    ISC_REQ_INTEGRITY = &H00010000
+    ISC_REQ_IDENTIFY = &H00020000
+    ISC_REQ_NULL_SESSION = &H00040000
+    ISC_REQ_MANUAL_CRED_VALIDATION = &H00080000
+    ISC_REQ_RESERVED1 = &H00100000
+    ISC_REQ_FRAGMENT_TO_FIT = &H00200000
+'  This exists only in Windows Vista and greater
+    ISC_REQ_FORWARD_CREDENTIALS = &H00400000
+    ISC_REQ_NO_INTEGRITY = &H00800000  ' honored only by SPNEGO
+    ISC_REQ_USE_HTTP_STYLE = &H01000000
+    ISC_REQ_UNVERIFIED_TARGET_NAME = &H20000000
+    ISC_REQ_CONFIDENTIALITY_ONLY = &H40000000  ' honored by SPNEGO/Kerberos
+End Enum
+Public Const ISC_REQ_MESSAGES As LongLong = &H0000000100000000  ' Disables the TLS 1.3+ record layer and causes the security context to consume and produce cleartext TLS messages, rather than records.
+'  Request that schannel perform server cert chain validation without failing the handshake on errors (deferred),
+'  same as SCH_CRED_DEFERRED_CRED_VALIDATION except applies to context not credential handle.
+Public Const ISC_REQ_DEFERRED_CRED_VALIDATION As LongLong = &H0000000200000000
+'  Prevents the client sending the post_handshake_auth extension in the TLS 1.3 Client Hello.
+Public Const ISC_REQ_NO_POST_HANDSHAKE_AUTH As LongLong = &H0000000400000000
+'  Request TLS 1.3+ session ticket reuse. Passive observers may be able to track the TLS client across networks.
+Public Const ISC_REQ_REUSE_SESSION_TICKETS As LongLong = &H0000000800000000
+
+Public Enum SecurityInitContextRetFlags
+    ISC_RET_DELEGATE = &H00000001
+    ISC_RET_MUTUAL_AUTH = &H00000002
+    ISC_RET_REPLAY_DETECT = &H00000004
+    ISC_RET_SEQUENCE_DETECT = &H00000008
+    ISC_RET_CONFIDENTIALITY = &H00000010
+    ISC_RET_USE_SESSION_KEY = &H00000020
+    ISC_RET_USED_COLLECTED_CREDS = &H00000040
+    ISC_RET_USED_SUPPLIED_CREDS = &H00000080
+    ISC_RET_ALLOCATED_MEMORY = &H00000100
+    ISC_RET_USED_DCE_STYLE = &H00000200
+    ISC_RET_DATAGRAM = &H00000400
+    ISC_RET_CONNECTION = &H00000800
+    ISC_RET_INTERMEDIATE_RETURN = &H00001000
+    ISC_RET_CALL_LEVEL = &H00002000
+    ISC_RET_EXTENDED_ERROR = &H00004000
+    ISC_RET_STREAM = &H00008000&
+    ISC_RET_INTEGRITY = &H00010000
+    ISC_RET_IDENTIFY = &H00020000
+    ISC_RET_NULL_SESSION = &H00040000
+    ISC_RET_MANUAL_CRED_VALIDATION = &H00080000
+    ISC_RET_RESERVED1 = &H00100000
+    ISC_RET_FRAGMENT_ONLY = &H00200000
+'  This exists only in Windows Vista and greater
+    ISC_RET_FORWARD_CREDENTIALS = &H00400000
+    ISC_RET_USED_HTTP_STYLE = &H01000000
+    ISC_RET_NO_ADDITIONAL_TOKEN = &H02000000  ' *INTERNAL*
+    ISC_RET_REAUTHENTICATION = &H08000000  ' *INTERNAL*
+    ISC_RET_CONFIDENTIALITY_ONLY = &H40000000  ' honored by SPNEGO/Kerberos
+End Enum
+Public Const ISC_RET_MESSAGES As LongLong = &H0000000100000000  ' Indicates that the TLS 1.3+ record layer is disabled, and the security context consumes and produces cleartext TLS messages, rather than records.
+Public Const ISC_RET_DEFERRED_CRED_VALIDATION As LongLong = &H0000000200000000  ' Indicates that SCH_CRED_DEFERRED_CRED_VALIDATION/ISC_REQ_DEFERRED_CRED_VALIDATION request will be honored.
+Public Const ISC_RET_NO_POST_HANDSHAKE_AUTH As LongLong = &H0000000400000000  ' Indicates that the TLS 1.3 Client Hello will not contain the post_handshake_auth extension.
+Public Const ISC_RET_REUSE_SESSION_TICKETS As LongLong = &H0000000800000000  ' Indicates that the TLS 1.3+ client may reuse session tickets.
+
+Public Enum SecurityAscReqFlags
+    ASC_REQ_DELEGATE = &H00000001
+    ASC_REQ_MUTUAL_AUTH = &H00000002
+    ASC_REQ_REPLAY_DETECT = &H00000004
+    ASC_REQ_SEQUENCE_DETECT = &H00000008
+    ASC_REQ_CONFIDENTIALITY = &H00000010
+    ASC_REQ_USE_SESSION_KEY = &H00000020
+    ASC_REQ_SESSION_TICKET = &H00000040
+    ASC_REQ_ALLOCATE_MEMORY = &H00000100
+    ASC_REQ_USE_DCE_STYLE = &H00000200
+    ASC_REQ_DATAGRAM = &H00000400
+    ASC_REQ_CONNECTION = &H00000800
+    ASC_REQ_CALL_LEVEL = &H00001000
+    ASC_REQ_FRAGMENT_SUPPLIED = &H00002000
+    ASC_REQ_EXTENDED_ERROR = &H00008000&
+    ASC_REQ_STREAM = &H00010000
+    ASC_REQ_INTEGRITY = &H00020000
+    ASC_REQ_LICENSING = &H00040000
+    ASC_REQ_IDENTIFY = &H00080000
+    ASC_REQ_ALLOW_NULL_SESSION = &H00100000
+    ASC_REQ_ALLOW_NON_USER_LOGONS = &H00200000
+    ASC_REQ_ALLOW_CONTEXT_REPLAY = &H00400000
+    ASC_REQ_FRAGMENT_TO_FIT = &H00800000
+    ASC_REQ_NO_TOKEN = &H01000000
+    ASC_REQ_PROXY_BINDINGS = &H04000000
+'       SSP_RET_REAUTHENTICATION        0x08000000  // *INTERNAL*
+    ASC_REQ_ALLOW_MISSING_BINDINGS = &H10000000
+End Enum
+Public Const ASC_REQ_MESSAGES As LongLong = &H0000000100000000  ' Disables the TLS 1.3+ record layer and causes the security context to consume and produce cleartext TLS messages, rather than records.
+'  Request that the TLS 1.3+ server accept reused session tickets referencing cached TLS sessions.
+Public Const ASC_REQ_REUSE_SESSION_TICKETS As LongLong = &H0000000800000000
+
+Public Enum SecurityAscRetFlags
+    ASC_RET_DELEGATE = &H00000001
+    ASC_RET_MUTUAL_AUTH = &H00000002
+    ASC_RET_REPLAY_DETECT = &H00000004
+    ASC_RET_SEQUENCE_DETECT = &H00000008
+    ASC_RET_CONFIDENTIALITY = &H00000010
+    ASC_RET_USE_SESSION_KEY = &H00000020
+    ASC_RET_SESSION_TICKET = &H00000040
+    ASC_RET_ALLOCATED_MEMORY = &H00000100
+    ASC_RET_USED_DCE_STYLE = &H00000200
+    ASC_RET_DATAGRAM = &H00000400
+    ASC_RET_CONNECTION = &H00000800
+    ASC_RET_CALL_LEVEL = &H00002000  ' skipped 1000 to be like ISC_
+    ASC_RET_THIRD_LEG_FAILED = &H00004000
+    ASC_RET_EXTENDED_ERROR = &H00008000&
+    ASC_RET_STREAM = &H00010000
+    ASC_RET_INTEGRITY = &H00020000
+    ASC_RET_LICENSING = &H00040000
+    ASC_RET_IDENTIFY = &H00080000
+    ASC_RET_NULL_SESSION = &H00100000
+    ASC_RET_ALLOW_NON_USER_LOGONS = &H00200000
+    ASC_RET_ALLOW_CONTEXT_REPLAY = &H00400000  ' deprecated - don't use this flag!!!
+    ASC_RET_FRAGMENT_ONLY = &H00800000
+    ASC_RET_NO_TOKEN = &H01000000
+    ASC_RET_NO_ADDITIONAL_TOKEN = &H02000000  ' *INTERNAL*
+'       SSP_RET_REAUTHENTICATION        0x08000000  // *INTERNAL*
+End Enum
+Public Const ASC_RET_MESSAGES As LongLong = &H0000000100000000  ' Indicates that the TLS 1.3+ record layer is disabled, and the security context consumes and produces cleartext TLS messages, rather than records.
+Public Const ASC_RET_REUSE_SESSION_TICKETS As LongLong = &H0000000800000000  ' Indicates that the TLS 1.3+ server will allow session ticket reuse.
+
+Public Enum SecurityCredentialAttributes
+    SECPKG_CRED_ATTR_NAMES = 1
+    SECPKG_CRED_ATTR_SSI_PROVIDER = 2
+    SECPKG_CRED_ATTR_KDC_PROXY_SETTINGS = 3
+    SECPKG_CRED_ATTR_CERT = 4
+    SECPKG_CRED_ATTR_PAC_BYPASS = 5
+End Enum
+
+Public Type SecPkgCredentials_NamesA
+    sUserName As String
+End Type
+Public Type SecPkgCredentials_NamesW
+    sUserName As LongPtr
+End Type
+'Alias SecPkgCredentials_Names As SecPkgCredentials_NamesW
+Public Type SecPkgCredentials_Names
+    sUserName As LongPtr
+End Type
+
+Public Type SecPkgCredentials_SSIProviderA
+    sProviderName As String
+    ProviderInfoLength As Long
+    ProviderInfo As LongPtr
+End Type
+Public Type SecPkgCredentials_SSIProviderW
+    sProviderName As LongPtr
+    ProviderInfoLength As Long
+    ProviderInfo As LongPtr
+End Type
+'Alias SecPkgCredentials_SSIProvider As SecPkgCredentials_SSIProviderW
+Public Type SecPkgCredentials_SSIProvider
+    sProviderName As LongPtr
+    ProviderInfoLength As Long
+    ProviderInfo As LongPtr
+End Type
+
+Public Enum SecPkgKdcVersions
+	KDC_PROXY_SETTINGS_V1 = 1
+End Enum
+Public Enum SecPkgKdcFlags
+	KDC_PROXY_SETTINGS_FLAGS_FORCEPROXY = &H1
+End Enum
+Public Type SecPkgCredentials_KdcProxySettingsW
+    Version As SecPkgKdcVersions ' KDC_PROXY_SETTINGS_V1
+    Flags As SecPkgKdcFlags ' KDC_PROXY_SETTINGS_FLAGS_*
+    ProxyServerOffset As Integer ' ProxyServer, optional
+    ProxyServerLength As Integer
+    ClientTlsCredOffset As Integer ' ClientTlsCred, optional
+    ClientTlsCredLength As Integer
+End Type
+
+Public Enum SecPkgAttributes
+    SECPKG_ATTR_SIZES = 0
+    SECPKG_ATTR_NAMES = 1
+    SECPKG_ATTR_LIFESPAN = 2
+    SECPKG_ATTR_DCE_INFO = 3
+    SECPKG_ATTR_STREAM_SIZES = 4
+    SECPKG_ATTR_KEY_INFO = 5
+    SECPKG_ATTR_AUTHORITY = 6
+    SECPKG_ATTR_PROTO_INFO = 7
+    SECPKG_ATTR_PASSWORD_EXPIRY = 8
+    SECPKG_ATTR_SESSION_KEY = 9
+    SECPKG_ATTR_PACKAGE_INFO = 10
+    SECPKG_ATTR_USER_FLAGS = 11
+    SECPKG_ATTR_NEGOTIATION_INFO = 12
+    SECPKG_ATTR_NATIVE_NAMES = 13
+    SECPKG_ATTR_FLAGS = 14
+'  These attributes exist only in Win XP and greater
+    SECPKG_ATTR_USE_VALIDATED = 15
+    SECPKG_ATTR_CREDENTIAL_NAME = 16
+    SECPKG_ATTR_TARGET_INFORMATION = 17
+    SECPKG_ATTR_ACCESS_TOKEN = 18
+'  These attributes exist only in Win2K3 and greater
+    SECPKG_ATTR_TARGET = 19
+    SECPKG_ATTR_AUTHENTICATION_ID = 20
+'  These attributes exist only in Win2K3SP1 and greater
+    SECPKG_ATTR_LOGOFF_TIME = 21
+'  win7 or greater
+    SECPKG_ATTR_NEGO_KEYS = 22
+    SECPKG_ATTR_PROMPTING_NEEDED = 24
+    SECPKG_ATTR_UNIQUE_BINDINGS = 25
+    SECPKG_ATTR_ENDPOINT_BINDINGS = 26
+    SECPKG_ATTR_CLIENT_SPECIFIED_TARGET = 27
+    SECPKG_ATTR_LAST_CLIENT_TOKEN_STATUS = 30
+    SECPKG_ATTR_NEGO_PKG_INFO = 31  ' contains nego info of packages
+    SECPKG_ATTR_NEGO_STATUS = 32  ' contains the last error
+    SECPKG_ATTR_CONTEXT_DELETED = 33  ' a context has been deleted
+'  win8 or greater
+    SECPKG_ATTR_DTLS_MTU = 34
+    SECPKG_ATTR_DATAGRAM_SIZES = SECPKG_ATTR_STREAM_SIZES
+    SECPKG_ATTR_SUBJECT_SECURITY_ATTRIBUTES = 128
+'  win8.1 or greater
+    SECPKG_ATTR_APPLICATION_PROTOCOL = 35
+'  win10 or greater
+    SECPKG_ATTR_NEGOTIATED_TLS_EXTENSIONS = 36
+    SECPKG_ATTR_IS_LOOPBACK = 37  ' indicates authentication to localhost
+End Enum
+
+Public Type SecPkgContext_SubjectAttributes
+    AttributeInfo As LongPtr 'void* ' contains a PAUTHZ_SECURITY_ATTRIBUTES_INFORMATION structure
+End Type
+
+Public Enum SecPkgAttributeNegoInfoFlags
+    SECPKG_ATTR_NEGO_INFO_FLAG_NO_KERBEROS = &H1
+    SECPKG_ATTR_NEGO_INFO_FLAG_NO_NTLM = &H2
+End Enum
+
+Public Enum SECPKG_CRED_CLASS
+    SecPkgCredClass_None = 0 ' no creds
+    SecPkgCredClass_Ephemeral = 10 ' logon creds
+    SecPkgCredClass_PersistedGeneric = 20 ' saved creds, not target specific
+    SecPkgCredClass_PersistedSpecific = 30 ' saved creds, target specific
+    SecPkgCredClass_Explicit = 40 ' explicitly supplied creds
+End Enum
+Public Type SecPkgContext_CredInfo
+    CredClass As SECPKG_CRED_CLASS
+    IsPromptingNeeded As Long
+End Type
+
+Public Type SecPkgContext_NegoPackageInfo
+    PackageMask As Long
+End Type
+Public Type SecPkgContext_NegoStatus
+    LastStatus As Long
+End Type
+Public Type SecPkgContext_Sizes
+    cbMaxToken As Long
+    cbMaxSignature As Long
+    cbBlockSize As Long
+    cbSecurityTrailer As Long
+End Type
+Public Type SecPkgContext_StreamSizes
+    cbHeader As Long
+    cbTrailer As Long
+    cbMaximumMessage As Long
+    cBuffers As Long
+    cbBlockSize As Long
+End Type
+
+' typedef SecPkgContext_StreamSizes SecPkgContext_DatagramSizes;
+' Alias SecPkgContext_StreamSizes PSecPkgContext_DatagramSizes;
+Public Type SecPkgContext_DatagramSizes
+    cbHeader As Long
+    cbTrailer As Long
+    cbMaximumMessage As Long
+    cBuffers As Long
+    cbBlockSize As Long
+End Type
+Public Type SecPkgContext_NamesW
+    sUserName As LongPtr
+End Type
+
+Public Enum SECPKG_ATTR_LCT_STATUS
+    SecPkgAttrLastClientTokenYes
+    SecPkgAttrLastClientTokenNo
+    SecPkgAttrLastClientTokenMaybe
+End Enum
+Public Type SecPkgContext_LastClientTokenStatus
+    LastClientTokenStatus As SECPKG_ATTR_LCT_STATUS
+End Type
+
+Public Type SecPkgContext_NamesA
+    sUserName As String
+End Type
+'Alias SecPkgContext_Names As SecPkgContext_NamesW
+Public Type SecPkgContext_Names
+    sUserName As LongPtr
+End Type
+Public Type SecPkgContext_Lifespan
+    tsStart As LongLong
+    tsExpiry As LongLong
+End Type
+Public Type SecPkgContext_DceInfo
+    AuthzSvc As Long
+    pPac As LongPtr 'v oid*
+End Type
+Public Type SecPkgContext_KeyInfoA
+    sSignatureAlgorithmName As String
+    sEncryptAlgorithmName As String
+    KeySize As Long
+    SignatureAlgorithm As ALG_ID
+    EncryptAlgorithm As ALG_ID
+End Type
+Public Type SecPkgContext_KeyInfoW
+    sSignatureAlgorithmName As LongPtr
+    sEncryptAlgorithmName As LongPtr
+    KeySize As Long
+    SignatureAlgorithm As ALG_ID
+    EncryptAlgorithm As ALG_ID
+End Type
+Public Type SecPkgContext_KeyInfo
+    sSignatureAlgorithmName As LongPtr
+    sEncryptAlgorithmName As LongPtr
+    KeySize As Long
+    SignatureAlgorithm As ALG_ID
+    EncryptAlgorithm As ALG_ID
+End Type
+
+Public Type SecPkgContext_AuthorityA
+    sAuthorityName As String
+End Type
+Public Type SecPkgContext_AuthorityW
+    sAuthorityName As LongPtr
+End Type
+Public Type SecPkgContext_Authority
+    sAuthorityName As LongPtr
+End Type
+
+Public Type SecPkgContext_ProtoInfoA
+    sProtocolName As String
+    majorVersion As Long
+    minorVersion As Long
+End Type
+Public Type SecPkgContext_ProtoInfoW
+    sProtocolName As LongPtr
+    majorVersion As Long
+    minorVersion As Long
+End Type
+Public Type SecPkgContext_ProtoInfo
+    sProtocolName As LongPtr
+    majorVersion As Long
+    minorVersion As Long
+End Type
+
+Public Type SecPkgContext_PasswordExpiry
+    tsPasswordExpires As LongLong
+End Type
+
+Public Type SecPkgContext_LogoffTime
+    tsLogoffTime As LongLong
+End Type
+
+Public Type SecPkgContext_SessionKey
+    SessionKeyLength As Long
+    SessionKey As LongPtr
+End Type
+
+Public Type SecPkgContext_NegoKeys
+    KeyType As Long
+    KeyLength As Integer
+    KeyValue As LongPtr
+    VerifyKeyType As Long
+    VerifyKeyLength As Integer
+    VerifyKeyValue As LongPtr
+End Type
+
+Public Type SecPkgContext_PackageInfoW
+    PackageInfo As LongPtr 'PSecPkgInfoW
+End Type
+Public Type SecPkgContext_PackageInfoA
+    PackageInfo As LongPtr 'PSecPkgInfoA
+End Type
+Public Type SecPkgContext_PackageInfo
+    PackageInfo As LongPtr 'PSecPkgInfo
+End Type
+
+Public Type SecPkgContext_UserFlags
+    UserFlags As LsaProfileUserFlags
+End Type
+
+Public Type SecPkgContext_Flags
+    Flags As SecurityInitContextReqFlags
+End Type
+
+Public Type SecPkgContext_NegotiationInfoA
+    PackageInfo As LongPtr 'PSecPkgInfoA
+    NegotiationState As Long
+End Type
+Public Type SecPkgContext_NegotiationInfoW
+    PackageInfo As LongPtr 'PSecPkgInfoW
+    NegotiationState As Long
+End Type
+Public Type SecPkgContext_NegotiationInfo
+    PackageInfo As LongPtr 'PSecPkgInfo 
+    NegotiationState As SecPkgNegotiationStates
+End Type
+Public Enum SecPkgNegotiationStates
+    SECPKG_NEGOTIATION_COMPLETE = 0
+    SECPKG_NEGOTIATION_OPTIMISTIC = 1
+    SECPKG_NEGOTIATION_IN_PROGRESS = 2
+    SECPKG_NEGOTIATION_DIRECT = 3
+    SECPKG_NEGOTIATION_TRY_MULTICRED = 4
+End Enum
+
+Public Type SecPkgContext_NativeNamesW
+    sClientName As LongPtr
+    sServerName As LongPtr
+End Type
+Public Type SecPkgContext_NativeNamesA
+    sClientName As String
+    sServerName As String
+End Type
+Public Type SecPkgContext_NativeNames
+    sClientName As LongPtr
+    sServerName As LongPtr
+End Type
+
+Public Type SecPkgContext_CredentialNameW
+    CredentialType As WinCredTypes
+    sCredentialName As LongPtr
+End Type
+
+Public Type SecPkgContext_CredentialNameA
+    CredentialType As WinCredTypes
+    sCredentialName As String
+End Type
+Public Type SecPkgContext_CredentialName
+    CredentialType As WinCredTypes
+    sCredentialName As LongPtr
+End Type
+
+Public Type SecPkgContext_AccessToken
+    AccessToken As LongPtr 'void*
+End Type
+
+Public Type SecPkgContext_TargetInformation
+    MarshalledTargetInfoLength As Long
+    MarshalledTargetInfo As LongPtr 'unsigned char *
+End Type
+
+Public Type SecPkgContext_AuthzID
+    AuthzIDLength As Long
+    AuthzID As LongPtr 'char *
+End Type
+
+Public Type SecPkgContext_Target
+    TargetLength As Long
+    Target As LongPtr 'char *
+End Type
+
+Public Type SecPkgContext_ClientSpecifiedTarget
+    sTargetName As LongPtr
+End Type
+
+Public Type SecPkgContext_Bindings
+    BindingsLength As Long
+    Bindings As LongPtr '*SEC_CHANNEL_BINDINGS 
+End Type
+
+Public Enum SEC_APPLICATION_PROTOCOL_NEGOTIATION_STATUS
+    SecApplicationProtocolNegotiationStatus_None
+    SecApplicationProtocolNegotiationStatus_Success
+    SecApplicationProtocolNegotiationStatus_SelectedClientOnly
+End Enum
+
+Public Const MAX_PROTOCOL_ID_SIZE = &HFF
+Public Type SecPkgContext_ApplicationProtocol
+    ProtoNegoStatus As SEC_APPLICATION_PROTOCOL_NEGOTIATION_STATUS ' Application  protocol negotiation status
+    ProtoNegoExt As SEC_APPLICATION_PROTOCOL_NEGOTIATION_EXT ' Protocol negotiation extension type corresponding to this protocol ID
+    ProtocolIdSize As Byte ' Size in bytes of the application protocol ID
+    ProtocolId(0 To (MAX_PROTOCOL_ID_SIZE - 1)) As Byte ' Byte string representing the negotiated application protocol ID
+End Type
+
+Public Type SecPkgContext_NegotiatedTlsExtensions
+    ExtensionsCount As Long ' Number of negotiated TLS extensions.
+    Extensions As LongPtr 'USHORT*  ' Pointer to array of 2-byte TLS extension IDs (allocated by IANA).
+End Type
+
+Public Type SECPKG_APP_MODE_INFO
+    UserFunction As Long
+    Argument1 As LongPtr
+    Argument2 As LongPtr
+    UserData As SecBuffer
+    ReturnToLsa As Byte
+End Type
+
+' typedef void
+' (SEC_ENTRY * SEC_GET_KEY_FN) (
+    ' void * Arg,                 // Argument passed in
+    ' void * Principal,           // Principal ID
+    ' unsigned long KeyVer,               // Key Version
+    ' void * * Key,       // Returned ptr to key
+    ' SECURITY_STATUS * Status    // returned status
+    ' );
+
+Public Enum SecurityExportContextFlags
+    SECPKG_CONTEXT_EXPORT_RESET_NEW = &H00000001  ' New context is reset to initial state
+    SECPKG_CONTEXT_EXPORT_DELETE_OLD = &H00000002  ' Old context is deleted during export
+'  This is only valid in W2K3SP1 and greater
+    SECPKG_CONTEXT_EXPORT_TO_KERNEL = &H00000004  ' Context is to be transferred to the kernel
+End Enum
+    
+Public Declare PtrSafe Function AcquireCredentialsHandleA Lib "secur32" (ByVal pszPrincipal As String, ByVal pszPackage As String, ByVal fCredentialUse As SecurityCredentialUseFlags, pvLogonId As Any, pAuthData As Any, ByVal pGetKeyFn As LongPtr, pvGetKeyArgument As Any, phCredential As CredHandle, ptsExpiry As LongLong) As Long
+Public Declare PtrSafe Function AcquireCredentialsHandleW Lib "secur32" (ByVal pszPrincipal As LongPtr, ByVal pszPackage As LongPtr, ByVal fCredentialUse As SecurityCredentialUseFlags, pvLogonId As Any, pAuthData As Any, ByVal pGetKeyFn As LongPtr, pvGetKeyArgument As Any, phCredential As CredHandle, ptsExpiry As LongLong) As Long
+Public DeclareWide PtrSafe Function AcquireCredentialsHandle Lib "secur32" Alias "AcquireCredentialsHandleW" (ByVal pszPrincipal As String, ByVal pszPackage As String, ByVal fCredentialUse As SecurityCredentialUseFlags, pvLogonId As Any, pAuthData As Any, ByVal pGetKeyFn As LongPtr, pvGetKeyArgument As Any, phCredential As CredHandle, ptsExpiry As LongLong) As Long
+
+' typedef SECURITY_STATUS
+' (SEC_ENTRY * ACQUIRE_CREDENTIALS_HANDLE_FN_A)(
+    ' SEC_CHAR *,
+    ' SEC_CHAR *,
+    ' unsigned long,
+    ' void *,
+    ' void *,
+    ' SEC_GET_KEY_FN,
+    ' void *,
+    ' PCredHandle,
+    ' PTimeStamp);
+    
+Public Declare PtrSafe Function FreeCredentialsHandle Lib "secur32" (phCredential As CredHandle) As Long
+Public Declare PtrSafe Function AddCredentialsA Lib "secur32" (phCredential As CredHandle, ByVal pszPrincipal As String, ByVal pszPackage As String, ByVal fCredentialUse As SecurityCredentialUseFlags, pAuthData As Any, ByVal pGetKeyFn As LongPtr, pvGetKeyArgument As Any, ptsExpiry As LongLong) As Long
+Public Declare PtrSafe Function AddCredentialsW Lib "secur32" (phCredential As CredHandle, ByVal pszPrincipal As LongPtr, ByVal pszPackage As LongPtr, ByVal fCredentialUse As SecurityCredentialUseFlags, pAuthData As Any, ByVal pGetKeyFn As LongPtr, pvGetKeyArgument As Any, ptsExpiry As LongLong) As Long
+Public DeclareWide PtrSafe Function AddCredentials Lib "secur32" Alias "AddCredentialsW" (phCredential As CredHandle, ByVal pszPrincipal As String, ByVal pszPackage As String, ByVal fCredentialUse As SecurityCredentialUseFlags, pAuthData As Any, ByVal pGetKeyFn As LongPtr, pvGetKeyArgument As Any, ptsExpiry As LongLong) As Long
+
+' typedef SECURITY_STATUS
+' (SEC_ENTRY * ADD_CREDENTIALS_FN_A)(
+    ' PCredHandle,
+    ' SEC_CHAR *,
+    ' SEC_CHAR *,
+    ' unsigned long,
+    ' void *,
+    ' SEC_GET_KEY_FN,
+    ' void *,
+    ' PTimeStamp);
+' (SEC_ENTRY * ADD_CREDENTIALS_FN_W)(
+    ' PCredHandle,
+' #if ISSP_MODE == 0
+    ' PSECURITY_STRING,
+    ' PSECURITY_STRING,
+' #else
+    ' SEC_WCHAR *,
+    ' SEC_WCHAR *,
+' #endif
+    ' unsigned long,
+    ' void *,
+    ' SEC_GET_KEY_FN,
+    ' void *,
+    ' PTimeStamp);
+    
+'*******************************
+'KERNEL MODE ONLY CALLS OMITTED
+'*******************************
+
+Public Declare PtrSafe Function ChangeAccountPasswordA Lib "secur32" (ByVal pszPackageName As String, ByVal pszDomainName As String, ByVal pszAccountName As String, ByVal pszOldPassword As String, ByVal pszNewPassword As String, ByVal bImpersonating As Byte, ByVal dwReserved As Long, pOutput As SecBufferDesc) As Long
+Public Declare PtrSafe Function ChangeAccountPasswordW Lib "secur32" (ByVal pszPackageName As LongPtr, ByVal pszDomainName As LongPtr, ByVal pszAccountName As LongPtr, ByVal pszOldPassword As LongPtr, ByVal pszNewPassword As LongPtr, ByVal bImpersonating As Byte, ByVal dwReserved As Long, pOutput As SecBufferDesc) As Long
+Public Declare PtrSafe Function ChangeAccountPassword Lib "secur32" (ByVal pszPackageName As String, ByVal pszDomainName As String, ByVal pszAccountName As String, ByVal pszOldPassword As String, ByVal pszNewPassword As String, ByVal bImpersonating As Byte, ByVal dwReserved As Long, pOutput As SecBufferDesc) As Long
+
+' typedef SECURITY_STATUS
+' (SEC_ENTRY * CHANGE_PASSWORD_FN_A)(
+    ' SEC_CHAR *,
+    ' SEC_CHAR *,
+    ' SEC_CHAR *,
+    ' SEC_CHAR *,
+    ' SEC_CHAR *,
+    ' BOOLEAN,
+    ' unsigned long,
+    ' PSecBufferDesc
+    ' );
+    
+    ' typedef SECURITY_STATUS
+    ' (SEC_ENTRY * CHANGE_PASSWORD_FN_W)(
+        ' SEC_WCHAR *,
+        ' SEC_WCHAR *,
+        ' SEC_WCHAR *,
+        ' SEC_WCHAR *,
+        ' SEC_WCHAR *,
+        ' BOOLEAN,
+        ' unsigned long,
+        ' PSecBufferDesc
+        ' );
+        
+Public Declare PtrSafe Function InitializeSecurityContextA Lib "secur32" (phCredential As CredHandle, phContext As CtxtHandle, ByVal pszTargetName As String, ByVal fContextReq As SecurityInitContextReqFlags, ByVal Reserved1 As Long, ByVal TargetDataRep As SecurityDataRepConstants, pInput As SecBufferDesc, ByVal Reserved2 As Long, phNewContext As CtxtHandle, pOutput As SecBufferDesc, pfContextAttr As SecurityInitContextRetFlags, ptsExpiry As LongLong) As Long
+Public Declare PtrSafe Function InitializeSecurityContextW Lib "secur32" (phCredential As CredHandle, phContext As CtxtHandle, ByVal pszTargetName As LongPtr, ByVal fContextReq As SecurityInitContextReqFlags, ByVal Reserved1 As Long, ByVal TargetDataRep As SecurityDataRepConstants, pInput As SecBufferDesc, ByVal Reserved2 As Long, phNewContext As CtxtHandle, pOutput As SecBufferDesc, pfContextAttr As SecurityInitContextRetFlags, ptsExpiry As LongLong) As Long
+Public DeclareWide PtrSafe Function InitializeSecurityContext Lib "secur32" Alias "InitializeSecurityContextW" (phCredential As CredHandle, phContext As CtxtHandle, ByVal pszTargetName As String, ByVal fContextReq As SecurityInitContextReqFlags, ByVal Reserved1 As Long, ByVal TargetDataRep As SecurityDataRepConstants, pInput As SecBufferDesc, ByVal Reserved2 As Long, phNewContext As CtxtHandle, pOutput As SecBufferDesc, pfContextAttr As SecurityInitContextRetFlags, ptsExpiry As LongLong) As Long
+
+' typedef SECURITY_STATUS
+' (SEC_ENTRY * INITIALIZE_SECURITY_CONTEXT_FN_A)(
+'     PCredHandle,
+'     PCtxtHandle,
+'     SEC_CHAR *,
+'     unsigned long,
+'     unsigned long,
+'     unsigned long,
+'     PSecBufferDesc,
+'     unsigned long,
+'     PCtxtHandle,
+'     PSecBufferDesc,
+'     unsigned long *,
+'     PTimeStamp);
+    
+' typedef SECURITY_STATUS
+' (SEC_ENTRY * INITIALIZE_SECURITY_CONTEXT_FN_W)(
+    ' PCredHandle,
+    ' PCtxtHandle,
+' #if ISSP_MODE == 0
+    ' PSECURITY_STRING,
+' #else
+    ' SEC_WCHAR *,
+' #endif
+    ' unsigned long,
+    ' unsigned long,
+    ' unsigned long,
+    ' PSecBufferDesc,
+    ' unsigned long,
+    ' PCtxtHandle,
+    ' PSecBufferDesc,
+    ' unsigned long *,
+    ' PTimeStamp);
+    
+Public Declare PtrSafe Function AcceptSecurityContext Lib "secur32" (phCredential As CredHandle, phContext As CtxtHandle, pInput As SecBufferDesc, ByVal fContextReq As SecurityAscReqFlags, ByVal TargetDataRep As SecurityDataRepConstants, phNewContext As CtxtHandle, pOutput As SecBufferDesc, pfContextAttr As SecurityAscRetFlags, ptsExpiry As LongLong) As Long
+Public Declare PtrSafe Function CompleteAuthToken Lib "secur32" (phContext As CtxtHandle, pToken As SecBufferDesc) As Long
+Public Declare PtrSafe Function ImpersonateSecurityContext Lib "secur32" (phContext As CtxtHandle) As Long
+Public Declare PtrSafe Function RevertSecurityContext Lib "secur32" (phContext As CtxtHandle) As Long
+Public Declare PtrSafe Function QuerySecurityContextToken Lib "secur32" (phContext As CtxtHandle, Token As LongPtr) As Long
+Public Declare PtrSafe Function DeleteSecurityContext Lib "secur32" (phContext As CtxtHandle) As Long
+Public Declare PtrSafe Function ApplyControlToken Lib "secur32" (phContext As CtxtHandle, pInput As SecBufferDesc) As Long
+Public Declare PtrSafe Function QueryContextAttributesA Lib "secur32" (phContext As CtxtHandle, [TypeHint(SecPkgAttributes, SecPkgCredAttributes)] ByVal ulAttribute As Long, pBuffer As Any) As Long
+Public Declare PtrSafe Function QueryContextAttributesW Lib "secur32" (phContext As CtxtHandle, [TypeHint(SecPkgAttributes, SecPkgCredAttributes)] ByVal ulAttribute As Long, pBuffer As Any) As Long
+Public DeclareWide PtrSafe Function QueryContextAttributes Lib "secur32" Alias "QueryContextAttributesW" (phContext As CtxtHandle, [TypeHint(SecPkgAttributes, SecPkgCredAttributes)] ByVal ulAttribute As Long, pBuffer As Any) As Long
+Public Declare PtrSafe Function QueryContextAttributesExA Lib "secur32" (phContext As CtxtHandle, [TypeHint(SecPkgAttributes, SecPkgCredAttributes , SecPkgExtendedAttributes)] ByVal ulAttribute As Long, pBuffer As Any, ByVal cbBuffer As Long) As Long
+Public Declare PtrSafe Function QueryContextAttributesExW Lib "secur32" (phContext As CtxtHandle, [TypeHint(SecPkgAttributes, SecPkgCredAttributes , SecPkgExtendedAttributes)] ByVal ulAttribute As Long, pBuffer As Any, ByVal cbBuffer As Long) As Long
+Public DeclareWide PtrSafe Function QueryContextAttributesEx Lib "secur32" Alias "QueryContextAttributesExW" (phContext As CtxtHandle, [TypeHint(SecPkgAttributes, SecPkgCredAttributes , SecPkgExtendedAttributes)] ByVal ulAttribute As Long, pBuffer As Any, ByVal cbBuffer As Long) As Long
+Public Declare PtrSafe Function SetContextAttributesA Lib "secur32" (phContext As CtxtHandle, [TypeHint(SecPkgAttributes, SecPkgCredAttributes , SecPkgExtendedAttributes)] ByVal ulAttribute As Long, pBuffer As Any, ByVal cbBuffer As Long) As Long
+Public Declare PtrSafe Function SetContextAttributesW Lib "secur32" (phContext As CtxtHandle, [TypeHint(SecPkgAttributes, SecPkgCredAttributes , SecPkgExtendedAttributes)] ByVal ulAttribute As Long, pBuffer As Any, ByVal cbBuffer As Long) As Long
+Public DeclareWide PtrSafe Function SetContextAttributes Lib "secur32" Alias "SetContextAttributesW" (phContext As CtxtHandle, [TypeHint(SecPkgAttributes, SecPkgCredAttributes , SecPkgExtendedAttributes)] ByVal ulAttribute As Long, pBuffer As Any, ByVal cbBuffer As Long) As Long
+Public Declare PtrSafe Function QueryCredentialsAttributesA Lib "secur32" (phCredential As CredHandle, [TypeHint(SecPkgAttributes, SecPkgCredAttributes , SecPkgExtendedAttributes)] ByVal ulAttribute As Long, pBuffer As Any) As Long
+Public Declare PtrSafe Function QueryCredentialsAttributesW Lib "secur32" (phCredential As CredHandle, [TypeHint(SecPkgAttributes, SecPkgCredAttributes , SecPkgExtendedAttributes)] ByVal ulAttribute As Long, pBuffer As Any) As Long
+Public DeclareWide PtrSafe Function QueryCredentialsAttributes Lib "secur32" Alias "QueryCredentialsAttributesW" (phCredential As CredHandle, [TypeHint(SecPkgAttributes, SecPkgCredAttributes , SecPkgExtendedAttributes)] ByVal ulAttribute As Long, pBuffer As Any) As Long
+Public Declare PtrSafe Function QueryCredentialsAttributesExA Lib "secur32" (phCredential As CredHandle, [TypeHint(SecPkgAttributes, SecPkgCredAttributes , SecPkgExtendedAttributes)] ByVal ulAttribute As Long, pBuffer As Any, ByVal cbBuffer As Long) As Long
+Public Declare PtrSafe Function QueryCredentialsAttributesExW Lib "secur32" (phCredential As CredHandle, [TypeHint(SecPkgAttributes, SecPkgCredAttributes , SecPkgExtendedAttributes)] ByVal ulAttribute As Long, pBuffer As Any, ByVal cbBuffer As Long) As Long
+Public DeclareWide PtrSafe Function QueryCredentialsAttributesEx Lib "secur32" Alias "QueryCredentialsAttributesExW" (phCredential As CredHandle, [TypeHint(SecPkgAttributes, SecPkgCredAttributes , SecPkgExtendedAttributes)] ByVal ulAttribute As Long, pBuffer As Any, ByVal cbBuffer As Long) As Long
+Public Declare PtrSafe Function SetCredentialsAttributesA Lib "secur32" (phCredential As CredHandle, [TypeHint(SecPkgAttributes, SecPkgCredAttributes , SecPkgExtendedAttributes)] ByVal ulAttribute As Long, pBuffer As Any, ByVal cbBuffer As Long) As Long
+Public Declare PtrSafe Function SetCredentialsAttributesW Lib "secur32" (phCredential As CredHandle, [TypeHint(SecPkgAttributes, SecPkgCredAttributes , SecPkgExtendedAttributes)] ByVal ulAttribute As Long, pBuffer As Any, ByVal cbBuffer As Long) As Long
+Public DeclareWide PtrSafe Function SetCredentialsAttributes Lib "secur32" Alias "SetCredentialsAttributesW" (phCredential As CredHandle, [TypeHint(SecPkgAttributes, SecPkgCredAttributes , SecPkgExtendedAttributes)] ByVal ulAttribute As Long, pBuffer As Any, ByVal cbBuffer As Long) As Long
+Public Declare PtrSafe Function FreeContextBuffer Lib "secur32" (ByVal pvContextBuffer As LongPtr) As Long
+Public Declare PtrSafe Function MakeSignature Lib "secur32" (phContext As CtxtHandle, ByVal fQOP As Long, pMessage As SecBufferDesc, ByVal MessageSeqNumber As Long) As Long
+Public Declare PtrSafe Function VerifySignature Lib "secur32" (phContext As CtxtHandle, pMessage As SecBufferDesc, ByVal MessageSeqNumber As Long, pfQOP As Long) As Long
+
+Public Enum SecurityQOPWrapFlags
+    SECQOP_WRAP_NO_ENCRYPT = &H80000001
+    SECQOP_WRAP_OOB_DATA = &H40000000
+End Enum
+
+Public Declare PtrSafe Function EncryptMessage Lib "secur32" (phContext As CtxtHandle, ByVal fQOP As Long, pMessage As SecBufferDesc, ByVal MessageSeqNumber As Long) As Long
+Public Declare PtrSafe Function DecryptMessage Lib "secur32" (phContext As CtxtHandle, pMessage As SecBufferDesc, ByVal MessageSeqNumber As Long, pfQOP As SecurityQOPWrapFlags) As Long
+Public Declare PtrSafe Function EnumerateSecurityPackagesA Lib "secur32" (pcPackages As Long, ppPackageInfo As LongPtr) As Long
+Public Declare PtrSafe Function EnumerateSecurityPackagesW Lib "secur32" (pcPackages As Long, ppPackageInfo As LongPtr) As Long
+Public DeclareWide PtrSafe Function EnumerateSecurityPackages Lib "secur32" Alias "EnumerateSecurityPackagesW" (pcPackages As Long, ppPackageInfo As LongPtr) As Long
+Public Declare PtrSafe Function QuerySecurityPackageInfoA Lib "secur32" (ByVal pszPackageName As String, ppPackageInfo As LongPtr) As Long
+Public Declare PtrSafe Function QuerySecurityPackageInfoW Lib "secur32" (ByVal pszPackageName As LongPtr, ppPackageInfo As LongPtr) As Long
+Public DeclareWide PtrSafe Function QuerySecurityPackageInfo Lib "secur32" Alias "QuerySecurityPackageInfoW" (ByVal pszPackageName As String, ppPackageInfo As LongPtr) As Long
+
+Public Enum SecDelegationType
+    SecFull
+    SecService
+    SecTree
+    SecDirectory
+    SecObject
+End Enum
+
+Public Declare PtrSafe Function DelegateSecurityContext Lib "secur32" (phContext As CtxtHandle, ByVal pszTarget As String, ByVal DelegationType As SecDelegationType, pExpiry As LongLong, pPackageParameters As SecBuffer, pOutput As SecBufferDesc) As Long
+Public Declare PtrSafe Function ExportSecurityContext Lib "secur32" (phContext As CtxtHandle, ByVal fFlags As SecurityExportContextFlags, pPackedContext As SecBuffer, Optional pToken As LongPtr) As Long
+Public Declare PtrSafe Function ImportSecurityContextA Lib "secur32" (ByVal pszPackage As String, pPackedContext As SecBuffer, ByVal Token As LongPtr, phContext As CtxtHandle) As Long
+Public Declare PtrSafe Function ImportSecurityContextW Lib "secur32" (ByVal pszPackage As LongPtr, pPackedContext As SecBuffer, ByVal Token As LongPtr, phContext As CtxtHandle) As Long
+Public DeclareWide PtrSafe Function ImportSecurityContext Lib "secur32" Alias "ImportSecurityContextW" (ByVal pszPackage As String, pPackedContext As SecBuffer, ByVal Token As LongPtr, phContext As CtxtHandle) As Long
+
+'*******************************
+'KERNEL MODE ONLY CALLS OMITTED
+'*******************************
+
+Public Const SECURITY_ENTRYPOINT_ANSIW  = "InitSecurityInterfaceW"
+Public Const SECURITY_ENTRYPOINT_ANSIA  = "InitSecurityInterfaceA"
+Public Const SECURITY_ENTRYPOINTW  = "InitSecurityInterfaceW"   ' ntifs
+Public Const SECURITY_ENTRYPOINTA  = "InitSecurityInterfaceA"
+Public Const SECURITY_ENTRYPOINT16  = "INITSECURITYINTERFACEA"
+Public Const SECURITY_ENTRYPOINT  = SECURITY_ENTRYPOINTW  ' ntifs
+Public Const SECURITY_ENTRYPOINT_ANSI  = SECURITY_ENTRYPOINT_ANSIW
+
+Public Declare PtrSafe Function FreeCredentialHandle Lib "secur32" Alias "FreeCredentialsHandle" (phCredential As CredHandle) As Long
+
+Public Type SECURITY_FUNCTION_TABLE_A
+    dwVersion As Long
+    EnumerateSecurityPackagesW As LongPtr 'ENUMERATE_SECURITY_PACKAGES_FN_A
+    QueryCredentialsAttributesW As LongPtr 'QUERY_CREDENTIALS_ATTRIBUTES_FN_A
+    AcquireCredentialsHandleW As LongPtr 'ACQUIRE_CREDENTIALS_LongPtr_FN_A
+    FreeCredentialsHandle As LongPtr 'FREE_CREDENTIALS_LongPtr_FN
+    Reserved2 As LongPtr 'void*
+    InitializeSecurityContextW As LongPtr 'INITIALIZE_SECURITY_CONTEXT_FN_A
+    AcceptSecurityContext As LongPtr 'ACCEPT_SECURITY_CONTEXT_FN
+    CompleteAuthToken As LongPtr 'COMPLETE_AUTH_TOKEN_FN
+    DeleteSecurityContext As LongPtr 'DELETE_SECURITY_CONTEXT_FN
+    ApplyControlToken As LongPtr 'APPLY_CONTROL_TOKEN_FN
+    QueryContextAttributesW As LongPtr 'QUERY_CONTEXT_ATTRIBUTES_FN_A
+    ImpersonateSecurityContext As LongPtr 'IMPERSONATE_SECURITY_CONTEXT_FN
+    RevertSecurityContext As LongPtr 'REVERT_SECURITY_CONTEXT_FN
+    MakeSignature As LongPtr 'MAKE_SIGNATURE_FN
+    VerifySignature As LongPtr 'VERIFY_SIGNATURE_FN
+    FreeContextBuffer As LongPtr 'FREE_CONTEXT_BUFFER_FN
+    QuerySecurityPackageInfoW As LongPtr 'QUERY_SECURITY_PACKAGE_INFO_FN_A
+    Reserved3 As LongPtr 'void
+    Reserved4 As LongPtr 'void
+    ExportSecurityContext As LongPtr 'EXPORT_SECURITY_CONTEXT_FN
+    ImportSecurityContextW As LongPtr 'IMPORT_SECURITY_CONTEXT_FN_A
+    AddCredentialsW As LongPtr 'ADD_CREDENTIALS_FN_A                
+    Reserved8 As LongPtr 'void
+    QuerySecurityContextToken As LongPtr 'QUERY_SECURITY_CONTEXT_TOKEN_FN
+    EncryptMessage As LongPtr 'ENCRYPT_MESSAGE_FN
+    DecryptMessage As LongPtr 'DECRYPT_MESSAGE_FN
+    '#if OSVER(NTDDI_VERSION) > NTDDI_WIN2K
+    ' Fields below this are available in OSes after w2k
+    SetContextAttributesW As LongPtr 'SET_CONTEXT_ATTRIBUTES_FN_A
+    '#endif // greater thean 2K
+    '#if NTDDI_VERSION > NTDDI_WS03SP1
+    ' Fields below this are available in OSes after W2k3SP1
+    SetCredentialsAttributesW As LongPtr 'SET_CREDENTIALS_ATTRIBUTES_FN_A
+    '#endif
+    ChangeAccountPasswordW As LongPtr 'CHANGE_PASSInteger_FN_A
+    '#else
+    '    void *                      Reserved9;
+    '#endif
+    '#if NTDDI_VERSION > NTDDI_WINBLUE
+    ' Fields below this are available in OSes after Windows 8.1
+    QueryContextAttributesExW As LongPtr 'QUERY_CONTEXT_ATTRIBUTES_EX_FN_A
+    QueryCredentialsAttributesExW As LongPtr 'QUERY_CREDENTIALS_ATTRIBUTES_EX_FN_A
+    'endif
+End Type
+Public Type SECURITY_FUNCTION_TABLE_W
+    dwVersion As Long
+    EnumerateSecurityPackagesW As LongPtr 'ENUMERATE_SECURITY_PACKAGES_FN_W
+    QueryCredentialsAttributesW As LongPtr 'QUERY_CREDENTIALS_ATTRIBUTES_FN_W
+    AcquireCredentialsHandleW As LongPtr 'ACQUIRE_CREDENTIALS_LongPtr_FN_W
+    FreeCredentialsHandle As LongPtr 'FREE_CREDENTIALS_LongPtr_FN
+    Reserved2 As LongPtr 'void*
+    InitializeSecurityContextW As LongPtr 'INITIALIZE_SECURITY_CONTEXT_FN_W
+    AcceptSecurityContext As LongPtr 'ACCEPT_SECURITY_CONTEXT_FN
+    CompleteAuthToken As LongPtr 'COMPLETE_AUTH_TOKEN_FN
+    DeleteSecurityContext As LongPtr 'DELETE_SECURITY_CONTEXT_FN
+    ApplyControlToken As LongPtr 'APPLY_CONTROL_TOKEN_FN
+    QueryContextAttributesW As LongPtr 'QUERY_CONTEXT_ATTRIBUTES_FN_W
+    ImpersonateSecurityContext As LongPtr 'IMPERSONATE_SECURITY_CONTEXT_FN
+    RevertSecurityContext As LongPtr 'REVERT_SECURITY_CONTEXT_FN
+    MakeSignature As LongPtr 'MAKE_SIGNATURE_FN
+    VerifySignature As LongPtr 'VERIFY_SIGNATURE_FN
+    FreeContextBuffer As LongPtr 'FREE_CONTEXT_BUFFER_FN
+    QuerySecurityPackageInfoW As LongPtr 'QUERY_SECURITY_PACKAGE_INFO_FN_W
+    Reserved3 As LongPtr 'void
+    Reserved4 As LongPtr 'void
+    ExportSecurityContext As LongPtr 'EXPORT_SECURITY_CONTEXT_FN
+    ImportSecurityContextW As LongPtr 'IMPORT_SECURITY_CONTEXT_FN_W
+    AddCredentialsW As LongPtr 'ADD_CREDENTIALS_FN_W                
+    Reserved8 As LongPtr 'void
+    QuerySecurityContextToken As LongPtr 'QUERY_SECURITY_CONTEXT_TOKEN_FN
+    EncryptMessage As LongPtr 'ENCRYPT_MESSAGE_FN
+    DecryptMessage As LongPtr 'DECRYPT_MESSAGE_FN
+    '#if OSVER(NTDDI_VERSION) > NTDDI_WIN2K
+    ' Fields below this are available in OSes after w2k
+    SetContextAttributesW As LongPtr 'SET_CONTEXT_ATTRIBUTES_FN_W
+    '#endif // greater thean 2K
+    '#if NTDDI_VERSION > NTDDI_WS03SP1
+    ' Fields below this are available in OSes after W2k3SP1
+    SetCredentialsAttributesW As LongPtr 'SET_CREDENTIALS_ATTRIBUTES_FN_W
+    '#endif
+    ChangeAccountPasswordW As LongPtr 'CHANGE_PASSInteger_FN_W
+    '#else
+    '    void *                      Reserved9;
+    '#endif
+    '#if NTDDI_VERSION > NTDDI_WINBLUE
+    ' Fields below this are available in OSes after Windows 8.1
+    QueryContextAttributesExW As LongPtr 'QUERY_CONTEXT_ATTRIBUTES_EX_FN_W
+    QueryCredentialsAttributesExW As LongPtr 'QUERY_CREDENTIALS_ATTRIBUTES_EX_FN_W
+    'endif
+End Type
+Public Type SECURITY_FUNCTION_TABLE
+    dwVersion As Long
+    EnumerateSecurityPackagesW As LongPtr 'ENUMERATE_SECURITY_PACKAGES_FN_W
+    QueryCredentialsAttributesW As LongPtr 'QUERY_CREDENTIALS_ATTRIBUTES_FN_W
+    AcquireCredentialsHandleW As LongPtr 'ACQUIRE_CREDENTIALS_LongPtr_FN_W
+    FreeCredentialsHandle As LongPtr 'FREE_CREDENTIALS_LongPtr_FN
+    Reserved2 As LongPtr 'void*
+    InitializeSecurityContextW As LongPtr 'INITIALIZE_SECURITY_CONTEXT_FN_W
+    AcceptSecurityContext As LongPtr 'ACCEPT_SECURITY_CONTEXT_FN
+    CompleteAuthToken As LongPtr 'COMPLETE_AUTH_TOKEN_FN
+    DeleteSecurityContext As LongPtr 'DELETE_SECURITY_CONTEXT_FN
+    ApplyControlToken As LongPtr 'APPLY_CONTROL_TOKEN_FN
+    QueryContextAttributesW As LongPtr 'QUERY_CONTEXT_ATTRIBUTES_FN_W
+    ImpersonateSecurityContext As LongPtr 'IMPERSONATE_SECURITY_CONTEXT_FN
+    RevertSecurityContext As LongPtr 'REVERT_SECURITY_CONTEXT_FN
+    MakeSignature As LongPtr 'MAKE_SIGNATURE_FN
+    VerifySignature As LongPtr 'VERIFY_SIGNATURE_FN
+    FreeContextBuffer As LongPtr 'FREE_CONTEXT_BUFFER_FN
+    QuerySecurityPackageInfoW As LongPtr 'QUERY_SECURITY_PACKAGE_INFO_FN_W
+    Reserved3 As LongPtr 'void
+    Reserved4 As LongPtr 'void
+    ExportSecurityContext As LongPtr 'EXPORT_SECURITY_CONTEXT_FN
+    ImportSecurityContextW As LongPtr 'IMPORT_SECURITY_CONTEXT_FN_W
+    AddCredentialsW As LongPtr 'ADD_CREDENTIALS_FN_W                
+    Reserved8 As LongPtr 'void
+    QuerySecurityContextToken As LongPtr 'QUERY_SECURITY_CONTEXT_TOKEN_FN
+    EncryptMessage As LongPtr 'ENCRYPT_MESSAGE_FN
+    DecryptMessage As LongPtr 'DECRYPT_MESSAGE_FN
+    '#if OSVER(NTDDI_VERSION) > NTDDI_WIN2K
+    ' Fields below this are available in OSes after w2k
+    SetContextAttributesW As LongPtr 'SET_CONTEXT_ATTRIBUTES_FN_W
+    '#endif // greater thean 2K
+    '#if NTDDI_VERSION > NTDDI_WS03SP1
+    ' Fields below this are available in OSes after W2k3SP1
+    SetCredentialsAttributesW As LongPtr 'SET_CREDENTIALS_ATTRIBUTES_FN_W
+    '#endif
+    ChangeAccountPasswordW As LongPtr 'CHANGE_PASSInteger_FN_W
+    '#else
+    '    void *                      Reserved9;
+    '#endif
+    '#if NTDDI_VERSION > NTDDI_WINBLUE
+    ' Fields below this are available in OSes after Windows 8.1
+    QueryContextAttributesExW As LongPtr 'QUERY_CONTEXT_ATTRIBUTES_EX_FN_W
+    QueryCredentialsAttributesExW As LongPtr 'QUERY_CREDENTIALS_ATTRIBUTES_EX_FN_W
+    'endif
+End Type
+
+Public Type SecurityFunctionTableA
+    dwVersion As Long
+    EnumerateSecurityPackagesW As LongPtr 'ENUMERATE_SECURITY_PACKAGES_FN_A
+    QueryCredentialsAttributesW As LongPtr 'QUERY_CREDENTIALS_ATTRIBUTES_FN_A
+    AcquireCredentialsHandleW As LongPtr 'ACQUIRE_CREDENTIALS_LongPtr_FN_A
+    FreeCredentialsHandle As LongPtr 'FREE_CREDENTIALS_LongPtr_FN
+    Reserved2 As LongPtr 'void*
+    InitializeSecurityContextW As LongPtr 'INITIALIZE_SECURITY_CONTEXT_FN_A
+    AcceptSecurityContext As LongPtr 'ACCEPT_SECURITY_CONTEXT_FN
+    CompleteAuthToken As LongPtr 'COMPLETE_AUTH_TOKEN_FN
+    DeleteSecurityContext As LongPtr 'DELETE_SECURITY_CONTEXT_FN
+    ApplyControlToken As LongPtr 'APPLY_CONTROL_TOKEN_FN
+    QueryContextAttributesW As LongPtr 'QUERY_CONTEXT_ATTRIBUTES_FN_A
+    ImpersonateSecurityContext As LongPtr 'IMPERSONATE_SECURITY_CONTEXT_FN
+    RevertSecurityContext As LongPtr 'REVERT_SECURITY_CONTEXT_FN
+    MakeSignature As LongPtr 'MAKE_SIGNATURE_FN
+    VerifySignature As LongPtr 'VERIFY_SIGNATURE_FN
+    FreeContextBuffer As LongPtr 'FREE_CONTEXT_BUFFER_FN
+    QuerySecurityPackageInfoW As LongPtr 'QUERY_SECURITY_PACKAGE_INFO_FN_A
+    Reserved3 As LongPtr 'void
+    Reserved4 As LongPtr 'void
+    ExportSecurityContext As LongPtr 'EXPORT_SECURITY_CONTEXT_FN
+    ImportSecurityContextW As LongPtr 'IMPORT_SECURITY_CONTEXT_FN_A
+    AddCredentialsW As LongPtr 'ADD_CREDENTIALS_FN_A                
+    Reserved8 As LongPtr 'void
+    QuerySecurityContextToken As LongPtr 'QUERY_SECURITY_CONTEXT_TOKEN_FN
+    EncryptMessage As LongPtr 'ENCRYPT_MESSAGE_FN
+    DecryptMessage As LongPtr 'DECRYPT_MESSAGE_FN
+    '#if OSVER(NTDDI_VERSION) > NTDDI_WIN2K
+    ' Fields below this are available in OSes after w2k
+    SetContextAttributesW As LongPtr 'SET_CONTEXT_ATTRIBUTES_FN_A
+    '#endif // greater thean 2K
+    '#if NTDDI_VERSION > NTDDI_WS03SP1
+    ' Fields below this are available in OSes after W2k3SP1
+    SetCredentialsAttributesW As LongPtr 'SET_CREDENTIALS_ATTRIBUTES_FN_A
+    '#endif
+    ChangeAccountPasswordW As LongPtr 'CHANGE_PASSInteger_FN_A
+    '#else
+    '    void *                      Reserved9;
+    '#endif
+    '#if NTDDI_VERSION > NTDDI_WINBLUE
+    ' Fields below this are available in OSes after Windows 8.1
+    QueryContextAttributesExW As LongPtr 'QUERY_CONTEXT_ATTRIBUTES_EX_FN_A
+    QueryCredentialsAttributesExW As LongPtr 'QUERY_CREDENTIALS_ATTRIBUTES_EX_FN_A
+    'endif
+End Type
+Public Type SecurityFunctionTableW
+    dwVersion As Long
+    EnumerateSecurityPackagesW As LongPtr 'ENUMERATE_SECURITY_PACKAGES_FN_W
+    QueryCredentialsAttributesW As LongPtr 'QUERY_CREDENTIALS_ATTRIBUTES_FN_W
+    AcquireCredentialsHandleW As LongPtr 'ACQUIRE_CREDENTIALS_LongPtr_FN_W
+    FreeCredentialsHandle As LongPtr 'FREE_CREDENTIALS_LongPtr_FN
+    Reserved2 As LongPtr 'void*
+    InitializeSecurityContextW As LongPtr 'INITIALIZE_SECURITY_CONTEXT_FN_W
+    AcceptSecurityContext As LongPtr 'ACCEPT_SECURITY_CONTEXT_FN
+    CompleteAuthToken As LongPtr 'COMPLETE_AUTH_TOKEN_FN
+    DeleteSecurityContext As LongPtr 'DELETE_SECURITY_CONTEXT_FN
+    ApplyControlToken As LongPtr 'APPLY_CONTROL_TOKEN_FN
+    QueryContextAttributesW As LongPtr 'QUERY_CONTEXT_ATTRIBUTES_FN_W
+    ImpersonateSecurityContext As LongPtr 'IMPERSONATE_SECURITY_CONTEXT_FN
+    RevertSecurityContext As LongPtr 'REVERT_SECURITY_CONTEXT_FN
+    MakeSignature As LongPtr 'MAKE_SIGNATURE_FN
+    VerifySignature As LongPtr 'VERIFY_SIGNATURE_FN
+    FreeContextBuffer As LongPtr 'FREE_CONTEXT_BUFFER_FN
+    QuerySecurityPackageInfoW As LongPtr 'QUERY_SECURITY_PACKAGE_INFO_FN_W
+    Reserved3 As LongPtr 'void
+    Reserved4 As LongPtr 'void
+    ExportSecurityContext As LongPtr 'EXPORT_SECURITY_CONTEXT_FN
+    ImportSecurityContextW As LongPtr 'IMPORT_SECURITY_CONTEXT_FN_W
+    AddCredentialsW As LongPtr 'ADD_CREDENTIALS_FN_W                
+    Reserved8 As LongPtr 'void
+    QuerySecurityContextToken As LongPtr 'QUERY_SECURITY_CONTEXT_TOKEN_FN
+    EncryptMessage As LongPtr 'ENCRYPT_MESSAGE_FN
+    DecryptMessage As LongPtr 'DECRYPT_MESSAGE_FN
+    '#if OSVER(NTDDI_VERSION) > NTDDI_WIN2K
+    ' Fields below this are available in OSes after w2k
+    SetContextAttributesW As LongPtr 'SET_CONTEXT_ATTRIBUTES_FN_W
+    '#endif // greater thean 2K
+    '#if NTDDI_VERSION > NTDDI_WS03SP1
+    ' Fields below this are available in OSes after W2k3SP1
+    SetCredentialsAttributesW As LongPtr 'SET_CREDENTIALS_ATTRIBUTES_FN_W
+    '#endif
+    ChangeAccountPasswordW As LongPtr 'CHANGE_PASSInteger_FN_W
+    '#else
+    '    void *                      Reserved9;
+    '#endif
+    '#if NTDDI_VERSION > NTDDI_WINBLUE
+    ' Fields below this are available in OSes after Windows 8.1
+    QueryContextAttributesExW As LongPtr 'QUERY_CONTEXT_ATTRIBUTES_EX_FN_W
+    QueryCredentialsAttributesExW As LongPtr 'QUERY_CREDENTIALS_ATTRIBUTES_EX_FN_W
+    'endif
+End Type
+Public Type SecurityFunctionTable
+    dwVersion As Long
+    EnumerateSecurityPackagesW As LongPtr 'ENUMERATE_SECURITY_PACKAGES_FN_W
+    QueryCredentialsAttributesW As LongPtr 'QUERY_CREDENTIALS_ATTRIBUTES_FN_W
+    AcquireCredentialsHandleW As LongPtr 'ACQUIRE_CREDENTIALS_LongPtr_FN_W
+    FreeCredentialsHandle As LongPtr 'FREE_CREDENTIALS_LongPtr_FN
+    Reserved2 As LongPtr 'void*
+    InitializeSecurityContextW As LongPtr 'INITIALIZE_SECURITY_CONTEXT_FN_W
+    AcceptSecurityContext As LongPtr 'ACCEPT_SECURITY_CONTEXT_FN
+    CompleteAuthToken As LongPtr 'COMPLETE_AUTH_TOKEN_FN
+    DeleteSecurityContext As LongPtr 'DELETE_SECURITY_CONTEXT_FN
+    ApplyControlToken As LongPtr 'APPLY_CONTROL_TOKEN_FN
+    QueryContextAttributesW As LongPtr 'QUERY_CONTEXT_ATTRIBUTES_FN_W
+    ImpersonateSecurityContext As LongPtr 'IMPERSONATE_SECURITY_CONTEXT_FN
+    RevertSecurityContext As LongPtr 'REVERT_SECURITY_CONTEXT_FN
+    MakeSignature As LongPtr 'MAKE_SIGNATURE_FN
+    VerifySignature As LongPtr 'VERIFY_SIGNATURE_FN
+    FreeContextBuffer As LongPtr 'FREE_CONTEXT_BUFFER_FN
+    QuerySecurityPackageInfoW As LongPtr 'QUERY_SECURITY_PACKAGE_INFO_FN_W
+    Reserved3 As LongPtr 'void
+    Reserved4 As LongPtr 'void
+    ExportSecurityContext As LongPtr 'EXPORT_SECURITY_CONTEXT_FN
+    ImportSecurityContextW As LongPtr 'IMPORT_SECURITY_CONTEXT_FN_W
+    AddCredentialsW As LongPtr 'ADD_CREDENTIALS_FN_W                
+    Reserved8 As LongPtr 'void
+    QuerySecurityContextToken As LongPtr 'QUERY_SECURITY_CONTEXT_TOKEN_FN
+    EncryptMessage As LongPtr 'ENCRYPT_MESSAGE_FN
+    DecryptMessage As LongPtr 'DECRYPT_MESSAGE_FN
+    '#if OSVER(NTDDI_VERSION) > NTDDI_WIN2K
+    ' Fields below this are available in OSes after w2k
+    SetContextAttributesW As LongPtr 'SET_CONTEXT_ATTRIBUTES_FN_W
+    '#endif // greater thean 2K
+    '#if NTDDI_VERSION > NTDDI_WS03SP1
+    ' Fields below this are available in OSes after W2k3SP1
+    SetCredentialsAttributesW As LongPtr 'SET_CREDENTIALS_ATTRIBUTES_FN_W
+    '#endif
+    ChangeAccountPasswordW As LongPtr 'CHANGE_PASSInteger_FN_W
+    '#else
+    '    void *                      Reserved9;
+    '#endif
+    '#if NTDDI_VERSION > NTDDI_WINBLUE
+    ' Fields below this are available in OSes after Windows 8.1
+    QueryContextAttributesExW As LongPtr 'QUERY_CONTEXT_ATTRIBUTES_EX_FN_W
+    QueryCredentialsAttributesExW As LongPtr 'QUERY_CREDENTIALS_ATTRIBUTES_EX_FN_W
+    'endif
+End Type
+
+Public Enum SecuritySupportProviderIfaceVersions
+    SECURITY_SUPPORT_PROVIDER_INTERFACE_VERSION = 1  ' ntifs
+    '  Function table has all routines through SetContextAttributes
+    SECURITY_SUPPORT_PROVIDER_INTERFACE_VERSION_2 = 2  ' ntifs
+    '  Function table has all routines through SetCredentialsAttributes
+    SECURITY_SUPPORT_PROVIDER_INTERFACE_VERSION_3 = 3  ' ntifs
+    '  Function table has all routines through ChangeAccountPassword
+    SECURITY_SUPPORT_PROVIDER_INTERFACE_VERSION_4 = 4  ' ntifs
+    '  Function table has all routines through QueryCredentialsAttributesEx
+    SECURITY_SUPPORT_PROVIDER_INTERFACE_VERSION_5 = 5  ' ntifs
+End Enum
+
+
+Public Declare PtrSafe Function InitSecurityInterfaceA Lib "secur32" () As LongPtr 'PSecurityFunctionTableA
+Public Declare PtrSafe Function InitSecurityInterfaceW Lib "secur32" () As LongPtr 'PSecurityFunctionTableW
+Public DeclareWide PtrSafe Function InitSecurityInterface Lib "secur32" Alias "InitSecurityInterfaceW" () As LongPtr 'PSecurityFunctionTable
+Public Declare PtrSafe Function SaslEnumerateProfilesA Lib "secur32" (ProfileList As LongPtr, ProfileCount As Long) As Long
+Public Declare PtrSafe Function SaslEnumerateProfilesW Lib "secur32" (ProfileList As LongPtr, ProfileCount As Long) As Long
+Public DeclareWide PtrSafe Function SaslEnumerateProfiles Lib "secur32" Alias "SaslEnumerateProfilesW" (ProfileList As LongPtr, ProfileCount As Long) As Long
+Public Declare PtrSafe Function SaslGetProfilePackageA Lib "secur32" (ByVal ProfileName As String, PackageInfo As LongPtr) As Long
+Public Declare PtrSafe Function SaslGetProfilePackageW Lib "secur32" (ByVal ProfileName As LongPtr, PackageInfo As LongPtr) As Long
+Public DeclareWide PtrSafe Function SaslGetProfilePackage Lib "secur32" Alias "SaslGetProfilePackageW" (ByVal ProfileName As String, PackageInfo As LongPtr) As Long
+Public Declare PtrSafe Function SaslIdentifyPackageA Lib "secur32" (pInput As SecBufferDesc, PackageInfo As LongPtr) As Long
+Public Declare PtrSafe Function SaslIdentifyPackageW Lib "secur32" (pInput As SecBufferDesc, PackageInfo As LongPtr) As Long
+Public DeclareWide PtrSafe Function SaslIdentifyPackage Lib "secur32" Alias "SaslIdentifyPackageW" (pInput As SecBufferDesc, PackageInfo As LongPtr) As Long
+Public Declare PtrSafe Function SaslInitializeSecurityContextA Lib "secur32" (phCredential As CredHandle, phContext As CtxtHandle, ByVal pszTargetName As String, ByVal fContextReq As SecurityInitContextReqFlags, ByVal Reserved1 As Long, ByVal TargetDataRep As SecurityDataRepConstants, pInput As SecBufferDesc, ByVal Reserved2 As Long, phNewContext As CtxtHandle, pOutput As SecBufferDesc, pfContextAttr As SecurityInitContextRetFlags, ptsExpiry As LongLong) As Long
+Public Declare PtrSafe Function SaslInitializeSecurityContextW Lib "secur32" (phCredential As CredHandle, phContext As CtxtHandle, ByVal pszTargetName As LongPtr, ByVal fContextReq As SecurityInitContextReqFlags, ByVal Reserved1 As Long, ByVal TargetDataRep As SecurityDataRepConstants, pInput As SecBufferDesc, ByVal Reserved2 As Long, phNewContext As CtxtHandle, pOutput As SecBufferDesc, pfContextAttr As SecurityInitContextRetFlags, ptsExpiry As LongLong) As Long
+Public DeclareWide PtrSafe Function SaslInitializeSecurityContext Lib "secur32" Alias "SaslInitializeSecurityContextW" (phCredential As CredHandle, phContext As CtxtHandle, ByVal pszTargetName As String, ByVal fContextReq As SecurityInitContextReqFlags, ByVal Reserved1 As Long, ByVal TargetDataRep As SecurityDataRepConstants, pInput As SecBufferDesc, ByVal Reserved2 As Long, phNewContext As CtxtHandle, pOutput As SecBufferDesc, pfContextAttr As SecurityInitContextRetFlags, ptsExpiry As LongLong) As Long
+Public Declare PtrSafe Function SaslAcceptSecurityContext Lib "secur32" (phCredential As CredHandle, phContext As CtxtHandle, pInput As SecBufferDesc, ByVal fContextReq As SecurityAscReqFlags, ByVal TargetDataRep As SecurityDataRepConstants, phNewContext As CtxtHandle, pOutput As SecBufferDesc, pfContextAttr As SecurityAscRetFlags, ptsExpiry As LongLong) As Long
+
+Public Enum SecurityaslContextOptions
+    SASL_OPTION_SEND_SIZE = 1  ' Maximum size to send to peer
+    SASL_OPTION_RECV_SIZE = 2  ' Maximum size willing to receive
+    SASL_OPTION_AUTHZ_STRING = 3  ' Authorization string
+    SASL_OPTION_AUTHZ_PROCESSING = 4  ' Authorization string processing
+End Enum
+
+Public Enum SASL_AUTHZID_STATE
+    Sasl_AuthZIDForbidden = 0 ' allow no AuthZID strings to be specified - error out (default)
+    Sasl_AuthZIDProcessed = 1 ' AuthZID Strings processed by Application or SSP
+End Enum
+
+Public Declare PtrSafe Function SaslSetContextOption Lib "secur32" (ContextHandle As CtxtHandle, ByVal Option As SecurityaslContextOptions, Value As Any, ByVal Size As Long) As Long
+Public Declare PtrSafe Function SaslGetContextOption Lib "secur32" (ContextHandle As CtxtHandle, ByVal Option As SecurityaslContextOptions, Value As Any, ByVal Size As Long, Needed As Long) As Long
+
+Public Enum AuthIdentityEx2Versions
+    SEC_WINNT_AUTH_IDENTITY_VERSION_2 = &H201
+End Enum
+Public Type SEC_WINNT_AUTH_IDENTITY_EX2
+    Version As AuthIdentityEx2Versions ' contains SEC_WINNT_AUTH_IDENTITY_VERSION_2
+    cbHeaderLength As Integer
+    cbStructureLength As Long
+    UserOffset As Long ' Non-NULL terminated string, unicode only
+    UserLength As Integer ' # of bytes (NOT WCHARs), not including NULL.
+    DomainOffset As Long ' Non-NULL terminated string, unicode only
+    DomainLength As Integer ' # of bytes (NOT WCHARs), not including NULL.
+    PackedCredentialsOffset As Long ' Non-NULL terminated string, unicode only
+    PackedCredentialsLength As Integer ' # of bytes (NOT WCHARs), not including NULL.
+    Flags As SecAuthIdentityFlags
+    PackageListOffset As Long ' Non-NULL terminated string, unicode only
+    PackageListLength As Integer
+End Type
+
+
+Public Enum SecAuthIdentityFlags
+    SEC_WINNT_AUTH_IDENTITY_ANSI = &H1
+    SEC_WINNT_AUTH_IDENTITY_UNICODE = &H2
+    SEC_WINNT_AUTH_IDENTITY_FLAGS_PROCESS_ENCRYPTED = &H10
+'  the credential structure is protected by local system via
+'  RtlEncryptMemory(OptionFlags=RTL_ENCRYPT_OPTION_SAME_LOGON)
+    SEC_WINNT_AUTH_IDENTITY_FLAGS_SYSTEM_PROTECTED = &H20
+'  the credential structure is encrypted by a non-system context
+'  RtlEncryptMemory(OptionFlags=RTL_ENCRYPT_OPTION_SAME_LOGON)
+    SEC_WINNT_AUTH_IDENTITY_FLAGS_USER_PROTECTED = &H40
+'  the credential structure is encrypted with
+'  RtlEncryptMemory(OptionFlags=RTL_ENCRYPT_OPTION_FOR_SYSTEM)
+    SEC_WINNT_AUTH_IDENTITY_FLAGS_SYSTEM_ENCRYPTED = &H80
+    SEC_WINNT_AUTH_IDENTITY_FLAGS_RESERVED = &H10000
+    SEC_WINNT_AUTH_IDENTITY_FLAGS_NULL_USER = &H20000
+    SEC_WINNT_AUTH_IDENTITY_FLAGS_NULL_DOMAIN = &H40000
+    SEC_WINNT_AUTH_IDENTITY_FLAGS_ID_PROVIDER = &H80000
+'   These bits are for communication between SspiPromptForCredentials()
+'   and the credential providers. Do not use these bits for any other
+'   purpose.
+    SEC_WINNT_AUTH_IDENTITY_FLAGS_SSPIPFC_USE_MASK = &HFF000000
+'   Instructs the credential provider to not save credentials itself
+'   when caller selects the "Remember my credential" checkbox.
+    SEC_WINNT_AUTH_IDENTITY_FLAGS_SSPIPFC_CREDPROV_DO_NOT_SAVE = &H80000000
+'  Support the old name for this flag for callers that were built for earlier
+'  versions of the SDK.
+    SEC_WINNT_AUTH_IDENTITY_FLAGS_SSPIPFC_SAVE_CRED_BY_CALLER = SEC_WINNT_AUTH_IDENTITY_FLAGS_SSPIPFC_CREDPROV_DO_NOT_SAVE
+'   State of the "Remember my credentials" checkbox.
+'   When set, indicates checked; when cleared, indicates unchecked.
+    SEC_WINNT_AUTH_IDENTITY_FLAGS_SSPIPFC_SAVE_CRED_CHECKED = &H40000000
+'  The "Save" checkbox is not displayed on the credential provider tiles
+    SEC_WINNT_AUTH_IDENTITY_FLAGS_SSPIPFC_NO_CHECKBOX = &H20000000
+'  Credential providers will not attempt to prepopulate the CredUI dialog
+'  box with credentials retrieved from Cred Man.
+    SEC_WINNT_AUTH_IDENTITY_FLAGS_SSPIPFC_CREDPROV_DO_NOT_LOAD = &H10000000
+    SEC_WINNT_AUTH_IDENTITY_FLAGS_VALID_SSPIPFC_FLAGS = (SEC_WINNT_AUTH_IDENTITY_FLAGS_SSPIPFC_CREDPROV_DO_NOT_SAVE Or SEC_WINNT_AUTH_IDENTITY_FLAGS_SSPIPFC_SAVE_CRED_CHECKED Or SEC_WINNT_AUTH_IDENTITY_FLAGS_SSPIPFC_NO_CHECKBOX Or SEC_WINNT_AUTH_IDENTITY_FLAGS_SSPIPFC_CREDPROV_DO_NOT_LOAD)
+End Enum
+Public Type SEC_WINNT_AUTH_IDENTITY_A
+    User As String '  Non-NULL terminated string.
+    UserLength As Long '  # of characters (NOT bytes), not including NULL.
+    Domain As String '  Non-NULL terminated string.
+    DomainLength As Long '  # of characters (NOT bytes), not including NULL.
+    Password As String '  Non-NULL terminated string.
+    PasswordLength As Long '  # of characters (NOT bytes), not including NULL.
+    Flags As SecAuthIdentityFlags
+End Type
+Public Type SEC_WINNT_AUTH_IDENTITY_W
+    User As LongPtr '  Non-NULL terminated string.
+    UserLength As Long '  # of characters (NOT bytes), not including NULL.
+    Domain As LongPtr '  Non-NULL terminated string.
+    DomainLength As Long '  # of characters (NOT bytes), not including NULL.
+    Password As LongPtr '  Non-NULL terminated string.
+    PasswordLength As Long '  # of characters (NOT bytes), not including NULL.
+    Flags As SecAuthIdentityFlags
+End Type
+Public Type SEC_WINNT_AUTH_IDENTITY
+    User As LongPtr '  Non-NULL terminated string.
+    UserLength As Long '  # of characters (NOT bytes), not including NULL.
+    Domain As LongPtr '  Non-NULL terminated string.
+    DomainLength As Long '  # of characters (NOT bytes), not including NULL.
+    Password As LongPtr '  Non-NULL terminated string.
+    PasswordLength As Long '  # of characters (NOT bytes), not including NULL.
+    Flags As SecAuthIdentityFlags
+End Type
+
+Public Type SEC_WINNT_AUTH_IDENTITY_EXA
+    Version As Long
+    Length As Long
+    User As String '  Non-NULL terminated string.
+    UserLength As Long '  # of characters (NOT bytes), not including NULL.
+    Domain As String '  Non-NULL terminated string.
+    DomainLength As Long '  # of characters (NOT bytes), not including NULL.
+    Password As String '  Non-NULL terminated string.
+    PasswordLength As Long '  # of characters (NOT bytes), not including NULL.
+    Flags As Long
+    PackageList As LongPtr
+    PackageListLength As Long
+End Type
+Public Type SEC_WINNT_AUTH_IDENTITY_EXW
+    Version As Long
+    Length As Long
+    User As LongPtr '  Non-NULL terminated string.
+    UserLength As Long '  # of characters (NOT bytes), not including NULL.
+    Domain As LongPtr '  Non-NULL terminated string.
+    DomainLength As Long '  # of characters (NOT bytes), not including NULL.
+    Password As LongPtr '  Non-NULL terminated string.
+    PasswordLength As Long '  # of characters (NOT bytes), not including NULL.
+    Flags As Long
+    PackageList As LongPtr
+    PackageListLength As Long
+End Type
+Public Type SEC_WINNT_AUTH_IDENTITY_EX
+    Version As Long
+    Length As Long
+    User As LongPtr '  Non-NULL terminated string.
+    UserLength As Long '  # of characters (NOT bytes), not including NULL.
+    Domain As LongPtr '  Non-NULL terminated string.
+    DomainLength As Long '  # of characters (NOT bytes), not including NULL.
+    Password As LongPtr '  Non-NULL terminated string.
+    PasswordLength As Long '  # of characters (NOT bytes), not including NULL.
+    Flags As Long
+    PackageList As LongPtr
+    PackageListLength As Long
+End Type
+
+Public Type /* Union */ SEC_WINNT_AUTH_IDENTITY_INFO
+    ' typedef union _SEC_WINNT_AUTH_IDENTITY_INFO {
+    ' SEC_WINNT_AUTH_IDENTITY_EXW AuthIdExw;
+    ' SEC_WINNT_AUTH_IDENTITY_EXA AuthIdExa;
+    ' SEC_WINNT_AUTH_IDENTITY_A AuthId_a;
+    ' SEC_WINNT_AUTH_IDENTITY_W AuthId_w;
+    ' SEC_WINNT_AUTH_IDENTITY_EX2 AuthIdEx2;
+' } SEC_WINNT_AUTH_IDENTITY_INFO,
+  #If Win64 Then
+  AuthId(71) As Byte
+  #Else
+  AuthId(47) As Byte
+  #End If
+End Type
+
+Public Enum SSPIPFC_Flags
+    SSPIPFC_CREDPROV_DO_NOT_SAVE = &H00000001
+'  Support the old name for this flag for callers that were built for earlier
+'  versions of the SDK.
+    SSPIPFC_SAVE_CRED_BY_CALLER = SSPIPFC_CREDPROV_DO_NOT_SAVE
+'  The password and smart card credential providers will not display the
+'  "Remember my credentials" check box in the provider tiles.
+    SSPIPFC_NO_CHECKBOX = &H00000002
+'  Credential providers will not attempt to prepopulate the CredUI dialog
+'  box with credentials retrieved from Cred Man.
+    SSPIPFC_CREDPROV_DO_NOT_LOAD = &H00000004
+'  Credential providers along with UI Dialog will be hosted in a separate
+'  broker process.
+    SSPIPFC_USE_CREDUIBROKER = &H00000008
+    SSPIPFC_VALID_FLAGS = (SSPIPFC_CREDPROV_DO_NOT_SAVE Or SSPIPFC_NO_CHECKBOX Or SSPIPFC_CREDPROV_DO_NOT_LOAD Or SSPIPFC_USE_CREDUIBROKER)
+End Enum
+
+Public Declare PtrSafe Function SspiPromptForCredentialsA Lib "credui" (ByVal pszTargetName As String, pUiInfo As CREDUI_INFOA, ByVal dwAuthError As Long, ByVal pszPackage As String, ByVal pInputAuthIdentity As LongPtr, ppAuthIdentity As LongPtr, pfSave As Long, ByVal dwFlags As SSPIPFC_Flags) As Long
+Public Declare PtrSafe Function SspiPromptForCredentialsW Lib "credui" (ByVal pszTargetName As LongPtr, pUiInfo As CREDUI_INFOW, ByVal dwAuthError As Long, ByVal pszPackage As LongPtr, ByVal pInputAuthIdentity As LongPtr, ppAuthIdentity As LongPtr, pfSave As Long, ByVal dwFlags As SSPIPFC_Flags) As Long
+Public DeclareWide PtrSafe Function SspiPromptForCredentials Lib "credui" Alias "SspiPromptForCredentialsW" (ByVal pszTargetName As String, pUiInfo As CREDUI_INFO, ByVal dwAuthError As Long, ByVal pszPackage As String, ByVal pInputAuthIdentity As LongPtr, ppAuthIdentity As LongPtr, pfSave As Long, ByVal dwFlags As SSPIPFC_Flags) As Long
+
+Public Type SEC_WINNT_AUTH_BYTE_VECTOR
+    ByteArrayOffset As Long ' each element is a byte
+    ByteArrayLength As Integer '
+End Type
+
+Public Type SEC_WINNT_AUTH_DATA
+    CredType As UUID
+    CredData As SEC_WINNT_AUTH_BYTE_VECTOR
+End Type
+Public Type SEC_WINNT_AUTH_PACKED_CREDENTIALS
+    cbHeaderLength As Integer ' the length of the header
+    cbStructureLength As Integer ' pay load length including the header
+    AuthData As SEC_WINNT_AUTH_DATA
+End Type
+
+Public Type SEC_WINNT_AUTH_DATA_PASSWORD
+    UnicodePassword As SEC_WINNT_AUTH_BYTE_VECTOR
+End Type
+Public Type SEC_WINNT_AUTH_CERTIFICATE_DATA
+    cbHeaderLength As Integer
+    cbStructureLength As Integer
+    Certificate As SEC_WINNT_AUTH_BYTE_VECTOR
+End Type
+
+Public Enum SecAuthNgcDataFlags
+    NGC_DATA_FLAG_KERB_CERTIFICATE_LOGON_FLAG_CHECK_DUPLICATES = (&H1)  'corresponds to KERB_CERTIFICATE_LOGON_FLAG_CHECK_DUPLICATES
+    NGC_DATA_FLAG_KERB_CERTIFICATE_LOGON_FLAG_USE_CERTIFICATE_INFO = (&H2)  'corresponds to  KERB_CERTIFICATE_LOGON_FLAG_USE_CERTIFICATE_INFO
+    NGC_DATA_FLAG_IS_SMARTCARD_DATA = (&H4)
+    NGC_DATA_FLAG_IS_CLOUD_TRUST_CRED = (&H8)  ' credential should be treated as "cloud trust" - use Cloud TGTs instead of on-prem PKINIT
+End Enum
+Public Type SEC_WINNT_AUTH_NGC_DATA
+    LogonId As LUID
+    Flags As SecAuthNgcDataFlags
+    CspInfo As SEC_WINNT_AUTH_BYTE_VECTOR
+    UserIdKeyAuthTicket As SEC_WINNT_AUTH_BYTE_VECTOR
+    DecryptionKeyName As SEC_WINNT_AUTH_BYTE_VECTOR
+    DecryptionKeyAuthTicket As SEC_WINNT_AUTH_BYTE_VECTOR
+End Type
+
+Public Type SEC_WINNT_AUTH_DATA_TYPE_SMARTCARD_CONTEXTS_DATA
+    pcc As LongPtr
+    hProv As LongPtr
+    pwszECDHKeyName As LongPtr ' only optionally set for ECDSA smartcards
+End Type
+
+Public Type SEC_WINNT_AUTH_FIDO_DATA
+    cbHeaderLength As Integer
+    cbStructureLength As Integer
+    Secret As SEC_WINNT_AUTH_BYTE_VECTOR ' offsets are from the beginning of this structure
+    NewSecret As SEC_WINNT_AUTH_BYTE_VECTOR
+    EncryptedNewSecret As SEC_WINNT_AUTH_BYTE_VECTOR ' For storage by cloud AP
+    NetworkLogonBuffer As SEC_WINNT_AUTH_BYTE_VECTOR ' Opaque data, understood by plugin, may contain signed Nonce and other data to perform a network logon
+    ulSignatureCount As LongLong ' signature count to be stored in public cached info, required for CredProv
+End Type
+
+Public Type SEC_WINNT_CREDUI_CONTEXT_VECTOR
+    CredUIContextArrayOffset As Long ' offset starts at the beginning of
+    ' this structure, and each element is a SEC_WINNT_AUTH_BYTE_VECTOR that
+    ' describes the flat CredUI context returned by SpGetCredUIContext()
+    CredUIContextCount As Integer
+End Type
+
+Public Type SEC_WINNT_AUTH_SHORT_VECTOR
+    ShortArrayOffset As Long ' each element is a short
+    ShortArrayCount As Integer ' number of characters
+End Type
+
+Public Declare PtrSafe Function SspiGetCredUIContext Lib "credui" (ByVal ContextHandle As LongPtr, CredType As UUID, LogonId As LUID, CredUIContexts As LongPtr, TokenHandle As LongPtr) As Long
+Public Declare PtrSafe Function SspiUpdateCredentials Lib "credui" (ByVal ContextHandle As LongPtr, CredType As UUID, ByVal FlatCredUIContextLength As Long, FlatCredUIContext As Any) As Long
+
+Public Type CREDUIWIN_MARSHALED_CONTEXT
+    StructureType As UUID
+    cbHeaderLength As Integer
+    LogonId As LUID ' user's logon id
+    MarshaledDataType As UUID
+    MarshaledDataOffset As Long
+    MarshaledDataLength As Integer
+End Type
+
+Public Type SEC_WINNT_CREDUI_CONTEXT
+    cbHeaderLength As Integer
+    CredUIContextHandle As LongPtr ' the handle to call SspiGetCredUIContext()
+    UIInfo As LongPtr 'PCREDUI_INFOW ' input from SspiPromptForCredentials()
+    dwAuthError As Long ' the authentication error
+    pInputAuthIdentity As LongPtr 'PSEC_WINNT_AUTH_IDENTITY_OPAQUE
+    TargetName As LongPtr 'PUNICODE_STRING
+End Type
+
+Public Type SEC_WINNT_AUTH_PACKED_CREDENTIALS_EX
+    cbHeaderLength As Integer
+    Flags As Long ' contains the Flags field in
+    ' SEC_WINNT_AUTH_IDENTITY_EX
+    PackedCredentials As SEC_WINNT_AUTH_BYTE_VECTOR
+    PackageList As SEC_WINNT_AUTH_SHORT_VECTOR
+End Type
+
+Public Declare PtrSafe Function SspiUnmarshalCredUIContext Lib "credui" (ByVal MarshaledCredUIContext As LongPtr, ByVal MarshaledCredUIContextLength As Long, CredUIContext As LongPtr) As Long
+
+Public Declare PtrSafe Function SspiPrepareForCredRead Lib "sspicli" (ByVal AuthIdentity As LongPtr, ByVal pszTargetName As LongPtr, pCredmanCredentialType As WinCredTypes, ppszCredmanTargetName As LongPtr) As Long
+Public Declare PtrSafe Function SspiPrepareForCredWrite Lib "sspicli" (ByVal AuthIdentity As LongPtr, ByVal pszTargetName As LongPtr, pCredmanCredentialType As WinCredTypes, ppszCredmanTargetName As LongPtr, ppszCredmanUserName As LongPtr, ppCredentialBlob As LongPtr, pCredentialBlobSize As Long) As Long
+
+Public Enum SecAuthIdentityCryptoFlags
+    SEC_WINNT_AUTH_IDENTITY_ENCRYPT_SAME_LOGON = &H1
+    SEC_WINNT_AUTH_IDENTITY_ENCRYPT_SAME_PROCESS = &H2
+    SEC_WINNT_AUTH_IDENTITY_ENCRYPT_FOR_SYSTEM = &H4
+End Enum
+
+Public Declare PtrSafe Function SspiEncryptAuthIdentity Lib "sspicli" (ByVal AuthData As LongPtr) As Long
+Public Declare PtrSafe Function SspiEncryptAuthIdentityEx Lib "sspicli" (ByVal Options As SecAuthIdentityCryptoFlags, ByVal AuthData As LongPtr) As Long
+Public Declare PtrSafe Function SspiDecryptAuthIdentity Lib "sspicli" (ByVal EncryptedAuthData As LongPtr) As Long
+Public Declare PtrSafe Function SspiDecryptAuthIdentityEx Lib "sspicli" (ByVal Options As SecAuthIdentityCryptoFlags, ByVal EncryptedAuthData As LongPtr) As Long
+Public Declare PtrSafe Function SspiIsAuthIdentityEncrypted Lib "sspicli" (ByVal EncryptedAuthData As LongPtr) As Byte
+Public Declare PtrSafe Function SspiEncodeAuthIdentityAsStrings Lib "sspicli" (ByVal AuthIdentity As LongPtr, ppszUserName As LongPtr, ppszDomainName As LongPtr, ppszPackedCredentialsString As LongPtr) As Long
+Public Declare PtrSafe Function SspiValidateAuthIdentity Lib "sspicli" (ByVal AuthData As LongPtr) As Long
+Public Declare PtrSafe Function SspiCopyAuthIdentity Lib "sspicli" (ByVal AuthData As LongPtr, AuthDataCopy As LongPtr) As Long
+Public Declare PtrSafe Function SspiFreeAuthIdentity Lib "sspicli" (ByVal AuthData As LongPtr) As Long
+Public Declare PtrSafe Function SspiZeroAuthIdentity Lib "sspicli" (ByVal AuthData As LongPtr) As Long
+Public Declare PtrSafe Sub SspiLocalFree Lib "sspicli" (ByVal DataBuffer As LongPtr)
+Public Declare PtrSafe Function SspiEncodeStringsAsAuthIdentity Lib "sspicli" (ByVal pszUserName As LongPtr, ByVal pszDomainName As LongPtr, ByVal pszPackedCredentialsString As LongPtr, ppAuthIdentity As LongPtr) As Long
+Public Declare PtrSafe Function SspiCompareAuthIdentities Lib "sspicli" (ByVal AuthIdentity1 As LongPtr, ByVal AuthIdentity2 As LongPtr, SameSuppliedUser As Byte, SameSuppliedIdentity As Byte) As Long
+Public Declare PtrSafe Function SspiMarshalAuthIdentity Lib "sspicli" (ByVal AuthIdentity As LongPtr, AuthIdentityLength As Long, AuthIdentityByteArray As LongPtr) As Long
+Public Declare PtrSafe Function SspiUnmarshalAuthIdentity Lib "sspicli" (ByVal AuthIdentityLength As Long, AuthIdentityByteArray As Any, ppAuthIdentity As LongPtr) As Long
+
+Public Declare PtrSafe Function SspiIsPromptingNeeded Lib "credui" (ByVal ErrorOrNtStatus As Long) As Byte
+
+Public Declare PtrSafe Function SspiGetTargetHostName Lib "sspicli" (ByVal pszTargetName As LongPtr, pszHostName As LongPtr) As Long
+Public Declare PtrSafe Function SspiExcludePackage Lib "sspicli" (ByVal AuthIdentity As LongPtr, ByVal pszPackageName As LongPtr, ppNewAuthIdentity As LongPtr) As Long
+
+Public Enum SecSetChannelBindingFlags
+    SEC_WINNT_AUTH_IDENTITY_MARSHALLED = &H4  ' all data is in one buffer
+    SEC_WINNT_AUTH_IDENTITY_ONLY = &H8  ' these credentials are for identity only - no PAC needed
+End Enum
+
+Public Declare PtrSafe Function SspiSetChannelBindingFlags Lib "sspicli" (pBindings As SecPkgContext_Bindings, ByVal flags As SecSetChannelBindingFlags) As Long
+
+Public Enum SecPackageOptionTypes
+    SECPKG_OPTIONS_TYPE_UNKNOWN = 0
+    SECPKG_OPTIONS_TYPE_LSA = 1
+    SECPKG_OPTIONS_TYPE_SSPI = 2
+End Enum
+Public Enum SecPackageOptionFlags
+    SECPKG_OPTIONS_PERMANENT = &H1
+End Enum
+Public Type SECURITY_PACKAGE_OPTIONS
+    Size As Long
+    Type As SecPackageOptionTypes
+    Flags As SecPackageOptionFlags
+    SignatureSize As Long
+    Signature As LongPtr 'void*
+End Type
+
+Public Declare PtrSafe Function AddSecurityPackageA Lib "secur32" (ByVal pszPackageName As String, pOptions As SECURITY_PACKAGE_OPTIONS) As Long
+Public Declare PtrSafe Function AddSecurityPackageW Lib "secur32" (ByVal pszPackageName As LongPtr, pOptions As SECURITY_PACKAGE_OPTIONS) As Long
+Public DeclareWide PtrSafe Function AddSecurityPackage Lib "secur32" Alias "AddSecurityPackageW" (ByVal pszPackageName As String, pOptions As SECURITY_PACKAGE_OPTIONS) As Long
+Public Declare PtrSafe Function DeleteSecurityPackageA Lib "secur32" (ByVal pszPackageName As String) As Long
+Public Declare PtrSafe Function DeleteSecurityPackageW Lib "secur32" (ByVal pszPackageName As LongPtr) As Long
+Public DeclareWide PtrSafe Function DeleteSecurityPackage Lib "secur32" Alias "DeleteSecurityPackageW" (ByVal pszPackageName As String) As Long
+
+
+/*
+minschannel.h
+100% coverage
+*/
+
+Public Enum SecPkgExtendedAttributes
+    SECPKG_ATTR_ISSUER_LIST = &H50  ' (OBSOLETE) returns SecPkgContext_IssuerListInfo
+    SECPKG_ATTR_REMOTE_CRED = &H51  ' (OBSOLETE) returns SecPkgContext_RemoteCredentialInfo
+    SECPKG_ATTR_LOCAL_CRED = &H52  ' (OBSOLETE) returns SecPkgContext_LocalCredentialInfo
+    SECPKG_ATTR_REMOTE_CERT_CONTEXT = &H53  ' returns PCCERT_CONTEXT
+    SECPKG_ATTR_LOCAL_CERT_CONTEXT = &H54  ' returns PCCERT_CONTEXT
+    SECPKG_ATTR_ROOT_STORE = &H55  ' returns HCERTCONTEXT to the root store
+    SECPKG_ATTR_SUPPORTED_ALGS = &H56  ' returns SecPkgCred_SupportedAlgs
+    SECPKG_ATTR_CIPHER_STRENGTHS = &H57  ' returns SecPkgCred_CipherStrengths
+    SECPKG_ATTR_SUPPORTED_PROTOCOLS = &H58  ' returns SecPkgCred_SupportedProtocols
+    SECPKG_ATTR_ISSUER_LIST_EX = &H59  ' returns SecPkgContext_IssuerListInfoEx
+    SECPKG_ATTR_CONNECTION_INFO = &H5a  ' returns SecPkgContext_ConnectionInfo
+    SECPKG_ATTR_EAP_KEY_BLOCK = &H5b  ' returns SecPkgContext_EapKeyBlock
+    SECPKG_ATTR_MAPPED_CRED_ATTR = &H5c  ' returns SecPkgContext_MappedCredAttr
+    SECPKG_ATTR_SESSION_INFO = &H5d  ' returns SecPkgContext_SessionInfo
+    SECPKG_ATTR_APP_DATA = &H5e  ' sets/returns SecPkgContext_SessionAppData
+    SECPKG_ATTR_REMOTE_CERTIFICATES = &H5F  ' returns SecPkgContext_Certificates
+    SECPKG_ATTR_CLIENT_CERT_POLICY = &H60  ' sets    SecPkgCred_ClientCertCtlPolicy
+    SECPKG_ATTR_CC_POLICY_RESULT = &H61  ' returns SecPkgContext_ClientCertPolicyResult
+    SECPKG_ATTR_USE_NCRYPT = &H62  ' Sets the CRED_FLAG_USE_NCRYPT_PROVIDER FLAG on cred group
+    SECPKG_ATTR_LOCAL_CERT_INFO = &H63  ' returns SecPkgContext_CertInfo
+    SECPKG_ATTR_CIPHER_INFO = &H64  ' returns new CNG SecPkgContext_CipherInfo
+    SECPKG_ATTR_EAP_PRF_INFO = &H65  ' sets    SecPkgContext_EapPrfInfo
+    SECPKG_ATTR_SUPPORTED_SIGNATURES = &H66  ' returns SecPkgContext_SupportedSignatures
+    SECPKG_ATTR_REMOTE_CERT_CHAIN = &H67  ' returns PCCERT_CONTEXT
+    SECPKG_ATTR_UI_INFO = &H68  ' sets SEcPkgContext_UiInfo
+    SECPKG_ATTR_EARLY_START = &H69  ' sets SecPkgContext_EarlyStart
+    SECPKG_ATTR_KEYING_MATERIAL_INFO = &H6a  ' sets SecPkgContext_KeyingMaterialInfo
+    SECPKG_ATTR_KEYING_MATERIAL = &H6b  ' returns SecPkgContext_KeyingMaterial
+    SECPKG_ATTR_SRTP_PARAMETERS = &H6c  ' returns negotiated SRTP parameters
+    SECPKG_ATTR_TOKEN_BINDING = &H6d  ' returns SecPkgContext_TokenBinding
+    SECPKG_ATTR_CONNECTION_INFO_EX = &H6e  ' returns SecPkgContext_ConnectionInfoEx
+    SECPKG_ATTR_KEYING_MATERIAL_TOKEN_BINDING = &H6f  ' returns SecPkgContext_KeyingMaterial specific to Token Binding
+    SECPKG_ATTR_KEYING_MATERIAL_INPROC = &H70  ' returns SecPkgContext_KeyingMaterial_Inproc
+    SECPKG_ATTR_CERT_CHECK_RESULT = &H71  ' returns SecPkgContext_CertificateValidationResult, use during and after SSPI handshake loop
+    SECPKG_ATTR_CERT_CHECK_RESULT_INPROC = &H72  ' returns SecPkgContext_CertificateValidationResult, use only after SSPI handshake loop
+    SECPKG_ATTR_SESSION_TICKET_KEYS = &H73  ' sets    SecPkgCred_SessionTicketKeys
+    SECPKG_ATTR_SERIALIZED_REMOTE_CERT_CONTEXT_INPROC = &H74  ' returns CERT_BLOB, use only after SSPI handshake loop
+    SECPKG_ATTR_SERIALIZED_REMOTE_CERT_CONTEXT = &H75  ' returns CERT_BLOB, use during and after SSPI handshake loop
+End Enum
+
+Public Type SecPkgCred_SupportedAlgs
+    cSupportedAlgs As Long
+    palgSupportedAlgs As LongPtr '*ALG_ID
+End Type
+
+Public Type SecPkgCred_CipherStrengths
+    dwMinimumCipherStrength As Long
+    dwMaximumCipherStrength As Long
+End Type
+
+Public Type SecPkgCred_SupportedProtocols
+    grbitProtocol As Long
+End Type
+
+Public Type SecPkgCred_ClientCertPolicy
+    dwFlags As Long
+    guidPolicyId As UUID
+    dwCertFlags As CryptCertChainFlags
+    dwUrlRetrievalTimeout As Long
+    fCheckRevocationFreshnessTime As BOOL
+    dwRevocationFreshnessTime As Long
+    fOmitUsageCheck As BOOL
+    pwszSslCtlStoreName As LongPtr
+    pwszSslCtlIdentifier As LongPtr
+End Type
+
+Public Enum SessionTicketVersionDefs
+    SESSION_TICKET_INFO_V0 = 0
+    SESSION_TICKET_INFO_VERSION = SESSION_TICKET_INFO_V0
+End Enum
+
+Public Type SecPkgCred_SessionTicketKey
+    TicketInfoVersion As Long ' Set to SESSION_TICKET_INFO_VERSION for the current session ticket protection method.
+    KeyId(0 To 15) As Byte ' Uniquely identifies each session ticket key issued by a TLS server.
+    KeyingMaterial(0 To 63) As Byte ' Must be generated using a cryptographic RNG.
+    KeyingMaterialSize As Byte ' Size in bytes of the keying material in the KeyingMaterial array. Must be between 32 and 64.
+End Type
+
+Public Type SecPkgCred_SessionTicketKeys
+    cSessionTicketKeys As Long ' Up to 16 keys.
+    pSessionTicketKeys As LongPtr 'PSecPkgCred_SessionTicketKey
+End Type
+
+/*
+credssp.h
+100% coverage
+*/
+
+Public Const CREDSSP_NAME  = "CREDSSP"
+Public Const TS_SSP_NAME_A  = "TSSSP"
+Public Const TS_SSP_NAME  = "TSSSP"
+Public Const szOID_TS_KP_TS_SERVER_AUTH  = "1.3.6.1.4.1.311.54.1.2"
+
+Public Type SecPkgContext_ClientCreds
+    AuthBufferLen As Long
+    AuthBuffer As LongPtr 'PUCHAR
+End Type
+
+Public Enum CredSspServerAuthTypes
+    CREDSSP_SERVER_AUTH_NEGOTIATE = &H1
+    CREDSSP_SERVER_AUTH_CERTIFICATE = &H2
+    CREDSSP_SERVER_AUTH_LOOPBACK = &H4
+End Enum
+
+Public Enum SecPkgCredAttributes
+    SECPKG_ALT_ATTR = &H80000000
+    SECPKG_ATTR_CREDS = &H80000080
+    SECPKG_ATTR_NEGOTIATION_PACKAGE = &H80000081
+    SECPKG_ATTR_C_ACCESS_TOKEN = (SECPKG_ATTR_ACCESS_TOKEN Or SECPKG_ALT_ATTR)
+    SECPKG_ATTR_C_FULL_ACCESS_TOKEN = &H80000082
+    SECPKG_ATTR_SERVER_AUTH_FLAGS = &H80000083
+    SECPKG_ATTR_CERT_TRUST_STATUS = &H80000084
+    SECPKG_ATTR_C_FULL_IDENT_TOKEN = &H80000085
+    SECPKG_ATTR_CREDS_2 = &H80000086
+End Enum
+
+Public Enum CREDSSP_SUBMIT_TYPE
+    CredsspPasswordCreds = 2
+    CredsspSchannelCreds = 4
+    CredsspCertificateCreds = 13
+    CredsspSubmitBufferBoth = 50
+    CredsspSubmitBufferBothOld = 51
+    CredsspCredEx = 100
+End Enum
+
+Public Type CREDSSP_CRED
+    Type As CREDSSP_SUBMIT_TYPE
+    pSchannelCred As LongPtr
+    pSpnegoCred As LongPtr
+End Type
+
+Public Enum CredSspCredExVerions
+    CREDSSP_CRED_EX_VERSION = 0
+End Enum
+Public Enum CredSspFlags
+    CREDSSP_FLAG_REDIRECT = &H1
+End Enum
+Public Type CREDSSP_CRED_EX
+    Type As CREDSSP_SUBMIT_TYPE ' must be CredsspCredEx
+    Version As CredSspCredExVerions ' must be CREDSSP_CRED_EX_VERSION
+    Flags As CredSspFlags
+    Reserved As Long
+    Cred As CREDSSP_CRED
+End Type
+
+
+
+/*
+secext.h
+Coverage: 100%
+*/
+Public Enum EXTENDED_NAME_FORMAT
+    '  unknown name type
+    NameUnknown = 0
+    '  CN=John Doe, OU=Software, OU=Engineering, O=Widget, C=US
+    NameFullyQualifiedDN = 1
+    '  Engineering\JohnDoe
+    NameSamCompatible = 2
+    '  Probably "John Doe" but could be something else.  I.e. The
+    '  display name is not necessarily the defining RDN.
+    NameDisplay = 3
+    '  String-ized GUID as returned by IIDFromString().
+    '  eg: {4fa050f0-f561-11cf-bdd9-00aa003a77b6}
+    NameUniqueId = 6
+    '  engineering.widget.com/software/John Doe
+    NameCanonical = 7
+    '  someone@example.com
+    NameUserPrincipal = 8
+    '  Same as NameCanonical except that rightmost '/' is
+    '  replaced with '\n' - even in domain-only case.
+    '  eg: engineering.widget.com/software\nJohn Doe
+    NameCanonicalEx = 9
+    '  www/srv.engineering.com/engineering.com
+    NameServicePrincipal = 10
+    '  DNS domain name + SAM username
+    '  eg: engineering.widget.com\JohnDoe
+    NameDnsDomain = 12
+    NameGivenName = 13
+    NameSurname = 14
+End Enum
+Public Declare PtrSafe Function GetUserNameExA Lib "secur32" (ByVal NameFormat As EXTENDED_NAME_FORMAT, ByVal lpNameBuffer As String, nSize As Long) As Byte
+Public Declare PtrSafe Function GetUserNameExW Lib "secur32" (ByVal NameFormat As EXTENDED_NAME_FORMAT, ByVal lpNameBuffer As LongPtr, nSize As Long) As Byte
+Public DeclareWide PtrSafe Function GetUserNameEx Lib "secur32" Alias "GetUserNameExW" (ByVal NameFormat As EXTENDED_NAME_FORMAT, ByVal lpNameBuffer As String, nSize As Long) As Byte
+Public Declare PtrSafe Function GetComputerObjectNameExA Lib "secur32" (ByVal NameFormat As EXTENDED_NAME_FORMAT, ByVal lpNameBuffer As String, nSize As Long) As Byte
+Public Declare PtrSafe Function GetComputerObjectNameExW Lib "secur32" (ByVal NameFormat As EXTENDED_NAME_FORMAT, ByVal lpNameBuffer As LongPtr, nSize As Long) As Byte
+Public DeclareWide PtrSafe Function GetComputerObjectNameEx Lib "secur32" Alias "GetComputerObjectNameExW" (ByVal NameFormat As EXTENDED_NAME_FORMAT, ByVal lpNameBuffer As String, nSize As Long) As Byte
+Public Declare PtrSafe Function TranslateNameA Lib "secur32" (ByVal lpAccountName As String, ByVal AccountNameFormat As EXTENDED_NAME_FORMAT, ByVal DesiredNameFormat As EXTENDED_NAME_FORMAT, ByVal lpTranslatedName As String, nSize As Long) As Byte
+Public Declare PtrSafe Function TranslateNameW Lib "secur32" (ByVal lpAccountName As LongPtr, ByVal AccountNameFormat As EXTENDED_NAME_FORMAT, ByVal DesiredNameFormat As EXTENDED_NAME_FORMAT, ByVal lpTranslatedName As LongPtr, nSize As Long) As Byte
+Public DeclareWide PtrSafe Function TranslateName Lib "secur32" Alias "TranslateNameW" (ByVal lpAccountName As String, ByVal AccountNameFormat As EXTENDED_NAME_FORMAT, ByVal DesiredNameFormat As EXTENDED_NAME_FORMAT, ByVal lpTranslatedName As String, nSize As Long) As Byte
+
+
+
+'sspi.h GUIDs
+
+Public Function SEC_WINNT_AUTH_DATA_TYPE_PASSWORD() As UUID
+'{28BFC32F-10F6-4738-98D1-1AC061DF716A}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H28BFC32F, CInt(&H10F6), CInt(&H4738), &H98, &HD1, &H1A, &HC0, &H61, &HDF, &H71, &H6A)
+ SEC_WINNT_AUTH_DATA_TYPE_PASSWORD = iid
+End Function
+Public Function SEC_WINNT_AUTH_DATA_TYPE_CERT() As UUID
+'{235F69AD-73FB-4dbc-8203-0629E739339B}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H235F69AD, CInt(&H73FB), CInt(&H4dbc), &H82, &H03, &H06, &H29, &HE7, &H39, &H33, &H9B)
+ SEC_WINNT_AUTH_DATA_TYPE_CERT = iid
+End Function
+Public Function SEC_WINNT_AUTH_DATA_TYPE_CREDMAN_CERT() As UUID
+'{7CB72412-1016-491A-8C87-4D2AA1B7DD3A}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H7CB72412, CInt(&H1016), CInt(&H491A), &H8C, &H87, &H4D, &H2A, &HA1, &HB7, &HDD, &H3A)
+ SEC_WINNT_AUTH_DATA_TYPE_CREDMAN_CERT = iid
+End Function
+Public Function SEC_WINNT_AUTH_DATA_TYPE_NGC() As UUID
+'{10A47879-5EBF-4B85-BD8D-C21BB4F49C8A}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H10A47879, CInt(&H5EBF), CInt(&H4B85), &HBD, &H8D, &HC2, &H1B, &HB4, &HF4, &H9C, &H8A)
+ SEC_WINNT_AUTH_DATA_TYPE_NGC = iid
+End Function
+Public Function SEC_WINNT_AUTH_DATA_TYPE_FIDO() As UUID
+'{32E8F8D7-7871-4BCC-83C5-460F66C6135C}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H32E8F8D7, CInt(&H7871), CInt(&H4BCC), &H83, &HC5, &H46, &H0F, &H66, &HC6, &H13, &H5C)
+ SEC_WINNT_AUTH_DATA_TYPE_FIDO = iid
+End Function
+Public Function SEC_WINNT_AUTH_DATA_TYPE_KEYTAB() As UUID
+'{D587AAE8-F78F-4455-A112-C934BEEE7CE1}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HD587AAE8, CInt(&HF78F), CInt(&H4455), &HA1, &H12, &HC9, &H34, &HBE, &HEE, &H7C, &HE1)
+ SEC_WINNT_AUTH_DATA_TYPE_KEYTAB = iid
+End Function
+Public Function SEC_WINNT_AUTH_DATA_TYPE_DELEGATION_TOKEN() As UUID
+'{12E52E0F-6F9B-4F83-9020-9DE42B226267}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H12E52E0F, CInt(&H6F9B), CInt(&H4F83), &H90, &H20, &H9D, &HE4, &H2B, &H22, &H62, &H67)
+ SEC_WINNT_AUTH_DATA_TYPE_DELEGATION_TOKEN = iid
+End Function
+Public Function SEC_WINNT_AUTH_DATA_TYPE_CSP_DATA() As UUID
+'{68FD9879-079C-4dfe-8281-578AADC1C100}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H68FD9879, CInt(&H079C), CInt(&H4dfe), &H82, &H81, &H57, &H8A, &HAD, &HC1, &HC1, &H00)
+ SEC_WINNT_AUTH_DATA_TYPE_CSP_DATA = iid
+End Function
+Public Function SEC_WINNT_AUTH_DATA_TYPE_SMARTCARD_CONTEXTS() As UUID
+'{B86C4FF3-49D7-4DC4-B560-B1163685B236}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HB86C4FF3, CInt(&H49D7), CInt(&H4DC4), &HB5, &H60, &HB1, &H16, &H36, &H85, &HB2, &H36)
+ SEC_WINNT_AUTH_DATA_TYPE_SMARTCARD_CONTEXTS = iid
+End Function
+Public Function CREDUIWIN_STRUCTURE_TYPE_SSPIPFC() As UUID
+'{3C3E93D9-D96B-49b5-94A7-458592088337}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H3C3E93D9, CInt(&HD96B), CInt(&H49b5), &H94, &HA7, &H45, &H85, &H92, &H08, &H83, &H37)
+ CREDUIWIN_STRUCTURE_TYPE_SSPIPFC = iid
+End Function
+Public Function SSPIPFC_STRUCTURE_TYPE_CREDUI_CONTEXT() As UUID
+'{C2FFFE6F-503D-4c3d-A95E-BCE821213D44}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HC2FFFE6F, CInt(&H503D), CInt(&H4c3d), &HA9, &H5E, &HBC, &HE8, &H21, &H21, &H3D, &H44)
+ SSPIPFC_STRUCTURE_TYPE_CREDUI_CONTEXT = iid
+End Function
+
+
 End Module
