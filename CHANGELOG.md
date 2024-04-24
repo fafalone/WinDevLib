@@ -1,6 +1,10 @@
 
+**Update (v7.9.392, 24 Apr 2024):**
+-Added additional security dialog stuff; the Directory Object Picker interfaces/coclass 
+  and DsBrowserForContainer API; ObjSel.h, DSClient.h 100%
+
 **Update (v7.9.390, 24 Apr 2024):**
--Large expansion of security APIs from security.h, minschannel.h, sspi.h, issper16.h, and credssp.h
+-Large expansion of security APIs, mostly secur32.dll and sspicli.dll, from security.h, minschannel.h, sspi.h, issper16.h, and credssp.h
    All are 100% covered with the exception of kernel-mode only defs in sspi.h.
 -Added new helper function for APIs/COM interfaces expecting a ByVal GUID:
    UUIDtoLong(UUID, pl1 As Long, pl2 As Long, pl3 As Long, pl4 As Long)
