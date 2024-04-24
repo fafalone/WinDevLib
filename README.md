@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 7.9.390 (April 24th, 2024)**
+**Current Version: 7.9.392 (April 24th, 2024)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -187,6 +187,9 @@ twinBASIC now counts msvbvm60 redirects as legacy DLL redirects, which WinDevLib
 
 ### Updates
 
+**Update (v7.9.392, 24 Apr 2024):**\
+-Added additional security dialog stuff; the Directory Object Picker interfaces/coclass and DsBrowserForContainer API; ObjSel.h, DSClient.h 100%
+  
 **Update (v7.9.390, 24 Apr 2024):**\
 -Large expansion of security APIs from security.h, minschannel.h, sspi.h, issper16.h, and credssp.h\
    All are 100% covered with the exception of kernel-mode only defs in sspi.h.\
