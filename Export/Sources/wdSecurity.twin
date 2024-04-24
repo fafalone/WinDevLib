@@ -83,7 +83,60 @@
         Sub ComputeEffectivePermissionWithSecondarySecurity(ByVal pSid As LongPtr, ByVal pDeviceSid As LongPtr, ByVal pszServerName As LongPtr, ByRef pSecurityObjects As SECURITY_OBJECT, ByVal dwSecurityObjectCount As Long, ByVal pUserGroups As LongPtr, ByVal pAuthzUserGroupsOperations As LongPtr, ByVal pDeviceGroups As LongPtr, ByVal pAuthzDeviceGroupsOperations As LongPtr, ByVal pAuthzUserClaims As LongPtr, ByVal pAuthzUserClaimsOperations As LongPtr, ByVal pAuthzDeviceClaims As LongPtr, ByVal pAuthzDeviceClaimsOperations As LongPtr, ByRef pEffpermResultLists As LongPtr)
     End Interface
 
+    
+    'ObjSel.h
+    [InterfaceId("0c87e64e-3b7b-11d2-b9e0-00c04fd8dbf7")]
+    [OleAutomation(False)]
+    Interface IDsObjectPicker Extends IUnknown
+        Sub Initialize(pInitInfo As DSOP_INIT_INFO)
+        Sub InvokeDialog(ByVal hwndParent As LongPtr, ppdoSelections As IDataObject)
+    End Interface
+    
+    [InterfaceId("e2d3ec9b-d041-445a-8f16-4748de8fb1cf")]
+    [OleAutomation(False)]
+    Interface IDsObjectPickerCredentials Extends IDsObjectPicker
+        Sub SetCredentials(ByVal szUserName As LongPtr, ByVal szPassword As LongPtr)
+    End Interface
 
+    'CLSID_DsObjectPicker
+    [CoClassId("17d6ccd8-3b7b-11d2-b9e0-00c04fd8dbf7")]
+    CoClass DsObjectPicker
+        [Default] Interface IDsObjectPicker
+        Interface IDsObjectPickerCredentials
+    End CoClass
+    
+    'DSClient.h
+    
+    [InterfaceId("7cabcf1e-78f5-11d2-960c-00c04fa31a86")]
+    [OleAutomation(False)]
+    Interface IDsBrowseDomainTree Extends IUnknown
+        Sub BrowseTo(ByVal hwndParent As LongPtr, ppszTargetPath As LongPtr, ByVal dwFlags As DBDTF_ReturnFlags)
+        Sub GetDomains(ppDomainTree As LongPtr, ByVal dwFlags As DBDTF_ReturnFlags)
+        Sub FreeDomains(ppDomainTree As LongPtr)
+        Sub FlushCachedDomains()
+        Sub SetComputer(ByVal pszComputerName As LongPtr, ByVal pszUserName As LongPtr, ByVal pszPassword As LongPtr)
+    End Interface
+    
+    [InterfaceId("1ab4a8c0-6a0b-11d2-ad49-00c04fa31a86")]
+    [OleAutomation(False)]
+    Interface IDsDisplaySpecifier Extends IUnknown
+        Sub SetServer(ByVal pszServer As LongPtr, ByVal pszUserName As LongPtr, ByVal pszPassword As LongPtr, ByVal dwFlags As DsDisplaySpecifierSetServerFlags)
+        Sub SetLanguageID(ByVal langid As Integer)
+        Sub GetDisplaySpecifier(ByVal pszObjectClass As LongPtr, riid As UUID, ppv As Any)
+        Sub GetIconLocation(ByVal pszObjectClass As LongPtr, ByVal dwFlags As DsDisplaySpecifierIconLocFlags, ByVal pszBuffer As LongPtr, ByVal cchBuffer As Long, presid As Long)
+        [PreserveSig]
+        Function GetIcon(ByVal pszObjectClass As LongPtr, ByVal dwFlags As DsDisplaySpecifierIconLocFlags, ByVal cxIcon As Long, ByVal cyIcon As Long) As LongPtr 'HICON
+        Sub GetFriendlyClassName(ByVal pszObjectClass As LongPtr, ByVal pszBuffer As LongPtr, ByVal cchBuffer As Long)
+        Sub GetFriendlyAttributeName(ByVal pszObjectClass As LongPtr, ByVal pszAttributeName As LongPtr, ByVal pszBuffer As LongPtr, ByVal cchBuffer As Long)
+        [PreserveSig]
+        Function IsClassContainer(ByVal pszObjectClass As LongPtr, ByVal pszADsPath As LongPtr, ByVal dwFlags As DsDisplaySpecifierClassContFlags) As BOOL
+        Sub GetClassCreationInfo(ByVal pszObjectClass As LongPtr, ppdscci As Any)
+        Sub EnumClassAttributes(ByVal pszObjectClass As LongPtr, ByVal pcbEnum As LongPtr, ByVal lParam As LongPtr)
+        [PreserveSig]
+        Function GetAttributeADsType(ByVal pszAttributeName As LongPtr) As ADSTYPE
+    End Interface
+    
+    
 Module wdSecurity
 
 Public Enum PSPCALLBACKMESSAGES
@@ -2200,4 +2253,502 @@ Static iid As UUID
 End Function
 
 
+/*
+objsel.h
+Directory Object Picker
+*/
+
+Public Function CLSID_DsObjectPicker() As UUID
+'{17d6ccd8-3b7b-11d2-b9e0-00c04fd8dbf7}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H17d6ccd8, CInt(&H3b7b), CInt(&H11d2), &Hb9, &He0, &H00, &Hc0, &H4f, &Hd8, &Hdb, &Hf7)
+ CLSID_DsObjectPicker = iid
+End Function
+Public Function IID_IDsObjectPicker() As UUID
+'{0c87e64e-3b7b-11d2-b9e0-00c04fd8dbf7}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H0c87e64e, CInt(&H3b7b), CInt(&H11d2), &Hb9, &He0, &H00, &Hc0, &H4f, &Hd8, &Hdb, &Hf7)
+ IID_IDsObjectPicker = iid
+End Function
+
+Public Function IID_IDsObjectPickerCredentials() As UUID
+'{e2d3ec9b-d041-445a-8f16-4748de8fb1cf}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &He2d3ec9b, CInt(&Hd041), CInt(&H445a), &H8f, &H16, &H47, &H48, &Hde, &H8f, &Hb1, &Hcf)
+ IID_IDsObjectPickerCredentials = iid
+End Function
+
+Public Const CFSTR_DSOP_DS_SELECTION_LIST = "CFSTR_DSOP_DS_SELECTION_LIST"
+
+Public Enum DSOPScopeTypes
+    DSOP_SCOPE_TYPE_TARGET_COMPUTER = &H00000001
+    DSOP_SCOPE_TYPE_UPLEVEL_JOINED_DOMAIN = &H00000002
+    DSOP_SCOPE_TYPE_DOWNLEVEL_JOINED_DOMAIN = &H00000004
+    DSOP_SCOPE_TYPE_ENTERPRISE_DOMAIN = &H00000008
+    DSOP_SCOPE_TYPE_GLOBAL_CATALOG = &H00000010
+    DSOP_SCOPE_TYPE_EXTERNAL_UPLEVEL_DOMAIN = &H00000020
+    DSOP_SCOPE_TYPE_EXTERNAL_DOWNLEVEL_DOMAIN = &H00000040
+    DSOP_SCOPE_TYPE_WORKGROUP = &H00000080
+    DSOP_SCOPE_TYPE_USER_ENTERED_UPLEVEL_SCOPE = &H00000100
+    DSOP_SCOPE_TYPE_USER_ENTERED_DOWNLEVEL_SCOPE = &H00000200
+End Enum
+   
+Public Enum DSOPScopeInitInfoFlags
+    DSOP_SCOPE_FLAG_STARTING_SCOPE = &H00000001
+    DSOP_SCOPE_FLAG_WANT_PROVIDER_WINNT = &H00000002
+    DSOP_SCOPE_FLAG_WANT_PROVIDER_LDAP = &H00000004
+    DSOP_SCOPE_FLAG_WANT_PROVIDER_GC = &H00000008
+    DSOP_SCOPE_FLAG_WANT_SID_PATH = &H00000010
+    DSOP_SCOPE_FLAG_WANT_DOWNLEVEL_BUILTIN_PATH = &H00000020
+    DSOP_SCOPE_FLAG_DEFAULT_FILTER_USERS = &H00000040
+    DSOP_SCOPE_FLAG_DEFAULT_FILTER_GROUPS = &H00000080
+    DSOP_SCOPE_FLAG_DEFAULT_FILTER_COMPUTERS = &H00000100
+    DSOP_SCOPE_FLAG_DEFAULT_FILTER_CONTACTS = &H00000200
+    DSOP_SCOPE_FLAG_DEFAULT_FILTER_SERVICE_ACCOUNTS = &H00000400
+    DSOP_SCOPE_FLAG_DEFAULT_FILTER_PASSWORDSETTINGS_OBJECTS = &H00000800
+End Enum
+
+Public Enum DSOPScopeFilterFlags
+    DSOP_FILTER_INCLUDE_ADVANCED_VIEW = &H00000001
+    DSOP_FILTER_USERS = &H00000002
+    DSOP_FILTER_BUILTIN_GROUPS = &H00000004
+    DSOP_FILTER_WELL_KNOWN_PRINCIPALS = &H00000008
+    DSOP_FILTER_UNIVERSAL_GROUPS_DL = &H00000010
+    DSOP_FILTER_UNIVERSAL_GROUPS_SE = &H00000020
+    DSOP_FILTER_GLOBAL_GROUPS_DL = &H00000040
+    DSOP_FILTER_GLOBAL_GROUPS_SE = &H00000080
+    DSOP_FILTER_DOMAIN_LOCAL_GROUPS_DL = &H00000100
+    DSOP_FILTER_DOMAIN_LOCAL_GROUPS_SE = &H00000200
+    DSOP_FILTER_CONTACTS = &H00000400
+    DSOP_FILTER_COMPUTERS = &H00000800
+    DSOP_FILTER_SERVICE_ACCOUNTS = &H00001000
+    DSOP_FILTER_PASSWORDSETTINGS_OBJECTS = &H00002000
+End Enum
+
+Public Enum DSOPScopeDownlevelFilterFlags
+    DSOP_DOWNLEVEL_FILTER_USERS = &H80000001
+    DSOP_DOWNLEVEL_FILTER_LOCAL_GROUPS = &H80000002
+    DSOP_DOWNLEVEL_FILTER_GLOBAL_GROUPS = &H80000004
+    DSOP_DOWNLEVEL_FILTER_COMPUTERS = &H80000008
+    DSOP_DOWNLEVEL_FILTER_WORLD = &H80000010
+    DSOP_DOWNLEVEL_FILTER_AUTHENTICATED_USER = &H80000020
+    DSOP_DOWNLEVEL_FILTER_ANONYMOUS = &H80000040
+    DSOP_DOWNLEVEL_FILTER_BATCH = &H80000080
+    DSOP_DOWNLEVEL_FILTER_CREATOR_OWNER = &H80000100
+    DSOP_DOWNLEVEL_FILTER_CREATOR_GROUP = &H80000200
+    DSOP_DOWNLEVEL_FILTER_DIALUP = &H80000400
+    DSOP_DOWNLEVEL_FILTER_INTERACTIVE = &H80000800
+    DSOP_DOWNLEVEL_FILTER_NETWORK = &H80001000
+    DSOP_DOWNLEVEL_FILTER_SERVICE = &H80002000
+    DSOP_DOWNLEVEL_FILTER_SYSTEM = &H80004000
+    DSOP_DOWNLEVEL_FILTER_EXCLUDE_BUILTIN_GROUPS = &H80008000
+    DSOP_DOWNLEVEL_FILTER_TERMINAL_SERVER = &H80010000
+    DSOP_DOWNLEVEL_FILTER_ALL_WELLKNOWN_SIDS = &H80020000
+    DSOP_DOWNLEVEL_FILTER_LOCAL_SERVICE = &H80040000
+    DSOP_DOWNLEVEL_FILTER_NETWORK_SERVICE = &H80080000
+    DSOP_DOWNLEVEL_FILTER_REMOTE_LOGON = &H80100000
+    DSOP_DOWNLEVEL_FILTER_INTERNET_USER = &H80200000
+    DSOP_DOWNLEVEL_FILTER_OWNER_RIGHTS = &H80400000
+    DSOP_DOWNLEVEL_FILTER_SERVICES = &H80800000
+    DSOP_DOWNLEVEL_FILTER_LOCAL_LOGON = &H81000000
+    DSOP_DOWNLEVEL_FILTER_THIS_ORG_CERT = &H82000000
+    DSOP_DOWNLEVEL_FILTER_IIS_APP_POOL = &H84000000
+    DSOP_DOWNLEVEL_FILTER_ALL_APP_PACKAGES = &H88000000
+    DSOP_DOWNLEVEL_FILTER_LOCAL_ACCOUNTS = &H90000000
+End Enum
+
+Public Type DSOP_UPLEVEL_FILTER_FLAGS
+    flBothModes As DSOPScopeFilterFlags
+    flMixedModeOnly As DSOPScopeFilterFlags
+    flNativeModeOnly As DSOPScopeFilterFlags
+End Type
+
+Public Type DSOP_FILTER_FLAGS
+    Uplevel As DSOP_UPLEVEL_FILTER_FLAGS
+    flDownlevel As DSOPScopeDownlevelFilterFlags
+End Type
+
+Public Type DSOP_SCOPE_INIT_INFO
+    cbSize As Long
+    flType As DSOPScopeTypes
+    flScope As DSOPScopeInitInfoFlags
+    FilterFlags As DSOP_FILTER_FLAGS
+    pwzDcName As LongPtr ' OPTIONAL
+    pwzADsPath As LongPtr ' OPTIONAL
+    hr As Long
+End Type
+
+Public Enum DSOPScopeInitInfoOptions
+    DSOP_FLAG_MULTISELECT = &H00000001
+    DSOP_FLAG_SKIP_TARGET_COMPUTER_DC_CHECK = &H00000002
+End Enum
+    
+Public Type DSOP_INIT_INFO
+    cbSize As Long
+    pwzTargetComputer As LongPtr
+    cDsScopeInfos As Long
+    aDsScopeInfos As LongPtr 'PDSOP_SCOPE_INIT_INFO
+    flOptions As DSOPScopeInitInfoOptions
+    cAttributesToFetch As Long
+    apwzAttributeNames As LongPtr
+End Type
+
+Public Type DS_SELECTION
+    pwzName As LongPtr
+    pwzADsPath As LongPtr
+    pwzClass As LongPtr
+    pwzUPN As LongPtr
+    pvarFetchedAttributes As LongPtr '*Variant
+    flScopeType As DSOPScopeTypes
+End Type
+
+Public Type DS_SELECTION_LIST
+    cItems As Long
+    cFetchedAttributes As Long
+    aDsSelection(255) As DS_SELECTION
+End Type
+
+
+
+'dsclient.h
+Public Function CLSID_MicrosoftDS() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hfe1290f0, &Hcfbd, &H11cf, &Ha3, &H30, &H0, &Haa, &H0, &Hc1, &H6e, &H65)
+CLSID_MicrosoftDS = iid
+End Function
+Public Function CLSID_DsFolder() As UUID
+CLSID_DsFolder = CLSID_MicrosoftDS
+End Function
+Public Function CLSID_DsPropertyPages() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hd45d530, &H764b, &H11d0, &Ha1, &Hca, &H0, &Haa, &H0, &Hc1, &H6e, &H65)
+CLSID_DsPropertyPages = iid
+End Function
+Public Function CLSID_DsDomainTreeBrowser() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H1698790a, &He2b4, &H11d0, &Hb0, &Hb1, &H00, &Hc0, &H4f, &Hd8, &Hdc, &Ha6)
+CLSID_DsDomainTreeBrowser = iid
+End Function
+Public Function IID_IDsBrowseDomainTree() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H7cabcf1e, &H78f5, &H11d2, &H96, &Hc, &H0, &Hc0, &H4f, &Ha3, &H1a, &H86)
+IID_IDsBrowseDomainTree = iid
+End Function
+Public Function CLSID_DsDisplaySpecifier() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H1ab4a8c0, &H6a0b, &H11d2, &Had, &H49, &H0, &Hc0, &H4f, &Ha3, &H1a, &H86)
+CLSID_DsDisplaySpecifier = iid
+End Function
+Public Function IID_IDsDisplaySpecifier() As UUID
+IID_IDsDisplaySpecifier = CLSID_DsDisplaySpecifier
+End Function
+Public Function CLSID_DsFolderProperties() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H9e51e0d0, &H6e0f, &H11d2, &H96, &H1, &H0, &Hc0, &H4f, &Ha3, &H1a, &H86)
+CLSID_DsFolderProperties = iid
+End Function
+
+
+Public Enum DsObjectFlags
+    DSOBJECT_ISCONTAINER = &H00000001  ' = 1 => object is a container
+    DSOBJECT_READONLYPAGES = &H80000000  ' = 1 => read only pages
+End Enum
+Public Enum DsObjectProviderFlags
+    DSPROVIDER_UNUSED_0 = &H00000001
+    DSPROVIDER_UNUSED_1 = &H00000002
+    DSPROVIDER_UNUSED_2 = &H00000004
+    DSPROVIDER_UNUSED_3 = &H00000008
+    DSPROVIDER_ADVANCED = &H00000010  ' = 1 => advanced mode
+    DSPROVIDER_AD_LDS = &H00000020  ' = 1 => talking to an AD LDS instance
+End Enum
+Public Type DSOBJECT
+    dwFlags As DsObjectFlags ' item flags
+    dwProviderFlags As DsObjectProviderFlags ' flags for item provider
+    offsetName As Long ' offset to ADS path of the object
+    offsetClass As Long ' offset to object class name / == 0 not known
+End Type
+[Description("WARNING: For receiving only. Copy aObjects separately after sizing to cItems. For sending, use DSOBJECTNAMES_Buffered.")]
+Public Type DSOBJECTNAMES
+    clsidNamespace As UUID ' namespace identifier (indicates which namespace selection from)
+    cItems As Long ' number of objects
+    aObjects() As DSOBJECT ' array of objects
+End Type
+Public Type DSOBJECTNAMES_Buffered
+    clsidNamespace As UUID ' namespace identifier (indicates which namespace selection from)
+    cItems As Long ' number of objects
+    aObjects(255) As DSOBJECT ' array of objects
+End Type
+
+Public Const CFSTR_DS_DISPLAY_SPEC_OPTIONS  = "DsDisplaySpecOptions"
+Public Const CFSTR_DSDISPLAYSPECOPTIONS  = CFSTR_DS_DISPLAY_SPEC_OPTIONS
+
+Public Type DSDISPLAYSPECOPTIONS
+    dwSize As Long ' size of struct, for versioning
+    dwFlags As DSDSOF_Flags ' invocation flags
+    offsetAttribPrefix As Long ' offset to attribute prefix string.
+    offsetUserName As Long ' offset to UNICODE user name
+    offsetPassword As Long ' offset to UNICODE password
+    offsetServer As Long
+    offsetServerConfigPath As Long
+End Type
+
+Public Const DS_PROP_SHELL_PREFIX  = "shell"
+Public Const DS_PROP_ADMIN_PREFIX  = "admin"
+
+Public Enum DSDSOF_Flags
+    DSDSOF_HASUSERANDSERVERINFO = &H00000001  ' = 1 => user name/password are valid
+    DSDSOF_SIMPLEAUTHENTICATE = &H00000002  ' = 1 => don't use secure authentication to DS
+    DSDSOF_DONTSIGNSEAL = &H00000004  ' = 1 => don't sign+seal when opening DS objects
+    DSDSOF_DSAVAILABLE = &H40000000  ' = 1 => ignore DS available checks
+End Enum
+
+Public Const CFSTR_DSPROPERTYPAGEINFO  = "DsPropPageInfo"
+Public Const DSPROP_ATTRCHANGED_MSG  = "DsPropAttrChanged"
+
+Public Type DSPROPERTYPAGEINFO
+    offsetString As Long ' offset to UNICODE string
+End Type
+
+Public Enum DBDTF_ReturnFlags
+    DBDTF_RETURNFQDN = &H00000001  ' if not set, pszNCName will be blank
+    DBDTF_RETURNMIXEDDOMAINS = &H00000002  ' set it if you want downlevel trust domains too
+    DBDTF_RETURNEXTERNAL = &H00000004  ' set it if you want external trust domains too
+    DBDTF_RETURNINBOUND = &H00000008  ' set it if you want trusting domains
+    DBDTF_RETURNINOUTBOUND = &H00000010  ' set it if you want both trusted and trusting domains
+End Enum
+    
+Public Type DOMAINDESC
+    pszName As LongPtr ' domain name (if no dns, use netbios)
+    pszPath As LongPtr ' set to blank
+    pszNCName As LongPtr ' FQDN, e.g.,DC=mydomain,DC=microsoft,DC=com
+    pszTrustParent As LongPtr ' parent domain name (if no dns, use netbios)
+    pszObjectClass As LongPtr ' Object class of the domain object referenced
+    ulFlags As Long ' Flags, from DS_TRUSTED_DOMAINS.Flags
+    fDownLevel As BOOL ' == 1 if downlevel domain
+    pdChildList As LongPtr 'struct _DOMAINDESC* ' Children of this node
+    pdNextSibling As LongPtr 'struct _DOMAINDESC* ' Siblings of this node            
+End Type
+
+Public Type DOMAIN_TREE
+    dsSize As Long
+    dwCount As Long
+    aDomains(0 To 255) As DOMAINDESC
+End Type
+
+Public Enum DsDisplaySpecifierSetServerFlags
+    DSSSF_SIMPLEAUTHENTICATE = &H00000001  ' = 1 => don't use secure authentication to DS
+    DSSSF_DONTSIGNSEAL = &H00000002  ' = 1 => don't use sign+seal when opening objects in the DS
+    DSSSF_DSAVAILABLE = &H80000000  ' = 1 => ignore DS available checks
+End Enum
+Public Enum DsDisplaySpecifierIconLocFlags
+    DSGIF_ISNORMAL = &H0000000  ' = icon is in normal state (default)
+    DSGIF_ISOPEN = &H0000001  ' = icon is in open state
+    DSGIF_ISDISABLED = &H0000002  ' = icon is in a disabled state
+    DSGIF_ISMASK = &H000000f
+    DSGIF_GETDEFAULTICON = &H0000010  ' = 1 => if no icon then get default (from shell32.dll)
+    DSGIF_DEFAULTISCONTAINER = &H0000020  ' = 1 => if returning default icon, return it as a container
+End Enum
+Public Enum DsDisplaySpecifierClassContFlags
+    DSICCF_IGNORETREATASLEAF = &H1
+End Enum
+Public Enum DsDisplaySpecifierEnumClassFlags
+    DSECAF_NOTLISTED = &H1
+End Enum
+Public Enum DsDisplaySpecifiderClassCIFlags
+    DSCCIF_HASWIZARDDIALOG = &H00000001  ' = 1 => return the wizard dialog CLSID
+    DSCCIF_HASWIZARDPRIMARYPAGE = &H00000002  ' = 1 => returning a primary wizard dlg CLSID
+End Enum
+
+Public Type DSCLASSCREATIONINFO
+    dwFlags As DsDisplaySpecifiderClassCIFlags
+    clsidWizardDialog As UUID
+    clsidWizardPrimaryPage As UUID
+    cWizardExtensions As Long ' how many extension CLSIDs?
+    aWizardExtensions(0 To 31) As UUID
+End Type
+
+Public Enum DsBrowseInfoFlags
+    DSBI_NOBUTTONS = &H00000001  ' NOT TVS_HASBUTTONS
+    DSBI_NOLINES = &H00000002  ' NOT TVS_HASLINES
+    DSBI_NOLINESATROOT = &H00000004  ' NOT TVS_LINESATROOT
+    DSBI_CHECKBOXES = &H00000100  ' TVS_CHECKBOXES
+    DSBI_NOROOT = &H00010000  ' don't include pszRoot in tree (its children become top level nodes)
+    DSBI_INCLUDEHIDDEN = &H00020000  ' display hidden objects
+    DSBI_EXPANDONOPEN = &H00040000  ' expand to the path specified in pszPath when opening the dialog
+    DSBI_ENTIREDIRECTORY = &H00090000  ' browse the entire directory (defaults to having DSBI_NOROOT set)
+    DSBI_RETURN_FORMAT = &H00100000  ' dwReturnFormat field is valid
+    DSBI_HASCREDENTIALS = &H00200000  ' pUserName & pPassword are valid
+    DSBI_IGNORETREATASLEAF = &H00400000  ' ignore the treat as leaf flag when calling IsClassContainer
+    DSBI_SIMPLEAUTHENTICATE = &H00800000  ' don't use secure authentication to DS
+    DSBI_RETURNOBJECTCLASS = &H01000000  ' return object class of selected object
+    DSBI_DONTSIGNSEAL = &H02000000  ' don't sign+seal communication with DS
+End Enum
+Public Type DSBROWSEINFOA
+    cbStruct As Long ' size of structure in bytes
+    hwndOwner As LongPtr ' dialog owner
+    pszCaption As String ' dialog caption text (can be NULL)
+    pszTitle As String ' displayed above the tree view control (can be NULL)
+    pszRoot As String ' ADS path to root (NULL == root of DS namespace)
+    pszPath As String ' [in/out] initial selection & returned path (required)
+    cchPath As Long ' size of pszPath buffer in characters
+    dwFlags As DsBrowseInfoFlags
+    pfnCallback As LongPtr 'BFFCALLBACK ' callback function (see SHBrowseForFolder)
+    lParam As LongPtr ' passed to pfnCallback as lpUserData
+    dwReturnFormat As ADS_FORMAT_ENUM ' ADS_FORMAT_* (default is ADS_FORMAT_X500_NO_SERVER)
+    pUserName As String ' Username and Password to authenticate against DS with  
+    pPassword As String
+    pszObjectClass As String ' UNICODE string for the object class
+    cchObjectClass As Long
+End Type
+Public Type DSBROWSEINFOW
+    cbStruct As Long ' size of structure in bytes
+    hwndOwner As LongPtr ' dialog owner
+    pszCaption As LongPtr ' dialog caption text (can be NULL)
+    pszTitle As LongPtr ' displayed above the tree view control (can be NULL)
+    pszRoot As LongPtr ' ADS path to root (NULL == root of DS namespace)
+    pszPath As LongPtr ' [in/out] initial selection & returned path (required)
+    cchPath As Long ' size of pszPath buffer in characters
+    dwFlags As DsBrowseInfoFlags
+    pfnCallback As LongPtr 'BFFCALLBACK ' callback function (see SHBrowseForFolder)
+    lParam As LongPtr ' passed to pfnCallback as lpUserData
+    dwReturnFormat As ADS_FORMAT_ENUM ' ADS_FORMAT_* (default is ADS_FORMAT_X500_NO_SERVER)
+    pUserName As LongPtr ' Username and Password to authenticate against DS with  
+    pPassword As LongPtr
+    pszObjectClass As LongPtr ' UNICODE string for the object class
+    cchObjectClass As Long
+End Type
+Public Type DSBROWSEINFO
+    cbStruct As Long ' size of structure in bytes
+    hwndOwner As LongPtr ' dialog owner
+    pszCaption As LongPtr ' dialog caption text (can be NULL)
+    pszTitle As LongPtr ' displayed above the tree view control (can be NULL)
+    pszRoot As LongPtr ' ADS path to root (NULL == root of DS namespace)
+    pszPath As LongPtr ' [in/out] initial selection & returned path (required)
+    cchPath As Long ' size of pszPath buffer in characters
+    dwFlags As DsBrowseInfoFlags
+    pfnCallback As LongPtr 'BFFCALLBACK ' callback function (see SHBrowseForFolder)
+    lParam As LongPtr ' passed to pfnCallback as lpUserData
+    dwReturnFormat As ADS_FORMAT_ENUM ' ADS_FORMAT_* (default is ADS_FORMAT_X500_NO_SERVER)
+    pUserName As LongPtr ' Username and Password to authenticate against DS with  
+    pPassword As LongPtr
+    pszObjectClass As LongPtr ' UNICODE string for the object class
+    cchObjectClass As Long
+End Type
+
+Public Enum DsbItemMask
+    DSBF_STATE = &H00000001
+    DSBF_ICONLOCATION = &H00000002
+    DSBF_DISPLAYNAME = &H00000004
+End Enum
+Public Enum DsbItemStates
+    DSBS_CHECKED = &H00000001
+    DSBS_HIDDEN = &H00000002
+    DSBS_ROOT = &H00000004
+End Enum
+Public Const DSB_MAX_DISPLAYNAME_CHARS = 64
+Public Type DSBITEMA
+    cbStruct As Long
+    pszADsPath As String ' ADS paths are always Unicode
+    pszClass As String ' ADS properties are always Unicode
+    dwMask As DsbItemMask
+    dwState As DsbItemStates
+    dwStateMask As DsbItemStates
+    szDisplayName(0 To (DSB_MAX_DISPLAYNAME_CHARS - 1)) As Integer
+    szIconLocation(0 To (MAX_PATH - 1)) As Integer
+    iIconResID As Long
+End Type
+Public Type DSBITEMW
+    cbStruct As Long
+    pszADsPath As LongPtr ' ADS paths are always Unicode
+    pszClass As LongPtr ' ADS properties are always Unicode
+    dwMask As DsbItemMask
+    dwState As DsbItemStates
+    dwStateMask As DsbItemStates
+    szDisplayName(0 To (DSB_MAX_DISPLAYNAME_CHARS - 1)) As Integer
+    szIconLocation(0 To (MAX_PATH - 1)) As Integer
+    iIconResID As Long
+End Type
+'Alias DSBITEM As DSBITEMW
+Public Type DSBITEM
+    cbStruct As Long
+    pszADsPath As LongPtr ' ADS paths are always Unicode
+    pszClass As LongPtr ' ADS properties are always Unicode
+    dwMask As DsbItemMask
+    dwState As DsbItemStates
+    dwStateMask As DsbItemStates
+    szDisplayName(0 To (DSB_MAX_DISPLAYNAME_CHARS - 1)) As Integer
+    szIconLocation(0 To (MAX_PATH - 1)) As Integer
+    iIconResID As Long
+End Type
+
+Public Const DSBM_QUERYINSERTW  = 100  ' lParam = PDSBITEMW (state, icon & name may be modified). Return TRUE if handled.
+Public Const DSBM_QUERYINSERTA  = 101  ' lParam = PDSBITEMA (state, icon & name may be modified). Return TRUE if handled.
+Public Const DSBM_QUERYINSERT  = DSBM_QUERYINSERTW
+Public Const DSBM_CHANGEIMAGESTATE  = 102  ' lParam = adspath.  Return TRUE/FALSE top allow/disallow
+'  The dialog receives a WM_HELP
+Public Const DSBM_HELP  = 103  ' lParam == LPHELPINFO structure
+'  The dialog receives a WM_CONTEXTMENU, DSBID_xxx are the control ID's for this
+'  dialog so that you can display suitable help.
+Public Const DSBM_CONTEXTMENU  = 104  ' lParam == window handle to retrieve help for
+'  These are the control IDs for the controls in the dialog.   The callback can use
+'  these to modify the contents of the dialog as required.
+Public Const DSBID_BANNER  = 256
+Public Const DSBID_CONTAINERLIST  = 257
+
+Public Declare PtrSafe Function DsBrowseForContainerA Lib "dsuiext.dll" (pInfo As DSBROWSEINFOA) As Long
+Public Declare PtrSafe Function DsBrowseForContainerW Lib "dsuiext.dll" (pInfo As DSBROWSEINFOW) As Long
+Public DeclareWide PtrSafe Function DsBrowseForContainer Lib "dsuiext.dll" Alias "DsBrowseForContainerW" (pInfo As DSBROWSEINFO) As Long
+
+Public Declare PtrSafe Function DsGetIcon Lib "dsuiext.dll" (ByVal dwFlags As DsDisplaySpecifierIconLocFlags, ByVal pszObjectClass As LongPtr, ByVal cxImage As Long, ByVal cyImage As Long) As LongPtr 'HICON
+
+Public Declare PtrSafe Function DsGetFriendlyClassName Lib "dsuiext.dll" (ByVal pszObjectClass As LongPtr, ByVal pszBuffer As LongPtr, ByVal cchBuffer As Long) As Long
+
+
+
+
+
+Public Enum ADSTYPE
+    ADSTYPE_INVALID = 0
+    ADSTYPE_DN_STRING = (ADSTYPE_INVALID + 1)
+    ADSTYPE_CASE_EXACT_STRING = (ADSTYPE_DN_STRING + 1)
+    ADSTYPE_CASE_IGNORE_STRING = (ADSTYPE_CASE_EXACT_STRING + 1)
+    ADSTYPE_PRINTABLE_STRING = (ADSTYPE_CASE_IGNORE_STRING + 1)
+    ADSTYPE_NUMERIC_STRING = (ADSTYPE_PRINTABLE_STRING + 1)
+    ADSTYPE_BOOLEAN = (ADSTYPE_NUMERIC_STRING + 1)
+    ADSTYPE_INTEGER = (ADSTYPE_BOOLEAN + 1)
+    ADSTYPE_OCTET_STRING = (ADSTYPE_INTEGER + 1)
+    ADSTYPE_UTC_TIME = (ADSTYPE_OCTET_STRING + 1)
+    ADSTYPE_LARGE_INTEGER = (ADSTYPE_UTC_TIME + 1)
+    ADSTYPE_PROV_SPECIFIC = (ADSTYPE_LARGE_INTEGER + 1)
+    ADSTYPE_OBJECT_CLASS = (ADSTYPE_PROV_SPECIFIC + 1)
+    ADSTYPE_CASEIGNORE_LIST = (ADSTYPE_OBJECT_CLASS + 1)
+    ADSTYPE_OCTET_LIST = (ADSTYPE_CASEIGNORE_LIST + 1)
+    ADSTYPE_PATH = (ADSTYPE_OCTET_LIST + 1)
+    ADSTYPE_POSTALADDRESS = (ADSTYPE_PATH + 1)
+    ADSTYPE_TIMESTAMP = (ADSTYPE_POSTALADDRESS + 1)
+    ADSTYPE_BACKLINK = (ADSTYPE_TIMESTAMP + 1)
+    ADSTYPE_TYPEDNAME = (ADSTYPE_BACKLINK + 1)
+    ADSTYPE_HOLD = (ADSTYPE_TYPEDNAME + 1)
+    ADSTYPE_NETADDRESS = (ADSTYPE_HOLD + 1)
+    ADSTYPE_REPLICAPOINTER = (ADSTYPE_NETADDRESS + 1)
+    ADSTYPE_FAXNUMBER = (ADSTYPE_REPLICAPOINTER + 1)
+    ADSTYPE_EMAIL = (ADSTYPE_FAXNUMBER + 1)
+    ADSTYPE_NT_SECURITY_DESCRIPTOR = (ADSTYPE_EMAIL + 1)
+    ADSTYPE_UNKNOWN = (ADSTYPE_NT_SECURITY_DESCRIPTOR + 1)
+    ADSTYPE_DN_WITH_BINARY = (ADSTYPE_UNKNOWN + 1)
+    ADSTYPE_DN_WITH_STRING = (ADSTYPE_DN_WITH_BINARY + 1)
+End Enum
+Public Enum ADS_FORMAT_ENUM
+    ADS_FORMAT_WINDOWS = 1
+    ADS_FORMAT_WINDOWS_NO_SERVER = 2
+    ADS_FORMAT_WINDOWS_DN = 3
+    ADS_FORMAT_WINDOWS_PARENT = 4
+    ADS_FORMAT_X500 = 5
+    ADS_FORMAT_X500_NO_SERVER = 6
+    ADS_FORMAT_X500_DN = 7
+    ADS_FORMAT_X500_PARENT = 8
+    ADS_FORMAT_SERVER = 9
+    ADS_FORMAT_PROVIDER = 10
+    ADS_FORMAT_LEAF = 11
+End Enum
 End Module
