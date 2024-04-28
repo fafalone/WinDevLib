@@ -1,4 +1,17 @@
 
+**Update (v7.10.396, 28 Apr 2024):**
+-**MAJOR CHANGE:** IShellIconOverlay will now no longer require using VarPtr() around the index output var.
+-Added WIC proxy functions (Issue #22)
+-Added iphlpapi ICMP APIs (icmpapi.h, 100%)
+-Added additional netapi32 APIs, LMJoin.h, LMMsg.h, 100%; some missing APIs from LMShare.h (100% now hopefully)
+-Added missing common API CreateBitmap (Issue #21)
+-LVTILEVIEWINFO.SizeTile no longer uses redundant SIZELVT UDT
+-First half of imagehlp.h/dbghelp.h added
+-(Bug fix) PathIsNetworkPathW/PathFindFileNameW were incorrectly misnamed PathIsNetworkPathA/PathFindFileNameW (creating overloads).
+-(Bug fix) BITMAPFILEHEADER definition incorrect (missing non-default packing alignment)
+-(Bug fix) ImageEnumerateCertificates definition incorrect (ByRef/ByVal mixup)
+-(Bug fix) STORAGE_BUS_TYPE values all off by one.
+
 **Update (v7.9.392, 24 Apr 2024):**
 -Added additional security dialog stuff; the Directory Object Picker interfaces/coclass 
   and DsBrowserForContainer API; ObjSel.h, DSClient.h 100%

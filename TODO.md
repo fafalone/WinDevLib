@@ -9,3 +9,8 @@ before release, or waiting on feature support:
 
 -winbio_adapter.h
  
+-vfw.h/vfsmsg/vfwext
+
+-missing winspool.h stuff
+
+-finish imagehlp.h/dbghelp.h
