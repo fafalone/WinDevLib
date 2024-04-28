@@ -1,0 +1,1544 @@
+'*****************************************************************************************
+'This file is a part of WinDevLib - Windows Development Library for twinBASIC
+'https://github.com/fafalone/WinDevLib
+'Code ported by Jon Johnson. 
+'"Windows" is a trademark of the Microsoft Corporation.
+'Certain Description attributes (c) Microsoft, taken from SDK headers and official docs.
+'Licensed under Creative Commons CC0 1.0 Universal
+'*****************************************************************************************
+
+'WinDevLib - wdAPIDbgHlp :: imagehlp.h/dbghelp.h
+
+
+
+
+Module wdAPIDbgHlp
+
+Public Const IMAGE_SEPARATION = (64 * 1024)
+
+Public Type LOADED_IMAGE
+    ModuleName As LongPtr 'PSTR
+    hFile As LongPtr
+    MappedAddress As LongPtr 'PUCHAR
+    '#ifdef _IMAGEHLP64
+    FileHeader As LongPtr 'PIMAGE_NT_HEADERS64
+    '#else
+    '    PIMAGE_NT_HEADERS32   FileHeader;
+    '#endif
+    LastRvaSection As LongPtr 'PIMAGE_SECTION_HEADER
+    NumberOfSections As Long
+    Sections As LongPtr 'PIMAGE_SECTION_HEADER
+    Characteristics As ImageFileCharacteristics
+    fSystemImage As Byte
+    fDOSImage As Byte
+    fReadOnly As Byte
+    Version As Byte
+    Links As LIST_ENTRY
+    SizeOfImage As Long
+End Type
+
+Public Const MAX_SYM_NAME = 200
+
+Public Declare PtrSafe Function BindImage Lib "imagehlp" (ByVal ImageName As LongPtr, ByVal DllPath As LongPtr, ByVal SymbolPath As LongPtr) As BOOL
+
+Public Enum IMAGEHLP_STATUS_REASON
+    BindOutOfMemory
+    BindRvaToVaFailed
+    BindNoRoomInImage
+    BindImportModuleFailed
+    BindImportProcedureFailed
+    BindImportModule
+    BindImportProcedure
+    BindForwarder
+    BindForwarderNOT
+    BindImageModified
+    BindExpandFileHeaders
+    BindImageComplete
+    BindMismatchedSymbols
+    BindSymbolsNotUpdated
+    BindImportProcedure32
+    BindImportProcedure64
+    BindForwarder32
+    BindForwarder64
+    BindForwarderNOT32
+    BindForwarderNOT64
+End Enum
+
+' typedef
+' BOOL
+' (__stdcall *PIMAGEHLP_STATUS_ROUTINE)(
+    ' _In_ IMAGEHLP_STATUS_REASON Reason,
+    ' _In_ PCSTR ImageName,
+    ' _In_ PCSTR DllName,
+    ' _In_ ULONG_PTR Va,
+    ' _In_ ULONG_PTR Parameter
+    ' );
+
+' typedef
+' BOOL
+' (__stdcall *PIMAGEHLP_STATUS_ROUTINE32)(
+    ' _In_ IMAGEHLP_STATUS_REASON Reason,
+    ' _In_ PCSTR ImageName,
+    ' _In_ PCSTR DllName,
+    ' _In_ ULONG Va,
+    ' _In_ ULONG_PTR Parameter
+    ' );
+
+' typedef
+' BOOL
+' (__stdcall *PIMAGEHLP_STATUS_ROUTINE64)(
+    ' _In_ IMAGEHLP_STATUS_REASON Reason,
+    ' _In_ PCSTR ImageName,
+    ' _In_ PCSTR DllName,
+    ' _In_ ULONG64 Va,
+    ' _In_ ULONG_PTR Parameter
+    ' );
+    
+    Public Declare PtrSafe Function BindImageEx Lib "imagehlp" (ByVal dwFlags As BindImageExFlags, ByVal ImageName As LongPtr, ByVal DllPath As LongPtr, ByVal SymbolPath As LongPtr, Optional ByVal StatusRoutine As LongPtr) As BOOL
+       
+    Public Enum BindImageExFlags
+        BIND_NO_BOUND_IMPORTS = &H00000001
+        BIND_NO_UPDATE = &H00000002
+        BIND_ALL_IMAGES = &H00000004
+        BIND_CACHE_IMPORT_DLLS = &H00000008  ' Cache dll's across
+    '   calls to BindImageEx
+    '   (same as NT 3.1->NT 4.0)
+        BIND_REPORT_64BIT_VA = &H00000010
+    End Enum
+
+    Public Declare PtrSafe Function ReBaseImage Lib "imagehlp" (ByVal CurrentImageName As LongPtr, ByVal SymbolPath As LongPtr, ByVal fReBase As BOOL, ByVal fRebaseSysfileOk As BOOL, ByVal fGoingDown As BOOL, ByVal CheckImageSize As Long, OldImageSize As Long, OldImageBase As LongPtr, NewImageSize As Long, NewImageBase As LongPtr, ByVal TimeStamp As Long) As BOOL
+    Public Declare PtrSafe Function ReBaseImage64 Lib "imagehlp" (ByVal CurrentImageName As LongPtr, ByVal SymbolPath As LongPtr, ByVal fReBase As BOOL, ByVal fRebaseSysfileOk As BOOL, ByVal fGoingDown As BOOL, ByVal CheckImageSize As Long, OldImageSize As Long, OldImageBase As LongLong, NewImageSize As Long, NewImageBase As LongLong, ByVal TimeStamp As Long) As BOOL
+        
+    Public Enum DbgChecksumReturnCodes
+        CHECKSUM_SUCCESS = 0
+        CHECKSUM_OPEN_FAILURE = 1
+        CHECKSUM_MAP_FAILURE = 2
+        CHECKSUM_MAPVIEW_FAILURE = 3
+        CHECKSUM_UNICODE_FAILURE = 4
+    End Enum
+    
+    Public Enum DbgSplitSymFlags
+        SPLITSYM_REMOVE_PRIVATE = &H00000001  ' Remove CV types/symbols and Fixup debug
+    '   Used for creating .dbg files that ship
+    '   as part of the product.
+        SPLITSYM_EXTRACT_ALL = &H00000002  ' Extract all debug info from image.
+    '   Normally, FPO is left in the image
+    '   to allow stack traces through the code.
+    '   Using this switch is similar to linking
+    '   with -debug:none except the .dbg file
+    '   exists...
+        SPLITSYM_SYMBOLPATH_IS_SRC = &H00000004  ' The SymbolFilePath contains an alternate
+    '   path to locate the pdb.
+    End Enum
+    
+    Public Declare PtrSafe Function CheckSumMappedFile Lib "imagehlp" (ByVal BaseAddress As LongPtr, ByVal FileLength As Long, HeaderSum As Long, CheckSum As Long) As LongPtr
+    Public Declare PtrSafe Function MapFileAndCheckSumA Lib "imagehlp" (ByVal Filename As String, HeaderSum As Long, CheckSum As Long) As Long
+    Public Declare PtrSafe Function MapFileAndCheckSumW Lib "imagehlp" (ByVal Filename As LongPtr, HeaderSum As Long, CheckSum As Long) As Long
+    Public DeclareWide PtrSafe Function MapFileAndCheckSum Lib "imagehlp" Alias "MapFileAndCheckSumW" (ByVal Filename As String, HeaderSum As Long, CheckSum As Long) As Long
+    Public Declare PtrSafe Function GetImageConfigInformation Lib "imagehlp" (LoadedImage As LOADED_IMAGE, ImageConfigInformation As IMAGE_LOAD_CONFIG_DIRECTORY) As BOOL
+    Public Declare PtrSafe Function GetImageUnusedHeaderBytes Lib "imagehlp" (LoadedImage As LOADED_IMAGE, SizeUnusedHeaderBytes As Long) As Long
+    Public Declare PtrSafe Function SetImageConfigInformation Lib "imagehlp" (LoadedImage As LOADED_IMAGE, ImageConfigInformation As IMAGE_LOAD_CONFIG_DIRECTORY) As BOOL
+
+    
+    ' typedef PVOID DIGEST_HANDLE;
+
+    ' typedef BOOL (WINAPI *DIGEST_FUNCTION) (DIGEST_HANDLE refdata, PBYTE pData, DWORD dwLength);Certificate As WIN_CERTIFICATE, Index As 
+    
+    Public Declare PtrSafe Function ImageGetDigestStream Lib "imagehlp" (ByVal FileHandle As LongPtr, ByVal DigestLevel As Long, ByVal DigestFunction As LongPtr, ByVal DigestHandle As LongPtr) As BOOL
+    Public Declare PtrSafe Function ImageAddCertificate Lib "imagehlp" (ByVal FileHandle As LongPtr, Certificate As Any /*WIN_CERTIFICATE*/, Index As Long) As BOOL
+    Public Declare PtrSafe Function ImageRemoveCertificate Lib "imagehlp" (ByVal FileHandle As LongPtr, ByVal Index As Long) As BOOL
+    Public Declare PtrSafe Function ImageEnumerateCertificates Lib "imagehlp" (ByVal FileHandle As LongPtr, [TypeHint(CERT_SECTION_TYPE)] ByVal TypeFilter As Integer, CertificateCount As Long, Indices As Long, Optional IndexCount As Long) As BOOL
+    Public Declare PtrSafe Function ImageGetCertificateData Lib "imagehlp" (ByVal FileHandle As LongPtr, ByVal CertificateIndex As Long, Certificate As Any, RequiredLength As Long) As BOOL
+    Public Declare PtrSafe Function ImageGetCertificateHeader Lib "imagehlp" (ByVal FileHandle As LongPtr, ByVal CertificateIndex As Long, Certificate As WIN_CERTIFICATE) As BOOL
+    Public Declare PtrSafe Function ImageLoad Lib "imagehlp" (ByVal DllName As LongPtr, Optional ByVal DllPath As LongPtr) As LongPtr
+    Public Declare PtrSafe Function ImageUnload Lib "imagehlp" (LoadedImage As LOADED_IMAGE) As BOOL
+    Public Declare PtrSafe Function MapAndLoad Lib "imagehlp" (ByVal ImageName As LongPtr, ByVal DllPath As LongPtr, LoadedImage As LOADED_IMAGE, ByVal DotDll As BOOL, ByVal ReadOnly As BOOL) As BOOL
+    Public Declare PtrSafe Function UnMapAndLoad Lib "imagehlp" (LoadedImage As LOADED_IMAGE) As BOOL
+    Public Declare PtrSafe Function TouchFileTimes Lib "imagehlp" (ByVal FileHandle As LongPtr, pSystemTime As SYSTEMTIME) As BOOL
+    Public Declare PtrSafe Function SplitSymbols Lib "imagehlp" (ByVal ImageName As LongPtr, ByVal SymbolsPath As LongPtr, ByVal SymbolFilePath As LongPtr, ByVal Flags As DbgSplitSymFlags) As BOOL
+    Public Declare PtrSafe Function UpdateDebugInfoFile Lib "imagehlp" (ByVal ImageName As LongPtr, ByVal SymbolPath As LongPtr, ByVal DebugFilePath As LongPtr, NtHeaders As IMAGE_NT_HEADERS32) As BOOL
+    Public Declare PtrSafe Function UpdateDebugInfoFileEx Lib "imagehlp" (ByVal ImageName As LongPtr, ByVal SymbolPath As LongPtr, ByVal DebugFilePath As LongPtr, NtHeaders As IMAGE_NT_HEADERS32, ByVal OldCheckSum As Long) As BOOL
+        
+    'imagehlp.h and dbghelp.h **are identical beyond this point!!***
+    
+    [Description("the image is not stripped.  No dbg file available.")] Public Const ERROR_IMAGE_NOT_STRIPPED  = &H8800
+    [Description("image is stripped but there is no pointer to a dbg file")] Public Const ERROR_NO_DBG_POINTER  = &H8801
+    [Description("image does not point to a pdb file")] Public Const ERROR_NO_PDB_POINTER  = &H8802
+    
+    ' typedef BOOL
+    ' (CALLBACK *PFIND_DEBUG_FILE_CALLBACK)(
+        ' _In_ HANDLE FileHandle,
+        ' _In_ PCSTR FileName,
+        ' _In_ PVOID CallerData
+        ' );
+    
+    Public DeclareWide PtrSafe Function SymFindDebugInfoFile Lib "imagehlp" Alias "SymFindDebugInfoFileW" (ByVal hProcess As LongPtr, ByVal FileName As String, ByVal DebugFilePath As String, Optional ByVal Callback As LongPtr, Optional ByVal CallerData As LongPtr) As LongPtr
+    
+    ' typedef BOOL
+    ' (CALLBACK *PFIND_DEBUG_FILE_CALLBACKW)(
+        ' _In_ HANDLE FileHandle,
+        ' _In_ PCWSTR FileName,
+        ' _In_ PVOID  CallerData
+        ' );
+        
+    Public Declare PtrSafe Function SymFindDebugInfoFileW Lib "imagehlp" (ByVal hProcess As LongPtr, ByVal FileName As LongPtr, ByVal DebugFilePath As LongPtr, Optional ByVal Callback As LongPtr, Optional ByVal CallerData As LongPtr) As LongPtr
+    [Description("IMPORTANT: This API has no Unicode version, so this call is ANSI.")]
+    Public Declare PtrSafe Function FindDebugInfoFile Lib "imagehlp" (ByVal FileName As String, ByVal SymbolPath As String, ByVal DebugFilePath As String) As LongPtr
+    Public DeclareWide PtrSafe Function FindDebugInfoFileEx Lib "imagehlp" Alias "FindDebugInfoFileExW" (ByVal FileName As String, ByVal SymbolPath As String, ByVal DebugFilePath As String, Optional ByVal Callback As LongPtr, Optional ByVal CallerData As LongPtr) As LongPtr
+    Public Declare PtrSafe Function FindDebugInfoFileExW Lib "imagehlp" (ByVal FileName As LongPtr, ByVal SymbolPath As LongPtr, ByVal DebugFilePath As LongPtr, Optional ByVal Callback As LongPtr, Optional ByVal CallerData As LongPtr) As LongPtr
+                
+    ' typedef BOOL
+    ' (CALLBACK *PFINDFILEINPATHCALLBACK)(
+        ' _In_ PCSTR filename,
+        ' _In_ PVOID context
+        ' );
+    Public DeclareWide PtrSafe Function SymFindFileInPath Lib "imagehlp" Alias "SymFindFileInPathW" (ByVal hProcess As LongPtr, ByVal SearchPath As String, ByVal FileName As String, ByVal id As LongPtr, ByVal two As Long, ByVal three As Long, ByVal flags As DbgSymSrvFlags, ByVal FoundFile As String, Optional ByVal callback As LongPtr, Optional ByVal context As LongPtr) As BOOL
+    Public Declare PtrSafe Function SymFindFileInPathW Lib "imagehlp" (ByVal hProcess As LongPtr, ByVal SearchPath As LongPtr, ByVal FileName As LongPtr, ByVal id As LongPtr, ByVal two As Long, ByVal three As Long, ByVal flags As DbgSymSrvFlags, ByVal FoundFile As String, Optional ByVal callback As LongPtr, Optional ByVal context As LongPtr) As BOOL
+    
+    ' typedef BOOL
+    ' (CALLBACK *PFIND_EXE_FILE_CALLBACK)(
+        ' _In_ HANDLE FileHandle,
+        ' _In_ PCSTR FileName,
+        ' _In_opt_ PVOID CallerData
+        ' );
+        
+        
+    Public DeclareWide PtrSafe Function SymFindExecutableImage Lib "imagehlp" Alias "SymFindExecutableImageW" (ByVal hProcess As LongPtr, ByVal FileName As String, ByVal ImageFilePath As String, Optional ByVal Callback As LongPtr, Optional ByVal CallerData As LongPtr) As LongPtr
+
+    ' typedef BOOL
+    ' (CALLBACK *PFIND_EXE_FILE_CALLBACKW)(
+        ' _In_ HANDLE FileHandle,
+        ' _In_ PCWSTR FileName,
+        ' _In_opt_ PVOID CallerData
+        ' );
+        
+    Public Declare PtrSafe Function SymFindExecutableImageW Lib "imagehlp" (ByVal hProcess As LongPtr, ByVal FileName As LongPtr, ByVal ImageFilePath As LongPtr, Optional ByVal Callback As LongPtr, Optional ByVal CallerData As LongPtr) As LongPtr
+    
+    [Description("IMPORTANT: This API has no Unicode version, so this call is ANSI.")]
+    Public Declare PtrSafe Function FindExecutableImage Lib "imagehlp" (ByVal FileName As String, ByVal SymbolPath As String, ByVal ImageFilePath As String) As LongPtr
+    Public DeclareWide PtrSafe Function FindExecutableImageEx Lib "imagehlp" Alias "FindExecutableImageExW" (ByVal FileName As String, ByVal SymbolPath As String, ByVal ImageFilePath As String, Optional ByVal Callback As LongPtr, Optional ByVal CallerData As LongPtr) As LongPtr
+    Public Declare PtrSafe Function FindExecutableImageExW Lib "imagehlp" (ByVal FileName As LongPtr, ByVal SymbolPath As LongPtr, ByVal ImageFilePath As LongPtr, Optional ByVal Callback As LongPtr, Optional ByVal CallerData As LongPtr) As LongPtr
+    Public Declare PtrSafe Function ImageNtHeader Lib "imagehlp" (ByVal Base As LongPtr) As LongPtr
+    Public Declare PtrSafe Function ImageDirectoryEntryToDataEx Lib "imagehlp" (ByVal Base As LongPtr, ByVal MappedAsImage As Byte, [TypeHint(ImageDirectories)] ByVal DirectoryEntry As Integer, Size As Long, FoundHeader As LongPtr) As LongPtr
+    Public Declare PtrSafe Function ImageDirectoryEntryToData Lib "imagehlp" (ByVal Base As LongPtr, ByVal MappedAsImage As Byte, ByVal DirectoryEntry As Integer, Size As Long) As LongPtr
+    Public Declare PtrSafe Function ImageRvaToSection Lib "imagehlp" (NtHeaders As IMAGE_NT_HEADERS, ByVal Base As LongPtr, ByVal Rva As Long) As LongPtr
+    Public Declare PtrSafe Function ImageRvaToVa Lib "imagehlp" (NtHeaders As IMAGE_NT_HEADERS, ByVal Base As LongPtr, ByVal Rva As Long, LastRvaSection As IMAGE_SECTION_HEADER) As LongPtr
+        
+    #If Win64 = 0 Then
+    Public Type IMAGE_DEBUG_INFORMATION
+        List As LIST_ENTRY
+        ReservedSize As Long
+        ReservedMappedBase As LongPtr
+        ReservedMachine As Integer
+        ReservedCharacteristics As Integer
+        ReservedCheckSum As Long
+        ImageBase As Long
+        SizeOfImage As Long
+        ReservedNumberOfSections As Long
+        ReservedSections As LongPtr 'PIMAGE_SECTION_HEADER
+        ReservedExportedNamesSize As Long
+        ReservedExportedNames As String
+        ReservedNumberOfFunctionTableEntries As Long
+        ReservedFunctionTableEntries As LongPtr 'PIMAGE_FUNCTION_ENTRY
+        ReservedLowestFunctionStartingAddress As Long
+        ReservedHighestFunctionEndingAddress As Long
+        ReservedNumberOfFpoTableEntries As Long
+        ReservedFpoTableEntries As LongPtr 'PFPO_DATA
+        SizeOfCoffSymbols As Long
+        CoffSymbols As LongPtr 'PIMAGE_COFF_SYMBOLS_HEADER
+        ReservedSizeOfCodeViewSymbols As Long
+        ReservedCodeViewSymbols As LongPtr
+        ImageFilePath As String
+        ImageFileName As String
+        ReservedDebugFilePath As String
+        ReservedTimeDateStamp As Long
+        ReservedRomImage As BOOL
+        ReservedDebugDirectory As LongPtr 'PIMAGE_DEBUG_DIRECTORY
+        ReservedNumberOfDebugDirectories As Long
+        ReservedOriginalFunctionTableBaseAddress As Long
+        Reserved(0 To 1) As Long
+    End Type
+    
+    [Description("IMPORTANT: This API has no Unicode version, so this call is ANSI.")]
+    Public Declare PtrSafe Function MapDebugInformation Lib "imagehlp" (ByVal FileHandle As LongPtr, ByVal FileName As String, ByVal SymbolPath As String, ByVal ImageBase As Long) As LongPtr
+    Public Declare PtrSafe Function UnmapDebugInformation Lib "imagehlp" (ByVal DebugInfo As LongPtr) As BOOL
+    #End If
+    Public Declare PtrSafe Function SearchTreeForFileA Lib "imagehlp" Alias "SearchTreeForFile" (ByVal RootPath As String, ByVal InputPathName As String, ByVal OutputPathBuffer As String) As BOOL
+    Public Declare PtrSafe Function SearchTreeForFileW Lib "dbghelp" (ByVal RootPath As LongPtr, ByVal InputPathName As LongPtr, ByVal OutputPathBuffer As LongPtr) As BOOL
+    Public DeclareWide PtrSafe Function SearchTreeForFile Lib "dbghelp" Alias "SearchTreeForFileW" (ByVal RootPath As String, ByVal InputPathName As String, ByVal OutputPathBuffer As String) As BOOL
+    ' typedef BOOL
+    ' (CALLBACK *PENUMDIRTREE_CALLBACK)(
+    '     _In_ PCSTR FilePath,
+    '     _In_opt_ PVOID CallerData
+    '     );
+    
+    Public Declare PtrSafe Function EnumDirTreeA Lib "imagehlp" Alias "EnumDirTree" (ByVal hProcess As LongPtr, ByVal RootPath As String, ByVal InputPathName As String, ByVal OutputPathBuffer As String, Optional ByVal cb As LongPtr, Optional ByVal data As LongPtr) As BOOL
+    ' typedef BOOL
+    ' (CALLBACK *PENUMDIRTREE_CALLBACKW)(
+    '     _In_ PCWSTR FilePath,
+    '     _In_opt_ PVOID CallerData
+    '     );
+    Public Declare PtrSafe Function EnumDirTreeW Lib "imagehlp" (ByVal hProcess As LongPtr, ByVal RootPath As LongPtr, ByVal InputPathName As LongPtr, ByVal OutputPathBuffer As LongPtr, Optional ByVal cb As LongPtr, Optional ByVal data As LongPtr) As BOOL
+    Public DeclareWide PtrSafe Function EnumDirTree Lib "imagehlp" Alias "EnumDirTreeW" (ByVal hProcess As LongPtr, ByVal RootPath As String, ByVal InputPathName As String, ByVal OutputPathBuffer As String, Optional ByVal cb As LongPtr, Optional ByVal data As LongPtr) As BOOL
+    Public Declare PtrSafe Function MakeSureDirectoryPathExists Lib "Imagehlp" (ByVal DirPath As String) As Boolean
+    
+    Public Enum DbgUndecorateFlags
+        UNDNAME_COMPLETE = (&H0000)  ' Enable full undecoration
+        UNDNAME_NO_LEADING_UNDERSCORES = (&H0001)  ' Remove leading underscores from MS extended keywords
+        UNDNAME_NO_MS_KEYWORDS = (&H0002)  ' Disable expansion of MS extended keywords
+        UNDNAME_NO_FUNCTION_RETURNS = (&H0004)  ' Disable expansion of return type for primary declaration
+        UNDNAME_NO_ALLOCATION_MODEL = (&H0008)  ' Disable expansion of the declaration model
+        UNDNAME_NO_ALLOCATION_LANGUAGE = (&H0010)  ' Disable expansion of the declaration language specifier
+        UNDNAME_NO_MS_THISTYPE = (&H0020)  ' NYI Disable expansion of MS keywords on the 'this' type for primary declaration
+        UNDNAME_NO_CV_THISTYPE = (&H0040)  ' NYI Disable expansion of CV modifiers on the 'this' type for primary declaration
+        UNDNAME_NO_THISTYPE = (&H0060)  ' Disable all modifiers on the 'this' type
+        UNDNAME_NO_ACCESS_SPECIFIERS = (&H0080)  ' Disable expansion of access specifiers for members
+        UNDNAME_NO_THROW_SIGNATURES = (&H0100)  ' Disable expansion of 'throw-signatures' for functions and pointers to functions
+        UNDNAME_NO_MEMBER_TYPE = (&H0200)  ' Disable expansion of 'static' or 'virtual'ness of members
+        UNDNAME_NO_RETURN_UDT_MODEL = (&H0400)  ' Disable expansion of MS model for UDT returns
+        UNDNAME_32_BIT_DECODE = (&H0800)  ' Undecorate 32-bit decorated names
+        UNDNAME_NAME_ONLY = (&H1000)  ' Crack only the name for primary declaration;
+    '   return just [scope::]name.  Does expand template params
+        UNDNAME_NO_ARGUMENTS = (&H2000)  ' Don't undecorate arguments to function
+        UNDNAME_NO_SPECIAL_SYMS = (&H4000)  ' Don't undecorate special names (v-table, vcall, vector xxx, metatype, etc)
+    End Enum
+    
+    Public DeclareWide PtrSafe Function UnDecorateSymbolName Lib "imagehlp" Alias "UnDecorateSymbolNameW" (ByVal name As String, ByVal outputString As String, ByVal maxStringLength As Long, ByVal flags As DbgUndecorateFlags) As Long
+    Public Declare PtrSafe Function UnDecorateSymbolNameW Lib "imagehlp" (ByVal name As LongPtr, ByVal outputString As LongPtr, ByVal maxStringLength As Long, ByVal flags As DbgUndecorateFlags) As Long
+        
+    Public Enum DbgDbhHeaderSigs
+        DBHHEADER_DEBUGDIRS = &H1
+        DBHHEADER_CVMISC = &H2
+        DBHHEADER_PDBGUID = &H3
+    End Enum
+    
+    Public Type MODLOAD_DATA
+        ssize As Long ' size of this struct
+        ssig As DbgDbhHeaderSigs ' signature identifying the passed data
+        data As LongPtr ' pointer to passed data
+        size As Long ' size of passed data
+        flags As Long ' options
+    End Type
+    
+    Public Type MODLOAD_CVMISC
+        oCV As Long ' ofset to the codeview record
+        cCV As LongPtr ' size of the codeview record
+        oMisc As Long ' offset to the misc record
+        cMisc As LongPtr ' size of the misc record
+        dtImage As Long ' datetime stamp of the image
+        cImage As Long ' size of the image
+    End Type
+    
+    Public Type MODLOAD_PDBGUID_PDBAGE
+        PdbGuid As UUID ' Pdb Guid
+        PdbAge As Long ' Pdb Age
+    End Type
+    
+    Public Enum ADDRESS_MODE
+        AddrMode1616
+        AddrMode1632
+        AddrModeReal
+        AddrModeFlat
+    End Enum
+    
+    Public Type ADDRESS64
+        Offset As LongLong
+        Segment As Integer
+        Mode As ADDRESS_MODE
+    End Type
+    #If Win64 Then
+    'Alias ADDRESS As ADDRESS64
+    Public Type ADDRESS
+        Offset As LongLong
+        Segment As Integer
+        Mode As ADDRESS_MODE
+    End Type
+    #Else
+    Public Type ADDRESS
+        Offset As Long
+        Segment As Integer
+        Mode As ADDRESS_MODE
+    End Type
+    #End If
+     
+    Public Sub Address32To64(a32 As ADDRESS, a64 As ADDRESS64)
+        a64.Offset = a32.Offset
+        a64.Segment = a32.Segment
+        a64.Mode = a32.Mode
+    End Sub
+    Public Sub Address64To32(a64 As ADDRESS64, a32 As ADDRESS)
+        CopyMemory a32.Offset, a64.Offset, 4
+        a32.Segment = a64.Segment
+        a32.Mode = a64.Mode
+    End Sub
+    
+    Public Type KDHELP64
+        ' address of kernel thread object, as provided in the
+        ' WAIT_STATE_CHANGE packet.
+        Thread As LongLong
+        ' offset in thread object to pointer to the current callback frame
+        ' in kernel stack.
+        ThCallbackStack As Long
+        ' offset in thread object to pointer to the current callback backing
+        ' store frame in kernel stack.
+        ThCallbackBStore As Long
+        ' offsets to values in frame:
+        ' address of next callback frame
+        NextCallback As Long
+        ' address of saved frame pointer (if applicable)
+        FramePointer As Long
+        ' Address of the kernel function that calls out to user mode
+        KiCallUserMode As LongLong
+        ' Address of the user mode dispatcher function
+        KeUserCallbackDispatcher As LongLong
+        ' Lowest kernel mode address
+        SystemRangeStart As LongLong
+        ' Address of the user mode exception dispatcher function.
+        ' Added in API version 10.
+        KiUserExceptionDispatcher As LongLong
+        ' Stack bounds, added in API version 11.
+        StackBase As LongLong
+        StackLimit As LongLong
+        ' Target OS build number. Added in API version 12.
+        BuildVersion As Long
+        RetpolineStubFunctionTableSize As Long
+        RetpolineStubFunctionTable As LongLong
+        RetpolineStubOffset As Long
+        RetpolineStubSize As Long
+        Reserved0(0 To 1) As LongLong
+    End Type
+    
+    #If Win64 Then
+    Public Type KDHELP
+        'Alias KDHELP As KDHELP64
+        ' address of kernel thread object, as provided in the
+        ' WAIT_STATE_CHANGE packet.
+        Thread As LongLong
+        ' offset in thread object to pointer to the current callback frame
+        ' in kernel stack.
+        ThCallbackStack As Long
+        ' offset in thread object to pointer to the current callback backing
+        ' store frame in kernel stack.
+        ThCallbackBStore As Long
+        ' offsets to values in frame:
+        ' address of next callback frame
+        NextCallback As Long
+        ' address of saved frame pointer (if applicable)
+        FramePointer As Long
+        ' Address of the kernel function that calls out to user mode
+        KiCallUserMode As LongLong
+        ' Address of the user mode dispatcher function
+        KeUserCallbackDispatcher As LongLong
+        ' Lowest kernel mode address
+        SystemRangeStart As LongLong
+        ' Address of the user mode exception dispatcher function.
+        ' Added in API version 10.
+        KiUserExceptionDispatcher As LongLong
+        ' Stack bounds, added in API version 11.
+        StackBase As LongLong
+        StackLimit As LongLong
+        ' Target OS build number. Added in API version 12.
+        BuildVersion As Long
+        RetpolineStubFunctionTableSize As Long
+        RetpolineStubFunctionTable As LongLong
+        RetpolineStubOffset As Long
+        RetpolineStubSize As Long
+        Reserved0(0 To 1) As LongLong
+    End Type
+    #Else
+    Public Type KDHELP
+        ' address of kernel thread object, as provided in the
+        ' WAIT_STATE_CHANGE packet.
+        Thread As Long
+        ' offset in thread object to pointer to the current callback frame
+        ' in kernel stack.
+        ThCallbackStack As Long
+        ' offsets to values in frame:
+        ' address of next callback frame
+        NextCallback As Long
+        ' address of saved frame pointer (if applicable)
+        FramePointer As Long
+        ' Address of the kernel function that calls out to user mode
+        KiCallUserMode As Long
+        ' Address of the user mode dispatcher function
+        KeUserCallbackDispatcher As Long
+        ' Lowest kernel mode address
+        SystemRangeStart As Long
+        ' offset in thread object to pointer to the current callback backing
+        ' store frame in kernel stack.
+        ThCallbackBStore As Long
+        ' Address of the user mode exception dispatcher function.
+        ' Added in API version 10.
+        KiUserExceptionDispatcher As Long
+        ' Stack bounds, added in API version 11.
+        StackBase As Long
+        StackLimit As Long
+        Reserved(0 To 4) As Long
+    End Type
+    #End If
+    
+    Public Sub KdHelp32To64(p32 As KDHELP, p64 As KDHELP64)
+        p64.Thread = p32.Thread
+        p64.ThCallbackStack = p32.ThCallbackStack
+        p64.NextCallback = p32.NextCallback
+        p64.FramePointer = p32.FramePointer
+        p64.KiCallUserMode = p32.KiCallUserMode
+        p64.KeUserCallbackDispatcher = p32.KeUserCallbackDispatcher
+        p64.SystemRangeStart = p32.SystemRangeStart
+        p64.KiUserExceptionDispatcher = p32.KiUserExceptionDispatcher
+        p64.StackBase = p32.StackBase
+        p64.StackLimit = p32.StackLimit
+    End Sub
+    
+    Public Type STACKFRAME64
+        AddrPC As ADDRESS64 ' program counter
+        AddrReturn As ADDRESS64 ' return address
+        AddrFrame As ADDRESS64 ' frame pointer
+        AddrStack As ADDRESS64 ' stack pointer
+        AddrBStore As ADDRESS64 ' backing store pointer
+        FuncTableEntry As LongPtr ' pointer to pdata/fpo or NULL
+        Params(0 To 3) As LongLong ' possible arguments to the function
+        Far As BOOL ' WOW far call
+        Virtual As BOOL ' is this a virtual frame?
+        Reserved(0 To 2) As LongLong
+        KdHelp As KDHELP64
+    End Type
+    
+    Public Const INLINE_FRAME_CONTEXT_INIT  = 0
+    Public Const INLINE_FRAME_CONTEXT_IGNORE  = &HFFFFFFFF
+    
+    Public Type STACKFRAME_EX
+        ' First, STACKFRAME64 structure
+        AddrPC As ADDRESS64 ' program counter
+        AddrReturn As ADDRESS64 ' return address
+        AddrFrame As ADDRESS64 ' frame pointer
+        AddrStack As ADDRESS64 ' stack pointer
+        AddrBStore As ADDRESS64 ' backing store pointer
+        FuncTableEntry As LongPtr ' pointer to pdata/fpo or NULL
+        Params(0 To 3) As LongLong ' possible arguments to the function
+        Far As BOOL ' WOW far call
+        Virtual As BOOL ' is this a virtual frame?
+        Reserved(0 To 2) As LongLong
+        KdHelp As KDHELP64
+        ' Extended STACKFRAME fields
+        StackFrameSize As Long
+        InlineFrameContext As Long
+    End Type
+    
+    #If Win64 Then
+    'Alias STACKFRAME As STACKFRAME64
+    Public Type STACKFRAME
+        AddrPC As ADDRESS64 ' program counter
+        AddrReturn As ADDRESS64 ' return address
+        AddrFrame As ADDRESS64 ' frame pointer
+        AddrStack As ADDRESS64 ' stack pointer
+        AddrBStore As ADDRESS64 ' backing store pointer
+        FuncTableEntry As LongPtr ' pointer to pdata/fpo or NULL
+        Params(0 To 3) As LongLong ' possible arguments to the function
+        Far As BOOL ' WOW far call
+        Virtual As BOOL ' is this a virtual frame?
+        Reserved(0 To 2) As LongLong
+        KdHelp As KDHELP64
+    End Type
+    #Else
+    Public Type STACKFRAME
+        AddrPC As ADDRESS ' program counter
+        AddrReturn As ADDRESS ' return address
+        AddrFrame As ADDRESS ' frame pointer
+        AddrStack As ADDRESS ' stack pointer
+        FuncTableEntry As LongPtr ' pointer to pdata/fpo or NULL
+        Params(0 To 3) As Long ' possible arguments to the function
+        Far As BOOL ' WOW far call
+        Virtual As BOOL ' is this a virtual frame?
+        Reserved(0 To 2) As Long
+        KdHelp As KDHELP
+        AddrBStore As ADDRESS ' backing store pointer
+    End Type
+    #End If
+    
+    ' typedef
+    ' BOOL
+    ' (__stdcall *PREAD_PROCESS_MEMORY_ROUTINE64)(
+        ' _In_ HANDLE hProcess,
+        ' _In_ DWORD64 qwBaseAddress,
+        ' _Out_writes_bytes_(nSize) PVOID lpBuffer,
+        ' _In_ DWORD nSize,
+        ' _Out_ LPDWORD lpNumberOfBytesRead
+        ' );
+
+    ' typedef
+    ' PVOID
+    ' (__stdcall *PFUNCTION_TABLE_ACCESS_ROUTINE64)(
+        ' _In_ HANDLE ahProcess,
+        ' _In_ DWORD64 AddrBase
+        ' );
+
+    ' typedef
+    ' DWORD64
+    ' (__stdcall *PGET_MODULE_BASE_ROUTINE64)(
+        ' _In_ HANDLE hProcess,
+        ' _In_ DWORD64 Address
+        ' );
+
+    ' typedef
+    ' DWORD64
+    ' (__stdcall *PTRANSLATE_ADDRESS_ROUTINE64)(
+        ' _In_ HANDLE hProcess,
+        ' _In_ HANDLE hThread,
+        ' _In_ LPADDRESS64 lpaddr
+        ' );
+        
+    Public Const TARGET_ATTRIBUTE_PACMASK  = &H00000001
+    '  Target Attribute Special Values:
+    Public Const TARGET_ATTRIBUTE_PACMASK_LIVETARGET  = &HFFFFFFFFFFFFFFFF
+                
+    ' typedef
+    ' BOOL
+    ' (__stdcall *PGET_TARGET_ATTRIBUTE_VALUE64)(
+        ' _In_ HANDLE hProcess,
+        ' _In_ DWORD Attribute,
+        ' _In_ DWORD64 AttributeData,
+        ' _Out_ DWORD64 *AttributeValue
+        ' );
+        
+    Public Declare PtrSafe Function StackWalk64 Lib "imagehlp" (ByVal MachineType As ImageMachineType, ByVal hProcess As LongPtr, ByVal hThread As LongPtr, StackFrame As STACKFRAME64, ByVal ContextRecord As LongPtr, Optional ByVal ReadMemoryRoutine As LongPtr, Optional ByVal FunctionTableAccessRoutine As LongPtr, Optional ByVal GetModuleBaseRoutine As LongPtr, Optional ByVal TranslateAddress As LongPtr) As BOOL
+    
+    Public Enum DbgStackWalkExFlags
+        SYM_STKWALK_DEFAULT = &H00000000
+        SYM_STKWALK_FORCE_FRAMEPTR = &H00000001
+        SYM_STKWALK_ZEROEXTEND_PTRS = &H00000002
+    End Enum
+    
+    Public Declare PtrSafe Function StackWalkEx Lib "imagehlp" (ByVal MachineType As ImageMachineType, ByVal hProcess As LongPtr, ByVal hThread As LongPtr, StackFrame As STACKFRAME_EX, ByVal ContextRecord As LongPtr, Optional ByVal ReadMemoryRoutine As LongPtr, Optional ByVal FunctionTableAccessRoutine As LongPtr, Optional ByVal GetModuleBaseRoutine As LongPtr, Optional ByVal TranslateAddress As LongPtr, Optional ByVal dwFlags As DbgStackWalkExFlags = 0) As BOOL
+    Public Declare PtrSafe Function StackWalk2 Lib "imagehlp" (ByVal MachineType As ImageMachineType, ByVal hProcess As LongPtr, ByVal hThread As LongPtr, StackFrame As STACKFRAME_EX, ByVal ContextRecord As LongPtr, Optional ByVal ReadMemoryRoutine As LongPtr, Optional ByVal FunctionTableAccessRoutine As LongPtr, Optional ByVal GetModuleBaseRoutine As LongPtr, Optional ByVal TranslateAddress As LongPtr, Optional ByVal GetTargetAttributeValue As LongPtr, Optional ByVal dwFlags As DbgStackWalkExFlags = 0) As BOOL
+            
+    #If Win64 Then
+    Public Declare PtrSafe Function StackWalk Lib "imagehlp" Alias "StackWalk64" (ByVal MachineType As ImageMachineType, ByVal hProcess As LongPtr, ByVal hThread As LongPtr, StackFrame As STACKFRAME64, ByVal ContextRecord As LongPtr, Optional ByVal ReadMemoryRoutine As LongPtr, Optional ByVal FunctionTableAccessRoutine As LongPtr, Optional ByVal GetModuleBaseRoutine As LongPtr, Optional ByVal TranslateAddress As LongPtr) As BOOL
+    #Else
+    Public Declare PtrSafe Function StackWalk Lib "imagehlp" (ByVal MachineType As ImageMachineType, ByVal hProcess As LongPtr, ByVal hThread As LongPtr, StackFrame As STACKFRAME64, ByVal ContextRecord As LongPtr, Optional ByVal ReadMemoryRoutine As LongPtr, Optional ByVal FunctionTableAccessRoutine As LongPtr, Optional ByVal GetModuleBaseRoutine As LongPtr, Optional ByVal TranslateAddress As LongPtr) As BOOL
+    #End If
+    
+    Public Const API_VERSION_NUMBER_IMAGEHLP = 12
+    
+    Public Type API_VERSION
+        MajorVersion As Integer
+        MinorVersion As Integer
+        Revision As Integer
+        Reserved As Integer
+    End Type
+    
+    Public Declare PtrSafe Function ImagehlpApiVersion Lib "imagehlp" () As LongPtr 'API_VERSION*
+    Public Declare PtrSafe Function ImagehlpApiVersionEx Lib "imagehlp" (AppVersion As API_VERSION) As LongPtr 'API_VERSION*
+    Public Declare PtrSafe Function GetTimestampForLoadedLibrary Lib "imagehlp" (ByVal Module As LongPtr) As Long
+    
+    ' //
+    ' // typedefs for function pointers
+    ' //
+    ' typedef BOOL
+    ' (CALLBACK *PSYM_ENUMMODULES_CALLBACK64)(
+        ' _In_ PCSTR ModuleName,
+        ' _In_ DWORD64 BaseOfDll,
+        ' _In_opt_ PVOID UserContext
+        ' );
+
+    ' typedef BOOL
+    ' (CALLBACK *PSYM_ENUMMODULES_CALLBACKW64)(
+        ' _In_ PCWSTR ModuleName,
+        ' _In_ DWORD64 BaseOfDll,
+        ' _In_opt_ PVOID UserContext
+        ' );
+
+    ' typedef BOOL
+    ' (CALLBACK *PENUMLOADED_MODULES_CALLBACK64)(
+        ' _In_ PCSTR ModuleName,
+        ' _In_ DWORD64 ModuleBase,
+        ' _In_ ULONG ModuleSize,
+        ' _In_opt_ PVOID UserContext
+        ' );
+
+    ' typedef BOOL
+    ' (CALLBACK *PENUMLOADED_MODULES_CALLBACKW64)(
+        ' _In_ PCWSTR ModuleName,
+        ' _In_ DWORD64 ModuleBase,
+        ' _In_ ULONG ModuleSize,
+        ' _In_opt_ PVOID UserContext
+        ' );
+
+    ' typedef BOOL
+    ' (CALLBACK *PSYM_ENUMSYMBOLS_CALLBACK64)(
+        ' _In_ PCSTR SymbolName,
+        ' _In_ DWORD64 SymbolAddress,
+        ' _In_ ULONG SymbolSize,
+        ' _In_opt_ PVOID UserContext
+        ' );
+
+    ' typedef BOOL
+    ' (CALLBACK *PSYM_ENUMSYMBOLS_CALLBACK64W)(
+        ' _In_ PCWSTR SymbolName,
+        ' _In_ DWORD64 SymbolAddress,
+        ' _In_ ULONG SymbolSize,
+        ' _In_opt_ PVOID UserContext
+        ' );
+
+    ' typedef BOOL
+    ' (CALLBACK *PSYMBOL_REGISTERED_CALLBACK64)(
+        ' _In_ HANDLE hProcess,
+        ' _In_ ULONG ActionCode,
+        ' _In_opt_ ULONG64 CallbackData,
+        ' _In_opt_ ULONG64 UserContext
+        ' );
+
+    ' typedef
+    ' PVOID
+    ' (CALLBACK *PSYMBOL_FUNCENTRY_CALLBACK)(
+        ' _In_ HANDLE hProcess,
+        ' _In_ DWORD AddrBase,
+        ' _In_opt_ PVOID UserContext
+        ' );
+
+    ' typedef
+    ' PVOID
+    ' (CALLBACK *PSYMBOL_FUNCENTRY_CALLBACK64)(
+        ' _In_ HANDLE hProcess,
+        ' _In_ ULONG64 AddrBase,
+        ' _In_ ULONG64 UserContext
+        ' );
+
+    ' #if !defined(_IMAGEHLP_SOURCE_) && defined(_IMAGEHLP64)
+
+    ' #define PSYM_ENUMMODULES_CALLBACK PSYM_ENUMMODULES_CALLBACK64
+    ' #define PSYM_ENUMSYMBOLS_CALLBACK PSYM_ENUMSYMBOLS_CALLBACK64
+    ' #define PSYM_ENUMSYMBOLS_CALLBACKW PSYM_ENUMSYMBOLS_CALLBACK64W
+    ' #define PENUMLOADED_MODULES_CALLBACK PENUMLOADED_MODULES_CALLBACK64
+    ' #define PSYMBOL_REGISTERED_CALLBACK PSYMBOL_REGISTERED_CALLBACK64
+    ' #define PSYMBOL_FUNCENTRY_CALLBACK PSYMBOL_FUNCENTRY_CALLBACK64
+
+    ' #else
+
+    ' typedef BOOL
+    ' (CALLBACK *PSYM_ENUMMODULES_CALLBACK)(
+        ' _In_ PCSTR ModuleName,
+        ' _In_ ULONG BaseOfDll,
+        ' _In_opt_ PVOID UserContext
+        ' );
+
+    ' typedef BOOL
+    ' (CALLBACK *PSYM_ENUMSYMBOLS_CALLBACK)(
+        ' _In_ PCSTR SymbolName,
+        ' _In_ ULONG SymbolAddress,
+        ' _In_ ULONG SymbolSize,
+        ' _In_opt_ PVOID UserContext
+        ' );
+
+    ' typedef BOOL
+    ' (CALLBACK *PSYM_ENUMSYMBOLS_CALLBACKW)(
+        ' _In_ PCWSTR SymbolName,
+        ' _In_ ULONG SymbolAddress,
+        ' _In_ ULONG SymbolSize,
+        ' _In_opt_ PVOID UserContext
+        ' );
+
+    ' typedef BOOL
+    ' (CALLBACK *PENUMLOADED_MODULES_CALLBACK)(
+        ' _In_ PCSTR ModuleName,
+        ' _In_ ULONG ModuleBase,
+        ' _In_ ULONG ModuleSize,
+        ' _In_opt_ PVOID UserContext
+        ' );
+
+    ' typedef BOOL
+    ' (CALLBACK *PSYMBOL_REGISTERED_CALLBACK)(
+        ' _In_ HANDLE hProcess,
+        ' _In_ ULONG ActionCode,
+        ' _In_opt_ PVOID CallbackData,
+        ' _In_opt_ PVOID UserContext
+        ' );
+
+    ' #endif
+    
+    Public Enum SymTagEnum
+        SymTagNull
+        SymTagExe
+        SymTagCompiland
+        SymTagCompilandDetails
+        SymTagCompilandEnv
+        SymTagFunction
+        SymTagBlock
+        SymTagData
+        SymTagAnnotation
+        SymTagLabel
+        SymTagPublicSymbol
+        SymTagUDT
+        SymTagEnum
+        SymTagFunctionType
+        SymTagPointerType
+        SymTagArrayType
+        SymTagBaseType
+        SymTagTypedef
+        SymTagBaseClass
+        SymTagFriend
+        SymTagFunctionArgType
+        SymTagFuncDebugStart
+        SymTagFuncDebugEnd
+        SymTagUsingNamespace
+        SymTagVTableShape
+        SymTagVTable
+        SymTagCustom
+        SymTagThunk
+        SymTagCustomType
+        SymTagManagedType
+        SymTagDimension
+        SymTagCallSite
+        SymTagInlineSite
+        SymTagBaseInterface
+        SymTagVectorType
+        SymTagMatrixType
+        SymTagHLSLType
+        SymTagCaller
+        SymTagCallee
+        SymTagExport
+        SymTagHeapAllocationSite
+        SymTagCoffGroup
+        SymTagMax
+    End Enum
+    
+    Public Enum SymbolInfoFlags
+        SYMFLAG_VALUEPRESENT = &H00000001
+        SYMFLAG_REGISTER = &H00000008
+        SYMFLAG_REGREL = &H00000010
+        SYMFLAG_FRAMEREL = &H00000020
+        SYMFLAG_PARAMETER = &H00000040
+        SYMFLAG_LOCAL = &H00000080
+        SYMFLAG_CONSTANT = &H00000100
+        SYMFLAG_EXPORT = &H00000200
+        SYMFLAG_FORWARDER = &H00000400
+        SYMFLAG_FUNCTION = &H00000800
+        SYMFLAG_VIRTUAL = &H00001000
+        SYMFLAG_THUNK = &H00002000
+        SYMFLAG_TLSREL = &H00004000
+        SYMFLAG_SLOT = &H00008000&
+        SYMFLAG_ILREL = &H00010000
+        SYMFLAG_METADATA = &H00020000
+        SYMFLAG_CLR_TOKEN = &H00040000
+        SYMFLAG_NULL = &H00080000
+        SYMFLAG_FUNC_NO_RETURN = &H00100000
+        SYMFLAG_SYNTHETIC_ZEROBASE = &H00200000
+        SYMFLAG_PUBLIC_CODE = &H00400000
+        SYMFLAG_REGREL_ALIASINDIR = &H00800000
+        SYMFLAG_FIXUP_ARM64X = &H01000000
+        SYMFLAG_GLOBAL = &H02000000
+    '  this resets SymNext/Prev to the beginning
+    '  of the module passed in the address field
+        SYMFLAG_RESET = &H80000000
+    End Enum
+    
+    Public Enum SYM_TYPE
+        SymNone = 0
+        SymCoff
+        SymCv
+        SymPdb
+        SymExport
+        SymDeferred
+        SymSym   ' .sym file
+        SymDia
+        SymVirtual
+        NumSymTypes
+    End Enum
+    
+    Public Type IMAGEHLP_SYMBOL64
+        SizeOfStruct As Long ' set to sizeof(IMAGEHLP_SYMBOL64)
+        Address As LongLong ' virtual address including dll base address
+        Size As Long ' estimated size of symbol, can be zero
+        Flags As Long ' info about the symbols, see the SYMF defines
+        MaxNameLength As Long ' maximum size of symbol name in 'Name'
+        Name(0 To MAX_SYM_NAME) As Byte ' symbol name (null terminated string)
+    End Type
+    
+    Public Type IMAGEHLP_SYMBOL64_PACKAGE
+        sym As IMAGEHLP_SYMBOL64
+        name(0 To (MAX_SYM_NAME)) As Byte
+    End Type
+    
+    Public Type IMAGEHLP_SYMBOLW64
+        SizeOfStruct As Long ' set to sizeof(IMAGEHLP_SYMBOL64)
+        Address As LongLong ' virtual address including dll base address
+        Size As Long ' estimated size of symbol, can be zero
+        Flags As Long ' info about the symbols, see the SYMF defines
+        MaxNameLength As Long ' maximum size of symbol name in 'Name'
+        Name(0 To MAX_SYM_NAME) As Integer ' symbol name (null terminated string)
+    End Type
+    
+    Public Type IMAGEHLP_SYMBOLW64_PACKAGE
+        sym As IMAGEHLP_SYMBOL64
+        name(0 To (MAX_SYM_NAME)) As Integer
+    End Type
+    
+    #If Win64 Then
+    Public Type IMAGEHLP_SYMBOL
+        SizeOfStruct As Long ' set to sizeof(IMAGEHLP_SYMBOL64)
+        Address As LongLong ' virtual address including dll base address
+        Size As Long ' estimated size of symbol, can be zero
+        Flags As Long ' info about the symbols, see the SYMF defines
+        MaxNameLength As Long ' maximum size of symbol name in 'Name'
+        Name(0 To MAX_SYM_NAME) As Byte ' symbol name (null terminated string)
+    End Type
+    
+    Public Type IMAGEHLP_SYMBOL_PACKAGE
+        sym As IMAGEHLP_SYMBOL
+        name(0 To (MAX_SYM_NAME)) As Byte
+    End Type
+    
+    Public Type IMAGEHLP_SYMBOLW
+        SizeOfStruct As Long ' set to sizeof(IMAGEHLP_SYMBOL64)
+        Address As LongLong ' virtual address including dll base address
+        Size As Long ' estimated size of symbol, can be zero
+        Flags As Long ' info about the symbols, see the SYMF defines
+        MaxNameLength As Long ' maximum size of symbol name in 'Name'
+        Name(0 To MAX_SYM_NAME) As Integer ' symbol name (null terminated string)
+    End Type
+    
+    Public Type IMAGEHLP_SYMBOLW_PACKAGE
+        sym As IMAGEHLP_SYMBOL
+        name(0 To (MAX_SYM_NAME)) As Integer
+    End Type
+    #Else
+    Public Type IMAGEHLP_SYMBOL
+        SizeOfStruct As Long ' set to sizeof(IMAGEHLP_SYMBOL64)
+        Address As Long ' virtual address including dll base address
+        Size As Long ' estimated size of symbol, can be zero
+        Flags As Long ' info about the symbols, see the SYMF defines
+        MaxNameLength As Long ' maximum size of symbol name in 'Name'
+        Name(0 To MAX_SYM_NAME) As Byte ' symbol name (null terminated string)
+    End Type
+    
+    Public Type IMAGEHLP_SYMBOL_PACKAGE
+        sym As IMAGEHLP_SYMBOL
+        name(0 To (MAX_SYM_NAME)) As Byte
+    End Type
+    
+    Public Type IMAGEHLP_SYMBOLW
+        SizeOfStruct As Long ' set to sizeof(IMAGEHLP_SYMBOL64)
+        Address As Long ' virtual address including dll base address
+        Size As Long ' estimated size of symbol, can be zero
+        Flags As Long ' info about the symbols, see the SYMF defines
+        MaxNameLength As Long ' maximum size of symbol name in 'Name'
+        Name(0 To MAX_SYM_NAME) As Integer ' symbol name (null terminated string)
+    End Type
+    
+    Public Type IMAGEHLP_SYMBOLW_PACKAGE
+        sym As IMAGEHLP_SYMBOL
+        name(0 To (MAX_SYM_NAME)) As Integer
+    End Type
+    #End If
+    
+    'Alias IMAGEHLP_MODULE64 As IMAGEHLP_MODULEW64
+    Public Type IMAGEHLP_MODULE64
+        SizeOfStruct As Long ' set to sizeof(IMAGEHLP_MODULE64)
+        BaseOfImage As LongLong ' base load address of module
+        ImageSize As Long ' virtual size of the loaded module
+        TimeDateStamp As Long ' date/time stamp from pe header
+        CheckSum As Long ' checksum from the pe header
+        NumSyms As Long ' number of symbols in the symbol table
+        SymType As SYM_TYPE ' type of symbols loaded
+        ModuleName(0 To 31) As Integer ' module name
+        ImageName(0 To 255) As Integer ' image name
+        LoadedImageName(0 To 255) As Integer ' symbol file name
+        ' new elements: 07-Jun-2002
+        LoadedPdbName(0 To 255) As Integer ' pdb file name
+        CVSig As Long ' Signature of the CV record in the debug directories
+        CVData(0 To (MAX_PATH * 3 - 1)) As Integer ' Contents of the CV record
+        PdbSig As Long ' Signature of PDB
+        PdbSig70 As UUID ' Signature of PDB (VC 7 and up)
+        PdbAge As Long ' DBI age of pdb
+        PdbUnmatched As BOOL ' loaded an unmatched pdb
+        DbgUnmatched As BOOL ' loaded an unmatched dbg
+        LineNumbers As BOOL ' we have line number information
+        GlobalSymbols As BOOL ' we have internal symbol information
+        TypeInfo As BOOL ' we have type information
+        ' new elements: 17-Dec-2003
+        SourceIndexed As BOOL ' pdb supports source server
+        Publics As BOOL ' contains public symbols
+        ' new element: 15-Jul-2009
+        MachineType As Long ' IMAGE_FILE_MACHINE_XXX from ntimage.h and winnt.h
+        Reserved As Long ' Padding - don't remove.
+    End Type
+    Public Type IMAGEHLP_MODULE64_EX
+        Module As IMAGEHLP_MODULE64
+        RegionFlags As DbgModuleRegionFlags ' Region Search Flags - IMAGEHLP_MODULE_REGION_XXX
+    End Type
+    Public Type IMAGEHLP_MODULEW64
+        SizeOfStruct As Long ' set to sizeof(IMAGEHLP_MODULE64)
+        BaseOfImage As LongLong ' base load address of module
+        ImageSize As Long ' virtual size of the loaded module
+        TimeDateStamp As Long ' date/time stamp from pe header
+        CheckSum As Long ' checksum from the pe header
+        NumSyms As Long ' number of symbols in the symbol table
+        SymType As SYM_TYPE ' type of symbols loaded
+        ModuleName(0 To 31) As Integer ' module name
+        ImageName(0 To 255) As Integer ' image name
+        LoadedImageName(0 To 255) As Integer ' symbol file name
+        ' new elements: 07-Jun-2002
+        LoadedPdbName(0 To 255) As Integer ' pdb file name
+        CVSig As Long ' Signature of the CV record in the debug directories
+        CVData(0 To (MAX_PATH * 3 - 1)) As Integer ' Contents of the CV record
+        PdbSig As Long ' Signature of PDB
+        PdbSig70 As UUID ' Signature of PDB (VC 7 and up)
+        PdbAge As Long ' DBI age of pdb
+        PdbUnmatched As BOOL ' loaded an unmatched pdb
+        DbgUnmatched As BOOL ' loaded an unmatched dbg
+        LineNumbers As BOOL ' we have line number information
+        GlobalSymbols As BOOL ' we have internal symbol information
+        TypeInfo As BOOL ' we have type information
+        ' new elements: 17-Dec-2003
+        SourceIndexed As BOOL ' pdb supports source server
+        Publics As BOOL ' contains public symbols
+        ' new element: 15-Jul-2009
+        MachineType As Long ' IMAGE_FILE_MACHINE_XXX from ntimage.h and winnt.h
+        Reserved As Long ' Padding - don't remove.
+    End Type
+    Public Type IMAGEHLP_MODULEW64_EX
+        Module As IMAGEHLP_MODULEW64
+        RegionFlags As DbgModuleRegionFlags ' Region Search Flags - IMAGEHLP_MODULE_REGION_XXX
+    End Type
+    Public Enum DbgModuleRegionFlags
+        IMAGEHLP_MODULE_REGION_DLLBASE = &H01
+        IMAGEHLP_MODULE_REGION_DLLRANGE = &H02
+        IMAGEHLP_MODULE_REGION_ADDITIONAL = &H04
+        IMAGEHLP_MODULE_REGION_JIT = &H08
+        IMAGEHLP_MODULE_REGION_ALL = &HFF
+    End Enum
+    
+    #If Win64 Then
+    Public Type IMAGEHLP_MODULE
+        SizeOfStruct As Long ' set to sizeof(IMAGEHLP_MODULE64)
+        BaseOfImage As LongLong ' base load address of module
+        ImageSize As Long ' virtual size of the loaded module
+        TimeDateStamp As Long ' date/time stamp from pe header
+        CheckSum As Long ' checksum from the pe header
+        NumSyms As Long ' number of symbols in the symbol table
+        SymType As SYM_TYPE ' type of symbols loaded
+        ModuleName(0 To 31) As Integer ' module name
+        ImageName(0 To 255) As Integer ' image name
+        LoadedImageName(0 To 255) As Integer ' symbol file name
+        ' new elements: 07-Jun-2002
+        LoadedPdbName(0 To 255) As Integer ' pdb file name
+        CVSig As Long ' Signature of the CV record in the debug directories
+        CVData(0 To (MAX_PATH * 3 - 1)) As Integer ' Contents of the CV record
+        PdbSig As Long ' Signature of PDB
+        PdbSig70 As UUID ' Signature of PDB (VC 7 and up)
+        PdbAge As Long ' DBI age of pdb
+        PdbUnmatched As BOOL ' loaded an unmatched pdb
+        DbgUnmatched As BOOL ' loaded an unmatched dbg
+        LineNumbers As BOOL ' we have line number information
+        GlobalSymbols As BOOL ' we have internal symbol information
+        TypeInfo As BOOL ' we have type information
+        ' new elements: 17-Dec-2003
+        SourceIndexed As BOOL ' pdb supports source server
+        Publics As BOOL ' contains public symbols
+        ' new element: 15-Jul-2009
+        MachineType As Long ' IMAGE_FILE_MACHINE_XXX from ntimage.h and winnt.h
+        Reserved As Long ' Padding - don't remove.
+    End Type
+    Public Type IMAGEHLP_MODULEW
+        SizeOfStruct As Long ' set to sizeof(IMAGEHLP_MODULE64)
+        BaseOfImage As LongLong ' base load address of module
+        ImageSize As Long ' virtual size of the loaded module
+        TimeDateStamp As Long ' date/time stamp from pe header
+        CheckSum As Long ' checksum from the pe header
+        NumSyms As Long ' number of symbols in the symbol table
+        SymType As SYM_TYPE ' type of symbols loaded
+        ModuleName(0 To 31) As Integer ' module name
+        ImageName(0 To 255) As Integer ' image name
+        LoadedImageName(0 To 255) As Integer ' symbol file name
+        ' new elements: 07-Jun-2002
+        LoadedPdbName(0 To 255) As Integer ' pdb file name
+        CVSig As Long ' Signature of the CV record in the debug directories
+        CVData(0 To (MAX_PATH * 3 - 1)) As Integer ' Contents of the CV record
+        PdbSig As Long ' Signature of PDB
+        PdbSig70 As UUID ' Signature of PDB (VC 7 and up)
+        PdbAge As Long ' DBI age of pdb
+        PdbUnmatched As BOOL ' loaded an unmatched pdb
+        DbgUnmatched As BOOL ' loaded an unmatched dbg
+        LineNumbers As BOOL ' we have line number information
+        GlobalSymbols As BOOL ' we have internal symbol information
+        TypeInfo As BOOL ' we have type information
+        ' new elements: 17-Dec-2003
+        SourceIndexed As BOOL ' pdb supports source server
+        Publics As BOOL ' contains public symbols
+        ' new element: 15-Jul-2009
+        MachineType As Long ' IMAGE_FILE_MACHINE_XXX from ntimage.h and winnt.h
+        Reserved As Long ' Padding - don't remove.
+    End Type
+    Public Type IMAGEHLP_MODULE_EX
+        Module As IMAGEHLP_MODULE
+        RegionFlags As DbgModuleRegionFlags ' Region Search Flags - IMAGEHLP_MODULE_REGION_XXX
+    End Type
+    #Else
+    Public Type IMAGEHLP_MODULE
+        SizeOfStruct As Long ' set to sizeof(IMAGEHLP_MODULE)
+        BaseOfImage As Long ' base load address of module
+        ImageSize As Long ' virtual size of the loaded module
+        TimeDateStamp As Long ' date/time stamp from pe header
+        CheckSum As Long ' checksum from the pe header
+        NumSyms As Long ' number of symbols in the symbol table
+        SymType As SYM_TYPE ' type of symbols loaded
+        ModuleName(0 To 31) As Integer ' module name
+        ImageName(0 To 255) As Integer ' image name
+        LoadedImageName(0 To 255) As Integer ' symbol file name
+    End Type
+    Public Type IMAGEHLP_MODULEW
+        SizeOfStruct As Long ' set to sizeof(IMAGEHLP_MODULE)
+        BaseOfImage As Long ' base load address of module
+        ImageSize As Long ' virtual size of the loaded module
+        TimeDateStamp As Long ' date/time stamp from pe header
+        CheckSum As Long ' checksum from the pe header
+        NumSyms As Long ' number of symbols in the symbol table
+        SymType As SYM_TYPE ' type of symbols loaded
+        ModuleName(0 To 31) As Integer ' module name
+        ImageName(0 To 255) As Integer ' image name
+        LoadedImageName(0 To 255) As Integer ' symbol file name
+    End Type
+    #End If
+    
+    Public Type IMAGEHLP_LINE64
+        SizeOfStruct As Long ' set to sizeof(IMAGEHLP_LINE64)
+        Key As LongPtr ' internal
+        LineNumber As Long ' line number in file
+        FileName As LongPtr ' full filename
+        Address As LongLong ' first instruction of line
+    End Type
+    
+    Public Type IMAGEHLP_LINEW64
+        SizeOfStruct As Long ' set to sizeof(IMAGEHLP_LINE64)
+        Key As LongPtr ' internal
+        LineNumber As Long ' line number in file
+        FileName As LongPtr ' full filename
+        Address As LongLong ' first instruction of line
+    End Type
+    
+    #If Win64 Then
+    Public Type IMAGEHLP_LINE
+        SizeOfStruct As Long ' set to sizeof(IMAGEHLP_LINE64)
+        Key As LongPtr ' internal
+        LineNumber As Long ' line number in file
+        FileName As LongPtr ' full filename
+        Address As LongLong ' first instruction of line
+    End Type
+    Public Type IMAGEHLP_LINEW
+        SizeOfStruct As Long ' set to sizeof(IMAGEHLP_LINE64)
+        Key As LongPtr ' internal
+        LineNumber As Long ' line number in file
+        FileName As LongPtr ' full filename
+        Address As LongLong ' first instruction of line
+    End Type
+    #Else
+    Public Type IMAGEHLP_LINE
+        SizeOfStruct As Long ' set to sizeof(IMAGEHLP_LINE)
+        Key As LongPtr ' internal
+        LineNumber As Long ' line number in file
+        FileName As LongPtr ' full filename
+        Address As Long ' first instruction of line
+    End Type
+    Public Type IMAGEHLP_LINEW
+        SizeOfStruct As Long ' set to sizeof(IMAGEHLP_LINE64)
+        Key As LongPtr ' internal
+        LineNumber As Long ' line number in file
+        FileName As LongPtr ' full filename
+        Address As LongLong ' first instruction of line
+    End Type
+    #End If
+    
+    Public Type SOURCEFILE
+        ModBase As LongLong ' base address of loaded module
+        FileName As LongPtr ' full filename of source
+    End Type
+    
+    Public Type SOURCEFILEW
+        ModBase As LongLong ' base address of loaded module
+        FileName As LongPtr ' full filename of source
+    End Type
+    
+    Public Enum DbgSymbolCallbackFlags
+        CBA_DEFERRED_SYMBOL_LOAD_START = &H00000001
+        CBA_DEFERRED_SYMBOL_LOAD_COMPLETE = &H00000002
+        CBA_DEFERRED_SYMBOL_LOAD_FAILURE = &H00000003
+        CBA_SYMBOLS_UNLOADED = &H00000004
+        CBA_DUPLICATE_SYMBOL = &H00000005
+        CBA_READ_MEMORY = &H00000006
+        CBA_DEFERRED_SYMBOL_LOAD_CANCEL = &H00000007
+        CBA_SET_OPTIONS = &H00000008
+        CBA_EVENT = &H00000010
+        CBA_DEFERRED_SYMBOL_LOAD_PARTIAL = &H00000020
+        CBA_DEBUG_INFO = &H10000000
+        CBA_SRCSRV_INFO = &H20000000
+        CBA_SRCSRV_EVENT = &H40000000
+        CBA_UPDATE_STATUS_BAR = &H50000000
+        CBA_ENGINE_PRESENT = &H60000000
+        CBA_CHECK_ENGOPT_DISALLOW_NETWORK_PATHS = &H70000000
+        CBA_CHECK_ARM_MACHINE_THUMB_TYPE_OVERRIDE = &H80000000
+        CBA_XML_LOG = &H90000000
+        CBA_MAP_JIT_SYMBOL = &HA0000000
+    End Enum
+    
+    Public Type IMAGEHLP_CBA_READ_MEMORY
+        addr As LongLong ' address to read from
+        buf As LongPtr ' buffer to read to
+        bytes As Long ' amount of bytes to read
+        bytesread As LongPtr 'DWORD* ' pointer to store amount of bytes read
+    End Type
+    
+    Public Enum DbgSeverityLevels
+        sevInfo = 0
+        sevProblem
+        sevAttn
+        sevFatal
+        sevMax  ' unused
+    End Enum
+    
+    Public Const EVENT_SRCSPEW_START  = 100
+    Public Const EVENT_SRCSPEW  = 100
+    Public Const EVENT_SRCSPEW_END  = 199
+    
+    Public Type IMAGEHLP_CBA_EVENT
+        severity As DbgSeverityLevels ' values from sevInfo to sevFatal
+        code As Long ' numerical code IDs the error
+        desc As LongPtr ' may contain a text description of the error
+        object As LongPtr ' value dependant upon the error code
+    End Type
+    Public Type IMAGEHLP_CBA_EVENTW
+        severity As Long ' values from sevInfo to sevFatal
+        code As Long ' numerical code IDs the error
+        desc As LongPtr 'PCWSTR ' may contain a text description of the error
+        object As LongPtr ' value dependant upon the error code
+    End Type
+    
+    'Alias IMAGEHLP_DEFERRED_SYMBOL_LOAD64 As IMAGEHLP_DEFERRED_SYMBOL_LOADW64
+    Public Type IMAGEHLP_DEFERRED_SYMBOL_LOAD64
+        SizeOfStruct As Long ' set to sizeof(IMAGEHLP_DEFERRED_SYMBOL_LOAD64)
+        BaseOfImage As LongLong ' base load address of module
+        CheckSum As Long ' checksum from the pe header
+        TimeDateStamp As Long ' date/time stamp from pe header
+        FileName(0 To (MAX_PATH - 1)) As Integer ' symbols file or image name
+        Reparse As Byte ' load failure reparse
+        hFile As LongPtr ' file handle, if passed
+        Flags As DbgDslFlags '
+    End Type
+    
+    Public Type IMAGEHLP_DEFERRED_SYMBOL_LOADW64
+        SizeOfStruct As Long ' set to sizeof(IMAGEHLP_DEFERRED_SYMBOL_LOADW64)
+        BaseOfImage As LongLong ' base load address of module
+        CheckSum As Long ' checksum from the pe header
+        TimeDateStamp As Long ' date/time stamp from pe header
+        FileName(0 To (MAX_PATH - 1)) As Integer ' symbols file or image name
+        Reparse As Byte ' load failure reparse
+        hFile As LongPtr ' file handle, if passed
+        Flags As DbgDslFlags '
+    End Type
+    
+    Public Enum DbgDslFlags
+        DSLFLAG_MISMATCHED_PDB = &H1
+        DSLFLAG_MISMATCHED_DBG = &H2
+        FLAG_ENGINE_PRESENT = &H4
+        FLAG_ENGOPT_DISALLOW_NETWORK_PATHS = &H8
+        FLAG_OVERRIDE_ARM_MACHINE_TYPE = &H10
+    End Enum
+    
+    #If Win64 Then
+    Public Type IMAGEHLP_DEFERRED_SYMBOL_LOAD
+        SizeOfStruct As Long ' set to sizeof(IMAGEHLP_DEFERRED_SYMBOL_LOAD64)
+        BaseOfImage As LongLong ' base load address of module
+        CheckSum As Long ' checksum from the pe header
+        TimeDateStamp As Long ' date/time stamp from pe header
+        FileName(0 To (MAX_PATH - 1)) As Byte ' symbols file or image name
+        Reparse As Byte ' load failure reparse
+        hFile As LongPtr ' file handle, if passed
+        Flags As DbgDslFlags '
+    End Type
+    #Else
+    Public Type IMAGEHLP_DEFERRED_SYMBOL_LOAD
+        SizeOfStruct As Long ' set to sizeof(IMAGEHLP_DEFERRED_SYMBOL_LOAD)
+        BaseOfImage As Long ' base load address of module
+        CheckSum As Long ' checksum from the pe header
+        TimeDateStamp As Long ' date/time stamp from pe header
+        FileName(0 To (MAX_PATH - 1)) As Byte ' symbols file or image name
+        Reparse As Byte ' load failure reparse
+        hFile As LongPtr ' file handle, if passed
+    End Type
+    #End If
+    
+    Public Type IMAGEHLP_DUPLICATE_SYMBOL64
+        SizeOfStruct As Long ' set to sizeof(IMAGEHLP_DUPLICATE_SYMBOL64)
+        NumberOfDups As Long ' number of duplicates in the Symbol array
+        Symbol As LongPtr 'PIMAGEHLP_SYMBOL64 ' array of duplicate symbols
+        SelectedSymbol As Long ' symbol selected (-1 to start)
+    End Type
+    
+    #If Win64 Then
+    Public Type IMAGEHLP_DUPLICATE_SYMBOL
+        SizeOfStruct As Long ' set to sizeof(IMAGEHLP_DUPLICATE_SYMBOL64)
+        NumberOfDups As Long ' number of duplicates in the Symbol array
+        Symbol As LongPtr 'PIMAGEHLP_SYMBOL64 ' array of duplicate symbols
+        SelectedSymbol As Long ' symbol selected (-1 to start)
+    End Type
+    #Else
+    Public Type IMAGEHLP_DUPLICATE_SYMBOL
+        SizeOfStruct As Long ' set to sizeof(IMAGEHLP_DUPLICATE_SYMBOL)
+        NumberOfDups As Long ' number of duplicates in the Symbol array
+        Symbol As LongPtr 'PIMAGEHLP_SYMBOL ' array of duplicate symbols
+        SelectedSymbol As Long ' symbol selected (-1 to start)
+    End Type
+    #End If
+    
+    Public Type IMAGEHLP_JIT_SYMBOL_MAP
+        SizeOfStruct As Long ' set to sizeof(IMAGEHLP_JIT_SYMBOL_MAP)
+        Address As LongLong ' address to map to JIT association with an image
+        BaseOfImage As LongLong ' base load address (0 == unmapped)
+    End Type
+    
+    Public Declare PtrSafe Function SymSetParentWindow Lib "imagehlp" (ByVal hwnd As LongPtr) As BOOL
+    Public Declare PtrSafe Function SymGetParentWindow Lib "imagehlp" (pHwnd As LongPtr) As BOOL
+    Public DeclareWide PtrSafe Function SymSetHomeDirectory Lib "imagehlp" Alias "SymSetHomeDirectory" (ByVal hProcess As LongPtr, Optional ByVal dir As String) As LongPtr
+    Public Declare PtrSafe Function SymSetHomeDirectoryW Lib "imagehlp" (ByVal hProcess As LongPtr, Optional ByVal dir As LongPtr) As LongPtr
+    Public DeclareWide PtrSafe Function SymGetHomeDirectory Lib "imagehlp" Alias "SymGetHomeDirectory" (ByVal hProcess As LongPtr, ByVal dir As String, ByVal size As LongPtr) As LongPtr
+    Public Declare PtrSafe Function SymGetHomeDirectoryW Lib "imagehlp" (ByVal hProcess As LongPtr, ByVal dir As LongPtr, ByVal size As LongPtr) As LongPtr
+           
+    Public Enum IMAGEHLP_HD_TYPE
+        hdBase = 0 ' root directory for dbghelp
+        hdSym = 1 ' where symbols are stored
+        hdSrc = 2 ' where source is stored
+        hdMax = 3 ' end marker
+    End Enum
+    
+    Public Type OMAP
+        rva As Long
+        rvaTo As Long
+    End Type
+    
+    Public Declare PtrSafe Function SymGetOmaps Lib "imagehlp" (ByVal hProcess As LongPtr, ByVal BaseOfDll As LongLong, OmapTo As LongPtr, cOmapTo As LongLong, OmapFrom As LongPtr, cOmapFrom As LongLong) As BOOL
+    
+    Public Enum DbgSymOptionFlags
+        SYMOPT_CASE_INSENSITIVE = &H00000001
+        SYMOPT_UNDNAME = &H00000002
+        SYMOPT_DEFERRED_LOADS = &H00000004
+        SYMOPT_NO_CPP = &H00000008
+        SYMOPT_LOAD_LINES = &H00000010
+        SYMOPT_OMAP_FIND_NEAREST = &H00000020
+        SYMOPT_LOAD_ANYTHING = &H00000040
+        SYMOPT_IGNORE_CVREC = &H00000080
+        SYMOPT_NO_UNQUALIFIED_LOADS = &H00000100
+        SYMOPT_FAIL_CRITICAL_ERRORS = &H00000200
+        SYMOPT_EXACT_SYMBOLS = &H00000400
+        SYMOPT_ALLOW_ABSOLUTE_SYMBOLS = &H00000800
+        SYMOPT_IGNORE_NT_SYMPATH = &H00001000
+        SYMOPT_INCLUDE_32BIT_MODULES = &H00002000
+        SYMOPT_PUBLICS_ONLY = &H00004000
+        SYMOPT_NO_PUBLICS = &H00008000&
+        SYMOPT_AUTO_PUBLICS = &H00010000
+        SYMOPT_NO_IMAGE_SEARCH = &H00020000
+        SYMOPT_SECURE = &H00040000
+        SYMOPT_NO_PROMPTS = &H00080000
+        SYMOPT_OVERWRITE = &H00100000
+        SYMOPT_IGNORE_IMAGEDIR = &H00200000
+        SYMOPT_FLAT_DIRECTORY = &H00400000
+        SYMOPT_FAVOR_COMPRESSED = &H00800000
+        SYMOPT_ALLOW_ZERO_ADDRESS = &H01000000
+        SYMOPT_DISABLE_SYMSRV_AUTODETECT = &H02000000
+        SYMOPT_READONLY_CACHE = &H04000000
+        SYMOPT_SYMPATH_LAST = &H08000000
+        SYMOPT_DISABLE_FAST_SYMBOLS = &H10000000
+        SYMOPT_DISABLE_SYMSRV_TIMEOUT = &H20000000
+        SYMOPT_DISABLE_SRVSTAR_ON_STARTUP = &H40000000
+        SYMOPT_DEBUG = &H80000000
+    End Enum
+    
+    Public Enum IMAGEHLP_EXTENDED_OPTIONS
+        SYMOPT_EX_DISABLEACCESSTIMEUPDATE  ' Disable File Last Access Time on Symbols
+        SYMOPT_EX_LASTVALIDDEBUGDIRECTORY  ' For entries with multiple debug directories: prefer the last to the first
+        SYMOPT_EX_NOIMPLICITPATTERNSEARCH  ' For SymEnum* APIs: never implicitly run a pattern search without explicit pattern characters
+        SYMOPT_EX_NEVERLOADSYMBOLS  ' Never try to load and parse symbols
+        SYMOPT_EX_MAX   ' Unused
+    End Enum
+    
+    Public Declare PtrSafe Function SymSetOptions Lib "imagehlp" (ByVal SymOptions As DbgSymOptionFlags) As DbgSymOptionFlags
+    Public Declare PtrSafe Function SymGetOptions Lib "imagehlp" () As DbgSymOptionFlags
+    Public Declare PtrSafe Function SymCleanup Lib "imagehlp" (ByVal hProcess As LongPtr) As BOOL
+    Public Declare PtrSafe Function SymGetExtendedOption Lib "imagehlp" (ByVal option As IMAGEHLP_EXTENDED_OPTIONS) As BOOL
+    Public Declare PtrSafe Function SymSetExtendedOption Lib "imagehlp" (ByVal option As IMAGEHLP_EXTENDED_OPTIONS, ByVal value As BOOL) As BOOL
+    Public Declare PtrSafe Function SymMatchStringA Lib "imagehlp" (ByVal strng As String, ByVal expression As String, ByVal fCase As BOOL) As BOOL
+    Public Declare PtrSafe Function SymMatchStringW Lib "imagehlp" (ByVal strng As LongPtr, ByVal expression As LongPtr, ByVal fCase As BOOL) As BOOL
+    Public DeclareWide PtrSafe Function SymMatchString Lib "imagehlp" Alias "SymMatchStringW" (ByVal strng As String, ByVal expression As String, ByVal fCase As BOOL) As BOOL
+    ' typedef BOOL
+    ' (CALLBACK *PSYM_ENUMSOURCEFILES_CALLBACK)(
+        ' _In_ PSOURCEFILE pSourceFile,
+        ' _In_opt_ PVOID UserContext
+        ' );    
+    ' typedef BOOL
+    ' (CALLBACK *PSYM_ENUMSOURCEFILES_CALLBACKW)(
+        ' _In_ PSOURCEFILEW pSourceFile,
+        ' _In_opt_ PVOID UserContext
+        ' );
+    Public DeclareWide PtrSafe Function SymEnumSourceFiles Lib "imagehlp" Alias "SymEnumSourceFilesW" (ByVal hProcess As LongPtr, ByVal ModBase As LongPtr, ByVal Mask As String, ByVal cbSrcFiles As LongPtr, Optional ByVal UserContext As LongPtr) As BOOL
+    Public Declare PtrSafe Function SymEnumSourceFilesW Lib "imagehlp" (ByVal hProcess As LongPtr, ByVal ModBase As LongPtr, ByVal Mask As LongPtr, ByVal cbSrcFiles As LongPtr, Optional ByVal UserContext As LongPtr) As BOOL
+    Public DeclareWide PtrSafe Function SymEnumerateModules64 Lib "imagehlp" Alias "SymEnumerateModulesW64" (ByVal hProcess As LongPtr, ByVal EnumModulesCallback As LongPtr, Optional ByVal UserContext As LongPtr) As BOOL
+    Public Declare PtrSafe Function SymEnumerateModulesW64 Lib "imagehlp" (ByVal hProcess As LongPtr, ByVal EnumModulesCallback As LongPtr, Optional ByVal UserContext As LongPtr) As BOOL
+    #If Win64 Then
+    Public DeclareWide PtrSafe Function SymEnumerateModules Lib "imagehlp" Alias "SymEnumerateModulesW64" (ByVal hProcess As LongPtr, ByVal EnumModulesCallback As LongPtr, Optional ByVal UserContext As LongPtr) As BOOL
+    #Else
+    Public DeclareWide PtrSafe Function SymEnumerateModules Lib "imagehlp" (ByVal hProcess As LongPtr, ByVal EnumModulesCallback As LongPtr, Optional ByVal UserContext As LongPtr) As BOOL
+    #End If
+    Public DeclareWide PtrSafe Function EnumerateLoadedModulesEx Lib "imagehlp" Alias "EnumerateLoadedModulesExW" (ByVal hProcess As LongPtr, ByVal EnumModulesCallback As LongPtr, Optional ByVal UserContext As LongPtr) As BOOL
+    Public Declare PtrSafe Function EnumerateLoadedModulesExW Lib "imagehlp" (ByVal hProcess As LongPtr, ByVal EnumModulesCallback As LongPtr, Optional ByVal UserContext As LongPtr) As BOOL
+    Public DeclareWide PtrSafe Function EnumerateLoadedModules64 Lib "imagehlp" Alias "EnumerateLoadedModulesW64" (ByVal hProcess As LongPtr, ByVal EnumModulesCallback As LongPtr, Optional ByVal UserContext As LongPtr) As BOOL
+    Public Declare PtrSafe Function EnumerateLoadedModulesW64 Lib "imagehlp" (ByVal hProcess As LongPtr, ByVal EnumModulesCallback As LongPtr, Optional ByVal UserContext As LongPtr) As BOOL
+    #If Win64 Then
+    Public DeclareWide PtrSafe Function EnumerateLoadedModules Lib "imagehlp" Alias "EnumerateLoadedModulesW64" (ByVal hProcess As LongPtr, ByVal EnumModulesCallback As LongPtr, Optional ByVal UserContext As LongPtr) As BOOL
+    #Else
+    Public DeclareWide PtrSafe Function EnumerateLoadedModules Lib "imagehlp" (ByVal hProcess As LongPtr, ByVal EnumModulesCallback As LongPtr, Optional ByVal UserContext As LongPtr) As BOOL
+    #End If
+    Public Declare PtrSafe Function SymFunctionTableAccess64 Lib "imagehlp" (ByVal hProcess As LongPtr, ByVal AddrBase As LongLong) As LongPtr
+    Public Declare PtrSafe Function SymFunctionTableAccess64AccessRoutines Lib "imagehlp" (ByVal hProcess As LongPtr, ByVal AddrBase As LongLong, Optional ByVal ReadMemoryRoutine As LongPtr, Optional ByVal GetModuleBaseRoutine As LongPtr) As LongPtr
+    #If Win64 Then
+    Public Declare PtrSafe Function SymFunctionTableAccess Lib "imagehlp" Alias "SymFunctionTableAccess64" (ByVal hProcess As LongPtr, ByVal AddrBase As LongLong) As LongPtr
+    #Else
+    Public Declare PtrSafe Function SymFunctionTableAccess Lib "imagehlp" (ByVal hProcess As LongPtr, ByVal AddrBase As Long) As LongPtr
+    #End If
+    Public Declare PtrSafe Function SymGetUnwindInfo Lib "imagehlp" (ByVal hProcess As LongPtr, ByVal Address As LongLong, Buffer As Any, Size As Long) As BOOL
+    Public DeclareWide PtrSafe Function SymGetModuleInfo64 Lib "imagehlp" Alias "SymGetModuleInfoW64" (ByVal hProcess As LongPtr, ByVal qwAddr As LongLong, ModuleInfo As IMAGEHLP_MODULE64) As BOOL
+    Public Declare PtrSafe Function SymGetModuleInfoW64 Lib "imagehlp" (ByVal hProcess As LongPtr, ByVal qwAddr As LongLong, ModuleInfo As IMAGEHLP_MODULEW64) As BOOL
+    #If Win64 Then
+    Public DeclareWide PtrSafe Function SymGetModuleInfo Lib "imagehlp" Alias "SymGetModuleInfoW64" (ByVal hProcess As LongPtr, ByVal qwAddr As LongLong, ModuleInfo As IMAGEHLP_MODULE) As BOOL
+    Public Declare PtrSafe Function SymGetModuleInfoW Lib "imagehlp" Alias "SymGetModuleInfoW64" (ByVal hProcess As LongPtr, ByVal qwAddr As LongLong, ModuleInfo As IMAGEHLP_MODULEW) As BOOL
+    #Else
+    Public DeclareWide PtrSafe Function SymGetModuleInfo Lib "imagehlp" Alias "SymGetModuleInfoW" (ByVal hProcess As LongPtr, ByVal dwAddr As Long, ModuleInfo As IMAGEHLP_MODULE) As BOOL
+    Public Declare PtrSafe Function SymGetModuleInfoW Lib "imagehlp" (ByVal hProcess As LongPtr, ByVal dwAddr As Long, ModuleInfo As IMAGEHLP_MODULEW) As BOOL
+    #End If
+    Public Declare PtrSafe Function SymGetModuleBase64 Lib "imagehlp" (ByVal hProcess As LongPtr, ByVal qwAddr As LongLong) As LongLong
+    #If Win64 Then
+    Public Declare PtrSafe Function SymGetModuleBase Lib "imagehlp" Alias "SymGetModuleBase64" (ByVal hProcess As LongPtr, ByVal qwAddr As LongLong) As LongLong
+    #Else
+    Public Declare PtrSafe Function SymGetModuleBase Lib "imagehlp" (ByVal hProcess As LongPtr, ByVal dwAddr As Long) As Long
+    #End If
+    
+    Public Type SRCCODEINFO
+        SizeOfStruct As Long ' set to sizeof(SRCCODEINFO)
+        Key As LongPtr ' not used
+        ModBase As LongLong ' base address of module this applies to
+        Obj(0 To (MAX_PATH - 1)) As Integer ' the object file within the module
+        FileName(0 To (MAX_PATH - 1)) As Integer ' full filename
+        LineNumber As Long ' line number in file
+        Address As LongLong ' first instruction of line
+    End Type
+    Public Type SRCCODEINFOW
+        SizeOfStruct As Long ' set to sizeof(SRCCODEINFO)
+        Key As LongPtr ' not used
+        ModBase As LongLong ' base address of module this applies to
+        Obj(0 To (MAX_PATH - 1)) As Integer ' the object file within the module
+        FileName(0 To (MAX_PATH - 1)) As Integer ' full filename
+        LineNumber As Long ' line number in file
+        Address As LongLong ' first instruction of line
+    End Type
+    ' typedef BOOL
+    ' (CALLBACK *PSYM_ENUMLINES_CALLBACK)(
+        ' _In_ PSRCCODEINFO LineInfo,
+        ' _In_opt_ PVOID UserContext
+        ' );
+    ' typedef BOOL
+    ' (CALLBACK *PSYM_ENUMLINES_CALLBACKW)(
+        ' _In_ PSRCCODEINFOW LineInfo,
+        ' _In_opt_ PVOID UserContext
+        ' );
+    Public DeclareWide PtrSafe Function SymEnumLines Lib "imagehlp" Alias "SymEnumLinesW" (ByVal hProcess As LongPtr, ByVal Base As LongLong, ByVal Obj As String, ByVal File As String, ByVal EnumLinesCallback As LongPtr, Optional ByVal UserContext As LongPtr) As BOOL
+    Public Declare PtrSafe Function SymEnumLinesW Lib "imagehlp" (ByVal hProcess As LongPtr, ByVal Base As LongLong, ByVal Obj As LongPtr, ByVal File As LongPtr, ByVal EnumLinesCallback As LongPtr, Optional ByVal UserContext As LongPtr) As BOOL
+    Public DeclareWide PtrSafe Function SymGetLineFromAddr64 Lib "imagehlp" Alias "SymGetLineFromAddrW64" (ByVal hProcess As LongPtr, ByVal dwAddr As LongLong, pdwDisplacement As Long, Line64 As IMAGEHLP_LINE64) As BOOL
+    Public Declare PtrSafe Function SymGetLineFromAddrW64 Lib "imagehlp" (ByVal hProcess As LongPtr, ByVal dwAddr As LongLong, pdwDisplacement As Long, Line64 As IMAGEHLP_LINEW64) As BOOL
+    Public DeclareWide PtrSafe Function SymGetLineFromInlineContext Lib "imagehlp" Alias "SymGetLineFromInlineContextW" (ByVal hProcess As LongPtr, ByVal dwAddr As LongLong, ByVal InlineContext As Long, ByVal qwModuleBaseAddress As LongLong, pdwDisplacement As Long, Line64 As IMAGEHLP_LINE64) As BOOL
+    Public Declare PtrSafe Function SymGetLineFromInlineContextW Lib "imagehlp" (ByVal hProcess As LongPtr, ByVal dwAddr As LongLong, ByVal InlineContext As Long, ByVal qwModuleBaseAddress As LongLong, pdwDisplacement As Long, Line64 As IMAGEHLP_LINEW64) As BOOL
+        
+    
+    
+    
+    
+    
+    
+    
+    
+    Public Const SYMSRV_VERSION = 2
+    Public Enum DbgSymSrvFlags
+        SSRVOPT_CALLBACK = &H00000001
+        SSRVOPT_DWORD = &H00000002
+        SSRVOPT_DWORDPTR = &H00000004
+        SSRVOPT_GUIDPTR = &H00000008
+        SSRVOPT_OLDGUIDPTR = &H00000010
+        SSRVOPT_UNATTENDED = &H00000020
+        SSRVOPT_NOCOPY = &H00000040
+        SSRVOPT_GETPATH = &H00000040
+        SSRVOPT_PARENTWIN = &H00000080
+        SSRVOPT_PARAMTYPE = &H00000100
+        SSRVOPT_SECURE = &H00000200
+        SSRVOPT_TRACE = &H00000400
+        SSRVOPT_SETCONTEXT = &H00000800
+        SSRVOPT_PROXY = &H00001000
+        SSRVOPT_DOWNSTREAM_STORE = &H00002000
+        SSRVOPT_OVERWRITE = &H00004000
+        SSRVOPT_RESETTOU = &H00008000&
+        SSRVOPT_CALLBACKW = &H00010000
+        SSRVOPT_FLAT_DEFAULT_STORE = &H00020000
+        SSRVOPT_PROXYW = &H00040000
+        SSRVOPT_MESSAGE = &H00080000
+        SSRVOPT_SERVICE = &H00100000  ' deprecated
+        SSRVOPT_FAVOR_COMPRESSED = &H00200000
+        SSRVOPT_STRING = &H00400000
+        SSRVOPT_WINHTTP = &H00800000
+        SSRVOPT_WININET = &H01000000
+        SSRVOPT_DONT_UNCOMPRESS = &H02000000
+        SSRVOPT_DISABLE_PING_HOST = &H04000000
+        SSRVOPT_DISABLE_TIMEOUT = &H08000000
+        SSRVOPT_ENABLE_COMM_MSG = &H10000000
+        SSRVOPT_URI_FILTER = &H20000000
+        SSRVOPT_URI_TIERS = &H40000000
+        SSRVOPT_RETRY_APP_HANG = &H80000000
+        SSRVOPT_MAX = &H80000000
+        SSRVOPT_RESET = (-1)
+    End Enum
+    
+    Public Const NUM_SSRVOPTS = 32
+    
+    Public Enum DbgSymSrvUri
+        SSRVURI_HTTP_NORMAL = &H01
+        SSRVURI_HTTP_COMPRESSED = &H02
+        SSRVURI_HTTP_FILEPTR = &H04
+        SSRVURI_UNC_NORMAL = &H10
+        SSRVURI_UNC_COMPRESSED = &H20
+        SSRVURI_UNC_FILEPTR = &H40
+        SSRVURI_HTTP_MASK = &H0F
+        SSRVURI_UNC_MASK = &HF0
+        SSRVURI_ALL = &HFF
+        
+        SSRVURI_NORMAL = SSRVURI_HTTP_NORMAL
+        SSRVURI_COMPRESSED = SSRVURI_HTTP_COMPRESSED
+        SSRVURI_FILEPTR = SSRVURI_HTTP_FILEPTR
+    End Enum
+    
+    Public Enum DbgSymSrvActions
+        SSRVACTION_TRACE = 1
+        SSRVACTION_QUERYCANCEL = 2
+        SSRVACTION_EVENT = 3
+        SSRVACTION_EVENTW = 4
+        SSRVACTION_SIZE = 5
+        SSRVACTION_HTTPSTATUS = 6
+        SSRVACTION_XMLOUTPUT = 7
+        SSRVACTION_CHECKSUMSTATUS = 8
+    End Enum
+    
+    Public Enum DbgSymStoreOptions
+        SYMSTOREOPT_COMPRESS = &H01
+        SYMSTOREOPT_OVERWRITE = &H02
+        SYMSTOREOPT_RETURNINDEX = &H04
+        SYMSTOREOPT_POINTER = &H08
+        SYMSTOREOPT_ALT_INDEX = &H10
+        SYMSTOREOPT_UNICODE = &H20
+        SYMSTOREOPT_PASS_IF_EXISTS = &H40
+    End Enum
+    
+    
+End Module
