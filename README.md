@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 7.10.396 (April 28th, 2024)**
+**Current Version: 8.0.402 (May 16th, 2024)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -157,6 +157,8 @@ UDTs used by these calls are also supplied in the same manner, the W variant, an
 
 If you have any doubts about which API is being called, twinBASIC will show the full declaration when you hover your cursor over the API in your code.
 
+Special thanks to GCUser99 for helping normalize API declaration in this project. 👍
+
 
 > [!TIP]
 > Reminder: `Nothing` can be used in place of an interface where WinDevLib has the interface as an argument but another signature used `Long`/`LongPtr`
@@ -186,6 +188,36 @@ twinBASIC now counts msvbvm60 redirects as legacy DLL redirects, which WinDevLib
  
 
 ### Updates
+
+
+**Update (v8.0.402, 16 May 2024):**\
+-Added Magnification API (magnification.h, 100% coverage)\
+-Added Cloud Filter APIs (cfapi.h, 100% coverage). Note: These APIs use overloaded String/LongPtr declares, please report any problems.\
+-Added Antimalware Scan Interfaces and APIs (amsi.h, 100% coverage). Note: These APIs use overloaded String/LongPtr declares, please report any problems.\
+-Added tokenbinding.h/dll APIs (100% coverage)\
+-Added Windows Connect Now interfaces/coclass (WcnApi.h, WcnTypes.h, WcnDevice.h, WcnFunctionDiscoveryKeys.h 100%)\
+-Added all netapi32 APIs from lmserver.h (100% coverage)\
+-Added Composite Image APIs (cimfs.h, 100% coverage)\
+-Added AVI file interfaces and APIs from vfw.h\
+-Added additional overloads for COM object APIs (e.g. CoMarshalInterThreadInterfaceInStream and CoGetInterfaceAndReleaseStream), to allow using LongPtr in addition to interfaces.\
+-Added missing WIC proxy functions WICCreateColorContext_Proxy, WICCreateImagingFactory_Proxy, and WICSetEncoderFormat_Proxy.\
+-DragQueryFile[A,W] now uses Optional for the last 2 arguments for compatibility with common usage.\
+-DLLVERSIONINFO member names now match SDK\
+-IOleInPlaceUIWindow.SetActiveObject now uses LongPtr in place of String for compatibility with OLEGuids\
+-IOleInPlaceActiveObject now uses PreserveSig to return the HRESULT on all methods for compatibility with OLEGuids.\
+    The original, Implements-compatible version, is now in WinDevLibImpl.\
+-(API Standards) CreateFontIndirect now uses LOGFONT instead of LOGFONTW (identical besides name)\
+-(API Standards) GetIconInfoEx was using ICONINFOEXW instead of (previously missing) ICONINFOEX.\
+-(API Standards) CryptBinaryToString not marked DeclareWide. (Issue #26)\
+-(Bug fix) StopTrace and QueryTrace missing aliases (Issue #28)\
+-(Bug fix) DrawThemeParentBackgroundEx case incorrect\
+-(Bug fix) GetCurrentThemeName missing ByVal on String argument\
+-(Bug fix) GetFileVersionInfoA, GetFileVersionInfoSizeA, GetDiskFreeSpaceA incorrectly used W aliases. (Issue #27)\
+-(Bug fix) RegCreateKey missing DeclareWide (Issue #27)\
+-(Bug fix) Shell library helper functions incorrectly used Null instead of Nothing.\
+-(Bug fix) SetFocus missing argument\
+**WinDevLibImpl v1.3.18** `Implements`-compatible version of IOleInPlaceActiveObject added.
+
 
 **Update (v7.10.396, 28 Apr 2024):**\
 -**MAJOR CHANGE:** IShellIconOverlay will now no longer require using VarPtr() around the index output var.\
