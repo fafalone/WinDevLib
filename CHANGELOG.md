@@ -1,4 +1,8 @@
 
+**Update (v8.0.404, 17 May 2024):**
+-Added missing constants from shimgdata.h (now 100% covered)
+-(Bug fix) URLDownloadToCacheFileW and URLDownloadToFileW still using String arguments.
+
 **Update (v8.0.403, 17 May 2024):**
 -(API Standards) URLOpenStream, URLPullStream, URLDownloadToCacheFile, and URLDownloadToFile did not conform to standards, additionally W versions used String without DeclareWide. (Issue #29)
 
