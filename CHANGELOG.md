@@ -1,4 +1,7 @@
 
+**Update (v8.0.403, 17 May 2024):**
+-(API Standards) URLOpenStream, URLPullStream, URLDownloadToCacheFile, and URLDownloadToFile did not conform to standards, additionally W versions used String without DeclareWide. (Issue #29)
+
 **Update (v8.0.402, 16 May 2024):**
 -Added Magnification API (magnification.h, 100% coverage)
 -Added Cloud Filter APIs (cfapi.h, 100% coverage). Note: These APIs use overloaded String/LongPtr declares, please report any problems.
@@ -9,7 +12,7 @@
 -Added Composite Image APIs (cimfs.h, 100% coverage)
 -Added AVI file interfaces and APIs from vfw.h
 -Added additional overloads for COM object APIs (e.g. CoMarshalInterThreadInterfaceInStream and CoGetInterfaceAndReleaseStream), to allow using LongPtr in addition to interfaces.
--Added missing WIC proxy functions WICCreateColorContext_Proxy, WICCreateImagingFactory_Proxy, and WICSetEncoderFormat_Proxy.
+-Added missing WIC proxy functions WICCreateColorContext_Proxy, WICCreateImagingFactory_Proxy, and WICSetEncoderFormat_Proxy. (Issue #25)
 -DragQueryFile[A,W] now uses Optional for the last 2 arguments for compatibility with common usage.
 -DLLVERSIONINFO member names now match SDK
 -IOleInPlaceUIWindow.SetActiveObject now uses LongPtr in place of String for compatibility with OLEGuids
