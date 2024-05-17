@@ -1,4 +1,8 @@
 
+**Update (v8.0.405, 17 May 2024):**
+-(Bug fix) IShellImageDataFactory method names incorrect
+-(Bug fix) IShellImageData missing method, breaking 2nd half of interface. Some method names incorrect.
+
 **Update (v8.0.404, 17 May 2024):**
 -Added missing constants from shimgdata.h (now 100% covered)
 -(Bug fix) URLDownloadToCacheFileW and URLDownloadToFileW still using String arguments.
