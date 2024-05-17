@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 8.0.402 (May 16th, 2024)**
+**Current Version: 8.0.403 (May 17th, 2024)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -189,6 +189,8 @@ twinBASIC now counts msvbvm60 redirects as legacy DLL redirects, which WinDevLib
 
 ### Updates
 
+**Update (v8.0.403, 17 May 2024):**\
+-(API Standards) URLOpenStream, URLPullStream, URLDownloadToCacheFile, and URLDownloadToFile did not conform to standards, additionally W versions used String without DeclareWide. (Issue #29)
 
 **Update (v8.0.402, 16 May 2024):**\
 -Added Magnification API (magnification.h, 100% coverage)\
