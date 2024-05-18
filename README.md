@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 8.0.405 (May 17th, 2024)**
+**Current Version: 8.0.406 (May 17th, 2024)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -189,8 +189,11 @@ twinBASIC now counts msvbvm60 redirects as legacy DLL redirects, which WinDevLib
 
 ### Updates
 
-**Update (v8.0.405, 17 May 2024):**
--(Bug fix) IShellImageDataFactory method names incorrect
+**Update (v8.0.406, 17 May 2024):**\
+-(Bug fix) Numerous String/LongPtr bugs and standards issues; see Issue #30.
+
+**Update (v8.0.405, 17 May 2024):**\
+-(Bug fix) IShellImageDataFactory method names incorrect\
 -(Bug fix) IShellImageData missing method, breaking 2nd half of interface. Some method names incorrect.
 
 **Update (v8.0.404, 17 May 2024):**\
