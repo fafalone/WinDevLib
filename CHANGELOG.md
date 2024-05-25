@@ -1,4 +1,7 @@
 
+**Update (v8.1.409, 25 May 2024):**
+-(Bug fix) GDI+ enum values incorrect in PixelOffsetMode, EncoderParameterValueType, SmoothingMode, InterpolationMode, MetafileFrameUnit, and CompositingQuality.
+
 **Update (v8.1.408, 25 May 2024):**
 -Began coverage of the Windows Filtering Platform. Initially, enough is declared to set up basic filters, like blocking all traffic from a given process.
 -IShellItem2.GetCLSID now uses standardized UUID type instead of UUID.
