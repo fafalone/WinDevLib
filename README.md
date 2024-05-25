@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 8.1.408 (May 25th, 2024)**
+**Current Version: 8.1.409 (May 25th, 2024)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -189,6 +189,8 @@ twinBASIC now counts msvbvm60 redirects as legacy DLL redirects, which WinDevLib
 
 ### Updates
 
+**Update (v8.1.409, 25 May 2024):**\
+-(Bug fix) GDI+ enum values incorrect in PixelOffsetMode, EncoderParameterValueType, SmoothingMode, InterpolationMode, MetafileFrameUnit, and CompositingQuality.\
 **Update (v8.1.408, 25 May 2024):**\
 -Began coverage of the Windows Filtering Platform. Initially, enough is declared to set up basic filters, like blocking all traffic from a given process.\
 -IShellItem2.GetCLSID now uses standardized UUID type instead of UUID.\
