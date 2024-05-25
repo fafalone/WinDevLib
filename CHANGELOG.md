@@ -1,4 +1,13 @@
 
+**Update (v8.1.408, 25 May 2024):**
+-Began coverage of the Windows Filtering Platform. Initially, enough is declared to set up basic filters, like blocking all traffic from a given process.
+-IShellItem2.GetCLSID now uses standardized UUID type instead of UUID.
+-Add missing GDI+ startup output and inputex structs and enums
+-(Bug fix) GdiplusStartupInput definition incorrect (did not cause runtime errors because size was > minimum, but optional args wouldn't work on x64)
+-(Bug fix) IAudioEndpointOffloadStreamMute method arg types incorrect (but likely was harmless)
+-(Bug fix) Switch imagehlp to dbghelp in identical parts of editor; DLL exports are not identical. Note: Dbghelp APIs are a work in progress; 40% done.
+-(Bug fix) MFMEDIASOURCE_CHARACTERISTICS, MF_SOURCE_READER_FLAG, and MF_SOURCE_READER_CONTROL_FLAG enums all values incorrect.
+
 **Update (v8.0.406, 17 May 2024):**
 -(Bug fix) Numerous String/LongPtr bugs and standards issues; see Issue #30.
 

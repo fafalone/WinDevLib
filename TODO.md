@@ -17,8 +17,10 @@ before release, or waiting on feature support:
 
 -windns.h (in progress, 20%)
 
--Windows Filtering Platform
+-Windows Filtering Platform (in progress, 20%)
 
 -wlanapi.h
 
--SQL.h/obdc32.dll
+-SQL.h/obdc32.dll (needs Alias support)
+
+-wdMF BOOL types
