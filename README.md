@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 8.1.409 (May 25th, 2024)**
+**Current Version: 8.2.412 (June 2nd, 2024)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -188,6 +188,17 @@ twinBASIC now counts msvbvm60 redirects as legacy DLL redirects, which WinDevLib
  
 
 ### Updates
+
+**Update (v8.2.412, 02 Jun 2024):**\
+-Added Direct3D 9 interfaces (base interfaces courtesy of The trick's Dx9vb type library); d3d9.h, d3d9types.h, d3d9caps.h, d3dx9shader.h\
+-Added DXVA2, DXVA-HD, and EVR9 interfaces (evr9.h, dxva2api.h, dxvahd.h)\
+-Added Native WiFi APIs (wlanapi.h, 100%, see wdAPIWLAN.twin for dependent header coverage details)\
+-Coverage of oleexp's oledlg.inc was entirely missing; added and expanded to include 98% of oledlg.h (currently unsupported vararg APIs pending)\
+-(Bug fix) Numerous incorrect constants due to << overflowing to zero after exceeding Integer.\
+-(Bug fix) IBackgroundCopyJob2.GetReplyFileName, IBackgroundCopyJobHttpOptions.GetCertificateName used String for LPWSTR*
+
+**WinDevLibImpl v1.3.20:** Add Implements-compatible IOleUILinkContainer
+
 
 **Update (v8.1.409, 25 May 2024):**\
 -(Bug fix) GDI+ enum values incorrect in PixelOffsetMode, EncoderParameterValueType, SmoothingMode, InterpolationMode, MetafileFrameUnit, and CompositingQuality.\
