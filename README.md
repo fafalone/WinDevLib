@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 8.2.412 (June 2nd, 2024)**
+**Current Version: 8.2.413 (June 2nd, 2024)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -189,6 +189,8 @@ twinBASIC now counts msvbvm60 redirects as legacy DLL redirects, which WinDevLib
 
 ### Updates
 
+**Update (v8.2.413, 02 Jun 2024):**\
+-Missing common winmm time APIs timeSetEvent/timeKillEvent and related consts\
 **Update (v8.2.412, 02 Jun 2024):**\
 -Added Direct3D 9 interfaces (base interfaces courtesy of The trick's Dx9vb type library); d3d9.h, d3d9types.h, d3d9caps.h, d3dx9shader.h\
 -Added DXVA2, DXVA-HD, and EVR9 interfaces (evr9.h, dxva2api.h, dxvahd.h)\
