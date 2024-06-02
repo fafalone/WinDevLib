@@ -43244,12 +43244,44 @@ Public Function sndAlias(ByVal ch0 As Long, ByVal ch1 As Long) As Long
 End Function
 #End Region
 
-Public Declare PtrSafe Function timeGetTime Lib "winmm" () As Long
+#Region "winmm_time"
+
+Public Const TIMERR_NOERROR  = (0) /* no error */
+Public Const TIMERR_NOCANDO  = (TIMERR_BASE + 1) /* request not completed */
+Public Const TIMERR_STRUCT  = (TIMERR_BASE + 33) /* time struct size */
+
+Public Type TIMECAPS
+    wPeriodMin As Long /* minimum period supported  */
+    wPeriodMax As Long /* maximum period supported  */
+End Type
+
+
 Public Declare PtrSafe Function timeGetSystemTime Lib "winmm" (pmmt As MMTIME, ByVal cbmmt As Long) As Long
+Public Declare PtrSafe Function timeGetTime Lib "winmm" () As Long
+Public Declare PtrSafe Function timeGetDevCaps Lib "winmm" (ptc As TIMECAPS, ByVal cbtc As Long) As Long
 Public Declare PtrSafe Function timeBeginPeriod Lib "winmm" (ByVal uPeriod As Long) As Long
 Public Declare PtrSafe Function timeEndPeriod Lib "winmm" (ByVal uPeriod As Long) As Long
-Public Declare PtrSafe Function timeGetDevCaps Lib "winmm" (ptc As TIMECAPS, ByVal cbtc As Long) As Long
 
+' typedef void (CALLBACK TIMECALLBACK)(UINT uTimerID, UINT uMsg, DWORD_PTR dwUser, DWORD_PTR dw1, DWORD_PTR dw2);
+' typedef TIMECALLBACK FAR *LPTIMECALLBACK;
+
+Public Enum WinmmTimerFlags
+    TIME_ONESHOT = &H0000 /* program timer for single event */
+    TIME_PERIODIC = &H0001 /* program for continuous periodic event */
+ 
+    TIME_CALLBACK_FUNCTION = &H0000 /* callback is function */
+    TIME_CALLBACK_EVENT_SET = &H0010 /* callback is event - use SetEvent */
+    TIME_CALLBACK_EVENT_PULSE = &H0020 /* callback is event - use PulseEvent */
+    
+    TIME_KILL_SYNCHRONOUS = &H0100 /* This flag prevents the event from occurring */
+                                        /* after the user calls timeKillEvent() to */
+                                        /* destroy it. */
+End Enum
+                                        
+Public Declare PtrSafe Function timeSetEvent Lib "winmm" (ByVal uDelay As Long, ByVal uResolution As Long, ByVal fptc As LongPtr, ByVal dwUser As LongPtr, ByVal fuEvent As WinmmTimerFlags) As Long
+Public Declare PtrSafe Function timeKillEvent Lib "winmm" (ByVal uTimerID As Long) As Long
+
+#End Region
 'Complete
 #Region "winmm_mci"
 Public Enum MCIERROR
@@ -45813,8 +45845,7 @@ Public Declare PtrSafe Function mixerSetControlDetails Lib "winmm.dll" (ByVal hm
 
 
 
-Public Const TIMERR_NOERROR = 0
-Public Const TIMERR_NOCANDO = 97
+
 
 Public Enum MMTimeType
 	TIME_MS = &H0001 /* time in milliseconds */
@@ -45926,10 +45957,6 @@ End Enum
 
 
 
-Public Type TIMECAPS
-    wPeriodMin As Long /* minimum period supported  */
-    wPeriodMax As Long /* maximum period supported  */
-End Type
 
 ' #define MCI_MSF_MINUTE(msf)             ((BYTE)(msf))
 ' #define MCI_MSF_SECOND(msf)             ((BYTE)(((WORD)(msf)) >> 8))
