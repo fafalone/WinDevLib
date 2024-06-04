@@ -9476,6 +9476,11 @@ Public Declare PtrSafe Function CreateMailslotW Lib "kernel32" (ByVal lpName As 
 Public DeclareWide PtrSafe Function CreateMailslot Lib "kernel32" Alias "CreateMailslotW" (ByVal lpName As String, ByVal nMaxMessageSize As Long, ByVal lReadTimeout As Long, lpSecurityAttributes As SECURITY_ATTRIBUTES) As LongPtr
 Public Declare PtrSafe Function GetMailslotInfo Lib "kernel32" (ByVal hMailslot As LongPtr, Optional lpMaxMessageSize As Long, Optional lpNextSize As Long, Optional lpMessageCount As Long, Optional lpReadTimeout As Long) As BOOL
 Public Declare PtrSafe Function SetMailslotInfo Lib "kernel32" (ByVal hMailslot As LongPtr, ByVal lpReadTimeout As Long) As BOOL
+Public DeclareWide PtrSafe Function RegisterWaitForSingleObject Lib "kernel32" (phNewWaitObject As LongPtr, ByVal hObject As LongPtr, ByVal Callback As LongPtr, Context As Any, ByVal dwMilliseconds As Long, ByVal dwFlags As ThreadPoolFlags) As BOOL
+Public Declare PtrSafe Function UnregisterWait Lib "kernel32" (ByVal WaitHandle As LongPtr) As BOOL
+Public Declare PtrSafe Function BindIoCompletionCallback Lib "kernel32" (ByVal FileHandle As LongPtr, ByVal pfnFunction As LongPtr, ByVal Flags As Long) As BOOL
+Public DeclareWide PtrSafe Function SetTimerQueueTimer Lib "kernel32" (ByVal TimerQueue As LongPtr, ByVal Callback As LongPtr, Parameter As Any, ByVal DueTime As Long, ByVal Period As Long, ByVal PreferIo As BOOL) As LongPtr
+Public Declare PtrSafe Function CancelTimerQueueTimer Lib "kernel32" (ByVal TimerQueue As LongPtr, ByVal Timer As LongPtr) As BOOL
 Public Declare PtrSafe Function CreateTimerQueue Lib "kernel32" () As LongPtr
 Public DeclareWide PtrSafe Function CreateTimerQueueTimer Lib "kernel32" (phNewTimer As LongPtr, ByVal TimerQueue As LongPtr, ByVal Callback As LongPtr, Parameter As Any, ByVal DueTime As Long, ByVal Period As Long, ByVal Flags As ThreadPoolFlags) As BOOL
 Public Declare PtrSafe Function ChangeTimerQueueTimer Lib "kernel32" (ByVal TimerQueue As LongPtr, ByVal hTimer As LongPtr, ByVal DueTime As Long, ByVal Period As Long) As BOOL
@@ -17455,7 +17460,7 @@ Public Enum LDR_DATA_TABLE_FLAGS
     LDRP_REDIRECTED = &H10000000
     LDRP_COMPAT_DATABASE_PROCESSED = &H80000000
 End Enum
-[Description("This structure is complete only up until Windows NT4. Additional members have been added.")]
+[Description("This structure is complete only up until Windows XP. Additional members have been added.")]
 Public Type LDR_DATA_TABLE_ENTRY
     InLoadOrderLinks As LIST_ENTRY
     InMemoryOrderLinks As LIST_ENTRY
@@ -17471,6 +17476,7 @@ Public Type LDR_DATA_TABLE_ENTRY
     HashLinks As LIST_ENTRY
     TimeDateStamp As Long
     EntryPointActivationContext As LongPtr
+    PatchInformationOrLock As LongPtr 'PatchInfo on XP-8, Lock on 10
 End Type
 
 Public Enum PROCESS_CREATE_FLAGS
@@ -18308,6 +18314,19 @@ End Type
 
 Public Const UNWIND_HISTORY_TABLE_SIZE = 32
 
+Public Enum TIMER_TYPE
+    NotificationTimer
+    SynchronizationTimer
+End Enum
+
+Public Enum TIMER_INFORMATION_CLASS
+    TimerBasicInformation
+End Enum
+Public Type TIMER_BASIC_INFORMATION
+    RemainingTime As LARGE_INTEGER
+    TimerState As Byte
+End Type
+
 
 'NTDLL APIs should only be added if they don't have higher level equivalents. If the NTDLL version has substantially more functionality, it's not equivalent and should be added.
 Public Declare PtrSafe Function NtQuerySystemInformation Lib "ntdll" (ByVal SystemInformationClass As SYSTEM_INFORMATION_CLASS, SystemInformation As Any, ByVal SystemInformationLength As Long, ReturnLength As Long) As Long
@@ -18335,6 +18354,7 @@ Public Declare PtrSafe Function NtSetInformationFile Lib "ntdll" (ByVal FileHand
 Public Declare PtrSafe Function NtSetEaFile Lib "ntdll" (ByVal FileHandle As LongPtr, IoStatusBlock As IO_STATUS_BLOCK, Buffer As Any, ByVal Length As Long) As NTSTATUS
 Public Declare PtrSafe Function NtQueryVolumeInformationFile Lib "ntdll" (ByVal FileHandle As LongPtr, IoStatusBlock As IO_STATUS_BLOCK, FsInformation As Any, ByVal Length As Long, ByVal FsInformationClass As FS_INFORMATION_CLASS) As Long
 Public Declare PtrSafe Function NtSetVolumeInformationFile Lib "ntdll" (ByVal FileHandle As LongPtr, IoStatusBlock As IO_STATUS_BLOCK, FsInformation As Any, ByVal Length As Long, ByVal FsInformationClass As FS_INFORMATION_CLASS) As Long
+Public Declare PtrSafe Function NtQueryFullAttributesFile Lib "ntdll" (ObjectAttributes As OBJECT_ATTRIBUTES, Attributes As Any) As NTSTATUS
 Public Declare PtrSafe Function NtImpersonateThread Lib "ntdll" (ByVal hThread As LongPtr, ByVal hThreadToImpersonate As LongPtr, SecurityQualityOfService As SECURITY_QUALITY_OF_SERVICE) As Long
 Public Declare PtrSafe Function NtImpersonateAnonymousToken Lib "ntdll" (ByVal ThreadHandle As LongPtr) As NTSTATUS
 Public Declare PtrSafe Function NtQueryObject Lib "ntdll" (ByVal Handle As LongPtr, ByVal ObjectInformationClass As OBJECT_INFORMATION_CLASS, ObjectInformation As Any, ByVal ObjectInformationLength As Long, ReturnLength As Long) As Long
@@ -18384,6 +18404,13 @@ Public Declare PtrSafe Function NtLoadDriver Lib "ntdll" (DriverServiceName As U
 Public Declare PtrSafe Function NtUnloadDriver Lib "ntdll" (DriverServiceName As UNICODE_STRING) As NTSTATUS
 Public Declare PtrSafe Function NtQuerySystemTime Lib "ntdll" (SystemTime As LARGE_INTEGER) As NTSTATUS
 Public Declare PtrSafe Function NtSetSystemTime Lib "ntdll" (SystemTime As LARGE_INTEGER, PreviousTime As LARGE_INTEGER) As NTSTATUS
+Public Declare PtrSafe Function NtQueryTimerResolution Lib "ntdll" (MinimumResolution As Long, MaximumResolution As Long, CurrentResolution As Long) As NTSTATUS
+Public Declare PtrSafe Function NtSetTimerResolution Lib "ntdll" (ByVal DesiredResolution As Long, ByVal SetResolution As Byte, CurrentResolution As Long) As NTSTATUS
+Public Declare PtrSafe Function NtCreateTimer Lib "ntdll" (TimerHandle As LongPtr, ByVal DesiredAccess As TimerAccessRights, ObjectAttributes As OBJECT_ATTRIBUTES, ByVal TimerType As TIMER_TYPE) As NTSTATUS
+Public Declare PtrSafe Function NtCancelTimer Lib "ntdll" (ByVal TimerHandle As LongPtr, Optional CurrentState As Byte) As NTSTATUS
+Public Declare PtrSafe Function NtSetTimer Lib "ntdll" (ByVal TimerHandle As LongPtr, DueTime As LARGE_INTEGER, ByVal TimerApcRoutine As LongPtr, ByVal TimerContext As LongPtr, ByVal ResumeTimer As Byte, Optional ByVal Period As Long, Optional PreviousState As Byte) As NTSTATUS
+Public Declare PtrSafe Function NtQueryTimer Lib "ntdll" (ByVal TimerHandle As LongPtr, ByVal TimerInformationClass As TIMER_INFORMATION_CLASS, TimerInformation As Any, ReturnLength As Long) As NTSTATUS
+Public Declare PtrSafe Function NtGetTickCount Lib "ntdll" () As Long
 Public Declare PtrSafe Function NtYieldExecution Lib "ntdll" () As NTSTATUS
 Public Declare PtrSafe Function NtWaitForSingleObject Lib "ntdll" (ByVal Handle As LongPtr, ByVal Alertable As Byte, Timeout As LARGE_INTEGER) As NTSTATUS
 Public Declare PtrSafe Function NtRaiseHardError Lib "ntdll" (ByVal ErrorStatus As NTSTATUS, ByVal NumberOfParameters As Long, ByVal UnicodeStringParametersMask As Long, Parameters As Any, ByVal ResponseOption As HARDERROR_RESPONSE_OPTION, Response As HARDERROR_RESPONSE) As NTSTATUS
@@ -18462,9 +18489,9 @@ Public DeclareWide PtrSafe Function RtlIpv4AddressToStringEx Lib "ntdll" Alias "
 Public Declare PtrSafe Function RtlIpv4StringToAddressA Lib "ntdll" (ByVal s As String, ByVal Strict As Byte, Terminator As LongPtr, Addr As IN_ADDR) As Long
 Public Declare PtrSafe Function RtlIpv4StringToAddressW Lib "ntdll" (ByVal s As LongPtr, ByVal Strict As Byte, Terminator As LongPtr, Addr As IN_ADDR) As Long
 Public DeclareWide PtrSafe Function RtlIpv4StringToAddress Lib "ntdll" Alias "RtlIpv4StringToAddressW" (ByVal s As String, ByVal Strict As Byte, Terminator As LongPtr, Addr As IN_ADDR) As Long
-Public Declare PtrSafe Function RtlIpv4StringToAddressExA Lib "ntdll" (ByVal AddressString As String, Strict As Byte, Address As IN_ADDR, Port As Integer) As Long
-Public Declare PtrSafe Function RtlIpv4StringToAddressExW Lib "ntdll" (ByVal AddressString As LongPtr, Strict As Byte, Address As IN_ADDR, Port As Integer) As Long
-Public DeclareWide PtrSafe Function RtlIpv4StringToAddressEx Lib "ntdll" Alias "RtlIpv4StringToAddressExW" (ByVal AddressString As String, Strict As Byte, Address As IN_ADDR, Port As Integer) As Long
+Public Declare PtrSafe Function RtlIpv4StringToAddressExA Lib "ntdll" (ByVal AddressString As String, ByVal Strict As Byte, Address As IN_ADDR, Port As Integer) As Long
+Public Declare PtrSafe Function RtlIpv4StringToAddressExW Lib "ntdll" (ByVal AddressString As LongPtr, ByVal Strict As Byte, Address As IN_ADDR, Port As Integer) As Long
+Public DeclareWide PtrSafe Function RtlIpv4StringToAddressEx Lib "ntdll" Alias "RtlIpv4StringToAddressExW" (ByVal AddressString As String, ByVal Strict As Byte, Address As IN_ADDR, Port As Integer) As Long
 Public Declare PtrSafe Function RtlIpv6AddressToStringA Lib "ntdll" (Addr As IN6_ADDR, ByVal s As String) As LongPtr
 Public Declare PtrSafe Function RtlIpv6AddressToStringW Lib "ntdll" (Addr As IN6_ADDR, ByVal s As LongPtr) As LongPtr
 Public DeclareWide PtrSafe Function RtlIpv6AddressToString Lib "ntdll" Alias "RtlIpv6AddressToStringW" (Addr As IN6_ADDR, ByVal s As String) As LongPtr
@@ -30505,7 +30532,7 @@ Public Declare PtrSafe Function CheckTokenMembership Lib "advapi32" (ByVal Token
 Public Declare PtrSafe Function CheckTokenMembershipEx Lib "kernel32" (ByVal TokenHandle As LongPtr, ByVal SidToCheck As LongPtr, ByVal Flags As CheckTokenMembershipExFlags, IsMember As BOOL) As BOOL
 Public Declare PtrSafe Function CreateRestrictedToken Lib "kernel32" (ByVal ExistingTokenHandle As LongPtr, ByVal Flags As RestrictedTokenFlags, ByVal DisableSidCount As Long, SidsToDisable As SID_AND_ATTRIBUTES, ByVal DeletePrivilegeCount As Long, PrivilegesToDelete As LUID_AND_ATTRIBUTES, ByVal RestrictedSidCount As Long, SidsToRestrict As SID_AND_ATTRIBUTES, NewTokenHandle As LongPtr) As BOOL
 Public Declare PtrSafe Function SetThreadToken Lib "kernel32" (Optional ByVal Thread As LongPtr, Optional ByVal Token As LongPtr) As BOOL
-
+Public Declare PtrSafe Function IsTokenUntrusted Lib "advapi32" (ByVal TokenHandle As LongPtr) As BOOL
 
 Public Enum RestrictedTokenFlags
     DISABLE_MAX_PRIVILEGE = &H1
