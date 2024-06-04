@@ -1,0 +1,749 @@
+'*****************************************************************************************
+'This file is a part of WinDevLib - Windows Development Library for twinBASIC
+'https://github.com/fafalone/WinDevLib
+'Code ported by Jon Johnson. 
+'"Windows" is a trademark of the Microsoft Corporation.
+'Certain Description attributes (c) Microsoft, taken from SDK headers and official docs.
+'Licensed under Creative Commons CC0 1.0 Universal
+'*****************************************************************************************
+
+'vfw.h
+'vfwext.h
+
+'WARNING: Most of this is incredibly obsolete. What happened is I noticed the AVI file stuff
+'         still worked (on suitably old AVIs), and it's in header with a bunch of old stuff
+'         C++ couldn't compile on Windows 10. 
+'         Waste of time? Maybe. But if I researched everything that was or wasn't still working
+'         it would have taken more time than just adding the definitions as-is.
+
+
+[InterfaceId("00020021-0000-0000-C000-000000000046")]
+[OleAutomation(False)]
+Interface IAVIStream Extends IUnknown
+    Sub Create(ByVal lParam1 As LongPtr, ByVal lParam2 As LongPtr)
+    Sub Info(psi As AVISTREAMINFOW, ByVal lSize As Long)
+    [PreserveSig] Function FindSample(ByVal lPos As Long, ByVal lFlags As VfwAviFindFlags) As Long
+    Sub ReadFormat(ByVal lPos As Long, lpFormat As Any, lpcbFormat As Long)
+    Sub SetFormat(ByVal lPos As Long, lpFormat As Any, ByVal cbFormat As Long)
+    Sub Read(ByVal lStart As Long, ByVal lSamples As Long, lpBuffer As Any, ByVal cbBuffer As Long, Optional plBytes As Long, Optional plSamples As Long)
+    Sub Write(ByVal lStart As Long, ByVal lSamples As Long, lpBuffer As Any, ByVal cbBuffer As Long, ByVal dwFlags As VfwAviFrameFlags, Optional plSampWritten As Long, Optional plBytesWritten As Long)
+    Sub Delete(ByVal lStart As Long, ByVal lSamples As Long)
+    Sub ReadData(ByVal fcc As Long, lp As Any, lpcb As Long)
+    Sub WriteData(ByVal fcc As Long, lp As Any, ByVal cb As Long)
+    Sub SetInfo(lpInfo As AVISTREAMINFOW, ByVal cbInfo As Long)
+End Interface
+
+[InterfaceId("00020022-0000-0000-C000-000000000046")]
+[OleAutomation(False)]
+Interface IAVIStreaming Extends IUnknown
+    Sub Begin(ByVal lStart As Long, ByVal lEnd As Long, ByVal lRate As Long)
+    Sub End()
+End Interface
+
+[InterfaceId("00020024-0000-0000-C000-000000000046")]
+[OleAutomation(False)]
+Interface IAVIEditStream Extends IUnknown
+    Sub Cut(plStart As Long, plLength As Long, ppResult As IAVIStream)
+    Sub Copy(plStart As Long, plLength As Long, ppResult As IAVIStream)
+    Sub Paste(plPos As Long, plLength As Long, ByVal pstream As IAVIStream, ByVal lStart As Long, ByVal lEnd As Long)
+    Sub Clone(ppResult As IAVIStream)
+    Sub SetInfo(lpInfo As AVISTREAMINFOW, ByVal cbInfo As Long)
+End Interface
+
+[InterfaceId("00020025-0000-0000-C000-000000000046")]
+[OleAutomation(False)]
+Interface IAVIPersistFile Extends IPersistFile
+    Sub Reserved1()
+End Interface
+
+[InterfaceId("00020020-0000-0000-C000-000000000046")]
+[OleAutomation(False)]
+Interface IAVIFile Extends IUnknown
+    Sub Info(pfi As AVIFILEINFOW, ByVal lSize As Long)
+    Sub GetStream(ppStream As IAVIStream, ByVal fccType As VfwFourCCStreamTypes)
+    Sub CreateStream(ppStream As IAVIStream, psi As AVISTREAMINFOW)
+    Sub WriteData(ByVal ckid As Long, lpData As Any, ByVal cbData As Long)
+    Sub ReadData(ByVal ckid As Long, lpData As Any, lpcbData As Long)
+    Sub EndRecord()
+    Sub DeleteStream(ByVal fccType As VfwFourCCStreamTypes, ByVal lParam As Long)
+End Interface
+    
+[InterfaceId("00020023-0000-0000-C000-000000000046")]
+[OleAutomation(False)]
+Interface IGetFrame Extends IUnknown
+    [PreserveSig] Function GetFrame(ByVal lPos As Long) As LongPtr
+    Sub Begin(ByVal lStart As Long, ByVal lEnd As Long, ByVal lRate As Long)
+    Sub End()
+    Sub SetFormat(lpbi As Any, lpBits As Any, ByVal x As Long, ByVal y As Long, ByVal dx As Long, ByVal dy As Long)
+End Interface
+
+
+'CLSID_AVIFile() As UUID
+[CoClassId("00020000-0000-0000-C000-000000000046")]
+CoClass AVIFile
+    [Default] Interface IAVIFile
+End CoClass
+
+Module wdVFW
+
+Public Declare PtrSafe Function VideoForWindowsVersion Lib "msvfw32" () As Long
+
+'Unknown; dead 16bit stuff. Not exported from msvfw32.dll like VideoForWindowsVersion
+' Public Declare PtrSafe Function InitVFW Lib "" () As Long
+' Public Declare PtrSafe Function TermVFW Lib "" () As Long
+
+Public Const ICVERSION = &H0104
+
+Public Const BI_1632 = &H32333631
+Public Const ICTYPE_VIDEO = &H63646976 'mmioFOURCC('v', 'i', 'd', 'c')
+Public Const ICTYPE_AUDIO = &H63647561 'mmioFOURCC('a', 'u', 'd', 'c')
+
+    Public Enum VfwIcErrors
+        ICERR_OK = 0
+        ICERR_DONTDRAW = 1
+        ICERR_NEWPALETTE = 2
+        ICERR_GOTOKEYFRAME = 3
+        ICERR_STOPDRAWING = 4
+        ICERR_UNSUPPORTED = -1
+        ICERR_BADFORMAT = -2
+        ICERR_MEMORY = -3
+        ICERR_INTERNAL = -4
+        ICERR_BADFLAGS = -5
+        ICERR_BADPARAM = -6
+        ICERR_BADSIZE = -7
+        ICERR_BADHANDLE = -8
+        ICERR_CANTUPDATE = -9
+        ICERR_ABORT = -10
+        ICERR_ERROR = -100
+        ICERR_BADBITDEPTH = -200
+        ICERR_BADIMAGESIZE = -201
+        ICERR_CUSTOM = -400  ' errors less than ICERR_CUSTOM...
+    End Enum
+    
+    Public Enum VfwIcOpenFlags
+        ICMODE_COMPRESS = 1
+        ICMODE_DECOMPRESS = 2
+        ICMODE_FASTDECOMPRESS = 3
+        ICMODE_QUERY = 4
+        ICMODE_FASTCOMPRESS = 5
+        ICMODE_DRAW = 8
+    '  ;Internal
+        ICMODE_INTERNALF_FUNCTION32 = &H8000&  ' ;Internal
+        ICMODE_INTERNALF_MASK = &H8000&  ' ;Internal
+    End Enum
+    
+    Public Enum VfwAviFileIndexFlags
+        AVIIF_LIST = &H00000001
+        AVIIF_TWOCC = &H00000002
+        AVIIF_KEYFRAME = &H00000010
+    End Enum
+    
+    Public Enum VfwIcQualityFlags
+        ICQUALITY_LOW = 0
+        ICQUALITY_HIGH = 10000
+        ICQUALITY_DEFAULT = -1
+    End Enum
+    
+    Private Const DRV_USER = &H4000 '**DO NOT MAKE PUBLIC** Constant expression evalution bug workaround!
+    Public Const ICM_USER  = (DRV_USER + &H0000)
+    Public Const ICM_RESERVED_LOW  = (DRV_USER + &H1000)
+    Public Const ICM_RESERVED  = ICM_RESERVED_LOW
+    Public Const ICM_RESERVED_HIGH  = (DRV_USER + &H2000)
+    
+	Public Const ICM_GETSTATE  = (ICM_RESERVED + 0)  ' Get compressor state
+	Public Const ICM_SETSTATE  = (ICM_RESERVED + 1)  ' Set compressor state
+	Public Const ICM_GETINFO  = (ICM_RESERVED + 2)  ' Query info about the compressor
+	Public Const ICM_CONFIGURE  = (ICM_RESERVED + 10)  ' show the configure dialog
+	Public Const ICM_ABOUT  = (ICM_RESERVED + 11)  ' show the about box
+	Public Const ICM_GETERRORTEXT  = (ICM_RESERVED + 12)  ' get error text TBD ;Internal
+	Public Const ICM_GETFORMATNAME  = (ICM_RESERVED + 20)  ' get a name for a format ;Internal
+	Public Const ICM_ENUMFORMATS  = (ICM_RESERVED + 21)  ' cycle through formats ;Internal
+	Public Const ICM_GETDEFAULTQUALITY  = (ICM_RESERVED + 30)  ' get the default value for quality
+	Public Const ICM_GETQUALITY  = (ICM_RESERVED + 31)  ' get the current value for quality
+	Public Const ICM_SETQUALITY  = (ICM_RESERVED + 32)  ' set the default value for quality
+	Public Const ICM_SET  = (ICM_RESERVED + 40)  ' Tell the driver something
+	Public Const ICM_GET  = (ICM_RESERVED + 41)  ' Ask the driver something
+
+	Public Const ICM_FRAMERATE = &H526D7246 ' mmioFOURCC('F','r','m','R')
+	Public Const ICM_KEYFRAMERATE = &H526D7246 ' mmioFOURCC('K','e','y','R')
+
+	[Description("get compress format or size")] Public Const ICM_COMPRESS_GET_FORMAT  = (ICM_USER + 4)
+	[Description("get output size")] Public Const ICM_COMPRESS_GET_SIZE  = (ICM_USER + 5)
+	[Description("query support for compress")] Public Const ICM_COMPRESS_QUERY  = (ICM_USER + 6)
+	[Description("begin a series of compress calls.")] Public Const ICM_COMPRESS_BEGIN  = (ICM_USER + 7)
+	[Description("compress a frame")] Public Const ICM_COMPRESS  = (ICM_USER + 8)
+	[Description("end of a series of compress calls.")] Public Const ICM_COMPRESS_END  = (ICM_USER + 9)
+	[Description("get decompress format or size")] Public Const ICM_DECOMPRESS_GET_FORMAT  = (ICM_USER + 10)
+	[Description("query support for dempress")] Public Const ICM_DECOMPRESS_QUERY  = (ICM_USER + 11)
+	[Description("start a series of decompress calls")] Public Const ICM_DECOMPRESS_BEGIN  = (ICM_USER + 12)
+	[Description("decompress a frame")] Public Const ICM_DECOMPRESS  = (ICM_USER + 13)
+	[Description("end a series of decompress calls")] Public Const ICM_DECOMPRESS_END  = (ICM_USER + 14)
+	[Description("fill in the DIB color table")] Public Const ICM_DECOMPRESS_SET_PALETTE  = (ICM_USER + 29)
+	[Description("fill in the DIB color table")] Public Const ICM_DECOMPRESS_GET_PALETTE  = (ICM_USER + 30)
+	[Description("query support for dempress")] Public Const ICM_DRAW_QUERY  = (ICM_USER + 31)
+	[Description("start a series of draw calls")] Public Const ICM_DRAW_BEGIN  = (ICM_USER + 15)
+	[Description("get the palette needed for drawing")] Public Const ICM_DRAW_GET_PALETTE  = (ICM_USER + 16)
+	[Description("update screen with current frame ;Internal")] Public Const ICM_DRAW_UPDATE  = (ICM_USER + 17)
+	[Description("start decompress clock")] Public Const ICM_DRAW_START  = (ICM_USER + 18)
+	[Description("stop decompress clock")] Public Const ICM_DRAW_STOP  = (ICM_USER + 19)
+	[Description("decompress a frame to screen ;Internal")] Public Const ICM_DRAW_BITS  = (ICM_USER + 20)
+	[Description("end a series of draw calls")] Public Const ICM_DRAW_END  = (ICM_USER + 21)
+	[Description("get value of decompress clock")] Public Const ICM_DRAW_GETTIME  = (ICM_USER + 32)
+	[Description("generalized 'render' message")] Public Const ICM_DRAW  = (ICM_USER + 33)
+	[Description("drawing window has moved or hidden")] Public Const ICM_DRAW_WINDOW  = (ICM_USER + 34)
+	[Description("set correct value for decompress clock")] Public Const ICM_DRAW_SETTIME  = (ICM_USER + 35)
+	[Description("realize palette for drawing")] Public Const ICM_DRAW_REALIZE  = (ICM_USER + 36)
+	[Description("clear out buffered frames")] Public Const ICM_DRAW_FLUSH  = (ICM_USER + 37)
+	[Description("draw undrawn things in queue")] Public Const ICM_DRAW_RENDERBUFFER  = (ICM_USER + 38)
+	[Description("start of a play")] Public Const ICM_DRAW_START_PLAY  = (ICM_USER + 39)
+	[Description("end of a play")] Public Const ICM_DRAW_STOP_PLAY  = (ICM_USER + 40)
+	[Description("Like ICGetDisplayFormat")] Public Const ICM_DRAW_SUGGESTFORMAT  = (ICM_USER + 50)
+	[Description("for animating palette")] Public Const ICM_DRAW_CHANGEPALETTE  = (ICM_USER + 51)
+	[Description("send each frame time ;Internal")] Public Const ICM_DRAW_IDLE  = (ICM_USER + 52)
+	[Description("ask about prebuffering")] Public Const ICM_GETBUFFERSWANTED  = (ICM_USER + 41)
+	[Description("get the default value for key frames")] Public Const ICM_GETDEFAULTKEYFRAMERATE  = (ICM_USER + 42)
+	[Description("start a series of decompress calls")] Public Const ICM_DECOMPRESSEX_BEGIN  = (ICM_USER + 60)
+	[Description("start a series of decompress calls")] Public Const ICM_DECOMPRESSEX_QUERY  = (ICM_USER + 61)
+	[Description("decompress a frame")] Public Const ICM_DECOMPRESSEX  = (ICM_USER + 62)
+	[Description("end a series of decompress calls")] Public Const ICM_DECOMPRESSEX_END  = (ICM_USER + 63)
+	[Description("tell about compress to come")] Public Const ICM_COMPRESS_FRAMES_INFO  = (ICM_USER + 70)
+	[Description("compress a bunch of frames ;Internal")] Public Const ICM_COMPRESS_FRAMES  = (ICM_USER + 71)
+	[Description("set status callback")] Public Const ICM_SET_STATUS_PROC  = (ICM_USER + 72)
+
+    Public Type ICOPEN
+        dwSize As Long ' sizeof(ICOPEN)
+        fccType As Long ' 'vidc'
+        fccHandler As Long '
+        dwVersion As Long ' version of compman opening you
+        dwFlags As Long ' LOWORD is type specific
+        dwError As LongPtr ' error return.
+        pV1Reserved As LongPtr ' Reserved
+        pV2Reserved As LongPtr ' Reserved
+        dnDevNode As Long ' Devnode for PnP devices
+    End Type
+    
+    
+    
+        
+    
+    Public Enum VfwCompressorChooseFlags
+        ICMF_CHOOSE_KEYFRAME = &H0001  ' show KeyFrame Every box
+        ICMF_CHOOSE_DATARATE = &H0002  ' show DataRate box
+        ICMF_CHOOSE_PREVIEW = &H0004  ' allow expanded preview dialog
+        ICMF_CHOOSE_ALLCOMPRESSORS = &H0008  ' don't only show those that
+    '  can handle the input format
+    '  or input data
+    End Enum
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    Public Const formtypeAVI = &H20495641 ' mmioFOURCC('A', 'V', 'I', ' ')
+    
+    Public Enum VfwFourCCStreamTypes
+        streamtypeVIDEO = &H73646976 'mmioFOURCC('v', 'i', 'd', 's')
+        streamtypeAUDIO = &H73647561 'mmioFOURCC('a', 'u', 'd', 's')
+        streamtypeMIDI = &H7364696d 'mmioFOURCC('m', 'i', 'd', 's')
+        streamtypeTEXT = &H73747874 'mmioFOURCC('t', 'x', 't', 's')
+    End Enum
+    
+    Public Enum VfwAviHeaderFlags
+        AVIF_HASINDEX = &H00000010  ' Index at end of file?
+        AVIF_MUSTUSEINDEX = &H00000020
+        AVIF_ISINTERLEAVED = &H00000100
+        AVIF_WASCAPTUREFILE = &H00010000
+        AVIF_COPYRIGHTED = &H00020000
+    End Enum
+    
+    Public Const AVI_HEADERSIZE = 2048
+    
+    Public Type MainAVIHeader
+        dwMicroSecPerFrame As Long ' frame display rate (or 0L)
+        dwMaxBytesPerSec As Long ' max. transfer rate
+        dwPaddingGranularity As Long ' pad to multiples of this
+        ' size; normally 2K.
+        dwFlags As VfwAviHeaderFlags ' the ever-present flags
+        dwTotalFrames As Long ' # frames in file
+        dwInitialFrames As Long
+        dwStreams As Long
+        dwSuggestedBufferSize As Long
+        dwWidth As Long
+        dwHeight As Long
+        dwReserved(0 To 3) As Long
+    End Type
+    
+    Public Enum VfwAviStreamHeaderFlags
+        AVISF_DISABLED = &H00000001
+        AVISF_VIDEO_PALCHANGES = &H00010000
+    End Enum
+    Public Type AVIStreamHeader
+        fccType As VfwFourCCStreamTypes 'FOURCC
+        fccHandler As Long 'FOURCC
+        dwFlags As VfwAviStreamHeaderFlags '    /* Contains AVITF_* flags */
+        wPriority As Integer
+        wLanguage As Integer
+        dwInitialFrames As Long
+        dwScale As Long
+        dwRate As Long '/* dwRate / dwScale == samples/second */
+        dwStart As Long
+        dwLength As Long '/* In units above... */
+        dwSuggestedBufferSize As Long
+        dwQuality As Long
+        dwSampleSize As Long
+        rcFrame As RECT
+    End Type
+    Public Enum VfwAviFrameFlags
+        AVIF_HASINDEX = &H00000010
+        AVIF_MUSTUSEINDEX = &H00000020
+        AVIF_ISINTERLEAVED = &H00000100
+        AVIF_WASCAPTUREFILE = &H00010000
+        AVIF_COPYRIGHTED = &H00020000
+        AVIF_KEYFRAME = &H00000010
+    End Enum
+    Public Enum VfwAviIndexEntryFlags
+        AVIIF_LIST = &H00000001   ' chunk is a 'LIST'
+        AVIIF_KEYFRAME = &H00000010    ' this frame is a key frame.
+        AVIIF_FIRSTPART = &H00000020    ' this frame is the start of a partial frame.
+        AVIIF_LASTPART = &H00000040   ' this frame is the end of a partial frame.
+        AVIIF_MIDPART = (AVIIF_LASTPART Or AVIIF_FIRSTPART)
+        AVIIF_NOTIME = &H00000100    ' this frame doesn't take any time
+        AVIIF_COMPUSE = &H0FFF0000    ' these bits are for compressor use
+    End Enum
+    Public Type AVIINDEXENTRY
+        ckid As Long
+        dwFlags As VfwAviIndexEntryFlags
+        dwChunkOffset As Long ' Position of chunk
+        dwChunkLength As Long ' Length of chunk
+    End Type
+    
+    [Description("IMPORTANT: paNew is a variable C-style array. Do not use LenB for size of this udt.")]
+    Public Type AVIPALCHANGE
+        bFirstEntry As Byte '/* first entry to change */
+        bNumEntries As Byte '/* # entries to change (0 if 256) */
+        wFlags As Integer '/* Mostly to preserve alignment... */
+        'PALETTEENTRY    peNew[];
+        peNew(255) As PALETTEENTRY '/* New color specifications */
+    End Type
+    
+    Public Type AVISTREAMINFOW
+        fccType As VfwFourCCStreamTypes
+        fccHandler As Long
+        dwFlags As VfwAvStreamInfoFlags '/* Contains AVITF_* flags */
+        dwCaps As Long
+        wPriority As Integer
+        wLanguage As Integer
+        dwScale As Long
+        dwRate As Long '/* dwRate / dwScale == samples/second */
+        dwStart As Long
+        dwLength As Long '/* In units above... */
+        dwInitialFrames As Long
+        dwSuggestedBufferSize As Long
+        dwQuality As Long
+        dwSampleSize As Long
+        rcFrame As RECT
+        dwEditCount As Long
+        dwFormatChangeCount As Long
+        szName(0 To 63) As Integer
+    End Type
+    
+    Public Type AVISTREAMINFOA
+        fccType As VfwFourCCStreamTypes
+        fccHandler As Long
+        dwFlags As VfwAvStreamInfoFlags '/* Contains AVITF_* flags */
+        dwCaps As Long
+        wPriority As Integer
+        wLanguage As Integer
+        dwScale As Long
+        dwRate As Long '/* dwRate / dwScale == samples/second */
+        dwStart As Long
+        dwLength As Long '/* In units above... */
+        dwInitialFrames As Long
+        dwSuggestedBufferSize As Long
+        dwQuality As Long
+        dwSampleSize As Long
+        rcFrame As RECT
+        dwEditCount As Long
+        dwFormatChangeCount As Long
+        szName(0 To 63) As Byte
+    End Type
+    
+    'Alias AVISTREAMINFO As AVISTREAMINFOW
+    Public Type AVISTREAMINFO
+        fccType As VfwFourCCStreamTypes
+        fccHandler As Long
+        dwFlags As VfwAvStreamInfoFlags '/* Contains AVITF_* flags */
+        dwCaps As Long
+        wPriority As Integer
+        wLanguage As Integer
+        dwScale As Long
+        dwRate As Long '/* dwRate / dwScale == samples/second */
+        dwStart As Long
+        dwLength As Long '/* In units above... */
+        dwInitialFrames As Long
+        dwSuggestedBufferSize As Long
+        dwQuality As Long
+        dwSampleSize As Long
+        rcFrame As RECT
+        dwEditCount As Long
+        dwFormatChangeCount As Long
+        szName(0 To 63) As Integer
+    End Type
+    Public Enum VfwAvStreamInfoFlags
+        AVISTREAMINFO_DISABLED = &H00000001
+        AVISTREAMINFO_FORMATCHANGES = &H00010000
+    End Enum
+    
+    Public Type AVIFILEINFOW
+        dwMaxBytesPerSec As Long ' max. transfer rate
+        dwFlags As VfwAviFileInfoFlags ' the ever-present flags
+        dwCaps As VfwAviFileInfoCaps
+        dwStreams As Long
+        dwSuggestedBufferSize As Long
+        dwWidth As Long
+        dwHeight As Long
+        dwScale As Long
+        dwRate As Long '/* dwRate / dwScale == samples/second */
+        dwLength As Long
+        dwEditCount As Long
+        szFileType(0 To 63) As Integer ' descriptive string for file type?
+    End Type
+    Public Type AVIFILEINFOA
+        dwMaxBytesPerSec As Long ' max. transfer rate
+        dwFlags As VfwAviFileInfoFlags ' the ever-present flags
+        dwCaps As VfwAviFileInfoCaps
+        dwStreams As Long
+        dwSuggestedBufferSize As Long
+        dwWidth As Long
+        dwHeight As Long
+        dwScale As Long
+        dwRate As Long '/* dwRate / dwScale == samples/second */
+        dwLength As Long
+        dwEditCount As Long
+        szFileType(0 To 63) As Byte ' descriptive string for file type?
+    End Type
+    'Alias AVIFILEINFO As AVIFILEINFOW
+    Public Type AVIFILEINFO
+        dwMaxBytesPerSec As Long ' max. transfer rate
+        dwFlags As VfwAviFileInfoFlags ' the ever-present flags
+        dwCaps As VfwAviFileInfoCaps
+        dwStreams As Long
+        dwSuggestedBufferSize As Long
+        dwWidth As Long
+        dwHeight As Long
+        dwScale As Long
+        dwRate As Long '/* dwRate / dwScale == samples/second */
+        dwLength As Long
+        dwEditCount As Long
+        szFileType(0 To 63) As Integer ' descriptive string for file type?
+    End Type
+    
+    Public Enum VfwAviFileInfoFlags
+        AVIFILEINFO_HASINDEX = &H00000010
+        AVIFILEINFO_MUSTUSEINDEX = &H00000020
+        AVIFILEINFO_ISINTERLEAVED = &H00000100
+        AVIFILEINFO_WASCAPTUREFILE = &H00010000
+        AVIFILEINFO_COPYRIGHTED = &H00020000
+    End Enum
+    
+    Public Enum VfwAviFileInfoCaps
+        AVIFILECAPS_CANREAD = &H00000001
+        AVIFILECAPS_CANWRITE = &H00000002
+        AVIFILECAPS_ALLKEYFRAMES = &H00000010
+        AVIFILECAPS_NOCOMPRESSION = &H00000020
+    End Enum
+    
+    Public Type AVICOMPRESSOPTIONS
+        fccType As VfwFourCCStreamTypes '    /* stream type, for consistency */
+        fccHandler As Long '  /* compressor */
+        dwKeyFrameEvery As Long '     /* keyframe rate */
+        dwQuality As Long '     /* compress quality 0-10,000 */
+        dwBytesPerSecond As Long '   /* bytes per second */
+        dwFlags As VfwAviCompressionFlags '    /* flags... see below */
+        lpFormat As LongPtr '   /* save format */
+        cbFormat As Long
+        lpParms As LongPtr '   /* compressor options */
+        cbParms As Long
+        dwInterleaveEvery As Long '   /* for non-video streams only */
+    End Type
+    
+    Public Enum VfwAviCompressionFlags
+        AVICOMPRESSF_INTERLEAVE = &H00000001  ' interleave
+        AVICOMPRESSF_DATARATE = &H00000002  ' use a data rate
+        AVICOMPRESSF_KEYFRAMES = &H00000004  ' use keyframes
+        AVICOMPRESSF_VALID = &H00000008  ' has valid data?
+    End Enum
+    
+    Public Enum VfwAviFindFlags
+        FIND_DIR = &H0000000F   ' direction
+        FIND_NEXT = &H00000001   ' go forward
+        FIND_PREV = &H00000004   ' go backward
+        FIND_FROM_START = &H00000008   ' start at the logical beginning
+        FIND_TYPE = &H000000F0   ' type mask
+        FIND_KEY = &H00000010   ' find key frame.
+        FIND_ANY = &H00000020   ' find any (non-empty) sample
+        FIND_FORMAT = &H00000040   ' find format change
+        FIND_RET = &H0000F000&   ' return mask
+        FIND_POS = &H00000000   ' return logical position
+        FIND_ENGTH = &H00001000   ' return logical size
+        FIND_OFFSET = &H00002000   ' return physical position
+        FIND_SIZE = &H00003000   ' return physical size
+        FIND_INDEX = &H00004000   ' return physical index position
+        SEARCH_NEAREST = FIND_PREV
+        SEARCH_BACKWARD = FIND_PREV
+        SEARCH_FORWARD = FIND_NEXT
+        SEARCH_KEY = FIND_KEY
+        SEARCH_ANY = FIND_ANY
+    End Enum
+    
+    Public Enum VfwAviFileHandlerFlags
+        AVIFILEHANDLER_CANREAD = &H0001
+        AVIFILEHANDLER_CANWRITE = &H0002
+        AVIFILEHANDLER_CANACCEPTNONRGB = &H0004
+    End Enum
+    
+    Public Const AVISTREAMREAD_CONVENIENT = (-1)
+    
+    Public Declare PtrSafe Sub AVIFileInit Lib "Avifil32.dll" ()
+    Public Declare PtrSafe Sub AVIFileExit Lib "Avifil32.dll" ()
+    Public Declare PtrSafe Function AVIFileAddRef Lib "Avifil32.dll" (ByVal pfile As IAVIFile) As Long
+    Public Declare PtrSafe Function AVIFileRelease Lib "Avifil32.dll" (ByVal pfile As IAVIFile) As Long
+    Public Declare PtrSafe Function AVIFileOpenA Lib "Avifil32.dll" (ppfile As IAVIFile, ByVal szFile As String, ByVal uMode As OPEN_FILE_FLAGS, lpHandler As UUID) As Long
+    Public Declare PtrSafe Function AVIFileOpenW Lib "Avifil32.dll" (ppfile As IAVIFile, ByVal szFile As LongPtr, ByVal uMode As OPEN_FILE_FLAGS, lpHandler As UUID) As Long
+    Public DeclareWide PtrSafe Function AVIFileOpen Lib "Avifil32.dll" Alias "AVIFileOpenW" (ppfile As IAVIFile, ByVal szFile As String, ByVal uMode As OPEN_FILE_FLAGS, lpHandler As UUID) As Long
+    Public Declare PtrSafe Function AVIFileInfoA Lib "Avifil32.dll" (ByVal pfile As IAVIFile, pfi As AVIFILEINFOA, ByVal lSize As Long) As Long
+    Public Declare PtrSafe Function AVIFileInfoW Lib "Avifil32.dll" (ByVal pfile As IAVIFile, pfi As AVIFILEINFOW, ByVal lSize As Long) As Long
+    Public DeclareWide PtrSafe Function AVIFileInfo Lib "Avifil32.dll" Alias "AVIFileInfoW" (ByVal pfile As IAVIFile, pfi As AVIFILEINFO, ByVal lSize As Long) As Long
+    Public Declare PtrSafe Function AVIFileGetStream Lib "Avifil32.dll" (ByVal pfile As IAVIFile, ppavi As IAVIStream, ByVal fccType As VfwFourCCStreamTypes, ByVal lParam As Long) As Long
+    Public Declare PtrSafe Function AVIFileCreateStreamA Lib "Avifil32.dll" (ByVal pfile As IAVIFile, ppavi As IAVIStream, psi As AVISTREAMINFOA) As Long
+    Public Declare PtrSafe Function AVIFileCreateStreamW Lib "Avifil32.dll" (ByVal pfile As IAVIFile, ppavi As IAVIStream, psi As AVISTREAMINFOW) As Long
+    Public DeclareWide PtrSafe Function AVIFileCreateStream Lib "Avifil32.dll" Alias "AVIFileCreateStreamW" (ByVal pfile As IAVIFile, ppavi As IAVIStream, psi As AVISTREAMINFO) As Long
+    Public Declare PtrSafe Function AVIFileWriteData Lib "Avifil32.dll" (ByVal pfile As IAVIFile, ByVal ckid As Long, lpData As Any, ByVal cbData As Long) As Long
+    Public Declare PtrSafe Function AVIFileReadData Lib "Avifil32.dll" (ByVal pfile As IAVIFile, ByVal ckid As Long, lpData As Any, lpcbData As Long) As Long
+    Public Declare PtrSafe Function AVIFileEndRecord Lib "Avifil32.dll" (ByVal pfile As IAVIFile) As Long
+    Public Declare PtrSafe Function AVIStreamAddRef Lib "Avifil32.dll" (ByVal pavi As IAVIStream) As Long
+    Public Declare PtrSafe Function AVIStreamRelease Lib "Avifil32.dll" (ByVal pavi As IAVIStream) As Long
+    Public Declare PtrSafe Function AVIStreamInfoA Lib "Avifil32.dll" (ByVal pavi As IAVIStream, psi As AVISTREAMINFOA, ByVal lSize As Long) As Long
+    Public Declare PtrSafe Function AVIStreamInfoW Lib "Avifil32.dll" (ByVal pavi As IAVIStream, psi As AVISTREAMINFOW, ByVal lSize As Long) As Long
+    Public DeclareWide PtrSafe Function AVIStreamInfo Lib "Avifil32.dll" Alias "AVIStreamInfoW" (ByVal pavi As IAVIStream, psi As AVISTREAMINFO, ByVal lSize As Long) As Long
+    Public Declare PtrSafe Function AVIStreamFindSample Lib "Avifil32.dll" (ByVal pavi As IAVIStream, ByVal lPos As Long, ByVal lFlags As VfwAviFindFlags) As Long
+    Public Declare PtrSafe Function AVIStreamReadFormat Lib "Avifil32.dll" (ByVal pavi As IAVIStream, ByVal lPos As Long, lpFormat As Any, lpcbFormat As Long) As Long
+    Public Declare PtrSafe Function AVIStreamSetFormat Lib "Avifil32.dll" (ByVal pavi As IAVIStream, ByVal lPos As Long, lpFormat As Any, ByVal cbFormat As Long) As Long
+    Public Declare PtrSafe Function AVIStreamReadData Lib "Avifil32.dll" (ByVal pavi As IAVIStream, ByVal fcc As Long, lp As Any, lpcb As Long) As Long
+    Public Declare PtrSafe Function AVIStreamWriteData Lib "Avifil32.dll" (ByVal pavi As IAVIStream, ByVal fcc As Long, lp As Any, ByVal cb As Long) As Long
+    Public Declare PtrSafe Function AVIStreamRead Lib "Avifil32.dll" (ByVal pavi As IAVIStream, ByVal lStart As Long, ByVal lSamples As Long, lpBuffer As Any, ByVal cbBuffer As Long, Optional plBytes As Long, Optional plSamples As Long) As Long
+    Public Declare PtrSafe Function AVIStreamWrite Lib "Avifil32.dll" (ByVal pavi As IAVIStream, ByVal lStart As Long, ByVal lSamples As Long, lpBuffer As Any, ByVal cbBuffer As Long, ByVal dwFlags As VfwAviIndexEntryFlags, Optional plSampWritten As Long, Optional plBytesWritten As Long) As Long
+    Public Declare PtrSafe Function AVIStreamStart Lib "Avifil32.dll" (ByVal pavi As IAVIStream) As Long
+    Public Declare PtrSafe Function AVIStreamLength Lib "Avifil32.dll" (ByVal pavi As IAVIStream) As Long
+    Public Declare PtrSafe Function AVIStreamTimeToSample Lib "Avifil32.dll" (ByVal pavi As IAVIStream, ByVal lTime As Long) As Long
+    Public Declare PtrSafe Function AVIStreamSampleToTime Lib "Avifil32.dll" (ByVal pavi As IAVIStream, ByVal lSample As Long) As Long
+    Public Declare PtrSafe Function AVIStreamBeginStreaming Lib "Avifil32.dll" (ByVal pavi As IAVIStream, ByVal lStart As Long, ByVal lEnd As Long, ByVal lRate As Long) As Long
+    Public Declare PtrSafe Function AVIStreamEndStreaming Lib "Avifil32.dll" (ByVal pavi As IAVIStream) As Long
+    Public Declare PtrSafe Function AVIStreamGetFrameOpen Lib "Avifil32.dll" (ByVal pavi As IAVIStream, lpbiWanted As BITMAPINFOHEADER) As IGetFrame
+    Public Declare PtrSafe Function AVIStreamGetFrame Lib "Avifil32.dll" (ByVal pg As IGetFrame, ByVal lPos As Long) As LongPtr
+    Public Declare PtrSafe Function AVIStreamGetFrameClose Lib "Avifil32.dll" (ByVal pg As IGetFrame) As Long
+    Public Declare PtrSafe Function AVIStreamOpenFromFileA Lib "Avifil32.dll" (ppavi As IAVIStream, ByVal szFile As String, ByVal fccType As VfwFourCCStreamTypes, ByVal lParam As Long, ByVal mode As OPEN_FILE_FLAGS, pclsidHandler As UUID) As Long
+    Public Declare PtrSafe Function AVIStreamOpenFromFileW Lib "Avifil32.dll" (ppavi As IAVIStream, ByVal szFile As LongPtr, ByVal fccType As VfwFourCCStreamTypes, ByVal lParam As Long, ByVal mode As OPEN_FILE_FLAGS, pclsidHandler As UUID) As Long
+    Public DeclareWide PtrSafe Function AVIStreamOpenFromFile Lib "Avifil32.dll" Alias "AVIStreamOpenFromFileW" (ppavi As IAVIStream, ByVal szFile As String, ByVal fccType As VfwFourCCStreamTypes, ByVal lParam As Long, ByVal mode As OPEN_FILE_FLAGS, pclsidHandler As UUID) As Long
+    Public Declare PtrSafe Function AVIStreamCreate Lib "Avifil32.dll" (ppavi As IAVIStream, ByVal lParam1 As Long, ByVal lParam2 As Long, pclsidHandler As UUID) As Long
+    Public Declare PtrSafe Function AVIStreamFindKeyFrame Lib "Avifil32.dll" Alias "AVIStreamFindSample" (ByVal pavi As IAVIStream, ByVal lPos As Long, ByVal lFlags As VfwAviFindFlags) As Long
+    Public Declare PtrSafe Function AVIStreamClose Lib "Avifil32.dll" Alias "AVIStreamRelease" (ByVal pavi As IAVIStream) As Long
+    Public Declare PtrSafe Function AVIFileClose Lib "Avifil32.dll" Alias "AVIFileRelease" (ByVal pfile As IAVIFile) As Long
+    Public Declare PtrSafe Sub AVIStreamInit Lib "Avifil32.dll" Alias "AVIFileInit" ()
+    Public Declare PtrSafe Sub AVIStreamExit Lib "Avifil32.dll" Alias "AVIFileExit" ()
+      
+    
+    Public Function AVIStreamSampleToSample(ByVal pavi1 As IAVIStream, ByVal pavi2 As IAVIStream, ByVal l As Long) As Long
+        Return AVIStreamTimeToSample(pavi1, AVIStreamSampleToTime(pavi2, l))
+    End Function
+    Public Function AVIStreamNextSample(ByVal pavi As IAVIStream, ByVal l As Long) As Long
+        Return AVIStreamFindSample(pavi, l + 1, FIND_NEXT Or FIND_ANY)
+    End Function
+    Public Function AVIStreamPrevSample(ByVal pavi As IAVIStream, ByVal l As Long) As Long
+        Return AVIStreamFindSample(pavi, l - 1, FIND_PREV Or FIND_ANY)
+    End Function
+    Public Function AVIStreamNearestSample(ByVal pavi As IAVIStream, ByVal l As Long) As Long
+        Return AVIStreamFindSample(pavi, l, FIND_PREV Or FIND_ANY)
+    End Function
+    Public Function AVIStreamNextKeyFrame(ByVal pavi As IAVIStream, ByVal l As Long) As Long
+        Return AVIStreamFindSample(pavi, l + 1, FIND_NEXT Or FIND_KEY)
+    End Function
+    Public Function AVIStreamPrevKeyFrame(ByVal pavi As IAVIStream, ByVal l As Long) As Long
+        Return AVIStreamFindSample(pavi, l - 1, FIND_PREV Or FIND_KEY)
+    End Function
+    Public Function AVIStreamNearestKeyFrame(ByVal pavi As IAVIStream, ByVal l As Long) As Long
+        Return AVIStreamFindSample(pavi, l, FIND_PREV Or FIND_KEY)
+    End Function
+    Public Function AVIStreamIsKeyFrame(ByVal pavi As IAVIStream, ByVal l As Long) As Boolean
+        Return (AVIStreamNearestKeyFrame(pavi, l) = l)
+    End Function
+    Public Function AVIStreamPrevSampleTime(ByVal pavi As IAVIStream, ByVal t As Long) As Long
+        Return AVIStreamSampleToTime(pavi, AVIStreamPrevSample(pavi, AVIStreamTimeToSample(pavi, t)))
+    End Function
+    Public Function AVIStreamNextSampleTime(ByVal pavi As IAVIStream, ByVal t As Long) As Long
+        Return AVIStreamSampleToTime(pavi, AVIStreamNextSample(pavi, AVIStreamTimeToSample(pavi, t)))
+    End Function
+    Public Function AVIStreamNearestSampleTime(ByVal pavi As IAVIStream, ByVal t As Long) As Long
+        Return AVIStreamSampleToTime(pavi, AVIStreamNearestSample(pavi, AVIStreamTimeToSample(pavi, t)))
+    End Function
+    Public Function AVIStreamNextKeyFrameTime(ByVal pavi As IAVIStream, ByVal t As Long) As Long
+        Return AVIStreamSampleToTime(pavi, AVIStreamNextKeyFrame(pavi, AVIStreamTimeToSample(pavi, t)))
+    End Function
+    Public Function AVIStreamPrevKeyFrameTime(ByVal pavi As IAVIStream, ByVal t As Long) As Long
+        Return AVIStreamSampleToTime(pavi, AVIStreamPrevKeyFrame(pavi, AVIStreamTimeToSample(pavi, t)))
+    End Function
+    Public Function AVIStreamNearestKeyFrameTime(ByVal pavi As IAVIStream, ByVal t As Long) As Long
+        Return AVIStreamSampleToTime(pavi, AVIStreamNearestKeyFrame(pavi, AVIStreamTimeToSample(pavi, t)))
+    End Function
+    Public Function AVIStreamStartTime(ByVal pavi As IAVIStream) As Long
+        Return AVIStreamSampleToTime(pavi, AVIStreamStart(pavi))
+    End Function
+    Public Function AVIStreamLengthTime(ByVal pavi As IAVIStream) As Long
+        Return AVIStreamSampleToTime(pavi, AVIStreamLength(pavi))
+    End Function
+    Public Function AVIStreamEnd(ByVal pavi As IAVIStream) As Long
+        Return (AVIStreamStart(pavi) + AVIStreamLength(pavi))
+    End Function
+    Public Function AVIStreamEndTime(ByVal pavi As IAVIStream) As Long
+        Return AVIStreamSampleToTime(pavi, AVIStreamEnd(pavi))
+    End Function
+    Public Function AVIStreamSampleSize(ByVal pavi As IAVIStream, ByVal lPos As Long, plSize As Long) As Long
+        Return AVIStreamRead(pavi, lPos, 1, ByVal 0, 0, plSize, ByVal 0)
+    End Function
+    Public Function AVIStreamFormatSize(ByVal pavi As IAVIStream, ByVal lPos As Long, plSize As Long) As Long
+        Return AVIStreamReadFormat(pavi, lPos, ByVal 0, plSize)
+    End Function
+    Public Function AVIStreamDataSize(ByVal pavi As IAVIStream, ByVal fcc As VfwFourCCStreamTypes, plSize As Long) As Long
+        Return AVIStreamReadData(pavi, fcc, ByVal 0, plSize)
+    End Function
+    
+    Public Const comptypeDIB = &H20424944 ' mmioFOURCC('D', 'I', 'B', ' ')
+    
+    Public Declare PtrSafe Function AVIMakeCompressedStream Lib "Avifil32.dll" (ppsCompressed As IAVIStream, ByVal ppSource As IAVIStream, lpOptions As AVICOMPRESSOPTIONS, pclsidHandler As UUID) As Long
+    [Unimplemented]
+    [Description("***UNIMPLEMENTED DUE TO UNSUPPORTED VARARG SYNTAX** Use AVISaveVA instead;")]
+    Public Declare PtrSafe Function AVISaveA Lib "Avifil32.dll" () As Long
+    Public Declare PtrSafe Function AVISaveVA Lib "Avifil32.dll" (ByVal szFile As String, pclsidHandler As UUID, ByVal lpfnCallback As LongPtr, ByVal nStreams As Long, ppavi As IAVIStream, plpOptions As LongPtr) As Long
+    [Unimplemented]
+    [Description("***UNIMPLEMENTED DUE TO UNSUPPORTED VARARG SYNTAX** Use AVISaveVW instead;")]
+    Public Declare PtrSafe Function AVISaveW Lib "Avifil32.dll" () As Long
+    Public Declare PtrSafe Function AVISaveVW Lib "Avifil32.dll" (ByVal szFile As LongPtr, pclsidHandler As UUID, ByVal lpfnCallback As LongPtr, ByVal nStreams As Long, ppavi As IAVIStream, plpOptions As LongPtr) As Long
+    [Unimplemented]
+    [Description("***UNIMPLEMENTED DUE TO UNSUPPORTED VARARG SYNTAX** Use AVISaveV instead;")]
+    Public Declare PtrSafe Function AVISave Lib "Avifil32.dll" Alias "AVISaveW" () As Long
+    Public DeclareWide PtrSafe Function AVISaveV Lib "Avifil32.dll" Alias "AVISaveVW" (ByVal szFile As String, pclsidHandler As UUID, ByVal lpfnCallback As LongPtr, ByVal nStreams As Long, ppavi As IAVIStream, plpOptions As LongPtr) As Long
+           
+    Public Declare PtrSafe Function AVISaveOptions Lib "Avifil32.dll" (ByVal hwnd As LongPtr, ByVal uiFlags As VfwCompressorChooseFlags, ByVal nStreams As Long, ppavi As IAVIStream, plpOptions As LongPtr) As LongPtr
+    Public Declare PtrSafe Function AVISaveOptionsFree Lib "Avifil32.dll" (ByVal nStreams As Long, plpOptions As LongPtr) As Long
+    Public Declare PtrSafe Function AVIBuildFilterA Lib "Avifil32.dll" (ByVal lpszFilter As String, ByVal cbFilter As Long, ByVal fSaving As BOOL) As Long
+    Public Declare PtrSafe Function AVIBuildFilterW Lib "Avifil32.dll" (ByVal lpszFilter As LongPtr, ByVal cbFilter As Long, ByVal fSaving As BOOL) As Long
+    Public DeclareWide PtrSafe Function AVIBuildFilter Lib "Avifil32.dll" Alias "AVIBuildFilterW" (ByVal lpszFilter As String, ByVal cbFilter As Long, ByVal fSaving As BOOL) As Long
+    Public Declare PtrSafe Function AVIMakeFileFromStreams Lib "Avifil32.dll" (ppFile As IAVIFile, ByVal nStreams As Long, papStreams As IAVIStream) As Long
+    Public Declare PtrSafe Function AVIMakeStreamFromClipboard Lib "Avifil32.dll" (ByVal cfFormat As Long, ByVal hGlobsl As LongPtr, ppStream As IAVIStream) As Long
+    Public Declare PtrSafe Function AVIPutFileOnClipboard Lib "Avifil32.dll" (ByVal pf As IAVIFile) As Long
+    Public Declare PtrSafe Function AVIGetFromClipboard Lib "Avifil32.dll" (lppf As IAVIFile) As Long
+    Public Declare PtrSafe Function AVIClearClipboard Lib "Avifil32.dll" () As Long
+    
+    Public Declare PtrSafe Function CreateEditableStream Lib "Avifil32.dll" (ppsEditable As IAVIStream, ByVal psSource As IAVIStream) As Long
+    Public Declare PtrSafe Function EditStreamCut Lib "Avifil32.dll" (ByVal pavi As IAVIStream, plStart As Long, plLength As Long, ppResult As IAVIStream) As Long
+    Public Declare PtrSafe Function EditStreamCopy Lib "Avifil32.dll" (ByVal pavi As IAVIStream, plStart As Long, plLength As Long, ppResult As IAVIStream) As Long
+    Public Declare PtrSafe Function EditStreamPaste Lib "Avifil32.dll" (ByVal pavi As IAVIStream, plPos As Long, plLength As Long, ByVal pstream As IAVIStream, ByVal lStart As Long, ByVal lEnd As Long) As Long
+    Public Declare PtrSafe Function EditStreamClone Lib "Avifil32.dll" (ByVal pavi As IAVIStream, ppResult As IAVIStream) As Long
+    Public Declare PtrSafe Function EditStreamSetNameA Lib "Avifil32.dll" (ByVal pavi As IAVIStream, ByVal lpszName As String) As Long
+    Public Declare PtrSafe Function EditStreamSetNameW Lib "Avifil32.dll" (ByVal pavi As IAVIStream, ByVal lpszName As LongPtr) As Long
+    Public DeclareWide PtrSafe Function EditStreamSetName Lib "Avifil32.dll" Alias "EditStreamSetNameW" (ByVal pavi As IAVIStream, ByVal lpszName As String) As Long
+    Public Declare PtrSafe Function EditStreamSetInfoA Lib "Avifil32.dll" (ByVal pavi As IAVIStream, lpInfo As AVISTREAMINFOA, ByVal cbInfo As Long) As Long
+    Public Declare PtrSafe Function EditStreamSetInfoW Lib "Avifil32.dll" (ByVal pavi As IAVIStream, lpInfo As AVISTREAMINFOW, ByVal cbInfo As Long) As Long
+    Public DeclareWide PtrSafe Function EditStreamSetInfo Lib "Avifil32.dll" Alias "EditStreamSetInfoW" (ByVal pavi As IAVIStream, lpInfo As AVISTREAMINFO, ByVal cbInfo As Long) As Long
+        
+    
+    Public Const AVIERR_OK                       = 0
+
+ 
+    Public Const AVIERR_UNSUPPORTED              = &H80044065' MAKE_AVIERR(101)
+    Public Const AVIERR_BADFORMAT                = &H80044066 ' MAKE_AVIERR(102)
+    Public Const AVIERR_MEMORY                   = &H80044067 ' MAKE_AVIERR(103)
+    Public Const AVIERR_INTERNAL                 = &H80044068 ' MAKE_AVIERR(104)
+    Public Const AVIERR_BADFLAGS                 = &H80044069 ' MAKE_AVIERR(105)
+    Public Const AVIERR_BADPARAM                 = &H8004406A ' MAKE_AVIERR(106)
+    Public Const AVIERR_BADSIZE                  = &H8004406B ' MAKE_AVIERR(107)
+    Public Const AVIERR_BADHANDLE                = &H8004406C ' MAKE_AVIERR(108)
+    Public Const AVIERR_FILEREAD                 = &H8004406D ' MAKE_AVIERR(109)
+    Public Const AVIERR_FILEWRITE                = &H8004406E ' MAKE_AVIERR(110)
+    Public Const AVIERR_FILEOPEN                 = &H8004406F ' MAKE_AVIERR(111)
+    Public Const AVIERR_COMPRESSOR               = &H80044070 ' MAKE_AVIERR(112)
+    Public Const AVIERR_NOCOMPRESSOR             = &H80044071 ' MAKE_AVIERR(113)
+    Public Const AVIERR_READONLY                 = &H80044072 ' MAKE_AVIERR(114)
+    Public Const AVIERR_NODATA                   = &H80044073 ' MAKE_AVIERR(115)
+    Public Const AVIERR_BUFFERTOOSMALL           = &H80044074 ' MAKE_AVIERR(116)
+    Public Const AVIERR_CANTCOMPRESS             = &H80044075 ' MAKE_AVIERR(117)
+    Public Const AVIERR_USERABORT                = &H800440C6 ' MAKE_AVIERR(198)
+    Public Const AVIERR_ERROR                    = &H800440C7 ' MAKE_AVIERR(199)
+    
+    
+    
+    Public Function CLSID_AVISimpleUnMarshal() As UUID
+    '{00020009-0000-0000-C000-000000000046}
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H00020009, CInt(&H0000), CInt(&H0000), &HC0, &H00, &H00, &H00, &H00, &H00, &H00, &H46)
+     CLSID_AVISimpleUnMarshal = iid
+    End Function
+    Public Function CLSID_AVIFile() As UUID
+    '{00020000-0000-0000-C000-000000000046}
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H00020000, CInt(&H0000), CInt(&H0000), &HC0, &H00, &H00, &H00, &H00, &H00, &H00, &H46)
+     CLSID_AVIFile = iid
+    End Function
+    Public Function IID_IAVIFile() As UUID
+    '{00020020-0000-0000-C000-000000000046}
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H00020020, CInt(&H0000), CInt(&H0000), &HC0, &H00, &H00, &H00, &H00, &H00, &H00, &H46)
+     IID_IAVIFile = iid
+    End Function
+    Public Function IID_IAVIStream() As UUID
+    '{00020021-0000-0000-C000-000000000046}
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H00020021, CInt(&H0000), CInt(&H0000), &HC0, &H00, &H00, &H00, &H00, &H00, &H00, &H46)
+     IID_IAVIStream = iid
+    End Function
+    Public Function IID_IAVIStreaming() As UUID
+    '{00020022-0000-0000-C000-000000000046}
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H00020022, CInt(&H0000), CInt(&H0000), &HC0, &H00, &H00, &H00, &H00, &H00, &H00, &H46)
+     IID_IAVIStreaming = iid
+    End Function
+    Public Function IID_IGetFrame() As UUID
+    '{00020023-0000-0000-C000-000000000046}
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H00020023, CInt(&H0000), CInt(&H0000), &HC0, &H00, &H00, &H00, &H00, &H00, &H00, &H46)
+     IID_IGetFrame = iid
+    End Function
+    Public Function IID_IAVIEditStream() As UUID
+    '{00020024-0000-0000-C000-000000000046}
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H00020024, CInt(&H0000), CInt(&H0000), &HC0, &H00, &H00, &H00, &H00, &H00, &H00, &H46)
+     IID_IAVIEditStream = iid
+    End Function
+    Public Function IID_IAVIPersistFile() As UUID
+    '{00020025-0000-0000-C000-000000000046}
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H00020025, CInt(&H0000), CInt(&H0000), &HC0, &H00, &H00, &H00, &H00, &H00, &H00, &H46)
+     IID_IAVIPersistFile = iid
+    End Function
+    
+End Module
