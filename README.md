@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 8.2.413 (June 2nd, 2024)**
+**Current Version: 8.2.416 (June 4th, 2024)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -188,6 +188,14 @@ twinBASIC now counts msvbvm60 redirects as legacy DLL redirects, which WinDevLib
  
 
 ### Updates
+
+**Update (v8.2.416, 04 Jun 2024):**\
+-Added UPnP interfaces (upnp.h, upnphost.h, 100%)\
+-Added Real-time Work Queue (RTWorkQ.h) APIs and interfaces\
+-(Bug fix) WSAStartup used Integer instead of Long for first arg\
+-(Bug fix) RtlIpv4StringToAddressEx[A,W] arg 'Strict' should be ByVal\
+-(Bug fix) IP_ADDRESS_STRING/IP_MASK_STRING and several downstream types definitions incorrect (+/* typo)
+
 
 **Update (v8.2.413, 02 Jun 2024):**\
 -Missing common winmm time APIs timeSetEvent/timeKillEvent and related consts\
