@@ -1,4 +1,11 @@
 
+**Update (v8.2.416, 04 Jun 2024):**
+-Added UPnP interfaces (upnp.h, upnphost.h, 100%)
+-Added Real-time Work Queue (RTWorkQ.h) APIs and interfaces
+-(Bug fix) WSAStartup used Integer instead of Long for first arg
+-(Bug fix) RtlIpv4StringToAddressEx[A,W] arg 'Strict' should be ByVal
+-(Bug fix) IP_ADDRESS_STRING/IP_MASK_STRING and several downstream types definitions incorrect (+/* typo)
+
 **Update (v8.2.413, 02 Jun 2024):**
 -Missing common winmm time APIs timeSetEvent/timeKillEvent and related consts
 **Update (v8.2.412, 02 Jun 2024):**
@@ -434,12 +441,12 @@
 -(Bug fix) Wow64RevertWow64FsRedirection lacked explicit ByVal modifier.
 -(Bug fix) Get/SetProcessDpiAwareness definitions incorrect.
 
+
+
+
 **Update (v7.0.272, 17 Dec 2023):**
 
 ***tbShellLib is now WinDevLib - Windows Development Library for twinBASIC***
-
-
-
 
 ***MAJOR CHANGES***
 *LARGE_INTEGER*
