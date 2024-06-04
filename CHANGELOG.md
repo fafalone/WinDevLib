@@ -1,5 +1,5 @@
 
-**Update (v8.2.416, 04 Jun 2024):**
+**Update (v8.2.417, 04 Jun 2024):**
 -Added UPnP interfaces (upnp.h, upnphost.h, 100%)
 -Added Real-time Work Queue (RTWorkQ.h) APIs and interfaces
 -(Bug fix) WSAStartup used Integer instead of Long for first arg
