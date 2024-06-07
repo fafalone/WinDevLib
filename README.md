@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 8.2.423 (June 4th, 2024)**
+**Current Version: 8.2.424 (June 6th, 2024)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -188,6 +188,11 @@ twinBASIC now counts msvbvm60 redirects as legacy DLL redirects, which WinDevLib
  
 
 ### Updates
+
+**Update (v8.2.424, 06 Jun 2024):**\
+-Added INATExternalIPAddressCallback for use with NATUPnP Type Library v1.0 (NATUPNPLib, included with Windows)\
+-Removed LOWORD(LongLong) and HIWORD(LongLong) overloads due to too many circumstances with ambiguity errors.\
+-(Bug fix) GetAdaptersAddresses returns variable length data, not a single UDT.
 
 **Update (v8.2.423, 04 Jun 2024):**\
 -Added UPnP interfaces (upnp.h, upnphost.h, 100%)\
