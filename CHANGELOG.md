@@ -1,4 +1,9 @@
 
+**Update (v8.2.424, 06 Jun 2024):**
+-Added INATExternalIPAddressCallback for use with NATUPnP Type Library v1.0 (NATUPNPLib, included with Windows)
+-Removed LOWORD(LongLong) and HIWORD(LongLong) overloads due to too many circumstances with ambiguity errors.
+-(Bug fix) GetAdaptersAddresses returns variable length data, not a single UDT.
+
 **Update (v8.2.418, 04 Jun 2024):**
 -Added UPnP interfaces (upnp.h, upnphost.h, 100%)
 -Added Real-time Work Queue (RTWorkQ.h) APIs and interfaces
