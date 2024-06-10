@@ -7,11 +7,13 @@
 'Licensed under Creative Commons CC0 1.0 Universal
 '*****************************************************************************************
 
-'WinDevLib - wdAPIDbgHlp :: imagehlp.h/dbghelp.h
+'WinDevLib - wdAPIDbgHlp :: imagehlp.h/dbghelp.h, 100%
 
+'Note: I've tried to implement the unusual alias struct in the header files as faithfully
+'      as possible, and a great many of these APIs do have aliases, so always consult the
+'      SDK source and this file in addition to MSDN-- MSDN covers only actual entry points.
 
-
-
+#If WINDEVLIB_LITE = 0 Then
 Module wdAPIDbgHlp
 
 Public Const IMAGE_SEPARATION = (64 * 1024)
@@ -280,7 +282,7 @@ End Enum
     '     );
     Public Declare PtrSafe Function EnumDirTreeW Lib "dbghelp" (ByVal hProcess As LongPtr, ByVal RootPath As LongPtr, ByVal InputPathName As LongPtr, ByVal OutputPathBuffer As LongPtr, Optional ByVal cb As LongPtr, Optional ByVal data As LongPtr) As BOOL
     Public DeclareWide PtrSafe Function EnumDirTree Lib "dbghelp" Alias "EnumDirTreeW" (ByVal hProcess As LongPtr, ByVal RootPath As String, ByVal InputPathName As String, ByVal OutputPathBuffer As String, Optional ByVal cb As LongPtr, Optional ByVal data As LongPtr) As BOOL
-    Public Declare PtrSafe Function MakeSureDirectoryPathExists Lib "Imagehlp" (ByVal DirPath As String) As Boolean
+    Public Declare PtrSafe Function MakeSureDirectoryPathExists Lib "Imagehlp" (ByVal DirPath As String) As BOOL
     
     Public Enum DbgUndecorateFlags
         UNDNAME_COMPLETE = (&H0000)  ' Enable full undecoration
@@ -1541,15 +1543,39 @@ End Enum
     Public Declare PtrSafe Function SymLoadModuleExW Lib "dbghelp" (ByVal hProcess As LongPtr, ByVal hFile As LongPtr, ByVal ImageName As LongPtr, ByVal ModuleName As LongPtr, ByVal BaseOfDll As LongLong, ByVal DllSize As Long, Data As MODLOAD_DATA, ByVal flags As SymLoadModuleFlags) As LongLong
     #If Win64 Then
     Public Declare PtrSafe Function SymUnloadModule Lib "dbghelp" Alias "SymUnloadModule64" (ByVal hProcess As LongPtr, ByVal BaseOfDll As LongLong) As BOOL
+    Public Declare PtrSafe Function SymUnDName Lib "dbghelp" Alias "SymUnDName64" (sym As IMAGEHLP_SYMBOL, ByVal UnDecName As String, ByVal UnDecNameLength As Long) As BOOL
+    Public Declare PtrSafe Function SymRegisterCallback Lib "dbghelp" Alias "SymRegisterCallbackW64" (ByVal hProcess As LongPtr, ByVal CallbackFunction As LongPtr, ByVal UserContext As LongLong) As BOOL 
+    Public Declare PtrSafe Function SymRegisterFunctionEntryCallback Lib "dbghelp" Alias "SymRegisterFunctionEntryCallback64" (ByVal hProcess As LongPtr, ByVal CallbackFunction As LongPtr, ByVal UserContext As LongLong) As BOOL 
     #Else
     Public Declare PtrSafe Function SymUnloadModule Lib "dbghelp" (ByVal hProcess As LongPtr, ByVal BaseOfDll As Long) As BOOL
+    Public Declare PtrSafe Function SymUnDName Lib "dbghelp" (sym As IMAGEHLP_SYMBOL, ByVal UnDecName As String, ByVal UnDecNameLength As Long) As BOOL
+    Public Declare PtrSafe Function SymRegisterCallback Lib "dbghelp" (ByVal hProcess As LongPtr, ByVal CallbackFunction As LongPtr, ByVal UserContext As LongLong) As BOOL
+    Public Declare PtrSafe Function SymRegisterFunctionEntryCallback Lib "dbghelp" (ByVal hProcess As LongPtr, ByVal CallbackFunction As LongPtr, ByVal UserContext As LongLong) As BOOL
     #End If
-     
+    Public Declare PtrSafe Function SymUnloadModule64 Lib "dbghelp" (ByVal hProcess As LongPtr, ByVal BaseOfDll As LongLong) As BOOL
+    Public Declare PtrSafe Function SymUnDName64 Lib "dbghelp" (sym As IMAGEHLP_SYMBOL, ByVal UnDecName As String, ByVal UnDecNameLength As Long) As BOOL
+    Public Declare PtrSafe Function SymRegisterCallback64 Lib "dbghelp" Alias "SymRegisterCallbackW64" (ByVal hProcess As LongPtr, ByVal CallbackFunction As LongPtr, ByVal UserContext As LongLong) As BOOL
+    Public Declare PtrSafe Function SymRegisterCallbackW64 Lib "dbghelp" (ByVal hProcess As LongPtr, ByVal CallbackFunction As LongPtr, ByVal UserContext As LongLong) As BOOL
+    Public Declare PtrSafe Function SymRegisterFunctionEntryCallback64 Lib "dbghelp" (ByVal hProcess As LongPtr, ByVal CallbackFunction As LongPtr, ByVal UserContext As LongLong) As BOOL
+          
+    Public Type IMAGEHLP_SYMBOL_SRC
+        sizeofstruct As Long
+        type As Long
+        file(0 To (MAX_PATH - 1)) As Byte
+    End Type
     
-    
-    
-    
-    
+    [Description("WARNING: Buffered array substituted for variable length C-style array. LenB is invalid. A SAFEARRAY version is also available for sizes > 4096, MODULE_TYPE_INFO_sa")]
+    Public Type MODULE_TYPE_INFO ' AKA TYPTYP
+        dataLength As Integer
+        leaf As Integer
+        data(0 To 4095) As Byte
+    End Type
+    [Description("WARNING: Cannot be used as-is due to SAFEARRAY substituted for variable length C-style array. Copy length, redim data, then copy to data(0)")]
+    Public Type MODULE_TYPE_INFO_sa ' AKA TYPTYP
+        dataLength As Integer
+        leaf As Integer
+        data() As Byte
+    End Type
 
     Public Type SYMBOL_INFO
         SizeOfStruct As Long
@@ -1608,14 +1634,39 @@ End Enum
         Reserved2 As Long
     End Type
     
+    Public Declare PtrSafe Function SymSetContext Lib "dbghelp" (ByVal hProcess As LongPtr, StackFrame As IMAGEHLP_STACK_FRAME, ByVal Context As LongPtr) As BOOL
+    Public Declare PtrSafe Function SymSetScopeFromAddr Lib "dbghelp" (ByVal hProcess As LongPtr, ByVal Address As LongLong) As BOOL
+    Public Declare PtrSafe Function SymSetScopeFromInlineContext Lib "dbghelp" (ByVal hProcess As LongPtr, ByVal Address As LongLong, ByVal InlineContext As Long) As BOOL
+    Public Declare PtrSafe Function SymSetScopeFromIndex Lib "dbghelp" (ByVal hProcess As LongPtr, ByVal BaseOfDll As LongLong, ByVal Index As Long) As BOOL
+    ' typedef BOOL
+    ' (CALLBACK *PSYM_ENUMPROCESSES_CALLBACK)(
+        ' _In_ HANDLE hProcess,
+        ' _In_ PVOID UserContext
+        ' );
+    Public Declare PtrSafe Function SymEnumProcesses Lib "dbghelp" (ByVal EnumProcessesCallback As LongPtr, ByVal UserContext As LongPtr) As BOOL
     Public DeclareWide PtrSafe Function SymFromAddr Lib "dbghelp" Alias "SymFromAddrW" (ByVal hProcess As LongPtr, ByVal Address As LongLong, Displacement As LongLong, Symbol As SYMBOL_INFO) As BOOL
     Public Declare PtrSafe Function SymFromAddrW Lib "dbghelp" (ByVal hProcess As LongPtr, ByVal Address As LongLong, Displacement As LongLong, Symbol As SYMBOL_INFOW) As BOOL
+    Public Declare PtrSafe Function SymFromInlineContext Lib "dbghelp" Alias "SymFromInlineContextW" (ByVal hProcess As LongPtr, ByVal Address As LongLong, ByVal InlineContext As Long, Displacement As LongLong, Symbol As SYMBOL_INFO) As BOOL
+    Public Declare PtrSafe Function SymFromInlineContextW Lib "dbghelp" (ByVal hProcess As LongPtr, ByVal Address As LongLong, ByVal InlineContext As Long, Displacement As LongLong, Symbol As SYMBOL_INFOW) As BOOL
+    Public Declare PtrSafe Function SymFromToken Lib "dbghelp" Alias "SymFromTokenW" (ByVal hProcess As LongPtr, ByVal Base As LongLong, ByVal Token As Long, Symbol As SYMBOL_INFO) As BOOL
+    Public Declare PtrSafe Function SymFromTokentW Lib "dbghelp" (ByVal hProcess As LongPtr, ByVal Base As LongLong, ByVal Token As Long, Symbol As SYMBOL_INFOW) As BOOL
+    Public Declare PtrSafe Function SymNext Lib "dbghelp" Alias "SymNextW" (ByVal hProcess As LongPtr, si As SYMBOL_INFO) As BOOL
+    Public Declare PtrSafe Function SymNextW Lib "dbghelp" (ByVal hProcess As LongPtr, siw As SYMBOL_INFOW) As BOOL
+    Public Declare PtrSafe Function SymPrev Lib "dbghelp" Alias "SymPrevW" (ByVal hProcess As LongPtr, si As SYMBOL_INFO) As BOOL
+    Public Declare PtrSafe Function SymPrevW Lib "dbghelp" (ByVal hProcess As LongPtr, siw As SYMBOL_INFOW) As BOOL
+    Public DeclareWide PtrSafe Function SymFromName Lib "dbghelp" Alias "SymFromNameW" (ByVal hProcess As LongPtr, ByVal Name As String, Symbol As SYMBOL_INFO) As BOOL
+    Public Declare PtrSafe Function SymFromNameW Lib "dbghelp" (ByVal hProcess As LongPtr, ByVal Name As LongPtr, Symbol As SYMBOL_INFOW) As BOOL
         
     Public Enum DbgSymEnumOpts
         SYMENUM_OPTIONS_DEFAULT = &H00000001
         SYMENUM_OPTIONS_INLINE = &H00000002
     End Enum
-    
+    ' typedef BOOL
+    ' (CALLBACK *PSYM_ENUMERATESYMBOLS_CALLBACK)(
+        ' _In_ PSYMBOL_INFO pSymInfo,
+        ' _In_ ULONG SymbolSize,
+        ' _In_opt_ PVOID UserContext
+        ' );
     Public DeclareWide PtrSafe Function SymEnumSymbols Lib "dbghelp" Alias "SymEnumSymbolsW" (ByVal hProcess As LongPtr, ByVal BaseOfDll As LongLong, ByVal Mask As String, ByVal EnumSymbolsCallback As LongPtr, Optional ByVal UserContext As LongPtr) As BOOL
     Public Declare PtrSafe Function SymEnumSymbolsW Lib "dbghelp" (ByVal hProcess As LongPtr, ByVal BaseOfDll As LongLong, ByVal Mask As LongPtr, ByVal EnumSymbolsCallback As LongPtr, Optional ByVal UserContext As LongPtr) As BOOL
     Public DeclareWide PtrSafe Function SymEnumSymbolsEx Lib "dbghelp" Alias "SymEnumSymbolsExW" (ByVal hProcess As LongPtr, ByVal BaseOfDll As LongLong, ByVal Mask As String, ByVal EnumSymbolsCallback As LongPtr, ByVal UserContext As LongPtr, ByVal Options As DbgSymEnumOpts) As BOOL
@@ -1744,12 +1795,128 @@ End Enum
     Public Declare PtrSafe Function SymEnumTypesByNameW Lib "dbghelp" (ByVal hProcess As LongPtr, ByVal BaseOfDll As LongLong, ByVal Mask As LongPtr, ByVal EnumSymbolsCallback As LongPtr, Optional ByVal UserContext As LongPtr) As BOOL
     Public DeclareWide PtrSafe Function SymGetTypeFromName Lib "dbghelp" Alias "SymGetTypeFromNameW" (ByVal hProcess As LongPtr, ByVal BaseOfDll As LongLong, ByVal Name As String, Symbol As SYMBOL_INFO) As BOOL
     Public Declare PtrSafe Function SymGetTypeFromNameW Lib "dbghelp" (ByVal hProcess As LongPtr, ByVal BaseOfDll As LongLong, ByVal Name As LongPtr, Symbol As SYMBOL_INFO) As BOOL
+    Public DeclareWide PtrSafe Function SymAddSymbol Lib "dbghelp" Alias "SymAddSymbolW" (ByVal hProcess As LongPtr, ByVal BaseOfDll As LongLong, ByVal Name As String, ByVal Address As LongLong, ByVal Size As Long, ByVal Flags As Long) As BOOL
+    Public Declare PtrSafe Function SymAddSymbolW Lib "dbghelp" (ByVal hProcess As LongPtr, ByVal BaseOfDll As LongLong, ByVal Name As LongPtr, ByVal Address As LongLong, ByVal Size As Long, ByVal Flags As Long) As BOOL
+    Public DeclareWide PtrSafe Function SymDeleteSymbol Lib "dbghelp" Alias "SymDeleteSymbolW" (ByVal hProcess As LongPtr, ByVal BaseOfDll As LongLong, ByVal Name As String, ByVal Address As LongLong, ByVal Flags As Long) As BOOL
+    Public Declare PtrSafe Function SymDeleteSymbolW Lib "dbghelp" (ByVal hProcess As LongPtr, ByVal BaseOfDll As LongLong, ByVal Name As LongPtr, ByVal Address As LongLong, ByVal Flags As Long) As BOOL
+    Public Declare PtrSafe Function SymRefreshModuleList Lib "dbghelp" (ByVal hProcess As LongPtr) As BOOL
+    Public Declare PtrSafe Function SymAddSourceStreamA Lib "dbghelp" (ByVal hProcess As LongPtr, ByVal Base As LongLong, ByVal StreamFile As String, Buffer As Any, ByVal Size As LongPtr) As BOOL
+    Public DeclareWide PtrSafe Function SymAddSourceStreamW Lib "dbghelp" (ByVal hProcess As LongPtr, ByVal Base As LongLong, ByVal StreamFile As LongPtr, Buffer As Any, ByVal Size As LongPtr) As BOOL
+    Public DeclareWide PtrSafe Function SymAddSourceStream Lib "dbghelp" Alias "SymAddSourceStreamW" (ByVal hProcess As LongPtr, ByVal Base As LongLong, ByVal StreamFile As String, Buffer As Any, ByVal Size As LongPtr) As BOOL
+    Public DeclareWide PtrSafe Function SymSrvIsStore Lib "dbghelp" Alias "SymSrvIsStoreW" (ByVal hProcess As LongPtr, ByVal Path As String) As BOOL
+    Public Declare PtrSafe Function SymSrvIsStoreW Lib "dbghelp" (ByVal hProcess As LongPtr, ByVal Path As LongPtr) As BOOL
+    Public DeclareWide PtrSafe Function SymSrvDeltaName Lib "dbghelp" Alias "SymSrvDeltaNameW" (ByVal hProcess As LongPtr, ByVal SymPath As String, ByVal Type As String, ByVal File1 As String, ByVal File2 As String) As LongPtr
+    Public Declare PtrSafe Function SymSrvDeltaNameW Lib "dbghelp" (ByVal hProcess As LongPtr, ByVal SymPath As LongPtr, ByVal Type As LongPtr, ByVal File1 As LongPtr, ByVal File2 As LongPtr) As LongPtr
+    Public DeclareWide PtrSafe Function SymSrvGetSupplement Lib "dbghelp" Alias "SymSrvGetSupplementW" (ByVal hProcess As LongPtr, ByVal SymPath As String, ByVal Type As String, ByVal Node As String, ByVal File As String) As LongPtr
+    Public Declare PtrSafe Function SymSrvGetSupplementW Lib "dbghelp" (ByVal hProcess As LongPtr, ByVal SymPath As LongPtr, ByVal Type As LongPtr, ByVal Node As LongPtr, ByVal File As LongPtr) As LongPtr
+    Public DeclareWide PtrSafe Function SymSrvGetFileIndexes Lib "dbghelp" Alias "SymSrvGetFileIndexesW" (ByVal File As String, Id As UUID, Val1 As Long, Val2 As Long, ByVal Flags As Long) As BOOL
+    Public Declare PtrSafe Function SymSrvGetFileIndexesW Lib "dbghelp" (ByVal File As LongPtr, Id As UUID, Val1 As Long, Val2 As Long, ByVal Flags As Long) As BOOL
+    Public DeclareWide PtrSafe Function SymSrvGetFileIndexString Lib "dbghelp" Alias "SymSrvGetFileIndexStringW" (ByVal hProcess As LongPtr, ByVal SrvPath As String, ByVal File As String, ByVal Index As String, ByVal Size As LongPtr, ByVal Flags As Long) As BOOL
+    Public Declare PtrSafe Function SymSrvGetFileIndexStringW Lib "dbghelp" (ByVal hProcess As LongPtr, ByVal SrvPath As LongPtr, ByVal File As LongPtr, ByVal Index As LongPtr, ByVal Size As LongPtr, ByVal Flags As Long) As BOOL
+    'Alias SYMSRV_INDEX_INFO As SYMSRV_INDEX_INFOW
+    Public Type SYMSRV_INDEX_INFO
+        sizeofstruct As Long
+        file(0 To MAX_PATH) As Integer
+        stripped As BOOL
+        timestamp As Long
+        size As Long
+        dbgfile(0 To MAX_PATH) As Integer
+        pdbfile(0 To MAX_PATH) As Integer
+        guid As UUID
+        sig As Long
+        age As Long
+    End Type
+    Public Type SYMSRV_INDEX_INFOW
+        sizeofstruct As Long
+        file(0 To MAX_PATH) As Integer
+        stripped As BOOL
+        timestamp As Long
+        size As Long
+        dbgfile(0 To MAX_PATH) As Integer
+        pdbfile(0 To MAX_PATH) As Integer
+        guid As UUID
+        sig As Long
+        age As Long
+    End Type
     
+    Public DeclareWide PtrSafe Function SymSrvGetFileIndexInfo Lib "dbghelp" Alias "SymSrvGetFileIndexInfo" (ByVal File As String, Info As SYMSRV_INDEX_INFO, ByVal Flags As Long) As BOOL
+    Public Declare PtrSafe Function SymSrvGetFileIndexInfoW Lib "dbghelp" (ByVal File As LongPtr, Info As SYMSRV_INDEX_INFOW, ByVal Flags As Long) As BOOL
+    Public DeclareWide PtrSafe Function SymSrvStoreSupplement Lib "dbghelp" Alias "SymSrvStoreSupplementW" (ByVal hProcess As LongPtr, ByVal SrvPath As String, ByVal Node As String, ByVal File As String, ByVal Flags As DbgSymStoreOptions) As LongPtr
+    Public Declare PtrSafe Function SymSrvStoreSupplementW Lib "dbghelp" (ByVal hProcess As LongPtr, ByVal SrvPath As LongPtr, ByVal Node As LongPtr, ByVal File As LongPtr, ByVal Flags As DbgSymStoreOptions) As LongPtr
+    Public DeclareWide PtrSafe Function SymSrvStoreFile Lib "dbghelp" Alias "SymSrvStoreFileW" (ByVal hProcess As LongPtr, ByVal SrvPath As String, ByVal File As String, ByVal Flags As DbgSymStoreOptions) As LongPtr
+    Public Declare PtrSafe Function SymSrvStoreFileW Lib "dbghelp" (ByVal hProcess As LongPtr, ByVal SrvPath As LongPtr, ByVal File As LongPtr, ByVal Flags As DbgSymStoreOptions) As LongPtr
+          
+    Public Enum IMAGEHLP_SF_TYPE
+        sfImage = 0
+        sfDbg
+        sfPdb
+        sfMpd
+        sfMax
+    End Enum
     
+    Public DeclareWide PtrSafe Function SymGetSymbolFile Lib "dbghelp" Alias "SymGetSymbolFileW" (ByVal hProcess As LongPtr, ByVal SymPath As String, ByVal ImageFile As String, ByVal Type As IMAGEHLP_SF_TYPE, ByVal SymbolFile As String, ByVal cSymbolFile As LongPtr, ByVal DbgFile As String, ByVal cDbgFile As Long) As BOOL
+    Public Declare PtrSafe Function SymGetSymbolFileW Lib "dbghelp" (ByVal hProcess As LongPtr, ByVal SymPath As LongPtr, ByVal ImageFile As LongPtr, ByVal Type As IMAGEHLP_SF_TYPE, ByVal SymbolFile As LongPtr, ByVal cSymbolFile As LongPtr, ByVal DbgFile As LongPtr, ByVal cDbgFile As Long) As BOOL
+       
+    ' typedef BOOL (WINAPI *PDBGHELP_CREATE_USER_DUMP_CALLBACK)(
+    ' _In_ DWORD DataType,
+    ' _In_ PVOID* Data,
+    ' _Out_ LPDWORD DataLength,
+    ' _In_opt_ PVOID UserData
+    ' );
+    [Description("NOTE: This function does not redirect to Unicode.")]
+    Public Declare PtrSafe Function DbgHelpCreateUserDump Lib "dbghelp" (ByVal FileName As String, ByVal Callback As LongPtr, Optional ByVal UserData As LongPtr) As BOOL
+    Public Declare PtrSafe Function DbgHelpCreateUserDumpW Lib "dbghelp" (ByVal FileName As LongPtr, ByVal Callback As LongPtr, Optional ByVal UserData As LongPtr) As BOOL
+        
+    #If Win64 Then
+    Public Declare PtrSafe Function SymGetSymFromAddr Lib "dbghelp" Alias "SymGetSymFromAddr64" (ByVal hProcess As LongPtr, ByVal dwAddr As Long, pdwDisplacement As Long, Symbol As IMAGEHLP_SYMBOL64) As BOOL
+    Public Declare PtrSafe Function SymGetSymFromName Lib "dbghelp" Alias "SymGetSymFromName64" (ByVal hProcess As LongPtr, ByVal Name As String, Symbol As IMAGEHLP_SYMBOL64) As BOOL
+    #Else
+    Public Declare PtrSafe Function SymGetSymFromAddr Lib "dbghelp" (ByVal hProcess As LongPtr, ByVal dwAddr As Long, pdwDisplacement As Long, Symbol As IMAGEHLP_SYMBOL) As BOOL
+    Public Declare PtrSafe Function SymGetSymFromName Lib "dbghelp" (ByVal hProcess As LongPtr, ByVal Name As String, Symbol As IMAGEHLP_SYMBOL) As BOOL
+    #End If
+    Public Declare PtrSafe Function SymGetSymFromAddr64 Lib "dbghelp" (ByVal hProcess As LongPtr, ByVal dwAddr As Long, pdwDisplacement As Long, Symbol As IMAGEHLP_SYMBOL64) As BOOL
+    Public Declare PtrSafe Function SymGetSymFromName64 Lib "dbghelp" (ByVal hProcess As LongPtr, ByVal Name As String, Symbol As IMAGEHLP_SYMBOL64) As BOOL
     
+    Public Type SYMSRV_EXTENDED_OUTPUT_DATA
+        sizeOfStruct As Long ' size of the structure
+        version As Long ' version number (EXT_OUTPUT_VER)
+        filePtrMsg(0 To MAX_PATH) As Integer ' File ptr message data buffer
+    End Type
     
-    
-    
+    ' typedef BOOL (WINAPI *PSYMBOLSERVERPROC)(PCSTR, PCSTR, PVOID, DWORD, DWORD, PSTR);
+    ' typedef BOOL (WINAPI *PSYMBOLSERVERPROCA)(PCSTR, PCSTR, PVOID, DWORD, DWORD, PSTR);
+    ' typedef BOOL (WINAPI *PSYMBOLSERVERPROCW)(PCWSTR, PCWSTR, PVOID, DWORD, DWORD, PWSTR);
+    ' typedef BOOL (WINAPI *PSYMBOLSERVERBYINDEXPROC)(PCSTR, PCSTR, PCSTR, PSTR);
+    ' typedef BOOL (WINAPI *PSYMBOLSERVERBYINDEXPROCA)(PCSTR, PCSTR, PCSTR, PSTR);
+    ' typedef BOOL (WINAPI *PSYMBOLSERVERBYINDEXPROCW)(PCWSTR, PCWSTR, PCWSTR, PWSTR);
+    ' typedef BOOL (WINAPI *PSYMBOLSERVEROPENPROC)(VOID);
+    ' typedef BOOL (WINAPI *PSYMBOLSERVERCLOSEPROC)(VOID);
+    ' typedef BOOL (WINAPI *PSYMBOLSERVERSETOPTIONSPROC)(UINT_PTR, ULONG64);
+    ' typedef BOOL (WINAPI *PSYMBOLSERVERSETOPTIONSWPROC)(UINT_PTR, ULONG64);
+    ' typedef BOOL (CALLBACK WINAPI *PSYMBOLSERVERCALLBACKPROC)(UINT_PTR action, ULONG64 data, ULONG64 context);
+    ' typedef UINT_PTR (WINAPI *PSYMBOLSERVERGETOPTIONSPROC)();
+    ' typedef BOOL (WINAPI *PSYMBOLSERVERPINGPROC)(PCSTR);
+    ' typedef BOOL (WINAPI *PSYMBOLSERVERPINGPROCA)(PCSTR);
+    ' typedef BOOL (WINAPI *PSYMBOLSERVERPINGPROCW)(PCWSTR);
+    ' typedef BOOL (WINAPI *PSYMBOLSERVERGETVERSION)(LPAPI_VERSION);
+    ' typedef BOOL (WINAPI *PSYMBOLSERVERDELTANAME)(PCSTR, PVOID, DWORD, DWORD, PVOID, DWORD, DWORD, PSTR, size_t);
+    ' typedef BOOL (WINAPI *PSYMBOLSERVERDELTANAMEW)(PCWSTR, PVOID, DWORD, DWORD, PVOID, DWORD, DWORD, PWSTR, size_t);
+    ' typedef BOOL (WINAPI *PSYMBOLSERVERGETSUPPLEMENT)(PCSTR, PCSTR, PCSTR, PSTR, size_t);
+    ' typedef BOOL (WINAPI *PSYMBOLSERVERGETSUPPLEMENTW)(PCWSTR, PCWSTR, PCWSTR, PWSTR, size_t);
+    ' typedef BOOL (WINAPI *PSYMBOLSERVERSTORESUPPLEMENT)(PCSTR, PCSTR, PCSTR, PSTR, size_t, DWORD);
+    ' typedef BOOL (WINAPI *PSYMBOLSERVERSTORESUPPLEMENTW)(PCWSTR, PCWSTR, PCWSTR, PWSTR, size_t, DWORD);
+    ' typedef BOOL (WINAPI *PSYMBOLSERVERGETINDEXSTRING)(PVOID, DWORD, DWORD, PSTR, size_t);
+    ' typedef BOOL (WINAPI *PSYMBOLSERVERGETINDEXSTRINGW)(PVOID, DWORD, DWORD, PWSTR, size_t);
+    ' typedef BOOL (WINAPI *PSYMBOLSERVERSTOREFILE)(PCSTR, PCSTR, PVOID, DWORD, DWORD, PSTR, size_t, DWORD);
+    ' typedef BOOL (WINAPI *PSYMBOLSERVERSTOREFILEW)(PCWSTR, PCWSTR, PVOID, DWORD, DWORD, PWSTR, size_t, DWORD);
+    ' typedef BOOL (WINAPI *PSYMBOLSERVERISSTORE)(PCSTR);
+    ' typedef BOOL (WINAPI *PSYMBOLSERVERISSTOREW)(PCWSTR);
+    ' typedef DWORD (WINAPI *PSYMBOLSERVERVERSION)();
+    ' typedef BOOL (CALLBACK WINAPI *PSYMBOLSERVERMESSAGEPROC)(UINT_PTR action, ULONG64 data, ULONG64 context);
+    ' typedef BOOL (WINAPI *PSYMBOLSERVERWEXPROC)(PCWSTR, PCWSTR, PVOID, DWORD, DWORD, PWSTR, PSYMSRV_EXTENDED_OUTPUT_DATA);
+    ' typedef BOOL (WINAPI *PSYMBOLSERVERPINGPROCWEX)(PCWSTR);
+    ' typedef BOOL (WINAPI *PSYMBOLSERVERGETOPTIONDATAPROC)(UINT_PTR, PULONG64);
+    ' typedef BOOL (WINAPI *PSYMBOLSERVERSETHTTPAUTHHEADER)(_In_ PCWSTR pszAuthHeader);
     
     Public Const SYMSRV_VERSION = 2
     Public Enum DbgSymSrvFlags
@@ -1829,5 +1996,96 @@ End Enum
         SYMSTOREOPT_PASS_IF_EXISTS = &H40
     End Enum
     
+    Public Declare PtrSafe Function FindFileInPath Lib "dbghelp" (ByVal hProcess As LongPtr, ByVal SearchPath As LongPtr, ByVal FileName As LongPtr, ByVal id As LongPtr, ByVal two As Long, ByVal three As Long, ByVal flags As DbgSymSrvFlags, ByVal FilePath As String) As BOOL
+    Public Declare PtrSafe Function FindFileInSearchPath Lib "dbghelp" (ByVal hProcess As LongPtr, ByVal SearchPath As LongPtr, ByVal FileName As LongPtr, ByVal one As Long, ByVal two As Long, ByVal three As Long, ByVal flags As DbgSymSrvFlags, ByVal FilePath As String) As BOOL
+    Public Declare PtrSafe Function SymEnumSym Lib "dbghelp" (ByVal hProcess As LongPtr, ByVal BaseOfDll As LongLong, ByVal EnumSymbolsCallback As LongPtr, Optional ByVal UserContext As LongPtr) As BOOL
+    
+    #If Win64 Then
+    Public Declare PtrSafe Function SymEnumerateSymbols Lib "dbghelp" Alias "SymEnumerateSymbolsW64" (ByVal hProcess As LongPtr, ByVal BaseOfDll As LongLong, ByVal EnumSymbolsCallback As LongPtr, Optional ByVal UserContext As LongPtr) As BOOL
+    Public Declare PtrSafe Function SymEnumerateSymbolsW Lib "dbghelp" Alias "SymEnumerateSymbolsW64" (ByVal hProcess As LongPtr, ByVal BaseOfDll As LongLong, ByVal EnumSymbolsCallback As LongPtr, Optional ByVal UserContext As LongPtr) As BOOL
+    Public Declare PtrSafe Function SymLoadModule Lib "dbghelp" Alias "SymLoadModule64" (ByVal hProcess As LongPtr, ByVal hFile As LongPtr, ByVal ImageName As String, ByVal ModuleName As String, ByVal BaseOfDll As LongLong, ByVal SizeOfDll As Long) As LongLong
+    Public Declare PtrSafe Function SymGetSymNext Lib "dbghelp" Alias "SymGetSymNext64" (ByVal hProcess As LongPtr, Symbol As IMAGEHLP_SYMBOL64) As BOOL
+    Public Declare PtrSafe Function SymGetSymNextW Lib "dbghelp" Alias "SymGetSymNextW64" (ByVal hProcess As LongPtr, Symbol As IMAGEHLP_SYMBOLW64) As BOOL
+    Public Declare PtrSafe Function SymGetSymPrev Lib "dbghelp" Alias "SymGetSymPrev64" (ByVal hProcess As LongPtr, Symbol As IMAGEHLP_SYMBOL64) As BOOL
+    Public Declare PtrSafe Function SymGetSymPrevW Lib "dbghelp" Alias "SymGetSymPrevW64" (ByVal hProcess As LongPtr, Symbol As IMAGEHLP_SYMBOLW64) As BOOL
+    #Else
+    Public Declare PtrSafe Function SymEnumerateSymbols Lib "dbghelp" Alias "SymEnumerateSymbolsW" (ByVal hProcess As LongPtr, ByVal BaseOfDll As LongLong, ByVal EnumSymbolsCallback As LongPtr, Optional ByVal UserContext As LongPtr) As BOOL
+    Public Declare PtrSafe Function SymEnumerateSymbolsW Lib "dbghelp" (ByVal hProcess As LongPtr, ByVal BaseOfDll As LongLong, ByVal EnumSymbolsCallback As LongPtr, Optional ByVal UserContext As LongPtr) As BOOL
+    Public Declare PtrSafe Function SymLoadModule Lib "dbghelp" (ByVal hProcess As LongPtr, ByVal hFile As LongPtr, ByVal ImageName As String, ByVal ModuleName As String, ByVal BaseOfDll As LongLong, ByVal SizeOfDll As Long) As LongLong
+    Public Declare PtrSafe Function SymGetSymNext Lib "dbghelp" (ByVal hProcess As LongPtr, Symbol As IMAGEHLP_SYMBOL) As BOOL
+    Public Declare PtrSafe Function SymGetSymNextW Lib "dbghelp" (ByVal hProcess As LongPtr, Symbol As IMAGEHLP_SYMBOLW) As BOOL
+    Public Declare PtrSafe Function SymGetSymPrev Lib "dbghelp" (ByVal hProcess As LongPtr, Symbol As IMAGEHLP_SYMBOL) As BOOL
+    Public Declare PtrSafe Function SymGetSymPrevW Lib "dbghelp" (ByVal hProcess As LongPtr, Symbol As IMAGEHLP_SYMBOLW) As BOOL
+    #End If
+    Public Declare PtrSafe Function SymEnumerateSymbols64 Lib "dbghelp" (ByVal hProcess As LongPtr, ByVal BaseOfDll As LongLong, ByVal EnumSymbolsCallback As LongPtr, Optional ByVal UserContext As LongPtr) As BOOL
+    Public Declare PtrSafe Function SymEnumerateSymbolsW64 Lib "dbghelp" (ByVal hProcess As LongPtr, ByVal BaseOfDll As LongLong, ByVal EnumSymbolsCallback As LongPtr, Optional ByVal UserContext As LongPtr) As BOOL
+    Public Declare PtrSafe Function SymGetSymNext64 Lib "dbghelp" (ByVal hProcess As LongPtr, Symbol As IMAGEHLP_SYMBOL64) As BOOL
+    Public Declare PtrSafe Function SymGetSymNextW64 Lib "dbghelp" (ByVal hProcess As LongPtr, Symbol As IMAGEHLP_SYMBOLW64) As BOOL
+    Public Declare PtrSafe Function SymGetSymPrev64 Lib "dbghelp" (ByVal hProcess As LongPtr, Symbol As IMAGEHLP_SYMBOL64) As BOOL
+    Public Declare PtrSafe Function SymGetSymPrevW64 Lib "dbghelp" (ByVal hProcess As LongPtr, Symbol As IMAGEHLP_SYMBOLW64) As BOOL
+              
+    ' //  This type indicates the call back function type
+    ' typedef ULONG (__stdcall *LPCALL_BACK_USER_INTERRUPT_ROUTINE )(VOID);
+    
+    Public Type DBGHELP_DATA_REPORT_STRUCT
+        pBinPathNonExist As LongPtr
+        pSymbolPathNonExist As LongPtr
+    End Type
+    
+    Public Declare PtrSafe Sub SetCheckUserInterruptShared Lib "dbghelp" (ByVal lpStartAddress As LongPtr)
+    Public Declare PtrSafe Function GetCheckUserInterruptShared Lib "dbghelp" () As LongPtr
+    Public Declare PtrSafe Function GetSymLoadError Lib "dbghelp" () As Long
+    Public Declare PtrSafe Function SetSymLoadError Lib "dbghelp" (ByVal error As Long) As Long
+    Public Declare PtrSafe Function ReportSymbolLoadSummary Lib "dbghelp" (ByVal hProcess As LongPtr, ByVal pLoadModule As LongPtr, pSymbolData As DBGHELP_DATA_REPORT_STRUCT) As BOOL
+    Public Declare PtrSafe Sub RemoveInvalidModuleList Lib "dbghelp" (ByVal hProcess As LongPtr)
+    
+    Public Enum DbgHlpSymFlags
+        SYMF_OMAP_GENERATED = &H00000001
+        SYMF_OMAP_MODIFIED = &H00000002
+        SYMF_REGISTER = &H00000008
+        SYMF_REGREL = &H00000010
+        SYMF_FRAMEREL = &H00000020
+        SYMF_PARAMETER = &H00000040
+        SYMF_LOCAL = &H00000080
+        SYMF_CONSTANT = &H00000100
+        SYMF_EXPORT = &H00000200
+        SYMF_FORWARDER = &H00000400
+        SYMF_FUNCTION = &H00000800
+        SYMF_VIRTUAL = &H00001000
+        SYMF_THUNK = &H00002000
+        SYMF_TLSREL = &H00004000
+    '  These values should also not be used.
+    '  They have been replaced by SYMFLAG_ values.
+        IMAGEHLP_SYMBOL_INFO_VALUEPRESENT = 1
+        IMAGEHLP_SYMBOL_INFO_REGISTER = SYMF_REGISTER  ' 0x0008
+        IMAGEHLP_SYMBOL_INFO_REGRELATIVE = SYMF_REGREL  ' 0x0010
+        IMAGEHLP_SYMBOL_INFO_FRAMERELATIVE = SYMF_FRAMEREL  ' 0x0020
+        IMAGEHLP_SYMBOL_INFO_PARAMETER = SYMF_PARAMETER  ' 0x0040
+        IMAGEHLP_SYMBOL_INFO_LOCAL = SYMF_LOCAL  ' 0x0080
+        IMAGEHLP_SYMBOL_INFO_CONSTANT = SYMF_CONSTANT  ' 0x0100
+        IMAGEHLP_SYMBOL_FUNCTION = SYMF_FUNCTION  ' 0x0800
+        IMAGEHLP_SYMBOL_VIRTUAL = SYMF_VIRTUAL  ' 0x1000
+        IMAGEHLP_SYMBOL_THUNK = SYMF_THUNK  ' 0x2000
+        IMAGEHLP_SYMBOL_INFO_TLSRELATIVE = SYMF_TLSREL  ' 0x4000
+    End Enum
+    
+    Public Declare PtrSafe Function RangeMapCreate Lib "dbghelp" () As LongPtr
+    Public Declare PtrSafe Sub RangeMapFree Lib "dbghelp" (ByVal RmapHandle As LongPtr)
+    
+    Public Enum DbgRangeMapFlags
+        IMAGEHLP_RMAP_MAPPED_FLAT = &H00000001
+        IMAGEHLP_RMAP_BIG_ENDIAN = &H00000002
+        IMAGEHLP_RMAP_IGNORE_MISCOMPARE = &H00000004
+        IMAGEHLP_RMAP_FIXUP_ARM64X = &H10000000
+        IMAGEHLP_RMAP_LOAD_RW_DATA_SECTIONS = &H20000000
+        IMAGEHLP_RMAP_OMIT_SHARED_RW_DATA_SECTIONS = &H40000000
+        IMAGEHLP_RMAP_FIXUP_IMAGEBASE = &H80000000
+    End Enum
+    
+    Public Declare PtrSafe Function RangeMapAddPeImageSections Lib "dbghelp" (ByVal RmapHandle As LongPtr, ByVal ImageName As LongPtr, MappedImage As Any, ByVal MappingBytes As Long, ByVal ImageBase As LongLong, ByVal UserTag As Long, ByVal MappingFlags As DbgRangeMapFlags) As BOOL
+    Public Declare PtrSafe Function RangeMapRemove Lib "dbghelp" (ByVal RmapHandle As LongPtr, ByVal UserTag As Long) As BOOL
+    Public Declare PtrSafe Function RangeMapRead Lib "dbghelp" (ByVal RmapHandle As LongPtr, ByVal Offset As LongLong, Buffer As Any, ByVal RequestBytes As Long, ByVal Flags As Long, Optional DoneBytes As Long) As BOOL
+    Public Declare PtrSafe Function RangeMapWrite Lib "dbghelp" (ByVal RmapHandle As LongPtr, ByVal Offset As LongLong, Buffer As Any, ByVal RequestBytes As Long, ByVal Flags As Long, Optional DoneBytes As Long) As BOOL
     
 End Module
+#End If
