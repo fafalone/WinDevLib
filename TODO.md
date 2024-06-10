@@ -13,8 +13,6 @@ before release, or waiting on feature support:
 
 -missing winspool.h stuff
 
--finish imagehlp.h/dbghelp.h (in progress, 50%)
-
 -windns.h (in progress, 20%)
 
 -Windows Filtering Platform (in progress, 20%)
