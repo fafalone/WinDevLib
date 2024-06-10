@@ -3,6 +3,8 @@
 
 **Current Version: 8.3.426 (June 10th, 2024)**
 
+### IMPORTANT: [twinBASIC Beta 553 or newer](https://github.com/twinbasic/twinbasic/releases) is now required.
+
 (c) 2022-2023 Jon Johnson (fafalone)
 
 This project is a comprehensive twinBASIC replacement for [oleexp.tlb](http://www.vbforums.com/showthread.php?786079-VB6-Modern-Shell-Interface-Type-Library-oleexp-tlb), my Modern Shell Interfaces Type Library project for VB6, that is x64 compatible, due to the many problems using midl to create a 64bit tlb.
@@ -17,7 +19,7 @@ Please report any bugs via the Issues feature here on GitHub.
 
 ### Requirements
 
-[twinBASIC Beta 424 or newer](https://github.com/twinbasic/twinbasic/releases) is required, 461 or newer is recommended.
+[twinBASIC Beta 553 or newer](https://github.com/twinbasic/twinbasic/releases) is required.
 
 ### Adding WinDevLib to your project
 You have 2 options for this:
