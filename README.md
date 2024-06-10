@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 8.2.424 (June 6th, 2024)**
+**Current Version: 8.3.426 (June 10th, 2024)**
 
 (c) 2022-2023 Jon Johnson (fafalone)
 
@@ -188,6 +188,23 @@ twinBASIC now counts msvbvm60 redirects as legacy DLL redirects, which WinDevLib
  
 
 ### Updates
+
+**Update (v8.3.426, 10 Jun 2024):**\
+-Completed imagehlp.h/dbghelp.h API coverage, now 100%\
+   Note: I've tried to implement the unusual alias struct in the header files as faithfully as possible, and a great many of these APIs do have aliases, so always consult the SDK source and wdAPIDbgHlp.twin in addition to MSDN-- MSDN covers only actual entry points.\
+-Added a large number of overloads for compatibility with oleexp.tlb APIs that use `[PreserveSig(False)]` to rewrite a last [out] parameter as the return value. This is for compatibility only and will not be expanded beyond oleexp APIs using it.\
+  **IMPORTANT:** Due to this change, WinDevLib now requires twinBASIC Beta 553 or newer.\
+-Updated DirectML for recent additions (feature set >= 0x6000)\
+-Added ITipAutoCompleteProvider, ITipAutoCompleteClient, and coclass TipAutoCompleteClient\
+-Added IObjectWithPackageFullName\
+-Added coverage of interlockedapi.h (100%)\
+-Some additional system info structs\
+-(Bug fix) MkParseDisplayName should not use ANSI conversion.\
+-(Bug fix) MFCreateADTMediaSink should be MFCreateADTSMediaSink\
+-(Bug fix) IMFMediaType.GetMajorType, IQueueCommand methods used stdole.GUID instead of UUID, leading to automation type incompatible errors.\
+-(Bug fix) IMFMediaEngineEx.GetVideoSwapchainHandle Long instead of LongPtr.\
+-(Bug fix) SLIST_HEADER definition incorrect.
+
 
 **Update (v8.2.424, 06 Jun 2024):**\
 -Added INATExternalIPAddressCallback for use with NATUPnP Type Library v1.0 (NATUPNPLib, included with Windows)\
