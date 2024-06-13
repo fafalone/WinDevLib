@@ -5,7 +5,7 @@
 
 ### IMPORTANT: [twinBASIC Beta 553 or newer](https://github.com/twinbasic/twinbasic/releases) is now required.
 
-(c) 2022-2023 Jon Johnson (fafalone)
+(c) 2022-2024 Jon Johnson (fafalone)
 
 This project is a comprehensive twinBASIC replacement for [oleexp.tlb](http://www.vbforums.com/showthread.php?786079-VB6-Modern-Shell-Interface-Type-Library-oleexp-tlb), my Modern Shell Interfaces Type Library project for VB6, that is x64 compatible, due to the many problems using midl to create a 64bit tlb.
 
