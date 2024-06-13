@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 8.3.426 (June 10th, 2024)**
+**Current Version: 8.3.428 (June 13th, 2024)**
 
 ### IMPORTANT: [twinBASIC Beta 553 or newer](https://github.com/twinbasic/twinbasic/releases) is now required.
 
@@ -190,6 +190,12 @@ twinBASIC now counts msvbvm60 redirects as legacy DLL redirects, which WinDevLib
  
 
 ### Updates
+
+**Update (v8.3.428, 13 Jun 2024):**\
+-Some additional system info structs to support upcoming project\
+-PRIVILEGE_SET and TOKEN_PRIVILEGES were intended to be buffered to the max number of privileges, but that was set too low; it's now 45.\
+-SE_DELEGATE_SESSION_USER_IMPERSONATE_NAME was missing.\
+-(Bug fix) MAXSIZE_T only defined for 64bit
 
 **Update (v8.3.426, 10 Jun 2024):**\
 -Completed imagehlp.h/dbghelp.h API coverage, now 100%\
