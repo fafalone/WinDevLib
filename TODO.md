@@ -15,8 +15,12 @@ before release, or waiting on feature support:
 
 -windns.h (in progress, 20%)
 
--Windows Filtering Platform (in progress, 20%)
+-Windows Filtering Platform (in progress, 40%)
 
 -SQL.h/obdc32.dll (needs Alias support)
 
 -wdMF BOOL types
+
+-test IsVariantString / IsPropVariantString
+
+-Tablet interfaces (waiting on dispinterface support)
