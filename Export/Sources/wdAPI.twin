@@ -9076,6 +9076,20 @@ Public Enum NlsMuiLangFlags
     MUI_LANGUAGE_LICENSED = &H40
 End Enum
 
+Public Enum DEVELOPER_DRIVE_ENABLEMENT_STATE
+    DeveloperDriveEnablementStateError
+    DeveloperDriveEnabled
+    DeveloperDriveDisabledBySystemPolicy
+    DeveloperDriveDisabledByGroupPolicy
+End Enum
+
+Public Enum UserCetEnvFlags
+    USER_CET_ENVIRONMENT_WIN32_PROCESS = &H00000000
+    USER_CET_ENVIRONMENT_SGX2_ENCLAVE = &H00000002
+    USER_CET_ENVIRONMENT_VBS_ENCLAVE = &H00000010
+    USER_CET_ENVIRONMENT_VBS_BASIC_ENCLAVE = &H00000011
+End Enum
+
 Public Declare PtrSafe Sub GetSystemInfo Lib "kernel32" (lpSystemInfo As SYSTEM_INFO)
 Public Declare PtrSafe Sub GetNativeSystemInfo Lib "kernel32" (lpSystemInfo As SYSTEM_INFO)
 Public Declare PtrSafe Function VerSetConditionMask Lib "kernel32" (ByVal ConditionMask As LongLong, ByVal TypeMask As VersionTypeMask, [TypeHint(VersionInfoConditions)] ByVal Condition As Byte) As LongLong
@@ -9096,6 +9110,15 @@ Public Declare PtrSafe Function GetSystemRegistryQuota Lib "kernel32" (pdwQuotaA
 Public Declare PtrSafe Function GetSystemDEPPolicy Lib "kernel32" () As DEP_SYSTEM_POLICY_TYPE
 Public Declare PtrSafe Function GetLogicalProcessorInformation Lib "kernel32" (Buffer As SYSTEM_LOGICAL_PROCESSOR_INFORMATION, ReturnedLength As Long) As BOOL
 Public DeclareWide PtrSafe Function GetLogicalProcessorInformationEx Lib "kernel32" (ByVal Relationship As LOGICAL_PROCESSOR_RELATIONSHIP, Buffer As Any, ReturnedLength As Long) As BOOL
+Public Declare PtrSafe Function IsUserCetAvailableInEnvironment Lib "kernel32" (ByVal UserCetEnvironment As UserCetEnvFlags) As BOOL
+Public Declare PtrSafe Function GetSystemLeapSecondInformation Lib "kernel32" (Enabled As BOOL, Flags As Long) As BOOL
+Public Declare PtrSafe Function GetOsSafeBootMode Lib "kernelbase.dll" (Flags As Long) As BOOL
+Public Declare PtrSafe Function EnumSystemFirmwareTables Lib "kernel32" (ByVal FirmwareTableProviderSignature As Long, pFirmwareTableEnumBuffer As Any, ByVal BufferSize As Long) As Long
+Public Declare PtrSafe Function GetSystemFirmwareTable Lib "kernel32" (ByVal FirmwareTableProviderSignature As Long, ByVal FirmwareTableID As Long, pFirmwareTableBuffer As Any, ByVal BufferSize As Long) As Long
+Public Declare PtrSafe Function DnsHostnameToComputerNameExW Lib "kernel32" (ByVal Hostname As LongPtr, ByVal ComputerName As LongPtr, nSize As Long) As BOOL
+Public Declare PtrSafe Function InstallELAMCertificateInfo Lib "kernel32" (ByVal ELAMFile As LongPtr) As BOOL
+Public Declare PtrSafe Function GetDeveloperDriveEnablementState Lib "api-ms-win-core-sysinfo-l1-2-6.dll" () As DEVELOPER_DRIVE_ENABLEMENT_STATE
+
 
 Public Declare PtrSafe Function GetSystemDefaultLangID Lib "kernel32" () As Integer
 Public Declare PtrSafe Function GetSystemDefaultLCID Lib "kernel32" () As Long
@@ -16073,6 +16096,26 @@ Public Type SYSTEM_FLUSH_INFORMATION
     Reserved(0 To 1) As LongLong
 End Type
 
+Public Enum SystemKernelVaShadowFlags
+    KvaShadowEnabled = &H1
+    KvaShadowUserGlobal = &H2
+    KvaShadowPcid = &H4
+    KvaShadowInvpcid = &H8
+    KvaShadowRequired = &H10
+    KvaShadowRequiredAvailable = &H20
+    
+    
+    '(InvalidPteBit - 6 bits)
+    
+    
+    
+    L1DataCacheFlushSupported = &H1000
+    L1TerminalFaultMitigationPresent = &H2000
+End Enum
+Public Type SYSTEM_KERNEL_VA_SHADOW_INFORMATION
+    KvaShadowFlags As SystemKernelVaShadowFlags
+End Type
+
 Public Type SYSTEM_DMA_GUARD_POLICY_INFORMATION
     DmaGuardPolicyEnabled As Byte
 End Type
@@ -16089,16 +16132,16 @@ Public Type TIME_FIELDS
 End Type
 Public Type RTL_TIME_ZONE_INFORMATION
     Bias As Long
-    StandardName(0 To 31) As Integer
+    StandardName (0 To 31) As Integer
     StandardDate As TIME_FIELDS
     StandardBias As Long
-    DaylightName(0 To 31) As Integer
+    DaylightName (0 To 31) As Integer
     DaylightDate As TIME_FIELDS
     DaylightBias As Long
 End Type
 Public Type RTL_DYNAMIC_TIME_ZONE_INFORMATION
     tzi As RTL_TIME_ZONE_INFORMATION
-    TimeZoneKeyName(&H7F) As Integer
+    TimeZoneKeyName (&H7F) As Integer
     DynamicDaylightTimeDisabled As Byte
 End Type
 
@@ -19246,6 +19289,7 @@ Public Declare PtrSafe Sub RtlInitUnicodeString Lib "ntdll" (DestinationString A
 Public Declare PtrSafe Function RtlUpcaseUnicodeString Lib "ntdll" (DestinationString As UNICODE_STRING, SourceString As UNICODE_STRING, ByVal AllocateDestinationString As Byte) As Long
 Public Declare PtrSafe Function RtlEqualUnicodeString Lib "ntdll" (String1 As UNICODE_STRING, String2 As UNICODE_STRING, ByVal CaseInSensitive As Byte) As Byte
 Public Declare PtrSafe Function CompareMemory Lib "ntdll" Alias "RtlCompareMemory" (Source1 As Any, Source2 As Any, ByVal Length As LongPtr) As LongPtr
+Public Declare PtrSafe Function RtlCompareMemory Lib "ntdll" (Source1 As Any, Source2 As Any, ByVal Length As LongPtr) As LongPtr
 Public Declare PtrSafe Function RtlIsZeroMemory Lib "ntdll" (Buffer As Any, ByVal Length As LongPtr) As Byte 'BOOLEAN
 [Description("Returns true Windows version. Takes either OSVERSIONINFO or OSVERSIONINFOEX types (RTL_OSV... is an alias for these).")]
 Public Declare PtrSafe Function RtlGetVersion Lib "ntdll" (lpVersionInformation As Any) As Long
@@ -20499,6 +20543,47 @@ End Type
 #Region "comdlg"
 'Common Dialogs
 
+'cderr.h
+Public Enum ComDlgExtendedErrors
+    CDERR_DIALOGFAILURE = &HFFFF&
+    CDERR_GENERALCODES = &H0000
+    CDERR_STRUCTSIZE = &H0001
+    CDERR_INITIALIZATION = &H0002
+    CDERR_NOTEMPLATE = &H0003
+    CDERR_NOHINSTANCE = &H0004
+    CDERR_LOADSTRFAILURE = &H0005
+    CDERR_FINDRESFAILURE = &H0006
+    CDERR_LOADRESFAILURE = &H0007
+    CDERR_LOCKRESFAILURE = &H0008
+    CDERR_MEMALLOCFAILURE = &H0009
+    CDERR_MEMLOCKFAILURE = &H000A
+    CDERR_NOHOOK = &H000B
+    CDERR_REGISTERMSGFAIL = &H000C
+    PDERR_PRINTERCODES = &H1000
+    PDERR_SETUPFAILURE = &H1001
+    PDERR_PARSEFAILURE = &H1002
+    PDERR_RETDEFFAILURE = &H1003
+    PDERR_LOADDRVFAILURE = &H1004
+    PDERR_GETDEVMODEFAIL = &H1005
+    PDERR_INITFAILURE = &H1006
+    PDERR_NODEVICES = &H1007
+    PDERR_NODEFAULTPRN = &H1008
+    PDERR_DNDMMISMATCH = &H1009
+    PDERR_CREATEICFAILURE = &H100A
+    PDERR_PRINTERNOTFOUND = &H100B
+    PDERR_DEFAULTDIFFERENT = &H100C
+    CFERR_CHOOSEFONTCODES = &H2000
+    CFERR_NOFONTS = &H2001
+    CFERR_MAXLESSTHANMIN = &H2002
+    FNERR_FILENAMECODES = &H3000
+    FNERR_SUBCLASSFAILURE = &H3001
+    FNERR_INVALIDFILENAME = &H3002
+    FNERR_BUFFERTOOSMALL = &H3003
+    FRERR_FINDREPLACECODES = &H4000
+    FRERR_BUFFERLENGTHZERO = &H4001
+    CCERR_CHOOSECOLORCODES = &H5000
+End Enum
+
 Public Type OPENFILENAMEA
     lStructSize As Long
     hwndOwner As LongPtr
@@ -21178,7 +21263,7 @@ End Type
 
 Public Const DN_DEFAULTPRN  = &H0001
 
-Public Declare PtrSafe Function CommDlgExtendedError Lib "comdlg32" () As Long
+Public Declare PtrSafe Function CommDlgExtendedError Lib "comdlg32" () As ComDlgExtendedErrors
 
 Public Const WM_PSD_PAGESETUPDLG  = (WM_USER)
 Public Const WM_PSD_FULLPAGERECT  = (WM_USER + 1)
@@ -23063,9 +23148,9 @@ Public DeclareWide PtrSafe Function SendMessageCallback Lib "user32" Alias "Send
 Public Declare PtrSafe Function SendMessageTimeoutA Lib "user32" (ByVal hWnd As LongPtr, ByVal Msg As Long, ByVal wParam As LongPtr, lParam As Any, ByVal fuFlags As SendMessageTimeoutFlags, ByVal uTimeout As Long, lpdwResult As Any) As LongPtr
 Public DeclareWide PtrSafe Function SendMessageTimeoutW Lib "user32" (ByVal hWnd As LongPtr, ByVal Msg As Long, ByVal wParam As LongPtr, lParam As Any, ByVal fuFlags As SendMessageTimeoutFlags, ByVal uTimeout As Long, lpdwResult As Any) As LongPtr
 Public DeclareWide PtrSafe Function SendMessageTimeout Lib "user32" Alias "SendMessageTimeoutW" (ByVal hWnd As LongPtr, ByVal Msg As Long, ByVal wParam As LongPtr, lParam As Any, ByVal fuFlags As SendMessageTimeoutFlags, ByVal uTimeout As Long, lpdwResult As Any) As LongPtr
-Public DeclareWide PtrSafe Function SendNotifyMessage Lib "user32" Alias "SendNotifyMessageW" (ByVal hWnd As LongPtr, ByVal wMsg As Long, ByVal wParam As LongPtr, lParam As Any) As LongPtr
-Public Declare PtrSafe Function SendNotifyMessageA Lib "user32" (ByVal hWnd As LongPtr, ByVal wMsg As Long, ByVal wParam As LongPtr, lParam As Any) As LongPtr
-Public DeclareWide PtrSafe Function SendNotifyMessageW Lib "user32" (ByVal hWnd As LongPtr, ByVal wMsg As Long, ByVal wParam As LongPtr, lParam As Any) As LongPtr
+Public DeclareWide PtrSafe Function SendNotifyMessage Lib "user32" Alias "SendNotifyMessageW" (ByVal hWnd As LongPtr, ByVal wMsg As Long, ByVal wParam As LongPtr, lParam As Any) As BOOL
+Public Declare PtrSafe Function SendNotifyMessageA Lib "user32" (ByVal hWnd As LongPtr, ByVal wMsg As Long, ByVal wParam As LongPtr, lParam As Any) As BOOL
+Public DeclareWide PtrSafe Function SendNotifyMessageW Lib "user32" (ByVal hWnd As LongPtr, ByVal wMsg As Long, ByVal wParam As LongPtr, lParam As Any) As BOOL
 Public Declare PtrSafe Function InSendMessage Lib "user32" () As BOOL
 Public Declare PtrSafe Function InSendMessageEx Lib "user32" () As ISMEX_FLAGS
 [Description("⚠️ **NOTE:** Maps to Unicode version (PostMessageW), but uses DeclareWide, so there's still no need for conversion in most cases.")]
@@ -23092,10 +23177,10 @@ Public Declare PtrSafe Function GetQueueStatus Lib "user32" (ByVal dwFlags As Qu
 Public Declare PtrSafe Function MsgWaitForMultipleObjects Lib "user32" (ByVal nCount As Long, pHandles As LongPtr, ByVal fWaitAll As BOOL, ByVal dwMilliseconds As Long, ByVal dwWakeMask As QueueStatusFlags) As WaitForObjOutcomes
 Public Declare PtrSafe Function MsgWaitForMultipleObjectsEx Lib "user32" (ByVal nCount As Long, pHandles As LongPtr, ByVal dwMilliseconds As Long, ByVal dwWakeMask As QueueStatusFlags, ByVal dwFlags As MWMO_FLAGS) As WaitForObjOutcomes
 Public Declare PtrSafe Function TranslateMDISysAccel Lib "user32" (ByVal hWndClient As LongPtr, lpMsg As MSG) As BOOL
-Public Declare PtrSafe Function TranslateMessage Lib "user32" (ByRef lpmsg As MSG) As Long
-Public DeclareWide PtrSafe Function DispatchMessage Lib "user32" Alias "DispatchMessageW" (ByRef lpmsg As MSG) As Long
-Public Declare PtrSafe Function DispatchMessageA Lib "user32" (ByRef lpmsg As MSG) As Long
-Public Declare PtrSafe Function DispatchMessageW Lib "user32" (ByRef lpmsg As MSG) As Long
+Public Declare PtrSafe Function TranslateMessage Lib "user32" (ByRef lpmsg As MSG) As BOOL
+Public DeclareWide PtrSafe Function DispatchMessage Lib "user32" Alias "DispatchMessageW" (ByRef lpmsg As MSG) As LongPtr
+Public Declare PtrSafe Function DispatchMessageA Lib "user32" (ByRef lpmsg As MSG) As LongPtr
+Public Declare PtrSafe Function DispatchMessageW Lib "user32" (ByRef lpmsg As MSG) As LongPtr
 Public DeclareWide PtrSafe Function DefWindowProc Lib "user32" Alias "DefWindowProcW" (ByVal hWnd As LongPtr, ByVal Msg As Long, ByVal wParam As LongPtr, ByVal lParam As LongPtr) As LongPtr
 Public Declare PtrSafe Function DefWindowProcA Lib "user32" (ByVal hWnd As LongPtr, ByVal Msg As Long, ByVal wParam As LongPtr, ByVal lParam As LongPtr) As LongPtr
 Public Declare PtrSafe Function DefWindowProcW Lib "user32" (ByVal hWnd As LongPtr, ByVal Msg As Long, ByVal wParam As LongPtr, ByVal lParam As LongPtr) As LongPtr
@@ -23125,7 +23210,7 @@ Public Declare PtrSafe Function GetClassNameW Lib "user32" (ByVal hwnd As LongPt
 Public DeclareWide PtrSafe Function GetClassName Lib "user32" Alias "GetClassNameW" (ByVal hwnd As LongPtr, ByVal lpClassName As String, ByVal nMaxCount As Long) As Long
 Public Declare PtrSafe Function SetTimer Lib "user32" (ByVal hwnd As LongPtr, ByVal nIDEvent As LongPtr, ByVal uElapse As Long, ByVal lpTimerFunc As LongPtr) As LongPtr
 Public Declare PtrSafe Function SetCoalescableTimer Lib "user32" (ByVal hwnd As LongPtr, ByVal nIDEvent As LongPtr, ByVal uElapse As Long, ByVal lpTimerFunc As LongPtr, [TypeHint(CoalescableTimerToleranceDefaults)] ByVal uToleranceDelay As Long) As LongPtr
-Public Declare PtrSafe Function KillTimer Lib "user32" (ByVal hwnd As LongPtr, ByVal nIDEvent As LongPtr) As Long
+Public Declare PtrSafe Function KillTimer Lib "user32" (ByVal hwnd As LongPtr, ByVal nIDEvent As LongPtr) As BOOL
 Public Declare PtrSafe Function RegisterShellHookWindow Lib "user32" (ByVal hwnd As LongPtr) As BOOL
 Public Declare PtrSafe Function DeregisterShellHookWindow Lib "user32" (ByVal hwnd As LongPtr) As BOOL
 Public Declare PtrSafe Function SetPropA Lib "user32" (ByVal hWnd As LongPtr, ByVal lpString As String, Optional ByVal hData As LongPtr) As BOOL
@@ -24685,46 +24770,7 @@ Public Enum RawInputDeviceFlags
     RIDEV_DEVNOTIFY = &H00002000
     RIDEV_EXMODEMASK = &H000000F0
 End Enum
-Public Enum HID_USAGE_PAGE
-    HID_USAGE_PAGE_UNDEFINED = (&H0000)
-    HID_USAGE_PAGE_ARCADE = (&H0091)
-    HID_USAGE_PAGE_ALPHANUMERIC = (&H0014)
-    HID_USAGE_PAGE_BARCODE_SCANNER = (&H008C)
-    HID_USAGE_PAGE_BATTERY_SYSTEM = (&H0085)
-    HID_USAGE_PAGE_BRAILLE_DISPLAY = (&H0041)
-    HID_USAGE_PAGE_BUTTON = (&H0009)
-    HID_USAGE_PAGE_CAMERA_CONTROL = (&H0090)
-    HID_USAGE_PAGE_CONSUMER = (&H000C)
-    HID_USAGE_PAGE_DIGITIZER = (&H000D)
-    HID_USAGE_PAGE_EYE_AND_HEAD_TRACKERS = (&H0012)
-    HID_USAGE_PAGE_FIDO_ALLIANCE = (&HF1D0&)
-    HID_USAGE_PAGE_GAME = (&H0005)
-    HID_USAGE_PAGE_GAMING_DEVICE = (&H0092)
-    HID_USAGE_PAGE_GENERIC = (&H0001)
-    HID_USAGE_PAGE_GENERIC_DEVICE = (&H0006)
-    HID_USAGE_PAGE_HAPTICS = (&H000E)
-    HID_USAGE_PAGE_KEYBOARD = (&H0007)
-    HID_USAGE_PAGE_LED = (&H0008)
-    HID_USAGE_PAGE_LIGHTING_ILLUMINATION = (&H0059)
-    HID_USAGE_PAGE_MAGNETIC_STRIPE_READER = (&H008E)
-    HID_USAGE_PAGE_MEDICAL_INSTRUMENT = (&H0040)
-    HID_USAGE_PAGE_MICROSOFT_BLUETOOTH_HANDSFREE = (&HFFF3&)
-    HID_USAGE_PAGE_MONITOR = (&H0080)
-    HID_USAGE_PAGE_MONITOR_ENUMERATED = (&H0081)
-    HID_USAGE_PAGE_ORDINAL = (&H000A)
-    HID_USAGE_PAGE_PID = (&H000F)
-    HID_USAGE_PAGE_POWER = (&H0084)
-    HID_USAGE_PAGE_WEIGHING_DEVICE = (&H008D)
-    HID_USAGE_PAGE_SENSOR = (&H0020)
-    HID_USAGE_PAGE_SIMULATION = (&H0002)
-    HID_USAGE_PAGE_SPORT = (&H0004)
-    HID_USAGE_PAGE_TELEPHONY = (&H000B)
-    HID_USAGE_PAGE_UNICODE = (&H0010)
-    HID_USAGE_PAGE_VESA_VIRTUAL_CONTROLS = (&H0082)
-    HID_USAGE_PAGE_VR = (&H0003)
-    HID_USAGE_PAGE_VENDOR_DEFINED_BEGIN = (&HFF00&)
-    HID_USAGE_PAGE_VENDOR_DEFINED_END = (&HFFFF&)
-End Enum
+
 Public Type RAWINPUTDEVICE
     /* [ TypeHint(HID_USAGE_PAGE) ] */ usUsagePage As Integer ' Toplevel collection UsagePage
     usUsage As Integer ' Toplevel collection Usage. There's about 2900 of these, so they're not defined in WinDevLib.
@@ -25319,13 +25365,13 @@ Public Declare PtrSafe Function ShowWindowAsync Lib "user32" (ByVal hWnd As Long
 Public Declare PtrSafe Function SetWindowCompositionAttribute Lib "user32" (ByVal hWnd As LongPtr, wca As WINDOWCOMPOSITIONATTRIBDATA) As Long
 Public Declare PtrSafe Function TileWindows Lib "user32" (ByVal hwndParent As LongPtr, ByVal wHow As MDITILE_FLAGS, lpRect As RECT, ByVal cKids As Long, lpKids As LongPtr) As Integer
 Public Declare PtrSafe Function CascadeWindows Lib "user32" (ByVal hwndParent As LongPtr, ByVal wHow As MDITILE_FLAGS, lpRect As RECT, ByVal cKids As Long, lpKids As LongPtr) As Integer
-Public Declare PtrSafe Function UpdateWindow Lib "user32" (ByVal hWnd As LongPtr) As Long
+Public Declare PtrSafe Function UpdateWindow Lib "user32" (ByVal hWnd As LongPtr) As BOOL
 [Description("Reminder: Use `vbNullPtr` for optional UDTs where you'd have passed 0 or ByVal 0 in VBx.")]
 Public Declare PtrSafe Function RedrawWindow Lib "user32" (ByVal hWnd As LongPtr, lprcUpdate As RECT, ByVal hrgnUpdate As LongPtr, ByVal flags As RDW_Flags) As Long
 Public Declare PtrSafe Function LockWindowUpdate Lib "user32" (Optional ByVal hWndLock As LongPtr) As BOOL
 Public Declare PtrSafe Function AnimateWindow Lib "user32" (ByVal hWnd As LongPtr, [TypeHint(AnimateWindowTimeDefaults)] ByVal dwTime As Long, ByVal dwFlags As AnimateWindowFlags) As Long
 Public Declare PtrSafe Function BeginPaint Lib "user32" (ByVal hWnd As LongPtr, lpPaint As PAINTSTRUCT) As LongPtr
-Public Declare PtrSafe Function EndPaint Lib "user32" (ByVal hWnd As LongPtr, lpPaint As PAINTSTRUCT) As Long
+Public Declare PtrSafe Function EndPaint Lib "user32" (ByVal hWnd As LongPtr, lpPaint As PAINTSTRUCT) As BOOL
 Public Declare PtrSafe Function GetClientRect Lib "user32" (ByVal hWnd As LongPtr, lpRect As RECT) As BOOL
 Public Declare PtrSafe Function GetWindowRect Lib "user32" (ByVal hWnd As LongPtr, lpRect As RECT) As BOOL
 Public Declare PtrSafe Function GetWindow Lib "user32" (ByVal hWnd As LongPtr, ByVal uCmd As GetWindowConsts) As LongPtr
@@ -25347,7 +25393,7 @@ Public Declare PtrSafe Function ClientToScreen Lib "user32" (ByVal hWnd As LongP
 Public Declare PtrSafe Function ScreenToClient Lib "user32" (ByVal hWnd As LongPtr, lpPoint As Any) As BOOL  ' lpPoint As POINT) As Long
 Public Declare PtrSafe Function SetCapture Lib "user32" (ByVal hwnd As LongPtr) As LongPtr
 Public Declare PtrSafe Function GetCapture Lib "user32" () As LongPtr
-Public Declare PtrSafe Function ReleaseCapture Lib "user32" () As Long
+Public Declare PtrSafe Function ReleaseCapture Lib "user32" () As BOOL
 Public Declare PtrSafe Function GetDC Lib "user32" (ByVal hWnd As LongPtr) As LongPtr
 Public Declare PtrSafe Function GetDCEx Lib "user32" (ByVal hWnd As LongPtr, ByVal hrgnClip As LongPtr, ByVal flags As GetDcExFlags) As LongPtr
 Public Declare PtrSafe Function ReleaseDC Lib "user32" (ByVal hWnd As LongPtr, ByVal hDC As LongPtr) As Long
@@ -25399,9 +25445,9 @@ Public DeclareWide PtrSafe Function GetWindowText Lib "user32" Alias "GetWindowT
 Public Declare PtrSafe Function GetWindowTextLengthA Lib "user32" (ByVal hwnd As LongPtr) As Long
 Public Declare PtrSafe Function GetWindowTextLengthW Lib "user32" (ByVal hwnd As LongPtr) As Long
 Public DeclareWide PtrSafe Function GetWindowTextLength Lib "user32" Alias "GetWindowTextLengthW" (ByVal hwnd As LongPtr) As Long
-Public Declare PtrSafe Function SetWindowTextA Lib "user32" (ByVal hWnd As LongPtr, ByVal lpString As String) As Long
-Public Declare PtrSafe Function SetWindowTextW Lib "user32" (ByVal hWnd As LongPtr, ByVal lpString As LongPtr) As Long
-Public DeclareWide PtrSafe Function SetWindowText Lib "user32" Alias "SetWindowTextW" (ByVal hWnd As LongPtr, ByVal lpString As String) As Long
+Public Declare PtrSafe Function SetWindowTextA Lib "user32" (ByVal hWnd As LongPtr, ByVal lpString As String) As BOOL
+Public Declare PtrSafe Function SetWindowTextW Lib "user32" (ByVal hWnd As LongPtr, ByVal lpString As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function SetWindowText Lib "user32" Alias "SetWindowTextW" (ByVal hWnd As LongPtr, ByVal lpString As String) As BOOL
 [Description("xy is a ByVal As POINT; copy a POINT into a LongLong. We use LongLong instead of x,y for 64bit compatibility without seperate definitions.")]
 Public Declare PtrSafe Function WindowFromPoint Lib "user32" (ByVal xy As LongLong) As LongPtr
 [Description("xy is a ByVal As POINT; copy a POINT into a LongLong. We use LongLong instead of x,y for 64bit compatibility without seperate definitions.")]
@@ -25791,17 +25837,17 @@ Public DeclareWide PtrSafe Function DisplayConfigGetDeviceInfo Lib "user32" (req
 Public DeclareWide PtrSafe Function DisplayConfigSetDeviceInfo Lib "user32" (setPacket As Any) As Long
 Public Declare PtrSafe Function GetDisplayConfigBufferSizes Lib "user32" (numPathArrayElements As Long, numModeInfoArrayElements As Long, ByVal flags As DISPLAYCONFIG_QUERY_FLAGS) As Long
 
-Public Declare PtrSafe Function OpenClipboard Lib "user32" (ByVal hWnd As LongPtr) As Long
+Public Declare PtrSafe Function OpenClipboard Lib "user32" (ByVal hWnd As LongPtr) As BOOL
 Public Declare PtrSafe Function EmptyClipboard Lib "user32" () As BOOL
 Public Declare PtrSafe Function SetClipboardData Lib "user32" (ByVal wFormat As StdClipboardFormats, Optional ByVal hMem As LongPtr) As LongPtr
 Public Declare PtrSafe Function GetClipboardData Lib "user32" (ByVal wFormat As StdClipboardFormats) As LongPtr
 Public Declare PtrSafe Function IsClipboardFormatAvailable Lib "user32" (ByVal wFormat As StdClipboardFormats) As BOOL
-Public Declare PtrSafe Function CloseClipboard Lib "user32" () As Long
+Public Declare PtrSafe Function CloseClipboard Lib "user32" () As BOOL
 Public DeclareWide PtrSafe Function RegisterClipboardFormat Lib "user32" Alias "RegisterClipboardFormatW" (ByVal lpszFormat As String) As Long
 Public Declare PtrSafe Function RegisterClipboardFormatW Lib "user32" (ByVal lpszFormat As LongPtr) As Long
 Public Declare PtrSafe Function RegisterClipboardFormatA Lib "user32" (ByVal lpszFormat As String) As Long
-Public Declare PtrSafe Function AddClipboardFormatListener Lib "user32" (ByVal hwnd As LongPtr) As Long
-Public Declare PtrSafe Function RemoveClipboardFormatListener Lib "user32" (ByVal hwnd As LongPtr) As Long
+Public Declare PtrSafe Function AddClipboardFormatListener Lib "user32" (ByVal hwnd As LongPtr) As BOOL
+Public Declare PtrSafe Function RemoveClipboardFormatListener Lib "user32" (ByVal hwnd As LongPtr) As BOOL
 Public Declare PtrSafe Function ChangeClipboardChain Lib "user32" (ByVal hWndRemove As LongPtr, ByVal hWndNewNext As LongPtr) As BOOL
 Public Declare PtrSafe Function CountClipboardFormats Lib "user32" () As Long
 Public Declare PtrSafe Function EnumClipboardFormats Lib "user32" (ByVal wFormat As StdClipboardFormats) As StdClipboardFormats
@@ -25814,7 +25860,7 @@ Public Declare PtrSafe Function SetClipboardViewer Lib "user32" (ByVal hwndNewVi
 Public Declare PtrSafe Function GetClipboardViewer Lib "user32" () As LongPtr
 Public Declare PtrSafe Function GetOpenClipboardWindow Lib "user32" () As LongPtr
 Public Declare PtrSafe Function GetPriorityClipboardFormat Lib "user32" (paFormatPriorityList As StdClipboardFormats, ByVal cFormats As Long) As Long
-Public Declare PtrSafe Function GetUpdatedClipboardFormats Lib "user32" (lpuiFormats As StdClipboardFormats, ByVal cFormats As Long, pcFormatsOut As Long) As Long
+Public Declare PtrSafe Function GetUpdatedClipboardFormats Lib "user32" (lpuiFormats As StdClipboardFormats, ByVal cFormats As Long, pcFormatsOut As Long) As BOOL
 Public Declare PtrSafe Function GetClipboardMetadata Lib "user32" (ByVal wFormat As StdClipboardFormats, metadata As GETCLIPBMETADATA) As BOOL
 
 Public Declare PtrSafe Function CharToOemA Lib "user32" (ByVal pSrc As String, ByVal pDst As String) As BOOL
@@ -29709,7 +29755,7 @@ End Function
 Public Function InitPropVariantFromUInt16(ByVal uiVal As Integer, ppropvar As Variant) As Long
 If VarPtr(ppropvar) = 0 Then Return E_POINTER
 ppropvar = uiVal
-Dim vt As Integer = VT_UI2
+Dim vt As Integer = CInt(VT_UI2)
 CopyMemory ppropvar, vt, 2    'Overwrite VT_I2 with VT_UI2
 End Function
 Public Function InitPropVariantFromInt32(ByVal lVal As Long, ppropvar As Variant) As Long
@@ -29719,7 +29765,7 @@ End Function
 Public Function InitPropVariantFromUInt32(ByVal ulVal As Long, ppropvar As Variant) As Long
 If VarPtr(ppropvar) = 0 Then Return E_POINTER
 ppropvar = ulVal
-Dim vt As Integer = VT_UI4
+Dim vt As Integer = CInt(VT_UI4)
 CopyMemory ppropvar, vt, 2    'Overwrite VT_I4 with VT_UI4
 End Function
 Public Function InitPropVariantFromInt64(ByVal llVal As LongLong, ppropvar As Variant) As Long
@@ -29729,7 +29775,7 @@ End Function
 Public Function InitPropVariantFromUInt64(ByVal ullVal As LongLong, ppropvar As Variant) As Long
 If VarPtr(ppropvar) = 0 Then Return E_POINTER
 ppropvar = ullVal
-Dim vt As Integer = VT_UI8
+Dim vt As Integer = CInt(VT_UI8)
 CopyMemory ppropvar, vt, 2    'Overwrite VT_I8 with VT_UI8
 End Function
 Public Function InitPropVariantFromDouble(ByVal dblVal As Double, ppropvar As Variant) As Long
@@ -29742,7 +29788,7 @@ Public Function InitPropVariantFromString(psz As String, ppropvar As Variant) As
     Dim lpAlloc As LongPtr = CoTaskMemAlloc((lstrlenW(ByVal StrPtr(psz)) + 1) * 2)
     ZeroMemory ByVal lpAlloc, (lstrlenW(ByVal StrPtr(psz)) + 1) * 2
     CopyMemory ByVal lpAlloc, ByVal StrPtr(psz), lstrlenW(ByVal StrPtr(psz)) * 2
-    VariantSetType ppropvar, VT_LPWSTR
+    VariantSetType ppropvar, CInt(VT_LPWSTR)
     CopyMemory ByVal PointerAdd(VarPtr(ppropvar), 8), lpAlloc, LenB(Of LongPtr)
     Return S_OK
 End Function
@@ -29750,10 +29796,10 @@ Public Function InitPropVariantFromGUIDAsBuffer(g As UUID, ppropvar As Variant) 
     Return InitPropVariantFromBuffer(g, LenB(g), ppropvar)
 End Function
 Public Function IsPropVariantVector(propvar As Variant) As BOOL
-    Return (VarType(propvar) And (VT_ARRAY Or VT_VECTOR))
+    Return CType(Of BOOL)(VarType(propvar) And (VT_ARRAY Or VT_VECTOR))
 End Function
 Public Function IsPropVariantString(propvar As Variant) As BOOL
-    Return (PropVariantToStringWithDefault(propvar, vbNullString) <> 0)
+    Return CType(Of BOOL)(IIf(PropVariantToStringWithDefault(propvar, vbNullString) <> 0, CFALSE, CTRUE))
 End Function
 Public Declare PtrSafe Function PropVariantToBooleanWithDefault Lib "propsys" (ByRef propvar As Variant, ByVal lDefault As BOOL) As BOOL
 Public Declare PtrSafe Function PropVariantToInt16WithDefault Lib "propsys" (ByRef propvar As Variant, ByVal iDefault As Integer) As Integer
@@ -29845,7 +29891,7 @@ Public DeclareWide PtrSafe Function StgDeserializePropVariant Lib "propsys" (ByR
 Public Function IsVarTypeFloat(ByVal vt As VARENUM) As Boolean: Return (vt = VT_R4 Or vt = VT_R8): End Function
 Public Function IsVariantArray(var As Variant) As Boolean: Return CBool(VarType(var) And VT_ARRAY): End Function
 Public Function IsVariantString(propvar As Variant) As BOOL
-    Return (VariantToStringWithDefault(propvar, vbNullString) <> 0)
+    Return CType(Of BOOL)(IIf(VariantToStringWithDefault(propvar, vbNullString) <> 0, CFALSE, CTRUE))
 End Function
 Public Function IsVarTypeSignedInteger(ByVal vt As VARENUM) As Boolean
     Select Case vt
@@ -29891,7 +29937,7 @@ End Function
 Public Function InitVariantFromUInt16(ByVal uiVal As Integer, pvar As Variant) As Long
 If VarPtr(pvar) = 0 Then Return E_POINTER
 pvar = uiVal
-Dim vt As Integer = VT_UI2
+Dim vt As Integer = CInt(VT_UI2)
 CopyMemory pvar, vt, 2    'Overwrite VT_I2 with VT_UI2
 End Function
 Public Function InitVariantFromInt32(ByVal lVal As Long, pvar As Variant) As Long
@@ -29902,7 +29948,7 @@ End Function
 Public Function InitVariantFromUInt32(ByVal ulVal As Long, pvar As Variant) As Long
 If VarPtr(pvar) = 0 Then Return E_POINTER
 pvar = ulVal
-Dim vt As Integer = VT_UI4
+Dim vt As Integer = CInt(VT_UI4)
 CopyMemory pvar, vt, 2    'Overwrite VT_I4 with VT_UI4
 End Function
 Public Function InitVariantFromInt64(ByVal llVal As LongLong, pvar As Variant) As Long
@@ -29913,7 +29959,7 @@ End Function
 Public Function InitVariantFromUInt64(ByVal ullVal As LongLong, pvar As Variant) As Long
 If VarPtr(pvar) = 0 Then Return E_POINTER
 pvar = ullVal
-Dim vt As Integer = VT_UI8
+Dim vt As Integer = CInt(VT_UI8)
 CopyMemory pvar, vt, 2    'Overwrite VT_I8 with VT_UI8
 End Function
 Public Function InitVariantFromDouble(ByVal dblVal As Double, pvar As Variant) As Long
@@ -29927,7 +29973,7 @@ Public Function InitVariantFromString(psz As String, pvar As Variant) As Long
     Dim lpAlloc As LongPtr = CoTaskMemAlloc((lstrlenW(ByVal StrPtr(psz)) + 1) * 2)
     ZeroMemory ByVal lpAlloc, (lstrlenW(ByVal StrPtr(psz)) + 1) * 2
     CopyMemory ByVal lpAlloc, ByVal StrPtr(psz), lstrlenW(ByVal StrPtr(psz)) * 2
-    VariantSetType pvar, VT_LPWSTR
+    VariantSetType pvar, CInt(VT_LPWSTR)
     CopyMemory ByVal PointerAdd(VarPtr(pvar), 8), lpAlloc, LenB(Of LongPtr)
     Return S_OK
 End Function
@@ -29940,7 +29986,7 @@ Public Function InitVariantFromDosDateTime(ByVal wDate As Integer, ByVal wTime A
     Dim dbl As Double
     If DosDateTimeToVariantTime(wDate, wTime, dbl) Then
         pvar = dbl
-        VariantSetType pvar, VT_DATE
+        VariantSetType pvar, CInt(VT_DATE)
         Return S_OK
     Else
         Return S_FALSE
@@ -29953,7 +29999,7 @@ End Function
 Public Function InitVariantFromDispatch(ByVal punk As IUnknown, pvar As Variant) As Long
     If VarPtr(pvar) = 0 Then Return E_POINTER
     pvar = punk
-    VariantSetType pvar, VT_UNKNOWN
+    VariantSetType pvar, CInt(VT_UNKNOWN)
 End Function
 [Description("Converts a pidl into a VT_ARRAY|VT_UI1 SAFEARRAY variant recognized by the shell.")]
 Public Function InitVariantFromIDList(pvar As Variant, ByVal pidl As LongPtr) As BOOL
@@ -29967,12 +30013,12 @@ Public Function InitVariantFromIDList(pvar As Variant, ByVal pidl As LongPtr) As
     ' // is necessary to call VariantClear(pvar) to free memory
     ' // that this function allocates.
     Dim cb As Long = ILGetSize(pidl)
-    Dim psa As LongPtr = SafeArrayCreateVector(VT_UI1, 0, cb)
+    Dim psa As LongPtr = SafeArrayCreateVector(CInt(VT_UI1), 0, cb)
     If psa Then
         Dim pvData As LongPtr
         CopyMemory pvData, ByVal PointerAdd(psa, 12), LenB(Of LongPtr)
         CopyMemory ByVal pvData, ByVal pidl, cb
-        VariantSetType pvar, VT_ARRAY Or VT_UI1
+        VariantSetType pvar, CInt(VT_ARRAY Or VT_UI1)
         CopyMemory ByVal PointerAdd(VarPtr(pvar), 8), psa, LenB(Of LongPtr)
         Return CTRUE
     Else
@@ -38265,15 +38311,15 @@ If hAZ Then
     ReDim pVA(nArgs - 1)
     ReDim pVT(nArgs - 1)
     
-    pVT(0) = VT_UI4
+    pVT(0) = CInt(VT_UI4)
     pVA(0) = dwFlags
-    pVT(1) = VT_UINT_PTR
+    pVT(1) = CInt(VT_UINT_PTR)
     pVA(1) = hEventProvider
-    pVT(2) = VT_UI4
+    pVT(2) = CInt(VT_UI4)
     pVA(2) = dwAuditId
-    pVT(3) = VT_PTR
+    pVT(3) = CInt(VT_PTR)
     pVA(3) = pUserSid
-    pVT(4) = VT_UI4
+    pVT(4) = CInt(VT_UI4)
     pVA(4) = dwCount
     
     Dim i As Long, j As Long, k As Long
@@ -38283,13 +38329,13 @@ If hAZ Then
     i = 5
     
     For k = 0 To UBound(va_values)
-        paramType = ApExtractType(va_values(k))
-        paramFlags = ApExtractFlags(va_values(k))
+        paramType = ApExtractType(CType(Of AUDIT_PARAM_TYPE)(va_values(k)))
+        paramFlags = ApExtractFlags(CType(Of AUDIT_PARAM_TYPE)(va_values(k)))
         
         'First add one 4-byte argument for the type
         ReDim Preserve pVT(i)
         ReDim Preserve pVA(i)
-        pVT(i) = VT_UI4
+        pVT(i) = CInt(VT_UI4)
         pVA(i) = va_values(k)
         i += 1
         k += 1
@@ -38305,8 +38351,8 @@ If hAZ Then
                             ' ObjectTypeIndex = va_arg(arglist, ULONG);
                     ReDim Preserve pVT(i + 1)
                     ReDim Preserve pVA(i + 1)
-                    pVT(i) = VT_UI4
-                    pVT(i + 1) = VT_UI4
+                    pVT(i) = CInt(VT_UI4)
+                    pVT(i + 1) = CInt(VT_UI4)
                     pVA(i) = va_values(k)
                     pVA(i + 1) = va_values(k + 1)
                     i += 2
@@ -38316,7 +38362,7 @@ If hAZ Then
                     'Add one 4-byte argument	
                     ReDim Preserve pVT(i)
                     ReDim Preserve pVA(i)
-                    pVT(i) = VT_UI4
+                    pVT(i) = CInt(VT_UI4)
                     pVA(i) = va_values(k)
                     i += 1
                     'k will advance by one automatically
@@ -38326,7 +38372,7 @@ If hAZ Then
                 'Add a single pointer sized arg
                 ReDim Preserve pVT(i)
                 ReDim Preserve pVA(i)
-                pVT(i) = VT_UINT_PTR
+                pVT(i) = CInt(VT_UINT_PTR)
                 pVA(i) = va_values(k)
                 i += 1
         
@@ -38334,7 +38380,7 @@ If hAZ Then
                 'Add a single 8-byte argument (LUID or FILETIME)
                 ReDim Preserve pVT(i)
                 ReDim Preserve pVA(i)
-                pVT(i) = VT_UI8
+                pVT(i) = CInt(VT_UI8)
                 pVA(i) = va_values(k)
                 i += 1
                 
@@ -38345,7 +38391,7 @@ If hAZ Then
                     'Add a single 8-byte argument (LUID)
                     ReDim Preserve pVT(i)
                     ReDim Preserve pVA(i)
-                    pVT(i) = VT_UI8
+                    pVT(i) = CInt(VT_UI8)
                     pVA(i) = va_values(k)
                     i += 1
                 End If
@@ -38354,8 +38400,8 @@ If hAZ Then
                 'Add one pointer and one ULONG   
                 ReDim Preserve pVT(i + 1)
                 ReDim Preserve pVA(i + 1)
-                pVT(i) = VT_UINT_PTR
-                pVT(i + 1) = VT_UI4
+                pVT(i) = CInt(VT_UINT_PTR)
+                pVT(i + 1) = CInt(VT_UI4)
                 pVA(i) = va_values(k)
                 pVA(i + 1) = va_values(k + 1)
                 i += 2
@@ -38368,7 +38414,7 @@ If hAZ Then
     Dim vRet As Variant
     Dim hr As Long
     
-    hr = DispCallFunc(ByVal 0, lpfn, CC_CDECL, VT_I4, UBound(pVA) + 1, pVT(0), pVA(0), vRet)
+    hr = DispCallFunc(ByVal 0, lpfn, CC_CDECL, CInt(VT_I4), UBound(pVA) + 1, pVT(0), pVA(0), vRet)
     
     Return CLng(vRet)
 End If
@@ -52505,6 +52551,7 @@ Public Const HIGH_SURROGATE_END  = &Hdbff
 Public Const LOW_SURROGATE_START  = &Hdc00
 Public Const LOW_SURROGATE_END  = &Hdfff
 
+[IgnoreWarnings(TB0018)]
 Public Function PALETTERGB(ByVal r As Long, ByVal g As Long, ByVal b As Long) As Long
 	Return ((&H02000000) Or RGB(r, g, b))
 End Function
@@ -52708,7 +52755,7 @@ Public Function SHAddFolderPathToLibrary(ByVal plib As IShellLibrary, ByVal pszF
 End Function
 Public Function SHRemoveFolderPathFromLibrary(ByVal plib As IShellLibrary, ByVal pszFolderPath As String) As Long
 	Dim pidlFolder As LongPtr = SHSimpleIDListFromPath(pszFolderPath)
-    Dim hr As Long = IIf(pidlFolder, S_OK, E_INVALIDARG)
+    Dim hr As Long = CLng(IIf(pidlFolder, S_OK, E_INVALIDARG))
     If SUCCEEDED(hr) Then
     	Dim psiFolder As IShellItem
         hr = SHCreateItemFromIDList(pidlFolder, IID_IShellItem, psiFolder)
@@ -52722,7 +52769,7 @@ Public Function SHRemoveFolderPathFromLibrary(ByVal plib As IShellLibrary, ByVal
     Return hr
 End Function
 Public Function SHSaveLibraryInFolderPath(ByVal plib As IShellLibrary, ByVal pszFolderPath As String, ByVal pszLibraryName As String, ByVal lsf As LIBRARYSAVEFLAGS, ppszSavedToPath As LongPtr) As Long
-    ppszSavedToPath = ""
+    ppszSavedToPath = 0
     Dim psiFolder As IShellItem
     Dim hr As Long = SHCreateItemFromParsingName(StrPtr(pszFolderPath), Nothing, IID_IShellItem, psiFolder)
     If SUCCEEDED(hr) Then
@@ -52746,13 +52793,13 @@ Public Function IsHashValCompatible(ByVal lhashval1 As Long, ByVal lhashval2 As 
 	Return ((&H00ff0000 And (lhashval1)) = (&H00ff0000 And (lhashval2)))
 End Function
 Public Function V_ISBYREF(x As Variant) As Boolean
-	If (VarType(x) And VT_BYREF) Then Return True
+	If (VarTypeEx(x) And VT_BYREF) Then Return True
 End Function
 Public Function V_ISARRAY(x As Variant) As Boolean
-    If (VarType(x) And VT_ARRAY) Then Return True
+    If (VarTypeEx(x) And VT_ARRAY) Then Return True
 End Function
 Public Function V_ISVECTOR(x As Variant) As Boolean
-    If (VarType(x) And VT_VECTOR) Then Return True
+    If (VarTypeEx(x) And VT_VECTOR) Then Return True
 End Function
 
 
@@ -52768,7 +52815,7 @@ Public Function TOUCH_COORD_TO_PIXEL(ByVal l As Long) As Long
 End Function
 ' #define GID_ROTATE_ANGLE_TO_ARGUMENT(_arg_)     ((USHORT)((((_arg_) + 2.0 * 3.14159265) / (4.0 * 3.14159265)) * 65535.0))
 Public Function GID_ROTATE_ANGLE_TO_ARGUMENT(ByVal arg As Double) As Integer
-    Return CUIntToInt(((((arg) + 2.0 * 3.14159265) / (4.0 * 3.14159265)) * 65535.0))
+    Return CUIntToInt(CLng(((((arg) + 2.0 * 3.14159265) / (4.0 * 3.14159265)) * 65535.0)))
 End Function
 ' #define GID_ROTATE_ANGLE_FROM_ARGUMENT(_arg_)   ((((double)(_arg_) / 65535.0) * 4.0 * 3.14159265) - 2.0 * 3.14159265)
 Public Function GID_ROTATE_ANGLE_FROM_ARGUMENT(ByVal arg As Integer) As Double
@@ -52885,6 +52932,7 @@ Public Function OVERLAYMASKTOINDEX(ByVal Index As Long) As Long
 End Function
 
 [Description("Returns the lower two bytes of a Long variable.")]
+[IgnoreWarnings(TB0018)]
 Public Function LOWORD(ByVal Value As Long) As Integer
 If Value And &H8000& Then
     Return Value Or &HFFFF0000
@@ -52902,6 +52950,7 @@ End Function
 ' End If
 ' End Function
 [Description("Returns the higher two bytes of a Long variable.")]
+[IgnoreWarnings(TB0018)]
 Public Function HIWORD(ByVal Value As Long) As Integer
 Return (Value And &HFFFF0000) \ &H10000
 End Function
@@ -52911,14 +52960,16 @@ End Function
 ' Return (DWord And &HFFFF0000) \ &H10000
 ' End Function
 [Description("Returns the lower byte of an Integer variable.")]
+[IgnoreWarnings(TB0018)]
 Public Function LOBYTE(ByVal Word As Integer) As Byte
     Return Word And &HFF
 End Function
 [Description("Returns the higher byte of an Integer variable.")]
+[IgnoreWarnings(TB0018)]
 Public Function HIBYTE(ByVal Word As Integer) As Byte
     Return (Word And &HFF00&) \ &H100
 End Function
-
+[IgnoreWarnings(TB0018)]
 Public Function MAKEWORD(ByVal LoByte As Byte, ByVal HiByte As Byte) As Integer
 If (HiByte And &H80) <> 0 Then
     Return ((HiByte * &H100&) Or LoByte) Or &HFFFF0000
@@ -52983,12 +53034,12 @@ End Function
 [ConstantFoldable]
 Public Function HRESULT_FROM_WIN32(x As Long) As Long
  '__HRESULT_FROM_WIN32(x) ((HRESULT)(x) <= 0 ? ((HRESULT)(x)) : ((HRESULT) (((x) & 0x0000FFFF) | (FACILITY_WIN32 << 16) | 0x80000000)))
-    Return IIf(x <= 0, x, (((x) And &H0000FFFF&) Or (FACILITY_WIN32 << 16) Or &H80000000))
+    Return CLng(IIf(x <= 0, x, (((x) And &H0000FFFF&) Or (FACILITY_WIN32 << 16) Or &H80000000)))
 End Function
 [ConstantFoldable]
 Public Function __HRESULT_FROM_WIN32(x As Long) As Long
  '__HRESULT_FROM_WIN32(x) ((HRESULT)(x) <= 0 ? ((HRESULT)(x)) : ((HRESULT) (((x) & 0x0000FFFF) | (FACILITY_WIN32 << 16) | 0x80000000)))
-    Return IIf(x <= 0, x, (((x) And &H0000FFFF&) Or (FACILITY_WIN32 << 16) Or &H80000000))
+    Return CLng(IIf(x <= 0, x, (((x) And &H0000FFFF&) Or (FACILITY_WIN32 << 16) Or &H80000000)))
 End Function
 
 Public Function GET_WHEEL_DELTA_WPARAM(ByVal wParam As LongPtr) As Integer
@@ -53026,7 +53077,7 @@ End Function
 Public Function GET_RAWINPUT_CODE_WPARAM(ByVal wParam As LongPtr) As Long
 	Return CLng(wParam And &HFF)
 End Function
-
+[IgnoreWarnings(TB0018)]
 Public Function MAKEIPRANGE(ByVal Low As Byte, ByVal High As Byte) As Integer
 If (High And &H80) <> 0 Then
     Return ((High * &H100&) Or Low) Or &HFFFF0000
@@ -53160,7 +53211,7 @@ End Function
 
 [ConstantFoldable]
 Public Function UtfToANSI(sIn As String) As String
-    Return StrConv(sIn, vbFromUnicode)
+    Return CStr(StrConv(sIn, vbFromUnicode))
 End Function
 
 [ConstantFoldable]
@@ -53192,14 +53243,14 @@ Public Function VariantLPWSTRtoSTR(pVar As Variant, pOut As String) As Boolean
     End If
 End Function
 
-[Description("Returns an HRESULT error name given it's number, e.g. 5 returns ERROR_ACCESS_DENIED. Leave lpSource off for standard system messages.")]
+[Description("Returns an HRESULT error description given it's number, e.g. 5 returns Access denied. Leave lpSource off for standard system messages.")]
 Public Function GetSystemErrorString(lErrNum As Long, Optional ByVal lpSource As LongPtr = 0) As String
     Dim sError As String, ret As Long
     sError = Space$(MAX_PATH)
     ret = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM Or FORMAT_MESSAGE_IGNORE_INSERTS, ByVal lpSource, lErrNum, 0&, sError, Len(sError), 0)
     If ret > 0 Then Return Left$(sError, ret)
 End Function
-[Description("Returns an NTSTATUS error name given it's number, e.g. &HC0000005 returns STATUS_ACCESS_DENIED.")]
+[Description("Returns an NTSTATUS error description given it's number, e.g. &HC0000005 returns Access denied.")]
 Public Function GetNtErrorString(lErrNum As Long) As String
     Dim sError As String, ret As Long
     Dim lpSource As LongPtr = LoadLibrary("ntdll.dll")
@@ -53218,12 +53269,17 @@ Public Sub SecureZeroMemory(ByVal pv As LongPtr, cb As LongPtr)
     Next
 End Sub
 
+[Description("Returns the true VarType without filtering VT_BYREF etc")]
+Public Function VarTypeEx(pvar As Variant) As VARENUM
+    If VarPtr(pvar) = 0 Then Return 0
+    CopyMemory VarTypeEx, ByVal VarPtr(pvar), 2
+End Function
 
 [Description("Sets a Variant to the specified type without any alteration to the data. vtOnlyIf raises an error if the original type is other than specified.  " & vbCrLf & "WARNING: Many data formats are incompatible, use VariantChangeType absent specific need....")]
 Public Function VariantSetType(pvar As Variant, [TypeHint(VARENUM)] ByVal vt As Integer, [TypeHint(VARENUM)] Optional ByVal vtOnlyIf As Integer = -1) As Boolean
     If VarPtr(pvar) = 0 Then Return False
     If vtOnlyIf <> -1 Then
-        If VarType(pvar) <> vtOnlyIf Then
+        If VarTypeEx(pvar) <> vtOnlyIf Then
             Return False
         End If
     End If
@@ -53241,6 +53297,7 @@ End Function
 
 
 'The following 5 function taken from Krool's excellent VBCCR project and modified to use tB features:
+[IgnoreWarnings(TB0018)]
 [Description("Created an unsigned Integer from a Long.")]
 Public Function CUIntToInt(ByVal Value As Long) As Integer
 Const OFFSET_2 As Long = 65536
@@ -53273,6 +53330,7 @@ Else
     Return CLng(CLngLng(Value) - OFFSET_4)
 End If
 End Function
+[IgnoreWarnings(TB0018)]
 [Description("Created an unsigned Long from a Double.")]
 Public Function CULngToLng(ByVal Value As Double) As Long
 Const OFFSET_4 As Double = 4294967296#
