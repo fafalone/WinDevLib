@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 8.3.428 (June 13th, 2024)**
+**Current Version: 8.3.430 (Ju1y 1st, 2024)**
 
 ### IMPORTANT: [twinBASIC Beta 553 or newer](https://github.com/twinbasic/twinbasic/releases) is now required.
 
@@ -190,6 +190,20 @@ twinBASIC now counts msvbvm60 redirects as legacy DLL redirects, which WinDevLib
  
 
 ### Updates
+
+**Update (v8.3.430, 01 Jul 2024):**\
+-Added HID APIs (hidclass.h, hidusage.h, hidpi.h, hidsdi.h 100%; HidD_ and HidP_ APIs in hid.dll)\
+-Added WinML interfaces (WinML.h, 100%)\
+-Added some additional APIs from sysinfoapi.h to bring coverage to 100%\
+-Added Common Dialog extended error codes from cderr.h (100% coverage)\
+-New helper function VarTypeEx returns the VarType without filtering flags like VT_BYREF.\
+-WinDevLib is now strict mode compliant\
+-(Bug fix) V_ISBYREF, V_ISARRAY, and V_ISVECTOR helper functions relied on VarType which filtered those flags.\
+-(Bug fix) DispatchMessage[A,W], SendNotifyMessage[A,W] return types incorrect for x64.\
+-(Bug fix) IMFVideoDisplayControl.GetCurrentImage second argument ByVal/ByRef mixup.\
+-(Bug fix) ListView_SetItemText macro incorrect.\
+-(Bug fix) SHSaveLibraryInFolderPath type mismatch.\
+-Note: ShellScalingApi.h was verified to be 100% covered.
 
 **Update (v8.3.428, 13 Jun 2024):**\
 -Some additional system info structs to support upcoming project\
