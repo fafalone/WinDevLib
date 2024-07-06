@@ -4262,6 +4262,10 @@ Public Type SLIST_HEADER
 End Type
 #End If
 
+Public Type SINGLE_LIST_ENTRY
+    Next As LongPtr ' struct _SINGLE_LIST_ENTRY
+End Type
+
 [Description("NtGlobalFlag flags. Flags for all versions from 3.51+ are included; it's up to you to know which are applicable for the current PEB version.")]
 Public Enum NTGLB_Flags
     FLG_STOP_ON_EXCEPTION = &H00000001
@@ -7966,7 +7970,14 @@ Public Type LDT_ENTRY
     Flags2 As Byte
     BaseHi As Byte
 End Type
-
+Public Type WOW64_LDT_ENTRY
+    LimitLow As Integer
+    BaseLow As Integer
+    BaseMid As Byte
+    Flags1 As Byte
+    Flags2 As Byte
+    BaseHi As Byte
+End Type
 
 Public Type EXCEPTION_POINTERS
     ExceptionRecord As LongPtr 'PEXCEPTION_RECORD
@@ -19185,7 +19196,124 @@ Public Enum ElevationFlags
     ELEVATION_INSTALLER_DETECTION_ENABLED = 4
 End Enum
 
+Public Enum THREADINFOCLASS
+    ThreadBasicInformation = 0 ' q: THREAD_BASIC_INFORMATION
+    ThreadTimes = 1 ' q: KERNEL_USER_TIMES
+    ThreadPriority = 2 ' s: KPRIORITY (requires SeIncreaseBasePriorityPrivilege)
+    ThreadBasePriority = 3 ' s: KPRIORITY
+    ThreadAffinityMask = 4 ' s: KAFFINITY
+    ThreadImpersonationToken = 5 ' s: HANDLE
+    ThreadDescriptorTableEntry = 6 ' q: DESCRIPTOR_TABLE_ENTRY (or WOW64_DESCRIPTOR_TABLE_ENTRY)
+    ThreadEnableAlignmentFaultFixup = 7 ' s: BOOLEAN
+    ThreadEventPair = 8
+    ThreadQuerySetWin32StartAddress = 9 ' q: ULONG_PTR
+    ThreadZeroTlsCell = 10 ' s: ULONG // TlsIndex // 10
+    ThreadPerformanceCount = 11 ' q: LARGE_INTEGER
+    ThreadAmILastThread = 12 ' q: ULONG
+    ThreadIdealProcessor = 13 ' s: ULONG
+    ThreadPriorityBoost = 14 ' qs: ULONG
+    ThreadSetTlsArrayAddress = 15 ' s: ULONG_PTR // Obsolete
+    ThreadIsIoPending = 16 ' q: ULONG
+    ThreadHideFromDebugger = 17 ' q: BOOLEAN; s: void
+    ThreadBreakOnTermination = 18 ' qs: ULONG
+    ThreadSwitchLegacyState = 19 ' s: void // NtCurrentThread // NPX/FPU
+    ThreadIsTerminated = 20 ' q: ULONG // 20
+    ThreadLastSystemCall = 21 ' q: THREAD_LAST_SYSCALL_INFORMATION
+    ThreadIoPriority = 22 ' qs: IO_PRIORITY_HINT (requires SeIncreaseBasePriorityPrivilege)
+    ThreadCycleTime = 23 ' q: THREAD_CYCLE_TIME_INFORMATION
+    ThreadPagePriority = 24 ' qs: PAGE_PRIORITY_INFORMATION
+    ThreadActualBasePriority = 25 ' s: LONG (requires SeIncreaseBasePriorityPrivilege)
+    ThreadTebInformation = 26 ' q: THREAD_TEB_INFORMATION (requires THREAD_GET_CONTEXT + THREAD_SET_CONTEXT)
+    ThreadCSwitchMon = 27 ' Obsolete
+    ThreadCSwitchPmu = 28
+    ThreadWow64Context = 29 ' qs: WOW64_CONTEXT, ARM_NT_CONTEXT since 20H1
+    ThreadGroupInformation = 30 ' qs: GROUP_AFFINITY // 30
+    ThreadUmsInformation = 31 ' q: THREAD_UMS_INFORMATION // Obsolete
+    ThreadCounterProfiling = 32 ' q: BOOLEAN; s: THREAD_PROFILING_INFORMATION?
+    ThreadIdealProcessorEx = 33 ' qs: PROCESSOR_NUMBER; s: previous PROCESSOR_NUMBER on return
+    ThreadCpuAccountingInformation = 34 ' q: BOOLEAN; s: HANDLE (NtOpenSession) // NtCurrentThread // since WIN8
+    ThreadSuspendCount = 35 ' q: ULONG // since WINBLUE
+    ThreadHeterogeneousCpuPolicy = 36 ' q: KHETERO_CPU_POLICY // since THRESHOLD
+    ThreadContainerId = 37 ' q: GUID
+    ThreadNameInformation = 38 ' qs: THREAD_NAME_INFORMATION
+    ThreadSelectedCpuSets = 39
+    ThreadSystemThreadInformation = 40 ' q: SYSTEM_THREAD_INFORMATION // 40
+    ThreadActualGroupAffinity = 41 ' q: GROUP_AFFINITY // since THRESHOLD2
+    ThreadDynamicCodePolicyInfo = 42 ' q: ULONG; s: ULONG (NtCurrentThread)
+    ThreadExplicitCaseSensitivity = 43 ' qs: ULONG; s: 0 disables, otherwise enables
+    ThreadWorkOnBehalfTicket = 44 ' RTL_WORK_ON_BEHALF_TICKET_EX
+    ThreadSubsystemInformation = 45 ' q: SUBSYSTEM_INFORMATION_TYPE // since REDSTONE2
+    ThreadDbgkWerReportActive = 46 ' s: ULONG; s: 0 disables, otherwise enables
+    ThreadAttachContainer = 47 ' s: HANDLE (job object) // NtCurrentThread
+    ThreadManageWritesToExecutableMemory = 48 ' MANAGE_WRITES_TO_EXECUTABLE_MEMORY // since REDSTONE3
+    ThreadPowerThrottlingState = 49 ' POWER_THROTTLING_THREAD_STATE // since REDSTONE3 (set), WIN11 22H2 (query)
+    ThreadWorkloadClass = 50 ' THREAD_WORKLOAD_CLASS // since REDSTONE5 // 50
+    ThreadCreateStateChange = 51 ' since WIN11
+    ThreadApplyStateChange = 52
+    ThreadStrongerBadHandleChecks = 53 ' since 22H1
+    ThreadEffectiveIoPriority = 54 ' q: IO_PRIORITY_HINT
+    ThreadEffectivePagePriority = 55 ' q: ULONG
+    MaxThreadInfoClass = 56
+End Enum
 
+Public Type THREAD_BASIC_INFORMATION
+    ExitStatus As NTSTATUS
+    TebBaseAddress As LongPtr 'PTEB
+    ClientId As CLIENT_ID
+    AffinityMask As LongPtr 'KAFFINITY
+    Priority As KPRIORITY
+    BasePriority As KPRIORITY
+End Type
+
+Public Type THREAD_LAST_SYSCALL_INFORMATION
+    FirstArgument As LongPtr
+    SystemCallNumber As Integer
+    WaitTime As LongLong
+End Type
+
+Public Type THREAD_CYCLE_TIME_INFORMATION
+    AccumulatedCycles As LongLong
+    CurrentCycleCount As LongLong
+End Type
+
+Public Type THREAD_TEB_INFORMATION
+    TebInformation As LongPtr ' buffer to place data in
+    TebOffset As Long ' offset in TEB to begin reading from
+    BytesToRead As Long ' number of bytes to read
+End Type
+
+Public Type THREAD_NAME_INFORMATION
+    ThreadName As UNICODE_STRING
+End Type
+
+Public Enum THREAD_UMS_INFORMATION_COMMAND
+    UmsInformationCommandInvalid
+    UmsInformationCommandAttach
+    UmsInformationCommandDetach
+    UmsInformationCommandQuery
+End Enum
+
+Public Type RTL_UMS_COMPLETION_LIST
+    ThreadListHead As LongPtr 'PSINGLE_LIST_ENTRY
+    CompletionEvent As LongPtr
+    CompletionFlags As Long
+    InternalListHead As SINGLE_LIST_ENTRY
+End Type
+
+Public Enum THREAD_WORKLOAD_CLASS
+    ThreadWorkloadClassDefault
+    ThreadWorkloadClassGraphics
+    MaxThreadWorkloadClass
+End Enum
+
+Public Type DESCRIPTOR_TABLE_ENTRY
+    Selector As Long
+    Descriptor As LDT_ENTRY
+End Type
+Public Type WOW64_DESCRIPTOR_TABLE_ENTRY
+    Selector As Long
+    Descriptor As WOW64_LDT_ENTRY
+End Type
 
 'NTDLL APIs should only be added if they don't have higher level equivalents. If the NTDLL version has substantially more functionality, it's not equivalent and should be added.
 Public Declare PtrSafe Function NtQuerySystemInformation Lib "ntdll" (ByVal SystemInformationClass As SYSTEM_INFORMATION_CLASS, SystemInformation As Any, ByVal SystemInformationLength As Long, ReturnLength As Long) As Long
@@ -19229,6 +19357,9 @@ Public Declare PtrSafe Function NtOpenProcessTokenEx Lib "ntdll" (ByVal ProcessH
 Public Declare PtrSafe Function NtOpenThread Lib "ntdll" (ThreadHandle As LongPtr, ByVal DesiredAccess As ThreadAccessRights, ObjectAttributes As OBJECT_ATTRIBUTES, ClientId As CLIENT_ID) As NTSTATUS
 Public Declare PtrSafe Function NtOpenThreadToken Lib "ntdll" (ByVal ProcessHandle As LongPtr, [TypeHint(TokenAccessRights, StandardAccessTypes)] ByVal DesiredAccess As Long, ByVal OpenAsSelf As Boolean, TokenHandle As LongPtr) As NTSTATUS
 Public Declare PtrSafe Function NtOpenThreadTokenEx Lib "ntdll" (ByVal ProcessHandle As LongPtr, [TypeHint(TokenAccessRights, StandardAccessTypes)] ByVal DesiredAccess As Long, ByVal OpenAsSelf As Boolean, ByVal HandleAttributes As ObjectAttributeValues, TokenHandle As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function NtQueryInformationThread Lib "ntdll" (ByVal ThreadHandle As LongPtr, ByVal ThreadInformationClass As THREADINFOCLASS, ThreadInformation As Any, ByVal ThreadInformationLength As Long, ReturnLength As Long) As NTSTATUS
+Public Declare PtrSafe Function NtSetInformationThread Lib "ntdll" (ByVal ThreadHandle As LongPtr, ByVal ThreadInformationClass As THREADINFOCLASS, ThreadInformation As Any, ByVal ThreadInformationLength As Long) As NTSTATUS
+
 Public Declare PtrSafe Function NtDeviceIoControlFile Lib "ntdll" (ByVal FileHandle As LongPtr, ByVal hEvent As LongPtr, ByVal ApcRoutine As LongPtr, ByVal ApcContext As LongPtr, ByRef IoStatusBlock As IO_STATUS_BLOCK, ByVal IoControlCode As Long, InputBuffer As Any, ByVal InputBufferLength As Long, OutputBuffer As Any, ByVal OutputBufferLength As Long) As NTSTATUS
 Public Declare PtrSafe Function NtAllocateLocallyUniqueId Lib "ntdll" (pLuid As LUID) As NTSTATUS
 Public Declare PtrSafe Function NtCreateToken Lib "ntdll" (TokenHandle As LongPtr, [TypeHint(TokenAccessRights, StandardAccessTypes)] ByVal DesiredAccess As Long, ByVal TokenType As TOKEN_TYPE, AuthenticationId As LUID, ExpirationTime As LongLong, TokenUser As Any, TokenGroups As Any, TokenPrivileges As Any, TokenOwner As TOKEN_OWNER, TokenPrimaryGroup As TOKEN_PRIMARY_GROUP, TokenDefaultDacl As TOKEN_DEFAULT_DACL, TokenSource As TOKEN_SOURCE) As NTSTATUS
