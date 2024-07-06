@@ -1,4 +1,7 @@
 
+**Update (v8.3.432, 06 Jul 2024):**
+-Added NtQueryInformationThread and associated enums/types.
+
 **Update (v8.3.430, 01 Jul 2024):**
 -Added HID APIs (hidclass.h, hidusage.h, hidpi.h, hidsdi.h 100%; HidD_ and HidP_ APIs in hid.dll)
 -Added WinML interfaces (WinML.h, 100%)
