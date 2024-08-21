@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 8.3.433 (Ju1y 1st, 2024)**
+**Current Version: 8.3.435 (August 20th, 2024)**
 
 ### IMPORTANT: [twinBASIC Beta 553 or newer](https://github.com/twinbasic/twinbasic/releases) is now required.
 
