@@ -3600,7 +3600,7 @@ Public Type PROCESS_HANDLE_INFORMATION
 End Type
 
 Public Type PROCESS_DEVICEMAP_INFORMATION
-	SetOrQuery As LongPtr
+	SetOrQuery(35) As Byte
     ' union {
         ' struct {
             ' HANDLE DirectoryHandle;
@@ -3617,7 +3617,7 @@ End Enum
 
 
 Public Type PROCESS_DEVICEMAP_INFORMATION_EX
-    SetOrQuery As LongPtr
+    SetOrQuery(35) As Byte
     ' union {
         ' struct {
             ' HANDLE DirectoryHandle;
@@ -7970,14 +7970,7 @@ Public Type LDT_ENTRY
     Flags2 As Byte
     BaseHi As Byte
 End Type
-Public Type WOW64_LDT_ENTRY
-    LimitLow As Integer
-    BaseLow As Integer
-    BaseMid As Byte
-    Flags1 As Byte
-    Flags2 As Byte
-    BaseHi As Byte
-End Type
+
 
 Public Type EXCEPTION_POINTERS
     ExceptionRecord As LongPtr 'PEXCEPTION_RECORD
@@ -19306,15 +19299,6 @@ Public Enum THREAD_WORKLOAD_CLASS
     MaxThreadWorkloadClass
 End Enum
 
-Public Type DESCRIPTOR_TABLE_ENTRY
-    Selector As Long
-    Descriptor As LDT_ENTRY
-End Type
-Public Type WOW64_DESCRIPTOR_TABLE_ENTRY
-    Selector As Long
-    Descriptor As WOW64_LDT_ENTRY
-End Type
-
 'NTDLL APIs should only be added if they don't have higher level equivalents. If the NTDLL version has substantially more functionality, it's not equivalent and should be added.
 Public Declare PtrSafe Function NtQuerySystemInformation Lib "ntdll" (ByVal SystemInformationClass As SYSTEM_INFORMATION_CLASS, SystemInformation As Any, ByVal SystemInformationLength As Long, ReturnLength As Long) As Long
 Public Declare PtrSafe Function NtSetSystemInformation Lib "ntdll" (ByVal SystemInformationClass As SYSTEM_INFORMATION_CLASS, SystemInformation As Any, ByVal SystemInformationLength As Long) As Long
@@ -19359,6 +19343,8 @@ Public Declare PtrSafe Function NtOpenThreadToken Lib "ntdll" (ByVal ProcessHand
 Public Declare PtrSafe Function NtOpenThreadTokenEx Lib "ntdll" (ByVal ProcessHandle As LongPtr, [TypeHint(TokenAccessRights, StandardAccessTypes)] ByVal DesiredAccess As Long, ByVal OpenAsSelf As Boolean, ByVal HandleAttributes As ObjectAttributeValues, TokenHandle As LongPtr) As NTSTATUS
 Public Declare PtrSafe Function NtQueryInformationThread Lib "ntdll" (ByVal ThreadHandle As LongPtr, ByVal ThreadInformationClass As THREADINFOCLASS, ThreadInformation As Any, ByVal ThreadInformationLength As Long, ReturnLength As Long) As NTSTATUS
 Public Declare PtrSafe Function NtSetInformationThread Lib "ntdll" (ByVal ThreadHandle As LongPtr, ByVal ThreadInformationClass As THREADINFOCLASS, ThreadInformation As Any, ByVal ThreadInformationLength As Long) As NTSTATUS
+Public Declare PtrSafe Function NtGetNextProcess Lib "ntdll" (ByVal ProcessHandle As LongPtr, [TypeHint(ProcessAccessRights, StandardAccessTypes)] ByVal DesiredAccess As Long, [TypeHint(ObjectAttributeValues)] ByVal HandleAttributes As Long, ByVal Flags As Long, NewProcessHandle As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function NtGetNextThread Lib "ntdll" (ByVal ProcessHandle As LongPtr, ByVal ThreadHandle As LongPtr, [TypeHint(ThreadAccessRights, StandardAccessTypes)] ByVal DesiredAccess As Long, [TypeHint(ObjectAttributeValues)] ByVal HandleAttributes As Long, ByVal Flags As Long, NewProcessHandle As LongPtr) As NTSTATUS
 
 Public Declare PtrSafe Function NtDeviceIoControlFile Lib "ntdll" (ByVal FileHandle As LongPtr, ByVal hEvent As LongPtr, ByVal ApcRoutine As LongPtr, ByVal ApcContext As LongPtr, ByRef IoStatusBlock As IO_STATUS_BLOCK, ByVal IoControlCode As Long, InputBuffer As Any, ByVal InputBufferLength As Long, OutputBuffer As Any, ByVal OutputBufferLength As Long) As NTSTATUS
 Public Declare PtrSafe Function NtAllocateLocallyUniqueId Lib "ntdll" (pLuid As LUID) As NTSTATUS
@@ -19413,7 +19399,339 @@ Public Function NtCurrentProcessToken() As LongPtr: Return (-4): End Function
 Public Function NtCurrentThreadToken() As LongPtr: Return (-5): End Function
 Public Function NtCurrentThreadEffectiveToken() As LongPtr: Return (-6): End Function
 
+Public Enum NtRegBootConditionFlags
+    REG_INIT_BOOT_SM = &H0000
+    REG_INIT_BOOT_SETUP = &H0001
+    REG_INIT_BOOT_ACCEPTED_BASE = &H0002
+    REG_INIT_BOOT_ACCEPTED_MAX = REG_INIT_BOOT_ACCEPTED_BASE + 999
+End Enum
 
+Public Const REG_MAX_KEY_VALUE_NAME_LENGTH  = 32767
+Public Const REG_MAX_KEY_NAME_LENGTH  = 512
+
+Public Enum KEY_INFORMATION_CLASS
+    KeyBasicInformation ' KEY_BASIC_INFORMATION
+    KeyNodeInformation ' KEY_NODE_INFORMATION
+    KeyFullInformation ' KEY_FULL_INFORMATION
+    KeyNameInformation ' KEY_NAME_INFORMATION
+    KeyCachedInformatio ' KEY_CACHED_INFORMATION
+    KeyFlagsInformation ' KEY_FLAGS_INFORMATION
+    KeyVirtualizationInformation ' KEY_VIRTUALIZATION_INFORMATION
+    KeyHandleTagsInformation ' KEY_HANDLE_TAGS_INFORMATION
+    KeyTrustInformation ' KEY_TRUST_INFORMATION
+    KeyLayerInformation ' KEY_LAYER_INFORMATION
+    MaxKeyInfoClass
+End Enum
+    
+[Description("IMPORTANT: Name is variable C-style array.")]
+Public Type KEY_BASIC_INFORMATION
+    LastWriteTime As LARGE_INTEGER
+    TitleIndex As Long
+    NameLength As Long
+    Name(REG_MAX_KEY_NAME_LENGTH) As Integer
+End Type
+
+[Description("IMPORTANT: This is a header type only; the members are followed in memory by two variable-length C-style arrays.")]
+Public Type KEY_NODE_INFORMATION
+    LastWriteTime As LARGE_INTEGER
+    TitleIndex As Long
+    ClassOffset As Long
+    ClassLength As Long
+    NameLength As Long
+    'Name(REG_MAX_KEY_NAME_LENGTH) As Integer
+    ' ...
+    ' WCHAR Class[1];
+End Type
+
+[Description("IMPORTANT: Class is variable C-style array.")]
+Public Type KEY_FULL_INFORMATION
+    LastWriteTime As LARGE_INTEGER
+    TitleIndex As Long
+    ClassOffset As Long
+    ClassLength As Long
+    SubKeys As Long
+    MaxNameLength As Long
+    MaxClassLength As Long
+    Values As Long
+    MaxValueNameLength As Long
+    MaxValueDataLength As Long
+    Class(0 To REG_MAX_KEY_NAME_LENGTH) As Integer
+End Type
+
+[Description("IMPORTANT: Name is variable C-style array.")]
+Public Type KEY_NAME_INFORMATION
+    NameLength As Long
+    Name(0 To REG_MAX_KEY_NAME_LENGTH) As Integer
+End Type
+
+[Description("IMPORTANT: Name is variable C-style array.")]
+Public Type KEY_CACHED_INFORMATION
+    LastWriteTime As LARGE_INTEGER
+    TitleIndex As Long
+    SubKeys As Long
+    MaxNameLength As Long
+    Values As Long
+    MaxValueNameLength As Long
+    MaxValueDataLength As Long
+    NameLength As Long
+    Name(0 To REG_MAX_KEY_NAME_LENGTH) As Integer
+End Type
+
+Public Enum NtRegFlags
+    REG_FLAG_VOLATILE = &H0001
+    REG_FLAG_LINK = &H0002
+End Enum
+
+Public Enum NtRegKeyFlags
+    REG_KEY_DONT_VIRTUALIZE = &H0002
+    REG_KEY_DONT_SILENT_FAIL = &H0004
+    REG_KEY_RECURSE_FLAG = &H0008
+End Enum
+
+Public Type KEY_FLAGS_INFORMATION
+    Wow64Flags As Long
+    KeyFlags As NtRegFlags ' REG_FLAG_*
+    ControlFlags As NtRegKeyFlags ' REG_KEY_*
+End Type
+
+Public Type KEY_VIRTUALIZATION_INFORMATION
+    ' ULONG VirtualizationCandidate : 1; // Tells whether the key is part of the virtualization namespace scope (only HKLM\Software for now).
+    ' ULONG VirtualizationEnabled : 1; // Tells whether virtualization is enabled on this key. Can be 1 only if above flag is 1.
+    ' ULONG VirtualTarget : 1; // Tells if the key is a virtual key. Can be 1 only if above 2 are 0. Valid only on the virtual store key handles.
+    ' ULONG VirtualStore : 1; // Tells if the key is a part of the virtual store path. Valid only on the virtual store key handles.
+    ' ULONG VirtualSource : 1; // Tells if the key has ever been virtualized, can be 1 only if VirtualizationCandidate is 1.
+    ' ULONG Reserved : 27;
+    Flags As Long
+End Type
+
+Public Type KEY_TRUST_INFORMATION
+    ' ULONG TrustedKey : 1;
+    ' ULONG Reserved : 31;
+    Flags As Long
+End Type
+
+Public Type KEY_LAYER_INFORMATION
+    ' ULONG IsTombstone : 1;
+    ' ULONG IsSupersedeLocal : 1;
+    ' ULONG IsSupersedeTree : 1;
+    ' ULONG ClassIsInherited : 1;
+    ' ULONG Reserved : 28;
+    Flags As Long
+End Type
+
+Public Enum KEY_SET_INFORMATION_CLASS
+    KeyWriteTimeInformation ' KEY_WRITE_TIME_INFORMATION
+    KeyWow64FlagsInformation ' KEY_WOW64_FLAGS_INFORMATION
+    KeyControlFlagsInformation ' KEY_CONTROL_FLAGS_INFORMATION
+    KeySetVirtualizationInformation ' KEY_SET_VIRTUALIZATION_INFORMATION
+    KeySetDebugInformation
+    KeySetHandleTagsInformation ' KEY_HANDLE_TAGS_INFORMATION
+    KeySetLayerInformation ' KEY_SET_LAYER_INFORMATION
+    MaxKeySetInfoClass
+End Enum
+
+Public Type KEY_WRITE_TIME_INFORMATION
+    LastWriteTime As LARGE_INTEGER
+End Type
+
+Public Type KEY_WOW64_FLAGS_INFORMATION
+    UserFlags As Long
+End Type
+
+Public Type KEY_HANDLE_TAGS_INFORMATION
+    HandleTags As Long
+End Type
+
+Public Type KEY_SET_LAYER_INFORMATION
+    ' ULONG IsTombstone : 1;
+    ' ULONG IsSupersedeLocal : 1;
+    ' ULONG IsSupersedeTree : 1;
+    ' ULONG ClassIsInherited : 1;
+    ' ULONG Reserved : 28;
+    Flags As Long
+End Type
+
+Public Type KEY_CONTROL_FLAGS_INFORMATION
+    ControlFlags As Long
+End Type
+
+Public Type KEY_SET_VIRTUALIZATION_INFORMATION
+    ' ULONG VirtualTarget : 1;
+    ' ULONG VirtualStore : 1;
+    ' ULONG VirtualSource : 1; // true if key has been virtualized at least once
+    ' ULONG Reserved : 29;
+    Flags As Long
+End Type
+
+Public Enum KEY_VALUE_INFORMATION_CLASS
+    KeyValueBasicInformation ' KEY_VALUE_BASIC_INFORMATION
+    KeyValueFullInformation ' KEY_VALUE_FULL_INFORMATION
+    KeyValuePartialInformation ' KEY_VALUE_PARTIAL_INFORMATION
+    KeyValueFullInformationAlign64
+    KeyValuePartialInformationAlign64 ' KEY_VALUE_PARTIAL_INFORMATION_ALIGN64
+    KeyValueLayerInformation ' KEY_VALUE_LAYER_INFORMATION
+    MaxKeyValueInfoClass
+End Enum
+
+[Description("IMPORTANT: Name is variable C-style array.")]
+Public Type KEY_VALUE_BASIC_INFORMATION
+    TitleIndex As Long
+    Type As Long
+    NameLength As Long
+    Name(0 To REG_MAX_KEY_NAME_LENGTH) As Integer
+End Type
+
+[Description("IMPORTANT: This is a header type only; the members are followed in memory by two variable-length C-style arrays.")]
+Public Type KEY_VALUE_FULL_INFORMATION
+    TitleIndex As Long
+    Type As Long
+    DataOffset As Long
+    DataLength As Long
+    NameLength As Long
+    '   _Field_size_bytes_(NameLength) WCHAR Name[1];
+    ' ...
+    ' UCHAR Data[1];
+End Type
+
+[Description("IMPORTANT: Data is variable C-style array.")]
+Public Type KEY_VALUE_PARTIAL_INFORMATION
+    TitleIndex As Long
+    Type As Long
+    DataLength As Long
+    Data(0 To REG_MAX_KEY_VALUE_NAME_LENGTH) As Byte
+End Type
+
+[Description("IMPORTANT: Data is variable C-style array.")]
+Public Type KEY_VALUE_PARTIAL_INFORMATION_ALIGN64
+    Type As Long
+    DataLength As Long
+    Data(0 To REG_MAX_KEY_VALUE_NAME_LENGTH) As Byte
+End Type
+
+Public Type KEY_VALUE_LAYER_INFORMATION
+    ' ULONG IsTombstone : 1;
+    ' ULONG Reserved : 31;
+    Flags As Long
+End Type
+
+Public Enum CM_EXTENDED_PARAMETER_TYPE
+    CmExtendedParameterInvalidType
+    CmExtendedParameterTrustClassKey
+    CmExtendedParameterEvent
+    CmExtendedParameterFileAccessToken
+    CmExtendedParameterMax
+End Enum
+
+Public Const CM_EXTENDED_PARAMETER_TYPE_BITS = 8
+
+' typedef struct DECLSPEC_ALIGN(8) _CM_EXTENDED_PARAMETER
+Public Type CM_EXTENDED_PARAMETER
+    ' struct
+    ' {
+        ' ULONG64 Type : CM_EXTENDED_PARAMETER_TYPE_BITS;
+        ' ULONG64 Reserved : 64 - CM_EXTENDED_PARAMETER_TYPE_BITS;
+    ' };
+    uType As LongLong
+    ' union
+    ' {
+        ' ULONG64 ULong64;
+        ' PVOID Pointer;
+        ' SIZE_T Size;
+        ' HANDLE Handle;
+        ' ULONG ULong;
+        ' ACCESS_MASK AccessMask;
+    ' };
+    u As LongLong
+End Type
+
+Public Type KEY_VALUE_ENTRY
+    ValueName As LongPtr 'PUNICODE_STRING
+    DataLength As Long
+    DataOffset As Long
+    Type As Long
+End Type
+
+Public Enum REG_ACTION
+    KeyAdded
+    KeyRemoved
+    KeyModified
+End Enum
+
+[Description("IMPORTANT: This is a header type only; the members are followed in memory by a variable-length C-style array.")]
+Public Type REG_NOTIFY_INFORMATION
+    NextEntryOffset As Long
+    Action As REG_ACTION
+    KeyLength As Long
+    '    _Field_size_bytes_(KeyLength) WCHAR Key[1];
+End Type
+
+Public Type KEY_PID_ARRAY
+    ProcessId As LongPtr
+    KeyName As UNICODE_STRING
+End Type
+
+[Description("IMPORTANT: This is a header type only; the members are followed in memory by a variable-length C-style array.")]
+Public Type KEY_OPEN_SUBKEYS_INFORMATION
+    Count As Long
+    'KeyArray(0 To 0) As KEY_PID_ARRAY
+End Type
+
+Public Enum NtLoadKeyExFlags
+    NTLKEF_AppKey = &H10
+    NTLKEF_Exclusive = &H20
+    NTLKEF_Unknown800 = &H800
+    NTLKEF_ReadOnly = &H2000
+End Enum
+
+Public Declare PtrSafe Function NtCreateKey Lib "ntdll" (KeyHandle As LongPtr, [TypeHint(REGSAM, StandardAccessTypes , GenericRights)] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, ByVal TitleIndex As Long, Class As UNICODE_STRING, ByVal CreateOptions As RegOptions, Disposition As RegistryCreateDispositions) As NTSTATUS
+Public Declare PtrSafe Function NtCreateKeyTransacted Lib "ntdll" (KeyHandle As LongPtr, [TypeHint(REGSAM, StandardAccessTypes , GenericRights)] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, ByVal TitleIndex As Long, Class As UNICODE_STRING, ByVal CreateOptions As RegOptions, ByVal TransactionHandle As LongPtr, Disposition As RegistryCreateDispositions) As NTSTATUS
+Public Declare PtrSafe Function NtOpenKey Lib "ntdll" (KeyHandle As LongPtr, [TypeHint(REGSAM, StandardAccessTypes , GenericRights)] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES) As NTSTATUS
+Public Declare PtrSafe Function NtOpenKeyTransacted Lib "ntdll" (KeyHandle As LongPtr, [TypeHint(REGSAM, StandardAccessTypes , GenericRights)] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, ByVal TransactionHandle As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function NtOpenKeyEx Lib "ntdll" (KeyHandle As LongPtr, [TypeHint(REGSAM, StandardAccessTypes , GenericRights)] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, ByVal OpenOptions As RegOptions) As NTSTATUS
+Public Declare PtrSafe Function NtOpenKeyTransactedEx Lib "ntdll" (KeyHandle As LongPtr, [TypeHint(REGSAM, StandardAccessTypes , GenericRights)] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, ByVal OpenOptions As RegOptions, ByVal TransactionHandle As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function NtDeleteKey Lib "ntdll" (ByVal KeyHandle As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function NtRenameKey Lib "ntdll" (ByVal KeyHandle As LongPtr, NewName As UNICODE_STRING) As NTSTATUS
+Public Declare PtrSafe Function NtDeleteValueKey Lib "ntdll" (ByVal KeyHandle As LongPtr, ValueName As UNICODE_STRING) As NTSTATUS
+Public Declare PtrSafe Function NtQueryKey Lib "ntdll" (ByVal KeyHandle As LongPtr, ByVal KeyInformationClass As KEY_INFORMATION_CLASS, KeyInformation As Any, ByVal Length As Long, ResultLength As Long) As NTSTATUS
+Public Declare PtrSafe Function NtSetInformationKey Lib "ntdll" (ByVal KeyHandle As LongPtr, ByVal KeySetInformationClass As KEY_SET_INFORMATION_CLASS, KeySetInformation As Any, ByVal KeySetInformationLength As Long) As NTSTATUS
+Public Declare PtrSafe Function NtQueryValueKey Lib "ntdll" (ByVal KeyHandle As LongPtr, ValueName As UNICODE_STRING, ByVal KeyValueInformationClass As KEY_VALUE_INFORMATION_CLASS, KeyValueInformation As Any, ByVal Length As Long, ResultLength As Long) As NTSTATUS
+Public Declare PtrSafe Function NtSetValueKey Lib "ntdll" (ByVal KeyHandle As LongPtr, ValueName As UNICODE_STRING, ByVal TitleIndex As Long, ByVal Type As REGTYPES, Data As Any, ByVal DataSize As Long) As NTSTATUS
+Public Declare PtrSafe Function NtQueryMultipleValueKey Lib "ntdll" (ByVal KeyHandle As LongPtr, ValueEntries As Any, ByVal EntryCount As Long, ValueBuffer As Any, BufferLength As Long, Optional RequiredBufferLength As Long) As NTSTATUS
+Public Declare PtrSafe Function NtEnumerateKey Lib "ntdll" (ByVal KeyHandle As LongPtr, ByVal Index As Long, ByVal KeyInformationClass As KEY_INFORMATION_CLASS, KeyInformation As Any, ByVal Length As Long, ResultLength As Long) As NTSTATUS
+Public Declare PtrSafe Function NtEnumerateValueKey Lib "ntdll" (ByVal KeyHandle As LongPtr, ByVal Index As Long, ByVal KeyValueInformationClass As KEY_VALUE_INFORMATION_CLASS, KeyValueInformation As Any, ByVal Length As Long, ResultLength As Long) As NTSTATUS
+Public Declare PtrSafe Function NtFlushKey Lib "ntdll" (ByVal KeyHandle As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function NtCompactKeys Lib "ntdll" (ByVal Count As Long, KeyArray As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function NtCompressKey Lib "ntdll" (ByVal KeyHandle As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function NtLoadKey Lib "ntdll" (TargetKey As OBJECT_ATTRIBUTES, SourceFile As OBJECT_ATTRIBUTES) As NTSTATUS
+Public Declare PtrSafe Function NtLoadKey2 Lib "ntdll" (TargetKey As OBJECT_ATTRIBUTES, SourceFile As OBJECT_ATTRIBUTES, ByVal Flags As RegKeyRestoreAndLoadHiveFlags) As NTSTATUS
+[Description("NOTE: This function existed prior to Vista but only had 4 arguments.")]
+Public Declare PtrSafe Function NtLoadKeyEx Lib "ntdll" (TargetKey As OBJECT_ATTRIBUTES, SourceFile As OBJECT_ATTRIBUTES, ByVal Flags As NtLoadKeyExFlags, ByVal TrustClassKey As LongPtr, ByVal Event As LongPtr, [TypeHint(REGSAM, StandardAccessTypes , GenericRights)] ByVal DesiredAccess As Long, RootHandle As LongPtr, ByVal Reserved As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function NtLoadKey3 Lib "ntdll" (TargetKey As OBJECT_ATTRIBUTES, SourceFile As OBJECT_ATTRIBUTES, ByVal Flags As RegKeyRestoreAndLoadHiveFlags, ExtendedParameters As CM_EXTENDED_PARAMETER, ByVal ExtendedParameterCount As Long, [TypeHint(REGSAM, StandardAccessTypes , GenericRights)] ByVal DesiredAccess As Long, RootHandle As LongPtr, ByVal Reserved As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function NtReplaceKey Lib "ntdll" (NewFile As OBJECT_ATTRIBUTES, ByVal TargetHandle As LongPtr, OldFile As OBJECT_ATTRIBUTES) As NTSTATUS
+Public Declare PtrSafe Function NtSaveKey Lib "ntdll" (ByVal KeyHandle As LongPtr, ByVal FileHandle As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function NtSaveKeyEx Lib "ntdll" (ByVal KeyHandle As LongPtr, ByVal FileHandle As LongPtr, ByVal Format As RegSaveKeyFlags) As NTSTATUS
+Public Declare PtrSafe Function NtSaveMergedKeys Lib "ntdll" (ByVal HighPrecedenceKeyHandle As LongPtr, ByVal LowPrecedenceKeyHandle As LongPtr, ByVal FileHandle As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function NtRestoreKey Lib "ntdll" (ByVal KeyHandle As LongPtr, ByVal FileHandle As LongPtr, ByVal Flags As RegKeyRestoreAndLoadHiveFlags) As NTSTATUS
+Public Declare PtrSafe Function NtUnloadKey Lib "ntdll" (TargetKey As OBJECT_ATTRIBUTES) As NTSTATUS
+Public Declare PtrSafe Function NtUnloadKey2 Lib "ntdll" (TargetKey As OBJECT_ATTRIBUTES, ByVal Flags As RegUnloadFlags) As NTSTATUS
+Public Declare PtrSafe Function NtUnloadKeyEx Lib "ntdll" (TargetKey As OBJECT_ATTRIBUTES, ByVal Event As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function NtNotifyChangeKey Lib "ntdll" (ByVal KeyHandle As LongPtr, ByVal Event As LongPtr, ByVal ApcRoutine As LongPtr, ByVal ApcContext As LongPtr, IoStatusBlock As IO_STATUS_BLOCK, ByVal CompletionFilter As RegNotifyChangeValues, ByVal WatchTree As Byte, Buffer As Any, ByVal BufferSize As Long, ByVal Asynchronous As Byte) As NTSTATUS
+Public Declare PtrSafe Function NtNotifyChangeMultipleKeys Lib "ntdll" (ByVal MasterKeyHandle As LongPtr, ByVal Count As Long, SubordinateObjects As OBJECT_ATTRIBUTES, ByVal Event As LongPtr, ByVal ApcRoutine As LongPtr, ByVal ApcContext As LongPtr, IoStatusBlock As IO_STATUS_BLOCK, ByVal CompletionFilter As RegNotifyChangeValues, ByVal WatchTree As Byte, Buffer As Any, ByVal BufferSize As Long, ByVal Asynchronous As Byte) As NTSTATUS
+Public Declare PtrSafe Function NtQueryOpenSubKeys Lib "ntdll" (TargetKey As OBJECT_ATTRIBUTES, HandleCount As Long) As NTSTATUS
+Public Declare PtrSafe Function NtQueryOpenSubKeysEx Lib "ntdll" (TargetKey As OBJECT_ATTRIBUTES, ByVal BufferLength As Long, Buffer As Any, RequiredSize As Long) As NTSTATUS
+Public Declare PtrSafe Function NtInitializeRegistry Lib "ntdll" (ByVal BootCondition As Integer) As NTSTATUS
+Public Declare PtrSafe Function NtLockRegistryKey Lib "ntdll" (ByVal KeyHandle As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function NtLockProductActivationKeys Lib "ntdll" (pPrivateVer As Long, pSafeMode As Long) As NTSTATUS
+Public Declare PtrSafe Function NtFreezeRegistry Lib "ntdll" (ByVal TimeOutInSeconds As Long) As NTSTATUS
+Public Declare PtrSafe Function NtThawRegistry Lib "ntdll" () As NTSTATUS
+Public Declare PtrSafe Function NtCreateRegistryTransaction Lib "ntdll" (RegistryTransactionHandle As LongPtr, [TypeHint(REGSAM, StandardAccessTypes , GenericRights)] ByVal DesiredAccess As Long, ObjAttributes As OBJECT_ATTRIBUTES, ByVal CreateOptions As Long) As NTSTATUS
+Public Declare PtrSafe Function NtOpenRegistryTransaction Lib "ntdll" (RegistryTransactionHandle As LongPtr, [TypeHint(REGSAM, StandardAccessTypes , GenericRights)] ByVal DesiredAccess As Long, ObjAttributes As OBJECT_ATTRIBUTES) As NTSTATUS
+Public Declare PtrSafe Function NtCommitRegistryTransaction Lib "ntdll" (ByVal RegistryTransactionHandle As LongPtr, ByVal Flags As Long) As NTSTATUS
+Public Declare PtrSafe Function NtRollbackRegistryTransaction Lib "ntdll" (ByVal RegistryTransactionHandle As LongPtr, ByVal Flags As Long) As NTSTATUS
+
+
+
+'
 Public Declare PtrSafe Function RtlAdjustPrivilege Lib "ntdll" (ByVal Privilege As NTDefinedPrivilegeConsts, ByVal Enable As Byte, ByVal CurrentThread As Byte, Enabled As Byte) As Long
 Public Declare PtrSafe Sub RtlFreeUnicodeString Lib "ntdll" (UnicodeString As UNICODE_STRING)
 Public Declare PtrSafe Sub RtlInitUnicodeString Lib "ntdll" (DestinationString As Any, ByVal SourceString As LongPtr)
@@ -19470,6 +19788,10 @@ Public Declare PtrSafe Function RtlCaptureStackBackTrace Lib "ntdll" (ByVal Fram
 Public Declare PtrSafe Sub RtlUnwind Lib "ntdll" (ByVal TargetFrame As LongPtr, ByVal TargetIp As LongPtr, ExceptionRecord As EXCEPTION_RECORD, ByVal ReturnValue As LongPtr)
 Public Declare PtrSafe Sub RtlUnwindEx Lib "ntdll" (ByVal TargetFrame As LongPtr, ByVal TargetIp As LongPtr, ExceptionRecord As EXCEPTION_RECORD, ByVal ReturnValue As LongPtr, ContextRecord As _CONTEXT, HistoryTable As UNWIND_HISTORY_TABLE)
 Public Declare PtrSafe Function RtlQueryElevationFlags Lib "ntdll" (pFlags As ElevationFlags) As NTSTATUS
+Public Declare PtrSafe Function RtlAddFunctionTable CDecl Lib "ntdll" (FunctionTable As RUNTIME_FUNCTION, ByVal EntryCount As Long, ByVal BaseAddress As LongLong) As Byte
+Public Declare PtrSafe Function RtlDeleteFunctionTable CDecl Lib "ntdll" (FunctionTable As RUNTIME_FUNCTION) As Byte
+Public Declare PtrSafe Function RtlInstallFunctionTableCallback CDecl Lib "ntdll" (ByVal TableIdentifier As LongLong, ByVal BaseAddress As LongLong, ByVal Length As Long, ByVal Callback As LongPtr, ByVal Context As LongPtr, ByVal OutOfProcessCallbackDll As LongPtr) As Byte
+Public Declare PtrSafe Function RtlLookupFunctionEntry Lib "ntdll" (ByVal ControlPc As LongLong, ImageBase As LongLong, HistoryTable As UNWIND_HISTORY_TABLE) As LongPtr
 
 Public Declare PtrSafe Function RtlIpv4AddressToStringA Lib "ntdll" (Addr As IN_ADDR, ByVal s As String) As LongPtr
 Public Declare PtrSafe Function RtlIpv4AddressToStringW Lib "ntdll" (Addr As IN_ADDR, ByVal s As LongPtr) As LongPtr
@@ -26201,6 +26523,7 @@ Public DeclareWide PtrSafe Function ShutdownBlockReasonCreate Lib "user32" (ByVa
 Public Declare PtrSafe Function ShutdownBlockReasonDestroy Lib "user32" (ByVal hwnd As LongPtr) As BOOL
 Public DeclareWide PtrSafe Function ShutdownBlockReasonQuery Lib "user32" (ByVal hwnd As LongPtr, ByVal pwszBuff As String, pcchBuff As Long) As BOOL
 Public Declare PtrSafe Function CancelShutdown Lib "user32" () As BOOL
+Public Declare PtrSafe Function EndTask Lib "user32" (ByVal hWnd As LongPtr, ByVal fShutDown As BOOL, ByVal fForce As BOOL) As BOOL
 
 Public Declare PtrSafe Function CreateDesktopA Lib "user32" (ByVal lpszDesktop As String, ByVal lpszDevice As String, pDevMode As DEVMODEA, ByVal dwFlags As OpenDesktop_Flags, [TypeHint(StandardAccessTypes, DesktopAccessMaskValues , GenericRights)] ByVal dwDesiredAccess As Long, lpsa As SECURITY_ATTRIBUTES) As LongPtr
 Public Declare PtrSafe Function CreateDesktopW Lib "user32" (ByVal lpszDesktop As LongPtr, ByVal lpszDevice As LongPtr, pDevMode As DEVMODEW, ByVal dwFlags As OpenDesktop_Flags, [TypeHint(StandardAccessTypes, DesktopAccessMaskValues , GenericRights)] ByVal dwDesiredAccess As Long, lpsa As SECURITY_ATTRIBUTES) As LongPtr
@@ -53425,7 +53748,14 @@ Public Function PointerAdd(ByVal Start As LongPtr, ByVal Incr As LongPtr) As Lon
     Return ((Start Xor &H80000000) + Incr) Xor &H80000000
     #End If
 End Function
-
+[Description("Performs an unsigned subtraction on a LongPtr (Long or LongLong)")]
+Public Function PointerSubtract(ByVal Start As LongPtr, ByVal Incr As LongPtr) As LongPtr
+    #If Win64 Then
+    Return ((Start Xor &H8000000000000000) - Incr) Xor &H8000000000000000
+    #Else
+    Return ((Start Xor &H80000000) - Incr) Xor &H80000000
+    #End If
+End Function
 
 'The following 5 function taken from Krool's excellent VBCCR project and modified to use tB features:
 [IgnoreWarnings(TB0018)]
