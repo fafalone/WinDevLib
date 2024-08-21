@@ -24,3 +24,13 @@ before release, or waiting on feature support:
 -test IsVariantString / IsPropVariantString
 
 -Tablet interfaces (waiting on dispinterface support)
+
+-ndfapi.h
+
+-wsman
+
+-wcmapi.h
+
+-NT reg VR differencing
+
+-bluetoothapis.h etc
