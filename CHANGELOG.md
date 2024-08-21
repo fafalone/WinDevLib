@@ -1,7 +1,8 @@
 
-**Update (v8.3.435 2024):**
+**Update (v8.3.437, 20 Aug 2024):**
 -Added Native Registry APIs (ntregapi.h, 90%)
 -(Bug fix) WOW64_LDT_ENTRY duplicate type
+-(API Standards) SHUpdateImage[A] used LongPtr instead of String; added overloads for standards due to common use of pidls instead.
 
 
 **Update (v8.3.430, 01 Jul 2024):**
