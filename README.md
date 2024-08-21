@@ -191,6 +191,10 @@ twinBASIC now counts msvbvm60 redirects as legacy DLL redirects, which WinDevLib
 
 ### Updates
 
+**Update (v8.3.435, 20 Aug 2024):**\
+-Added Native Registry APIs (ntregapi.h, 90%)\
+-(Bug fix) WOW64_LDT_ENTRY duplicate type
+
 **Update (v8.3.430, 01 Jul 2024):**\
 -Added HID APIs (hidclass.h, hidusage.h, hidpi.h, hidsdi.h 100%; HidD_ and HidP_ APIs in hid.dll)\
 -Added WinML interfaces (WinML.h, 100%)\
