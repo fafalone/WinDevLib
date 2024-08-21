@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 8.3.435 (August 20th, 2024)**
+**Current Version: 8.3.437 (August 20th, 2024)**
 
 ### IMPORTANT: [twinBASIC Beta 553 or newer](https://github.com/twinbasic/twinbasic/releases) is now required.
 
@@ -25,7 +25,7 @@ Please report any bugs via the Issues feature here on GitHub.
 You have 2 options for this:
 
 #### Via the Package Server
-twinBASIC has an online package server and WinDevLib is published on it. Open your project settings and scroll to the **COM Type Library / ActiveX References**, then click **TWINPACK PACKAGES**. Add "Windows Development Library for twinBASIC v7.0.272" (or whatever the newest version is). The other similar entry, "WinDevLib for Implements" contains `Implements` compatible versions of a small number of common interfaces not defined in a compatible way in the main project; you normally don't need this. For more details, including illustrations, [see this post](https://github.com/fafalone/WinDevLib/issues/9#issuecomment-1416767019).
+twinBASIC has an online package server and WinDevLib is published on it. Open your project settings and scroll to the **Library References**, then click **TWINPACK PACKAGES**. Add "Windows Development Library for twinBASIC v7.0.272" (or whatever the newest version is). The other similar entry, "WinDevLib for Implements" contains `Implements` compatible versions of a small number of common interfaces not defined in a compatible way in the main project; you normally don't need this. For more details, including illustrations, [see this post](https://github.com/fafalone/WinDevLib/issues/9#issuecomment-1416767019).
 
 #### From a local file
 You can download the project from this repository and use the WinDevLib.twinpack file. Navigate to the same area as above, and click on the "Import from file" button. WinDevLib.twinproj is the source for the package, if you want to edit it.
@@ -191,9 +191,11 @@ twinBASIC now counts msvbvm60 redirects as legacy DLL redirects, which WinDevLib
 
 ### Updates
 
-**Update (v8.3.435, 20 Aug 2024):**\
+**Update (v8.3.437, 20 Aug 2024):**\
 -Added Native Registry APIs (ntregapi.h, 90%)\
--(Bug fix) WOW64_LDT_ENTRY duplicate type
+-(Bug fix) WOW64_LDT_ENTRY duplicate type (Issue #32)\
+-(API Standards) SHUpdateImage[A] used LongPtr instead of String; added overloads for standards due to common use of pidls instead. (Issue #33)
+
 
 **Update (v8.3.430, 01 Jul 2024):**\
 -Added HID APIs (hidclass.h, hidusage.h, hidpi.h, hidsdi.h 100%; HidD_ and HidP_ APIs in hid.dll)\
