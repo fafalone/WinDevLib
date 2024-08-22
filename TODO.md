@@ -19,8 +19,6 @@ before release, or waiting on feature support:
 
 -SQL.h/obdc32.dll (needs Alias support)
 
--wdMF BOOL types
-
 -test IsVariantString / IsPropVariantString
 
 -Tablet interfaces (waiting on dispinterface support)

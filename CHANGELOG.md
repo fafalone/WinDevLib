@@ -1,4 +1,30 @@
 
+**Update (v8.3.439, 21 Aug 2024):**
+-(Bug fix) While checking BOOL was used where appropriate in MediaFoundation, numerous ByVal args that should be ByRef were uncovered...
+           IMPORTANT: THIS MAY REQUIRE CODE CHANGES. If you use any of the following and used the workaround of VarPtr(), the VarPtr must now be removed:
+           IMF2DBuffer::IsContiguousFormat, IMFContentEnabler::IsAutomaticSupported, IMFByteStreamCacheControl2::IsBackgroundTransferActive, IMFByteStreamTimeSeek::IsTimeSeekSupported, 
+           IMFNetCredential::LoggedOnUser, IMFSSLCertificateManager::GetCertificatePolicy, IMFTrustedOutput::IsFinal, IMFVideoDisplayControl::GetFullscreen, IMFPMediaPlayer::GetMute, 
+           IMFRateControl::GetRate, IMFPMediaItem::Has(Audio,Video),GetStreamSelection, IMFMediaEngineEx::GetRealTimeMode,IsProtected, IMFHDCPStatus::Query, IMFMediaEngineOPMInfo::GetOPMInfo, 
+           IMFMediaEngineClassFactoryEx::IsTypeSupported, IMFMediaEngineSupportsSourceTransfer::ShouldTransferSource, IMFMediaKeySession2::Load, IMFNetCrossOriginSupport::IsSameOrigin,GetSourceOrigin,
+           IMFHttpDownloadRequest::HasNullSourceOrigin,QueryHeader,GetUrl,GetAtEndOfPayload, IMFSensorProfile::IsMediaTypeSupported, IMFSensorProcessActivity::GetStreamingState, 
+           IMediaBuffer::GetBufferAndLength, IMFContentEnabler::GetEnableURL,GetEnableData, IMFMetadata::GetLanguage, IMFByteStreamCacheControl2::GetByteRanges, IMFOutputTrustAuthority::SetPolicy, 
+           IMFSecureChannel::GetCertificate, IMFSampleProtection::GetProtectionCertificate, IMFSAMIStyle::GetSelectedStyle, IMFSystemId::Setup, IMFMediaEngineAudioEndpointId::GetAudioEndpointId, 
+           IMFMediaEngineClassFactory3::CreateMediaKeySystemAccess, IMFExtendedCameraControl::LockPayload, MFEnumDeviceSources, MFSerializePresentationDescriptor, IMFSimpleAudioVolume::GetMute, 
+           MFIsContentProtectionDeviceSupported, IAMAsyncReaderTimestampScaling::GetTimestampMode, IAMAudioInputMixer::get_Enable,Mono,Loudness, IUri::IsEqual,HasProperty, 
+           IAppVisibility::IsLauncherVisible, IDataObjectAsyncCapability::GetAsyncMode,InOperation, IApplicationAssociationRegistration::QueryAppIsDefault[All], IDCompositionDevice::CheckDeviceState, 
+           IOpLockStatus::IsOplockValid,IsOplockBroken, ISearchCrawlScopeManager::IncludedInCrawlScopeEx, ISearchViewChangedSink::OnChange, IInternetSecurityManagerEx2::QueryCustomPolicyEx2,
+           WinHttpOpenRequest, ID3D11DeviceContext[1]::(numerous), ID3D11On12Device::ReleaseWrappedResources,AcquireWrappedResources, ID3D12VersionedRootSignatureDeserializer::GetRootSignatureDescAtVersion,
+           ID3D12GraphicsCommandList::SetDescriptorHeaps, ID3D12CommandQueue::ExecuteCommandLists, ID3D12Device::MakeResident, ID3D12Device::Evict, ID3D12Device1::SetEventOnMultipleFenceCompletion,SetResidencyPriority
+           UiaNodeFromHandle, UiaNodeFromProvider, UiaGetRootNode, UiaHUiaNodeFromVariant, UiaHPatternObjectFromVariant, UiaHTextRangeFromVariant, UiaGetPatternProvider, UiaAddEvent,           
+           
+-(Bug fix) IMFSampleProtection::InitOutputProtection ppbSeed should be ByRef LongPtr.
+-(Bug fix) IMFSourceReader::SetCurrentMediaType dwReserved should be ByVal LongPtr.
+-(Bug fix) ID3D11DeviceContext::ClearRenderTargetView/ClearUnorderedAccessViewUint/ClearUnorderedAccessViewFloat use [in] type var[4]; which shouldn't be a safearray.
+            Used best guess for workaround; see https://github.com/twinbasic/twinbasic/issues/1892.
+-(Bug fix) ID3D12VersionedRootSignatureDeserializer::GetUnconvertedRootSignatureDesc and ID3D12RootSignatureDeserializer::GetRootSignatureDesc should return LongPtr.
+
+
+
 **Update (v8.3.437, 20 Aug 2024):**
 -Added Native Registry APIs (ntregapi.h, 90%)
 -(Bug fix) WOW64_LDT_ENTRY duplicate type
