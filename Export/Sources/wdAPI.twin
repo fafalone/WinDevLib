@@ -19,6 +19,7 @@
     'Webview2Loader.dll APIs are in wdWebview2. 
     'A few other very small sets for specific features are in their modules.
     
+    
 #If WINDEVLIB_LITE = 0 Then
 Module wdAPI
 
@@ -543,6 +544,20 @@ Public Enum SHELLKEY
     SHELLKEY_HKCULM_RW = SHELLKEY_HKCU_SHELLNOROAM '  deprecated
 End Enum
 
+Public Type DEFCONTEXTMENU
+    hwnd As LongPtr
+    pcmcb As IContextMenuCB ' optional: callback object
+    pidlFolder As LongPtr ' optional: IDList to folder of the items, computed from psf if NULL
+    psf As IShellFolder ' folder of the items
+    cidl As Long ' # of items in apidl
+    apidl As LongPtr ' items operating on, used to get IDataObject and IAssociationArray
+    punkAssociationInfo As IUnknown ' optional: IQueryAssociations, specifies where to load extensions from, computed from apidl if NULL
+    cKeys As Long ' # of items in aKeys, may be zero
+    aKeys As LongPtr ' optional: specifies where to load extensions from
+End Type
+
+
+
 [Description("Adds an item ID list to shell list of recently used documents, or clears documents from the list")]
 Public Declare PtrSafe Sub SHAddToRecentDocs Lib "shell32" (ByVal uFlags As SHARD, pv As Any)
 Public Declare PtrSafe Function SHGetStockIconInfo Lib "shell32" (ByVal siid As SHSTOCKICONID, ByVal uFlags As StockIconInfoFlags, psii As SHSTOCKICONINFO) As Long
@@ -572,6 +587,8 @@ Public Declare PtrSafe Function SHGetDesktopFolder Lib "shell32" (ppshf As IShel
 [Description("Retrieves IShellFolder interface for desktop folder, which is the root of the shell's namespace")]
 [PreserveSig(False)]
 Public Declare PtrSafe Function SHGetDesktopFolder Lib "shell32" () As IShellFolder
+Public Declare PtrSafe Function CDefFolderMenu_Create2 Lib "shell32" (ByVal pidl As LongPtr, ByVal hwnd As LongPtr, ByVal cidl As Long, apidl As LongPtr, ByVal psf As IShellFolder, ByVal pfn As LongPtr, ByVal nKeys As Long, ahkeys As LongPtr, ppcm As IContextMenu) As Long
+Public Declare PtrSafe Function SHCreateDefaultContextMenu Lib "shell32" (pdcm As DEFCONTEXTMENU, riid As UUID, ppv As Any) As Long
 [Description("Notifies system of event that may affect the shell")]
 Public Declare PtrSafe Sub SHChangeNotify Lib "shell32" (ByVal wEventId As SHCN_Events, ByVal uFlags As SHCN_Flags, Optional ByVal dwItem1 As LongPtr, Optional ByVal dwItem2 As LongPtr)
 Public Declare PtrSafe Function SHChangeNotifyRegister Lib "shell32" (ByVal hwnd As LongPtr, ByVal fSources As SHCNRF, ByVal fEvents As SHCN_Events, ByVal wMsg As Long, ByVal cEntries As Long, lpps As SHChangeNotifyEntry) As Long
@@ -599,7 +616,7 @@ Public Declare PtrSafe Function SHGetSpecialFolderLocation Lib "shell32" (ByVal 
 [PreserveSig(False)]
 Public Declare PtrSafe Function SHGetSpecialFolderLocation Lib "shell32" (ByVal hWnd As LongPtr, ByVal nFolder As CSIDLs) As LongPtr
 Public Declare PtrSafe Function SHCloneSpecialIDList Lib "shell32" (ByVal hWnd As LongPtr, ByVal csidl As CSIDLs, ByVal fCreate As BOOL) As LongPtr
-Public Declare PtrSafe Function SHGetSettings Lib "Shell32" (lpsfs As Integer, ByVal dwMask As SFS_MASK) As Long
+Public Declare PtrSafe Function SHGetSettings Lib "Shell32" (lpsfs As SHELLFLAGSTATE, ByVal dwMask As SFS_MASK) As Long
 Public Declare PtrSafe Sub SHGetSetSettings Lib "shell32" (ByRef lpss As SHELLSTATE, ByVal dwMask As SFS_MASK, ByVal bSet As Long)
 Public DeclareWide PtrSafe Function Shell_NotifyIcon Lib "shell32" Alias "Shell_NotifyIconW" (ByVal dwMessage As NI_MESSAGES, ByRef lpData As NOTIFYICONDATA) As BOOL
 Public Declare PtrSafe Function Shell_NotifyIconW Lib "shell32" (ByVal dwMessage As NI_MESSAGES, ByRef lpData As NOTIFYICONDATAW) As BOOL
@@ -736,6 +753,7 @@ Public Declare PtrSafe Function SHGetInstanceExplorer Lib "shell32" (ppunk As st
 [PreserveSig(False)]
 Public Declare PtrSafe Function SHGetInstanceExplorer Lib "shell32" () As stdole.IUnknown
 Public Declare PtrSafe Sub SHSetInstanceExplorer Lib "shell32" (Optional ByVal ppunk As stdole.IUnknown)
+Public Declare PtrSafe Function SHShellFolderView_Message Lib "shell32" (ByVal hWndMain As LongPtr, ByVal uMsg As Long, lParam As Any) As LongPtr
 [Description("Retrieves information about a file system object such as a file, a folder, a directory, or a drive root")]
 Public Declare PtrSafe Function SHGetFileInfoA Lib "shell32" (ByVal pszPath As Any, ByVal dwFileAttributes As Long, psfi As SHFILEINFOA, ByVal cbFileInfo As Long, ByVal uFlags As SHGFI_flags) As LongPtr
 [Description("Retrieves information about a file system object such as a file, a folder, a directory, or a drive root")]
@@ -813,6 +831,8 @@ Public Declare PtrSafe Function PathIsExe Lib "shell32" (ByVal pszPath As LongPt
 Public Declare PtrSafe Function PathMakeUniqueName Lib "shell32" (ByVal pszUniqueName As LongPtr, ByVal cchMax As Long, ByVal pszTemplate As LongPtr, Optional ByVal pszLongPlate As LongPtr, Optional ByVal pszDir As LongPtr) As BOOL
 Public Declare PtrSafe Function PathYetAnotherMakeUniqueName Lib "shell32" (ByVal pszUniqueName As LongPtr, ByVal pszPath As LongPtr, Optional ByVal pszShort As LongPtr, Optional ByVal pszFileSpec As LongPtr) As Long
 Public Declare PtrSafe Function PathResolve Lib "shell32" (ByVal pszPath As LongPtr, dirs As LongPtr, ByVal fFlags As PathResolveFlags) As Long
+Public DeclareWide PtrSafe Function GetFileNameFromBrowse Lib "shell32" (ByVal hwnd As LongPtr, ByVal pszFilePath As String, ByVal cchFilePath As Long, ByVal pszWorkingDir As String, ByVal pszDefExt As String, Optional ByVal pszFilters As String, Optional ByVal pszTitle As String) As BOOL
+Public Declare PtrSafe Function GetFileNameFromBrowse Lib "shell32" (ByVal hwnd As LongPtr, ByVal pszFilePath As LongPtr, ByVal cchFilePath As Long, ByVal pszWorkingDir As LongPtr, ByVal pszDefExt As LongPtr, Optional ByVal pszFilters As LongPtr, Optional ByVal pszTitle As LongPtr) As BOOL
 Public Declare PtrSafe Sub PathGetShortPath Lib "shell32" (ByVal pszLongPath As LongPtr)
 Public Declare PtrSafe Function SignalFileOpen Lib "shell32" (ByVal pidl As LongPtr) As BOOL
 Public Declare PtrSafe Function SHStartNetConnectionDialogA Lib "shell32" (ByVal hwnd As LongPtr, ByVal pszRemoteName As String, ByVal dwType As NetResourceTypeValues) As Long
@@ -1183,6 +1203,8 @@ Public Type CABINETSTATE
     Bitfield As Long
     fMenuEnumFilter As Long
 End Type
+
+Public Const CABINETSTATE_VERSION = 2
 
 Public Enum NetResourceTypeValues
     RESOURCETYPE_ANY = &H00000000
@@ -7256,6 +7278,59 @@ Public Enum PROC_THREAD_ATTRIBUTES ' attributes for ProcThreadAttributeList
     PROC_THREAD_ATTRIBUTE_MITIGATION_AUDIT_POLICY = &H20018
     PROC_THREAD_ATTRIBUTE_COMPONENT_FILTER = &H2001a
     PROC_THREAD_ATTRIBUTE_TRUSTED_APP = &H2001d
+    PROC_THREAD_ATTRIBUTE_NUMBER = &H0000FFFF&
+    PROC_THREAD_ATTRIBUTE_THREAD = &H00010000  ' Attribute may be used with thread creation
+    PROC_THREAD_ATTRIBUTE_INPUT = &H00020000  ' Attribute is input only
+    PROC_THREAD_ATTRIBUTE_ADDITIVE = &H00040000  ' Attribute may be "accumulated," e.g. bitmasks, counters, etc.
+End Enum
+
+Public Enum PROC_THREAD_ATTRIBUTE_NUM
+    ProcThreadAttributeParentProcess = 0
+    ProcThreadAttributeHandleList = 2
+    ' #if (_WIN32_WINNT >= _WIN32_WINNT_WIN7)
+    ProcThreadAttributeGroupAffinity = 3
+    ProcThreadAttributePreferredNode = 4
+    ProcThreadAttributeIdealProcessor = 5
+    ProcThreadAttributeUmsThread = 6
+    ProcThreadAttributeMitigationPolicy = 7
+    ' #endif
+    ' #if (_WIN32_WINNT >= _WIN32_WINNT_WIN8)
+    ProcThreadAttributeSecurityCapabilities = 9
+    ' #endif
+    ProcThreadAttributeProtectionLevel = 11
+    ' #if (_WIN32_WINNT >= _WIN32_WINNT_WINBLUE)
+    ' #endif
+    ' #if (_WIN32_WINNT >= _WIN32_WINNT_WINTHRESHOLD)
+    ProcThreadAttributeJobList = 13
+    ProcThreadAttributeChildProcessPolicy = 14
+    ProcThreadAttributeAllApplicationPackagesPolicy = 15
+    ProcThreadAttributeWin32kFilter = 16
+    ' #endif
+    ' #if (NTDDI_VERSION >= NTDDI_WIN10_RS1)
+    ProcThreadAttributeSafeOpenPromptOriginClaim = 17
+    ' #endif
+    ' #if (NTDDI_VERSION >= NTDDI_WIN10_RS2)
+    ProcThreadAttributeDesktopAppPolicy = 18
+    ' #endif
+    ' #if (NTDDI_VERSION >= NTDDI_WIN10_RS5)
+    ProcThreadAttributePseudoConsole = 22
+    ' #endif
+    ' #if (NTDDI_VERSION >= NTDDI_WIN10_19H1)
+    ' #endif
+    ' #if (NTDDI_VERSION >= NTDDI_WIN10_MN)
+    ProcThreadAttributeMitigationAuditPolicy = 24
+    ProcThreadAttributeMachineType = 25
+    ProcThreadAttributeComponentFilter = 26
+    ' #endif
+    ' #if (NTDDI_VERSION >= NTDDI_WIN10_FE)
+    ProcThreadAttributeEnableOptionalXStateFeatures = 27
+    ' #endif
+    ' #if (NTDDI_VERSION >= NTDDI_WIN10_NI)
+    ProcThreadAttributeTrustedApp = 29
+    ' #endif
+    ' #if (NTDDI_VERSION >= NTDDI_WIN11_GE)
+    ProcThreadAttributeSveVectorLength = 30
+    ' #endif
 End Enum
 
 Public Const PROCESS_CREATION_MITIGATION_POLICY_DEP_ENABLE  = &H01
@@ -10920,7 +10995,7 @@ Public DeclareWide PtrSafe Function CopyFileEx Lib "kernel32" Alias "CopyFileExW
 Public Declare PtrSafe Function CopyFileTransactedA Lib "kernel32" (ByVal lpExistingFileName As String, ByVal lpNewFileName As String, ByVal lpProgresRoutine As LongPtr, lpData As Any, pbCancel As BOOL, ByVal dwCopyFlags As CopyFileFlags, ByVal hTransaction As LongPtr) As BOOL
 Public DeclareWide PtrSafe Function CopyFileTransactedW Lib "kernel32" (ByVal lpExistingFileName As LongPtr, ByVal lpNewFileName As LongPtr, ByVal lpProgresRoutine As LongPtr, lpData As Any, pbCancel As BOOL, ByVal dwCopyFlags As CopyFileFlags, ByVal hTransaction As LongPtr) As BOOL
 Public DeclareWide PtrSafe Function CopyFileTransacted Lib "kernel32" Alias "CopyFileTransactedW" (ByVal lpExistingFileName As String, ByVal lpNewFileName As String, ByVal lpProgresRoutine As LongPtr, lpData As Any, pbCancel As BOOL, ByVal dwCopyFlags As CopyFileFlags, ByVal hTransaction As LongPtr) As BOOL
-Public Declare PtrSafe Function CopyFile2 Lib "kernel32" (ByVal lpExistingFileName As LongPtr, ByVal lpNewFileName As LongPtr, pExtendedParameters As COPYFILE2_EXTENDED_PARAMETERS) As BOOL
+Public Declare PtrSafe Function CopyFile2 Lib "kernel32" (ByVal lpExistingFileName As LongPtr, ByVal lpNewFileName As LongPtr, pExtendedParameters As Any) As BOOL
 Public Declare PtrSafe Function MoveFileA Lib "kernel32" (ByVal lpExistingFileName As String, ByVal lpNewFileName As String) As BOOL
 Public Declare PtrSafe Function MoveFileW Lib "kernel32" (ByVal lpExistingFileName As LongPtr, ByVal lpNewFileName As LongPtr) As BOOL
 Public DeclareWide PtrSafe Function MoveFile Lib "kernel32" Alias "MoveFileW" (ByVal lpExistingFileName As String, ByVal lpNewFileName As String) As BOOL
@@ -10993,9 +11068,28 @@ Public Declare PtrSafe Function FindFirstChangeNotificationW Lib "kernel32" (ByV
 Public DeclareWide PtrSafe Function FindFirstChangeNotification Lib "kernel32" Alias "FindFirstChangeNotificationW" (ByVal lpPathName As String, ByVal bWatchSubtree As BOOL, ByVal dwNotifyFilter As FILE_NOTIFY_CHANGE) As LongPtr
 Public Declare PtrSafe Function FindNextChangeNotification Lib "kernel32" (ByVal hChangeHandle As LongPtr) As BOOL
 Public Declare PtrSafe Function FindCloseChangeNotification Lib "kernel32" (ByVal hChangeHandle As LongPtr) As BOOL
-Public Declare PtrSafe Function ReadDirectoryChangesA Lib "kernel32" (ByVal hDirectory As LongPtr, ByVal lpBuffer As LongPtr, ByVal nBufferLength As Long, ByVal bWatchSubtree As BOOL, ByVal dwNotifyFilter As FILE_NOTIFY_CHANGE, lpBytesReturned As Long, lpOverlapped As OVERLAPPED, Optional ByVal lpCompletionRoutine As LongPtr) As BOOL
 Public Declare PtrSafe Function ReadDirectoryChangesW Lib "kernel32" (ByVal hDirectory As LongPtr, ByVal lpBuffer As LongPtr, ByVal nBufferLength As Long, ByVal bWatchSubtree As BOOL, ByVal dwNotifyFilter As FILE_NOTIFY_CHANGE, lpBytesReturned As Long, lpOverlapped As OVERLAPPED, Optional ByVal lpCompletionRoutine As LongPtr) As BOOL
 Public DeclareWide PtrSafe Function ReadDirectoryChanges Lib "kernel32" Alias "ReadDirectoryChangesW" (ByVal hDirectory As LongPtr, ByVal lpBuffer As LongPtr, ByVal nBufferLength As Long, ByVal bWatchSubtree As BOOL, ByVal dwNotifyFilter As FILE_NOTIFY_CHANGE, lpBytesReturned As Long, lpOverlapped As OVERLAPPED, Optional ByVal lpCompletionRoutine As LongPtr) As BOOL
+Public Declare PtrSafe Function ReadDirectoryChangesExW Lib "kernel32" (ByVal hDirectory As LongPtr, lpBuffer As Any, ByVal nBufferLength As Long, ByVal bWatchSubtree As BOOL, ByVal dwNotifyFilter As FILE_NOTIFY_CHANGE, lpBytesReturned As Long, lpOverlapped As OVERLAPPED, ByVal lpCompletionRoutine As LongPtr, ByVal ReadDirectoryNotifyInformationClass As READ_DIRECTORY_NOTIFY_INFORMATION_CLASS) As BOOL
+Public DeclareWide PtrSafe Function ReadDirectoryChangesEx Lib "kernel32" Alias "ReadDirectoryChangesExW" (ByVal hDirectory As LongPtr, lpBuffer As Any, ByVal nBufferLength As Long, ByVal bWatchSubtree As BOOL, ByVal dwNotifyFilter As FILE_NOTIFY_CHANGE, lpBytesReturned As Long, lpOverlapped As OVERLAPPED, ByVal lpCompletionRoutine As LongPtr, ByVal ReadDirectoryNotifyInformationClass As READ_DIRECTORY_NOTIFY_INFORMATION_CLASS) As BOOL
+
+' typedef
+' VOID
+' (WINAPI *LPOVERLAPPED_COMPLETION_ROUTINE)(
+    ' _In_    DWORD dwErrorCode,
+    ' _In_    DWORD dwNumberOfBytesTransfered,
+    ' _Inout_ LPOVERLAPPED lpOverlapped
+    ' );
+    
+Public Enum READ_DIRECTORY_NOTIFY_INFORMATION_CLASS
+    ReadDirectoryNotifyInformation = 1
+    ReadDirectoryNotifyExtendedInformation   ' 2
+    ' #if (NTDDI_VERSION >= NTDDI_WIN10_NI)
+    ReadDirectoryNotifyFullInformation   ' 3
+    ' #endif
+    '  add new classes above
+    ReadDirectoryNotifyMaximumInformation
+End Enum
 
 Public Enum FILE_ACTION_TYPES
     FILE_ACTION_ADDED = &H00000001
@@ -11085,6 +11179,7 @@ Public Enum CopyFileFlags
 	COPY_FILE_DISABLE_PRE_ALLOCATION = &H04000000
 	COPY_FILE_ENABLE_LOW_FREE_SPACE_MODE = &H08000000
 	COPY_FILE_ENABLE_SPARSE_COPY = &H20000000
+    COPY_FILE_DISABLE_SPARSE_COPY = &H80000000
 End Enum
 
 Public Const COPYFILE2_IO_CYCLE_SIZE_MIN  = 4096
@@ -11094,6 +11189,14 @@ Public Const COPYFILE2_IO_CYCLE_SIZE_MAX  = &H40000000
 '  minimum allowed requested average i/o rate, in kbytes per second
 '  (constrains COPYFILE2_EXTENDED_PARAMETERS_V2 ioDesiredRate field).
 Public Const COPYFILE2_IO_RATE_MIN  = 512
+
+Public Enum CopyFile2Flags
+    COPY_FILE2_V2_DONT_COPY_JUNCTIONS = &H00000001
+' #if (NTDDI_VERSION >= NTDDI_WIN11_GA)
+'   Disable attempting block cloning during copy
+    COPY_FILE2_V2_DISABLE_BLOCK_CLONING = &H00000002
+    COPY_FILE2_V2_VALID_FLAGS = (COPY_FILE2_V2_DONT_COPY_JUNCTIONS Or COPY_FILE2_V2_DISABLE_BLOCK_CLONING)
+End Enum
 
 Public Type COPYFILE2_EXTENDED_PARAMETERS
 	dwSize As Long
@@ -11110,7 +11213,7 @@ Public Type COPYFILE2_EXTENDED_PARAMETERS_V2
 	pvCallbackContext As LongPtr
 	' Additional copy flags (COPYFILE2_EXTENDED_PARAMETERS_V2 only;
 	' treated as zero if COPYFILE2_EXTENDED_PARAMETERS is used).
-	dwCopyFlagsV2 As Long
+	dwCopyFlagsV2 As CopyFile2Flags
 	' size of the i/o for each {read, write} cycle, in bytes
 	' (may be reduced, if insufficient memory is available)
 	' if zero: use a suitable default.
@@ -11121,8 +11224,10 @@ Public Type COPYFILE2_EXTENDED_PARAMETERS_V2
 	' requested average i/o rate, in kbytes per second.
 	' if zero: use a suitable default (usually as fast as possible).
 	ioDesiredRate As Long
+    pProgressRoutineOld As LongPtr
+    SourceOplockKeys As LongPtr
 	' reserved for future use; must be set to zero
-	reserved(0 To 7) As LongPtr
+	 reserved(0 To 5) As LongPtr
 End Type
 
 [Description("Copy union() to one of the COPYFILE2_INFO_* UDTs based on the Type member.")]
@@ -11183,6 +11288,15 @@ Public Type COPYFILE2_INFO_ERROR
     uliStreamBytesTransferred As LongLong
     uliTotalFileSize As LongLong
     uliTotalBytesTransferred As LongLong
+End Type
+
+Public Type COPYFILE2_CREATE_OPLOCK_KEYS
+    '  Parent oplock key.
+    '  All-zero if not set.
+    ParentOplockKey As UUID
+    '  Target oplock key.
+    '  All-zero if not set.
+    TargetOplockKey As UUID
 End Type
 
 Public Const CALLBACK_CHUNK_FINISHED  = &H00000000
@@ -11688,12 +11802,52 @@ Public Declare PtrSafe Function QueryProtectedPolicy Lib "kernel32" (PolicyGuid 
 Public DeclareWide PtrSafe Sub RaiseFailFastException Lib "kernel32" (pExceptionRecord As EXCEPTION_RECORD, pContextRecord As Any, ByVal dwFlags As FailFastExceptionFlags)
 [Description("**DEPRECATED** Only for 16bit compatibility. Use CreateProcess or ShellExecute.")]
 Public Declare PtrSafe Function WinExec Lib "kernel32" (ByVal lpCmdLine As String, ByVal uCmdShow As SHOWWINDOW) As Long
+Public Declare PtrSafe Function AddSecureMemoryCacheCallback Lib "kernel32" (ByVal pfnCallBack As LongPtr) As BOOL
+Public Declare PtrSafe Function RemoveSecureMemoryCacheCallback Lib "kernel32" (ByVal pfnCallBack As LongPtr) As BOOL
 
-
+Public Declare PtrSafe Function EnableThreadProfiling Lib "kernel32" (ByVal ThreadHandle As LongPtr, ByVal Flags As ThreadProfilingFlags, ByVal HardwareCounters As LongLong, PerformanceDataHandle As LongPtr) As Long
+Public Declare PtrSafe Function DisableThreadProfiling Lib "kernel32" (ByVal PerformanceDataHandle As LongPtr) As Long
+Public Declare PtrSafe Function QueryThreadProfiling Lib "kernel32" (ByVal ThreadHandle As LongPtr, Enabled As Byte) As Long
+Public Declare PtrSafe Function ReadThreadProfilingData Lib "kernel32" (ByVal PerformanceDataHandle As LongPtr, ByVal Flags As ReadThreadProfilingFlags, PerformanceData As PERFORMANCE_DATA) As Long
 
 Public Function GetCurrentProcessToken() As LongPtr: Return (-4): End Function
 Public Function GetCurrentThreadToken() As LongPtr: Return (-5): End Function
 Public Function GetCurrentThreadEffectiveToken() As LongPtr: Return (-6): End Function
+
+Public Const MAX_HW_COUNTERS = 16
+
+Public Enum ThreadProfilingFlags
+    THREAD_PROFILING_FLAG_DISPATCH = &H00000001
+End Enum
+
+Public Enum HARDWARE_COUNTER_TYPE
+    PMCCounter
+    MaxHardwareCounterType
+End Enum
+
+Public Enum ReadThreadProfilingFlags
+    READ_THREAD_PROFILING_FLAG_DISPATCHING = &H00000001
+    READ_THREAD_PROFILING_FLAG_HARDWARE_COUNTERS = &H00000002
+End Enum
+
+Public Type HARDWARE_COUNTER_DATA
+    Type As HARDWARE_COUNTER_TYPE
+    Reserved As Long
+    Value As LongLong
+End Type
+
+Public Const PERFORMANCE_DATA_VERSION = 1
+Public Type PERFORMANCE_DATA
+    Size As Integer
+    Version As Byte
+    HwCountersCount As Byte
+    ContextSwitchCount As Long
+    WaitReasonBitMap As LongLong
+    CycleTime As LongLong
+    RetryCount As Long
+    Reserved As Long
+    HwCounters(0 To (MAX_HW_COUNTERS - 1)) As HARDWARE_COUNTER_DATA
+End Type
 
 Public Enum ProcessAffinityUpdateFlags
     PROCESS_AFFINITY_ENABLE_AUTO_UPDATE = &H00000001
@@ -53674,7 +53828,7 @@ End Function
 
 [ConstantFoldable]
 Public Function CTL_CODE(ByVal DeviceType As DEVICE_TYPE, ByVal lFunction As Long, [TypeHint(CtlBufferPassMethod)] ByVal Method As Long, [TypeHint(DEVICE_FILE_ACCESS, FileAccessRights)] ByVal Access As Long) As Long
-   CTL_CODE = ((DeviceType) << 16) Or ((Access) << 14) Or ((lFunction) << 2) Or (Method)
+   CTL_CODE = ((DeviceType) << 16&) Or ((Access) << 14&) Or ((lFunction) << 2) Or (Method)
 End Function
 
 [Description("A 32 and 64bit compatible implementation of the classic helper function.")]
