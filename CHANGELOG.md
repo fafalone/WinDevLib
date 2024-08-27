@@ -1,4 +1,14 @@
 
+**Update (v8.3.440, 27 Aug 2024):**
+-Misc shell32 and kernel32 API additions.
+-SHELLFLAGSTATE was only for use to hold settings; not for use with API.
+  This version has been renamed SHELLFLAGSTATEFlags and SHELLFLAGSTATE is now just a single Long
+  representing the bitfield suitable for use with SHGetSettings.
+-(Bug fix) ID3D11DeviceContext::ClearRenderTargetView/ClearUnorderedAccessViewUint/ClearUnorderedAccessViewFloat, ID3D12GraphicsCommandList::ClearRenderTargetView definitions incorrect.
+-(Bug fix) ReadDirectoryChangesA does not exist
+-(Bug fix) SHGetSettings definition incorrect.
+-(Bug fix) SHChangeNotifyEntry missing packing alignment, leading to wrong size
+
 **Update (v8.3.439, 21 Aug 2024):**
 -(Bug fix) While checking BOOL was used where appropriate in MediaFoundation, numerous ByVal args that should be ByRef were uncovered...
            IMPORTANT: THIS MAY REQUIRE CODE CHANGES. If you use any of the following and used the workaround of VarPtr(), the VarPtr must now be removed:
