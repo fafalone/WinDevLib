@@ -1,6 +1,6 @@
 '************************************************************************************
 'WinDevLib - Windows Development Library for twinBASIC
-'Version 8.3.440
+'Version 8.3.442
 '(c) 2022-2024 Jon Johnson (fafalone)
 'Project GUID: {1FCDB98D-617D-4995-9736-2ED0E4746A10}
 '
@@ -771,8 +771,8 @@ End Interface
 [InterfaceId("22F55882-280B-11d0-A8A9-00A0C90C2004")]
 [OleAutomation(False)]
 Interface IPropertyBag2 Extends stdole.IUnknown
-    Sub Read(ByVal cProperties As Long, pPropBag As PROPBAG2, ByVal pErrLog As IErrorLog, ByVal pvarValue As LongPtr, ByVal phError As LongPtr)
-    Sub Write(ByVal cProperties As Long, pPropBag As PROPBAG2, ByVal pvarValue As LongPtr)
+    Sub Read(ByVal cProperties As Long, pPropBag As PROPBAG2, ByVal pErrLog As IErrorLog, ByVal pvarValue As LongPtr, phError As LongPtr)
+    Sub Write(ByVal cProperties As Long, pPropBag As PROPBAG2, pvarValue As Variant)
     Function CountProperties() As Long
     Sub GetPropertyInfo(ByVal iProperty As Long, ByVal cProperties As Long, pPropBag As PROPBAG2, pcProperties As Long)
     Sub LoadObject(ByVal pstrName As LongPtr, ByVal dwHint As Long, ByVal pUnkObject As stdole.IUnknown, ByVal pErrLog As IErrorLog)
@@ -1129,7 +1129,7 @@ Interface IShellLinkW Extends stdole.IUnknown
     Sub SetArguments(ByVal pszArgs As LongPtr)
     [TypeHint(VirtualKeyCodes)] Function GetHotkey() As Integer
     Sub SetHotkey([TypeHint(VirtualKeyCodes)] ByVal wHotkey As Integer)
-    Function GetShowCmd() As Long
+    Function GetShowCmd() As SHOWWINDOW
     Sub SetShowCmd(ByVal iShowCmd As SHOWWINDOW)
     Sub GetIconLocation(ByVal pszIconPath As LongPtr, ByVal cch As Long, piIcon As Long)
     Sub SetIconLocation(ByVal pszIconPath As LongPtr, ByVal iIcon As Long)
@@ -1137,7 +1137,6 @@ Interface IShellLinkW Extends stdole.IUnknown
     Sub Resolve(ByVal hwnd As LongPtr, ByVal fFlags As SLR_FLAGS)
     Sub SetPath(ByVal pszFile As LongPtr)
 End Interface
-
 [InterfaceId("45e2b4ae-b1c3-11d0-b92f-00a0c90312e1")]
 [OleAutomation(False)]
 Interface IShellLinkDataList Extends stdole.IUnknown
@@ -1152,7 +1151,7 @@ End Interface
 [InterfaceId("000214E4-0000-0000-C000-000000000046")]
 [OleAutomation(False)]
 Interface IContextMenu Extends stdole.IUnknown
-    Sub QueryContextMenu(ByVal hMenu As LongPtr, ByVal indexMenu As Long, ByVal idCmdFIrst As Long, ByVal idCmdLast As Long, ByVal uFlags As QueryContextMenuFlags)
+    Sub QueryContextMenu(ByVal hMenu As LongPtr, ByVal indexMenu As Long, ByVal idCmdFirst As Long, ByVal idCmdLast As Long, ByVal uFlags As QueryContextMenuFlags)
     Sub InvokeCommand(ByVal lpici As LongPtr)
     Sub GetCommandString(ByVal idCmd As Long, ByVal uType As GetCommandStringFlags, pwReserved As Long, ByVal pszName As LongPtr, ByVal cchMax As Long)
 End Interface
@@ -1313,7 +1312,7 @@ End Interface
 [OleAutomation(False)]
 Interface IFileOperation Extends stdole.IUnknown
     [PreserveSig] Function Advise(ByVal pfops As IFileOperationProgressSink, pdwCookie As Long) As Long
-    [PreserveSig] Function UnAdvise(ByVal dwCookie As Long) As Long
+    [PreserveSig] Function Unadvise(ByVal dwCookie As Long) As Long
     [PreserveSig] Function SetOperationFlags([TypeHint(FILEOP_FLAGS, FILEOP_FLAGSEX)] ByVal dwOperationFlags As Long) As Long
     [PreserveSig] Function SetProgressMessage(ByVal pszMessage As LongPtr) As Long
     [PreserveSig] Function SetProgressDialog(ByVal popd As IOperationsProgressDialog) As Long
@@ -1329,9 +1328,14 @@ Interface IFileOperation Extends stdole.IUnknown
     [PreserveSig] Function CopyItems(ByVal pUnkItems As stdole.IUnknown, ByVal psiDestinationFolder As IShellItem) As Long
     [PreserveSig] Function DeleteItem(ByVal psiItem As IShellItem, ByVal pfopsItem As IFileOperationProgressSink) As Long
     [PreserveSig] Function DeleteItems(ByVal pUnkItems As stdole.IUnknown) As Long
-    [PreserveSig] Function NewItem(ByVal psiDestinationFolder As IShellItem, ByVal dwFileAttributes As Long, ByVal pszName As LongPtr, ByVal pszTemplateName As LongPtr, ByVal pfopsitem As IFileOperationProgressSink) As Long
+    [PreserveSig] Function NewItem(ByVal psiDestinationFolder As IShellItem, ByVal dwFileAttributes As FILE_ATTRIBUTES, ByVal pszName As LongPtr, ByVal pszTemplateName As LongPtr, ByVal pfopsitem As IFileOperationProgressSink) As Long
     [PreserveSig] Function PerformOperations() As Long
-    [PreserveSig] Function GetAnyOperationsAborted(pfAnyOperationsAborted As Long) As Long
+    [PreserveSig] Function GetAnyOperationsAborted(pfAnyOperationsAborted As BOOL) As Long
+End Interface
+[InterfaceId("cd8f23c1-8f61-4916-909d-55bdd0918753")]
+[OleAutomation(False)]
+Interface IFileOperation2 Extends IFileOperation
+    [PreserveSig] Function SetOperationFlags2(ByVal operationFlags2 As FILE_OPERATION_FLAGS2) As Long
 End Interface
 
 [InterfaceId("0C9FB851-E5C9-43EB-A370-F0677B13874C")]
@@ -5613,15 +5617,29 @@ Public Enum SHOWWINDOW
 End Enum
 
 Public Enum GetCommandStringFlags
-	GCS_VERB = &H00000000
-	GCS_HELPTEXT = &H00000001
-	GCS_VALIDATE = &H00000002
+	GCS_VERBA = &H00000000
+	GCS_HELPTEXTA = &H00000001
+	GCS_VALIDATEA = &H00000002
 	GCS_VERBW = &H00000004
 	GCS_HELPTEXTW = &H00000005
 	GCS_VALIDATEW = &H00000006
 	GCS_VERBICONW = &H00000014
 	GCS_UNICODE = &H00000004
+    GCS_VERB = GCS_VERBW
+    GCS_HELPTEXT = GCS_HELPTEXTW
+    GCS_VALIDATE = GCS_VALIDATEW
 End Enum
+
+Public Const CMDSTR_NEWFOLDERA  = "NewFolder"
+Public Const CMDSTR_VIEWLISTA  = "ViewList"
+Public Const CMDSTR_VIEWDETAILSA  = "ViewDetails"
+Public Const CMDSTR_NEWFOLDERW  = "NewFolder"
+Public Const CMDSTR_VIEWLISTW  = "ViewList"
+Public Const CMDSTR_VIEWDETAILSW  = "ViewDetails"
+Public Const CMDSTR_NEWFOLDER  = CMDSTR_NEWFOLDERW
+Public Const CMDSTR_VIEWLIST  = CMDSTR_VIEWLISTW
+Public Const CMDSTR_VIEWDETAILS  = CMDSTR_VIEWDETAILSW
+
 Public Enum InvokeCommandMask
 	CMIC_MASK_HOTKEY = &H00000020
 	CMIC_MASK_ICON = &H00000010
@@ -5832,6 +5850,11 @@ Public Enum IFO_Flags
 	IFOX_REQUIREELEVATION = &H10000000 'VISTA SP1+
 	IFOX_COPYASDOWNLOAD = &H40000000 'WINDOWS 7+
 	IFOX_DONTDISPLAYLOCATIONS = &H80000000
+End Enum
+
+Public Enum FILE_OPERATION_FLAGS2
+    FOF2_NONE = 0
+    FOF2_MERGEFOLDERSONCOLLISION = &H1
 End Enum
 
 Public Const CONFLICT_RESOLUTION_CLSID_KEY = "ConflictResolutionCLSID"
