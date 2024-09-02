@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 8.3.440 (August 27th, 2024)**
+**Current Version: 8.3.441 (September 2nd, 2024)**
 
 ### IMPORTANT: [twinBASIC Beta 553 or newer](https://github.com/twinbasic/twinbasic/releases) is now required.
 
@@ -190,6 +190,15 @@ twinBASIC now counts msvbvm60 redirects as legacy DLL redirects, which WinDevLib
  
 
 ### Updates
+
+**Update (v8.3.441, 2 Sep 2024):**\
+-Added missing explicit A/W versions of [Get,Set]WindowLongPtr[A,W] and [Get,Set]ClassLongPtr[A,W].\
+  Put those and also moved the aliased versions to the Win64 block as they're not exported from the 32bit user32.dll\
+-Added interface IFileOperation2 (Win10RS4+).\
+-(API Standards) GetCommandStringFlags (GCS_* values) used ANSI as the unmarked (not -A or -W) version.\
+-(Bug fix) IPropertyBag2::Read/Write last args should be ByRef.\
+-(Bug fix) GetCharacterPlacement alias typo\
+-(Bug fix) COPYFILE2_MESSAGE union placeholder size incorrect for x64.
 
 **Update (v8.3.440, 27 Aug 2024):**\
 -Misc shell32 and kernel32 API additions.\
