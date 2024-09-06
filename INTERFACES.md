@@ -1,4 +1,4 @@
-## Raw list of interfaces contained in tbShellLib. This does not include any of the coclasses, APIs, etc, just interfaces.
+## Raw list of interfaces contained in WinDevLib. This does not include any of the coclasses, APIs, etc, just interfaces.
 
 ### Interfaces are sorted alphabetically, with no grouping.
 
