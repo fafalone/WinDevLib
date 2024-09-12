@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 8.3.442 (September 2nd, 2024)**
+**Current Version: 8.3.444 (September 12th, 2024)**
 
 ### IMPORTANT: [twinBASIC Beta 553 or newer](https://github.com/twinbasic/twinbasic/releases) is now required.
 
@@ -190,6 +190,28 @@ twinBASIC now counts msvbvm60 redirects as legacy DLL redirects, which WinDevLib
  
 
 ### Updates
+
+**Update (v8.3.444, 12 Sep 2024):**\
+-Added some missing netapi32 APIs from lmaccess.h\
+-LPWSTRToStr now sets the pointer to zero when fFree = True to prevent use-after-free crashes.\
+-Added missing ENDPOINT_HARDWARE_SUPPORT_* values for IAudioEndpointVolume::QueryHardwareSupport\
+-Buffered AUDIO_VOLUME_NOTIFICATION_DATA for 128 channels instead of 2\
+-Added some missing oaidl.idl types.\
+-There was no reason ITypeFactory should extend IUnknownUnrestricted instead of IUnknown\
+-(API Standards) FindFirstVolume[A], FindNextVolume[A] used LongPtr instead of String.\
+-(Bug fix) FindNextVolume[A,W] incorrect return type (only impacted x64).\
+-(Bug fix) IOwnerDataCallback.SetItemPosition takes a ByVal POINT, not ByRef (temp substitution of LongLong used pending proper support for ByVal UDTs)\
+-(Bug fix) LookupAccountName[A,W] ByVal/ByRef mixup.\
+-(Bug fix) LookupAccountSidLocal, ConvertStringSidToSid, FindFirstStreamTransacted, GetModuleHandleEx, GlobalGetAtomName, GetDiskFreeSpaceEx, GetSystemDirectory,\
+           GetStringTypeEx, GetTempPath2, EnumPropsEx, RegOpenKeyTransacted, RegConnectRegistryEx, SetupDiGetDeviceInterfacePropertyKeys, SetDefaultPrinter,\
+           AddPrinterDriverEx, DeletePrinterDriverEx, GetPrinterDriver2, DlgDirSelectEx, InternetGetPerSiteCookieDecision incorrect aliases.\
+           I created a routine to scan for this class of error, so hopefully this kind of mistake should be eliminated now.\
+-(Bug fix) FindFirstFileExTransacted should be FindFirstFileTransacted.\
+-(Bug fix) ExpandEnvironmentStringForUser should be ExpandEnvironmentStringsForUser.\
+-(Bug fix) RegRenameKey does not have A/W variants, only Unicode; these were removed, but this function is now overloaded to allow either String or LongPtr.\
+IMPORTANT: THIS MAY REQUIRE CODE CHANGES. If you use any of the following and used the workaround of VarPtr(), the VarPtr must now be removed:\
+-(Bug fix) ITypeComp::Bind last param should be ByRef BINDPTR.
+
 
 **Update (v8.3.442, 2 Sep 2024):**\
 -Added missing explicit A/W versions of [Get,Set]WindowLongPtr[A,W] and [Get,Set]ClassLongPtr[A,W].\
