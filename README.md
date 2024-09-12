@@ -202,8 +202,8 @@ twinBASIC now counts msvbvm60 redirects as legacy DLL redirects, which WinDevLib
 -(Bug fix) FindNextVolume[A,W] incorrect return type (only impacted x64).\
 -(Bug fix) IOwnerDataCallback.SetItemPosition takes a ByVal POINT, not ByRef (temp substitution of LongLong used pending proper support for ByVal UDTs)\
 -(Bug fix) LookupAccountName[A,W] ByVal/ByRef mixup.\
--(Bug fix) LookupAccountSidLocal, ConvertStringSidToSid, FindFirstStreamTransacted, GetModuleHandleEx, GlobalGetAtomName, GetDiskFreeSpaceEx, GetSystemDirectory,\
-           GetStringTypeEx, GetTempPath2, EnumPropsEx, RegOpenKeyTransacted, RegConnectRegistryEx, SetupDiGetDeviceInterfacePropertyKeys, SetDefaultPrinter,\
+-(Bug fix) LookupAccountSidLocal, ConvertStringSidToSid, FindFirstStreamTransacted, GetModuleHandleEx, GlobalGetAtomName, GetDiskFreeSpaceEx, GetSystemDirectory, 
+           GetStringTypeEx, GetTempPath2, EnumPropsEx, RegOpenKeyTransacted, RegConnectRegistryEx, SetupDiGetDeviceInterfacePropertyKeys, SetDefaultPrinter, 
            AddPrinterDriverEx, DeletePrinterDriverEx, GetPrinterDriver2, DlgDirSelectEx, InternetGetPerSiteCookieDecision incorrect aliases.\
            I created a routine to scan for this class of error, so hopefully this kind of mistake should be eliminated now.\
 -(Bug fix) FindFirstFileExTransacted should be FindFirstFileTransacted.\
