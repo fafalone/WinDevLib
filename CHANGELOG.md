@@ -1,4 +1,21 @@
 
+**Update (v8.4.446, 26 Sep 2024):**
+-WebView2 definitions updated to match current stable release 1.0.2792.45
+-(Experimental) InterlockedIncrement, InterlockedDecrement and InterlockedExchange are now inline assembly via Emit() 
+                instead of in a static library.
+                twinBASIC Beta 606 or newer is required for this; using the new TWINBASIC_BUILD compiler constant,
+                this feature is only enabled if supported and older versions use the static library version.
+-MIXERLINECONTROLS[A,W].dwControlType name changed to dwControlTypeOrID to properly indicate it's a union that can take either.
+-Cleared new compiler warnings to maintain strict mode compliance.
+-(Bug fix) Several String constants still had escaped slashes (\\), which in VBx and tB incorrectly produced both.
+-(Bug fix) PropSheet_ShowWizButtons macro incorrect.
+-(Bug fix) MIXERCONTROL[A,W] missing terminating reserved Long, so LenB would be incorrect.
+-(Bug fix) ICoreWebView2Profile7 missing method (also breaking ICoreWebView2Profile8)
+-TreeView_GetItemRect did not appear to be correct; it may or may not fixed now... it's one of those ridiculous 
+   pointer messes like *(*(HTREEITEM))prc where the lParam is used for both item handle and RECT.
+   I won't call the bug fixed until some thorough testing.
+ 
+ 
 **Update (v8.3.444, 11 Sep 2024):**
 -Added some missing netapi32 APIs from lmaccess.h
 -LPWSTRToStr now sets the pointer to zero when fFree = True to prevent use-after-free crashes.
@@ -838,7 +855,7 @@ RmRemoveFilter
 
 **Update (v5.2.210-212):** Additional APIs for upcoming project release.
 
-**Update (v5.2.208):** Substantial API additions; inc. SystemParametersInfo structs/enums, display config, raw input, missing dialog stuff. Additional standard helper macros found in Windows headers.
+**Update (v5.2.208, 30 Aug 2023):** Substantial API additions; inc. SystemParametersInfo structs/enums, display config, raw input, missing dialog stuff. Additional standard helper macros found in Windows headers.
 
 **Update (5.1.207):** 
 -Added PropSheet macros
@@ -1042,7 +1059,7 @@ RmRemoveFilter
 
 -Began expanding general API coverage
 
-**Update (v3.4.46):** Added all GDIPlus APIs and all Common Dialog APIs.
+**Update (v3.4.46, 09 Mar 2023):** Added all GDIPlus APIs and all Common Dialog APIs.
 
 **Update (v3.3.41):** Bug fix: IExplorerBrowserEvents::NavigationFailed was misspelled.
 
@@ -1088,7 +1105,7 @@ RmRemoveFilter
 
 -(Bug fix) D3D11CreateDevice and D3D11CreateDeviceAndSwapChain were declared incorrectly for 64bit compatibility (Softare param should be LongPtr).
 
-**Update (v3.0.10):** Added all missing Direct2D interfaces/types/enums and corrected bugs in slDirectX.
+**Update (v3.0.10, 16 Feb 2023):** Added all missing Direct2D interfaces/types/enums and corrected bugs in slDirectX.
 
 **Update (v2.9.90):** EXPERIEMENTAL: Added Direct3D 11 and 12.
 
@@ -1164,7 +1181,7 @@ Update (tbShellLibImpl v1.0.2): CRITICAL BUG FIX: IFolderView was missing GetDef
 
 Update (v2.4.49): IShellView::TranslateAccelerator was incorrectly named IShellView::TranslateAcceleratorSB.
 
-**Update (v2.4.48):** 
+**Update (v2.4.48, 26 Jan 2023):** 
 
 -CRITICAL BUG FIX: IFolderView was missing GetDefaultSpacing, breaking any use of it and IFolderView2.
 

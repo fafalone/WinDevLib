@@ -32,3 +32,5 @@ before release, or waiting on feature support:
 -NT reg VR differencing
 
 -bluetoothapis.h etc
+
+-Convert additional static lib stuff to Emit()
