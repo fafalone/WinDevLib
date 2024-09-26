@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 8.3.444 (September 12th, 2024)**
+**Current Version: 8.4.446 (September 26th, 2024)**
 
 ### IMPORTANT: [twinBASIC Beta 553 or newer](https://github.com/twinbasic/twinbasic/releases) is now required.
 
@@ -191,6 +191,22 @@ twinBASIC now counts msvbvm60 redirects as legacy DLL redirects, which WinDevLib
 
 ### Updates
 
+**Update (v8.4.446, 26 Sep 2024):**\
+-WebView2 definitions updated to match current stable release 1.0.2792.45\
+-(Experimental) InterlockedIncrement, InterlockedDecrement and InterlockedExchange are now inline assembly via Emit() 
+                instead of in a static library.\
+                twinBASIC Beta 606 or newer is required for this; using the new TWINBASIC_BUILD compiler constant,
+                this feature is only enabled if supported and older versions use the static library version.
+-MIXERLINECONTROLS[A,W].dwControlType name changed to dwControlTypeOrID to properly indicate it's a union that can take either.\
+-Cleared new compiler warnings to maintain strict mode compliance.\
+-(Bug fix) Several String constants still had escaped slashes (\\), which in VBx and tB incorrectly produced both.\
+-(Bug fix) PropSheet_ShowWizButtons macro incorrect.\
+-(Bug fix) MIXERCONTROL[A,W] missing terminating reserved Long, so LenB would be incorrect.\
+-(Bug fix) ICoreWebView2Profile7 missing method (also breaking ICoreWebView2Profile8)\
+-TreeView_GetItemRect did not appear to be correct; it may or may not fixed now... it's one of those ridiculous 
+   pointer messes like *(*(HTREEITEM))prc where the lParam is used for both item handle and RECT.\
+   I won't call the bug fixed until some thorough testing.
+   
 **Update (v8.3.444, 12 Sep 2024):**\
 -Added some missing netapi32 APIs from lmaccess.h\
 -LPWSTRToStr now sets the pointer to zero when fFree = True to prevent use-after-free crashes.\
