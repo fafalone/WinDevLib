@@ -1,4 +1,50 @@
 
+**Update (v8.5.450, 03 Oct 2024):**
+***NOTE:*** These bug fixes were identified through scanning for the actual entry points in DLLs.
+            About 75% of these bugs are errors in MSDN documentation or the SDK itself.
+-Removed some -A variants of functions that do not exist (many erroneously documented by MSDN or the SDK)
+-(Bug fix) MapViewOfFile2, LookupAccountSidLocal[A,W] is an inline macro, not dll export.
+-(Bug fix) DisconnectWindowsDialog name typo, also exported by ordinal only
+-(Bug fix) PssCaptureSnapshot, CreateCursor, CreateDIBPatternBrushPt, PropVariantToUInt16Vector,
+           SetupDiSetDeviceRegistryPropertyW, CM_Query_And_Remove_SubTree[A,W], AddPrinterDriverExA,
+           ShowHideMenuCtl, GetThemeFilename, BCryptProcessMultiOperations, MFDeserializeAttributesFromStream,
+           GdipPathIterNextSubpathPath, GdipSetImageAttributesNoOp, GetComputerObjectName[A,W] name typos
+-(Bug fix) TabbedTextOut[A,W] is in user32, not gdi32
+-(Bug fix) FreePrintPropertyValue is in spoolss.dll, not winspool.drv
+-(Bug fix) GetListBoxInfo is in user32, not comctl32
+-(Bug fix) ImageList_CoCreateInstance dll name typo
+-(Bug fix) CryptProtectDataNoUI, CryptUnprotectDataNoUI are in dpapi, not crypt32
+-(Bug fix) MFCreateAVIMediaSink, MFCreateWAVEMediaSink are in mfsrcsnk.dll, not mf.dll
+-(Bug fix) CryptRetrieveObjectByUrl[A,W], CryptInstallCancelRetrieval, CryptUninstallCancelRetrieval,
+           CryptCancelAsyncRetrieval, CryptGetObjectUrl, CryptGetTimeValidObject, CryptFlushTimeValidObject are in cryptnet, not crypt32
+-(Bug fix) CredPackAuthenticationBuffer[A,W], CredUnPackAuthenticationBuffer[A,W] are in credui, not advapi32
+-(Bug fix) [Un]SubscribeServiceChangeNotifications, LsaLookupOpenLocalPolicy, LsaLookupClose, LsaLookupTranslateSids,
+           LsaLookupTranslateNames, LsaLookupGetDomainInfo, OpenTraceFrom*, ProcessTraceBufferIncrementReference, 
+           ProcessTraceBufferDecrementReference, ProcessTraceAddBufferToBufferStream, CredProtectEx, CredUnprotectEx,
+           are in sechost, not advapi32
+-(Bug fix) CheckTokenCapability, DeriveCapabilitySidsFromNamed, GetAppContainerAce are kernel32, not advapi32
+-(Bug fix) QueryContextAttributesEx[A,W], QueryCredentialsAttributes[A,W] are in sspicli, not secur32
+-(Bug fix) LsaRegisterLogonProcess, LsaDeregisterLogonProcess, LsaLogonUser, LsaLookupAuthenticationPackage,
+           LsaCallAuthenticationPackage, LsaFreeReturnBuffer, LsaEnumerateLogonSessions, LsaGetLogonSessionData,
+           LsaRegisterPolicyChangeNotification, LsaUnregisterPolicyChangeNotification, LsaConnectUntrusted, are in secur32, not advapi32
+-(Bug fix) CreateRestrictedToken is in advapi32, not kernel32
+-(Bug fix) RegisterWindowMessage, SHCreateDirectoryEx, GetCPInfoEx, GetStartupInfo, FindText, ReplaceText, GetIconInfoEx,
+           DrawText, EnumICMProfiles, HttpSendRequest, ChangeAccountPassword missing aliases
+-(Bug fix) TerminateProcessOnMemoryExhaustion, GetIntegratedDisplaySize, GetOsManufacturingMode, LoadStringByReference,
+           VirtualAlloc2, SetProcessValidCallTargets[ForMappedView], QueryVirtualMemoryInformation, LoadEnclaveImage[A,W],
+           CallEnclave, TerminateEnclave, DeleteEnclave, EncodeRemotePointer, DecodeRemotePointer, MapViewOfFileNuma2,
+           MapViewOfFile3, UnmapViewOfFile2, SetSystemTimeAdjustmentPrecise, GetSystemTimeAdjustmentPrecise, ImpersonateNamedPipeClient,
+           OpenCommPort, GetCommPorts are in kernelbase, not kernel32.
+-(Bug fix) GetPerformanceInfo, GetProcessMemoryInfo, InitializeProcessForWsWatch, GetWsChanges[Ex], QueryWorkingSet[Ex],
+           GetModuleFileNameEx[A,W], GetProcessImageFileName[A,W], EnumProcesses, EnumProcessModules[Ex], EnumPageFiles[A,W],
+           EnumDeviceDrivers, GetDeviceDriverBaseName[A,W], GetMappedFileName[A,W], GetModuleBaseName[A,W], GetModuleInformation,
+           are in psapi, not kernel32
+-(Bug fix) SHRunControlPanel, SHOpenPropSheetA, SHStartNetConnectionDialogA, RunFileDlg, SHCreateFilter, CheckDiskSpace,
+           CopyStreamUI, CreateInfoTipFromItem[2], GetAppPathFromLink, IsElevationRequired, IsSearchEnabled, PathGetPathDisplayName,
+           SHGetUserPicturePath[Ex], SHSetUserPicturePath, PathUnExpandEnvStringsForUser[A,W], AssocGetUrlAction,
+           SHCreateStreamOnDllResource[W], SHCreateStreamOnModuleResource[W], SHAreIconsEqual, SHGlobalCounterGetValue,
+           SHGlobalCounterIncrement, SHGlobalCounterDecrement, ImageList_SetColorTable exported by ordinal only
+
 **Update (v8.4.446, 26 Sep 2024):**
 -WebView2 definitions updated to match current stable release 1.0.2792.45
 -(Experimental) InterlockedIncrement, InterlockedDecrement and InterlockedExchange are now inline assembly via Emit() 
