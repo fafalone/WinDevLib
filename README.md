@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 8.5.450 (October 3rd, 2024)**
+**Current Version: 8.5.451 (October 4th, 2024)**
 
 ### IMPORTANT: [twinBASIC Beta 553 or newer](https://github.com/twinbasic/twinbasic/releases) is now required.
 
@@ -190,6 +190,10 @@ twinBASIC now counts msvbvm60 redirects as legacy DLL redirects, which WinDevLib
  
 
 ### Updates
+
+**Update (v8.5.451, 04 Oct 2024):**\
+-CryptProtectMemory and CryptUnProtectMemory in crypt32 are just forwarders; these now point directly at their targets in dpapi.\
+-(Bug fix) WindowsCreateString[Reference] definitions incorrect.
 
 **Update (v8.5.450, 03 Oct 2024):**\
 ***NOTE:*** These bug fixes were identified through scanning for the actual entry points in DLLs.\
