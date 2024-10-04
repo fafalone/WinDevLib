@@ -1,4 +1,9 @@
 
+**Update (v8.5.451, 04 Oct 2024):**
+-CryptProtectMemory and CryptUnProtectMemory in crypt32 are just forwarders; these now point directly
+ at their targets in dpapi.
+-(Bug fix) WindowsCreateString[Reference] definitions incorrect.
+ 
 **Update (v8.5.450, 03 Oct 2024):**
 ***NOTE:*** These bug fixes were identified through scanning for the actual entry points in DLLs.
             About 75% of these bugs are errors in MSDN documentation or the SDK itself.
