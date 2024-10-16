@@ -34,3 +34,5 @@ before release, or waiting on feature support:
 -bluetoothapis.h etc
 
 -Convert additional static lib stuff to Emit()
+
+-Put IShellPropSheetExt delegates back
