@@ -1,9 +1,9 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 8.5.451 (October 4th, 2024)**
+**Current Version: 8.5.454 (October 15th, 2024)**
 
-### IMPORTANT: [twinBASIC Beta 553 or newer](https://github.com/twinbasic/twinbasic/releases) is now required.
+## IMPORTANT: [twinBASIC Beta 617 or newer](https://github.com/twinbasic/twinbasic/releases) is now required.
 
 (c) 2022-2024 Jon Johnson (fafalone)
 
@@ -190,6 +190,24 @@ twinBASIC now counts msvbvm60 redirects as legacy DLL redirects, which WinDevLib
  
 
 ### Updates
+
+**Update (v8.5.454, 15 Oct 2024):**\
+**twinBASIC Beta 617 or newer is now required!**\
+-I've begun replacing specifically defined callbacks with Delegate function pointers. These will allow you to,
+ like C/C++, see the prototype for the function you implement for it.\
+ This will not break existing code, however it may generate a warning about implicit conversion to a Delegate
+ if you use a Long(Ptr) variable. You can change the type to the Delegate, or disable the warning.\
+ This will be an ongoing process and only a small percentage are completed in this initial update.\
+-Turns out several of us forgot variadic functions are actually supported (in user mode at least)... so now
+ AuthzReportSecurityEvent, ShellMessageBox[A,W], and DbgPrint use the proper ByVal ParamArray vargs As Any()
+ syntax to support it. These are all ByVal so pass ByRefs as ByVal VarPtr() etc.\
+-Added DXVA2 monitor APIs (physicalmonitorenumerationapi.h, highlevelmonitorconfigurationapi.h, and lowlevelmonitorconfigurationapi.h; 100% coverage)\
+-Added missing inlined APIs from evntcons.h\
+-Added missing winuser.h functions wsprintf/wsvprintf and related.\
+-(Bug fix) DXVA2CreateDirect3DDeviceManager9 typo in name.\
+-(Bug fix) GdipEnumerateMetafile* API definition issues\
+-(Bug fix) GDIP APIs with invalid Optional ByRef As Any arguments\
+-(Bug fix) RtlCrc64 definition incorrect.
 
 **Update (v8.5.451, 04 Oct 2024):**\
 -CryptProtectMemory and CryptUnProtectMemory in crypt32 are just forwarders; these now point directly at their targets in dpapi.\
