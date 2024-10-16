@@ -174,6 +174,8 @@ Public Type SHFOLDERCUSTOMSETTINGS
     ' Ignored if dwReadWrite is FCS_READ
 End Type
 
+' typedef int (CALLBACK* BFFCALLBACK)(HWND hwnd, UINT uMsg, LPARAM lParam, LPARAM lpData);
+Public Delegate Function BrowseCallbackProc (ByVal hWnd As LongPtr, ByVal uMsg As Long, ByVal lParam As LongPtr, ByVal lpData As LongPtr) As Long
 
 Public Type BROWSEINFOA
 	hwndOwner As LongPtr
@@ -181,7 +183,7 @@ Public Type BROWSEINFOA
 	pszDisplayName As String ' Return display name of item selected.
 	lpszTitle As String ' text to go in the banner over the tree.
 	ulFlags As BFF_Flags ' Flags that control the return stuff
-	lpfn As LongPtr
+	lpfn As BrowseCallbackProc
 	lParam As LongPtr ' extra info that's passed back in callbacks
 	iImage As Long ' output var: where to return the Image index.
 End Type
@@ -191,7 +193,7 @@ Public Type BROWSEINFOW
 	pszDisplayName As LongPtr ' Return display name of item selected.
 	lpszTitle As LongPtr ' text to go in the banner over the tree.
 	ulFlags As BFF_Flags ' Flags that control the return stuff
-	lpfn As LongPtr
+	lpfn As BrowseCallbackProc
 	lParam As LongPtr ' extra info that's passed back in callbacks
 	iImage As Long ' output var: where to return the Image index.
 End Type
@@ -201,7 +203,7 @@ Public Type BROWSEINFO
 	pszDisplayName As LongPtr ' Return display name of item selected.
 	lpszTitle As LongPtr ' text to go in the banner over the tree.
 	ulFlags As BFF_Flags ' Flags that control the return stuff
-	lpfn As LongPtr
+	lpfn As BrowseCallbackProc
 	lParam As LongPtr ' extra info that's passed back in callbacks
 	iImage As Long ' output var: where to return the Image index.
 End Type
@@ -556,7 +558,39 @@ Public Type DEFCONTEXTMENU
     aKeys As LongPtr ' optional: specifies where to load extensions from
 End Type
 
-
+Public Enum DefFolderMenuMessages
+    DFM_MERGECONTEXTMENU = 1  ' uFlags       LPQCMINFO
+    DFM_INVOKECOMMAND = 2  ' idCmd        pszArgs
+    DFM_GETHELPTEXT = 5  ' idCmd,cchMax pszText -Ansi
+    DFM_WM_MEASUREITEM = 6  ' ---from the message---
+    DFM_WM_DRAWITEM = 7  ' ---from the message---
+    DFM_WM_INITMENUPOPUP = 8  ' ---from the message---
+    DFM_VALIDATECMD = 9  ' idCmd        0
+    DFM_MERGECONTEXTMENU_TOP = 10  ' uFlags       LPQCMINFO
+    DFM_GETHELPTEXTW = 11  ' idCmd,cchMax pszText -Unicode
+    DFM_INVOKECOMMANDEX = 12  ' idCmd        PDFMICS
+    DFM_MAPCOMMANDNAME = 13  ' idCmd *      pszCommandName
+    DFM_GETDEFSTATICID = 14  ' idCmd *      0
+    DFM_GETVERBW = 15  ' idCmd,cchMax pszText -Unicode
+    DFM_GETVERBA = 16  ' idCmd,cchMax pszText -Ansi
+    DFM_MERGECONTEXTMENU_BOTTOM = 17  ' uFlags       LPQCMINFO
+    DFM_MODIFYQCMFLAGS = 18  ' uFlags       UINT *puNewFlags;   modify the CFM_XXX values passed to IContextMenu::QueryContextMenu
+End Enum
+Public Enum DefFolderMenuCommands
+    DFM_CMD_DELETE = (-1)
+    DFM_CMD_MOVE = (-2)
+    DFM_CMD_COPY = (-3)
+    DFM_CMD_LINK = (-4)
+    DFM_CMD_PROPERTIES = (-5)
+    DFM_CMD_NEWFOLDER = (-6)
+    DFM_CMD_PASTE = (-7)
+    DFM_CMD_VIEWLIST = (-8)
+    DFM_CMD_VIEWDETAILS = (-9)
+    DFM_CMD_PASTELINK = (-10)
+    DFM_CMD_PASTESPECIAL = (-11)
+    DFM_CMD_MODALPROP = (-12)
+    DFM_CMD_RENAME = (-13)
+End Enum
 
 [Description("Adds an item ID list to shell list of recently used documents, or clears documents from the list")]
 Public Declare PtrSafe Sub SHAddToRecentDocs Lib "shell32" (ByVal uFlags As SHARD, pv As Any)
@@ -590,7 +624,11 @@ Public Declare PtrSafe Function SHGetDesktopFolder Lib "shell32" (ppshf As IShel
 [Description("Retrieves IShellFolder interface for desktop folder, which is the root of the shell's namespace")]
 [PreserveSig(False)]
 Public Declare PtrSafe Function SHGetDesktopFolder Lib "shell32" () As IShellFolder
-Public Declare PtrSafe Function CDefFolderMenu_Create2 Lib "shell32" (ByVal pidl As LongPtr, ByVal hwnd As LongPtr, ByVal cidl As Long, apidl As LongPtr, ByVal psf As IShellFolder, ByVal pfn As LongPtr, ByVal nKeys As Long, ahkeys As LongPtr, ppcm As IContextMenu) As Long
+' typedef HRESULT (CALLBACK * LPFNDFMCALLBACK)(_In_opt_ IShellFolder *psf, _In_opt_ HWND hwnd,
+'                        _In_opt_ IDataObject *pdtobj, UINT uMsg, WPARAM wParam, LPARAM lParam);
+Public Delegate Function DFMCallback (ByVal psf As IShellFolder, ByVal hWnd As LongPtr, ByVal pdtobj As IDataObject, _
+                                        ByVal uMsg As DefFolderMenuMessages, ByVal wParam As LongPtr, ByVal lParam As LongPtr) As Long
+Public Declare PtrSafe Function CDefFolderMenu_Create2 Lib "shell32" (ByVal pidl As LongPtr, ByVal hwnd As LongPtr, ByVal cidl As Long, apidl As LongPtr, ByVal psf As IShellFolder, ByVal pfn As DFMCallback, ByVal nKeys As Long, ahkeys As LongPtr, ppcm As IContextMenu) As Long
 Public Declare PtrSafe Function SHCreateDefaultContextMenu Lib "shell32" (pdcm As DEFCONTEXTMENU, riid As UUID, ppv As Any) As Long
 [Description("Notifies system of event that may affect the shell")]
 Public Declare PtrSafe Sub SHChangeNotify Lib "shell32" (ByVal wEventId As SHCN_Events, ByVal uFlags As SHCN_Flags, Optional ByVal dwItem1 As LongPtr, Optional ByVal dwItem2 As LongPtr)
@@ -812,9 +850,9 @@ Public DeclareWide PtrSafe Function ExtractAssociatedIcon Lib "shell32" Alias "E
 Public Declare PtrSafe Function ExtractAssociatedIconExA Lib "shell32" (ByVal hInst As LongPtr, ByVal pszIconPath As String, piIconIndex As Integer, piIconId As Integer) As LongPtr
 Public Declare PtrSafe Function ExtractAssociatedIconExW Lib "shell32" (ByVal hInst As LongPtr, ByVal pszIconPath As LongPtr, piIconIndex As Integer, piIconId As Integer) As LongPtr
 Public DeclareWide PtrSafe Function ExtractAssociatedIconEx Lib "shell32" Alias "ExtractAssociatedIconExW" (ByVal hInst As LongPtr, ByVal pszIconPath As String, piIconIndex As Integer, piIconId As Integer) As LongPtr
-Public Declare PtrSafe Function ShellMessageBoxA CDecl Lib "shell32" (ByVal hAppInst As LongPtr, ByVal hwnd As LongPtr, ByVal lpcText As String, ByVal lpcTitle As String, ByVal uType As MessageBoxFlags, Optional ByVal argarr1 As LongPtr, Optional ByVal argarr2 As LongPtr, Optional ByVal argarr3 As LongPtr, Optional ByVal argarr4 As LongPtr) As MessageBoxResults
-Public DeclareWide PtrSafe Function ShellMessageBoxW CDecl Lib "shell32" (ByVal hAppInst As LongPtr, ByVal hwnd As LongPtr, ByVal lpcText As LongPtr, ByVal lpcTitle As LongPtr, ByVal uType As MessageBoxFlags, Optional ByVal argarr1 As LongPtr, Optional ByVal argarr2 As LongPtr, Optional ByVal argarr3 As LongPtr, Optional ByVal argarr4 As LongPtr) As MessageBoxResults
-Public DeclareWide PtrSafe Function ShellMessageBox CDecl Lib "shell32" Alias "ShellMessageBoxW" (ByVal hAppInst As LongPtr, ByVal hwnd As LongPtr, ByVal lpcText As String, ByVal lpcTitle As String, ByVal uType As MessageBoxFlags, Optional ByVal argarr1 As LongPtr, Optional ByVal argarr2 As LongPtr, Optional ByVal argarr3 As LongPtr, Optional ByVal argarr4 As LongPtr) As MessageBoxResults
+Public Declare PtrSafe Function ShellMessageBoxA CDecl Lib "shell32" (ByVal hAppInst As LongPtr, ByVal hwnd As LongPtr, ByVal lpcText As String, ByVal lpcTitle As String, ByVal uType As MessageBoxFlags, ByVal ParamArray vargs As Any()) As MessageBoxResults
+Public DeclareWide PtrSafe Function ShellMessageBoxW CDecl Lib "shell32" (ByVal hAppInst As LongPtr, ByVal hwnd As LongPtr, ByVal lpcText As LongPtr, ByVal lpcTitle As LongPtr, ByVal uType As MessageBoxFlags, ByVal ParamArray vargs As Any()) As MessageBoxResults
+Public DeclareWide PtrSafe Function ShellMessageBox CDecl Lib "shell32" Alias "ShellMessageBoxW" (ByVal hAppInst As LongPtr, ByVal hwnd As LongPtr, ByVal lpcText As String, ByVal lpcTitle As String, ByVal uType As MessageBoxFlags, ByVal ParamArray vargs As Any()) As MessageBoxResults
 Public Declare PtrSafe Function ShellAboutA Lib "shell32" (ByVal hwnd As LongPtr, ByVal szApp As String, Optional ByVal szOtherStuff As String = vbNullString, Optional ByVal hIcon As LongPtr = 0) As Long
 Public Declare PtrSafe Function ShellAboutW Lib "shell32" (ByVal hwnd As LongPtr, ByVal szApp As LongPtr, Optional ByVal szOtherStuff As LongPtr = 0, Optional ByVal hIcon As LongPtr = 0) As Long
 Public DeclareWide PtrSafe Function ShellAbout Lib "shell32" Alias "ShellAboutW" (ByVal hwnd As LongPtr, ByVal szApp As String, Optional ByVal szOtherStuff As String = vbNullString, Optional ByVal hIcon As LongPtr = 0) As Long
@@ -1121,6 +1159,48 @@ Public Type DRAGINFO
    grfKeyState As KeyStateMouse
 End Type
 
+Public Enum ShellFolderViewMessages
+' //              uMsg    wParam             lParam
+    SFVM_MERGEMENU = 1  ' -                  LPQCMINFO
+    SFVM_INVOKECOMMAND = 2  ' idCmd              -
+    SFVM_GETHELPTEXT = 3  ' idCmd,cchMax       pszText
+    SFVM_GETTOOLTIPTEXT = 4  ' idCmd,cchMax       pszText
+    SFVM_GETBUTTONINFO = 5  ' -                  LPTBINFO
+    SFVM_GETBUTTONS = 6  ' idCmdFirst,cbtnMax LPTBBUTTON
+    SFVM_INITMENUPOPUP = 7  ' idCmdFirst,nIndex  hmenu
+    SFVM_FSNOTIFY = 14  ' LPCITEMIDLIST*     lEvent
+    SFVM_WINDOWCREATED = 15  ' hwnd               -
+    SFVM_GETDETAILSOF = 23  ' iColumn            DETAILSINFO*
+    SFVM_COLUMNCLICK = 24  ' iColumn            -
+    SFVM_QUERYFSNOTIFY = 25  ' -                  SHChangeNotifyEntry *
+    SFVM_DEFITEMCOUNT = 26  ' -                  UINT*
+    SFVM_DEFVIEWMODE = 27  ' -                  FOLDERVIEWMODE*
+    SFVM_UNMERGEMENU = 28  ' -                  hmenu
+    SFVM_UPDATESTATUSBAR = 31  ' fInitialize        -
+    SFVM_BACKGROUNDENUM = 32  ' -                  -
+    SFVM_DIDDRAGDROP = 36  ' dwEffect           IDataObject *
+    SFVM_SETISFV = 39  ' -                  IShellFolderView*
+    SFVM_THISIDLIST = 41  ' -                  LPITMIDLIST*
+    SFVM_ADDPROPERTYPAGES = 47  ' -                  SFVM_PROPPAGE_DATA *
+    SFVM_BACKGROUNDENUMDONE = 48  ' -                  -
+    SFVM_GETNOTIFY = 49  ' LPITEMIDLIST*      LONG*
+    SFVM_GETSORTDEFAULTS = 53  ' iDirection         iParamSort
+    SFVM_SIZE = 57  ' -                  -
+    SFVM_GETZONE = 58  ' -                  DWORD*
+    SFVM_GETPANE = 59  ' Pane ID            DWORD*
+    SFVM_GETHELPTOPIC = 63  ' -                  SFVM_HELPTOPIC_DATA *
+    SFVM_GETANIMATION = 68  ' HINSTANCE *        WCHAR *
+End Enum
+' typedef HRESULT (CALLBACK * LPFNVIEWCALLBACK)(_In_ IShellView *psvOuter,
+                                              ' _In_ IShellFolder *psf,
+                                              ' _In_ HWND hwndMain,
+                                              ' UINT uMsg,
+                                              ' WPARAM wParam,
+                                              ' LPARAM lParam);
+
+
+Public Delegate Function ViewCallback (ByVal psvOuter As IShellView, ByVal psf As IShellFolder, ByVal hwndMain As LongPtr, _
+                                        ByVal uMsg As ShellFolderViewMessages, ByVal wParam As LongPtr, ByVal lParam As LongPtr) As Long
 
 Public Type CSFV
     cbSize As Long
@@ -1128,7 +1208,7 @@ Public Type CSFV
     psvOuter As IShellView
     pidl As LongPtr
     lEvents As Long
-    pfnCallback As LongPtr ' No callback if NULL
+    pfnCallback As ViewCallback ' No callback if NULL
     fvm As FOLDERVIEWMODE
 End Type
 
@@ -10932,15 +11012,15 @@ Public Declare PtrSafe Function RollbackComplete Lib "ktmw32" (ByVal EnlistmentH
 Public Declare PtrSafe Function SinglePhaseReject Lib "ktmw32" (ByVal EnlistmentHandle As LongPtr, TmVirtualClock As LARGE_INTEGER) As BOOL
 
 
-
-Public Declare PtrSafe Function WriteFile Lib "kernel32" (ByVal hFile As LongPtr, lpBuffer As Any, ByVal nNumberOfBytesToWrite As Long, lpNumberOfBytesWritten As Long, lpOverlapped As OVERLAPPED) As Long
-Public Declare PtrSafe Function WriteFileEx Lib "kernel32" (ByVal hFile As LongPtr, lpBuffer As Any, ByVal nNumberOfBytesToWrite As Long, lpNumberOfBytesWritten As Long, lpOverlapped As OVERLAPPED, ByVal lpCompletionRoutine As LongPtr) As Long
+Public Delegate Sub FileIOCompletionRoutine (ByVal dwErrorCode As Long, ByVal dwNumberOfBytesTransfered As Long, ByVal lpOverlapped As LongPtr)
+Public Declare PtrSafe Function WriteFile Lib "kernel32" (ByVal hFile As LongPtr, lpBuffer As Any, ByVal nNumberOfBytesToWrite As Long, lpNumberOfBytesWritten As Long, lpOverlapped As OVERLAPPED) As BOOL
+Public Declare PtrSafe Function WriteFileEx Lib "kernel32" (ByVal hFile As LongPtr, lpBuffer As Any, ByVal nNumberOfBytesToWrite As Long, lpNumberOfBytesWritten As Long, lpOverlapped As OVERLAPPED, ByVal lpCompletionRoutine As FileIOCompletionRoutine) As BOOL
 Public Declare PtrSafe Function WriteFileGather Lib "kernel32" (ByVal hFile As LongPtr, aSegmentArray As FILE_SEGMENT_ELEMENT, ByVal nNumberOfBytesToWrite As Long, lpReserved As Long, lpOverlapped As OVERLAPPED) As BOOL
-Public Declare PtrSafe Function ReadFile Lib "kernel32" (ByVal hFile As LongPtr, lpBuffer As Any, ByVal nNumberOfBytesToRead As Long, lpNumberOfBytesRead As Long, lpOverlapped As OVERLAPPED) As Long
+Public Declare PtrSafe Function ReadFile Lib "kernel32" (ByVal hFile As LongPtr, lpBuffer As Any, ByVal nNumberOfBytesToRead As Long, lpNumberOfBytesRead As Long, lpOverlapped As OVERLAPPED) As BOOL
 Public Declare PtrSafe Function ReadFileEx Lib "kernel32" (ByVal hFile As LongPtr, lpBuffer As Any, ByVal nNumberOfBytesToRead As Long, lpNumberOfBytesRead As Long, lpOverlapped As OVERLAPPED, ByVal lpCompletionRoutine As LongPtr) As BOOL
 Public Declare PtrSafe Function ReadFileScatter Lib "kernel32" (ByVal hFile As LongPtr, aSegmentArray As FILE_SEGMENT_ELEMENT, ByVal nNumberOfBytesToRead As Long, lpReserved As Long, lpOverlapped As OVERLAPPED) As BOOL
 Public Declare PtrSafe Function SetFilePointer Lib "kernel32" (ByVal hFile As LongPtr, ByVal lDistanceToMove As Long, lpDistanceToMoveHigh As Long, ByVal dwMoveMethod As FileMoveMethods) As Long
-Public Declare PtrSafe Function SetFilePointerEx Lib "kernel32" (ByVal hFile As LongPtr, ByVal lDistanceToMove As LongLong, lpDistanceToMoveHigh As LongLong, ByVal dwMoveMethod As FileMoveMethods) As Long
+Public Declare PtrSafe Function SetFilePointerEx Lib "kernel32" (ByVal hFile As LongPtr, ByVal lDistanceToMove As LongLong, lpDistanceToMoveHigh As LongLong, ByVal dwMoveMethod As FileMoveMethods) As BOOL
 Public Declare PtrSafe Function SetEndOfFile Lib "kernel32" (ByVal hFile As LongPtr) As Long
 Public Declare PtrSafe Function CreateFileA Lib "kernel32" (ByVal lpFileName As String, [TypeHint(GenericRights, StandardAccessTypes , FileAccessRights)] ByVal dwDesiredAccess As Long, ByVal dwShareMode As FileShareMode, lpSecurityAttributes As SECURITY_ATTRIBUTES, ByVal dwCreationDisposition As CreateFileDisposition, [TypeHint(FILE_FLAGS, FILE_ATTRIBUTES , SQOS_Bits)] ByVal dwFlagsAndAttributes As Long, ByVal hTemplateFile As LongPtr) As LongPtr
 Public Declare PtrSafe Function CreateFileW Lib "kernel32" (ByVal lpFileName As LongPtr, [TypeHint(GenericRights, StandardAccessTypes , FileAccessRights)] ByVal dwDesiredAccess As Long, ByVal dwShareMode As FileShareMode, lpSecurityAttributes As SECURITY_ATTRIBUTES, ByVal dwCreationDisposition As CreateFileDisposition, [TypeHint(FILE_FLAGS, FILE_ATTRIBUTES , SQOS_Bits)] ByVal dwFlagsAndAttributes As Long, ByVal hTemplateFile As LongPtr) As LongPtr
@@ -15188,6 +15268,77 @@ Public Type IMAGE_POLICY_METADATA
 End Type
 
 
+Public Enum RTL_FAST_FAIL
+    FAST_FAIL_LEGACY_GS_VIOLATION = 0
+    FAST_FAIL_VTGUARD_CHECK_FAILURE = 1
+    FAST_FAIL_STACK_COOKIE_CHECK_FAILURE = 2
+    FAST_FAIL_CORRUPT_LIST_ENTRY = 3
+    FAST_FAIL_INCORRECT_STACK = 4
+    FAST_FAIL_INVALID_ARG = 5
+    FAST_FAIL_GS_COOKIE_INIT = 6
+    FAST_FAIL_FATAL_APP_EXIT = 7
+    FAST_FAIL_RANGE_CHECK_FAILURE = 8
+    FAST_FAIL_UNSAFE_REGISTRY_ACCESS = 9
+    FAST_FAIL_GUARD_ICALL_CHECK_FAILURE = 10
+    FAST_FAIL_GUARD_WRITE_CHECK_FAILURE = 11
+    FAST_FAIL_INVALID_FIBER_SWITCH = 12
+    FAST_FAIL_INVALID_SET_OF_CONTEXT = 13
+    FAST_FAIL_INVALID_REFERENCE_COUNT = 14
+    FAST_FAIL_INVALID_JUMP_BUFFER = 18
+    FAST_FAIL_MRDATA_MODIFIED = 19
+    FAST_FAIL_CERTIFICATION_FAILURE = 20
+    FAST_FAIL_INVALID_EXCEPTION_CHAIN = 21
+    FAST_FAIL_CRYPTO_LIBRARY = 22
+    FAST_FAIL_INVALID_CALL_IN_DLL_CALLOUT = 23
+    FAST_FAIL_INVALID_IMAGE_BASE = 24
+    FAST_FAIL_DLOAD_PROTECTION_FAILURE = 25
+    FAST_FAIL_UNSAFE_EXTENSION_CALL = 26
+    FAST_FAIL_DEPRECATED_SERVICE_INVOKED = 27
+    FAST_FAIL_INVALID_BUFFER_ACCESS = 28
+    FAST_FAIL_INVALID_BALANCED_TREE = 29
+    FAST_FAIL_INVALID_NEXT_THREAD = 30
+    FAST_FAIL_GUARD_ICALL_CHECK_SUPPRESSED = 31  ' Telemetry, nonfatal
+    FAST_FAIL_APCS_DISABLED = 32
+    FAST_FAIL_INVALID_IDLE_STATE = 33
+    FAST_FAIL_MRDATA_PROTECTION_FAILURE = 34
+    FAST_FAIL_UNEXPECTED_HEAP_EXCEPTION = 35
+    FAST_FAIL_INVALID_LOCK_STATE = 36
+    FAST_FAIL_GUARD_JUMPTABLE = 37  ' Known to compiler, must retain value 37
+    FAST_FAIL_INVALID_LONGJUMP_TARGET = 38
+    FAST_FAIL_INVALID_DISPATCH_CONTEXT = 39
+    FAST_FAIL_INVALID_THREAD = 40
+    FAST_FAIL_INVALID_SYSCALL_NUMBER = 41  ' Telemetry, nonfatal
+    FAST_FAIL_INVALID_FILE_OPERATION = 42  ' Telemetry, nonfatal
+    FAST_FAIL_LPAC_ACCESS_DENIED = 43  ' Telemetry, nonfatal
+    FAST_FAIL_GUARD_SS_FAILURE = 44
+    FAST_FAIL_LOADER_CONTINUITY_FAILURE = 45  ' Telemetry, nonfatal
+    FAST_FAIL_GUARD_EXPORT_SUPPRESSION_FAILURE = 46
+    FAST_FAIL_INVALID_CONTROL_STACK = 47
+    FAST_FAIL_SET_CONTEXT_DENIED = 48
+    FAST_FAIL_INVALID_IAT = 49
+    FAST_FAIL_HEAP_METADATA_CORRUPTION = 50
+    FAST_FAIL_PAYLOAD_RESTRICTION_VIOLATION = 51
+    FAST_FAIL_LOW_LABEL_ACCESS_DENIED = 52  ' Telemetry, nonfatal
+    FAST_FAIL_ENCLAVE_CALL_FAILURE = 53
+    FAST_FAIL_UNHANDLED_LSS_EXCEPTON = 54
+    FAST_FAIL_ADMINLESS_ACCESS_DENIED = 55  ' Telemetry, nonfatal
+    FAST_FAIL_UNEXPECTED_CALL = 56
+    FAST_FAIL_CONTROL_INVALID_RETURN_ADDRESS = 57
+    FAST_FAIL_UNEXPECTED_HOST_BEHAVIOR = 58
+    FAST_FAIL_FLAGS_CORRUPTION = 59
+    FAST_FAIL_VEH_CORRUPTION = 60
+    FAST_FAIL_ETW_CORRUPTION = 61
+    FAST_FAIL_RIO_ABORT = 62
+    FAST_FAIL_INVALID_PFN = 63
+    FAST_FAIL_GUARD_ICALL_CHECK_FAILURE_XFG = 64
+    FAST_FAIL_CAST_GUARD = 65  ' Known to compiler, must retain value 65
+    FAST_FAIL_HOST_VISIBILITY_CHANGE = 66
+    FAST_FAIL_KERNEL_CET_SHADOW_STACK_ASSIST = 67
+    FAST_FAIL_PATCH_CALLBACK_FAILED = 68
+    FAST_FAIL_NTDLL_PATCH_FAILED = 69
+    FAST_FAIL_INVALID_FLS_DATA = 70
+    FAST_FAIL_INVALID_FAST_FAIL_CODE = &HFFFFFFFF
+End Enum
 
 Public Type KSYSTEM_TIME
     LowPart As Long '0x0
@@ -19941,7 +20092,7 @@ Public Declare PtrSafe Function RtlCreateEnvironment Lib "ntdll" (ByVal bInherit
 Public Declare PtrSafe Function RtlDestroyProcessParameters Lib "ntdll" (pProcessParameters As Any) As NTSTATUS
 Public Declare PtrSafe Function RtlQueryModuleInformation Lib "ntdll" (InformationLength As Long, ByVal SizePerModule As Long, InformationBuffer As Any) As NTSTATUS
 Public Declare PtrSafe Function RtlCrc32 Lib "ntdll" (Buffer As Any, ByVal size As LongPtr, ByVal InitialCrc As Long) As Long
-Public Declare PtrSafe Function RtlCrc64 Lib "ntdll" (Buffer As Any, ByVal size As LongPtr, ByVal InitialCrc As LongLong) As Long
+Public Declare PtrSafe Function RtlCrc64 Lib "ntdll" (Buffer As Any, ByVal size As LongPtr, ByVal InitialCrc As LongLong) As LongLong
 Public Declare PtrSafe Function RtlCompressBuffer Lib "ntdll" ([TypeHint(NT_COMPRESSION_FORMAT)] ByVal CompressionFormatAndEngine As Integer, UncompressedBuffer As Any, ByVal UncompressedBufferSize As Long, CompressedBuffer As Any, ByVal CompressedBufferSize As Long, ByVal UncompressedChunkSize As Long, FinalCompressedSize As Long, ByVal Workspace As LongPtr) As NTSTATUS
 Public Declare PtrSafe Function RtlDecompressBuffer Lib "ntdll" ([TypeHint(NT_COMPRESSION_FORMAT)] ByVal CompressionFormat As Integer, UncompressedBuffer As Any, ByVal UncompressedBufferSize As Long, CompressedBuffer As Any, ByVal CompressedBufferSize As Long, FinalUncompressedSize As Long) As NTSTATUS
 Public Declare PtrSafe Function RtlDecompressBufferEx Lib "ntdll" ([TypeHint(NT_COMPRESSION_FORMAT)] ByVal CompressionFormat As Integer, UncompressedBuffer As Any, ByVal UncompressedBufferSize As Long, CompressedBuffer As Any, ByVal CompressedBufferSize As Long, FinalUncompressedSize As Long, ByVal Workspace As LongPtr) As NTSTATUS
@@ -20003,10 +20154,8 @@ Public Declare PtrSafe Sub LdrFastFailInLoaderCallout Lib "ntdll" ()
 Public Declare PtrSafe Function LdrDisableThreadCalloutsForDll Lib "ntdll" (ByVal DllHandle As LongPtr) As NTSTATUS
 
 
-Public Declare PtrSafe Function DbgPrint CDecl Lib "ntdll" (ByVal Format As String, Arg1 As Any) As Long
-Public Declare PtrSafe Function DbgPrint2 CDecl Lib "ntdll" (ByVal Format As String, Arg1 As Any, Arg2 As Any) As Long
-Public Declare PtrSafe Function DbgPrint3 CDecl Lib "ntdll" (ByVal Format As String, Arg1 As Any, Arg2 As Any, Arg3 As Any) As Long
-
+Public Declare PtrSafe Function DbgPrint CDecl Lib "ntdll" (ByVal Format As String, ByVal ParamArray vargs As Any()) As Long
+ 
 
 
 #If Win64 = 0 Then
@@ -21210,6 +21359,7 @@ Public Enum ComDlgExtendedErrors
     CCERR_CHOOSECOLORCODES = &H5000
 End Enum
 
+Public Delegate Function OFNHookProc (ByVal hwnd As LongPtr, ByVal uMsg As Long, ByVal wParam As LongPtr, ByVal lParam As LongPtr) As LongPtr
 Public Type OPENFILENAMEA
     lStructSize As Long
     hwndOwner As LongPtr
@@ -21229,7 +21379,7 @@ Public Type OPENFILENAMEA
     nFileExtension As Integer
     lpstrDefExt As String
     lCustData As LongPtr
-    lpfnHook As LongPtr
+    lpfnHook As OFNHookProc
     lpTemplateName As String
     pvReserved As LongPtr
     dwReserved As Long
@@ -21254,7 +21404,7 @@ Public Type OPENFILENAMEW
     nFileExtension As Integer
     lpstrDefExt As LongPtr
     lCustData As LongPtr
-    lpfnHook As LongPtr
+    lpfnHook As OFNHookProc
     lpTemplateName As LongPtr
     pvReserved As LongPtr
     dwReserved As Long
@@ -21279,7 +21429,7 @@ Public Type OPENFILENAME
     nFileExtension As Integer
     lpstrDefExt As LongPtr
     lCustData As LongPtr
-    lpfnHook As LongPtr
+    lpfnHook As OFNHookProc
     lpTemplateName As LongPtr
     pvReserved As LongPtr
     dwReserved As Long
@@ -21394,6 +21544,8 @@ Public Const CDM_SETCONTROLTEXT  = (CDM_FIRST + &H0004)
 Public Const CDM_HIDECONTROL  = (CDM_FIRST + &H0005)
 Public Const CDM_SETDEFEXT  = (CDM_FIRST + &H0006)
 
+Public Delegate Function CCHookProc (ByVal hwnd As LongPtr, ByVal uMsg As Long, ByVal wParam As LongPtr, ByVal lParam As LongPtr) As LongPtr
+
 Public Type CHOOSECOLORA
     lStructSize As Long
     hwndOwner As LongPtr
@@ -21402,7 +21554,7 @@ Public Type CHOOSECOLORA
     lpCustColors As LongPtr
     Flags As ChooseColorFlags
     lCustData As LongPtr
-    lpfnHook As LongPtr
+    lpfnHook As CCHookProc
     lpTemplateName As String
 End Type
 Public Type CHOOSECOLORW
@@ -21413,7 +21565,7 @@ Public Type CHOOSECOLORW
     lpCustColors As LongPtr
     Flags As ChooseColorFlags
     lCustData As LongPtr
-    lpfnHook As LongPtr
+    lpfnHook As CCHookProc
     lpTemplateName As LongPtr
 End Type
 Public Type CHOOSECOLOR
@@ -21424,7 +21576,7 @@ Public Type CHOOSECOLOR
     lpCustColors As LongPtr
     Flags As ChooseColorFlags
     lCustData As LongPtr
-    lpfnHook As LongPtr
+    lpfnHook As CCHookProc
     lpTemplateName As LongPtr
 End Type
 
@@ -21444,6 +21596,8 @@ Public Declare PtrSafe Function ChooseColorA Lib "comdlg32" (lpCC As CHOOSECOLOR
 Public Declare PtrSafe Function ChooseColorW Lib "comdlg32" (lpCC As CHOOSECOLORW) As Long
 Public DeclareWide PtrSafe Function ChooseColor Lib "comdlg32" Alias "ChooseColorW" (lpCC As CHOOSECOLOR) As Long
 
+Public Delegate Function FRHookProc (ByVal hwnd As LongPtr, ByVal uMsg As Long, ByVal wParam As LongPtr, ByVal lParam As LongPtr) As LongPtr
+
 Public Type FINDREPLACEA
     lStructSize As Long ' size of this struct 0x20
     hwndOwner As LongPtr ' handle to owner's window
@@ -21455,7 +21609,7 @@ Public Type FINDREPLACEA
     wFindWhatLen As Integer ' size of find buffer
     wReplaceWithLen As Integer ' size of replace buffer
     lCustData As LongPtr ' data passed to hook fn.
-    lpfnHook As LongPtr ' ptr. to hook fn. or NULL
+    lpfnHook As FRHookProc ' ptr. to hook fn. or NULL
     lpTemplateName As String ' custom template name
 End Type
 Public Type FINDREPLACEW
@@ -21469,7 +21623,7 @@ Public Type FINDREPLACEW
     wFindWhatLen As Integer ' size of find buffer
     wReplaceWithLen As Integer ' size of replace buffer
     lCustData As LongPtr ' data passed to hook fn.
-    lpfnHook As LongPtr ' ptr. to hook fn. or NULL
+    lpfnHook As FRHookProc ' ptr. to hook fn. or NULL
     lpTemplateName As LongPtr ' custom template name
 End Type
 Public Type FINDREPLACE
@@ -21483,7 +21637,7 @@ Public Type FINDREPLACE
     wFindWhatLen As Integer ' size of find buffer
     wReplaceWithLen As Integer ' size of replace buffer
     lCustData As LongPtr ' data passed to hook fn.
-    lpfnHook As LongPtr ' ptr. to hook fn. or NULL
+    lpfnHook As FRHookProc ' ptr. to hook fn. or NULL
     lpTemplateName As LongPtr ' custom template name
 End Type
 
@@ -21524,6 +21678,8 @@ Public Declare PtrSafe Function ReplaceTextA Lib "comdlg32" (lpFR As FINDREPLACE
 Public Declare PtrSafe Function ReplaceTextW Lib "comdlg32" (lpFR As FINDREPLACEW) As LongPtr
 Public Declare PtrSafe Function ReplaceText Lib "comdlg32" Alias "ReplaceTextW" (lpFR As FINDREPLACE) As LongPtr
 
+Public Delegate Function CFHookProc (ByVal hwnd As LongPtr, ByVal uMsg As Long, ByVal wParam As LongPtr, ByVal lParam As LongPtr) As LongPtr
+
 Public Type CHOOSEFONTA
     lStructSize As Long
     hwndOwner As LongPtr ' caller's window handle
@@ -21533,7 +21689,7 @@ Public Type CHOOSEFONTA
     Flags As ChooseFontFlags ' enum. type flags
     rgbColors As Long ' returned text color
     lCustData As LongPtr ' data passed to hook fn.
-    lpfnHook As LongPtr ' ptr. to hook function
+    lpfnHook As CFHookProc ' ptr. to hook function
     lpTemplateName As String ' custom template name
     hInstance As LongPtr ' instance handle of.EXE that
     '   contains cust. dlg. template
@@ -21556,7 +21712,7 @@ Public Type CHOOSEFONTW
     Flags As ChooseFontFlags ' enum. type flags
     rgbColors As Long ' returned text color
     lCustData As LongPtr ' data passed to hook fn.
-    lpfnHook As LongPtr ' ptr. to hook function
+    lpfnHook As CFHookProc ' ptr. to hook function
     lpTemplateName As LongPtr ' custom template name
     hInstance As LongPtr ' instance handle of.EXE that
     '   contains cust. dlg. template
@@ -21579,7 +21735,7 @@ Public Type CHOOSEFONT
     Flags As ChooseFontFlags ' enum. type flags
     rgbColors As Long ' returned text color
     lCustData As LongPtr ' data passed to hook fn.
-    lpfnHook As LongPtr ' ptr. to hook function
+    lpfnHook As CFHookProc ' ptr. to hook function
     lpTemplateName As LongPtr ' custom template name
     hInstance As LongPtr ' instance handle of.EXE that
     '   contains cust. dlg. template
@@ -21679,6 +21835,9 @@ Public Const CD_LBSELCHANGE  = 0
 Public Const CD_LBSELSUB  = 1
 Public Const CD_LBSELADD  = 2
 
+Public Delegate Function PrintHookProc (ByVal hwnd As LongPtr, ByVal uMsg As Long, ByVal wParam As LongPtr, ByVal lParam As LongPtr) As LongPtr
+Public Delegate Function SetupHookProc (ByVal hwnd As LongPtr, ByVal uMsg As Long, ByVal wParam As LongPtr, ByVal lParam As LongPtr) As LongPtr
+
 #If Win64 = 0 Then
 [PackingAlignment(1)] 'This technically applies to all UDTs but hasn't mattered so far
 #End If
@@ -21696,8 +21855,8 @@ Public Type PRINTDLGA
     nCopies As Integer
     hInstance As LongPtr
     lCustData As LongPtr
-    lpfnPrintHook As LongPtr
-    lpfnSetupHook As LongPtr
+    lpfnPrintHook As PrintHookProc
+    lpfnSetupHook As SetupHookProc
     lpPrintTemplateName As LongPtr
     lpSetupTemplateName As LongPtr
     hPrintTemplate As LongPtr
@@ -21720,8 +21879,8 @@ Public Type PRINTDLGW
     nCopies As Integer
     hInstance As LongPtr
     lCustData As LongPtr
-    lpfnPrintHook As LongPtr
-    lpfnSetupHook As LongPtr
+    lpfnPrintHook As PrintHookProc
+    lpfnSetupHook As SetupHookProc
     lpPrintTemplateName As LongPtr
     lpSetupTemplateName As LongPtr
     hPrintTemplate As LongPtr
@@ -21744,8 +21903,8 @@ Public Type PRINTDLG
     nCopies As Integer
     hInstance As LongPtr
     lCustData As LongPtr
-    lpfnPrintHook As LongPtr
-    lpfnSetupHook As LongPtr
+    lpfnPrintHook As PrintHookProc
+    lpfnSetupHook As SetupHookProc
     lpPrintTemplateName As LongPtr
     lpSetupTemplateName As LongPtr
     hPrintTemplate As LongPtr
@@ -21899,6 +22058,9 @@ Public Const WM_PSD_GREEKTEXTRECT  = (WM_USER + 4)
 Public Const WM_PSD_ENVSTAMPRECT  = (WM_USER + 5)
 Public Const WM_PSD_YAFULLPAGERECT  = (WM_USER + 6)
 
+Public Delegate Function PageSetupHook (ByVal hwnd As LongPtr, ByVal uMsg As Long, ByVal wParam As LongPtr, ByVal lParam As LongPtr) As LongPtr
+Public Delegate Function PagePaintHook (ByVal hwnd As LongPtr, ByVal uMsg As Long, ByVal wParam As LongPtr, ByVal lParam As LongPtr) As LongPtr
+
 Public Type PAGESETUPDLGA
     lStructSize As Long
     hwndOwner As LongPtr
@@ -21910,8 +22072,8 @@ Public Type PAGESETUPDLGA
     rtMargin As RECT
     hInstance As LongPtr
     lCustData As LongPtr
-    lpfnPageSetupHook As LongPtr
-    lpfnPagePaintHook As LongPtr
+    lpfnPageSetupHook As PageSetupHook
+    lpfnPagePaintHook As PagePaintHook
     lpPageSetupTemplateName As String
     hPageSetupTemplate As LongPtr
 End Type
@@ -21926,8 +22088,8 @@ Public Type PAGESETUPDLGW
     rtMargin As RECT
     hInstance As LongPtr
     lCustData As LongPtr
-    lpfnPageSetupHook As LongPtr
-    lpfnPagePaintHook As LongPtr
+    lpfnPageSetupHook As PageSetupHook
+    lpfnPagePaintHook As PagePaintHook
     lpPageSetupTemplateName As LongPtr
     hPageSetupTemplate As LongPtr
 End Type
@@ -21943,8 +22105,8 @@ Public Type PAGESETUPDLG
     rtMargin As RECT
     hInstance As LongPtr
     lCustData As LongPtr
-    lpfnPageSetupHook As LongPtr
-    lpfnPagePaintHook As LongPtr
+    lpfnPageSetupHook As PageSetupHook
+    lpfnPagePaintHook As PagePaintHook
     lpPageSetupTemplateName As LongPtr
     hPageSetupTemplate As LongPtr
 End Type
@@ -21979,8 +22141,14 @@ Public DeclareWide PtrSafe Function PageSetupDlg Lib "comdlg32" Alias "PageSetup
 
 #Region "user32"
 
-'winuser.h 100% coverage (of supported functions; callback defs and wsprint[A,W] APIs unsupport by language)
+'winuser.h 100% coverage 
 
+Public Declare PtrSafe Function wsprintfA CDecl Lib "user32" (ByVal buf As String, ByVal format As String, ByVal ParamArray args As Any()) As Long
+Public DeclareWide PtrSafe Function wsprintfW CDecl Lib "user32" (ByVal buf As LongPtr, ByVal format As LongPtr, ByVal ParamArray args As Any()) As Long
+Public DeclareWide PtrSafe Function wsprintf CDecl Lib "user32" Alias "wsprintfW" (ByVal buf As String, ByVal format As String, ByVal ParamArray args As Any()) As Long
+Public Declare PtrSafe Function wvsprintfA CDecl Lib "user32" (ByVal buf As String, ByVal format As String, ByVal arglist As LongPtr) As Long
+Public DeclareWide PtrSafe Function wvsprintfW CDecl Lib "user32" (ByVal buf As LongPtr, ByVal format As LongPtr, ByVal arglist As LongPtr) As Long
+Public DeclareWide PtrSafe Function wvsprintf CDecl Lib "user32" Alias "wvsprintfW" (ByVal buf As String, ByVal format As String, ByVal arglist As LongPtr) As Long
 
 Public Enum DT_Flags
     DT_BOTTOM = &H8&
@@ -23764,13 +23932,14 @@ Public Declare PtrSafe Function GetWindowModuleFileNameA Lib "user32" (ByVal hWn
 Public Declare PtrSafe Function GetWindowModuleFileNameW Lib "user32" (ByVal hWnd As LongPtr, ByVal pszFileName As LongPtr, ByVal cchFileNameMax As Long) As Long
 Public DeclareWide PtrSafe Function GetWindowModuleFileName Lib "user32" Alias "GetWindowModuleFileNameW" (ByVal hWnd As LongPtr, ByVal pszFileName As String, ByVal cchFileNameMax As Long) As Long
 
+Public Delegate Sub SendAsyncProc (ByVal hWnd As LongPtr, ByVal msg As Long, ByVal lParam As LongPtr, ByVal lResult As LongPtr)
 [Description("⚠️ **NOTE:** Maps to Unicode version (SendMessageW), but uses DeclareWide, so there's still no need for conversion in most cases.")]
 Public DeclareWide PtrSafe Function SendMessage Lib "user32" Alias "SendMessageW" (ByVal hWnd As LongPtr, ByVal wMsg As Long, ByVal wParam As LongPtr, lParam As Any) As LongPtr
 Public Declare PtrSafe Function SendMessageA Lib "user32" (ByVal hWnd As LongPtr, ByVal wMsg As Long, ByVal wParam As LongPtr, lParam As Any) As LongPtr
 Public DeclareWide PtrSafe Function SendMessageW Lib "user32" (ByVal hWnd As LongPtr, ByVal wMsg As Long, ByVal wParam As LongPtr, lParam As Any) As LongPtr
-Public Declare PtrSafe Function SendMessageCallbackA Lib "user32" (ByVal hWnd As LongPtr, ByVal wMsg As Long, ByVal wParam As LongPtr, lParam As Any, ByVal lpResultCallBack As LongPtr, dwData As Any) As BOOL
-Public DeclareWide PtrSafe Function SendMessageCallbackW Lib "user32" (ByVal hWnd As LongPtr, ByVal wMsg As Long, ByVal wParam As LongPtr, lParam As Any, ByVal lpResultCallBack As LongPtr, dwData As Any) As BOOL
-Public DeclareWide PtrSafe Function SendMessageCallback Lib "user32" Alias "SendMessageCallbackW" (ByVal hWnd As LongPtr, ByVal wMsg As Long, ByVal wParam As LongPtr, lParam As Any, ByVal lpResultCallBack As LongPtr, dwData As Any) As BOOL
+Public Declare PtrSafe Function SendMessageCallbackA Lib "user32" (ByVal hWnd As LongPtr, ByVal wMsg As Long, ByVal wParam As LongPtr, lParam As Any, ByVal lpResultCallBack As SendAsyncProc, dwData As Any) As BOOL
+Public DeclareWide PtrSafe Function SendMessageCallbackW Lib "user32" (ByVal hWnd As LongPtr, ByVal wMsg As Long, ByVal wParam As LongPtr, lParam As Any, ByVal lpResultCallBack As SendAsyncProc, dwData As Any) As BOOL
+Public DeclareWide PtrSafe Function SendMessageCallback Lib "user32" Alias "SendMessageCallbackW" (ByVal hWnd As LongPtr, ByVal wMsg As Long, ByVal wParam As LongPtr, lParam As Any, ByVal lpResultCallBack As SendAsyncProc, dwData As Any) As BOOL
 Public Declare PtrSafe Function SendMessageTimeoutA Lib "user32" (ByVal hWnd As LongPtr, ByVal Msg As Long, ByVal wParam As LongPtr, lParam As Any, ByVal fuFlags As SendMessageTimeoutFlags, ByVal uTimeout As Long, lpdwResult As Any) As LongPtr
 Public DeclareWide PtrSafe Function SendMessageTimeoutW Lib "user32" (ByVal hWnd As LongPtr, ByVal Msg As Long, ByVal wParam As LongPtr, lParam As Any, ByVal fuFlags As SendMessageTimeoutFlags, ByVal uTimeout As Long, lpdwResult As Any) As LongPtr
 Public DeclareWide PtrSafe Function SendMessageTimeout Lib "user32" Alias "SendMessageTimeoutW" (ByVal hWnd As LongPtr, ByVal Msg As Long, ByVal wParam As LongPtr, lParam As Any, ByVal fuFlags As SendMessageTimeoutFlags, ByVal uTimeout As Long, lpdwResult As Any) As LongPtr
@@ -23827,15 +23996,21 @@ Public Declare PtrSafe Sub PostQuitMessage Lib "user32" (ByVal nExitCode As Long
 Public DeclareWide PtrSafe Function CallWindowProc Lib "user32" Alias "CallWindowProcW" (ByVal lpPrevWndFunc As LongPtr, ByVal hWnd As LongPtr, ByVal Msg As Long, ByVal wParam As LongPtr, ByVal lParam As LongPtr) As LongPtr
 Public Declare PtrSafe Function CallWindowProcA Lib "user32" (ByVal lpPrevWndFunc As LongPtr, ByVal hWnd As LongPtr, ByVal Msg As Long, ByVal wParam As LongPtr, ByVal lParam As LongPtr) As LongPtr
 Public Declare PtrSafe Function CallWindowProcW Lib "user32" (ByVal lpPrevWndFunc As LongPtr, ByVal hWnd As LongPtr, ByVal Msg As Long, ByVal wParam As LongPtr, ByVal lParam As LongPtr) As LongPtr
-Public Declare PtrSafe Function EnumWindows Lib "user32" (ByVal lpfn As LongPtr, ByVal lParam As LongPtr) As BOOL
-Public Declare PtrSafe Function EnumChildWindows Lib "user32" (ByVal hWndParent As LongPtr, ByVal lpfn As LongPtr, ByVal lParam As LongPtr) As BOOL
-Public Declare PtrSafe Function EnumThreadWindows Lib "user32" (ByVal dwThreadId As Long, ByVal lpfn As LongPtr, ByVal lParam As LongPtr) As BOOL
-Public Function EnumTaskWindows(ByVal hTask As LongPtr, ByVal lpfn As LongPtr, ByVal lParam As LongPtr) As BOOL: Return EnumThreadWindows(HandleToULong(hTask), lpfn, lParam): End Function
+
+Public Delegate Function EnumWindowsProc (ByVal hwnd As LongPtr, ByVal lParam As LongPtr) As BOOL
+Public Delegate Function EnumChildProc (ByVal hwnd As LongPtr, ByVal lParam As LongPtr) As BOOL
+Public Delegate Function EnumThreadWndProc (ByVal hwnd As LongPtr, ByVal lParam As LongPtr) As BOOL
+Public Declare PtrSafe Function EnumWindows Lib "user32" (ByVal lpfn As EnumWindowsProc, ByVal lParam As LongPtr) As BOOL
+Public Declare PtrSafe Function EnumChildWindows Lib "user32" (ByVal hWndParent As LongPtr, ByVal lpfn As EnumChildProc, ByVal lParam As LongPtr) As BOOL
+Public Declare PtrSafe Function EnumThreadWindows Lib "user32" (ByVal dwThreadId As Long, ByVal lpfn As EnumThreadWndProc, ByVal lParam As LongPtr) As BOOL
+Public Function EnumTaskWindows(ByVal hTask As LongPtr, ByVal lpfn As EnumThreadWndProc, ByVal lParam As LongPtr) As BOOL: Return EnumThreadWindows(HandleToULong(hTask), lpfn, lParam): End Function
 Public Declare PtrSafe Function GetClassNameA Lib "user32" (ByVal hwnd As LongPtr, ByVal lpClassName As String, ByVal nMaxCount As Long) As Long
 Public Declare PtrSafe Function GetClassNameW Lib "user32" (ByVal hwnd As LongPtr, ByVal lpClassName As LongPtr, ByVal nMaxCount As Long) As Long
 Public DeclareWide PtrSafe Function GetClassName Lib "user32" Alias "GetClassNameW" (ByVal hwnd As LongPtr, ByVal lpClassName As String, ByVal nMaxCount As Long) As Long
-Public Declare PtrSafe Function SetTimer Lib "user32" (ByVal hwnd As LongPtr, ByVal nIDEvent As LongPtr, ByVal uElapse As Long, ByVal lpTimerFunc As LongPtr) As LongPtr
-Public Declare PtrSafe Function SetCoalescableTimer Lib "user32" (ByVal hwnd As LongPtr, ByVal nIDEvent As LongPtr, ByVal uElapse As Long, ByVal lpTimerFunc As LongPtr, [TypeHint(CoalescableTimerToleranceDefaults)] ByVal uToleranceDelay As Long) As LongPtr
+
+Public Delegate Sub TimerProc (ByVal hWnd As LongPtr, ByVal uMsg As Long, ByVal TimerID As LongPtr, ByVal Tick As Long)
+Public Declare PtrSafe Function SetTimer Lib "user32" (ByVal hwnd As LongPtr, ByVal nIDEvent As LongPtr, ByVal uElapse As Long, ByVal lpTimerFunc As TimerProc) As LongPtr
+Public Declare PtrSafe Function SetCoalescableTimer Lib "user32" (ByVal hwnd As LongPtr, ByVal nIDEvent As LongPtr, ByVal uElapse As Long, ByVal lpTimerFunc As TimerProc, [TypeHint(CoalescableTimerToleranceDefaults)] ByVal uToleranceDelay As Long) As LongPtr
 Public Declare PtrSafe Function KillTimer Lib "user32" (ByVal hwnd As LongPtr, ByVal nIDEvent As LongPtr) As BOOL
 Public Declare PtrSafe Function RegisterShellHookWindow Lib "user32" (ByVal hwnd As LongPtr) As BOOL
 Public Declare PtrSafe Function DeregisterShellHookWindow Lib "user32" (ByVal hwnd As LongPtr) As BOOL
@@ -23848,12 +24023,18 @@ Public DeclareWide PtrSafe Function GetProp Lib "user32" Alias "GetPropW" (ByVal
 Public Declare PtrSafe Function RemovePropA Lib "user32" (ByVal hWnd As LongPtr, ByVal lpString As String) As LongPtr
 Public Declare PtrSafe Function RemovePropW Lib "user32" (ByVal hWnd As LongPtr, ByVal lpString As LongPtr) As LongPtr
 Public DeclareWide PtrSafe Function RemoveProp Lib "user32" Alias "RemovePropW" (ByVal hWnd As LongPtr, ByVal lpString As String) As LongPtr
-Public Declare PtrSafe Function EnumPropsA Lib "user32" (ByVal hWnd As LongPtr, ByVal lpEnumFunc As LongPtr) As Long
-Public Declare PtrSafe Function EnumPropsW Lib "user32" (ByVal hWnd As LongPtr, ByVal lpEnumFunc As LongPtr) As Long
-Public DeclareWide PtrSafe Function EnumProps Lib "user32" Alias "EnumPropsW" (ByVal hWnd As LongPtr, ByVal lpEnumFunc As LongPtr) As Long
-Public Declare PtrSafe Function EnumPropsExA Lib "user32" (ByVal hWnd As LongPtr, ByVal lpEnumFunc As LongPtr, ByVal lParam As LongPtr) As Long
-Public Declare PtrSafe Function EnumPropsExW Lib "user32" (ByVal hWnd As LongPtr, ByVal lpEnumFunc As LongPtr, ByVal lParam As LongPtr) As Long
-Public DeclareWide PtrSafe Function EnumPropsEx Lib "user32" Alias "EnumPropsExW" (ByVal hWnd As LongPtr, ByVal lpEnumFunc As LongPtr, ByVal lParam As LongPtr) As Long
+
+Public Delegate Function PropEnumProcA (ByVal hWnd As LongPtr, ByVal lpsz As LongPtr, ByVal Handle As LongPtr) As BOOL
+Public Delegate Function PropEnumProcW (ByVal hWnd As LongPtr, ByVal lpsz As LongPtr, ByVal Handle As LongPtr) As BOOL
+Public Delegate Function PropEnumProcExA (ByVal hWnd As LongPtr, ByVal lpsz As LongPtr, ByVal Handle As LongPtr, ByVal lParam As LongPtr) As BOOL
+Public Delegate Function PropEnumProcExW (ByVal hWnd As LongPtr, ByVal lpsz As LongPtr, ByVal Handle As LongPtr, ByVal lParam As LongPtr) As BOOL
+
+Public Declare PtrSafe Function EnumPropsA Lib "user32" (ByVal hWnd As LongPtr, ByVal lpEnumFunc As PropEnumProcA) As Long
+Public Declare PtrSafe Function EnumPropsW Lib "user32" (ByVal hWnd As LongPtr, ByVal lpEnumFunc As PropEnumProcW) As Long
+Public DeclareWide PtrSafe Function EnumProps Lib "user32" Alias "EnumPropsW" (ByVal hWnd As LongPtr, ByVal lpEnumFunc As PropEnumProcW) As Long
+Public Declare PtrSafe Function EnumPropsExA Lib "user32" (ByVal hWnd As LongPtr, ByVal lpEnumFunc As PropEnumProcExA, ByVal lParam As LongPtr) As Long
+Public Declare PtrSafe Function EnumPropsExW Lib "user32" (ByVal hWnd As LongPtr, ByVal lpEnumFunc As PropEnumProcExW, ByVal lParam As LongPtr) As Long
+Public DeclareWide PtrSafe Function EnumPropsEx Lib "user32" Alias "EnumPropsExW" (ByVal hWnd As LongPtr, ByVal lpEnumFunc As PropEnumProcExW, ByVal lParam As LongPtr) As Long
 Public Declare PtrSafe Function GetShellWindow Lib "user32" () As LongPtr
 Public Declare PtrSafe Function GetDesktopWindow Lib "user32" () As LongPtr
 Public Declare PtrSafe Function RegisterHotKey Lib "user32" (ByVal hWnd As LongPtr, ByVal id As Long, ByVal fsModifiers As HotKeyModifiers, ByVal vk As VirtualKeyCodes) As BOOL
@@ -24821,13 +25002,16 @@ Public DeclareWide PtrSafe Function GetUserObjectInformation Lib "user32" Alias 
 Public Declare PtrSafe Function GetUserObjectSecurity Lib "user32" (ByVal hObj As LongPtr, pSIRequested As SECURITY_INFORMATION, pSID As SECURITY_DESCRIPTOR, ByVal nLength As Long, lpnLengthNeeded As Long) As BOOL
 Public Declare PtrSafe Function SetUserObjectSecurity Lib "user32" (ByVal hObj As LongPtr, pSIRequested As SECURITY_INFORMATION, pSID As SECURITY_DESCRIPTOR) As BOOL
 Public Declare PtrSafe Function UserHandleGrantAccess Lib "user32" (ByVal hUserHandle As LongPtr, ByVal hJob As LongPtr, ByVal bGrant As BOOL) As BOOL
-Public Declare PtrSafe Function SetWindowsHook Lib "user32" Alias "SetWindowsHookW" (ByVal nFilterType As WindowsHookCodes, ByVal pfnFilterProc As LongPtr) As LongPtr
-Public Declare PtrSafe Function SetWindowsHookEx Lib "user32" Alias "SetWindowsHookExW" (ByVal idHook As WindowsHookCodes, ByVal lpfn As LongPtr, ByVal hmod As LongPtr, ByVal dwThreadId As Long) As LongPtr
-Public Declare PtrSafe Function SetWindowsHookA Lib "user32" (ByVal nFilterType As WindowsHookCodes, ByVal pfnFilterProc As LongPtr) As LongPtr
-Public Declare PtrSafe Function SetWindowsHookExA Lib "user32" (ByVal idHook As WindowsHookCodes, ByVal lpfn As LongPtr, ByVal hmod As LongPtr, ByVal dwThreadId As Long) As LongPtr
-Public Declare PtrSafe Function SetWindowsHookW Lib "user32" (ByVal nFilterType As WindowsHookCodes, ByVal pfnFilterProc As LongPtr) As LongPtr
-Public Declare PtrSafe Function SetWindowsHookExW Lib "user32" (ByVal idHook As WindowsHookCodes, ByVal lpfn As LongPtr, ByVal hmod As LongPtr, ByVal dwThreadId As Long) As LongPtr
-Public Declare PtrSafe Function UnhookWindowsHook Lib "user32" (ByVal nCode As WindowsHookCodes, ByVal pfnFilterProc As LongPtr) As Long
+
+Public Delegate Function HookProc (ByVal code As Long, ByVal wParam As LongPtr, ByVal lParam As LongPtr) As LongPtr
+
+Public Declare PtrSafe Function SetWindowsHook Lib "user32" Alias "SetWindowsHookW" (ByVal nFilterType As WindowsHookCodes, ByVal pfnFilterProc As HookProc) As LongPtr
+Public Declare PtrSafe Function SetWindowsHookEx Lib "user32" Alias "SetWindowsHookExW" (ByVal idHook As WindowsHookCodes, ByVal lpfn As HookProc, ByVal hmod As LongPtr, ByVal dwThreadId As Long) As LongPtr
+Public Declare PtrSafe Function SetWindowsHookA Lib "user32" (ByVal nFilterType As WindowsHookCodes, ByVal pfnFilterProc As HookProc) As LongPtr
+Public Declare PtrSafe Function SetWindowsHookExA Lib "user32" (ByVal idHook As WindowsHookCodes, ByVal lpfn As HookProc, ByVal hmod As LongPtr, ByVal dwThreadId As Long) As LongPtr
+Public Declare PtrSafe Function SetWindowsHookW Lib "user32" (ByVal nFilterType As WindowsHookCodes, ByVal pfnFilterProc As HookProc) As LongPtr
+Public Declare PtrSafe Function SetWindowsHookExW Lib "user32" (ByVal idHook As WindowsHookCodes, ByVal lpfn As HookProc, ByVal hmod As LongPtr, ByVal dwThreadId As Long) As LongPtr
+Public Declare PtrSafe Function UnhookWindowsHook Lib "user32" (ByVal nCode As WindowsHookCodes, ByVal pfnFilterProc As HookProc) As Long
 Public Declare PtrSafe Function UnhookWindowsHookEx Lib "user32" (ByVal hhk As LongPtr) As Long
 Public Declare PtrSafe Function CallNextHookEx Lib "user32" (ByVal hHook As LongPtr, ByVal ncode As WindowsHookCodes, ByVal wParam As LongPtr, lParam As Any) As LongPtr
 Public Declare PtrSafe Function CallMsgFilterA Lib "user32" (lpMsg As MSG, ByVal nCode As Long) As BOOL
@@ -24966,9 +25150,11 @@ Public DeclareWide PtrSafe Function DrawTextEx Lib "user32" Alias "DrawTextExW" 
 Public Declare PtrSafe Function DrawEdge Lib "user32" (ByVal hDC As LongPtr, qrc As RECT, ByVal edge As BorderStyles, ByVal grfFlags As BorderFlags) As BOOL
 Public Declare PtrSafe Function DrawFocusRect Lib "user32" (ByVal hdc As LongPtr, lpRect As RECT) As BOOL
 Public Declare PtrSafe Function DrawAnimatedRects Lib "user32" (ByVal hdc As LongPtr, ByVal idAni As AnimationTypeIDs, lprcFrom As RECT, lprcTo As RECT) As BOOL
-Public Declare PtrSafe Function DrawStateA Lib "user32" (ByVal hdc As LongPtr, ByVal hbrFore As LongPtr, ByVal qfnCallBack As LongPtr, ByVal lData As LongPtr, ByVal wData As LongPtr, ByVal x As Long, ByVal y As Long, ByVal cx As Long, ByVal cy As Long, [TypeHint(DrawStateStates, DrawStateImageTypes)] ByVal uFlags As Long) As BOOL
-Public Declare PtrSafe Function DrawStateW Lib "user32" (ByVal hdc As LongPtr, ByVal hbrFore As LongPtr, ByVal qfnCallBack As LongPtr, ByVal lData As LongPtr, ByVal wData As LongPtr, ByVal x As Long, ByVal y As Long, ByVal cx As Long, ByVal cy As Long, [TypeHint(DrawStateStates, DrawStateImageTypes)] ByVal uFlags As Long) As BOOL
-Public DeclareWide PtrSafe Function DrawState Lib "user32" Alias "DrawStateW" (ByVal hdc As LongPtr, ByVal hbrFore As LongPtr, ByVal qfnCallBack As LongPtr, ByVal lData As LongPtr, ByVal wData As LongPtr, ByVal x As Long, ByVal y As Long, ByVal cx As Long, ByVal cy As Long, [TypeHint(DrawStateStates, DrawStateImageTypes)] ByVal uFlags As Long) As BOOL
+
+Public Delegate Function DrawStateProc (ByVal hDC As LongPtr, ByVal lData As LongPtr, ByVal wData As LongPtr, ByVal cx As Long, ByVal cy As Long) As BOOL
+Public Declare PtrSafe Function DrawStateA Lib "user32" (ByVal hdc As LongPtr, ByVal hbrFore As LongPtr, ByVal qfnCallBack As DrawStateProc, ByVal lData As LongPtr, ByVal wData As LongPtr, ByVal x As Long, ByVal y As Long, ByVal cx As Long, ByVal cy As Long, [TypeHint(DrawStateStates, DrawStateImageTypes)] ByVal uFlags As Long) As BOOL
+Public Declare PtrSafe Function DrawStateW Lib "user32" (ByVal hdc As LongPtr, ByVal hbrFore As LongPtr, ByVal qfnCallBack As DrawStateProc, ByVal lData As LongPtr, ByVal wData As LongPtr, ByVal x As Long, ByVal y As Long, ByVal cx As Long, ByVal cy As Long, [TypeHint(DrawStateStates, DrawStateImageTypes)] ByVal uFlags As Long) As BOOL
+Public DeclareWide PtrSafe Function DrawState Lib "user32" Alias "DrawStateW" (ByVal hdc As LongPtr, ByVal hbrFore As LongPtr, ByVal qfnCallBack As DrawStateProc, ByVal lData As LongPtr, ByVal wData As LongPtr, ByVal x As Long, ByVal y As Long, ByVal cx As Long, ByVal cy As Long, [TypeHint(DrawStateStates, DrawStateImageTypes)] ByVal uFlags As Long) As BOOL
 Public Declare PtrSafe Function DrawCaption Lib "user32" (ByVal hWnd As LongPtr, ByVal hDC As LongPtr, lprect As RECT, ByVal flags As DrawCaptionFlags) As BOOL
 Public Declare PtrSafe Function DrawFrameControl Lib "user32" (ByVal hdc As LongPtr, lprc As RECT, ByVal type As DrawFrameControlTypes, ByVal state As DrawFrameControlStates) As BOOL
 Public Declare PtrSafe Function CreateCaret Lib "user32" (ByVal hWnd As LongPtr, ByVal hBitmap As LongPtr, ByVal nWidth As Long, ByVal nHeight As Long) As BOOL
@@ -24979,11 +25165,13 @@ Public Declare PtrSafe Function GetCaretBlinkTime Lib "user32" () As Long
 Public Declare PtrSafe Function HideCaret Lib "user32" (Optional ByVal hWnd As LongPtr) As BOOL
 Public Declare PtrSafe Function ShowCaret Lib "user32" (Optional ByVal hWnd As LongPtr) As BOOL
 Public Declare PtrSafe Function DestroyCaret Lib "user32" () As BOOL
-Public Declare PtrSafe Function GrayStringA Lib "user32" (ByVal hdc As LongPtr, ByVal hBrush As LongPtr, ByVal lpOutputFunc As LongPtr, lpData As Any, ByVal nCount As Long, ByVal x As Long, ByVal y As Long, ByVal nWidth As Long, ByVal nHeight As Long) As BOOL
-Public Declare PtrSafe Function GrayStringW Lib "user32" (ByVal hdc As LongPtr, ByVal hBrush As LongPtr, ByVal lpOutputFunc As LongPtr, lpData As Any, ByVal nCount As Long, ByVal x As Long, ByVal y As Long, ByVal nWidth As Long, ByVal nHeight As Long) As BOOL
-Public DeclareWide PtrSafe Function GrayString Lib "user32" Alias "GrayStringW" (ByVal hdc As LongPtr, ByVal hBrush As LongPtr, ByVal lpOutputFunc As LongPtr, lpData As Any, ByVal nCount As Long, ByVal x As Long, ByVal y As Long, ByVal nWidth As Long, ByVal nHeight As Long) As BOOL
+Public Declare PtrSafe Function GrayStringA Lib "user32" (ByVal hdc As LongPtr, ByVal hBrush As LongPtr, ByVal lpOutputFunc As GrayStringProc, lpData As Any, ByVal nCount As Long, ByVal x As Long, ByVal y As Long, ByVal nWidth As Long, ByVal nHeight As Long) As BOOL
+Public Declare PtrSafe Function GrayStringW Lib "user32" (ByVal hdc As LongPtr, ByVal hBrush As LongPtr, ByVal lpOutputFunc As GrayStringProc, lpData As Any, ByVal nCount As Long, ByVal x As Long, ByVal y As Long, ByVal nWidth As Long, ByVal nHeight As Long) As BOOL
+Public DeclareWide PtrSafe Function GrayString Lib "user32" Alias "GrayStringW" (ByVal hdc As LongPtr, ByVal hBrush As LongPtr, ByVal lpOutputFunc As GrayStringProc, lpData As Any, ByVal nCount As Long, ByVal x As Long, ByVal y As Long, ByVal nWidth As Long, ByVal nHeight As Long) As BOOL
 
-
+'typedef BOOL (CALLBACK* GRAYSTRINGPROC)(HDC, LPARAM, int);
+Public Delegate Function GrayStringProc (ByVal hDC As LongPtr, ByVal lParam As LongPtr, ByVal cch As Long) As BOOL
+ 
 
 
 [Description("For szKeyphrase, 101 is provided as a reasonable maximum, but there's no such limit. For mkSize, specify only 6+actual used chars.")]
@@ -26716,20 +26904,26 @@ Public Declare PtrSafe Function SwitchDesktop Lib "user32" (ByVal hDesktop As Lo
 Public Declare PtrSafe Function OpenDesktopA Lib "user32" (ByVal lpszDesktop As String, ByVal dwFlags As OpenDesktop_Flags, ByVal fInherit As BOOL, [TypeHint(StandardAccessTypes, DesktopAccessMaskValues , GenericRights)] ByVal dwDesiredAccess As Long) As LongPtr
 Public Declare PtrSafe Function OpenDesktopW Lib "user32" (ByVal lpszDesktop As LongPtr, ByVal dwFlags As OpenDesktop_Flags, ByVal fInherit As BOOL, [TypeHint(StandardAccessTypes, DesktopAccessMaskValues , GenericRights)] ByVal dwDesiredAccess As Long) As LongPtr
 Public DeclareWide PtrSafe Function OpenDesktop Lib "user32" Alias "OpenDesktopW" (ByVal lpszDesktop As String, ByVal dwFlags As OpenDesktop_Flags, ByVal fInherit As BOOL, [TypeHint(StandardAccessTypes, DesktopAccessMaskValues , GenericRights)] ByVal dwDesiredAccess As Long) As LongPtr
-Public Declare PtrSafe Function EnumDesktopsA Lib "user32" (ByVal hwinsta As LongPtr, ByVal lpEnumFunc As LongPtr, ByVal lParam As LongPtr) As BOOL
-Public Declare PtrSafe Function EnumDesktopsW Lib "user32" (ByVal hwinsta As LongPtr, ByVal lpEnumFunc As LongPtr, ByVal lParam As LongPtr) As BOOL
-Public DeclareWide PtrSafe Function EnumDesktops Lib "user32" Alias "EnumDesktopsW" (ByVal hwinsta As LongPtr, ByVal lpEnumFunc As LongPtr, ByVal lParam As LongPtr) As BOOL
-Public Declare PtrSafe Function EnumDesktopWindows Lib "user32" (ByVal hDesktop As LongPtr, ByVal lpfn As LongPtr, ByVal lParam As LongPtr) As BOOL
+
+Public Delegate Function DesktopEnumProcA (ByVal lpszDesktop As LongPtr, ByVal lParam As LongPtr) As BOOL
+Public Delegate Function DesktopEnumProcW (ByVal lpszDesktop As LongPtr, ByVal lParam As LongPtr) As BOOL
+Public Delegate Function DesktopEnumProc (ByVal lpszDesktop As LongPtr, ByVal lParam As LongPtr) As BOOL
+Public Declare PtrSafe Function EnumDesktopsA Lib "user32" (ByVal hwinsta As LongPtr, ByVal lpEnumFunc As DesktopEnumProcA, ByVal lParam As LongPtr) As BOOL
+Public Declare PtrSafe Function EnumDesktopsW Lib "user32" (ByVal hwinsta As LongPtr, ByVal lpEnumFunc As DesktopEnumProcW, ByVal lParam As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function EnumDesktops Lib "user32" Alias "EnumDesktopsW" (ByVal hwinsta As LongPtr, ByVal lpEnumFunc As DesktopEnumProc, ByVal lParam As LongPtr) As BOOL
+Public Declare PtrSafe Function EnumDesktopWindows Lib "user32" (ByVal hDesktop As LongPtr, ByVal lpfn As EnumWindowsProc, ByVal lParam As LongPtr) As BOOL
 Public Declare PtrSafe Function OpenInputDesktop Lib "user32" (ByVal dwFlags As OpenDesktop_Flags, ByVal fInherit As BOOL, [TypeHint(StandardAccessTypes, DesktopAccessMaskValues , GenericRights)] ByVal dwDesiredAccess As Long) As LongPtr
-Public Declare PtrSafe Function CloseDesktop Lib "user32" (ByVal hDesktop As LongPtr) As Long
-Public Declare PtrSafe Function SetThreadDesktop Lib "user32" (ByVal hDesktop As LongPtr) As Long
+Public Declare PtrSafe Function CloseDesktop Lib "user32" (ByVal hDesktop As LongPtr) As BOOL
+Public Declare PtrSafe Function SetThreadDesktop Lib "user32" (ByVal hDesktop As LongPtr) As BOOL
 Public Declare PtrSafe Function GetThreadDesktop Lib "user32" (ByVal dwThreadId As Long) As LongPtr
 
 Public Declare PtrSafe Function GetProcessWindowStation Lib "user32" () As LongPtr
 Public Declare PtrSafe Function SetProcessWindowStation Lib "user32" (ByVal hWinSta As LongPtr) As BOOL
-Public Declare PtrSafe Function EnumWindowStationsW Lib "user32" (ByVal lpEnumFunc As LongPtr, ByVal lParam As LongPtr) As BOOL
-Public Declare PtrSafe Function EnumWindowStationsA Lib "user32" (ByVal lpEnumFunc As LongPtr, ByVal lParam As LongPtr) As BOOL
-Public DeclareWide PtrSafe Function EnumWindowStations Lib "user32" Alias "EnumWindowStationsW" (ByVal lpEnumFunc As LongPtr, ByVal lParam As LongPtr) As BOOL
+
+Public Delegate Function EnumWindowStationProc (ByVal lpszWindowStation As LongPtr, ByVal lParam As LongPtr) As BOOL
+Public Declare PtrSafe Function EnumWindowStationsW Lib "user32" (ByVal lpEnumFunc As EnumWindowStationProc, ByVal lParam As LongPtr) As BOOL
+Public Declare PtrSafe Function EnumWindowStationsA Lib "user32" (ByVal lpEnumFunc As EnumWindowStationProc, ByVal lParam As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function EnumWindowStations Lib "user32" Alias "EnumWindowStationsW" (ByVal lpEnumFunc As EnumWindowStationProc, ByVal lParam As LongPtr) As BOOL
 Public Declare PtrSafe Function CreateWindowStationA Lib "user32" (ByVal lpwinsta As String, ByVal dwFlags As WindowStationCreateFlags, [TypeHint(StandardAccessTypes, WindowStationAccessFlags , GenericRights)] ByVal dwDesiredAccess As Long, lpsa As SECURITY_ATTRIBUTES) As BOOL
 Public Declare PtrSafe Function CreateWindowStationW Lib "user32" (ByVal lpwinsta As LongPtr, ByVal dwFlags As WindowStationCreateFlags, [TypeHint(StandardAccessTypes, WindowStationAccessFlags , GenericRights)] ByVal dwDesiredAccess As Long, lpsa As SECURITY_ATTRIBUTES) As BOOL
 Public DeclareWide PtrSafe Function CreateWindowStation Lib "user32" Alias "CreateWindowStationW" (ByVal lpwinsta As String, ByVal dwFlags As WindowStationCreateFlags, [TypeHint(StandardAccessTypes, WindowStationAccessFlags , GenericRights)] ByVal dwDesiredAccess As Long, lpsa As SECURITY_ATTRIBUTES) As BOOL
@@ -27481,6 +27675,11 @@ Public Declare PtrSafe Function SetMenuDefaultItem Lib "user32" (ByVal hMenu As 
 Public Declare PtrSafe Function GetMenuItemRect Lib "user32" (ByVal hwnd As LongPtr, ByVal hMenu As LongPtr, ByVal uItem As Long, lprcItem As RECT) As BOOL
 Public Declare PtrSafe Function MenuItemFromPoint Lib "user32" (ByVal hWnd As LongPtr, ByVal hMenu As LongPtr, ByVal ptScreen As LongLong) As Long
 
+
+
+Public Delegate Function EditWordBreakProcA (ByVal lpch As LongPtr, ByVal ichCurrent As Long, ByVal cch As Long, ByVal code As Long) As Long
+Public Delegate Function EditWordBreakProcW (ByVal lpch As LongPtr, ByVal ichCurrent As Long, ByVal cch As Long, ByVal code As Long) As Long
+Public Delegate Function EditWordBreakProc (ByVal lpch As LongPtr, ByVal ichCurrent As Long, ByVal cch As Long, ByVal code As Long) As Long
 
 
 'dde.h
@@ -35813,6 +36012,12 @@ Public Const PROCESS_TRACE_MODE_REAL_TIME = &H100
 Public Const PROCESS_TRACE_MODE_RAW_TIMESTAMP = &H1000
 Public Const PROCESS_TRACE_MODE_EVENT_RECORD = &H10000000
 
+Public Enum ETW_PROVIDER_TRAIT_TYPE
+    EtwProviderTraitTypeGroup  ' Provider group GUID.
+    EtwProviderTraitDecodeGuid ' Decode GUID (when different from control GUID)
+    EtwProviderTraitTypeMax
+End Enum
+
 
 Public Const EVENT_TRACE_TYPE_INFO As Byte = &H0 ' Info or point event
 Public Const EVENT_TRACE_TYPE_START As Byte = &H1 ' Start event
@@ -36378,11 +36583,20 @@ Public Enum ETW_PROCESS_TRACE_MODES
     ETW_PROCESS_TRACE_MODE_RAW_TIMESTAMP = &H00000001
 End Enum
 
+Public Delegate Function EventTraceBufferCallbackA (Logfile As EVENT_TRACE_LOGFILEA) As Long
+Public Delegate Function EventTraceBufferCallbackW (Logfile As EVENT_TRACE_LOGFILEW) As Long
+Public Delegate Function EventTraceBufferCallback (Logfile As EVENT_TRACE_LOGFILE) As Long
+Public Delegate Sub EventCallback (pEvent As EVENT_TRACE)
+Public Delegate Sub EventRecordCallback (EventRecord As EVENT_RECORD)
+Public Delegate Function EtwBufferCallback (ByVal Buffer As LongPtr, ByVal BufferSize As Long, ConsumerInfo As ETW_BUFFER_CALLBACK_INFORMATION, ByVal CallbackContext As LongPtr) As BOOL
+Public Delegate Sub EtwBufferCompletionCallback (ByVal Buffer As LongPtr, ByVal CallbackContext As LongPtr)
+
+
 Public Type ETW_OPEN_TRACE_OPTIONS
     ProcessTraceModes As ETW_PROCESS_TRACE_MODES
     ' This callback will be called for each event in time order.
     ' If left NULL, all event playback code will be bypassed.
-    EventCallback As LongPtr 'PEVENT_RECORD_CALLBACK
+    EventCallback As EventRecordCallback 'PEVENT_RECORD_CALLBACK
     EventCallbackContext As LongPtr 'void*
     ' This callback will get called once buffer processing is complete.
     BufferCallback As LongPtr 'PETW_BUFFER_CALLBACK
@@ -36491,12 +36705,12 @@ Public Type EVENT_TRACE_LOGFILEA            'typedef struct _EVENT_TRACE_LOGFILE
                                             '  } DUMMYUNIONNAME;
     CurrentEvent As EVENT_TRACE '88A'112    '  EVENT_TRACE                   CurrentEvent;
     LogfileHeader As TRACE_LOGFILE_HEADER   '  TRACE_LOGFILE_HEADER          LogfileHeader;
-    BufferCallback As LongPtr               '  PEVENT_TRACE_BUFFER_CALLBACKA BufferCallback;
+    BufferCallback As EventTraceBufferCallbackA '  PEVENT_TRACE_BUFFER_CALLBACKA BufferCallback;
     BufferSize As Long                      '  ULONG                         BufferSize;
     Filled As Long                          '  ULONG                         Filled;
     EventsLost As Long                      '  ULONG                         EventsLost;
                                             '  union {
-    EventCallback As LongPtr                '    PEVENT_CALLBACK        EventCallback;
+    EventCallback As EventRecordCallback    '    PEVENT_CALLBACK        EventCallback;
                                             '    PEVENT_RECORD_CALLBACK EventRecordCallback;
                                             '  } DUMMYUNIONNAME2;
     IsKernelTrace As Long                   '  ULONG                         IsKernelTrace;
@@ -36513,12 +36727,12 @@ Public Type EVENT_TRACE_LOGFILEW            'typedef struct _EVENT_TRACE_LOGFILE
                                             '  } DUMMYUNIONNAME;
     CurrentEvent As EVENT_TRACE '88A'112    '  EVENT_TRACE                   CurrentEvent;
     LogfileHeader As TRACE_LOGFILE_HEADER   '  TRACE_LOGFILE_HEADER          LogfileHeader;
-    BufferCallback As LongPtr               '  PEVENT_TRACE_BUFFER_CALLBACKA BufferCallback;
+    BufferCallback As EventTraceBufferCallbackW '  PEVENT_TRACE_BUFFER_CALLBACKW BufferCallback;
     BufferSize As Long                      '  ULONG                         BufferSize;
     Filled As Long                          '  ULONG                         Filled;
     EventsLost As Long                      '  ULONG                         EventsLost;
                                             '  union {
-    EventCallback As LongPtr                '    PEVENT_CALLBACK        EventCallback;
+    EventCallback As EventRecordCallback    '    PEVENT_CALLBACK        EventCallback;
                                             '    PEVENT_RECORD_CALLBACK EventRecordCallback;
                                             '  } DUMMYUNIONNAME2;
     IsKernelTrace As Long                   '  ULONG                         IsKernelTrace;
@@ -36535,12 +36749,12 @@ Public Type EVENT_TRACE_LOGFILE             'typedef struct _EVENT_TRACE_LOGFILE
                                             '  } DUMMYUNIONNAME;
     CurrentEvent As EVENT_TRACE '88A'112    '  EVENT_TRACE                   CurrentEvent;
     LogfileHeader As TRACE_LOGFILE_HEADER   '  TRACE_LOGFILE_HEADER          LogfileHeader;
-    BufferCallback As LongPtr               '  PEVENT_TRACE_BUFFER_CALLBACKA BufferCallback;
+    BufferCallback As EventTraceBufferCallback '  PEVENT_TRACE_BUFFER_CALLBACKW BufferCallback;
     BufferSize As Long                      '  ULONG                         BufferSize;
     Filled As Long                          '  ULONG                         Filled;
     EventsLost As Long                      '  ULONG                         EventsLost;
                                             '  union {
-    EventCallback As LongPtr                '    PEVENT_CALLBACK        EventCallback;
+    EventCallback As EventRecordCallback    '    PEVENT_CALLBACK        EventCallback;
                                             '    PEVENT_RECORD_CALLBACK EventRecordCallback;
                                             '  } DUMMYUNIONNAME2;
     IsKernelTrace As Long                   '  ULONG                         IsKernelTrace;
@@ -37168,7 +37382,7 @@ Public Declare PtrSafe Function OpenTraceW Lib "advapi32" (logfile As EVENT_TRAC
 Public DeclareWide PtrSafe Function OpenTrace Lib "advapi32" Alias "OpenTraceW" (logfile As EVENT_TRACE_LOGFILE) As LongLong
 Public Declare PtrSafe Function ProcessTrace Lib "advapi32" (ByVal HandleArray As LongPtr, ByVal HandleCount As Long, StartTime As FILETIME, EndTime As FILETIME) As Long
 Public Declare PtrSafe Function CloseTrace Lib "advapi32" (ByVal TraceHandle As LongLong) As Long
-Public Declare PtrSafe Function OpenTraceFromBufferStream Lib "sechost" (Options As ETW_OPEN_TRACE_OPTIONS, ByVal BufferCompletionCallback As LongPtr /*PETW_BUFFER_COMPLETION_CALLBACK*/, Optional ByVal BufferCompletionContext As LongPtr) As LongLong
+Public Declare PtrSafe Function OpenTraceFromBufferStream Lib "sechost" (Options As ETW_OPEN_TRACE_OPTIONS, ByVal BufferCompletionCallback As EtwBufferCompletionCallback /*PETW_BUFFER_COMPLETION_CALLBACK*/, Optional ByVal BufferCompletionContext As LongPtr) As LongLong
 Public DeclareWide PtrSafe Function OpenTraceFromRealTimeLogger Lib "sechost" (ByVal LoggerName As String, Options As ETW_OPEN_TRACE_OPTIONS, LogFileHeader As TRACE_LOGFILE_HEADER) As LongLong
 Public DeclareWide PtrSafe Function OpenTraceFromRealTimeLoggerWithAllocationOptions Lib "sechost" (ByVal LoggerName As String, Options As ETW_OPEN_TRACE_OPTIONS, ByVal AllocationSize As LongPtr, ByVal MemoryPartitionHandle As LongPtr, LogFileHeader As TRACE_LOGFILE_HEADER) As LongLong
 Public DeclareWide PtrSafe Function OpenTraceFromFile Lib "sechost" (ByVal LogFileName As String, Options As ETW_OPEN_TRACE_OPTIONS, LogFileHeader As TRACE_LOGFILE_HEADER) As LongLong
@@ -37181,6 +37395,50 @@ Public Declare PtrSafe Function RemoveTraceCallback Lib "advapi32" (pGuid As UUI
 [Unimplemented, Description("This API uses an unsupported language feature. Use TraceMessageVa.")]
 Public Declare PtrSafe Function TraceMessage Lib "advapi32" (ByVal TraceHandle As LongLong, ByVal MessageFlags As Long, MessageGuid As UUID, ByVal MessageNumber As Integer) As Long
 Public Declare PtrSafe Function TraceMessageVa Lib "advapi32" (ByVal TraceHandle As LongLong, ByVal MessageFlags As Long, MessageGuid As UUID, ByVal MessageNumber As Integer, MessageArgList As Any) As Long
+
+Public Function GetEventProcessorIndex(EventRecord As EVENT_RECORD) As Long
+    If ((EventRecord.EventHeader.Flags And EVENT_HEADER_FLAG_PROCESSOR_INDEX) <> 0) Then
+        Dim ProcessorIndex As Integer
+        CopyMemory ProcessorIndex, EventRecord.BufferContext.ProcessorNumber, 2
+        Return ProcessorIndex
+    Else
+        Return EventRecord.BufferContext.ProcessorNumber
+    End If
+End Function
+
+Public Sub EtwGetTraitFromProviderTraits(ByVal ProviderTraits As LongPtr, [TypeHint(ETW_PROVIDER_TRAIT_TYPE)] ByVal TraitType As Byte, Trait As LongPtr, Size As Integer)
+    Dim ByteCount As Integer
+    CopyMemory ByteCount, ByVal ProviderTraits, 2
+    Dim Ptr As LongPtr = ProviderTraits
+    Dim PtrEnd As LongPtr = Ptr + ByteCount
+    
+    Trait = 0
+    Size = 0
+    
+    If ByteCount < 3 Then Exit Sub
+        
+    Ptr += 2
+    
+    Ptr += lstrlenA(ByVal Ptr)
+    Ptr += 1
+    
+    Do While (Ptr < PtrEnd)
+        Dim TraitByteCount As Integer
+        CopyMemory TraitByteCount, ByVal Ptr, 2
+        If TraitByteCount < 3 Then Exit Do
+        
+        Dim tmp As Byte
+        CopyMemory tmp, ByVal Ptr + 2, 1
+        If (tmp = TraitType) And (Ptr + TraitByteCount < PtrEnd) Then
+            Trait = Ptr + 3
+            Size = TraitByteCount - 3
+            Exit Sub
+        End If
+        
+        Ptr += TraitByteCount
+    Loop
+End Sub
+
 
 'winsafer.h
 
@@ -39011,130 +39269,131 @@ Public DeclareWide PtrSafe Function AuthzUninstallSecurityEventSource Lib "authz
 Public DeclareWide PtrSafe Function AuthzEnumerateSecurityEventSources Lib "authz.dll" (ByVal dwFlags As Long, Buffer As Any, pdwCount As Long, pdwLength As Long) As BOOL
 Public DeclareWide PtrSafe Function AuthzRegisterSecurityEventSource Lib "authz.dll" (ByVal dwFlags As Long, ByVal szEventSourceName As String, phEventProvider As LongPtr) As BOOL
 Public Declare PtrSafe Function AuthzUnregisterSecurityEventSource Lib "authz.dll" (ByVal dwFlags As Long, phEventProvider As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function AuthzReportSecurityEvent CDecl Lib "authz.dll" (ByVal dwFlags As Long, ByVal hEventProvider As LongPtr, ByVal dwAuditId As Long, ByVal pUserSid As LongPtr, ByVal dwCount As Long, ByVal ParamArray vargs As Any()) As BOOL
 
-[Description("This function cannot be called directly due to ... (variable arguments) being unsupported. This is a custom handler that calls it via DispCallFunc. Supply a type array and matching value array (of Variants that can be coerced into types. Provide LUID and FILETIME as LongLong inside a Variant.")]
-Public Function AuthzReportSecurityEvent(ByVal dwFlags As AUDIT_CONTROL_FLAGS, ByVal hEventProvider As LongPtr, ByVal dwAuditId As Long, ByVal pUserSid As LongPtr, ByVal dwCount As Long, va_values() As Variant) As BOOL
+' [Description("This function cannot be called directly due to ... (variable arguments) being unsupported. This is a custom handler that calls it via DispCallFunc. Supply a type array and matching value array (of Variants that can be coerced into types. Provide LUID and FILETIME as LongLong inside a Variant.")]
+' Public Function AuthzReportSecurityEvent(ByVal dwFlags As AUDIT_CONTROL_FLAGS, ByVal hEventProvider As LongPtr, ByVal dwAuditId As Long, ByVal pUserSid As LongPtr, ByVal dwCount As Long, va_values() As Variant) As BOOL
 
-Dim hAZ As LongPtr = LoadLibrary("authz.dll")
-If hAZ Then
-	Dim lpfn As LongPtr = GetProcAddress(hAZ, "AuthzReportSecurityEvent")
-    Dim nArgs As Long
-    Dim pVA() As Variant
-    Dim pVT() As Integer
+' Dim hAZ As LongPtr = LoadLibrary("authz.dll")
+' If hAZ Then
+' 	Dim lpfn As LongPtr = GetProcAddress(hAZ, "AuthzReportSecurityEvent")
+'     Dim nArgs As Long
+'     Dim pVA() As Variant
+'     Dim pVT() As Integer
     
-    nArgs = 5 + (dwCount * 2)
-    ReDim pVA(nArgs - 1)
-    ReDim pVT(nArgs - 1)
+'     nArgs = 5 + (dwCount * 2)
+'     ReDim pVA(nArgs - 1)
+'     ReDim pVT(nArgs - 1)
     
-    pVT(0) = CInt(VT_UI4)
-    pVA(0) = dwFlags
-    pVT(1) = CInt(VT_UINT_PTR)
-    pVA(1) = hEventProvider
-    pVT(2) = CInt(VT_UI4)
-    pVA(2) = dwAuditId
-    pVT(3) = CInt(VT_PTR)
-    pVA(3) = pUserSid
-    pVT(4) = CInt(VT_UI4)
-    pVA(4) = dwCount
+'     pVT(0) = CInt(VT_UI4)
+'     pVA(0) = dwFlags
+'     pVT(1) = CInt(VT_UINT_PTR)
+'     pVA(1) = hEventProvider
+'     pVT(2) = CInt(VT_UI4)
+'     pVA(2) = dwAuditId
+'     pVT(3) = CInt(VT_PTR)
+'     pVA(3) = pUserSid
+'     pVT(4) = CInt(VT_UI4)
+'     pVA(4) = dwCount
     
-    Dim i As Long, k As Long
-    Dim paramType As AUDIT_PARAM_TYPE
-    Dim paramFlags As AUDIT_PARAM_TYPE
+'     Dim i As Long, k As Long
+'     Dim paramType As AUDIT_PARAM_TYPE
+'     Dim paramFlags As AUDIT_PARAM_TYPE
     
-    i = 5
+'     i = 5
     
-    For k = 0 To UBound(va_values)
-        paramType = ApExtractType(CType(Of AUDIT_PARAM_TYPE)(va_values(k)))
-        paramFlags = ApExtractFlags(CType(Of AUDIT_PARAM_TYPE)(va_values(k)))
+'     For k = 0 To UBound(va_values)
+'         paramType = ApExtractType(CType(Of AUDIT_PARAM_TYPE)(va_values(k)))
+'         paramFlags = ApExtractFlags(CType(Of AUDIT_PARAM_TYPE)(va_values(k)))
         
-        'First add one 4-byte argument for the type
-        ReDim Preserve pVT(i)
-        ReDim Preserve pVA(i)
-        pVT(i) = CInt(VT_UI4)
-        pVA(i) = va_values(k)
-        i += 1
-        k += 1
+'         'First add one 4-byte argument for the type
+'         ReDim Preserve pVT(i)
+'         ReDim Preserve pVA(i)
+'         pVT(i) = CInt(VT_UI4)
+'         pVA(i) = va_values(k)
+'         i += 1
+'         k += 1
         
-        Select Case paramType
-            Case APT_Ulong
-                If (paramFlags And AP_AccessMask) = AP_AccessMask Then
-                    'Add two 4-byte argument    
-                    ' case APT_Ulong:
-                        ' pParam->Data0 = va_arg(arglist, ULONG);
-                        ' if (ParamFlags & AP_AccessMask)
-                        ' {
-                            ' ObjectTypeIndex = va_arg(arglist, ULONG);
-                    ReDim Preserve pVT(i + 1)
-                    ReDim Preserve pVA(i + 1)
-                    pVT(i) = CInt(VT_UI4)
-                    pVT(i + 1) = CInt(VT_UI4)
-                    pVA(i) = va_values(k)
-                    pVA(i + 1) = va_values(k + 1)
-                    i += 2
-                    'k will advance by one automatically, still needs one more
-                    k += 1
-                Else
-                    'Add one 4-byte argument	
-                    ReDim Preserve pVT(i)
-                    ReDim Preserve pVA(i)
-                    pVT(i) = CInt(VT_UI4)
-                    pVA(i) = va_values(k)
-                    i += 1
-                    'k will advance by one automatically
-                End If
+'         Select Case paramType
+'             Case APT_Ulong
+'                 If (paramFlags And AP_AccessMask) = AP_AccessMask Then
+'                     'Add two 4-byte argument    
+'                     ' case APT_Ulong:
+'                         ' pParam->Data0 = va_arg(arglist, ULONG);
+'                         ' if (ParamFlags & AP_AccessMask)
+'                         ' {
+'                             ' ObjectTypeIndex = va_arg(arglist, ULONG);
+'                     ReDim Preserve pVT(i + 1)
+'                     ReDim Preserve pVA(i + 1)
+'                     pVT(i) = CInt(VT_UI4)
+'                     pVT(i + 1) = CInt(VT_UI4)
+'                     pVA(i) = va_values(k)
+'                     pVA(i + 1) = va_values(k + 1)
+'                     i += 2
+'                     'k will advance by one automatically, still needs one more
+'                     k += 1
+'                 Else
+'                     'Add one 4-byte argument	
+'                     ReDim Preserve pVT(i)
+'                     ReDim Preserve pVA(i)
+'                     pVT(i) = CInt(VT_UI4)
+'                     pVA(i) = va_values(k)
+'                     i += 1
+'                     'k will advance by one automatically
+'                 End If
                 
-            Case APT_Pointer, APT_String, APT_Sid, APT_Guid
-                'Add a single pointer sized arg
-                ReDim Preserve pVT(i)
-                ReDim Preserve pVA(i)
-                pVT(i) = CInt(VT_UINT_PTR)
-                pVA(i) = va_values(k)
-                i += 1
+'             Case APT_Pointer, APT_String, APT_Sid, APT_Guid
+'                 'Add a single pointer sized arg
+'                 ReDim Preserve pVT(i)
+'                 ReDim Preserve pVA(i)
+'                 pVT(i) = CInt(VT_UINT_PTR)
+'                 pVA(i) = va_values(k)
+'                 i += 1
         
-            Case APT_Luid, APT_Time
-                'Add a single 8-byte argument (LUID or FILETIME)
-                ReDim Preserve pVT(i)
-                ReDim Preserve pVA(i)
-                pVT(i) = CInt(VT_UI8)
-                pVA(i) = va_values(k)
-                i += 1
+'             Case APT_Luid, APT_Time
+'                 'Add a single 8-byte argument (LUID or FILETIME)
+'                 ReDim Preserve pVT(i)
+'                 ReDim Preserve pVA(i)
+'                 pVT(i) = CInt(VT_UI8)
+'                 pVA(i) = va_values(k)
+'                 i += 1
                 
-            Case APT_LogonId
-                If ((paramFlags And AP_PrimaryLogonId) = AP_PrimaryLogonId) Or ((paramFlags And AP_ClientLogonId) = AP_ClientLogonId) Then
-                    'These flags substitute an internal query and don't have a va_arg statement to pop args off the stack
-                Else
-                    'Add a single 8-byte argument (LUID)
-                    ReDim Preserve pVT(i)
-                    ReDim Preserve pVA(i)
-                    pVT(i) = CInt(VT_UI8)
-                    pVA(i) = va_values(k)
-                    i += 1
-                End If
+'             Case APT_LogonId
+'                 If ((paramFlags And AP_PrimaryLogonId) = AP_PrimaryLogonId) Or ((paramFlags And AP_ClientLogonId) = AP_ClientLogonId) Then
+'                     'These flags substitute an internal query and don't have a va_arg statement to pop args off the stack
+'                 Else
+'                     'Add a single 8-byte argument (LUID)
+'                     ReDim Preserve pVT(i)
+'                     ReDim Preserve pVA(i)
+'                     pVT(i) = CInt(VT_UI8)
+'                     pVA(i) = va_values(k)
+'                     i += 1
+'                 End If
                 
-            Case APT_ObjectTypeList
-                'Add one pointer and one ULONG   
-                ReDim Preserve pVT(i + 1)
-                ReDim Preserve pVA(i + 1)
-                pVT(i) = CInt(VT_UINT_PTR)
-                pVT(i + 1) = CInt(VT_UI4)
-                pVA(i) = va_values(k)
-                pVA(i + 1) = va_values(k + 1)
-                i += 2
-                'k will advance by one automatically, still needs one more
-                k += 1
-        End Select
+'             Case APT_ObjectTypeList
+'                 'Add one pointer and one ULONG   
+'                 ReDim Preserve pVT(i + 1)
+'                 ReDim Preserve pVA(i + 1)
+'                 pVT(i) = CInt(VT_UINT_PTR)
+'                 pVT(i + 1) = CInt(VT_UI4)
+'                 pVA(i) = va_values(k)
+'                 pVA(i + 1) = va_values(k + 1)
+'                 i += 2
+'                 'k will advance by one automatically, still needs one more
+'                 k += 1
+'         End Select
         
-    Next k
+'     Next k
         
-    Dim vRet As Variant
-    Dim hr As Long
+'     Dim vRet As Variant
+'     Dim hr As Long
     
-    hr = DispCallFunc(ByVal 0, lpfn, CC_CDECL, CInt(VT_I4), UBound(pVA) + 1, pVT(0), pVA(0), vRet)
+'     hr = DispCallFunc(ByVal 0, lpfn, CC_CDECL, CInt(VT_I4), UBound(pVA) + 1, pVT(0), pVA(0), vRet)
     
-    Return CType(Of BOOL)(CLng(vRet))
-End If
+'     Return CType(Of BOOL)(CLng(vRet))
+' End If
 
-End Function
+' End Function
 Public Function ApExtractType(ByVal TypeFlags As AUDIT_PARAM_TYPE) As AUDIT_PARAM_TYPE
     Return (TypeFlags And AP_ParamTypeMask)
 End Function
@@ -39147,6 +39406,23 @@ Public Declare PtrSafe Function AuthzRegisterCapChangeNotification Lib "authz.dl
 Public Declare PtrSafe Function AuthzUnregisterCapChangeNotification Lib "authz.dll" (ByVal hCapChangeSubscription As LongPtr) As BOOL
 Public Declare PtrSafe Function AuthzFreeCentralAccessPolicyCache Lib "authz.dll" () As BOOL
 
+' Private Function AuthzpGetThreadTokenInfo(ppUserSid As LongPtr, pAuthenticationId As LUID) As BOOL
+'     Dim fResult As BOOL
+'     Dim hToken As LongPtr
+'     If (OpenThreadToken(GetCurrentThread(), TOKEN_QUERY, cTrue, hToken))
+    
+'         fResult = AuthzpGetTokenInfo(hToken, ppUserSid, pAuthenticationId)
+'         CloseHandle(hToken)
+    
+
+'     Return fResult
+' End Function
+
+' Private Function AuthzpGetTokenInfo(ByVal hToken As LongPtr, ppUserSid As LongPtr, pAuthenticationId As LUID) As BOOL
+'     Dim fResult As BOOL
+'     Dim TokenStats As TOKEN_STATISTICS
+    
+' End Function
 
 #End Region
 
