@@ -1,3 +1,9 @@
+**Update (v8.5.456, 20 Oct 2024):**
+-Changed C-style buffered name args in file info UDTs to use MAX_PATH - 1 instead of MAX_PATH to eliminate excess padding to simplify operations on buffers full of them.
+-Fixed MagSetWindowSource misleading argument names.
+-Added undocumented antialiasing APIs for magnification.dll
+-(Bug fix) FILE_RENAME_INFO definition incorrect
+
 
 **Update (v8.5.454, 15 Oct 2024):**
 **twinBASIC Beta 617 or newer is now required!**
