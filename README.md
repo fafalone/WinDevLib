@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 8.5.456 (October 20th, 2024)**
+**Current Version: 8.5.458 (October 26th, 2024)**
 
 ## IMPORTANT: [twinBASIC Beta 617 or newer](https://github.com/twinbasic/twinbasic/releases) is now required.
 
@@ -190,6 +190,14 @@ twinBASIC now counts msvbvm60 redirects as legacy DLL redirects, which WinDevLib
  
 
 ### Updates
+
+**Update (v8.5.458, 26 Oct 2024):**\
+-Added missing functions from handleapi.h (now 100% coverage)\
+-Added private namespace api functions (namespaceapi.h, 100% coverage)\
+-Misc winbase.h apis not added yet\
+-(API Standards) [Global]AddAtom, FindAtom, GlobalFindAtom, [Global]GetAtomName used LongPtr instead of String\
+-(Bug fix) CreatePipe ByVal/ByRef mixup. **IF YOU USED VARPTR AS A WORKAROUND MAKE SURE TO CHANGE IT!**\
+-(WinDevLibImpl) IPerPropertyBrowsing, IOleControl
 
 **Update (v8.5.456, 20 Oct 2024):**\
 -Changed C-style buffered name args in file info UDTs to use MAX_PATH - 1 instead of MAX_PATH to eliminate excess padding to simplify operations on buffers full of them.\
