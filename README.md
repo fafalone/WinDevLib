@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 8.5.461 (November 9th, 2024)**
+**Current Version: 8.5.462 (November 9th, 2024)**
 
 ## IMPORTANT: [twinBASIC Beta 617 or newer](https://github.com/twinbasic/twinbasic/releases) is now required.
 
@@ -190,6 +190,9 @@ twinBASIC now counts msvbvm60 redirects as legacy DLL redirects, which WinDevLib
  
 
 ### Updates
+
+**Update (v8.5.462, 09 Nov 2024):**\
+-All uses of delegates temporarily replaced with LongPtr pending backwards compatibility fix.
 
 **Update (v8.5.461, 09 Nov 2024):**\
 -Finished coverage of Windows Filtering Platform fwpmu.h (ipsectypes.h and iketypes.h now also 100%); also added IPSec errors.\
