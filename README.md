@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 8.5.458 (October 26th, 2024)**
+**Current Version: 8.5.461 (November 9th, 2024)**
 
 ## IMPORTANT: [twinBASIC Beta 617 or newer](https://github.com/twinbasic/twinbasic/releases) is now required.
 
@@ -190,6 +190,13 @@ twinBASIC now counts msvbvm60 redirects as legacy DLL redirects, which WinDevLib
  
 
 ### Updates
+
+**Update (v8.5.461, 09 Nov 2024):**\
+-Finished coverage of Windows Filtering Platform fwpmu.h (ipsectypes.h and iketypes.h now also 100%); also added IPSec errors.\
+-Added Cabinet APIs (fdi_fcitypes.h, fdi.h, fci.h 100% coverage)\
+-Additional callbacks declared as delegates\
+-Additional work DNS API coverage\
+-(Bug fix) StrFromTimeIntervalW missing ByVal, aliased version (StrFromTimeInterval) missing
 
 **Update (v8.5.458, 26 Oct 2024):**\
 -Added missing functions from handleapi.h (now 100% coverage)\
