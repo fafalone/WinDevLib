@@ -1,11 +1,18 @@
 
+**Update (v8.5.461, 09 Nov 2024):**
+-Finished coverage of Windows Filtering Platform fwpmu.h (ipsectypes.h and iketypes.h now also 100%); also added IPSec errors.
+-Added Cabinet APIs (fdi_fcitypes.h, fdi.h, fci.h 100% coverage)
+-Additional callbacks declared as delegates
+-Additional work DNS API coverage
+-(Bug fix) StrFromTimeIntervalW missing ByVal, aliased version (StrFromTimeInterval) missing
+
 **Update (v8.5.458, 26 Oct 2024):**
 -Added missing functions from handleapi.h (now 100% coverage)
 -Added private namespace api functions (namespaceapi.h, 100% coverage)
 -Misc winbase.h apis not added yet
 -(API Standards) [Global]AddAtom, FindAtom, GlobalFindAtom, [Global]GetAtomName used LongPtr instead of String
 -(Bug fix) CreatePipe ByVal/ByRef mixup. **IF YOU USED VARPTR AS A WORKAROUND MAKE SURE TO CHANGE IT!**
--(WinDevLibImpl) IPerPropertyBrowsing, IOleControl
+-(WinDevLibImpl) Added IPerPropertyBrowsing, IOleControl
 
 
 **Update (v8.5.456, 20 Oct 2024):**
