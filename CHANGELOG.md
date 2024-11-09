@@ -1,4 +1,7 @@
 
+**Update (v8.5.462, 09 Nov 2024):**
+-All uses of delegates temporarily replaced with LongPtr pending backwards compatibility fix.
+
 **Update (v8.5.461, 09 Nov 2024):**
 -Finished coverage of Windows Filtering Platform fwpmu.h (ipsectypes.h and iketypes.h now also 100%); also added IPSec errors.
 -Added Cabinet APIs (fdi_fcitypes.h, fdi.h, fci.h 100% coverage)
