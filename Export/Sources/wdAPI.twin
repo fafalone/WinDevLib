@@ -14,9 +14,13 @@
     'advapi32 crypto APIs, wincrypt, wincred, wintrust, cryptui, bcrypt, and ncrypt are in wdAPICrypto.twin.
     'comctl32.dll and uxtheme.dll APIs are in wdAPIComCtl, along with the common control APIs from user32. 
     'GDIPlus APIs are in wdGDIP
+    'dbghelp/imagehlp APIs are in wdAPIDbgHlp.twin
+    'HID apis are in wdAPIHID.twin
+    'Windows Filtering Platform APIs are in wdAPIWFP.twin
     'Windows Biometric Framework APIs in wdAPIBio.twin
     'Media Foundation DLLs have their APIs in wdMF.twin
     'Webview2Loader.dll APIs are in wdWebview2. 
+    'Cloud Filter APIs are in wdAPICld.twin
     'A few other very small sets for specific features are in their modules.
     
     
@@ -2178,7 +2182,6 @@ Public Enum SFBS_FLAGS
 End Enum
 
         
-Public Declare PtrSafe Function StrRetToStrW Lib "shlwapi" (pStr As STRRET, ByVal pidl As LongPtr, ppsz As LongPtr) As Long
 Public Declare PtrSafe Function StrChrA Lib "shlwapi" (ByVal lpStart As String, ByVal wMatch As Integer) As LongPtr
 Public Declare PtrSafe Function StrChrW Lib "shlwapi" (ByVal lpStart As LongPtr, ByVal wMatch As Integer) As LongPtr
 Public Declare PtrSafe Function StrChrIA Lib "shlwapi" (ByVal lpStart As String, ByVal wMatch As Integer) As LongPtr
@@ -2224,7 +2227,8 @@ Public Declare PtrSafe Function StrFormatKBSizeW Lib "shlwapi" (ByVal qdw As Lon
 Public Declare PtrSafe Function StrFormatKBSizeA Lib "shlwapi" (ByVal qdw As LongLong, ByVal szBuf As String, ByVal uiBufSize As Long) As LongPtr
 Public DeclareWide PtrSafe Function StrFormatKBSize Lib "shlwapi" Alias "StrFormatKBSizeW" (ByVal qdw As LongLong, ByVal szBuf As String, ByVal uiBufSize As Long) As LongPtr
 Public Declare PtrSafe Function StrFromTimeIntervalA Lib "shlwapi" (ByVal pszOut As String, ByVal cchMax As Long, ByVal dwTimeMS As Long, ByVal digits As Long) As Long
-Public Declare PtrSafe Function StrFromTimeIntervalW Lib "shlwapi" (pszOut As LongPtr, ByVal cchMax As Long, ByVal dwTimeMS As Long, ByVal digits As Long) As Long
+Public Declare PtrSafe Function StrFromTimeIntervalW Lib "shlwapi" (ByVal pszOut As LongPtr, ByVal cchMax As Long, ByVal dwTimeMS As Long, ByVal digits As Long) As Long
+Public DeclareWide PtrSafe Function StrFromTimeInterval Lib "shlwapi" Alias "StrFromTimeIntervalW" (ByVal pszOut As String, ByVal cchMax As Long, ByVal dwTimeMS As Long, ByVal digits As Long) As Long
 Public Declare PtrSafe Function StrIsIntlEqualA Lib "shlwapi" (ByVal fCaseSens As BOOL, ByVal lpString1 As String, ByVal lpString2 As String, ByVal nChar As Long) As BOOL
 Public Declare PtrSafe Function StrIsIntlEqualW Lib "shlwapi" (ByVal fCaseSens As BOOL, ByVal lpString1 As LongPtr, ByVal lpString2 As LongPtr, ByVal nChar As Long) As BOOL
 Public DeclareWide PtrSafe Function StrIsIntlEqual Lib "shlwapi" Alias "StrIsIntlEqualW" (ByVal fCaseSens As BOOL, ByVal lpString1 As String, ByVal lpString2 As String, ByVal nChar As Long) As BOOL
@@ -2258,6 +2262,7 @@ Public Declare PtrSafe Function ChrCmpIW Lib "shlwapi" (ByVal w1 As Integer, ByV
 Public Declare PtrSafe Function wvnsprintfA Lib "shlwapi" (ByVal lpOut As String, ByVal cchLimitIn As Long, ByVal lpFmt As String, ByRef arglist As Any) As Long
 Public Declare PtrSafe Function wvnsprintfW Lib "shlwapi" (ByVal lpOut As LongPtr, ByVal cchLimitIn As Long, ByVal lpFmt As LongPtr, ByRef arglist As Any) As Long
 Public Declare PtrSafe Function StrRetToStrA Lib "shlwapi" (ByVal pstrret As LongPtr, ByVal pidl As LongPtr) As LongPtr
+Public Declare PtrSafe Function StrRetToStrW Lib "shlwapi" (pStr As STRRET, ByVal pidl As LongPtr, ppsz As LongPtr) As Long
 Public DeclareWide PtrSafe Function StrRetToStr Lib "shlwapi" Alias "StrRetToStrW" (ByVal pstrret As LongPtr, ByVal pidl As LongPtr) As LongPtr
 Public Declare PtrSafe Function StrRetToBufA Lib "shlwapi" (ByVal pstrret As LongPtr, ByVal pidl As LongPtr, ByVal pszBuf As String, ByVal cchBuf As Long) As Long
 Public Declare PtrSafe Function StrRetToBufW Lib "shlwapi" (ByVal pStr As LongPtr, ByVal pidl As LongPtr, ByVal pszBuf As LongPtr, ByVal cchBuf As Long) As Long
@@ -51920,8 +51925,499 @@ Public Declare PtrSafe Function SRSetRestorePointInternal Lib "srclient.dll" (pR
 Public Declare PtrSafe Function SRRemoveRestorePoint Lib "srclient.dll" (ByVal dwRPNum As Long) As Long
 
 
+'Cabinet API
+'fdi_fcitypes.h - 100%
+'fci.h - 100%
+'fdi.h - 100%
+
+Public Type ERF
+    erfOper As Long ' FCI/FDI error code -- see FDIERROR_XXX
+    '  and FCIERR_XXX equates for details.
+    erfType As Long ' Optional error value filled in by FCI/FDI.
+    ' For FCI, this is usually the C run-time
+    ' *errno* value.
+    fError As BOOL ' TRUE => error present
+End Type
+
+Public Const CB_MAX_CHUNK  = 32768
+Public Const CB_MAX_DISK  = &H7fffffff
+Public Const CB_MAX_FILENAME  = 256
+Public Const CB_MAX_CABINET_NAME  = 256
+Public Const CB_MAX_CAB_PATH  = 256
+Public Const CB_MAX_DISK_NAME  = 256
+
+Public Enum FdiFciTcompValues
+    tcompMASK_TYPE = &H000F  ' Mask for compression type
+    tcompTYPE_NONE = &H0000  ' No compression
+    tcompTYPE_MSZIP = &H0001  ' MSZIP
+    tcompTYPE_QUANTUM = &H0002  ' Quantum
+    tcompTYPE_LZX = &H0003  ' LZX
+    tcompBAD = &H000F  ' Unspecified compression type
+    tcompMASK_LZX_WINDOW = &H1F00  ' Mask for LZX Compression Memory
+    tcompLZX_WINDOW_LO = &H0F00  ' Lowest LZX Memory (15)
+    tcompLZX_WINDOW_HI = &H1500  ' Highest LZX Memory (21)
+    tcompSHIFT_LZX_WINDOW = 8  ' Amount to shift over to get int
+    tcompMASK_QUANTUM_LEVEL = &H00F0  ' Mask for Quantum Compression Level
+    tcompQUANTUM_LEVEL_LO = &H0010  ' Lowest Quantum Level (1)
+    tcompQUANTUM_LEVEL_HI = &H0070  ' Highest Quantum Level (7)
+    tcompSHIFT_QUANTUM_LEVEL = 4  ' Amount to shift over to get int
+    tcompMASK_QUANTUM_MEM = &H1F00  ' Mask for Quantum Compression Memory
+    tcompQUANTUM_MEM_LO = &H0A00  ' Lowest Quantum Memory (10)
+    tcompQUANTUM_MEM_HI = &H1500  ' Highest Quantum Memory (21)
+    tcompSHIFT_QUANTUM_MEM = 8  ' Amount to shift over to get int
+    tcompMASK_RESERVED = &HE000&  ' Reserved bits (high 3 bits)
+End Enum
+
+' #define CompressionTypeFromTCOMP(tc) \
+' ((tc) & tcompMASK_TYPE)
+Public Function CompressionTypeFromTCOMP([TypeHint(FdiFciTcompValues)] ByVal tc As Integer) As Integer
+    Return (tc) And CInt(tcompMASK_TYPE)
+End Function
+    
+
+' #define CompressionLevelFromTCOMP(tc) \
+' (((tc) & tcompMASK_QUANTUM_LEVEL) >> tcompSHIFT_QUANTUM_LEVEL)
+Public Function CompressionLevelFromTCOMP([TypeHint(FdiFciTcompValues)] ByVal tc As Integer) As Integer
+    Return (((tc) And CInt(tcompMASK_QUANTUM_LEVEL)) >> CInt(tcompSHIFT_QUANTUM_LEVEL))
+End Function
+    
+' #define CompressionMemoryFromTCOMP(tc) \
+' (((tc) & tcompMASK_QUANTUM_MEM) >> tcompSHIFT_QUANTUM_MEM)
+Public Function CompressionMemoryFromTCOMP([TypeHint(FdiFciTcompValues)] ByVal tc As Integer) As Integer
+   Return (((tc) And CInt(tcompMASK_QUANTUM_MEM)) >> CInt(tcompSHIFT_QUANTUM_MEM))
+End Function
+
+' #define TCOMPfromTypeLevelMemory(t,l,m)           \
+' (((m) << tcompSHIFT_QUANTUM_MEM  ) |  \
+ ' ((l) << tcompSHIFT_QUANTUM_LEVEL) |  \
+ ' ( t                             ))
+ Public Function TCOMPfromTypeLevelMemory(ByVal t As Integer, ByVal l As Integer, ByVal m As Integer) As Integer
+    Return (((m) << CInt(tcompSHIFT_QUANTUM_MEM)) Or ((l) << CInt(tcompSHIFT_QUANTUM_LEVEL)) Or (t))
+ End Function
+
+' #define LZXCompressionWindowFromTCOMP(tc) \
+' (((tc) & tcompMASK_LZX_WINDOW) >> tcompSHIFT_LZX_WINDOW)
+Public Function LZXCompressionWindowFromTCOMP([TypeHint(FdiFciTcompValues)] ByVal tc As Integer) As Integer
+    Return (((tc) And CInt(tcompMASK_LZX_WINDOW)) >> CInt(tcompSHIFT_LZX_WINDOW))
+End Function
+' #define TCOMPfromLZXWindow(w)      \
+' (((w) << tcompSHIFT_LZX_WINDOW ) |  \
+ ' ( tcompTYPE_LZX ))
+Public Function TCOMPfromLZXWindow(ByVal w As Integer) As Integer
+    Return (((w) << CInt(tcompSHIFT_LZX_WINDOW)) Or (CInt(tcompTYPE_LZX)))
+End Function
 
 
+Public Enum FCIERROR
+    FCIERR_NONE ' No error
+    FCIERR_OPEN_SRC ' Failure opening file to be stored in cabinet
+    '   erf.erfTyp has C run-time *errno* value
+    FCIERR_READ_SRC   ' Failure reading file to be stored in cabinet
+    '   erf.erfTyp has C run-time *errno* value
+    FCIERR_ALLOC_FAIL  ' Out of memory in FCI
+    FCIERR_TEMP_FILE   ' Could not create a temporary file
+    '   erf.erfTyp has C run-time *errno* value
+    FCIERR_BAD_COMPR_TYPE  ' Unknown compression type
+    FCIERR_CAB_FILE  ' Could not create cabinet file
+    '   erf.erfTyp has C run-time *errno* value
+    FCIERR_USER_ABORT  ' Client requested abort
+    FCIERR_MCI_FAIL  ' Failure compressing data
+    FCIERR_CAB_FORMAT_LIMIT   ' Data-size or file-count exceeded CAB format limits
+    '  i.e. Total-bytes (uncompressed) in a CAB-folder exceeded 0x7FFF8000 (~ 2GB)
+    '   or, CAB size (compressed) exceeded 0x7FFFFFFF
+    '   or, File-count in CAB exceeded 0xFFFF
+End Enum
+
+Public Const _A_NAME_IS_UTF = &H80
+Public Const _A_EXEC = &H40
+
+Public Type CCAB
+    ' longs first
+    cb As Long ' size available for cabinet on this media
+    cbFolderThresh As Long ' Thresshold for forcing a new Folder
+    ' then ints
+    cbReserveCFHeader As Long ' Space to reserve in CFHEADER
+    cbReserveCFFolder As Long ' Space to reserve in CFFOLDER
+    cbReserveCFData As Long ' Space to reserve in CFDATA
+    iCab As Long ' sequential numbers for cabinets
+    iDisk As Long ' Disk number
+    '#ifndef REMOVE_CHICAGO_M6_HACK
+    fFailOnIncompressible As Long ' TRUE => Fail if a block is incompressible
+    '#endif
+    '  then shorts
+    setID As Integer ' Cabinet set ID
+    ' then chars
+    szDisk(0 To (CB_MAX_DISK_NAME - 1)) As Byte ' current disk name
+    szCab(0 To (CB_MAX_CABINET_NAME - 1)) As Byte ' current cabinet name
+    szCabPath(0 To (CB_MAX_CAB_PATH - 1)) As Byte ' path for creating cabinet
+End Type
+
+' typedef void HUGE * (FAR DIAMONDAPI *PFNFCIALLOC)(ULONG cb); /* pfna */
+' #define FNFCIALLOC(fn) void HUGE * FAR DIAMONDAPI fn(ULONG cb)
+Public Delegate Function FciAlloc (ByVal cb As Long) As LongPtr
+' typedef void (FAR DIAMONDAPI *PFNFCIFREE)(void HUGE *memory); /* pfnf */
+' #define FNFCIFREE(fn) void FAR DIAMONDAPI fn(void HUGE *memory)
+Public Delegate Sub FciFree (ByVal memory As LongPtr)
+
+' typedef INT_PTR (FAR DIAMONDAPI *PFNFCIOPEN) (_In_ LPSTR pszFile, int oflag, int pmode, int FAR *err, void FAR *pv);
+Public Delegate Function FciOpen (ByVal pszFile As LongPtr, ByVal oflag As Long, ByVal pmode As Long, ByVal errptr As LongPtr, ByVal pv As LongPtr) As LongPtr
+' typedef UINT (FAR DIAMONDAPI *PFNFCIREAD) (INT_PTR hf, void FAR *memory, UINT cb, int FAR *err, void FAR *pv);
+Public Delegate Function FciRead (ByVal hf As LongPtr, ByVal memory As LongPtr, ByVal cb As Long, ByVal errptr As LongPtr, ByVal pv As LongPtr) As Long
+' typedef UINT (FAR DIAMONDAPI *PFNFCIWRITE)(INT_PTR hf, void FAR *memory, UINT cb, int FAR *err, void FAR *pv);
+Public Delegate Function FciWrite (ByVal hf As LongPtr, ByVal memory As LongPtr, ByVal cb As Long, ByVal errptr As LongPtr, ByVal pv As LongPtr) As Long
+' typedef int  (FAR DIAMONDAPI *PFNFCICLOSE)(INT_PTR hf, int FAR *err, void FAR *pv);
+Public Delegate Function FciClose (ByVal hf As LongPtr, ByVal errptr As LongPtr, ByVal pv As LongPtr) As Long
+' typedef long (FAR DIAMONDAPI *PFNFCISEEK) (INT_PTR hf, long dist, int seektype, int FAR *err, void FAR *pv);
+Public Delegate Function FciSeek (ByVal hf As LongPtr, ByVal dist As Long, ByVal seektype As Long, ByVal errptr As LongPtr, ByVal pv As LongPtr) As Long
+' typedef int  (FAR DIAMONDAPI *PFNFCIDELETE) (_In_ LPSTR pszFile, int FAR *err, void FAR *pv);
+Public Delegate Function FciDelete (ByVal pszFile As LongPtr, ByVal errptr As LongPtr, ByVal pv As LongPtr) As Long
+
+' #define FNFCIOPEN(fn) INT_PTR FAR DIAMONDAPI fn(_In_ LPSTR pszFile, int oflag, int pmode, int FAR *err, void FAR *pv)
+' #define FNFCIREAD(fn) UINT FAR DIAMONDAPI fn(INT_PTR hf, void FAR *memory, UINT cb, int FAR *err, void FAR *pv)
+' #define FNFCIWRITE(fn) UINT FAR DIAMONDAPI fn(INT_PTR hf, void FAR *memory, UINT cb, int FAR *err, void FAR *pv)
+' #define FNFCICLOSE(fn) int FAR DIAMONDAPI fn(INT_PTR hf, int FAR *err, void FAR *pv)
+' #define FNFCISEEK(fn) long FAR DIAMONDAPI fn(INT_PTR hf, long dist, int seektype, int FAR *err, void FAR *pv)
+' #define FNFCIDELETE(fn) int FAR DIAMONDAPI fn(_In_ LPSTR pszFile, int FAR *err, void FAR *pv)
+
+' typedef BOOL (DIAMONDAPI *PFNFCIGETNEXTCABINET)(PCCAB  pccab,
+' ULONG  cbPrevCab,
+' void FAR *pv); /* pfnfcignc */
+Public Delegate Function FciGetNextCabinet (pccab As CCAB, ByVal cbPrevCab As Long, ByVal pv As LongPtr) As BOOL
+' #define FNFCIGETNEXTCABINET(fn) BOOL DIAMONDAPI fn(PCCAB  pccab,     \
+   ' ULONG  cbPrevCab, \
+   ' void FAR *pv)
+   
+' typedef int (DIAMONDAPI *PFNFCIFILEPLACED)(PCCAB pccab,
+' _In_ LPSTR pszFile,
+' long  cbFile,
+' BOOL  fContinuation,
+' void FAR *pv); /* pfnfcifp */
+Public Delegate Function FciFilePlaced (ByVal pccab As LongPtr, ByVal pszFile As LongPtr, ByVal cbFile As Long, ByVal fContinuation As BOOL, ByVal pv As LongPtr) As Long
+
+' #define FNFCIFILEPLACED(fn) int DIAMONDAPI fn(PCCAB pccab,              \
+   ' _In_ LPSTR pszFile,   \
+   ' long  cbFile,             \
+   ' BOOL  fContinuation,      \
+   ' void FAR *pv)
+   
+   ' typedef INT_PTR (DIAMONDAPI *PFNFCIGETOPENINFO)(_In_ LPSTR pszName,
+   ' USHORT *pdate,
+   ' USHORT *ptime,
+   ' USHORT *pattribs,
+   ' int FAR *err,
+   ' void FAR *pv); /* pfnfcigoi */
+   Public Delegate Function FciGetOpenInfo (ByVal pszName As LongPtr, pdate As Integer, ptime As Integer, pattribs As Integer, ByVal errptr As LongPtr, ByVal pv As LongPtr) As LongPtr
+' #define FNFCIGETOPENINFO(fn) INT_PTR DIAMONDAPI fn(_In_ LPSTR pszName,  \
+      ' USHORT *pdate,    \
+      ' USHORT *ptime,    \
+      ' USHORT *pattribs, \
+      ' int FAR *err, \
+      ' void FAR *pv)
+
+    Public Enum FciCabStatus
+        statusFile = 0  ' Add File to Folder callback
+        statusFolder = 1  ' Add Folder to Cabinet callback
+        statusCabinet = 2  ' Write out a completed cabinet callback
+    End Enum
+    ' typedef long (DIAMONDAPI *PFNFCISTATUS)(UINT   typeStatus,
+    ' ULONG  cb1,
+    ' ULONG  cb2,
+    ' void FAR *pv); /* pfnfcis */
+    Public Delegate Function FciStatus (ByVal typeStatus As FciCabStatus, ByVal cb1 As Long, ByVal cb2 As Long, ByVal pv As LongPtr) As Long
+' #define FNFCISTATUS(fn) long DIAMONDAPI fn(UINT   typeStatus, \
+       ' ULONG  cb1,        \
+       ' ULONG  cb2,        \
+       ' void FAR *pv)     
+       ' typedef BOOL (DIAMONDAPI *PFNFCIGETTEMPFILE)(_Out_writes_bytes_(cbTempName) char *pszTempName,
+       ' _In_range_(<=, 260) int   cbTempName,
+       ' void FAR *pv); /* pfnfcigtf */
+    Public Delegate Function FciGetTempFile (ByVal pszTempName As LongPtr, ByVal cbTempName As Long, ByVal pv As LongPtr) As Long
+' #define FNFCIGETTEMPFILE(fn) BOOL DIAMONDAPI fn(_Out_writes_bytes_(cbTempName) char *pszTempName, \
+          ' _In_range_(<=, 260) int   cbTempName, \
+          ' void FAR *pv)
+          
+    
+   Public Declare PtrSafe Function FCICreate Lib "cabinet.dll" (perf As ERF, ByVal pfnfcifp As FciFilePlaced, ByVal pfna As FciAlloc, ByVal pfnf As FciFree, ByVal pfnopen As FciOpen, ByVal pfnread As FciRead, ByVal pfnwrite As FciWrite, ByVal pfnclose As FciClose, ByVal pfnseek As FciSeek, ByVal pfndelete As FciDelete, ByVal pfnfcigtf As FciGetTempFile, pccab As CCAB, Optional ByVal pv As LongPtr) As LongPtr
+   Public Declare PtrSafe Function FCIAddFile Lib "cabinet.dll" (ByVal hfci As LongPtr, ByVal pszSourceFile As String, ByVal pszFileName As String, ByVal fExecute As BOOL, ByVal pfnfcignc As FciGetNextCabinet, ByVal pfnfcis As FciStatus, ByVal pfnfcigoi As FciGetOpenInfo, [TypeHint(FdiFciTcompValues)] ByVal typeCompress As Integer) As BOOL
+   Public Declare PtrSafe Function FCIFlushCabinet Lib "cabinet.dll" (ByVal hfci As LongPtr, ByVal fGetNextCab As BOOL, ByVal pfnfcignc As FciGetNextCabinet, ByVal pfnfcis As FciStatus) As BOOL
+   Public Declare PtrSafe Function FCIFlushFolder Lib "cabinet.dll" (ByVal hfci As LongPtr, ByVal pfnfcignc As FciGetNextCabinet, ByVal pfnfcis As FciStatus) As BOOL
+   Public Declare PtrSafe Function FCIDestroy Lib "cabinet.dll" (ByVal hfci As LongPtr) As BOOL
+   
+   Public Enum FDIERROR
+       FDIERROR_NONE = 0
+       '  Description: No error
+       '  Cause:       Function was successfull.
+       '  Response:    Keep going!
+       FDIERROR_CABINET_NOT_FOUND = 1
+       '  Description: Cabinet not found
+       '  Cause:       Bad file name or path passed to FDICopy(), or returned
+       '               to fdintNEXT_CABINET.
+       '  Response:    To prevent this error, validate the existence of the
+       '               the cabinet *before* passing the path to FDI.
+       FDIERROR_NOT_A_CABINET = 2
+       '  Description: Cabinet file does not have the correct format
+       '  Cause:       File passed to to FDICopy(), or returned to
+       '               fdintNEXT_CABINET, is too small to be a cabinet file,
+       '               or does not have the cabinet signature in its first
+       '               four bytes.
+       '  Response:    To prevent this error, call FDIIsCabinet() to check a
+       '               cabinet before calling FDICopy() or returning the
+       '               cabinet path to fdintNEXT_CABINET.
+       FDIERROR_UNKNOWN_CABINET_VERSION = 3
+       '  Description: Cabinet file has an unknown version number.
+       '  Cause:       File passed to to FDICopy(), or returned to
+       '               fdintNEXT_CABINET, has what looks like a cabinet file
+       '               header, but the version of the cabinet file format
+       '               is not one understood by this version of FDI.  The
+       '               erf.erfType field is filled in with the version number
+       '               found in the cabinet file.
+       '  Response:    To prevent this error, call FDIIsCabinet() to check a
+       '               cabinet before calling FDICopy() or returning the
+       '               cabinet path to fdintNEXT_CABINET.
+       FDIERROR_CORRUPT_CABINET = 4
+       '  Description: Cabinet file is corrupt
+       '  Cause:       FDI returns this error any time it finds a problem
+       '               with the logical format of a cabinet file, and any
+       '               time one of the passed-in file I/O calls fails when
+       '               operating on a cabinet (PFNOPEN, PFNSEEK, PFNREAD,
+       '               or PFNCLOSE).  The client can distinguish these two
+       '               cases based upon whether the last file I/O call
+       '               failed or not.
+       '  Response:    Assuming this is not a real corruption problem in
+       '               a cabinet file, the file I/O functions could attempt
+       '               to do retries on failure (for example, if there is a
+       '               temporary network connection problem).  If this does
+       '               not work, and the file I/O call has to fail, then the
+       '               FDI client will have to clean up and call the
+       '               FDICopy() function again.
+       FDIERROR_ALLOC_FAIL = 5
+       '  Description: Could not allocate enough memory
+       '  Cause:       FDI tried to allocate memory with the PFNALLOC
+       '               function, but it failed.
+       '  Response:    If possible, PFNALLOC should take whatever steps
+       '               are possible to allocate the memory requested.  If
+       '               memory is not immediately available, it might post a
+       '               dialog asking the user to free memory, for example.
+       '               Note that the bulk of FDI's memory allocations are
+       '               made at FDICreate() time and when the first cabinet
+       '               file is opened during FDICopy().
+       FDIERROR_BAD_COMPR_TYPE = 6
+       '  Description: Unknown compression type in a cabinet folder
+       '  Cause:       [Should never happen.]  A folder in a cabinet has an
+       '               unknown compression type.  This is probably caused by
+       '               a mismatch between the version of Diamond used to
+       '               create the cabinet and the FDI. LIB used to read the
+       '               cabinet.
+       '  Response:    Abort.
+       FDIERROR_MDI_FAIL = 7
+       '  Description: Failure decompressing data from a cabinet file
+       '  Cause:       The decompressor found an error in the data coming
+       '               from the file cabinet.  The cabinet file was corrupted.
+       '               [11-Apr-1994 bens When checksuming is turned on, this
+       '               error should never occur.]
+       '  Response:    Probably should abort; only other choice is to cleanup
+       '               and call FDICopy() again, and hope there was some
+       '               intermittent data error that will not reoccur.
+       FDIERROR_TARGET_FILE = 8
+       '  Description: Failure writing to target file
+       '  Cause:       FDI returns this error any time it gets an error back
+       '               from one of the passed-in file I/O calls fails when
+       '               writing to a file being extracted from a cabinet.
+       '  Response:    To avoid or minimize this error, the file I/O functions
+       '               could attempt to avoid failing.  A common cause might
+       '               be disk full -- in this case, the PFNWRITE function
+       '               could have a check for free space, and put up a dialog
+       '               asking the user to free some disk space.
+       FDIERROR_RESERVE_MISMATCH = 9
+       '  Description: Cabinets in a set do not have the same RESERVE sizes
+       '  Cause:       [Should never happen]. FDI requires that the sizes of
+       '               the per-cabinet, per-folder, and per-data block
+       '               RESERVE sections be consistent across all the cabinet
+       '               in a set.  Diamond will only generate cabinet sets
+       '               with these properties.
+       '  Response:    Abort.
+       FDIERROR_WRONG_CABINET = 10
+       '  Description: Cabinet returned on fdintNEXT_CABINET is incorrect
+       '  Cause:       NOTE: THIS ERROR IS NEVER RETURNED BY FDICopy()!
+       '               Rather, FDICopy() keeps calling the fdintNEXT_CABINET
+       '               callback until either the correct cabinet is specified,
+       '               or you return ABORT.
+       '               When FDICopy() is extracting a file that crosses a
+       '               cabinet boundary, it calls fdintNEXT_CABINET to ask
+       '               for the path to the next cabinet.  Not being very
+       '               trusting, FDI then checks to make sure that the
+       '               correct continuation cabinet was supplied!  It does
+       '               this by checking the "setID" and "iCabinet" fields
+       '               in the cabinet.  When DIAMOND.EXE creates a set of
+       '               cabinets, it constructs the "setID" using the sum
+       '               of the bytes of all the destination file names in
+       '               the cabinet set.  FDI makes sure that the 16-bit
+       '               setID of the continuation cabinet matches the
+       '               cabinet file just processed.  FDI then checks that
+       '               the cabinet number (iCabinet) is one more than the
+       '               cabinet number for the cabinet just processed.
+       '  Response:    You need code in your fdintNEXT_CABINET (see below)
+       '               handler to do retries if you get recalled with this
+       '               error.  See the sample code (EXTRACT.C) to see how
+       '               this should be handled.
+       FDIERROR_USER_ABORT = 11
+       '  Description: FDI aborted.
+       '  Cause:       An FDI callback returned -1 (usually).
+       '  Response:    Up to client.
+       FDIERROR_EOF = 12
+       '  Description: Unexpected end of file.
+       '  Cause:       This error may be returned instead of
+       '               FDIERROR_CORRUPT_CABINET if PFNREAD returned 0.
+       '  Response:    See FDIERROR_CORRUPT_CABINET above.
+   End Enum
+   
+   Public Type FDICABINETINFO
+       cbCabinet As Long ' Total length of cabinet file
+       cFolders As Integer ' Count of folders in cabinet
+       cFiles As Integer ' Count of files in cabinet
+       setID As Integer ' Cabinet set ID
+       iCabinet As Integer ' Cabinet number in set (0 based)
+       fReserve As BOOL ' TRUE => RESERVE present in cabinet
+       hasprev As BOOL ' TRUE => Cabinet is chained prev
+       hasnext As BOOL ' TRUE => Cabinet is chained next
+   End Type
+   
+   Public Enum FDIDECRYPTTYPE
+       fdidtNEW_CABINET = 0 ' New cabinet
+       fdidtNEW_FOLDER = 1 ' New folder
+       fdidtDECRYPT = 2 ' Decrypt a data block
+   End Enum
+   
+   Public Type FDIDECRYPT
+       fdidt As FDIDECRYPTTYPE ' Command type (selects union below)
+       pvUser As LongPtr 'void FAR ' Decryption context
+       ' union {
+           ' struct {                        // fdidtNEW_CABINET
+               ' void FAR *pHeaderReserve;   // RESERVE section from CFHEADER
+               ' USHORT    cbHeaderReserve;  // Size of pHeaderReserve
+               ' USHORT    setID;            // Cabinet set ID
+               ' int       iCabinet;         // Cabinet number in set (0 based)
+           ' } cabinet;
+
+           ' struct {                        // fdidtNEW_FOLDER
+               ' void FAR *pFolderReserve;   // RESERVE section from CFFOLDER
+               ' USHORT    cbFolderReserve;  // Size of pFolderReserve
+               ' USHORT    iFolder;          // Folder number in cabinet (0 based)
+           ' } folder;
+
+           ' struct {                        // fdidtDECRYPT
+               ' void FAR *pDataReserve;     // RESERVE section from CFDATA
+               ' USHORT    cbDataReserve;    // Size of pDataReserve
+               ' void FAR *pbData;           // Data buffer
+               ' USHORT    cbData;           // Size of data buffer
+               ' BOOL      fSplit;           // TRUE if this is a split data block
+               ' USHORT    cbPartial;        // 0 if this is not a split block, or
+                                           ' //  the first piece of a split block;
+                                           ' // Greater than 0 if this is the
+                                           ' //  second piece of a split block.
+           ' } decrypt;
+        ' pDataReserve As LongPtr
+        ' cbDataReserve As Integer
+        ' pbData As LongPtr
+        ' cbData As Integer
+        ' fSPlit As BOOL
+        ' cbPartial As Integer
+        #If Win64 Then
+            u(39) As Byte
+        #Else
+            u(23) As Byte
+        #End If
+   End Type
+   
+   ' typedef void HUGE * (FAR DIAMONDAPI *PFNALLOC)(ULONG cb); /* pfna */
+    Public Delegate Function FdiAlloc (ByVal cb As Long) As LongPtr
+   ' #define FNALLOC(fn) void HUGE * FAR DIAMONDAPI fn(ULONG cb)
+
+   ' typedef void (FAR DIAMONDAPI *PFNFREE)(_In_opt_ void HUGE *pv); /* pfnf */
+    Public Delegate Sub FdiFree (ByVal pv As LongPtr)
+   ' #define FNFREE(fn) void FAR DIAMONDAPI fn(_In_opt_ void HUGE *pv)
+
+
+   ' //** File I/O functions for FDI
+   ' typedef INT_PTR (FAR DIAMONDAPI *PFNOPEN) (_In_ LPSTR pszFile, int oflag, int pmode);
+    Public Delegate Function FdiOpen (ByVal pszFile As LongPtr, ByVal oflag As Long, ByVal pmode As Long) As LongPtr
+   ' typedef UINT (FAR DIAMONDAPI *PFNREAD) (_In_ INT_PTR hf, _Out_writes_bytes_(cb) void FAR *pv, UINT cb);
+    Public Delegate Function FdiRead (ByVal hf As LongPtr, ByVal pv As LongPtr, ByVal cb As Long) As Long
+   ' typedef UINT (FAR DIAMONDAPI *PFNWRITE)(_In_ INT_PTR hf, _In_reads_bytes_(cb) void FAR *pv, UINT cb);
+   Public Delegate Function FdiWrite (ByVal hf As LongPtr, ByVal pv As LongPtr, ByVal cb As Long) As Long
+   ' typedef int  (FAR DIAMONDAPI *PFNCLOSE)(_In_ INT_PTR hf);
+   Public Delegate Function FdiClose (ByVal hf As LongPtr) As Long
+   ' typedef long (FAR DIAMONDAPI *PFNSEEK) (_In_ INT_PTR hf, long dist, int seektype);
+   Public Delegate Function FdiSeek (ByVal hf As LongPtr, ByVal dist As Long, ByVal seektype As Long) As Long
+
+   ' #define FNOPEN(fn) INT_PTR FAR DIAMONDAPI fn(_In_ LPSTR pszFile, int oflag, int pmode)
+   ' #define FNREAD(fn) UINT FAR DIAMONDAPI fn(_In_ INT_PTR hf, _Out_writes_bytes_(cb) void FAR *pv, UINT cb)
+   ' #define FNWRITE(fn) UINT FAR DIAMONDAPI fn(_In_ INT_PTR hf, _In_reads_bytes_(cb) void FAR *pv, UINT cb)
+   ' #define FNCLOSE(fn) int FAR DIAMONDAPI fn(_In_ INT_PTR hf)
+   ' #define FNSEEK(fn) long FAR DIAMONDAPI fn(_In_ INT_PTR hf, long dist, int seektype)
+   
+   ' typedef int (FAR DIAMONDAPI *PFNFDIDECRYPT)(PFDIDECRYPT pfdid); /* pfnfdid */
+   Public Delegate Function pfnFdiDecrypt (pfdid As FDIDECRYPT) As Long
+   ' #define FNFDIDECRYPT(fn) int FAR DIAMONDAPI fn(PFDIDECRYPT pfdid)
+   
+   Public Type FDINOTIFICATION
+       ' long fields
+       cb As Long
+       psz1 As LongPtr 'char FAR*
+       psz2 As LongPtr 'char FAR
+       psz3 As LongPtr 'char FAR ' Points to a 256 character buffer
+       pv As LongPtr 'void FAR ' Value for client
+       ' int fields
+       hf As LongPtr
+       ' short fields
+       date As Integer
+       time As Integer
+       attribs As Integer
+       setID As Integer ' Cabinet set ID
+       iCabinet As Integer ' Cabinet number (0-based)
+       iFolder As Integer ' Folder number (0-based)
+       fdie As FDIERROR
+   End Type
+   
+   Public Enum FDINOTIFICATIONTYPE
+       fdintCABINET_INFO = 0 ' General information about cabinet
+       fdintPARTIAL_FILE = 1 ' First file in cabinet is continuation
+       fdintCOPY_FILE = 2 ' File to be copied
+       fdintCLOSE_FILE_INFO = 3 ' close the file, set relevant info
+       fdintNEXT_CABINET = 4 ' File continued to next cabinet
+       fdintENUMERATE = 5 ' Enumeration status
+   End Enum
+   
+   ' typedef INT_PTR (FAR DIAMONDAPI *PFNFDINOTIFY)(FDINOTIFICATIONTYPE fdint,
+   ' PFDINOTIFICATION    pfdin); /* pfnfdin */
+   Public Delegate Function FdiNotify (ByVal fdint As FDINOTIFICATIONTYPE, pfdin As FDINOTIFICATION) As LongPtr
+' #define FNFDINOTIFY(fn) INT_PTR FAR DIAMONDAPI fn(FDINOTIFICATIONTYPE fdint, \
+      ' PFDINOTIFICATION    pfdin)
+    
+    #If Win64 = 0 Then
+    [PackingAlignment(1)]
+    #End If
+    Public Type FDISPILLFILE
+        ach(0 To 1) As Byte 'char ' Set to { '*', '\0' }
+        cbFile As Long ' Required spill file size
+    End Type
+    
+    Public Enum FdiCreateFlags
+        cpuUNKNOWN = (-1) /* FDI does detection */
+        cpu80286 = (0) /* '286 opcodes only */
+        cpu80386 = (1) /* '386 opcodes used */
+    End Enum
+    
+    Public Declare PtrSafe Function FDICreate Lib "cabinet.dll" (ByVal pfnalloc As FdiAlloc, ByVal pfnfree As FdiFree, ByVal pfnopen As FdiOpen, ByVal pfnread As FdiRead, ByVal pfnwrite As FdiWrite, ByVal pfnclose As FdiClose, ByVal pfnseek As FdiSeek, ByVal cpuType As FdiCreateFlags, perf As ERF) As LongPtr
+    Public Declare PtrSafe Function FDIIsCabinet Lib "cabinet.dll" (ByVal hfdi As LongPtr, ByVal hf As LongPtr, pfdici As FDICABINETINFO) As BOOL
+    Public Declare PtrSafe Function FDICopy Lib "cabinet.dll" (ByVal hfdi As LongPtr, ByVal pszCabinet As String, ByVal pszCabPath As String, ByVal flags As Long, ByVal pfnfdin As FdiNotify, ByVal pfnfdid As pfnFdiDecrypt, Optional ByVal pvUser As LongPtr) As BOOL
+    Public Declare PtrSafe Function FDIDestroy Lib "cabinet.dll" (ByVal hfdi As LongPtr) As BOOL
+    Public Declare PtrSafe Function FDITruncateCabinet Lib "cabinet.dll" (ByVal hfdi As LongPtr, ByVal pszCabinetName As String, ByVal iFolderToDelete As Integer) As BOOL
+    
+    
+    
+    
+    
 /*
 compressapi.h, 100%
 Compressor API

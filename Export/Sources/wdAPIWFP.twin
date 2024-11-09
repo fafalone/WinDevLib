@@ -12,11 +12,11 @@
 'Currently basic coverage only
 
 'fwptypes.h - 100% coverage
-'iketypes.h - minimal, as needed for other headers
-'ipsectypes.h - minimal, as needed for other headers
+'iketypes.h - 100% coverage
+'ipsectypes.h - 100% coverage
 'fwpmtypes.h - 100% coverage
 
-'fwpmu.h - GUID coverage is complete; 66% API/type coverage (All APIs besides IPSec* and Ikeext* APIs)
+'fwpmu.h - 100% coverage
 'fwpsu.h - 0% coverage
 'Netiodef.h - 0% coverage
 #If WINDEVLIB_LITE = 0 Then
@@ -371,14 +371,13 @@ End Type
 
 #Region "iketypes.h"
 
-
 Public Enum IKEEXT_KEY_MODULE_TYPE
     IKEEXT_KEY_MODULE_IKE
     IKEEXT_KEY_MODULE_AUTHIP
     IKEEXT_KEY_MODULE_IKEV2
     IKEEXT_KEY_MODULE_MAX
 End Enum
-
+ 
 Public Enum IKEEXT_AUTHENTICATION_METHOD_TYPE
     IKEEXT_PRESHARED_KEY
     IKEEXT_CERTIFICATE
@@ -401,7 +400,9 @@ Public Enum IKEEXT_AUTHENTICATION_IMPERSONATION_TYPE
     IKEEXT_IMPERSONATION_SOCKET_PRINCIPAL
     IKEEXT_IMPERSONATION_MAX
 End Enum
-
+Public Type IKEEXT_PRESHARED_KEY_AUTHENTICATION0
+    presharedKey As FWP_BYTE_BLOB
+End Type
 Public Enum IkeextPskFlags
     IKEEXT_PSK_FLAG_LOCAL_AUTH_ONLY = (&H00000001)
     IKEEXT_PSK_FLAG_REMOTE_AUTH_ONLY = (&H00000002)
@@ -413,6 +414,703 @@ Public Type IKEEXT_PRESHARED_KEY_AUTHENTICATION1
     flags As IkeextPskFlags
 End Type
 
+Public Enum IkeextCertFlags
+    IKEEXT_CERT_FLAG_ENABLE_ACCOUNT_MAPPING = (&H00000001)
+    IKEEXT_CERT_FLAG_DISABLE_REQUEST_PAYLOAD = (&H00000002)
+    IKEEXT_CERT_FLAG_USE_NAP_CERTIFICATE = (&H00000004)
+    IKEEXT_CERT_FLAG_INTERMEDIATE_CA = (&H00000008)
+    IKEEXT_CERT_FLAG_IGNORE_INIT_CERT_MAP_FAILURE = (&H00000010)
+    IKEEXT_CERT_FLAG_PREFER_NAP_CERTIFICATE_OUTBOUND = (&H00000020)
+' #if (NTDDI_VERSION >= NTDDI_WIN8)
+    IKEEXT_CERT_FLAG_SELECT_NAP_CERTIFICATE = (&H00000040)
+    IKEEXT_CERT_FLAG_VERIFY_NAP_CERTIFICATE = (&H00000080)
+    IKEEXT_CERT_FLAG_FOLLOW_RENEWAL_CERTIFICATE = (&H00000100)
+End Enum
+Public Type IKEEXT_CERT_ROOT_CONFIG0
+    certData As FWP_BYTE_BLOB
+    flags As IkeextCertFlags
+End Type
+
+Public Enum IkeextCertAuthFlags
+    IKEEXT_CERT_AUTH_FLAG_SSL_ONE_WAY = (&H00000001)
+    IKEEXT_CERT_AUTH_FLAG_DISABLE_CRL_CHECK = (&H00000002)
+    IKEEXT_CERT_AUTH_ENABLE_CRL_CHECK_STRONG = (&H00000004)
+    IKEEXT_CERT_AUTH_DISABLE_SSL_CERT_VALIDATION = (&H00000008)
+' #if (NTDDI_VERSION >= NTDDI_WIN7)
+    IKEEXT_CERT_AUTH_ALLOW_HTTP_CERT_LOOKUP = (&H00000010)
+    IKEEXT_CERT_AUTH_URL_CONTAINS_BUNDLE = (&H00000020)
+' #endif // (NTDDI_VERSION >= NTDDI_WIN7)
+' #if (NTDDI_VERSION >= NTDDI_WIN10_RS2)
+    IKEEXT_CERT_AUTH_FLAG_DISABLE_REQUEST_PAYLOAD = (&H00000040)
+End Enum
+
+Public Enum IKEEXT_CERT_CONFIG_TYPE
+    IKEEXT_CERT_CONFIG_EXPLICIT_TRUST_LIST = 0
+    IKEEXT_CERT_CONFIG_ENTERPRISE_STORE = (IKEEXT_CERT_CONFIG_EXPLICIT_TRUST_LIST + 1)
+    IKEEXT_CERT_CONFIG_TRUSTED_ROOT_STORE = (IKEEXT_CERT_CONFIG_ENTERPRISE_STORE + 1)
+    IKEEXT_CERT_CONFIG_UNSPECIFIED = (IKEEXT_CERT_CONFIG_TRUSTED_ROOT_STORE + 1)
+    IKEEXT_CERT_CONFIG_TYPE_MAX = (IKEEXT_CERT_CONFIG_UNSPECIFIED + 1)
+End Enum
+
+Public Type IKEEXT_CERTIFICATE_AUTHENTICATION0
+    inboundConfigType As IKEEXT_CERT_CONFIG_TYPE
+    ' /* [switch_is][switch_type] */ union 
+        ' {
+        ' /* [case()] */ struct 
+            ' {
+            ' UINT32 inboundRootArraySize;
+            ' /* [unique][size_is] */ IKEEXT_CERT_ROOT_CONFIG0 *inboundRootArray;
+            ' }     ;
+        ' /* [case()][unique] */ IKEEXT_CERT_ROOT_CONFIG0 *inboundEnterpriseStoreConfig;
+        ' /* [case()][unique] */ IKEEXT_CERT_ROOT_CONFIG0 *inboundTrustedRootStoreConfig;
+        ' }     ;
+        #If Win64 Then
+            inbound(11) As Byte
+        #Else
+            inbound(7) As Byte
+        #End If
+        outboundConfigType As IKEEXT_CERT_CONFIG_TYPE
+        ' /* [switch_is][switch_type] */ union 
+            ' {
+            ' /* [case()] */ struct 
+                ' {
+                ' UINT32 outboundRootArraySize;
+                ' /* [unique][size_is] */ IKEEXT_CERT_ROOT_CONFIG0 *outboundRootArray;
+                ' }     ;
+            ' /* [case()][unique] */ IKEEXT_CERT_ROOT_CONFIG0 *outboundEnterpriseStoreConfig;
+            ' /* [case()][unique] */ IKEEXT_CERT_ROOT_CONFIG0 *outboundTrustedRootStoreConfig;
+            ' }     ;
+        #If Win64 Then
+            outbound(11) As Byte
+        #Else
+            outbound(7) As Byte
+        #End If
+        flags As IkeextCertAuthFlags
+        #If Win64 Then
+            pad As Long
+        #End If
+End Type
+Public Type IKEEXT_CERTIFICATE_AUTHENTICATION1
+    inboundConfigType As IKEEXT_CERT_CONFIG_TYPE
+    ' /* [switch_is][switch_type] */ union 
+        ' {
+        ' /* [case()] */ struct 
+            ' {
+            ' UINT32 inboundRootArraySize;
+            ' /* [unique][size_is] */ IKEEXT_CERT_ROOT_CONFIG0 *inboundRootArray;
+            ' }     ;
+        ' /* [case()][unique] */ IKEEXT_CERT_ROOT_CONFIG0 *inboundEnterpriseStoreConfig;
+        ' /* [case()][unique] */ IKEEXT_CERT_ROOT_CONFIG0 *inboundTrustedRootStoreConfig;
+        ' }     ;
+        #If Win64 Then
+            inbound(11) As Byte
+        #Else
+            inbound(7) As Byte
+        #End If
+        outboundConfigType As IKEEXT_CERT_CONFIG_TYPE
+        ' /* [switch_is][switch_type] */ union 
+            ' {
+            ' /* [case()] */ struct 
+                ' {
+                ' UINT32 outboundRootArraySize;
+                ' /* [unique][size_is] */ IKEEXT_CERT_ROOT_CONFIG0 *outboundRootArray;
+                ' }     ;
+            ' /* [case()][unique] */ IKEEXT_CERT_ROOT_CONFIG0 *outboundEnterpriseStoreConfig;
+            ' /* [case()][unique] */ IKEEXT_CERT_ROOT_CONFIG0 *outboundTrustedRootStoreConfig;
+            ' }     ;
+        #If Win64 Then
+            outbound(11) As Byte
+        #Else
+            outbound(7) As Byte
+        #End If
+        flags As IkeextCertAuthFlags
+        #If Win64 Then
+            pad As Long
+        #End If
+        localCertLocationUrl As FWP_BYTE_BLOB
+End Type
+
+Public Enum IKEEXT_CERT_CRITERIA_NAME_TYPE
+    IKEEXT_CERT_CRITERIA_DNS = 0
+    IKEEXT_CERT_CRITERIA_UPN = (IKEEXT_CERT_CRITERIA_DNS + 1)
+    IKEEXT_CERT_CRITERIA_RFC822 = (IKEEXT_CERT_CRITERIA_UPN + 1)
+    IKEEXT_CERT_CRITERIA_CN = (IKEEXT_CERT_CRITERIA_RFC822 + 1)
+    IKEEXT_CERT_CRITERIA_OU = (IKEEXT_CERT_CRITERIA_CN + 1)
+    IKEEXT_CERT_CRITERIA_O = (IKEEXT_CERT_CRITERIA_OU + 1)
+    IKEEXT_CERT_CRITERIA_DC = (IKEEXT_CERT_CRITERIA_O + 1)
+    IKEEXT_CERT_CRITERIA_NAME_TYPE_MAX = (IKEEXT_CERT_CRITERIA_DC + 1)
+End Enum
+
+Public Type IKEEXT_CERT_EKUS0
+    numEku As Long
+    eku As LongPtr 'LPSTR*
+End Type
+
+Public Type IKEEXT_CERT_NAME0
+    nameType As IKEEXT_CERT_CRITERIA_NAME_TYPE
+    certName As LongPtr
+End Type
+
+Public Type IKEEXT_CERTIFICATE_CRITERIA0
+    certData As FWP_BYTE_BLOB
+    certHash As FWP_BYTE_BLOB
+    eku As LongPtr '*IKEEXT_CERT_EKUS0
+    name As LongPtr '*IKEEXT_CERT_NAME0
+    flags As Long
+End Type
+
+Public Type IKEEXT_CERTIFICATE_AUTHENTICATION2
+    inboundConfigType As IKEEXT_CERT_CONFIG_TYPE
+    ' /* [switch_is][switch_type] */ union 
+        ' {
+        ' /* [case()] */ struct 
+            ' {
+            ' UINT32 inboundRootArraySize;
+            ' /* [unique][size_is] */ IKEEXT_CERTIFICATE_CRITERIA0 *inboundRootCriteria;
+            ' }     ;
+        ' /* [case()] */ struct 
+            ' {
+            ' UINT32 inboundEnterpriseStoreArraySize;
+            ' /* [unique][size_is] */ IKEEXT_CERTIFICATE_CRITERIA0 *inboundEnterpriseStoreCriteria;
+            ' }     ;
+        ' /* [case()] */ struct 
+            ' {
+            ' UINT32 inboundRootStoreArraySize;
+            ' /* [unique][size_is] */ IKEEXT_CERTIFICATE_CRITERIA0 *inboundTrustedRootStoreCriteria;
+            ' }     ;
+        ' /* [case()] */  /* Empty union arm */ 
+        ' }     ;
+        #If Win64 Then
+            inbound(11) As Byte
+        #Else
+            inbound(7) As Byte
+        #End If
+        outboundConfigType As IKEEXT_CERT_CONFIG_TYPE
+        ' /* [switch_is][switch_type] */ union 
+            ' {
+            ' /* [case()] */ struct 
+                ' {
+                ' UINT32 outboundRootArraySize;
+                ' /* [unique][size_is] */ IKEEXT_CERTIFICATE_CRITERIA0 *outboundRootCriteria;
+                ' }     ;
+            ' /* [case()] */ struct 
+                ' {
+                ' UINT32 outboundEnterpriseStoreArraySize;
+                ' /* [unique][size_is] */ IKEEXT_CERTIFICATE_CRITERIA0 *outboundEnterpriseStoreCriteria;
+                ' }     ;
+            ' /* [case()] */ struct 
+                ' {
+                ' UINT32 outboundRootStoreArraySize;
+                ' /* [unique][size_is] */ IKEEXT_CERTIFICATE_CRITERIA0 *outboundTrustedRootStoreCriteria;
+                ' }     ;
+            ' /* [case()] */  /* Empty union arm */ 
+            ' }     ;
+        #If Win64 Then
+            outbound(11) As Byte
+        #Else
+            outbound(7) As Byte
+        #End If
+        flags As IkeextCertAuthFlags
+        #If Win64 Then
+            pad As Long
+        #End If
+        localCertLocationUrl As FWP_BYTE_BLOB
+End Type
+
+Public Type IKEEXT_IPV6_CGA_AUTHENTICATION0
+    keyContainerName As LongPtr 'wchar_t 
+    cspName As LongPtr 'wchar_t 
+    cspType As Long
+    cgaModifier As FWP_BYTE_ARRAY16
+    cgaCollisionCount As Byte
+End Type
+
+Public Enum IkeextKerbAuthFlags
+    IKEEXT_KERB_AUTH_DISABLE_INITIATOR_TOKEN_GENERATION = (&H00000001)
+    IKEEXT_KERB_AUTH_DONT_ACCEPT_EXPLICIT_CREDENTIALS = (&H00000002)
+    IKEEXT_KERB_AUTH_FORCE_PROXY_ON_INITIATOR = (&H00000004)
+End Enum
+Public Type IKEEXT_KERBEROS_AUTHENTICATION0
+    flags As IkeextKerbAuthFlags
+End Type
+Public Type IKEEXT_KERBEROS_AUTHENTICATION1
+    flags As IkeextKerbAuthFlags
+    proxyServer As LongPtr 'wchar_t 
+End Type
+Public Enum IkeextReservedAuthFlags
+    IKEEXT_RESERVED_AUTH_DISABLE_INITIATOR_TOKEN_GENERATION = (&H00000001)
+End Enum
+Public Type IKEEXT_RESERVED_AUTHENTICATION0
+    flags As IkeextReservedAuthFlags
+End Type
+Public Enum IkeextNtlmV2Flags
+    IKEEXT_NTLM_V2_AUTH_DONT_ACCEPT_EXPLICIT_CREDENTIALS = (&H00000001)
+End Enum
+Public Type IKEEXT_NTLM_V2_AUTHENTICATION0
+    flags As IkeextNtlmV2Flags
+End Type
+
+Public Enum IkeextEapFlags
+    IKEEXT_EAP_FLAG_LOCAL_AUTH_ONLY = (&H00000001)
+    IKEEXT_EAP_FLAG_REMOTE_AUTH_ONLY = (&H00000002)
+End Enum
+Public Type IKEEXT_EAP_AUTHENTICATION0
+    flags As IkeextEapFlags
+End Type
+
+Public Type IKEEXT_AUTHENTICATION_METHOD0
+    authenticationMethodType As IKEEXT_AUTHENTICATION_METHOD_TYPE
+    ' /* [switch_is][switch_type] */ union 
+        ' {
+        ' /* [case()] */ IKEEXT_PRESHARED_KEY_AUTHENTICATION0 presharedKeyAuthentication;
+        ' /* [case()] */ IKEEXT_CERTIFICATE_AUTHENTICATION0 certificateAuthentication;
+        ' /* [case()] */ IKEEXT_KERBEROS_AUTHENTICATION0 kerberosAuthentication;
+        ' /* [case()] */ IKEEXT_NTLM_V2_AUTHENTICATION0 ntlmV2Authentication;
+        ' /* [case()] */  /* Empty union arm */ 
+        ' /* [case()] */ IKEEXT_CERTIFICATE_AUTHENTICATION0 sslAuthentication;
+        ' /* [case()] */ IKEEXT_IPV6_CGA_AUTHENTICATION0 cgaAuthentication;
+        ' }     ;
+    #If Win64 Then
+    u(59) As Byte
+    #Else
+    u(31) As Byte  
+    #End If
+End Type
+Public Type IKEEXT_AUTHENTICATION_METHOD1
+    authenticationMethodType As IKEEXT_AUTHENTICATION_METHOD_TYPE
+    ' /* [switch_is][switch_type] */ union 
+        ' {
+        ' /* [case()] */ IKEEXT_PRESHARED_KEY_AUTHENTICATION1 presharedKeyAuthentication;
+        ' /* [case()] */ IKEEXT_CERTIFICATE_AUTHENTICATION1 certificateAuthentication;
+        ' /* [case()] */ IKEEXT_KERBEROS_AUTHENTICATION0 kerberosAuthentication;
+        ' /* [case()] */ IKEEXT_NTLM_V2_AUTHENTICATION0 ntlmV2Authentication;
+        ' /* [case()] */  /* Empty union arm */ 
+        ' /* [case()] */ IKEEXT_CERTIFICATE_AUTHENTICATION1 sslAuthentication;
+        ' /* [case()] */ IKEEXT_IPV6_CGA_AUTHENTICATION0 cgaAuthentication;
+        ' /* [case()] */ IKEEXT_EAP_AUTHENTICATION0 eapAuthentication;
+        ' }     ;
+    #If Win64 Then
+    u(75) As Byte
+    #Else
+    u(35) As Byte  
+    #End If
+End Type
+Public Type IKEEXT_AUTHENTICATION_METHOD2
+    authenticationMethodType As IKEEXT_AUTHENTICATION_METHOD_TYPE
+    ' /* [switch_is][switch_type] */ union 
+        ' {
+        ' /* [case()] */ IKEEXT_PRESHARED_KEY_AUTHENTICATION1 presharedKeyAuthentication;
+        ' /* [case()] */ IKEEXT_CERTIFICATE_AUTHENTICATION2 certificateAuthentication;
+        ' /* [case()] */ IKEEXT_KERBEROS_AUTHENTICATION1 kerberosAuthentication;
+        ' /* [case()] */ IKEEXT_RESERVED_AUTHENTICATION0 reservedAuthentication;
+        ' /* [case()] */ IKEEXT_NTLM_V2_AUTHENTICATION0 ntlmV2Authentication;
+        ' /* [case()] */  /* Empty union arm */ 
+        ' /* [case()] */ IKEEXT_CERTIFICATE_AUTHENTICATION2 sslAuthentication;
+        ' /* [case()] */ IKEEXT_IPV6_CGA_AUTHENTICATION0 cgaAuthentication;
+        ' /* [case()] */ IKEEXT_EAP_AUTHENTICATION0 eapAuthentication;
+        ' }     ;
+    #If Win64 Then
+    u(75) As Byte
+    #Else
+    u(35) As Byte  
+    #End If
+End Type
+
+Public Enum IKEEXT_CIPHER_TYPE
+    IKEEXT_CIPHER_DES
+    IKEEXT_CIPHER_3DES
+    IKEEXT_CIPHER_AES_128
+    IKEEXT_CIPHER_AES_192
+    IKEEXT_CIPHER_AES_256
+    IKEEXT_CIPHER_AES_GCM_128_16ICV
+    IKEEXT_CIPHER_AES_GCM_256_16ICV
+    IKEEXT_CIPHER_TYPE_MAX
+End Enum
+Public Type IKEEXT_CIPHER_ALGORITHM0
+    ' The type of encryption algorithm
+    algoIdentifier As IKEEXT_CIPHER_TYPE
+    ' length of the encryption key
+    keyLen As Long
+    ' Number of rounds in the encryption algorithm
+    rounds As Long
+End Type
+
+Public Enum IKEEXT_INTEGRITY_TYPE
+    IKEEXT_INTEGRITY_MD5
+    IKEEXT_INTEGRITY_SHA1
+    IKEEXT_INTEGRITY_SHA_256
+    IKEEXT_INTEGRITY_SHA_384
+    IKEEXT_INTEGRITY_TYPE_MAX
+End Enum
+Public Type IKEEXT_INTEGRITY_ALGORITHM0
+    ' The type of hash algorithm
+    algoIdentifier As IKEEXT_INTEGRITY_TYPE
+End Type
+
+Public Enum IKEEXT_DH_GROUP
+    IKEEXT_DH_GROUP_NONE
+    IKEEXT_DH_GROUP_1
+    IKEEXT_DH_GROUP_2
+    IKEEXT_DH_GROUP_14
+    IKEEXT_DH_GROUP_2048 = IKEEXT_DH_GROUP_14
+    IKEEXT_DH_ECP_256
+    IKEEXT_DH_ECP_384
+    IKEEXT_DH_GROUP_24
+    IKEEXT_DH_GROUP_MAX
+End Enum
+Public Type IKEEXT_PROPOSAL0
+    ' Parameters for the encryption algorithm
+    cipherAlgorithm As IKEEXT_CIPHER_ALGORITHM0
+    ' Parameters for the hash algorithm
+    integrityAlgorithm As IKEEXT_INTEGRITY_ALGORITHM0
+    ' Main mode SA Lifetime in seconds
+    maxLifetimeSeconds As Long
+    ' The Diffie Hellman group
+    dhGroup As IKEEXT_DH_GROUP
+    ' Maximum number of IPsec quick mode SAs that can be generated from this
+    ' main mode SA. O means infinite.
+    quickModeLimit As Long
+End Type
+
+Public Enum IkeextPolicyFlags
+    IKEEXT_POLICY_FLAG_DISABLE_DIAGNOSTICS = (&H00000001)
+    IKEEXT_POLICY_FLAG_NO_MACHINE_LUID_VERIFY = (&H00000002)
+    IKEEXT_POLICY_FLAG_NO_IMPERSONATION_LUID_VERIFY = (&H00000004)
+    IKEEXT_POLICY_FLAG_ENABLE_OPTIONAL_DH = (&H00000008)
+    IKEEXT_POLICY_FLAG_MOBIKE_NOT_SUPPORTED = (&H00000010)
+    IKEEXT_POLICY_FLAG_SITE_TO_SITE = (&H00000020)
+    IKEEXT_POLICY_FLAG_IMS_VPN = (&H00000040)
+    IKEEXT_POLICY_ENABLE_IKEV2_FRAGMENTATION = (&H00000080)
+    IKEEXT_POLICY_SUPPORT_LOW_POWER_MODE = (&H00000100)
+End Enum
+Public Type IKEEXT_POLICY0
+    softExpirationTime As Long
+    numAuthenticationMethods As Long
+    authenticationMethods As LongPtr '*IKEEXT_AUTHENTICATION_METHOD0
+    initiatorImpersonationType As IKEEXT_AUTHENTICATION_IMPERSONATION_TYPE
+    numIkeProposals As Long
+    ikeProposals As LongPtr '*IKEEXT_PROPOSAL0
+    flags As IkeextPolicyFlags
+    maxDynamicFilters As Long
+End Type
+Public Type IKEEXT_POLICY1
+    softExpirationTime As Long
+    numAuthenticationMethods As Long
+    authenticationMethods As LongPtr '*IKEEXT_AUTHENTICATION_METHOD1
+    initiatorImpersonationType As IKEEXT_AUTHENTICATION_IMPERSONATION_TYPE
+    numIkeProposals As Long
+    ikeProposals As LongPtr '*IKEEXT_PROPOSAL0
+    flags As IkeextPolicyFlags
+    maxDynamicFilters As Long
+    retransmitDurationSecs As Long
+End Type
+Public Type IKEEXT_POLICY2
+    softExpirationTime As Long
+    numAuthenticationMethods As Long
+    authenticationMethods As LongPtr '*IKEEXT_AUTHENTICATION_METHOD2
+    initiatorImpersonationType As IKEEXT_AUTHENTICATION_IMPERSONATION_TYPE
+    numIkeProposals As Long
+    ikeProposals As LongPtr '*IKEEXT_PROPOSAL0
+    flags As IkeextPolicyFlags
+    maxDynamicFilters As Long
+    retransmitDurationSecs As Long
+End Type
+
+Public Type IKEEXT_EM_POLICY0
+    numAuthenticationMethods As Long
+    authenticationMethods As LongPtr '*IKEEXT_AUTHENTICATION_METHOD0
+    initiatorImpersonationType As IKEEXT_AUTHENTICATION_IMPERSONATION_TYPE
+End Type
+Public Type IKEEXT_EM_POLICY1
+    numAuthenticationMethods As Long
+    authenticationMethods As LongPtr '*IKEEXT_AUTHENTICATION_METHOD1
+    initiatorImpersonationType As IKEEXT_AUTHENTICATION_IMPERSONATION_TYPE
+End Type
+Public Type IKEEXT_EM_POLICY2
+    numAuthenticationMethods As Long
+    authenticationMethods As LongPtr '*IKEEXT_AUTHENTICATION_METHOD2
+    initiatorImpersonationType As IKEEXT_AUTHENTICATION_IMPERSONATION_TYPE
+End Type
+
+Public Const IKEEXT_ERROR_CODE_COUNT = (ERROR_IPSEC_IKE_NEG_STATUS_END - ERROR_IPSEC_IKE_NEG_STATUS_BEGIN)
+Public Type IKEEXT_IP_VERSION_SPECIFIC_KEYMODULE_STATISTICS0
+    currentActiveMainModes As Long
+    totalMainModesStarted As Long
+    totalSuccessfulMainModes As Long
+    totalFailedMainModes As Long
+    totalResponderMainModes As Long
+    currentNewResponderMainModes As Long
+    currentActiveQuickModes As Long
+    totalQuickModesStarted As Long
+    totalSuccessfulQuickModes As Long
+    totalFailedQuickModes As Long
+    totalAcquires As Long
+    totalReinitAcquires As Long
+    currentActiveExtendedModes As Long
+    totalExtendedModesStarted As Long
+    totalSuccessfulExtendedModes As Long
+    totalFailedExtendedModes As Long
+    totalImpersonationExtendedModes As Long
+    totalImpersonationMainModes As Long
+End Type
+Public Type IKEEXT_IP_VERSION_SPECIFIC_KEYMODULE_STATISTICS1
+    currentActiveMainModes As Long
+    totalMainModesStarted As Long
+    totalSuccessfulMainModes As Long
+    totalFailedMainModes As Long
+    totalResponderMainModes As Long
+    currentNewResponderMainModes As Long
+    currentActiveQuickModes As Long
+    totalQuickModesStarted As Long
+    totalSuccessfulQuickModes As Long
+    totalFailedQuickModes As Long
+    totalAcquires As Long
+    totalReinitAcquires As Long
+    currentActiveExtendedModes As Long
+    totalExtendedModesStarted As Long
+    totalSuccessfulExtendedModes As Long
+    totalFailedExtendedModes As Long
+    totalImpersonationExtendedModes As Long
+    totalImpersonationMainModes As Long
+End Type
+Public Type IKEEXT_KEYMODULE_STATISTICS0
+    v4Statistics As IKEEXT_IP_VERSION_SPECIFIC_KEYMODULE_STATISTICS0
+    v6Statistics As IKEEXT_IP_VERSION_SPECIFIC_KEYMODULE_STATISTICS0
+    errorFrequencyTable(0 To 96) As Long
+    mainModeNegotiationTime As Long
+    quickModeNegotiationTime As Long
+    extendedModeNegotiationTime As Long
+End Type
+Public Type IKEEXT_KEYMODULE_STATISTICS1
+    v4Statistics As IKEEXT_IP_VERSION_SPECIFIC_KEYMODULE_STATISTICS1
+    v6Statistics As IKEEXT_IP_VERSION_SPECIFIC_KEYMODULE_STATISTICS1
+    errorFrequencyTable(0 To 96) As Long
+    mainModeNegotiationTime As Long
+    quickModeNegotiationTime As Long
+    extendedModeNegotiationTime As Long
+End Type
+Public Type IKEEXT_IP_VERSION_SPECIFIC_COMMON_STATISTICS0
+    totalSocketReceiveFailures As Long
+    totalSocketSendFailures As Long
+End Type
+Public Type IKEEXT_IP_VERSION_SPECIFIC_COMMON_STATISTICS1
+    totalSocketReceiveFailures As Long
+    totalSocketSendFailures As Long
+End Type
+Public Type IKEEXT_COMMON_STATISTICS0
+    v4Statistics As IKEEXT_IP_VERSION_SPECIFIC_COMMON_STATISTICS0
+    v6Statistics As IKEEXT_IP_VERSION_SPECIFIC_COMMON_STATISTICS0
+    totalPacketsReceived As Long
+    totalInvalidPacketsReceived As Long
+    currentQueuedWorkitems As Long
+End Type
+Public Type IKEEXT_COMMON_STATISTICS1
+    v4Statistics As IKEEXT_IP_VERSION_SPECIFIC_COMMON_STATISTICS1
+    v6Statistics As IKEEXT_IP_VERSION_SPECIFIC_COMMON_STATISTICS1
+    totalPacketsReceived As Long
+    totalInvalidPacketsReceived As Long
+    currentQueuedWorkitems As Long
+End Type
+Public Type IKEEXT_STATISTICS0
+    ikeStatistics As IKEEXT_KEYMODULE_STATISTICS0
+    authipStatistics As IKEEXT_KEYMODULE_STATISTICS0
+    commonStatistics As IKEEXT_COMMON_STATISTICS0
+End Type
+Public Type IKEEXT_STATISTICS1
+    ikeStatistics As IKEEXT_KEYMODULE_STATISTICS1
+    authipStatistics As IKEEXT_KEYMODULE_STATISTICS1
+    ikeV2Statistics As IKEEXT_KEYMODULE_STATISTICS1
+    commonStatistics As IKEEXT_COMMON_STATISTICS1
+End Type
+
+Public Type IKEEXT_TRAFFIC0
+    ipVersion As FWP_IP_VERSION
+    ' /* [switch_is][switch_type] */ union 
+        ' {
+        ' /* [case()] */ UINT32 localV4Address;
+        ' /* [case()] */ UINT8 localV6Address[ 16 ];
+        ' }     ;
+    ' /* [switch_is][switch_type] */ union 
+        ' {
+        ' /* [case()] */ UINT32 remoteV4Address;
+        ' /* [case()] */ UINT8 remoteV6Address[ 16 ];
+        ' }     ;
+        localAddress(3) As Long
+        remoteAddress(3) As Long
+        authIpFilterId As LongLong
+End Type
+
+'Alias IKEEXT_COOKIE As LongLong
+
+Public Type IKEEXT_COOKIE_PAIR0
+    initiator As LongLong 'IKEEXT_COOKIE
+    responder As LongLong 'IKEEXT_COOKIE
+End Type
+
+Public Enum IkeextCertCredFlags
+    IKEEXT_CERT_CREDENTIAL_FLAG_NAP_CERT = &H00000001
+End Enum
+Public Type IKEEXT_CERTIFICATE_CREDENTIAL0
+    subjectName As FWP_BYTE_BLOB
+    certHash As FWP_BYTE_BLOB
+    flags As IkeextCertCredFlags
+End Type
+
+Public Type IKEEXT_NAME_CREDENTIAL0
+    ' Name of the principal
+    principalName As LongPtr 'wchar_t 
+End Type
+
+Public Type IKEEXT_CREDENTIAL0
+    authenticationMethodType As IKEEXT_AUTHENTICATION_METHOD_TYPE
+    impersonationType As IKEEXT_AUTHENTICATION_IMPERSONATION_TYPE
+    ' /* [switch_is][switch_type] */ union 
+        ' {
+        ' /* [case()][unique] */ IKEEXT_PRESHARED_KEY_AUTHENTICATION0 *presharedKey;
+        ' /* [case()][unique] */ IKEEXT_CERTIFICATE_CREDENTIAL0 *certificate;
+        ' /* [case()][unique] */ IKEEXT_NAME_CREDENTIAL0 *name;
+        ' /* [case()] */  /* Empty union arm */ 
+        ' }     ;
+    u As LongPtr
+End Type
+Public Type IKEEXT_CREDENTIAL_PAIR0
+    localCredentials As IKEEXT_CREDENTIAL0
+    peerCredentials As IKEEXT_CREDENTIAL0
+End Type
+Public Type IKEEXT_CREDENTIALS0
+    numCredentials As Long
+    credentials As LongPtr '*IKEEXT_CREDENTIAL_PAIR0
+End Type
+Public Type IKEEXT_SA_DETAILS0
+    saId As LongLong
+    keyModuleType As IKEEXT_KEY_MODULE_TYPE
+    ipVersion As FWP_IP_VERSION
+    '/* [switch_is][switch_type] */ union
+    '    {
+    '    /* [case()][unique] */ IPSEC_V4_UDP_ENCAPSULATION0 *v4UdpEncapsulation;
+    '    /* [case()] */  /* Empty union arm */
+    '    }     ;
+    v4UdpEncapsulation As LongPtr
+    ikeTraffic As IKEEXT_TRAFFIC0
+    ikeProposal As IKEEXT_PROPOSAL0
+    cookiePair As IKEEXT_COOKIE_PAIR0
+    ikeCredentials As IKEEXT_CREDENTIALS0
+    ikePolicyKey As UUID
+    virtualIfTunnelId As LongLong
+End Type
+
+Public Type IKEEXT_CERTIFICATE_CREDENTIAL1
+    ' Encoded subject name of the certificate used for authentication
+    subjectName As FWP_BYTE_BLOB
+    ' SHA thumbprint of the certificate
+    certHash As FWP_BYTE_BLOB
+    ' Flags
+    flags As IkeextCertCredFlags
+    ' Encoded certificate
+    certificate As FWP_BYTE_BLOB
+End Type
+
+Public Type IKEEXT_CREDENTIAL1
+    authenticationMethodType As IKEEXT_AUTHENTICATION_METHOD_TYPE
+    impersonationType As IKEEXT_AUTHENTICATION_IMPERSONATION_TYPE
+    ' /* [switch_is][switch_type] */ union 
+        ' {
+        ' /* [case()][unique] */ IKEEXT_PRESHARED_KEY_AUTHENTICATION1 *presharedKey;
+        ' /* [case()][unique] */ IKEEXT_CERTIFICATE_CREDENTIAL1 *certificate;
+        ' /* [case()][unique] */ IKEEXT_NAME_CREDENTIAL0 *name;
+        ' /* [case()] */  /* Empty union arm */ 
+        ' }     ;
+    u As LongPtr
+End Type
+Public Type IKEEXT_CREDENTIAL_PAIR1
+    localCredentials As IKEEXT_CREDENTIAL1
+    peerCredentials As IKEEXT_CREDENTIAL1
+End Type
+Public Type IKEEXT_CREDENTIALS1
+    numCredentials As Long
+    credentials As LongPtr '*IKEEXT_CREDENTIAL_PAIR1
+End Type
+Public Type IKEEXT_SA_DETAILS1
+    saId As LongLong
+    keyModuleType As IKEEXT_KEY_MODULE_TYPE
+    ipVersion As FWP_IP_VERSION
+    '/* [switch_is][switch_type] */ union
+    '    {
+    '    /* [case()][unique] */ IPSEC_V4_UDP_ENCAPSULATION0 *v4UdpEncapsulation;
+    '    /* [case()] */  /* Empty union arm */
+    '    }     ;
+    v4UdpEncapsulation As LongPtr
+    ikeTraffic As IKEEXT_TRAFFIC0
+    ikeProposal As IKEEXT_PROPOSAL0
+    cookiePair As IKEEXT_COOKIE_PAIR0
+    ikeCredentials As IKEEXT_CREDENTIALS1
+    ikePolicyKey As UUID
+    virtualIfTunnelId As LongLong
+    correlationKey As FWP_BYTE_BLOB
+End Type
+
+Public Type IKEEXT_CREDENTIAL2
+    ' Type of authentication method
+    authenticationMethodType As IKEEXT_AUTHENTICATION_METHOD_TYPE
+    ' Tagged union containing credential information specific to the
+    ' authentication method type.
+    ' Type of impersonation.
+    impersonationType As IKEEXT_AUTHENTICATION_IMPERSONATION_TYPE
+    '[switch_type(IKEEXT_AUTHENTICATION_METHOD_TYPE),
+    ' switch_is(authenticationMethodType)] union
+    '{
+    '   [case(IKEEXT_PRESHARED_KEY)]
+    '      [unique] IKEEXT_PRESHARED_KEY_AUTHENTICATION1* presharedKey;
+    '   [case(IKEEXT_CERTIFICATE,
+    '         IKEEXT_CERTIFICATE_ECDSA_P256,
+    '         IKEEXT_CERTIFICATE_ECDSA_P384,
+    '         IKEEXT_SSL,
+    '         IKEEXT_SSL_ECDSA_P256,
+    '         IKEEXT_SSL_ECDSA_P384,
+    '         IKEEXT_IPV6_CGA
+    '         )]
+    '      [unique] IKEEXT_CERTIFICATE_CREDENTIAL1* certificate;
+    '   [case(IKEEXT_KERBEROS,
+    '         IKEEXT_EAP,
+    '         IKEEXT_NTLM_V2,
+    '         IKEEXT_RESERVED)]
+    '      [unique] IKEEXT_NAME_CREDENTIAL0* name;
+    '   [case(IKEEXT_ANONYMOUS)];
+    '};
+    KeyOrCertOrName As LongPtr
+End Type
+Public Type IKEEXT_CREDENTIAL_PAIR2
+    localCredentials As IKEEXT_CREDENTIAL2
+    peerCredentials As IKEEXT_CREDENTIAL2
+End Type
+Public Type IKEEXT_CREDENTIALS2
+    numCredentials As Long
+    credentials As LongPtr '*IKEEXT_CREDENTIAL_PAIR2
+End Type
+Public Type IKEEXT_SA_DETAILS2
+    saId As LongLong
+    keyModuleType As IKEEXT_KEY_MODULE_TYPE
+    ipVersion As FWP_IP_VERSION
+    '/* [switch_is][switch_type] */ union
+    '    {
+    '    /* [case()][unique] */ IPSEC_V4_UDP_ENCAPSULATION0 *v4UdpEncapsulation;
+    '    /* [case()] */  /* Empty union arm */
+    '    }     ;
+    v4UdpEncapsulation As LongPtr
+    ikeTraffic As IKEEXT_TRAFFIC0
+    ikeProposal As IKEEXT_PROPOSAL0
+    cookiePair As IKEEXT_COOKIE_PAIR0
+    ikeCredentials As IKEEXT_CREDENTIALS2
+    ikePolicyKey As UUID
+    virtualIfTunnelId As LongLong
+    correlationKey As FWP_BYTE_BLOB
+End Type
+
+Public Type IKEEXT_SA_ENUM_TEMPLATE0
+    localSubNet As FWP_CONDITION_VALUE0
+    remoteSubNet As FWP_CONDITION_VALUE0
+    localMainModeCertHash As FWP_BYTE_BLOB
+End Type
 
 Public Enum IKEEXT_MM_SA_STATE
     '  Initial state. No MM packets have been sent to the peer yet.
@@ -470,64 +1168,703 @@ Public Enum IKEEXT_SA_ROLE
     IKEEXT_SA_ROLE_MAX
 End Enum
 
-Public Enum IkeextCertCredFlags
-    IKEEXT_CERT_CREDENTIAL_FLAG_NAP_CERT = &H00000001
-End Enum
-Public Type IKEEXT_CERTIFICATE_CREDENTIAL1
-    ' Encoded subject name of the certificate used for authentication
-    subjectName As FWP_BYTE_BLOB
-    ' SHA thumbprint of the certificate
-    certHash As FWP_BYTE_BLOB
-    ' Flags
-    flags As IkeextCertCredFlags
-    ' Encoded certificate
-    certificate As FWP_BYTE_BLOB
-End Type
-
-Public Type IKEEXT_NAME_CREDENTIAL0_
-    ' Name of the principal
-    principalName As LongPtr 'wchar_t 
-End Type
-
-Public Type IKEEXT_CREDENTIAL2
-    ' Type of authentication method
-    authenticationMethodType As IKEEXT_AUTHENTICATION_METHOD_TYPE
-    ' Tagged union containing credential information specific to the
-    ' authentication method type.
-    ' Type of impersonation.
-    impersonationType As IKEEXT_AUTHENTICATION_IMPERSONATION_TYPE
-    '[switch_type(IKEEXT_AUTHENTICATION_METHOD_TYPE),
-    ' switch_is(authenticationMethodType)] union
-    '{
-    '   [case(IKEEXT_PRESHARED_KEY)]
-    '      [unique] IKEEXT_PRESHARED_KEY_AUTHENTICATION1* presharedKey;
-    '   [case(IKEEXT_CERTIFICATE,
-    '         IKEEXT_CERTIFICATE_ECDSA_P256,
-    '         IKEEXT_CERTIFICATE_ECDSA_P384,
-    '         IKEEXT_SSL,
-    '         IKEEXT_SSL_ECDSA_P256,
-    '         IKEEXT_SSL_ECDSA_P384,
-    '         IKEEXT_IPV6_CGA
-    '         )]
-    '      [unique] IKEEXT_CERTIFICATE_CREDENTIAL1* certificate;
-    '   [case(IKEEXT_KERBEROS,
-    '         IKEEXT_EAP,
-    '         IKEEXT_NTLM_V2,
-    '         IKEEXT_RESERVED)]
-    '      [unique] IKEEXT_NAME_CREDENTIAL0* name;
-    '   [case(IKEEXT_ANONYMOUS)];
-    '};
-    KeyOrCertOrName As LongPtr
-End Type
-
 #End Region
 #Region "ipsectypes.h"
+
+Public Type IPSEC_SA_LIFETIME0
+    lifetimeSeconds As Long
+    lifetimeKilobytes As Long
+    lifetimePackets As Long
+End Type
+
+Public Enum IPSEC_TRANSFORM_TYPE
+    IPSEC_TRANSFORM_AH = 1
+    IPSEC_TRANSFORM_ESP_AUTH = (IPSEC_TRANSFORM_AH + 1)
+    IPSEC_TRANSFORM_ESP_CIPHER = (IPSEC_TRANSFORM_ESP_AUTH + 1)
+    IPSEC_TRANSFORM_ESP_AUTH_AND_CIPHER = (IPSEC_TRANSFORM_ESP_CIPHER + 1)
+    IPSEC_TRANSFORM_ESP_AUTH_FW = (IPSEC_TRANSFORM_ESP_AUTH_AND_CIPHER + 1)
+    IPSEC_TRANSFORM_TYPE_MAX = (IPSEC_TRANSFORM_ESP_AUTH_FW + 1)
+End Enum
+
+Public Enum IPSEC_AUTH_TYPE
+    IPSEC_AUTH_MD5 = 0
+    IPSEC_AUTH_SHA_1 = (IPSEC_AUTH_MD5 + 1)
+    IPSEC_AUTH_SHA_256 = (IPSEC_AUTH_SHA_1 + 1)
+    IPSEC_AUTH_AES_128 = (IPSEC_AUTH_SHA_256 + 1)
+    IPSEC_AUTH_AES_192 = (IPSEC_AUTH_AES_128 + 1)
+    IPSEC_AUTH_AES_256 = (IPSEC_AUTH_AES_192 + 1)
+    IPSEC_AUTH_MAX = (IPSEC_AUTH_AES_256 + 1)
+End Enum
+Public Enum IpsecAuthConfigValues
+    IPSEC_AUTH_CONFIG_HMAC_MD5_96 = (0)
+    IPSEC_AUTH_CONFIG_HMAC_SHA_1_96 = (1)
+    IPSEC_AUTH_CONFIG_HMAC_SHA_256_128 = (2)
+    IPSEC_AUTH_CONFIG_GCM_AES_128 = (3)
+    IPSEC_AUTH_CONFIG_GCM_AES_192 = (4)
+    IPSEC_AUTH_CONFIG_GCM_AES_256 = (5)
+    IPSEC_AUTH_CONFIG_MAX = (6)
+End Enum
+Public Type IPSEC_AUTH_TRANSFORM_ID0
+    authType As IPSEC_AUTH_TYPE
+    authConfig As Byte 'UINT8/IPSEC_AUTH_CONFIG
+End Type
+' typedef GUID IPSEC_CRYPTO_MODULE_ID;
+Public Type IPSEC_AUTH_TRANSFORM0
+    authTransformId As IPSEC_AUTH_TRANSFORM_ID0
+    cryptoModuleId As LongPtr '*IPSEC_CRYPTO_MODULE_ID
+End Type
+
+Public Enum IPSEC_CIPHER_TYPE
+    IPSEC_CIPHER_TYPE_DES = 1
+    IPSEC_CIPHER_TYPE_3DES = (IPSEC_CIPHER_TYPE_DES + 1)
+    IPSEC_CIPHER_TYPE_AES_128 = (IPSEC_CIPHER_TYPE_3DES + 1)
+    IPSEC_CIPHER_TYPE_AES_192 = (IPSEC_CIPHER_TYPE_AES_128 + 1)
+    IPSEC_CIPHER_TYPE_AES_256 = (IPSEC_CIPHER_TYPE_AES_192 + 1)
+    IPSEC_CIPHER_TYPE_MAX = (IPSEC_CIPHER_TYPE_AES_256 + 1)
+End Enum
+
+' typedef UINT8 IPSEC_CIPHER_CONFIG;
+Public Enum IpsecCipherConfigValues
+    IPSEC_CIPHER_CONFIG_CBC_DES = (1)
+    IPSEC_CIPHER_CONFIG_CBC_3DES = (2)
+    IPSEC_CIPHER_CONFIG_CBC_AES_128 = (3)
+    IPSEC_CIPHER_CONFIG_CBC_AES_192 = (4)
+    IPSEC_CIPHER_CONFIG_CBC_AES_256 = (5)
+    IPSEC_CIPHER_CONFIG_GCM_AES_128 = (6)
+    IPSEC_CIPHER_CONFIG_GCM_AES_192 = (7)
+    IPSEC_CIPHER_CONFIG_GCM_AES_256 = (8)
+    IPSEC_CIPHER_CONFIG_MAX = (9)
+End Enum
+Public Type IPSEC_CIPHER_TRANSFORM_ID0
+    cipherType As IPSEC_CIPHER_TYPE
+    cipherConfig As Byte 'UINT8/IPSEC_CIPHER_CONFIG
+End Type
+Public Type IPSEC_CIPHER_TRANSFORM0
+    cipherTransformId As IPSEC_CIPHER_TRANSFORM_ID0
+    cryptoModuleId As LongPtr '*IPSEC_CRYPTO_MODULE_ID
+End Type
+Public Type IPSEC_AUTH_AND_CIPHER_TRANSFORM0
+    authTransform As IPSEC_AUTH_TRANSFORM0
+    cipherTransform As IPSEC_CIPHER_TRANSFORM0
+End Type
+Public Type IPSEC_SA_TRANSFORM0
+    ipsecTransformType As IPSEC_TRANSFORM_TYPE
+    ' /* [switch_is][switch_type] */ union 
+        ' {
+        ' /* [case()][unique] */ IPSEC_AUTH_TRANSFORM0 *ahTransform;
+        ' /* [case()][unique] */ IPSEC_AUTH_TRANSFORM0 *espAuthTransform;
+        ' /* [case()][unique] */ IPSEC_CIPHER_TRANSFORM0 *espCipherTransform;
+        ' /* [case()][unique] */ IPSEC_AUTH_AND_CIPHER_TRANSFORM0 *espAuthAndCipherTransform;
+        ' /* [case()][unique] */ IPSEC_AUTH_TRANSFORM0 *espAuthFwTransform;
+        ' }     ;
+        Transform As LongPtr
+End Type
+
+Public Enum IPSEC_PFS_GROUP
+    IPSEC_PFS_NONE = 0
+    IPSEC_PFS_1 = (IPSEC_PFS_NONE + 1)
+    IPSEC_PFS_2 = (IPSEC_PFS_1 + 1)
+    IPSEC_PFS_2048 = (IPSEC_PFS_2 + 1)
+    IPSEC_PFS_14 = IPSEC_PFS_2048
+    IPSEC_PFS_ECP_256 = (IPSEC_PFS_14 + 1)
+    IPSEC_PFS_ECP_384 = (IPSEC_PFS_ECP_256 + 1)
+    IPSEC_PFS_MM = (IPSEC_PFS_ECP_384 + 1)
+    IPSEC_PFS_24 = (IPSEC_PFS_MM + 1)
+    IPSEC_PFS_MAX = (IPSEC_PFS_24 + 1)
+End Enum
+
+Public Type IPSEC_PROPOSAL0
+    lifetime As IPSEC_SA_LIFETIME0
+    numSaTransforms As Long
+    saTransforms As LongPtr '*IPSEC_SA_TRANSFORM0
+    pfsGroup As IPSEC_PFS_GROUP
+End Type
+
+Public Type IPSEC_SA_IDLE_TIMEOUT0
+    idleTimeoutSeconds As Long
+    idleTimeoutSecondsFailOver As Long
+End Type
+
+Public Type IPSEC_TRAFFIC_SELECTOR0
+    protocolId As Byte
+    portStart As Integer
+    portEnd As Integer
+    ipVersion As FWP_IP_VERSION
+    ' /* [switch_is][switch_type] */ union 
+        ' {
+        ' /* [case()] */ UINT32 startV4Address;
+        ' /* [case()] */ UINT8 startV6Address[ 16 ];
+        ' }     ;
+    ' /* [switch_is][switch_type] */ union 
+        ' {
+        ' /* [case()] */ UINT32 endV4Address;
+        ' /* [case()] */ UINT8 endV6Address[ 16 ];
+        ' }     ;
+    startAddress(3) As Long
+    endAddress(3) As Long
+End Type
+
+Public Type IPSEC_TRAFFIC_SELECTOR_POLICY0
+    flags As Long
+    numLocalTrafficSelectors As Long
+    localTrafficSelectors As LongPtr '*IPSEC_TRAFFIC_SELECTOR0
+    numRemoteTrafficSelectors As Long
+    remoteTrafficSelectors As LongPtr '*IPSEC_TRAFFIC_SELECTOR0
+End Type
+
+Public Enum IpsecPolicyFlags
+    IPSEC_POLICY_FLAG_ND_SECURE = (&H00000002)
+    IPSEC_POLICY_FLAG_ND_BOUNDARY = (&H00000004)
+    IPSEC_POLICY_FLAG_CLEAR_DF_ON_TUNNEL = (&H00000008)
+    IPSEC_POLICY_FLAG_NAT_ENCAP_ALLOW_PEER_BEHIND_NAT = (&H00000010)
+    IPSEC_POLICY_FLAG_NAT_ENCAP_ALLOW_GENERAL_NAT_TRAVERSAL = (&H00000020)
+    IPSEC_POLICY_FLAG_DONT_NEGOTIATE_SECOND_LIFETIME = (&H00000040)
+    IPSEC_POLICY_FLAG_DONT_NEGOTIATE_BYTE_LIFETIME = (&H00000080)
+' #if (NTDDI_VERSION >= NTDDI_WIN7)
+    IPSEC_POLICY_FLAG_ENABLE_V6_IN_V4_TUNNELING = (&H00000100)
+    IPSEC_POLICY_FLAG_ENABLE_SERVER_ADDR_ASSIGNMENT = (&H00000200)
+    IPSEC_POLICY_FLAG_TUNNEL_ALLOW_OUTBOUND_CLEAR_CONNECTION = (&H00000400)
+    IPSEC_POLICY_FLAG_TUNNEL_BYPASS_ALREADY_SECURE_CONNECTION = (&H00000800)
+    IPSEC_POLICY_FLAG_TUNNEL_BYPASS_ICMPV6 = (&H00001000)
+' #endif // (NTDDI_VERSION >= NTDDI_WIN7)
+' #if (NTDDI_VERSION >= NTDDI_WIN8)
+    IPSEC_POLICY_FLAG_KEY_MANAGER_ALLOW_DICTATE_KEY = (&H00002000)
+    IPSEC_POLICY_FLAG_KEY_MANAGER_ALLOW_NOTIFY_KEY = (&H00004000)
+    IPSEC_POLICY_FLAG_RESERVED1 = (&H00008000&)
+' #endif // (NTDDI_VERSION >= NTDDI_WIN8)
+' #if (NTDDI_VERSION >= NTDDI_WIN10_RS3)
+    IPSEC_POLICY_FLAG_SITE_TO_SITE_TUNNEL = (&H00010000)
+' #endif // (NTDDI_VERSION > NTDDI_WIN10_RS3)
+    IPSEC_POLICY_FLAG_BANDWIDTH1 = (&H10000000)
+    IPSEC_POLICY_FLAG_BANDWIDTH2 = (&H20000000)
+    IPSEC_POLICY_FLAG_BANDWIDTH3 = (&H40000000)
+    IPSEC_POLICY_FLAG_BANDWIDTH4 = (&H80000000)
+End Enum
+
+Public Type IPSEC_TRANSPORT_POLICY0
+    numIpsecProposals As Long
+    ipsecProposals As LongPtr '*IPSEC_PROPOSAL0
+    flags As Long
+    ndAllowClearTimeoutSeconds As Long
+    saIdleTimeout As IPSEC_SA_IDLE_TIMEOUT0
+    emPolicy As LongPtr '*IKEEXT_EM_POLICY0
+End Type
+Public Type IPSEC_TRANSPORT_POLICY1
+    numIpsecProposals As Long
+    ipsecProposals As LongPtr '*IPSEC_PROPOSAL0
+    flags As Long
+    ndAllowClearTimeoutSeconds As Long
+    saIdleTimeout As IPSEC_SA_IDLE_TIMEOUT0
+    emPolicy As LongPtr '*IKEEXT_EM_POLICY1
+End Type
+Public Type IPSEC_TRANSPORT_POLICY2
+    numIpsecProposals As Long
+    ipsecProposals As LongPtr '*IPSEC_PROPOSAL0
+    flags As Long
+    ndAllowClearTimeoutSeconds As Long
+    saIdleTimeout As IPSEC_SA_IDLE_TIMEOUT0
+    emPolicy As LongPtr '*IKEEXT_EM_POLICY2
+End Type
+
+Public Type IPSEC_TUNNEL_ENDPOINTS0
+    ipVersion As FWP_IP_VERSION
+    '/* [switch_is][switch_type] */ union
+    '    {
+    '    /* [case()] */ UINT32 localV4Address;
+    '    /* [case()] */ UINT8 localV6Address[ 16 ];
+    '    }     ;
+    '/* [switch_is][switch_type] */ union
+    '    {
+    '    /* [case()] */ UINT32 remoteV4Address;
+    '    /* [case()] */ UINT8 remoteV6Address[ 16 ];
+    '    }     ;
+    localAddress(3) As Long
+    remoteAddress(3) As Long
+End Type
+Public Type IPSEC_TUNNEL_ENDPOINT0
+    ipVersion As FWP_IP_VERSION
+    ' /* [switch_is][switch_type] */ union 
+        ' {
+        ' /* [case()] */ UINT32 v4Address;
+        ' /* [case()] */ UINT8 v6Address[ 16 ];
+        ' }     ;
+        Address(3) As Long
+End Type
+Public Type IPSEC_TUNNEL_ENDPOINTS2
+    ipVersion As FWP_IP_VERSION
+    '/* [switch_is][switch_type] */ union
+    '    {
+    '    /* [case()] */ UINT32 localV4Address;
+    '    /* [case()] */ UINT8 localV6Address[ 16 ];
+    '    }     ;
+    '/* [switch_is][switch_type] */ union
+    '    {
+    '    /* [case()] */ UINT32 remoteV4Address;
+    '    /* [case()] */ UINT8 remoteV6Address[ 16 ];
+    '    }     ;
+    localAddress(3) As Long
+    remoteAddress(3) As Long
+    localIfLuid As LongLong
+    remoteFqdn As LongPtr 'wchar_t *
+    numAddresses As Long
+    remoteAddresses As LongPtr 'IPSEC_TUNNEL_ENDPOINT0 *
+End Type
+Public Type IPSEC_TUNNEL_ENDPOINTS1
+    ipVersion As FWP_IP_VERSION
+    '/* [switch_is][switch_type] */ union
+    '    {
+    '    /* [case()] */ UINT32 localV4Address;
+    '    /* [case()] */ UINT8 localV6Address[ 16 ];
+    '    }     ;
+    '/* [switch_is][switch_type] */ union
+    '    {
+    '    /* [case()] */ UINT32 remoteV4Address;
+    '    /* [case()] */ UINT8 remoteV6Address[ 16 ];
+    '    }     ;
+    localAddress(3) As Long
+    remoteAddress(3) As Long
+    localIfLuid As LongLong
+End Type
+
+Public Type IPSEC_TUNNEL_POLICY0
+    flags As Long
+    numIpsecProposals As Long
+    ipsecProposals As LongPtr 'IPSEC_PROPOSAL0*
+    tunnelEndpoints As IPSEC_TUNNEL_ENDPOINTS0
+    saIdleTimeout As IPSEC_SA_IDLE_TIMEOUT0
+    emPolicy As LongPtr 'IKEEXT_EM_POLICY0*
+End Type
+Public Type IPSEC_TUNNEL_POLICY1
+    flags As Long
+    numIpsecProposals As Long
+    ipsecProposals As LongPtr 'IPSEC_PROPOSAL0*
+    tunnelEndpoints As IPSEC_TUNNEL_ENDPOINTS0
+    saIdleTimeout As IPSEC_SA_IDLE_TIMEOUT0
+    emPolicy As LongPtr 'IKEEXT_EM_POLICY1*
+End Type
+Public Type IPSEC_TUNNEL_POLICY2
+    flags As Long
+    numIpsecProposals As Long
+    ipsecProposals As LongPtr 'IPSEC_PROPOSAL0*
+    tunnelEndpoints As IPSEC_TUNNEL_ENDPOINTS0
+    saIdleTimeout As IPSEC_SA_IDLE_TIMEOUT0
+    emPolicy As LongPtr 'IKEEXT_EM_POLICY2*
+    fwdPathSaLifetime As Long
+End Type
+Public Type IPSEC_TUNNEL_POLICY3
+    flags As Long
+    numIpsecProposals As Long
+    ipsecProposals As LongPtr 'IPSEC_PROPOSAL0*
+    tunnelEndpoints As IPSEC_TUNNEL_ENDPOINTS2
+    saIdleTimeout As IPSEC_SA_IDLE_TIMEOUT0
+    emPolicy As LongPtr 'IKEEXT_EM_POLICY2*
+    fwdPathSaLifetime As Long
+    compartmentId As Long
+    numTrafficSelectorPolicy As Long
+    trafficSelectorPolicies As LongPtr ' IPSEC_TRAFFIC_SELECTOR_POLICY0 *
+End Type
+
+Public Type IPSEC_KEYING_POLICY0
+    numKeyMods As Long
+    keyModKeys As LongPtr '*UUID
+End Type
+
+Public Enum IpsecKeyringPolicyFlags
+    IPSEC_KEYING_POLICY_FLAG_TERMINATING_MATCH = &H00000001
+End Enum
+Public Type IPSEC_KEYING_POLICY1
+    numKeyMods As Long
+    keyModKeys As LongPtr '*UUID
+    flags As IpsecKeyringPolicyFlags
+End Type
+
+Public Type IPSEC_AGGREGATE_SA_STATISTICS0
+    activeSas As Long
+    pendingSaNegotiations As Long
+    totalSasAdded As Long
+    totalSasDeleted As Long
+    successfulRekeys As Long
+    activeTunnels As Long
+    offloadedSas As Long
+End Type
+Public Type IPSEC_ESP_DROP_PACKET_STATISTICS0
+    invalidSpisOnInbound As Long
+    decryptionFailuresOnInbound As Long
+    authenticationFailuresOnInbound As Long
+    replayCheckFailuresOnInbound As Long
+    saNotInitializedOnInbound As Long
+End Type
+Public Type IPSEC_AH_DROP_PACKET_STATISTICS0
+    invalidSpisOnInbound As Long
+    authenticationFailuresOnInbound As Long
+    replayCheckFailuresOnInbound As Long
+    saNotInitializedOnInbound As Long
+End Type
+
+Public Type IPSEC_AGGREGATE_DROP_PACKET_STATISTICS0
+    invalidSpisOnInbound As Long
+    decryptionFailuresOnInbound As Long
+    authenticationFailuresOnInbound As Long
+    udpEspValidationFailuresOnInbound As Long
+    replayCheckFailuresOnInbound As Long
+    invalidClearTextInbound As Long
+    saNotInitializedOnInbound As Long
+    receiveOverIncorrectSaInbound As Long
+    secureReceivesNotMatchingFilters As Long
+End Type
+Public Type IPSEC_AGGREGATE_DROP_PACKET_STATISTICS1
+    invalidSpisOnInbound As Long
+    decryptionFailuresOnInbound As Long
+    authenticationFailuresOnInbound As Long
+    udpEspValidationFailuresOnInbound As Long
+    replayCheckFailuresOnInbound As Long
+    invalidClearTextInbound As Long
+    saNotInitializedOnInbound As Long
+    receiveOverIncorrectSaInbound As Long
+    secureReceivesNotMatchingFilters As Long
+    totalDropPacketsInbound As Long
+End Type
+Public Type IPSEC_TRAFFIC_STATISTICS0
+    encryptedByteCount As LongLong
+    authenticatedAHByteCount As LongLong
+    authenticatedESPByteCount As LongLong
+    transportByteCount As LongLong
+    tunnelByteCount As LongLong
+    offloadByteCount As LongLong
+End Type
+Public Type IPSEC_TRAFFIC_STATISTICS1
+    encryptedByteCount As LongLong
+    authenticatedAHByteCount As LongLong
+    authenticatedESPByteCount As LongLong
+    transportByteCount As LongLong
+    tunnelByteCount As LongLong
+    offloadByteCount As LongLong
+    totalSuccessfulPackets As LongLong
+End Type
+
+Public Type IPSEC_STATISTICS0
+    aggregateSaStatistics As IPSEC_AGGREGATE_SA_STATISTICS0
+    espDropPacketStatistics As IPSEC_ESP_DROP_PACKET_STATISTICS0
+    ahDropPacketStatistics As IPSEC_AH_DROP_PACKET_STATISTICS0
+    aggregateDropPacketStatistics As IPSEC_AGGREGATE_DROP_PACKET_STATISTICS0
+    inboundTrafficStatistics As IPSEC_TRAFFIC_STATISTICS0
+    outboundTrafficStatistics As IPSEC_TRAFFIC_STATISTICS0
+End Type
+Public Type IPSEC_STATISTICS1
+    aggregateSaStatistics As IPSEC_AGGREGATE_SA_STATISTICS0
+    espDropPacketStatistics As IPSEC_ESP_DROP_PACKET_STATISTICS0
+    ahDropPacketStatistics As IPSEC_AH_DROP_PACKET_STATISTICS0
+    aggregateDropPacketStatistics As IPSEC_AGGREGATE_DROP_PACKET_STATISTICS1
+    inboundTrafficStatistics As IPSEC_TRAFFIC_STATISTICS1
+    outboundTrafficStatistics As IPSEC_TRAFFIC_STATISTICS1
+End Type
+
+Public Type IPSEC_SA_AUTH_INFORMATION0
+    authTransform As IPSEC_AUTH_TRANSFORM0
+    authKey As FWP_BYTE_BLOB
+End Type
+Public Type IPSEC_SA_CIPHER_INFORMATION0
+    cipherTransform As IPSEC_CIPHER_TRANSFORM0
+    cipherKey As FWP_BYTE_BLOB
+End Type
+Public Type IPSEC_SA_AUTH_AND_CIPHER_INFORMATION0
+    saCipherInformation As IPSEC_SA_CIPHER_INFORMATION0
+    saAuthInformation As IPSEC_SA_AUTH_INFORMATION0
+End Type
+Public Type IPSEC_SA0
+    spi As IPSEC_SA_SPI
+    saTransformType As IPSEC_TRANSFORM_TYPE
+    '/* [switch_is][switch_type] */ union
+    '    {
+    '    /* [case()][unique] */ IPSEC_SA_AUTH_INFORMATION0 *ahInformation;
+    '    /* [case()][unique] */ IPSEC_SA_AUTH_INFORMATION0 *espAuthInformation;
+    '    /* [case()][unique] */ IPSEC_SA_CIPHER_INFORMATION0 *espCipherInformation;
+    '    /* [case()][unique] */ IPSEC_SA_AUTH_AND_CIPHER_INFORMATION0 *espAuthAndCipherInformation;
+    '    /* [case()][unique] */ IPSEC_SA_AUTH_INFORMATION0 *espAuthFwInformation;
+    '    }     ;
+    Information As LongPtr
+End Type
+Public Type IPSEC_KEYMODULE_STATE0
+    keyModuleKey As UUID
+    stateBlob As FWP_BYTE_BLOB
+End Type
+
+' typedef UINT64 IPSEC_TOKEN_HANDLE;
+Public Enum IPSEC_TOKEN_TYPE
+    IPSEC_TOKEN_TYPE_MACHINE = 0
+    IPSEC_TOKEN_TYPE_IMPERSONATION = (IPSEC_TOKEN_TYPE_MACHINE + 1)
+    IPSEC_TOKEN_TYPE_MAX = (IPSEC_TOKEN_TYPE_IMPERSONATION + 1)
+End Enum
+Public Enum IPSEC_TOKEN_PRINCIPAL
+    IPSEC_TOKEN_PRINCIPAL_LOCAL = 0
+    IPSEC_TOKEN_PRINCIPAL_PEER = (IPSEC_TOKEN_PRINCIPAL_LOCAL + 1)
+    IPSEC_TOKEN_PRINCIPAL_MAX = (IPSEC_TOKEN_PRINCIPAL_PEER + 1)
+End Enum
+Public Enum IPSEC_TOKEN_MODE
+    IPSEC_TOKEN_MODE_MAIN = 0
+    IPSEC_TOKEN_MODE_EXTENDED = (IPSEC_TOKEN_MODE_MAIN + 1)
+    IPSEC_TOKEN_MODE_MAX = (IPSEC_TOKEN_MODE_EXTENDED + 1)
+End Enum
+Public Type IPSEC_TOKEN0
+    type As IPSEC_TOKEN_TYPE
+    principal As IPSEC_TOKEN_PRINCIPAL
+    mode As IPSEC_TOKEN_MODE
+    token As LongLong 'IPSEC_TOKEN_HANDLE
+End Type
+
+Public Type IPSEC_ID0
+    mmTargetName As LongPtr 'wchar_t 
+    emTargetName As LongPtr 'wchar_t 
+    numTokens As Long
+    tokens As LongPtr '*IPSEC_TOKEN0
+    explicitCredentials As LongLong
+    logonId As LongLong
+End Type
+
+Public Enum IpsecSaBundleFlags
+    IPSEC_SA_BUNDLE_FLAG_ND_SECURE = (&H00000001)
+    IPSEC_SA_BUNDLE_FLAG_ND_BOUNDARY = (&H00000002)
+    IPSEC_SA_BUNDLE_FLAG_ND_PEER_NAT_BOUNDARY = (&H00000004)
+    IPSEC_SA_BUNDLE_FLAG_GUARANTEE_ENCRYPTION = (&H00000008)
+    IPSEC_SA_BUNDLE_FLAG_NLB = (&H00000010)
+    IPSEC_SA_BUNDLE_FLAG_NO_MACHINE_LUID_VERIFY = (&H00000020)
+    IPSEC_SA_BUNDLE_FLAG_NO_IMPERSONATION_LUID_VERIFY = (&H00000040)
+    IPSEC_SA_BUNDLE_FLAG_NO_EXPLICIT_CRED_MATCH = (&H00000080)
+    IPSEC_SA_BUNDLE_FLAG_ALLOW_NULL_TARGET_NAME_MATCH = (&H00000200)
+    IPSEC_SA_BUNDLE_FLAG_CLEAR_DF_ON_TUNNEL = (&H00000400)
+    IPSEC_SA_BUNDLE_FLAG_ASSUME_UDP_CONTEXT_OUTBOUND = (&H00000800)
+' #if (NTDDI_VERSION >= NTDDI_WIN6SP1)
+    IPSEC_SA_BUNDLE_FLAG_ND_PEER_BOUNDARY = (&H00001000)
+' #endif
+' #if (NTDDI_VERSION >= NTDDI_WIN7)
+    IPSEC_SA_BUNDLE_FLAG_SUPPRESS_DUPLICATE_DELETION = (&H00002000)
+    IPSEC_SA_BUNDLE_FLAG_PEER_SUPPORTS_GUARANTEE_ENCRYPTION = (&H00004000)
+    IPSEC_SA_BUNDLE_FLAG_FORCE_INBOUND_CONNECTIONS = (&H00008000&)
+    IPSEC_SA_BUNDLE_FLAG_FORCE_OUTBOUND_CONNECTIONS = (&H00010000)
+    IPSEC_SA_BUNDLE_FLAG_FORWARD_PATH_INITIATOR = (&H00020000)
+' #endif // (NTDDI_VERSION >= NTDDI_WIN7)
+' #if (NTDDI_VERSION >= NTDDI_WIN8)
+    IPSEC_SA_BUNDLE_FLAG_ENABLE_OPTIONAL_ASYMMETRIC_IDLE = (&H0040000)
+    IPSEC_SA_BUNDLE_FLAG_USING_DICTATED_KEYS = (&H00080000)
+    IPSEC_SA_BUNDLE_FLAG_LOCALLY_DICTATED_KEYS = (&H00100000)
+    IPSEC_SA_BUNDLE_FLAG_SA_OFFLOADED = (&H00200000)
+' #endif // (NTDDI_VERSION >= NTDDI_WIN8)
+' #if (NTDDI_VERSION >= NTDDI_WINTHRESHOLD)
+    IPSEC_SA_BUNDLE_FLAG_IP_IN_IP_PKT = (&H00400000)
+' #endif // (NTDDI_VERSION >= NTDDI_WINTHRESHOLD)
+' #if (NTDDI_VERSION >= NTDDI_WIN10_RS5)
+    IPSEC_SA_BUNDLE_FLAG_LOW_POWER_MODE_SUPPORT = (&H00800000)
+' #endif // (NTDDI_VERSION >= NTDDI_WIN10_RS5)
+    IPSEC_SA_BUNDLE_FLAG_TUNNEL_BANDWIDTH1 = (&H10000000)
+    IPSEC_SA_BUNDLE_FLAG_TUNNEL_BANDWIDTH2 = (&H20000000)
+    IPSEC_SA_BUNDLE_FLAG_TUNNEL_BANDWIDTH3 = (&H40000000)
+    IPSEC_SA_BUNDLE_FLAG_TUNNEL_BANDWIDTH4 = (&H80000000)
+End Enum
+Public Type IPSEC_SA_BUNDLE0
+    flags As IpsecSaBundleFlags
+    lifetime As IPSEC_SA_LIFETIME0
+    idleTimeoutSeconds As Long
+    ndAllowClearTimeoutSeconds As Long
+    ipsecId As LongPtr 'IPSEC_ID0*
+    napContext As Long
+    qmSaId As Long
+    numSAs As Long
+    saList As LongPtr '*IPSEC_SA0
+    keyModuleState As LongPtr '*IPSEC_KEYMODULE_STATE0
+    ipVersion As FWP_IP_VERSION
+    '   /* [switch_is][switch_type] */ union
+    '       {
+    peerV4PrivateAddress As Long
+    '      /* [case()] */  /* Empty union arm */
+    '      }     ;
+    mmSaId As LongLong
+    pfsGroup As IPSEC_PFS_GROUP
+End Type
+Public Type IPSEC_SA_BUNDLE1
+    flags As IpsecSaBundleFlags
+    lifetime As IPSEC_SA_LIFETIME0
+    idleTimeoutSeconds As Long
+    ndAllowClearTimeoutSeconds As Long
+    ipsecId As LongPtr 'IPSEC_ID0*
+    napContext As Long
+    qmSaId As Long
+    numSAs As Long
+    saList As LongPtr '*IPSEC_SA0
+    keyModuleState As LongPtr '*IPSEC_KEYMODULE_STATE0
+    ipVersion As FWP_IP_VERSION
+    '   /* [switch_is][switch_type] */ union
+    '       {
+    peerV4PrivateAddress As Long
+    '      /* [case()] */  /* Empty union arm */
+    '      }     ;
+    mmSaId As LongLong
+    pfsGroup As IPSEC_PFS_GROUP
+    saLookupContext As UUID
+    qmFilterId As LongLong
+End Type
 
 Public Enum IPSEC_TRAFFIC_TYPE
     IPSEC_TRAFFIC_TYPE_TRANSPORT
     IPSEC_TRAFFIC_TYPE_TUNNEL
     IPSEC_TRAFFIC_TYPE_MAX
 End Enum
+
+' typedef struct IPSEC_TRAFFIC0_
+' {
+' FWP_IP_VERSION ipVersion;
+' /* [switch_is][switch_type] */ union 
+    ' {
+    ' /* [case()] */ UINT32 localV4Address;
+    ' /* [case()] */ UINT8 localV6Address[ 16 ];
+    ' }     ;
+' /* [switch_is][switch_type] */ union 
+    ' {
+    ' /* [case()] */ UINT32 remoteV4Address;
+    ' /* [case()] */ UINT8 remoteV6Address[ 16 ];
+    ' }     ;
+' IPSEC_TRAFFIC_TYPE trafficType;
+' /* [switch_is][switch_type] */ union 
+    ' {
+    ' /* [case()] */ UINT64 ipsecFilterId;
+    ' /* [case()] */ UINT64 tunnelPolicyId;
+    ' }     ;
+' UINT16 remotePort;
+' }     IPSEC_TRAFFIC0;
+Public Type IPSEC_TRAFFIC0
+    ipVersion As FWP_IP_VERSION
+    localAddress(3) As Long
+    remoteAddress(3) As Long
+    ipsecFilterOrTunnelPolicyId As LongLong
+    remotePort As Integer
+End Type
+' #if (NTDDI_VERSION >= NTDDI_WIN7)
+' typedef struct IPSEC_TRAFFIC1_
+' {
+' FWP_IP_VERSION ipVersion;
+' /* [switch_is][switch_type] */ union 
+    ' {
+    ' /* [case()] */ UINT32 localV4Address;
+    ' /* [case()] */ UINT8 localV6Address[ 16 ];
+    ' }     ;
+' /* [switch_is][switch_type] */ union 
+    ' {
+    ' /* [case()] */ UINT32 remoteV4Address;
+    ' /* [case()] */ UINT8 remoteV6Address[ 16 ];
+    ' }     ;
+' IPSEC_TRAFFIC_TYPE trafficType;
+' /* [switch_is][switch_type] */ union 
+    ' {
+    ' /* [case()] */ UINT64 ipsecFilterId;
+    ' /* [case()] */ UINT64 tunnelPolicyId;
+    ' }     ;
+' UINT16 remotePort;
+' UINT16 localPort;
+' UINT8 ipProtocol;
+' UINT64 localIfLuid;
+' UINT32 realIfProfileId;
+' }     IPSEC_TRAFFIC1;
+Public Type IPSEC_TRAFFIC1
+    ipVersion As FWP_IP_VERSION
+    localAddress(3) As Long
+    remoteAddress(3) As Long
+    ipsecFilterOrTunnelPolicyId As LongLong
+    remotePort As Integer
+    localPort As Integer
+    ipProtocol As Byte
+    localIfLuid As LongLong
+    realIfProfileId As Long
+End Type
+
+Public Type IPSEC_V4_UDP_ENCAPSULATION0
+    localUdpEncapPort As Integer
+    remoteUdpEncapPort As Integer
+End Type
+
+Public Type IPSEC_GETSPI0
+    inboundIpsecTraffic As IPSEC_TRAFFIC0
+    ipVersion As FWP_IP_VERSION
+    '/* [switch_is][switch_type] */ union
+    '    {
+    '    /* [case()][unique] */ IPSEC_V4_UDP_ENCAPSULATION0 *inboundUdpEncapsulation;
+    '    /* [case()] */  /* Empty union arm */
+    '    }     ;
+    inboundUdpEncapsulation As LongPtr 'IPSEC_V4_UDP_ENCAPSULATION0 *
+    rngCryptoModuleID As UUID 'IPSEC_CRYPTO_MODULE_ID
+End Type
+Public Type IPSEC_GETSPI1
+    inboundIpsecTraffic As IPSEC_TRAFFIC1
+    ipVersion As FWP_IP_VERSION
+    '/* [switch_is][switch_type] */ union
+    '    {
+    '    /* [case()][unique] */ IPSEC_V4_UDP_ENCAPSULATION0 *inboundUdpEncapsulation;
+    '    /* [case()] */  /* Empty union arm */
+    '    }     ;
+    inboundUdpEncapsulation As LongPtr 'IPSEC_V4_UDP_ENCAPSULATION0 *
+    rngCryptoModuleID As UUID 'IPSEC_CRYPTO_MODULE_ID
+End Type
+
+Public Type IPSEC_SA_DETAILS0
+    ipVersion As FWP_IP_VERSION
+    saDirection As FWP_DIRECTION
+    traffic As IPSEC_TRAFFIC0
+    saBundle As IPSEC_SA_BUNDLE0
+    '    /* [switch_is][switch_type] */ union
+    '        {
+    udpEncapsulation As LongPtr '*IPSEC_V4_UDP_ENCAPSULATION0
+    '        /* [case()] */  /* Empty union arm */
+    '       }     ;
+    transportFilter As LongPtr '*FWPM_FILTER0
+End Type
+Public Type IPSEC_SA_DETAILS1
+    ipVersion As FWP_IP_VERSION
+    saDirection As FWP_DIRECTION
+    traffic As IPSEC_TRAFFIC0
+    saBundle As IPSEC_SA_BUNDLE0
+    '    /* [switch_is][switch_type] */ union
+    '        {
+    udpEncapsulation As LongPtr '*IPSEC_V4_UDP_ENCAPSULATION0
+    '        /* [case()] */  /* Empty union arm */
+    '       }     ;
+    transportFilter As LongPtr '*FWPM_FILTER0
+    virtualIfTunnelInfo As IPSEC_VIRTUAL_IF_TUNNEL_INFO0
+End Type
+
+Public Type IPSEC_SA_CONTEXT0
+    saContextId As LongLong
+    inboundSa As LongPtr '*IPSEC_SA_DETAILS0
+    outboundSa As LongPtr '*IPSEC_SA_DETAILS0
+End Type
+Public Type IPSEC_SA_CONTEXT1
+    saContextId As LongLong
+    inboundSa As LongPtr '*IPSEC_SA_DETAILS1
+    outboundSa As LongPtr '*IPSEC_SA_DETAILS1
+End Type
+
+Public Type IPSEC_SA_CONTEXT_ENUM_TEMPLATE0
+    localSubNet As FWP_CONDITION_VALUE0
+    remoteSubNet As FWP_CONDITION_VALUE0
+End Type
+
+Public Type IPSEC_SA_ENUM_TEMPLATE0
+    saDirection As FWP_DIRECTION
+End Type
+
+Public Type IPSEC_SA_CONTEXT_SUBSCRIPTION0
+    enumTemplate As LongPtr '*IPSEC_SA_CONTEXT_ENUM_TEMPLATE0
+    flags As Long
+    sessionKey As UUID
+End Type
+
+Public Enum IPSEC_SA_CONTEXT_EVENT_TYPE0
+    IPSEC_SA_CONTEXT_EVENT_ADD = 1
+    IPSEC_SA_CONTEXT_EVENT_DELETE = (IPSEC_SA_CONTEXT_EVENT_ADD + 1)
+    IPSEC_SA_CONTEXT_EVENT_MAX = (IPSEC_SA_CONTEXT_EVENT_DELETE + 1)
+End Enum
+
+Public Type IPSEC_SA_CONTEXT_CHANGE0
+    changeType As IPSEC_SA_CONTEXT_EVENT_TYPE0
+    saContextId As LongLong
+End Type
 
 Public Enum IPSEC_FAILURE_POINT
     '  No information available.
@@ -545,61 +1882,92 @@ Public Enum IPSEC_SA_SPI
     [_]
 End Enum
 
-Public Enum IKEEXT_CIPHER_TYPE
-    IKEEXT_CIPHER_DES
-    IKEEXT_CIPHER_3DES
-    IKEEXT_CIPHER_AES_128
-    IKEEXT_CIPHER_AES_192
-    IKEEXT_CIPHER_AES_256
-    IKEEXT_CIPHER_AES_GCM_128_16ICV
-    IKEEXT_CIPHER_AES_GCM_256_16ICV
-    IKEEXT_CIPHER_TYPE_MAX
-End Enum
-Public Type IKEEXT_CIPHER_ALGORITHM0
-    ' The type of encryption algorithm
-    algoIdentifier As IKEEXT_CIPHER_TYPE
-    ' length of the encryption key
-    keyLen As Long
-    ' Number of rounds in the encryption algorithm
-    rounds As Long
+Public Type IPSEC_ADDRESS_INFO0
+    numV4Addresses As Long
+    v4Addresses As LongPtr '*UINT32
+    numV6Addresses As Long
+    v6Addresses As LongPtr '*FWP_BYTE_ARRAY16
 End Type
 
-Public Enum IKEEXT_INTEGRITY_TYPE
-    IKEEXT_INTEGRITY_MD5
-    IKEEXT_INTEGRITY_SHA1
-    IKEEXT_INTEGRITY_SHA_256
-    IKEEXT_INTEGRITY_SHA_384
-    IKEEXT_INTEGRITY_TYPE_MAX
+Public Enum IpsecDospFlags
+    IPSEC_DOSP_FLAG_ENABLE_IKEV1 = (&H00000001)
+    IPSEC_DOSP_FLAG_ENABLE_IKEV2 = (&H00000002)
+    IPSEC_DOSP_FLAG_DISABLE_AUTHIP = (&H00000004)
+    IPSEC_DOSP_FLAG_DISABLE_DEFAULT_BLOCK = (&H00000008)
+    IPSEC_DOSP_FLAG_FILTER_BLOCK = (&H00000010)
+    IPSEC_DOSP_FLAG_FILTER_EXEMPT = (&H00000020)
+    IPSEC_DOSP_DSCP_DISABLE_VALUE = (&Hff)
+    IPSEC_DOSP_RATE_LIMIT_DISABLE_VALUE = (0)
 End Enum
-Public Type IKEEXT_INTEGRITY_ALGORITHM0
-    ' The type of hash algorithm
-    algoIdentifier As IKEEXT_INTEGRITY_TYPE
+Public Type IPSEC_DOSP_OPTIONS0
+    stateIdleTimeoutSeconds As Long
+    perIPRateLimitQueueIdleTimeoutSeconds As Long
+    ipV6IPsecUnauthDscp As Byte
+    ipV6IPsecUnauthRateLimitBytesPerSec As Long
+    ipV6IPsecUnauthPerIPRateLimitBytesPerSec As Long
+    ipV6IPsecAuthDscp As Byte
+    ipV6IPsecAuthRateLimitBytesPerSec As Long
+    icmpV6Dscp As Byte
+    icmpV6RateLimitBytesPerSec As Long
+    ipV6FilterExemptDscp As Byte
+    ipV6FilterExemptRateLimitBytesPerSec As Long
+    defBlockExemptDscp As Byte
+    defBlockExemptRateLimitBytesPerSec As Long
+    maxStateEntries As Long
+    maxPerIPRateLimitQueues As Long
+    flags As IpsecDospFlags
+    numPublicIFLuids As Long
+    publicIFLuids As LongPtr 'UINT64 *
+    numInternalIFLuids As Long
+    internalIFLuids As LongPtr 'UINT64 *
+    publicV6AddrMask As FWP_V6_ADDR_AND_MASK
+    internalV6AddrMask As FWP_V6_ADDR_AND_MASK
 End Type
 
-Public Enum IKEEXT_DH_GROUP
-    IKEEXT_DH_GROUP_NONE
-    IKEEXT_DH_GROUP_1
-    IKEEXT_DH_GROUP_2
-    IKEEXT_DH_GROUP_14
-    IKEEXT_DH_GROUP_2048 = IKEEXT_DH_GROUP_14
-    IKEEXT_DH_ECP_256
-    IKEEXT_DH_ECP_384
-    IKEEXT_DH_GROUP_24
-    IKEEXT_DH_GROUP_MAX
-End Enum
-Public Type IKEEXT_PROPOSAL0
-    ' Parameters for the encryption algorithm
-    cipherAlgorithm As IKEEXT_CIPHER_ALGORITHM0
-    ' Parameters for the hash algorithm
-    integrityAlgorithm As IKEEXT_INTEGRITY_ALGORITHM0
-    ' Main mode SA Lifetime in seconds
-    maxLifetimeSeconds As Long
-    ' The Diffie Hellman group
-    dhGroup As IKEEXT_DH_GROUP
-    ' Maximum number of IPsec quick mode SAs that can be generated from this
-    ' main mode SA. O means infinite.
-    quickModeLimit As Long
+Public Type IPSEC_DOSP_STATISTICS0
+    totalStateEntriesCreated As LongLong
+    currentStateEntries As LongLong
+    totalInboundAllowedIPv6IPsecUnauthPkts As LongLong
+    totalInboundRatelimitDiscardedIPv6IPsecUnauthPkts As LongLong
+    totalInboundPerIPRatelimitDiscardedIPv6IPsecUnauthPkts As LongLong
+    totalInboundOtherDiscardedIPv6IPsecUnauthPkts As LongLong
+    totalInboundAllowedIPv6IPsecAuthPkts As LongLong
+    totalInboundRatelimitDiscardedIPv6IPsecAuthPkts As LongLong
+    totalInboundOtherDiscardedIPv6IPsecAuthPkts As LongLong
+    totalInboundAllowedICMPv6Pkts As LongLong
+    totalInboundRatelimitDiscardedICMPv6Pkts As LongLong
+    totalInboundAllowedIPv6FilterExemptPkts As LongLong
+    totalInboundRatelimitDiscardedIPv6FilterExemptPkts As LongLong
+    totalInboundDiscardedIPv6FilterBlockPkts As LongLong
+    totalInboundAllowedDefBlockExemptPkts As LongLong
+    totalInboundRatelimitDiscardedDefBlockExemptPkts As LongLong
+    totalInboundDiscardedDefBlockPkts As LongLong
+    currentInboundIPv6IPsecUnauthPerIPRateLimitQueues As LongLong
 End Type
+
+Public Type IPSEC_DOSP_STATE0
+    publicHostV6Addr(0 To 15) As Byte
+    internalHostV6Addr(0 To 15) As Byte
+    totalInboundIPv6IPsecAuthPackets As LongLong
+    totalOutboundIPv6IPsecAuthPackets As LongLong
+    durationSecs As Long
+End Type
+
+Public Type IPSEC_DOSP_STATE_ENUM_TEMPLATE0
+    publicV6AddrMask As FWP_V6_ADDR_AND_MASK
+    internalV6AddrMask As FWP_V6_ADDR_AND_MASK
+End Type
+
+Public Enum IpsecKeyManagerFlags
+    IPSEC_KEY_MANAGER_FLAG_DICTATE_KEY = &H00000001
+End Enum
+Public Type IPSEC_KEY_MANAGER0
+    keyManagerKey As UUID
+    displayData As FWPM_DISPLAY_DATA0
+    flags As IpsecKeyManagerFlags
+    keyDictationTimeoutHint As Byte
+End Type
+ 
 
 #End Region
     
@@ -2230,7 +3598,8 @@ Public Declare PtrSafe Function FwpmProviderSetSecurityInfoByKey0 Lib "Fwpuclnt.
 ' _Inout_ void* context,
 ' _In_ const FWPM_PROVIDER_CHANGE0* change
 ' );
-Public Declare PtrSafe Function FwpmProviderSubscribeChanges0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, subscription As FWPM_PROVIDER_SUBSCRIPTION0, ByVal callback As LongPtr, ByVal context As LongPtr, changeHandle As LongPtr) As Long
+Public Delegate Sub FwpmProviderChangeCallback0 (ByVal context As LongPtr, change As FWPM_PROVIDER_CHANGE0)
+Public Declare PtrSafe Function FwpmProviderSubscribeChanges0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, subscription As FWPM_PROVIDER_SUBSCRIPTION0, ByVal callback As FwpmProviderChangeCallback0, ByVal context As LongPtr, changeHandle As LongPtr) As Long
 Public Declare PtrSafe Function FwpmProviderUnsubscribeChanges0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal changeHandle As LongPtr) As Long
 Public Declare PtrSafe Function FwpmProviderSubscriptionsGet0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, entries As LongPtr, numEntrie As Long) As Long
 Public Declare PtrSafe Function FwpmProviderContextAdd0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, providerContext As FWPM_PROVIDER_CONTEXT0, sd As SECURITY_DESCRIPTOR, Optional id As LongLong) As Long
@@ -2259,7 +3628,9 @@ Public Declare PtrSafe Function FwpmProviderContextSetSecurityInfoByKey0 Lib "Fw
 ' _Inout_ void* context,
 ' _In_ const FWPM_PROVIDER_CONTEXT_CHANGE0* change
 ' );
-Public Declare PtrSafe Function FwpmProviderContextSubscribeChanges0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, subscription As FWPM_PROVIDER_CONTEXT_SUBSCRIPTION0, ByVal callback As LongPtr, ByVal context As LongPtr, changeHandle As LongPtr) As Long
+Public Delegate Sub FwpmProviderContextChangeCallback0 (ByVal context As LongPtr, change As FWPM_PROVIDER_CONTEXT_CHANGE0)
+
+Public Declare PtrSafe Function FwpmProviderContextSubscribeChanges0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, subscription As FWPM_PROVIDER_CONTEXT_SUBSCRIPTION0, ByVal callback As FwpmProviderContextChangeCallback0, ByVal context As LongPtr, changeHandle As LongPtr) As Long
 Public Declare PtrSafe Function FwpmProviderContextUnsubscribeChanges0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal changeHandle As LongPtr) As Long
 Public Declare PtrSafe Function FwpmProviderContextSubscriptionsGet0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, entries As LongPtr, numEntrie As Long) As Long
 
@@ -2275,7 +3646,8 @@ Public Declare PtrSafe Function FwpmSubLayerSetSecurityInfoByKey0 Lib "Fwpuclnt.
 ' _Inout_ void* context,
 ' _In_ const FWPM_SUBLAYER_CHANGE0* change
 ' );
-Public Declare PtrSafe Function FwpmSubLayerSubscribeChanges0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, subscription As FWPM_SUBLAYER_SUBSCRIPTION0, ByVal callback As LongPtr, ByVal context As LongPtr, changeHandle As LongPtr) As Long
+Public Delegate Sub FwpmSublayerChangeCallback0 (ByVal context As LongPtr, change As FWPM_SUBLAYER_CHANGE0)
+Public Declare PtrSafe Function FwpmSubLayerSubscribeChanges0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, subscription As FWPM_SUBLAYER_SUBSCRIPTION0, ByVal callback As FwpmSublayerChangeCallback0, ByVal context As LongPtr, changeHandle As LongPtr) As Long
 Public Declare PtrSafe Function FwpmSubLayerUnsubscribeChanges0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal changeHandle As LongPtr) As Long
 Public Declare PtrSafe Function FwpmSubLayerSubscriptionsGet0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, entries As LongPtr, numEntries As Long) As Long
 
@@ -2301,7 +3673,8 @@ Public Declare PtrSafe Function FwpmCalloutSetSecurityInfoByKey0 Lib "Fwpuclnt.d
 ' _Inout_ void* context,
 ' _In_ const FWPM_CALLOUT_CHANGE0* change
 ' );
-Public Declare PtrSafe Function FwpmCalloutSubscribeChanges0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, subscription As FWPM_CALLOUT_SUBSCRIPTION0, ByVal callback As LongPtr, ByVal context As LongPtr, changeHandle As LongPtr) As Long
+Public Delegate Sub FwpmCalloutChangeCallback0 (ByVal context As LongPtr, change As FWPM_CALLOUT_CHANGE0)
+Public Declare PtrSafe Function FwpmCalloutSubscribeChanges0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, subscription As FWPM_CALLOUT_SUBSCRIPTION0, ByVal callback As FwpmCalloutChangeCallback0, ByVal context As LongPtr, changeHandle As LongPtr) As Long
 Public Declare PtrSafe Function FwpmCalloutUnsubscribeChanges0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal changeHandle As LongPtr) As Long
 Public Declare PtrSafe Function FwpmCalloutSubscriptionsGet0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, entries As LongPtr, numEntries As Long) As Long
 
@@ -2319,7 +3692,8 @@ Public Declare PtrSafe Function FwpmFilterSetSecurityInfoByKey0 Lib "Fwpuclnt.dl
 ' _Inout_ void* context,
 ' _In_ const FWPM_FILTER_CHANGE0* change
 ' );
-Public Declare PtrSafe Function FwpmFilterSubscribeChanges0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, subscription As FWPM_FILTER_SUBSCRIPTION0, ByVal callback As LongPtr, ByVal context As LongPtr, changeHandle As LongPtr) As Long
+Public Delegate Sub FwpmFilterChangeCallback0 (ByVal context As LongPtr, change As FWPM_FILTER_CHANGE0)
+Public Declare PtrSafe Function FwpmFilterSubscribeChanges0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, subscription As FWPM_FILTER_SUBSCRIPTION0, ByVal callback As FwpmFilterChangeCallback0, ByVal context As LongPtr, changeHandle As LongPtr) As Long
 Public Declare PtrSafe Function FwpmFilterUnsubscribeChanges0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal changeHandle As LongPtr) As Long
 Public Declare PtrSafe Function FwpmFilterSubscriptionsGet0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, entries As LongPtr, numEntries As Long) As Long
 Public DeclareWide PtrSafe Function FwpmGetAppIdFromFileName0 Lib "Fwpuclnt.dll" (ByVal filename As String, appId As LongPtr) As Long
@@ -2342,21 +3716,161 @@ Public Declare PtrSafe Function FwpmIPsecTunnelAdd2 Lib "Fwpuclnt.dll" (ByVal en
 Public Declare PtrSafe Function FwpmIPsecTunnelAdd3 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal flags As FwpmTunnelFlags, mainModePolicy As FWPM_PROVIDER_CONTEXT3, tunnelPolicy As FWPM_PROVIDER_CONTEXT3, ByVal numFilterConditions As Long, filterConditions As FWPM_FILTER_CONDITION0, keyModKey As UUID, sd As SECURITY_DESCRIPTOR) As Long
 Public Declare PtrSafe Function FwpmIPsecTunnelDeleteByKey0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, key As UUID) As Long
 
+Public Declare PtrSafe Function IPsecGetStatistics0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ipsecStatistics As IPSEC_STATISTICS0) As Long
+Public Declare PtrSafe Function IPsecGetStatistics1 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ipsecStatistics As IPSEC_STATISTICS1) As Long
+Public Declare PtrSafe Function IPsecSaContextCreate0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, outboundTraffic As IPSEC_TRAFFIC0, inboundFilterId As LongLong, id As LongLong) As Long
+Public Declare PtrSafe Function IPsecSaContextCreate1 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, outboundTraffic As IPSEC_TRAFFIC1, virtualIfTunnelInfo As IPSEC_VIRTUAL_IF_TUNNEL_INFO0, inboundFilterId As LongLong, id As LongLong) As Long
+Public Declare PtrSafe Function IPsecSaContextDeleteById0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal id As LongLong) As Long
+Public Declare PtrSafe Function IPsecSaContextGetById0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal id As LongLong, saContext As LongPtr) As Long
+Public Declare PtrSafe Function IPsecSaContextGetById1 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal id As LongLong, saContext As LongPtr) As Long
+Public Declare PtrSafe Function IPsecSaContextGetSpi0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal id As LongLong, getSpi As IPSEC_GETSPI0, inboundSpi As IPSEC_SA_SPI) As Long
+Public Declare PtrSafe Function IPsecSaContextSetSpi0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal id As LongLong, getSpi As IPSEC_GETSPI0, ByVal inboundSpi As IPSEC_SA_SPI) As Long
+Public Declare PtrSafe Function IPsecSaContextAddInbound0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal id As LongLong, inboundBundle As IPSEC_SA_BUNDLE0) As Long
+Public Declare PtrSafe Function IPsecSaContextAddOutbound0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal id As LongLong, outboundBundle As IPSEC_SA_BUNDLE0) As Long
+Public Declare PtrSafe Function IPsecSaContextAddInbound1 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal id As LongLong, inboundBundle As IPSEC_SA_BUNDLE1) As Long
+Public Declare PtrSafe Function IPsecSaContextAddOutbound1 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal id As LongLong, outboundBundle As IPSEC_SA_BUNDLE1) As Long
+Public Declare PtrSafe Function IPsecSaContextExpire0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal id As LongLong) As Long
 
-'BREAK LINE 4357
+Public Enum IpsecSaBundleContextFlags
+    IPSEC_SA_DETAILS_UPDATE_TRAFFIC = (&H01)
+    IPSEC_SA_DETAILS_UPDATE_UDP_ENCAPSULATION = (&H02)
+    IPSEC_SA_BUNDLE_UPDATE_FLAGS = (&H04)
+    IPSEC_SA_BUNDLE_UPDATE_NAP_CONTEXT = (&H08)
+    IPSEC_SA_BUNDLE_UPDATE_KEY_MODULE_STATE = (&H10)
+    IPSEC_SA_BUNDLE_UPDATE_PEER_V4_PRIVATE_ADDRESS = (&H20)
+    IPSEC_SA_BUNDLE_UPDATE_MM_SA_ID = (&H40)
+End Enum
+Public Declare PtrSafe Function IPsecSaContextUpdate0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, [TypeHint(IpsecSaBundleContextFlags)] ByVal flags As LongLong, newValues As IPSEC_SA_CONTEXT1) As Long
+Public Declare PtrSafe Function IPsecSaContextCreateEnumHandle0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, enumTemplate As IPSEC_SA_CONTEXT_ENUM_TEMPLATE0, enumHandle As LongPtr) As Long
+Public Declare PtrSafe Function IPsecSaContextEnum0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr, ByVal numEntriesRequested As Long, entries As LongPtr, numEntriesReturned As Long) As Long
+Public Declare PtrSafe Function IPsecSaContextEnum1 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr, ByVal numEntriesRequested As Long, entries As LongPtr, numEntriesReturned As Long) As Long
+Public Declare PtrSafe Function IPsecSaContextDestroyEnumHandle0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr) As Long
+' typedef void (CALLBACK *IPSEC_SA_CONTEXT_CALLBACK0)(
+' _Inout_ void *context,
+' _In_ const IPSEC_SA_CONTEXT_CHANGE0 *change
+' );
+Public Delegate Sub IpsecSaContextCallback (ByVal context As LongPtr, change As IPSEC_SA_CONTEXT_CHANGE0)
+Public Declare PtrSafe Function IPsecSaContextSubscribe0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, subscription As IPSEC_SA_CONTEXT_SUBSCRIPTION0, ByVal callback As IpsecSaContextCallback, ByVal context As LongPtr, eventsHandle As LongPtr) As Long
+Public Declare PtrSafe Function IPsecSaContextUnsubscribe0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal eventsHandle As LongPtr) As Long
+Public Declare PtrSafe Function IPsecSaContextSubscriptionsGet0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, entries As LongPtr, numEntries As Long) As Long
+Public Declare PtrSafe Function IPsecSaCreateEnumHandle0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, enumTemplate As IPSEC_SA_ENUM_TEMPLATE0, enumHandle As LongPtr) As Long
+Public Declare PtrSafe Function IPsecSaEnum0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr, ByVal numEntriesRequested As Long, entries As LongPtr, numEntriesReturned As Long) As Long
+Public Declare PtrSafe Function IPsecSaEnum1 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr, ByVal numEntriesRequested As Long, entries As LongPtr, numEntriesReturned As Long) As Long
+Public Declare PtrSafe Function IPsecSaDestroyEnumHandle0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr) As Long
+Public Declare PtrSafe Function IPsecSaDbGetSecurityInfo0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal securityInfo As SECURITY_INFORMATION, sidOwner As LongPtr, sidGroup As LongPtr, dacl As LongPtr, sacl As LongPtr, securityDescriptor As LongPtr) As Long
+Public Declare PtrSafe Function IPsecSaDbSetSecurityInfo0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal securityInfo As SECURITY_INFORMATION, ByVal sidOwner As LongPtr, ByVal sidGroup As LongPtr, ByVal dacl As LongPtr, ByVal sacl As LongPtr) As Long
+Public Declare PtrSafe Function IPsecDospGetStatistics0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, idpStatistics As IPSEC_DOSP_STATISTICS0) As Long
+Public Declare PtrSafe Function IPsecDospStateCreateEnumHandle0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, enumTemplate As IPSEC_DOSP_STATE_ENUM_TEMPLATE0, enumHandle As LongPtr) As Long
+Public Declare PtrSafe Function IPsecDospStateEnum0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr, ByVal numEntriesRequested As Long, entries As LongPtr, numEntries As Long) As Long
+Public Declare PtrSafe Function IPsecDospStateDestroyEnumHandle0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr) As Long
+Public Declare PtrSafe Function IPsecDospGetSecurityInfo0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal securityInfo As SECURITY_INFORMATION, sidOwner As LongPtr, sidGroup As LongPtr, dacl As LongPtr, sacl As LongPtr, securityDescriptor As LongPtr) As Long
+Public Declare PtrSafe Function IPsecDospSetSecurityInfo0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal securityInfo As SECURITY_INFORMATION, ByVal sidOwner As LongPtr, ByVal sidGroup As LongPtr, ByVal dacl As LongPtr, ByVal sacl As LongPtr) As Long
+' typedef void ( CALLBACK * IPSEC_KEY_MANAGER_KEY_DICTATION_CHECK0)(
+' _In_ const IKEEXT_TRAFFIC0* ikeTraffic,
+' _Out_ BOOL* willDictateKey,
+' _Out_ UINT32* weight
+' );
+Public Delegate Sub IpsecKeyManagerKeyDictationCheck0 (ikeTraffic As IKEEXT_TRAFFIC0, willDictateKey As BOOL, weight As Long)
+' typedef DWORD ( CALLBACK * IPSEC_KEY_MANAGER_DICTATE_KEY0)(
+ ' _Inout_ IPSEC_SA_DETAILS1* inboundSaDetails,
+ ' _Inout_ IPSEC_SA_DETAILS1* outboundSaDetails,
+ ' _Out_ BOOL* keyingModuleGenKey
+ ' );
+ Public Delegate Function IpsecKeyManagerKeyDictateKey0 (inboundSaDetails As IPSEC_SA_DETAILS1, outboundSaDetails As IPSEC_SA_DETAILS1, keyingModuleGenKey As BOOL) As Long
+' typedef void ( CALLBACK * IPSEC_KEY_MANAGER_NOTIFY_KEY0)(
+ ' _In_ const IPSEC_SA_DETAILS1* inboundSa,
+ ' _In_ const IPSEC_SA_DETAILS1* outboundSa
+ ' );
+ Public Delegate Sub IpsecKeyManagerNotifyKey0 (inboundSa As IPSEC_SA_DETAILS1, outboundSa As IPSEC_SA_DETAILS1)
+Public Type IPSEC_KEY_MANAGER_CALLBACKS0
+    reserved As UUID
+    flags As Long
+    keyDictationCheck As IpsecKeyManagerKeyDictationCheck0
+    keyDictation As IpsecKeyManagerKeyDictateKey0
+    keyNotify As IpsecKeyManagerNotifyKey0
+End Type
+Public Declare PtrSafe Function IPsecKeyManagerAddAndRegister0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, keyManager As IPSEC_KEY_MANAGER0, keyManagerCallbacks As IPSEC_KEY_MANAGER_CALLBACKS0, keyMgmtHandle As LongPtr) As Long
+Public Declare PtrSafe Function IPsecKeyManagerUnregisterAndDelete0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal keyMgmtHandle As LongPtr) As Long
+Public Declare PtrSafe Function IPsecKeyManagersGet0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, entries As LongPtr, numEntries As Long) As Long
+Public Declare PtrSafe Function IPsecKeyManagerGetSecurityInfoByKey0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal reserved As LongPtr, ByVal securityInfo As SECURITY_INFORMATION, sidOwner As LongPtr, sidGroup As LongPtr, dacl As LongPtr, sacl As LongPtr, securityDescriptor As LongPtr) As Long
+Public Declare PtrSafe Function IPsecKeyManagerSetSecurityInfoByKey0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal reserved As LongPtr, ByVal securityInfo As SECURITY_INFORMATION, ByVal sidOwner As LongPtr, ByVal sidGroup As LongPtr, ByVal dacl As LongPtr, ByVal sacl As LongPtr) As Long
 
 
+Public Declare PtrSafe Function IkeextGetStatistics0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ikeextStatistics As IKEEXT_STATISTICS0) As Long
+Public Declare PtrSafe Function IkeextGetStatistics1 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ikeextStatistics As IKEEXT_STATISTICS1) As Long
+Public Declare PtrSafe Function IkeextSaDeleteById0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal id As LongLong) As Long
+Public Declare PtrSafe Function IkeextSaGetById0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal id As LongLong, sa As LongPtr) As Long
+Public Declare PtrSafe Function IkeextSaGetById1 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal id As LongLong, saLookupContext As UUID, sa As LongPtr) As Long
+Public Declare PtrSafe Function IkeextSaGetById2 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal id As LongLong, saLookupContext As UUID, sa As LongPtr) As Long
+Public Declare PtrSafe Function IkeextSaCreateEnumHandle0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, enumTemplate As IKEEXT_SA_ENUM_TEMPLATE0, enumHandle As LongPtr) As Long
+Public Declare PtrSafe Function IkeextSaEnum0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr, ByVal numEntriesRequested As Long, entries As LongPtr, numEntriesReturned As Long) As Long
+Public Declare PtrSafe Function IkeextSaEnum1 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr, ByVal numEntriesRequested As Long, entries As LongPtr, numEntriesReturned As Long) As Long
+Public Declare PtrSafe Function IkeextSaEnum2 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr, ByVal numEntriesRequested As Long, entries As LongPtr, numEntriesReturned As Long) As Long
+Public Declare PtrSafe Function IkeextSaDestroyEnumHandle0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr) As Long
+Public Declare PtrSafe Function IkeextSaDbGetSecurityInfo0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal securityInfo As SECURITY_INFORMATION, sidOwner As LongPtr, sidGroup As LongPtr, dacl As LongPtr, sacl As LongPtr, securityDescriptor As LongPtr) As Long
+Public Declare PtrSafe Function IkeextSaDbSetSecurityInfo0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal securityInfo As SECURITY_INFORMATION, ByVal sidOwner As LongPtr, ByVal sidGroup As LongPtr, ByVal dacl As LongPtr, ByVal sacl As LongPtr) As Long
 
-
-
-'RESUME LINE 5190
+Public Declare PtrSafe Function FwpmNetEventCreateEnumHandle0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, enumTemplate As FWPM_NET_EVENT_ENUM_TEMPLATE0, enumHandle As LongPtr) As Long
+Public Declare PtrSafe Function FwpmNetEventEnum0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr, ByVal numEntriesRequested As Long, entries As LongPtr, numEntriesReturned As Long) As Long
+Public Declare PtrSafe Function FwpmNetEventEnum1 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr, ByVal numEntriesRequested As Long, entries As LongPtr, numEntriesReturned As Long) As Long
+Public Declare PtrSafe Function FwpmNetEventEnum2 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr, ByVal numEntriesRequested As Long, entries As LongPtr, numEntriesReturned As Long) As Long
+Public Declare PtrSafe Function FwpmNetEventEnum3 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr, ByVal numEntriesRequested As Long, entries As LongPtr, numEntriesReturned As Long) As Long
+Public Declare PtrSafe Function FwpmNetEventEnum4 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr, ByVal numEntriesRequested As Long, entries As LongPtr, numEntriesReturned As Long) As Long
+Public Declare PtrSafe Function FwpmNetEventEnum5 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr, ByVal numEntriesRequested As Long, entries As LongPtr, numEntriesReturned As Long) As Long
+Public Declare PtrSafe Function FwpmNetEventDestroyEnumHandle0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr) As Long
+Public Declare PtrSafe Function FwpmNetEventsGetSecurityInfo0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal securityInfo As SECURITY_INFORMATION, sidOwner As LongPtr, sidGroup As LongPtr, dacl As LongPtr, sacl As LongPtr, securityDescriptor As LongPtr) As Long
+Public Declare PtrSafe Function FwpmNetEventsSetSecurityInfo0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal securityInfo As SECURITY_INFORMATION, ByVal sidOwner As LongPtr, ByVal sidGroup As LongPtr, ByVal dacl As LongPtr, ByVal sacl As LongPtr) As Long
+' typedef void (CALLBACK *FWPM_NET_EVENT_CALLBACK0)(
+' _Inout_ void* context,
+' _In_ const FWPM_NET_EVENT1* event
+' );
+Public Delegate Sub FwpmNetEventCallback0 (ByVal context As LongPtr, event As FWPM_NET_EVENT1)
+Public Declare PtrSafe Function FwpmNetEventSubscribe0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, subscription As FWPM_NET_EVENT_SUBSCRIPTION0, ByVal callback As FwpmNetEventCallback0, ByVal context As LongPtr, eventsHandle As LongPtr) As Long
+Public Declare PtrSafe Function FwpmNetEventUnsubscribe0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal eventsHandle As LongPtr) As Long
+Public Declare PtrSafe Function FwpmNetEventSubscriptionsGet0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, entries As LongPtr, numEntries As Long) As Long
+' typedef void (CALLBACK *FWPM_NET_EVENT_CALLBACK1)(
+' _Inout_ void* context,
+' _In_ const FWPM_NET_EVENT2* event
+' );
+Public Delegate Sub FwpmNetEventCallback1 (ByVal context As LongPtr, event As FWPM_NET_EVENT2)
+Public Declare PtrSafe Function FwpmNetEventSubscribe1 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, subscription As FWPM_NET_EVENT_SUBSCRIPTION0, ByVal callback As FwpmNetEventCallback1, ByVal context As LongPtr, eventsHandle As LongPtr) As Long
+' typedef void (CALLBACK *FWPM_NET_EVENT_CALLBACK2)(
+' _Inout_ void* context,
+' _In_ const FWPM_NET_EVENT3* event
+' );
+Public Delegate Sub FwpmNetEventCallback2 (ByVal context As LongPtr, event As FWPM_NET_EVENT3)
+Public Declare PtrSafe Function FwpmNetEventSubscribe2 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, subscription As FWPM_NET_EVENT_SUBSCRIPTION0, ByVal callback As FwpmNetEventCallback2, ByVal context As LongPtr, eventsHandle As LongPtr) As Long
+' typedef void (CALLBACK *FWPM_NET_EVENT_CALLBACK3)(
+' _Inout_ void* context,
+' _In_ const FWPM_NET_EVENT4* event
+' );
+Public Delegate Sub FwpmNetEventCallback3 (ByVal context As LongPtr, event As FWPM_NET_EVENT4)
+Public Declare PtrSafe Function FwpmNetEventSubscribe3 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, subscription As FWPM_NET_EVENT_SUBSCRIPTION0, ByVal callback As FwpmNetEventCallback3, ByVal context As LongPtr, eventsHandle As LongPtr) As Long
+' typedef void (CALLBACK *FWPM_NET_EVENT_CALLBACK4)(
+' _Inout_ void* context,
+' _In_ const FWPM_NET_EVENT5* event
+' );
+Public Delegate Sub FwpmNetEventCallback4 (ByVal context As LongPtr, event As FWPM_NET_EVENT5)
+Public Declare PtrSafe Function FwpmNetEventSubscribe4 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, subscription As FWPM_NET_EVENT_SUBSCRIPTION0, ByVal callback As FwpmNetEventCallback4, ByVal context As LongPtr, eventsHandle As LongPtr) As Long
+Public Const FWPM_NOTIFY_ADDRESSES_AUTO_RESOLVE As LongLong = 01
+Public Const FWPM_NOTIFY_ADDRESSES_NON_AUTO_RESOLVE As LongLong = &H02
+Public Const FWPM_NOTIFY_ADDRESSES_ALL As LongLong = (FWPM_NOTIFY_ADDRESSES_AUTO_RESOLVE Or FWPM_NOTIFY_ADDRESSES_NON_AUTO_RESOLVE)
+Public Const FWPM_NOTIFY_GRANULAR As LongLong = &H04
+' typedef void (CALLBACK *FWPM_DYNAMIC_KEYWORD_CALLBACK0)(
+' _Inout_ void* notification,
+' _Inout_ void* context
+' );
+Public Delegate Sub FwpmDynamicKeywordCallback0 (ByVal notification As LongPtr, ByVal context As LongPtr)
+Public Declare PtrSafe Function FwpmDynamicKeywordSubscribe0 Lib "Fwpuclnt.dll" (ByVal flags As Long, ByVal callback As FwpmDynamicKeywordCallback0, ByVal context As LongPtr, subscriptionHandle As LongPtr) As Long
+Public Declare PtrSafe Function FwpmDynamicKeywordUnsubscribe0 Lib "Fwpuclnt.dll" (ByVal subscriptionHandle As LongPtr) As Long
 
 Public Declare PtrSafe Function FwpmSystemPortsGet0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, sysPorts As LongPtr) As Long
 ' typedef void (CALLBACK *FWPM_SYSTEM_PORTS_CALLBACK0)(
 ' _Inout_ void* context,
 ' _In_ const FWPM_SYSTEM_PORTS0* sysPorts
 ' );
-Public Declare PtrSafe Function FwpmSystemPortsSubscribe0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal reserved As LongPtr, ByVal callback As LongPtr, ByVal context As LongPtr, sysPortsHandle As LongPtr) As Long
+Public Delegate Sub FwpmSystemPortsCallback0 (ByVal context As LongPtr, sysPorts As FWPM_SYSTEM_PORTS0)
+Public Declare PtrSafe Function FwpmSystemPortsSubscribe0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal reserved As LongPtr, ByVal callback As FwpmSystemPortsCallback0, ByVal context As LongPtr, sysPortsHandle As LongPtr) As Long
 Public Declare PtrSafe Function FwpmSystemPortsUnsubscribe0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal sysPortsHandle As LongPtr) As Long
 
 Public Declare PtrSafe Function FwpmConnectionGetById0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal id As LongLong, connection As LongPtr) As Long
@@ -2370,14 +3884,16 @@ Public Declare PtrSafe Function FwpmConnectionSetSecurityInfo0 Lib "Fwpuclnt.dll
 ' _In_ FWPM_CONNECTION_EVENT_TYPE eventType,
 ' _In_ const FWPM_CONNECTION0* connection
 ' );
-Public Declare PtrSafe Function FwpmConnectionSubscribe0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, subscription As FWPM_CONNECTION_SUBSCRIPTION0, ByVal callback As LongPtr, ByVal context As LongPtr, eventsHandle As LongPtr) As Long
+Public Delegate Sub FwpmConnectionCallback0 (ByVal context As LongPtr, ByVal eventType As FWPM_CONNECTION_EVENT_TYPE, connection As FWPM_CONNECTION0)
+Public Declare PtrSafe Function FwpmConnectionSubscribe0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, subscription As FWPM_CONNECTION_SUBSCRIPTION0, ByVal callback As FwpmConnectionCallback0, ByVal context As LongPtr, eventsHandle As LongPtr) As Long
 Public Declare PtrSafe Function FwpmConnectionUnsubscribe0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal eventsHandle As LongPtr) As Long
 Public Declare PtrSafe Function FwpmConnectionSubscriptionsGet0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, entries As LongPtr, numEntries As Long) As Long
 ' typedef DWORD (CALLBACK *FWPM_VSWITCH_EVENT_CALLBACK0)(
 ' _Inout_ void* context,
 ' _In_ const FWPM_VSWITCH_EVENT0* vSwitchEvent
 ' );
-Public Declare PtrSafe Function FwpmvSwitchEventSubscribe0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, subscription As FWPM_VSWITCH_EVENT_SUBSCRIPTION0, ByVal callback As LongPtr, ByVal context As LongPtr, subscriptionHandle As LongPtr) As Long
+Public Delegate Sub FwpmVSwitchEventCallback0 (ByVal context As LongPtr, vSwitchEvent As FWPM_VSWITCH_EVENT0)
+Public Declare PtrSafe Function FwpmvSwitchEventSubscribe0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, subscription As FWPM_VSWITCH_EVENT_SUBSCRIPTION0, ByVal callback As FwpmVSwitchEventCallback0, ByVal context As LongPtr, subscriptionHandle As LongPtr) As Long
 Public Declare PtrSafe Function FwpmvSwitchEventUnsubscribe0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal subscriptionHandle As LongPtr) As Long
 Public Declare PtrSafe Function FwpmvSwitchEventsGetSecurityInfo0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal securityInfo As SECURITY_INFORMATION, sidOwner As LongPtr, sidGroup As LongPtr, dacl As LongPtr, sacl As LongPtr, securityDescriptor As LongPtr) As Long
 Public Declare PtrSafe Function FwpmvSwitchEventsSetSecurityInfo0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal securityInfo As SECURITY_INFORMATION, ByVal sidOwner As LongPtr, ByVal sidGroup As LongPtr, ByVal dacl As LongPtr, ByVal sacl As LongPtr) As Long
