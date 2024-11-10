@@ -1,4 +1,14 @@
 
+**Update (v8.6.464, 10 Nov 2024):**
+-Added Bluetooth APIs (bluetoothapis.h, 100% coverage; bthsdpdef.h 100%, bthdef.h 90% -- still need to do macros)
+-Added File History interfaces and APIs (fhcfg.h, fhsvcctl.h, fhstatus.h, fherrors.h 100%)
+-Added some undocumented APIs for immersive colors, dark mode, and SDR/HDR mode and brightness
+-Started medium term effort to supply usable UUID types for documented CLSID_ constants for coclasses. Covered
+ wdShellCore and wdExplorer so far, the largest set, and also wdAccessible and wdBITS. Previously these weren't 
+ provided because the objects could be created with the New keyword, but it's worthwhile to provide these for 
+ manual use with CoCreateInstance so other create options can be specified.
+
+
 **Update (v8.5.462, 09 Nov 2024):**
 -All uses of delegates temporarily replaced with LongPtr pending backwards compatibility fix.
 

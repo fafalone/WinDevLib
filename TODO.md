@@ -15,8 +15,6 @@ before release, or waiting on feature support:
 
 -windns.h (in progress, 20%)
 
--Windows Filtering Platform (in progress, 40%)
-
 -SQL.h/obdc32.dll (needs Alias support)
 
 -test IsVariantString / IsPropVariantString
@@ -31,7 +29,7 @@ before release, or waiting on feature support:
 
 -NT reg VR differencing
 
--bluetoothapis.h etc
+-bluetooth btdef.h macros
 
 -Convert additional static lib stuff to Emit()
 
