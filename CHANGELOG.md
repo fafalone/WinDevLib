@@ -1,4 +1,8 @@
 
+**Update (v8.6.466, 10 Nov 2024):**
+-Added Bluetooth LE APIs (bluetoothleapis.h, 100% coverage; bthledef.h 90% -- still need to do macros)
+-(Bug fix) FDI and FCI APIs and Delegates are _cdecl.
+
 **Update (v8.6.464, 10 Nov 2024):**
 -Added Bluetooth APIs (bluetoothapis.h, 100% coverage; bthsdpdef.h 100%, bthdef.h 90% -- still need to do macros)
 -Added File History interfaces and APIs (fhcfg.h, fhsvcctl.h, fhstatus.h, fherrors.h 100%)

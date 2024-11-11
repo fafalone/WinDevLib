@@ -34,3 +34,6 @@ before release, or waiting on feature support:
 -Convert additional static lib stuff to Emit()
 
 -Put IShellPropSheetExt delegates back
+
+-Finish qos2.h
+-traffic.h
