@@ -10304,6 +10304,12 @@ Public Const DNS_ADDRESS_STRING_LENGTH  = (IP6_ADDRESS_STRING_LENGTH)
 
 #Region "qdos2.h"
 
+'Alias QOS_FLOWID As Long
+Public Enum QOS_FLOWID
+    [_]
+End Enum
+
+
 Public Enum QOS_TRAFFIC_TYPE
     QOSTrafficTypeBestEffort = 0
     QOSTrafficTypeBackground = 1
@@ -10444,8 +10450,810 @@ Public Function QOS_ADD_OVERHEAD(ByVal af As ADDRESS_FAMILIES, ByVal protocol As
     Return r
 End Function
 
-'BREAK LINE 425
+Public Function QOS_SUBTRACT_OVERHEAD(ByVal af As ADDRESS_FAMILIES, ByVal protocol As IPPROTO, ByVal targetDataPacketSize As Long, ByVal dataRate As LongLong) As LongLong
+    Dim overhead As Long
+    Dim d As Double
+    Dim r As LongLong
+
+    ' //
+    ' // Calculate the header overhead
+    overhead = QOS_HEADER_OVERHEAD(af, protocol)
+
+    ' //
+    ' // Convert overhead And dataRate to bits
+    overhead *= 8
+    targetDataPacketSize *= 8
+
+    ' //
+    ' // The adjustment Is:
+    ' //
+    ' //                         (            dataRate                        )
+    ' // returnRate = dataRate - ( ------------------------------- * overhead )
+    ' //                         ( targetDataPacketSize + overhead            )
+    ' //
+    ' // For Each packet we expect to see go out, we need to add the 
+    ' // overhead
+    d = overhead
+    d /= targetDataPacketSize + overhead
+    d *= CDbl(dataRate)
+
+    r = dataRate
+    r -= CLngLng(d)
+
+    Return r
+    
+End Function
+
+Public Declare PtrSafe Function QOSCreateHandle Lib "qwave.dll" (Version As QOS_VERSION, QOSHandle As LongPtr) As BOOL
+Public Declare PtrSafe Function QOSCloseHandle Lib "qwave.dll" (ByVal QOSHandle As LongPtr) As BOOL
+Public Declare PtrSafe Function QOSStartTrackingClient Lib "qwave.dll" (ByVal QOSHandle As LongPtr, DestAddr As SOCKADDR, ByVal Flags As Long) As BOOL
+Public Declare PtrSafe Function QOSStopTrackingClient Lib "qwave.dll" (ByVal QOSHandle As LongPtr, DestAddr As SOCKADDR, ByVal Flags As Long) As BOOL
+Public Declare PtrSafe Function QOSEnumerateFlows Lib "qwave.dll" (ByVal QOSHandle As LongPtr, Size As Long, Buffer As Any) As BOOL
+Public Declare PtrSafe Function QOSAddSocketToFlow Lib "qwave.dll" (ByVal QOSHandle As LongPtr, ByVal Socket As LongPtr, DestAddr As SOCKADDR, ByVal TrafficType As QOS_TRAFFIC_TYPE, ByVal Flags As Qos2FlowFlags, FlowId As QOS_FLOWID) As BOOL
+Public Declare PtrSafe Function QOSRemoveSocketFromFlow Lib "qwave.dll" (ByVal QOSHandle As LongPtr, ByVal Socket As LongPtr, ByVal FlowId As QOS_FLOWID, ByVal Flags As Long) As BOOL
+Public Declare PtrSafe Function QOSSetFlow Lib "qwave.dll" (ByVal QOSHandle As LongPtr, ByVal FlowId As QOS_FLOWID, ByVal Operation As QOS_SET_FLOW, ByVal Size As Long, Buffer As Any, ByVal Flags As Long, Overlapped As OVERLAPPED) As BOOL
+Public Declare PtrSafe Function QOSQueryFlow Lib "qwave.dll" (ByVal QOSHandle As LongPtr, ByVal FlowId As QOS_FLOWID, ByVal Operation As QOS_QUERY_FLOW, Size As Long, Buffer As Any, ByVal Flags As Qos2FlowFlags, Overlapped As OVERLAPPED) As BOOL
+Public Declare PtrSafe Function QOSNotifyFlow Lib "qwave.dll" (ByVal QOSHandle As LongPtr, ByVal FlowId As QOS_FLOWID, ByVal Operation As QOS_NOTIFY_FLOW, Size As Long, Buffer As Any, ByVal Flags As Long, Overlapped As OVERLAPPED) As BOOL
+Public Declare PtrSafe Function QOSCancel Lib "qwave.dll" (ByVal QOSHandle As LongPtr, Overlapped As OVERLAPPED) As BOOL
+
 #End Region
+
+#Region "traffic"
+
+'qos.h - 100%
+Public Enum SERVICETYPE
+    SERVICETYPE_NOTRAFFIC = &H00000000 /* No data in this 
+                                        * direction */
+    SERVICETYPE_BESTEFFORT = &H00000001 /* Best Effort */
+    SERVICETYPE_CONTROLLEDLOAD = &H00000002 /* Controlled Load */
+    SERVICETYPE_GUARANTEED = &H00000003 /* Guaranteed */
+
+    SERVICETYPE_NETWORK_UNAVAILABLE = &H00000004 /* Used to notify 
+                                                  * change to user */
+    SERVICETYPE_GENERAL_INFORMATION = &H00000005 /* corresponds to 
+                                                  * "General Parameters"
+                                                  * defined by IntServ */
+    SERVICETYPE_NOCHANGE = &H00000006 /* used to indicate
+                                        * that the flow spec
+                                        * contains no change
+                                        * from any previous
+                                        * one */
+    SERVICETYPE_NONCONFORMING = &H00000009 /* Non-Conforming Traffic */
+    SERVICETYPE_NETWORK_CONTROL = &H0000000A /* Network Control traffic */
+    SERVICETYPE_QUALITATIVE = &H0000000D /* Qualitative applications */
+End Enum
+
+Public Const SERVICE_BESTEFFORT  = &H80010000
+Public Const SERVICE_CONTROLLEDLOAD  = &H80020000
+Public Const SERVICE_GUARANTEED  = &H80040000
+Public Const SERVICE_QUALITATIVE  = &H80200000
+
+Public Enum QoSServiceRSVPFlags
+    /*
+    * Flags to control the usage of RSVP on this flow.
+    */
+
+   /*
+    * to turn off traffic control, 'OR' ( | ) this flag with the 
+    * ServiceType field in the FLOWSPEC
+    */
+    SERVICE_NO_TRAFFIC_CONTROL = &H81000000
+    /*
+    * this flag can be used to prevent any rsvp signaling messages from being 
+    * sent. Local traffic control will be invoked, but no RSVP Path messages 
+    * will be sent.This flag can also be used in conjunction with a receiving 
+    * flowspec to suppress the automatic generation of a Reserve message.  
+    * The application would receive notification that a Path  message had arrived 
+    * and would then need to alter the QOS by issuing WSAIoctl( SIO_SET_QOS ), 
+    * to unset this flag and thereby causing Reserve messages to go out.
+    */
+    SERVICE_NO_QOS_SIGNALING = &H40000000
+End Enum
+
+Public Type FLOWSPEC
+    TokenRate As Long /* In Bytes/sec */
+    TokenBucketSize As Long /* In Bytes */
+    PeakBandwidth As Long /* In Bytes/sec */
+    Latency As Long /* In microseconds */
+    DelayVariation As Long /* In microseconds */
+    ServiceType As SERVICETYPE
+    MaxSduSize As Long /* In Bytes */
+    MinimumPolicedSize As Long /* In Bytes */
+End Type
+
+Public Const QOS_NOT_SPECIFIED  = &HFFFFFFFF
+Public Const POSITIVE_INFINITY_RATE  = &HFFFFFFFE
+
+Public Type QOS_OBJECT_HDR
+    ObjectType As Long
+    ObjectLength As Long '  /* the length of object buffer INCLUDING  this header */
+End Type
+
+Public Enum QoSGeneralObjectTypes
+    QOS_GENERAL_ID_BASE = 2000
+    QOS_OBJECT_END_OF_LIST = (&H00000001 + QOS_GENERAL_ID_BASE)
+'    /* QOS_End_of_list structure passed */
+    QOS_OBJECT_SD_MODE = (&H00000002 + QOS_GENERAL_ID_BASE)
+'    /* QOS_ShapeDiscard structure passed */
+    QOS_OBJECT_SHAPING_RATE = (&H00000003 + QOS_GENERAL_ID_BASE)
+'    /* QOS_ShapingRate structure */
+    QOS_OBJECT_DESTADDR = (&H00000004 + QOS_GENERAL_ID_BASE)
+End Enum
+
+Public Type QOS_SD_MODE
+    ObjectHdr As QOS_OBJECT_HDR
+    ShapeDiscardMode As Long
+End Type
+
+Public Enum TcNonConFlags
+    TC_NONCONF_BORROW = 0
+    TC_NONCONF_SHAPE = 1
+    TC_NONCONF_DISCARD = 2
+    TC_NONCONF_BORROW_PLUS = 3  ' Not supported currently
+End Enum
+
+Public Type QOS_SHAPING_RATE
+    ObjectHdr As QOS_OBJECT_HDR
+    ShapingRate As Long
+End Type
+
+'qossp.h - 100%
+Public Enum QoSRSVPObjects
+    RSVP_OBJECT_ID_BASE = 1000
+    RSVP_OBJECT_STATUS_INFO = (&H00000000 + RSVP_OBJECT_ID_BASE)
+'     /* RSVP_STATUS_INFO structure passed */
+    RSVP_OBJECT_RESERVE_INFO = (&H00000001 + RSVP_OBJECT_ID_BASE)
+'    /* RSVP_RESERVE_INFO structure passed */
+    RSVP_OBJECT_ADSPEC = (&H00000002 + RSVP_OBJECT_ID_BASE)
+'  /* RSVP_ADSPEC structure passed */
+    RSVP_OBJECT_POLICY_INFO = (&H00000003 + RSVP_OBJECT_ID_BASE)
+'   /* RSVP POLICY ELEMENT(S) retrieved */
+    RSVP_OBJECT_FILTERSPEC_LIST = (&H00000004 + RSVP_OBJECT_ID_BASE)
+End Enum
+
+' typedef union _IN_ADDR_IPV4 {
+
+' ULONG  Addr;
+' UCHAR  AddrBytes[4];
+
+' } IN_ADDR_IPV4,
+Public Type IN_ADDR_IPV4
+    Addr As Long
+End Type
+Public Type IN_ADDR_IPV6
+    Addr(0 To 15) As Byte 'IPV6 address
+End Type
+
+Public Type RSVP_FILTERSPEC_V4
+    Address As IN_ADDR_IPV4
+    Unused As Integer
+    Port As Integer
+End Type
+Public Type RSVP_FILTERSPEC_V6
+    Address As IN_ADDR_IPV6
+    UnUsed As Integer
+    Port As Integer
+End Type
+
+Public Type RSVP_FILTERSPEC_V6_FLOW
+    Address As IN_ADDR_IPV6
+    UnUsed As Byte
+    FlowLabel(0 To 2) As Byte
+End Type
+
+Public Type RSVP_FILTERSPEC_V4_GPI
+    Address As IN_ADDR_IPV4
+    GeneralPortId As Long
+End Type
+
+Public Type RSVP_FILTERSPEC_V6_GPI
+    Address As IN_ADDR_IPV6
+    GeneralPortId As Long
+End Type
+
+Public Enum QosRSVPFilterType
+    FILTERSPECV4
+    FILTERSPECV6
+    FILTERSPECV6_FLOW
+    FILTERSPECV4_GPI
+    FILTERSPECV6_GPI
+    FILTERSPEC_END
+End Enum
+
+Public Type RSVP_FILTERSPEC
+    Type As QosRSVPFilterType
+    ' union {
+        ' RSVP_FILTERSPEC_V4      FilterSpecV4;
+        ' RSVP_FILTERSPEC_V6      FilterSpecV6;
+        ' RSVP_FILTERSPEC_V6_FLOW FilterSpecV6Flow;
+        ' RSVP_FILTERSPEC_V4_GPI  FilterSpecV4Gpi;
+        ' RSVP_FILTERSPEC_V6_GPI  FilterSpecV6Gpi;
+    ' };
+    u(19) As Byte
+End Type
+
+Public Type FLOWDESCRIPTOR
+    FlowSpec As FLOWSPEC
+    NumFilters As Long
+    FilterList As LongPtr 'LPRSVP_FILTERSPEC
+End Type
+
+Public Type RSVP_POLICY
+   Len As Integer ' total length of this element object
+   Type As Integer
+   Info(0 To 3) As Byte
+End Type
+
+Public Const RSVP_POLICY_HDR_LEN = 4 '   ( sizeof(USHORT) + sizeof(USHORT) )
+
+[Description("PolicyElement is a variable C-style array for which a guess at max ever used is substituted.")]
+Public Type RSVP_POLICY_INFO
+    ObjectHdr As QOS_OBJECT_HDR
+    NumPolicyElement As Long '  /* count of the  number of policy elements */
+    PolicyElement(0 To 127) As RSVP_POLICY '   /* a list of the policy   elements retrieved */
+End Type
+
+Public Type RSVP_RESERVE_INFO
+    ObjectHdr As QOS_OBJECT_HDR '       /* type and length of this object */
+    Style As QoSRSVPStyles '   /* RSVP Style (FF,WF,SE) */
+    ConfirmRequest As Long '    /* Non Zero for Confirm Request (receive only) */
+    PolicyElementList As LongPtr 'LPRSVP_POLICY_INFO '  /* Points to the set of policy elements */
+    NumFlowDesc As Long '     /* Number of FlowDesc */
+    FlowDescList As LongPtr 'LPFLOWDESCRIPTOR '    /* Points to the FlowDesc list */
+End Type
+Public Enum QoSRSVPStyles
+    RSVP_DEFAULT_STYLE = &H00000000
+    RSVP_WILDCARD_STYLE = &H00000001
+    RSVP_FIXED_FILTER_STYLE = &H00000002
+    RSVP_SHARED_EXPLICIT_STYLE = &H00000003
+End Enum
+
+Public Type RSVP_STATUS_INFO
+    ObjectHdr As QOS_OBJECT_HDR ' /* Object Hdr */
+    StatusCode As Long '    /* Error or Status Information see    Winsock2.h
+    ExtendedStatus1 As Long '/* Provider specific status extension */
+    ExtendedStatus2 As Long '/* Provider specific status extension */
+End Type
+
+Public Type QOS_DESTADDR
+    ObjectHdr As QOS_OBJECT_HDR ' /* Object header */
+    SocketAddress As LongPtr 'const struct sockaddr *  ' /* Destination socket address */
+    SocketAddressLength As Long '/* Length of the address structure */
+End Type
+
+Public Type AD_GENERAL_PARAMS
+    IntServAwareHopCount As Long '  /* number of hops that conform to
+    '    * Integrated Services requirements */
+    PathBandwidthEstimate As Long ' /* minimum bandwidth available from 
+    '     * sender to receiver */
+    MinimumLatency As Long '   /* sum of minimum latency of the packet
+    '     * forwarding process in routers
+    '   * (in usec)*/
+    PathMTU As Long '             /* max transmission unit end to end that
+    '    * will not incur fragmentation */
+    Flags As QoSAdGeneralParamFlags '     /* used to hold break bits.*/
+End Type
+
+Public Const INDETERMINATE_LATENCY = &HFFFFFFFF
+
+Public Enum QoSAdGeneralParamFlags
+    AD_FLAG_BREAK_BIT = &H00000001
+End Enum
+
+Public Type AD_GUARANTEED
+    CTotal As Long
+    DTotal As Long
+    CSum As Long
+    DSum As Long
+End Type
+
+[Description("Buffer is a variable C-style array for which a guess at max ever used is substituted.")]
+Public Type PARAM_BUFFER
+    ParameterId As Long '  /* Int Server parameter ID */
+    Length As Long '  /* total length of this structure 
+    ' * ( 8 bytes + length of Buffer ) */
+    Buffer(0 To 127) As Byte '   /* Paramter itself */ 
+End Type
+
+Public Type CONTROL_SERVICE
+    '/*
+    ' * the length of this entire structure including the following buffer.
+    ' * This length value can be added to the ptr to the structure to get the ptr
+    ' * to the next SERVICE_TYPE structure in the list, until the
+    ' * NumberOfServices count has been exhausted.
+    ' */
+    Length As Long
+    Service As SERVICETYPE
+    Overrides As AD_GENERAL_PARAMS
+    '/*
+    ' * service specific information ( controlled load has no service specific
+    ' * info here )
+    ' */
+    'union {
+    '    AD_GUARANTEED   Guaranteed;
+    '    PARAM_BUFFER    ParamBuffer[1];     /* allows for other services down
+    '                                         * the road */
+    '};
+    u(15) As Byte
+End Type
+[Description("Services is a variable C-style array for which a guess at max ever used is substituted.")]
+Public Type RSVP_ADSPEC
+    ObjectHdr As QOS_OBJECT_HDR
+    GeneralParams As AD_GENERAL_PARAMS '  /* contains the general 
+    '     * characterization paramters */
+    NumberOfServices As Long '  /* count of the number of services */
+    Services(0 To 15) As CONTROL_SERVICE ' /* a list of the services 
+    '   * supported/requested */
+End Type
+
+Public Enum QoSRSVPOpCodes
+    mIOC_IN = &H80000000
+    mIOC_OUT = &H40000000
+    mIOC_VENDOR = &H04000000
+    mCOMPANY = &H18000000
+    ioctl_code = &H00000001
+    SIO_CHK_QOS = (mIOC_IN Or mIOC_OUT Or mIOC_VENDOR Or mCOMPANY Or ioctl_code)
+End Enum
+
+Public Const QOSSPBASE  = 50000
+Public Const ALLOWED_TO_SEND_DATA  = (QOSSPBASE + 1)  ' query the SBM/BEST_EFFORT limit
+                                                        '    -- result is based on a comparison between
+                                                        '       the user-specified token rate and the
+                                                        '       SBM/BEST_EFFORT bandwidth parameters in
+                                                        '       the system
+                                                        '    -- result is a YES(1) or NO(0) answer
+                                                        '       in the output buffer
+Public Const ABLE_TO_RECV_RSVP  = (QOSSPBASE + 2)  ' query the SBM/BEST_EFFORT limit
+                                                    '    -- result is based on a comparison between
+                                                    '       the user-specified token rate and the
+                                                    '       SBM/BEST_EFFORT bandwidth parameters in
+                                                    '       the system
+                                                    '    -- result is a YES(1) or NO(0) answer
+                                                    '       in the output buffer
+Public Const LINE_RATE  = (QOSSPBASE + 3)  ' query the interface capacity
+                                            '    -- result returned in the output buffer
+                                            '       in kilo-bits per second
+Public Const LOCAL_TRAFFIC_CONTROL  = (QOSSPBASE + 4)  ' check if Kernel Traffic Control is available or not
+                                                        '    -- 0 if not available
+                                                        '    -- 1 if avaiable
+                                                        '    -- INFO_NOT_AVAILABLE if there is no way to check
+Public Const LOCAL_QOSABILITY  = (QOSSPBASE + 5)  ' The followings are for
+                                                '  the Discovery of Local QOSability
+                                                '    -- 0 if no local QOS support
+                                                '    -- 1 if local QOS support available
+                                                '    -- INFO_NOT_AVAILABLE if there is no way to check
+Public Const END_TO_END_QOSABILITY  = (QOSSPBASE + 6)  ' The followings are for
+                                                    '  the Discovery of End-to-End QOSability
+                                                    '    -- 0 if no end-to-end QOS support
+                                                    '    -- 1 if end-to-end QOS support available
+                                                    '    -- INFO_NOT_AVAILABLE if there is no way to check
+Public Const INFO_NOT_AVAILABLE  = &HFFFFFFFF  ' used when LINE_RATE is not known
+Public Const ANY_DEST_ADDR  = &HFFFFFFFF  ' for QOS_OBJECT_DEST_ADDR
+'  The followings are for Guaranteed_Service+Latency -> ISSLOW_Traffic_Class Mapping
+Public Const MODERATELY_DELAY_SENSITIVE  = &HFFFFFFFD
+Public Const HIGHLY_DELAY_SENSITIVE  = &HFFFFFFFE
+'  QOSSP Error Code/Value
+Public Const QOSSP_ERR_BASE  = (QOSSPBASE + 6000)
+'  No error
+Public Const GQOS_NO_ERRORCODE  = (0)
+Public Const GQOS_NO_ERRORVALUE  = (0)
+'  Unknown error
+Public Const GQOS_ERRORCODE_UNKNOWN  = (&HFFFFFFFF)
+Public Const GQOS_ERRORVALUE_UNKNOWN  = (&HFFFFFFFF)
+
+Public Enum GQoSErrors
+    GQOS_NET_ADMISSION = (QOSSP_ERR_BASE + 100)
+    GQOS_OTHER = (QOSSP_ERR_BASE + 100 + 1)
+    GQOS_DELAYBND = (QOSSP_ERR_BASE + 100 + 2)
+    GQOS_BANDWIDTH = (QOSSP_ERR_BASE + 100 + 3)
+    GQOS_MTU = (QOSSP_ERR_BASE + 100 + 4)
+    GQOS_FLOW_RATE = (QOSSP_ERR_BASE + 100 + 5)
+    GQOS_PEAK_RATE = (QOSSP_ERR_BASE + 100 + 6)
+    GQOS_AGG_PEAK_RATE = (QOSSP_ERR_BASE + 100 + 7)
+'  Policy Error
+    GQOS_NET_POLICY = (QOSSP_ERR_BASE + 200)
+    GQOS_POLICY_ERROR_UNKNOWN = (QOSSP_ERR_BASE + 200 + 0)
+    GQOS_POLICY_GLOBAL_DEF_FLOW_COUNT = (QOSSP_ERR_BASE + 200 + 1)
+    GQOS_POLICY_GLOBAL_GRP_FLOW_COUNT = (QOSSP_ERR_BASE + 200 + 2)
+    GQOS_POLICY_GLOBAL_USER_FLOW_COUNT = (QOSSP_ERR_BASE + 200 + 3)
+    GQOS_POLICY_GLOBAL_UNK_USER_FLOW_COUNT = (QOSSP_ERR_BASE + 200 + 4)
+    GQOS_POLICY_SUBNET_DEF_FLOW_COUNT = (QOSSP_ERR_BASE + 200 + 5)
+    GQOS_POLICY_SUBNET_GRP_FLOW_COUNT = (QOSSP_ERR_BASE + 200 + 6)
+    GQOS_POLICY_SUBNET_USER_FLOW_COUNT = (QOSSP_ERR_BASE + 200 + 7)
+    GQOS_POLICY_SUBNET_UNK_USER_FLOW_COUNT = (QOSSP_ERR_BASE + 200 + 8)
+    GQOS_POLICY_GLOBAL_DEF_FLOW_DURATION = (QOSSP_ERR_BASE + 200 + 9)
+    GQOS_POLICY_GLOBAL_GRP_FLOW_DURATION = (QOSSP_ERR_BASE + 200 + 10)
+    GQOS_POLICY_GLOBAL_USER_FLOW_DURATION = (QOSSP_ERR_BASE + 200 + 11)
+    GQOS_POLICY_GLOBAL_UNK_USER_FLOW_DURATION = (QOSSP_ERR_BASE + 200 + 12)
+    GQOS_POLICY_SUBNET_DEF_FLOW_DURATION = (QOSSP_ERR_BASE + 200 + 13)
+    GQOS_POLICY_SUBNET_GRP_FLOW_DURATION = (QOSSP_ERR_BASE + 200 + 14)
+    GQOS_POLICY_SUBNET_USER_FLOW_DURATION = (QOSSP_ERR_BASE + 200 + 15)
+    GQOS_POLICY_SUBNET_UNK_USER_FLOW_DURATION = (QOSSP_ERR_BASE + 200 + 16)
+    GQOS_POLICY_GLOBAL_DEF_FLOW_RATE = (QOSSP_ERR_BASE + 200 + 17)
+    GQOS_POLICY_GLOBAL_GRP_FLOW_RATE = (QOSSP_ERR_BASE + 200 + 18)
+    GQOS_POLICY_GLOBAL_USER_FLOW_RATE = (QOSSP_ERR_BASE + 200 + 19)
+    GQOS_POLICY_GLOBAL_UNK_USER_FLOW_RATE = (QOSSP_ERR_BASE + 200 + 20)
+    GQOS_POLICY_SUBNET_DEF_FLOW_RATE = (QOSSP_ERR_BASE + 200 + 21)
+    GQOS_POLICY_SUBNET_GRP_FLOW_RATE = (QOSSP_ERR_BASE + 200 + 22)
+    GQOS_POLICY_SUBNET_USER_FLOW_RATE = (QOSSP_ERR_BASE + 200 + 23)
+    GQOS_POLICY_SUBNET_UNK_USER_FLOW_RATE = (QOSSP_ERR_BASE + 200 + 24)
+    GQOS_POLICY_GLOBAL_DEF_PEAK_RATE = (QOSSP_ERR_BASE + 200 + 25)
+    GQOS_POLICY_GLOBAL_GRP_PEAK_RATE = (QOSSP_ERR_BASE + 200 + 26)
+    GQOS_POLICY_GLOBAL_USER_PEAK_RATE = (QOSSP_ERR_BASE + 200 + 27)
+    GQOS_POLICY_GLOBAL_UNK_USER_PEAK_RATE = (QOSSP_ERR_BASE + 200 + 28)
+    GQOS_POLICY_SUBNET_DEF_PEAK_RATE = (QOSSP_ERR_BASE + 200 + 29)
+    GQOS_POLICY_SUBNET_GRP_PEAK_RATE = (QOSSP_ERR_BASE + 200 + 30)
+    GQOS_POLICY_SUBNET_USER_PEAK_RATE = (QOSSP_ERR_BASE + 200 + 31)
+    GQOS_POLICY_SUBNET_UNK_USER_PEAK_RATE = (QOSSP_ERR_BASE + 200 + 32)
+    GQOS_POLICY_GLOBAL_DEF_SUM_FLOW_RATE = (QOSSP_ERR_BASE + 200 + 33)
+    GQOS_POLICY_GLOBAL_GRP_SUM_FLOW_RATE = (QOSSP_ERR_BASE + 200 + 34)
+    GQOS_POLICY_GLOBAL_USER_SUM_FLOW_RATE = (QOSSP_ERR_BASE + 200 + 35)
+    GQOS_POLICY_GLOBAL_UNK_USER_SUM_FLOW_RATE = (QOSSP_ERR_BASE + 200 + 36)
+    GQOS_POLICY_SUBNET_DEF_SUM_FLOW_RATE = (QOSSP_ERR_BASE + 200 + 37)
+    GQOS_POLICY_SUBNET_GRP_SUM_FLOW_RATE = (QOSSP_ERR_BASE + 200 + 38)
+    GQOS_POLICY_SUBNET_USER_SUM_FLOW_RATE = (QOSSP_ERR_BASE + 200 + 39)
+    GQOS_POLICY_SUBNET_UNK_USER_SUM_FLOW_RATE = (QOSSP_ERR_BASE + 200 + 40)
+    GQOS_POLICY_GLOBAL_DEF_SUM_PEAK_RATE = (QOSSP_ERR_BASE + 200 + 41)
+    GQOS_POLICY_GLOBAL_GRP_SUM_PEAK_RATE = (QOSSP_ERR_BASE + 200 + 42)
+    GQOS_POLICY_GLOBAL_USER_SUM_PEAK_RATE = (QOSSP_ERR_BASE + 200 + 43)
+    GQOS_POLICY_GLOBAL_UNK_USER_SUM_PEAK_RATE = (QOSSP_ERR_BASE + 200 + 44)
+    GQOS_POLICY_SUBNET_DEF_SUM_PEAK_RATE = (QOSSP_ERR_BASE + 200 + 45)
+    GQOS_POLICY_SUBNET_GRP_SUM_PEAK_RATE = (QOSSP_ERR_BASE + 200 + 46)
+    GQOS_POLICY_SUBNET_USER_SUM_PEAK_RATE = (QOSSP_ERR_BASE + 200 + 47)
+    GQOS_POLICY_SUBNET_UNK_USER_SUM_PEAK_RATE = (QOSSP_ERR_BASE + 200 + 48)
+    GQOS_POLICY_UNKNOWN_USER = (QOSSP_ERR_BASE + 200 + 49)
+    GQOS_POLICY_NO_PRIVILEGES = (QOSSP_ERR_BASE + 200 + 50)
+    GQOS_POLICY_EXPIRED_USER_TOKEN = (QOSSP_ERR_BASE + 200 + 51)
+    GQOS_POLICY_NO_RESOURCES = (QOSSP_ERR_BASE + 200 + 52)
+    GQOS_POLICY_PRE_EMPTED = (QOSSP_ERR_BASE + 200 + 53)
+    GQOS_POLICY_USER_CHANGED = (QOSSP_ERR_BASE + 200 + 54)
+    GQOS_POLICY_NO_ACCEPTS = (QOSSP_ERR_BASE + 200 + 55)
+    GQOS_POLICY_NO_MEMORY = (QOSSP_ERR_BASE + 200 + 56)
+    GQOS_POLICY_CRAZY_FLOWSPEC = (QOSSP_ERR_BASE + 200 + 57)
+    GQOS_POLICY_NO_MORE_INFO = (QOSSP_ERR_BASE + 200 + 58)
+    GQOS_POLICY_UNSUPPORTED_CREDENTIAL_TYPE = (QOSSP_ERR_BASE + 200 + 59)
+    GQOS_POLICY_INSUFFICIENT_PRIVILEGES = (QOSSP_ERR_BASE + 200 + 60)
+    GQOS_POLICY_EXPIRED_CREDENTIAL = (QOSSP_ERR_BASE + 200 + 61)
+    GQOS_POLICY_IDENTITY_CHANGED = (QOSSP_ERR_BASE + 200 + 62)
+    GQOS_POLICY_NO_QOS_PROVIDED = (QOSSP_ERR_BASE + 200 + 63)
+    GQOS_POLICY_DO_NOT_SEND = (QOSSP_ERR_BASE + 200 + 64)
+    GQOS_POLICY_ERROR_USERID = (QOSSP_ERR_BASE + 200 + 99)
+'  RSVP Error
+    GQOS_RSVP = (QOSSP_ERR_BASE + 300)
+    GQOS_NO_PATH = (QOSSP_ERR_BASE + 300 + 1)
+    GQOS_NO_SENDER = (QOSSP_ERR_BASE + 300 + 2)
+    GQOS_BAD_STYLE = (QOSSP_ERR_BASE + 300 + 3)
+    GQOS_UNKNOWN_STYLE = (QOSSP_ERR_BASE + 300 + 4)
+    GQOS_BAD_DSTPORT = (QOSSP_ERR_BASE + 300 + 5)
+    GQOS_BAD_SNDPORT = (QOSSP_ERR_BASE + 300 + 6)
+    GQOS_AMBIG_FILTER = (QOSSP_ERR_BASE + 300 + 7)
+    GQOS_PREEMPTED = (QOSSP_ERR_BASE + 300 + 8)
+    GQOS_UNKN_OBJ_CLASS = (QOSSP_ERR_BASE + 300 + 9)
+    GQOS_UNKNOWN_CTYPE = (QOSSP_ERR_BASE + 300 + 10)
+    GQOS_INVALID = (QOSSP_ERR_BASE + 300 + 11)
+'  API Error
+    GQOS_API = (QOSSP_ERR_BASE + 400)
+    GQOS_API_BADSEND = (QOSSP_ERR_BASE + 400 + 1) /* Sender addr not my interface */
+    GQOS_API_BADRECV = (QOSSP_ERR_BASE + 400 + 2) /* Recv addr not my interface */
+    GQOS_API_BADSPORT = (QOSSP_ERR_BASE + 400 + 3) /* Sport !=0 but Dport == 0 */
+'  TC System Error
+    GQOS_KERNEL_TC_SYS = (QOSSP_ERR_BASE + 500)
+    GQOS_TC_GENERIC = (QOSSP_ERR_BASE + 500 + 1)
+    GQOS_TC_INVALID = (QOSSP_ERR_BASE + 500 + 2)
+    GQOS_NO_MEMORY = (QOSSP_ERR_BASE + 500 + 3)
+    GQOS_BAD_ADDRESSTYPE = (QOSSP_ERR_BASE + 500 + 4)
+    GQOS_BAD_DUPLICATE = (QOSSP_ERR_BASE + 500 + 5)
+    GQOS_CONFLICT = (QOSSP_ERR_BASE + 500 + 6)
+    GQOS_NOTREADY = (QOSSP_ERR_BASE + 500 + 7)
+    GQOS_WOULDBLOCK = (QOSSP_ERR_BASE + 500 + 8)
+    GQOS_INCOMPATIBLE = (QOSSP_ERR_BASE + 500 + 9)
+    GQOS_BAD_SDMODE = (QOSSP_ERR_BASE + 500 + 10)
+    GQOS_BAD_QOSPRIORITY = (QOSSP_ERR_BASE + 500 + 11)
+    GQOS_BAD_TRAFFICCLASS = (QOSSP_ERR_BASE + 500 + 12)
+    GQOS_NO_SYS_RESOURCES = (QOSSP_ERR_BASE + 500 + 13)
+'  RSVP System Error
+    GQOS_RSVP_SYS = (QOSSP_ERR_BASE + 600)
+    GQOS_OTHER_SYS = (QOSSP_ERR_BASE + 600 + 1)
+    GQOS_MEMORY_SYS = (QOSSP_ERR_BASE + 600 + 2)
+    GQOS_API_SYS = (QOSSP_ERR_BASE + 600 + 3)
+    GQOS_SETQOS_NO_LOCAL_APPS = (QOSSP_ERR_BASE + 600 + 4)
+'  TC Error
+    GQOS_KERNEL_TC = (QOSSP_ERR_BASE + 700)
+    GQOS_CONFLICT_SERV = (QOSSP_ERR_BASE + 700 + 1)
+    GQOS_NO_SERV = (QOSSP_ERR_BASE + 700 + 2)
+    GQOS_BAD_FLOWSPEC = (QOSSP_ERR_BASE + 700 + 3)
+    GQOS_BAD_TSPEC = (QOSSP_ERR_BASE + 700 + 4)
+    GQOS_BAD_ADSPEC = (QOSSP_ERR_BASE + 700 + 5)
+'  GQOS API ERRORS
+'  WSAIoctl Error
+    GQOS_IOCTL_SYSTEMFAILURE = (QOSSP_ERR_BASE + 800 + 1)
+    GQOS_IOCTL_NOBYTESRETURNED = (QOSSP_ERR_BASE + 800 + 2)
+    GQOS_IOCTL_INVALIDSOCKET = (QOSSP_ERR_BASE + 800 + 3)
+    GQOS_IOCTL_INV_FUNCPTR = (QOSSP_ERR_BASE + 800 + 4)
+    GQOS_IOCTL_INV_OVERLAPPED = (QOSSP_ERR_BASE + 800 + 5)
+'  SIO_SET_QOS error
+    GQOS_SETQOS_BADINBUFFER = (QOSSP_ERR_BASE + 810 + 1)
+    GQOS_SETQOS_BADFLOWSPEC = (QOSSP_ERR_BASE + 810 + 2)
+    GQOS_SETQOS_COLLISION = (QOSSP_ERR_BASE + 810 + 3)
+    GQOS_SETQOS_BADPROVSPECBUF = (QOSSP_ERR_BASE + 810 + 4)
+    GQOS_SETQOS_ILLEGALOP = (QOSSP_ERR_BASE + 810 + 5)
+    GQOS_SETQOS_INVALIDADDRESS = (QOSSP_ERR_BASE + 810 + 6)
+    GQOS_SETQOS_OUTOFMEMORY = (QOSSP_ERR_BASE + 810 + 7)
+    GQOS_SETQOS_EXCEPTION = (QOSSP_ERR_BASE + 810 + 8)
+    GQOS_SETQOS_BADADDRLEN = (QOSSP_ERR_BASE + 810 + 9)
+    GQOS_SETQOS_NOSOCKNAME = (QOSSP_ERR_BASE + 810 + 10)
+    GQOS_SETQOS_IPTOSFAIL = (QOSSP_ERR_BASE + 810 + 11)
+    GQOS_SETQOS_OPENSESSIONFAIL = (QOSSP_ERR_BASE + 810 + 12)
+    GQOS_SETQOS_SENDFAIL = (QOSSP_ERR_BASE + 810 + 13)
+    GQOS_SETQOS_RECVFAIL = (QOSSP_ERR_BASE + 810 + 14)
+    GQOS_SETQOS_BADPOLICYOBJECT = (QOSSP_ERR_BASE + 810 + 15)
+    GQOS_SETQOS_UNKNOWNFILTEROBJ = (QOSSP_ERR_BASE + 810 + 16)
+    GQOS_SETQOS_BADFILTERTYPE = (QOSSP_ERR_BASE + 810 + 17)
+    GQOS_SETQOS_BADFILTERCOUNT = (QOSSP_ERR_BASE + 810 + 18)
+    GQOS_SETQOS_BADOBJLENGTH = (QOSSP_ERR_BASE + 810 + 19)
+    GQOS_SETQOS_BADFLOWCOUNT = (QOSSP_ERR_BASE + 810 + 20)
+    GQOS_SETQOS_UNKNOWNPSOBJ = (QOSSP_ERR_BASE + 810 + 21)
+    GQOS_SETQOS_BADPOLICYOBJ = (QOSSP_ERR_BASE + 810 + 22)
+    GQOS_SETQOS_BADFLOWDESC = (QOSSP_ERR_BASE + 810 + 23)
+    GQOS_SETQOS_BADPROVSPECOBJ = (QOSSP_ERR_BASE + 810 + 24)
+    GQOS_SETQOS_NOLOOPBACK = (QOSSP_ERR_BASE + 810 + 25)
+    GQOS_SETQOS_MODENOTSUPPORTED = (QOSSP_ERR_BASE + 810 + 26)
+    GQOS_SETQOS_MISSINGFLOWDESC = (QOSSP_ERR_BASE + 810 + 27)
+'  SIO_GET_QOS error
+    GQOS_GETQOS_BADOUTBUFFER = (QOSSP_ERR_BASE + 840 + 1)
+    GQOS_GETQOS_SYSTEMFAILURE = (QOSSP_ERR_BASE + 840 + 2)
+    GQOS_GETQOS_EXCEPTION = (QOSSP_ERR_BASE + 840 + 3)
+    GQOS_GETQOS_INTERNALFAILURE = (QOSSP_ERR_BASE + 840 + 4)
+'  SIO_CHK_QOS error
+    GQOS_CHKQOS_BADINBUFFER = (QOSSP_ERR_BASE + 850 + 1)
+    GQOS_CHKQOS_BADOUTBUFFER = (QOSSP_ERR_BASE + 850 + 2)
+    GQOS_CHKQOS_SYSTEMFAILURE = (QOSSP_ERR_BASE + 850 + 3)
+    GQOS_CHKQOS_INTERNALFAILURE = (QOSSP_ERR_BASE + 850 + 4)
+    GQOS_CHKQOS_BADPARAMETER = (QOSSP_ERR_BASE + 850 + 5)
+    GQOS_CHKQOS_EXCEPTION = (QOSSP_ERR_BASE + 850 + 6)
+End Enum
+
+'qosobjs.h - 100%
+
+Public Const QOS_MAX_OBJECT_STRING_LENGTH = 256
+
+Public Enum TrafficQoSObjects
+    QOS_TRAFFIC_GENERAL_ID_BASE = 4000
+    QOS_OBJECT_DS_CLASS = (&H00000001 + QOS_TRAFFIC_GENERAL_ID_BASE)
+    /* QOS_DS_CLASS structure passed */
+    QOS_OBJECT_TRAFFIC_CLASS = (&H00000002 + QOS_TRAFFIC_GENERAL_ID_BASE)
+    /* QOS_Traffic class structure passed */
+    QOS_OBJECT_DIFFSERV = (&H00000003 + QOS_TRAFFIC_GENERAL_ID_BASE)
+    /* QOS_DIFFSERV Structure */
+    QOS_OBJECT_TCP_TRAFFIC = (&H00000004 + QOS_TRAFFIC_GENERAL_ID_BASE)
+    /* QOS_TCP_TRAFFIC structure */
+    QOS_OBJECT_FRIENDLY_NAME = (&H00000005 + QOS_TRAFFIC_GENERAL_ID_BASE)
+    /* QOS_FRIENDLY_NAME structure */
+End Enum
+
+Public Type QOS_FRIENDLY_NAME
+    ObjectHdr As QOS_OBJECT_HDR
+    FriendlyName(0 To (QOS_MAX_OBJECT_STRING_LENGTH - 1)) As Integer
+End Type
+
+Public Type QOS_TRAFFIC_CLASS
+    ObjectHdr As QOS_OBJECT_HDR
+    TrafficClass As SERVICETYPE
+End Type
+
+Public Type QOS_DS_CLASS
+    ObjectHdr As QOS_OBJECT_HDR
+    DSField As Long
+End Type
+
+[Description("DiffservRule is a variable C-style array for which a guess at max ever used is substituted.")]
+Public Type QOS_DIFFSERV
+    ObjectHdr As QOS_OBJECT_HDR
+    DSFieldCount As Long
+    DiffservRule(0 To 255) As Byte
+End Type
+
+Public Type QOS_DIFFSERV_RULE
+    InboundDSField As Byte
+    ConformingOutboundDSField As Byte
+    NonConformingOutboundDSField As Byte
+    ConformingUserPriority As Byte
+    NonConformingUserPriority As Byte
+End Type
+
+Public Type QOS_TCP_TRAFFIC
+    ObjectHdr As QOS_OBJECT_HDR
+End Type
+
+
+'traffic.h
+
+Public Const CURRENT_TCI_VERSION = 2
+
+Public Enum QoSTcNotifyCodes
+    TC_NOTIFY_IFC_UP = 1
+'  A TC interface has come down
+    TC_NOTIFY_IFC_CLOSE = 2
+'  A change on a TC interface, typically a change in the
+'  list of supported network addresses
+    TC_NOTIFY_IFC_CHANGE = 3
+'  A TC parameter has changed
+    TC_NOTIFY_PARAM_CHANGED = 4
+'  A flow has been closed by the TC interface
+'  for example: after a remote call close, or the whole interface
+'  is going down
+    TC_NOTIFY_FLOW_CLOSE = 5
+End Enum
+
+ 
+Public Const TC_INVALID_HANDLE As LongPtr = 0
+Public Const MAX_STRING_LENGTH  = 256
+
+' typedef
+' VOID (CALLBACK * TCI_NOTIFY_HANDLER)(
+    ' _In_                 HANDLE      ClRegCtx,
+    ' _In_                 HANDLE      ClIfcCtx,
+    ' _In_                 ULONG       Event,      // See list below
+    ' _In_                 HANDLE      SubCode,
+    ' _In_                 ULONG       BufSize,
+    ' _In_reads_bytes_(BufSize) PVOID       Buffer
+    ' );
+Public Delegate Sub TciNotifyHandler (ByVal ClRegCtx As LongPtr, ByVal ClIfcCtx As LongPtr, ByVal Event As QoSTcNotifyCodes, ByVal SubCode As LongPtr, ByVal BufSize As Long, ByVal Buffer As LongPtr)
+' typedef
+' VOID (CALLBACK * TCI_ADD_FLOW_COMPLETE_HANDLER)(
+    ' _In_ HANDLE   ClFlowCtx,
+    ' _In_ ULONG    Status
+    ' );
+Public Delegate Sub TciAddFlowCompleteHandler (ByVal ClFlowCtx As LongPtr, ByVal Status As Long)
+' typedef
+' VOID (CALLBACK * TCI_MOD_FLOW_COMPLETE_HANDLER)(
+    ' _In_ HANDLE   ClFlowCtx,
+    ' _In_ ULONG    Status
+    ' );
+Public Delegate Sub TciModFlowCompleteHandler (ByVal ClFlowCtx As LongPtr, ByVal Status As Long)
+    
+' typedef
+' VOID (CALLBACK * TCI_DEL_FLOW_COMPLETE_HANDLER)(
+    ' _In_ HANDLE   ClFlowCtx,
+    ' _In_ ULONG    Status
+    ' );
+Public Delegate Sub TciDelFlowCompleteHandler (ByVal ClFlowCtx As LongPtr, ByVal Status As Long)
+    
+' Public Type TCI_CLIENT_FUNC_LIST
+'     ClNotifyHandler As TciNotifyHandler
+'     ClAddFlowCompleteHandler As TciAddFlowCompleteHandler
+'     ClModifyFlowCompleteHandler As TciModFlowCompleteHandler
+'     ClDeleteFlowCompleteHandler As TciDelFlowCompleteHandler
+' End Type
+Public Type TCI_CLIENT_FUNC_LIST
+    ClNotifyHandler As LongPtr
+    ClAddFlowCompleteHandler As LongPtr
+    ClModifyFlowCompleteHandler As LongPtr
+    ClDeleteFlowCompleteHandler As LongPtr
+End Type
+
+Public Enum NdisProtocolIds
+    NDIS_PROTOCOL_ID_DEFAULT = &H00
+    NDIS_PROTOCOL_ID_TCP_IP = &H02
+    NDIS_PROTOCOL_ID_IP6 = &H03
+    NDIS_PROTOCOL_ID_IPX = &H06
+    NDIS_PROTOCOL_ID_NBF = &H07
+    NDIS_PROTOCOL_ID_MAX = &H0F
+    NDIS_PROTOCOL_ID_MASK = &H0F
+End Enum
+Public Type NETWORK_ADDRESS
+    AddressLength As Integer ' length in bytes of Address[] in this
+    AddressType As Integer ' type of this address (NDIS_PROTOCOL_ID_XXX above)
+    Address(0 To 16) As Byte ' actually AddressLength bytes long
+End Type
+[Description("WARNING: Header only-- followed by a variable C-style array, which would normally be bufferedd but it's *also* variable-sized. ")]
+Public Type NETWORK_ADDRESS_LIST
+    AddressCount As Long ' number of addresses following
+    AddressType As Integer ' type of this address (NDIS_PROTOCOL_ID_XXX above)
+    ' Address(0 To 0) As NETWORK_ADDRESS ' actually AddressCount elements long
+End Type
+Public Type ADDRESS_LIST_DESCRIPTOR
+    MediaType As Long
+    AddressList As NETWORK_ADDRESS_LIST
+End Type
+Public Type TC_IFC_DESCRIPTOR
+    Length As Long
+    pInterfaceName As LongPtr
+    pInterfaceID As LongPtr
+    AddressListDesc As ADDRESS_LIST_DESCRIPTOR
+End Type
+Public Type TC_SUPPORTED_INFO_BUFFER
+    InstanceIDLength As Integer
+    ' device or interface ID
+    InstanceID(0 To (MAX_STRING_LENGTH - 1)) As Integer
+    ' the NET_LUID for the interface
+    InterfaceLuid As LongLong
+    ' address list
+    AddrListDesc As ADDRESS_LIST_DESCRIPTOR
+End Type
+
+Public Type TC_GEN_FILTER
+    AddressType As Integer ' IP, IPX, etc.
+    PatternSize As Long ' byte count of the pattern
+    Pattern As LongPtr ' specific format, e.g. IP_PATTERN
+    Mask As LongPtr ' same type as Pattern
+End Type
+
+Public Type TC_GEN_FLOW
+    SendingFlowspec As FLOWSPEC
+    ReceivingFlowspec As FLOWSPEC
+    TcObjectsLength As Long ' number of optional bytes
+    TcObjects(0 To 0) As QOS_OBJECT_HDR
+End Type
+
+Public Type IP_PATTERN
+    Reserved1 As Long
+    Reserved2 As Long
+    SrcAddr As Long
+    DstAddr As Long
+    '    union {
+    '        struct { USHORT s_srcport,s_dstport; } S_un_ports;
+    '        struct { UCHAR s_type,s_code; USHORT filler; } S_un_icmp;
+    '       ULONG   S_Spi;
+    '    } S_un;
+    S_un As Long
+    ProtocolId As Byte
+    Reserved3(0 To 2) As Byte
+    '#define tcSrcPort S_un.S_un_ports.s_srcport
+    '#define tcDstPort S_un.S_un_ports.s_dstport
+    '#define tcIcmpType        S_un.S_un_icmp.s_type
+    '#define tcIcmpCode        S_un.S_un_icmp.s_code
+    '#define tcSpi             S_un.S_Spi
+End Type
+Public Type IPX_PATTERN
+    '    struct {
+    NetworkAddress As Long
+    NodeAddress(0 To 5) As Byte
+    Socket As Integer
+    ' } Src, Dest;
+End Type
+
+[Description("Note: GenericFilter is a variable C-style array which has been buffered to a guess at the max ever needed.")]
+Public Type ENUMERATION_BUFFER
+    Length As Long
+    OwnerProcessId As Long
+    FlowNameLength As Integer
+    FlowName(0 To (MAX_STRING_LENGTH - 1)) As Integer
+    pFlow As LongPtr 'PTC_GEN_FLOW
+    NumberOfFilters As Long
+    GenericFilter(0 To 127) As TC_GEN_FILTER ' one for each filter
+End Type
+
+Public Declare PtrSafe Function TcRegisterClient Lib "traffic.dll" (ByVal TciVersion As Long, ByVal ClRegCtx As LongPtr, ClientHandlerList As TCI_CLIENT_FUNC_LIST, pClientHandle As LongPtr) As Long
+Public Declare PtrSafe Function TcEnumerateInterfaces Lib "traffic.dll" (ByVal ClientHandle As LongPtr, pBufferSize As Long, InterfaceBuffer As Any) As Long
+Public Declare PtrSafe Function TcOpenInterfaceA Lib "traffic.dll" (ByVal pInterfaceName As String, ByVal ClientHandle As LongPtr, ByVal ClIfcCtx As LongPtr, pIfcHandle As LongPtr) As Long
+Public Declare PtrSafe Function TcOpenInterfaceW Lib "traffic.dll" (ByVal pInterfaceName As LongPtr, ByVal ClientHandle As LongPtr, ByVal ClIfcCtx As LongPtr, pIfcHandle As LongPtr) As Long
+Public DeclareWide PtrSafe Function TcOpenInterface Lib "traffic.dll" Alias "TcOpenInterfaceW" (ByVal pInterfaceName As String, ByVal ClientHandle As LongPtr, ByVal ClIfcCtx As LongPtr, pIfcHandle As LongPtr) As Long
+Public Declare PtrSafe Function TcCloseInterface Lib "traffic.dll" (ByVal IfcHandle As LongPtr) As Long
+Public Declare PtrSafe Function TcQueryInterface Lib "traffic.dll" (ByVal IfcHandle As LongPtr, pGuidParam As UUID, ByVal NotifyChange As Byte, pBufferSize As Long, Buffer As Any) As Long
+Public Declare PtrSafe Function TcSetInterface Lib "traffic.dll" (ByVal IfcHandle As LongPtr, pGuidParam As UUID, ByVal BufferSize As Long, Buffer As Any) As Long
+Public Declare PtrSafe Function TcQueryFlowA Lib "traffic.dll" (ByVal pFlowName As String, pGuidParam As UUID, pBufferSize As Long, Buffer As Any) As Long
+Public Declare PtrSafe Function TcQueryFlowW Lib "traffic.dll" (ByVal pFlowName As LongPtr, pGuidParam As UUID, pBufferSize As Long, Buffer As Any) As Long
+Public DeclareWide PtrSafe Function TcQueryFlow Lib "traffic.dll" Alias "TcQueryFlowW" (ByVal pFlowName As String, pGuidParam As UUID, pBufferSize As Long, Buffer As Any) As Long
+Public Declare PtrSafe Function TcSetFlowA Lib "traffic.dll" (ByVal pFlowName As String, pGuidParam As UUID, ByVal BufferSize As Long, Buffer As Any) As Long
+Public Declare PtrSafe Function TcSetFlowW Lib "traffic.dll" (ByVal pFlowName As LongPtr, pGuidParam As UUID, ByVal BufferSize As Long, Buffer As Any) As Long
+Public DeclareWide PtrSafe Function TcSetFlow Lib "traffic.dll" Alias "TcSetFlowW" (ByVal pFlowName As String, pGuidParam As UUID, ByVal BufferSize As Long, Buffer As Any) As Long
+Public Declare PtrSafe Function TcAddFlow Lib "traffic.dll" (ByVal IfcHandle As LongPtr, ByVal ClFlowCtx As LongPtr, ByVal Flags As Long, pGenericFlow As TC_GEN_FLOW, pFlowHandle As LongPtr) As Long
+Public Declare PtrSafe Function TcGetFlowNameA Lib "traffic.dll" (ByVal FlowHandle As LongPtr, ByVal StrSize As Long, ByVal pFlowName As String) As Long
+Public Declare PtrSafe Function TcGetFlowNameW Lib "traffic.dll" (ByVal FlowHandle As LongPtr, ByVal StrSize As Long, ByVal pFlowName As LongPtr) As Long
+Public DeclareWide PtrSafe Function TcGetFlowName Lib "traffic.dll" Alias "TcGetFlowNameW" (ByVal FlowHandle As LongPtr, ByVal StrSize As Long, ByVal pFlowName As String) As Long
+Public Declare PtrSafe Function TcModifyFlow Lib "traffic.dll" (ByVal FlowHandle As LongPtr, pGenericFlow As TC_GEN_FLOW) As Long
+Public Declare PtrSafe Function TcAddFilter Lib "traffic.dll" (ByVal FlowHandle As LongPtr, pGenericFilter As TC_GEN_FILTER, pFilterHandle As LongPtr) As Long
+Public Declare PtrSafe Function TcDeregisterClient Lib "traffic.dll" (ByVal ClientHandle As LongPtr) As Long
+Public Declare PtrSafe Function TcDeleteFlow Lib "traffic.dll" (ByVal FlowHandle As LongPtr) As Long
+Public Declare PtrSafe Function TcDeleteFilter Lib "traffic.dll" (ByVal FilterHandle As LongPtr) As Long
+Public Declare PtrSafe Function TcEnumerateFlows Lib "traffic.dll" (ByVal IfcHandle As LongPtr, pEnumHandle As LongPtr, pFlowCount As Long, pBufSize As Long, Buffer As ENUMERATION_BUFFER) As Long
+
+
+
+#End Region
+
+
 End Module
 
 #End If
