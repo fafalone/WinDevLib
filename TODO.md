@@ -37,3 +37,5 @@ before release, or waiting on feature support:
 
 -Finish qos2.h
 -traffic.h
+
+-advpub.h

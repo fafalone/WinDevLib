@@ -1,4 +1,11 @@
 
+**Update (v8.6.468, 11 Nov 2024):**
+-Added QoS APIs from qos2.h (100% coverage)
+-Added QoS Traffic APIs from traffic.h (100% coverage, also for qosobjs.h, qos.h, and qossp.h)
+-ServiceType custom enum renamed SystemServiceType to avoid conflict with official-named SERVICETYPE in QoS APIs
+-Added some additional Setup APIs
+
+
 **Update (v8.6.466, 10 Nov 2024):**
 -Added Bluetooth LE APIs (bluetoothleapis.h, 100% coverage; bthledef.h 90% -- still need to do macros)
 -(Bug fix) FDI and FCI APIs and Delegates are _cdecl.
