@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 8.6.464 (November 10th, 2024)**
+**Current Version: 8.6.468 (November 11th, 2024)**
 
 ## IMPORTANT: [twinBASIC Beta 617 or newer](https://github.com/twinbasic/twinbasic/releases) is now required.
 
@@ -190,6 +190,12 @@ twinBASIC now counts msvbvm60 redirects as legacy DLL redirects, which WinDevLib
  
 
 ### Updates
+
+**Update (v8.6.468, 11 Nov 2024):**\
+-Added QoS APIs from qos2.h (100% coverage)\
+-Added QoS Traffic APIs from traffic.h (100% coverage, also for qosobjs.h, qos.h, and qossp.h)\
+-ServiceType custom enum renamed SystemServiceType to avoid conflict with official-named SERVICETYPE in QoS APIs\
+-Added some additional Setup APIs
 
 **Update (v8.6.466, 10 Nov 2024):**\
 -Added Bluetooth LE APIs (bluetoothleapis.h, 100% coverage; bthledef.h 90% -- still need to do macros)\
