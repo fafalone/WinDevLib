@@ -10300,6 +10300,152 @@ Public Const DNS_ADDRESS_STRING_LENGTH  = (IP6_ADDRESS_STRING_LENGTH)
     
     
 #End Region
+
+
+#Region "qdos2.h"
+
+Public Enum QOS_TRAFFIC_TYPE
+    QOSTrafficTypeBestEffort = 0
+    QOSTrafficTypeBackground = 1
+    QOSTrafficTypeExcellentEffort = 2
+    QOSTrafficTypeAudioVideo = 3
+    QOSTrafficTypeVoice = 4
+    QOSTrafficTypeControl = 5
+End Enum
+
+Public Enum QOS_SET_FLOW
+    QOSSetTrafficType = 0
+    QOSSetOutgoingRate = 1
+    QOSSetOutgoingDSCPValue = 2
+End Enum
+
+Public Type QOS_PACKET_PRIORITY
+    ConformantDSCPValue As Long ' the DSCP marking used for the flow's 
+    ' traffic that respects the flow rate
+    ' specified
+    NonConformantDSCPValue As Long ' the DSCP marking used for the flow's 
+    ' traffic that exceeds the flow rate
+    ' specified. Applicable only if shaping
+    ' behavior is set to
+    ' QOSUseNonConformantMarkings
+    ConformantL2Value As Long ' the L2 tag used for the flow's traffic 
+    ' that respects the flow rate specified
+    NonConformantL2Value As Long ' the L2 tag used for the flow's traffic 
+    ' that respects the flow rate specified.
+    ' Applicable only if shaping behavior is
+    ' set to QOSUseNonConformantMarkings
+End Type
+
+Public Type QOS_FLOW_FUNDAMENTALS
+    BottleneckBandwidthSet As BOOL ' TRUE if the BottleneckBandwidth field
+    ' contains a value.
+    BottleneckBandwidth As LongLong ' In units of bits/s ; does not include 
+    ' layer 3
+    AvailableBandwidthSet As BOOL ' TRUE if the AvailableBandwidth field
+    ' contains a value.
+    AvailableBandwidth As LongLong ' In units of bits/s ; does not include 
+    ' layer 3
+    RTTSet As BOOL ' TRUE if the RTT field
+    ' contains a value.
+    RTT As Long ' RTT is in microseconds. 
+End Type
+
+Public Enum QOS_FLOWRATE_REASON
+    QOSFlowRateNotApplicable = 0
+    QOSFlowRateContentChange = 1
+    QOSFlowRateCongestion = 2
+    QOSFlowRateHigherContentEncoding = 3
+    QOSFlowRateUserCaused = 4
+End Enum
+
+Public Enum QOS_SHAPING
+    QOSShapeOnly = 0
+    QOSShapeAndMark = 1
+    QOSUseNonConformantMarkings = 2
+End Enum
+
+Public Const QOS_OUTGOING_DEFAULT_MINIMUM_BANDWIDTH = &HFFFFFFFF
+
+Public Type QOS_FLOWRATE_OUTGOING
+    Bandwidth As LongLong ' In units of bits/s
+    ShapingBehavior As QOS_SHAPING ' Shaping behavior
+    Reason As QOS_FLOWRATE_REASON ' Optional field for the 
+    ' application to indicate why it's
+    ' changing a flow's data rate
+End Type
+
+Public Enum QOS_QUERY_FLOW
+    QOSQueryFlowFundamentals = 0
+    QOSQueryPacketPriority = 1
+    QOSQueryOutgoingRate = 2
+End Enum
+
+Public Enum QOS_NOTIFY_FLOW
+    QOSNotifyCongested = 0
+    QOSNotifyUncongested = 1
+    QOSNotifyAvailable = 2
+End Enum
+
+Public Type QOS_VERSION
+    MajorVersion As Integer
+    MinorVersion As Integer
+End Type
+
+Public Enum Qos2FlowFlags
+    QOS_QUERYFLOW_FRESH = &H00000001
+    QOS_NON_ADAPTIVE_FLOW = &H00000002
+End Enum
+
+Public Function QOS_HEADER_OVERHEAD(ByVal af As ADDRESS_FAMILIES, ByVal protocol As IPPROTO) As Long
+    Dim overhead As Long
+    If af = AF_INET Then
+        overhead = 20
+    Else
+        overhead = 40
+    End If
+    If (protocol = IPPROTO_TCP) Then
+        overhead += 20 ' TCP header overhead in bytes
+    Else
+        overhead += 8 ' UDP header overhead in bytes
+    End If
+    Return overhead
+End Function
+
+Public Function QOS_ADD_OVERHEAD(ByVal af As ADDRESS_FAMILIES, ByVal protocol As IPPROTO, ByVal targetDataPacketSize As Long, ByVal dataRate As LongLong) As LongLong
+    Dim overhead As Long
+    Dim d As Double
+    Dim r As LongLong
+    
+    ' //
+    ' // Calculate the header overhead
+    overhead = QOS_HEADER_OVERHEAD(af, protocol)
+
+    ' //
+    ' // Convert overhead And dataRate to bits
+    overhead *= 8
+    targetDataPacketSize *= 8
+
+    ' //
+    ' // The adjustment Is:
+    ' //
+    ' //                         (       dataRate                  )
+    ' // returnRate = dataRate + ( -------------------- * overhead )
+    ' //                         ( targetDataPacketSize            )
+    ' //
+    ' // For Each packet we expect to see go out, we need to add the 
+    ' // overhead
+    d = overhead
+    d /= targetDataPacketSize
+    d *= CDbl(dataRate)
+
+    r = dataRate
+    r += CLngLng(d)
+
+    Return r
+End Function
+
+'BREAK LINE 425
+#End Region
 End Module
 
 #End If
