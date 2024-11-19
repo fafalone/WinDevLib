@@ -1,4 +1,14 @@
 
+**Update (v8.6.470, 18 Nov 2024):**
+-Large expansion of cfgmgr32.h APIs, now 100% coverage
+-Added 100% coverage of WinEFS.h
+-SHOpenFolderAndSelectItems will now use ByRef apidl As LongPtr in line with the official definition;
+   if you previously used VarPtr you must either remove it or change to ByVal VarPtr.
+-Added 100% coverage of winstring.h
+-(Bug fix) MFP_GET_* functions improperly modified reference counts, leading to use-after-free crashes
+-(Bug fix) MSDN lists dialog macros as Sub (void); but the actual SDK macros would retain the return so they 
+           should be functions returning the result of the API they wrap.
+
 **Update (v8.6.468, 11 Nov 2024):**
 -Added QoS APIs from qos2.h (100% coverage)
 -Added QoS Traffic APIs from traffic.h (100% coverage, also for qosobjs.h, qos.h, and qossp.h)
