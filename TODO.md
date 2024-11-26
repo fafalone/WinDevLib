@@ -35,7 +35,5 @@ before release, or waiting on feature support:
 
 -Put IShellPropSheetExt delegates back
 
--Finish qos2.h
--traffic.h
-
+ 
 -advpub.h

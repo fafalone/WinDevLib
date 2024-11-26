@@ -1,4 +1,14 @@
 
+**Update (v8.6.472, 26 Nov 2024):**
+-Added Group Policy APIs/interfaces from GPEdit.h (100% coverage)
+-Added InputPanelConfiguration.h 100% coverage
+-Added missing WIC interfaces, enums, and GUIDs.
+-Added missing event tracing related APIs and defs from wmistr.h and evntcons.h (now both 100% coverage)
+-(Bug fix) DeriveCapabilitySidsFromName typo in name; in kernelbase, not kernel32 or advapi32
+-(Bug fix) LsaConnectUntrusted, LsaInsertProtectedProcessAddress, LsaRemoveProtectedProcessAddress are in secur32, not advapi32.
+-(Bug fix) GetServiceRegistryStateKey, GetServiceDirectory, GetSharedServiceRegistryStateKey, GetSharedServiceDirectory are in sechost, not advapi32
+
+
 **Update (v8.6.470, 18 Nov 2024):**
 -Large expansion of cfgmgr32.h APIs, now 100% coverage
 -Added 100% coverage of WinEFS.h
