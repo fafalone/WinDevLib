@@ -23,17 +23,13 @@ before release, or waiting on feature support:
 
 -ndfapi.h
 
--wsman
-
--wcmapi.h
-
 -NT reg VR differencing
 
 -bluetooth btdef.h macros
 
 -Convert additional static lib stuff to Emit()
 
--Put IShellPropSheetExt delegates back
+-Put   delegates back
 
  
 -advpub.h

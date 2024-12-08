@@ -1,4 +1,12 @@
 
+**Update (v8.6.474, 08 Dec 2024):**
+-Added Windows Remote Management APIs (wsman.h, 100% coverage)
+-Added Windows Connection Manager APIs (wcmapi.h, 100% coverage)
+-Added coverage of Netbios function (nb30.h, 100% coverage)
+-Added additional Windows Resource Protection APIs, including undocumented ones to list all protected files on Vista+.
+-VS_VERSIONINFO_FIXED_PORTION used 1-based arrays inconsistent with rest of project. Padding1 should not be an array.
+
+
 **Update (v8.6.472, 26 Nov 2024):**
 -Added Group Policy APIs/interfaces from GPEdit.h (100% coverage)
 -Added InputPanelConfiguration.h 100% coverage
@@ -7,7 +15,6 @@
 -(Bug fix) DeriveCapabilitySidsFromName typo in name; in kernelbase, not kernel32 or advapi32
 -(Bug fix) LsaConnectUntrusted, LsaInsertProtectedProcessAddress, LsaRemoveProtectedProcessAddress are in secur32, not advapi32.
 -(Bug fix) GetServiceRegistryStateKey, GetServiceDirectory, GetSharedServiceRegistryStateKey, GetSharedServiceDirectory are in sechost, not advapi32
-
 
 **Update (v8.6.470, 18 Nov 2024):**
 -Large expansion of cfgmgr32.h APIs, now 100% coverage
