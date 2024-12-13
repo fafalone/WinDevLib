@@ -1,12 +1,21 @@
 
+**Update (v8.6.476, 12 Dec 2024):**
+-Some additional winsock stuff
+-Some additional bluetooth stuff (including ws2bth.h, 100%)
+-Added all inlined functions from VersionHelpers.h (100% coverage)
+    IsWindowsVersionOrGreater has a optional custom argument, NoVersionLie, which returns
+    the current Windows version regardless of manifest.
+-Some misc defs to bring coverage of minwinbase.h to 100%
+-(Bug fix) WideCharToMultiByte definition incorrect.
+ 
+
 **Update (v8.6.474, 08 Dec 2024):**
 -Added Windows Remote Management APIs (wsman.h, 100% coverage)
 -Added Windows Connection Manager APIs (wcmapi.h, 100% coverage)
 -Added coverage of Netbios function (nb30.h, 100% coverage)
 -Added additional Windows Resource Protection APIs, including undocumented ones to list all protected files on Vista+.
 -VS_VERSIONINFO_FIXED_PORTION used 1-based arrays inconsistent with rest of project. Padding1 should not be an array.
-
-
+ 
 **Update (v8.6.472, 26 Nov 2024):**
 -Added Group Policy APIs/interfaces from GPEdit.h (100% coverage)
 -Added InputPanelConfiguration.h 100% coverage
