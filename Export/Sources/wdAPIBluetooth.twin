@@ -2316,5 +2316,271 @@ Public Declare PtrSafe Function BluetoothGATTUnregisterEvent Lib "BluetoothAPIs.
 
 
 #End Region
+
+#Region "ws2bth.h"
+Public Enum WSBthPorts
+    BT_PORT_ANY = (-1)
+    BT_PORT_MIN = &H1
+    BT_PORT_MAX = &Hffff&
+    BT_PORT_DYN_FIRST = &H1001
+End Enum
+
+[PackingAlignment(1)]
+Public Type SOCKADDR_BTH
+    addressFamily As Integer ' Always AF_BTH
+    btAddr As LongLong 'BTH_ADDR ' Bluetooth device address
+    serviceClassId As UUID ' [OPTIONAL] system will query SDP for port
+    port As Long ' RFCOMM channel or L2CAP PSM
+End Type
+
+Public Function SVCID_BTH_PROVIDER() As UUID
+'{6aa63e0-7d60-41ff-afb2-3ee6d2d9392d}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H6aa63e0, CInt(&H7d60), CInt(&H41ff), &Haf, &Hb2, &H3e, &He6, &Hd2, &Hd9, &H39, &H2d)
+ SVCID_BTH_PROVIDER = iid
+End Function
+
+Public Const BTH_ADDR_STRING_SIZE  = 12  ' max size from WSAAddressToString
+'  Bluetooth protocol #s are assigned according to the Bluetooth
+'  Assigned Numbers portion of the Bluetooth Specification
+Public Const BTHPROTO_RFCOMM  = &H0003
+Public Const BTHPROTO_L2CAP  = &H0100
+Public Const SOL_RFCOMM  = BTHPROTO_RFCOMM
+Public Const SOL_L2CAP  = BTHPROTO_L2CAP
+Public Const SOL_SDP  = &H0101
+
+Public Enum WSBthSocketOptions
+    SO_BTH_AUTHENTICATE = &H80000001  ' optlen=sizeof(ULONG), optval = &(ULONG)TRUE/FALSE
+    SO_BTH_ENCRYPT = &H00000002  ' optlen=sizeof(ULONG), optval = &(ULONG)TRUE/FALSE
+    SO_BTH_MTU = &H80000007  ' optlen=sizeof(ULONG), optval = &mtu
+    SO_BTH_MTU_MAX = &H80000008  ' optlen=sizeof(ULONG), optval = &max. mtu
+    SO_BTH_MTU_MIN = &H8000000a  ' optlen=sizeof(ULONG), optval = &min. mtu
+End Enum
+
+Public Enum WSBthSocketOptionParams
+    RFCOMM_MAX_MTU = &H000003F3  ' L2CAP MTU (1017) - RFCOMM header size (6)
+    RFCOMM_MIN_MTU = &H00000017  ' RFCOMM spec sec 5.3 table 5.1
+End Enum
+
+Public Const BTH_SDP_VERSION = 1
+
+[Description("WARNING: Header only. Followed by variable C-style byte array. For a 32kb buffered version, use BTH_SET_SERVICE_Buff.")]
+[PackingAlignment(1)]
+Public Type BTH_SET_SERVICE
+    ' This version number will change when/if the binary format of
+    ' SDP records change, affecting the format of pRecord.
+    ' Set to BTH_SDP_VERSION by client, and returned by system
+    pSdpVersion As LongPtr 'PULONG
+    ' Handle to SDP record.  When BTH_SET_SERVICE structure is later
+    ' passed to WSASetService RNRSERVICE_DELETE, this handle identifies the
+    ' record to delete.
+    pRecordHandle As LongPtr 'HANDLE *
+    ' COD_SERVICE_* bit(s) associated with this SDP record, which will be
+    ' advertised when the local radio is found during device inquiry.
+    ' When the last SDP record associated with a bit is deleted, that
+    ' service bit is no longer reported in repsonse to inquiries
+    fCodService As BthCodServiceFlags ' COD_SERVICE_* bits
+    Reserved(0 To 4) As Long ' Reserved by system.  Must be zero.                
+    ulRecordLength As Long ' length of pRecord which follows
+    ' pRecord(0 To 32767) As Byte ' SDP record as defined by bluetooth spec
+End Type
+[PackingAlignment(1)]
+Public Type BTH_SET_SERVICE_Buff
+    ' This version number will change when/if the binary format of
+    ' SDP records change, affecting the format of pRecord.
+    ' Set to BTH_SDP_VERSION by client, and returned by system
+    pSdpVersion As LongPtr 'PULONG
+    ' Handle to SDP record.  When BTH_SET_SERVICE structure is later
+    ' passed to WSASetService RNRSERVICE_DELETE, this handle identifies the
+    ' record to delete.
+    pRecordHandle As LongPtr 'HANDLE *
+    ' COD_SERVICE_* bit(s) associated with this SDP record, which will be
+    ' advertised when the local radio is found during device inquiry.
+    ' When the last SDP record associated with a bit is deleted, that
+    ' service bit is no longer reported in repsonse to inquiries
+    fCodService As BthCodServiceFlags ' COD_SERVICE_* bits
+    Reserved(0 To 4) As Long ' Reserved by system.  Must be zero.                
+    ulRecordLength As Long ' length of pRecord which follows
+    pRecord(0 To 32767) As Byte ' SDP record as defined by bluetooth spec
+End Type
+Public Const SDP_DEFAULT_INQUIRY_SECONDS  = 6
+Public Const SDP_MAX_INQUIRY_SECONDS  = 60
+'  Default maximum number of devices to search for
+Public Const SDP_DEFAULT_INQUIRY_MAX_RESPONSES  = 255
+Public Enum WSBthSdpServices
+    SDP_SERVICE_SEARCH_REQUEST = 1
+    SDP_SERVICE_ATTRIBUTE_REQUEST = 2
+    SDP_SERVICE_SEARCH_ATTRIBUTE_REQUEST = 3
+End Enum
+
+[PackingAlignment(1)]
+Public Type BTH_QUERY_DEVICE
+    LAP As Long ' reserved: must be 0 (GIAC inquiry only)
+    length As Byte ' requested length of inquiry (seconds)       
+End Type
+
+[Description("WARNING: Fixed buffer substituted for variable C-style array.")]
+[PackingAlignment(1)]
+Public Type BTH_QUERY_SERVICE
+    type As WSBthSdpServices ' one of SDP_SERVICE_*
+    serviceHandle As Long
+    uuids(0 To (MAX_UUIDS_IN_QUERY - 1)) As SdpQueryUuid
+    numRange As Long
+    pRange(0 To 1023) As SdpAttributeRange
+End Type
+
+Public Enum WSBthNsResults
+    BTHNS_RESULT_DEVICE_CONNECTED = &H00010000
+    BTHNS_RESULT_DEVICE_REMEMBERED = &H00020000
+    BTHNS_RESULT_DEVICE_AUTHENTICATED = &H00040000
+End Enum
+
+Public Const SIO_RFCOMM_SEND_COMMAND = &Hd8000065
+Public Const SIO_RFCOMM_WAIT_COMMAND = &Hd8000066
+Public Const SIO_BTH_PING = &Hd8000008
+Public Const SIO_BTH_INFO = &Hd8000009
+Public Const SIO_RFCOMM_SESSION_FLOW_OFF = &Hd8000067
+Public Const SIO_RFCOMM_TEST = &Hd8000068
+Public Const SIO_RFCOMM_USECFC = &Hd8000069
+
+Public Type RFCOMM_MSC_DATA
+    Signals As Byte
+    Break As Byte
+End Type
+Public Enum WsBthMscBits
+    ' MSC_EA_BIT = EA_BIT
+    MSC_FC_BIT = (1 << (1))  ' Flow control, clear if we can receive
+    MSC_RTC_BIT = (1 << (2))  ' Ready to communicate, set when ready
+    MSC_RTR_BIT = (1 << (3))  ' Ready to receive, set when ready
+    MSC_RESERVED = ((1 << (4)) Or (1 << (5))) ' Reserved by spec, must be 0
+    MSC_IC_BIT = (1 << (6))  ' Incoming call
+    MSC_DV_BIT = (1 << (7)) ' Data valid
+    MSC_BREAK_BIT = (1 << (1))
+End Enum
+Public Sub MSC_SET_BREAK_LENGTH(b As Byte, l As Byte)
+    b = CByte(((b) And CByte(&H3)) Or (((l) And &Hf) << CByte(4)))
+End Sub
+
+Public Enum WSBthLineStatus
+    RLS_ERROR = &H01
+    RLS_OVERRUN = &H02
+    RLS_PARITY = &H04
+    RLS_FRAMING = &H08
+End Enum
+Public Type RFCOMM_RLS_DATA
+    /* [TypeHint(WSBthLineStatus)] */ LineStatus As Byte
+End Type
+
+Public Enum WSBthRpnBaud
+    RPN_BAUD_2400 = 0
+    RPN_BAUD_4800 = 1
+    RPN_BAUD_7200 = 2
+    RPN_BAUD_9600 = 3
+    RPN_BAUD_19200 = 4
+    RPN_BAUD_38400 = 5
+    RPN_BAUD_57600 = 6
+    RPN_BAUD_115200 = 7
+    RPN_BAUD_230400 = 8
+End Enum
+Public Enum WSBthRpnData
+    RPN_DATA_5 = &H0
+    RPN_DATA_6 = &H1
+    RPN_DATA_7 = &H2
+    RPN_DATA_8 = &H3
+    RPN_STOP_1 = &H0
+    RPN_STOP_1_5 = &H4
+    RPN_PARITY_NONE = &H00
+    RPN_PARITY_ODD = &H08
+    RPN_PARITY_EVEN = &H18
+    RPN_PARITY_MARK = &H28
+    RPN_PARITY_SPACE = &H38
+End Enum
+Public Enum WSBthRpnFlow
+    RPN_FLOW_X_IN = &H01
+    RPN_FLOW_X_OUT = &H02
+    RPN_FLOW_RTR_IN = &H04
+    RPN_FLOW_RTR_OUT = &H08
+    RPN_FLOW_RTC_IN = &H10
+    RPN_FLOW_RTC_OUT = &H20
+End Enum
+Public Enum WSBthRpnParam1
+    RPN_PARAM_BAUD = &H01
+    RPN_PARAM_DATA = &H02
+    RPN_PARAM_STOP = &H04
+    RPN_PARAM_PARITY = &H08
+    RPN_PARAM_P_TYPE = &H10
+    RPN_PARAM_XON = &H20
+    RPN_PARAM_XOFF = &H40
+End Enum
+Public Enum WSBthRpnParam2
+    RPN_PARAM_X_IN = &H01
+    RPN_PARAM_X_OUT = &H02
+    RPN_PARAM_RTR_IN = &H04
+    RPN_PARAM_RTR_OUT = &H08
+    RPN_PARAM_RTC_IN = &H10
+    RPN_PARAM_RTC_OUT = &H20
+End Enum
+Public Type RFCOMM_RPN_DATA
+    /* [TypeHint(WSBthRpnBaud)] */ Baud As Byte
+    /* [TypeHint(WSBthRpnData)] */ Data As Byte
+    /* [TypeHint(WSBthRpnFlow)] */ FlowControl As Byte
+    XonChar As Byte
+    XoffChar As Byte
+    /* [TypeHint(WSBthRpnParam1)] */ ParameterMask1 As Byte
+    /* [TypeHint(WSBthRpnParam2)] */ ParameterMask2 As Byte
+End Type
+
+Public Enum WSBthRfCommCmds
+    RFCOMM_CMD_NONE = 0
+    RFCOMM_CMD_MSC = 1
+    RFCOMM_CMD_RLS = 2
+    RFCOMM_CMD_RPN = 3
+    RFCOMM_CMD_RPN_REQUEST = 4
+    RFCOMM_CMD_RPN_RESPONSE = 5
+    RESERVED_CMD = 6
+End Enum
+
+[PackingAlignment(1)]
+Public Type RFCOMM_COMMAND
+    CmdType As WSBthRfCommCmds ' one of RFCOMM_CMD_*
+    'union
+    '{
+    '    RFCOMM_MSC_DATA    MSC;
+    '    RFCOMM_RLS_DATA    RLS;
+    '    RFCOMM_RPN_DATA    RPN;
+    '} Data;
+    Data(6) As Byte
+End Type
+[PackingAlignment(1)]
+Public Type BTH_PING_REQ
+    btAddr As LongLong
+    dataLen As Byte
+    data(0 To (MAX_L2CAP_PING_DATA_LENGTH - 1)) As Byte
+End Type
+[PackingAlignment(1)]
+Public Type BTH_PING_RSP
+    dataLen As Byte
+    data(0 To (MAX_L2CAP_PING_DATA_LENGTH - 1)) As Byte
+End Type
+[PackingAlignment(1)]
+Public Type BTH_INFO_REQ
+    btAddr As LongLong
+    infoType As Integer
+End Type
+[PackingAlignment(1)]
+Public Type BTH_INFO_RSP
+    result As Integer
+    dataLen As Byte
+    'union {
+    '    USHORT  connectionlessMTU;
+    '    UCHAR   data[MAX_L2CAP_INFO_DATA_LENGTH];
+    '};
+    u(45) As Byte
+End Type
+
+
+
+
+#End Region
 End Module
 #End If

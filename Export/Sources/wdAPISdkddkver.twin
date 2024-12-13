@@ -8,6 +8,7 @@
 '*****************************************************************************************
 
 'sdkddkver.h
+'VersionHelpers.h
 
 Module wdAPISdkddkver
 
@@ -143,3 +144,120 @@ Module wdAPISdkddkver
     
     
 End Module
+
+#If WINDEVLIB_LITE = 0 Then
+Module VersionHelpers
+
+Public Function IsWindowsVersionOrGreater(wMajorVersion As Integer, wMinorVersion As Integer, wServicePackMajor As Integer, Optional ByVal NoVersionLie As Boolean = False) As Boolean
+    Dim osvi As OSVERSIONINFOEXW
+    osvi.dwOSVersionInfoSize = LenB(osvi)
+    If NoVersionLie Then
+        RtlGetVersion osvi
+        If osvi.dwMajorVersion >= wMajorVersion Then
+            If osvi.dwMinorVersion >= wMinorVersion Then
+                If osvi.wServicePackMajor >= wServicePackMajor Then
+                    Return True
+                End If
+            End If
+        End If
+        Return False
+    Else
+        Dim dwlConditionMask As LongLong = VerSetConditionMask( _
+            VerSetConditionMask( _
+            VerSetConditionMask( _
+                0, VER_MAJORVERSION, CByte(VER_GREATER_EQUAL)), _
+                   VER_MINORVERSION, CByte(VER_GREATER_EQUAL)), _
+                   VER_SERVICEPACKMAJOR, CByte(VER_GREATER_EQUAL))
+
+        osvi.dwMajorVersion = wMajorVersion
+        osvi.dwMinorVersion = wMinorVersion
+        osvi.wServicePackMajor = wServicePackMajor
+
+        Return VerifyVersionInfoW(osvi, VER_MAJORVERSION Or VER_MINORVERSION Or VER_SERVICEPACKMAJOR, dwlConditionMask) <> 0
+    End If
+End Function
+
+Public Function IsWindowsXPOrGreater() As Boolean
+    Return IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_WINXP), LOBYTE(_WIN32_WINNT_WINXP), 0)
+End Function
+
+Public Function IsWindowsXPSP1OrGreater() As Boolean
+
+    Return IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_WINXP), LOBYTE(_WIN32_WINNT_WINXP), 1)
+End Function
+
+Public Function IsWindowsXPSP2OrGreater() As Boolean
+    Return IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_WINXP), LOBYTE(_WIN32_WINNT_WINXP), 2)
+End Function
+
+Public Function IsWindowsXPSP3OrGreater() As Boolean
+    Return IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_WINXP), LOBYTE(_WIN32_WINNT_WINXP), 3)
+End Function
+
+Public Function IsWindowsVistaOrGreater() As Boolean
+    Return IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_VISTA), LOBYTE(_WIN32_WINNT_VISTA), 0)
+End Function
+
+Public Function IsWindowsVistaSP1OrGreater() As Boolean
+    Return IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_VISTA), LOBYTE(_WIN32_WINNT_VISTA), 1)
+End Function
+
+Public Function IsWindowsVistaSP2OrGreater() As Boolean
+    Return IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_VISTA), LOBYTE(_WIN32_WINNT_VISTA), 2)
+End Function
+
+Public Function IsWindows7OrGreater() As Boolean
+    Return IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_WIN7), LOBYTE(_WIN32_WINNT_WIN7), 0)
+End Function
+
+Public Function IsWindows7SP1OrGreater() As Boolean
+    Return IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_WIN7), LOBYTE(_WIN32_WINNT_WIN7), 1)
+End Function
+
+Public Function IsWindows8OrGreater() As Boolean
+    Return IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_WIN8), LOBYTE(_WIN32_WINNT_WIN8), 0)
+End Function
+
+Public Function IsWindows8Point1OrGreater() As Boolean
+    Return IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_WINBLUE), LOBYTE(_WIN32_WINNT_WINBLUE), 0)
+End Function
+
+Public Function IsWindowsThresholdOrGreater() As Boolean
+    Return IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_WINTHRESHOLD), LOBYTE(_WIN32_WINNT_WINTHRESHOLD), 0)
+End Function
+
+Public Function IsWindows10OrGreater() As Boolean
+    Return IsWindowsVersionOrGreater(HIBYTE(_WIN32_WINNT_WINTHRESHOLD), LOBYTE(_WIN32_WINNT_WINTHRESHOLD), 0)
+End Function
+
+Public Function IsWindowsServer() As Boolean
+
+    Dim osvi As OSVERSIONINFOEXW
+    osvi.dwOSVersionInfoSize = LenB(osvi)
+    osvi.wProductType = CByte(VER_NT_WORKSTATION)
+    Dim dwlConditionMask As LongLong = VerSetConditionMask(0, VER_PRODUCT_TYPE, CByte(VER_EQUAL))
+
+    Return VerifyVersionInfoW(osvi, VER_PRODUCT_TYPE, dwlConditionMask) <> 0
+End Function
+
+Public Function IsActiveSessionCountLimited() As Boolean
+
+    Dim fActiveSessionCountLimited As BOOL
+    Dim dwlConditionMask As LongLong
+    Dim VersionInfo  As OSVERSIONINFOEXW
+
+    VER_SET_CONDITION(dwlConditionMask, VER_SUITENAME, CByte(VER_AND))
+    VersionInfo.dwOSVersionInfoSize = LenB(Of OSVERSIONINFOEX)
+
+    VersionInfo.wSuiteMask = CInt(VER_SUITE_TERMINAL)
+    Dim fSuiteTerminal As BOOL = VerifyVersionInfo(VersionInfo, VER_SUITENAME, dwlConditionMask)
+
+    VersionInfo.wSuiteMask = CInt(VER_SUITE_SINGLEUSERTS)
+    Dim fSuiteSingleUserTS As BOOL = VerifyVersionInfo(VersionInfo, VER_SUITENAME, dwlConditionMask)
+
+    fActiveSessionCountLimited = If(((fSuiteTerminal And (fSuiteSingleUserTS <> 0)) <> 0), CTRUE, CFALSE)
+
+    Return fActiveSessionCountLimited <> 0
+End Function
+End Module
+#End If

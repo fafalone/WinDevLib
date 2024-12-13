@@ -3082,13 +3082,20 @@ End Enum
 Public Const INFINITE As Long = -1
 
 
-
+Public Enum ProcessHeapEntryFlags
+    PROCESS_HEAP_REGION = &H0001
+    PROCESS_HEAP_UNCOMMITTED_RANGE = &H0002
+    PROCESS_HEAP_ENTRY_BUSY = &H0004
+    PROCESS_HEAP_SEG_ALLOC = &H0008
+    PROCESS_HEAP_ENTRY_MOVEABLE = &H0010
+    PROCESS_HEAP_ENTRY_DDESHARE = &H0020
+End Enum
 Public Type PROCESS_HEAP_ENTRY
 	lpData As LongPtr
     cbData As Long
     cbOverhead As Byte
     iRegionIndex As Byte
-    wFlags As Integer
+    /* [TypeHint(ProcessHeapEntryFlags)] */ wFlags As Integer
     'UNION: Copy the bytes in BlockOrRegion to PROCESS_HEAP_ENTRY_BLOCK or PROCESS_HEAP_ENTRY_REGION
     #If Win64 Then
     BlockOrRegion(23) As Byte
@@ -3493,13 +3500,21 @@ Public Enum GMEM
 End Enum
 
 Public Enum LMEM
-    LMEM_FIXED = 0
-    LMEM_MOVEABLE = &H2
-    LHND = &H42
-    LMEM_ZEROINIT = &H40
-    LPTR = &H40
+    LMEM_FIXED = &H0000
+    LMEM_MOVEABLE = &H0002
+    LMEM_NOCOMPACT = &H0010
+    LMEM_NODISCARD = &H0020
+    LMEM_ZEROINIT = &H0040
+    LMEM_MODIFY = &H0080
+    LMEM_DISCARDABLE = &H0F00
+    LMEM_VALID_FLAGS = &H0F72
+    LMEM_INVALID_HANDLE = &H8000&
+    LHND = (LMEM_MOVEABLE Or LMEM_ZEROINIT)
+    LPTR = (LMEM_FIXED Or LMEM_ZEROINIT)
     NONZEROLHND = LMEM_MOVEABLE
     NONZEROLPTR = LMEM_FIXED
+    LMEM_DISCARDED = &H4000
+    LMEM_LOCKCOUNT = &H00FF
 End Enum
 
 
@@ -8403,17 +8418,38 @@ Public Enum DBG_EVENT_TYPES
     RIP_EVENT = 9
 End Enum
 
+Public Delegate Function ThreadStartRoutine (ByVal lpThreadParameter As LongPtr) As Long
+Public Delegate Function EnclaveRoutine (ByVal lpThreadParameter As LongPtr) As LongPtr
+
+
 Public Type EXCEPTION_DEBUG_INFO
     ExceptionRecord As EXCEPTION_RECORD
     dwFirstChance As Long
 End Type
 
+' Public Type CREATE_THREAD_DEBUG_INFO
+'     hThread As LongPtr
+'     lpThreadLocalBase As LongPtr
+'     lpStartAddress As ThreadStartRoutine 'LPTHREAD_START_ROUTINE
+' End Type
 Public Type CREATE_THREAD_DEBUG_INFO
     hThread As LongPtr
     lpThreadLocalBase As LongPtr
     lpStartAddress As LongPtr 'LPTHREAD_START_ROUTINE
 End Type
 
+' Public Type CREATE_PROCESS_DEBUG_INFO
+'     hFile As LongPtr
+'     hProcess As LongPtr
+'     hThread As LongPtr
+'     lpBaseOfImage As LongPtr
+'     dwDebugInfoFileOffset As Long
+'     nDebugInfoSize As Long
+'     lpThreadLocalBase As LongPtr
+'     lpStartAddress As ThreadStartRoutine 'LPTHREAD_START_ROUTINE
+'     lpImageName As LongPtr
+'     fUnicode As Integer
+' End Type
 Public Type CREATE_PROCESS_DEBUG_INFO
     hFile As LongPtr
     hProcess As LongPtr
@@ -9495,6 +9531,7 @@ End Enum
 
 Public Declare PtrSafe Sub GetSystemInfo Lib "kernel32" (lpSystemInfo As SYSTEM_INFO)
 Public Declare PtrSafe Sub GetNativeSystemInfo Lib "kernel32" (lpSystemInfo As SYSTEM_INFO)
+Public Sub VER_SET_CONDITION(m As LongLong, t As VersionTypeMask, [TypeHint(VersionInfoConditions)] ByVal c As Byte): m = VerSetConditionMask(m, t, c): End Sub
 Public Declare PtrSafe Function VerSetConditionMask Lib "kernel32" (ByVal ConditionMask As LongLong, ByVal TypeMask As VersionTypeMask, [TypeHint(VersionInfoConditions)] ByVal Condition As Byte) As LongLong
 Public Declare PtrSafe Function VerifyVersionInfoA Lib "kernel32" (lpVersionInformation As OSVERSIONINFOEXA, ByVal TypeMask As VersionTypeMask, ByVal dwlConditionMask As LongLong) As BOOL
 Public Declare PtrSafe Function VerifyVersionInfoW Lib "kernel32" (lpVersionInformation As OSVERSIONINFOEXW, ByVal TypeMask As VersionTypeMask, ByVal dwlConditionMask As LongLong) As BOOL
@@ -9666,7 +9703,7 @@ Public DeclareWide PtrSafe Function LCMapStringEx Lib "kernel32" (ByVal lpLocale
 Public Declare PtrSafe Function IsDBCSLeadByte Lib "kernel32" (ByVal bTestChar As Byte) As BOOL
 Public Declare PtrSafe Function IsDBCSLeadByteEx Lib "kernel32" (ByVal CodePage As CodePageDefaults, ByVal bTestChar As Byte) As BOOL
 Public Declare PtrSafe Function MultiByteToWideChar Lib "kernel32" (ByVal CodePage As CodePageDefaults, ByVal dwFlags As MBWC_Flags, ByVal lpMultiByteStr As LongPtr, ByVal cchMultiByte As Long, ByVal lpWideCharStr As LongPtr, ByVal cchWideChar As Long) As Long
-Public Declare PtrSafe Function WideCharToMultiByte Lib "kernel32" (ByVal CodePage As CodePageDefaults, ByVal dwFlags As WCMB_Flags, ByVal lpWideCharStr As LongPtr, ByVal cchWideChar As Long, ByVal lpMultiByteStr As LongPtr, ByVal cbMultiByte As Long, Optional lpDefaultChar As LongPtr, Optional lpUsedDefaultChar As BOOL) As Long
+Public Declare PtrSafe Function WideCharToMultiByte Lib "kernel32" (ByVal CodePage As CodePageDefaults, ByVal dwFlags As WCMB_Flags, ByVal lpWideCharStr As LongPtr, ByVal cchWideChar As Long, ByVal lpMultiByteStr As LongPtr, ByVal cbMultiByte As Long, Optional ByVal lpDefaultChar As LongPtr, Optional lpUsedDefaultChar As BOOL) As Long
 Public DeclareWide PtrSafe Function LoadStringByReference Lib "kernelbase" (ByVal dwFlags As LoadStrByRefFlags, ByVal Language As String, ByVal SourceString As String, ByVal Buffer As String, ByVal cchBuffer As Long, Optional ByVal Directory As String, Optional ByRef pcchBufferOut As Long) As BOOL
 Public DeclareWide PtrSafe Function FindNLSString Lib "kernel32" (ByVal Locale As DefaultLocales, [TypeHint(NlsFindStrFlags, COMPARE_FLAGS)] ByVal dwFindNLSStringFlags As Long, ByVal lpStringSource As String, ByVal cchSource As Long, ByVal lpStringValue As String, ByVal cchValue As Long, Optional pcchFound As Long) As Long
 Public DeclareWide PtrSafe Function FindNLSStringEx Lib "kernel32" (ByVal Locale As DefaultLocales, [TypeHint(NlsFindStrFlags, COMPARE_FLAGS)] ByVal dwFindNLSStringFlags As Long, ByVal lpStringSource As String, ByVal cchSource As Long, ByVal lpStringValue As String, ByVal cchValue As Long, pcchFound As Long, lpVersionInformation As NLSVERSIONINFO, Optional ByVal lpReserved As LongPtr, Optional ByVal sortHandle As LongPtr) As Long
@@ -9791,8 +9828,10 @@ Public Declare PtrSafe Function GlobalWire Lib "kernel32" (ByVal hMem As LongPtr
 Public Declare PtrSafe Function GlobalUnWire Lib "kernel32" (ByVal hMem As LongPtr) As Long
 Public Declare PtrSafe Function GlobalCompact Lib "kernel32" (ByVal dwinFree As Long) As LongPtr
 ' #define GlobalLRUNewest( h )    ((HANDLE)(h))
+Public Function GlobalLRUNewest(ByVal h As LongPtr) As LongPtr: Return h: End Function
 ' #define GlobalLRUOldest( h )    ((HANDLE)(h))
-' #define GlobalDiscard( h )      GlobalReAlloc( (h), 0, GMEM_MOVEABLE )
+Public Function GlobalLRUOldest(ByVal h As LongPtr) As LongPtr: Return h: End Function
+Public Function GlobalDiscard(ByVal h As LongPtr) As LongPtr: Return GlobalReAlloc((h), 0, GMEM_MOVEABLE): End Function
 [Description("**DEPRECATED.** Use GlobalMemoryStatusEx.")]
 Public Declare PtrSafe Sub GlobalMemoryStatus Lib "kernel32" (ByRef lpBuffer As MEMORYSTATUS)
 Public Declare PtrSafe Function GlobalMemoryStatusEx Lib "kernel32" (ByRef lpBuffer As MEMORYSTATUSEX) As Long
@@ -9807,6 +9846,7 @@ Public Declare PtrSafe Function LocalHandle Lib "kernel32" (ByVal pMem As LongPt
 Public Declare PtrSafe Function LocalFlags Lib "kernel32" (ByVal hMem As LongPtr) As GMEM
 Public Declare PtrSafe Function LocalShrink Lib "kernel32" (ByVal hMem As LongPtr, ByVal cbNewSize As Long) As LongPtr
 Public Declare PtrSafe Function LocalCompact Lib "kernel32" (ByVal uMinFree As Long) As LongPtr
+Public Function LocalDiscard(ByVal h As LongPtr) As LongPtr: Return LocalReAlloc((h), 0, LMEM_MOVEABLE): End Function
 
 Public Declare PtrSafe Function HeapCreate Lib "kernel32" (ByVal flOptions As HeapFlags, ByVal dwInitialSize As LongPtr, ByVal dwMaximumSize As LongPtr) As LongPtr
 Public Declare PtrSafe Function HeapAlloc Lib "kernel32" (ByVal hHeap As LongPtr, ByVal dwFlags As HeapFlags, ByVal dwBytes As LongPtr) As LongPtr
@@ -10054,7 +10094,7 @@ Public Declare PtrSafe Sub SetEventWhenCallbackReturns Lib "kernel32" (ByVal pci
 Public Declare PtrSafe Sub ReleaseSemaphoreWhenCallbackReturns Lib "kernel32" (ByVal pci As LongPtr, ByVal sem As LongPtr, ByVal crel As Long)
 Public Declare PtrSafe Sub ReleaseMutexWhenCallbackReturns Lib "kernel32" (ByVal pci As LongPtr, ByVal mut As LongPtr)
 Public Declare PtrSafe Sub LeaveCriticalSectionWhenCallbackReturns Lib "kernel32" (ByVal pci As LongPtr, pcs As CRITICAL_SECTION)
-Public Declare PtrSafe Sub FreeLibraryWhenCallbackReturns Lib "kernel32" (ByVal pci As LongPtr, ByVal mod As LongPtr)
+Public Declare PtrSafe Sub FreeLibraryWhenCallbackReturns Lib "kernel32" (ByVal pci As LongPtr, ByVal Mod As LongPtr)
 Public Declare PtrSafe Function CallbackMayRunLong Lib "kernel32" (ByVal pci As LongPtr) As BOOL
 Public Declare PtrSafe Sub DisassociateCurrentThreadFromCallback Lib "kernel32" (ByVal pci As LongPtr)
 Public DeclareWide PtrSafe Function TrySubmitThreadpoolCallback Lib "kernel32" (ByVal pfns As LongPtr, pv As Any, pcbe As TP_CALLBACK_ENVIRON) As BOOL
@@ -10439,7 +10479,8 @@ Public Declare PtrSafe Function NeedCurrentDirectoryForExePathA Lib "kernel32" (
 Public Declare PtrSafe Function NeedCurrentDirectoryForExePathW Lib "kernel32" (ByVal ExeName As LongPtr) As BOOL
 [Description("Determines whether the current directory should be included in the search path for the specified executable.")]
 Public DeclareWide PtrSafe Function NeedCurrentDirectoryForExePath Lib "kernel32" Alias "NeedCurrentDirectoryForExePathW" (ByVal ExeName As String) As BOOL
-
+Public DeclareWide PtrSafe Function GetFileInformationByName Lib "kernel32" (ByVal FileName As String, ByVal FileInformationClass As FILE_INFO_BY_NAME_CLASS, FileInfoBuffer As Any, ByVal FileInfoBufferSize As Long) As BOOL
+Public DeclareWide PtrSafe Function GetFileInformationByName Lib "kernel32" (ByVal FileName As LongPtr, ByVal FileInformationClass As FILE_INFO_BY_NAME_CLASS, FileInfoBuffer As Any, ByVal FileInfoBufferSize As Long) As BOOL
 Public Declare PtrSafe Function GetFileInformationByHandle Lib "kernel32" (ByVal hFile As LongPtr, ByRef lpFileInformation As BY_HANDLE_FILE_INFORMATION) As Long
 Public Declare PtrSafe Function GetFileInformationByHandleEx Lib "kernel32" (ByVal hFile As LongPtr, ByVal FileInformationClass As FILE_INFO_BY_HANDLE_CLASS, ByVal lpFileInformation As LongPtr, ByVal dwBufferSize As Long) As Long
 Public Declare PtrSafe Function SetFileInformationByHandle Lib "kernel32" (ByVal hFile As LongPtr, ByVal FileInformationClass As FILE_INFO_BY_HANDLE_CLASS, lpFileInformation As Any, ByVal dwBufferSize As Long) As Long
@@ -11453,7 +11494,9 @@ Public DeclareWide PtrSafe Function ReadDirectoryChangesEx Lib "kernel32" Alias 
     ' _In_    DWORD dwNumberOfBytesTransfered,
     ' _Inout_ LPOVERLAPPED lpOverlapped
     ' );
-    
+Public Delegate Sub OverlappedCompletionRoutine (ByVal errorCode As Long, ByVal dwNumberOfBytesTransfered As Long, lpOverlapped As OVERLAPPED)
+
+
 Public Enum READ_DIRECTORY_NOTIFY_INFORMATION_CLASS
     ReadDirectoryNotifyInformation = 1
     ReadDirectoryNotifyExtendedInformation   ' 2
@@ -11462,6 +11505,14 @@ Public Enum READ_DIRECTORY_NOTIFY_INFORMATION_CLASS
     ' #endif
     '  add new classes above
     ReadDirectoryNotifyMaximumInformation
+End Enum
+
+Public Enum FILE_INFO_BY_NAME_CLASS
+    FileStatByNameInfo
+    FileStatLxByNameInfo
+    FileCaseSensitiveByNameInfo
+    FileStatBasicByNameInfo
+    MaximumFileInfoByNameClass
 End Enum
 
 Public Enum FILE_ACTION_TYPES
@@ -18300,6 +18351,23 @@ Public Type FILE_STAT_LX_INFORMATION
     LxMode As FILE_LX_MODE
     LxDeviceIdMajor As Long
     LxDeviceIdMinor As Long
+End Type
+Public Type FILE_STAT_BASIC_INFORMATION
+    FileId As LARGE_INTEGER
+    CreationTime As LARGE_INTEGER
+    LastAccessTime As LARGE_INTEGER
+    LastWriteTime As LARGE_INTEGER
+    ChangeTime As LARGE_INTEGER
+    AllocationSize As LARGE_INTEGER
+    EndOfFile As LARGE_INTEGER
+    FileAttributes As FILE_ATTRIBUTES
+    ReparseTag As Long
+    NumberOfLinks As Long
+    DeviceType As DEVICE_TYPE
+    DeviceCharacteristics As FILE_DEVICE_CHARACTERISTICS
+    Reserved As Long
+    VolumeSerialNumber As LARGE_INTEGER
+    FileId128 As FILE_ID_128
 End Type
 Public Enum FILE_CS_FLAGS
     FILE_CS_FLAG_CASE_SENSITIVE_DIR = &H00000001
@@ -42999,7 +43067,7 @@ End Type
 #If Win64 Then
 'Alias IRQ_DES As IRQ_DES_64
 [Description("Note: This type respects the NT_PROCESSOR_GROUPS flag.")]
-Public Type IRQ_DES 
+Public Type IRQ_DES
     IRQD_Count As Long ' number of IRQ_RANGE structs in IRQ_RESOURCE
     IRQD_Type As Long ' size (in bytes) of IRQ_RANGE (IRQType_Range)
     #If NT_PROCESSOR_GROUPS Then
@@ -43042,7 +43110,7 @@ End Type
 #If Win64 Then
 'Alias IRQ_RESOURCE As IRQ_RESOURCE_64
 [Description("WARNING: Header only. This is followed by a variable C-style array.")]
-Public Type IRQ_RESOURCE  
+Public Type IRQ_RESOURCE
     IRQ_Header As IRQ_DES_64 ' info about IRQ range list
     ' IRQ_Data(0 To (ANYSIZE_ARRAY - 1)) As IRQ_RANGE ' list of IRQ ranges
 End Type
