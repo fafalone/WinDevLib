@@ -9219,6 +9219,7 @@ If
     Public Enum WS_SOCKET_TYPES
         INVALID_SOCKET = 0
         SOCKET_ERROR = (-1)
+        FROM_PROTOCOL_INFO = (-1)
         SOCK_STREAM = 1 /* stream socket */
         SOCK_DGRAM = 2 /* datagram socket */
         SOCK_RAW = 3 /* raw-protocol interface */
@@ -9230,8 +9231,17 @@ If
         MSG_OOB = &H1 /* process out-of-band data */
         MSG_PEEK = &H2 /* peek at incoming message */
         MSG_DONTROUTE = &H4 /* send without using routing tables */
-        MSG_MAXIOVLEN = 16
+        MSG_WAITALL = &H8 /* do not complete until packet is completely filled */
+        MSG_PUSH_IMMEDIATE = &H20 /* Do not delay receive request completion if data is available */
         MSG_PARTIAL = &H8000& /* partial send or recv for message xport */
+        MSG_INTERRUPT = &H10 /* send/recv in the interrupt context */
+        MSG_MAXIOVLEN = 16
+        
+        MSG_TRUNC = &H0100
+        MSG_CTRUNC = &H0200
+        MSG_BCAST = &H0400
+        MSG_MCAST = &H0800
+        MSG_ERRQUEUE = &H1000
     End Enum
 
     Public Type ws_timeval
@@ -9252,6 +9262,11 @@ If
         IOC_OUT = &H40000000 /* copy out parameters */
         IOC_IN = &H80000000 /* copy in parameters */
         IOC_INOUT = (IOC_IN Or IOC_OUT) /* 0x20000000 distinguishes new & old ioctl's */
+        IOC_UNIX = &H00000000
+        IOC_WS2 = &H08000000
+        IOC_PROTOCOL = &H10000000
+        IOC_VENDOR = &H18000000
+        IOC_WSK = (IOC_WS2 Or &H07000000)
     End Enum
     Public Enum WS_IOCTL_CODES
         FIONREAD = &H4004667f
@@ -9343,7 +9358,8 @@ If
         TCP_NODELAY = &H0001
         TCP_BSDURGENT = &H7000
     
-    
+        SO_SYNCHRONOUS_ALERT = &H10
+        SO_SYNCHRONOUS_NONALERT = &H20
     
         IPX_PTYPE = &H4000
         IPX_FILTERPTYPE = &H4001
@@ -9364,6 +9380,11 @@ If
         
     End Enum
 
+    Public Type sockproto
+        sp_family As Integer 'u_short '       /* address family */
+        sp_protocol As Integer '_short '     /* protocol */
+    End Type
+    
     Public Type IPX_ADDRESS_DATA
         adapternum As Long  '* input: 0-based adapter number */
         netnum(0 To 3) As Byte '* output: IPX network number */
@@ -9429,14 +9450,39 @@ If
         l_linger As Integer
     End Type
 
-    Public Type HOSTENT
-        h_name As LongPtr
-        h_aliases As LongPtr
-        h_addrtype As ADDRESS_FAMILIES
-        h_length As Integer
-        h_addr_list As LongPtr
+    Public Type hostent
+        h_name As LongPtr /* official name of host */
+        h_aliases As LongPtr /* alias list */
+        h_addrtype As ADDRESS_FAMILIES /* host address type */
+        h_length As Integer /* length of address */
+        h_addr_list As LongPtr /* list of addresses */
+    End Type
+    
+    Public Type netent
+        n_name As LongPtr /* official name of net */
+        n_aliases As LongPtr /* alias list */
+        n_addrtype As ADDRESS_FAMILIES /* net address type */
+        n_net As Long /* network # */
     End Type
 
+    Public Type servent
+        s_name As LongPtr /* official service name */
+        s_aliases As LongPtr /* alias list */
+        #If Win64 Then
+        s_proto As LongPtr /* protocol to use */
+        s_port As Integer /* port # */
+        #Else
+        s_port As Integer /* port # */
+        s_proto As LongPtr /* protocol to use */
+        #End If
+    End Type
+    
+    Public Type protoent
+        p_name As LongPtr /* official name of net */
+        p_aliases As LongPtr /* alias list */
+        p_proto As Integer /* protocol # */
+    End Type
+    
     Public Const INADDR_ANY  = &H00000000
     Public Const INADDR_LOOPBACK  = &H7f000001
     Public Const INADDR_BROADCAST  = &Hffffffff
@@ -9578,6 +9624,11 @@ If
     '  Socket IOCTL for port sharing per processor sockets.
     Public Const SIO_CPU_AFFINITY  = &H18000000 Or &H80000000 Or 21& '_WSAIOW(IOC_VENDOR, 21)
     
+    
+    Public Const SIO_UDP_CONNRESET = (IOC_IN Or (IOC_VENDOR) Or (12))
+    Public Const SIO_SOCKET_CLOSE_NOTIFY = (IOC_IN Or (IOC_VENDOR) Or (13))
+    Public Const SIO_UDP_NETRESET = (IOC_IN Or (IOC_VENDOR) Or (14))
+ 
     'Alias WSAOVERLAPPED As OVERLAPPED
     Public Type WSAOVERLAPPED
         Internal As LongPtr
@@ -9603,14 +9654,18 @@ If
     Public Declare PtrSafe Function WSAStartup Lib "ws2_32" (ByVal wVersionRequired As Integer, lpWSAData As WSADATA) As WS_ERRORS
     Public Declare PtrSafe Function WSACleanup Lib "ws2_32" () As Long
     Public Declare PtrSafe Function WSAGetLastError Lib "ws2_32" () As WS_ERRORS
+    Public Declare PtrSafe Sub WSASetLastError Lib "ws2_32.dll" (ByVal iError As Long)
     Public Declare PtrSafe Function WSAAsyncGetHostByName Lib "ws2_32" (ByVal hWnd As LongPtr, ByVal wMsg As Long, ByVal strHostName As String, lpBuf As Any, ByVal BufLen As Long) As LongPtr
     Public Declare PtrSafe Function WSAAsyncGetHostByAddr Lib "ws2_32" (ByVal hWnd As LongPtr, ByVal wMsg As Long, ByVal addr As String, ByVal nLen As Long, ByVal nType As WS_PROTO_FAMILY, lpBuf As Any, ByVal BufLen As Long) As LongPtr
-    Public Declare PtrSafe Function WSAAsyncSelect Lib "ws2_32" (ByVal s As Long, ByVal hWnd As Long, ByVal wMsg As Long, ByVal lEvent As WS_FD_EVENTS) As Long
+    Public Declare PtrSafe Function WSAAsyncSelect Lib "ws2_32" (ByVal s As LongPtr, ByVal hWnd As LongPtr, ByVal wMsg As Long, ByVal lEvent As WS_FD_EVENTS) As Long
     Public Declare PtrSafe Function WSACancelAsyncRequest Lib "ws2_32" (ByVal hAsyncTaskHandle As LongPtr) As Long
     ' Public Declare PtrSafe Function WSAIoctl Lib "ws2_32" (ByVal s As LongPtr, ByVal dwIoControlCode As Long, lpvInBuffer As Any, ByVal cbInBuffer As Long, lpvOutBuffer As Any, ByVal cbOutBuffer As Long, lpcbBytesReturned As Long, lpOverlapped As WSAOVERLAPPED, ByVal lpCompletionRoutine As WsaOverlappedCompletionRoutine) As Long
     Public Declare PtrSafe Function WSAIoctl Lib "ws2_32" (ByVal s As LongPtr, ByVal dwIoControlCode As Long, lpvInBuffer As Any, ByVal cbInBuffer As Long, lpvOutBuffer As Any, ByVal cbOutBuffer As Long, lpcbBytesReturned As Long, lpOverlapped As WSAOVERLAPPED, ByVal lpCompletionRoutine As LongPtr) As Long
     Public Declare PtrSafe Function ws_connect Lib "ws2_32" Alias "connect" (ByVal s As LongPtr, ByRef Name As SOCKADDR_IN, ByVal namelen As Long) As Long
     Public Declare PtrSafe Function ws_socket Lib "ws2_32" Alias "socket" (ByVal af As ADDRESS_FAMILIES, ByVal s_type As WS_SOCKET_TYPES, ByVal Protocol As IPPROTO) As LongPtr
+    Public Declare PtrSafe Function WSASocketA Lib "ws2_32" (ByVal af As ADDRESS_FAMILIES, ByVal type As WS_SOCKET_TYPES, ByVal protocol As IPPROTO, lpProtocolInfo As WSAPROTOCOL_INFOA, ByVal g As WsaSocketGroupFlags, ByVal dwFlags As WsaSocketFlags) As LongPtr
+    Public Declare PtrSafe Function WSASocketW Lib "ws2_32" (ByVal af As ADDRESS_FAMILIES, ByVal type As WS_SOCKET_TYPES, ByVal protocol As IPPROTO, lpProtocolInfo As WSAPROTOCOL_INFOW, ByVal g As WsaSocketGroupFlags, ByVal dwFlags As WsaSocketFlags) As LongPtr
+    Public DeclareWide PtrSafe Function WSASocket Lib "ws2_32" Alias "WSASocketW" (ByVal af As ADDRESS_FAMILIES, ByVal type As WS_SOCKET_TYPES, ByVal protocol As IPPROTO, lpProtocolInfo As WSAPROTOCOL_INFO, ByVal g As WsaSocketGroupFlags, ByVal dwFlags As WsaSocketFlags) As LongPtr
     Public Declare PtrSafe Function ws_bind Lib "ws2_32" Alias "bind" (ByVal s As LongPtr, ByRef Name As SOCKADDR_IN, ByRef namelen As Long) As Long
     Public Declare PtrSafe Function ws_ntohl Lib "ws2_32" Alias "ntohl" (ByVal netlong As Long) As Long
     Public Declare PtrSafe Function ws_htonl Lib "ws2_32" Alias "htonl" (ByVal hostlong As Long) As Long
@@ -9636,7 +9691,17 @@ If
     Public Declare PtrSafe Function ws_setsockopt Lib "ws2_32" Alias "setsockopt" (ByVal s As LongPtr, ByVal Level As WS_SOCKOPT_LEVEL, ByVal optname As WS_SOCKOPTIONS, optval As Any, ByVal optlen As Long) As Long
     Public Declare PtrSafe Function ws_inet_addr Lib "ws2_32" Alias "inet_addr" (ByVal cp As String) As Long
     Public Declare PtrSafe Function ws_gethostbyname Lib "ws2_32" Alias "gethostbyname" (ByVal host_name As String) As LongPtr
+    Public Declare PtrSafe Function ws_gethostbyaddr Lib "ws2_32" Alias "gethostbyaddr" (ByVal addr As LongPtr, ByVal len As Long, ByVal type As Long) As LongPtr
     Public Declare PtrSafe Function ws_gethostname Lib "ws2_32" Alias "gethostname" (ByVal host_name As String, ByVal namelen As Long) As Long
+    Public Declare PtrSafe Function GetHostNameA Lib "ws2_32" Alias "gethostname" (ByVal host_name As String, ByVal namelen As Long) As Long
+    Public Declare PtrSafe Function GetHostNameW Lib "ws2_32" (ByVal host_name As LongPtr, ByVal namelen As Long) As Long
+    Public DeclareWide PtrSafe Function GetHostName Lib "ws2_32" Alias "GetHostNameW" (ByVal host_name As String, ByVal namelen As Long) As Long
+    Public Declare PtrSafe Function ws_getservbyname Lib "ws2_32" Alias "getservbyname" (ByVal name As String, ByVal proto As String) As LongPtr
+    Public Declare PtrSafe Function ws_getservbyport Lib "ws2_32" Alias "getservbyport" (ByVal port As Long, ByVal proto As String) As LongPtr
+    Public Declare PtrSafe Function ws_getprotobynumber Lib "ws2_32" Alias "getprotobynumber" (ByVal number As Long) As LongPtr
+    Public Declare PtrSafe Function ws_getprotobyname Lib "ws2_32" Alias "getprotobyname" (ByVal name As String) As LongPtr
+    
+    
     
     Public Enum WinsockNamespaces
         NS_ALL = (0)
@@ -9917,6 +9982,394 @@ If
     Public Declare PtrSafe Function WSASetServiceW Lib "ws2_32" (lpqsRegInfo As WSAQUERYSETW, ByVal essoperation As WSAESETSERVICEOP, ByVal dwControlFlags As WsServiceControlFlags) As Long
     Public DeclareWide PtrSafe Function WSASetService Lib "ws2_32" Alias "WSASetServiceW" (lpqsRegInfo As WSAQUERYSET, ByVal essoperation As WSAESETSERVICEOP, ByVal dwControlFlags As WsServiceControlFlags) As Long
     
+    Public Enum WsaSocketFlags
+        WSA_FLAG_OVERLAPPED = &H01
+        WSA_FLAG_MULTIPOINT_C_ROOT = &H02
+        WSA_FLAG_MULTIPOINT_C_LEAF = &H04
+        WSA_FLAG_MULTIPOINT_D_ROOT = &H08
+        WSA_FLAG_MULTIPOINT_D_LEAF = &H10
+        WSA_FLAG_ACCESS_SYSTEM_SECURITY = &H40
+        WSA_FLAG_NO_HANDLE_INHERIT = &H80
+        WSA_FLAG_REGISTERED_IO = &H100
+    End Enum
+    
+    Public Enum WsaProtocolProviderFlags
+        PFL_MULTIPLE_PROTO_ENTRIES = &H00000001
+        PFL_RECOMMENDED_PROTO_ENTRY = &H00000002
+        PFL_HIDDEN = &H00000004
+        PFL_MATCHES_PROTOCOL_ZERO = &H00000008
+        PFL_NETWORKDIRECT_PROVIDER = &H00000010
+    End Enum
+    Public Enum WsaProtocolServiceFlags
+        XP1_CONNECTIONLESS = &H00000001
+        XP1_GUARANTEED_DELIVERY = &H00000002
+        XP1_GUARANTEED_ORDER = &H00000004
+        XP1_MESSAGE_ORIENTED = &H00000008
+        XP1_PSEUDO_STREAM = &H00000010
+        XP1_GRACEFUL_CLOSE = &H00000020
+        XP1_EXPEDITED_DATA = &H00000040
+        XP1_CONNECT_DATA = &H00000080
+        XP1_DISCONNECT_DATA = &H00000100
+        XP1_SUPPORT_BROADCAST = &H00000200
+        XP1_SUPPORT_MULTIPOINT = &H00000400
+        XP1_MULTIPOINT_CONTROL_PLANE = &H00000800
+        XP1_MULTIPOINT_DATA_PLANE = &H00001000
+        XP1_QOS_SUPPORTED = &H00002000
+        XP1_INTERRUPT = &H00004000
+        XP1_UNI_SEND = &H00008000&
+        XP1_UNI_RECV = &H00010000
+        XP1_IFS_HANDLES = &H00020000
+        XP1_PARTIAL_MESSAGE = &H00040000
+        XP1_SAN_SUPPORT_SDP = &H00080000
+    End Enum
+    
+    Public Const MAX_PROTOCOL_CHAIN  = 7
+    Public Const BASE_PROTOCOL  = 1
+    Public Const LAYERED_PROTOCOL  = 0
+    
+    Public Type WSAPROTOCOLCHAIN
+        ChainLen As Long '    /* the length of the chain,     */
+        '  /* length = 0 means layered protocol, */
+        '   /* length = 1 means base protocol, */
+        '  /* length > 1 means protocol chain */
+        ChainEntries(0 To (MAX_PROTOCOL_CHAIN - 1)) As Long ' /* a list of dwCatalogEntryIds */
+    End Type
+    
+    Public Const WSAPROTOCOL_LEN  = 255
+    
+    Public Type WSAPROTOCOL_INFOA
+        dwServiceFlags1 As WsaProtocolServiceFlags
+        dwServiceFlags2 As Long
+        dwServiceFlags3 As Long
+        dwServiceFlags4 As Long
+        dwProviderFlags As WsaProtocolProviderFlags
+        ProviderId As UUID
+        dwCatalogEntryId As Long
+        ProtocolChain As WSAPROTOCOLCHAIN
+        iVersion As Long
+        iAddressFamily As Long
+        iMaxSockAddr As Long
+        iMinSockAddr As Long
+        iSocketType As Long
+        iProtocol As Long
+        iProtocolMaxOffset As Long
+        iNetworkByteOrder As Long
+        iSecurityScheme As Long
+        dwMessageSize As Long
+        dwProviderReserved As Long
+        szProtocol(WSAPROTOCOL_LEN) As Byte
+    End Type
+    Public Type WSAPROTOCOL_INFOW
+        dwServiceFlags1 As WsaProtocolServiceFlags
+        dwServiceFlags2 As Long
+        dwServiceFlags3 As Long
+        dwServiceFlags4 As Long
+        dwProviderFlags As WsaProtocolProviderFlags
+        ProviderId As UUID
+        dwCatalogEntryId As Long
+        ProtocolChain As WSAPROTOCOLCHAIN
+        iVersion As Long
+        iAddressFamily As Long
+        iMaxSockAddr As Long
+        iMinSockAddr As Long
+        iSocketType As Long
+        iProtocol As Long
+        iProtocolMaxOffset As Long
+        iNetworkByteOrder As Long
+        iSecurityScheme As Long
+        dwMessageSize As Long
+        dwProviderReserved As Long
+        szProtocol(WSAPROTOCOL_LEN) As Integer
+    End Type
+    
+    Public Type WSAPROTOCOL_INFO
+        dwServiceFlags1 As WsaProtocolServiceFlags
+        dwServiceFlags2 As Long
+        dwServiceFlags3 As Long
+        dwServiceFlags4 As Long
+        dwProviderFlags As WsaProtocolProviderFlags
+        ProviderId As UUID
+        dwCatalogEntryId As Long
+        ProtocolChain As WSAPROTOCOLCHAIN
+        iVersion As Long
+        iAddressFamily As Long
+        iMaxSockAddr As Long
+        iMinSockAddr As Long
+        iSocketType As Long
+        iProtocol As Long
+        iProtocolMaxOffset As Long
+        iNetworkByteOrder As Long
+        iSecurityScheme As Long
+        dwMessageSize As Long
+        dwProviderReserved As Long
+        szProtocol(WSAPROTOCOL_LEN) As Integer
+    End Type
+    
+    Public Type WSANAMESPACE_INFOA
+        NSProviderId As UUID
+        dwNameSpace As WinsockNamespaces
+        fActive As BOOL
+        dwVersion As Long
+        lpszIdentifier As String
+    End Type
+    Public Type WSANAMESPACE_INFOW
+        NSProviderId As UUID
+        dwNameSpace As WinsockNamespaces
+        fActive As BOOL
+        dwVersion As Long
+        lpszIdentifier As LongPtr
+    End Type
+    'Alias WSANAMESPACE_INFO As WSANAMESPACE_INFOW
+    Public Type WSANAMESPACE_INFO
+        NSProviderId As UUID
+        dwNameSpace As WinsockNamespaces
+        fActive As BOOL
+        dwVersion As Long
+        lpszIdentifier As LongPtr
+    End Type
+    
+    Public Type WSANAMESPACE_INFOEXA
+        NSProviderId As UUID
+        dwNameSpace As WinsockNamespaces
+        fActive As BOOL
+        dwVersion As Long
+        lpszIdentifier As String
+        ProviderSpecific As BLOB
+    End Type
+    Public Type WSANAMESPACE_INFOEXW
+        NSProviderId As UUID
+        dwNameSpace As WinsockNamespaces
+        fActive As BOOL
+        dwVersion As Long
+        lpszIdentifier As LongPtr
+        ProviderSpecific As BLOB
+    End Type
+    'Alias WSANAMESPACE_INFOEX As WSANAMESPACE_INFOEXW
+    Public Type WSANAMESPACE_INFOEX
+        NSProviderId As UUID
+        dwNameSpace As WinsockNamespaces
+        fActive As BOOL
+        dwVersion As Long
+        lpszIdentifier As LongPtr
+        ProviderSpecific As BLOB
+    End Type
+       
+    
+    Public Enum WsaSocketGroupFlags
+        SG_UNCONSTRAINED_GROUP = &H01
+        SG_CONSTRAINED_GROUP = &H02
+    End Enum
+    Public Type QOS
+        SendingFlowspec As FLOWSPEC '  /* the flow spec for data sending */
+        ReceivingFlowspec As FLOWSPEC '   /* the flow spec for data receiving */
+        ProviderSpecific As WSABUF '   /* additional provider specific stuff */
+    End Type
+    Public Type WSABUF
+        len As Long /* the length of the buffer */
+        buf As LongPtr 'CHAR FAR *  /* the pointer to the buffer */
+    End Type
+    Public Delegate Function CONDITIONPROC (lpCallerId As WSABUF, lpCallerData As WSABUF, lpSQOS As QOS, lpGQOS As QOS, lpCalleeId As WSABUF, lpCalleeData As WSABUF, g As Long, ByVal dwCallbackData As LongPtr) As Long
+    
+    Public Type WSANETWORKEVENTS
+        lNetworkEvents As WS_FD_EVENTS
+        iErrorCode(0 To (FD_MAX_EVENTS - 1)) As Long
+    End Type
+    
+    Public Type WSANSCLASSINFOA
+        lpszName As String
+        dwNameSpace As WinsockNamespaces
+        dwValueType As Long
+        dwValueSize As Long
+        lpValue As LongPtr
+    End Type
+    Public Type WSANSCLASSINFOW
+        lpszName As LongPtr
+        dwNameSpace As WinsockNamespaces
+        dwValueType As Long
+        dwValueSize As Long
+        lpValue As LongPtr
+    End Type
+    'Alias WSANSCLASSINFO as WSANSCLASSINFOW
+    Public Type WSANSCLASSINFO
+        lpszName As LongPtr
+        dwNameSpace As WinsockNamespaces
+        dwValueType As Long
+        dwValueSize As Long
+        lpValue As LongPtr
+    End Type
+    
+    Public Type WSASERVICECLASSINFOA
+        lpServiceClassId As LongPtr 'LPUUID
+        lpszServiceClassName As String
+        dwCount As Long
+        lpClassInfos As LongPtr 'LPWSANSCLASSINFOA
+    End Type
+    Public Type WSASERVICECLASSINFOW
+        lpServiceClassId As LongPtr 'LPUUID
+        lpszServiceClassName As LongPtr
+        dwCount As Long
+        lpClassInfos As LongPtr 'LPWSANSCLASSINFOW
+    End Type
+    'Alias WSASERVICECLASSINFO as WSASERVICECLASSINFOW
+    Public Type WSASERVICECLASSINFO
+        lpServiceClassId As LongPtr 'LPUUID
+        lpszServiceClassName As LongPtr
+        dwCount As Long
+        lpClassInfos As LongPtr 'LPWSANSCLASSINFOW
+    End Type
+    
+    [Description("WARNING: Header only. Followed by a variable C-style array.")]
+    Public Type SOCKET_ADDRESS_LIST
+        iAddressCount As Long
+        '  SOCKET_ADDRESS  Address[1];
+    End Type
+    
+    Public Type WSAMSG
+        name As LongPtr 'LPSOCKADDR    /* Remote address */
+        lpBuffers As LongPtr 'LPWSABUF   /* Data buffer array */
+        dwBufferCount As Long /* Number of elements in the array */
+        Control As WSABUF /* Control buffer */
+        dwFlags As WS_SNDRCV_FLAGS
+    End Type
+    
+    Public Type SOCK_NOTIFY_REGISTRATION
+        socket As LongPtr 'SOCKET
+        completionKey As LongPtr
+        eventFilter As Integer
+        operation As Byte
+        triggerFlags As Byte
+        registrationResult As Long
+    End Type
+    
+    Public Enum WsSocketNotifyRegisterEvents
+        SOCK_NOTIFY_REGISTER_EVENT_NONE = &H00
+        SOCK_NOTIFY_REGISTER_EVENT_IN = &H01  ' Input is available from the socket without blocking.
+        SOCK_NOTIFY_REGISTER_EVENT_OUT = &H02  ' Output can be provided to the socket without blocking.
+        SOCK_NOTIFY_REGISTER_EVENT_HANGUP = &H04  ' The socket connection has been terminated.
+        SOCK_NOTIFY_REGISTER_EVENTS_ALL = (SOCK_NOTIFY_REGISTER_EVENT_IN Or SOCK_NOTIFY_REGISTER_EVENT_OUT Or SOCK_NOTIFY_REGISTER_EVENT_HANGUP)
+    End Enum
+    Public Enum WsSocketNotifyEvents
+        SOCK_NOTIFY_EVENT_IN = SOCK_NOTIFY_REGISTER_EVENT_IN  ' Input is available from the socket without blocking.
+        SOCK_NOTIFY_EVENT_OUT = SOCK_NOTIFY_REGISTER_EVENT_OUT  ' Output can be provided to the socket without blocking.
+        SOCK_NOTIFY_EVENT_HANGUP = SOCK_NOTIFY_REGISTER_EVENT_HANGUP  ' The socket connection has been terminated.
+        SOCK_NOTIFY_EVENT_ERR = &H40  ' The socket is in an error state.
+        SOCK_NOTIFY_EVENT_REMOVE = &H80  ' The notification has been deregistered.
+        SOCK_NOTIFY_EVENTS_ALL = (SOCK_NOTIFY_REGISTER_EVENTS_ALL Or SOCK_NOTIFY_EVENT_ERR Or SOCK_NOTIFY_EVENT_REMOVE)
+    End Enum
+    Public Enum WsSocketNotifyOps
+        SOCK_NOTIFY_OP_NONE = &H00
+        SOCK_NOTIFY_OP_ENABLE = &H01  ' Enables the registration.
+        SOCK_NOTIFY_OP_DISABLE = &H02  ' Disables the registration.
+        SOCK_NOTIFY_OP_REMOVE = &H04  ' Removes the registration.
+    End Enum
+    Public Enum WsSocketNotifyTrigger
+        SOCK_NOTIFY_TRIGGER_ONESHOT = &H01  ' The registration will be disabled (not removed) upon delivery of the next notification.
+        SOCK_NOTIFY_TRIGGER_PERSISTENT = &H02  ' The registration will remain active until it is explicitly disabled or removed.
+        SOCK_NOTIFY_TRIGGER_LEVEL = &H04  ' The registration is for level-triggered notifications.
+        SOCK_NOTIFY_TRIGGER_EDGE = &H08  ' The registration is for edge-triggered notifications.
+        SOCK_NOTIFY_TRIGGER_ALL = (SOCK_NOTIFY_TRIGGER_ONESHOT Or SOCK_NOTIFY_TRIGGER_PERSISTENT Or SOCK_NOTIFY_TRIGGER_LEVEL Or SOCK_NOTIFY_TRIGGER_EDGE)
+    End Enum
+    Public Declare PtrSafe Function ProcessSocketNotifications Lib "ws2_32.dll" (ByVal completionPort As LongPtr, ByVal registrationCount As Long, registrationInfos As SOCK_NOTIFY_REGISTRATION, ByVal timeoutMs As Long, ByVal completionCount As Long, completionPortEntries As OVERLAPPED_ENTRY, receivedEntryCount As Long) As Long
+    Public Function SocketNotificationRetrieveEvents(notification As OVERLAPPED_ENTRY) As Long
+        Return notification.dwNumberOfBytesTransferred
+    End Function
+    
+    
+    
+    Public Const FD_SETSIZE = 64
+    Public Type fd_set
+        fd_count As Long '    /* how many are SET? */
+        fd_array(0 To (FD_SETSIZE - 1)) As LongPtr 'SOCKET ' /* an array of SOCKETs */
+    End Type
+    Public Declare PtrSafe Function WSAFDIsSet Lib "ws2_32.dll" Alias "__WSAFDIsSet" (ByVal socket As LongPtr, ByRef TFd_set As fd_set) As Long
+    Public Declare PtrSafe Function __WSAFDIsSet Lib "ws2_32.dll" (ByVal socket As LongPtr, ByRef TFd_set As fd_set) As Long
+    ' Public Declare PtrSafe Function WSAAccept Lib "ws2_32.dll" (ByVal s As LongPtr, ByRef addr As SOCKADDR, ByRef addrlen As Long, ByVal lpfnCondition As CONDITIONPROC, ByVal dwCallbackData As LongPtr) As LongPtr
+    Public Declare PtrSafe Function WSAAccept Lib "ws2_32.dll" (ByVal s As LongPtr, ByRef addr As SOCKADDR, ByRef addrlen As Long, ByVal lpfnCondition As LongPtr, ByVal dwCallbackData As LongPtr) As LongPtr
+    Public Declare PtrSafe Function WSAAddressToStringA Lib "ws2_32.dll" (ByRef lpsaAddress As SOCKADDR, ByVal dwAddressLength As Long, ByRef lpProtocolInfo As WSAPROTOCOL_INFOA, ByVal lpszAddressString As String, ByRef lpdwAddressStringLength As Long) As Long
+    Public Declare PtrSafe Function WSAAddressToStringW Lib "ws2_32.dll" (ByRef lpsaAddress As SOCKADDR, ByVal dwAddressLength As Long, ByRef lpProtocolInfo As WSAPROTOCOL_INFOW, ByVal lpszAddressString As LongPtr, ByRef lpdwAddressStringLength As Long) As Long
+    Public DeclareWide PtrSafe Function WSAAddressToString Lib "ws2_32.dll" Alias "WSAAddressToStringW" (ByRef lpsaAddress As SOCKADDR, ByVal dwAddressLength As Long, ByRef lpProtocolInfo As WSAPROTOCOL_INFO, ByVal lpszAddressString As String, ByRef lpdwAddressStringLength As Long) As Long
+    Public Declare PtrSafe Function WSAAsyncGetProtoByName Lib "ws2_32.dll" (ByVal hWnd As LongPtr, ByVal wMsg As Long, ByVal name As String, ByVal buf As String, ByVal buflen As Long) As LongPtr
+    Public Declare PtrSafe Function WSAAsyncGetProtoByNumber Lib "ws2_32.dll" (ByVal hWnd As LongPtr, ByVal wMsg As Long, ByVal number As Long, ByVal buf As String, ByVal buflen As Long) As LongPtr
+    Public Declare PtrSafe Function WSAAsyncGetServByName Lib "ws2_32.dll" (ByVal hWnd As LongPtr, ByVal wMsg As Long, ByVal name As String, ByVal proto As String, ByVal buf As String, ByVal buflen As Long) As LongPtr
+    Public Declare PtrSafe Function WSAAsyncGetServByPort Lib "ws2_32.dll" (ByVal hWnd As LongPtr, ByVal wMsg As Long, ByVal port As Long, ByVal proto As String, ByVal buf As String, ByVal buflen As Long) As LongPtr
+    Public Declare PtrSafe Function WSACancelBlockingCall Lib "ws2_32.dll" () As Long
+    Public Declare PtrSafe Function WSACloseEvent Lib "ws2_32.dll" (ByVal hEvent As LongPtr) As BOOL
+    Public Declare PtrSafe Function WSAConnect Lib "ws2_32.dll" (ByVal s As LongPtr, ByRef name As SOCKADDR, ByVal namelen As Long, ByRef lpCallerData As WSABUF, ByRef lpCalleeData As WSABUF, ByRef lpSQOS As QOS, ByRef lpGQOS As QOS) As Long
+    Public Declare PtrSafe Function WSADuplicateSocketA Lib "ws2_32.dll" (ByVal s As LongPtr, ByVal dwProcessId As Long, ByRef lpProtocolInfo As WSAPROTOCOL_INFOA) As Long
+    Public Declare PtrSafe Function WSADuplicateSocketW Lib "ws2_32.dll" (ByVal s As LongPtr, ByVal dwProcessId As Long, ByRef lpProtocolInfo As WSAPROTOCOL_INFOW) As Long
+    Public DeclareWide PtrSafe Function WSADuplicateSocket Lib "ws2_32.dll" Alias "WSADuplicateSocketW" (ByVal s As LongPtr, ByVal dwProcessId As Long, ByRef lpProtocolInfo As WSAPROTOCOL_INFO) As Long
+    Public Declare PtrSafe Function WSAEnumNameSpaceProvidersA Lib "ws2_32.dll" (ByRef lpdwBufferLength As Long, ByRef lpnspBuffer As WSANAMESPACE_INFOA) As Long
+    Public Declare PtrSafe Function WSAEnumNameSpaceProvidersW Lib "ws2_32.dll" (ByRef lpdwBufferLength As Long, ByRef lpnspBuffer As WSANAMESPACE_INFOW) As Long
+    Public DeclareWide PtrSafe Function WSAEnumNameSpaceProviders Lib "ws2_32.dll" Alias "WSAEnumNameSpaceProvidersW" (ByRef lpdwBufferLength As Long, ByRef lpnspBuffer As WSANAMESPACE_INFO) As Long
+    Public Declare PtrSafe Function WSAEnumNameSpaceProvidersExA Lib "ws2_32.dll" (ByRef lpdwBufferLength As Long, ByRef lpnspBuffer As WSANAMESPACE_INFOEXA) As Long
+    Public Declare PtrSafe Function WSAEnumNameSpaceProvidersExW Lib "ws2_32.dll" (ByRef lpdwBufferLength As Long, ByRef lpnspBuffer As WSANAMESPACE_INFOEXW) As Long
+    Public DeclareWide PtrSafe Function WSAEnumNameSpaceProvidersEx Lib "ws2_32.dll" Alias "WSAEnumNameSpaceProvidersExW" (ByRef lpdwBufferLength As Long, ByRef lpnspBuffer As WSANAMESPACE_INFOEX) As Long
+    Public Declare PtrSafe Function WSAEnumNetworkEvents Lib "ws2_32.dll" (ByVal s As LongPtr, ByVal hEventObject As LongPtr, ByRef lpNetworkEvents As WSANETWORKEVENTS) As Long
+    Public Declare PtrSafe Function WSAEnumProtocolsA Lib "ws2_32.dll" (ByRef lpiProtocols As Long, ByRef lpProtocolBuffer As WSAPROTOCOL_INFOA, ByRef lpdwBufferLength As Long) As Long
+    Public Declare PtrSafe Function WSAEnumProtocolsW Lib "ws2_32.dll" (ByRef lpiProtocols As Long, ByRef lpProtocolBuffer As WSAPROTOCOL_INFOW, ByRef lpdwBufferLength As Long) As Long
+    Public DeclareWide PtrSafe Function WSAEnumProtocols Lib "ws2_32.dll" Alias "WSAEnumProtocolsW" (ByRef lpiProtocols As Long, ByRef lpProtocolBuffer As WSAPROTOCOL_INFO, ByRef lpdwBufferLength As Long) As Long
+    Public Declare PtrSafe Function WSAEventSelect Lib "ws2_32.dll" (ByVal s As LongPtr, ByVal hEventObject As LongPtr, ByVal lNetworkEvents As WS_FD_EVENTS) As Long
+    Public Declare PtrSafe Function WSAGetOverlappedResult Lib "ws2_32.dll" (ByVal s As LongPtr, ByRef lpOverlapped As WSAOVERLAPPED, ByRef lpcbTransfer As Long, ByVal fWait As BOOL, ByRef lpdwFlags As WS_SNDRCV_FLAGS) As BOOL
+    Public Declare PtrSafe Function WSAGetQOSByName Lib "ws2_32.dll" (ByVal s As LongPtr, ByRef lpQOSName As WSABUF, ByRef lpQOS As QOS) As BOOL
+    Public Declare PtrSafe Function WSAGetServiceClassInfoA Lib "ws2_32.dll" (lpProviderId As UUID, lpServiceClassId As UUID, ByRef lpdwBufSize As Long, ByRef lpServiceClassInfo As Any) As Long
+    Public Declare PtrSafe Function WSAGetServiceClassInfoW Lib "ws2_32.dll" (lpProviderId As UUID, lpServiceClassId As UUID, ByRef lpdwBufSize As Long, ByRef lpServiceClassInfo As Any) As Long
+    Public DeclareWide PtrSafe Function WSAGetServiceClassInfo Lib "ws2_32.dll" Alias "WSAGetServiceClassInfoW" (lpProviderId As UUID, lpServiceClassId As UUID, ByRef lpdwBufSize As Long, ByRef lpServiceClassInfo As Any) As Long
+    Public Declare PtrSafe Function WSAGetServiceClassNameByClassIdA Lib "ws2_32.dll" (lpServiceClassId As UUID, ByVal lpszServiceClassName As String, ByRef lpdwBufferLength As Long) As Long
+    Public Declare PtrSafe Function WSAGetServiceClassNameByClassIdW Lib "ws2_32.dll" (lpServiceClassId As UUID, ByVal lpszServiceClassName As LongPtr, ByRef lpdwBufferLength As Long) As Long
+    Public DeclareWide PtrSafe Function WSAGetServiceClassNameByClassId Lib "ws2_32.dll" Alias "WSAGetServiceClassNameByClassIdW" (lpServiceClassId As UUID, ByVal lpszServiceClassName As String, ByRef lpdwBufferLength As Long) As Long
+    Public Declare PtrSafe Function WSAHtonl Lib "ws2_32.dll" (ByVal s As LongPtr, ByVal hostlong As Long, ByRef lpnetlong As Long) As Long
+    Public Declare PtrSafe Function WSAHtons Lib "ws2_32.dll" (ByVal s As LongPtr, ByVal hostshort As Integer, ByRef lpnetshort As Integer) As Long
+    Public Declare PtrSafe Function WSAInstallServiceClassA Lib "ws2_32.dll" (ByRef lpServiceClassInfo As WSASERVICECLASSINFOA) As Long
+    Public Declare PtrSafe Function WSAInstallServiceClassW Lib "ws2_32.dll" (ByRef lpServiceClassInfo As WSASERVICECLASSINFOW) As Long
+    Public DeclareWide PtrSafe Function WSAInstallServiceClass Lib "ws2_32.dll" Alias "WSAInstallServiceClassW" (ByRef lpServiceClassInfo As WSASERVICECLASSINFO) As Long
+    Public Declare PtrSafe Function WSAIsBlocking Lib "ws2_32.dll" () As BOOL
+    Public Declare PtrSafe Function WSAJoinLeaf Lib "ws2_32.dll" (ByVal s As LongPtr, ByRef name As SOCKADDR, ByVal namelen As Long, ByRef lpCallerData As WSABUF, ByRef lpCalleeData As WSABUF, ByRef lpSQOS As QOS, ByRef lpGQOS As QOS, ByVal dwFlags As Long) As LongPtr
+    Public Declare PtrSafe Function WSANtohl Lib "ws2_32.dll" (ByVal s As LongPtr, ByVal netlong As Long, ByRef lphostlong As Long) As Long
+    Public Declare PtrSafe Function WSANtohs Lib "ws2_32.dll" (ByVal s As LongPtr, ByVal netshort As Integer, ByRef lphostshort As Integer) As Long
+    ' Public Declare PtrSafe Function WSAProviderConfigChange Lib "ws2_32.dll" (ByRef lpNotificationHandle As LongPtr, ByRef lpOverlapped As WSAOVERLAPPED, ByVal lpCompletionRoutine As WsaOverlappedCompletionRoutine) As Long
+    Public Declare PtrSafe Function WSAProviderConfigChange Lib "ws2_32.dll" (ByRef lpNotificationHandle As LongPtr, ByRef lpOverlapped As WSAOVERLAPPED, ByVal lpCompletionRoutine As LongPtr) As Long
+    ' Public Declare PtrSafe Function WSARecv Lib "ws2_32.dll" (ByVal s As LongPtr, ByRef lpBuffers As WSABUF, ByVal dwBufferCount As Long, ByRef lpNumberOfBytesRecvd As Long, ByRef lpFlags As WS_SNDRCV_FLAGS, ByRef lpOverlapped As WSAOVERLAPPED, ByVal lpCompletionRoutine As WsaOverlappedCompletionRoutine) As Long
+    Public Declare PtrSafe Function WSARecv Lib "ws2_32.dll" (ByVal s As LongPtr, ByRef lpBuffers As WSABUF, ByVal dwBufferCount As Long, ByRef lpNumberOfBytesRecvd As Long, ByRef lpFlags As WS_SNDRCV_FLAGS, ByRef lpOverlapped As WSAOVERLAPPED, ByVal lpCompletionRoutine As LongPtr) As Long
+    Public Declare PtrSafe Function WSARecvDisconnect Lib "ws2_32.dll" (ByVal s As LongPtr, ByRef lpInboundDisconnectData As WSABUF) As Long
+    Public Declare PtrSafe Function WSARecvEx Lib "mswsock.dll" (ByVal s As LongPtr, buf As Any, ByVal lLen As Long, ByRef flags As WS_SNDRCV_FLAGS) As Long
+    ' Public Declare PtrSafe Function WSARecvFrom Lib "ws2_32.dll" (ByVal s As LongPtr, ByRef lpBuffers As WSABUF, ByVal dwBufferCount As Long, ByRef lpNumberOfBytesRecvd As Long, ByRef lpFlags As WS_SNDRCV_FLAGS, ByRef lpFrom As SOCKADDR, ByRef lpFromlen As Long, ByRef lpOverlapped As WSAOVERLAPPED, ByVal lpCompletionRoutine As WsaOverlappedCompletionRoutine) As Long
+    Public Declare PtrSafe Function WSARecvFrom Lib "ws2_32.dll" (ByVal s As LongPtr, ByRef lpBuffers As WSABUF, ByVal dwBufferCount As Long, ByRef lpNumberOfBytesRecvd As Long, ByRef lpFlags As WS_SNDRCV_FLAGS, ByRef lpFrom As SOCKADDR, ByRef lpFromlen As Long, ByRef lpOverlapped As WSAOVERLAPPED, ByVal lpCompletionRoutine As LongPtr) As Long
+    Public Declare PtrSafe Function WSARemoveServiceClass Lib "ws2_32.dll" (lpServiceClassId As UUID) As Long
+    Public Declare PtrSafe Function WSAResetEvent Lib "ws2_32.dll" (ByVal hEvent As LongPtr) As BOOL
+    ' Public Declare PtrSafe Function WSASend Lib "ws2_32.dll" (ByVal s As LongPtr, ByRef lpBuffers As WSABUF, ByVal dwBufferCount As Long, ByRef lpNumberOfBytesSent As Long, ByVal dwFlags As Long, ByRef lpOverlapped As WSAOVERLAPPED, ByVal lpCompletionRoutine As WsaOverlappedCompletionRoutine) As Long
+    Public Declare PtrSafe Function WSASend Lib "ws2_32.dll" (ByVal s As LongPtr, ByRef lpBuffers As WSABUF, ByVal dwBufferCount As Long, ByRef lpNumberOfBytesSent As Long, ByVal dwFlags As WS_SNDRCV_FLAGS, ByRef lpOverlapped As WSAOVERLAPPED, ByVal lpCompletionRoutine As LongPtr) As Long
+    Public Declare PtrSafe Function WSASendDisconnect Lib "ws2_32.dll" (ByVal s As LongPtr, ByRef lpOutboundDisconnectData As WSABUF) As Long
+    ' Public Declare PtrSafe Function WSASendMsg Lib "ws2_32.dll" (ByVal Handle As LongPtr, lpMsg As WSAMSG, ByVal dwFlags As WS_SNDRCV_FLAGS, ByRef lpNumberOfBytesSent As Long, lpOverlapped As WSAOVERLAPPED, ByVal lpCompletionRoutine As WsaOverlappedCompletionRoutine) As Long
+    Public Declare PtrSafe Function WSASendMsg Lib "ws2_32.dll" (ByVal Handle As LongPtr, lpMsg As WSAMSG, ByVal dwFlags As WS_SNDRCV_FLAGS, ByRef lpNumberOfBytesSent As Long, lpOverlapped As WSAOVERLAPPED, ByVal lpCompletionRoutine As LongPtr) As Long
+    ' Public Declare PtrSafe Function WSASendTo Lib "ws2_32.dll" (ByVal s As LongPtr, ByRef lpBuffers As WSABUF, ByVal dwBufferCount As Long, ByRef lpNumberOfBytesSent As Long, ByVal dwFlags As WS_SNDRCV_FLAGS, ByRef lpTo As SOCKADDR, ByVal iTolen As Long, ByRef lpOverlapped As WSAOVERLAPPED, ByVal lpCompletionRoutine As WsaOverlappedCompletionRoutine) As Long
+    Public Declare PtrSafe Function WSASendTo Lib "ws2_32.dll" (ByVal s As LongPtr, ByRef lpBuffers As WSABUF, ByVal dwBufferCount As Long, ByRef lpNumberOfBytesSent As Long, ByVal dwFlags As WS_SNDRCV_FLAGS, ByRef lpTo As SOCKADDR, ByVal iTolen As Long, ByRef lpOverlapped As WSAOVERLAPPED, ByVal lpCompletionRoutine As LongPtr) As Long
+    Public Declare PtrSafe Function WSASetBlockingHook Lib "ws2_32.dll" (ByVal lpBlockFunc As LongPtr) As LongPtr
+    Public Declare PtrSafe Function WSASetEvent Lib "ws2_32.dll" (ByRef hEvent As LongPtr) As BOOL
+    Public Declare PtrSafe Function WSASocket Lib "ws2_32.dll" (ByVal af As ADDRESS_FAMILIES, ByVal lType As WS_SOCKET_TYPES, ByVal protocol As IPPROTO, ByRef lpProtocolInfo As WSAPROTOCOL_INFOA, ByVal g As Long, ByVal dwFlags As WsaSocketGroupFlags) As LongPtr
+    Public Declare PtrSafe Function WSAStringToAddressA Lib "ws2_32.dll" (ByVal AddressString As String, ByVal AddressFamily As ADDRESS_FAMILIES, ByRef lpProtocolInfo As WSAPROTOCOL_INFOA, ByRef lpAddress As SOCKADDR, ByRef lpAddressLength As Long) As Long
+    Public Declare PtrSafe Function WSAStringToAddressW Lib "ws2_32.dll" (ByVal AddressString As LongPtr, ByVal AddressFamily As ADDRESS_FAMILIES, ByRef lpProtocolInfo As WSAPROTOCOL_INFOW, ByRef lpAddress As SOCKADDR, ByRef lpAddressLength As Long) As Long
+    Public DeclareWide PtrSafe Function WSAStringToAddress Lib "ws2_32.dll" Alias "WSAStringToAddressW" (ByVal AddressString As String, ByVal AddressFamily As ADDRESS_FAMILIES, ByRef lpProtocolInfo As WSAPROTOCOL_INFO, ByRef lpAddress As SOCKADDR, ByRef lpAddressLength As Long) As Long
+    Public Declare PtrSafe Function WSAUnhookBlockingHook Lib "ws2_32.dll" () As Long
+    Public Declare PtrSafe Function WSAWaitForMultipleEvents Lib "ws2_32.dll" (ByVal cEvents As Long, ByRef lphEvents As LongPtr, ByVal fWaitAll As BOOL, ByVal dwTimeout As Long, ByVal fAlertable As BOOL) As Long
+    Public Declare PtrSafe Function WSAConnectByNameA Lib "ws2_32.dll" (ByVal s As LongPtr, ByVal nodename As String, ByVal servicename As String, LocalAddressLength As Long, LocalAddress As SOCKADDR, RemoteAddressLength As Long, RemoteAddress As SOCKADDR, timeout As timeval, Reserved As WSAOVERLAPPED) As BOOL
+    Public Declare PtrSafe Function WSAConnectByNameW Lib "ws2_32.dll" (ByVal s As LongPtr, ByVal nodename As LongPtr, ByVal servicename As LongPtr, LocalAddressLength As Long, LocalAddress As SOCKADDR, RemoteAddressLength As Long, RemoteAddress As SOCKADDR, timeout As timeval, Reserved As WSAOVERLAPPED) As BOOL
+    Public DeclareWide PtrSafe Function WSAConnectByName Lib "ws2_32.dll" Alias "WSAConnectByNameW" (ByVal s As LongPtr, ByVal nodename As String, ByVal servicename As String, LocalAddressLength As Long, LocalAddress As SOCKADDR, RemoteAddressLength As Long, RemoteAddress As SOCKADDR, timeout As timeval, Reserved As WSAOVERLAPPED) As BOOL
+    Public Declare PtrSafe Function WSAConnectByList Lib "ws2_32.dll" (ByVal s As LongPtr, SocketAddress As Any, LocalAddressLength As Long, LocalAddress As SOCKADDR, RemoteAddressLength As Long, RemoteAddress As SOCKADDR, timeout As timeval, Reserved As WSAOVERLAPPED) As BOOL
+           
+    
+    ' Declare Function WSCDeinstallProvider Lib "ws2_32.dll" (ByVal lpProviderId As Long, ByRef lpErrno As Long) As Long
+    ' Declare Function WSCEnableNSProvider Lib "ws2_32.dll" (ByVal lpProviderId As Long, ByVal fEnable As Long) As Long
+    ' Declare Function WSCEnumProtocols Lib "ws2_32.dll" (ByRef lpiProtocols As Long, ByRef lpProtocolBuffer As WSAPROTOCOL_INFOW, ByRef lpdwBufferLength As Long, ByRef lpErrno As Long) As Long
+    ' Declare Function WSCGetProviderPath Lib "ws2_32.dll" (ByVal lpProviderId As Long, ByRef lpszProviderDllPath As Byte, ByRef lpProviderDllPathLen As Long, ByRef lpErrno As Long) As Long
+    ' Declare Function WSCInstallNameSpace Lib "ws2_32.dll" (ByVal lpszIdentifier As String, ByVal lpszPathName As String, ByVal dwNameSpace As Long, ByVal dwVersion As Long, ByVal lpProviderId As Long) As Long
+    ' Declare Function WSCInstallProvider Lib "ws2_32.dll" (ByVal lpProviderId As Long, ByRef lpszProviderDllPath As Byte, ByRef lpProtocolInfoList As WSAPROTOCOL_INFOW, ByVal dwNumberOfEntries As Long, ByRef lpErrno As Long) As Long
+    ' Declare Function WSCInstallQOSTemplate Lib "qosname.dll" (ByVal Guid As Long, ByRef QosName As WSABUF, ByRef Qos As QOS) As Long
+    ' Declare Function WSCRemoveQOSTemplate Lib "qosname.dll" (ByVal Guid As Long, ByRef QosName As WSABUF) As Long
+    ' Declare Function WSCUnInstallNameSpace Lib "ws2_32.dll" (ByVal lpProviderId As Long) As Long
+    ' Declare Function WSCWriteNameSpaceOrder Lib "WS2_32.DLL" (ByVal lpProviderId As Long, ByVal dwNumberOfEntries As Long) As Long
+    ' Declare Function WSCWriteProviderOrder Lib "WS2_32.DLL" (ByRef lpwdCatalogEntryId As Long, ByVal dwNumberOfEntries As Long) As Long
+    ' Declare Function WSPStartup Lib "msafd.dll" (ByVal wVersionRequested As Integer, ByRef lpWSPData As WSPDATA, ByRef lpProtocolInfo As WSAPROTOCOL_INFOW, ByRef UpcallTable As WSPUPCALLTABLE, ByRef lpProcTable As WSPPROC_TABLE) As Long
+    ' Declare Function WSSelect Lib "ws2_32.dll" Alias "select" (ByVal nfds As Long, ByRef readfds As fd_set, ByRef writefds As fd_set, ByRef exceptfds As fd_set, ByRef timeout As sstruct) As Long
     
     Public Type timeval
         tv_sec As Long /* seconds */
@@ -10201,8 +10654,23 @@ If
         /* [TypeHint(WsAiDnsResponsoFlags)] */ ai_responseflags As LongLong
     End Type
     
+    Public Enum WsNameInfoFlags
+        NI_NOFQDN = &H01 /* Only return nodename portion for local hosts */
+        NI_NUMERICHOST = &H02 /* Return numeric form of the host's address */
+        NI_NAMEREQD = &H04 /* Error if the host's name not in DNS */
+        NI_NUMERICSERV = &H08 /* Return numeric form of the service (port #) */
+        NI_DGRAM = &H10 /* Service is a datagram service */
+        NI_MAXHOST = 1025 /* Max size of a fully-qualified domain name */
+        NI_MAXSERV = 32 /* Max size of a service name */
+    End Enum
     
     
+    
+    Public Declare PtrSafe Function GetNameInfoA Lib "ws2_32" Alias "getnameinfo" (pSockaddr As SOCKADDR, ByVal SockaddrLength As Long, ByVal pNodeBuffer As String, ByVal NodeBufferSize As Long, ByVal pServiceBuffer As String, ByVal ServiceBufferSize As Long, ByVal flags As WsNameInfoFlags) As WS_ERRORS
+    Public Declare PtrSafe Function GetNameInfoW Lib "ws2_32" Alias "getnameinfo" (pSockaddr As SOCKADDR, ByVal SockaddrLength As Long, ByVal pNodeBuffer As LongPtr, ByVal NodeBufferSize As Long, ByVal pServiceBuffer As LongPtr, ByVal ServiceBufferSize As Long, ByVal flags As WsNameInfoFlags) As WS_ERRORS
+    Public DeclareWide PtrSafe Function GetNameInfo Lib "ws2_32" Alias "getnameinfo" (pSockaddr As SOCKADDR, ByVal SockaddrLength As Long, ByVal pNodeBuffer As String, ByVal NodeBufferSize As Long, ByVal pServiceBuffer As String, ByVal ServiceBufferSize As Long, ByVal flags As WsNameInfoFlags) As WS_ERRORS
+    Public Declare PtrSafe Function ws_getnameinfo Lib "ws2_32" Alias "getnameinfo" (pSockaddr As SOCKADDR, ByVal SockaddrLength As Long, ByVal pNodeBuffer As String, ByVal NodeBufferSize As Long, ByVal pServiceBuffer As String, ByVal ServiceBufferSize As Long, ByVal flags As WsNameInfoFlags) As WS_ERRORS
+            
     Public Declare PtrSafe Function GetAddrInfoA Lib "ws2_32" Alias "getaddrinfo" (ByVal pNodeName As String, ByVal pServiceName As String, pHints As ADDRINFOA, ppResult As LongPtr) As Long
     Public Declare PtrSafe Function GetAddrInfoW Lib "ws2_32" (ByVal pNodeName As LongPtr, ByVal pServiceName As LongPtr, pHints As ADDRINFOW, ppResult As LongPtr) As Long
     Public DeclareWide PtrSafe Function GetAddrInfo Lib "ws2_32" Alias "GetAddrInfoW" (ByVal pNodeName As String, ByVal pServiceName As String, pHints As ADDRINFO, ppResult As LongPtr) As Long
