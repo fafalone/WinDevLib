@@ -1,4 +1,16 @@
 
+**Update (v8.7.480, 18 Dec 2024):**
+-Substantial additional winsock stuff; about 95% of winsock2.h/ws2def.h now covered; 33% of ws2tcpip.h
+   **REMINDER:** Due to their short genericnames, all Winsock APIs (ws2_32,dll) starting with a lower
+   case letter are prefixed by ws_, e.g. ws_bind for bind.
+-Misc additions
+-(Bug fix) TOKEN_ALL_ACCESS, PROCESS_ALL_ACCESS values incorrect
+-(Bug fix) Many JOBOBJECTINFOCLASS values incorrect
+-(Bug fix) SHShowManageLibraryUI takes Unicode but used String without DeclareWide.
+-(Bug fix) Some constants for min/max values of types declared improperly or missing.
+-(Bug fix) WSAAsyncSelect definition incorrect for x64.
+ 
+
 **Update (v8.6.476, 12 Dec 2024):**
 -Some additional winsock stuff
 -Some additional bluetooth stuff (including ws2bth.h, 100%)
@@ -7,7 +19,6 @@
     the current Windows version regardless of manifest.
 -Some misc defs to bring coverage of minwinbase.h to 100%
 -(Bug fix) WideCharToMultiByte definition incorrect.
- 
 
 **Update (v8.6.474, 08 Dec 2024):**
 -Added Windows Remote Management APIs (wsman.h, 100% coverage)
