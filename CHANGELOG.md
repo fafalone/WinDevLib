@@ -1,4 +1,23 @@
 
+**Update (v8.7.483, 11 Jan 2025):**
+-Began restoring delegates in API functions. By default these will generate a warning if you use LongPtr
+ (or Long/LongLong). You can ignore these warnings through project settings or `[IgnoreWarnings(TB0026)]`.
+ You may also opt out of the use of delegates entirely by specifying the new compiler option
+ WINDEVLIB_NO_DELEGATES = 1  (when fixed). Incomplete until next release.
+-Additions to Direct3D 12 covering new stuff from SDK 10.0.22621 to 10.0.26000. Incomplete until next release.
+-Added 100% coverage of msime.h, msimeapi.h
+-There's disagreement between sources for the names and arguments for several ITextHost2
+ members. They've been changed to match the Win10 SDK (10.0.22621) and Win11 SDK (10.0.26000).
+ This also applies to WinDevLibImpl.
+-(Bug fix) D3D12_VERSIONED_ROOT_SIGNATURE_DESC union member sizes incorrect; since all members
+           had equivalent tB types they're now used in place of byte arrays.
+-(Bug fix) ITransferAdviseSink ByRef/ByVal and Long/LongPtr bugs
+-(Bug fix) IShellItemResources Long/LongPtr bug
+-(Bug fix) ITextHost::TxSetScrollPos, TxGetCharFormat, TxGetParaFormat definitions incorrect.
+-(Bug fix) RichEdit's SELCHANGE definition incorrect.
+-(Bug fix) Because they're mixed up in the SDK defs, some CHARFORMAT[2] dwMask values were in
+           the dwEffects enum, and vice versa.
+
 **Update (v8.7.480, 18 Dec 2024):**
 -Substantial additional winsock stuff; about 95% of winsock2.h/ws2def.h now covered; 33% of ws2tcpip.h
    **REMINDER:** Due to their short genericnames, all Winsock APIs (ws2_32,dll) starting with a lower
