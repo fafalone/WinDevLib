@@ -1,4 +1,12 @@
 
+**Update (v8.7.485, 16 Jan 2025):**
+-All delegate-using UDTs, APIs, and macros disabled again pending fix of tB issues:
+   https://github.com/twinbasic/twinbasic/issues/1999 Can't declare Delegates outside of module they're declared in for packages 
+   https://github.com/twinbasic/twinbasic/issues/1890 Project compiler constants not applied to packages 
+   https://discord.com/channels/927638153546829845/1293249305355747409 Delegates in interfaces in packages thoroughly broken
+-Additional bug fixes and improvements to RichEdit interfaces
+
+
 **Update (v8.7.483, 11 Jan 2025):**
 -Began restoring delegates in API functions. By default these will generate a warning if you use LongPtr
  (or Long/LongLong). You can ignore these warnings through project settings or `[IgnoreWarnings(TB0026)]`.
