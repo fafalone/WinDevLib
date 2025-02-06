@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 8.7.485 (January 16th, 2025)**
+**Current Version: 8.7.487 (February 6th, 2025)**
 
 ## IMPORTANT: [twinBASIC Beta 617 or newer](https://github.com/twinbasic/twinbasic/releases) is now required.
 
@@ -191,6 +191,20 @@ twinBASIC now counts msvbvm60 redirects as legacy DLL redirects, which WinDevLib
  
 
 ### Updates
+
+**Update (v8.7.487, 06 Feb 2025):**
+-Added min/max helper functions as they're in minwindef.h
+-Some missing constants for upcoming projects.
+-Added Ribbon helper functions from UIRibbonPropertyHelpers.h. Note that while functions are implemented,
+ they don't have the PKEY type checking done by all the generic template stuff because of no language support,
+ so it's up to the user to ensure the PKEY uses the correct type for the call.
+-(Bug fix) UI_HSB macro incorrect
+-(Bug fix) SI_NO_TREE_APPLY name typo
+
+
+**Update (v8.7.486, 02 Feb 2025):**
+-Added realtimeapiset.h - 100% coverage
+-(Bug fix) FWPM_FILTER0 definition incorrect
 
 **Update (v8.7.485, 16 Jan 2025):**\
 -All delegate-using UDTs, APIs, and macros disabled again pending fix of tB issues:\
