@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 8.7.487 (February 6th, 2025)**
+**Current Version: 8.7.490 (February 11th, 2025)**
 
 ## IMPORTANT: [twinBASIC Beta 617 or newer](https://github.com/twinbasic/twinbasic/releases) is now required.
 
@@ -192,18 +192,24 @@ twinBASIC now counts msvbvm60 redirects as legacy DLL redirects, which WinDevLib
 
 ### Updates
 
-**Update (v8.7.487, 06 Feb 2025):**
--Added min/max helper functions as they're in minwindef.h
--Some missing constants for upcoming projects.
--Added Ribbon helper functions from UIRibbonPropertyHelpers.h. Note that while functions are implemented,
- they don't have the PKEY type checking done by all the generic template stuff because of no language support,
- so it's up to the user to ensure the PKEY uses the correct type for the call.
--(Bug fix) UI_HSB macro incorrect
+**Update (v8.7.490, 11 Feb 2025):**\
+-Added FolderShortcut coclass\
+-Added mountmgr.h IOCTLs and structs; macros not covered.\
+-Added OleTranslateColorPtr to allow the last parameter as ByVal VarPtr in x64\
+-Additions to Direct3D 12 covering new stuff from SDK 10.0.22621 to 10.0.26000. Incomplete until next release.\
+-Misc additions and fixes for upcoming project.\
+-Continued work to supply usable UUID types for documented CLSID_ constants for coclasses. 
+
+**Update (v8.7.487, 06 Feb 2025):**\
+-Added min/max helper functions as they're in minwindef.h\
+-Some missing constants for upcoming projects.\
+-Added Ribbon helper functions from UIRibbonPropertyHelpers.h. Note that while functions are implemented, they don't have the PKEY type checking done by all the generic template stuff because of no language support, so it's up to the user to ensure the PKEY uses the correct type for the call.\
+-(Bug fix) UI_HSB macro incorrect\
 -(Bug fix) SI_NO_TREE_APPLY name typo
 
 
-**Update (v8.7.486, 02 Feb 2025):**
--Added realtimeapiset.h - 100% coverage
+**Update (v8.7.486, 02 Feb 2025):**\
+-Added realtimeapiset.h - 100% coverage\
 -(Bug fix) FWPM_FILTER0 definition incorrect
 
 **Update (v8.7.485, 16 Jan 2025):**\
