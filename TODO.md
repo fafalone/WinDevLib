@@ -3,7 +3,7 @@ before release, or waiting on feature support:
 
 -OpenGL (needs Alias support)
 
--DWebBrowserEvents[2] interfaces (needs dispinterface support)
+-DWebBrowserEvents[2], DShellNameSpaceEvents interfaces (needs dispinterface support)
 
 -POLID_ guids only partially complete
 
@@ -33,3 +33,7 @@ before release, or waiting on feature support:
 
  
 -advpub.h
+
+-CLSIDs for coclasses (done: wdShellCore, wdShellObj, wdInternet, wdAccessible, wdBITS, wdUIRibbon, wdWIC, wdCoreAudio,
+                             wdSecurity, wdTaskScheduler, wdManipulations, wdSpellCheck, wdExplorer, wdSearch,
+                             wdDevices)
