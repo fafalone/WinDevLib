@@ -1,4 +1,6 @@
 
+**Update (v8.7.493, 17 Feb 2025):**
+-Misc minor fixes/adjustments for upcoming project.
 **Update (v8.7.492, 17 Feb 2025):**
 -Misc minor fixes/adjustments for upcoming project.
 -(BREAKING CHANGE) CHARRANGE members renamed to their actual SDK names.
