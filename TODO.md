@@ -36,4 +36,4 @@ before release, or waiting on feature support:
 
 -CLSIDs for coclasses (done: wdShellCore, wdShellObj, wdInternet, wdAccessible, wdBITS, wdUIRibbon, wdWIC, wdCoreAudio,
                              wdSecurity, wdTaskScheduler, wdManipulations, wdSpellCheck, wdExplorer, wdSearch,
-                             wdDevices)
+                             wdDevices, wdSyncMgr, wdSensors)

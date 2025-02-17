@@ -1,4 +1,10 @@
 
+**Update (v8.7.492, 17 Feb 2025):**
+-Misc minor fixes/adjustments for upcoming project.
+-(BREAKING CHANGE) CHARRANGE members renamed to their actual SDK names.
+-UIRibbonPropertyHelpers.h helper functions now manually validate PROPERTYKEY inputs.
+-Continued work to supply usable UUID types for documented CLSID_ constants for coclasses. 
+
 **Update (v8.7.490, 11 Feb 2025):**
 -Added FolderShortcut coclass 
 -Added mountmgr.h IOCTLs and structs; macros not covered.
