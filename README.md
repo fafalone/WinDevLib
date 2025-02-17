@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 8.7.492 (February 17th, 2025)**
+**Current Version: 8.7.493 (February 17th, 2025)**
 
 ## IMPORTANT: [twinBASIC Beta 617 or newer](https://github.com/twinbasic/twinbasic/releases) is now required.
 
@@ -192,6 +192,8 @@ twinBASIC now counts msvbvm60 redirects as legacy DLL redirects, which WinDevLib
 
 ### Updates
 
+**Update (v8.7.493, 17 Feb 2025):**\
+-Misc minor fixes/adjustments for upcoming project.\
 **Update (v8.7.492, 17 Feb 2025):**\
 -Misc minor fixes/adjustments for upcoming project.\
 -(BREAKING CHANGE) CHARRANGE members renamed to their actual SDK names.\
