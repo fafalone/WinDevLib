@@ -47697,6 +47697,387 @@ End Enum
 
 Public Declare PtrSafe Function Netbios Lib "netapi32" (pncb As NCB) As Byte
  
+'lmuse.h/lmuseflg.h
+
+Public Enum LmUseForce
+    USE_NOFORCE = 0
+    USE_FORCE = 1
+    USE_LOTS_OF_FORCE = 2
+    USE_FLAG_GLOBAL_MAPPING = &h10000
+End Enum
+Public Function FORCE_LEVEL(ByVal LEVELFLAGS As LmUseForce) As Long: Return ((LEVELFLAGS) And &Hffff&): End Function
+Public Function USE_LEVEL(ByVal LEVELFLAGS As LmUseForce) As Long: Return ((LEVELFLAGS) And &Hffff&): End Function
+Public Function USE_FLAGS(ByVal LEVELFLAGS As LmUseForce) As Long: Return ((LEVELFLAGS) And &Hffff0000&): End Function
+
+Public Declare PtrSafe Function NetUseAdd Lib "netapi32" (ByVal servername As LongPtr, ByVal LevelFlags As Long, buf As Any, parm_err As NetUseAddErrors) As Long
+Public Declare PtrSafe Function NetUseDel Lib "netapi32" (ByVal UncServerName As LongPtr, ByVal UseName As LongPtr, ByVal ForceLevelFlags As LmUseForce) As Long
+Public Declare PtrSafe Function NetUseEnum Lib "netapi32" (ByVal UncServerName As LongPtr, ByVal LevelFlags As Long, BufPtr As LongPtr, ByVal PreferedMaximumSize As Long, EntriesRead As Long, TotalEntries As Long, Optional ResumeHandle As Long) As Long
+Public Declare PtrSafe Function NetUseGetInfo Lib "netapi32" (ByVal UncServerName As LongPtr, ByVal UseName As LongPtr, ByVal LevelFlags As Long, bufptr As LongPtr) As Long
+
+Public Type USE_INFO_0
+    ui0_local As LongPtr 'LMSTR
+    ui0_remote As LongPtr 'LMSTR
+End Type
+
+Public Type USE_INFO_1
+    ui1_local As LongPtr 'LMSTR
+    ui1_remote As LongPtr 'LMSTR
+    ui1_password As LongPtr 'LMSTR
+    ui1_status As LmUseInfoStatus
+    ui1_asg_type As LmUseInfoAsgType
+    ui1_refcount As Long
+    ui1_usecount As Long
+End Type
+
+Public Type USE_INFO_2
+    ui2_local As LongPtr 'LMSTR
+    ui2_remote As LongPtr 'LMSTR
+    ui2_password As LongPtr 'LMSTR
+    ui2_status As LmUseInfoStatus
+    ui2_asg_type As LmUseInfoAsgType
+    ui2_refcount As Long
+    ui2_usecount As Long
+    ui2_username As LongPtr 'LMSTR
+    ui2_domainname As LongPtr 'LMSTR
+End Type
+
+Public Type USE_INFO_3
+    ui3_ui2 As USE_INFO_2
+    ui3_flags As LmUseInfoFlags
+End Type
+
+Public Type USE_INFO_4
+    ui4_ui3 As USE_INFO_3
+    ui4_auth_identity_length As Long
+    ui4_auth_identity As LongPtr
+End Type
+
+Public Type USE_INFO_5
+    ui4_ui3 As USE_INFO_3
+    ui4_auth_identity_length As Long
+    ui4_auth_identity As LongPtr
+    ui5_security_descriptor_length As Long
+    ui5_security_descriptor As LongPtr
+    ui5_use_options_length As Long
+    ui5_use_options As LongPtr
+End Type
+
+
+
+Public Enum NetUseAddErrors
+    USE_LOCAL_PARMNUM = 1
+    USE_REMOTE_PARMNUM = 2
+    USE_PASSWORD_PARMNUM = 3
+    USE_ASGTYPE_PARMNUM = 4
+    USE_USERNAME_PARMNUM = 5
+    USE_DOMAINNAME_PARMNUM = 6
+    USE_FLAGS_PARMNUM = 7
+    USE_AUTHIDENTITY_PARMNUM = 8
+    USE_SD_PARMNUM = 9
+    USE_OPTIONS_PARMNUM = 10
+End Enum
+
+Public Enum LmUseInfoStatus
+    USE_OK = 0
+    USE_PAUSED = 1
+    USE_SESSLOST = 2
+    USE_DISCONN = 2
+    USE_NETERR = 3
+    USE_CONN = 4
+    USE_RECONN = 5
+End Enum
+
+Public Enum LmUseInfoAsgType
+    USE_WILDCARD = (-1)
+    USE_DISKDEV = 0
+    USE_SPOOLDEV = 1
+    USE_CHARDEV = 2
+    USE_IPC = 3
+End Enum
+
+Public Enum LmUseInfoFlags
+    CREATE_NO_CONNECT = &H1  ' creation flags
+    CREATE_BYPASS_CSC = &H2  ' force connection to server, bypassing CSC
+'   all ops on this connection go to the server,
+'   never to the cache
+    CREATE_CRED_RESET = &H4  ' Create a connection with credentials passed in
+'   this netuse if none exist. If connection already
+'   exists then update credentials after issuing remote
+'   tree connection. This is needed as CSC cannot verify
+'   credentials while offline.
+    USE_DEFAULT_CREDENTIALS = &H4  ' No explicit credentials passed to NetUseAdd
+'  Enforce connection level integrity and privacy.
+    CREATE_REQUIRE_CONNECTION_INTEGRITY = &H8
+    CREATE_REQUIRE_CONNECTION_PRIVACY = &H10
+'  Persist the mapping in the registry. (Only valid for global mappings.)
+    CREATE_PERSIST_MAPPING = &H20
+'  Enables write-through semantics on all files opened via this mapping.
+    CREATE_WRITE_THROUGH_SEMANTICS = &H40
+    CREATE_GLOBAL_MAPPING = &H100
+End Enum
+
+Public Enum LmUseOptionsTags
+    USE_OPTION_DEFERRED_CONNECTION_PARAMS = &H43666544 'CfeD'
+    USE_OPTION_TRANSPORT_PARAMS = &H50617254 'ParT'
+    USE_OPTION_SMB_COMPRESSION_PARAMS = &H506d6f43 'PmoC'
+    USE_OPTION_BLOCK_NTLM_PARAMS = &H4e6f6c42 'NolB'
+End Enum
+
+Public Type USE_OPTION_GENERIC
+    Tag As LmUseOptionsTags
+    Length As Integer
+    Reserved As Integer
+End Type
+
+Public Type USE_OPTION_DEFERRED_CONNECTION_PARAMETERS
+    Tag As LmUseOptionsTags ' 'CfeD'
+    Length As Integer ' sizeof(USE_OPTION_DEFERRED_CONNECTION_PARAMETERS) + sizeof(FILE_REMOTE_PROTOCOL_INFO)
+    Reserved As Integer ' 0
+    ' Followed by FILE_REMOTE_PROTOCOL_INFO
+End Type
+
+Public Enum TRANSPORT_TYPE
+    UseTransportType_None = 0
+    UseTransportType_Wsk = 1
+    UseTransportType_Quic = 2
+End Enum
+
+Public Enum TRANSPORT_INFO_FLAG
+    NoneFlag = &H00000000
+    TcpPortSetFlag = &H00000001
+    QuicPortSetFlag = &H00000002
+    RdmaPortSetFlag = &H00000004
+End Enum
+
+Public Type TRANSPORT_INFO
+    Type As TRANSPORT_TYPE
+    SkipCertificateCheck As Byte
+    TcpPort As Integer
+    QuicPort As Integer
+    RdmaPort As Integer
+    Flags As TRANSPORT_INFO_FLAG
+End Type
+
+Public Type USE_OPTION_TRANSPORT_PARAMETERS
+    Tag As LmUseOptionsTags ' 'ParT'
+    Length As Integer ' sizeof(USE_OPTION_TRANSPORT_PARAMETERS) + sizeof(TRANSPORT_INFO)
+    Reserved As Integer ' 0
+    ' Followed by TRANSPORT_INFO
+End Type
+
+Public Type SMB_COMPRESSION_INFO
+    Switch As Byte ' FALSE: OFF; TRUE: ON;
+    Reserved1 As Byte ' 0
+    Reserved2 As Integer ' 0
+    Reserved3 As Long ' 0
+End Type
+
+Public Type SMB_USE_OPTION_COMPRESSION_PARAMETERS
+    Tag As LmUseOptionsTags ' 'ParC'
+    Length As Integer
+    Reserved As Integer
+End Type
+
+Public Type BLOCK_NTLM_INFO
+    BlockNTLM As Byte
+    Reserved1 As Byte ' 0
+    Reserved2 As Integer ' 0
+    Reserved3 As Long ' 0 
+End Type
+
+Public Type USE_OPTION_BLOCK_NTLM_PARAMETERS
+    Tag As LmUseOptionsTags ' 'NolB'
+    Length As Integer
+    Reserved As Integer
+End Type
+
+Public Type SMB_TREE_CONNECT_PARAMETERS
+    EABufferOffset As Long ' relative offset 
+    EABufferLen As Long
+    CreateOptions As Long
+    TreeConnectAttributes As Long
+End Type
+
+Public Type USE_OPTION_PROPERTIES
+    Tag As Long
+    pInfo As LongPtr
+    Length As LongPtr
+End Type
+
+
+'lmat.h
+Public Enum LmJobFlags
+    JOB_RUN_PERIODICALLY = &H01  '  set if EVERY
+'   Was there an error last time we tried to exec a program on behalf of
+'   this job.
+'   This flag is meaningfull on output only!
+    JOB_EXEC_ERROR = &H02  '  set if error
+'   Will this job run today or tomorrow.
+'   This flag is meaningfull on output only!
+    JOB_RUNS_TODAY = &H04  '  set if today
+'   Add current day of the month to DaysOfMonth input.
+'   This flag is meaningfull on input only!
+    JOB_ADD_CURRENT_DATE = &H08  ' set if to add current date
+'   Will this job be run interactively or not.  Windows NT 3.1 do not
+'   know about this bit, i.e. they submit interactive jobs only.
+    JOB_NONINTERACTIVE = &H10  ' set for noninteractive
+    JOB_INPUT_FLAGS = (JOB_RUN_PERIODICALLY Or JOB_ADD_CURRENT_DATE Or JOB_NONINTERACTIVE)
+    JOB_OUTPUT_FLAGS = (JOB_RUN_PERIODICALLY Or JOB_EXEC_ERROR Or JOB_RUNS_TODAY Or JOB_NONINTERACTIVE)
+End Enum
+
+Public Type AT_INFO
+    JobTime As LongPtr
+    DaysOfMonth As Long
+    DaysOfWeek As Byte
+    Flags As Byte
+    Command As LongPtr
+End Type
+
+Public Type AT_ENUM
+    JobId As Long
+    JobTime As LongPtr
+    DaysOfMonth As Long
+    DaysOfWeek As Byte
+    Flags As Byte
+    Command As LongPtr
+End Type
+
+[Description("NetScheduleJobAdd is no longer available for use as of Windows 8. Instead, use the Task Scheduler 2.0 Interfaces.")]
+Public Declare PtrSafe Function NetScheduleJobAdd Lib "netapi32" (ByVal Servername As LongPtr, Buffer As Any, JobId As Long) As Long
+[Description("NetScheduleJobDel is no longer available for use as of Windows 8. Instead, use the Task Scheduler 2.0 Interfaces.")]
+Public Declare PtrSafe Function NetScheduleJobDel Lib "netapi32" (ByVal Servername As LongPtr, ByVal MinJobId As Long, ByVal MaxJobId As Long) As Long
+[Description("NetScheduleJobEnum is no longer available for use as of Windows 8. Instead, use the Task Scheduler 2.0 Interfaces.")]
+Public Declare PtrSafe Function NetScheduleJobEnum Lib "netapi32" (ByVal Servername As LongPtr, PointerToBuffer As LongPtr, ByVal PrefferedMaximumLength As Long, EntriesRead As Long, TotalEntries As Long, Optional ResumeHandle As Long) As Long
+[Description("NetScheduleJobGetInfo is no longer available for use as of Windows 8. Instead, use the Task Scheduler 2.0 Interfaces.")]
+Public Declare PtrSafe Function NetScheduleJobGetInfo Lib "netapi32" (ByVal Servername As LongPtr, ByVal JobId As Long, PointerToBuffer As LongPtr) As Long
+
+'lmrepl.h
+
+Public Enum LmReplRoles
+    REPL_ROLE_EXPORT = 1
+    REPL_ROLE_IMPORT = 2
+    REPL_ROLE_BOTH = 3
+End Enum
+
+Public Enum LmReplInfoLevels
+    REPL_INTERVAL_INFOLEVEL = (PARMNUM_BASE_INFOLEVEL + 0)
+    REPL_PULSE_INFOLEVEL = (PARMNUM_BASE_INFOLEVEL + 1)
+    REPL_GUARDTIME_INFOLEVEL = (PARMNUM_BASE_INFOLEVEL + 2)
+    REPL_RANDOM_INFOLEVEL = (PARMNUM_BASE_INFOLEVEL + 3)
+End Enum
+
+Public Type REPL_INFO_0
+    rp0_role As LmReplRoles
+    rp0_exportpath As LongPtr
+    rp0_exportlist As LongPtr
+    rp0_importpath As LongPtr
+    rp0_importlist As LongPtr
+    rp0_logonusername As LongPtr
+    rp0_interval As Long
+    rp0_pulse As Long
+    rp0_guardtime As Long
+    rp0_random As Long
+End Type
+
+Public Type REPL_INFO_1000
+    rp1000_interval As Long
+End Type
+
+Public Type REPL_INFO_1001
+    rp1001_pulse As Long
+End Type
+
+Public Type REPL_INFO_1002
+    rp1002_guardtime As Long
+End Type
+
+Public Type REPL_INFO_1003
+    rp1003_random As Long
+End Type
+
+Public Declare PtrSafe Function NetReplGetInfo Lib "netapi32" (ByVal servername As LongPtr, ByVal level As Long, bufptr As LongPtr) As Long
+Public Declare PtrSafe Function NetReplSetInfo Lib "netapi32" (ByVal servername As LongPtr, ByVal level As Long, buf As Any, Optional parm_err As Long) As Long
+
+Public Enum LmReplIntegrity
+    REPL_INTEGRITY_FILE = 1
+    REPL_INTEGRITY_TREE = 2
+End Enum
+
+Public Enum LmReplExtent
+    REPL_EXTENT_FILE = 1
+    REPL_EXTENT_TREE = 2
+End Enum
+
+Public Enum LmReplExportInfoLevel
+    REPL_EXPORT_INTEGRITY_INFOLEVEL = (PARMNUM_BASE_INFOLEVEL + 0)
+    REPL_EXPORT_EXTENT_INFOLEVEL = (PARMNUM_BASE_INFOLEVEL + 1)
+End Enum
+
+Public Type REPL_EDIR_INFO_0
+    rped0_dirname As LongPtr
+End Type
+
+Public Type REPL_EDIR_INFO_1
+    rped1_dirname As LongPtr
+    rped1_integrity As LmReplIntegrity
+    rped1_extent As LmReplExtent
+End Type
+
+Public Type REPL_EDIR_INFO_2
+    rped2_dirname As LongPtr
+    rped2_integrity As LmReplIntegrity
+    rped2_extent As LmReplExtent
+    rped2_lockcount As Long
+    rped2_locktime As Long
+End Type
+
+Public Type REPL_EDIR_INFO_1000
+    rped1000_integrity As LmReplIntegrity
+End Type
+Public Type REPL_EDIR_INFO_1001
+    rped1001_extent As LmReplExtent
+End Type
+
+Public Declare PtrSafe Function NetReplExportDirAdd Lib "netapi32" (ByVal servername As LongPtr, ByVal level As Long, buf As Any, Optional parm_err As Long) As Long
+Public Declare PtrSafe Function NetReplExportDirDel Lib "netapi32" (ByVal servername As LongPtr, ByVal dirname As LongPtr) As Long
+Public Declare PtrSafe Function NetReplExportDirEnum Lib "netapi32" (ByVal servername As LongPtr, ByVal level As Long, bufptr As LongPtr, ByVal prefmaxlen As Long, entriesread As Long, totalentries As Long, Optional resumehandle As Long) As Long
+Public Declare PtrSafe Function NetReplExportDirGetInfo Lib "netapi32" (ByVal servername As LongPtr, ByVal dirname As LongPtr, ByVal level As Long, bufptr As LongPtr) As Long
+Public Declare PtrSafe Function NetReplExportDirSetInfo Lib "netapi32" (ByVal servername As LongPtr, ByVal dirname As LongPtr, ByVal level As Long, buf As Any, Optional parm_err As Long) As Long
+Public Declare PtrSafe Function NetReplExportDirLock Lib "netapi32" (ByVal servername As LongPtr, ByVal dirname As LongPtr) As Long
+Public Declare PtrSafe Function NetReplExportDirUnlock Lib "netapi32" (ByVal servername As LongPtr, ByVal dirname As LongPtr, ByVal unlockforce As LmReplUnlockForce) As Long
+
+Public Enum LmReplUnlockForce
+    REPL_UNLOCK_NOFORCE = 0
+    REPL_UNLOCK_FORCE = 1
+End Enum
+
+Public Type REPL_IDIR_INFO_0
+    rpid0_dirname As LongPtr
+End Type
+
+Public Type REPL_IDIR_INFO_1
+    rpid1_dirname As LongPtr
+    rpid1_state As LmReplState
+    rpid1_mastername As LongPtr
+    rpid1_last_update_time As Long
+    rpid1_lockcount As Long
+    rpid1_locktime As Long
+End Type
+
+Public Declare PtrSafe Function NetReplImportDirAdd Lib "netapi32" (ByVal servername As LongPtr, ByVal level As Long, buf As Any, Optional parm_err As Long) As Long
+Public Declare PtrSafe Function NetReplImportDirDel Lib "netapi32" (ByVal servername As LongPtr, ByVal dirname As LongPtr) As Long
+Public Declare PtrSafe Function NetReplImportDirEnum Lib "netapi32" (ByVal servername As LongPtr, ByVal level As Long, bufptr As LongPtr, ByVal prefmaxlen As Long, entriesread As Long, totalentries As Long, Optional resumehandle As Long) As Long
+Public Declare PtrSafe Function NetReplImportDirGetInfo Lib "netapi32" (ByVal servername As LongPtr, ByVal dirname As LongPtr, ByVal level As Long, bufptr As LongPtr) As Long
+Public Declare PtrSafe Function NetReplImportDirLock Lib "netapi32" (ByVal servername As LongPtr, ByVal dirname As LongPtr) As Long
+Public Declare PtrSafe Function NetReplImportDirUnlock Lib "netapi32" (ByVal servername As LongPtr, ByVal dirname As LongPtr, ByVal unlockforce As LmReplUnlockForce) As Long
+
+Public Enum LmReplState
+    REPL_STATE_OK = 0
+    REPL_STATE_NO_MASTER = 1
+    REPL_STATE_NO_SYNC = 2
+    REPL_STATE_NEVER_REPLICATED = 3
+End Enum
+
 #End Region
 
 #Region "winmm"
