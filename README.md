@@ -192,6 +192,10 @@ twinBASIC now counts msvbvm60 redirects as legacy DLL redirects, which WinDevLib
 
 ### Updates
 
+**Update (v8.7.494, 19 Feb 2025):**\
+-Added 100% coverage of lmuse.h/lmuseflg.h, lmrepl.h and lmat.h
+
+
 **Update (v8.7.493, 17 Feb 2025):**\
 -Misc minor fixes/adjustments for upcoming project.\
 **Update (v8.7.492, 17 Feb 2025):**\
