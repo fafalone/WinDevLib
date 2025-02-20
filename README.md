@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 8.7.494 (February 19th, 2025)**
+**Current Version: 8.7.496 (February 20th, 2025)**
 
 ## IMPORTANT: [twinBASIC Beta 617 or newer](https://github.com/twinbasic/twinbasic/releases) is now required.
 
@@ -192,9 +192,12 @@ twinBASIC now counts msvbvm60 redirects as legacy DLL redirects, which WinDevLib
 
 ### Updates
 
-**Update (v8.7.494, 19 Feb 2025):**\
--Added 100% coverage of lmuse.h/lmuseflg.h, lmrepl.h and lmat.h
+**Update (v8.7.496, 20 Feb 2025):**\
+-Added missing functions from ole2.h; now 100% coverage\
+-Added ATL helpers AtlPixelToHiMetric and AtlHiMetricToPixel (also as PixelToHiMetric and HiMetricToPixel)
 
+**Update (v8.7.494, 19 Feb 2025):**\
+-Added 100% coverage of lmuse.h/lmuseflg.h, lmrepl.h and lmat.h 
 
 **Update (v8.7.493, 17 Feb 2025):**\
 -Misc minor fixes/adjustments for upcoming project.\
