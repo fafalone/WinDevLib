@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 8.7.496 (February 20th, 2025)**
+**Current Version: 8.7.498 (February 21st, 2025)**
 
 ## IMPORTANT: [twinBASIC Beta 617 or newer](https://github.com/twinbasic/twinbasic/releases) is now required.
 
@@ -191,6 +191,16 @@ twinBASIC now counts msvbvm60 redirects as legacy DLL redirects, which WinDevLib
  
 
 ### Updates
+
+**Update (v8.7.498, 21 Feb 2025):**\
+-For Property Get/Lets in TOM (RichEdit) interfaces, the actual typelib uses the more nature Property Get/Let Prop vs the SDK which uses GetProp/SetProp; the latter is more natural for BASIC so the names are being changed to that for usability and oleexp compatibility.\
+-Added numerous missing tom* constants, including many undocumented ones for Office richedit.\
+-Like previous tom* constants, I did my best to sort them into enums according to their usage, and all the TOM interfaces have been updated to make use of these.\
+-(Bug fix) ITextRange2 missing GetProperty and SetText2 methods\
+-(Bug fix) ITextFont2 missing SpaceExtension and UnderlinePositionMode prop get/lets.\
+-(Bug fix) ITextDocument2::GetClientRect missing Type argument.\
+-(Bug fix) ITextDocument2::GetEffectColor 2nd param is not retval\
+-(Bug fix) ITextServices::TxDraw argument pfnContinue incorrect for x64
 
 **Update (v8.7.496, 20 Feb 2025):**\
 -Added missing functions from ole2.h; now 100% coverage\
