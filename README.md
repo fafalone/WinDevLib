@@ -195,7 +195,7 @@ twinBASIC now counts msvbvm60 redirects as legacy DLL redirects, which WinDevLib
 **Update (v8.7.500, 28 Feb 2025):**\
 -Added 100% coverage of msdelta.h\
 -Added CompressedFolder coclass that creates an instance of the Zip Folder extension; replaces CoCreateInstance of {E88DCCE0-B7B3-11d1-A9F0-00AA0060FA31}.\
--Added STDIO_BUFFER and related flags per https://github.com/fafalone/WinDevLib/issues/37\
+-Added STDIO_BUFFER and related flags per https://github.com/fafalone/WinDevLib/issues/37 request\
 -Updated IStorage to make reserved and some other arguments optional for oleexp/olelib compatibility\
 -Made last argument optional in a number of IEnum*::Next methods where already using [PreserveSig]\
 -Misc API additions\
