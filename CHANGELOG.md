@@ -1,4 +1,24 @@
 
+**Update (v8.7.502, 06 Mar 2025):**
+-Added 100% coverage of processtopologyapi.h and systemtopologyapi.h
+-Added 100% coverage of audiostatemonitorapi.h
+-Added improperly excluded vararg functions of oledlg.h, now 100% coverage
+-Added some missing items to bring shobjidl.h/.idl, ShlObj_core.h, thumbcache.h/.idl and timezoneapi.h to 100%
+-For consistency, GETTEXTEX now uses LongPtr instead of String.
+-Renamed MENUPOPUPPOPUPFLAGS to SDK-defined MP_POPUPFLAGS
+-Added IShellIconOverlayIdentifier::GetOverlayInfo missing flags
+-Continued work to supply usable UUID types for documented CLSID_ constants for coclasses.
+-Continued implementation of [UseGetLastError(False)]; applied to all NTSTATUS-returning APIs
+-Numerous other misc additions and small fixes 
+-(Bug fix) PUNCTUATION name typo; also now uses LongPtr instead of String.
+-(Bug fix) SPC_LINK had extra trailing _
+-(Bug fix) SpatialAudioObjectRenderStreamActivationParams2 missing packing alignment attrib
+-(Bug fix) `boolean` values on IDiscMasterProgressEvents::QueryCancel, IDiscMaster::RecordDisc, and IDiscRecorder::Erase should be Byte
+-(Bug fix) PSGetPropertyDescriptionByName definition incorrect
+-(Bug fix) IShellLibrary::ResolveFolder name typo
+-(Bug fix) PROP_CONTRACT_DELEGATE definition incorrect
+-(Bug fix) ICredentialProviderEvents::CredentialsChanged argument type incompatible with x64
+
 **Update (v8.7.500, 28 Feb 2025):**
 -Added 100% coverage of msdelta.h
 -Added CompressedFolder coclass that creates an instance of the Zip Folder extension; replaces
@@ -13,8 +33,8 @@
 -(Bug fix) SysAllocString now uses DeclareWide
 
 **Update (v8.7.498, 21 Feb 2025):**
--For Property Get/Lets in TOM (RichEdit) interfaces, the actual typelib uses the more nature Property Get/Let Prop
- vs the SDK which uses GetProp/SetProp; the latter is more natural for BASIC so the names are being changed to that
+-For Property Get/Lets in TOM (RichEdit) interfaces, the actual typelib uses the more natural Property Get/Let Prop
+ vs the SDK which uses GetProp/SetProp; the former is more natural for BASIC so the names are being changed to that
  for usability and oleexp compatibility.
 -Added numerous missing tom* constants, including many undocumented ones for Office richedit.
 -Like previous tom* constants, I did my best to sort them into enums according to their usage, and all the TOM
@@ -533,7 +553,7 @@ IMPORTANT: THIS MAY REQUIRE CODE CHANGES. If you use any of the following and us
 **Update (v7.7.370, 05 April 2024):**
 -Added all Background Intelligent Transfer Service interfaces; 100% coverage of:
  bits.idl, bits1_5.idl, bits2_0.idl, bits2_5.idl, bits3_0.idl, bits4_0.idl, bits5_0.idl,
- bits10_1.idl, bits10_2.idl, bits10_3.idl, bitscfg.idl, qmgr.idl.
+ bits10_1.idl, bits10_2.idl, bits10_3.idl, bitscfg.idl, bitsmsg.h, qmgr.idl.
 
 **Update (v7.7.360, 04 April 2024):**
 -Very large expansion of DirectWrite interfaces; only dwrite.h was covered; added 100%
