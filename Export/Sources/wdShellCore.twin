@@ -1,6 +1,6 @@
 '************************************************************************************
 'WinDevLib - Windows Development Library for twinBASIC
-'Version 8.7.500
+'Version 8.7.502
 '(c) 2022-2025 Jon Johnson (fafalone)
 'Project GUID: {1FCDB98D-617D-4995-9736-2ED0E4746A10}
 '
@@ -165,7 +165,7 @@ Interface IShellLibrary Extends stdole.IUnknown
     [PreserveSig] Function AddFolder(ByVal psiLocation As IShellItem) As Long
     [PreserveSig] Function RemoveFolder(ByVal psiLocation As IShellItem) As Long
     [PreserveSig] Function GetFolders(ByVal lff As LIBRARYFOLDERFILTER, riid As UUID, ppv As Any) As Long
-    [PreserveSig] Function ResolveFolders(ByVal psiFolderToResolve As IShellItem, ByVal dwTimeout As Long, riid As UUID, ppv As Any) As Long
+    [PreserveSig] Function ResolveFolder(ByVal psiFolderToResolve As IShellItem, ByVal dwTimeout As Long, riid As UUID, ppv As Any) As Long
     [PreserveSig] Function GetDefaultSaveFolder(ByVal dsft As DEFAULTSAVEFOLDERTYPE, riid As UUID, ppv As Any) As Long
     [PreserveSig] Function SetDefaultSaveFolder(ByVal dsft As DEFAULTSAVEFOLDERTYPE, ByVal psi As IShellItem) As Long
     [PreserveSig] Function GetOptions(plofOptions As LIBRARYOPTIONFLAGS) As Long
@@ -201,8 +201,8 @@ End Interface
 [InterfaceId("0c6c4200-c589-11d0-999a-00c04fd655e1")]
 [OleAutomation(False)]
 Interface IShellIconOverlayIdentifier Extends stdole.IUnknown
-    Sub IsMemberOf(ByVal pwszPath As LongPtr, ByVal dwAttrib As Long)
-    Sub GetOverlayInfo(ByVal pwszIconFile As LongPtr, cchMax As Long, pIndex As Long, pdwFlags As Long)
+    Sub IsMemberOf(ByVal pwszPath As LongPtr, ByVal dwAttrib As FILE_ATTRIBUTES)
+    Sub GetOverlayInfo(ByVal pwszIconFile As LongPtr, cchMax As Long, pIndex As Long, pdwFlags As ISIOIGetOverlayInfoFlags)
     Sub GetPriority(piPriority As Long)
 End Interface
 
@@ -233,6 +233,39 @@ Interface IShellBrowser Extends IOleWindow
     Sub QueryActiveShellView(ppshv As IShellView)
     Sub OnViewWindowActive(ByVal ppshv As IShellView)
     Sub SetToolbarItems(lpButtons As Any, ByVal nButtons As Long, ByVal uFlags As STI_Flags)
+End Interface
+
+[InterfaceId("37A378C0-F82D-11CE-AE65-08002B2E1262")]
+[OleAutomation(False)]
+Interface IShellFolderView Extends IUnknown
+    Sub Rearrange(ByVal lParamSort As LongPtr)
+    Sub GetArrangeParam(plParamSort As LongPtr)
+    Sub ArrangeGrid()
+    Sub AutoArrange()
+    Sub GetAutoArrange()
+    Sub AddObject(ByVal pidl As LongPtr, puItem As Long)
+    Sub GetObject(ppidl As LongPtr, ByVal uItem As Long)
+    Sub RemoveObject(ByVal pidl As LongPtr, puItem As Long)
+    Sub GetObjectCount(puCount As Long)
+    Sub SetObjectCount(ByVal uCount As Long, ByVal dwFlags As SFVObjectCountFlags)
+	Sub UpdateObject(ByVal pidlOld As LongPtr, ByVal pidlNew As LongPtr, puItem As Long)
+	Sub RefreshObject(ByVal pidl As LongPtr, puItem As Long)
+    Sub SetRedraw(ByVal bRedraw As BOOL)
+	Sub GetSelectedCount(puSelected As Long)
+    Sub GetSelectedObjects(pppidl As LongPtr, puItems As Long)
+    Sub IsDropOnSource(ByVal pDropTarget As IDropTarget)
+    Sub GetDragPoint(ppt As POINT)
+	Sub GetDropPoint(ppt As POINT)
+    Sub MoveIcons(ByVal pDataObject As IDataObject)
+	Sub SetItemPos(ByVal pidl As LongPtr, ppt As POINT)
+	Sub IsBkDropTarget(ByVal pDropTarget As IDropTarget)
+    Sub SetClipboard(ByVal bMove As BOOL)
+	Sub SetPoints(ByVal pDataObject As IDataObject)
+    Sub GetItemSpacing(pSpacing As ITEMSPACING)
+    Sub SetCallback(ByVal pNewCB As IShellFolderViewCB, ppOldCB As IShellFolderViewCB)
+    Sub Select(ByVal dwFlags As SFVSelectItemFlags)
+    Sub QuerySupport(pdwSupport As Long)
+    Sub SetAutomationObject(ByVal pdisp As IDispatch)
 End Interface
 
 [InterfaceId("000214E3-0000-0000-C000-000000000046")]
@@ -522,6 +555,14 @@ Interface IBrowserProgressSessionProvider Extends IUnknown
 	Sub EndSession()
 	Sub GetCurrentSession(sessionId As Long)
 	Sub ActivateSession()
+End Interface
+
+[InterfaceId("FB700430-952C-11d1-946F-000000000000")]
+[OleAutomation(False)]
+Interface INamedPropertyBag Extends IUnknown
+    Sub ReadPropertyNPB(ByVal pszBagname As LongPtr, ByVal pszPropName As LongPtr, pVar As Variant)
+	Sub WritePropertyNPB(ByVal pszBagname As LongPtr, ByVal pszPropName As LongPtr, pVar As Variant)
+	Sub RemovePropertyNPB(ByVal pszBagname As LongPtr, ByVal pszPropName As LongPtr)
 End Interface
 
 
@@ -1015,6 +1056,12 @@ Interface IThumbnailSettings Extends stdole.IUnknown
     Sub SetContext(ByVal dwContext As WTS_CONTEXTFLAGS)
 End Interface
 
+[InterfaceId("4ea39266-7211-409f-b622-f63dbd16c533")]
+[OleAutomation(False)]
+Interface IThumbnailCapture Extends stdole.IUnknown
+    Sub CaptureThumbnail(pMaxSize As SIZE, ByVal pHTMLDoc2 As IUnknown, phbmThumbnail As LongPtr)
+End Interface
+
 [InterfaceId("b7d14566-0509-4cce-a71f-0a554233bd9b")]
 [OleAutomation(False)]
 Interface IInitializeWithFile Extends stdole.IUnknown
@@ -1246,7 +1293,7 @@ End Interface
 [OleAutomation(False)]
 Interface ITrackShellMenu Extends IShellMenu
     Sub SetObscured(ByVal hwndTB As LongPtr, ByVal punkBand As IUnknown, ByVal dwSMSetFlags As SMSET_Flags)
-    Sub Popup(ByVal hwnd As LongPtr, ByRef ppt As POINT, ByRef prcExclude As RECT, ByVal dwFlags As MENUPOPUPPOPUPFLAGS)
+    Sub Popup(ByVal hwnd As LongPtr, ByRef ppt As POINT, ByRef prcExclude As RECT, ByVal dwFlags As MP_POPUPFLAGS)
 End Interface
 
 [InterfaceId("7690AA79-F8FC-4615-A327-36F7D18F5D91")]
@@ -2128,6 +2175,17 @@ Interface IPropertyKeyStore Extends stdole.IUnknown
     Sub RemoveKey(key As PROPERTYKEY)
 End Interface
 
+[InterfaceId("6DFD582B-92E3-11D1-98A3-00C04FB687DA")]
+[OleAutomation(False)]
+Interface IEnumShellImageStore Extends stdole.IUnknown
+    [PreserveSig] Function Next(ByVal celt As Long, ByRef prgElt As ENUMSHELLIMAGESTOREDATA, ByRef pceltFetched As Long) As Long
+    [PreserveSig] Function Skip(ByVal celt As Long) As Long
+    [PreserveSig] Function Reset() As Long
+    [PreserveSig] Function Clone(ByRef ppenumr As IEnumShellImageStore) As Long
+End Interface
+
+
+
 
 [InterfaceId("2DD81FE3-A83C-4DA9-A330-47249D345BA1")]
 [OleAutomation(False)]
@@ -2400,11 +2458,26 @@ Interface IDeskBarClient Extends IOleWindow
     Sub GetSize(ByVal dwWhich As Long, prc As RECT)
 End Interface
 
+[InterfaceId("D1E7AFEB-6A2E-11d0-8C78-00C04FD918B4")]
+[OleAutomation(False)]
+Interface IMenuPopup Extends IDeskBar
+	Sub Popup(ppt As POINT, prcExclude As RECT, ByVal dwFlags As MP_POPUPFLAGS)
+    Sub OnSelect(ByVal dwSelectType As MENUPOPUPSELECT)
+    Sub SetSubMenu(ByVal pmp As IMenuPopup, ByVal fSet As BOOL)
+End Interface
+
+
 [InterfaceId("7FE80CC8-C247-11d0-B93A-00A0C90312E1")]
 Interface IShellFolderBand Extends stdole.IUnknown
     Sub InitializeSFB(ByVal psf As IShellFolder, ByVal pidl As LongPtr)
     Sub SetBandInfo(pbi As BANDINFOSFB)
     Sub GetBandInfo(pbi As BANDINFOSFB)
+End Interface
+
+[InterfaceId("0DF60D92-6818-46d6-B358-D66170DDE466")]
+[OleAutomation(False)]
+Interface IComputerInfoChangeNotify Extends stdole.IUnknown
+    Sub ComputerInfoChanged()
 End Interface
 
 [InterfaceId("99EACBA7-E073-43B6-A896-55AFE48A0833")]
@@ -4980,11 +5053,21 @@ Public Type SHCOLUMNINFO
 End Type
 [PackingAlignment(8)]
 Public Type SHCOLUMNDATA
-	 dwFlags As Long ' combination of SHCDF_ flags.
+	 dwFlags As SHColDataFlags ' combination of SHCDF_ flags.
 	 dwFileAttributes As Long ' file attributes.
 	 dwReserved As Long ' reserved for future use.
 	 pwszExt As LongPtr ' address of file name extension
 	 wszFile(0 To 519) As Byte ' Absolute path of file.
+End Type
+
+Public Enum SHColDataFlags
+    SHCDF_UPDATEITEM = 1
+End Enum
+
+Public Type SHChangeProductKeyAsIDList
+    cb As Integer
+    wszProductKey(0 To 38) As Integer
+    cbZero As Integer
 End Type
 
 Public Type SHELLDETAILS
@@ -4994,8 +5077,8 @@ Public Type SHELLDETAILS
 End Type
 Public Type EXTRASEARCH
 	guidSearch As UUID
-	wszFriendlyName(0 To 159) As Byte
-	wszUrl(0 To 4095) As Byte
+	wszFriendlyName (0 To 159) As Byte
+	wszUrl (0 To 4095) As Byte
 End Type
 
 Public Enum SVUIA_STATUS
@@ -5590,6 +5673,15 @@ Public Type WTS_THUMBNAILID
 	rgbKey(0 To 15) As Byte
 End Type
 
+Public Const WTS_E_FAILEDEXTRACTION = &H8004b200
+Public Const WTS_E_EXTRACTIONTIMEDOUT = &H8004b201
+Public Const WTS_E_SURROGATEUNAVAILABLE = &H8004b202
+Public Const WTS_E_FASTEXTRACTIONNOTSUPPORTED = &H8004b203
+Public Const WTS_E_DATAFILEUNAVAILABLE = &H8004b204
+Public Const WTS_E_EXTRACTIONPENDING = &H8004b205
+Public Const WTS_E_EXTRACTIONBLOCKED = &H8004b206
+Public Const WTS_E_NOSTORAGEPROVIDERTHUMBNAILHANDLER = &H8004b207
+
 Public Enum ThumbnailStreamCacheOptions
     TSC_ExtractIfNotCached = &H00000000
     TSC_ReturnOnlyIfCached = &H00000001
@@ -6051,7 +6143,7 @@ Public Enum SSFLAGS2
 	fShowTypeOverlay = &H20
 	fShowStatusBar = &H40
 End Enum
-Public Type SHELLSTATE
+Public Type SHELLSTATEA
 	fFlags1 As SSFLAGS1
 	dwWin95Unused As Long
 	uWin95Unused As Long
@@ -6061,6 +6153,32 @@ Public Type SHELLSTATE
 	uNotUsed As Long
 	fFlags2 As SSFLAGS2
 End Type
+Public Type SHELLSTATEW
+    fFlags1 As SSFLAGS1
+    dwWin95Unused As Long
+    uWin95Unused As Long
+    lParamSort As Long
+    iSortDirection As Long
+    Version As Long
+    uNotUsed As Long
+    fFlags2 As SSFLAGS2
+End Type
+Public Type SHELLSTATE
+    fFlags1 As SSFLAGS1
+    dwWin95Unused As Long
+    uWin95Unused As Long
+    lParamSort As Long
+    iSortDirection As Long
+    Version As Long
+    uNotUsed As Long
+    fFlags2 As SSFLAGS2
+End Type
+Public Const SHELLSTATEVERSION_IE4  = 9
+Public Const SHELLSTATEVERSION_WIN2K  = 10
+Public Const SHELLSTATE_SIZE_WIN95 = &HC 'FIELD_OFFSET(SHELLSTATE,lParamSort)
+Public Const SHELLSTATE_SIZE_NT4   = &H14 'FIELD_OFFSET(SHELLSTATE,version)
+Public Const SHELLSTATE_SIZE_IE4   = &H18 'FIELD_OFFSET(SHELLSTATE,uNotUsed)
+Public Const SHELLSTATE_SIZE_WIN2K = &H20 'sizeof(SHELLSTATE)
 Public Enum SFS_MASK
 	SSF_SHOWALLOBJECTS = &H00000001
 	SSF_SHOWEXTENSIONS = &H00000002
@@ -7890,21 +8008,28 @@ Public Enum ATTACHMENT_ACTION
     ATTACHMENT_ACTION_EXEC = &H2
 End Enum
 
-
-Public Enum MENUPOPUPPOPUPFLAGS
-	MPPF_SETFOCUS = &H00000001 ' Menu can take the focus
+Public Enum MENUPOPUPSELECT
+    MPOS_EXECUTE = 0 ' Execute the selected menu item
+    MPOS_FULLCANCEL = 1 ' Cancel the entire menu
+    MPOS_CANCELLEVEL = 2 ' Cancel the current cascaded menu
+    MPOS_SELECTLEFT = 3 ' select one to the left of the cur selection
+    MPOS_SELECTRIGHT = 4 ' select one to the right of the cur selection
+    MPOS_CHILDTRACKING = 5 ' the child got a tracking select (mouse moved over)
+End Enum
+Public Enum MP_POPUPFLAGS
+	MPPF_SETFOCUS = &H00000001    ' Menu can take the focus
 	MPPF_INITIALSELECT = &H00000002 ' Select the first item
-	MPPF_NOANIMATE = &H00000004 ' Do not animate this show
-	MPPF_KEYBOARD = &H00000010 ' The menu is activated by keyboard
-	MPPF_REPOSITION = &H00000020 ' Resposition the displayed bar.
+	MPPF_NOANIMATE = &H00000004   ' Do not animate this show
+	MPPF_KEYBOARD = &H00000010    ' The menu is activated by keyboard
+	MPPF_REPOSITION = &H00000020  ' Resposition the displayed bar.
 	MPPF_FORCEZORDER = &H00000040 ' internal: Tells menubar to ignore Submenu positions
 	MPPF_FINALSELECT = &H00000080 ' Select the last item
-	MPPF_TOP = &H20000000 ' Popup menu up from point
-	MPPF_LEFT = &H40000000 ' Popup menu left from point
-	MPPF_RIGHT = &H60000000 ' Popup menu right from point
-	MPPF_BOTTOM = &H80000000 ' Popup menu below point
-	MPPF_POS_MASK = &HE0000000 ' Menu Position Mask
-	MPPF_ALIGN_LEFT = &H02000000 ' Default alignment
+	MPPF_TOP = &H20000000         ' Popup menu up from point
+	MPPF_LEFT = &H40000000        ' Popup menu left from point
+	MPPF_RIGHT = &H60000000       ' Popup menu right from point
+	MPPF_BOTTOM = &H80000000      ' Popup menu below point
+	MPPF_POS_MASK = &HE0000000    ' Menu Position Mask
+	MPPF_ALIGN_LEFT = &H02000000  ' Default alignment
 	MPPF_ALIGN_RIGHT = &H04000000 ' Popup menu aligned to right of exclude rect
 End Enum
 
@@ -8197,12 +8322,13 @@ Public Enum PERSIST_SPROPSTORE_FLAGS
     FPSPS_TREAT_NEW_VALUES_AS_DIRTY = &H00000002
 End Enum
 
+[Description("WARNING: Buffered array substituted for variable C-style array. LenB is invalid. If cbInner > 4095, rgb is invalid.")]
 [PackingAlignment(1)]
 Public Type DELEGATEITEMID
 	cbSize As Integer
     wOuter As Integer
     cbInner As Integer
-    rgb(0) As Byte
+    rgb(4095) As Byte
 End Type
 
 Public Const E_PREVIEWHANDLER_DRM_FAIL = (&H86420001) '// blocked by digital rights management
@@ -9301,8 +9427,114 @@ Public Enum VBGCWhich
     GC_WCH_FSELECTED = &H40000000 ' OR'd with others
 End Enum
 
+Public Const FCIDM_SHVIEWFIRST  = &H0000
+Public Const FCIDM_SHVIEWLAST  = &H7fff
+Public Const FCIDM_BROWSERFIRST  = &Ha000
+Public Const FCIDM_BROWSERLAST  = &Hbf00
+Public Const FCIDM_GLOBALFIRST  = &H8000
+Public Const FCIDM_GLOBALLAST  = &H9fff
+'  Global submenu IDs and separator IDs
+Public Const FCIDM_MENU_FILE  = (FCIDM_GLOBALFIRST + &H0000)
+Public Const FCIDM_MENU_EDIT  = (FCIDM_GLOBALFIRST + &H0040)
+Public Const FCIDM_MENU_VIEW  = (FCIDM_GLOBALFIRST + &H0080)
+Public Const FCIDM_MENU_VIEW_SEP_OPTIONS  = (FCIDM_GLOBALFIRST + &H0081)
+Public Const FCIDM_MENU_TOOLS  = (FCIDM_GLOBALFIRST + &H00c0)  ' for Win9x compat
+Public Const FCIDM_MENU_TOOLS_SEP_GOTO  = (FCIDM_GLOBALFIRST + &H00c1)  ' for Win9x compat
+Public Const FCIDM_MENU_HELP  = (FCIDM_GLOBALFIRST + &H0100)
+Public Const FCIDM_MENU_FIND  = (FCIDM_GLOBALFIRST + &H0140)
+Public Const FCIDM_MENU_EXPLORE  = (FCIDM_GLOBALFIRST + &H0150)
+Public Const FCIDM_MENU_FAVORITES  = (FCIDM_GLOBALFIRST + &H0170)
+Public Const FCIDM_TOOLBAR  = (FCIDM_BROWSERFIRST + 0)
+Public Const FCIDM_STATUS  = (FCIDM_BROWSERFIRST + 1)
+' --------------------------------------------------------------------------
+'  The resource id of the offline cursor
+'  This cursor is avaialble in shdocvw.dll
+Public Const IDC_OFFLINE_HAND  = 103
+' >= _WIN32_IE_IE70)
+Public Const IDC_PANTOOL_HAND_OPEN  = 104
+Public Const IDC_PANTOOL_HAND_CLOSED  = 105
 
+Public Enum ShViewPanes
+    PANE_NONE = (-1)
+    PANE_ZONE = 1
+    PANE_OFFLINE = 2
+    PANE_PRINTER = 3
+    PANE_SSL = 4
+    PANE_NAVIGATION = 5
+    PANE_PROGRESS = 6
+' #if (_WIN32_IE >= _WIN32_IE_IE60)
+    PANE_PRIVACY = 7
+End Enum
 
+Public Type ENUMSHELLIMAGESTOREDATA
+    szPath(0 To (MAX_PATH - 1)) As Integer
+    ftTimeStamp As FILETIME
+End Type
+
+Public Enum IADPSafeModeFlags
+    SSM_CLEAR = &H0000
+    SSM_SET = &H0001
+    SSM_REFRESH = &H0002
+    SSM_UPDATE = &H0004
+End Enum
+
+Public Enum IADPSchemes
+    SCHEME_DISPLAY = &H0001
+    SCHEME_EDIT = &H0002
+    SCHEME_LOCAL = &H0004
+    SCHEME_GLOBAL = &H0008
+    SCHEME_REFRESH = &H0010
+    SCHEME_UPDATE = &H0020
+    SCHEME_DONOTUSE = &H0040  ' used to be SCHEME_ENUMERATE; no longer supported
+    SCHEME_CREATE = &H0080
+End Enum
+
+Public Enum SHSVMMessages
+    SFVM_REARRANGE = &H00000001
+    SFVM_ADDOBJECT = &H00000003
+    SFVM_REMOVEOBJECT = &H00000006
+    SFVM_UPDATEOBJECT = &H00000007
+    SFVM_GETSELECTEDOBJECTS = &H00000009
+    SFVM_SETITEMPOS = &H0000000e
+    SFVM_SETCLIPBOARD = &H00000010
+    SFVM_SETPOINTS = &H00000017
+End Enum
+
+[Description("WARNING: Buffered array substituted for variable length C-style array. LenB is invalid.")]
+Public Type AAMENUFILENAME
+    cbTotal As Integer
+    rgbReserved(0 To 11) As Byte
+    szFileName(0 To MAX_PATH) As Integer ' variable length string
+End Type
+Public Type AASHELLMENUITEM
+    lpReserved1 As LongPtr
+    iReserved As Long
+    uiReserved As Long
+    lpName As LongPtr 'LPAASHELLMENUFILENAME ' name of file
+    psz As LongPtr ' text to use if no file
+End Type
+
+Public Enum SFVObjectCountFlags
+    SFVSOC_INVALIDATE_ALL = &H00000001  ' Assumed to reset only what is neccessary...
+    SFVSOC_NOSCROLL = LVSICF_NOSCROLL
+End Enum
+Public Enum SFVSelectItemFlags
+    SFVS_SELECT_NONE = &H0  ' unselect all
+    SFVS_SELECT_ALLITEMS = &H1  ' select all
+    SFVS_SELECT_INVERT = &H2  ' Invert the selection
+End Enum
+
+Public Type ITEMSPACING
+    cxSmall As Long
+    cySmall As Long
+    cxLarge As Long
+    cyLarge As Long
+End Type
+
+Public Enum ISIOIGetOverlayInfoFlags
+    ISIOI_ICONFILE = &H00000001 ' path Is returned through pwszIconFile
+    ISIOI_ICONINDEX = &H00000002  ' icon index in pwszIconFile is returned through pIndex
+End Enum
 
 
 Public Const sCLSID_DragDropHelper = "new: {4657278A-411B-11D2-839A-00C04FD918D0}"
