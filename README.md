@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 8.7.500 (February 28th, 2025)**
+**Current Version: 8.7.502 (March 6th, 2025)**
 
 ## IMPORTANT: [twinBASIC Beta 617 or newer](https://github.com/twinbasic/twinbasic/releases) is now required.
 
@@ -186,6 +186,27 @@ Finally, there's numerous additional API sets from small to large for independen
 This project has grown well beyond it's original mission of shell programming. While that's still the largest single part, it's no longer a majority of the code, and the name change now much better reflects the purpose of providing a general Windows API experience like windows.h. Compiler constants and module names/file names have been updated to reflect the name change. tbShellLibImpl is now WinDevLibImpl. There are also some major chanages associated with this update, please see the full changelog below.
 
 ### Updates
+
+**Update (v8.7.502, 06 Mar 2025):**\
+-Added 100% coverage of processtopologyapi.h and systemtopologyapi.h\
+-Added 100% coverage of audiostatemonitorapi.h\
+-Added improperly excluded vararg functions of oledlg.h, now 100% coverage\
+-Added some missing items to bring shobjidl.h/.idl, ShlObj_core.h, thumbcache.h/.idl and timezoneapi.h to 100%\
+-For consistency, GETTEXTEX now uses LongPtr instead of String.\
+-Renamed MENUPOPUPPOPUPFLAGS to SDK-defined MP_POPUPFLAGS\
+-Added IShellIconOverlayIdentifier::GetOverlayInfo missing flags\
+-Continued work to supply usable UUID types for documented CLSID_ constants for coclasses.\
+-Continued implementation of [UseGetLastError(False)]; applied to all NTSTATUS-returning APIs\
+-Numerous other misc additions and small fixes \
+-(Bug fix) PUNCTUATION name typo; also now uses LongPtr instead of String.\
+-(Bug fix) SPC_LINK had extra trailing _\
+-(Bug fix) SpatialAudioObjectRenderStreamActivationParams2 missing packing alignment attrib\
+-(Bug fix) `boolean` values on IDiscMasterProgressEvents::QueryCancel, IDiscMaster::RecordDisc, and IDiscRecorder::Erase should be Byte\
+-(Bug fix) PSGetPropertyDescriptionByName definition incorrect\
+-(Bug fix) IShellLibrary::ResolveFolder name typo\
+-(Bug fix) PROP_CONTRACT_DELEGATE definition incorrect\
+-(Bug fix) ICredentialProviderEvents::CredentialsChanged argument type incompatible with x64
+
 
 **Update (v8.7.500, 28 Feb 2025):**\
 -Added 100% coverage of msdelta.h\
