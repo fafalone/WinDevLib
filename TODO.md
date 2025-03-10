@@ -1,5 +1,7 @@
 Known omissions where a priority update neccessitated not finishing 
 before release, or waiting on feature support:
+ 
+-Check WV2 at end of March
 
 -OpenGL (needs Alias support)
 
@@ -13,9 +15,7 @@ before release, or waiting on feature support:
  
 -vfw.h/vfsmsg/vfwext (AVIFil32 done; other sections under consideration)
 
--missing winspool.h stuff
-
--windns.h (in progress, 20%)
+-missing winspool.h stuff 
 
 -SQL.h/obdc32.dll (needs Alias support)
 
@@ -39,7 +39,7 @@ before release, or waiting on feature support:
 -CLSIDs for coclasses (done: wdShellCore, wdShellObj, wdInternet, wdAccessible, wdBITS, wdUIRibbon, wdWIC, wdCoreAudio,
                              wdSecurity, wdTaskScheduler, wdManipulations, wdSpellCheck, wdExplorer, wdSearch,
                              wdDevices, wdSyncMgr, wdSensors, wdWSC, wdUPNP, wdUIAnimation, wdSpeech, wdNetcon, wdCredProv,
-                             )
+                             wdDSound)
                              
 -Create coverage list by header.
 Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.0); basic coverage excludes macros, callbacks->delegates,
@@ -70,7 +70,8 @@ and other headers from #include statements.
     UIAutomationClient.idl,UIAutomationCore.h,UIAutomationCore.idl,UIAnimation.h,UIAnimation.idl,shtypes.h,shtypes.idl,TextServ.h,servprov.idl,ServProv.Idl,
     shappmgr.h,shappmgr.idl,shobjidl.h,ShObjIdl.idl,shlobj.h*,richedit.h,richole.h,shimgdata.h,uxtheme.h,mmsystem.h,mmsyscom.h,mciapi.h,mmiscapi2.h,playsoundapi.h,
     mmeapi.h,timeapi.h,joystickapi.h,commdlg.h,cderr.h,prsht.h,prsht.idl,comctrl.h,ShlObj_core.h,ShObjidl_core.h,ShObjidl_core.idl,credentialprovider.h,
-    credentialprovider.idl,RadioMgr.h,RadioMgr.idl,
+    credentialprovider.idl,RadioMgr.h,RadioMgr.idl,PortableDevice.h,PortableDeviceAPI.h,PortableDeviceAPI.idl,portabledeviceclassextension.h,
+    portabledeviceclassextension.idl,portabledevicetypes.h,portabledevicetypes.idl,dsound.h,WinDNS.h,dstorage.h,dstorageerr.h
 
 Coverage in the 90%+ range
    wingdi.h, winbase.h
@@ -79,9 +80,11 @@ Substantial coverage
     mmsciapi.h, ntlsa.h
 
 Minimal coverage
-
+    windot11.h
 
 Zero or near-zero coverage
     
+
+
     * - Excludes definitions disabled by conditional compilation with version flags for XP and earlier or non-Windows platforms.
     
