@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 8.7.502 (March 6th, 2025)**
+**Current Version: 8.8.504 (March 10th, 2025)**
 
 ## IMPORTANT: [twinBASIC Beta 617 or newer](https://github.com/twinbasic/twinbasic/releases) is now required.
 
@@ -187,6 +187,17 @@ This project has grown well beyond it's original mission of shell programming. W
 
 ### Updates
 
+**Update (v8.8.504, 10 Mar 2025):**\
+-Added DirectStorage - dstorage.h, dstorageerr.h - 100% coverage (Note: Some versions of Windows may not have DLL preinstalled)\
+-Added Windows Imaging Interface APIs (wimgapi.h, 100% coverage)\
+-Completed WinDNS.h coverage (now 100% including macros, delegates, and UseGetLastError)\
+-Added some missing DirectSound interfaces and constants from dsound.h.\
+-Added some missing Portable Devices interfaces and coclasses from portabledeviceclassextension.h and portabledevicetypes.h.\
+-Min/max/etc for Single and Double from float.h\
+-(Bug fix) DS3D_DEFERRED name typo\
+-(Bug fix) Numerous errors when WINDEVLIB_LITE flag set; had been ignoring that since it could only be used by compiling a custom version of the package, but that should change soon.\
+-(Bug fix) Dozens of union substitutions incorrect due to not always accounting for padding needed before or after the bytes making up the union data, or in some cases the size of the union data itself (particularly for x64).
+           
 **Update (v8.7.502, 06 Mar 2025):**\
 -Added 100% coverage of processtopologyapi.h and systemtopologyapi.h\
 -Added 100% coverage of audiostatemonitorapi.h\
