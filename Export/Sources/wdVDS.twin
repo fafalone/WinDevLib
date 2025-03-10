@@ -2359,6 +2359,7 @@ Module wdVDS
         '    [case (VDS_PARTITION_STYLE_GPT)]
         '        VDS_PARTITION_INFO_GPT Gpt;
         '};
+        pad(2) As Byte
         PartitionUnion(0 To 111) As Byte
     End Type
     
@@ -4191,5 +4192,833 @@ Static iid As UUID
  If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &Hd188e97d, CInt(&H85aa), CInt(&H4d33), &Hab, &Hc6, &H26, &H29, &H9a, &H10, &Hff, &Hc1)
 IID_IVdsAdmin = iid
 End Function
-    
+
+'Virtual Disk API
+'virtdisk.h, 100% coverage
+Public Type VIRTUAL_STORAGE_TYPE
+    DeviceId As VirtualDiskType
+    VendorId As UUID
+End Type
+
+Public Enum VIRTUAL_DISK_ACCESS_MASK
+    VIRTUAL_DISK_ACCESS_NONE = &H00000000
+    VIRTUAL_DISK_ACCESS_ATTACH_RO = &H00010000
+    VIRTUAL_DISK_ACCESS_ATTACH_RW = &H00020000
+    VIRTUAL_DISK_ACCESS_DETACH = &H00040000
+    VIRTUAL_DISK_ACCESS_GET_INFO = &H00080000
+    VIRTUAL_DISK_ACCESS_CREATE = &H00100000
+    VIRTUAL_DISK_ACCESS_METAOPS = &H00200000
+    VIRTUAL_DISK_ACCESS_READ = &H000d0000
+    VIRTUAL_DISK_ACCESS_ALL = &H003f0000
+    VIRTUAL_DISK_ACCESS_WRITABLE = &H00320000
+End Enum
+
+Public Enum OPEN_VIRTUAL_DISK_FLAG
+    OPEN_VIRTUAL_DISK_FLAG_NONE = &H00000000
+    '[ Description("Open the backing store without opening any differencing chain parents. This allows one to fixup broken parent links.") ]
+    OPEN_VIRTUAL_DISK_FLAG_NO_PARENTS = &H00000001
+    '[ Description("The backing store being opened is an empty file. Do not perform virtual disk verification.") ]
+    OPEN_VIRTUAL_DISK_FLAG_BLANK_FILE = &H00000002
+    '[ Description("This flag is only specified at boot time to load the system disk during virtual disk boot.  Must be kernel mode to specify this flag") ]
+    OPEN_VIRTUAL_DISK_FLAG_BOOT_DRIVE = &H00000004
+    '[ Description("This flag causes the backing file to be opened in cached mode.") ]
+    OPEN_VIRTUAL_DISK_FLAG_CACHED_IO = &H00000008
+    '[ Description("Open the backing store without opening any differencing chain parents. This allows one to fixup broken parent links temporarily without updating the parent locator.") ]
+    OPEN_VIRTUAL_DISK_FLAG_CUSTOM_DIFF_CHAIN = &H00000010
+    '[ Description("This flag causes all backing stores except the leaf backing store to be opened in cached mode.") ]
+    OPEN_VIRTUAL_DISK_FLAG_PARENT_CACHED_IO = &H00000020
+    '[ Description("This flag causes a Vhd Set file to be opened without any virtual disk.") ]
+    OPEN_VIRTUAL_DISK_FLAG_VHDSET_FILE_ONLY = &H00000040
+    '[ Description("For differencing disks, relative parent locators are not used when determining the path of a parent VHD.") ]
+    OPEN_VIRTUAL_DISK_FLAG_IGNORE_RELATIVE_PARENT_LOCATOR = &H00000080
+    '[ Description("Disable flushing and FUA (both for payload data and for metadata for backing files associated with this virtual disk.") ]
+    OPEN_VIRTUAL_DISK_FLAG_NO_WRITE_HARDENING = &H00000100
+    '[ Description("Open the backing store even if it is a compressed file.") ]
+    OPEN_VIRTUAL_DISK_FLAG_SUPPORT_COMPRESSED_VOLUMES = &H00000200
+    '[ Description("Open the backing store even if it is a sparse file, on any file system.") ]
+    OPEN_VIRTUAL_DISK_FLAG_SUPPORT_SPARSE_FILES_ANY_FS = &H00000400
+    '[ Description("Open the backing store even if it is an encrypted file.") ]
+    OPEN_VIRTUAL_DISK_FLAG_SUPPORT_ENCRYPTED_FILES = &H00000800
+End Enum
+
+Public Enum OPEN_VIRTUAL_DISK_VERSION
+    OPEN_VIRTUAL_DISK_VERSION_UNSPECIFIED = 0
+    OPEN_VIRTUAL_DISK_VERSION_1 = 1
+    OPEN_VIRTUAL_DISK_VERSION_2 = 2
+    OPEN_VIRTUAL_DISK_VERSION_3 = 3
+End Enum
+[Description("THIS TYPE IS FOR V2 ONLY: Use OPEN_VIRTUAL_DISK_PARAMETERS_V1 for Version 1.")]
+Public Type OPEN_VIRTUAL_DISK_PARAMETERS
+    Version As OPEN_VIRTUAL_DISK_VERSION
+    GetInfoOnly As BOOL
+    ReadOnly As BOOL
+    ResiliencyGuid As UUID
+End Type
+[Description("THIS TYPE IS FOR V1 ONLY")]
+Public Type OPEN_VIRTUAL_DISK_PARAMETERS_V1
+    Version As OPEN_VIRTUAL_DISK_VERSION
+    RWDepth As Long
+End Type
+[Description("THIS TYPE IS FOR V3 ONLY")]
+Public Type OPEN_VIRTUAL_DISK_PARAMETERS_V3
+    Version As OPEN_VIRTUAL_DISK_VERSION
+    GetInfoOnly As BOOL
+    ReadOnly As BOOL
+    ResiliencyGuid As UUID
+    SnapshotId As UUID
+End Type
+
+Public Enum VirtualDiskType
+    VIRTUAL_STORAGE_TYPE_DEVICE_UNKNOWN = 0
+    VIRTUAL_STORAGE_TYPE_DEVICE_ISO = 1
+    VIRTUAL_STORAGE_TYPE_DEVICE_VHD = 2
+    VIRTUAL_STORAGE_TYPE_DEVICE_VHDX = 3
+    VIRTUAL_STORAGE_TYPE_DEVICE_VHDSET = 4
+End Enum
+
+Public Const OPEN_VIRTUAL_DISK_RW_DEPTH_DEFAULT = 1
+
+Public Enum CREATE_VIRTUAL_DISK_FLAG
+    CREATE_VIRTUAL_DISK_FLAG_NONE = &H0
+    '  Pre-allocate all physical space necessary for the virtual
+    '  size of the disk (e.g. a fixed VHD).
+    CREATE_VIRTUAL_DISK_FLAG_FULL_PHYSICAL_ALLOCATION = &H1
+    '  Take ownership of the source disk during create from source disk, to
+    '  insure the source disk does not change during the create operation.  The
+    '  source disk must also already be offline or read-only (or both).
+    '  Ownership is released when create is done.  This also has a side-effect
+    '  of disallowing concurrent create from same source disk.  Create will fail
+    '  if ownership cannot be obtained or if the source disk is not already
+    '  offline or read-only.  This flag is optional, but highly recommended for
+    '  creates from source disk.  No effect for other types of create (no effect
+    '  for create from source VHD; no effect for create without SourcePath).
+    CREATE_VIRTUAL_DISK_FLAG_PREVENT_WRITES_TO_SOURCE_DISK = &H2
+    '  Do not copy initial virtual disk metadata or block states from the
+    '  parent VHD; this is useful if the parent VHD is a stand-in file and the
+    '  real parent will be explicitly set later.
+    CREATE_VIRTUAL_DISK_FLAG_DO_NOT_COPY_METADATA_FROM_PARENT = &H4
+    '  Create the backing storage disk.
+    CREATE_VIRTUAL_DISK_FLAG_CREATE_BACKING_STORAGE = &H8
+    '  If set, the SourceLimitPath is an change tracking ID, and all data that has changed
+    '  since that change tracking ID will be copied from the source. If clear, the
+    '  SourceLimitPath is a VHD file path in the source VHD's chain, and
+    '  all data that is present in the children of that VHD in the chain
+    '  will be copied from the source.
+    CREATE_VIRTUAL_DISK_FLAG_USE_CHANGE_TRACKING_SOURCE_LIMIT = &H10
+    '  If set and the parent VHD has change tracking enabled, the child will
+    '  have change tracking enabled and will recognize all change tracking
+    '  IDs that currently exist in the parent. If clear or if the parent VHD
+    '  does not have change tracking available, then change tracking will
+    '  not be enabled in the new VHD.
+    CREATE_VIRTUAL_DISK_FLAG_PRESERVE_PARENT_CHANGE_TRACKING_STATE = &H20
+    '  When creating a VHD Set from source, don't copy the data in the original
+    '  backing store, but intsead use the file as is. If this flag is not specified
+    '  and a source file is passed to CreateVirtualDisk for a VHDSet file, the data
+    '  in the source file is copied. If this flag is set the data is moved. The
+    '  name of the file may change.
+    CREATE_VIRTUAL_DISK_FLAG_VHD_SET_USE_ORIGINAL_BACKING_STORAGE = &H40
+    ' 
+    '  When creating a fixed virtual disk, take advantage of an underlying sparse file.
+    '  Only supported on file systems that support sparse VDLs.
+    ' 
+    CREATE_VIRTUAL_DISK_FLAG_SPARSE_FILE = &H80
+    ' 
+    '  Creates a VHD suitable as the backing store for a virtual persistent memory device.
+    ' 
+    CREATE_VIRTUAL_DISK_FLAG_PMEM_COMPATIBLE = &H100
+    ' 
+    '  Allow a VHD to be created on a compressed volume.
+    ' 
+    CREATE_VIRTUAL_DISK_FLAG_SUPPORT_COMPRESSED_VOLUMES = &H200
+    ' 
+    '  Allow a VHD to be created when it may be marked as a sparse file. This flag is a companion
+    '  to CREATE_VIRTUAL_DISK_FLAG_SPARSE_FILE, and overrides the behavior that only
+    '  allows sparse files on file systems that support sparse VDLs.
+    ' 
+    CREATE_VIRTUAL_DISK_FLAG_SUPPORT_SPARSE_FILES_ANY_FS = &H400
+End Enum
+
+Public Const CREATE_VIRTUAL_DISK_PARAMETERS_DEFAULT_BLOCK_SIZE = 0
+Public Enum CREATE_VIRTUAL_DISK_VERSION
+    CREATE_VIRTUAL_DISK_VERSION_UNSPECIFIED = 0
+    CREATE_VIRTUAL_DISK_VERSION_1 = 1
+    CREATE_VIRTUAL_DISK_VERSION_2 = 2
+    CREATE_VIRTUAL_DISK_VERSION_3 = 3
+    CREATE_VIRTUAL_DISK_VERSION_4 = 4
+End Enum
+
+[Description("This is the V2 version of the type. Use CREATE_VIRTUAL_DISK_PARAMETERS_V1 for version 1. 3 and 4 are similarly defined but for internal use.")]
+Public Type CREATE_VIRTUAL_DISK_PARAMETERS
+    Version As CREATE_VIRTUAL_DISK_VERSION
+    UniqueId As UUID
+    MaximumSize As LongLong
+    BlockSizeInBytes As Long
+    SectorSizeInBytes As Long
+    PhysicalSectorSizeInBytes As Long
+    ParentPath As LongPtr
+    SourcePath As LongPtr
+    OpenFlags As OPEN_VIRTUAL_DISK_FLAG
+    ParentVirtualStorageType As VIRTUAL_STORAGE_TYPE
+    SourceVirtualStorageType As VIRTUAL_STORAGE_TYPE
+    ResiliencyGuid As UUID
+End Type
+
+Public Type CREATE_VIRTUAL_DISK_PARAMETERS_V1
+    Version As CREATE_VIRTUAL_DISK_VERSION
+    UniqueId As UUID
+    MaximumSize As LongLong
+    BlockSizeInBytes As Long
+    SectorSizeInBytes As Long
+    PhysicalSectorSizeInBytes As Long
+    ParentPath As LongPtr
+    SourcePath As LongPtr
+End Type
+Public Type CREATE_VIRTUAL_DISK_PARAMETERS_V3
+    Version As CREATE_VIRTUAL_DISK_VERSION
+    UniqueId As UUID
+    MaximumSize As LongLong
+    BlockSizeInBytes As Long
+    SectorSizeInBytes As Long
+    PhysicalSectorSizeInBytes As Long
+    ParentPath As LongPtr
+    SourcePath As LongPtr
+    OpenFlags As OPEN_VIRTUAL_DISK_FLAG
+    ParentVirtualStorageType As VIRTUAL_STORAGE_TYPE
+    SourceVirtualStorageType As VIRTUAL_STORAGE_TYPE
+    ResiliencyGuid As UUID
+    SourceLimitPath As LongPtr
+    BackingStorageType As VIRTUAL_STORAGE_TYPE
+End Type
+Public Type CREATE_VIRTUAL_DISK_PARAMETERS_V4
+    Version As CREATE_VIRTUAL_DISK_VERSION
+    UniqueId As UUID
+    MaximumSize As LongLong
+    BlockSizeInBytes As Long
+    SectorSizeInBytes As Long
+    PhysicalSectorSizeInBytes As Long
+    ParentPath As LongPtr
+    SourcePath As LongPtr
+    OpenFlags As OPEN_VIRTUAL_DISK_FLAG
+    ParentVirtualStorageType As VIRTUAL_STORAGE_TYPE
+    SourceVirtualStorageType As VIRTUAL_STORAGE_TYPE
+    ResiliencyGuid As UUID
+    SourceLimitPath As LongPtr
+    BackingStorageType As VIRTUAL_STORAGE_TYPE
+    PmemAddressAbstractionType As UUID
+    DataAlignment As LongLong
+End Type
+
+Public Enum ATTACH_VIRTUAL_DISK_VERSION
+    ATTACH_VIRTUAL_DISK_VERSION_UNSPECIFIED = 0
+    ATTACH_VIRTUAL_DISK_VERSION_1 = 1
+    ATTACH_VIRTUAL_DISK_VERSION_2 = 2
+End Enum
+
+[Description("This is V2 of the type, for V1 use ATTACH_VIRTUAL_DISK_PARAMETERS_V1 ")]
+Public Type ATTACH_VIRTUAL_DISK_PARAMETERS
+    Version As ATTACH_VIRTUAL_DISK_VERSION
+    RestrictedOffset As LongLong
+    RestrictedLength As LongLong
+End Type
+Public Type ATTACH_VIRTUAL_DISK_PARAMETERS_V1
+    Version As ATTACH_VIRTUAL_DISK_VERSION
+    Reserved As Long
+End Type
+
+Public Enum ATTACH_VIRTUAL_DISK_FLAG
+    ATTACH_VIRTUAL_DISK_FLAG_NONE = &H00000000
+    '  Attach the disk as read only
+    ATTACH_VIRTUAL_DISK_FLAG_READ_ONLY = &H00000001
+    '  Will cause all volumes on the disk to be mounted
+    '  without drive letters.
+    ATTACH_VIRTUAL_DISK_FLAG_NO_DRIVE_LETTER = &H00000002
+    '  Will decouple the disk lifetime from that of the VirtualDiskHandle.
+    '  The disk will be attached until an explicit call is made to
+    '  DetachVirtualDisk, even if all handles are closed.
+    ATTACH_VIRTUAL_DISK_FLAG_PERMANENT_LIFETIME = &H00000004
+    '  Indicates that the drive will not be attached to
+    '  the local system (but rather to a VM).
+    ATTACH_VIRTUAL_DISK_FLAG_NO_LOCAL_HOST = &H00000008
+    '  Do not assign a custom security descriptor to the disk; use the
+    '  system default.
+    ATTACH_VIRTUAL_DISK_FLAG_NO_SECURITY_DESCRIPTOR = &H00000010
+    '  Default volume encryption policies should not be applied to the
+    '  disk when attached to the local system.
+    ATTACH_VIRTUAL_DISK_FLAG_BYPASS_DEFAULT_ENCRYPTION_POLICY = &H00000020
+    '  Attach the disk as a non-PnP device.
+    ATTACH_VIRTUAL_DISK_FLAG_NON_PNP = &H00000040
+    '  Restrict the disk's view to the specified offset and length.
+    ATTACH_VIRTUAL_DISK_FLAG_RESTRICTED_RANGE = &H00000080
+    '  Restrict the disk's view to the unique data partition.
+    ATTACH_VIRTUAL_DISK_FLAG_SINGLE_PARTITION = &H00000100
+    '  Register the non-PnP disk as a volume with mount manager.
+    ATTACH_VIRTUAL_DISK_FLAG_REGISTER_VOLUME = &H00000200
+End Enum
+
+Public Enum DETACH_VIRTUAL_DISK_FLAG
+    DETACH_VIRTUAL_DISK_FLAG_NONE = &H00000000
+End Enum
+
+Public Enum DEPENDENT_DISK_FLAG
+    DEPENDENT_DISK_FLAG_NONE = &H00000000
+    ' 
+    '  Multiple files backing the virtual storage device
+    ' 
+    DEPENDENT_DISK_FLAG_MULT_BACKING_FILES = &H00000001
+    DEPENDENT_DISK_FLAG_FULLY_ALLOCATED = &H00000002
+    DEPENDENT_DISK_FLAG_READ_ONLY = &H00000004
+    ' 
+    '  Backing file of the virtual storage device is not local to the machine
+    ' 
+    DEPENDENT_DISK_FLAG_REMOTE = &H00000008
+    ' 
+    '  Volume is the system volume
+    ' 
+    DEPENDENT_DISK_FLAG_SYSTEM_VOLUME = &H00000010
+    ' 
+    '  Volume backing the virtual storage device file is the system volume
+    ' 
+    DEPENDENT_DISK_FLAG_SYSTEM_VOLUME_PARENT = &H00000020
+    DEPENDENT_DISK_FLAG_REMOVABLE = &H00000040
+    ' 
+    '  Drive letters are not assigned to the volumes
+    '  on the virtual disk automatically.
+    ' 
+    DEPENDENT_DISK_FLAG_NO_DRIVE_LETTER = &H00000080
+    DEPENDENT_DISK_FLAG_PARENT = &H00000100
+    ' 
+    '  Virtual disk is not attached on the local host
+    '  (instead attached on a guest VM for instance)
+    ' 
+    DEPENDENT_DISK_FLAG_NO_HOST_DISK = &H00000200
+    ' 
+    '  Indicates the lifetime of the disk is not tied
+    '  to any system handles
+    ' 
+    DEPENDENT_DISK_FLAG_PERMANENT_LIFETIME = &H00000400
+    ' 
+    '  Volume backing the virtual storage device file
+    '  can be a compressed volume.
+    ' 
+    DEPENDENT_DISK_FLAG_SUPPORT_COMPRESSED_VOLUMES = &H00000800
+    ' 
+    '  Allow the file to be mounted, even if it is sparse and the
+    '  volume on which it sits does not support a sparse VDL.
+    ' 
+    DEPENDENT_DISK_FLAG_ALWAYS_ALLOW_SPARSE = &H00001000
+    ' 
+    '  Allow the file to be mounted, even if it is encrypted.
+    ' 
+    DEPENDENT_DISK_FLAG_SUPPORT_ENCRYPTED_FILES = &H00002000
+End Enum
+
+Public Enum STORAGE_DEPENDENCY_INFO_VERSION
+    STORAGE_DEPENDENCY_INFO_VERSION_UNSPECIFIED = 0
+    STORAGE_DEPENDENCY_INFO_VERSION_1 = 1
+    STORAGE_DEPENDENCY_INFO_VERSION_2 = 2
+End Enum
+Public Type STORAGE_DEPENDENCY_INFO_TYPE_1
+    DependencyTypeFlags As DEPENDENT_DISK_FLAG
+    ProviderSpecificFlags As Long
+    VirtualStorageType As VIRTUAL_STORAGE_TYPE
+End Type
+Public Type STORAGE_DEPENDENCY_INFO_TYPE_2
+    DependencyTypeFlags As DEPENDENT_DISK_FLAG
+    ProviderSpecificFlags As Long
+    VirtualStorageType As VIRTUAL_STORAGE_TYPE
+    AncestorLevel As Long
+    DependencyDeviceName As LongPtr
+    HostVolumeName As LongPtr
+    DependentVolumeName As LongPtr
+    DependentVolumeRelativePath As LongPtr
+End Type
+
+[Description("⚠️ **WARNING:** This structure cannot be used as-is directly due to SAFEARRAY considerations. Copy count and array separately.")]
+Public Type STORAGE_DEPENDENCY_INFO
+    Version As STORAGE_DEPENDENCY_INFO_VERSION
+    NumberEntries As Long
+    'union
+    '{
+    '    STORAGE_DEPENDENCY_INFO_TYPE_1 Version1Entries[];
+    Version2Entries() As STORAGE_DEPENDENCY_INFO_TYPE_2
+    '};
+End Type
+[Description("⚠️ **WARNING:** This structure cannot be used as-is directly due to SAFEARRAY considerations. Copy count and array separately.")]
+Public Type STORAGE_DEPENDENCY_INFO_V1
+    Version As STORAGE_DEPENDENCY_INFO_VERSION
+    NumberEntries As Long
+    'union
+    '{
+    Version1Entries() As STORAGE_DEPENDENCY_INFO_TYPE_1
+    '    STORAGE_DEPENDENCY_INFO_TYPE_2 Version2Entries[];
+    '};
+End Type
+
+Public Enum GET_STORAGE_DEPENDENCY_FLAG
+    GET_STORAGE_DEPENDENCY_FLAG_NONE = &H00000000
+    '  Return information for volumes or disks hosting the volume specified
+    '  If not set, returns info about volumes or disks being hosted by
+    '  the volume or disk specified
+    GET_STORAGE_DEPENDENCY_FLAG_HOST_VOLUMES = &H00000001
+    '   The handle provided is to a disk, not volume or file
+    GET_STORAGE_DEPENDENCY_FLAG_DISK_HANDLE = &H00000002
+    GET_STORAGE_DEPENDENCY_FLAG_PARENTS = GET_STORAGE_DEPENDENCY_FLAG_HOST_VOLUMES
+End Enum
+
+Public Enum GET_VIRTUAL_DISK_INFO_VERSION
+    GET_VIRTUAL_DISK_INFO_UNSPECIFIED = 0
+    GET_VIRTUAL_DISK_INFO_SIZE = 1
+    GET_VIRTUAL_DISK_INFO_IDENTIFIER = 2
+    GET_VIRTUAL_DISK_INFO_PARENT_LOCATION = 3
+    GET_VIRTUAL_DISK_INFO_PARENT_IDENTIFIER = 4
+    GET_VIRTUAL_DISK_INFO_PARENT_TIMESTAMP = 5
+    GET_VIRTUAL_DISK_INFO_VIRTUAL_STORAGE_TYPE = 6
+    GET_VIRTUAL_DISK_INFO_PROVIDER_SUBTYPE = 7
+    GET_VIRTUAL_DISK_INFO_IS_4K_ALIGNED = 8
+    GET_VIRTUAL_DISK_INFO_PHYSICAL_DISK = 9
+    GET_VIRTUAL_DISK_INFO_VHD_PHYSICAL_SECTOR_SIZE = 10
+    GET_VIRTUAL_DISK_INFO_SMALLEST_SAFE_VIRTUAL_SIZE = 11
+    GET_VIRTUAL_DISK_INFO_FRAGMENTATION = 12
+    GET_VIRTUAL_DISK_INFO_IS_LOADED = 13
+    GET_VIRTUAL_DISK_INFO_VIRTUAL_DISK_ID = 14
+    GET_VIRTUAL_DISK_INFO_CHANGE_TRACKING_STATE = 15
+End Enum
+
+/*
+typedef struct _GET_VIRTUAL_DISK_INFO
+{
+    GET_VIRTUAL_DISK_INFO_VERSION Version;
+
+    union
+    {
+        struct
+        {
+            ULONGLONG VirtualSize;
+            ULONGLONG PhysicalSize;
+            ULONG     BlockSize;
+            ULONG     SectorSize;
+        } Size;
+
+        GUID Identifier;
+
+        struct
+        {
+            BOOL  ParentResolved;
+            WCHAR ParentLocationBuffer[1];  // MultiSz string
+        } ParentLocation;
+
+        GUID ParentIdentifier;
+
+        ULONG ParentTimestamp;
+
+        VIRTUAL_STORAGE_TYPE VirtualStorageType;
+
+        ULONG ProviderSubtype;
+
+        BOOL Is4kAligned;
+
+        BOOL IsLoaded;
+
+        struct
+        {
+            ULONG LogicalSectorSize;
+            ULONG PhysicalSectorSize;
+            BOOL IsRemote;
+        } PhysicalDisk;
+
+        ULONG VhdPhysicalSectorSize;
+
+        ULONGLONG SmallestSafeVirtualSize;
+
+        // GET_VIRTUAL_DISK_INFO_FRAGMENTATION
+        ULONG FragmentationPercentage;
+
+        // GET_VIRTUAL_DISK_INFO_VIRTUAL_DISK_ID
+        GUID VirtualDiskId;
+
+        struct
+        {
+            BOOL Enabled;
+            BOOL NewerChanges;
+            WCHAR MostRecentId[1];
+        } ChangeTrackingState;
+    };
+} GET_VIRTUAL_DISK_INFO, *PGET_VIRTUAL_DISK_INFO;
+*/
+[Description("NOTE: Buffered array substituted for variable C-style array within union member.")]
+Public Type GET_VIRTUAL_DISK_INFO
+    Version As GET_VIRTUAL_DISK_INFO_VERSION
+    pad As Long
+    union(511) As Byte
+End Type
+
+Public Const VIRTUAL_DISK_MAXIMUM_CHANGE_TRACKING_ID_LENGTH = 256
+
+Public Enum SET_VIRTUAL_DISK_INFO_VERSION
+    SET_VIRTUAL_DISK_INFO_UNSPECIFIED = 0
+    SET_VIRTUAL_DISK_INFO_PARENT_PATH = 1
+    SET_VIRTUAL_DISK_INFO_IDENTIFIER = 2
+    SET_VIRTUAL_DISK_INFO_PARENT_PATH_WITH_DEPTH = 3
+    SET_VIRTUAL_DISK_INFO_PHYSICAL_SECTOR_SIZE = 4
+    SET_VIRTUAL_DISK_INFO_VIRTUAL_DISK_ID = 5
+    SET_VIRTUAL_DISK_INFO_CHANGE_TRACKING_STATE = 6
+    SET_VIRTUAL_DISK_INFO_PARENT_LOCATOR = 7
+End Enum
+
+/*
+typedef struct _SET_VIRTUAL_DISK_INFO
+{
+    SET_VIRTUAL_DISK_INFO_VERSION Version;
+
+    union
+    {
+        PCWSTR ParentFilePath;
+
+        GUID UniqueIdentifier;
+
+        struct
+        {
+            ULONG  ChildDepth;
+            PCWSTR ParentFilePath;
+        } ParentPathWithDepthInfo;
+
+        ULONG VhdPhysicalSectorSize;
+
+        // SET_VIRTUAL_DISK_INFO_VIRTUAL_DISK_ID
+        GUID VirtualDiskId;
+
+        BOOL ChangeTrackingEnabled;
+
+        struct
+        {
+            GUID   LinkageId;
+            PCWSTR ParentFilePath;
+        } ParentLocator;
+    };
+} SET_VIRTUAL_DISK_INFO, *PSET_VIRTUAL_DISK_INFO;
+*/
+Public Type SET_VIRTUAL_DISK_INFO
+    Version As SET_VIRTUAL_DISK_INFO_VERSION
+    #If Win64 Then
+        pad As Long
+        union(23) As Byte
+    #Else
+        union(19) As Byte
+    #End If
+End Type
+
+Public Type VIRTUAL_DISK_PROGRESS
+    OperationStatus As Long
+    CurrentValue As LongLong
+    CompletionValue As LongLong
+End Type
+
+Public Enum COMPACT_VIRTUAL_DISK_VERSION
+    COMPACT_VIRTUAL_DISK_VERSION_UNSPECIFIED = 0
+    COMPACT_VIRTUAL_DISK_VERSION_1 = 1
+End Enum
+Public Type COMPACT_VIRTUAL_DISK_PARAMETERS
+    Version As COMPACT_VIRTUAL_DISK_VERSION
+    'union
+    '{
+    '   struct
+    '  {
+    Reserved As Long
+    '    } Version1;
+    '};
+End Type
+Public Enum COMPACT_VIRTUAL_DISK_FLAG
+    COMPACT_VIRTUAL_DISK_FLAG_NONE = &H00000000
+    COMPACT_VIRTUAL_DISK_FLAG_NO_ZERO_SCAN = &H00000001
+    COMPACT_VIRTUAL_DISK_FLAG_NO_BLOCK_MOVES = &H00000002
+End Enum
+
+Public Enum MERGE_VIRTUAL_DISK_VERSION
+    MERGE_VIRTUAL_DISK_VERSION_UNSPECIFIED = 0
+    MERGE_VIRTUAL_DISK_VERSION_1 = 1
+    MERGE_VIRTUAL_DISK_VERSION_2 = 2
+End Enum
+Public Const MERGE_VIRTUAL_DISK_DEFAULT_MERGE_DEPTH = 1
+[Description("FOR V2 OPTIONS ONLY. For V1, use the _V1 variant of this UDT.")]
+Public Type MERGE_VIRTUAL_DISK_PARAMETERS
+    Version As MERGE_VIRTUAL_DISK_VERSION
+    MergeSourceDepth As Long
+    MergeTargetDepth As Long
+End Type
+[Description("FOR V1 OPTIONS ONLY. For V1, use MERGE_VIRTUAL_DISK_PARAMETERS")]
+Public Type MERGE_VIRTUAL_DISK_PARAMETERS_V1
+    Version As MERGE_VIRTUAL_DISK_VERSION
+    MergeDepth As Long
+    unused As Long
+End Type
+Public Enum MERGE_VIRTUAL_DISK_FLAG
+    MERGE_VIRTUAL_DISK_FLAG_NONE = &H00000000
+End Enum
+
+Public Enum EXPAND_VIRTUAL_DISK_VERSION
+    EXPAND_VIRTUAL_DISK_VERSION_UNSPECIFIED = 0
+    EXPAND_VIRTUAL_DISK_VERSION_1 = 1
+End Enum
+
+Public Type EXPAND_VIRTUAL_DISK_PARAMETERS
+    Version As EXPAND_VIRTUAL_DISK_VERSION
+    'union
+    '{
+    '     struct
+    '    {
+    NewSize As LongLong
+    '     } Version1;
+    ' };
+End Type
+Public Enum EXPAND_VIRTUAL_DISK_FLAG
+    EXPAND_VIRTUAL_DISK_FLAG_NONE = &H00000000
+    EXPAND_VIRTUAL_DISK_FLAG_NOTIFY_CHANGE = &H00000001
+End Enum
+
+Public Enum RESIZE_VIRTUAL_DISK_VERSION
+    RESIZE_VIRTUAL_DISK_VERSION_UNSPECIFIED = 0
+    RESIZE_VIRTUAL_DISK_VERSION_1 = 1
+End Enum
+Public Type RESIZE_VIRTUAL_DISK_PARAMETERS
+    Version As RESIZE_VIRTUAL_DISK_VERSION
+    'union
+    '{
+    '    struct
+    '    {
+    NewSize As LongLong
+    '    } Version1;
+    '};
+End Type
+Public Enum RESIZE_VIRTUAL_DISK_FLAG
+    RESIZE_VIRTUAL_DISK_FLAG_NONE = &H0
+    '  If this flag is set, skip checking the virtual disk's partition table
+    '  to ensure that this truncation is safe. Setting this flag can cause
+    '  unrecoverable data loss; use with care.
+    RESIZE_VIRTUAL_DISK_FLAG_ALLOW_UNSAFE_VIRTUAL_SIZE = &H1
+    '  If this flag is set, resize the disk to the smallest virtual size
+    '  possible without truncating past any existing partitions. If this
+    '  is set, NewSize in RESIZE_VIRTUAL_DISK_PARAMETERS must be zero.
+    RESIZE_VIRTUAL_DISK_FLAG_RESIZE_TO_SMALLEST_SAFE_VIRTUAL_SIZE = &H2
+End Enum
+
+Public Enum MIRROR_VIRTUAL_DISK_VERSION
+    MIRROR_VIRTUAL_DISK_VERSION_UNSPECIFIED = 0
+    MIRROR_VIRTUAL_DISK_VERSION_1 = 1
+End Enum
+Public Type MIRROR_VIRTUAL_DISK_PARAMETERS
+    Version As MIRROR_VIRTUAL_DISK_VERSION
+    'union
+    '{
+    '   struct
+    '   {
+    MirrorVirtualDiskPath As LongPtr
+    '   } Version1;
+    '};
+End Type
+Public Enum MIRROR_VIRTUAL_DISK_FLAG
+    MIRROR_VIRTUAL_DISK_FLAG_NONE = &H00000000
+    MIRROR_VIRTUAL_DISK_FLAG_EXISTING_FILE = &H00000001
+    MIRROR_VIRTUAL_DISK_FLAG_SKIP_MIRROR_ACTIVATION = &H00000002
+    MIRROR_VIRTUAL_DISK_FLAG_ENABLE_SMB_COMPRESSION = &H00000004
+    MIRROR_VIRTUAL_DISK_FLAG_IS_LIVE_MIGRATION = &H00000008
+End Enum
+
+Public Type QUERY_CHANGES_VIRTUAL_DISK_RANGE
+    ByteOffset As LongLong
+    ByteLength As LongLong
+    Reserved As LongLong
+End Type
+Public Enum QUERY_CHANGES_VIRTUAL_DISK_FLAG
+    QUERY_CHANGES_VIRTUAL_DISK_FLAG_NONE = &H00000000
+End Enum
+Public Enum TAKE_SNAPSHOT_VHDSET_FLAG
+    TAKE_SNAPSHOT_VHDSET_FLAG_NONE = &H00000000
+    TAKE_SNAPSHOT_VHDSET_FLAG_WRITEABLE = &H00000001
+End Enum
+Public Enum TAKE_SNAPSHOT_VHDSET_VERSION
+    TAKE_SNAPSHOT_VHDSET_VERSION_UNSPECIFIED = 0
+    TAKE_SNAPSHOT_VHDSET_VERSION_1 = 1
+End Enum
+Public Type TAKE_SNAPSHOT_VHDSET_PARAMETERS
+    Version As TAKE_SNAPSHOT_VHDSET_VERSION
+    'union
+    '{
+    '   struct
+    '   {
+    SnapshotId As UUID
+    '   } Version1;
+    '};
+End Type
+Public Enum DELETE_SNAPSHOT_VHDSET_FLAG
+    DELETE_SNAPSHOT_VHDSET_FLAG_NONE = &H00000000
+    DELETE_SNAPSHOT_VHDSET_FLAG_PERSIST_RCT = &H00000001
+End Enum
+Public Enum DELETE_SNAPSHOT_VHDSET_VERSION
+    DELETE_SNAPSHOT_VHDSET_VERSION_UNSPECIFIED = 0
+    DELETE_SNAPSHOT_VHDSET_VERSION_1 = 1
+End Enum
+Public Type DELETE_SNAPSHOT_VHDSET_PARAMETERS
+    Version As DELETE_SNAPSHOT_VHDSET_VERSION
+    'union
+    '{
+    '    struct
+    '    {
+    SnapshotId As UUID
+    '   } Version1;
+    '};
+End Type
+
+Public Enum MODIFY_VHDSET_VERSION
+    MODIFY_VHDSET_UNSPECIFIED = 0
+    MODIFY_VHDSET_SNAPSHOT_PATH = 1
+    MODIFY_VHDSET_REMOVE_SNAPSHOT = 2
+    MODIFY_VHDSET_DEFAULT_SNAPSHOT_PATH = 3
+End Enum
+
+Public Enum MODIFY_VHDSET_FLAG
+    MODIFY_VHDSET_FLAG_NONE = &H00000000
+    MODIFY_VHDSET_FLAG_WRITEABLE_SNAPSHOT = &H00000001
+End Enum
+/*
+typedef struct _MODIFY_VHDSET_PARAMETERS
+{
+    MODIFY_VHDSET_VERSION Version;
+
+    union
+    {
+        struct
+        {
+            GUID SnapshotId;
+            PCWSTR SnapshotFilePath;
+        } SnapshotPath;
+
+        GUID SnapshotId;
+
+        PCWSTR DefaultFilePath;
+    };
+} MODIFY_VHDSET_PARAMETERS,
+*/
+Public Type MODIFY_VHDSET_PARAMETERS
+    Version As MODIFY_VHDSET_VERSION
+    #If Win64 Then
+        pad As Long
+        union(23) As Byte
+    #Else
+        union(19) As Byte
+    #End If
+End Type
+
+Public Enum APPLY_SNAPSHOT_VHDSET_FLAG
+    APPLY_SNAPSHOT_VHDSET_FLAG_NONE = &H00000000
+    APPLY_SNAPSHOT_VHDSET_FLAG_WRITEABLE = &H00000001
+End Enum
+Public Enum APPLY_SNAPSHOT_VHDSET_VERSION
+    APPLY_SNAPSHOT_VHDSET_VERSION_UNSPECIFIED = 0
+    APPLY_SNAPSHOT_VHDSET_VERSION_1 = 1
+End Enum
+Public Type APPLY_SNAPSHOT_VHDSET_PARAMETERS
+    Version As APPLY_SNAPSHOT_VHDSET_VERSION
+    'union
+    '{
+    '   struct
+    '   {
+    SnapshotId As UUID
+    LeafSnapshotId As UUID
+    '} Version1;
+    '};
+End Type
+
+Public Enum RAW_SCSI_VIRTUAL_DISK_FLAG
+    RAW_SCSI_VIRTUAL_DISK_FLAG_NONE = &H00000000
+End Enum
+Public Enum RAW_SCSI_VIRTUAL_DISK_VERSION
+    RAW_SCSI_VIRTUAL_DISK_VERSION_UNSPECIFIED = 0
+    RAW_SCSI_VIRTUAL_DISK_VERSION_1 = 1
+End Enum
+Public Type RAW_SCSI_VIRTUAL_DISK_PARAMETERS
+    Version As RAW_SCSI_VIRTUAL_DISK_VERSION
+    'union
+    '{
+    '    struct
+    '    {
+    RSVDHandle As Long
+    DataIn As Byte
+    CdbLength As Byte
+    SenseInfoLength As Byte
+    SrbFlags As Long
+    DataTransferLength As Long
+    '      _Field_size_bytes_full_(DataTransferLength)
+    DataBuffer As LongPtr
+    '       _Field_size_bytes_full_(SenseInfoLength)
+    SenseInfo As LongPtr
+    '       _Field_size_bytes_full_(CdbLength)
+    Cdb As LongPtr
+    '} Version1;
+    '};
+End Type
+Public Type RAW_SCSI_VIRTUAL_DISK_RESPONSE
+    Version As RAW_SCSI_VIRTUAL_DISK_VERSION
+    'union
+    '{
+    '    struct
+    '   {
+    ScsiStatus As Byte
+    SenseInfoLength As Byte ' bytes transferred to SenseInfo pointed to by the parameters.
+    DataTransferLength As Long ' bytes transferred to DataBuffer pointed to by the parameters.
+    '} Version1;
+    '};
+End Type
+
+Public Enum FORK_VIRTUAL_DISK_VERSION
+    FORK_VIRTUAL_DISK_VERSION_UNSPECIFIED = 0
+    FORK_VIRTUAL_DISK_VERSION_1 = 1
+End Enum
+Public Type FORK_VIRTUAL_DISK_PARAMETERS
+    Version As FORK_VIRTUAL_DISK_VERSION
+    'union
+    '{
+    '    struct
+    '    {
+    ForkedVirtualDiskPath As LongPtr
+    '     } Version1;
+    '};
+End Type
+Public Enum FORK_VIRTUAL_DISK_FLAG
+    FORK_VIRTUAL_DISK_FLAG_NONE = &H00000000
+    FORK_VIRTUAL_DISK_FLAG_EXISTING_FILE = &H00000001
+End Enum
+
+Public DeclareWide PtrSafe Function OpenVirtualDisk Lib "virtdisk.dll" (VirtualStorageType As VIRTUAL_STORAGE_TYPE, ByVal Path As String, ByVal VirtualDiskAccessMask As VIRTUAL_DISK_ACCESS_MASK, ByVal Flags As OPEN_VIRTUAL_DISK_FLAG, Parameters As Any, Handle As LongPtr) As Long
+Public DeclareWide PtrSafe Function CreateVirtualDisk Lib "virtdisk.dll" (VirtualStorageType As VIRTUAL_STORAGE_TYPE, ByVal Path As String, ByVal VirtualDiskAccessMask As VIRTUAL_DISK_ACCESS_MASK, SecurityDescriptor As SECURITY_DESCRIPTOR, ByVal Flags As CREATE_VIRTUAL_DISK_FLAG, ByVal ProviderSpecificFlags As Long, Parameters As Any, lpOverlapped As OVERLAPPED, Handle As LongPtr) As Long
+Public DeclareWide PtrSafe Function AttachVirtualDisk Lib "virtdisk.dll" (ByVal VirtualDiskHandle As LongPtr, SecurityDescriptor As SECURITY_DESCRIPTOR, ByVal Flags As ATTACH_VIRTUAL_DISK_FLAG, ByVal ProviderSpecificFlags As Long, Parameters As Any, lpOverlapped As OVERLAPPED) As Long
+Public Declare PtrSafe Function DetachVirtualDisk Lib "virtdisk.dll" (ByVal VirtualDiskHandle As LongPtr, ByVal Flags As DETACH_VIRTUAL_DISK_FLAG, ByVal ProviderSpecificFlags As Long) As Long
+Public DeclareWide PtrSafe Function GetVirtualDiskPhysicalPath Lib "virtdisk.dll" (ByVal VirtualDiskHandle As LongPtr, ByRef DiskPathSizeInBytes As Long, ByVal DiskPath As String) As Long
+Public DeclareWide PtrSafe Function GetAllAttachedVirtualDiskPhysicalPaths Lib "virtdisk.dll" (PathsBufferSizeInBytes As Long, ByVal PathsBuffer As String) As Long
+Public DeclareWide PtrSafe Function GetStorageDependencyInformation Lib "virtdisk.dll" (ByVal ObjectHandle As LongPtr, ByVal FLags As GET_STORAGE_DEPENDENCY_FLAG, StorageDependencyInfoSize As Long, StorageDependencyInfo As Any /*STORAGE_DEPENDENCY_INFO*/, Optional SizeUsed As Long) As Long
+Public Declare PtrSafe Function GetVirtualDiskInformation Lib "virtdisk.dll" (ByVal VirtualDiskHandle As LongPtr, VirtualDiskInfoSize As Long, VirtualDiskInfoSize As GET_VIRTUAL_DISK_INFO, Optional SizeUsed As Long) As Long
+Public Declare PtrSafe Function SetVirtualDiskInformation Lib "virtdisk.dll" (ByVal VirtualDiskHandle As LongPtr, VirtualDiskInfoSize As Long, VirtualDiskInfo As SET_VIRTUAL_DISK_INFO) As Long
+Public Declare PtrSafe Function EnumerateVirtualDiskMetadata Lib "virtdisk.dll" (ByVal VirtualDiskHandle As LongPtr, NumberOfItems As Long, Items As UUID) As Long
+Public DeclareWide PtrSafe Function GetVirtualDiskMetadata Lib "virtdisk.dll" (ByVal VirtualDiskHandle As LongPtr, Item As UUID, MetaDataSize As Long, MetaData As Any) As Long
+Public DeclareWide PtrSafe Function SetVirtualDiskMetadata Lib "virtdisk.dll" (ByVal VirtualDiskHandle As LongPtr, Item As UUID, MetaDataSize As Long, MetaData As Any) As Long
+Public Declare PtrSafe Function DeleteVirtualDiskMetadata Lib "virtdisk.dll" (ByVal VirtualDiskHandle As LongPtr, Item As UUID) As Long
+Public Declare PtrSafe Function GetVirtualDiskOperationProgress Lib "virtdisk.dll" (ByVal VirtualDiskHandle As LongPtr, Overlapped As OVERLAPPED, Progress As VIRTUAL_DISK_PROGRESS) As Long
+Public Declare PtrSafe Function CompactVirtualDisk Lib "virtdisk.dll" (ByVal VirtualDiskHandle As LongPtr, ByVal Flags As COMPACT_VIRTUAL_DISK_FLAG, Parameters As COMPACT_VIRTUAL_DISK_PARAMETERS, Overlapped As OVERLAPPED) As Long
+[Description("FOR V2 OPTIONS ONLY. For V1, use the MergeVirtualDiskV1 variant of this API.")]
+Public Declare PtrSafe Function MergeVirtualDisk Lib "virtdisk.dll" (ByVal VirtualDiskHandle As LongPtr, ByVal Flags As MERGE_VIRTUAL_DISK_FLAG, Parameters As MERGE_VIRTUAL_DISK_PARAMETERS, Overlapped As OVERLAPPED) As Long
+[Description("FOR V1 OPTIONS ONLY. For V2, use MergeVirtualDisk")]
+Public DeclareWide PtrSafe Function MergeVirtualDiskV1 Lib "virtdisk.dll" Alias "MergeVirtualDisk" (ByVal VirtualDiskHandle As LongPtr, ByVal Flags As MERGE_VIRTUAL_DISK_FLAG, Parameters As MERGE_VIRTUAL_DISK_PARAMETERS_V1, Overlapped As OVERLAPPED) As Long
+Public Declare PtrSafe Function ExpandVirtualDisk Lib "virtdisk.dll" (ByVal VirtualDiskHandle As LongPtr, ByVal Flags As EXPAND_VIRTUAL_DISK_FLAG, Parameters As EXPAND_VIRTUAL_DISK_PARAMETERS, Overlapped As OVERLAPPED) As Long
+Public Declare PtrSafe Function ResizeVirtualDisk Lib "virtdisk.dll" (ByVal VirtualDiskHandle As LongPtr, ByVal Flags As RESIZE_VIRTUAL_DISK_FLAG, Parameters As RESIZE_VIRTUAL_DISK_PARAMETERS, Overlapped As OVERLAPPED) As Long
+Public Declare PtrSafe Function MirrorVirtualDisk Lib "virtdisk.dll" (ByVal VirtualDiskHandle As LongPtr, ByVal Flags As MIRROR_VIRTUAL_DISK_FLAG, Parameters As MIRROR_VIRTUAL_DISK_PARAMETERS, Overlapped As OVERLAPPED) As Long
+Public Declare PtrSafe Function BreakMirrorVirtualDisk Lib "virtdisk.dll" (ByVal VirtualDiskHandle As LongPtr) As Long
+Public DeclareWide PtrSafe Function AddVirtualDiskParent Lib "virtdisk.dll" (ByVal VirtualDiskHandle As LongPtr, ByVal ParentPath As String) As Long
+Public DeclareWide PtrSafe Function QueryChangesVirtualDisk Lib "virtdisk.dll" (ByVal VirtualDiskHandle As LongPtr, ByVal ChangeTrackingId As String, ByVal ByteOffset As LongLong, ByVal ByteLength As LongLong, ByVal Flags As QUERY_CHANGES_VIRTUAL_DISK_FLAG, Range As QUERY_CHANGES_VIRTUAL_DISK_RANGE) As Long
+Public Declare PtrSafe Function TakeSnapshotVhdSet Lib "virtdisk.dll" (ByVal VirtualDiskHandle As LongPtr, Parameters As TAKE_SNAPSHOT_VHDSET_PARAMETERS, ByVal Flags As TAKE_SNAPSHOT_VHDSET_FLAG) As Long
+Public Declare PtrSafe Function DeleteSnapshotVhdSet Lib "virtdisk.dll" (ByVal VirtualDiskHandle As LongPtr, Parameters As DELETE_SNAPSHOT_VHDSET_PARAMETERS, ByVal Flags As DELETE_SNAPSHOT_VHDSET_FLAG) As Long
+Public Declare PtrSafe Function ModifyVhdSet Lib "virtdisk.dll" (ByVal VirtualDiskHandle As LongPtr, Parameters As MODIFY_VHDSET_PARAMETERS, ByVal Flags As MODIFY_VHDSET_FLAG) As Long
+Public Declare PtrSafe Function ApplySnapshotVhdSet Lib "virtdisk.dll" (ByVal VirtualDiskHandle As LongPtr, Parameters As APPLY_SNAPSHOT_VHDSET_PARAMETERS, ByVal Flags As APPLY_SNAPSHOT_VHDSET_FLAG) As Long
+Public Declare PtrSafe Function RawSCSIVirtualDisk Lib "virtdisk.dll" (ByVal VirtualDiskHandle As LongPtr, Parameters As RAW_SCSI_VIRTUAL_DISK_PARAMETERS, ByVal Flags As RAW_SCSI_VIRTUAL_DISK_FLAG, Response As RAW_SCSI_VIRTUAL_DISK_RESPONSE) As Long
+Public Declare PtrSafe Function ForkVirtualDisk Lib "virtdisk.dll" (ByVal VirtualDiskHandle As LongPtr, ByVal Flags As FORK_VIRTUAL_DISK_FLAG, Parameters As FORK_VIRTUAL_DISK_PARAMETERS, Overlapped As OVERLAPPED) As Long
+Public Declare PtrSafe Function CompleteForkVirtualDisk Lib "virtdisk.dll" (ByVal VirtualDiskHandle As LongPtr) As Long
+
 End Module

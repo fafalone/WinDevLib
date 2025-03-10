@@ -94,6 +94,29 @@ Interface IDirectSoundFXChorus Extends stdole.IUnknown
     Sub GetAllParameters(ByRef pFxChorus As DSFXChorus)
 End Interface
 
+[InterfaceId("AD74143D-903D-4AB7-8066-28D363036D65")]
+[OleAutomation(False)]
+Interface IDirectSoundCaptureFXAec Extends stdole.IUnknown
+    Sub SetAllParameters(ByRef pDscFxAec As DSCFXAec)
+    Sub GetAllParameters(ByRef pDscFxAec As DSCFXAec)
+    Sub GetStatus(pdwStatus As DSCFXAecStatus)
+    Sub Reset()
+End Interface
+
+[InterfaceId("ED311E41-FBAE-4175-9625-CD0854F693CA")]
+[OleAutomation(False)]
+Interface IDirectSoundCaptureFXNoiseSuppress Extends stdole.IUnknown
+    Sub SetAllParameters(ByRef pcDscFxNoiseSuppress As DSCFXNoiseSuppress)
+    Sub GetAllParameters(ByRef pcDscFxNoiseSuppress As DSCFXNoiseSuppress)
+    Sub Reset()
+End Interface
+
+[InterfaceId("EDCB4C7A-DAAB-4216-A42E-6C50596DDC1D")]
+[OleAutomation(False)]
+Interface IDirectSoundFullDuplex Extends stdole.IUnknown
+    Sub Initialize(pCaptureGuid As UUID, pRenderGuid As UUID, lpDscBufferDesc As DSCBUFFERDESC, lpDsBufferDesc As DSCBUFFERDESC, ByVal hWnd As LongPtr, ByVal dwLevel As Long, lplpDirectSoundCaptureBuffer8 As IDirectSoundCaptureBuffer8, lplpDirectSoundBuffer8 As IDirectSoundBuffer8)
+End Interface
+
 [InterfaceId("279AFA83-4981-11CE-A521-0020AF0BE560")]
 [OleAutomation(False)]
 Interface IDirectSound Extends stdole.IUnknown
@@ -223,6 +246,14 @@ Interface IDirectSoundNotify Extends stdole.IUnknown
     Sub SetNotificationPositions(ByVal dwPositionNotifies As Long, ByRef pcPositionNotifies As DSBPOSITIONNOTIFY)
 End Interface
 
+[InterfaceId("31EFAC30-515C-11D0-A9AA-00AA0061BE93")]
+[OleAutomation(False)]
+Interface IKsPropertySet Extends stdole.IUnknown
+    Sub Get(rguidPropSet As UUID, ByVal ulId As Long, pInstanceData As any, ByVal ulInstanceLength As Long, pPropertyData As any, ByVal ulDataLength As Long, Optional pulBytesReturned As Long)
+    Sub Set(rguidPropSet As UUID, ByVal ulId As Long, pInstanceData As any, ByVal ulInstanceLength As Long, pPropertyData As any, ByVal ulDataLength As Long)
+    Sub QuerySupport(rguidPropSet As UUID, ByVal ulId As Long, pulTypeSupport As Long)
+End Interface
+
 [CoClassId("47D4D946-62E8-11CF-93BC-444553540000")]
 [COMCreatable]
 CoClass DirectSound
@@ -347,7 +378,7 @@ Module wdDSound
 	
     Public Enum DS3DAPPLY_CONST
         DS3D_IMMEDIATE = &H0
-        DS3D_DEFERRE = &H1
+        DS3D_DEFERRED = &H1
     End Enum
 	
     Public Enum DSCFXR_CONST
@@ -359,7 +390,41 @@ Module wdDSound
         DSCBCAPS_CTRLFX = &H200
         DSCBCAPS_WAVEMAPPED = &H80000000
     End Enum
-	
+    
+    Public Const DSBFREQUENCY_ORIGINAL  = 0
+    Public Const DSBFREQUENCY_MIN  = 100
+    ' #if DIRECTSOUND_VERSION >= 0x0900
+    Public Const DSBFREQUENCY_MAX  = 200000
+    
+    
+    Public Const DSBPAN_LEFT  = -10000
+    Public Const DSBPAN_CENTER  = 0
+    Public Const DSBPAN_RIGHT  = 10000
+    
+    Public Const DSBVOLUME_MIN  = -10000
+    Public Const DSBVOLUME_MAX  = 0
+    Public Const DSBSIZE_MIN  = 4
+    Public Const DSBSIZE_MAX  = &H0FFFFFFF
+    Public Const DSBSIZE_FX_MIN  = 150  ' NOTE: Milliseconds, not bytes
+    Public Const DSBNOTIFICATIONS_MAX  = 100000
+     
+    Public Const DS3D_MINDISTANCEFACTOR  = FLT_MIN
+    Public Const DS3D_MAXDISTANCEFACTOR  = FLT_MAX
+    Public Const DS3D_DEFAULTDISTANCEFACTOR As Single = 1.0
+    Public Const DS3D_MINROLLOFFFACTOR  As Single = 0.0
+    Public Const DS3D_MAXROLLOFFFACTOR  As Single = 10.0
+    Public Const DS3D_DEFAULTROLLOFFFACTOR  As Single = 1.0
+    Public Const DS3D_MINDOPPLERFACTOR  As Single = 0.0
+    Public Const DS3D_MAXDOPPLERFACTOR  As Single = 10.0
+    Public Const DS3D_DEFAULTDOPPLERFACTOR As Single = 1.0
+    Public Const DS3D_DEFAULTMINDISTANCE As Single = 1.0
+    Public Const DS3D_DEFAULTMAXDISTANCE As Single = 1000000000.0
+    Public Const DS3D_MINCONEANGLE As Single = 0
+    Public Const DS3D_MAXCONEANGLE  = 360
+    Public Const DS3D_DEFAULTCONEANGLE  = 360
+    Public Const DS3D_DEFAULTCONEOUTSIDEVOLUME  = DSBVOLUME_MAX
+    
+    
     Public Enum DSCCAPS_CONST
         DSCCAPS_EMULDRIVER = &H20
         DSCCAPS_CERTIFIED = &H40
@@ -370,7 +435,8 @@ Module wdDSound
         DSCBSTATUS_CAPTURING = &H1
         DSCBSTATUS_LOOPING = &H2
     End Enum
-
+    Public Const DSBPN_OFFSETSTOP  = &HFFFFFFFF
+    
     Public Enum WAVECAPS_FMT_FLAGS
         WAVE_INVALIDFORMAT = &H00000000 /* invalid format */
         WAVE_FORMAT_1M08 = &H00000001 /* 11.025 kHz, Mono, 8-bit */
@@ -473,38 +539,39 @@ Module wdDSound
         DSFX_I3DL2_MATERIAL_PRESET_STONEWALL = 6
         DSFX_I3DL2_MATERIAL_PRESET_CURTAIN = 7
     End Enum
-	
+ 
+    
     Public Enum DSFX_I3DL2_ROOM
-        DSFX_I3DL2_ENVIRONMENT_PRESET_DEFAULT = 0
-        DSFX_I3DL2_ENVIRONMENT_PRESET_GENERIC = 1
-        DSFX_I3DL2_ENVIRONMENT_PRESET_PADDEDCELL = 2
-        DSFX_I3DL2_ENVIRONMENT_PRESET_ROOM = 3
-        DSFX_I3DL2_ENVIRONMENT_PRESET_BATHROOM = 4
-        DSFX_I3DL2_ENVIRONMENT_PRESET_LIVINGROOM = 5
-        DSFX_I3DL2_ENVIRONMENT_PRESET_STONEROOM = 6
-        DSFX_I3DL2_ENVIRONMENT_PRESET_AUDITORIUM = 7
-        DSFX_I3DL2_ENVIRONMENT_PRESET_CONCERTHALL = 8
-        DSFX_I3DL2_ENVIRONMENT_PRESET_CAVE = 9
-        DSFX_I3DL2_ENVIRONMENT_PRESET_ARENA = 10
-        DSFX_I3DL2_ENVIRONMENT_PRESET_HANGAR = 11
-        DSFX_I3DL2_ENVIRONMENT_PRESET_CARPETEDHALLWAY = 12
-        DSFX_I3DL2_ENVIRONMENT_PRESET_HALLWAY = 13
-        DSFX_I3DL2_ENVIRONMENT_PRESET_STONECORRIDOR = 14
-        DSFX_I3DL2_ENVIRONMENT_PRESET_ALLEY = 15
-        DSFX_I3DL2_ENVIRONMENT_PRESET_FOREST = 16
-        DSFX_I3DL2_ENVIRONMENT_PRESET_CITY = 17
-        DSFX_I3DL2_ENVIRONMENT_PRESET_MOUNTAINS = 18
-        DSFX_I3DL2_ENVIRONMENT_PRESET_QUARRY = 19
-        DSFX_I3DL2_ENVIRONMENT_PRESET_PLAIN = 20
-        DSFX_I3DL2_ENVIRONMENT_PRESET_PARKINGLOT = 21
-        DSFX_I3DL2_ENVIRONMENT_PRESET_SEWERPIPE = 22
-        DSFX_I3DL2_ENVIRONMENT_PRESET_UNDERWATER = 23
-        DSFX_I3DL2_ENVIRONMENT_PRESET_SMALLROOM = 24
-        DSFX_I3DL2_ENVIRONMENT_PRESET_MEDIUMROOM = 25
-        DSFX_I3DL2_ENVIRONMENT_PRESET_LARGEROOM = 26
-        DSFX_I3DL2_ENVIRONMENT_PRESET_MEDIUMHALL = 27
-        DSFX_I3DL2_ENVIRONMENT_PRESET_LARGEHALL = 28
-        DSFX_I3DL2_ENVIRONMENT_PRESET_PLATE = 29
+        DSFX_I3DL2_ENVIRONMENT_PRESET_DEFAULT
+        DSFX_I3DL2_ENVIRONMENT_PRESET_GENERIC
+        DSFX_I3DL2_ENVIRONMENT_PRESET_PADDEDCELL
+        DSFX_I3DL2_ENVIRONMENT_PRESET_ROOM
+        DSFX_I3DL2_ENVIRONMENT_PRESET_BATHROOM
+        DSFX_I3DL2_ENVIRONMENT_PRESET_LIVINGROOM
+        DSFX_I3DL2_ENVIRONMENT_PRESET_STONEROOM
+        DSFX_I3DL2_ENVIRONMENT_PRESET_AUDITORIUM
+        DSFX_I3DL2_ENVIRONMENT_PRESET_CONCERTHALL
+        DSFX_I3DL2_ENVIRONMENT_PRESET_CAVE
+        DSFX_I3DL2_ENVIRONMENT_PRESET_ARENA
+        DSFX_I3DL2_ENVIRONMENT_PRESET_HANGAR
+        DSFX_I3DL2_ENVIRONMENT_PRESET_CARPETEDHALLWAY
+        DSFX_I3DL2_ENVIRONMENT_PRESET_HALLWAY
+        DSFX_I3DL2_ENVIRONMENT_PRESET_STONECORRIDOR
+        DSFX_I3DL2_ENVIRONMENT_PRESET_ALLEY
+        DSFX_I3DL2_ENVIRONMENT_PRESET_FOREST
+        DSFX_I3DL2_ENVIRONMENT_PRESET_CITY
+        DSFX_I3DL2_ENVIRONMENT_PRESET_MOUNTAINS
+        DSFX_I3DL2_ENVIRONMENT_PRESET_QUARRY
+        DSFX_I3DL2_ENVIRONMENT_PRESET_PLAIN
+        DSFX_I3DL2_ENVIRONMENT_PRESET_PARKINGLOT
+        DSFX_I3DL2_ENVIRONMENT_PRESET_SEWERPIPE
+        DSFX_I3DL2_ENVIRONMENT_PRESET_UNDERWATER
+        DSFX_I3DL2_ENVIRONMENT_PRESET_SMALLROOM
+        DSFX_I3DL2_ENVIRONMENT_PRESET_MEDIUMROOM
+        DSFX_I3DL2_ENVIRONMENT_PRESET_LARGEROOM
+        DSFX_I3DL2_ENVIRONMENT_PRESET_MEDIUMHALL
+        DSFX_I3DL2_ENVIRONMENT_PRESET_LARGEHALL
+        DSFX_I3DL2_ENVIRONMENT_PRESET_PLATE
     End Enum
 	
 	
@@ -536,16 +603,46 @@ Module wdDSound
         DSERR_OBJECTNOTFOUND = &H88781161
     End Enum
 	
-	
+    Public Enum DSCFXAecModes
+        DSCFX_AEC_MODE_PASS_THROUGH = &H0
+        DSCFX_AEC_MODE_HALF_DUPLEX = &H1
+        DSCFX_AEC_MODE_FULL_DUPLEX = &H2
+    End Enum
+    Public Type DSCFXAec
+        fEnable As BOOL
+        fNoiseFill As BOOL
+        dwMode As DSCFXAecModes
+    End Type
+    
+    Public Type DSCFXNoiseSuppress
+        fEnable As BOOL
+    End Type
+    
+    
+    Public Enum DSCFXAecStatus
+        DSCFX_AEC_STATUS_HISTORY_UNINITIALIZED = &H0
+        DSCFX_AEC_STATUS_HISTORY_CONTINUOUSLY_CONVERGED = &H1
+        DSCFX_AEC_STATUS_HISTORY_PREVIOUSLY_DIVERGED = &H2
+        DSCFX_AEC_STATUS_CURRENTLY_CONVERGED = &H8
+    End Enum
+    
+    
 	Public Type DSBUFFERDESC
 		dwSize As Long
 		dwFlags As DSBCAPS_CONST
 		dwBufferBytes As Long
 		dwReserved As Long
-		lpwfxFormat As LongPtr
+		lpwfxFormat As LongPtr 'LPWAVEFORMATEX
 		guid3DAlgorithm As UUID
 	End Type
-
+    Public Type DSBUFFERDESC1
+        dwSize As Long
+        dwFlags As DSBCAPS_CONST
+        dwBufferBytes As Long
+        dwReserved As Long
+        lpwfxFormat As LongPtr 'LPWAVEFORMATEX
+    End Type
+    
 	Public Type DSBCAPS
 		dwSize As Long
 		dwFlags As DSBCAPS_CONST
@@ -616,11 +713,18 @@ Module wdDSound
 		dwFlags As DSCBCAPS_CONST
 		dwBufferBytes As Long
 		dwReserved As Long
-		lpwfxFormat As LongPtr
+		lpwfxFormat As LongPtr 'LPWAVEFORMATEX
 		dwFXCount As Long
-		lpDSCFXDesc As LongPtr
+		lpDSCFXDesc As LongPtr 'LPDSCEFFECTDESC
 	End Type
-
+    Public Type DSCBUFFERDESC1
+        dwSize As Long
+        dwFlags As Long
+        dwBufferBytes As Long
+        dwReserved As Long
+        lpwfxFormat As LongPtr 'LPWAVEFORMATEX
+    End Type
+    
 	Public Type DSCCAPS
 		dwSize As Long
 		dwFlags As DSCCAPS_CONST
@@ -654,7 +758,18 @@ Module wdDSound
 		dwRateHz As eGARGLE_FREQ
 		WaveShape As eGARGLE_WAVE
 	End Type
-
+    Public Const DSFXCHORUS_WETDRYMIX_MIN  As Single = 0.0
+    Public Const DSFXCHORUS_WETDRYMIX_MAX  As Single = 100.0
+    Public Const DSFXCHORUS_DEPTH_MIN  As Single = 0.0
+    Public Const DSFXCHORUS_DEPTH_MAX  As Single = 100.0
+    Public Const DSFXCHORUS_FEEDBACK_MIN  As Single = -99.0
+    Public Const DSFXCHORUS_FEEDBACK_MAX  As Single = 99.0
+    Public Const DSFXCHORUS_FREQUENCY_MIN  As Single = 0.0
+    Public Const DSFXCHORUS_FREQUENCY_MAX  As Single = 10.0
+    Public Const DSFXCHORUS_DELAY_MIN  As Single = 0.0
+    Public Const DSFXCHORUS_DELAY_MAX  As Single = 20.0
+    Public Const DSFXCHORUS_PHASE_MIN  As Single = 0
+    Public Const DSFXCHORUS_PHASE_MAX  As Single = 4
 	Public Type DSFXChorus
 		fWetDryMix As Single
 		fDepth As Single
@@ -664,7 +779,19 @@ Module wdDSound
 		fDelay As Single
 		phase As eCHORUS_PHASE
 	End Type
-
+    Public Const DSFXFLANGER_WETDRYMIX_MIN  As Single = 0.0
+    Public Const DSFXFLANGER_WETDRYMIX_MAX  As Single = 100.0
+    Public Const DSFXFLANGER_FREQUENCY_MIN  As Single = 0.0
+    Public Const DSFXFLANGER_FREQUENCY_MAX  As Single = 10.0
+    Public Const DSFXFLANGER_DEPTH_MIN  As Single = 0.0
+    Public Const DSFXFLANGER_DEPTH_MAX  As Single = 100.0
+    Public Const DSFXFLANGER_PHASE_MIN  As Single = 0
+    Public Const DSFXFLANGER_PHASE_MAX  As Single = 4
+    Public Const DSFXFLANGER_FEEDBACK_MIN  As Single = -99.0
+    Public Const DSFXFLANGER_FEEDBACK_MAX  As Single = 99.0
+    Public Const DSFXFLANGER_DELAY_MIN  As Single = 0.0
+    Public Const DSFXFLANGER_DELAY_MAX  As Single = 4.0
+    
 	Public Type DSFXFlanger
 		fWetDryMix As Single
 		fDepth As Single
@@ -683,6 +810,16 @@ Module wdDSound
 		lPanDelay As Long
 	End Type
 
+    Public Const DSFXDISTORTION_GAIN_MIN  As Single = -60.0
+    Public Const DSFXDISTORTION_GAIN_MAX  As Single = 0.0
+    Public Const DSFXDISTORTION_EDGE_MIN  As Single = 0.0
+    Public Const DSFXDISTORTION_EDGE_MAX  As Single = 100.0
+    Public Const DSFXDISTORTION_POSTEQCENTERFREQUENCY_MIN  As Single = 100.0
+    Public Const DSFXDISTORTION_POSTEQCENTERFREQUENCY_MAX  As Single = 8000.0
+    Public Const DSFXDISTORTION_POSTEQBANDWIDTH_MIN  As Single = 100.0
+    Public Const DSFXDISTORTION_POSTEQBANDWIDTH_MAX  As Single = 8000.0
+    Public Const DSFXDISTORTION_PRELOWPASSCUTOFF_MIN  As Single = 100.0
+    Public Const DSFXDISTORTION_PRELOWPASSCUTOFF_MAX  As Single = 8000.0
 	Public Type DSFXDistortion
 		fGain As Single
 		fEdge As Single
@@ -728,16 +865,10 @@ Module wdDSound
 		fHighFreqRTRatio As Single
 	End Type
 
-    Public Const DS3DALG_DEFAULT As String = "{00000000-0000-0000-0000-000000000000}"
-    Public Const DS3DALG_NO_VIRTUALIZATION As String = "{C241333F-1C1B-11d2-94F5-00C04FC28ACA}"
-    Public Const DS3DALG_HRTF_FULL As String = "{C2413340-1C1B-11d2-94F5-00C04FC28ACA}"
-    Public Const DS3DALG_HRTF_LIGHT As String = "{C2413342-1C1B-11d2-94F5-00C04FC28ACA}"
-    Public Const GUID_DSCFX_CLASS_AEC As String = "{BF963D80-C559-11D0-8A2B-00A0C9255AC1}"
-    Public Const GUID_DSCFX_MS_AEC As String = "{CDEBB919-379A-488a-8765-F53CFD36DE40}"
-    Public Const GUID_DSCFX_SYSTEM_AEC As String = "{1C22C56D-9879-4f5b-A389-27996DDC2810}"
-    Public Const GUID_DSCFX_CLASS_NS As String = "{E07F903F-62FD-4e60-8CDD-DEA7236665B5}"
-    Public Const GUID_DSCFX_MS_NS As String = "{11C5C73B-66E9-4ba1-A0BA-E814C6EED92D}"
-    Public Const GUID_DSCFX_SYSTEM_NS As String = "{5AB0882E-7274-4516-877D-4EEE99BA4FD0}"
+    ' Public Const DS3DALG_DEFAULT As String = "{00000000-0000-0000-0000-000000000000}"
+    ' Public Const DS3DALG_NO_VIRTUALIZATION As String = "{C241333F-1C1B-11d2-94F5-00C04FC28ACA}"
+    ' Public Const DS3DALG_HRTF_FULL As String = "{C2413340-1C1B-11d2-94F5-00C04FC28ACA}"
+    ' Public Const DS3DALG_HRTF_LIGHT As String = "{C2413342-1C1B-11d2-94F5-00C04FC28ACA}"
 
     Public Const CLSID_DSFX_STANDARD_GARGLE As String = "{DAFD8210-5711-4B91-9FE3-F75B7AE279BF}"
     Public Const CLSID_DSFX_STANDARD_CHORUS As String = "{EFE6629C-81F7-4281-BD91-C9D604A95AF6}"
@@ -749,50 +880,100 @@ Module wdDSound
     Public Const CLSID_DSFX_STANDARD_I3DL2REVERB As String = "{EF985E71-D5C7-42D4-BA4D-2D073E2E96F4}"
     Public Const CLSID_DSFX_WAVES_REVERB As String = "{87FC0268-9A55-4360-95AA-004A1D9DE26C}"
 	
-	Public Const STR_PRESET_DEFAULT = "-1000,-100,0.0,1.49,0.83,-2602,0.007,200,0.011,100.0,100.0,5000.0"
-	Public Const STR_PRESET_GENERIC = "-1000,-100,0.0,1.49,0.83,-2602,0.007,200,0.011,100.0,100.0,5000.0"
-	Public Const STR_PRESET_PADDEDCELL = "-1000,-6000,0.0,0.17,0.10,-1204,0.001,207,0.002,100.0,100.0,5000.0"
-	Public Const STR_PRESET_ROOM = "-1000,-454,0.0,0.40,0.83,-1646,0.002,53,0.003,100.0,100.0,5000.0"
-	Public Const STR_PRESET_BATHROOM = "-1000,-1200,0.0,1.49,0.54,-370,0.007,1030,0.011,100.0,60.0,5000.0"
-	Public Const STR_PRESET_LIVINGROOM = "-1000,-6000,0.0,0.50,0.10,-1376,0.003,-1104,0.004,100.0,100.0,5000.0"
-	Public Const STR_PRESET_STONEROOM = "-1000,-300,0.0,2.31,0.64,-711,0.012,83,0.017,100.0,100.0,5000.0"
-	Public Const STR_PRESET_AUDITORIUM = "-1000,-476,0.0,4.32,0.59,-789,0.020,-289,0.030,100.0,100.0,5000.0"
-	Public Const STR_PRESET_CONCERTHALL = "-1000,-500,0.0,3.92,0.70,-1230,0.020,-2,0.029,100.0,100.0,5000.0"
-	Public Const STR_PRESET_CAVE = "-1000,0,0.0,2.91,1.30,-602,0.015,-302,0.022,100.0,100.0,5000.0"
-	Public Const STR_PRESET_ARENA = "-1000,-698,0.0,7.24,0.33,-1166,0.020,16,0.030,100.0,100.0,5000.0"
-	Public Const STR_PRESET_HANGAR = "-1000,-1000,0.0,10.05,0.23,-602,0.020,198,0.030,100.0,100.0,5000.0"
-	Public Const STR_PRESET_CARPETEDHALLWAY = "-1000,-4000,0.0,0.30,0.10,-1831,0.002,-1630,0.030,100.0,100.0,5000.0"
-	Public Const STR_PRESET_HALLWAY = "-1000,-300,0.0,1.49,0.59,-1219,0.007,441,0.011,100.0,100.0,5000.0"
-	Public Const STR_PRESET_STONECORRIDOR = "-1000,-237,0.0,2.70,0.79,-1214,0.013,395,0.020,100.0,100.0,5000.0"
-	Public Const STR_PRESET_ALLEY = "-1000,-270,0.0,1.49,0.86,-1204,0.007,-4,0.011,100.0,100.0,5000.0"
-	Public Const STR_PRESET_FOREST = "-1000,-3300,0.0,1.49,0.54,-2560,0.162,-613,0.088,79.0,100.0,5000.0"
-	Public Const STR_PRESET_CITY = "-1000,-800,0.0,1.49,0.67,-2273,0.007,-2217,0.011,50.0,100.0,5000.0"
-	Public Const STR_PRESET_MOUNTAINS = "-1000,-2500,0.0,1.49,0.21,-2780,0.300,-2014,0.100,27.0,100.0,5000.0"
-	Public Const STR_PRESET_QUARRY = "-1000,-1000,0.0,1.49,0.83,-10000,0.061,500,0.025,100.0,100.0,5000.0"
-	Public Const STR_PRESET_PLAIN = "-1000,-2000,0.0,1.49,0.50,-2466,0.179,-2514,0.100,21.0,100.0,5000.0"
-	Public Const STR_PRESET_PARKINGLOT = "-1000,0,0.0,1.65,1.50,-1363,0.008,-1153,0.012,100.0,100.0,5000.0"
-	Public Const STR_PRESET_SEWERPIPE = "-1000,-1000,0.0,2.81,0.14,429,0.014,648,0.021,80.0,60.0,5000.0"
-	Public Const STR_PRESET_UNDERWATER = "-1000,-4000,0.0,1.49,0.10,-449,0.007,1700,0.011,100.0,100.0,5000.0"
-	Public Const STR_PRESET_SMALLROOM = "-1000,-600,0.0,1.10,0.83,-400,0.005,500,0.010,100.0,100.0,5000.0"
-	Public Const STR_PRESET_MEDIUMROOM = "-1000,-600,0.0,1.30,0.83,-1000,0.010,-200,0.020,100.0,100.0,5000.0"
-	Public Const STR_PRESET_LARGEROOM = "-1000,-600,0.0,1.50,0.83,-1600,0.020,-1000,0.040,100.0,100.0,5000.0"
-	Public Const STR_PRESET_MEDIUMHALL = "-1000,-600,0.0,1.80,0.70,-1300,0.015,-800,0.030,100.0,100.0,5000.0"
-	Public Const STR_PRESET_LARGEHALL = "-1000,-600,0.0,1.80,0.70,-2000,0.030,-1400,0.060,100.0,100.0,5000.0"
-	Public Const STR_PRESET_PLATE = "-1000,-200,0.0,1.30,0.90,0,0.002,0,0.010,100.0,75.0,5000.0"
+    Public Const GUID_DSCFX_CLASS_AEC As String = "{BF963D80-C559-11D0-8A2B-00A0C9255AC1}"
+    Public Const GUID_DSCFX_MS_AEC As String = "{CDEBB919-379A-488a-8765-F53CFD36DE40}"
+    Public Const GUID_DSCFX_SYSTEM_AEC As String = "{1C22C56D-9879-4f5b-A389-27996DDC2810}"
+    Public Const GUID_DSCFX_CLASS_NS As String = "{E07F903F-62FD-4e60-8CDD-DEA7236665B5}"
+    Public Const GUID_DSCFX_MS_NS As String = "{11C5C73B-66E9-4ba1-A0BA-E814C6EED92D}"
+    Public Const GUID_DSCFX_SYSTEM_NS As String = "{5AB0882E-7274-4516-877D-4EEE99BA4FD0}"
+    
+	Public Const I3DL2_ENVIRONMENT_PRESET_DEFAULT = "-1000,-100,0.0,1.49,0.83,-2602,0.007,200,0.011,100.0,100.0,5000.0"
+	Public Const I3DL2_ENVIRONMENT_PRESET_GENERIC = "-1000,-100,0.0,1.49,0.83,-2602,0.007,200,0.011,100.0,100.0,5000.0"
+	Public Const I3DL2_ENVIRONMENT_PRESET_PADDEDCELL = "-1000,-6000,0.0,0.17,0.10,-1204,0.001,207,0.002,100.0,100.0,5000.0"
+	Public Const I3DL2_ENVIRONMENT_PRESET_ROOM = "-1000,-454,0.0,0.40,0.83,-1646,0.002,53,0.003,100.0,100.0,5000.0"
+	Public Const I3DL2_ENVIRONMENT_PRESET_BATHROOM = "-1000,-1200,0.0,1.49,0.54,-370,0.007,1030,0.011,100.0,60.0,5000.0"
+	Public Const I3DL2_ENVIRONMENT_PRESET_LIVINGROOM = "-1000,-6000,0.0,0.50,0.10,-1376,0.003,-1104,0.004,100.0,100.0,5000.0"
+	Public Const I3DL2_ENVIRONMENT_PRESET_STONEROOM = "-1000,-300,0.0,2.31,0.64,-711,0.012,83,0.017,100.0,100.0,5000.0"
+	Public Const I3DL2_ENVIRONMENT_PRESET_AUDITORIUM = "-1000,-476,0.0,4.32,0.59,-789,0.020,-289,0.030,100.0,100.0,5000.0"
+	Public Const I3DL2_ENVIRONMENT_PRESET_CONCERTHALL = "-1000,-500,0.0,3.92,0.70,-1230,0.020,-2,0.029,100.0,100.0,5000.0"
+	Public Const I3DL2_ENVIRONMENT_PRESET_CAVE = "-1000,0,0.0,2.91,1.30,-602,0.015,-302,0.022,100.0,100.0,5000.0"
+	Public Const I3DL2_ENVIRONMENT_PRESET_ARENA = "-1000,-698,0.0,7.24,0.33,-1166,0.020,16,0.030,100.0,100.0,5000.0"
+	Public Const I3DL2_ENVIRONMENT_PRESET_HANGAR = "-1000,-1000,0.0,10.05,0.23,-602,0.020,198,0.030,100.0,100.0,5000.0"
+	Public Const I3DL2_ENVIRONMENT_PRESET_CARPETEDHALLWAY = "-1000,-4000,0.0,0.30,0.10,-1831,0.002,-1630,0.030,100.0,100.0,5000.0"
+	Public Const I3DL2_ENVIRONMENT_PRESET_HALLWAY = "-1000,-300,0.0,1.49,0.59,-1219,0.007,441,0.011,100.0,100.0,5000.0"
+	Public Const I3DL2_ENVIRONMENT_PRESET_STONECORRIDOR = "-1000,-237,0.0,2.70,0.79,-1214,0.013,395,0.020,100.0,100.0,5000.0"
+	Public Const I3DL2_ENVIRONMENT_PRESET_ALLEY = "-1000,-270,0.0,1.49,0.86,-1204,0.007,-4,0.011,100.0,100.0,5000.0"
+	Public Const I3DL2_ENVIRONMENT_PRESET_FOREST = "-1000,-3300,0.0,1.49,0.54,-2560,0.162,-613,0.088,79.0,100.0,5000.0"
+	Public Const I3DL2_ENVIRONMENT_PRESET_CITY = "-1000,-800,0.0,1.49,0.67,-2273,0.007,-2217,0.011,50.0,100.0,5000.0"
+	Public Const I3DL2_ENVIRONMENT_PRESET_MOUNTAINS = "-1000,-2500,0.0,1.49,0.21,-2780,0.300,-2014,0.100,27.0,100.0,5000.0"
+	Public Const I3DL2_ENVIRONMENT_PRESET_QUARRY = "-1000,-1000,0.0,1.49,0.83,-10000,0.061,500,0.025,100.0,100.0,5000.0"
+	Public Const I3DL2_ENVIRONMENT_PRESET_PLAIN = "-1000,-2000,0.0,1.49,0.50,-2466,0.179,-2514,0.100,21.0,100.0,5000.0"
+	Public Const I3DL2_ENVIRONMENT_PRESET_PARKINGLOT = "-1000,0,0.0,1.65,1.50,-1363,0.008,-1153,0.012,100.0,100.0,5000.0"
+	Public Const I3DL2_ENVIRONMENT_PRESET_SEWERPIPE = "-1000,-1000,0.0,2.81,0.14,429,0.014,648,0.021,80.0,60.0,5000.0"
+	Public Const I3DL2_ENVIRONMENT_PRESET_UNDERWATER = "-1000,-4000,0.0,1.49,0.10,-449,0.007,1700,0.011,100.0,100.0,5000.0"
+	Public Const I3DL2_ENVIRONMENT_PRESET_SMALLROOM = "-1000,-600,0.0,1.10,0.83,-400,0.005,500,0.010,100.0,100.0,5000.0"
+	Public Const I3DL2_ENVIRONMENT_PRESET_MEDIUMROOM = "-1000,-600,0.0,1.30,0.83,-1000,0.010,-200,0.020,100.0,100.0,5000.0"
+	Public Const I3DL2_ENVIRONMENT_PRESET_LARGEROOM = "-1000,-600,0.0,1.50,0.83,-1600,0.020,-1000,0.040,100.0,100.0,5000.0"
+	Public Const I3DL2_ENVIRONMENT_PRESET_MEDIUMHALL = "-1000,-600,0.0,1.80,0.70,-1300,0.015,-800,0.030,100.0,100.0,5000.0"
+	Public Const I3DL2_ENVIRONMENT_PRESET_LARGEHALL = "-1000,-600,0.0,1.80,0.70,-2000,0.030,-1400,0.060,100.0,100.0,5000.0"
+	Public Const I3DL2_ENVIRONMENT_PRESET_PLATE = "-1000,-200,0.0,1.30,0.90,0,0.002,0,0.010,100.0,75.0,5000.0"
 
-    Public DeclareWide PtrSafe Function DirectSoundCreate Lib "dsound" (pcGuidDevice As UUID, ppDS8 As IDirectSound, ByVal pUnkOuter As IUnknown) As DS_ERR
+    Public Const STR_PRESET_DEFAULT = "-1000,-100,0.0,1.49,0.83,-2602,0.007,200,0.011,100.0,100.0,5000.0"
+    Public Const STR_PRESET_GENERIC = "-1000,-100,0.0,1.49,0.83,-2602,0.007,200,0.011,100.0,100.0,5000.0"
+    Public Const STR_PRESET_PADDEDCELL = "-1000,-6000,0.0,0.17,0.10,-1204,0.001,207,0.002,100.0,100.0,5000.0"
+    Public Const STR_PRESET_ROOM = "-1000,-454,0.0,0.40,0.83,-1646,0.002,53,0.003,100.0,100.0,5000.0"
+    Public Const STR_PRESET_BATHROOM = "-1000,-1200,0.0,1.49,0.54,-370,0.007,1030,0.011,100.0,60.0,5000.0"
+    Public Const STR_PRESET_LIVINGROOM = "-1000,-6000,0.0,0.50,0.10,-1376,0.003,-1104,0.004,100.0,100.0,5000.0"
+    Public Const STR_PRESET_STONEROOM = "-1000,-300,0.0,2.31,0.64,-711,0.012,83,0.017,100.0,100.0,5000.0"
+    Public Const STR_PRESET_AUDITORIUM = "-1000,-476,0.0,4.32,0.59,-789,0.020,-289,0.030,100.0,100.0,5000.0"
+    Public Const STR_PRESET_CONCERTHALL = "-1000,-500,0.0,3.92,0.70,-1230,0.020,-2,0.029,100.0,100.0,5000.0"
+    Public Const STR_PRESET_CAVE = "-1000,0,0.0,2.91,1.30,-602,0.015,-302,0.022,100.0,100.0,5000.0"
+    Public Const STR_PRESET_ARENA = "-1000,-698,0.0,7.24,0.33,-1166,0.020,16,0.030,100.0,100.0,5000.0"
+    Public Const STR_PRESET_HANGAR = "-1000,-1000,0.0,10.05,0.23,-602,0.020,198,0.030,100.0,100.0,5000.0"
+    Public Const STR_PRESET_CARPETEDHALLWAY = "-1000,-4000,0.0,0.30,0.10,-1831,0.002,-1630,0.030,100.0,100.0,5000.0"
+    Public Const STR_PRESET_HALLWAY = "-1000,-300,0.0,1.49,0.59,-1219,0.007,441,0.011,100.0,100.0,5000.0"
+    Public Const STR_PRESET_STONECORRIDOR = "-1000,-237,0.0,2.70,0.79,-1214,0.013,395,0.020,100.0,100.0,5000.0"
+    Public Const STR_PRESET_ALLEY = "-1000,-270,0.0,1.49,0.86,-1204,0.007,-4,0.011,100.0,100.0,5000.0"
+    Public Const STR_PRESET_FOREST = "-1000,-3300,0.0,1.49,0.54,-2560,0.162,-613,0.088,79.0,100.0,5000.0"
+    Public Const STR_PRESET_CITY = "-1000,-800,0.0,1.49,0.67,-2273,0.007,-2217,0.011,50.0,100.0,5000.0"
+    Public Const STR_PRESET_MOUNTAINS = "-1000,-2500,0.0,1.49,0.21,-2780,0.300,-2014,0.100,27.0,100.0,5000.0"
+    Public Const STR_PRESET_QUARRY = "-1000,-1000,0.0,1.49,0.83,-10000,0.061,500,0.025,100.0,100.0,5000.0"
+    Public Const STR_PRESET_PLAIN = "-1000,-2000,0.0,1.49,0.50,-2466,0.179,-2514,0.100,21.0,100.0,5000.0"
+    Public Const STR_PRESET_PARKINGLOT = "-1000,0,0.0,1.65,1.50,-1363,0.008,-1153,0.012,100.0,100.0,5000.0"
+    Public Const STR_PRESET_SEWERPIPE = "-1000,-1000,0.0,2.81,0.14,429,0.014,648,0.021,80.0,60.0,5000.0"
+    Public Const STR_PRESET_UNDERWATER = "-1000,-4000,0.0,1.49,0.10,-449,0.007,1700,0.011,100.0,100.0,5000.0"
+    Public Const STR_PRESET_SMALLROOM = "-1000,-600,0.0,1.10,0.83,-400,0.005,500,0.010,100.0,100.0,5000.0"
+    Public Const STR_PRESET_MEDIUMROOM = "-1000,-600,0.0,1.30,0.83,-1000,0.010,-200,0.020,100.0,100.0,5000.0"
+    Public Const STR_PRESET_LARGEROOM = "-1000,-600,0.0,1.50,0.83,-1600,0.020,-1000,0.040,100.0,100.0,5000.0"
+    Public Const STR_PRESET_MEDIUMHALL = "-1000,-600,0.0,1.80,0.70,-1300,0.015,-800,0.030,100.0,100.0,5000.0"
+    Public Const STR_PRESET_LARGEHALL = "-1000,-600,0.0,1.80,0.70,-2000,0.030,-1400,0.060,100.0,100.0,5000.0"
+    Public Const STR_PRESET_PLATE = "-1000,-200,0.0,1.30,0.90,0,0.002,0,0.010,100.0,75.0,5000.0"
+    
+    Public Delegate Function DSENUMCALLBACKA (lpGuid As UUID, ByVal lpcstrDescription As LongPtr, ByVal lpcstrModule As LongPtr, ByVal lpContext As LongPtr) As BOOL
+    Public Delegate Function DSENUMCALLBACKW (lpGuid As UUID, ByVal lpcstrDescription As LongPtr, ByVal lpcstrModule As LongPtr, ByVal lpContext As LongPtr) As BOOL
+    Public Delegate Function DSENUMCALLBACK (lpGuid As UUID, ByVal lpcstrDescription As LongPtr, ByVal lpcstrModule As LongPtr, ByVal lpContext As LongPtr) As BOOL
+       
+    Public Declare PtrSafe Function DirectSoundCreate Lib "dsound" (pcGuidDevice As UUID, ppDS8 As IDirectSound, ByVal pUnkOuter As IUnknown) As DS_ERR
+   Public Declare PtrSafe Function DirectSoundCaptureCreate Lib "dsound" (pcGuidDevice As UUID, ppDS8 As IDirectSoundCapture, ByVal pUnkOuter As IUnknown) As DS_ERR
+    ' #If WINDEVLIB_NO_DELEGATES Then
     Public Declare PtrSafe Function DirectSoundEnumerateA Lib "dsound" (ByVal pDSEnumCallback As LongPtr, pContext As Any) As DS_ERR
     Public DeclareWide PtrSafe Function DirectSoundEnumerateW Lib "dsound" (ByVal pDSEnumCallback As LongPtr, pContext As Any) As DS_ERR
     Public DeclareWide PtrSafe Function DirectSoundEnumerate Lib "dsound" Alias "DirectSoundEnumerateW" (ByVal pDSEnumCallback As LongPtr, pContext As Any) As DS_ERR
-    Public DeclareWide PtrSafe Function DirectSoundCaptureCreate Lib "dsound" (pcGuidDevice As UUID, ppDS8 As IDirectSoundCapture, ByVal pUnkOuter As IUnknown) As DS_ERR
     Public Declare PtrSafe Function DirectSoundCaptureEnumerateA Lib "dsound" (ByVal pDSEnumCallback As LongPtr, pContext As Any) As DS_ERR
     Public DeclareWide PtrSafe Function DirectSoundCaptureEnumerateW Lib "dsound" (ByVal pDSEnumCallback As LongPtr, pContext As Any) As DS_ERR
     Public DeclareWide PtrSafe Function DirectSoundCaptureEnumerate Lib "dsound" Alias "DirectSoundCaptureEnumerateW" (ByVal pDSEnumCallback As LongPtr, pContext As Any) As DS_ERR
-          	
-	Public DeclareWide PtrSafe Function DirectSoundCreate8 Lib "dsound" (pcGuidDevice As UUID, ppDS8 As IDirectSound8, ByVal pUnkOuter As IUnknown) As DS_ERR
-    Public DeclareWide PtrSafe Function DirectSoundCaptureCreate8 Lib "dsound" (pcGuidDevice As UUID, ppDS8 As IDirectSoundCapture, ByVal pUnkOuter As IUnknown) As DS_ERR
+    ' #Else
+    ' Public Declare PtrSafe Function DirectSoundEnumerateA Lib "dsound" (ByVal pDSEnumCallback As DSENUMCALLBACKA, pContext As Any) As DS_ERR
+    ' Public DeclareWide PtrSafe Function DirectSoundEnumerateW Lib "dsound" (ByVal pDSEnumCallback As DSENUMCALLBACKW, pContext As Any) As DS_ERR
+    ' Public DeclareWide PtrSafe Function DirectSoundEnumerate Lib "dsound" Alias "DirectSoundEnumerateW" (ByVal pDSEnumCallback As DSENUMCALLBACK, pContext As Any) As DS_ERR
+     ' Public Declare PtrSafe Function DirectSoundCaptureEnumerateA Lib "dsound" (ByVal pDSEnumCallback As DSENUMCALLBACKA, pContext As Any) As DS_ERR
+    ' Public DeclareWide PtrSafe Function DirectSoundCaptureEnumerateW Lib "dsound" (ByVal pDSEnumCallback As DSENUMCALLBACKW, pContext As Any) As DS_ERR
+    ' Public DeclareWide PtrSafe Function DirectSoundCaptureEnumerate Lib "dsound" Alias "DirectSoundCaptureEnumerateW" (ByVal pDSEnumCallback As DSENUMCALLBACK, pContext As Any) As DS_ERR
+    ' #End If
+	Public Declare PtrSafe Function DirectSoundCreate8 Lib "dsound" (pcGuidDevice As UUID, ppDS8 As IDirectSound8, ByVal pUnkOuter As IUnknown) As DS_ERR
+    Public Declare PtrSafe Function DirectSoundCaptureCreate8 Lib "dsound" (pcGuidDevice As UUID, ppDS8 As IDirectSoundCapture, ByVal pUnkOuter As IUnknown) As DS_ERR
     
-    Public DeclareWide PtrSafe Function DirectSoundGetDeviceId Lib "dsound" Alias "GetDeviceId" (pGuidSrc As UUID, pGuidDest As UUID) As Long
+    Public Declare PtrSafe Function DirectSoundGetDeviceId Lib "dsound" Alias "GetDeviceId" (pGuidSrc As UUID, pGuidDest As UUID) As Long
 	
 
 
@@ -857,4 +1038,164 @@ Module wdDSound
      If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HB0210783, CInt(&H89CD), CInt(&H11D0), &HAF, &H08, &H00, &HA0, &HC9, &H25, &HCD, &H16)
     IID_IDirectSoundNotify = iid
     End Function
+    Public Function IID_IDirectSoundCaptureFXAec() As UUID
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Had74143d, &H903d, &H4ab7, &H80, &H66, &H28, &Hd3, &H63, &H03, &H6d, &H65)
+    IID_IDirectSoundCaptureFXAec = iid
+    End Function
+    Public Function IID_IDirectSoundCaptureFXNoiseSuppress() As UUID
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hed311e41, &Hfbae, &H4175, &H96, &H25, &Hcd, &H8, &H54, &Hf6, &H93, &Hca)
+    IID_IDirectSoundCaptureFXNoiseSuppress = iid
+    End Function
+    Public Function IID_IDirectSoundFullDuplex() As UUID
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hedcb4c7a, &Hdaab, &H4216, &Ha4, &H2e, &H6c, &H50, &H59, &H6d, &Hdc, &H1d)
+    IID_IDirectSoundFullDuplex = iid
+    End Function
+    Public Function IID_IKsPropertySet() As UUID
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H31efac30, &H515c, &H11d0, &Ha9, &Haa, &H00, &Haa, &H00, &H61, &Hbe, &H93)
+    IID_IKsPropertySet = iid
+    End Function
+    
+    
+    Public Function DS3DALG_NO_VIRTUALIZATION() As UUID
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hc241333f, &H1c1b, &H11d2, &H94, &Hf5, &H0, &Hc0, &H4f, &Hc2, &H8a, &Hca)
+    DS3DALG_NO_VIRTUALIZATION = iid
+    End Function
+    Public Function DS3DALG_HRTF_FULL() As UUID
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hc2413340, &H1c1b, &H11d2, &H94, &Hf5, &H0, &Hc0, &H4f, &Hc2, &H8a, &Hca)
+    DS3DALG_HRTF_FULL = iid
+    End Function
+    Public Function DS3DALG_HRTF_LIGHT() As UUID
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hc2413342, &H1c1b, &H11d2, &H94, &Hf5, &H0, &Hc0, &H4f, &Hc2, &H8a, &Hca)
+    DS3DALG_HRTF_LIGHT = iid
+    End Function
+    Public Function GUID_DSFX_STANDARD_GARGLE() As UUID
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hdafd8210, &H5711, &H4b91, &H9f, &He3, &Hf7, &H5b, &H7a, &He2, &H79, &Hbf)
+    GUID_DSFX_STANDARD_GARGLE = iid
+    End Function
+    Public Function GUID_DSFX_STANDARD_CHORUS() As UUID
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hefe6629c, &H81f7, &H4281, &Hbd, &H91, &Hc9, &Hd6, &H04, &Ha9, &H5a, &Hf6)
+    GUID_DSFX_STANDARD_CHORUS = iid
+    End Function
+    Public Function GUID_DSFX_STANDARD_FLANGER() As UUID
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hefca3d92, &Hdfd8, &H4672, &Ha6, &H03, &H74, &H20, &H89, &H4b, &Had, &H98)
+    GUID_DSFX_STANDARD_FLANGER = iid
+    End Function
+    Public Function GUID_DSFX_STANDARD_ECHO() As UUID
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hef3e932c, &Hd40b, &H4f51, &H8c, &Hcf, &H3f, &H98, &Hf1, &Hb2, &H9d, &H5d)
+    GUID_DSFX_STANDARD_ECHO = iid
+    End Function
+    Public Function GUID_DSFX_STANDARD_DISTORTION() As UUID
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hef114c90, &Hcd1d, &H484e, &H96, &He5, &H09, &Hcf, &Haf, &H91, &H2a, &H21)
+    GUID_DSFX_STANDARD_DISTORTION = iid
+    End Function
+    Public Function GUID_DSFX_STANDARD_COMPRESSOR() As UUID
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hef011f79, &H4000, &H406d, &H87, &Haf, &Hbf, &Hfb, &H3f, &Hc3, &H9d, &H57)
+    GUID_DSFX_STANDARD_COMPRESSOR = iid
+    End Function
+    Public Function GUID_DSFX_STANDARD_PARAMEQ() As UUID
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H120ced89, &H3bf4, &H4173, &Ha1, &H32, &H3c, &Hb4, &H06, &Hcf, &H32, &H31)
+    GUID_DSFX_STANDARD_PARAMEQ = iid
+    End Function
+    Public Function GUID_DSFX_STANDARD_I3DL2REVERB() As UUID
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hef985e71, &Hd5c7, &H42d4, &Hba, &H4d, &H2d, &H07, &H3e, &H2e, &H96, &Hf4)
+    GUID_DSFX_STANDARD_I3DL2REVERB = iid
+    End Function
+    Public Function GUID_DSFX_WAVES_REVERB() As UUID
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H87fc0268, &H9a55, &H4360, &H95, &Haa, &H00, &H4a, &H1d, &H9d, &He2, &H6c)
+    GUID_DSFX_WAVES_REVERB = iid
+    End Function
+    Public Function GUID_DSCFX_CLASS_AEC() As UUID
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HBF963D80, &HC559, &H11D0, &H8A, &H2B, &H00, &HA0, &HC9, &H25, &H5A, &HC1)
+    GUID_DSCFX_CLASS_AEC = iid
+    End Function
+    Public Function GUID_DSCFX_MS_AEC() As UUID
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hcdebb919, &H379a, &H488a, &H87, &H65, &Hf5, &H3c, &Hfd, &H36, &Hde, &H40)
+    GUID_DSCFX_MS_AEC = iid
+    End Function
+    Public Function GUID_DSCFX_SYSTEM_AEC() As UUID
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H1c22c56d, &H9879, &H4f5b, &Ha3, &H89, &H27, &H99, &H6d, &Hdc, &H28, &H10)
+    GUID_DSCFX_SYSTEM_AEC = iid
+    End Function
+    Public Function GUID_DSCFX_CLASS_NS() As UUID
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &He07f903f, &H62fd, &H4e60, &H8c, &Hdd, &Hde, &Ha7, &H23, &H66, &H65, &Hb5)
+    GUID_DSCFX_CLASS_NS = iid
+    End Function
+    Public Function GUID_DSCFX_MS_NS() As UUID
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H11c5c73b, &H66e9, &H4ba1, &Ha0, &Hba, &He8, &H14, &Hc6, &Hee, &Hd9, &H2d)
+    GUID_DSCFX_MS_NS = iid
+    End Function
+    Public Function GUID_DSCFX_SYSTEM_NS() As UUID
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H5ab0882e, &H7274, &H4516, &H87, &H7d, &H4e, &Hee, &H99, &Hba, &H4f, &Hd0)
+    GUID_DSCFX_SYSTEM_NS = iid
+    End Function
+    
+    
+    Public Function CLSID_DirectSound() As UUID
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H47d4d946, &H62e8, &H11cf, &H93, &Hbc, &H44, &H45, &H53, &H54, &H0, &H0)
+    CLSID_DirectSound = iid
+    End Function
+    Public Function CLSID_DirectSound8() As UUID
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H3901cc3f, &H84b5, &H4fa4, &Hba, &H35, &Haa, &H81, &H72, &Hb8, &Ha0, &H9b)
+    CLSID_DirectSound8 = iid
+    End Function
+    Public Function CLSID_DirectSoundCapture() As UUID
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hb0210780, &H89cd, &H11d0, &Haf, &H8, &H0, &Ha0, &Hc9, &H25, &Hcd, &H16)
+    CLSID_DirectSoundCapture = iid
+    End Function
+    Public Function CLSID_DirectSoundCapture8() As UUID
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &He4bcac13, &H7f99, &H4908, &H9a, &H8e, &H74, &He3, &Hbf, &H24, &Hb6, &He1)
+    CLSID_DirectSoundCapture8 = iid
+    End Function
+    Public Function CLSID_DirectSoundFullDuplex() As UUID
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hfea4300c, &H7959, &H4147, &Hb2, &H6a, &H23, &H77, &Hb9, &He7, &Ha9, &H1d)
+    CLSID_DirectSoundFullDuplex = iid
+    End Function
+    Public Function DSDEVID_DefaultPlayback() As UUID
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hdef00000, &H9c6d, &H47ed, &Haa, &Hf1, &H4d, &Hda, &H8f, &H2b, &H5c, &H03)
+    DSDEVID_DefaultPlayback = iid
+    End Function
+    Public Function DSDEVID_DefaultCapture() As UUID
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hdef00001, &H9c6d, &H47ed, &Haa, &Hf1, &H4d, &Hda, &H8f, &H2b, &H5c, &H03)
+    DSDEVID_DefaultCapture = iid
+    End Function
+    Public Function DSDEVID_DefaultVoicePlayback() As UUID
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hdef00002, &H9c6d, &H47ed, &Haa, &Hf1, &H4d, &Hda, &H8f, &H2b, &H5c, &H03)
+    DSDEVID_DefaultVoicePlayback = iid
+    End Function
+    Public Function DSDEVID_DefaultVoiceCapture() As UUID
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hdef00003, &H9c6d, &H47ed, &Haa, &Hf1, &H4d, &Hda, &H8f, &H2b, &H5c, &H03)
+    DSDEVID_DefaultVoiceCapture = iid
+    End Function
+    
 End Module
