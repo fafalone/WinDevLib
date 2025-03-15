@@ -192,6 +192,7 @@ This project has grown well beyond it's original mission of shell programming. W
 -Added Xinput APIs. Note: DLL name for Win8+ used. Separate defs for Win7/Vista are provided with the suffic -7, e.g. XInputGetState7\
 -Large expansion of Setup APIs; SetupAPI.h should now be 100% inc. Delegates.\
 -Completed updating Direct3D 12 to SDK 10.0.26100.0\
+-Misc API additions, including additional native APIs.\
 -(Bug fix) ID3D12GraphicsCommandList10 method definitions incorrect.\
 -(Bug fix) ChangeWindowMessageFilterEx 'action' was set to the wrong enum, and the right one was missing.\
 -(Bug fix) InitializeSid missing ByVal\
