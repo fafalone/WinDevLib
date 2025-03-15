@@ -43,7 +43,7 @@ before release, or waiting on feature support:
                              
 -Create coverage list by header.
 Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.0); basic coverage excludes macros, callbacks->delegates,
-and other headers from #include statements.
+ANSI APIs (though most are covered), and other headers from #include statements.
     UtilApiSet.h,processtopologyapi.h,msdelta.h,handleapi.h,cfgmgr32.h,ole2.h,lmuse.h,lmuseflg.h,lmrepl.h,lmat.h,avrt.h,
     realtimeapiset.h,msime.h,msimeapi.h,ws2bth.h,VersionHelpers.h,minwinbase.h,wsman.h,wcmapi.h,nb30.h,GPEdit.h,InputPanelConfiguration.h,
     WinEFS.h,winstring.h,qos2.h,traffic.h,qosobjs.h,qos.h,qossp.h,bluetoothleapis.h,bluetoothapis.h,bthsdpdef.h,fhcfg.h,fhsvcctl.h,fhstatus.h,fherrors.h,
@@ -56,7 +56,7 @@ and other headers from #include statements.
     winbio_err.h,winbio_ioctl.h,winbio_types.h,winbio.h,winsvc.h,mssign.h,shellapi.h,bits.idl,bits1_5.idl,bits2_0.idl,bits2_5.idl,bits3_0.idl,bits4_0.idl,
     bits5_0.h,bits10_1.h,bits10_2.h,bits10_3.h,bitscfg.h,qmgr.h,bits2_0.h,bits2_5.h,bits3_0.h,bits4_0.h,bits5_0.h,bits10_1.h,bits10_2.h,bits10_3.h,
     bitscfg.h,qmgr.h,bitsmsg.h,dwrite.h,dwrite_1.h,dwrite_2.h,dwrite_3.h,shdeprecated.h,UserEnv.h,mscat.h,processenv.h,netioapi.h,iwscapi.h,wscapi.h,
-    WebEvnts.idl,WebEvnts.h,propkey.h,winsafer.h,powerbase.h,powersetting.h,powrprof.h,synchapi.h,propvarutil.h,dpa_dsa.h,DocumentTarget.idl,DocumentTarget.h,
+    WebEvnts.idl,WebEvnts.h,propkey.h,propkeydef.h,winsafer.h,powerbase.h,powersetting.h,powrprof.h,synchapi.h,dpa_dsa.h,DocumentTarget.idl,DocumentTarget.h,
     propsys.h,SrRestorePtApi.h,compressapi.h,wincrypt.h,dpapi.h,mssip.h,memoryapi.h,wintrust.h,bcrypt.h,ncrypt.h,ncryptprotect.h,mobsync.h,ProcessSnapshot.h,
     wincred.h,winhttp.h,websocket.h,photoacquire.h,oleacc.h,sddl.h,securitybaseapi.h,dssec.h,oleauto.h,olectl.h,newdev.h,processthreadsapi.h,
     cryptuiapi.h,limits.h,winuser.h,evntrace.h,WinNls.h,ktmw32.h,fileapi.h,AccCtrl.h,AclAPI.h,dbt.h,TlHelp32.h,winnetwk.h,virtdisk.h,threadpoolapiset.h,
@@ -71,7 +71,9 @@ and other headers from #include statements.
     shappmgr.h,shappmgr.idl,shobjidl.h,ShObjIdl.idl,shlobj.h*,richedit.h,richole.h,shimgdata.h,uxtheme.h,mmsystem.h,mmsyscom.h,mciapi.h,mmiscapi2.h,playsoundapi.h,
     mmeapi.h,timeapi.h,joystickapi.h,commdlg.h,cderr.h,prsht.h,prsht.idl,comctrl.h,ShlObj_core.h,ShObjidl_core.h,ShObjidl_core.idl,credentialprovider.h,
     credentialprovider.idl,RadioMgr.h,RadioMgr.idl,PortableDevice.h,PortableDeviceAPI.h,PortableDeviceAPI.idl,portabledeviceclassextension.h,
-    portabledeviceclassextension.idl,portabledevicetypes.h,portabledevicetypes.idl,dsound.h,WinDNS.h,dstorage.h,dstorageerr.h
+    portabledeviceclassextension.idl,portabledevicetypes.h,portabledevicetypes.idl,dsound.h,WinDNS.h,dstorage.h,dstorageerr.h,wininet.h,propapi.h,
+    propidl.h,propidl.idl,propidlbase.h,propidlbase.idl,propsys.idl,propsys.h,propvarutil.h,Xinput.h,winperf.h,perlib.h,spapidef.h,devpropdef.h,devpkey.h,
+    devguid.h,setupapi.h,
 
 Coverage in the 90%+ range
    wingdi.h, winbase.h
@@ -81,6 +83,7 @@ Substantial coverage
 
 Minimal coverage
     windot11.h
+    peninputpanel.h
 
 Zero or near-zero coverage
     

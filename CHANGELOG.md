@@ -1,4 +1,16 @@
 
+**Update (v8.8.506, 15 Mar 2025):**
+-Added Performance Counter APIs from perflib.h and winperf.h (100% coverage inc delegates and UseGetLastError)
+-Added Xinput APIs. Note: DLL name for Win8+ used. Separate defs for Win7/Vista are provided with the suffic -7, e.g. XInputGetState7
+-Large expansion of Setup APIs; SetupAPI.h should now be 100% inc. Delegates.
+-Completed updating Direct3D 12 to SDK 10.0.26100.0
+-Misc API additions, including additional native APIs.
+-(Bug fix) ID3D12GraphicsCommandList10 method definitions incorrect.
+-(Bug fix) ChangeWindowMessageFilterEx 'action' was set to the wrong enum, and the right one was missing.
+-(Bug fix) InitializeSid missing ByVal
+-(Internal) ntdll and kernel32 APIs moved to wdAPINTKernel.twin to reduce size of wdAPI
+
+
 **Update (v8.8.504, 10 Mar 2025):**
 -Added DirectStorage - dstorage.h, dstorageerr.h - 100% coverage (Note: Some versions of Windows may not have DLL preinstalled)
 -Added Windows Imaging Interface APIs (wimgapi.h, 100% coverage)
