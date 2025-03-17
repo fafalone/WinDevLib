@@ -1,4 +1,9 @@
 
+**Update (v8.8.507, 17 Mar 2025):**
+-While tB language features make using them as-is possible, for compatibility with VB6 code, QueryServiceConfig[A,W], EnumDependentServices[A,W], EnumServicesStatus[A,W,Ex,ExA,ExW], QueryServiceLockStatus[A,W] and GetUserObjectSecurity require a buffer for all the strings pointed to by the return type, so must use As Any instead of As the UDT mentioned.
+   **NOTE:** This is a breaking change if you were already using the tB-language way; you'd have to add ByVal. No error will be generated, it will just crashing without being changed.
+-(Bug fix) ChangeServiceConfig2[A,W], RegisterServiceCtrlHandlerEx[A,W], ReportEvent[A,w], and GetModuleHandle had As Any params marked Optional (unsupported by language) 
+
 **Update (v8.8.506, 15 Mar 2025):**
 -Added Performance Counter APIs from perflib.h and winperf.h (100% coverage inc delegates and UseGetLastError)
 -Added Xinput APIs. Note: DLL name for Win8+ used. Separate defs for Win7/Vista are provided with the suffic -7, e.g. XInputGetState7
