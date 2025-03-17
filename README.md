@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 8.8.506 (March 15th, 2025)**
+**Current Version: 8.8.507 (March 17th, 2025)**
 
 ## IMPORTANT: [twinBASIC Beta 617 or newer](https://github.com/twinbasic/twinbasic/releases) is now required.
 
@@ -186,6 +186,11 @@ Finally, there's numerous additional API sets from small to large for independen
 This project has grown well beyond it's original mission of shell programming. While that's still the largest single part, it's no longer a majority of the code, and the name change now much better reflects the purpose of providing a general Windows API experience like windows.h. Compiler constants and module names/file names have been updated to reflect the name change. tbShellLibImpl is now WinDevLibImpl. There are also some major chanages associated with this update, please see the full changelog below.
 
 ### Updates
+
+**Update (v8.8.507, 17 Mar 2025):**\
+-While tB language features make using them as-is possible, for compatibility with VB6 code, QueryServiceConfig[A,W], EnumDependentServices[A,W], EnumServicesStatus[A,W,Ex,ExA,ExW], QueryServiceLockStatus[A,W] and GetUserObjectSecurity require a buffer for all the strings pointed to by the return type, so must use As Any instead of As the UDT mentioned.\
+   **NOTE:** This is a breaking change if you were already using the tB-language way; you'd have to add ByVal. No error will be generated, it will just crashing without being changed.\
+-(Bug fix) ChangeServiceConfig2[A,W], RegisterServiceCtrlHandlerEx[A,W], ReportEvent[A,w], and GetModuleHandle had As Any params marked Optional (unsupported by language) 
 
 **Update (v8.8.506, 15 Mar 2025):**\
 -Added Performance Counter APIs from perflib.h and winperf.h (100% coverage inc delegates and UseGetLastError)\
