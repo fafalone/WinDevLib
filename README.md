@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 8.8.509 (March 19th, 2025)**
+**Current Version: 8.8.511 (March 20th, 2025)**
 
 ## IMPORTANT: [twinBASIC Beta 617 or newer](https://github.com/twinbasic/twinbasic/releases) is now required.
 
@@ -187,7 +187,17 @@ This project has grown well beyond it's original mission of shell programming. W
 
 ### Updates
 
-**Update (v8.8.509, 19 Mar 2025):** (Bug fix) IDragSourceHelper IDataObject params missing ByVal, causing crashing.
+**Update (v8.8.511, 20 Mar 2025):**\
+-(Bug fix) DirectX 2D arrays updated to match the layout you see with oleexp and other VB6 typelibs. The dimensions are inverted, e.g. m(y,x) instead of m(x,y) in VB/tB arrays, in order to get the same memory layout C/C++ expects from a caller of these interfaces/APIs. While VB6's object browser shows it as x,y, when you actually try to use the oleexp.tlb matricies, being compiled with C tooling, you'll see the compiler treats it as y,x.\
+            So where the TLB has `FLOAT m[3][2]` in the source, the VB6 Object Browser says `m(0 To 2, 0 To 1) As Single`, but then `m(2, 1) = 1` will raise a 'Subscript out of range' error, while `m(1, 2) = 1` will work. tB matches this behavior (but shows the definition consistently), so this change is to match VB6/oleexp/other typelibs and is easier than remapping to the different coordinates.\
+            This was previously applied to some but not all matricies.\
+-(Bug fix) ID3D12GraphicsCommandList::OMSetBlendFactor, ID3D11DeviceContext::OMSetBlendState, ID3D11DeviceContext1::ClearView, ID3D12GraphicsCommandList::::ClearUnorderedAccessViewUint, ID3D12GraphicsCommandList::::ClearUnorderedAccessViewFloat improperly had a SAFEARRAY.\
+            Note: Due to unsupported syntax, the array notation isn't used, but you would pass ArrayOfValues(0).
+
+
+**Update (v8.8.509, 19 Mar 2025):**\
+-LOWORD and HIWORD now use assembly functions made from the C macros on x64.\
+-(Bug fix) IDragSourceHelper IDataObject params missing ByVal, causing crashing.
 
 **Update (v8.8.507, 17 Mar 2025):**\
 -While tB language features make using them as-is possible, for compatibility with VB6 code, QueryServiceConfig[A,W], EnumDependentServices[A,W], EnumServicesStatus[A,W,Ex,ExA,ExW], QueryServiceLockStatus[A,W] and GetUserObjectSecurity require a buffer for all the strings pointed to by the return type, so must use As Any instead of As the UDT mentioned.\
