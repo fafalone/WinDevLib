@@ -1,4 +1,11 @@
 
+**Update (v8.8.512, 26 Mar 2025):**
+-Updated WebView2 to 1.0.3124.44 Release SDK
+-Added missing 32bit aliases for GetWindowLongPtr[A,W]/SetWindowLongPtr[A,W]/GetClassLongPtr[A,W]/SetClassLongPtr[A,W]
+-UNREFERENCED_PARAMETER is now available as a generic; this lets you opt individual variables/arguments out of compiler messages
+   about unused variables instead of opting out whole functions.
+-Misc minor additions/fixes   
+   
 **Update (v8.8.511, 20 Mar 2025):** 
 -(Bug fix) DirectX 2D arrays updated to match the layout you see with oleexp and other VB6 typelibs. The dimensions are inverted,
             e.g. m(y,x) instead of m(x,y) in VB/tB arrays, in order to get the same memory layout C/C++ expects from a caller of 

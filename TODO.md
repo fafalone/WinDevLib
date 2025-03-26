@@ -36,6 +36,10 @@ before release, or waiting on feature support:
  
 -advpub.h
 
+-ID3D12GraphicsCommandList::OMSetBlendFactor, ID3D11DeviceContext::OMSetBlendState, ID3D11DeviceContext1::ClearView,
+ ID3D12GraphicsCommandList::::ClearUnorderedAccessViewUint, ID3D12GraphicsCommandList::::ClearUnorderedAccessViewFloat
+   et al adjust when tB has syntax support for [in] type t[x] syntax.
+
 -CLSIDs for coclasses (done: wdShellCore, wdShellObj, wdInternet, wdAccessible, wdBITS, wdUIRibbon, wdWIC, wdCoreAudio,
                              wdSecurity, wdTaskScheduler, wdManipulations, wdSpellCheck, wdExplorer, wdSearch,
                              wdDevices, wdSyncMgr, wdSensors, wdWSC, wdUPNP, wdUIAnimation, wdSpeech, wdNetcon, wdCredProv,
