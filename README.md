@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 8.8.511 (March 20th, 2025)**
+**Current Version: 8.8.512 (March 26th, 2025)**
 
 (c) 2022-2025 Jon Johnson (fafalone)
 
@@ -189,6 +189,12 @@ Finally, there's numerous additional API sets from small to large for independen
 This project has grown well beyond it's original mission of shell programming. While that's still the largest single part, it's no longer a majority of the code, and the name change now much better reflects the purpose of providing a general Windows API experience like windows.h. Compiler constants and module names/file names have been updated to reflect the name change. tbShellLibImpl is now WinDevLibImpl. There are also some major chanages associated with this update, please see the full changelog below.
 
 ### Updates
+
+**Update (v8.8.512, 26 Mar 2025):**\
+-Updated WebView2 to 1.0.3124.44 Release SDK\
+-Added missing 32bit aliases for GetWindowLongPtr[A,W]/SetWindowLongPtr[A,W]/GetClassLongPtr[A,W]/SetClassLongPtr[A,W]\
+-UNREFERENCED_PARAMETER is now available as a generic; this lets you opt individual variables/arguments out of compiler messages about unused variables instead of opting out whole functions.
+-Misc minor additions/fixes   
 
 **Update (v8.8.511, 20 Mar 2025):**\
 -(Bug fix) DirectX 2D arrays updated to match the layout you see with oleexp and other VB6 typelibs. The dimensions are inverted, e.g. m(y,x) instead of m(x,y) in VB/tB arrays, in order to get the same memory layout C/C++ expects from a caller of these interfaces/APIs. While VB6's object browser shows it as x,y, when you actually try to use the oleexp.tlb matricies, being compiled with C tooling, you'll see the compiler treats it as y,x.\
