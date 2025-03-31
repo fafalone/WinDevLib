@@ -1,4 +1,9 @@
 
+**Update (v8.8.513, 31 Mar 2025):**
+-winspool.h now covered 100%; added async printer notification ifaces/apis from prnasnot.h (100% coverage)
+-(Bug fix) PRINTER_NOTIFY_INFO_DATA, INPUT incorrect union substitution sizes; sorry don't know how I missed them in the 8.8.504 fix.
+-(Bug fix) PRINTER_OPTION_FLAGS incorrect and missing values.
+
 **Update (v8.8.512, 26 Mar 2025):**
 -Updated WebView2 to 1.0.3124.44 Release SDK
 -Added missing 32bit aliases for GetWindowLongPtr[A,W]/SetWindowLongPtr[A,W]/GetClassLongPtr[A,W]/SetClassLongPtr[A,W]

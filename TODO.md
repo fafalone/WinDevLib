@@ -14,8 +14,7 @@ before release, or waiting on feature support:
 -winbio_adapter.h
  
 -vfw.h/vfsmsg/vfwext (AVIFil32 done; other sections under consideration)
-
--missing winspool.h stuff 
+ 
 
 -SQL.h/obdc32.dll (needs Alias support)
 
@@ -77,7 +76,7 @@ ANSI APIs (though most are covered), and other headers from #include statements.
     credentialprovider.idl,RadioMgr.h,RadioMgr.idl,PortableDevice.h,PortableDeviceAPI.h,PortableDeviceAPI.idl,portabledeviceclassextension.h,
     portabledeviceclassextension.idl,portabledevicetypes.h,portabledevicetypes.idl,dsound.h,WinDNS.h,dstorage.h,dstorageerr.h,wininet.h,propapi.h,
     propidl.h,propidl.idl,propidlbase.h,propidlbase.idl,propsys.idl,propsys.h,propvarutil.h,Xinput.h,winperf.h,perlib.h,spapidef.h,devpropdef.h,devpkey.h,
-    devguid.h,setupapi.h,
+    devguid.h,setupapi.h,prnasnot.h,winspool.h,
 
 Coverage in the 90%+ range
    wingdi.h, winbase.h
