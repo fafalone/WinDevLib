@@ -8262,7 +8262,7 @@ Public Type POINTER_TYPE_INFO
     'union{
     '    POINTER_TOUCH_INFO touchInfo;
     '   POINTER_PEN_INFO   penInfo;
-    '} DUMMYUNIONNAME;
+    '} DUMMYUNIONNAME; 
     pad As Long
     #If Win64 Then '98/8
         union(&H8F) As Byte
@@ -10630,7 +10630,8 @@ End Enum
 Public Type INPUT
 	type As SendInputType
     #If Win64 Then
-    struct(27) As Byte
+    pad As Long
+    struct(31) As Byte
     #Else
     struct(23) As Byte
     #End If
@@ -32064,7 +32065,7 @@ Public Delegate Sub ncb_post (ncb As NCB)
 '                          /* will be set to the signalled   */
 '                          /* state when an ASYNCH command   */
 '                          /* completes                      */
-' End Type
+' End Type 
 Public Type NCB
     ncb_command As Byte /* command code                   */
     ncb_retcode As Byte /* return code                    */
@@ -32077,7 +32078,11 @@ Public Type NCB
     ncb_rto As Byte /* rcv timeout/retry count        */
     ncb_sto As Byte /* send timeout/sys timeout       */
     'void (CALLBACK *ncb_post)( struct _NCB * ); /* POST routine address        */
+    ' #If WINDEVLIB_NO_DELEGATES
     ncb_post As LongPtr
+    ' #Else
+    ' ncb_post As ncb_post
+    ' #End If
     ncb_lana_num As Byte /* lana (adapter) number          */
     ncb_cmd_cplt As Byte /* 0xff => commmand pending       */
     #If Win64 Then
@@ -35849,6 +35854,19 @@ Public Const SPLREG_RESTART_JOB_ON_POOL_ERROR           = "RestartJobOnPoolError
 Public Const SPLREG_RESTART_JOB_ON_POOL_ENABLED         = "RestartJobOnPoolEnabled"
 Public Const SPLREG_DNS_MACHINE_NAME                    = "DNSMachineName"
 
+Public Const SPLREG_ALLOW_USER_MANAGEFORMS  = "AllowUserManageForms"
+Public Const SPLREG_WEBSHAREMGMT  = "WebShareMgmt"
+
+Public Const SPLREG_PRINT_DRIVER_ISOLATION_GROUPS_SEPARATOR  = "\"
+Public Const SPLREG_PRINT_DRIVER_ISOLATION_GROUPS  = "PrintDriverIsolationGroups"
+Public Const SPLREG_PRINT_DRIVER_ISOLATION_TIME_BEFORE_RECYCLE  = "PrintDriverIsolationTimeBeforeRecycle"
+Public Const SPLREG_PRINT_DRIVER_ISOLATION_MAX_OBJECTS_BEFORE_RECYCLE  = "PrintDriverIsolationMaxobjsBeforeRecycle"
+Public Const SPLREG_PRINT_DRIVER_ISOLATION_IDLE_TIMEOUT  = "PrintDriverIsolationIdleTimeout"
+Public Const SPLREG_PRINT_DRIVER_ISOLATION_EXECUTION_POLICY  = "PrintDriverIsolationExecutionPolicy"
+Public Const SPLREG_PRINT_DRIVER_ISOLATION_OVERRIDE_POLICY  = "PrintDriverIsolationOverrideCompat"
+' #if (NTDDI_VERSION >= NTDDI_WIN8
+Public Const SPLREG_PRINT_QUEUE_V4_DRIVER_DIRECTORY  = "PrintQueueV4DriverDirectory"
+
 Public Const SPLDS_SPOOLER_KEY                       = "DsSpooler"
 Public Const SPLDS_DRIVER_KEY                        = "DsDriver"
 Public Const SPLDS_USER_KEY                          = "DsUser"
@@ -36056,7 +36074,8 @@ Public Type PRINTER_NOTIFY_INFO_DATA
     Reserved As Long
     Id As Long
     #If Win64 Then
-    NotifyData(11) As Byte
+    pad As Long
+    NotifyData(15) As Byte
     #Else
     NotifyData(7) As Byte
     #End If
@@ -36069,6 +36088,104 @@ Public Type PRINTER_NOTIFY_INFO
     Count As Long
     aData() As PRINTER_NOTIFY_INFO_DATA
 End Type
+
+Public Type BINARY_CONTAINER
+    cbBuf As Long
+    pData As LongPtr
+End Type
+
+Public Type BIDI_DATA
+    dwBidiType As BIDI_TYPE
+    ' union {
+        ' BOOL   bData;
+        ' LONG   iData;
+        ' LPWSTR sData;
+        ' FLOAT  fData;
+        ' BINARY_CONTAINER biData;
+        ' }u;
+    #If Win64 Then
+    pad As Long
+    u(15) As Byte
+    #Else
+    u(7) As Byte
+    #End If
+End Type
+
+Public Type BIDI_REQUEST_DATA
+    dwReqNumber As Long
+    pSchema As LongPtr
+    data As BIDI_DATA
+End Type
+
+[Description("WARNING: Header only. aData is a variable C-style array.")]
+Public Type BIDI_REQUEST_CONTAINER
+    Version As Long
+    Flags As Long
+    Count As Long
+    aData(0 To 0) As BIDI_REQUEST_DATA
+End Type
+
+Public Type BIDI_RESPONSE_DATA
+    dwResult As Long
+    dwReqNumber As Long
+    pSchema As LongPtr
+    data As BIDI_DATA
+End Type
+
+[Description("WARNING: Header only. aData is a variable C-style array.")]
+Public Type BIDI_RESPONSE_CONTAINER
+    Version As Long
+    Flags As Long
+    Count As Long
+    aData(0 To 0) As BIDI_RESPONSE_DATA
+End Type
+
+Public Const BIDI_ACTION_ENUM_SCHEMA  = "EnumSchema"
+Public Const BIDI_ACTION_GET  = "Get"
+Public Const BIDI_ACTION_SET  = "Set"
+Public Const BIDI_ACTION_GET_ALL  = "GetAll"
+Public Const BIDI_ACTION_GET_WITH_ARGUMENT  = "GetWithArgument"
+
+Public Enum BIDI_TYPE
+    BIDI_NULL = 0
+    BIDI_INT = 1
+    BIDI_FLOAT = 2
+    BIDI_BOOL = 3
+    BIDI_STRING = 4
+    BIDI_TEXT = 5
+    BIDI_ENUM = 6
+    BIDI_BLOB = 7
+End Enum
+
+Public Enum WinspoolBidiAccessFlags
+    BIDI_ACCESS_ADMINISTRATOR = &H1
+    BIDI_ACCESS_USER = &H2
+End Enum
+
+Public Enum WinspoolBidiErrors
+    ERROR_BIDI_STATUS_OK = 0
+    ERROR_BIDI_NOT_SUPPORTED = ERROR_NOT_SUPPORTED
+    ERROR_BIDI_ERROR_BASE = 13000
+    ERROR_BIDI_STATUS_WARNING = (ERROR_BIDI_ERROR_BASE + 1)
+    ERROR_BIDI_SCHEMA_READ_ONLY = (ERROR_BIDI_ERROR_BASE + 2)
+    ERROR_BIDI_SERVER_OFFLINE = (ERROR_BIDI_ERROR_BASE + 3)
+    ERROR_BIDI_DEVICE_OFFLINE = (ERROR_BIDI_ERROR_BASE + 4)
+    ERROR_BIDI_SCHEMA_NOT_SUPPORTED = (ERROR_BIDI_ERROR_BASE + 5)
+    ERROR_BIDI_SET_DIFFERENT_TYPE = (ERROR_BIDI_ERROR_BASE + 6)
+    ERROR_BIDI_SET_MULTIPLE_SCHEMAPATH = (ERROR_BIDI_ERROR_BASE + 7)
+    ERROR_BIDI_SET_INVALID_SCHEMAPATH = (ERROR_BIDI_ERROR_BASE + 8)
+    ERROR_BIDI_SET_UNKNOWN_FAILURE = (ERROR_BIDI_ERROR_BASE + 9)
+    ERROR_BIDI_SCHEMA_WRITE_ONLY = (ERROR_BIDI_ERROR_BASE + 10)
+    ERROR_BIDI_GET_REQUIRES_ARGUMENT = (ERROR_BIDI_ERROR_BASE + 11)
+    ERROR_BIDI_GET_ARGUMENT_NOT_SUPPORTED = (ERROR_BIDI_ERROR_BASE + 12)
+    ERROR_BIDI_GET_MISSING_ARGUMENT = (ERROR_BIDI_ERROR_BASE + 13)
+    ERROR_BIDI_DEVICE_CONFIG_UNCHANGED = (ERROR_BIDI_ERROR_BASE + 14)
+    ERROR_BIDI_NO_LOCALIZED_RESOURCES = (ERROR_BIDI_ERROR_BASE + 15)
+    ERROR_BIDI_NO_BIDI_SCHEMA_EXTENSIONS = (ERROR_BIDI_ERROR_BASE + 16)
+    ERROR_BIDI_UNSUPPORTED_CLIENT_LANGUAGE = (ERROR_BIDI_ERROR_BASE + 17)
+    ERROR_BIDI_UNSUPPORTED_RESOURCE_FORMAT = (ERROR_BIDI_ERROR_BASE + 18)
+End Enum
+
 
 Public Enum PrinterInfoFlags
     PRINTER_ENUM_DEFAULT = &H00000001
@@ -36094,6 +36211,13 @@ Public Enum PrinterInfoFlags
     PRINTER_ENUM_CATEGORY_ALL = &H02000000
     PRINTER_ENUM_CATEGORY_3D = &H04000000
 End Enum
+
+Public Enum SpoolFileFlags
+    SPOOL_FILE_PERSISTENT = &H00000001
+    SPOOL_FILE_TEMPORARY = &H00000002
+End Enum
+
+
 Public Type PRINTER_INFO_1A
     Flags As PrinterInfoFlags
     pDescription As String
@@ -36655,6 +36779,26 @@ Public Enum PrinterAccessRights
     JOB_ACCESS_READ = &H00000020
     PRINTER_ACCESS_MANAGE_LIMITED = &H00000040
 End Enum
+Public Enum PrintServerAccessRights
+    SERVER_ALL_ACCESS = (STANDARD_RIGHTS_REQUIRED Or SERVER_ACCESS_ADMINISTER Or SERVER_ACCESS_ENUMERATE)
+    SERVER_READ = (STANDARD_RIGHTS_READ Or SERVER_ACCESS_ENUMERATE)
+    SERVER_WRITE = (STANDARD_RIGHTS_WRITE Or SERVER_ACCESS_ADMINISTER Or SERVER_ACCESS_ENUMERATE)
+    SERVER_EXECUTE = (STANDARD_RIGHTS_EXECUTE Or SERVER_ACCESS_ENUMERATE)
+End Enum
+Public Enum PrinterRights
+    PRINTER_ALL_ACCESS = (STANDARD_RIGHTS_REQUIRED Or PRINTER_ACCESS_ADMINISTER Or PRINTER_ACCESS_USE)
+    PRINTER_READ = (STANDARD_RIGHTS_READ Or PRINTER_ACCESS_USE)
+    PRINTER_WRITE = (STANDARD_RIGHTS_WRITE Or PRINTER_ACCESS_USE)
+    PRINTER_EXECUTE = (STANDARD_RIGHTS_EXECUTE Or PRINTER_ACCESS_USE)
+End Enum
+Public Enum PrinterJobAccessRights
+    JOB_ALL_ACCESS = (STANDARD_RIGHTS_REQUIRED Or JOB_ACCESS_ADMINISTER Or JOB_ACCESS_READ)
+    JOB_READ = (STANDARD_RIGHTS_READ Or JOB_ACCESS_READ)
+    JOB_WRITE = (STANDARD_RIGHTS_WRITE Or JOB_ACCESS_ADMINISTER)
+    JOB_EXECUTE = (STANDARD_RIGHTS_EXECUTE Or JOB_ACCESS_ADMINISTER)
+End Enum
+
+
 
 Public Type PRINTER_DEFAULTSA
     pDataType As String
@@ -36672,10 +36816,34 @@ Public Type PRINTER_DEFAULTS
     /* [ TypeHint(PrinterAccessRights, StandardAccessTypes)] */ DesiredAccess As PrinterAccessRights
 End Type
 
+Public Type PRINTER_ENUM_VALUESA
+    pValueName As String
+    cbValueName As Long
+    dwType As REGTYPES
+    pData As LongPtr
+    cbData As Long
+End Type
+Public Type PRINTER_ENUM_VALUESW
+    pValueName As LongPtr
+    cbValueName As Long
+    dwType As REGTYPES
+    pData As LongPtr
+    cbData As Long
+End Type
+'Alias PRINTER_ENUM_VALUES As PRINTER_ENUM_VALUESW
+Public Type PRINTER_ENUM_VALUES
+    pValueName As LongPtr
+    cbValueName As Long
+    dwType As REGTYPES
+    pData As LongPtr
+    cbData As Long
+End Type
+
 Public Enum PRINTER_OPTION_FLAGS
-    PRINTER_OPTION_NO_CACHE
-    PRINTER_OPTION_CACHE
-    PRINTER_OPTION_CLIENT_CHANGE
+    PRINTER_OPTION_NO_CACHE = 1 << 0
+    PRINTER_OPTION_CACHE = 1 << 1
+    PRINTER_OPTION_CLIENT_CHANGE = 1 << 2
+    PRINTER_OPTION_NO_CLIENT_DATA = 1 << 3
 End Enum
 Public Type PRINTER_OPTIONS
     cbSize As Long
@@ -37084,6 +37252,52 @@ Public Type PRINTPROCESSOR_INFO_1
     pName As LongPtr
 End Type
 
+Public Enum WinspoolPageOrderFlags
+    NORMAL_PRINT = (&H00000000)
+    REVERSE_PRINT = (&H00000001)
+End Enum
+Public Type PRINTPROCESSOR_CAPS_1
+    dwLevel As Long
+    dwNupOptions As Long
+    dwPageOrderFlags As Long
+    dwNumberOfCopies As Long
+End Type
+
+Public Type PRINTPROCESSOR_CAPS_2
+    dwLevel As Long
+    dwNupOptions As Long
+    dwPageOrderFlags As Long
+    dwNumberOfCopies As Long
+    ' _PRINTPROCESSOR_CAPS_2 specific fields.
+    dwDuplexHandlingCaps As PpcapsDuplexFlags
+    dwNupDirectionCaps As PpcapsNupDirFlags
+    dwNupBorderCaps As PpcapsNupBorderFlags
+    dwBookletHandlingCaps As PpcapsNupBookletFlags
+    dwScalingCaps As PpcapsScalingFlags
+End Type
+
+Public Enum PpcapsNupDirFlags
+    PPCAPS_RIGHT_THEN_DOWN = (&H00000001)  ' 0x00000001
+    PPCAPS_DOWN_THEN_RIGHT = (&H00000001 << 1)  ' 0x00000002
+    PPCAPS_LEFT_THEN_DOWN = (&H00000001 << 2)  ' 0x00000004
+    PPCAPS_DOWN_THEN_LEFT = (&H00000001 << 3)  ' 0x00000008
+End Enum
+Public Enum PpcapsNupBorderFlags
+    PPCAPS_BORDER_PRINT = (&H00000001)  ' 0x00000001
+End Enum
+Public Enum PpcapsNupBookletFlags
+    PPCAPS_BOOKLET_EDGE = (&H00000001)
+End Enum
+Public Enum PpcapsDuplexFlags
+    PPCAPS_REVERSE_PAGES_FOR_REVERSE_DUPLEX = (&H00000001)
+    PPCAPS_DONT_SEND_EXTRA_PAGES_FOR_DUPLEX = (&H00000001 << 1)
+End Enum
+Public Enum PpcapsScalingFlags
+    PPCAPS_SQUARE_SCALING = (&H00000001)
+End Enum
+
+
+
 Public Type DATATYPES_INFO_1A
     pName As String
 End Type
@@ -37112,6 +37326,7 @@ End Type
 
 Public Enum DOC_INFO_MODE
     DI_CHANNEL = 1    ' start direct read/write channel,
+    DI_READ_SPOOL_JOB = 3
 End Enum
 
 Public Type DOC_INFO_2W
@@ -37156,15 +37371,7 @@ Public Enum DM_MODES
     DM_OUT_BUFFER = DM_COPY
     DM_OUT_DEFAULT = DM_UPDATE
 End Enum
-
-Public Type PRINTER_ENUM_VALUES
-    pValueName As LongPtr
-    cbValueName As Long
-    dwType As REGTYPES
-    pData As LongPtr
-    cbData As Long
-End Type
-
+ 
 Public Enum PRINTER_ERROR_TYPES
     PRINTER_ERROR_OUTOFPAPER = &H00000001
     PRINTER_ERROR_JAM = &H00000002
@@ -37401,19 +37608,40 @@ Public Type PRINT_EXECUTION_DATA
     clientAppPID As Long
 End Type
 
+Public Enum WinspoolIpdfpFlags
+    IPDFP_COPY_ALL_FILES = 1
+End Enum
+Public Enum WinspoolUpdfpFlags
+    UPDP_SILENT_UPLOAD = &H00000001  ' If specified we will not show UI during UploadPrinterDriverPackage API.
+    UPDP_UPLOAD_ALWAYS = &H00000002  ' Will not do the optimization of not uploading the files if the
+                                     '  driver package is already present on remote machine.
+    UPDP_CHECK_DRIVERSTORE = &H00000004  ' Check whether the given package exists in driver store or not.
+End Enum
 
-
+Public Type CORE_PRINTER_DRIVERA
+    CoreDriverGUID As UUID
+    ftDriverDate As FILETIME
+    dwlDriverVersion As LongLong
+    szPackageID(0 To (MAX_PATH - 1)) As Byte
+End Type
+Public Type CORE_PRINTER_DRIVERW
+    CoreDriverGUID As UUID
+    ftDriverDate As FILETIME
+    dwlDriverVersion As LongLong
+    szPackageID(0 To (MAX_PATH - 1)) As Integer
+End Type
+'Alias CORE_PRINTER_DRIVER As CORE_PRINTER_DRIVERW
+Public Type CORE_PRINTER_DRIVER
+    CoreDriverGUID As UUID
+    ftDriverDate As FILETIME
+    dwlDriverVersion As LongLong
+    szPackageID(0 To (MAX_PATH - 1)) As Integer
+End Type
 Public Declare PtrSafe Function FindFirstPrinterChangeNotification Lib "winspool.drv" (ByVal hPrinter As LongPtr, ByVal fdwFilter As PrinterChangeEvents, ByVal fdwOptions As PrinterChangeNotifyOptions, pPrinterNotifyOptions As PRINTER_NOTIFY_OPTIONS) As LongPtr
 Public Declare PtrSafe Function FindClosePrinterChangeNotification Lib "winspool.drv" (ByVal hChange As LongPtr) As Long
 Public Declare PtrSafe Function FindNextPrinterChangeNotification Lib "winspool.drv" (ByVal hChange As LongPtr, pdwChange As PrinterChangeEvents, pPrinterNotifyOptions As PRINTER_NOTIFY_OPTIONS, ppPrinterNotifyInfo As LongPtr) As Long
 Public Declare PtrSafe Function FreePrinterNotifyInfo Lib "winspool.drv" (pPrinterNotifyInfo As PRINTER_NOTIFY_INFO) As BOOL
 
-Public Declare PtrSafe Function GetPrinterA Lib "winspool.drv" (ByVal hPrinter As LongPtr, ByVal Level As Long, pPrinter As Any, ByVal cbBuf As Long, pcbNeeded As Long) As Long
-Public Declare PtrSafe Function SetPrinterA Lib "winspool.drv" (ByVal hPrinter As LongPtr, ByVal Level As Long, pPrinter As Any, ByVal Command As PRINTER_CONTROL_COMMANDS) As Long
-Public Declare PtrSafe Function GetPrinterW Lib "winspool.drv" (ByVal hPrinter As LongPtr, ByVal Level As Long, pPrinter As Any, ByVal cbBuf As Long, pcbNeeded As Long) As Long
-Public Declare PtrSafe Function SetPrinterW Lib "winspool.drv" (ByVal hPrinter As LongPtr, ByVal Level As Long, pPrinter As Any, ByVal Command As PRINTER_CONTROL_COMMANDS) As Long
-Public DeclareWide PtrSafe Function GetPrinter Lib "winspool.drv" Alias "GetPrinterW" (ByVal hPrinter As LongPtr, ByVal Level As Long, pPrinter As Any, ByVal cbBuf As Long, pcbNeeded As Long) As Long
-Public DeclareWide PtrSafe Function SetPrinter Lib "winspool.drv" Alias "SetPrinterW" (ByVal hPrinter As LongPtr, ByVal Level As Long, pPrinter As Any, ByVal Command As PRINTER_CONTROL_COMMANDS) As Long
 Public Declare PtrSafe Function DeviceCapabilitiesA Lib "winspool.drv" (ByVal pDevice As String, ByVal pPort As String, [TypeHint(DEVCAP_INDEX)] ByVal fwCapability As Integer, ByVal pOutput As String, pDevMode As DEVMODEA) As Long
 Public Declare PtrSafe Function DeviceCapabilitiesW Lib "winspool.drv" (ByVal pDevice As LongPtr, ByVal pPort As LongPtr, [TypeHint(DEVCAP_INDEX)] ByVal fwCapability As Integer, ByVal pOutput As LongPtr, pDevMode As DEVMODEW) As Long
 Public DeclareWide PtrSafe Function DeviceCapabilities Lib "winspool.drv" Alias "DeviceCapabilitiesW" (ByVal pDevice As String, ByVal pPort As String, [TypeHint(DEVCAP_INDEX)] ByVal fwCapability As Integer, ByVal pOutput As String, pDevMode As DEVMODE) As Long
@@ -37421,6 +37649,9 @@ Public DeclareWide PtrSafe Function DeviceCapabilities Lib "winspool.drv" Alias 
 Public Declare PtrSafe Function EnumPrintersW Lib "winspool.drv" (ByVal flags As PrinterInfoFlags, ByVal name As LongPtr, ByVal Level As Long, pPrinterEnum As Any, ByVal cbBuf As Long, pcbNeeded As Long, pcReturned As Long) As Long
 Public Declare PtrSafe Function EnumPrintersA Lib "winspool.drv" (ByVal flags As PrinterInfoFlags, ByVal name As String, ByVal Level As Long, pPrinterEnum As Any, ByVal cbBuf As Long, pcbNeeded As Long, pcReturned As Long) As Long
 Public DeclareWide PtrSafe Function EnumPrinters Lib "winspool.drv" Alias "EnumPrintersW" (ByVal flags As PrinterInfoFlags, ByVal name As String, ByVal Level As Long, pPrinterEnum As Any, ByVal cbBuf As Long, pcbNeeded As Long, pcReturned As Long) As Long
+Public Declare PtrSafe Function GetSpoolFileHandle Lib "winspool.drv" (ByVal hPrinter As LongPtr) As LongPtr
+Public Declare PtrSafe Function CommitSpoolData Lib "winspool.drv" (ByVal hPrinter As LongPtr, ByVal hSpoolFile As LongPtr, ByVal cbCommit As Long) As LongPtr
+Public Declare PtrSafe Function CloseSpoolFileHandle Lib "winspool.drv" (ByVal hPrinter As LongPtr, ByVal hSpoolFile As LongPtr) As BOOL
 Public Declare PtrSafe Function OpenPrinterA Lib "winspool.drv" (ByVal pPrinterName As String, phPrinter As LongPtr, pDefault As PRINTER_DEFAULTSA) As BOOL
 Public Declare PtrSafe Function OpenPrinterW Lib "winspool.drv" (ByVal pPrinterName As LongPtr, phPrinter As LongPtr, pDefault As PRINTER_DEFAULTSW) As BOOL
 Public DeclareWide PtrSafe Function OpenPrinter Lib "winspool.drv" Alias "OpenPrinterW" (ByVal pPrinterName As String, phPrinter As LongPtr, pDefault As PRINTER_DEFAULTS) As BOOL
@@ -37434,8 +37665,13 @@ Public Declare PtrSafe Function AddPrinterA Lib "winspool.drv" (ByVal pName As S
 Public Declare PtrSafe Function AddPrinterW Lib "winspool.drv" (ByVal pName As LongPtr, ByVal Level As Long, pPrinter As Any) As LongPtr
 Public DeclareWide PtrSafe Function AddPrinter Lib "winspool.drv" Alias "AddPrinterW" (ByVal pName As String, ByVal Level As Long, pPrinter As Any) As LongPtr
 Public Declare PtrSafe Function DeletePrinter Lib "winspool.drv" (ByVal hPrinter As LongPtr) As BOOL
+Public Declare PtrSafe Function GetPrinterA Lib "winspool.drv" (ByVal hPrinter As LongPtr, ByVal Level As Long, pPrinter As Any, ByVal cbBuf As Long, pcbNeeded As Long) As Long
+Public Declare PtrSafe Function SetPrinterA Lib "winspool.drv" (ByVal hPrinter As LongPtr, ByVal Level As Long, pPrinter As Any, ByVal Command As PRINTER_CONTROL_COMMANDS) As Long
+Public Declare PtrSafe Function GetPrinterW Lib "winspool.drv" (ByVal hPrinter As LongPtr, ByVal Level As Long, pPrinter As Any, ByVal cbBuf As Long, pcbNeeded As Long) As Long
+Public Declare PtrSafe Function SetPrinterW Lib "winspool.drv" (ByVal hPrinter As LongPtr, ByVal Level As Long, pPrinter As Any, ByVal Command As PRINTER_CONTROL_COMMANDS) As Long
+Public DeclareWide PtrSafe Function GetPrinter Lib "winspool.drv" Alias "GetPrinterW" (ByVal hPrinter As LongPtr, ByVal Level As Long, pPrinter As Any, ByVal cbBuf As Long, pcbNeeded As Long) As Long
+Public DeclareWide PtrSafe Function SetPrinter Lib "winspool.drv" Alias "SetPrinterW" (ByVal hPrinter As LongPtr, ByVal Level As Long, pPrinter As Any, ByVal Command As PRINTER_CONTROL_COMMANDS) As Long
 Public Declare PtrSafe Function ClosePrinter Lib "winspool.drv" (ByVal hPrinter As LongPtr) As BOOL
-Public Declare PtrSafe Function AbortPrinter Lib "winspool.drv" (ByVal hPrinter As LongPtr) As BOOL
 Public Declare PtrSafe Function GetDefaultPrinterA Lib "winspool.drv" (ByVal pszBuffer As String, pcchBuffer As Long) As BOOL
 Public Declare PtrSafe Function GetDefaultPrinterW Lib "winspool.drv" (ByVal pszBuffer As LongPtr, pcchBuffer As Long) As BOOL
 Public DeclareWide PtrSafe Function GetDefaultPrinter Lib "winspool.drv" Alias "GetDefaultPrinterW" (ByVal pszBuffer As String, pcchBuffer As Long) As BOOL
@@ -37469,7 +37705,6 @@ Public DeclareWide PtrSafe Function EnumPrinterDrivers Lib "winspool.drv" Alias 
 Public Declare PtrSafe Function GetPrinterDriverA Lib "winspool.drv" (ByVal hPrinter As LongPtr, ByVal pEnvironment As String, ByVal Level As Long, pDriverInfo As Byte, ByVal cbBuf As Long, pcbNeeded As Long) As BOOL
 Public Declare PtrSafe Function GetPrinterDriverW Lib "winspool.drv" (ByVal hPrinter As LongPtr, ByVal pEnvironment As LongPtr, ByVal Level As Long, pDriverInfo As Byte, ByVal cbBuf As Long, pcbNeeded As Long) As BOOL
 Public DeclareWide PtrSafe Function GetPrinterDriver Lib "winspool.drv" Alias "GetPrinterDriverW" (ByVal hPrinter As LongPtr, ByVal pEnvironment As String, ByVal Level As Long, pDriverInfo As Byte, ByVal cbBuf As Long, pcbNeeded As Long) As BOOL
-
 Public Declare PtrSafe Function GetPrinterDriverDirectoryA Lib "winspool.drv" (ByVal pName As String, ByVal pEnvironment As String, ByVal Level As Long, pDriverDirectory As Any, ByVal cbBuf As Long, pcbNeeded As Long) As BOOL
 Public Declare PtrSafe Function GetPrinterDriverDirectoryW Lib "winspool.drv" (ByVal pName As LongPtr, ByVal pEnvironment As LongPtr, ByVal Level As Long, pDriverDirectory As Any, ByVal cbBuf As Long, pcbNeeded As Long) As BOOL
 Public DeclareWide PtrSafe Function GetPrinterDriverDirectory Lib "winspool.drv" Alias "GetPrinterDriverDirectoryW" (ByVal pName As String, ByVal pEnvironment As String, ByVal Level As Long, pDriverDirectory As Any, ByVal cbBuf As Long, pcbNeeded As Long) As BOOL
@@ -37501,7 +37736,9 @@ Public Declare PtrSafe Function StartDocPrinterW Lib "winspool.drv" (ByVal hPrin
 Public DeclareWide PtrSafe Function StartDocPrinter Lib "winspool.drv" Alias "StartDocPrinterW" (ByVal hPrinter As LongPtr, ByVal Level As Long, pDocInfo As Any) As Long
 Public Declare PtrSafe Function StartPagePrinter Lib "winspool.drv" (ByVal hPrinter As LongPtr) As BOOL
 Public Declare PtrSafe Function WritePrinter Lib "winspool.drv" (ByVal hPrinter As LongPtr, pBuf As Any, ByVal cbBuf As Long, pcWritten As Long) As BOOL
+Public Declare PtrSafe Function FlushPrinter Lib "winspool.drv" (ByVal hPrinter As LongPtr, pBuf As Any, ByVal cbBuf As Long, pcWritten As Long, ByVal cSleep As Long) As BOOL
 Public Declare PtrSafe Function EndPagePrinter Lib "winspool.drv" (ByVal hPrinter As LongPtr) As BOOL
+Public Declare PtrSafe Function AbortPrinter Lib "winspool.drv" (ByVal hPrinter As LongPtr) As BOOL
 Public Declare PtrSafe Function ReadPrinter Lib "winspool.drv" (ByVal hPrinter As LongPtr, pBuf As Any, ByVal cbBuf As Long, pNoBytesRead As Long) As BOOL
 Public Declare PtrSafe Function EndDocPrinter Lib "winspool.drv" (ByVal hPrinter As LongPtr) As BOOL
 Public Declare PtrSafe Function PrinterProperties Lib "winspool.drv" (ByVal hwnd As LongPtr, ByVal hPrinter As LongPtr) As Long
@@ -37590,6 +37827,9 @@ Public Declare PtrSafe Function SetPortA Lib "winspool.drv" (ByVal pName As Stri
 Public Declare PtrSafe Function SetPortW Lib "winspool.drv" (ByVal pName As LongPtr, ByVal pPortName As LongPtr, ByVal Level As Long, pPort As Any) As BOOL
 Public DeclareWide PtrSafe Function SetPort Lib "winspool.drv" Alias "SetPortW" (ByVal pName As String, ByVal pPortName As String, ByVal Level As Long, pPort As Any) As BOOL
 
+Public Declare PtrSafe Function XcvDataW Lib "winspool.drv" (ByVal hXcv As LongPtr, ByVal pszDataName As LongPtr, pInputData As Any, ByVal cbInputData As Long, pOutputData As Any, ByVal cbOutputData As Long, pcbOutputNeeded As Long, pdwStatus As Long) As BOOL
+Public DeclareWide PtrSafe Function XcvData Lib "winspool.drv" Alias "XcvDataW" (ByVal hXcv As LongPtr, ByVal pszDataName As String, pInputData As Any, ByVal cbInputData As Long, pOutputData As Any, ByVal cbOutputData As Long, pcbOutputNeeded As Long, pdwStatus As Long) As BOOL
+
 Public Declare PtrSafe Function AddPrinterConnectionA Lib "winspool.drv" (ByVal pName As String) As BOOL
 Public Declare PtrSafe Function AddPrinterConnectionW Lib "winspool.drv" (ByVal pName As LongPtr) As BOOL
 Public DeclareWide PtrSafe Function AddPrinterConnection Lib "winspool.drv" Alias "AddPrinterConnectionW" (ByVal pName As String) As BOOL
@@ -37612,16 +37852,44 @@ Public Declare PtrSafe Function IsValidDevmodeA Lib "winspool.drv" (pDevMode As 
 Public Declare PtrSafe Function IsValidDevmodeW Lib "winspool.drv" (pDevMode As DEVMODEW, ByVal DevmodeSize As LongPtr) As BOOL
 Public Declare PtrSafe Function IsValidDevmode Lib "winspool.drv" (pDevMode As DEVMODE, ByVal DevmodeSize As LongPtr) As BOOL
 
-
-
+[UseGetLastError(False)]
+Public Declare PtrSafe Function InstallPrinterDriverFromPackageA Lib "winspool.drv" (ByVal pszServer As String, ByVal pszInfPath As String, ByVal pszDriverName As String, ByVal pszEnvironment As String, ByVal dwFlags As WinspoolIpdfpFlags) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function InstallPrinterDriverFromPackageW Lib "winspool.drv" (ByVal pszServer As LongPtr, ByVal pszInfPath As LongPtr, ByVal pszDriverName As LongPtr, ByVal pszEnvironment As LongPtr, ByVal dwFlags As WinspoolIpdfpFlags) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function InstallPrinterDriverFromPackage Lib "winspool.drv" Alias "InstallPrinterDriverFromPackageW" (ByVal pszServer As String, ByVal pszInfPath As String, ByVal pszDriverName As String, ByVal pszEnvironment As String, ByVal dwFlags As WinspoolIpdfpFlags) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function UploadPrinterDriverPackageA Lib "winspool.drv" (ByVal pszServer As String, ByVal pszInfPath As String, ByVal pszEnvironment As String, ByVal dwFlags As WinspoolUpdfpFlags, ByVal hwnd As LongPtr, ByVal pszDestInfPath As String, pcchDestInfPath As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function UploadPrinterDriverPackageW Lib "winspool.drv" (ByVal pszServer As LongPtr, ByVal pszInfPath As LongPtr, ByVal pszEnvironment As LongPtr, ByVal dwFlags As WinspoolUpdfpFlags, ByVal hwnd As LongPtr, ByVal pszDestInfPath As LongPtr, pcchDestInfPath As Long) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function UploadPrinterDriverPackage Lib "winspool.drv" Alias "UploadPrinterDriverPackageW" (ByVal pszServer As String, ByVal pszInfPath As String, ByVal pszEnvironment As String, ByVal dwFlags As WinspoolUpdfpFlags, ByVal hwnd As LongPtr, ByVal pszDestInfPath As String, pcchDestInfPath As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function GetCorePrinterDriversA Lib "winspool.drv" (ByVal pszServer As String, ByVal pszEnvironment As String, ByVal pszzCoreDriverDependencies As String, ByVal cCorePrinterDrivers As Long, pCorePrinterDrivers As CORE_PRINTER_DRIVERA) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function GetCorePrinterDriversW Lib "winspool.drv" (ByVal pszServer As LongPtr, ByVal pszEnvironment As LongPtr, ByVal pszzCoreDriverDependencies As LongPtr, ByVal cCorePrinterDrivers As Long, pCorePrinterDrivers As CORE_PRINTER_DRIVERW) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function GetCorePrinterDrivers Lib "winspool.drv" Alias "GetCorePrinterDriversW" (ByVal pszServer As String, ByVal pszEnvironment As String, ByVal pszzCoreDriverDependencies As String, ByVal cCorePrinterDrivers As Long, pCorePrinterDrivers As CORE_PRINTER_DRIVER) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function CorePrinterDriverInstalledA Lib "winspool.drv" (ByVal pszServer As String, ByVal pszEnvironment As String, CoreDriverGUID As UUID, ByVal ftDriverDate As LongLong /* FILETIME */, ByVal dwlDriverVersion As LongLong, pbDriverInstalled As BOOL) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function CorePrinterDriverInstalledW Lib "winspool.drv" (ByVal pszServer As LongPtr, ByVal pszEnvironment As LongPtr, CoreDriverGUID As UUID, ByVal ftDriverDate As LongLong /* FILETIME */, ByVal dwlDriverVersion As LongLong, pbDriverInstalled As BOOL) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function CorePrinterDriverInstalled Lib "winspool.drv" Alias "CorePrinterDriverInstalledW" (ByVal pszServer As String, ByVal pszEnvironment As String, CoreDriverGUID As UUID, ByVal ftDriverDate As LongLong /* FILETIME */, ByVal dwlDriverVersion As LongLong, pbDriverInstalled As BOOL) As Long
+[UseGetLastError(False)]
 Public Declare PtrSafe Function GetPrinterDriverPackagePathA Lib "winspool.drv" (ByVal pszServer As String, ByVal pszEnvironment As String, ByVal pszLanguage As String, ByVal pszPackageID As String, ByVal pszDriverPackageCab As String, ByVal cchDriverPackageCab As Long, pcchRequiredSize As Long) As Long
+[UseGetLastError(False)]
 Public Declare PtrSafe Function GetPrinterDriverPackagePathW Lib "winspool.drv" (ByVal pszServer As LongPtr, ByVal pszEnvironment As LongPtr, ByVal pszLanguage As LongPtr, ByVal pszPackageID As LongPtr, ByVal pszDriverPackageCab As LongPtr, ByVal cchDriverPackageCab As Long, pcchRequiredSize As Long) As Long
+[UseGetLastError(False)]
 Public DeclareWide PtrSafe Function GetPrinterDriverPackagePath Lib "winspool.drv" Alias "GetPrinterDriverPackagePathW" (ByVal pszServer As String, ByVal pszEnvironment As String, ByVal pszLanguage As String, ByVal pszPackageID As String, ByVal pszDriverPackageCab As String, ByVal cchDriverPackageCab As Long, pcchRequiredSize As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function DeletePrinterDriverPackageA Lib "winspool.drv" (ByVal pszServer As String, ByVal pszInfPath As String, Optional ByVal pszEnvironment As String) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function DeletePrinterDriverPackageW Lib "winspool.drv" (ByVal pszServer As LongPtr, ByVal pszInfPath As LongPtr, Optional ByVal pszEnvironment As LongPtr) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function DeletePrinterDriverPackage Lib "winspool.drv" Alias "DeletePrinterDriverPackageW" (ByVal pszServer As String, ByVal pszInfPath As String, Optional ByVal pszEnvironment As String) As Long
 
  
-Public Declare PtrSafe Function DeletePrinterDriverPackageA Lib "winspool.drv" (ByVal pszServer As String, ByVal pszInfPath As String, Optional ByVal pszEnvironment As String) As Long
-Public Declare PtrSafe Function DeletePrinterDriverPackageW Lib "winspool.drv" (ByVal pszServer As LongPtr, ByVal pszInfPath As LongPtr, Optional ByVal pszEnvironment As LongPtr) As Long
-Public DeclareWide PtrSafe Function DeletePrinterDriverPackage Lib "winspool.drv" Alias "DeletePrinterDriverPackageW" (ByVal pszServer As String, ByVal pszInfPath As String, Optional ByVal pszEnvironment As String) As Long
 
 Public Declare PtrSafe Function ReportJobProcessingProgress Lib "winspool.drv" (ByVal printerHandle As LongPtr, ByVal JobId As Long, ByVal jobOperation As EPrintXPSJobOperation, ByVal jobProgrss As EPrintXPSJobProgress) As Long
 Public Declare PtrSafe Function GetPrinterDriver2A Lib "winspool.drv" (ByVal hWnd As LongPtr, ByVal hPrinter As LongPtr, ByVal pEnvironment As String, ByVal Level As Long, pDriverInfo As Byte, ByVal cbBuf As Long, pcbNeeded As Long) As BOOL
@@ -39185,8 +39453,8 @@ Public Type RM_FILTER_INFO
     #End If
 End Type
 
-' typedef void (*RM_WRITE_STATUS_CALLBACK)( _In_ UINT nPercentComplete );
-
+ 
+Public Delegate Sub RM_WRITE_STATUS_CALLBACK (ByVal nPercentComplete As Long)
 Public Declare PtrSafe Function RmStartSession Lib "rstrtmgr.dll" (pSessionHandle As Long, ByVal dwSessionFlags As Long, ByVal strSessionKey As LongPtr) As Long
 Public Declare PtrSafe Function RmJoinSession Lib "rstrtmgr.dll" (pSessionHandle As Long, ByVal strSessionKey As LongPtr) As Long
 Public Declare PtrSafe Function RmEndSession Lib "rstrtmgr.dll" (ByVal dwSessionHandle As Long) As Long
