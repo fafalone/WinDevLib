@@ -42,11 +42,11 @@ before release, or waiting on feature support:
 -CLSIDs for coclasses (done: wdShellCore, wdShellObj, wdInternet, wdAccessible, wdBITS, wdUIRibbon, wdWIC, wdCoreAudio,
                              wdSecurity, wdTaskScheduler, wdManipulations, wdSpellCheck, wdExplorer, wdSearch,
                              wdDevices, wdSyncMgr, wdSensors, wdWSC, wdUPNP, wdUIAnimation, wdSpeech, wdNetcon, wdCredProv,
-                             wdDSound)
+                             wdDSound, wdTablet)
                              
 -Create coverage list by header.
 Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.0); basic coverage excludes macros, callbacks->delegates,
-ANSI APIs (though most are covered), and other headers from #include statements.
+ANSI APIs (though most are covered), and other headers from #include statements. Anything else missing is a bug and a report should be filed.
     UtilApiSet.h,processtopologyapi.h,msdelta.h,handleapi.h,cfgmgr32.h,ole2.h,lmuse.h,lmuseflg.h,lmrepl.h,lmat.h,avrt.h,
     realtimeapiset.h,msime.h,msimeapi.h,ws2bth.h,VersionHelpers.h,minwinbase.h,wsman.h,wcmapi.h,nb30.h,GPEdit.h,InputPanelConfiguration.h,
     WinEFS.h,winstring.h,qos2.h,traffic.h,qosobjs.h,qos.h,qossp.h,bluetoothleapis.h,bluetoothapis.h,bthsdpdef.h,fhcfg.h,fhsvcctl.h,fhstatus.h,fherrors.h,
@@ -67,22 +67,22 @@ ANSI APIs (though most are covered), and other headers from #include statements.
     audioclient.h,audioclient.idl,audioclientactivationparams.h,audioendpoints.h,audioendpoints.idl,audioenginebaseapo.h,audioenginebaseapo.idl,
     audioengineendpoint.h,audioengineendpoint.idl,audiomediatype.h,audiomediatype.idl,audiostatemonitorapi.h,audiopolicy.h,audiopolicy.idl,audiosessiontypes.h,
     devicetopology.h,devicetopology.idl,endpointvolume.h,mmdeviceapi.h,spatialaudioclient.h,spatialaudiohrtf.h,spatialaudiometadata.h,l2cnm.h,wlantypes.h,
-    ndis\ObjectHeader.h,eaptypes.h,gdiplusflat.h,imapi.h,manipulations,manipulations.idl,propsys.h,propsys.idl,spellcheck.h,spellcheck.idl,spellcheckprovider.h,
+    ndis\ObjectHeader.h,eaptypes.h,gdiplusflat.h,imapi.h,manipulations.h,manipulations.idl,propsys.h,propsys.idl,spellcheck.h,spellcheck.idl,spellcheckprovider.h,
     spellcheckprovider.idl,structuredquerycondition.h,structuredquerycondition.idl,threadpoollegacyapiset.h,thumbcache.h,thumbcache.idl,thumbnailstreamcache.h,
     thumbnailstreamcache.idl,timezoneapi.h,TOM.h,tdh.h,winres.h,UIRibbon.h,UIRibbon.idl,UIRibbonKeydef.h,UIRibbonPropertyHelpers.h,UIAutomationClient.h,
-    UIAutomationClient.idl,UIAutomationCore.h,UIAutomationCore.idl,UIAnimation.h,UIAnimation.idl,shtypes.h,shtypes.idl,TextServ.h,servprov.idl,ServProv.Idl,
+    UIAutomationClient.idl,UIAutomationCore.h,UIAutomationCore.idl,UIAnimation.h,UIAnimation.idl,shtypes.h,shtypes.idl,TextServ.h,servprov.h,ServProv.Idl,
     shappmgr.h,shappmgr.idl,shobjidl.h,ShObjIdl.idl,shlobj.h*,richedit.h,richole.h,shimgdata.h,uxtheme.h,mmsystem.h,mmsyscom.h,mciapi.h,mmiscapi2.h,playsoundapi.h,
     mmeapi.h,timeapi.h,joystickapi.h,commdlg.h,cderr.h,prsht.h,prsht.idl,comctrl.h,ShlObj_core.h,ShObjidl_core.h,ShObjidl_core.idl,credentialprovider.h,
     credentialprovider.idl,RadioMgr.h,RadioMgr.idl,PortableDevice.h,PortableDeviceAPI.h,PortableDeviceAPI.idl,portabledeviceclassextension.h,
     portabledeviceclassextension.idl,portabledevicetypes.h,portabledevicetypes.idl,dsound.h,WinDNS.h,dstorage.h,dstorageerr.h,wininet.h,propapi.h,
     propidl.h,propidl.idl,propidlbase.h,propidlbase.idl,propsys.idl,propsys.h,propvarutil.h,Xinput.h,winperf.h,perlib.h,spapidef.h,devpropdef.h,devpkey.h,
-    devguid.h,setupapi.h,prnasnot.h,winspool.h,
+    devguid.h,setupapi.h,prnasnot.h,winspool.h,libloaderapi.h,libloaderapi2.h,ioapiset.h,wingdi.h,coml2api.h,
 
 Coverage in the 90%+ range
-   wingdi.h, winbase.h
+    winbase.h
 
 Substantial coverage
-    mmsciapi.h, ntlsa.h
+    mmsciapi.h, ntlsa.h, winnt.h,winternl.h
 
 Minimal coverage
     windot11.h
