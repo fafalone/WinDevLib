@@ -1,7 +1,7 @@
 ----------------------------------------------------------------------------------------
-  WinDevLib
-  Windows Development Library for twinBASIC
-  (c) 2022-2023 Jon Johnson (fafalone)
+## WinDevLib
+## Windows Development Library for twinBASIC
+### (c) 2022-2023 Jon Johnson (fafalone)
 ----------------------------------------------------------------------------------------
 
 This project is a comprehensive twinBASIC replacement for oleexp.tlb: http://www.vbforums.com/showthread.php?786079, 
