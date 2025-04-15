@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 8.8.514 (April 15th, 2025)**
+**Current Version: 8.8.516 (April 15th, 2025)**
 
 (c) 2022-2025 Jon Johnson (fafalone)
 
@@ -190,7 +190,7 @@ This project has grown well beyond it's original mission of shell programming. W
 
 ### Updates
 
-**Update (v8.8.514, 15 Apr 2025):**\
+**Update (v8.8.516, 15 Apr 2025):**\
 -Added all missing MetaFile/ENHMF APIs and structs\
 -Added numerous other missing gdi32 APIs\
 -Added missing APIs from coml2api.h, now 100% covered\
