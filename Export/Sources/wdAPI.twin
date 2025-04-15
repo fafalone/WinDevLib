@@ -3033,6 +3033,7 @@ Public Declare PtrSafe Function GetProcessReference Lib "SHCore" (ppunk As stdol
 '**********************************************************
 'ole32.dll
 
+Public Const STGOPTIONS_VERSION = 2
 Public Type STGOPTIONS
 	usVersion As Integer
 	reserved As Integer
@@ -3170,6 +3171,7 @@ Public Type SERIALIZEDPROPERTYVALUE
     rgb(4095) As Byte
 End Type
 
+Public Const CCH_MAX_PROPSTG_NAME = 31
 
 ' Public Declare PtrSafe Function CoCreateInstance Lib "ole32" (rclsid As Any, ByVal pUnkOuter As LongPtr, ByVal dwClsContext As CLSCTX, riid As Any, pvarResult As Any) As Long
 Public Declare PtrSafe Function CoCreateInstance Lib "ole32" (ByRef clsid As UUID, ByVal pUnkOuter As stdole.IUnknown, ByVal dwClsContext As CLSCTX, ByRef iid As UUID, ByRef ppv As Any) As Long
@@ -3179,6 +3181,13 @@ Public Declare PtrSafe Function CoTaskMemAlloc Lib "ole32" (ByVal cb As LongPtr)
 Public Declare PtrSafe Function CoTaskMemRealloc Lib "ole32" (ByVal pv As LongPtr, ByVal cb As LongPtr) As LongPtr
 Public Declare PtrSafe Sub CoTaskMemFree Lib "ole32" (ByVal pv As LongPtr)
 Public DeclareWide PtrSafe Function StgOpenStorageEx Lib "ole32" (ByVal pwcsName As LongPtr, ByVal grfMode As STGM, ByVal stgfmt As STGFMT, ByVal grfAttrs As Long, pStgOptions As STGOPTIONS, ByVal reserved2 As LongPtr, riid As UUID, ppObjectOpen As Any) As Long
+Public Declare PtrSafe Function StgCreatePropStg Lib "ole32" (ByVal pUnk As IUnknown, fmtid As UUID, pclsid As UUID, ByVal grfFlags As STGM, ByVal dwReserved As Long, ppPropStg As IPropertyStorage) As Long
+Public Declare PtrSafe Function StgOpenPropStg Lib "ole32" (ByVal pUnk As IUnknown, fmtid As UUID, ByVal grfFlags As STGM, ByVal dwReserved As Long, ppPropStg As IPropertyStorage) As Long
+Public Declare PtrSafe Function StgCreatePropSetStg Lib "ole32" (ByVal pStorage As IStorage, ByVal dwReserved As Long, ppPropSetStg As IPropertySetStorage) As Long
+Public Declare PtrSafe Function FmtIdToPropStgName Lib "ole32" (fmtid As UUID, ByVal oszName As LongPtr) As Long
+Public DeclareWide PtrSafe Function FmtIdToPropStgName Lib "ole32" (fmtid As UUID, ByVal oszName As String) As Long
+Public Declare PtrSafe Function PropStgNameToFmtId Lib "ole32" (ByVal oszName As LongPtr, pfmtid As UUID) As Long
+Public DeclareWide PtrSafe Function PropStgNameToFmtId Lib "ole32" (ByVal oszName As String, pfmtid As UUID) As Long
 Public Declare PtrSafe Function StgCreateStorageEx Lib "ole32" (ByVal pwcsName As LongPtr, ByVal grfMode As STGM, ByVal stgfmt As STGFMT, ByVal grfAttrs As Long, ByVal pStgOptions As LongPtr, ByVal pSecurityDescriptor As LongPtr, riid As UUID, ppObjectOpen As Any) As Long
 Public DeclareWide PtrSafe Function StgIsStorageFile Lib "ole32" (ByVal lpwcsFileName As String) As Long
 Public DeclareWide PtrSafe Function StgOpenStorage Lib "ole32" (ByVal pwcsName As String, ByVal pstgPriority As IStorage, ByVal grfMode As STGM, ByVal snbExclude As String, ByVal reserved As Long, ppstgOpen As IStorage) As Long
@@ -3195,6 +3204,7 @@ Public Declare PtrSafe Function CreateILockBytesOnHGlobal Lib "ole32" (ByVal hGl
 [PreserveSig(False)]
 Public Declare PtrSafe Function CreateILockBytesOnHGlobal Lib "ole32" (ByVal hGlobal As LongPtr, ByVal fDeleteOnRelease As BOOL) As ILockBytes
 Public Declare PtrSafe Function GetHGlobalFromStream Lib "ole32" (ByVal pStm As IStream, phglobal As LongPtr) As Long
+Public Declare PtrSafe Function GetConvertStg Lib "ole32" (ByVal pStg As IStorage) As Long
 Public Declare PtrSafe Function CreateStreamOnHGlobal Lib "ole32" (ByVal hGlobal As LongPtr, ByVal fDeleteOnRelease As BOOL, ppstm As IStream) As Long
 [PreserveSig(False)]
 Public Declare PtrSafe Function CreateStreamOnHGlobal Lib "ole32" (ByVal hGlobal As LongPtr, ByVal fDeleteOnRelease As BOOL) As IStream
@@ -3205,6 +3215,8 @@ Public Declare PtrSafe Function StgCreateDocfileOnILockBytes Lib "ole32" (ByVal 
 [PreserveSig(False)]
 Public DeclareWide PtrSafe Function StgOpenStorageOnILockBytes Lib "ole32" (ByVal plkbyt As ILockBytes, ByVal pstgPriority As IStorage, ByVal grfMode As STGM, ByVal snbExclude As String, ByVal reserved As Long) As IStorage
 Public Declare PtrSafe Function StgIsStorageILockBytes Lib "ole32" (ByVal plkbyt As ILockBytes) As Long
+Public Declare PtrSafe Function StgSetTimes Lib "ole32" (ByVal lpszName As LongPtr, pctime As FILETIME, patime As FILETIME, pmtime As FILETIME) As Long
+Public DeclareWide PtrSafe Function StgSetTimes Lib "ole32" (ByVal lpszName As String, pctime As FILETIME, patime As FILETIME, pmtime As FILETIME) As Long
 Public Declare PtrSafe Function StgConvertVariantToProperty Lib "ole32" (ByRef pvar As Variant, [TypeHint(CodePageDefaults)] ByVal CodePage As Integer, pprop As Any, pcb As Long, ByVal pid As Long, ByVal fReserved As Byte, Optional pcIndirect As Long) As LongPtr
 Public Declare PtrSafe Function StgConvertPropertyToVariant Lib "ole32" (pprop As Any, [TypeHint(CodePageDefaults)] ByVal CodePage As Integer, pvar As Variant, ByVal pma As LongPtr) As Byte
 Public Declare PtrSafe Function ReadClassStg Lib "ole32" (ByVal pStg As IStorage, ByRef pclsid As UUID) As Long
@@ -6291,8 +6303,21 @@ Public Enum DefCursors
     IDC_HAND = 32649&
     IDC_APPSTARTING = 32650&
     IDC_HELP = 32651&
+    IDC_WAITCD = 32663&
     IDC_PIN = 32671&
     IDC_PERSON = 32672&
+    IDC_PEN = 32631&
+    IDC_SCROLLNS = 32652&
+    IDC_SCROLLWE = 32653&
+    IDC_SCROLLALL = 32654&
+    IDC_SCROLLN = 32655&
+    IDC_SCROLLS = 32656&
+    IDC_SCROLLW = 32657&
+    IDC_SCROLLE = 32658&
+    IDC_SCROLLNW = 32659&
+    IDC_SCROLLNE = 32660&
+    IDC_SCROLLSW = 32661&
+    IDC_SCROLLSE = 32662&
 End Enum
 
 Public Enum ResourceIconTypes
@@ -7490,7 +7515,7 @@ Public Declare PtrSafe Function RegisterClassW Lib "user32" (lpWndClass As WNDCL
 Public DeclareWide PtrSafe Function RegisterClass Lib "user32" Alias "RegisterClassW" (lpWndClass As WNDCLASS) As Integer
 Public Declare PtrSafe Function RegisterClassExA Lib "user32" (pcWndClassEx As WNDCLASSEXA) As Integer
 Public Declare PtrSafe Function RegisterClassExW Lib "user32" (pcWndClassEx As WNDCLASSEXW) As Integer
-Public DeclareWide PtrSafe Function RegisterClassEx Lib "user32" Alias "RegisterClassExW" (pcWndClassEx As WNDCLASSEXW) As Integer
+Public DeclareWide PtrSafe Function RegisterClassEx Lib "user32" Alias "RegisterClassExW" (pcWndClassEx As WNDCLASSEX) As Integer
 Public Declare PtrSafe Function UnregisterClassA Lib "user32" (ByVal lpClassName As String, Optional ByVal hInstance As LongPtr) As Long
 Public Declare PtrSafe Function UnregisterClassW Lib "user32" (ByVal lpClassName As LongPtr, Optional ByVal hInstance As LongPtr) As Long
 Public DeclareWide PtrSafe Function UnregisterClass Lib "user32" Alias "UnregisterClassW" (ByVal lpClassName As String, Optional ByVal hInstance As LongPtr) As Long
@@ -11812,6 +11837,11 @@ Public Type EXTLOGFONT
     elfCulture As Long '/* 0 for Latin                   */
     elfPanose As PANOSE
 End Type
+
+Public Const STAMP_DESIGNVECTOR  = (&H8000000& + 100& + (118& << 8))
+Public Const STAMP_AXESLIST  = (&H8000000& + 97& + (108& << 8))
+Public Const STAMP_TRUETYPE_VARIATION  = (&H8000000& + 116& + (118& << 8))
+Public Const STAMP_CFF2  = (&H8000000& + 99& + (118& << 8))
 Public Const MM_MAX_NUMAXES As Long = 16
 
 Public Type DESIGNVECTOR
@@ -12694,9 +12724,13 @@ Public Type GCP_RESULTS
     nMaxFit As Long
 End Type
 
+Public Delegate Function GOBJENUMPROC (ByVal lpLogObject As LongPtr, ByVal lpData As LongPtr) As Long
+' #If WINDEVLIB_NO_DELEGATES Then
 [Description("lpProc is Function EnumObjectsProc(ByVal lpLogObject As LongPtr, ByVal lpData As LongPtr) As Long. Return 0 to stop, non-zero to continue.")]
 Public Declare PtrSafe Function EnumObjects Lib "gdi32" (ByVal hDC As LongPtr, ByVal nType As GdiObjectTypes, ByVal lpProc As LongPtr, lParam As Any) As Long
-
+' #Else
+' Public Declare PtrSafe Function EnumObjects Lib "gdi32" (ByVal hDC As LongPtr, ByVal nType As GdiObjectTypes, ByVal lpProc As GOBJENUMPROC, lParam As Any) As Long
+' #End If
 Public Declare PtrSafe Function GetLayout Lib "gdi32" (ByVal hDC As LongPtr) As LayoutOrientationOptions
 Public Declare PtrSafe Function SetLayout Lib "gdi32" (ByVal hDC As LongPtr, ByVal l As LayoutOrientationOptions) As LayoutOrientationOptions
 Public Declare PtrSafe Function SetMapMode Lib "gdi32" (ByVal hDC As LongPtr, ByVal iMode As MappingModes) As MappingModes
@@ -12739,11 +12773,11 @@ Public Declare PtrSafe Function CreateRoundRectRgn Lib "gdi32" (ByVal X1 As Long
 Public Declare PtrSafe Function CreatePolygonRgn Lib "gdi32" (pptl As POINT, ByVal cPoint As Long, ByVal iMode As PolyFillModes) As LongPtr
 Public Declare PtrSafe Function CreatePolyPolygonRgn Lib "gdi32" (pptl As POINT, pc As Long, ByVal cPoly As Long, ByVal iMode As PolyFillModes) As LongPtr
 Public Declare PtrSafe Function CombineRgn Lib "gdi32" (ByVal hRgnDsr As LongPtr, ByVal hrgnSrc1 As LongPtr, ByVal hrgnSc2 As LongPtr, ByVal iMode As CombineRegionStyles) As WindowRegionTypes
-Public Declare PtrSafe Function SelectClipRgn Lib "gdi32" (ByVal hdc As LongPtr, ByVal hRgn As LongPtr) As WindowRegionTypes
 Public Declare PtrSafe Function CreateEllipticRgn Lib "gdi32" (ByVal x1 As Long, ByVal y1 As Long, ByVal x2 As Long, ByVal y2 As Long) As LongPtr
 Public Declare PtrSafe Function CreateEllipticRgnIndirect Lib "gdi32" (lprect As RECT) As LongPtr
 Public Declare PtrSafe Function ExtCreateRegion Lib "gdi32" (lpx As XFORM, ByVal nCount As Long, lpData As Any) As LongPtr
 Public Declare PtrSafe Function GetCurrentPositionEx Lib "gdi32" (ByVal hdc As LongPtr, ByRef lppt As POINT) As Long
+Public Declare PtrSafe Function SelectClipRgn Lib "gdi32" (ByVal hdc As LongPtr, ByVal hRgn As LongPtr) As WindowRegionTypes
 Public Declare PtrSafe Function ExtSelectClipRgn Lib "gdi32" (ByVal hDC As LongPtr, ByVal hRgn As LongPtr, ByVal fnMode As CombineRegionStyles) As WindowRegionTypes
 Public Declare PtrSafe Function FrameRgn Lib "gdi32" (ByVal hdc As LongPtr, ByVal hRgn As LongPtr, ByVal hBrush As LongPtr, ByVal nWidth As Long, ByVal nHeight As Long) As BOOL
 Public Declare PtrSafe Function PaintRgn Lib "gdi32" (ByVal hdc As LongPtr, ByVal hRgn As LongPtr) As BOOL
@@ -12756,13 +12790,14 @@ Public Declare PtrSafe Function OffsetRgn Lib "gdi32" (ByVal hRgn As LongPtr, By
 Public Declare PtrSafe Function OffsetClipRgn Lib "gdi32" (ByVal hDC As LongPtr, ByVal x As Long, ByVal y As Long) As WindowRegionTypes
 Public Declare PtrSafe Function InvertRgn Lib "gdi32" (ByVal hdc As LongPtr, ByVal hRgn As LongPtr) As BOOL
 Public Declare PtrSafe Function GetRgnBox Lib "gdi32" (ByVal hRgn As LongPtr, lprc As RECT) As WindowRegionTypes
+Public Declare PtrSafe Function GetStretchBltMode Lib "gdi32" (ByVal hdc As LongPtr) As StretchBltModes
 Public Declare PtrSafe Function EqualRgn Lib "gdi32" (ByVal hRgn1 As LongPtr, ByVal hRgn2 As LongPtr) As BOOL
 Public Declare PtrSafe Function GetClipRgn Lib "gdi32" (ByVal hDC As LongPtr, ByVal hRgn As LongPtr) As Long
 Public Declare PtrSafe Function GetRandomRgn Lib "gdi32" (ByVal hDC As LongPtr, ByVal hRgn As LongPtr, ByVal i As Long) As Long
 Public Declare PtrSafe Function BeginPath Lib "gdi32" (ByVal hDC As LongPtr) As BOOL
 Public Declare PtrSafe Function AbortPath Lib "gdi32" (ByVal hDC As LongPtr) As BOOL
-Public Declare PtrSafe Function StrokePath Lib "gdi32" (ByVal hDC As LongPtr) As BOOL
 Public Declare PtrSafe Function StrokeAndFillPath Lib "gdi32" (ByVal hDC As LongPtr) As BOOL
+Public Declare PtrSafe Function StrokePath Lib "gdi32" (ByVal hDC As LongPtr) As BOOL
 Public Declare PtrSafe Function WidenPath Lib "gdi32" (ByVal hDC As LongPtr) As BOOL
 Public Declare PtrSafe Function EndPath Lib "gdi32" (ByVal hDC As LongPtr) As BOOL
 Public Declare PtrSafe Function FillPath Lib "gdi32" (ByVal hDC As LongPtr) As BOOL
@@ -12773,15 +12808,21 @@ Public Declare PtrSafe Function PathToRegion Lib "gdi32" (ByVal hDC As LongPtr) 
 Public Declare PtrSafe Function GetMiterLimit Lib "gdi32" (ByVal hDC As LongPtr, plimit As Single) As BOOL
 Public Declare PtrSafe Function SetMiterLimit Lib "gdi32" (ByVal hDC As LongPtr, ByVal limit As Single, old As Single) As BOOL
 Public Declare PtrSafe Function GetClipBox Lib "gdi32" (ByVal hwnd As LongPtr, lprc As RECT) As WindowRegionTypes
-
+[UseGetLastError(False)]
+Public Declare PtrSafe Function DrawEscape Lib "gdi32" (ByVal hdc As LongPtr, ByVal iEscape As GDI_ESCAPES, ByVal cjIn As Long, lpIn As Any) As Long
 Public Declare PtrSafe Function GetROP2 Lib "gdi32" (ByVal hdc As LongPtr) As BinaryRasterOps
 Public Declare PtrSafe Function SetROP2 Lib "gdi32" (ByVal hdc As LongPtr, ByVal nDrawMode As BinaryRasterOps) As BinaryRasterOps
 Public Declare PtrSafe Function Rectangle Lib "gdi32" (ByVal hdc As LongPtr, ByVal left As Long, ByVal top As Long, ByVal right As Long, ByVal bottom As Long) As BOOL
 Public Declare PtrSafe Function Ellipse Lib "gdi32" (ByVal hdc As LongPtr, ByVal left As Long, ByVal top As Long, ByVal right As Long, ByVal bottom As Long) As BOOL
 Public Declare PtrSafe Function MoveToEx Lib "gdi32" (ByVal hdc As LongPtr, ByVal x As Long, ByVal y As Long, lpPoint As Any) As Long
 Public Declare PtrSafe Function LineTo Lib "gdi32" (ByVal hdc As LongPtr, ByVal x As Long, ByVal y As Long) As Long
+Public Delegate Sub LINEDDAPROC (ByVal param1 As Long, ByVal param2 As Long, ByVal lParam As LongPtr)
+' #If WINDEVLIB_NO_DELEGATES Then
 Public Declare PtrSafe Function LineDDA Lib "gdi32" (ByVal xStart As Long, ByVal yStart As Long, ByVal xEnd As Long, ByVal yEnd As Long, ByVal lpProc As LongPtr, data As Any) As BOOL
-Public Declare PtrSafe Function StretchDIBits Lib "gdi32" (ByVal hDC As LongPtr, ByVal x As Long, ByVal y As Long, ByVal dx As Long, ByVal dy As Long, ByVal srcX As Long, ByVal srcY As Long, ByVal wSrcWidth As Long, ByVal wSrcHeight As Long, lpBits As Any, lpBitsInfo As BITMAPINFO, ByVal wUsage As GdiDIBitsColorUse, ByVal dwRop As RASTEROPFLAGS) As Long
+' #Else
+' Public Declare PtrSafe Function LineDDA Lib "gdi32" (ByVal xStart As Long, ByVal yStart As Long, ByVal xEnd As Long, ByVal yEnd As Long, ByVal lpProc As LongPtr, data As Any) As BOOL
+' #End If
+Public Declare PtrSafe Function StretchDIBits Lib "gdi32" (ByVal hDC As LongPtr, ByVal x As Long, ByVal y As Long, ByVal dx As Long, ByVal dy As Long, ByVal srcX As Long, ByVal srcY As Long, ByVal wSrcWidth As Long, ByVal wSrcHeight As Long, lpBits As Any, lpBitsInfo As Any, ByVal wUsage As GdiDIBitsColorUse, ByVal dwRop As RASTEROPFLAGS) As Long
 Public Declare PtrSafe Function SetStretchBltMode Lib "gdi32" (ByVal hDC As LongPtr, ByVal nStretchMode As StretchBltModes) As Long
 Public Declare PtrSafe Function GetPixel Lib "gdi32" (ByVal hDC As LongPtr, ByVal x As Long, ByVal y As Long) As Long
 Public Declare PtrSafe Function SetPixel Lib "gdi32" (ByVal hDC As LongPtr, ByVal x As Long, ByVal y As Long, ByVal crColor As Long) As Long
@@ -12794,13 +12835,15 @@ Public Declare PtrSafe Function Pie Lib "gdi32" (ByVal hDC As LongPtr, ByVal lef
 Public Declare PtrSafe Function Arc Lib "gdi32" (ByVal hDC As LongPtr, ByVal x1 As Long, ByVal y1 As Long, ByVal x2 As Long, ByVal y2 As Long, ByVal x3 As Long, ByVal y3 As Long, ByVal x4 As Long, ByVal y4 As Long) As BOOL
 Public Declare PtrSafe Function ArcTo Lib "gdi32" (ByVal hDC As LongPtr, ByVal left As Long, ByVal top As Long, ByVal right As Long, ByVal bottom As Long, ByVal xr1 As Long, ByVal yr1 As Long, ByVal xr2 As Long, ByVal yr2 As Long) As BOOL
 Public Declare PtrSafe Function AngleArc Lib "gdi32" (ByVal hDC As LongPtr, ByVal x As Long, ByVal y As Long, ByVal r As Long, ByVal StartAngle As Single, ByVal SweepAngle As Single) As BOOL
+Public Declare PtrSafe Function SelectClipPath Lib "gdi32" (ByVal hDC As LongPtr, ByVal mode As CombineRegionStyles) As BOOL
 Public Declare PtrSafe Function SetArcDirection Lib "gdi32" (ByVal hDC As LongPtr, ByVal direction As GdiArcDirections) As GdiArcDirections
 Public Declare PtrSafe Function GetArcDirection Lib "gdi32" (ByVal hDC As LongPtr) As GdiArcDirections
 Public Declare PtrSafe Function Chord Lib "gdi32" (ByVal hDC As LongPtr, ByVal x1 As Long, ByVal y1 As Long, ByVal x2 As Long, ByVal y2 As Long, ByVal x3 As Long, ByVal y3 As Long, ByVal x4 As Long, ByVal y4 As Long) As BOOL
+Public Declare PtrSafe Function Polygon Lib "gdi32" (ByVal hDC As LongPtr, ByRef lpPoint As POINT, ByVal nCount As Long) As BOOL
+Public Declare PtrSafe Function Polyline Lib "gdi32" (ByVal hDC As LongPtr, ByRef lpPoint As POINT, ByVal nCount As Long) As BOOL
 Public Declare PtrSafe Function PolyBezier Lib "gdi32" (ByVal hDC As LongPtr, apt As POINT, ByVal cpt As Long) As BOOL
 Public Declare PtrSafe Function PolyBezierTo Lib "gdi32" (ByVal hDC As LongPtr, apt As POINT, ByVal cpt As Long) As BOOL
-Public Declare PtrSafe Function Polyline Lib "gdi32" (ByVal hDC As LongPtr, ByRef lpPoint As POINT, ByVal nCount As Long) As BOOL
-Public Declare PtrSafe Function Polygon Lib "gdi32" (ByVal hDC As LongPtr, ByRef lpPoint As POINT, ByVal nCount As Long) As BOOL
+Public Declare PtrSafe Function PolylineTo Lib "gdi32" (ByVal hDC As LongPtr, apt As POINT, ByVal cpt As Long) As BOOL
 Public Declare PtrSafe Function PolyPolyline Lib "gdi32" (ByVal hDC As LongPtr, ByRef lpPoint As POINT, asz As Long, ByVal csz As Long) As BOOL
 Public Declare PtrSafe Function PolyPolygon Lib "gdi32" (ByVal hDC As LongPtr, ByRef lpPoint As POINT, asz As Long, ByVal csz As Long) As BOOL
 Public Declare PtrSafe Function PolyDraw Lib "gdi32" (ByVal hDC As LongPtr, apt As POINT, [TypeHint(GDI_POINT_TYPES)] aj As Byte, ByVal cpt As Long) As Long
@@ -12823,16 +12866,15 @@ Public Declare PtrSafe Function GetNearestColor Lib "gdi32" (ByVal hDC As LongPt
 Public Declare PtrSafe Function GetNearestPaletteIndex Lib "gdi32" (ByVal h As LongPtr, ByVal color As Long) As Long
 Public Declare PtrSafe Function UpdateColors Lib "gdi32" (ByVal hDC As LongPtr) As BOOL
 
-Public Declare PtrSafe Function PlayMetaFile Lib "gdi32" (ByVal hDC As LongPtr, ByVal hmf As LongPtr) As BOOL
 
 
 Public Enum LCSCSTYPE
     LCS_CALIBRATED_RGB = 0
-    LCS_sRGB = &h73524742
-    LCS_WINDOWS_COLOR_SPACE = &h57696E20
+    LCS_sRGB = &h73524742 'sRGB'
+    LCS_WINDOWS_COLOR_SPACE = &h57696E20 'Win '
 End Enum
 Public Enum LCS_SIGNATURE_VALUE
-    LCS_SIGNATURE = &H50534F43
+    LCS_SIGNATURE = &H50534F43 'PSOC'
 End Enum
 Public Enum LCSGAMUTMATCH
     LCS_GM_BUSINESS = &H00000001
@@ -13092,6 +13134,9 @@ Public Type RASTERIZER_STATUS
     nLanguageID As Integer
 End Type
 
+
+
+
 Public Declare PtrSafe Function SetICMMode Lib "gdi32" (ByVal hDC As LongPtr, ByVal mode As ICM_MODE_VALUES) As Long
 Public Declare PtrSafe Function CheckColorsInGamut Lib "gdi32" (ByVal hDC As LongPtr, lpRGBTriple As RGBTRIPLE, dlpBuffer As Any, ByVal nCount As Long) As BOOL
 Public Declare PtrSafe Function GetColorSpace Lib "gdi32" (ByVal hDC As LongPtr) As LongPtr
@@ -13124,13 +13169,20 @@ Public Declare PtrSafe Function EnumICMProfiles Lib "gdi32" Alias "EnumICMProfil
 ' Public Declare PtrSafe Function EnumICMProfilesW Lib "gdi32" (ByVal hdc As LongPtr, ByVal proc As ICMENUMPROCW, Optional ByVal param As LongPtr) As Long
 ' Public Declare PtrSafe Function EnumICMProfiles Lib "gdi32" Alias "EnumICMProfilesW" (ByVal hdc As LongPtr, ByVal proc As ICMENUMPROC, Optional ByVal param As LongPtr) As Long
 ' #End If
+[Description("❌ DEPRECATED - WILL RETURN ERROR")]
+Public Declare PtrSafe Function UpdateICMRegKeyA Lib "gdi32" (ByVal reserved As Long, ByVal lpszCMID As String, ByVal lpszFileName As String, ByVal command As Long) As BOOL
+[Description("❌ DEPRECATED - WILL RETURN ERROR")]
+Public Declare PtrSafe Function UpdateICMRegKeyW Lib "gdi32" (ByVal reserved As Long, ByVal lpszCMID As LongPtr, ByVal lpszFileName As LongPtr, ByVal command As Long) As BOOL
+[Description("❌ DEPRECATED - WILL RETURN ERROR")]
+Public DeclareWide PtrSafe Function UpdateICMRegKey Lib "gdi32" Alias "UpdateICMRegKeyW" (ByVal reserved As Long, ByVal lpszCMID As String, ByVal lpszFileName As String, ByVal command As Long) As BOOL
+
 Public Declare PtrSafe Function ColorCorrectPalette Lib "gdi32" (ByVal hDC As LongPtr, ByVal hPal As LongPtr, ByVal deFirst As Long, ByVal num As Long) As BOOL
  
 
 Public Declare PtrSafe Function GetDeviceCaps Lib "gdi32" (ByVal hDC As LongPtr, ByVal nIndex As GetDevCaps_Index) As Long
-Public Declare PtrSafe Function GetDIBits Lib "gdi32" (ByVal hdc As LongPtr, ByVal hbm As LongPtr, ByVal start As Long, ByVal cLines As Long, ByRef lpvBits As Any, ByRef lpbmi As BITMAPINFO, ByVal usage As GdiDIBitsColorUse) As Long
-Public Declare PtrSafe Function SetDIBits Lib "gdi32" (ByVal hdc As LongPtr, ByVal hbm As LongPtr, ByVal start As Long, ByVal cLines As Long, ByRef lpBits As Any, ByRef lpbmi As BITMAPINFO, ByVal ColorUse As GdiDIBitsColorUse) As Long
-Public Declare PtrSafe Function SetDIBitsToDevice Lib "gdi32" (ByVal hdc As LongPtr, ByVal xDest As Long, ByVal yDest As Long, ByVal w As Long, ByVal h As Long, ByVal xSrc As Long, ByVal xSrc As Long, ByVal StartScan As Long, ByVal cLines As Long, ByRef lpvBits As Any, ByRef lpbmi As BITMAPINFO, ByVal ColorUse As GdiDIBitsColorUse) As Long
+Public Declare PtrSafe Function GetDIBits Lib "gdi32" (ByVal hdc As LongPtr, ByVal hbm As LongPtr, ByVal start As Long, ByVal cLines As Long, ByRef lpvBits As Any, ByRef lpbmi As Any, ByVal usage As GdiDIBitsColorUse) As Long
+Public Declare PtrSafe Function SetDIBits Lib "gdi32" (ByVal hdc As LongPtr, ByVal hbm As LongPtr, ByVal start As Long, ByVal cLines As Long, ByRef lpBits As Any, ByRef lpbmi As Any, ByVal ColorUse As GdiDIBitsColorUse) As Long
+Public Declare PtrSafe Function SetDIBitsToDevice Lib "gdi32" (ByVal hdc As LongPtr, ByVal xDest As Long, ByVal yDest As Long, ByVal w As Long, ByVal h As Long, ByVal xSrc As Long, ByVal xSrc As Long, ByVal StartScan As Long, ByVal cLines As Long, ByRef lpvBits As Any, ByRef lpbmi As Any, ByVal ColorUse As GdiDIBitsColorUse) As Long
 Public DeclareWide PtrSafe Function GetObject Lib "gdi32" Alias "GetObjectW" (ByVal hObject As LongPtr, ByVal nCount As Long, lpObject As Any) As Long
 Public DeclareWide PtrSafe Function GetObjectAPI Lib "gdi32" Alias "GetObjectW" (ByVal hObject As LongPtr, ByVal nCount As Long, lpObject As Any) As Long
 Public DeclareWide PtrSafe Function GetObjectW Lib "gdi32" (ByVal hObject As LongPtr, ByVal nCount As Long, lpObject As Any) As Long
@@ -13167,8 +13219,8 @@ Public Declare PtrSafe Function Escape Lib "gdi32" (ByVal hdc As LongPtr, ByVal 
 Public Declare PtrSafe Function ExtEscape Lib "gdi32" (ByVal hdc As LongPtr, ByVal iEscape As GDI_ESCAPES, ByVal cjInput As Long, ByVal lpszInData As String /* ANSI */, ByVal cjOutput As Long, ByVal lpszOutData As String /* ANSI */) As Long
 
 
-Public Declare PtrSafe Function CreateDIBSection Lib "gdi32" (ByVal hDC As LongPtr, pbmi As BITMAPINFO, ByVal usage As Long, ByRef ppvBits As Any, ByVal hSection As LongPtr, ByVal offset As Long) As LongPtr
-Public DeclareWide PtrSafe Function CreateDIBitmap Lib "gdi32" (ByVal hDC As LongPtr, pbmih As BITMAPV5HEADER, ByVal flInit As CreateDIBitmapFlags, pjBits As Any, pbmi As BITMAPINFO, ByVal iUsage As GdiDIBitsColorUse) As LongPtr
+Public Declare PtrSafe Function CreateDIBSection Lib "gdi32" (ByVal hDC As LongPtr, pbmi As Any, ByVal usage As Long, ByRef ppvBits As Any, ByVal hSection As LongPtr, ByVal offset As Long) As LongPtr
+Public DeclareWide PtrSafe Function CreateDIBitmap Lib "gdi32" (ByVal hDC As LongPtr, pbmih As BITMAPV5HEADER, ByVal flInit As CreateDIBitmapFlags, pjBits As Any, pbmi As Any, ByVal iUsage As GdiDIBitsColorUse) As LongPtr
 Public Declare PtrSafe Function CreateDIBPatternBrush Lib "gdi32" (ByVal h As LongPtr, ByVal iUsage As GdiDIBitsColorUse) As LongPtr
 Public DeclareWide PtrSafe Function CreateDIBPatternBrushPt Lib "gdi32" (lpPackedDIB As Any, ByVal iUsage As GdiDIBitsColorUse) As LongPtr
 Public Declare PtrSafe Function SetDIBColorTable Lib "gdi32" (ByVal hDC As LongPtr, ByVal iStart As Long, ByVal cEntries As Long, lpRGBQuad As Any) As Long
@@ -13179,7 +13231,6 @@ Public Declare PtrSafe Function SetBitmapBits Lib "gdi32" (ByVal hbit As LongPtr
 
 Public Declare PtrSafe Function DeleteObject Lib "gdi32" (ByVal hObject As LongPtr) As BOOL
 Public Declare PtrSafe Function DeleteDC Lib "gdi32" (ByVal hDC As LongPtr) As BOOL
-Public Declare PtrSafe Function DeleteMetaFile Lib "gdi32" (ByVal hmf As LongPtr) As BOOL
 
 Public Declare PtrSafe Function D3DKMTSetProcessSchedulingPriorityClass Lib "gdi32" (ByVal hProcess As LongPtr, ByVal lPriority As D3DKMT_SCHEDULINGPRIORITYCLASS) As Long
 Public Declare PtrSafe Function CreateBrushIndirect Lib "gdi32" (plbrush As LOGBRUSH) As LongPtr
@@ -13200,6 +13251,7 @@ Public Declare PtrSafe Function SetViewportExtEx Lib "gdi32" (ByVal hdc As LongP
 Public Declare PtrSafe Function GetViewportExtEx Lib "gdi32" (ByVal hdc As LongPtr, lpsz As SIZE) As BOOL
 Public Declare PtrSafe Function SetBrushOrgEx Lib "gdi32" (ByVal hdc As LongPtr, ByVal x As Long, ByVal y As Long, lppt As POINT) As BOOL
 Public Declare PtrSafe Function GetBrushOrgEx Lib "gdi32" (ByVal hdc As LongPtr, lppoint As POINT) As BOOL
+Public Declare PtrSafe Function GetBoundsRect Lib "gdi32" (ByVal hdc As LongPtr, lprect As RECT, ByVal flags As BoundsAccumFlags) As BoundsAccumFlags
 Public Declare PtrSafe Function GetBitmapDimensionEx Lib "gdi32" (ByVal hbit As LongPtr, lpsize As SIZE) As BOOL
 Public Declare PtrSafe Function SetBitmapDimensionEx Lib "gdi32" (ByVal hbit As LongPtr, ByVal w As Long, ByVal h As Long, lpsz As SIZE) As BOOL
 Public Declare PtrSafe Function IntersectClipRect Lib "gdi32" (ByVal hdc As LongPtr, ByVal left As Long, ByVal top As Long, ByVal right As Long, ByVal bottom As Long) As WindowRegionTypes
@@ -13209,8 +13261,10 @@ Public Declare PtrSafe Function SetWorldTransform Lib "gdi32" (ByVal hdc As Long
 Public Declare PtrSafe Function GetWorldTransform Lib "gdi32" (ByVal hdc As LongPtr, lpxf As XFORM) As BOOL
 Public Declare PtrSafe Function ModifyWorldTransform Lib "gdi32" (ByVal hdc As LongPtr, lpxf As XFORM, ByVal mode As GDI_MWT_MODE) As BOOL
 Public Declare PtrSafe Function CombineTransform Lib "gdi32" (lpxfOut As XFORM, lpxf1 As XFORM, lpxf2 As XFORM) As BOOL
-Public Declare PtrSafe Function ScaleWindowExtEx Lib "gdi32" (ByVal hdc As LongPtr, ByVal nXnum As Long, ByVal nXdenom As Long, ByVal nYnum As Long, ByVal nYdenom As Long, lpSize As SIZE) As BOOL
+Public Declare PtrSafe Function OffsetViewportOrgEx Lib "gdi32" (ByVal hdc As LongPtr, ByVal x As Long, ByVal y As Long, lppt As POINT) As BOOL
+Public Declare PtrSafe Function OffsetWindowOrgEx Lib "gdi32" (ByVal hdc As LongPtr, ByVal x As Long, ByVal y As Long, lppt As POINT) As BOOL
 Public Declare PtrSafe Function ScaleViewportExtEx Lib "gdi32" (ByVal hdc As LongPtr, ByVal nXnum As Long, ByVal nXdenom As Long, ByVal nYnum As Long, ByVal nYdenom As Long, lpSize As SIZE) As BOOL
+Public Declare PtrSafe Function ScaleWindowExtEx Lib "gdi32" (ByVal hdc As LongPtr, ByVal nXnum As Long, ByVal nXdenom As Long, ByVal nYnum As Long, ByVal nYdenom As Long, lpSize As SIZE) As BOOL
 Public Declare PtrSafe Function FixBrushOrgEx Lib "gdi32" (ByVal hdc As LongPtr, ByVal x As Long, ByVal y As Long, lppt As POINT) As BOOL
 
 
@@ -13237,6 +13291,11 @@ Public Declare PtrSafe Function RemoveFontResourceExW Lib "gdi32" (ByVal lpszFil
 Public DeclareWide PtrSafe Function RemoveFontResourceEx Lib "gdi32" Alias "RemoveFontResourceExW" (ByVal lpszFileName As String, ByVal fl As AddFontFlags, Optional ByVal pdv As LongPtr = 0) As Long
 Public Declare PtrSafe Function AddFontMemResourceEx Lib "gdi32" (ByVal pFileView As LongPtr, ByVal cjSize As Long, ByVal pvReserved As LongPtr, pNumFonts As Long) As LongPtr
 Public Declare PtrSafe Function RemoveFontMemResourceEx Lib "gdi32" (ByVal h As LongPtr) As BOOL
+
+Public Delegate Function FONTENUMPROCA (lf As LOGFONTA, tm As TEXTMETRICA, ByVal dw As Long, ByVal lParam As LongPtr) As Long
+Public Delegate Function FONTENUMPROCW (lf As LOGFONTW, tm As TEXTMETRICW, ByVal dw As Long, ByVal lParam As LongPtr) As Long
+Public Delegate Function FONTENUMPROC (lf As LOGFONT, tm As TEXTMETRIC, ByVal dw As Long, ByVal lParam As LongPtr) As Long
+' #If WINDEVLIB_NO_DELEGATES Then
 Public Declare PtrSafe Function EnumFontsA Lib "gdi32" (ByVal hdc As LongPtr, ByVal lpLogfont As String, ByVal lpProc As LongPtr, lParam As Any) As Long
 Public DeclareWide PtrSafe Function EnumFontsW Lib "gdi32" (ByVal hdc As LongPtr, ByVal lpLogfont As LongPtr, ByVal lpProc As LongPtr, lParam As Any) As Long
 Public DeclareWide PtrSafe Function EnumFonts Lib "gdi32" Alias "EnumFontsW" (ByVal hdc As LongPtr, ByVal lpLogfont As String, ByVal lpProc As LongPtr, lParam As Any) As Long
@@ -13246,11 +13305,23 @@ Public DeclareWide PtrSafe Function EnumFontFamilies Lib "gdi32" Alias "EnumFont
 Public Declare PtrSafe Function EnumFontFamiliesExA Lib "gdi32" (ByVal hdc As LongPtr, lpLogfont As LOGFONTA, ByVal lpProc As LongPtr, lParam As Any, ByVal dwFlags As Long) As Long
 Public DeclareWide PtrSafe Function EnumFontFamiliesExW Lib "gdi32" (ByVal hdc As LongPtr, lpLogfont As LOGFONTW, ByVal lpProc As LongPtr, lParam As Any, ByVal dwFlags As Long) As Long
 Public DeclareWide PtrSafe Function EnumFontFamiliesEx Lib "gdi32" Alias "EnumFontFamiliesExW" (ByVal hdc As LongPtr, lpLogfont As LOGFONT, ByVal lpProc As LongPtr, lParam As Any, ByVal dwFlags As Long) As Long
+' #Else
+' Public Declare PtrSafe Function EnumFontsA Lib "gdi32" (ByVal hdc As LongPtr, ByVal lpLogfont As String, ByVal lpProc As FONTENUMPROCA, lParam As Any) As Long
+' Public DeclareWide PtrSafe Function EnumFontsW Lib "gdi32" (ByVal hdc As LongPtr, ByVal lpLogfont As LongPtr, ByVal lpProc As FONTENUMPROCW, lParam As Any) As Long
+' Public DeclareWide PtrSafe Function EnumFonts Lib "gdi32" Alias "EnumFontsW" (ByVal hdc As LongPtr, ByVal lpLogfont As String, ByVal lpProc As FONTENUMPROC, lParam As Any) As Long
+' Public Declare PtrSafe Function EnumFontFamiliesA Lib "gdi32" (ByVal hdc As LongPtr, ByVal lpLogfont As String, ByVal lpProc As FONTENUMPROCA, lParam As Any) As Long
+' Public DeclareWide PtrSafe Function EnumFontFamiliesW Lib "gdi32" (ByVal hdc As LongPtr, ByVal lpLogfont As LongPtr, ByVal lpProc As FONTENUMPROCW, lParam As Any) As Long
+' Public DeclareWide PtrSafe Function EnumFontFamilies Lib "gdi32" Alias "EnumFontFamiliesW" (ByVal hdc As LongPtr, ByVal lpLogfont As String, ByVal lpProc As FONTENUMPROC, lParam As Any) As Long
+' Public Declare PtrSafe Function EnumFontFamiliesExA Lib "gdi32" (ByVal hdc As LongPtr, lpLogfont As LOGFONTA, ByVal lpProc As FONTENUMPROCA, lParam As Any, ByVal dwFlags As Long) As Long
+' Public DeclareWide PtrSafe Function EnumFontFamiliesExW Lib "gdi32" (ByVal hdc As LongPtr, lpLogfont As LOGFONTW, ByVal lpProc As FONTENUMPROCW, lParam As Any, ByVal dwFlags As Long) As Long
+' Public DeclareWide PtrSafe Function EnumFontFamiliesEx Lib "gdi32" Alias "EnumFontFamiliesExW" (ByVal hdc As LongPtr, lpLogfont As LOGFONT, ByVal lpProc As FONTENUMPROC, lParam As Any, ByVal dwFlags As Long) As Long
+' #End If
 Public Declare PtrSafe Function GetGlyphIndicesA Lib "gdi32" (ByVal hdc As LongPtr, ByVal lpstr As LongPtr, ByVal c As LongPtr, pgi As Long, ByVal fl As GetGlyphIndiciesFlags) As Long
 Public Declare PtrSafe Function GetGlyphIndicesW Lib "gdi32" (ByVal hdc As LongPtr, ByVal lpstr As LongPtr, ByVal c As LongPtr, pgi As Long, ByVal fl As GetGlyphIndiciesFlags) As Long
 Public DeclareWide PtrSafe Function GetGlyphIndices Lib "gdi32" Alias "GetGlyphIndicesW" (ByVal hdc As LongPtr, ByVal lpstr As LongPtr, ByVal c As LongPtr, pgi As Long, ByVal fl As GetGlyphIndiciesFlags) As Long
 [Description("📝**NOTE:** First pass ByVal 0 to get the required size; then use a byte array, then fill a GLYPHSET in two steps, copy fixed, redim and copy WCRANGE bytes.")]
 Public DeclareWide PtrSafe Function GetFontUnicodeRanges Lib "gdi32" (ByVal hdc As LongPtr, lpgs As Any) As Long
+Public Declare PtrSafe Function GetFontData Lib "gdi32" (ByVal hdc As LongPtr, ByVal dwTable As Long, ByVal dwOffset As Long, pvBuffer As Any, ByVal cjBuffer As Long) As Long
 Public Declare PtrSafe Function GetGlyphOutlineA Lib "gdi32" (ByVal hdc As LongPtr, ByVal uChar As Long, ByVal fuFormat As GlyphOutlineFormats, lpgm As GLYPHMETRICS, ByVal cjBuffer As Long, pvBuffer As Any, lpmat2 As MAT2) As Long
 Public DeclareWide PtrSafe Function GetGlyphOutlineW Lib "gdi32" (ByVal hdc As LongPtr, ByVal uChar As Long, ByVal fuFormat As GlyphOutlineFormats, lpgm As GLYPHMETRICS, ByVal cjBuffer As Long, pvBuffer As Any, lpmat2 As MAT2) As Long
 Public DeclareWide PtrSafe Function GetGlyphOutline Lib "gdi32" Alias "GetGlyphOutlineW" (ByVal hdc As LongPtr, ByVal uChar As Long, ByVal fuFormat As GlyphOutlineFormats, lpgm As GLYPHMETRICS, ByVal cjBuffer As Long, pvBuffer As Any, lpmat2 As MAT2) As Long
@@ -13336,6 +13407,55 @@ Public DeclareWide PtrSafe Function GetCharWidth32 Lib "gdi32" Alias "GetCharWid
 Public Declare PtrSafe Function LPtoDP Lib "gdi32" (ByVal hdc As LongPtr, lppt As POINT, ByVal c As Long) As BOOL
 Public Declare PtrSafe Function DPtoLP Lib "gdi32" (ByVal hdc As LongPtr, lppt As POINT, ByVal c As Long) As BOOL
 
+
+
+Public Type HANDLETABLE
+    objectHandle(0 To 0) As LongPtr 'HGDIOBJ
+End Type
+Public Type METARECORD
+    rdSize As Long
+    rdFunction As Integer
+    rdParm(0 To 0) As Integer
+End Type
+[PackingAlignment(2)]
+Public Type METAHEADER
+    mtType As Integer
+    mtHeaderSize As Integer
+    mtVersion As Integer
+    mtSize As Long
+    mtNoObjects As Integer
+    mtMaxRecord As Long
+    mtNoParameters As Integer
+End Type
+
+
+
+Public Declare PtrSafe Function CreateMetaFileA Lib "gdi32" (ByVal pszFile As String) As LongPtr
+Public Declare PtrSafe Function CreateMetaFileW Lib "gdi32" (ByVal pszFile As LongPtr) As LongPtr
+Public DeclareWide PtrSafe Function CreateMetaFile Lib "gdi32" Alias "CreateMetaFileW" (ByVal pszFile As String) As LongPtr
+Public Declare PtrSafe Function CopyMetaFileA Lib "gdi32" (ByVal hEMF As LongPtr, ByVal pszFile As String) As LongPtr
+Public Declare PtrSafe Function CopyMetaFileW Lib "gdi32" (ByVal hEMF As LongPtr, ByVal pszFile As LongPtr) As LongPtr
+Public DeclareWide PtrSafe Function CopyMetaFile Lib "gdi32" Alias "CopyMetaFileW" (ByVal hEMF As LongPtr, ByVal pszFile As String) As LongPtr
+Public Declare PtrSafe Function CloseMetaFile Lib "gdi32" (ByVal hdc As LongPtr) As LongPtr
+Public Declare PtrSafe Function DeleteMetaFile Lib "gdi32" (ByVal hmf As LongPtr) As BOOL
+Public Declare PtrSafe Function GetMetaFileBitsEx Lib "gdi32" (ByVal hMF As LongPtr, ByVal cbBuffer As Long, lpData As Any) As Long
+Public Declare PtrSafe Function SetMetaFileBitsEx Lib "gdi32" (ByVal cbBuffer As Long, lpData As Any) As LongPtr
+Public Declare PtrSafe Function GetMetaFileA Lib "gdi32" (ByVal lpName As String) As LongPtr
+Public Declare PtrSafe Function GetMetaFileW Lib "gdi32" (ByVal lpName As LongPtr) As LongPtr
+Public DeclareWide PtrSafe Function GetMetaFile Lib "gdi32" Alias "GetMetaFileW" (ByVal lpName As String) As LongPtr
+Public Declare PtrSafe Function PlayMetaFile Lib "gdi32" (ByVal hDC As LongPtr, ByVal hmf As LongPtr) As BOOL
+Public Declare PtrSafe Function PlayMetaFileRecord Lib "gdi32" (ByVal hdc As LongPtr, ByVal pht As LongPtr, ByVal pmr As LongPtr, ByVal noObjs As Long) As BOOL
+
+Public Delegate Function MFENUMPROC (ByVal hdc As LongPtr, ByVal lpht As LongPtr, ByVal lpmr As LongPtr, ByVal nObj As Long, ByVal param As LongPtr) As Long
+Public Delegate Function ENHMFENUMPROC (ByVal hdc As LongPtr, ByVal lpht As LongPtr, ByVal lpmr As LongPtr, ByVal nHandles As Long, ByVal param As LongPtr) As Long
+
+' #If WINDEVLIB_NO_DELEGATES Then
+Public Declare PtrSafe Function EnumMetaFile Lib "gdi32" (ByVal hdc As LongPtr, ByVal hmf As LongPtr, ByVal proc As LongPtr, param As Any) As BOOL
+Public Declare PtrSafe Function EnumEnhMetaFile Lib "gdi32" (ByVal hdc As LongPtr, ByVal hmf As LongPtr, ByVal proc As LongPtr, param As Any, lprc As RECT) As BOOL
+' #Else
+' Public Declare PtrSafe Function EnumMetaFile Lib "gdi32" (ByVal hdc As LongPtr, ByVal hmf As LongPtr, ByVal proc As MFENUMPROC, param As Any) As BOOL
+' Public Declare PtrSafe Function EnumEnhMetaFile Lib "gdi32" (ByVal hdc As LongPtr, ByVal hmf As LongPtr, ByVal proc As ENHMFENUMPROC, param As Any, lprc As RECT) As BOOL
+' #End If
 Public Declare PtrSafe Function CloseEnhMetaFile Lib "gdi32" (ByVal hdc As LongPtr) As LongPtr
 Public Declare PtrSafe Function CopyEnhMetaFileA Lib "gdi32" (ByVal hEnh As LongPtr, ByVal lpFileName As String) As LongPtr
 Public Declare PtrSafe Function CopyEnhMetaFileW Lib "gdi32" (ByVal hEnh As LongPtr, ByVal lpFileName As LongPtr) As LongPtr
@@ -13343,8 +13463,7 @@ Public DeclareWide PtrSafe Function CopyEnhMetaFile Lib "gdi32" Alias "CopyEnhMe
 Public Declare PtrSafe Function CreateEnhMetaFileA Lib "gdi32" (ByVal hdc As LongPtr, ByVal lpFilename As String, lprc As RECT, ByVal lpDesc As String) As LongPtr
 Public Declare PtrSafe Function CreateEnhMetaFileW Lib "gdi32" (ByVal hdc As LongPtr, ByVal lpFilename As LongPtr, lprc As RECT, ByVal lpDesc As LongPtr) As LongPtr
 Public DeclareWide PtrSafe Function CreateEnhMetaFile Lib "gdi32" Alias "CreateEnhMetaFileW" (ByVal hdc As LongPtr, ByVal lpFilename As String, lprc As RECT, ByVal lpDesc As String) As LongPtr
-Public Declare PtrSafe Function DeleteEnhMetaFile Lib "gdi32" (ByVal hmf As LongPtr) As Boolean
-Public Declare PtrSafe Function EnumEnhMetaFile Lib "gdi32" (ByVal hdc As LongPtr, ByVal hmf As LongPtr, ByVal proc As LongPtr, param As Any, lprc As RECT) As Boolean
+Public Declare PtrSafe Function DeleteEnhMetaFile Lib "gdi32" (ByVal hmf As LongPtr) As BOOL
 Public Declare PtrSafe Function GetEnhMetaFileA Lib "gdi32" (ByVal lpName As String) As LongPtr
 Public Declare PtrSafe Function GetEnhMetaFileW Lib "gdi32" (ByVal lpName As LongPtr) As LongPtr
 Public DeclareWide PtrSafe Function GetEnhMetaFile Lib "gdi32" Alias "GetEnhMetaFileW" (ByVal lpName As String) As LongPtr
@@ -13355,13 +13474,25 @@ Public Declare PtrSafe Function GetEnhMetaFileHeader Lib "gdi32" (ByVal hemf As 
 Public Declare PtrSafe Function GetEnhMetaFilePaletteEntries Lib "gdi32" (ByVal hemf As LongPtr, ByVal nNumEntries As Long, ByVal lpPaletteEntries As LongPtr) As Long
 Public Declare PtrSafe Function GetEnhMetaFilePixelFormat Lib "gdi32" (ByVal hemf As LongPtr, ByVal cbBuffer As Long, ByRef ppfd As PIXELFORMATDESCRIPTOR) As Long
 Public Declare PtrSafe Function GetWinMetaFileBits Lib "gdi32" (ByVal hemf As LongPtr, ByVal cbData16 As Long, ByVal pData16 As LongPtr, ByVal iMapMode As Long, ByVal hdcRef As LongPtr) As Long
-Public Declare PtrSafe Function PlayEnhMetaFile Lib "gdi32" (ByVal hdc As LongPtr, ByVal hmf As LongPtr, ByRef lprect As RECT) As Long
-Public Declare PtrSafe Function PlayEnhMetaFileRecord Lib "gdi32" (ByVal hdc As LongPtr, ByVal pht As LongPtr, ByVal pmr As LongPtr, ByVal cht As Long) As Long
+Public Declare PtrSafe Function PlayEnhMetaFile Lib "gdi32" (ByVal hdc As LongPtr, ByVal hmf As LongPtr, ByRef lprect As RECT) As BOOL
+Public Declare PtrSafe Function PlayEnhMetaFileRecord Lib "gdi32" (ByVal hdc As LongPtr, ByVal pht As LongPtr, ByVal pmr As LongPtr, ByVal cht As Long) As BOOL
 Public Declare PtrSafe Function SetEnhMetaFileBits Lib "gdi32" (ByVal nSize As Long, ByVal pb As LongPtr) As LongPtr
 Public Declare PtrSafe Function SetWinMetaFileBits Lib "gdi32" (ByVal nSize As Long, ByVal lpMeta16Data As LongPtr, ByVal hdcRef As LongPtr, ByRef lpMFP As METAFILEPICT) As LongPtr
 Public Declare PtrSafe Function GdiComment Lib "gdi32" (ByVal hdc As LongPtr, ByVal nSize As Long, ByVal lpData As LongPtr) As Long
 
-Public Const ENHMETA_SIGNATURE       = &H20454D46
+Public Enum GdiCommentConstants
+    GDICOMMENT_IDENTIFIER = &H43494447
+    GDICOMMENT_WINDOWS_METAFILE = &H80000001
+    GDICOMMENT_BEGINGROUP = &H00000002
+    GDICOMMENT_ENDGROUP = &H00000003
+    GDICOMMENT_MULTIFORMATS = &H40000004
+    EPS_SIGNATURE = &H46535045
+    GDICOMMENT_UNICODE_STRING = &H00000040
+    GDICOMMENT_UNICODE_END = &H00000080
+End Enum
+
+Public Const ENHMETA_SIGNATURE       = &H464D4520
+Public Const ENHMETA_STOCK_OBJECT    = &H80000000
 Public Type ENHMETAHEADER
     iType As Long ' Record typeEMR_HEADER
     nSize As Long ' Record size in bytes.  This may be greater
@@ -13425,8 +13556,12 @@ Public Declare PtrSafe Function EndDoc Lib "gdi32" (ByVal hDC As LongPtr) As Lon
 Public Declare PtrSafe Function StartPage Lib "gdi32" (ByVal hDC As LongPtr) As Long
 Public Declare PtrSafe Function EndPage Lib "gdi32" (ByVal hDC As LongPtr) As Long
 Public Declare PtrSafe Function AbortDoc Lib "gdi32" (ByVal hDC As LongPtr) As Long
+Public Delegate Function ABORTPROC (ByVal hDC As LongPtr, ByVal iError As Long) As BOOL
+' #If WINDEVLIB_NO_DELEGATES Then
 Public Declare PtrSafe Function SetAbortProc Lib "gdi32" (ByVal hDC As LongPtr, ByVal proc As LongPtr) As Long
-
+' #Else
+' Public Declare PtrSafe Function SetAbortProc Lib "gdi32" (ByVal hDC As LongPtr, ByVal proc As ABORTPROC) As Long
+' #End If
 
 Public Enum DocInfoTypes
 	DI_APPBANDING = &H00000001
@@ -13785,13 +13920,7 @@ Public Delegate Function DDrawMarshCallbackRelease (ByVal pDDrawRef As LongPtr) 
 
 Public Const GDIREGISTERDDRAWPACKETVERSION = 1
 
-' Public Type GDIREGISTERDDRAWPACKET
-'     dwSize As Long
-'     dwVersion As Long
-'     pfnDdMarshal As DDrawMarshCallbackMarshal
-'     pfnDdUnmarshal As DDrawMarshCallbackUnmarshal
-'     pfnDdRelease As DDrawMarshCallbackRelease
-' End Type
+' #If WINDEVLIB_NO_DELEGATES Then
 Public Type GDIREGISTERDDRAWPACKET
     dwSize As Long
     dwVersion As Long
@@ -13799,10 +13928,18 @@ Public Type GDIREGISTERDDRAWPACKET
     pfnDdUnmarshal As LongPtr
     pfnDdRelease As LongPtr
 End Type
-
-
-' Public Declare PtrSafe Function GdiRegisterDdraw Lib "gdi32" (pPacket As GDIREGISTERDDRAWPACKET, ppfnGdiAlloc As GdiMarshAlloc) As BOOL
 Public Declare PtrSafe Function GdiRegisterDdraw Lib "gdi32" (pPacket As GDIREGISTERDDRAWPACKET, ppfnGdiAlloc As LongPtr) As BOOL
+' #Else
+' Public Type GDIREGISTERDDRAWPACKET
+'     dwSize As Long
+'     dwVersion As Long
+'     pfnDdMarshal As DDrawMarshCallbackMarshal
+'     pfnDdUnmarshal As DDrawMarshCallbackUnmarshal
+'     pfnDdRelease As DDrawMarshCallbackRelease
+' End Type
+' Public Declare PtrSafe Function GdiRegisterDdraw Lib "gdi32" (pPacket As GDIREGISTERDDRAWPACKET, ppfnGdiAlloc As GdiMarshAlloc) As BOOL
+' #End If
+
 Public Declare PtrSafe Function GdiMarshalSize Lib "gdi32" () As Long
 Public Declare PtrSafe Sub GdiMarshal Lib "gdi32" (ByVal dwProcessIdTo As Long, ByVal hGdiObj As LongPtr, pData As Any, ByVal ulFlags As Long)
 Public Declare PtrSafe Function GdiUnmarshal Lib "gdi32" (pData As Any, ByVal ulFlags As Long) As LongPtr
@@ -34087,6 +34224,9 @@ Public Declare PtrSafe Function mciExecute Lib "winmm" (ByVal lpstrCommand As St
 
 'Complete
 #Region "winmm_mmio"
+
+
+
 Public Enum MMIOERR
     MMIOERR_BASE = 256
     MMIOERR_FILENOTFOUND = (MMIOERR_BASE + 1) /* file not found */
@@ -34108,7 +34248,7 @@ Public Enum MMIOERR
 End Enum
 
 [Description("📝**NOTE:** Convert to ANSI")]
-Public Const CFSEPCHAR   = "+" /* compound file name separator char. */
+Public Const CFSEPCHAR   = 43 '"+" /* compound file name separator char. */
 
 Public Enum MMIO_OPENMODE
     MMIO_RWMODE = &H00000003  ' /* open file for reading/writing/both */
@@ -34139,11 +34279,17 @@ Public Enum MMIO_SHAREMODE
     MMIO_DENYNONE = &H00000040  ' /* deny nothing to other processes */
 End Enum
 
+Public Delegate Function MMIOPROC (ByVal lpmmioinfo As LongPtr, ByVal uMsg As Long, ByVal lParam1 As LongPtr, ByVal lParam2 As LongPtr) As LongPtr
+
 [PackingAlignment(1)]
 Public Type MMIOINFO
    /* TypeHint(MMIO_SHAREMODE, MMIO_RWMODE, MMIO_OPENMODE) ] */ dwFlags As MMIO_INFO_FLAGS '  /* general status flags */
    fccIOProc As Long '   /* pointer to I/O procedure */
+   ' #If WINDEVLIB_NO_DELEGATES Then
    pIOProc As LongPtr '  /* pointer to I/O procedure */
+   ' #Else
+   ' pIOProc As MMIOPROC '  /* pointer to I/O procedure */
+   ' #End If  
    wErrorRet As MMIOERR '  /* place for error to be returned */
    htask As LongPtr '  /* alternate local task */
    ' /* fields maintained by MMIO /functions during buffered I/O */
@@ -34219,6 +34365,11 @@ Public Enum MMIO_CHUNK_FLAGS
 End Enum
 
 Public Const MMIO_DEFAULTBUFFER = 8192 /* default buffer size */
+
+Public Const FOURCC_RIFF = &H46464952 'mmioFOURCC('R', 'I', 'F', 'F')
+Public Const FOURCC_LIST = &H5453494c 'mmioFOURCC('L', 'I', 'S', 'T')
+Public Const FOURCC_DOS = &H20534f44 'mmioFOURCC('D', 'O', 'S', ' ')
+Public Const FOURCC_MEM = &H204d454d ' mmioFOURCC('M', 'E', 'M', ' ')
 
 Public Declare PtrSafe Function mmioStringToFOURCCA Lib "winmm" (ByVal sz As String, ByVal uFlags As MMIO_FOURCC_FLAGS) As Long
 Public Declare PtrSafe Function mmioStringToFOURCCW Lib "winmm" (ByVal sz As LongPtr, ByVal uFlags As MMIO_FOURCC_FLAGS) As Long
