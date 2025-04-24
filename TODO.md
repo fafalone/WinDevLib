@@ -1,7 +1,15 @@
 Known omissions where a priority update neccessitated not finishing 
 before release, or waiting on feature support:
  
--Check WV2 at end of March
+-BUG FIX PENDING: Overloaded interface vtable order vs source, reverse after patch:
+IDCompositionVisual, IDCompositionVisual3, IDCompositionGaussianBlurEffect, IDCompositionBrightnessEffect, 
+IDCompositionColorMatrixEffect, IDCompositionShadowEffect, IDCompositionHueRotationEffect, IDCompositionSaturationEffect,
+IDCompositionLinearTransferEffect, IDCompositionTableTransferEffect, IDCompositionArithmeticCompositeEffect,
+IDCompositionAffineTransform2DEffect, IDCompositionTranslateTransform, IDCompositionScaleTransform, IDCompositionRotateTransform,
+IDCompositionSkewTransform, IDCompositionMatrixTransform, IDCompositionEffectGroup, IDCompositionTranslateTransform3D,
+IDCompositionScaleTransform3D, IDCompositionRotateTransform3D, IDCompositionMatrixTransform3D, IDCompositionRectangleClip,
+ID2D1SvgStrokeDashArray, IDWriteGdiInterop1, IDWriteFontFace4, IDWriteFactory4, IDWriteFontSet1
+Note: ID2D1SvgElement overloads currently left tagged because tB cannot disambiguate 2 of them. 
 
 -OpenGL (needs Alias support)
 
@@ -39,11 +47,61 @@ before release, or waiting on feature support:
  ID3D12GraphicsCommandList::::ClearUnorderedAccessViewUint, ID3D12GraphicsCommandList::::ClearUnorderedAccessViewFloat
    et al adjust when tB has syntax support for [in] type t[x] syntax.
 
--CLSIDs for coclasses (done: wdShellCore, wdShellObj, wdInternet, wdAccessible, wdBITS, wdUIRibbon, wdWIC, wdCoreAudio,
-                             wdSecurity, wdTaskScheduler, wdManipulations, wdSpellCheck, wdExplorer, wdSearch,
-                             wdDevices, wdSyncMgr, wdSensors, wdWSC, wdUPNP, wdUIAnimation, wdSpeech, wdNetcon, wdCredProv,
-                             wdDSound, wdTablet)
-                             
+-CLSIDs for coclasses
+done:  
+wdAccessible, 
+wdAMSI,
+wdAPI* 
+wdBITS, 
+wdCOM,
+wdCoreAudio,
+wdCredProv,
+wdD3D*
+wdDefs,
+wdDeprecated,
+wdDevices, 
+wdDirectML,
+
+wdDSound, 
+wdDStorage,
+wdDXVA,
+wdExplorer, 
+wdFileHist,
+wdGDIP,
+wdGP,
+wdHelpers,
+wdIID,
+wdIMAPI,
+wdInternet, 
+wdLegacy,
+wdManipulations, 
+wdNetcon, 
+
+
+
+
+
+
+
+
+wdSearch,
+wdSecurity, 
+wdSensors, 
+wdShellCore, 
+wdShellObj, 
+wdSpeech, 
+wdSpellCheck, 
+wdSyncMgr, 
+wdTablet, 
+wdTaskScheduler, 
+wdUIAnimation, 
+wdUIRibbon, 
+wdUPNP, 
+wdWIC,
+
+wdWSC, 
+wdWTS
+
 -Create coverage list by header.
 Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.0); basic coverage excludes macros, callbacks->delegates,
 ANSI APIs (though most are covered), and other headers from #include statements. Anything else missing is a bug and a report should be filed.
@@ -73,16 +131,17 @@ ANSI APIs (though most are covered), and other headers from #include statements.
     UIAutomationClient.idl,UIAutomationCore.h,UIAutomationCore.idl,UIAnimation.h,UIAnimation.idl,shtypes.h,shtypes.idl,TextServ.h,servprov.h,ServProv.Idl,
     shappmgr.h,shappmgr.idl,shobjidl.h,ShObjIdl.idl,shlobj.h*,richedit.h,richole.h,shimgdata.h,uxtheme.h,mmsystem.h,mmsyscom.h,mciapi.h,mmiscapi2.h,playsoundapi.h,
     mmeapi.h,timeapi.h,joystickapi.h,commdlg.h,cderr.h,prsht.h,prsht.idl,comctrl.h,ShlObj_core.h,ShObjidl_core.h,ShObjidl_core.idl,credentialprovider.h,
-    credentialprovider.idl,RadioMgr.h,RadioMgr.idl,PortableDevice.h,PortableDeviceAPI.h,PortableDeviceAPI.idl,portabledeviceclassextension.h,
+    credentialprovider.idl,aclui.h,RadioMgr.h,RadioMgr.idl,PortableDevice.h,PortableDeviceAPI.h,PortableDeviceAPI.idl,portabledeviceclassextension.h,
     portabledeviceclassextension.idl,portabledevicetypes.h,portabledevicetypes.idl,dsound.h,WinDNS.h,dstorage.h,dstorageerr.h,wininet.h,propapi.h,
     propidl.h,propidl.idl,propidlbase.h,propidlbase.idl,propsys.idl,propsys.h,propvarutil.h,Xinput.h,winperf.h,perlib.h,spapidef.h,devpropdef.h,devpkey.h,
-    devguid.h,setupapi.h,prnasnot.h,winspool.h,libloaderapi.h,libloaderapi2.h,ioapiset.h,wingdi.h,coml2api.h,
-
+    devguid.h,setupapi.h,prnasnot.h,winspool.h,libloaderapi.h,libloaderapi2.h,ioapiset.h,wingdi.h,coml2api.h,dxgi_1.h,dxgi_1.idl,dxgi_2.h,dxgi_2.idl,
+    dxgi_3.h,dxgi_3.idl,dxgi_4.h,dxgi_4.idl,dxgi_5.h,dxgi_5.idl,dxgi_6.h,dxgi_6.idl,DXGI_Messages.h,dxgitype.h,dxgitype.idl,dxgicommon.h,dxgicommon.idl,
+    
 Coverage in the 90%+ range
-    winbase.h
+    winbase.h, oleidl.h, oaidl.h, 
 
 Substantial coverage
-    mmsciapi.h, ntlsa.h, winnt.h,winternl.h
+    mmsciapi.h, ntlsa.h (100% verified through line 3130), winnt.h,winternl.h
 
 Minimal coverage
     windot11.h

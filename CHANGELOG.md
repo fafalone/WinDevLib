@@ -1,4 +1,43 @@
 
+**Update (v8.9.518, 23 Apr 2025):** 
+-**BREAKING CHANGE** SHCreateShellItemArray will now use the proper definition of ByRef ppidl As LongPtr. Workarounds using
+   ByVal VarPtr() should remove that.
+-**BREAKING CHANGE** Since tB supports overloads, DirectComposition overloaded methods have had their tags
+   (usally _A) removed. Affected interfaces:
+   IDCompositionVisual, IDCompositionVisual3, IDCompositionGaussianBlurEffect, IDCompositionBrightnessEffect, 
+   IDCompositionColorMatrixEffect, IDCompositionShadowEffect, IDCompositionHueRotationEffect, IDCompositionSaturationEffect,
+   IDCompositionLinearTransferEffect, IDCompositionTableTransferEffect, IDCompositionArithmeticCompositeEffect,
+   IDCompositionAffineTransform2DEffect, IDCompositionTranslateTransform, IDCompositionScaleTransform, IDCompositionRotateTransform,
+   IDCompositionSkewTransform, IDCompositionMatrixTransform, IDCompositionEffectGroup, IDCompositionTranslateTransform3D,
+   IDCompositionScaleTransform3D, IDCompositionRotateTransform3D, IDCompositionMatrixTransform3D, IDCompositionRectangleClip,
+   ID2D1SvgStrokeDashArray, IDWriteGdiInterop1, IDWriteFontFace4, IDWriteFactory4, IDWriteFontSet1
+   Note: ID2D1SvgElement overloads currently left tagged because tB cannot disambiguate 2 of them. 
+   Note: This is experimental. Please report any problems. May be reverted if any arise.
+-Added missing IDXGIFactory6/7 interfaces from dxgi_6.h
+-Added custom UUIDs for system default GDIP encoders: ImageCodecBMP, ImageCodecJPG, ImageCodecGIF, ImageCodecTIF, ImageCodecPNG, 
+   and ImageCodecICO. It's still advisable to use the documented way of finding these.
+-Added some missing interfaces, enums, and consts from oleidl.h.
+-Some imagehlp (dbghelp) APIs with only ANSI versions now use String for input instead of LongPtr
+-Misc API additions
+-(API Standards) WTSSetUserConfig[A,W] did not follow String/LongPtr convention for buffer arg
+-(Bug fix) DXGI_FORMAT missing and incorrect values
+-(Bug fix) SELFREG_E_CLASS value incorrect
+-(Bug fix) WTSSetUserConfig incorrect alias
+-(Bug fix) ByRef/ByVal mixups:
+         UiaNavigate, UiaFind, UiaNodeFromPoint, UiaNodeFromFocus
+         ISyncMgrHandler::Synchronize
+         IDXGIDevice2::ReclaimResources/::OfferResources, IDXGISwapChain::GetFullscreenState, IDXGIDevice::QueryResourceResidency, 
+         IDXGIDevice4::OfferResources1/::ReclaimResources1, ID3DXInclude::Open 
+
+**Update (v8.8.516, 15 Apr 2025):** 
+-Added all missing MetaFile/ENHMF APIs and structs
+-Added numerous other missing gdi32 APIs
+-Added missing APIs from coml2api.h, now 100% covered
+-Changed As BITMAPINFO args to As Any since this sometimes uses a variable C-style array.
+-(Bug fix) EnumEnhMetaFile, DeleteEnhMetaFile returned Boolean (2 bytes) instead of BOOL (4 bytes)
+-(Bug fix) ENHMETA_SIGNATURE conditional compilation value wrong 
+-(Bug fix) CFSEPCHAR type and value incorrect
+
 **Update (v8.8.513, 31 Mar 2025):**
 -winspool.h now covered 100%; added async printer notification ifaces/apis from prnasnot.h (100% coverage)
 -(Bug fix) PRINTER_NOTIFY_INFO_DATA, INPUT incorrect union substitution sizes; sorry don't know how I missed them in the 8.8.504 fix.
