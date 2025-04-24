@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 8.8.516 (April 15th, 2025)**
+**Current Version: 8.9.518 (April 23rd, 2025)**
 
 (c) 2022-2025 Jon Johnson (fafalone)
 
@@ -190,6 +190,26 @@ This project has grown well beyond it's original mission of shell programming. W
 
 ### Updates
 
+**Update (v8.9.518, 23 Apr 2025):**\
+-**BREAKING CHANGE** SHCreateShellItemArray will now use the proper definition of ByRef ppidl As LongPtr. Workarounds using ByVal VarPtr() should remove that.\
+-**BREAKING CHANGE** Since tB supports overloads, DirectComposition overloaded methods have had their tag (usally _A) removed. Affected interfaces:\
+   IDCompositionVisual, IDCompositionVisual3, IDCompositionGaussianBlurEffect, IDCompositionBrightnessEffect,  IDCompositionColorMatrixEffect, IDCompositionShadowEffect, IDCompositionHueRotationEffect, IDCompositionSaturationEffect, IDCompositionLinearTransferEffect, IDCompositionTableTransferEffect, IDCompositionArithmeticCompositeEffect, IDCompositionAffineTransform2DEffect, IDCompositionTranslateTransform, IDCompositionScaleTransform, IDCompositionRotateTransform, IDCompositionSkewTransform, IDCompositionMatrixTransform, IDCompositionEffectGroup, IDCompositionTranslateTransform3D, IDCompositionScaleTransform3D, IDCompositionRotateTransform3D, IDCompositionMatrixTransform3D, IDCompositionRectangleClip, ID2D1SvgStrokeDashArray, IDWriteGdiInterop1, IDWriteFontFace4, IDWriteFactory4, IDWriteFontSet1\
+   Note: ID2D1SvgElement overloads currently left tagged because tB cannot disambiguate 2 of them.\
+   Note: This is experimental. Please report any problems. May be reverted if any arise.\
+-Added missing IDXGIFactory6/7 interfaces from dxgi_6.h\
+-Added custom UUIDs for system default GDIP encoders: ImageCodecBMP, ImageCodecJPG, ImageCodecGIF, ImageCodecTIF, ImageCodecPNG,  and ImageCodecICO. It's still advisable to use the documented way of finding these.\
+-Added some missing interfaces, enums, and consts from oleidl.h.\
+-Some imagehlp (dbghelp) APIs with only ANSI versions now use String for input instead of LongPtr\
+-Misc API additions\
+-(API Standards) WTSSetUserConfig[A,W] did not follow String/LongPtr convention for buffer arg\
+-(Bug fix) DXGI_FORMAT missing and incorrect values\
+-(Bug fix) SELFREG_E_CLASS value incorrect\
+-(Bug fix) WTSSetUserConfig incorrect alias\
+-(Bug fix) ByRef/ByVal mixups:\
+         UiaNavigate, UiaFind, UiaNodeFromPoint, UiaNodeFromFocus\
+         ISyncMgrHandler::Synchronize\
+         IDXGIDevice2::ReclaimResources/::OfferResources, IDXGISwapChain::GetFullscreenState, IDXGIDevice::QueryResourceResidency, IDXGIDevice4::OfferResources1/::ReclaimResources1, ID3DXInclude::Open 
+         
 **Update (v8.8.516, 15 Apr 2025):**\
 -Added all missing MetaFile/ENHMF APIs and structs\
 -Added numerous other missing gdi32 APIs\
