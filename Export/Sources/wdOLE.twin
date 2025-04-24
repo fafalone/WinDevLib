@@ -66,8 +66,22 @@ Interface IOleCache Extends stdole.IUnknown
     Sub Uncache(ByVal dwConnection As Long)
     Function EnumCache() As IEnumSTATDATA
     Sub InitCache(ByVal pDataObject As IDataObject)
-    Sub SetData(ByRef pformatetc As FORMATETC, ByRef pmedium As STGMEDIUM, ByVal fRelease As Long)
+    Sub SetData(ByRef pformatetc As FORMATETC, ByRef pmedium As STGMEDIUM, ByVal fRelease As BOOL)
 End Interface
+[InterfaceId("00000128-0000-0000-C000-000000000046")]
+[OleAutomation(False)]
+Interface IOleCache2 Extends IOleCache
+    Sub UpdateCache(ByVal pDataObject As IDataObject, ByVal grfUpdf As OleUpdfCacheFlags, ByVal pReserved As LongPtr)
+    Sub DiscardCache(ByVal dwDiscardOptions As DISCARDCACHE)
+End Interface
+
+[InterfaceId("00000129-0000-0000-C000-000000000046")]
+[OleAutomation(False)]
+Interface IOleCacheControl Extends IUnknown
+    Sub OnRun(ByVal pDataObject As IDataObject)
+    Sub OnStop()
+End Interface
+
 
 [InterfaceId("B722BCCB-4E68-101B-A2BC-00AA00404770")]
 [OleAutomation(False)]
@@ -99,6 +113,15 @@ Interface IOleLink Extends stdole.IUnknown
     Function UnbindSource() As Long
     Sub Update(ByVal pbc As IBindCtx)
 End Interface
+
+[InterfaceId("0000011C-0000-0000-C000-000000000046")]
+[OleAutomation(False)]
+Interface IOleItemContainer Extends IOleContainer
+    Sub GetObject(ByVal pszItem As LongPtr, ByVal dwSpeedNeeded As BINDSPEED, ByVal pbc As IBindCtx, ByRef riid As UUID, ByRef ppvObject As Any)
+    Sub GetObjectStorage(ByVal pszItem As LongPtr, ByVal pbc As IBindCtx, ByRef riid As UUID, ByRef ppvStorage As Any)
+    Sub IsRunning(ByVal pszItem As LongPtr)
+End Interface
+
 
 [InterfaceId("B196B28C-BAB4-101A-B69C-00AA00341D07")]
 [OleAutomation(False)]
@@ -187,10 +210,10 @@ Interface IOleObject Extends stdole.IUnknown
     Sub SetClientSite(ByVal pClientSite As IOleClientSite)
     Function GetClientSite() As IOleClientSite
     Sub SetHostNames(ByVal szContainerApp As LongPtr, ByVal szContainerObj As LongPtr)
-    Sub Close(ByVal dwSaveOption As Long)
+    Sub Close(ByVal dwSaveOption As OLECLOSE)
     Sub SetMoniker(ByVal dwWhichMoniker As OLEWHICHMK, ByVal pmk As IMoniker)
     Sub GetMoniker(ByVal dwAssign As OLEGETMONIKER, ByVal dwWhichMoniker As OLEWHICHMK, ppmk As IMoniker)
-    Sub InitFromData(ByVal pDataObject As IDataObject, ByVal fCreation As Long, ByVal dwReserved As Long)
+    Sub InitFromData(ByVal pDataObject As IDataObject, ByVal fCreation As BOOL, ByVal dwReserved As Long)
     Sub GetClipboardData(ByVal dwReserved As Long, ppDataObject As IDataObject)
     Sub DoVerb(ByVal iVerb As Long, lpmsg As MSG, ByVal pActiveSite As IOleClientSite, ByVal lindex As Long, ByVal hwndParent As LongPtr, lprcPosRect As RECT)
     [PreserveSig] Function EnumVerbs(ppEnumOleVerb As IEnumOLEVERB) As Long
@@ -198,8 +221,8 @@ Interface IOleObject Extends stdole.IUnknown
     [PreserveSig] Function IsUpToDate() As Long
     Sub GetUserClassID(pClsid As UUID)
     Sub GetUserType(ByVal dwFormOfType As USERCLASSTYPE, pszUserType As LongPtr)
-    Sub SetExtent(ByVal dwDrawAspect As Long, psizel As SIZE)
-    Sub GetExtent(ByVal dwDrawAspect As Long, psizel As SIZE)
+    Sub SetExtent(ByVal dwDrawAspect As DVASPECT, psizel As SIZE)
+    Sub GetExtent(ByVal dwDrawAspect As DVASPECT, psizel As SIZE)
     Sub Advise(ByVal pAdvSink As IAdviseSink, pdwConnection As Long)
     Sub Unadvise(ByVal dwConnection As Long)
     Sub EnumAdvise(ppenumAdvise As IEnumSTATDATA)
@@ -542,6 +565,7 @@ Interface IOleUILinkInfo Extends IOleUILinkContainer
 End Interface
 
 
+ 
 
 Module wdOLE
     
@@ -738,6 +762,12 @@ Public Enum OLEMISC
 	OLEMISC_IGNOREACTIVATEWHENVISIBLE = &H80000
 	OLEMISC_WANTSTOMENUMERGE = &H100000
 	OLEMISC_SUPPORTSMULTILEVELUNDO = &H200000
+End Enum
+
+Public Enum OLECLOSE
+    OLECLOSE_SAVEIFDIRTY = 0
+    OLECLOSE_NOSAVE = 1
+    OLECLOSE_PROMPTSAVE = 2
 End Enum
 
 Public Enum QACONTAINERFLAGS
@@ -2244,6 +2274,49 @@ Public Type OBJECTDESCRIPTOR
     '    see IOleObject::GetMoniker(
     '                OLEGETMONIKER_TEMPFORUSER)
 End Type
+'Alias LINKSRCDESCRIPTOR As OBJECTDESCRIPTOR
+Public Type LINKSRCDESCRIPTOR
+    cbSize As Long ' Size of structure in bytes
+    clsid As UUID ' CLSID of data being transferred
+    dwDrawAspect As DVASPECT ' Display aspect of the object
+    '     normally DVASPECT_CONTENT or ICON.
+    '     dwDrawAspect will be 0 (which is NOT
+    '     DVASPECT_CONTENT) if the copier or
+    '     dragsource didn't draw the object to
+    '     begin with.
+    sizel As SIZE ' size of the object in HIMETRIC
+    '    sizel is opt.: will be (0,0) for apps
+    '    which don't draw the object being
+    '    transferred
+    pointl As POINT ' Offset in HIMETRIC units from the
+    '    upper-left corner of the obj where the
+    '    mouse went down for the drag.
+    '    NOTE: y coordinates increase downward.
+    '          x coordinates increase to right
+    '    pointl is opt.; it is only meaningful
+    '    if object is transfered via drag/drop.
+    '    (0, 0) if mouse position is unspecified
+    '    (eg. when obj transfered via clipboard)
+    dwStatus As OLEMISC ' Misc. status flags for object. Flags are
+    '    defined by OLEMISC enum. these flags
+    '    are as would be returned
+    '    by IOleObject::GetMiscStatus.
+    dwFullUserTypeName As Long ' Offset from beginning of structure to
+    '    null-terminated string that specifies
+    '    Full User Type Name of the object.
+    '    0 indicates string not present.
+    dwSrcOfCopy As Long ' Offset from beginning of structure to
+    '    null-terminated string that specifies
+    '    source of the transfer.
+    '    dwSrcOfCOpy is normally implemented as
+    '    the display name of the temp-for-user
+    '    moniker which identifies the source of
+    '    the data.
+    '    0 indicates string not present.
+    '    NOTE: moniker assignment is NOT forced.
+    '    see IOleObject::GetMoniker(
+    '                OLEGETMONIKER_TEMPFORUSER)
+End Type
 
 Public Enum OLEVERBS
     OLEIVERB_PRIMARY = 0
@@ -2254,6 +2327,39 @@ Public Enum OLEVERBS
     OLEIVERB_INPLACEACTIVATE = -5
     OLEIVERB_DISCARDUNDOSTATE = -6
     OLEIVERB_PROPERTIES = -7
+End Enum
+
+
+
+Public Enum OleUpdfCacheFlags
+    UPDFCACHE_NODATACACHE = (&H1)
+    UPDFCACHE_ONSAVECACHE = (&H2)
+    UPDFCACHE_ONSTOPCACHE = (&H4)
+    UPDFCACHE_NORMALCACHE = (&H8)
+    UPDFCACHE_IFBLANK = (&H10)
+    UPDFCACHE_ONLYIFBLANK = (&H80000000)
+    UPDFCACHE_IFBLANKORONSAVECACHE = ((UPDFCACHE_IFBLANK Or UPDFCACHE_ONSAVECACHE))
+    UPDFCACHE_ALL = (Not UPDFCACHE_ONLYIFBLANK)
+    UPDFCACHE_ALLBUTNODATACACHE = ((UPDFCACHE_ALL And Not UPDFCACHE_NODATACACHE))
+End Enum
+
+Public Enum DISCARDCACHE
+    DISCARDCACHE_SAVEIFDIRTY = 0
+    DISCARDCACHE_NOSAVE = 1
+End Enum
+
+Public Enum BINDSPEED
+    BINDSPEED_INDEFINITE = 1
+    BINDSPEED_MODERATE = 2
+    BINDSPEED_IMMEDIATE = 3
+End Enum
+
+Public Enum OLECONTF
+    OLECONTF_EMBEDDINGS = 1
+    OLECONTF_LINKS = 2
+    OLECONTF_OTHERS = 4
+    OLECONTF_ONLYUSER = 8
+    OLECONTF_ONLYIFRUNNING = 16
 End Enum
 
 End Module
