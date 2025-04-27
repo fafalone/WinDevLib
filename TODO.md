@@ -1,6 +1,8 @@
 Known omissions where a priority update neccessitated not finishing 
 before release, or waiting on feature support:
  
+-ntlsa delegates
+
 -BUG FIX PENDING: Overloaded interface vtable order vs source, reverse after patch:
 IDCompositionVisual, IDCompositionVisual3, IDCompositionGaussianBlurEffect, IDCompositionBrightnessEffect, 
 IDCompositionColorMatrixEffect, IDCompositionShadowEffect, IDCompositionHueRotationEffect, IDCompositionSaturationEffect,
@@ -136,12 +138,13 @@ ANSI APIs (though most are covered), and other headers from #include statements.
     propidl.h,propidl.idl,propidlbase.h,propidlbase.idl,propsys.idl,propsys.h,propvarutil.h,Xinput.h,winperf.h,perlib.h,spapidef.h,devpropdef.h,devpkey.h,
     devguid.h,setupapi.h,prnasnot.h,winspool.h,libloaderapi.h,libloaderapi2.h,ioapiset.h,wingdi.h,coml2api.h,dxgi_1.h,dxgi_1.idl,dxgi_2.h,dxgi_2.idl,
     dxgi_3.h,dxgi_3.idl,dxgi_4.h,dxgi_4.idl,dxgi_5.h,dxgi_5.idl,dxgi_6.h,dxgi_6.idl,DXGI_Messages.h,dxgitype.h,dxgitype.idl,dxgicommon.h,dxgicommon.idl,
+    ntlsa.h,vsstyle.h,vssym32.h,usp10.h,
     
 Coverage in the 90%+ range
     winbase.h, oleidl.h, oaidl.h, 
 
 Substantial coverage
-    mmsciapi.h, ntlsa.h (100% verified through line 3130), winnt.h,winternl.h
+    mmsciapi.h, winnt.h,winternl.h
 
 Minimal coverage
     windot11.h
