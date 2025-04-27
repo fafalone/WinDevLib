@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 8.9.518 (April 23rd, 2025)**
+**Current Version: 8.9.520 (April 27th, 2025)**
 
 (c) 2022-2025 Jon Johnson (fafalone)
 
@@ -189,6 +189,17 @@ Finally, there's numerous additional API sets from small to large for independen
 This project has grown well beyond it's original mission of shell programming. While that's still the largest single part, it's no longer a majority of the code, and the name change now much better reflects the purpose of providing a general Windows API experience like windows.h. Compiler constants and module names/file names have been updated to reflect the name change. tbShellLibImpl is now WinDevLibImpl. There are also some major chanages associated with this update, please see the full changelog below.
 
 ### Updates
+
+**Update (v8.9.520, 27 Apr 2025):**\
+-Added Uniscribe API (usp10.h, 100%)/ UDTs harmonized with work by Michael Kaplan and Tanner Helland\
+      However the APIs they used have signatures that just stray way too far from the documentation; many ByVal LongPtr arguments are now ByRef. Reminder: vbNullPtr replaces ByVal 0 for skipping an optional UDT.\
+-Added coverage of DSAdmin.h. Note: The interfaces for this rely on activeds.tlb. After you add a reference to that, add the compiler option ADS_DEFINED=1.\
+-Added numerous missing Visual Styles theme constants, vssym32.h 100%\
+-Added basic Winstation APIs from phnt winsta.h.\
+-Because they may contain pointers to data stored in a contiguous byte array, MEM_EXTENDED_PARAMETERS arguments have been changed to As Any. No change is needed to existing code.\
+-Misc Native API additions\
+-(Bug fix) HD_TEXTFILTERW name typo.
+
 
 **Update (v8.9.518, 23 Apr 2025):**\
 -**BREAKING CHANGE** SHCreateShellItemArray will now use the proper definition of ByRef ppidl As LongPtr. Workarounds using ByVal VarPtr() should remove that.\
