@@ -1157,47 +1157,6 @@ Public Type PROCESS_MEMBERSHIP_INFORMATION
     ServerSiloId As Long
 End Type
 
-Public Enum SectionImageBitfield
-    SECIMG_ComPlusNativeReady = &B1
-    SECIMG_ComPlusILOnly = &B10
-    SECIMG_ImageDynamicallyRelocated = &B100
-    SECIMG_ImageMappedFlat = &B1000
-    SECIMG_BaseBelow4gb = &B10000
-    SECIMG_ComPlusPrefer32bit = &B100000
-End Enum
-Public Type SECTION_IMAGE_INFORMATION
-    TransferAddress As LongPtr '0x0
-    ZeroBits As Long '0x8
-    MaximumStackSize As LongPtr '0x10
-    CommittedStackSize As LongPtr '0x18
-    SubSystemType As ImageSubsystemType
-    SubSystemVersion As Long
-    [Description("GpValue on 6.2")]
-    OperatingSystemVersion As Long
-    ImageCharacteristics As Integer
-    DllCharacteristics As Integer
-    Machine As Integer
-    ImageContainsCode As Byte
-    ' union
-    ' {
-        ' UCHAR ImageFlags;                                                   //0x33
-        ' struct
-        ' {
-            ' UCHAR ComPlusNativeReady : 1;                                     //0x33
-            ' UCHAR ComPlusILOnly : 1;                                          //0x33
-            ' UCHAR ImageDynamicallyRelocated : 1;                              //0x33
-            ' UCHAR ImageMappedFlat : 1;                                        //0x33
-            ' UCHAR BaseBelow4gb : 1;                                           //0x33
-            ' UCHAR ComPlusPrefer32bit : 1;                                     //0x33
-            ' UCHAR Reserved : 2;                                               //0x33
-        ' };
-    ' };
-    [Description("Values in SectionImageBitfield")]
-    /* [ TypeHint(SectionImageBitfield) ] */ ImageFlags As Byte
-    LoaderFlags As Long
-    ImageFileSize As Long
-    Checksum As Long
-End Type
 
 Public Type PROCESS_CYCLE_TIME_INFORMATION
     AccumulatedCycles As LongLong
@@ -2134,6 +2093,9 @@ Public Enum PEB_BITFIELD_NEW
     PebNIsLongPathAwareProcess = &H80
 End Enum
 
+Public Delegate Sub PS_POST_PROCESS_INIT_ROUTINE ()
+
+
 [Description("This is the base compatibility PEB, usuable from Windows XP through 11+. For additional members, see additional PEBs, e.g. PEB_VISTA.")]
 Public Type PEB
     InheritedAddressSpace As Byte
@@ -2194,7 +2156,11 @@ Public Type PEB
     #Else
     GdiHandleBuffer(33) As Long
     #End If
+    ' #If WINDEVLIB_NO_DELEGATES Then
     PostProcessInitRoutine As LongPtr
+    ' #Else
+    ' PostProcessInitRoutine As PS_POST_PROCESS_INIT_ROUTINE
+    ' #End If
     TlsExpansionBitmap As LongPtr
     TlsExpansionBitmapBits(31) As Long
     SessionId As Long
@@ -4166,6 +4132,107 @@ Public Enum NTSectionAccessRights
     SECTION_ALL_ACCESS = (STANDARD_RIGHTS_REQUIRED Or SECTION_QUERY Or SECTION_MAP_WRITE Or SECTION_MAP_READ Or SECTION_MAP_EXECUTE Or SECTION_EXTEND_SIZE)
 End Enum
 
+Public Enum SECTION_INFORMATION_CLASS
+    SectionBasicInformation   ' q; SECTION_BASIC_INFORMATION
+    SectionImageInformation   ' q; SECTION_IMAGE_INFORMATION
+    SectionRelocationInformation   ' q; ULONG_PTR RelocationDelta // name:wow64:whNtQuerySection_SectionRelocationInformation // since WIN7
+    SectionOriginalBaseInformation   ' q; PVOID BaseAddress // since REDSTONE
+    SectionInternalImageInformation   ' SECTION_INTERNAL_IMAGE_INFORMATION // since REDSTONE2
+    MaxSectionInfoClass
+End Enum
+
+Public Type SECTION_BASIC_INFORMATION
+    BaseAddress As LongPtr
+    AllocationAttributes As Long
+    MaximumSize As LARGE_INTEGER
+End Type
+
+Public Enum SectionImageBitfield
+    SECIMG_ComPlusNativeReady = &B1
+    SECIMG_ComPlusILOnly = &B10
+    SECIMG_ImageDynamicallyRelocated = &B100
+    SECIMG_ImageMappedFlat = &B1000
+    SECIMG_BaseBelow4gb = &B10000
+    SECIMG_ComPlusPrefer32bit = &B100000
+End Enum
+Public Type SECTION_IMAGE_INFORMATION
+    TransferAddress As LongPtr '0x0
+    ZeroBits As Long '0x8
+    MaximumStackSize As LongPtr '0x10
+    CommittedStackSize As LongPtr '0x18
+    SubSystemType As ImageSubsystemType
+    ' union
+    ' {
+        ' struct
+        ' {
+            ' USHORT SubSystemMinorVersion;
+            ' USHORT SubSystemMajorVersion;
+        ' };
+        ' ULONG SubSystemVersion;
+    ' };
+    SubSystemVersion As Long
+    ' union
+    ' {
+        ' struct
+        ' {
+            ' USHORT MajorOperatingSystemVersion;
+            ' USHORT MinorOperatingSystemVersion;
+        ' };
+        ' ULONG OperatingSystemVersion;
+    ' };
+    [Description("GpValue on 6.2")]
+    OperatingSystemVersion As Long
+    ImageCharacteristics As Integer
+    DllCharacteristics As Integer
+    Machine As Integer
+    ImageContainsCode As Byte
+    ' union
+    ' {
+        ' UCHAR ImageFlags;                                                   //0x33
+        ' struct
+        ' {
+            ' UCHAR ComPlusNativeReady : 1;                                     //0x33
+            ' UCHAR ComPlusILOnly : 1;                                          //0x33
+            ' UCHAR ImageDynamicallyRelocated : 1;                              //0x33
+            ' UCHAR ImageMappedFlat : 1;                                        //0x33
+            ' UCHAR BaseBelow4gb : 1;                                           //0x33
+            ' UCHAR ComPlusPrefer32bit : 1;                                     //0x33
+            ' UCHAR Reserved : 2;                                               //0x33
+        ' };
+    ' };
+    [Description("Values in SectionImageBitfield")]
+    /* [ TypeHint(SectionImageBitfield) ] */ ImageFlags As Byte
+    LoaderFlags As Long
+    ImageFileSize As Long
+    Checksum As Long
+End Type
+
+Public Type SECTION_INTERNAL_IMAGE_INFORMATION
+    SectionInformation As SECTION_IMAGE_INFORMATION
+    ' union
+    ' {
+        ' ULONG ExtendedFlags;
+        ' struct
+        ' {
+            ' ULONG ImageExportSuppressionEnabled : 1;
+            ' ULONG ImageCetShadowStacksReady : 1; // 20H1
+            ' ULONG ImageXfgEnabled : 1; // 20H2
+            ' ULONG ImageCetShadowStacksStrictMode : 1;
+            ' ULONG ImageCetSetContextIpValidationRelaxedMode : 1;
+            ' ULONG ImageCetDynamicApisAllowInProc : 1;
+            ' ULONG ImageCetDowngradeReserved1 : 1;
+            ' ULONG ImageCetDowngradeReserved2 : 1;
+            ' ULONG Reserved : 24;
+        ' };
+    ' };
+    ExtendedFlags As Long
+End Type
+
+Public Enum SECTION_INHERIT
+    SECINH_ViewShare = 1
+    SECINH_ViewUnmap = 2
+End Enum
+
 Public Enum NTSectionFlags
     SEC_HUGE_PAGES = &H00020000
     SEC_PARTITION_OWNER_HANDLE = &H00040000
@@ -4192,6 +4259,17 @@ Public Enum FileMapFlags
     FILE_MAP_LARGE_PAGES = &H20000000
 End Enum
 
+Public Enum MemExtendedParameterFlags
+    MEM_EXTENDED_PARAMETER_GRAPHICS = &H00000001
+    MEM_EXTENDED_PARAMETER_NONPAGED = &H00000002
+    MEM_EXTENDED_PARAMETER_ZERO_PAGES_OPTIONAL = &H00000004
+    MEM_EXTENDED_PARAMETER_NONPAGED_LARGE = &H00000008
+    MEM_EXTENDED_PARAMETER_NONPAGED_HUGE = &H00000010
+    MEM_EXTENDED_PARAMETER_SOFT_FAULT_PAGES = &H00000020
+    MEM_EXTENDED_PARAMETER_EC_CODE = &H00000040
+End Enum
+Public Const MEM_EXTENDED_PARAMETER_NUMA_NODE_MANDATORY = MINLONG64
+
 Public Enum MEM_EXTENDED_PARAMETER_TYPE
     MemExtendedParameterInvalidType = 0
     MemExtendedParameterAddressRequirements = 1
@@ -4204,13 +4282,25 @@ Public Enum MEM_EXTENDED_PARAMETER_TYPE
 End Enum
 Public Type MEM_EXTENDED_PARAMETER
     Type As LongLong
-    SizeOrHandleOrPointer As LongPtr
+    ' union {
+        ' DWORD64 ULong64;
+        ' PVOID Pointer;
+        ' SIZE_T Size;
+        ' HANDLE Handle;
+        ' DWORD ULong;
+    ' } DUMMYUNIONNAME;    
+    SizeOrHandleOrPointer As LongLong
 End Type
 Public Type MEM_ADDRESS_REQUIREMENTS
     LowestStartingAddress As LongPtr
     HighestEndingAddress As LongPtr
     Alignment As LongPtr
 End Type
+
+Public Const MEMORY_CURRENT_PARTITION_HANDLE As LongPtr = -1
+Public Const MEMORY_SYSTEM_PARTITION_HANDLE As LongPtr = -2
+Public Const MEMORY_EXISTING_VAD_PARTITION_HANDLE As LongPtr = -3
+
 
 Public Type MEMORY_BASIC_INFORMATION
     BaseAddress As LongPtr
@@ -7762,7 +7852,7 @@ End Type
 [Description("Change the protection flags of a memory address")] Public Declare PtrSafe Function VirtualProtect Lib "kernel32" (ByVal lpAddress As LongPtr, ByVal dwSize As LongPtr, ByVal flNewProtect As MemProtectFlags, ByRef lpflOldProtect As MemProtectFlags) As Long
 Public Declare PtrSafe Function VirtualProtectEx Lib "kernel32" (ByVal hProcess As LongPtr, ByVal lpAddress As LongPtr, ByVal dwSize As LongPtr, ByVal flNewProtect As MemProtectFlags, ByRef lpflOldProtect As MemProtectFlags) As Long
 Public Declare PtrSafe Function VirtualAlloc Lib "kernel32" (ByVal lpAddress As LongPtr, ByVal dwSize As LongPtr, ByVal flAllocationType As MemAllocType, ByVal flProtect As MemProtectFlags) As LongPtr
-Public Declare PtrSafe Function VirtualAlloc2 Lib "kernelbase" (ByVal Process As LongPtr, ByVal lpAddress As LongPtr, ByVal dwSize As LongPtr, ByVal AllocationType As MemAllocType, ByVal PageProtection As MemProtectFlags, ExtendedParameters As MEM_EXTENDED_PARAMETER, ByVal ParameterCount As Long) As LongPtr
+Public Declare PtrSafe Function VirtualAlloc2 Lib "kernelbase" (ByVal Process As LongPtr, ByVal lpAddress As LongPtr, ByVal dwSize As LongPtr, ByVal AllocationType As MemAllocType, ByVal PageProtection As MemProtectFlags, ExtendedParameters As Any, ByVal ParameterCount As Long) As LongPtr
 Public Declare PtrSafe Function VirtualAllocEx Lib "kernel32" (ByVal Process As LongPtr, ByVal lpAddress As LongPtr, ByVal dwSize As LongPtr, ByVal flAllocationType As MemAllocType, ByVal flProtect As MemProtectFlags) As LongPtr
 Public Declare PtrSafe Function VirtualAllocExNuma Lib "kernel32" (ByVal hProcess As LongPtr, ByVal lpAddress As LongPtr, ByVal dwSize As LongPtr, ByVal flAllocationType As MemAllocType, ByVal flProtect As MemProtectFlags, ByVal nndPreferred As Long) As LongPtr
 Public Declare PtrSafe Function VirtualFree Lib "kernel32" (ByVal lpAddress As LongPtr, ByVal dwSize As LongPtr, ByVal dwFreeType As MemAllocType) As BOOL
@@ -7772,7 +7862,7 @@ Public Declare PtrSafe Function VirtualUnlock Lib "kernel32" (ByVal lpAddress As
 Public Declare PtrSafe Function VirtualQuery Lib "kernel32" (ByVal lpAddress As LongPtr, lpBuffer As MEMORY_BASIC_INFORMATION, ByVal dwLength As LongPtr) As LongPtr
 Public Declare PtrSafe Function VirtualQueryEx Lib "kernel32" (ByVal hProcess As LongPtr, ByVal lpAddress As LongPtr, lpBuffer As MEMORY_BASIC_INFORMATION, ByVal dwLength As LongPtr) As LongPtr
 Public Declare PtrSafe Function AllocateUserPhysicalPages Lib "kernel32" (ByVal hProcess As LongPtr, ByRef NumberOfPages As LongPtr, PageArray As LongPtr) As BOOL
-Public Declare PtrSafe Function AllocateUserPhysicalPages2 Lib "kernelbase" (ByVal hProcess As LongPtr, ByRef NumberOfPages As LongPtr, PageArray As LongPtr, ExtendedParameters As MEM_EXTENDED_PARAMETER, ByVal ExtendedParameterCount As Long) As BOOL
+Public Declare PtrSafe Function AllocateUserPhysicalPages2 Lib "kernelbase" (ByVal hProcess As LongPtr, ByRef NumberOfPages As LongPtr, PageArray As LongPtr, ExtendedParameters As Any, ByVal ExtendedParameterCount As Long) As BOOL
 Public Declare PtrSafe Function AllocateUserPhysicalPagesNuma Lib "kernel32" (ByVal hProcess As LongPtr, ByRef NumberOfPages As LongPtr, PageArray As LongPtr, ByVal nndPreferred As Long) As BOOL
 Public Declare PtrSafe Function MapUserPhysicalPages Lib "kernel32" (ByVal VirtualAddress As LongPtr, ByVal NumberOfPages As LongPtr, PageArray As LongPtr) As BOOL
 Public Declare PtrSafe Function MapUserPhysicalPagesScatter Lib "kernel32" (VirtualAddress As LongPtr, ByVal NumberOfPages As LongPtr, PageArray As LongPtr) As BOOL
@@ -8844,7 +8934,8 @@ Public Declare PtrSafe Function GetFileType Lib "kernel32" (ByVal hFile As LongP
 Public Declare PtrSafe Function CreateFileMappingA Lib "kernel32" (ByVal hFile As LongPtr, lpFileMappingAttributes As SECURITY_ATTRIBUTES, [TypeHint(MemProtectFlags, NTSectionFlags)] ByVal flProtect As Long, ByVal dwMaximumSizeHigh As Long, ByVal dwMaximumSizeLow As Long, Optional ByVal lpName As String) As LongPtr
 Public Declare PtrSafe Function CreateFileMappingW Lib "kernel32" (ByVal hFile As LongPtr, lpFileMappingAttributes As SECURITY_ATTRIBUTES, [TypeHint(MemProtectFlags, NTSectionFlags)] ByVal flProtect As Long, ByVal dwMaximumSizeHigh As Long, ByVal dwMaximumSizeLow As Long, Optional ByVal lpName As LongPtr) As LongPtr
 Public DeclareWide PtrSafe Function CreateFileMapping Lib "kernel32" Alias "CreateFileMappingW" (ByVal hFile As LongPtr, lpFileMappingAttributes As SECURITY_ATTRIBUTES, [TypeHint(MemProtectFlags, NTSectionFlags)] ByVal flProtect As Long, ByVal dwMaximumSizeHigh As Long, ByVal dwMaximumSizeLow As Long, Optional ByVal lpName As String) As LongPtr
-Public DeclareWide PtrSafe Function CreateFileMapping2 Lib "kernelbase" (ByVal hFile As LongPtr, lpFileMappingAttributes As SECURITY_ATTRIBUTES, [TypeHint(GenericRights, FileMapFlags)] ByVal DesiredAccess As Long, ByVal PageProtection As MemProtectFlags, ByVal AllocationAttributes As NTSectionFlags, ByVal MaximumSize As LongLong, ByVal Name As String, ExtendedParameters As MEM_EXTENDED_PARAMETER, ByVal ParameterCount As Long) As LongPtr
+Public Declare PtrSafe Function CreateFileMapping2 Lib "kernelbase" (ByVal hFile As LongPtr, lpFileMappingAttributes As SECURITY_ATTRIBUTES, [TypeHint(GenericRights, FileMapFlags)] ByVal DesiredAccess As Long, ByVal PageProtection As MemProtectFlags, ByVal AllocationAttributes As NTSectionFlags, ByVal MaximumSize As LongLong, ByVal Name As LongPtr, ExtendedParameters As Any, ByVal ParameterCount As Long) As LongPtr
+Public DeclareWide PtrSafe Function CreateFileMapping2 Lib "kernelbase" (ByVal hFile As LongPtr, lpFileMappingAttributes As SECURITY_ATTRIBUTES, [TypeHint(GenericRights, FileMapFlags)] ByVal DesiredAccess As Long, ByVal PageProtection As MemProtectFlags, ByVal AllocationAttributes As NTSectionFlags, ByVal MaximumSize As LongLong, ByVal Name As String, ExtendedParameters As Any, ByVal ParameterCount As Long) As LongPtr
 Public Declare PtrSafe Function CreateFileMappingNumaA Lib "kernel32" (ByVal hFile As LongPtr, lpFileMappingAttributes As SECURITY_ATTRIBUTES, [TypeHint(MemProtectFlags, NTSectionFlags)] ByVal flProtect As Long, ByVal dwMaximumSizeHigh As Long, ByVal dwMaximumSizeLow As Long, ByVal lpName As String, ByVal nndPreferred As Long) As LongPtr
 Public Declare PtrSafe Function CreateFileMappingNumaW Lib "kernel32" (ByVal hFile As LongPtr, lpFileMappingAttributes As SECURITY_ATTRIBUTES, [TypeHint(MemProtectFlags, NTSectionFlags)] ByVal flProtect As Long, ByVal dwMaximumSizeHigh As Long, ByVal dwMaximumSizeLow As Long, ByVal lpName As LongPtr, ByVal nndPreferred As Long) As LongPtr
 Public DeclareWide PtrSafe Function CreateFileMappingNuma Lib "kernel32" Alias "CreateFileMappingNumaW" (ByVal hFile As LongPtr, lpFileMappingAttributes As SECURITY_ATTRIBUTES, [TypeHint(MemProtectFlags, NTSectionFlags)] ByVal flProtect As Long, ByVal dwMaximumSizeHigh As Long, ByVal dwMaximumSizeLow As Long, ByVal lpName As String, ByVal nndPreferred As Long) As LongPtr
@@ -8856,7 +8947,7 @@ Public Function MapViewOfFile2(ByVal FileMappingHandle As LongPtr, ByVal Process
     Return MapViewOfFileNuma2(FileMappingHandle, ProcessHandle, Offset, BaseAddress, ViewSize, AllocationType, PageProtection, NUMA_NO_PREFERRED_NODE)
 End Function
 Public Declare PtrSafe Function MapViewOfFileNuma2 Lib "kernelbase" (ByVal FileMappingHandle As LongPtr, ByVal ProcessHandle As LongPtr, ByVal Offset As LongLong, ByVal BaseAddress As LongPtr, ByVal ViewSize As LongPtr, ByVal AllocationType As MemAllocType, ByVal PageProtection As MemProtectFlags, ByVal PreferredNode As Long) As LongPtr
-Public Declare PtrSafe Function MapViewOfFile3 Lib "kernelbase" (ByVal FileMappingHandle As LongPtr, ByVal ProcessHandle As LongPtr, ByVal Offset As LongLong, ByVal BaseAddress As LongPtr, ByVal ViewSize As LongPtr, ByVal AllocationType As MemAllocType, ByVal PageProtection As MemProtectFlags, ExtendedParameters As MEM_EXTENDED_PARAMETER, ByVal ParameterCount As Long) As LongPtr
+Public Declare PtrSafe Function MapViewOfFile3 Lib "kernelbase" (ByVal FileMappingHandle As LongPtr, ByVal ProcessHandle As LongPtr, ByVal Offset As LongLong, ByVal BaseAddress As LongPtr, ByVal ViewSize As LongPtr, ByVal AllocationType As MemAllocType, ByVal PageProtection As MemProtectFlags, ExtendedParameters As Any, ByVal ParameterCount As Long) As LongPtr
 Public Declare PtrSafe Function MapViewOfFileEx Lib "kernel32" (ByVal hFileMappingObject As LongPtr, ByVal dwDesiredAccess As FileMapFlags, ByVal dwFileOffsetHigh As Long, ByVal dwFileOffsetLow As Long, ByVal dwNumberOfBytesToMap As LongPtr, Optional ByVal lpBaseAddress As LongPtr) As LongPtr
 Public Declare PtrSafe Function FlushViewOfFile Lib "kernel32" (ByVal lpBaseAddress As LongPtr, ByVal dwNumberOfBytesToFlush As LongPtr) As BOOL
 Public Declare PtrSafe Function UnmapViewOfFile Lib "kernel32" (ByVal BaseAddress As LongPtr) As BOOL
@@ -13389,8 +13480,15 @@ Public Type OBJECT_BASIC_INFORMATION
     TypeInfoSize As Long
     SecurityDescriptorSize As Long
     CreationTime As LongLong
+End  Type
+[Description("Note: Full type available as OBJECT_BASIC_INFORMATION")]
+Public Type PUBLIC_OBJECT_BASIC_INFORMATION
+    Attributes As ObjectAttributeValues
+    GrantedAccess As Long
+    HandleCount As Long
+    PointerCount As Long
+    Reserved(9) As Long
 End Type
-
 Public Type OBJECT_NAME_INFORMATION
     Name As UNICODE_STRING
 End Type
@@ -13431,7 +13529,11 @@ Public Type OBJECT_TYPE_INFORMATION
     DefaultPagedPoolCharge      As Long    'ULONG   '
     DefaultNonPagedPoolCharge   As Long    'ULONG   ' total 22 x ULONG
 End Type
-
+[Description("Note: Full type available as OBJECT_TYPE_INFORMATION")]
+Public Type PUBLIC_OBJECT_TYPE_INFORMATION
+    TypeName As UNICODE_STRING
+    Reserved(0 To 21) As Long ' reserved for internal use
+End Type
 Public Type OBJECT_DIRECTORY_INFORMATION
     Name As UNICODE_STRING
     TypeName As UNICODE_STRING
@@ -13857,6 +13959,18 @@ Public Type SYSTEM_THREAD_INFORMATION
     ContextSwitches As Long
     ThreadState As Long
     WaitReason As Long
+End Type
+
+Public Type SYSTEM_LOOKASIDE_INFORMATION
+    CurrentDepth As Long
+    MaximumDepth As Long
+    TotalAllocates As Long
+    AllocateMisses As Long
+    TotalFrees As Long
+    FreeMisses As Long
+    Type As Long
+    Tag As Long
+    Size As Long
 End Type
 
 Public Type SYSTEM_CALL_COUNT_INFORMATION
@@ -14750,8 +14864,14 @@ Public Type RTL_BITMAP
     SizeOfBitMap As Long
     Buffer As LongPtr
 End Type
-
-
+Public Type RTL_BITMAP_RUN
+    StartingIndex As Long
+    NumberOfBits As Long
+End Type
+Public Type RTL_BITMAP_EX
+    SizeOfBitMap As LongLong
+    Buffer As LongPtr
+End Type
 
 Public Enum SYSTEM_ACTIVITY_MODERATION_STATE
     SystemActivityModerationStateSystemManaged = 0
@@ -16121,6 +16241,26 @@ End Type
 Public Type FILE_FS_DATA_COPY_INFORMATION
     NumberOfCopies As Long
 End Type
+
+Public Type FILE_FS_GUID_INFORMATION
+    FsGuid As UUID
+End Type
+
+Public Enum FileEndOfFileExFlags
+    FLAGS_END_OF_FILE_INFO_EX_EXTEND_PAGING = &H00000001
+    FLAGS_END_OF_FILE_INFO_EX_NO_EXTRA_PAGING_EXTEND = &H00000002
+    FLAGS_END_OF_FILE_INFO_EX_TIME_CONSTRAINED = &H00000004
+End Enum
+Public Enum NtDelayReasonFlags
+    FLAGS_DELAY_REASONS_LOG_FILE_FULL = &H00000001
+    FLAGS_DELAY_REASONS_BITMAP_SCANNED = &H00000002
+End Enum
+Public Type FILE_END_OF_FILE_INFORMATION_EX
+    EndOfFile As LARGE_INTEGER
+    PagingFileSizeInMM As LARGE_INTEGER
+    PagingFileMaxSize As LARGE_INTEGER
+    Flags As FileEndOfFileExFlags
+End Type
 Public Enum SECTOR_SIZE_FLAGS
     SSINFO_FLAGS_ALIGNED_DEVICE = &H00000001
 '   If SET the partition is properly aligned with the alignment of the device
@@ -17083,10 +17223,6 @@ Public Type RTL_MODULE_EXTENDED_INFO
     FullPathName(0 To 255) As Byte
 End Type
 
-Public Enum SECTION_INHERIT
-    SECINH_ViewShare = 1
-    SECINH_ViewUnmap = 2
-End Enum
 
 Public Const UNIFIEDBUILDREVISION_KEY  = "\Registry\Machine\Software\Microsoft\Windows NT\CurrentVersion"
 Public Const UNIFIEDBUILDREVISION_VALUE  = "UBR"
@@ -17631,9 +17767,40 @@ Public Type API_SET_VALUE_ENTRY
     ValueLength As Long
 End Type
 
+Public Enum NtCopyFileChunkFlags
+    COPY_FILE_CHUNK_DUPLICATE_EXTENTS = &H00000001
+    VALID_COPY_FILE_CHUNK_FLAGS = (COPY_FILE_CHUNK_DUPLICATE_EXTENTS)
+End Enum
 
+Public Enum NtFlushFileFlags
+' //
+' //  If set, this operation will write the data for the given file from the
+' //  Windows in-memory cache.  This will NOT commit any associated metadata
+' //  changes.  This will NOT send a SYNC to the storage device to flush its
+' //  cache.  Not supported on volume handles.
+' //
+    FLUSH_FLAGS_FILE_DATA_ONLY = &H00000001
+'   If set, this operation will commit both the data and metadata changes for
+'   the given file from the Windows in-memory cache.  This will NOT send a SYNC
+'   to the storage device to flush its cache.  Not supported on volume handles.
+    FLUSH_FLAGS_NO_SYNC = &H00000002
+' #endif  // (NTDDI_VERSION >= NTDDI_WIN8)
+' #if (NTDDI_VERSION >= NTDDI_WIN10_RS1)
+'   If set, this operation will write the data for the given file from the
+'   Windows in-memory cache.  It will also try to skip updating the timestamp
+'   as much as possible.  This will send a SYNC to the storage device to flush its
+'   cache.  Not supported on volume or directory handles.
+    FLUSH_FLAGS_FILE_DATA_SYNC_ONLY = &H00000004
+' #endif  // (NTDDI_VERSION >= NTDDI_WIN10_RS1)
+' #if (NTDDI_VERSION >= NTDDI_WIN11_GA)
+'   If set, this operation will write the data for the given file from the
+'   Windows in-memory cache.  It will also try to skip updating the timestamp
+'   as much as possible.  This will send a SYNC to the storage device to flush its
+'   cache.  Not supported on volume or directory handles.
+    FLUSH_FLAGS_FLUSH_AND_PURGE = &H00000008
+End Enum
 
-
+ 
 'NTDLL APIs should only be added if they don't have higher level equivalents. If the NTDLL version has substantially more functionality, it's not equivalent and should be added.
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtQuerySystemInformation Lib "ntdll" (ByVal SystemInformationClass As SYSTEM_INFORMATION_CLASS, SystemInformation As Any, ByVal SystemInformationLength As Long, ReturnLength As Long) As Long
@@ -17670,15 +17837,19 @@ Public Declare PtrSafe Function NtWriteFile Lib "ntdll" (ByVal FileHandle As Lon
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtLockFile Lib "ntdll" (ByVal FileHandle As LongPtr, ByVal hEvent As LongPtr, ByVal ApcRoutine As LongPtr, ByVal ApcContext As LongPtr, ByRef IoStatusBlock As IO_STATUS_BLOCK, ByteOffset As LARGE_INTEGER, Length As LARGE_INTEGER, ByVal Key As Long, ByVal FailImmediately As Byte, ByVal ExclusiveLock As Byte) As NTSTATUS
 [UseGetLastError(False)]
+Public Declare PtrSafe Function NtFsControlFile Lib "ntdll" (ByVal FileHandle As LongPtr, ByVal hEvent As LongPtr, ByVal ApcRoutine As LongPtr, ByVal ApcContext As LongPtr, ByRef IoStatusBlock As IO_STATUS_BLOCK, ByVal FsControlCode As Long, InputBuffer As Any, ByVal InputBufferLength As Long, OutputBuffer As Any, ByVal OutputBufferLength As Long) As NTSTATUS
+[UseGetLastError(False)]
 Public Declare PtrSafe Function NtUnlockFile Lib "ntdll" (ByVal FileHandle As LongPtr, ByRef IoStatusBlock As IO_STATUS_BLOCK, ByteOffset As LARGE_INTEGER, Length As LARGE_INTEGER, ByVal Key As Long) As NTSTATUS
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtQueryDirectoryFile Lib "ntdll" (ByVal FileHandle As LongPtr, ByVal hEvent As LongPtr, ByVal ApcRoutine As LongPtr, ByVal ApcContext As LongPtr, ByRef IoStatusBlock As IO_STATUS_BLOCK, FileInformation As Any, ByVal Length As Long, ByVal FileInformationClass As FILE_INFORMATION_CLASS, ByVal ReturnSingleEntry As Byte, FileName As Any, ByVal RestartScan As Byte) As NTSTATUS
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtQueryDirectoryFileEx Lib "ntdll" (ByVal FileHandle As LongPtr, ByVal hEvent As LongPtr, ByVal ApcRoutine As LongPtr, ByVal ApcContext As LongPtr, ByRef IoStatusBlock As IO_STATUS_BLOCK, FileInformation As Any, ByVal Length As Long, ByVal FileInformationClass As FILE_INFORMATION_CLASS, ByVal QueryFlags As NtFileQueryFlags, Filename As UNICODE_STRING) As NTSTATUS
 [UseGetLastError(False)]
-Public Declare PtrSafe Function NtQueryInformationFile Lib "ntdll" (ByVal FileHandle As LongPtr, IoStatusBlock As IO_STATUS_BLOCK, lpFileInformation As Any, ByVal Length As Long, ByVal FileInformationClass As FILE_INFORMATION_CLASS) As NTSTATUS
+Public Declare PtrSafe Function NtQueryInformationByName Lib "ntdll" (ObjectAttributes As OBJECT_ATTRIBUTES, IoStatusBlock As IO_STATUS_BLOCK, FileInformation As Any, ByVal Length As Long, ByVal FileInformationClass As FILE_INFORMATION_CLASS) As NTSTATUS
 [UseGetLastError(False)]
-Public Declare PtrSafe Function NtSetInformationFile Lib "ntdll" (ByVal FileHandle As LongPtr, IoStatusBlock As IO_STATUS_BLOCK, lpFileInformation As Any, ByVal Length As Long, ByVal FileInformationClass As FILE_INFORMATION_CLASS) As NTSTATUS
+Public Declare PtrSafe Function NtQueryInformationFile Lib "ntdll" (ByVal FileHandle As LongPtr, IoStatusBlock As IO_STATUS_BLOCK, FileInformation As Any, ByVal Length As Long, ByVal FileInformationClass As FILE_INFORMATION_CLASS) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtSetInformationFile Lib "ntdll" (ByVal FileHandle As LongPtr, IoStatusBlock As IO_STATUS_BLOCK, FileInformation As Any, ByVal Length As Long, ByVal FileInformationClass As FILE_INFORMATION_CLASS) As NTSTATUS
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtSetEaFile Lib "ntdll" (ByVal FileHandle As LongPtr, IoStatusBlock As IO_STATUS_BLOCK, Buffer As Any, ByVal Length As Long) As NTSTATUS
 [UseGetLastError(False)]
@@ -17687,8 +17858,16 @@ Public Declare PtrSafe Function NtQueryVolumeInformationFile Lib "ntdll" (ByVal 
 Public Declare PtrSafe Function NtSetVolumeInformationFile Lib "ntdll" (ByVal FileHandle As LongPtr, IoStatusBlock As IO_STATUS_BLOCK, FsInformation As Any, ByVal Length As Long, ByVal FsInformationClass As FS_INFORMATION_CLASS) As NTSTATUS
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtQueryFullAttributesFile Lib "ntdll" (ObjectAttributes As OBJECT_ATTRIBUTES, Attributes As Any) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtQueryQuotaInformationFile Lib "ntdll" (ByVal FileHandle As LongPtr, IoStatusBlock As IO_STATUS_BLOCK, Buffer As Any, ByVal Length As Long, ByVal ReturnSingleEntry As Byte, ByVal SidList As LongPtr, ByVal SidListLength As Long, ByVal StartSid As LongPtr, ByVal RestartScan As Byte) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtSetQuotaInformationFile Lib "ntdll" (ByVal FileHandle As LongPtr, IoStatusBlock As IO_STATUS_BLOCK, Buffer As Any, ByVal Length As Long) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtFlushBuffersFileEx Lib "ntdll" (ByVal FileHandle As LongPtr, ByVal Flags As NtFlushFileFlags, Parameters As Any, ByVal ParametersSize As Long, IoStatusBlock As IO_STATUS_BLOCK) As NTSTATUS
 Public Declare PtrSafe Function NtCancelIoFile Lib "ntdll" (ByVal hFile As LongPtr) As BOOL
 Public Declare PtrSafe Function NtCancelIoFileEx Lib "ntdll" (ByVal hFile As LongPtr, lpOverlapped As OVERLAPPED) As BOOL
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtCopyFileChunk Lib "ntdll" (ByVal SourceHandle As LongPtr, ByVal DestHandle As LongPtr, ByVal Event As LongPtr, IoStatusBlock As IO_STATUS_BLOCK, ByVal Length As Long, SourceOffset As LARGE_INTEGER, DestOffset As LARGE_INTEGER, SourceKey As Long, DestKey As Long, [TypeHint(NtCopyFileChunkFlags)] ByVal Flags As Long) As NTSTATUS
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtImpersonateThread Lib "ntdll" (ByVal hThread As LongPtr, ByVal hThreadToImpersonate As LongPtr, SecurityQualityOfService As SECURITY_QUALITY_OF_SERVICE) As NTSTATUS
 [UseGetLastError(False)]
@@ -17758,17 +17937,23 @@ Public Declare PtrSafe Function NtQuerySecurityAttributesToken Lib "ntdll" (ByVa
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtCreateSection Lib "ntdll" (SectionHandle As LongPtr, [TypeHint(StandardAccessTypes, NTSectionAccessRights)] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, MaximumSize As LARGE_INTEGER, ByVal SectionPageProtection As MemProtectFlags, ByVal AllocationAttributes As NTSectionFlags, Optional ByVal FileHandle As LongPtr) As NTSTATUS
 [UseGetLastError(False)]
-Public Declare PtrSafe Function NtCreateSectionEx Lib "ntdll" (SectionHandle As LongPtr, [TypeHint(StandardAccessTypes, NTSectionAccessRights)] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, MaximumSize As LARGE_INTEGER, ByVal SectionPageProtection As MemProtectFlags, ByVal AllocationAttributes As NTSectionFlags, ByVal FileHandle As LongPtr, ExtendedParameters As MEM_EXTENDED_PARAMETER, ByVal ExtendedParameterCount As Long) As NTSTATUS
+Public Declare PtrSafe Function NtCreateSectionEx Lib "ntdll" (SectionHandle As LongPtr, [TypeHint(StandardAccessTypes, NTSectionAccessRights)] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, MaximumSize As LARGE_INTEGER, ByVal SectionPageProtection As MemProtectFlags, ByVal AllocationAttributes As NTSectionFlags, ByVal FileHandle As LongPtr, ExtendedParameters As Any, ByVal ExtendedParameterCount As Long) As NTSTATUS
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtOpenSection Lib "ntdll" (SectionHandle As LongPtr, [TypeHint(StandardAccessTypes, NTSectionAccessRights, GenericRights)] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES) As NTSTATUS
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtExtendSection Lib "ntdll" (ByVal SectionHandle As LongPtr, NewSectionSize As LARGE_INTEGER) As NTSTATUS
 [UseGetLastError(False)]
+Public Declare PtrSafe Function NtQuerySection Lib "ntdll" (ByVal SectionHandle As LongPtr, ByVal SectionInformationClass As SECTION_INFORMATION_CLASS, SectionInformation As Any, ByVal SectionInformationLength As LongPtr, ReturnLength As LongPtr) As NTSTATUS
+[UseGetLastError(False)]
 Public Declare PtrSafe Function NtAreMappedFilesTheSame Lib "ntdll" (ByVal File1MappedAsAnImage As LongPtr, ByVal File2MappedAsFile As LongPtr) As NTSTATUS
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtMapViewOfSection Lib "ntdll" (ByVal SectionHandle As LongPtr, ByVal ProcessHandle As LongPtr, BaseAddress As LongPtr, ByVal ZeroBits As LongPtr, ByVal CommitSize As LongPtr, SectionOffset As LARGE_INTEGER, ViewSize As LongPtr, ByVal AllocationType As MemAllocType, ByVal Win32Protect As MemProtectFlags) As NTSTATUS
 [UseGetLastError(False)]
+Public Declare PtrSafe Function NtMapViewOfSectionEx Lib "ntdll" (ByVal SectionHandle As LongPtr, ByVal ProcessHandle As LongPtr, BaseAddress As LongPtr, ByVal ZeroBits As LongPtr, ByVal CommitSize As LongPtr, SectionOffset As LARGE_INTEGER, ViewSize As LongPtr, ByVal AllocationType As MemAllocType, ByVal Win32Protect As MemProtectFlags, ExtendedParameters As Any, ByVal ExtendedParameterCount As Long) As NTSTATUS
+[UseGetLastError(False)]
 Public Declare PtrSafe Function NtUnmapViewOfSection Lib "ntdll" (ByVal ProcessHandle As LongPtr, Optional ByVal BaseAddress As LongPtr) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtUnmapViewOfSectionEx Lib "ntdll" (ByVal ProcessHandle As LongPtr, ByVal BaseAddress As LongPtr, ByVal Flags As Long) As NTSTATUS
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtCreateProfile Lib "ntdll" (ProfileHandle As LongPtr, ByVal Process As LongPtr, ByVal ProfileBase As LongPtr, ByVal ProfileSize As LongPtr, Buffer As Long, ByVal BufferSize As Long, ByVal ProfileSource As KPROFILE_SOURCE, ByVal Affinity As LongPtr) As NTSTATUS
 [UseGetLastError(False)]
@@ -17864,6 +18049,118 @@ Public Declare PtrSafe Function _wcsrev CDecl Lib "ntdll" (ByVal _Str As LongPtr
 Public Declare PtrSafe Function wcschr CDecl Lib "ntdll" (ByVal str As LongPtr, ByVal Ch As Integer) As LongPtr
 Public Declare PtrSafe Function wcsstr CDecl Lib "ntdll" (ByVal dest As LongPtr, ByVal src As LongPtr) As LongPtr
     
+
+'Memory partitions
+Public Enum PartitionAccessRights
+    MEMORY_PARTITION_QUERY_ACCESS = &H0001
+    MEMORY_PARTITION_MODIFY_ACCESS = &H0002
+    MEMORY_PARTITION_ALL_ACCESS = (STANDARD_RIGHTS_REQUIRED Or SYNCHRONIZE Or MEMORY_PARTITION_QUERY_ACCESS Or MEMORY_PARTITION_MODIFY_ACCESS)
+End Enum
+
+Public Enum PARTITION_INFORMATION_CLASS
+    SystemMemoryPartitionInformation   ' q: MEMORY_PARTITION_CONFIGURATION_INFORMATION
+    SystemMemoryPartitionMoveMemory   ' s: MEMORY_PARTITION_TRANSFER_INFORMATION
+    SystemMemoryPartitionAddPagefile   ' s: MEMORY_PARTITION_PAGEFILE_INFORMATION
+    SystemMemoryPartitionCombineMemory   ' q; s: MEMORY_PARTITION_PAGE_COMBINE_INFORMATION
+    SystemMemoryPartitionInitialAddMemory   ' q; s: MEMORY_PARTITION_INITIAL_ADD_INFORMATION
+    SystemMemoryPartitionGetMemoryEvents   ' MEMORY_PARTITION_MEMORY_EVENTS_INFORMATION // since REDSTONE2
+    SystemMemoryPartitionSetAttributes
+    SystemMemoryPartitionNodeInformation
+    SystemMemoryPartitionCreateLargePages
+    SystemMemoryPartitionDedicatedMemoryInformation
+    SystemMemoryPartitionOpenDedicatedMemory   ' 10
+    SystemMemoryPartitionMemoryChargeAttributes
+    SystemMemoryPartitionClearAttributes
+    SystemMemoryPartitionSetMemoryThresholds   ' since WIN11
+    SystemMemoryPartitionMax
+End Enum
+
+Public Type MEMORY_PARTITION_CONFIGURATION_INFORMATION
+    Flags As Long
+    NumaNode As Long
+    Channel As Long
+    NumberOfNumaNodes As Long
+    ResidentAvailablePages As LongPtr
+    CommittedPages As LongPtr
+    CommitLimit As LongPtr
+    PeakCommitment As LongPtr
+    TotalNumberOfPages As LongPtr
+    AvailablePages As LongPtr
+    ZeroPages As LongPtr
+    FreePages As LongPtr
+    StandbyPages As LongPtr
+    StandbyPageCountByPriority(0 To 7) As LongPtr ' since REDSTONE2
+    RepurposedPagesByPriority(0 To 7) As LongPtr
+    MaximumCommitLimit As LongPtr
+    Reserved As LongPtr ' DonatedPagesToPartitions
+    PartitionId As Long ' since REDSTONE3
+End Type
+
+Public Type MEMORY_PARTITION_TRANSFER_INFORMATION
+    NumberOfPages As LongPtr
+    NumaNode As Long
+    Flags As Long
+End Type
+
+Public Type MEMORY_PARTITION_PAGEFILE_INFORMATION
+    PageFileName As UNICODE_STRING
+    MinimumSize As LARGE_INTEGER
+    MaximumSize As LARGE_INTEGER
+    Flags As Long
+End Type
+
+Public Type MEMORY_PARTITION_PAGE_COMBINE_INFORMATION
+    StopHandle As LongPtr
+    Flags As Long
+    TotalNumberOfPages As LongPtr
+End Type
+
+Public Type MEMORY_PARTITION_PAGE_RANGE
+    StartPage As LongPtr
+    NumberOfPages As LongPtr
+End Type
+
+[Description("WARNING: SAFEARRAY substituted for variable C-style array. Copy from byte buffer into fixed portion, determine size, then redim and copy into PartitionRanges(0). Header only: MEMORY_PARTITION_INITIAL_ADD_INFORMATION_Hdr")]
+Public Type MEMORY_PARTITION_INITIAL_ADD_INFORMATION
+    Flags As Long
+    NumberOfRanges As Long
+    NumberOfPagesAdded As LongPtr
+    PartitionRanges() As MEMORY_PARTITION_PAGE_RANGE
+End Type
+Public Type MEMORY_PARTITION_INITIAL_ADD_INFORMATION_Hdr
+    Flags As Long
+    NumberOfRanges As Long
+    NumberOfPagesAdded As LongPtr
+End Type
+
+Public Type MEMORY_PARTITION_MEMORY_EVENTS_INFORMATION
+    ' union
+    ' {
+        ' struct
+        ' {
+            ' ULONG CommitEvents : 1;
+            ' ULONG Spare : 31;
+        ' };
+        ' ULONG AllFlags;
+    ' } Flags;
+    Flags As Long
+    HandleAttributes As Long
+    DesiredAccess As Long
+    LowCommitCondition As LongPtr ' \KernelObjects\LowCommitCondition
+    HighCommitCondition As LongPtr ' \KernelObjects\HighCommitCondition
+    MaximumCommitCondition As LongPtr ' \KernelObjects\MaximumCommitCondition
+End Type
+
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtCreatePartition Lib "ntdll" (ByVal ParentPartitionHandle As LongPtr, PartitionHandle As LongPtr, [TypeHint(PartitionAccessRights)] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, ByVal PreferredNode As Long) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtOpenPartition Lib "ntdll" (ByVal PartitionHandle As LongPtr, [TypeHint(PartitionAccessRights)] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtManagePartition Lib "ntdll" (ByVal TargetHandle As LongPtr, ByVal SourceHandle As LongPtr, ByVal PartitionInformationClass As PARTITION_INFORMATION_CLASS, PartitionInformation As Any, ByVal PartitionInformationLength As Long) As NTSTATUS
+
+
+
+'Registry
 Public Enum NtRegBootConditionFlags
     REG_INIT_BOOT_SM = &H0000
     REG_INIT_BOOT_SETUP = &H0001
@@ -18245,12 +18542,25 @@ End Type
 [UseGetLastError(False)] Public Declare PtrSafe Sub RtlFreeAnsiString Lib "ntdll" (AnsiString As ANSI_STRING)
 [UseGetLastError(False)] Public Declare PtrSafe Sub RtlFreeOemString Lib "ntdll" (OemString As OEM_STRING)
 [UseGetLastError(False)] Public Declare PtrSafe Sub RtlInitUnicodeString Lib "ntdll" (DestinationString As Any, ByVal SourceString As LongPtr)
+Public Sub RtlInitEmptyUnicodeString(DestinationString As UNICODE_STRING, ByVal Buffer As LongPtr, ByVal MaximumLength As Integer)
+    ZeroMemory DestinationString, LenB(Of UNICODE_STRING)
+    DestinationString.MaximumLength = MaximumLength
+    DestinationString.Buffer = Buffer
+End Sub
+[UseGetLastError(False)] Public Declare PtrSafe Sub RtlInitAnsiString Lib "ntdll" (DestinationString As Any, ByVal SourceString As LongPtr)
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlInitAnsiStringEx Lib "ntdll" (DestinationString As ANSI_STRING, ByVal SourceString As LongPtr) As NTSTATUS
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlUpcaseUnicodeString Lib "ntdll" (DestinationString As UNICODE_STRING, SourceString As UNICODE_STRING, ByVal AllocateDestinationString As Byte) As Long
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlEqualUnicodeString Lib "ntdll" (String1 As UNICODE_STRING, String2 As UNICODE_STRING, ByVal CaseInSensitive As Byte) As Byte
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlCompareUnicodeString Lib "ntdll" (String1 As UNICODE_STRING, String2 As UNICODE_STRING, ByVal CaseInSensitive As Byte) As Byte
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlAnsiStringToUnicodeString Lib "ntdll" (DestinationString As UNICODE_STRING, SourceString As ANSI_STRING, ByVal AllocateDestinationString As Byte) As NTSTATUS
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlUnicodeStringToAnsiString Lib "ntdll" (DestinationString As ANSI_STRING, SourceString As UNICODE_STRING, ByVal AllocateDestinationString As Byte) As NTSTATUS
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlUnicodeStringToOemString Lib "ntdll" (DestinationString As OEM_STRING, SourceString As UNICODE_STRING, ByVal AllocateDestinationString As Byte) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlUnicodeToMultiByteSize Lib "ntdll" (BytesInMultiByteString As Long, ByVal UnicodeString As LongPtr, ByVal BytesInUnicodeString As Long) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlCharToInteger Lib "ntdll" (ByVal Str As String, ByVal Base As Long, Value As Long) As NTSTATUS
+
+Public Const LOGONID_CURRENT As Long = -1&
+Public Const SERVERNAME_CURRENT As LongPtr = 0
+
 [UseGetLastError(False)] Public Declare PtrSafe Function CompareMemory Lib "ntdll" Alias "RtlCompareMemory" (Source1 As Any, Source2 As Any, ByVal Length As LongPtr) As LongPtr
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlCompareMemory Lib "ntdll" (Source1 As Any, Source2 As Any, ByVal Length As LongPtr) As LongPtr
 Public Function EqualMemory(ByVal Source1 As LongPtr, ByVal Source2 As LongPtr, ByVal Length As LongPtr) As Boolean: Return (RtlCompareMemory(ByVal Source1, ByVal Source2, Length) = Length): End Function
@@ -18326,6 +18636,16 @@ Public Function RtlEqualMemory(ByVal Source1 As LongPtr, ByVal Source2 As LongPt
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlCreateServiceSid Lib "ntdll" (ServiceName As UNICODE_STRING, ByVal ServiceSid As LongPtr, ServiceSidLength As Long) As NTSTATUS
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlImpersonateSelf Lib "ntdll" (ByVal ImpersonationLevel As SECURITY_IMPERSONATION_LEVEL) As NTSTATUS
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlImpersonateSelfEx Lib "ntdll" (ByVal ImpersonationLevel As SECURITY_IMPERSONATION_LEVEL, ByVal AdditionalAccess As TokenAccessRights, Optional ThreadToken As LongPtr) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlDeriveCapabilitySidsFromName Lib "ntdll" (UnicodeString As UNICODE_STRING, ByVal CapabilityGroupSid As LongPtr, ByVal CapabilitySid As LongPtr) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlIsElevatedRid Lib "ntdll" (SidAttr As SID_AND_ATTRIBUTES) As Byte
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlSidHashLookup Lib "ntdll" (SidAttrHash As SID_AND_ATTRIBUTES_HASH, ByVal Sid As LongPtr) As LongPtr
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlSidHashInitialize Lib "ntdll" (SidAttr As SID_AND_ATTRIBUTES, ByVal SidCount As Long, SidAttrHash As SID_AND_ATTRIBUTES_HASH) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlDefaultNpAcl Lib "ntdll" (Acl As LongPtr) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlNewSecurityObject Lib "ntdll" (ParentDescriptor As SECURITY_DESCRIPTOR, CreatorDescriptor As SECURITY_DESCRIPTOR, NewDescriptor As LongPtr, ByVal IsDirectoryObject As Byte, ByVal Token As LongPtr, GenericMapping As GENERIC_MAPPING) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlNewSecurityObjectEx Lib "ntdll" (ParentDescriptor As SECURITY_DESCRIPTOR, CreatorDescriptor As SECURITY_DESCRIPTOR, NewDescriptor As LongPtr, ObjectType As UUID, ByVal IsDirectoryObject As Byte, ByVal AutoInheritFlags As SEF_FLAGS, ByVal Token As LongPtr, GenericMapping As GENERIC_MAPPING) As NTSTATUS
+
+
+
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlCreateMemoryZone Lib "ntdll" (MemoryZone As LongPtr, ByVal InitializeSize As LongPtr, ByVal Flags As Long) As NTSTATUS
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlAllocateMemoryZone Lib "ntdll" (ByVal MemoryZone As LongPtr, ByVal BlockSize As LongPtr, Block As LongPtr) As NTSTATUS
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlExtendMemoryZone Lib "ntdll" (ByVal MemoryZone As LongPtr, ByVal Increment As LongPtr) As NTSTATUS
@@ -18333,6 +18653,49 @@ Public Function RtlEqualMemory(ByVal Source1 As LongPtr, ByVal Source2 As LongPt
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlResetMemoryZone Lib "ntdll" (ByVal MemoryZone As LongPtr) As NTSTATUS
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlLockMemoryZone Lib "ntdll" (ByVal MemoryZone As LongPtr) As NTSTATUS
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlUnlockMemoryZone Lib "ntdll" (ByVal MemoryZone As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function RtlIsNameLegalDOS8Dot3 Lib "ntdll" (Name As UNICODE_STRING, OemName As OEM_STRING, NameContainsSpaces As Byte) As Byte
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlLocalTimeToSystemTime Lib "ntdll" (LocalTime As LARGE_INTEGER, SystemTime As LARGE_INTEGER) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Sub RtlInitializeBitMap Lib "ntdll" (BitmapHeader As RTL_BITMAP, BitmapBuffer As Any, ByVal SizeOfBitmap As Long)
+[UseGetLastError(False)] Public Declare PtrSafe Sub RtlClearBit Lib "ntdll" (BitmapHeader As RTL_BITMAP, ByVal BitNumber As Long)
+[UseGetLastError(False)] Public Declare PtrSafe Sub RtlSetBit Lib "ntdll" (BitmapHeader As RTL_BITMAP, ByVal BitNumber As Long)
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlTestBit Lib "ntdll" (BitmapHeader As RTL_BITMAP, ByVal BitNumber As Long) As Byte
+[UseGetLastError(False)] Public Declare PtrSafe Sub RtlClearAllBits Lib "ntdll" (BitmapHeader As RTL_BITMAP)
+[UseGetLastError(False)] Public Declare PtrSafe Sub RtlSetAllBits Lib "ntdll" (BitmapHeader As RTL_BITMAP)
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlFindClearBits Lib "ntdll" (BitmapHeader As RTL_BITMAP, ByVal NumberToFind As Long, ByVal HintIndex As Long) As Long
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlFindSetBits Lib "ntdll" (BitmapHeader As RTL_BITMAP, ByVal NumberToFind As Long, ByVal HintIndex As Long) As Long
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlFindClearBitsAndSet Lib "ntdll" (BitmapHeader As RTL_BITMAP, ByVal NumberToFind As Long, ByVal HintIndex As Long) As Long
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlFindSetBitsAndClear Lib "ntdll" (BitmapHeader As RTL_BITMAP, ByVal NumberToFind As Long, ByVal HintIndex As Long) As Long
+[UseGetLastError(False)] Public Declare PtrSafe Sub RtlClearBits Lib "ntdll" (BitmapHeader As RTL_BITMAP, ByVal StartingIndex As Long, ByVal NumberToClear As Long)
+[UseGetLastError(False)] Public Declare PtrSafe Sub RtlSetBits Lib "ntdll" (BitmapHeader As RTL_BITMAP, ByVal StartingIndex As Long, ByVal NumberToSet As Long)
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlFindMostSignificantBit Lib "ntdll" (ByVal Set As LongLong) As Byte
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlFindLeastSignificantBit Lib "ntdll" (ByVal Set As LongLong) As Byte
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlFindClearRuns Lib "ntdll" (BitmapHeader As RTL_BITMAP, RunArray As RTL_BITMAP_RUN, ByVal SizeOfRunArray As Long, ByVal LocateLongestRuns As Byte) As Long
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlFindLongestRunClear Lib "ntdll" (BitmapHeader As RTL_BITMAP, ByVal StartingIndex As Long) As Long
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlFindFirstRunClear Lib "ntdll" (BitmapHeader As RTL_BITMAP, ByVal StartingIndex As Long) As Long
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlCheckBit Lib "ntdll" (BitmapHeader As RTL_BITMAP, ByVal BitPosition As Long) As Byte
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlNumberOfClearBits Lib "ntdll" (BitmapHeader As RTL_BITMAP) As Long
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlNumberOfSetBits Lib "ntdll" (BitmapHeader As RTL_BITMAP) As Long
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlAreBitsClear Lib "ntdll" (BitmapHeader As RTL_BITMAP, ByVal StartingIndex As Long, ByVal Length As Long) As Byte
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlAreBitsSet Lib "ntdll" (BitmapHeader As RTL_BITMAP, ByVal StartingIndex As Long, ByVal Length As Long) As Byte
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlFindNextForwardRunClear Lib "ntdll" (BitmapHeader As RTL_BITMAP, ByVal FromIndex As Long, StartingRunIndex As Long) As Long
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlFindLastBackwardRunClear Lib "ntdll" (BitmapHeader As RTL_BITMAP, ByVal FromIndex As Long, StartingRunIndex As Long) As Long
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlNumberOfSetBitsUlongPtr Lib "ntdll" (ByVal Target As LongPtr) As Long
+[UseGetLastError(False)] Public Declare PtrSafe Sub RtlInterlockedClearBitRun Lib "ntdll" (BitmapHeader As RTL_BITMAP, ByVal StartingIndex As Long, ByVal NumberToClear As Long)
+[UseGetLastError(False)] Public Declare PtrSafe Sub RtlInterlockedSetBitRun Lib "ntdll" (BitmapHeader As RTL_BITMAP, ByVal StartingIndex As Long, ByVal NumberToSet As Long)
+[UseGetLastError(False)] Public Declare PtrSafe Sub RtlCopyBitMap Lib "ntdll" (Source As RTL_BITMAP, Destination As RTL_BITMAP, ByVal TargetBit As Long)
+[UseGetLastError(False)] Public Declare PtrSafe Sub RtlExtractBitMap Lib "ntdll" (Source As RTL_BITMAP, Destination As RTL_BITMAP, ByVal TargetBit As Long, ByVal NumberOfBits As Long)
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlNumberOfClearBitsInRange Lib "ntdll" (BitmapHeader As RTL_BITMAP, ByVal StartingIndex As Long, ByVal Length As Long) As Long
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlNumberOfSetBitsInRange Lib "ntdll" (BitmapHeader As RTL_BITMAP, ByVal StartingIndex As Long, ByVal Length As Long) As Long
+[UseGetLastError(False)] Public Declare PtrSafe Sub RtlInitializeBitMapEx Lib "ntdll" (BitmapHeader As RTL_BITMAP_EX, BitMapBuffer As Any, ByVal SizeOfBitMap As LongLong)
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlTestBitEx Lib "ntdll" (BitmapHeader As RTL_BITMAP_EX, ByVal BitNumber As LongLong) As Byte
+[UseGetLastError(False)] Public Declare PtrSafe Sub RtlClearAllBitsEx Lib "ntdll" (BitmapHeader As RTL_BITMAP_EX)
+[UseGetLastError(False)] Public Declare PtrSafe Sub RtlClearBitEx Lib "ntdll" (BitmapHeader As RTL_BITMAP_EX, ByVal BitNumber As LongLong)
+[UseGetLastError(False)] Public Declare PtrSafe Sub RtlSetBitEx Lib "ntdll" (BitmapHeader As RTL_BITMAP_EX, ByVal BitNumber As LongLong)
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlFindSetBitsEx Lib "ntdll" (BitmapHeader As RTL_BITMAP_EX, ByVal NumberToFind As LongLong, ByVal HintIndex As LongLong) As LongLong
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlFindSetBitsAndClearEx Lib "ntdll" (BitmapHeader As RTL_BITMAP_EX, ByVal NumberToFind As LongLong, ByVal HintIndex As LongLong) As LongLong
+
+
+
 
 
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlIpv4AddressToStringA Lib "ntdll" (Addr As IN_ADDR, ByVal s As String) As LongPtr
