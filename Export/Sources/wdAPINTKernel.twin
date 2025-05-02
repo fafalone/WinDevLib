@@ -6324,6 +6324,7 @@ End Enum
 Public Enum MUI_ENUM_FLAGS
     MUI_LANGUAGE_ID = &H4  ' Use traditional language ID convention
     MUI_LANGUAGE_NAME = &H8  ' Use ISO language (culture) name convention
+    MUI_LANGUAGE_EXACT = &H10
     MUI_ALL_INSTALLED_LANGUAGES = &H20
     MUI_LICENSED_LANGUAGES = &H40
     'MUI_GROUP_POLICY = ???
@@ -7996,6 +7997,7 @@ Public Type REDIRECTION_DESCRIPTOR
 End Type
 
 Public Declare PtrSafe Function GetTickCount Lib "kernel32" () As Long
+Public Declare PtrSafe Function GetCurrentTime Lib "kernel32" Alias "GetTickCount" () As Long
 Public Declare PtrSafe Function GetTickCount64 Lib "kernel32" () As LongLong
 Public Declare PtrSafe Function SetDefaultDllDirectories Lib "kernel32" (ByVal DirectoryFlags As LoadLibraryFlags) As BOOL
 Public DeclareWide PtrSafe Function AddDllDirectory Lib "kernel32" (ByVal NewDirectory As String) As LongPtr
@@ -8878,7 +8880,10 @@ Public DeclareWide PtrSafe Function CreateBoundaryDescriptor Lib "kernel32" Alia
 Public Declare PtrSafe Function AddSIDToBoundaryDescriptor Lib "kernel32" (BoundaryDescriptor As LongPtr, ByVal RequiredSid As LongPtr) As BOOL
 Public Declare PtrSafe Sub DeleteBoundaryDescriptor Lib "kernel32" (ByVal BoundaryDescriptor As LongPtr)
 Public Declare PtrSafe Function AddIntegrityLabelToBoundaryDescriptor Lib "kernel32" (BoundaryDescriptor As LongPtr, ByVal IntegrityLabel As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function ReplacePartitionUnit Lib "kernel32" (ByVal TargetPartition As String, ByVal SparePartition As String, ByVal Flags As Long) As BOOL
+Public Declare PtrSafe Function ReplacePartitionUnit Lib "kernel32" (ByVal TargetPartition As LongPtr, ByVal SparePartition As LongPtr, ByVal Flags As Long) As BOOL
 
+Public Declare PtrSafe Function RaiseCustomSystemEventTrigger Lib "kernelbase" (Triggeronfig As CUSTOM_SYSTEM_EVENT_TRIGGER_CONFIG) As Long
 
 
 
@@ -8949,6 +8954,7 @@ End Function
 Public Declare PtrSafe Function MapViewOfFileNuma2 Lib "kernelbase" (ByVal FileMappingHandle As LongPtr, ByVal ProcessHandle As LongPtr, ByVal Offset As LongLong, ByVal BaseAddress As LongPtr, ByVal ViewSize As LongPtr, ByVal AllocationType As MemAllocType, ByVal PageProtection As MemProtectFlags, ByVal PreferredNode As Long) As LongPtr
 Public Declare PtrSafe Function MapViewOfFile3 Lib "kernelbase" (ByVal FileMappingHandle As LongPtr, ByVal ProcessHandle As LongPtr, ByVal Offset As LongLong, ByVal BaseAddress As LongPtr, ByVal ViewSize As LongPtr, ByVal AllocationType As MemAllocType, ByVal PageProtection As MemProtectFlags, ExtendedParameters As Any, ByVal ParameterCount As Long) As LongPtr
 Public Declare PtrSafe Function MapViewOfFileEx Lib "kernel32" (ByVal hFileMappingObject As LongPtr, ByVal dwDesiredAccess As FileMapFlags, ByVal dwFileOffsetHigh As Long, ByVal dwFileOffsetLow As Long, ByVal dwNumberOfBytesToMap As LongPtr, Optional ByVal lpBaseAddress As LongPtr) As LongPtr
+Public Declare PtrSafe Function MapViewOfFileExNuma Lib "kernel32" (ByVal hFileMappingObject As LongPtr, ByVal dwDesiredAccess As FileMapFlags, ByVal dwFileOffsetHigh As Long, ByVal dwFileOffsetLow As Long, ByVal dwNumberOfBytesToMap As LongPtr, ByVal lpBaseAddress As LongPtr, ByVal nndPreferred As Long) As LongPtr
 Public Declare PtrSafe Function FlushViewOfFile Lib "kernel32" (ByVal lpBaseAddress As LongPtr, ByVal dwNumberOfBytesToFlush As LongPtr) As BOOL
 Public Declare PtrSafe Function UnmapViewOfFile Lib "kernel32" (ByVal BaseAddress As LongPtr) As BOOL
 Public Declare PtrSafe Function UnmapViewOfFileEx Lib "kernel32" (ByVal BaseAddress As LongPtr, ByVal UnmapFlags As MemAllocType) As BOOL
@@ -9818,6 +9824,121 @@ Public DeclareWide PtrSafe Sub RaiseFailFastException Lib "kernel32" (pException
 Public Declare PtrSafe Function WinExec Lib "kernel32" (ByVal lpCmdLine As String, ByVal uCmdShow As SHOWWINDOW) As Long
 Public Declare PtrSafe Function AddSecureMemoryCacheCallback Lib "kernel32" (ByVal pfnCallBack As LongPtr) As BOOL
 Public Declare PtrSafe Function RemoveSecureMemoryCacheCallback Lib "kernel32" (ByVal pfnCallBack As LongPtr) As BOOL
+
+Public Const RTL_UMS_VERSION = &H100
+Public Const UMS_VERSION= RTL_UMS_VERSION
+Public Enum RTL_UMS_THREAD_INFO_CLASS
+    UmsThreadInvalidInfoClass = 0
+    UmsThreadUserContext
+    UmsThreadPriority   ' Reserved
+    UmsThreadAffinity   ' Reserved
+    UmsThreadTeb
+    UmsThreadIsSuspended
+    UmsThreadIsTerminated
+    UmsThreadMaxInfoClass
+End Enum
+'Alias UMS_THREAD_INFO_CLASS As RTL_UMS_THREAD_INFO_CLASS
+[Description("Alias stub. Use RTL_UMS_THREAD_INFO_CLASS")]
+Public Enum UMS_THREAD_INFO_CLASS
+    [_]
+End Enum
+Public Enum RTL_UMS_SCHEDULER_REASON
+    UmsSchedulerStartup = 0
+    UmsSchedulerThreadBlocked
+    UmsSchedulerThreadYield
+End Enum
+'Alias UMS_SCHEDULER_REASON As RTL_UMS_SCHEDULER_REASON
+[Description("Alias stub. Use RTL_UMS_SCHEDULER_REASON")]
+Public Enum UMS_SCHEDULER_REASON
+    [_]
+End Enum
+Public Delegate Sub RTL_UMS_SCHEDULER_ENTRY_POINT (ByVal Reason As RTL_UMS_SCHEDULER_REASON, ByVal ActivationPayload As LongPtr, ByVal SchedulerParam As LongPtr)
+Public Delegate Sub UMS_SCHEDULER_ENTRY_POINT (ByVal Reason As RTL_UMS_SCHEDULER_REASON, ByVal ActivationPayload As LongPtr, ByVal SchedulerParam As LongPtr)
+Public Type UMS_SCHEDULER_STARTUP_INFO
+    ' UMS Version the application was built to. Should be set to UMS_VERSION
+    UmsVersion As Long
+    ' Completion List to associate the new User Scheduler to.
+    CompletionList As LongPtr 'PUMS_COMPLETION_LIST
+    ' A pointer to the application-defined function that represents the starting
+    ' address of the Sheduler.
+    ' #If WINDEVLIB_NO_DELEGATES Then
+    SchedulerProc As LongPtr 'PUMS_SCHEDULER_ENTRY_POINT
+    ' #Else
+    ' SchedulerProc As UMS_SCHEDULER_ENTRY_POINT
+    ' #End If
+    ' pointer to a variable to be passed to the scheduler uppon first activation.
+    SchedulerParam As LongPtr
+End Type
+
+Public Type UMS_SYSTEM_THREAD_INFORMATION
+    UmsVersion As Long
+    ' union {
+        ' struct {
+            ' ULONG IsUmsSchedulerThread : 1;
+            ' ULONG IsUmsWorkerThread : 1;
+        ' } DUMMYSTRUCTNAME;
+        ' ULONG ThreadUmsFlags;
+    ' } DUMMYUNIONNAME;
+    ThreadUmsFlags As Long
+End Type
+
+#If Win64 = 0 Then
+[Unimplemented, Description("This API is only available on 64bit Windows from 64bit callers.")]
+#End If
+Public Declare PtrSafe Function CreateUmsCompletionList Lib "kernel32" (UmsCompletionList As LongPtr) As BOOL
+#If Win64 = 0 Then
+[Unimplemented, Description("This API is only available on 64bit Windows from 64bit callers.")]
+#End If
+Public Declare PtrSafe Function DequeueUmsCompletionListItems Lib "kernel32" (ByVal UmsCompletionList As LongPtr, ByVal WaitTimeOut As Long, UmsThreadList As LongPtr) As BOOL
+#If Win64 = 0 Then
+[Unimplemented, Description("This API is only available on 64bit Windows from 64bit callers.")]
+#End If
+Public Declare PtrSafe Function GetUmsCompletionListEvent Lib "kernel32" (ByVal UmsCompletionList As LongPtr, UmsCompletionEvent As LongPtr) As BOOL
+#If Win64 = 0 Then
+[Unimplemented, Description("This API is only available on 64bit Windows from 64bit callers.")]
+#End If
+Public Declare PtrSafe Function ExecuteUmsThread Lib "kernel32" (ByVal UmsThreead As LongPtr) As BOOL
+#If Win64 = 0 Then
+[Unimplemented, Description("This API is only available on 64bit Windows from 64bit callers.")]
+#End If
+Public Declare PtrSafe Function UmsThreadYield Lib "kernel32" (ByVal SchedulerParam As LongPtr) As BOOL
+#If Win64 = 0 Then
+[Unimplemented, Description("This API is only available on 64bit Windows from 64bit callers.")]
+#End If
+Public Declare PtrSafe Function DeleteUmsCompletionList Lib "kernel32" (ByVal UmsCompletionList As LongPtr) As BOOL
+#If Win64 = 0 Then
+[Unimplemented, Description("This API is only available on 64bit Windows from 64bit callers.")]
+#End If
+Public Declare PtrSafe Function GetCurrentUmsThread Lib "kernel32" () As LongPtr
+#If Win64 = 0 Then
+[Unimplemented, Description("This API is only available on 64bit Windows from 64bit callers.")]
+#End If
+Public Declare PtrSafe Function GetNextUmsListItem Lib "kernel32" (ByVal UmsContext As LongPtr) As LongPtr
+#If Win64 = 0 Then
+[Unimplemented, Description("This API is only available on 64bit Windows from 64bit callers.")]
+#End If
+Public Declare PtrSafe Function QueryUmsThreadInformation Lib "kernel32" (ByVal UmsContext As LongPtr, ByVal UmsThreadInfoClass As RTL_UMS_THREAD_INFO_CLASS, UmsThreadInformation As Any, ByVal UmsThreadInformationLength As Long, Optional ReturnLength As Long) As BOOL
+#If Win64 = 0 Then
+[Unimplemented, Description("This API is only available on 64bit Windows from 64bit callers.")]
+#End If
+Public Declare PtrSafe Function SetUmsThreadInformation Lib "kernel32" (ByVal UmsContext As LongPtr, ByVal UmsThreadInfoClass As RTL_UMS_THREAD_INFO_CLASS, UmsThreadInformation As Any, ByVal UmsThreadInformationLength As Long) As BOOL
+#If Win64 = 0 Then
+[Unimplemented, Description("This API is only available on 64bit Windows from 64bit callers.")]
+#End If
+Public Declare PtrSafe Function DeleteUmsThreadContext Lib "kernel32" (ByVal UmsThread As LongPtr) As BOOL
+#If Win64 = 0 Then
+[Unimplemented, Description("This API is only available on 64bit Windows from 64bit callers.")]
+#End If
+Public Declare PtrSafe Function CreateUmsThreadContext Lib "kernel32" (lpUmsThread As LongPtr) As BOOL
+#If Win64 = 0 Then
+[Unimplemented, Description("This API is only available on 64bit Windows from 64bit callers.")]
+#End If
+Public Declare PtrSafe Function EnterUmsSchedulingMode Lib "kernel32" (SchedulerStartupInfo As UMS_SCHEDULER_STARTUP_INFO) As BOOL
+#If Win64 = 0 Then
+[Unimplemented, Description("This API is only available on 64bit Windows from 64bit callers.")]
+#End If
+Public Declare PtrSafe Function GetUmsSystemThreadInformation Lib "kernel32" (ByVal ThreadHandle As LongPtr, SystemThreadInfo As UMS_SYSTEM_THREAD_INFORMATION) As BOOL
+
 
 Public Declare PtrSafe Function GetProcessGroupAffinity Lib "kernel32" (ByVal hProcess As LongPtr, GroupCount As Integer, GroupArray As Integer) As BOOL
 Public Declare PtrSafe Function GetThreadGroupAffinity Lib "kernel32" (ByVal hThread As LongPtr, GroupAffinity As GROUP_AFFINITY) As BOOL
@@ -10848,15 +10969,18 @@ Public Enum RegisterRestartFlags
 '  Do not restart the process when the system is rebooted due to patch installations
     RESTART_NO_REBOOT = 8
 End Enum
+Public Declare PtrSafe Function RegisterApplicationRestart Lib "kernel32" (ByVal pwzCommandLine As LongPtr, ByVal dwFlags As RegisterRestartFlags) As Long
 Public DeclareWide PtrSafe Function RegisterApplicationRestart Lib "kernel32" (ByVal pwzCommandLine As String, ByVal dwFlags As RegisterRestartFlags) As Long
 Public Declare PtrSafe Function UnregisterApplicationRestart Lib "kernel32" () As Long
 Public DeclareWide PtrSafe Function GetApplicationRestartSettings Lib "kernel32" (ByVal hProcess As LongPtr, ByVal pwzCommandLine As String, pcchSize As Long, pdwFlags As RegisterRestartFlags) As Long
-' Public DeclareWide PtrSafe Function RegisterApplicationRecoveryCallback Lib "kernel32" (ByVal pRecoveryCallback As ApplicationRecoveryCallback, pvParameter As Any, ByVal dwPingInterval As Long, ByVal dwFlags As Long) As Long
-' Public Declare PtrSafe Function UnregisterApplicationRecoveryCallback Lib "kernel32" () As Long
-' Public Declare PtrSafe Function GetApplicationRecoveryCallback Lib "kernel32" (ByVal hProcess As LongPtr, pRecoveryCallback As ApplicationRecoveryCallback, ppvParameter As LongPtr, pdwPingInterval As Long, pdwFlags As Long) As Long
+' #If WINDEVLIB_NO_DELEGATES Then
 Public DeclareWide PtrSafe Function RegisterApplicationRecoveryCallback Lib "kernel32" (ByVal pRecoveryCallback As LongPtr, pvParameter As Any, ByVal dwPingInterval As Long, ByVal dwFlags As Long) As Long
-Public Declare PtrSafe Function UnregisterApplicationRecoveryCallback Lib "kernel32" () As Long
 Public Declare PtrSafe Function GetApplicationRecoveryCallback Lib "kernel32" (ByVal hProcess As LongPtr, pRecoveryCallback As LongPtr, ppvParameter As LongPtr, pdwPingInterval As Long, pdwFlags As Long) As Long
+' #Else
+' Public DeclareWide PtrSafe Function RegisterApplicationRecoveryCallback Lib "kernel32" (ByVal pRecoveryCallback As ApplicationRecoveryCallback, pvParameter As Any, ByVal dwPingInterval As Long, ByVal dwFlags As Long) As Long
+' Public Declare PtrSafe Function GetApplicationRecoveryCallback Lib "kernel32" (ByVal hProcess As LongPtr, pRecoveryCallback As ApplicationRecoveryCallback, ppvParameter As LongPtr, pdwPingInterval As Long, pdwFlags As Long) As Long
+' #End If
+Public Declare PtrSafe Function UnregisterApplicationRecoveryCallback Lib "kernel32" () As Long
 Public Declare PtrSafe Function ApplicationRecoveryInProgress Lib "kernel32" (pbCancelled As BOOL) As Long
 Public Declare PtrSafe Sub ApplicationRecoveryFinished Lib "kernel32" (ByVal bSuccess As BOOL)
 
@@ -17863,11 +17987,19 @@ Public Declare PtrSafe Function NtQueryQuotaInformationFile Lib "ntdll" (ByVal F
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtSetQuotaInformationFile Lib "ntdll" (ByVal FileHandle As LongPtr, IoStatusBlock As IO_STATUS_BLOCK, Buffer As Any, ByVal Length As Long) As NTSTATUS
 [UseGetLastError(False)]
+Public Declare PtrSafe Function NtFlushBuffersFile Lib "ntdll" (ByVal FileHandle As LongPtr, IoStatusBlock As IO_STATUS_BLOCK) As NTSTATUS
+[UseGetLastError(False)]
 Public Declare PtrSafe Function NtFlushBuffersFileEx Lib "ntdll" (ByVal FileHandle As LongPtr, ByVal Flags As NtFlushFileFlags, Parameters As Any, ByVal ParametersSize As Long, IoStatusBlock As IO_STATUS_BLOCK) As NTSTATUS
 Public Declare PtrSafe Function NtCancelIoFile Lib "ntdll" (ByVal hFile As LongPtr) As BOOL
 Public Declare PtrSafe Function NtCancelIoFileEx Lib "ntdll" (ByVal hFile As LongPtr, lpOverlapped As OVERLAPPED) As BOOL
 [UseGetLastError(False)]
+Public Declare PtrSafe Function NtDeleteFile Lib "ntdll" (ObjectAttributes As OBJECT_ATTRIBUTES) As NTSTATUS
+[UseGetLastError(False)]
 Public Declare PtrSafe Function NtCopyFileChunk Lib "ntdll" (ByVal SourceHandle As LongPtr, ByVal DestHandle As LongPtr, ByVal Event As LongPtr, IoStatusBlock As IO_STATUS_BLOCK, ByVal Length As Long, SourceOffset As LARGE_INTEGER, DestOffset As LARGE_INTEGER, SourceKey As Long, DestKey As Long, [TypeHint(NtCopyFileChunkFlags)] ByVal Flags As Long) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtCreateNamedPipeFile Lib "ntdll" (FileHandle As LongPtr, [TypeHint(GenericRights, FileAccessRights)] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, IoStatusBlock As IO_STATUS_BLOCK, ByVal ShareAccess As FileShareMode, ByVal CreateDisposition As FileCreateDisposition, [TypeHint(FileAccessFlags, FILE_PIPE_CONFIG)] ByVal CreateOptions As Long, [TypeHint(FILE_PIPE_TYPE)] ByVal NamedPipeType As Long, [TypeHint(FILE_PIPE_READ_MODE)] ByVal ReadMode As Long, [TypeHint(FILE_PIPE_COMPLETION_MODE)] ByVal CompletionMode As Long, ByVal MaximumInstances As Long, ByVal InboundQuota As Long, ByVal OutboundQuota As Long, DefaultTimeout As LARGE_INTEGER) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtCreateMailslotFile Lib "ntdll" (FileHandle As LongPtr, [TypeHint(GenericRights)] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, IoStatusBlock As IO_STATUS_BLOCK, ByVal CreateOptions As Long, ByVal MailslotQuota As Long, ByVal MaximumMessageSize As Long, ReadTimeout As LARGE_INTEGER) As NTSTATUS
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtImpersonateThread Lib "ntdll" (ByVal hThread As LongPtr, ByVal hThreadToImpersonate As LongPtr, SecurityQualityOfService As SECURITY_QUALITY_OF_SERVICE) As NTSTATUS
 [UseGetLastError(False)]
@@ -18026,7 +18158,20 @@ Public Function NtCurrentProcessToken() As LongPtr: Return (-4): End Function
 Public Function NtCurrentThreadToken() As LongPtr: Return (-5): End Function
 Public Function NtCurrentThreadEffectiveToken() As LongPtr: Return (-6): End Function
 
-    
+Public Function NtCurrentPeb() As LongPtr: Return RtlGetCurrentPeb(): End Function
+#If (TWINBASIC_BUILD >= 606) Then
+Public Function NtCurrentTeb CDecl Naked() As LongPtr
+    #If Win64 Then
+    Emit(&H65, &H48, &H8b, &H04, &H25, &H30, &H00)   'mov    rax,QWORD PTR gs:0x30
+    Emit(&H00, &H00)
+    Emit(&Hc3)                                       'ret      
+    #Else
+    Emit(&H64, &Ha1, &H18, &H00, &H00, &H00)    'mov    eax,fs:0x18
+    Emit(&Hc3)                                  'ret
+    #End If
+End Function
+#End If
+
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtImpersonateClientOfPort Lib "ntdll" (ByVal PortHandle As LongPtr, Message As PORT_MESSAGE) As NTSTATUS
 [UseGetLastError(False)]
@@ -18492,6 +18637,77 @@ End Enum
 [UseGetLastError(False)] Public Declare PtrSafe Function NtCommitRegistryTransaction Lib "ntdll" (ByVal RegistryTransactionHandle As LongPtr, ByVal Flags As Long) As NTSTATUS
 [UseGetLastError(False)] Public Declare PtrSafe Function NtRollbackRegistryTransaction Lib "ntdll" (ByVal RegistryTransactionHandle As LongPtr, ByVal Flags As Long) As NTSTATUS
 
+Public Enum RtlQueryRegistryFlags
+    RTL_QUERY_REGISTRY_SUBKEY = &H00000001  ' Name is a subkey and remainder of
+                                            '  table or until next subkey are value
+                                            '  names for that subkey to look at.
+    RTL_QUERY_REGISTRY_TOPKEY = &H00000002  ' Reset current key to original key for
+                                            '  this and all following table entries.
+    RTL_QUERY_REGISTRY_REQUIRED = &H00000004  ' Fail if no match found for this table
+                                              '  entry.
+    RTL_QUERY_REGISTRY_NOVALUE = &H00000008  ' Used to mark a table entry that has no
+                                             '  value name, just wants a call out, not
+                                             '  an enumeration of all values.
+    RTL_QUERY_REGISTRY_NOEXPAND = &H00000010    ' Used to suppress the expansion of
+                                                '  REG_MULTI_SZ into multiple callouts or
+                                                '  to prevent the expansion of environment
+                                                '  variable values in REG_EXPAND_SZ
+    RTL_QUERY_REGISTRY_DIRECT = &H00000020  ' QueryRoutine field ignored.  EntryContext
+                                            '  field points to location to store value.
+                                            '  For null terminated strings, EntryContext
+                                            '  points to UNICODE_STRING structure that
+                                            '  that describes maximum size of buffer.
+                                            '  If .Buffer field is NULL then a buffer is
+                                            '  allocated.
+    RTL_QUERY_REGISTRY_DELETE = &H00000040  ' Used to delete value keys after they
+                                            '  are queried.
+    RTL_QUERY_REGISTRY_NOSTRING = &H00000080    ' THIS IS DEPRECATED - use RTL_QUERY_REGISTRY_TYPECHECK
+                                                '  Used with RTL_QUERY_REGISTRY_DIRECT in
+                                                '  cases where the caller expects a
+                                                '  non-string value.  Otherwise, the
+                                                '  assumption that EntryContext points to
+                                                '  a UNICODE_STRING structure can overrun
+                                                '  the caller's buffer.
+    RTL_QUERY_REGISTRY_TYPECHECK = &H00000100   ' Used with RTL_QUERY_REGISTRY_DIRECT to
+                                                '  validate the registry value type
+                                                '  expected by caller with actual type thats
+                                                '  read from the registry.
+                                                '  Use the most significant byte of DefaultType from QueryTable, as the
+                                                '  caller's expected REG_TYPE
+    RTL_QUERY_REGISTRY_TYPECHECK_SHIFT = 24
+    RTL_QUERY_REGISTRY_TYPECHECK_MASK = (&Hff << RTL_QUERY_REGISTRY_TYPECHECK_SHIFT)
+End Enum
+Public Delegate Function RTL_QUERY_REGISTRY_ROUTINE (ByVal ValueName As LongPtr, ByVal ValueType As Long, ByVal ValueData As LongPtr, ByVal ValueLength As Long, ByVal Context As LongPtr, ByVal EntryContext As LongPtr) As NTSTATUS
+Public Type RTL_QUERY_REGISTRY_TABLE
+    ' #If WINDEVLIB_NO_DELEGATES Then
+    QueryRoutine As LongPtr
+    ' #Else
+    ' QueryRoutine As RTL_QUERY_REGISTRY_ROUTINE
+    ' #End If
+    Flags As RtlQueryRegistryFlags
+    Name As LongPtr
+    EntryContext As LongPtr
+    DefaultType As Long
+    DefaultData As LongPtr
+    DefaultLength As Long
+End Type
+Public Enum RtlRegistryRelativeTo
+    RTL_REGISTRY_ABSOLUTE = 0  ' Path is a full path
+    RTL_REGISTRY_SERVICES = 1  ' \Registry\Machine\System\CurrentControlSet\Services
+    RTL_REGISTRY_CONTROL = 2  ' \Registry\Machine\System\CurrentControlSet\Control
+    RTL_REGISTRY_WINDOWS_NT = 3  ' \Registry\Machine\Software\Microsoft\Windows NT\CurrentVersion
+    RTL_REGISTRY_DEVICEMAP = 4  ' \Registry\Machine\Hardware\DeviceMap
+    RTL_REGISTRY_USER = 5  ' \Registry\User\CurrentUser
+    RTL_REGISTRY_MAXIMUM = 6
+    RTL_REGISTRY_HANDLE = &H40000000  ' Low order bits are registry handle
+    RTL_REGISTRY_OPTIONAL = &H80000000  ' Indicates the key node is optional
+End Enum
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlCheckRegistryKey Lib "ntdll" (ByVal RelativeTo As RtlRegistryRelativeTo, ByVal Path As LongPtr) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlCreateRegistryKey Lib "ntdll" (ByVal RelativeTo As RtlRegistryRelativeTo, ByVal Path As LongPtr) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlDeleteRegistryValue Lib "ntdll" (ByVal RelativeTo As RtlRegistryRelativeTo, ByVal Path As LongPtr, ByVal ValueName As LongPtr) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlWriteRegistryValue Lib "ntdll" (ByVal RelativeTo As RtlRegistryRelativeTo, ByVal Path As LongPtr, ByVal ValueName As LongPtr, ByVal ValueType As REGTYPES, Value As Any, ByVal ValueLength As Long) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlQueryRegistryValues Lib "ntdll" (ByVal RelativeTo As RtlRegistryRelativeTo, ByVal Path As LongPtr, QueryTable As RTL_QUERY_REGISTRY_TABLE, Optional ByVal Context As LongPtr = 0, Optional ByVal Environment As LongPtr = 0) As NTSTATUS
+
 
 ' typedef union _SE_SID {
     ' SID Sid;
@@ -18643,8 +18859,16 @@ Public Function RtlEqualMemory(ByVal Source1 As LongPtr, ByVal Source2 As LongPt
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlDefaultNpAcl Lib "ntdll" (Acl As LongPtr) As NTSTATUS
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlNewSecurityObject Lib "ntdll" (ParentDescriptor As SECURITY_DESCRIPTOR, CreatorDescriptor As SECURITY_DESCRIPTOR, NewDescriptor As LongPtr, ByVal IsDirectoryObject As Byte, ByVal Token As LongPtr, GenericMapping As GENERIC_MAPPING) As NTSTATUS
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlNewSecurityObjectEx Lib "ntdll" (ParentDescriptor As SECURITY_DESCRIPTOR, CreatorDescriptor As SECURITY_DESCRIPTOR, NewDescriptor As LongPtr, ObjectType As UUID, ByVal IsDirectoryObject As Byte, ByVal AutoInheritFlags As SEF_FLAGS, ByVal Token As LongPtr, GenericMapping As GENERIC_MAPPING) As NTSTATUS
-
-
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlCreateSecurityDescriptor Lib "ntdll" (SecurityDescriptor As SECURITY_DESCRIPTOR, ByVal Revision As Long) As NTSTATUS
+Public Declare PtrSafe Function RtlValidSecurityDescriptor Lib "ntdll" (SecurityDescriptor As SECURITY_DESCRIPTOR) As Byte
+Public Declare PtrSafe Function RtlLengthSecurityDescriptor Lib "ntdll" (SecurityDescriptor As SECURITY_DESCRIPTOR) As Long
+Public Declare PtrSafe Function RtlValidRelativeSecurityDescriptor Lib "ntdll" (SecurityDescriptorInput As SECURITY_DESCRIPTOR, ByVal SecurityDescriptorLength As Long, ByVal RequiredInformation As SECURITY_INFORMATION) As Byte
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlGetControlSecurityDescriptor Lib "ntdll" (SecurityDescriptor As SECURITY_DESCRIPTOR, [TypeHint(SECURITY_DESCRIPTOR_CONTROL)] Control As Integer, Revision As Long) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlSetControlSecurityDescriptor Lib "ntdll" (SecurityDescriptor As SECURITY_DESCRIPTOR, [TypeHint(SECURITY_DESCRIPTOR_CONTROL)] ByVal ControlBitsOfInterest As Integer, [TypeHint(SECURITY_DESCRIPTOR_CONTROL)] ByVal ControlBitsToSet As Integer) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlSetDaclSecurityDescriptor Lib "ntdll" (SecurityDescriptor As SECURITY_DESCRIPTOR, ByVal DaclPresent As Byte, ByVal Dacl As LongPtr, ByVal DaclDefaulted As Byte) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlSetSaclSecurityDescriptor Lib "ntdll" (SecurityDescriptor As SECURITY_DESCRIPTOR, ByVal SaclPresent As Byte, ByVal Sacl As LongPtr, ByVal SaclDefaulted As Byte) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlGetDaclSecurityDescriptor Lib "ntdll" (SecurityDescriptor As SECURITY_DESCRIPTOR, DaclPresent As Byte, Dacl As LongPtr, DaclDefaulted As Byte) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlGetSaclSecurityDescriptor Lib "ntdll" (SecurityDescriptor As SECURITY_DESCRIPTOR, SaclPresent As Byte, Sacl As LongPtr, SaclDefaulted As Byte) As NTSTATUS
 
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlCreateMemoryZone Lib "ntdll" (MemoryZone As LongPtr, ByVal InitializeSize As LongPtr, ByVal Flags As Long) As NTSTATUS
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlAllocateMemoryZone Lib "ntdll" (ByVal MemoryZone As LongPtr, ByVal BlockSize As LongPtr, Block As LongPtr) As NTSTATUS
@@ -18694,7 +18918,87 @@ Public Declare PtrSafe Function RtlIsNameLegalDOS8Dot3 Lib "ntdll" (Name As UNIC
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlFindSetBitsEx Lib "ntdll" (BitmapHeader As RTL_BITMAP_EX, ByVal NumberToFind As LongLong, ByVal HintIndex As LongLong) As LongLong
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlFindSetBitsAndClearEx Lib "ntdll" (BitmapHeader As RTL_BITMAP_EX, ByVal NumberToFind As LongLong, ByVal HintIndex As LongLong) As LongLong
 
+Public Type RTL_DEBUG_INFORMATION
+    SectionHandleClient As LongPtr
+    ViewBaseClient As LongPtr
+    ViewBaseTarget As LongPtr
+    ViewBaseDelta As LongPtr
+    EventPairClient As LongPtr
+    EventPairTarget As LongPtr
+    TargetProcessId As LongPtr
+    TargetThreadHandle As LongPtr
+    Flags As Long
+    OffsetFree As LongPtr
+    CommitSize As LongPtr
+    ViewSize As LongPtr
+    ' union
+    ' {
+        ' PRTL_PROCESS_MODULES Modules;
+        ' PRTL_PROCESS_MODULE_INFORMATION_EX ModulesEx;
+    ' };
+    Modules As LongPtr
+    BackTraces As LongPtr 'PRTL_PROCESS_BACKTRACES
+    Heaps As LongPtr
+    Locks As LongPtr 'PRTL_PROCESS_LOCKS
+    SpecificHeap As LongPtr
+    TargetProcessHandle As LongPtr
+    VerifierOptions As LongPtr 'PRTL_PROCESS_VERIFIER_OPTIONS
+    ProcessHeap As LongPtr
+    CriticalSectionHandle As LongPtr
+    CriticalSectionOwnerThread As LongPtr
+    Reserved(0 To 3) As LongPtr
+End Type
 
+[Description("WARNING: Buffer substituted for variable C-style array.")]
+Public Type RTL_PROCESS_VERIFIER_OPTIONS
+    SizeStruct As Long
+    Option As Long
+    OptionData(0 To 4095) As Byte
+End Type
+
+Public Enum RtlQueryProcessFlags
+    RTL_QUERY_PROCESS_MODULES = &H00000001
+    RTL_QUERY_PROCESS_BACKTRACES = &H00000002
+    RTL_QUERY_PROCESS_HEAP_SUMMARY = &H00000004
+    RTL_QUERY_PROCESS_HEAP_TAGS = &H00000008
+    RTL_QUERY_PROCESS_HEAP_ENTRIES = &H00000010
+    RTL_QUERY_PROCESS_LOCKS = &H00000020
+    RTL_QUERY_PROCESS_MODULES32 = &H00000040
+    RTL_QUERY_PROCESS_VERIFIER_OPTIONS = &H00000080  ' rev
+    RTL_QUERY_PROCESS_MODULESEX = &H00000100  ' rev
+    RTL_QUERY_PROCESS_HEAP_SEGMENTS = &H00000200
+    RTL_QUERY_PROCESS_CS_OWNER = &H00000400  ' rev
+    RTL_QUERY_PROCESS_NONINVASIVE = &H80000000
+    RTL_QUERY_PROCESS_NONINVASIVE_CS_OWNER = &H80000800  ' WIN11
+End Enum
+
+Public Declare PtrSafe Function RtlCreateQueryDebugBuffer Lib "ntdll" (ByVal MaximumCommit As Long, ByVal UseEventPair As Byte) As LongPtr 'PRTL_DEBUG_INFORMATION
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlDestroyQueryDebugBuffer Lib "ntdll" (ByVal Buffer As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function RtlCommitDebugInfo Lib "ntdll" (Buffer As RTL_DEBUG_INFORMATION, ByVal Size As LongPtr) As LongPtr 'PVOID
+Public Declare PtrSafe Sub RtlDeCommitDebugInfo Lib "ntdll" (Buffer As RTL_DEBUG_INFORMATION, ByVal p As LongPtr, ByVal Size As LongPtr)
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlQueryProcessDebugInformation Lib "ntdll" (ByVal UniqueProcessId As LongPtr, ByVal Flags As RtlQueryProcessFlags, Buffer As RTL_DEBUG_INFORMATION) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlSetProcessDebugInformation Lib "ntdll" (ByVal UniqueProcessId As LongPtr, ByVal Flags As RtlQueryProcessFlags, Buffer As RTL_DEBUG_INFORMATION) As NTSTATUS
+Public Function RtlIsAnyDebuggerPresent() As Boolean
+    Dim result As Byte
+    result = CType(Of PEB)(NtCurrentPeb()).BeingDebugged
+    If result = 0 Then
+        result = CType(Of KUSER_SHARED_DATA)(CLngPtr(&H7FFE0260)).KdDebuggerEnabled
+    End If
+    Return CBool(result)
+End Function
+
+Public Type CUSTOM_SYSTEM_EVENT_TRIGGER_CONFIG
+    ' Size of the structure in bytes
+    Size As Long
+    ' Guid used to identify background task to trigger
+    TriggerId As LongPtr
+End Type
+Public Sub CUSTOM_SYSTEM_EVENT_TRIGGER_INIT(Config As CUSTOM_SYSTEM_EVENT_TRIGGER_CONFIG, ByVal TriggerId As LongPtr)
+    ZeroMemory Config, LenB(Of CUSTOM_SYSTEM_EVENT_TRIGGER_CONFIG)
+    Config.Size = LenB(Of CUSTOM_SYSTEM_EVENT_TRIGGER_CONFIG)
+    Config.TriggerId = TriggerId
+End Sub
+Public Declare PtrSafe Function RtlRaiseCustomSystemEventTrigger Lib "ntdll" (Triggeronfig As CUSTOM_SYSTEM_EVENT_TRIGGER_CONFIG) As Long
 
 
 
