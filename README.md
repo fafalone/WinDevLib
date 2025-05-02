@@ -51,6 +51,10 @@ WinDevLib has some compiler constants you can enable:
 
 `WINDEVLIB_NO_DELEGATES` - Do not use Delegate functions in place of function pointers.
 
+`WINDEVLIB_XAUDIO8` - Use XAudio8 DLLs for XAudio2 APIs (Windows 8)
+
+`WINDEVLIB_NOMATH` - Exclude built in math helper function (see below). Note: XAudio2 inlined helper functions unavailable when math disabled.
+
 >[!IMPORTANT]
 >Currently flags are not inherited from the main project, so the only way to use these is to set them in the compiler flags for WinDevLib.twinproj then build a custom twinpack.
 
@@ -99,6 +103,32 @@ Functions for converting POINT and SIZE types or coords to Long or LongLong for 
 `Public Function CLngToULng(ByVal Value As Long) As LongLong`\
 `Public Sub CLngToULng(ByVal Value As Long, pULng As Double)`
 
+Math helpers:
+```
+   Functions: The first column take Double arguments, the second (with f) take Single (float).
+   Log10, Log10f   - Base 10 logarithm; native Log is actually Ln 
+   Pow, powf       - Power function for easier porting of code from langs w/o x^y.
+   Asin, Asinf     - Arcsine
+   Acos, Acosf     - Arccosine
+   Atan, Atanf     - Arctangent (alias for Atn)
+   Sec, Secf       - Secant
+   Asec, Asecf     - Arcsecant
+   Cosec, Cosecf   - Cosecant
+   Acosec, Acosecf - Arccosecant
+   Acotan, Acotan  - Arccotangent
+   Sinh, Sinhf     - Hyperbolic sine
+   Cosh, Coshf     - Hyperbolic cosine
+   Tanh, Tanhf     - Hyperbolic tangent
+   Sech, Sech      - Hyperbolic secant
+   Cosech, Cosechf - Hyperbolic cosecant
+   Cotanh, Cotanhf - Hyperbolic cotangent
+   Asinh, Asinhf   - Hyperbolic arcsine
+   Acosh, Acoshf   - Hyperbolic arccosine
+   Atanh, Atanhf   - Hyperbolic arccotangent
+   Asech, Asechf   - Hyperbolic arcsecant
+   Acosech, Acosechf - Hyperbolic arccosecant
+   Acotanh, Acotanh - Hyperbolic arccotangent
+```
 
 ### Guide to switching existing code to WinDevLib
 
