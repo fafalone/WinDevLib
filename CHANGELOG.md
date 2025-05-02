@@ -1,4 +1,44 @@
 
+**Update (v8.10.524, 02 May 2025):** 
+-Added XAudio2 interfaces and APIs - xaudio2.h, xaudio2fx.h, x3daudio.h, xapo.h, xapobase.h, hrtfapoapi.h 100%
+   IMPORTANT: For Windows 8, define compiler constant WINDEVLIB_XAUDIO8.
+   NOTE: Inlined functions included, but the math conversion from C to tB has not yet been verified accurate.
+-Misc Native API additions, including NtCurrentTeb implemented by Emit().
+-Completed adding known documented CLSID_xxx constants in usuable UUID form for all coclasses.
+-Added numerous overloads for compatibility with oleexp.tlb API signatures using [PreserveSig(False)]
+  (where the last argument becomes the return)
+-CoInitialize/OleInitialize/vbCoInitialize now use Optional ByVal LongPtr for useless reserved argument.
+-Added math helpers. Constants from corecrt_math_defines.h;
+   Functions: The first column take Double arguments, the second (with f) take Single (float).
+   Log10, Log10f   - Base 10 logarithm; native Log is actually Ln 
+   Pow, powf       - Power function for easier porting of code from langs w/o x^y.
+   Asin, Asinf     - Arcsine
+   Acos, Acosf     - Arccosine
+   Atan, Atanf     - Arctangent (alias for Atn)
+   Sec, Secf       - Secant
+   Asec, Asecf     - Arcsecant
+   Cosec, Cosecf   - Cosecant
+   Acosec, Acosecf - Arccosecant
+   Acotan, Acotan  - Arccotangent
+   Sinh, Sinhf     - Hyperbolic sine
+   Cosh, Coshf     - Hyperbolic cosine
+   Tanh, Tanhf     - Hyperbolic tangent
+   Sech, Sech      - Hyperbolic secant
+   Cosech, Cosechf - Hyperbolic cosecant
+   Cotanh, Cotanhf - Hyperbolic cotangent
+   Asinh, Asinhf   - Hyperbolic arcsine
+   Acosh, Acoshf   - Hyperbolic arccosine
+   Atanh, Atanhf   - Hyperbolic arccotangent
+   Asech, Asechf   - Hyperbolic arcsecant
+   Acosech, Acosechf - Hyperbolic arccosecant
+   Acotanh, Acotanh - Hyperbolic arccotangent
+   As with the native trig functions, these are in radians.
+   To disable, define #WINDEVLIB_NOMATH. Note: XAudio2 inlined helper functions unavailable when math disabled.
+   Note: Currently not verified for accuracy; I believe I tested most of these when I wrote them decades ago,
+         but can't remember for sure and will need time to re-check them.
+-(Bug fix) Certain oleaut32 Var*, and some hlink, functions improperly used String without DeclareWide
+-(Bug fix) StrRetToStr[A] incorrect signature, inconsistent use of ByRef/ByVal
+
 **Update (v8.9.520, 27 Apr 2025):** 
 -Added Uniscribe API (usp10.h, 100%)/ UDTs harmonized with work by Michael Kaplan and Tanner Helland 
       However the APIs they used have signatures that just stray way too far from the documentation; many ByVal 

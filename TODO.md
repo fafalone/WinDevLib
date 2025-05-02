@@ -1,6 +1,8 @@
 Known omissions where a priority update neccessitated not finishing 
 before release, or waiting on feature support:
  
+-Verify new xaudio2 and helper math functions
+
 -ntlsa delegates
 
 -BUG FIX PENDING: Overloaded interface vtable order vs source, reverse after patch:
@@ -49,8 +51,8 @@ Note: ID2D1SvgElement overloads currently left tagged because tB cannot disambig
  ID3D12GraphicsCommandList::::ClearUnorderedAccessViewUint, ID3D12GraphicsCommandList::::ClearUnorderedAccessViewFloat
    et al adjust when tB has syntax support for [in] type t[x] syntax.
 
--CLSIDs for coclasses
-done:  
+-(COMPLETED) CLSIDs for coclasses
+keep file list for other tasks  
 wdAccessible, 
 wdAMSI,
 wdAPI* 
@@ -63,7 +65,7 @@ wdDefs,
 wdDeprecated,
 wdDevices, 
 wdDirectML,
-
+wdDirectShow,
 wdDSound, 
 wdDStorage,
 wdDXVA,
@@ -78,14 +80,14 @@ wdInternet,
 wdLegacy,
 wdManipulations, 
 wdNetcon, 
-
-
-
-
-
-
-
-
+wdOLE,
+wdOPC,
+wdPhotoAcq,
+wdPKEY,
+wdPrintNotify,
+wdRadio,
+wdRTWorkQ,
+wdScript,
 wdSearch,
 wdSecurity, 
 wdSensors, 
@@ -100,9 +102,12 @@ wdUIAnimation,
 wdUIRibbon, 
 wdUPNP, 
 wdWIC,
-
+wdWinML,
+wdWinRTBase,
+wdWMDM,
 wdWSC, 
-wdWTS
+wdWTS,
+wdXAudio
 
 -Create coverage list by header.
 Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.0); basic coverage excludes macros, callbacks->delegates,
@@ -138,7 +143,7 @@ ANSI APIs (though most are covered), and other headers from #include statements.
     propidl.h,propidl.idl,propidlbase.h,propidlbase.idl,propsys.idl,propsys.h,propvarutil.h,Xinput.h,winperf.h,perlib.h,spapidef.h,devpropdef.h,devpkey.h,
     devguid.h,setupapi.h,prnasnot.h,winspool.h,libloaderapi.h,libloaderapi2.h,ioapiset.h,wingdi.h,coml2api.h,dxgi_1.h,dxgi_1.idl,dxgi_2.h,dxgi_2.idl,
     dxgi_3.h,dxgi_3.idl,dxgi_4.h,dxgi_4.idl,dxgi_5.h,dxgi_5.idl,dxgi_6.h,dxgi_6.idl,DXGI_Messages.h,dxgitype.h,dxgitype.idl,dxgicommon.h,dxgicommon.idl,
-    ntlsa.h,vsstyle.h,vssym32.h,usp10.h,
+    ntlsa.h,vsstyle.h,vssym32.h,usp10.h,xapo.h,xaudio2.h,xaudio2fx.h,x3daudio.h,hrtfapoapi.h,WpdShellExtension.h,
     
 Coverage in the 90%+ range
     winbase.h, oleidl.h, oaidl.h, 
@@ -149,7 +154,7 @@ Substantial coverage
 Minimal coverage
     windot11.h
     peninputpanel.h
-
+    xapobase.h
 Zero or near-zero coverage
     
 
