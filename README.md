@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 8.10.524 (May 2nd, 2025)**
+**Current Version: 8.11.526 (May 5th, 2025)**
 
 (c) 2022-2025 Jon Johnson (fafalone)
 
@@ -219,6 +219,15 @@ Finally, there's numerous additional API sets from small to large for independen
 This project has grown well beyond it's original mission of shell programming. While that's still the largest single part, it's no longer a majority of the code, and the name change now much better reflects the purpose of providing a general Windows API experience like windows.h. Compiler constants and module names/file names have been updated to reflect the name change. tbShellLibImpl is now WinDevLibImpl. There are also some major chanages associated with this update, please see the full changelog below.
 
 ### Updates
+
+**Update (v8.11.526, 05 May 2025):**\
+-Added Direct3D 10. Was weird having 9, 11, and 12 but not 10.\
+   100% coverage of d3d10.h, d3d10misc.h, d3d10shader.h, d3d10effects.h, d3d10sdklayers.h, d3d10_1shader.h, d3d10_1.h\
+-Added Windows Lockdown Policy APIs (wldp.h, 100% inc. all). Note: VALUENAME enum renamed WLDP_VALUENAME.\
+-Added Activity Coordinator API ActivityCoordinator.h, ActivityCoordinatorTypes.h - 100% (Win11+)\
+-(Bug fix) ID2D1Bitmap inherits from ID2D1Image. No consequences besides a warning in some circumstances, since ID2D1Image has no methods.\
+-(Bug fix) Some D3D_PRIMITIVE_TOPOLOGY values incorrect.\
+-(Bug fix) A number of uxtheme APIs were missing ByVal on LPWSTR arguments.
 
 **Update (v8.10.524, 02 May 2025):**\
 -Added XAudio2 interfaces and APIs - xaudio2.h, xaudio2fx.h, x3daudio.h, xapo.h, xapobase.h, hrtfapoapi.h 100%\
