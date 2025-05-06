@@ -40796,6 +40796,350 @@ Public DeclareWide PtrSafe Function SRSetRestorePoint Lib "srclient.dll" Alias "
 Public Declare PtrSafe Function SRSetRestorePointInternal Lib "srclient.dll" (pRestorePtSpec As RESTOREPOINTINFOW, pSMgrStatus As SMGRSTATUS, ByVal fForceSurrogate As BOOL) As BOOL
 Public Declare PtrSafe Function SRRemoveRestorePoint Lib "srclient.dll" (ByVal dwRPNum As Long) As Long
 
+'Lockdown Policy API
+'wldp.h - 100%
+
+Public Const WLDP_DLL  = "WLDP.DLL"
+Public Const WLDP_GETLOCKDOWNPOLICY_FN  = "WldpGetLockdownPolicy"
+Public Const WLDP_ISCLASSINAPPROVEDLIST_FN  = "WldpIsClassInApprovedList"
+Public Const WLDP_SETDYNAMICCODETRUST_FN  = "WldpSetDynamicCodeTrust"
+Public Const WLDP_ISDYNAMICCODEPOLICYENABLED_FN  = "WldpIsDynamicCodePolicyEnabled"
+Public Const WLDP_QUERYDANAMICCODETRUST_FN  = "WldpQueryDynamicCodeTrust"
+Public Const WLDP_QUERYDYNAMICCODETRUST_FN  = "WldpQueryDynamicCodeTrust"
+Public Const WLDP_QUERYWINDOWSLOCKDOWNMODE_FN  = "WldpQueryWindowsLockdownMode"
+Public Const WLDP_SETWINDOWSLOCKDOWNRESTRICTION_FN  = "WldpSetWindowsLockdownRestriction"
+Public Const WLDP_QUERYDEVICESECURITYINFORMATION_FN  = "WldpQueryDeviceSecurityInformation"
+Public Const WLDP_QUERYWINDOWSLOCKDOWNRESTRICTION_FN  = "WldpQueryWindowsLockdownRestriction"
+Public Const WLDP_ISAPPAPPROVEDBYPOLICY_FN  = "WldpIsAppApprovedByPolicy"
+Public Const WLDP_QUERYPOLICYSETTINGENABLED_FN  = "WldpQueryPolicySettingEnabled"
+Public Const WLDP_QUERYPOLICYSETTINGENABLED2_FN  = "WldpQueryPolicySettingEnabled2"
+Public Const WLDP_ISWCOSPRODUCTIONCONFIGURATION_FN  = "WldpIsWcosProductionConfiguration"
+Public Const WLDP_RESETWCOSPRODUCTIONCONFIGURATION_FN  = "WldpResetWcosProductionConfiguration"
+Public Const WLDP_ISPRODUCTIONCONFIGURATION_FN  = "WldpIsProductionConfiguration"
+Public Const WLDP_RESETPRODUCTIONCONFIGURATION_FN  = "WldpResetProductionConfiguration"
+Public Const WLDP_CANEXECUTEBUFFER_FN  = "WldpCanExecuteBuffer"
+Public Const WLDP_CANEXECUTEFILE_FN  = "WldpCanExecuteFile"
+
+/*
+Policy  | UMCI | Audit | Exclusion || Definition |
+State   |  On  |  On   |   On      ||            |
+--------|------|-------|-----------||------------|
+Off     |   0  |   *   |     *     ||   0 0 0    |
+Debug   |   1  |   *   |     1     ||   1 0 1    |
+Audit   |   1  |   1   |     *     ||   1 1 0    |
+Enforce |   1  |   0   |     0     ||   1 0 0    |
+*/
+
+Public Enum WldpLockdownFlags
+    WLDP_LOCKDOWN_UNDEFINED = (&H00000000)
+    WLDP_LOCKDOWN_DEFINED_FLAG = (&H80000000)
+    WLDP_LOCKDOWN_CONFIG_CI_FLAG = (&H00000001)
+    WLDP_LOCKDOWN_CONFIG_CI_AUDIT_FLAG = (&H00000002)  ' == CODEINTEGRITYPOLICY_OPTION_AUDIT_ENABLED
+    WLDP_LOCKDOWN_UMCIENFORCE_FLAG = (&H00000004)  ' == CODEINTEGRITY_OPTION_UMCI_ENABLED
+    WLDP_LOCKDOWN_AUDIT_FLAG = (&H00000008)  ' == CODEINTEGRITY_OPTION_UMCI_AUDITMODE_ENABLED
+    WLDP_LOCKDOWN_EXCLUSION_FLAG = (&H00000010)  ' == CODEINTEGRITY_OPTION_UMCI_EXCLUSIONPATHS_ENABLED
+    WLDP_LOCKDOWN_ALL_FLAGS = (WLDP_LOCKDOWN_DEFINED_FLAG Or WLDP_LOCKDOWN_CONFIG_CI_FLAG Or WLDP_LOCKDOWN_CONFIG_CI_AUDIT_FLAG Or WLDP_LOCKDOWN_UMCIENFORCE_FLAG Or WLDP_LOCKDOWN_AUDIT_FLAG Or WLDP_LOCKDOWN_EXCLUSION_FLAG)
+'  These are the only recornized policy status flag combinations of this feature.
+'  All other combinations will be reverted to WLDP_LOCKDOWN_DEFAULT.
+    WLDP_LOCKDOWN_OFF = (WLDP_LOCKDOWN_DEFINED_FLAG)
+    WLDP_LOCKDOWN_DEBUG = (WLDP_LOCKDOWN_DEFINED_FLAG Or WLDP_LOCKDOWN_UMCIENFORCE_FLAG Or WLDP_LOCKDOWN_EXCLUSION_FLAG)
+    WLDP_LOCKDOWN_AUDIT = (WLDP_LOCKDOWN_DEFINED_FLAG Or WLDP_LOCKDOWN_UMCIENFORCE_FLAG Or WLDP_LOCKDOWN_AUDIT_FLAG Or WLDP_LOCKDOWN_EXCLUSION_FLAG)
+    WLDP_LOCKDOWN_ENFORCE = (WLDP_LOCKDOWN_DEFINED_FLAG Or WLDP_LOCKDOWN_UMCIENFORCE_FLAG)
+    WLDP_LOCKDOWN_CONFIG_CI = (WLDP_LOCKDOWN_DEFINED_FLAG Or WLDP_LOCKDOWN_CONFIG_CI_FLAG Or WLDP_LOCKDOWN_UMCIENFORCE_FLAG)
+    WLDP_LOCKDOWN_CONFIG_CI_AUDIT = (WLDP_LOCKDOWN_DEFINED_FLAG Or WLDP_LOCKDOWN_CONFIG_CI_FLAG Or WLDP_LOCKDOWN_CONFIG_CI_AUDIT_FLAG Or WLDP_LOCKDOWN_UMCIENFORCE_FLAG)
+'  State comparison masks. These masks are used to strip off wild card bits.
+    WLDP_LOCKDOWN_OFF_MASK = (WLDP_LOCKDOWN_DEFINED_FLAG Or WLDP_LOCKDOWN_UMCIENFORCE_FLAG)
+    WLDP_LOCKDOWN_DEBUG_MASK = (WLDP_LOCKDOWN_DEFINED_FLAG Or WLDP_LOCKDOWN_UMCIENFORCE_FLAG Or WLDP_LOCKDOWN_AUDIT_FLAG Or WLDP_LOCKDOWN_EXCLUSION_FLAG)
+    WLDP_LOCKDOWN_AUDIT_MASK = (WLDP_LOCKDOWN_DEFINED_FLAG Or WLDP_LOCKDOWN_UMCIENFORCE_FLAG Or WLDP_LOCKDOWN_AUDIT_FLAG Or WLDP_LOCKDOWN_EXCLUSION_FLAG)
+    WLDP_LOCKDOWN_ENFORCE_MASK = (WLDP_LOCKDOWN_DEFINED_FLAG Or WLDP_LOCKDOWN_UMCIENFORCE_FLAG Or WLDP_LOCKDOWN_AUDIT_FLAG Or WLDP_LOCKDOWN_EXCLUSION_FLAG)
+    WLDP_LOCKDOWN_CONFIG_CI_MASK = (WLDP_LOCKDOWN_DEFINED_FLAG Or WLDP_LOCKDOWN_CONFIG_CI_FLAG Or WLDP_LOCKDOWN_UMCIENFORCE_FLAG)
+    WLDP_LOCKDOWN_CONFIG_CI_AUDIT_MASK = (WLDP_LOCKDOWN_DEFINED_FLAG Or WLDP_LOCKDOWN_CONFIG_CI_FLAG Or WLDP_LOCKDOWN_CONFIG_CI_AUDIT_FLAG Or WLDP_LOCKDOWN_UMCIENFORCE_FLAG)
+End Enum
+
+Public Function WLDP_LOCKDOWN_IS_OFF(ByVal PolicyState As Long) As Boolean
+    Return ((PolicyState And WLDP_LOCKDOWN_OFF_MASK) = WLDP_LOCKDOWN_OFF)
+End Function
+Public Function WLDP_LOCKDOWN_IS_DEBUG(ByVal PolicyState As Long) As Boolean
+    Return ((PolicyState And WLDP_LOCKDOWN_DEBUG_MASK) = WLDP_LOCKDOWN_DEBUG)
+End Function
+Public Function WLDP_LOCKDOWN_IS_AUDIT(ByVal PolicyState As Long) As Boolean
+    Return ((PolicyState And WLDP_LOCKDOWN_AUDIT_MASK) = WLDP_LOCKDOWN_AUDIT)
+End Function
+Public Function WLDP_LOCKDOWN_IS_ENFORCE(ByVal PolicyState As Long) As Boolean
+    Return ((PolicyState And WLDP_LOCKDOWN_ENFORCE_MASK) = WLDP_LOCKDOWN_ENFORCE)
+End Function
+Public Function WLDP_LOCKDOWN_IS_CONFIG_CI(ByVal PolicyState As Long) As Boolean
+    Return ((PolicyState And WLDP_LOCKDOWN_CONFIG_CI_MASK) = WLDP_LOCKDOWN_CONFIG_CI)
+End Function
+Public Function WLDP_LOCKDOWN_IS_CONFIG_CI_AUDIT(ByVal PolicyState As Long) As Boolean
+    Return ((PolicyState And WLDP_LOCKDOWN_CONFIG_CI_AUDIT_MASK) = WLDP_LOCKDOWN_CONFIG_CI_AUDIT)
+End Function
+Public Function WLDP_LOCKDOWN_IS_UMCIENFORCE(ByVal PolicyState As Long) As Boolean
+    Return ((PolicyState And WLDP_LOCKDOWN_UMCIENFORCE_FLAG) = WLDP_LOCKDOWN_UMCIENFORCE_FLAG)
+End Function
+
+Public Enum WLDP_HOST
+    WLDP_HOST_RUNDLL32 = 0
+    WLDP_HOST_SVCHOST
+    WLDP_HOST_MAX
+End Enum
+
+Public Enum WLDP_HOST_ID
+    WLDP_HOST_ID_UNKNOWN = 0
+    WLDP_HOST_ID_GLOBAL
+    WLDP_HOST_ID_VBA
+    WLDP_HOST_ID_WSH
+    WLDP_HOST_ID_POWERSHELL
+    WLDP_HOST_ID_IE
+    WLDP_HOST_ID_MSI
+    WLDP_HOST_ID_ALL
+    WLDP_HOST_ID_MAX
+End Enum
+
+Public Enum DECISION_LOCATION
+    DECISION_LOCATION_REFRESH_GLOBAL_DATA = 0
+    DECISION_LOCATION_PARAMETER_VALIDATION
+    DECISION_LOCATION_AUDIT
+    DECISION_LOCATION_FAILED_CONVERT_GUID
+    DECISION_LOCATION_ENTERPRISE_DEFINED_CLASS_ID
+    DECISION_LOCATION_GLOBAL_BUILT_IN_LIST
+    DECISION_LOCATION_PROVIDER_BUILT_IN_LIST
+    DECISION_LOCATION_ENFORCE_STATE_LIST
+    DECISION_LOCATION_NOT_FOUND
+    DECISION_LOCATION_UNKNOWN
+End Enum
+
+Public Enum WLDP_KEY
+    KEY_UNKNOWN = 0
+    KEY_OVERRIDE
+    KEY_ALL_KEYS
+End Enum
+
+Public Enum WLDP_VALUENAME
+    VALUENAME_UNKNOWN = 0
+    VALUENAME_ENTERPRISE_DEFINED_CLASS_ID
+    VALUENAME_BUILT_IN_LIST
+End Enum
+
+Public Enum WLDP_WINDOWS_LOCKDOWN_MODE
+    WLDP_WINDOWS_LOCKDOWN_MODE_UNLOCKED = 0
+    WLDP_WINDOWS_LOCKDOWN_MODE_TRIAL
+    WLDP_WINDOWS_LOCKDOWN_MODE_LOCKED
+    WLDP_WINDOWS_LOCKDOWN_MODE_MAX
+End Enum
+
+Public Enum WLDP_WINDOWS_LOCKDOWN_RESTRICTION
+    WLDP_WINDOWS_LOCKDOWN_RESTRICTION_NONE = 0
+    WLDP_WINDOWS_LOCKDOWN_RESTRICTION_NOUNLOCK
+    WLDP_WINDOWS_LOCKDOWN_RESTRICTION_NOUNLOCK_PERMANENT
+    WLDP_WINDOWS_LOCKDOWN_RESTRICTION_MAX
+End Enum
+
+Public Enum WLDP_POLICY_SETTING
+    WLDP_POLICY_SETTING_AV_PERF_MODE = 1000
+End Enum
+
+Public Enum WldpHostInfoRevisions
+    WLDP_HOST_INFORMATION_REVISION = 1
+End Enum
+
+Public Type WLDP_HOST_INFORMATION
+    dwRevision As WldpHostInfoRevisions ' Has to be WLDP_HOST_INFORMATION_REVISION.
+    dwHostId As WLDP_HOST_ID ' Enum value from WLDP_HOST_ID.
+    szSource As LongPtr ' Full path and script name with extension. NULL for WLDP_HOST_ID_GLOBAL or manual script execution.
+    hSource As LongPtr ' Additionally to the name, the caller may specify a handle to the file that is used for validation.
+End Type
+
+Public Type WLDP_DEVICE_SECURITY_INFORMATION
+    UnlockIdSize As Long ' UnlockId size in byte
+    UnlockId As LongPtr ' Device specific UnlockId if exists
+    ManufacturerIDLength As Long ' ManufacturerId string size in byte
+    ManufacturerID As LongPtr ' ManufacturerID on device if exists
+End Type
+
+Public Enum WldpGetLockdownPolicyFlags
+    WLDP_FLAGS_SKIPSIGNATUREVALIDATION = &H100
+End Enum
+
+Public Enum WLDP_EXECUTION_POLICY
+    WLDP_EXECUTION_POLICY_BLOCKED = 0
+    WLDP_EXECUTION_POLICY_ALLOWED
+    WLDP_EXECUTION_POLICY_REQUIRE_SANDBOX
+End Enum
+
+Public Enum WLDP_EXECUTION_EVALUATION_OPTIONS
+    WLDP_EXECUTION_EVALUATION_OPTION_NONE = &H0
+    WLDP_EXECUTION_EVALUATION_OPTION_EXECUTE_IN_INTERACTIVE_SESSION = &H1
+End Enum
+
+Public Function WLDP_HOST_CMD() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H5baea1d6, &H6f1c, &H488e, &H84, &H90, &H34, &H7f, &Ha5, &Hc5, &H6, &H7f)
+WLDP_HOST_CMD = iid
+End Function
+Public Function WLDP_HOST_POWERSHELL() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H8e9aaa7c, &H198b, &H4879, &Hae, &H41, &Ha5, &Hd, &H47, &Had, &H64, &H58)
+WLDP_HOST_POWERSHELL = iid
+End Function
+Public Function WLDP_HOST_PYTHON() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hbfd557ef, &H2448, &H42ec, &H81, &Hb, &Hd, &H9f, &H9, &H35, &H2d, &H4a)
+WLDP_HOST_PYTHON = iid
+End Function
+Public Function WLDP_HOST_WINDOWS_SCRIPT_HOST() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hd30b84c5, &H29ce, &H4ff3, &H86, &Hec, &Ha3, &H0, &H7, &Ha8, &H2e, &H49)
+WLDP_HOST_WINDOWS_SCRIPT_HOST = iid
+End Function
+Public Function WLDP_HOST_JAVASCRIPT() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H5629f0d5, &H1cca, &H4fed, &Ha1, &Ha3, &H36, &Ha8, &Hc1, &H8d, &H74, &Hc0)
+WLDP_HOST_JAVASCRIPT = iid
+End Function
+Public Function WLDP_HOST_HTML() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hb35a71b6, &Hfe56, &H48d6, &H95, &H43, &H2d, &Hff, &He, &Hcd, &Hed, &H66)
+WLDP_HOST_HTML = iid
+End Function
+Public Function WLDP_HOST_XML() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H5594be58, &Hc6bf, &H4295, &H82, &Hf4, &Hd4, &H94, &Hd2, &He, &H3a, &H36)
+WLDP_HOST_XML = iid
+End Function
+Public Function WLDP_HOST_MSI() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H624eb611, &H6e7e, &H4eec, &H9b, &Hfe, &Hf0, &Hec, &Hdb, &Hfc, &Hf3, &H90)
+WLDP_HOST_MSI = iid
+End Function
+Public Function WLDP_HOST_OTHER() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H626cbec3, &He1fa, &H4227, &H98, &H0, &Hed, &H21, &H2, &H74, &Hcf, &H7c)
+WLDP_HOST_OTHER = iid
+End Function
+
+[UseGetLastError(False)]
+Public Declare PtrSafe Function WldpGetLockdownPolicy Lib "wldp.dll" (hostInformation As WLDP_HOST_INFORMATION, lockdownState As WldpLockdownFlags, ByVal lockdownFlags As WldpGetLockdownPolicyFlags) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function WldpIsClassInApprovedList Lib "wldp.dll" (classID As UUID, hostInformation As WLDP_HOST_INFORMATION, isApproved As BOOL, ByVal optionalFlags As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function WldpSetDynamicCodeTrust Lib "wldp.dll" (ByVal fileHandle As LongPtr) As Long
+Public Delegate Function WLDP_SETDYNAMICCODETRUST_API (ByVal fileHandle As LongPtr) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function WldpIsDynamicCodePolicyEnabled Lib "wldp.dll" (isEnabled As BOOL) As Long
+Public Delegate Function WLDP_ISDYNAMICCODEPOLICYENABLED_API (isEnabled As BOOL) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function WldpQueryDynamicCodeTrust Lib "wldp.dll" (ByVal fileHandle As LongPtr, ByVal baseImage As LongPtr, ByVal imageSize As Long) As Long
+Public Delegate Function WLDP_QUERYDYNAMICODETRUST_API (ByVal fileHandle As LongPtr, ByVal baseImage As LongPtr, ByVal imageSize As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function WldpQueryWindowsLockdownMode Lib "wldp.dll" (lockdownMode As WLDP_WINDOWS_LOCKDOWN_MODE) As Long
+Public Delegate Function WLDP_QUERYWINDOWSLOCKDOWNMODE_API (lockdownMode As WLDP_WINDOWS_LOCKDOWN_MODE) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function WldpQueryDeviceSecurityInformation Lib "wldp.dll" (information As WLDP_DEVICE_SECURITY_INFORMATION, ByVal informationLength As Long, returnLength As Long) As Long
+Public Delegate Function WLDP_QUERYDEVICESECURITYINFORMATION_API (information As WLDP_DEVICE_SECURITY_INFORMATION, ByVal informationLength As Long, returnLength As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function WldpQueryWindowsLockdownRestriction Lib "wldp.dll" (LockdownRestriction As WLDP_WINDOWS_LOCKDOWN_RESTRICTION) As Long
+Public Delegate Function WLDP_QUERYWINDOWSLOCKDOWNRESTRICTION_API (LockdownRestriction As WLDP_WINDOWS_LOCKDOWN_RESTRICTION) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function WldpSetWindowsLockdownRestriction Lib "wldp.dll" (ByVal LockdownRestriction As WLDP_WINDOWS_LOCKDOWN_RESTRICTION) As Long
+Public Delegate Function WLDP_SETWINDOWSLOCKDOWNRESTRICTION_API (ByVal LockdownRestriction As WLDP_WINDOWS_LOCKDOWN_RESTRICTION) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function WldpIsAppApprovedByPolicy Lib "wldp.dll" (ByVal PackageFamilyName As LongPtr, ByVal PackageVersion As LongLong) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function WldpIsAppApprovedByPolicy Lib "wldp.dll" (ByVal PackageFamilyName As String, ByVal PackageVersion As LongLong) As Long
+Public Delegate Function WLDP_ISAPPAPPROVEDBYPOLICY_API (ByVal PackageFamilyName As LongPtr, ByVal PackageVersion As LongLong) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function WldpQueryPolicySettingEnabled Lib "wldp.dll" (ByVal Setting As WLDP_POLICY_SETTING, Enabled As BOOL) As Long
+Public Delegate Function WLDP_QUERYPOLICYSETTINGENABLED_API (ByVal Setting As WLDP_POLICY_SETTING, Enabled As BOOL) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function WldpQueryPolicySettingEnabled2 Lib "wldp.dll" (ByVal SettingString As String, Enabled As BOOL) As Long
+Public Delegate Function WLDP_QUERYPOLICYSETTINGENABLED2_API (ByVal SettingString As String, Enabled As BOOL) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function WldpIsWcosProductionConfiguration Lib "wldp.dll" (IsProductionConfiguration As BOOL) As Long
+Public Delegate Function WLDP_ISWCOSPRODUCTIONCONFIGURATION_API (IsProductionConfiguration As BOOL) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function WldpResetWcosProductionConfiguration Lib "wldp.dll" () As Long
+Public Delegate Function WLDP_RESETWCOSPRODUCTIONCONFIGURATION_API () As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function WldpIsProductionConfiguration Lib "wldp.dll" (IsProductionConfiguration As BOOL) As Long
+Public Delegate Function WLDP_ISPRODUCTIONCONFIGURATION_API (IsProductionConfiguration As BOOL) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function WldpResetProductionConfiguration Lib "wldp.dll" () As Long
+Public Delegate Function WLDP_RESETPRODUCTIONCONFIGURATION_API () As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function WldpCanExecuteFile Lib "wldp.dll" (host As UUID, ByVal options As WLDP_EXECUTION_EVALUATION_OPTIONS, ByVal fileHandle As LongPtr, ByVal auditInfo As LongPtr, result As WLDP_EXECUTION_POLICY) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function WldpCanExecuteFile Lib "wldp.dll" (host As UUID, ByVal options As WLDP_EXECUTION_EVALUATION_OPTIONS, ByVal fileHandle As LongPtr, ByVal auditInfo As String, result As WLDP_EXECUTION_POLICY) As Long
+Public Delegate Function WLDP_CANEXECUTEFILE_API (host As UUID, ByVal options As WLDP_EXECUTION_EVALUATION_OPTIONS, ByVal fileHandle As LongPtr, ByVal auditInfo As LongPtr, result As WLDP_EXECUTION_POLICY) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function WldpCanExecuteBuffer Lib "wldp.dll" (host As UUID, ByVal options As WLDP_EXECUTION_EVALUATION_OPTIONS, buffer As Any, ByVal bufferSize As Long, ByVal auditInfo As LongPtr, result As WLDP_EXECUTION_POLICY) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function WldpCanExecuteBuffer Lib "wldp.dll" (host As UUID, ByVal options As WLDP_EXECUTION_EVALUATION_OPTIONS, buffer As Any, ByVal bufferSize As Long, ByVal auditInfo As String, result As WLDP_EXECUTION_POLICY) As Long
+Public Delegate Function WLDP_CANEXECUTEBUFFER_API (host As UUID, ByVal options As WLDP_EXECUTION_EVALUATION_OPTIONS, buffer As Any, ByVal bufferSize As Long, ByVal auditInfo As LongPtr, result As WLDP_EXECUTION_POLICY) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function WldpCanExecuteStream Lib "wldp.dll" (host As UUID, ByVal options As WLDP_EXECUTION_EVALUATION_OPTIONS, ByVal stream As IStream, ByVal auditInfo As LongPtr, result As WLDP_EXECUTION_POLICY) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function WldpCanExecuteStream Lib "wldp.dll" (host As UUID, ByVal options As WLDP_EXECUTION_EVALUATION_OPTIONS, ByVal stream As IStream, ByVal auditInfo As String, result As WLDP_EXECUTION_POLICY) As Long
+Public Delegate Function WLDP_CANEXECUTESTREAM_API (host As UUID, ByVal options As WLDP_EXECUTION_EVALUATION_OPTIONS, ByVal stream As IStream, ByVal auditInfo As LongPtr, result As WLDP_EXECUTION_POLICY) As Long
+
+
+'Activity Coordinator API
+' activitycoordinator.h - 100%
+' ActivityCoordinatorTypes.h - 100%
+
+Public Enum ACTIVITY_COORDINATOR_RESOURCE
+    ACTIVITY_COORDINATOR_RESOURCE_USER_IDLE
+    ACTIVITY_COORDINATOR_RESOURCE_POWER
+    ACTIVITY_COORDINATOR_RESOURCE_NETWORK
+    ACTIVITY_COORDINATOR_RESOURCE_CPU
+    ACTIVITY_COORDINATOR_RESOURCE_MEMORY
+    ACTIVITY_COORDINATOR_RESOURCE_SYSTEM_DISK
+    ACTIVITY_COORDINATOR_RESOURCE_GPU
+    ACTIVITY_COORDINATOR_RESOURCE_NPU
+End Enum
+
+Public Enum ACTIVITY_COORDINATOR_CONDITION
+    ACTIVITY_COORDINATOR_CONDITION_GOOD
+    ACTIVITY_COORDINATOR_CONDITION_MEDIUM
+    ACTIVITY_COORDINATOR_CONDITION_NOT_SET
+End Enum
+
+Public Enum ACTIVITY_COORDINATOR_POLICY_TEMPLATE
+    ACTIVITY_COORDINATOR_POLICY_TEMPLATE_GOOD
+    ACTIVITY_COORDINATOR_POLICY_TEMPLATE_MEDIUM
+    ACTIVITY_COORDINATOR_POLICY_TEMPLATE_BASE
+    ACTIVITY_COORDINATOR_POLICY_TEMPLATE_EMPTY
+End Enum
+
+Public Enum ACTIVITY_COORDINATOR_NOTIFICATION
+    ACTIVITY_COORDINATOR_NOTIFICATION_RUN
+    ACTIVITY_COORDINATOR_NOTIFICATION_STOP
+End Enum
+
+Public Delegate Sub ACTIVITY_COORDINATOR_CALLBACK (ByVal notification As ACTIVITY_COORDINATOR_NOTIFICATION, ByVal callbackContext As LongPtr)
+
+[UseGetLastError(False)]
+Public Declare PtrSafe Function CreateActivityCoordinatorPolicy Lib "rmclient.dll" (ByVal policyTemplate As ACTIVITY_COORDINATOR_POLICY_TEMPLATE, policy As LongPtr) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SetActivityCoordinatorPolicyResourceCondition Lib "rmclient.dll" (ByVal policy As LongPtr, ByVal resource As ACTIVITY_COORDINATOR_RESOURCE, ByVal condition As ACTIVITY_COORDINATOR_CONDITION) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function GetActivityCoordinatorPolicyResourceCondition Lib "rmclient.dll" (ByVal policy As LongPtr, ByVal resource As ACTIVITY_COORDINATOR_RESOURCE, condition As ACTIVITY_COORDINATOR_CONDITION) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Sub DestroyActivityCoordinatorPolicy Lib "rmclient.dll" (ByVal policy As LongPtr)
+[UseGetLastError(False)]
+' #If WINDEVLIB_NO_DELEGATES Then
+Public Declare PtrSafe Function SubscribeActivityCoordinatorPolicy Lib "rmclient.dll" (ByVal policy As LongPtr, ByVal callback As LongPtr, ByVal callbackContext As LongPtr, subscription As LongPtr) As Long
+' #Else
+' Public Declare PtrSafe Function SubscribeActivityCoordinatorPolicy Lib "rmclient.dll" (ByVal policy As LongPtr, ByVal callback As ACTIVITY_COORDINATOR_CALLBACK, ByVal callbackContext As LongPtr, subscription As LongPtr) As Long
+' #End If
+[UseGetLastError(False)]
+Public Declare PtrSafe Function UnsubscribeActivityCoordinatorPolicy Lib "rmclient.dll" (ByVal subscription As LongPtr) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function IsActivityCoordinatorResourceSupported Lib "rmclient.dll" (ByVal resource As ACTIVITY_COORDINATOR_RESOURCE) As BOOL
+
+
+
+
 
 'Cabinet API
 'fdi_fcitypes.h - 100%
@@ -42941,58 +43285,62 @@ Public Declare PtrSafe Function cdtAnimate Lib "cards.dll" (ByVal hdc As LongPtr
 Public Declare PtrSafe Sub cdtTerm Lib "cards.dll" ()
 
 
-[IgnoreWarnings(TB0015)]
+[IgnoreWarnings(TB0015), UseGetLastError(False)]
 [Description("📝**NOTE:** twinBASIC patches this to an internal implementation, it will not actually call msvbvm60 (or any other DLL).")]
 Public Declare PtrSafe Function ArrPtr Lib "msvbvm60.dll" Alias "VarPtr" (var() As Any) As LongPtr
-[IgnoreWarnings(TB0015)]
+[IgnoreWarnings(TB0015), UseGetLastError(False)]
 [Description("📝**NOTE:** twinBASIC patches this to an internal implementation, it will not actually call msvbvm60 (or any other DLL).")]
 Public Declare PtrSafe Function vbaObjSetAddRef Lib "msvbvm60.dll" Alias "__vbaObjSetAddref" (ByRef objDest As Object, ByVal pObject As LongPtr) As LongPtr 'THIS IS REDIRECTED TO A TWINBASIC INTERNAL IMPLEMENTATION
-[IgnoreWarnings(TB0015)]
+[IgnoreWarnings(TB0015), UseGetLastError(False)]
+[Description("📝**NOTE:** twinBASIC patches this to an internal implementation, it will not actually call msvbvm60 (or any other DLL).")]
+Public Declare PtrSafe Function vbaRefVarAry Lib "msvbvm60.dll" Alias "__vbaRefVarAry" (ByRef v As Variant) As LongPtr
+[IgnoreWarnings(TB0015), UseGetLastError(False)]
 [Description("📝**NOTE:** twinBASIC patches this to an internal implementation, it will not actually call msvbvm60 (or any other DLL).")]
 Public Declare PtrSafe Function vbaObjSet Lib "msvbvm60.dll" Alias "__vbaObjSet" (ByRef objDest As Object, ByVal pObject As LongPtr) As LongPtr 'THIS IS REDIRECTED TO A TWINBASIC INTERNAL IMPLEMENTATION
-[IgnoreWarnings(TB0015)]
+[IgnoreWarnings(TB0015), UseGetLastError(False)]
 [Description("📝**NOTE:** twinBASIC patches this to an internal implementation, it will not actually call msvbvm60 (or any other DLL).")]
 Public Declare PtrSafe Function vbaCastObj Lib "msvbvm60.dll" Alias "__vbaCastObj" (pObj As Any, riid As UUID) As LongPtr 'THIS IS REDIRECTED TO A TWINBASIC INTERNAL IMPLEMENTATION
-[IgnoreWarnings(TB0015)]
+
+[IgnoreWarnings(TB0015), UseGetLastError(False)]
 [Description("📝**NOTE:** twinBASIC patches this to an internal implementation, it will not actually call msvbvm60 (or any other DLL).")]
 Public Declare PtrSafe Function GetMem1 Lib "msvbvm60.dll" (pSrc As Any, pDst As Any) As Long 'THIS IS REDIRECTED TO A TWINBASIC INTERNAL IMPLEMENTATION
-[IgnoreWarnings(TB0015)]
+[IgnoreWarnings(TB0015), UseGetLastError(False)]
 [Description("📝**NOTE:** twinBASIC patches this to an internal implementation, it will not actually call msvbvm60 (or any other DLL).")]
 Public Declare PtrSafe Function GetMem2 Lib "msvbvm60.dll" (pSrc As Any, pDst As Any) As Long 'THIS IS REDIRECTED TO A TWINBASIC INTERNAL IMPLEMENTATION
-[IgnoreWarnings(TB0015)]
+[IgnoreWarnings(TB0015), UseGetLastError(False)]
 [Description("📝**NOTE:** twinBASIC patches this to an internal implementation, it will not actually call msvbvm60 (or any other DLL).")]
 Public Declare PtrSafe Function GetMem4 Lib "msvbvm60.dll" (pSrc As Any, pDst As Any) As Long 'THIS IS REDIRECTED TO A TWINBASIC INTERNAL IMPLEMENTATION
-[IgnoreWarnings(TB0015)]
+[IgnoreWarnings(TB0015), UseGetLastError(False)]
 [Description("📝**NOTE:** twinBASIC patches this to an internal implementation, it will not actually call msvbvm60 (or any other DLL).")]
 Public Declare PtrSafe Function GetMem8 Lib "msvbvm60.dll" (pSrc As Any, pDst As Any) As Long 'THIS IS REDIRECTED TO A TWINBASIC INTERNAL IMPLEMENTATION
 #If Win64 Then
-[IgnoreWarnings(TB0015)]
+[IgnoreWarnings(TB0015), UseGetLastError(False)]
 [Description("📝**NOTE:** twinBASIC patches this to an internal implementation, it will not actually call msvbvm60 (or any other DLL).")]
 Public Declare PtrSafe Function GetMemPtr Lib "msvbvm60.dll" Alias "GetMem8" (pSrc As Any, pDst As Any) As Long 'THIS IS REDIRECTED TO A TWINBASIC INTERNAL IMPLEMENTATION
 #Else
-[IgnoreWarnings(TB0015)]
+[IgnoreWarnings(TB0015), UseGetLastError(False)]
 [Description("📝**NOTE:** twinBASIC patches this to an internal implementation, it will not actually call msvbvm60 (or any other DLL).")]
 Public Declare PtrSafe Function GetMemPtr Lib "msvbvm60.dll" Alias "GetMem4" (pSrc As Any, pDst As Any) As Long 'THIS IS REDIRECTED TO A TWINBASIC INTERNAL IMPLEMENTATION
 #End If
 
-[IgnoreWarnings(TB0015)]
+[IgnoreWarnings(TB0015), UseGetLastError(False)]
 [Description("📝**NOTE:** twinBASIC patches this to an internal implementation, it will not actually call msvbvm60 (or any other DLL).")]
 Public Declare PtrSafe Function PutMem1 Lib "msvbvm60.dll" (pDst As Any, ByVal v As Byte) As Long 'THIS IS REDIRECTED TO A TWINBASIC INTERNAL IMPLEMENTATION
-[IgnoreWarnings(TB0015)]
+[IgnoreWarnings(TB0015), UseGetLastError(False)]
 [Description("📝**NOTE:** twinBASIC patches this to an internal implementation, it will not actually call msvbvm60 (or any other DLL).")]
 Public Declare PtrSafe Function PutMem2 Lib "msvbvm60.dll" (pDst As Any, ByVal v As Integer) As Long 'THIS IS REDIRECTED TO A TWINBASIC INTERNAL IMPLEMENTATION
-[IgnoreWarnings(TB0015)]
+[IgnoreWarnings(TB0015), UseGetLastError(False)]
 [Description("📝**NOTE:** twinBASIC patches this to an internal implementation, it will not actually call msvbvm60 (or any other DLL).")]
 Public Declare PtrSafe Function PutMem4 Lib "msvbvm60.dll" (pDst As Any, ByVal v As Long) As Long 'THIS IS REDIRECTED TO A TWINBASIC INTERNAL IMPLEMENTATION
-[IgnoreWarnings(TB0015)]
+[IgnoreWarnings(TB0015), UseGetLastError(False)]
 [Description("📝**NOTE:** twinBASIC patches this to an internal implementation, it will not actually call msvbvm60 (or any other DLL).")]
 Public Declare PtrSafe Function PutMem8 Lib "msvbvm60.dll" (pDst As Any, ByVal v As LongLong) As Long 'THIS IS REDIRECTED TO A TWINBASIC INTERNAL IMPLEMENTATION
 #If Win64 Then
-[IgnoreWarnings(TB0015)]
+[IgnoreWarnings(TB0015), UseGetLastError(False)]
 [Description("📝**NOTE:** twinBASIC patches this to an internal implementation, it will not actually call msvbvm60 (or any other DLL).")]
 Public Declare PtrSafe Function PutMemPtr Lib "msvbvm60.dll" Alias "PutMem8" (pDst As Any, ByVal v As LongLong) As Long 'THIS IS REDIRECTED TO A TWINBASIC INTERNAL IMPLEMENTATION
 #Else
-[IgnoreWarnings(TB0015)]
+[IgnoreWarnings(TB0015), UseGetLastError(False)]
 [Description("📝**NOTE:** twinBASIC patches this to an internal implementation, it will not actually call msvbvm60 (or any other DLL).")]
 Public Declare PtrSafe Function PutMemPtr Lib "msvbvm60.dll" Alias "PutMem4" (pDst As Any, ByVal v As Long) As Long 'THIS IS REDIRECTED TO A TWINBASIC INTERNAL IMPLEMENTATION
 #End If

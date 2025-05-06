@@ -18972,12 +18972,73 @@ Public Enum RtlQueryProcessFlags
     RTL_QUERY_PROCESS_NONINVASIVE_CS_OWNER = &H80000800  ' WIN11
 End Enum
 
+Public Enum RtlHeapInfoFlags
+    RTL_HEAP_BUSY = &H0001
+    RTL_HEAP_SEGMENT = &H0002
+    RTL_HEAP_SETTABLE_VALUE = &H0010
+    RTL_HEAP_SETTABLE_FLAG1 = &H0020
+    RTL_HEAP_SETTABLE_FLAG2 = &H0040
+    RTL_HEAP_SETTABLE_FLAG3 = &H0080
+    RTL_HEAP_SETTABLE_FLAGS = &H00e0
+    RTL_HEAP_UNCOMMITTED_RANGE = &H0100
+    RTL_HEAP_PROTECTED_ENTRY = &H0200
+End Enum
+Private Type RTL_HEAP_ENTRY_UnionStandIn
+    u1 As LongPtr
+    u2 As LongPtr
+End Type
+Public Type RTL_HEAP_ENTRY
+    Size As LongPtr
+    Flags As Integer
+    AllocatorBackTraceIndex As Integer
+    ' union
+    ' {
+        ' struct
+        ' {
+            ' SIZE_T Settable;
+            ' ULONG Tag;
+        ' } s1;
+        ' struct
+        ' {
+            ' SIZE_T CommittedSize;
+            ' PVOID FirstBlock;
+        ' } s2;
+    ' } u;
+    u As RTL_HEAP_ENTRY_UnionStandIn
+End Type
+Public Type RTL_HEAP_TAG
+    NumberOfAllocations As Long
+    NumberOfFrees As Long
+    BytesAllocated As LongPtr
+    TagIndex As Integer
+    CreatorBackTraceIndex As Integer
+    TagName(0 To 23) As Integer
+End Type
+Public Type RTL_HEAP_INFORMATION
+    BaseAddress As LongPtr
+    Flags As Long
+    EntryOverhead As Integer
+    CreatorBackTraceIndex As Integer
+    BytesAllocated As LongPtr
+    BytesCommitted As LongPtr
+    NumberOfTags As Long
+    NumberOfEntries As Long
+    NumberOfPseudoTags As Long
+    PseudoTagGranularity As Long
+    Reserved(0 To 4) As Long
+    Tags As LongPtr 'PRTL_HEAP_TAG
+    Entries As LongPtr 'PRTL_HEAP_ENTRY
+End Type
+
+
+
 Public Declare PtrSafe Function RtlCreateQueryDebugBuffer Lib "ntdll" (ByVal MaximumCommit As Long, ByVal UseEventPair As Byte) As LongPtr 'PRTL_DEBUG_INFORMATION
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlDestroyQueryDebugBuffer Lib "ntdll" (ByVal Buffer As LongPtr) As NTSTATUS
 Public Declare PtrSafe Function RtlCommitDebugInfo Lib "ntdll" (Buffer As RTL_DEBUG_INFORMATION, ByVal Size As LongPtr) As LongPtr 'PVOID
 Public Declare PtrSafe Sub RtlDeCommitDebugInfo Lib "ntdll" (Buffer As RTL_DEBUG_INFORMATION, ByVal p As LongPtr, ByVal Size As LongPtr)
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlQueryProcessDebugInformation Lib "ntdll" (ByVal UniqueProcessId As LongPtr, ByVal Flags As RtlQueryProcessFlags, Buffer As RTL_DEBUG_INFORMATION) As NTSTATUS
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlSetProcessDebugInformation Lib "ntdll" (ByVal UniqueProcessId As LongPtr, ByVal Flags As RtlQueryProcessFlags, Buffer As RTL_DEBUG_INFORMATION) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlQueryProcessHeapInformation Lib "ntdll" (Buffer As RTL_DEBUG_INFORMATION) As NTSTATUS
 Public Function RtlIsAnyDebuggerPresent() As Boolean
     Dim result As Byte
     result = CType(Of PEB)(NtCurrentPeb()).BeingDebugged
