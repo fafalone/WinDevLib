@@ -1,4 +1,16 @@
 
+
+**Update (v8.11.526, 05 May 2025):** 
+-Added Direct3D 10. Was weird having 9, 11, and 12 but not 10.
+   100% coverage of d3d10.h, d3d10misc.h, d3d10shader.h, d3d10effects.h, d3d10sdklayers.h, d3d10_1shader.h, d3d10_1.h 
+-Added Windows Lockdown Policy APIs (wldp.h, 100% inc. all). Note: VALUENAME enum renamed WLDP_VALUENAME.
+-Added Activity Coordinator API ActivityCoordinator.h, ActivityCoordinatorTypes.h - 100% (Win11+)
+-(Bug fix) ID2D1Bitmap inherits from ID2D1Image. No consequences besides a warning in some circumstances, since
+      ID2D1Image has no methods.
+-(Bug fix) Some D3D_PRIMITIVE_TOPOLOGY values incorrect.
+-(Bug fix) A number of uxtheme APIs were missing ByVal on LPWSTR arguments.
+
+
 **Update (v8.10.524, 02 May 2025):** 
 -Added XAudio2 interfaces and APIs - xaudio2.h, xaudio2fx.h, x3daudio.h, xapo.h, xapobase.h, hrtfapoapi.h 100%
    IMPORTANT: For Windows 8, define compiler constant WINDEVLIB_XAUDIO8.

@@ -3,6 +3,8 @@ before release, or waiting on feature support:
  
 -Verify new xaudio2 and helper math functions
 
+-Uncomment and finish D2D1 helper class pending overload class bug fix
+
 -ntlsa delegates
 
 -BUG FIX PENDING: Overloaded interface vtable order vs source, reverse after patch:
@@ -44,6 +46,11 @@ Note: ID2D1SvgElement overloads currently left tagged because tB cannot disambig
 
 -Put   delegates back
 
+Macros
+#define D3D_SET_OBJECT_NAME_N_A(pObject, Chars, pName) (pObject)->SetPrivateData(WKPDID_D3DDebugObjectName, Chars, pName)
+#define D3D_SET_OBJECT_NAME_A(pObject, pName) D3D_SET_OBJECT_NAME_N_A(pObject, lstrlenA(pName), pName)
+#define D3D_SET_OBJECT_NAME_N_W(pObject, Chars, pName) (pObject)->SetPrivateData(WKPDID_D3DDebugObjectNameW, Chars*2, pName)
+#define D3D_SET_OBJECT_NAME_W(pObject, pName) D3D_SET_OBJECT_NAME_N_W(pObject, wcslen(pName), pName)
  
 -advpub.h
 
@@ -110,14 +117,18 @@ wdWTS,
 wdXAudio
 
 -Create coverage list by header.
-Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.0); basic coverage excludes macros, callbacks->delegates,
-ANSI APIs (though most are covered), and other headers from #include statements. Anything else missing is a bug and a report should be filed.
+Excluded from completed %: 
+    -Definitions unsupported by the tB language with no reasonable substitute.
+    -Definitions disabled by conditional compilation with version flags for XP and earlier or non-Windows platforms.
+Basic Coverage: excludes macros, callbacks->delegates,
+ANSI APIs (though most are covered), and other headers from #include statements. Anything else missing is a bug and a report should be filed
+Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.0); .
     UtilApiSet.h,processtopologyapi.h,msdelta.h,handleapi.h,cfgmgr32.h,ole2.h,lmuse.h,lmuseflg.h,lmrepl.h,lmat.h,avrt.h,
     realtimeapiset.h,msime.h,msimeapi.h,ws2bth.h,VersionHelpers.h,minwinbase.h,wsman.h,wcmapi.h,nb30.h,GPEdit.h,InputPanelConfiguration.h,
     WinEFS.h,winstring.h,qos2.h,traffic.h,qosobjs.h,qos.h,qossp.h,bluetoothleapis.h,bluetoothapis.h,bthsdpdef.h,fhcfg.h,fhsvcctl.h,fhstatus.h,fherrors.h,
     fwpmu.h,ipsectypes.h,iketypes.h,fdi_fcitypes.h,fdi.h,fci.h,namespaceapi.h,physicalmonitorenumerationapi.h,highlevelmonitorconfigurationapi.h,
     lowlevelmonitorconfigurationapi.h,wmistr.h,evntcons.h,wincodec.h,hidclass.h,hidusage.h,hidpi.h,hidsdi.h,WinML.h,sysinfoapi.h,cderr.h,
-    ShellScalingApi.h,imagehlp.h,dbghelp.h,interlockedapi.h,upnp.h,upnp.idl,upnphost.h,upnphost.idl,RtwqSetLongRunning,RTWorkQ.h,wlanapi.h,magnification.h,
+    ShellScalingApi.h,imagehlp.h,dbghelp.h,interlockedapi.h,upnp.h,upnp.idl,upnphost.h,upnphost.idl,RTWorkQ.h,wlanapi.h,magnification.h,
     cfapi.h,amsi.h,tokenbinding.h,WcnApi.h,WcnTypes.h,WcnDevice.h,WcnFunctionDiscoveryKeys.h,lmserver.h,cimfs.h,icmpapi.h,LMJoin.h,LMMsg.h,LMShare.h,
     ObjSel.h,DSClient.h,security.h,minschannel.h,sspi.h,issper16.h,credssp.h,vbinterf.h,vdserr.h,vdscmprv.idl,vsprvcm.idl,vdshwprv.idl,vdscmmn.idl,
     vdslun.idl,vdssp.idl,vdshp.idl,vdsvd.idl,vds.idl,vdshpcm.idl,vds.h,vdshwprv.h,vdslun.h,vdssys.h,directml.h,restartmanager.h,dde.h,ddeml.h,
@@ -143,10 +154,14 @@ ANSI APIs (though most are covered), and other headers from #include statements.
     propidl.h,propidl.idl,propidlbase.h,propidlbase.idl,propsys.idl,propsys.h,propvarutil.h,Xinput.h,winperf.h,perlib.h,spapidef.h,devpropdef.h,devpkey.h,
     devguid.h,setupapi.h,prnasnot.h,winspool.h,libloaderapi.h,libloaderapi2.h,ioapiset.h,wingdi.h,coml2api.h,dxgi_1.h,dxgi_1.idl,dxgi_2.h,dxgi_2.idl,
     dxgi_3.h,dxgi_3.idl,dxgi_4.h,dxgi_4.idl,dxgi_5.h,dxgi_5.idl,dxgi_6.h,dxgi_6.idl,DXGI_Messages.h,dxgitype.h,dxgitype.idl,dxgicommon.h,dxgicommon.idl,
-    ntlsa.h,vsstyle.h,vssym32.h,usp10.h,xapo.h,xaudio2.h,xaudio2fx.h,x3daudio.h,hrtfapoapi.h,WpdShellExtension.h,
+    ntlsa.h,vsstyle.h,vssym32.h,usp10.h,xapo.h,xaudio2.h,xaudio2fx.h,x3daudio.h,hrtfapoapi.h,WpdShellExtension.h,WpdMtpExtensions.h,d3d11.h,d3d11.idl,
+    d3d11_2.h,d3d11_2.idl,d3d11_3.h,d3d11_3.idl,d3d11_4.h,d3d11_4.idl,d3d11on12.idl,d2d1.h,d2d1_1.h,d2d1_2.h,d2d1_3.h,d2d1effectauthor.h,d2d1effects.h,
+    d2d1effects_1.h,d2d1effects_2.h,d2d1Effectauthor.h,d3dcommon.h,d3dcommon.idl,d3d10.h,d3d10.idl,d3d10misc.h,d3d10shader.h,d3d10effects.h,d3d10sdklayers.h,
+    d3d10sdklayers.idl,d3d10_1shader.h,d3d10_1.h,d3d10_1.idl,presentation.idl,presentationtypes.h,presentationtypes.idl,wldp.h,
+    ActivityCoordinator.h,ActivityCoordinatorTypes.h,
     
 Coverage in the 90%+ range
-    winbase.h, oleidl.h, oaidl.h, 
+    winbase.h, oleidl.h, oaidl.h, ocidl.h, ocidl.idl, presentation.h,
 
 Substantial coverage
     mmsciapi.h, winnt.h,winternl.h
@@ -156,8 +171,5 @@ Minimal coverage
     peninputpanel.h
     xapobase.h
 Zero or near-zero coverage
-    
-
-
-    * - Excludes definitions disabled by conditional compilation with version flags for XP and earlier or non-Windows platforms.
-    
+    (all other files)
+ 
