@@ -262,11 +262,11 @@
     [OleAutomation(False)]
     Interface IWICImageEncoder Extends stdole.IUnknown
         [PreserveSig]
-        Function WriteFrame(ByVal pImage As LongPtr, ByVal pFrameEncode As IWICBitmapFrameEncode, ByRef pImageParameters As WICImageParameters) As Long
+        Function WriteFrame(ByVal pImage As ID2D1Image, ByVal pFrameEncode As IWICBitmapFrameEncode, ByRef pImageParameters As WICImageParameters) As Long
         [PreserveSig]
-        Function WriteFrameThumbnail(ByVal pImage As LongPtr, ByVal pFrameEncode As IWICBitmapFrameEncode, ByRef pImageParameters As WICImageParameters) As Long
+        Function WriteFrameThumbnail(ByVal pImage As ID2D1Image, ByVal pFrameEncode As IWICBitmapFrameEncode, ByRef pImageParameters As WICImageParameters) As Long
         [PreserveSig]
-        Function WriteThumbnail(ByVal pImage As LongPtr, ByVal pEncoder As IWICBitmapEncoder, ByRef pImageParameters As WICImageParameters) As Long
+        Function WriteThumbnail(ByVal pImage As ID2D1Image, ByVal pEncoder As IWICBitmapEncoder, ByRef pImageParameters As WICImageParameters) As Long
     End Interface
 
     [InterfaceId("9EDDE9E7-8DEE-47EA-99DF-E6FAF2ED44BF")]
@@ -364,7 +364,11 @@
     [OleAutomation(False)]
     Interface IWICBitmapCodecProgressNotification Extends stdole.IUnknown
         [PreserveSig]
+        ' #If WINDEVLIB_NO_DELEGATES Then
         Function RegisterProgressNotification(ByVal pfnProgressNotification As LongPtr, ByRef pvData As Any, [TypeHint(WICProgressOperation, WICProgressNotification)] ByVal dwProgressFlags As Long) As Long
+        ' #Else
+        ' Function RegisterProgressNotification(ByVal pfnProgressNotification As PFNProgressNotification, ByRef pvData As Any, [TypeHint(WICProgressOperation, WICProgressNotification)] ByVal dwProgressFlags As Long) As Long
+        ' #End If    
     End Interface
 
     [InterfaceId("23BC3F0A-698B-4357-886B-F24D50671334")]
@@ -987,6 +991,8 @@ End Interface
 
 
 Module wdWIC
+    
+Public Delegate Function PFNProgressNotification (ByVal pvData As LongPtr, ByVal uFrameNum As Long, ByVal operation As WICProgressOperation, ByVal dblProgress As Double) As Long
 
 Public Const CODEC_FORCE_DWORD = &H7FFFFFFF
 
@@ -1135,7 +1141,7 @@ Public Enum WICBitmapPaletteType
     WICBitmapPaletteTypeFixedHalftone64 = 5
     WICBitmapPaletteTypeFixedHalftone125 = 6
     WICBitmapPaletteTypeFixedHalftone216 = 7
-    WICBitmapPaletteTypeFixedWebPalette = 7
+    WICBitmapPaletteTypeFixedWebPalette = WICBitmapPaletteTypeFixedHalftone216
     WICBitmapPaletteTypeFixedHalftone252 = 8
     WICBitmapPaletteTypeFixedHalftone256 = 9
     WICBitmapPaletteTypeFixedGray4 = 10
@@ -1428,7 +1434,7 @@ Public Enum WICJpegScanType
 End Enum
 
 Public Type WICImageParameters
-    PixelFormat As Long
+    PixelFormat As D2D1_PIXEL_FORMAT
     DpiX As Single
     DpiY As Single
     Top As Single
@@ -1811,6 +1817,18 @@ Public Type WICMetadataHeader
     DataOffset As LARGE_INTEGER
 End Type
 
+Public Const WINCODEC_ERR_BASE = &H2000
+' #define MAKE_WINCODECHR(sev, code) MAKE_HRESULT(sev, FACILITY_WINCODEC_ERR, (WINCODEC_ERR_BASE + code))
+[ConstantFoldable]
+Public Function MAKE_WINCODECHR(ByVal sev As HResultSeverity, ByVal code As Long) As Long
+    Return MAKE_HRESULT(sev, FACILITY_WINCODEC_ERR, (WINCODEC_ERR_BASE + code))
+End Function
+
+' #define MAKE_WINCODECHR_ERR(code) MAKE_WINCODECHR(1, code)
+[ConstantFoldable]
+Public Function MAKE_WINCODECHR_ERR(ByVal code As Long) As Long
+    Return MAKE_WINCODECHR(SEVERITY_ERROR, code)
+End Function
 Public Const WINCODEC_ERR_GENERIC_ERROR    = &H80004005 'E_FAIL
 Public Const WINCODEC_ERR_INVALIDPARAMETER = &H80070057 'E_INVALIDARG
 Public Const WINCODEC_ERR_OUTOFMEMORY      = &H8007000E 'E_OUTOFMEMORY
@@ -1833,10 +1851,13 @@ Public Declare PtrSafe Function WICCreateBitmapFromSection Lib "Windowscodecs.dl
 Public Declare PtrSafe Function WICCreateBitmapFromSectionEx Lib "Windowscodecs.dll" (ByVal width As Long, ByVal Height As Long, ByRef PixelFormat As UUID, ByVal hSection As LongPtr, ByVal stride As Long, ByVal offset As Long, ByVal desiredAccessLevel As WICSectionAccessLevel, ByRef ppIBitmap As IWICBitmap) As Long
 
 Public Declare PtrSafe Function WICMapGuidToShortName Lib "Windowscodecs.dll" (ByRef guid As UUID, ByVal cchName As Long, ByVal wzName As LongPtr, ByRef pcchActual As Long) As Long
+Public DeclareWide PtrSafe Function WICMapGuidToShortName Lib "Windowscodecs.dll" (ByRef guid As UUID, ByVal cchName As Long, ByVal wzName As String, ByRef pcchActual As Long) As Long
 
 Public Declare PtrSafe Function WICMapShortNameToGuid Lib "Windowscodecs.dll" (ByVal wzName As LongPtr, ByRef pGUID As UUID) As Long
+Public DeclareWide PtrSafe Function WICMapShortNameToGuid Lib "Windowscodecs.dll" (ByVal wzName As String, ByRef pGUID As UUID) As Long
 
 Public Declare PtrSafe Function WICMapSchemaToName Lib "Windowscodecs.dll" (ByRef guidMetadataFormat As UUID, ByVal pwzSchema As LongPtr, ByVal cchName As Long, ByVal wzName As LongPtr, ByRef pcchActual As Long) As Long
+Public DeclareWide PtrSafe Function WICMapSchemaToName Lib "Windowscodecs.dll" (ByRef guidMetadataFormat As UUID, ByVal pwzSchema As String, ByVal cchName As Long, ByVal wzName As String, ByRef pcchActual As Long) As Long
 
 
 '*********************************************
