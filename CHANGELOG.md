@@ -1,4 +1,11 @@
 
+**Update (v8.11.528, 08 May 2025):** 
+-Added WebAuthN APIs (Windows Hello and other new security tokens; webauthn.h 100%)
+-IWICImageEncoder methods now use proper ID2D1Image type. (This is a breaking change against typelibs, but the next
+    version of oleexp will use it too)
+-PROPVARIANT now uses more convenient 2x/4x Long, renamed pVar/pVar2/etc to harmonize with oleexp (unnamed in SDK)
+-(Bug fix) WICImageParameters improperly substituted Long for D2D1_PIXEL_FORMAT (now used).
+
 
 **Update (v8.11.526, 05 May 2025):** 
 -Added Direct3D 10. Was weird having 9, 11, and 12 but not 10.

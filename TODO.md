@@ -157,7 +157,7 @@ Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.
     ntlsa.h,vsstyle.h,vssym32.h,usp10.h,xapo.h,xaudio2.h,xaudio2fx.h,x3daudio.h,hrtfapoapi.h,WpdShellExtension.h,WpdMtpExtensions.h,d3d11.h,d3d11.idl,
     d3d11_2.h,d3d11_2.idl,d3d11_3.h,d3d11_3.idl,d3d11_4.h,d3d11_4.idl,d3d11on12.idl,d2d1.h,d2d1_1.h,d2d1_2.h,d2d1_3.h,d2d1effectauthor.h,d2d1effects.h,
     d2d1effects_1.h,d2d1effects_2.h,d2d1Effectauthor.h,d3dcommon.h,d3dcommon.idl,d3d10.h,d3d10.idl,d3d10misc.h,d3d10shader.h,d3d10effects.h,d3d10sdklayers.h,
-    d3d10sdklayers.idl,d3d10_1shader.h,d3d10_1.h,d3d10_1.idl,presentation.idl,presentationtypes.h,presentationtypes.idl,wldp.h,
+    d3d10sdklayers.idl,d3d10_1shader.h,d3d10_1.h,d3d10_1.idl,presentation.idl,presentationtypes.h,presentationtypes.idl,wldp.h,webauthn.h,
     ActivityCoordinator.h,ActivityCoordinatorTypes.h,
     
 Coverage in the 90%+ range
