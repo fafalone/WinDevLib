@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 8.11.526 (May 5th, 2025)**
+**Current Version: 8.11.528 (May 8th, 2025)**
 
 (c) 2022-2025 Jon Johnson (fafalone)
 
@@ -219,6 +219,12 @@ Finally, there's numerous additional API sets from small to large for independen
 This project has grown well beyond it's original mission of shell programming. While that's still the largest single part, it's no longer a majority of the code, and the name change now much better reflects the purpose of providing a general Windows API experience like windows.h. Compiler constants and module names/file names have been updated to reflect the name change. tbShellLibImpl is now WinDevLibImpl. There are also some major chanages associated with this update, please see the full changelog below.
 
 ### Updates
+
+**Update (v8.11.528, 08 May 2025):**\
+-Added WebAuthN APIs (Windows Hello and other new security tokens; webauthn.h 100%)\
+-IWICImageEncoder methods now use proper ID2D1Image type. (This is a breaking change against typelibs, but the next version of oleexp will use it too)\
+-PROPVARIANT now uses more convenient 2x/4x Long, renamed pVar/pVar2/etc to harmonize with oleexp (unnamed in SDK)\
+-(Bug fix) WICImageParameters improperly substituted Long for D2D1_PIXEL_FORMAT (now used).
 
 **Update (v8.11.526, 05 May 2025):**\
 -Added Direct3D 10. Was weird having 9, 11, and 12 but not 10.\
