@@ -1322,6 +1322,76 @@
         Sub GetWrittenRegister(ByVal stepIndex As Long, ByVal writtenRegisterIndex As Long, ByRef pRegister As D3D11_TRACE_REGISTER, ByRef pValue As D3D11_TRACE_VALUE)
         Sub GetReadRegister(ByVal stepIndex As Long, ByVal readRegisterIndex As Long, ByRef pRegister As D3D11_TRACE_REGISTER, ByRef pValue As D3D11_TRACE_VALUE)
     End Interface
+    
+    
+    
+    [InterfaceId("5089B68F-E71D-4D38-BE8E-F363B95A9405")]
+    Interface ID3DX11Scan Extends IUnknown
+        Sub SetScanDirection(ByVal Direction As D3DX11_SCAN_DIRECTION)
+
+        ' Performs an unsegmented scan
+        Sub Scan(ByVal ElementType As D3DX11_SCAN_DATA_TYPE, ByVal OpCode As D3DX11_SCAN_OPCODE, ByVal ElementScanSize As Long, ByVal pSrc As ID3D11UnorderedAccessView, ByVal pDst As ID3D11UnorderedAccessView)
+
+        ' Performs a multiscan
+        Sub Multiscan(ByVal ElementType As D3DX11_SCAN_DATA_TYPE, ByVal OpCode As D3DX11_SCAN_OPCODE, ByVal ElementScanSize As Long, ByVal ElementScanPitch As Long, ByVal ScanCount As Long, ByVal pSrc As ID3D11UnorderedAccessView, ByVal pDst As ID3D11UnorderedAccessView)
+    End Interface
+    
+    [InterfaceId("a915128c-d954-4c79-bfe1-64db923194d6")]
+    Interface ID3DX11SegmentedScan Extends IUnknown
+
+        ' Sets the scan direction.
+        Sub SetScanDirection(ByVal Direction As D3DX11_SCAN_DIRECTION)
+
+        ' Performs a segmented scan of a sequence in-place or out-of-place.
+        ' ElementType         element type
+        ' OpCode              binary operation
+        ' Direction           scan direction
+        ' pSrcElementFlags    compact array of bits, one per element of pSrc.
+        '                     A set value indicates the start of a new segment.
+        ' ElementScanSize     size of scan, in elements
+        ' pSrc                input sequence on the device. pSrc == pDst for in-place scans
+        ' pDst                output sequence on the device
+        Sub SegScan(ByVal ElementType As D3DX11_SCAN_DATA_TYPE, ByVal OpCode As D3DX11_SCAN_OPCODE, ByVal ElementScanSize As Long, ByVal pSrc As ID3D11UnorderedAccessView, ByVal pSrcElementFlags As ID3D11UnorderedAccessView, ByVal pDst As ID3D11UnorderedAccessView)
+
+    End Interface
+    
+    [InterfaceId("b3f7a938-4c93-4310-a675-b30d6de50553")]
+    Interface ID3DX11FFT Extends IUnknown
+
+        ' Scale for forward transform (defaults to 1 if set to 0)
+        Sub SetForwardScale(ByVal ForwardScale As Single)
+        [PreserveSig] Function GetForwardScale() As Single
+
+        ' Scale for inverse transform (defaults to 1/N if set to 0, where N is the product of the transformed dimension lengths)
+        Sub SetInverseScale(ByVal InverseScale As Single)
+        [PreserveSig] Function GetInverseScale() As Single
+
+        '------------------------------------------------------------------------------
+        ' Attaches buffers to the context and performs any required precomputation.
+        ' The buffers must be no smaller than the corresponding buffer sizes returned
+        ' by D3DX11CreateFFT*(). Temp buffers may be shared between multiple contexts,
+        ' though care should be taken to concurrently execute multiple FFTs which share temp buffers.
+        '
+        ' NumTempBuffers               number of buffers in ppTempBuffers
+        ' ppTempBuffers                temp buffers to attach
+        ' NumPrecomputeBuffers         number of buffers in ppPrecomputeBufferSizes
+        ' ppPrecomputeBufferSizes      buffers to hold precomputed data
+        Sub AttachBuffersAndPrecompute(ByVal NumTempBuffers As Long, ByRef ppTempBuffers As ID3D11UnorderedAccessView, ByVal NumPrecomputeBuffers As Long, ByRef ppPrecomputeBufferSizes As ID3D11UnorderedAccessView)
+
+        '------------------------------------------------------------------------------
+        ' Call after buffers have been attached to the context. pInput and *ppOutput can be one of the temp buffers.
+        ' If *ppOutput = NULL, then computation ping-pongs between temp buffers and last written buffer is stored in *ppOutput.
+        ' Otherwise, *ppOutput is used as the output buffer (may incur extra copy).
+        '
+        ' Format of complex data is interleaved components: (Real0, Imag0), (Real1, Imag1), etc.
+        ' Data is stored in row-major order.
+        '
+        ' pInputBuffer       view onto input buffer
+        ' ppOutputBuffer     pointer to view of output buffer
+        Sub ForwardTransform(ByVal pInputBuffer As ID3D11UnorderedAccessView, ByRef ppOutputBuffer As ID3D11UnorderedAccessView)
+        Sub InverseTransform(ByVal pInputBuffer As ID3D11UnorderedAccessView, ByRef ppOutputBuffer As ID3D11UnorderedAccessView)
+
+    End Interface
 #End Region
 
 #Region "D3D12 Interfaces"
@@ -7300,6 +7370,108 @@ Public Declare PtrSafe Function D3D11CreateDeviceAndSwapChain Lib "d3d11.dll" (B
 Public Declare PtrSafe Function D3D11On12CreateDevice Lib "d3d11.dll" (ByVal pDevice As IUnknown, ByVal Flags As D3D11_CREATE_DEVICE_FLAG, pFeatureLevels As D3D_FEATURE_LEVEL, ByVal FeatureLevels As Long, ppCommandQueues As Any, ByVal NumQueues As Long, ByVal NodeMask As Long, ppDevice As ID3D11Device, ppImmediateContext As ID3D11DeviceContext, pChosenFeatureLevel As D3D_FEATURE_LEVEL) As Long
 
 
+
+'d3dcsx.h
+Public Const D3DCSX_DLL_W  = "d3dcsx_47.dll"
+Public Const D3DCSX_DLL_A  = "d3dcsx_47.dll"
+
+Public Enum D3DX11_SCAN_DATA_TYPE
+    D3DX11_SCAN_DATA_TYPE_FLOAT = 1
+    D3DX11_SCAN_DATA_TYPE_INT
+    D3DX11_SCAN_DATA_TYPE_UINT
+End Enum
+
+Public Enum D3DX11_SCAN_OPCODE
+    D3DX11_SCAN_OPCODE_ADD = 1
+    D3DX11_SCAN_OPCODE_MIN
+    D3DX11_SCAN_OPCODE_MAX
+    D3DX11_SCAN_OPCODE_MUL
+    D3DX11_SCAN_OPCODE_AND
+    D3DX11_SCAN_OPCODE_OR
+    D3DX11_SCAN_OPCODE_XOR
+End Enum
+
+Public Enum D3DX11_SCAN_DIRECTION
+    D3DX11_SCAN_DIRECTION_FORWARD = 1
+    D3DX11_SCAN_DIRECTION_BACKWARD = 2
+End Enum
+
+
+Public Const D3DX11_FFT_MAX_PRECOMPUTE_BUFFERS  = 4
+Public Const D3DX11_FFT_MAX_TEMP_BUFFERS  = 4
+Public Const D3DX11_FFT_MAX_DIMENSIONS  = 32
+
+Public Enum D3DX11_FFT_DATA_TYPE
+    D3DX11_FFT_DATA_TYPE_REAL = 0
+    D3DX11_FFT_DATA_TYPE_COMPLEX = 1
+End Enum
+
+Public Enum D3DX11_FFT_DIM_MASK
+    D3DX11_FFT_DIM_MASK_1D = &H1
+    D3DX11_FFT_DIM_MASK_2D = &H3
+    D3DX11_FFT_DIM_MASK_3D = &H7
+End Enum
+
+Public Type D3DX11_FFT_DESC
+    NumDimensions As Long ' number of dimensions
+    ElementLengths(0 To (D3DX11_FFT_MAX_DIMENSIONS - 1)) As Long ' length of each dimension
+    DimensionMask As Long        ' a bit set for each dimensions to transform 
+                                 '     (see D3DX11_FFT_DIM_MASK for common masks)
+    Type As D3DX11_FFT_DATA_TYPE ' type of the elements in spatial domain
+End Type
+
+Public Type D3DX11_FFT_BUFFER_INFO
+    NumTempBufferSizes As Long
+    TempBufferFloatSizes(0 To (D3DX11_FFT_MAX_TEMP_BUFFERS - 1)) As Long
+    NumPrecomputeBufferSizes As Long
+    PrecomputeBufferFloatSizes(0 To (D3DX11_FFT_MAX_PRECOMPUTE_BUFFERS - 1)) As Long
+End Type
+
+Public Enum D3DX11_FFT_CREATE_FLAG
+    D3DX11_FFT_CREATE_FLAG_NO_PRECOMPUTE_BUFFERS = &H01 ' do not precompute values and store into buffers
+End Enum
+
+#If (D3D_COMPILER = 0) Or (D3D_COMPILER = 47) Then
+[UseGetLastError(False)]
+Public Declare PtrSafe Function D3DX11CreateScan Lib "d3dcsx_47.dll" (ByVal pDeviceContext As ID3D11DeviceContext, ByVal MaxElementScanSize As Long, ByVal MaxScanCount As Long, ppScan As ID3DX11Scan) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function D3DX11CreateSegmentedScan Lib "d3dcsx_47.dll" (ByVal pDeviceContext As ID3D11DeviceContext, ByVal MaxElementScanSize As Long, ppScan As ID3DX11SegmentedScan) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function D3DX11CreateFFT Lib "d3dcsx_47.dll" (ByVal pDeviceContext As ID3D11DeviceContext, ByRef pDesc As D3DX11_FFT_DESC, ByVal Flags As D3DX11_FFT_CREATE_FLAG, ByRef pBufferInfo As D3DX11_FFT_BUFFER_INFO, ByRef ppFFT As ID3DX11FFT) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function D3DX11CreateFFT1DReal Lib "d3dcsx_47.dll" (ByVal pDeviceContext As ID3D11DeviceContext, ByVal X As Long, ByVal Flags As D3DX11_FFT_CREATE_FLAG, ByRef pBufferInfo As D3DX11_FFT_BUFFER_INFO, ByRef ppFFT As ID3DX11FFT) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function D3DX11CreateFFT1DComplex Lib "d3dcsx_47.dll" (ByVal pDeviceContext As ID3D11DeviceContext, ByVal X As Long, ByVal Flags As D3DX11_FFT_CREATE_FLAG, ByRef pBufferInfo As D3DX11_FFT_BUFFER_INFO, ByRef ppFFT As ID3DX11FFT) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function D3DX11CreateFFT2DReal Lib "d3dcsx_47.dll" (ByVal pDeviceContext As ID3D11DeviceContext, ByVal X As Long, ByVal Y As Long, ByVal Flags As D3DX11_FFT_CREATE_FLAG, ByRef pBufferInfo As D3DX11_FFT_BUFFER_INFO, ByRef ppFFT As ID3DX11FFT) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function D3DX11CreateFFT2DComplex Lib "d3dcsx_47.dll" (ByVal pDeviceContext As ID3D11DeviceContext, ByVal X As Long, ByVal Y As Long, ByVal Flags As D3DX11_FFT_CREATE_FLAG, ByRef pBufferInfo As D3DX11_FFT_BUFFER_INFO, ByRef ppFFT As ID3DX11FFT) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function D3DX11CreateFFT3DReal Lib "d3dcsx_47.dll" (ByVal pDeviceContext As ID3D11DeviceContext, ByVal X As Long, ByVal Y As Long, ByVal Z As Long, ByVal Flags As D3DX11_FFT_CREATE_FLAG, ByRef pBufferInfo As D3DX11_FFT_BUFFER_INFO, ByRef ppFFT As ID3DX11FFT) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function D3DX11CreateFFT3DComplex Lib "d3dcsx_47.dll" (ByVal pDeviceContext As ID3D11DeviceContext, ByVal X As Long, ByVal Y As Long, ByVal Z As Long, ByVal Flags As D3DX11_FFT_CREATE_FLAG, ByRef pBufferInfo As D3DX11_FFT_BUFFER_INFO, ByRef ppFFT As ID3DX11FFT) As Long
+#ElseIf D3D_COMPILER = 46 Then
+[UseGetLastError(False)]
+Public Declare PtrSafe Function D3DX11CreateScan Lib "d3dcsx_46.dll" (ByVal pDeviceContext As ID3D11DeviceContext, ByVal MaxElementScanSize As Long, ByVal MaxScanCount As Long, ppScan As ID3DX11Scan) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function D3DX11CreateSegmentedScan Lib "d3dcsx_46.dll" (ByVal pDeviceContext As ID3D11DeviceContext, ByVal MaxElementScanSize As Long, ppScan As ID3DX11SegmentedScan) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function D3DX11CreateFFT Lib "d3dcsx_46.dll" (ByVal pDeviceContext As ID3D11DeviceContext, ByRef pDesc As D3DX11_FFT_DESC, ByVal Flags As D3DX11_FFT_CREATE_FLAG, ByRef pBufferInfo As D3DX11_FFT_BUFFER_INFO, ByRef ppFFT As ID3DX11FFT) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function D3DX11CreateFFT1DReal Lib "d3dcsx_46.dll" (ByVal pDeviceContext As ID3D11DeviceContext, ByVal X As Long, ByVal Flags As D3DX11_FFT_CREATE_FLAG, ByRef pBufferInfo As D3DX11_FFT_BUFFER_INFO, ByRef ppFFT As ID3DX11FFT) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function D3DX11CreateFFT1DComplex Lib "d3dcsx_46.dll" (ByVal pDeviceContext As ID3D11DeviceContext, ByVal X As Long, ByVal Flags As D3DX11_FFT_CREATE_FLAG, ByRef pBufferInfo As D3DX11_FFT_BUFFER_INFO, ByRef ppFFT As ID3DX11FFT) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function D3DX11CreateFFT2DReal Lib "d3dcsx_46.dll" (ByVal pDeviceContext As ID3D11DeviceContext, ByVal X As Long, ByVal Y As Long, ByVal Flags As D3DX11_FFT_CREATE_FLAG, ByRef pBufferInfo As D3DX11_FFT_BUFFER_INFO, ByRef ppFFT As ID3DX11FFT) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function D3DX11CreateFFT2DComplex Lib "d3dcsx_46.dll" (ByVal pDeviceContext As ID3D11DeviceContext, ByVal X As Long, ByVal Y As Long, ByVal Flags As D3DX11_FFT_CREATE_FLAG, ByRef pBufferInfo As D3DX11_FFT_BUFFER_INFO, ByRef ppFFT As ID3DX11FFT) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function D3DX11CreateFFT3DReal Lib "d3dcsx_46.dll" (ByVal pDeviceContext As ID3D11DeviceContext, ByVal X As Long, ByVal Y As Long, ByVal Z As Long, ByVal Flags As D3DX11_FFT_CREATE_FLAG, ByRef pBufferInfo As D3DX11_FFT_BUFFER_INFO, ByRef ppFFT As ID3DX11FFT) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function D3DX11CreateFFT3DComplex Lib "d3dcsx_46.dll" (ByVal pDeviceContext As ID3D11DeviceContext, ByVal X As Long, ByVal Y As Long, ByVal Z As Long, ByVal Flags As D3DX11_FFT_CREATE_FLAG, ByRef pBufferInfo As D3DX11_FFT_BUFFER_INFO, ByRef ppFFT As ID3DX11FFT) As Long
+#End If
+    
+    
 #End Region
 
 #Region "D3D 12 Module"

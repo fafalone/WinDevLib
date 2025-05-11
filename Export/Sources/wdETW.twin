@@ -1,0 +1,3113 @@
+'*****************************************************************************************
+'This file is a part of WinDevLib - Windows Development Library for twinBASIC
+'https://github.com/fafalone/WinDevLib
+'Code ported by Jon Johnson. 
+'"Windows" is a trademark of the Microsoft Corporation.
+'Certain Description attributes (c) Microsoft, taken from SDK headers and official docs.
+'Licensed under Creative Commons CC0 1.0 Universal
+'*****************************************************************************************
+
+'wdETW :: Event Tracing for Windows
+'Evntcons.h
+'Evntprov.h
+'Evntrace.h
+'Tdh.h
+'Relogger.h/.idl
+
+[InterfaceId("8CC97F40-9028-4FF3-9B62-7D1F79CA7BCB")]
+[OleAutomation(False)]
+Interface ITraceEvent Extends IUnknown
+    Function Clone() As ITraceEvent
+    Function GetUserContext() As LongPtr
+    Function GetEventRecord() As LongPtr
+    Sub SetPayload(Payload As Any, ByVal PayloadSize As Long)
+    Sub SetEventDescriptor(EventDescriptor As EVENT_DESCRIPTOR)
+    Sub SetProcessId(ByVal ProcessId As Long)
+    Sub SetProcessorIndex(ByVal ProcessorIndex As Long)
+    Sub SetThreadId(ByVal ThreadId As Long)
+    Sub SetThreadTimes(ByVal KernelTime As Long, ByVal UserTime As Long)
+    Sub SetActivityId(ActivityId As UUID)
+    Sub SetTimeStamp(ByRef TimeStamp As LARGE_INTEGER)
+    Sub SetProviderId(ProviderId As UUID)
+End Interface
+
+[InterfaceId("3ED25501-593F-43E9-8F38-3AB46F5A4A52")]
+[OleAutomation(False)]
+Interface ITraceEventCallback Extends IUnknown
+    Sub OnBeginProcessTrace(ByVal HeaderEvent As ITraceEvent, ByVal Relogger As ITraceRelogger)
+    Sub OnFinalizeProcessTrace(ByVal Relogger As ITraceRelogger)
+    Sub OnEvent(ByVal Event As ITraceEvent, ByVal Relogger As ITraceRelogger)
+End Interface
+
+[InterfaceId("F754AD43-3BCC-4286-8009-9C5DA214E84E")]
+[OleAutomation(False)]
+Interface ITraceRelogger Extends IUnknown
+    Sub AddLogfileTraceStream(ByVal LogfileName As String, ByVal UserContext As LongPtr, ByRef TraceStreamId As LongLong /*RELOGSTREAM_ID*/)
+    Sub AddRealtimeTraceStream(ByVal LoggerName As String, ByVal UserContext As LongPtr, ByRef TraceStreamId As LongLong /*RELOGSTREAM_ID*/)
+    Sub RegisterCallback(ByVal Callback As ITraceEventCallback)
+    Sub Inject(ByVal Event As ITraceEvent)
+    Sub CreateEventInstance(ByVal TraceStreamId As LongLong /*RELOGSTREAM_ID*/, ByVal Flags As Long, ByRef Event As ITraceEvent)
+    Sub ProcessTrace()
+    Sub SetOutputFilename(ByVal LogfileName As String)
+    Sub SetCompressionMode(ByVal CompressionMode As Boolean)
+    Sub Cancel()
+End Interface
+
+[Description("TraceReloggerLib / CLSID_CTraceRelogger")]
+[CoClassId("7b40792d-05ff-44c4-9058-f440c71f17d4")]
+CoClass CTraceRelogger
+    [Default] Interface ITraceRelogger
+End CoClass
+
+
+Module wdETW
+
+    'event tracing 
+
+    Public Const KERNEL_LOGGER_NAMEW = "NT Kernel Logger"
+    Public Const GLOBAL_LOGGER_NAMEW = "GlobalLogger"
+    Public Const EVENT_LOGGER_NAMEW = "EventLog"
+    Public Const DIAG_LOGGER_NAMEW = "DiagLog"
+    Public Const KERNEL_LOGGER_NAME = "NT Kernel Logger"
+    Public Const GLOBAL_LOGGER_NAME = "GlobalLogger"
+    Public Const EVENT_LOGGER_NAME = "EventLog"
+    Public Const DIAG_LOGGER_NAME = "DiagLog"
+    Public Const SYSTEM_EVENT_TYPE = 1
+    Public Const MAX_MOF_FIELDS = 16
+
+    Public Enum WNODE_HDR_FLAGS
+        WNODE_FLAG_ALL_DATA = &H00000001  ' set for WNODE_ALL_DATA
+        WNODE_FLAG_SINGLE_INSTANCE = &H00000002  ' set for WNODE_SINGLE_INSTANCE
+        WNODE_FLAG_SINGLE_ITEM = &H00000004  ' set for WNODE_SINGLE_ITEM
+        WNODE_FLAG_EVENT_ITEM = &H00000008  ' set for WNODE_EVENT_ITEM
+    '  Set if data block size is
+    '  identical for all instances
+    '  (used with  WNODE_ALL_DATA
+    '  only)
+        WNODE_FLAG_FIXED_INSTANCE_SIZE = &H00000010
+        WNODE_FLAG_TOO_SMALL = &H00000020  ' set for WNODE_TOO_SMALL
+    '  Set when a data provider returns a
+    '  WNODE_ALL_DATA in which the number of
+    '  instances and their names returned
+    '  are identical to those returned from the
+    '  previous WNODE_ALL_DATA query. Only data
+    '  blocks registered with dynamic instance
+    '  names should use this flag.
+        WNODE_FLAG_INSTANCES_SAME = &H00000040
+    '  Instance names are not specified in
+    '  WNODE_ALL_DATA; values specified at
+    '  registration are used instead. Always
+    '  set for guids registered with static
+    '  instance names
+        WNODE_FLAG_STATIC_INSTANCE_NAMES = &H00000080
+        WNODE_FLAG_INTERNAL = &H00000100  ' Used internally by WMI
+    '  timestamp should not be modified by
+    '  a historical logger
+        WNODE_FLAG_USE_TIMESTAMP = &H00000200
+    ' #if (NTDDI_VERSION >= NTDDI_WINXP)
+        WNODE_FLAG_PERSIST_EVENT = &H00000400
+    ' #endif
+        WNODE_FLAG_EVENT_REFERENCE = &H00002000
+    '  Set if Instance names are ansi. Only set when returning from
+    '  WMIQuerySingleInstanceA and WMIQueryAllDataA
+        WNODE_FLAG_ANSI_INSTANCENAMES = &H00004000
+    '  Set if WNODE is a method call
+        WNODE_FLAG_METHOD_ITEM = &H00008000&
+    '  Set if instance names originated from a PDO
+        WNODE_FLAG_PDO_INSTANCE_NAMES = &H00010000
+    '  The second byte, except the first bit is used exclusively for tracing
+        WNODE_FLAG_TRACED_GUID = &H00020000  ' denotes a trace
+        WNODE_FLAG_LOG_WNODE = &H00040000  ' request to log Wnode
+        WNODE_FLAG_USE_GUID_PTR = &H00080000  ' Guid is actually a pointer
+        WNODE_FLAG_USE_MOF_PTR = &H00100000  ' MOF data are dereferenced
+    ' #if (NTDDI_VERSION >= NTDDI_WINXP)
+        WNODE_FLAG_NO_HEADER = &H00200000  ' Trace without header
+    ' #endif
+    ' #if (NTDDI_VERSION >= NTDDI_VISTA)
+        WNODE_FLAG_SEND_DATA_BLOCK = &H00400000  ' Data Block delivery
+    ' #endif
+    '  Indicates that the EVENT_TRACE_PROPERTIES struct that this is a part
+    '  of is at least EVENT_TRACE_PROPERTIES_V2 and contains a version field.
+        WNODE_FLAG_VERSIONED_PROPERTIES = &H00800000
+    '  Set for events that are WNODE_EVENT_REFERENCE
+    '  Mask for event severity level. Level 0xff is the most severe type of event
+        WNODE_FLAG_SEVERITY_MASK = &Hff000000
+    End Enum
+
+    Public Type WNODE_HEADER          'typedef struct WNODE_HEADER {
+        BufferSize As Long            'ULONG BufferSize;
+        ProviderId As Long            'ULONG ProviderId;
+        HistoricalContext As LongLong 'union {
+                                      '      ULONG64 HistoricalContext;
+                                      '      struct {
+                                      '        ULONG Version;
+                                      '        ULONG Linkage;
+                                      '      };
+                                      '    };
+        TimeStamp As LARGE_INTEGER    'union {
+                                      '    HANDLE        KernelHandle;
+                                      '    LARGE_INTEGER TimeStamp;
+                                      '  };
+        tGUID As UUID                 'GUID  Guid;
+        ClientContext As Long         'ULONG ClientContext;
+        Flags As WNODE_HDR_FLAGS      'ULONG Flags;
+    End Type
+                                        '};
+
+    Public Type OFFSETINSTANCEDATAANDLENGTH
+        OffsetInstanceData As Long ' Offset from beginning of WNODE_ALL_DATA
+        ' to Data block for instance
+        LengthInstanceData As Long ' Length of data block for instance
+    End Type
+
+    [Description("⚠️ **WARNING:** Header only. Followed by unsupported format of data.")]
+    Public Type WNODE_ALL_DATA
+        WnodeHeader As WNODE_HEADER
+        DataBlockOffset As Long ' Offset from begin of WNODE to first data block
+        InstanceCount As Long ' Count of instances whose data follows.
+        ' Offset to an array of offsets to the instance names
+        OffsetInstanceNameOffsets As Long
+    
+    
+    
+    
+        ' // If WNODE_FLAG_FIXED_INSTANCE_SIZE is set in Flags then
+        ' // FixedInstanceSize specifies the size of each data block. In this case
+        ' // there is one ULONG followed by the data blocks.
+        ' // If WNODE_FLAG_FIXED_INSTANCE_SIZE is not set
+        ' // then OffsetInstanceDataAndLength
+        ' // is an array of OFFSETINSTANCEDATAANDLENGTH that specifies the
+        ' // offsets and lengths of the data blocks for each instance.
+        ' union
+        ' {
+            ' ULONG FixedInstanceSize;
+            ' OFFSETINSTANCEDATAANDLENGTH OffsetInstanceDataAndLength[];
+                                        ' /* [InstanceCount] */
+        ' } DUMMYUNIONNAME;
+
+        ' // padding so that first data block begins on a 8 byte boundary
+
+        ' // data blocks and instance names for all instances
+    
+    End Type
+
+    [Description("⚠️ **WARNING:** Variable data is a variable C-style array with a buffered guess for max needed size.")]
+    Public Type WNODE_SINGLE_INSTANCE
+        WnodeHeader As WNODE_HEADER
+        ' Offset from beginning of WNODE_SINGLE_INSTANCE
+        ' to instance name. Use when
+        ' WNODE_FLAG_STATIC_INSTANCE_NAMES is reset
+        ' (Dynamic instance names)
+        OffsetInstanceName As Long
+        ' Instance index when
+        ' WNODE_FLAG_STATIC_INSTANCE_NAME is set
+        InstanceIndex As Long ' (Static Instance Names)
+        DataBlockOffset As Long ' offset from beginning of WNODE to data block
+        SizeDataBlock As Long ' Size of data block for instance
+        VariableData(4095) As Byte
+        ' instance names and padding so data block begins on 8 byte boundary
+        ' data block
+    End Type
+    [Description("⚠️ **WARNING:** Variable data is a variable C-style array with a buffered guess for max needed size.")]
+    Public Type WNODE_SINGLE_ITEM
+        WnodeHeader As WNODE_HEADER
+        ' Offset from beginning of WNODE_SINGLE_INSTANCE
+        ' to instance name. Examine when
+        ' WNODE_FLAG_STATIC_INSTANCE_NAME is reset
+        ' (Dynamic instance names)
+        OffsetInstanceName As Long
+        ' Instance index when
+        ' WNODE_FLAG_STATIC_INSTANCE_NAME
+        InstanceIndex As Long '  set (Static Instance Names)
+        ItemId As Long ' Item Id for data item being set
+        DataBlockOffset As Long ' offset from WNODE begin to data item value
+        SizeDataItem As Long ' Size of data item
+        VariableData(4095) As Byte
+        ' instance names and padding so data value begins on 8 byte boundary
+        ' data item value
+    End Type
+
+    [Description("⚠️ **WARNING:** Variable data is a variable C-style array with a buffered guess for max needed size.")]
+    Public Type WNODE_METHOD_ITEM
+        WnodeHeader As WNODE_HEADER
+        ' Offset from beginning of WNODE_METHOD_ITEM
+        ' to instance name. Examine when
+        ' WNODE_FLAG_STATIC_INSTANCE_NAME is reset
+        ' (Dynamic instance names)
+        OffsetInstanceName As Long
+        ' Instance index when
+        ' WNODE_FLAG_STATIC_INSTANCE_NAME
+        InstanceIndex As Long '  set (Static Instance Names)
+        MethodId As Long ' Method id of method being called
+        DataBlockOffset As Long ' On Entry: offset from WNODE to input data
+        ' On Return: offset from WNODE to input and
+        '            output data blocks
+        SizeDataBlock As Long ' On Entry: Size of input data, 0 if no input
+        '           data
+        ' On Return: Size of output data, 0 if no output
+        '            data
+        VariableData(4095) As Byte
+        ' instance names and padding so data value begins on 8 byte boundary
+        ' data item value
+    End Type
+
+    Public Type WNODE_EVENT_ITEM
+        WnodeHeader As WNODE_HEADER
+        ' Different data could be here depending upon the flags set in the
+        ' WNODE_HEADER above. If the WNODE_FLAG_ALL_DATA flag is set then the
+        ' contents of a WNODE_ALL_DATA  (excluding WNODE_HEADER) is here. If the
+        ' WNODE_FLAG_SINGLE_INSTANCE flag is set then a WNODE_SINGLE_INSTANCE
+        ' (excluding WNODE_HEADER) is here. Lastly if the  WNODE_FLAG_SINGLE_ITEM
+        ' flag is set then a WNODE_SINGLE_ITEM (excluding WNODE_HEADER) is here.
+    End Type
+
+
+    [Description("⚠️ **WARNING:** Header only. Followed by unsupported format of data.")]
+    Public Type WNODE_EVENT_REFERENCE
+        WnodeHeader As WNODE_HEADER
+        TargetGuid As UUID
+        TargetDataBlockSize As Long
+        ' union
+        ' {
+            ' ULONG TargetInstanceIndex;
+            ' WCHAR TargetInstanceName[];
+        ' } DUMMYUNIONNAME;
+    End Type
+
+    Public Type WNODE_TOO_SMALL
+        WnodeHeader As WNODE_HEADER
+        SizeNeeded As Long ' Size needed to build WNODE result
+    End Type
+
+
+    Public Type WMIREGGUIDW
+        Guid As UUID ' Guid of data block being registered or updated
+        Flags As WmiRegFlags ' Flags
+        InstanceCount As Long ' Count of static instances names for the guid
+        ' union
+        ' {
+                         ' // If WMIREG_FLAG_INSTANCE_LIST then this has the offset
+                         ' // to a list of InstanceCount counted UNICODE
+                         ' // strings placed end to end.
+            ' ULONG InstanceNameList;
+
+                         ' // If WMIREG_FLAG_INSTANCE_BASENAME then this has the
+                         ' // offset to a single counted UNICODE string that
+                         ' // has the basename for the instance names.
+
+            ' ULONG BaseNameOffset;
+
+                         ' // If WMIREG_FLAG_INSTANCE_PDO is set then InstanceInfo
+                         ' // has the PDO whose device instance path will
+                         ' // become the instance name
+            ' ULONG_PTR Pdo;
+
+                         ' // If WMIREG_FLAG_INSTANCE_REFERENCE then this points to
+                         ' // a WMIREGINSTANCEREF structure.
+
+            ' ULONG_PTR InstanceInfo;// Offset from beginning of the WMIREGINFO structure to
+        ' } DUMMYUNIONNAME;
+        u As LongPtr
+    End Type
+
+    Public Enum WmiRegFlags
+        WMIREG_FLAG_EXPENSIVE = &H00000001
+    '  Set if instance names for this guid are specified in a static list within
+    '  the WMIREGINFO
+        WMIREG_FLAG_INSTANCE_LIST = &H00000004
+    '  Set if instance names are to be static and generated by WMI using a
+    '  base name in the WMIREGINFO and an index
+        WMIREG_FLAG_INSTANCE_BASENAME = &H00000008
+    '  Set if WMI should do automatic mapping of a PDO to device instance name
+    '  as the instance name for the guid. This flag should only be used by
+    '  kernel mode data providers.
+        WMIREG_FLAG_INSTANCE_PDO = &H00000020
+    '  Note the flags WMIREG_FLAG_INSTANCE_LIST, WMIREG_FLAG_INSTANCE_BASENAME,
+    '  WMIREG_FLAG_INSTANCE_REFERENCE and WMIREG_FLAG_INSTANCE_PDO are mutually
+    '  exclusive.
+    '  These flags are only valid in a response to WMI_GUID_REGUPDATE
+        WMIREG_FLAG_REMOVE_GUID = &H00010000  ' Remove support for  guid
+        WMIREG_FLAG_RESERVED1 = &H00020000  ' Reserved by WMI
+        WMIREG_FLAG_RESERVED2 = &H00040000  ' Reserved by WMI
+    '  Set if guid is one that is written to trace log.
+    '  This guid cannot be queried directly via WMI, but must be read using
+    '  logger apis.
+        WMIREG_FLAG_TRACED_GUID = &H00080000
+    '  Only those Trace Guids that have this bit set can receive
+    '  Enable/Disable Notifications.
+        WMIREG_FLAG_TRACE_CONTROL_GUID = &H00001000
+    '  Set if the guid is only used for firing events. Guids that can be queried
+    '  and that fire events should not have this bit set.
+        WMIREG_FLAG_EVENT_ONLY_GUID = &H00000040
+    End Enum
+
+    Public Enum WMIDPREQUESTCODE
+        WMI_GET_ALL_DATA = 0
+        WMI_GET_SINGLE_INSTANCE = 1
+        WMI_SET_SINGLE_INSTANCE = 2
+        WMI_SET_SINGLE_ITEM = 3
+        WMI_ENABLE_EVENTS = 4
+        WMI_DISABLE_EVENTS = 5
+        WMI_ENABLE_COLLECTION = 6
+        WMI_DISABLE_COLLECTION = 7
+        WMI_REGINFO = 8
+        WMI_EXECUTE_METHOD = 9
+        WMI_CAPTURE_STATE = 10
+    End Enum
+
+
+    [Description("⚠️ **WARNING:** Header only. Followed by unsupported format of data.")]
+    Public Type WMIREGINFOW
+        ' Size of entire WMIREGINFO structure including this ULONG
+        ' and any static instance names that follow
+        BufferSize As Long
+        NextWmiRegInfo As Long ' Offset to next WMIREGINFO structure
+        RegistryPath As Long ' Offset from beginning of WMIREGINFO structure to a
+        ' counted Unicode string containing
+        ' the driver registry path (under HKLM\CCS\Services)
+        ' This must be filled only by kernel mode data
+        ' providers
+        ' Offset from beginning of WMIREGINFO structure to a
+        ' counted Unicode string containing
+        ' the name of resource in driver file containing MOF info
+        MofResourceName As Long
+        ' Count of WMIREGGUID structures immediately following
+        GuidCount As Long
+        ' WmiRegGuid(0 To 0) As WMIREGGUIDW ' array of GuidCount WMIREGGUID structures
+        ' Variable length data including :
+        '     Instance Names
+    End Type
+
+    Public Enum WmiGuidAndTraceLogFlags
+        WMI_GUIDTYPE_TRACECONTROL = 0
+        WMI_GUIDTYPE_TRACE = 1
+        WMI_GUIDTYPE_DATA = 2
+        WMI_GUIDTYPE_EVENT = 3
+    ' #endif
+    '  Specific rights for WMI guid objects. These are available from 0x0001 to
+    '  0xffff (ie up to 16 rights)
+        WMIGUID_QUERY = &H0001
+        WMIGUID_SET = &H0002
+        WMIGUID_NOTIFICATION = &H0004
+        WMIGUID_READ_DESCRIPTION = &H0008
+        WMIGUID_EXECUTE = &H0010
+        TRACELOG_CREATE_REALTIME = &H0020
+        TRACELOG_CREATE_ONDISK = &H0040
+        TRACELOG_GUID_ENABLE = &H0080
+        TRACELOG_ACCESS_KERNEL_LOGGER = &H0100
+        TRACELOG_LOG_EVENT = &H0200  ' used on Vista and greater
+        TRACELOG_CREATE_INPROC = &H0200  ' used pre-Vista
+        TRACELOG_ACCESS_REALTIME = &H0400
+        TRACELOG_REGISTER_GUIDS = &H0800
+        TRACELOG_JOIN_GROUP = &H1000
+        WMIGUID_ALL_ACCESS_WIN2K = (STANDARD_RIGHTS_READ Or WMIGUID_QUERY Or WMIGUID_SET Or WMIGUID_NOTIFICATION Or WMIGUID_READ_DESCRIPTION Or WMIGUID_EXECUTE Or TRACELOG_CREATE_REALTIME Or TRACELOG_CREATE_ONDISK Or TRACELOG_GUID_ENABLE Or TRACELOG_ACCESS_KERNEL_LOGGER Or TRACELOG_CREATE_INPROC Or TRACELOG_ACCESS_REALTIME)
+        WMIGUID_ALL_ACCESS_WINXP = (WMIGUID_ALL_ACCESS_WIN2K Or SYNCHRONIZE Or TRACELOG_REGISTER_GUIDS)
+        WMIGUID_ALL_ACCESS_RS1 = (WMIGUID_ALL_ACCESS_WINXP Or TRACELOG_JOIN_GROUP)
+    End Enum
+
+    [Description("⚠️ **WARNING:** Windows 7 to Windows 10 prior to RS1: Use WMIGUID_ALL_ACCESS_WINXP")]
+    Public Const WMIGUID_ALL_ACCESS = WMIGUID_ALL_ACCESS_RS1
+ 
+    Public Const WMI_GLOBAL_LOGGER_ID = &H0001
+
+
+
+    Public Type EVENT_TRACE_PROPERTIES 'typedef struct _EVENT_TRACE_PROPERTIES {
+        Wnode As WNODE_HEADER          'WNODE_HEADER Wnode;
+        BufferSize As Long             'ULONG BufferSize;                   // buffer size for logging (kbytes)
+        MinimumBuffers As Long         'ULONG MinimumBuffers;               // minimum to preallocate
+        MaximumBuffers As Long         'ULONG MaximumBuffers;               // maximum buffers allowed
+        MaximumFileSize As Long        'ULONG MaximumFileSize;              // maximum logfile size (in MBytes)
+        LogFileMode As LoggerModeFlags 'ULONG LogFileMode;                  // sequential, circular
+        FlushTimer As Long             'ULONG FlushTimer;                   // buffer flush timer, in seconds
+        EnableFlags As EventTraceFlags 'ULONG EnableFlags;                  // trace enable flags
+        FlushThreshold As Long         '  union {
+                                       '    LONG AgeLimit 'MSDN: Not used.
+                                       '    LONG  FlushThreshold;           // Number of buffers to fill before flushing
+                                       '  } DUMMYUNIONNAME
+        NumberOfBuffers As Long        'ULONG NumberOfBuffers;              // no of buffers in use
+        FreeBuffers As Long            'ULONG FreeBuffers;                  // no of buffers free
+        EventsLost As Long             'ULONG EventsLost;                   // event records lost
+        BuffersWritten As Long         'ULONG BuffersWritten;               // no of buffers written to file
+        LogBuffersLost As Long         'ULONG LogBuffersLost;               // no of logfile write failures
+        RealTimeBuffersLost As Long    'ULONG RealTimeBuffersLost;          // no of rt delivery failures
+        LoggerThreadId As LongPtr      'HANDLE LoggerThreadId;              // thread id of Logger
+        LogFileNameOffset As Long      'ULONG LogFileNameOffset;            // Offset to LogFileName
+        LoggerNameOffset As Long       'ULONG LoggerNameOffset;             // Offset to LoggerName
+    End Type                           '} EVENT_TRACE_PROPERTIES, *PEVENT_TRACE_PROPERTIES;
+
+    Public Type EtpKernelTrace
+        tProp As EVENT_TRACE_PROPERTIES
+        LoggerName(0 To 31) As Byte 'LenB(KERNEL_LOGGER_NAMEW)
+        padding2(0 To 3) As Byte
+    End Type
+
+    Public Type EVENT_TRACE_PROPERTIES_V2       'typedef struct _EVENT_TRACE_PROPERTIES_V2 {
+        Wnode As WNODE_HEADER                   'WNODE_HEADER Wnode;
+        BufferSize As Long                      'ULONG BufferSize;                   // buffer size for logging (kbytes)
+        MinimumBuffers As Long                  'ULONG MinimumBuffers;               // minimum to preallocate
+        MaximumBuffers As Long                  'ULONG MaximumBuffers;               // maximum buffers allowed
+        MaximumFileSize As Long                 'ULONG MaximumFileSize;              // maximum logfile size (in MBytes)
+        LogFileMode As LoggerModeFlags          'ULONG LogFileMode;                  // sequential, circular
+        FlushTimer As Long                      'ULONG FlushTimer;                   // buffer flush timer, in seconds
+        EnableFlags As EventTraceFlags          'ULONG EnableFlags;                  // trace enable flags
+        FlushThreshold As Long                  '  union {
+                                                '    LONG AgeLimit 'MSDN: Not used.
+                                                '    LONG  FlushThreshold;           // Number of buffers to fill before flushing
+                                                '  } DUMMYUNIONNAME
+        NumberOfBuffers As Long                 'ULONG NumberOfBuffers;              // no of buffers in use
+        FreeBuffers As Long                     'ULONG FreeBuffers;                  // no of buffers free
+        EventsLost As Long                      'ULONG EventsLost;                   // event records lost
+        BuffersWritten As Long                  'ULONG BuffersWritten;               // no of buffers written to file
+        LogBuffersLost As Long                  'ULONG LogBuffersLost;               // no of logfile write failures
+        RealTimeBuffersLost As Long             'ULONG RealTimeBuffersLost;          // no of rt delivery failures
+        LoggerThreadId As LongPtr               'HANDLE LoggerThreadId;              // thread id of Logger
+        LogFileNameOffset As Long               'ULONG LogFileNameOffset;            // Offset to LogFileName
+        LoggerNameOffset As Long                'ULONG LoggerNameOffset;             // Offset to LoggerName
+                                                'union {
+                                                '    struct {
+                                                '      ULONG VersionNumber : 8;
+                                                '    } DUMMYSTRUCTNAME;
+        V2Control As Long                       '    ULONG V2Control;
+                                                '  } DUMMYUNIONNAME2;
+        FilterDescCount As Long                 '  ULONG                    FilterDescCount;
+        FilterDesc As LongPtr 'VarPtr to struct '  PEVENT_FILTER_DESCRIPTOR FilterDesc;
+                                                '  union {
+                                                '    struct {
+    '    Wow As Long                             '      ULONG Wow : 1;
+    '    QpcDeltaTracking As Long                '      ULONG QpcDeltaTracking : 1;
+    '    LargeMdlPages As Long                   '      ULONG LargeMdlPages : 1;
+    '    ExcludeKernelStack As Long              '      ULONG ExcludeKernelStack : 1;
+                                                '    } DUMMYSTRUCTNAME;
+         V2Options As LongLong                  '    ULONG64 V2Options;
+                                                '  } DUMMYUNIONNAME3;
+    End Type                                '} EVENT_TRACE_PROPERTIES_V2, *PEVENT_TRACE_PROP
+
+
+    Public Const PROCESS_TRACE_MODE_REAL_TIME = &H100
+    Public Const PROCESS_TRACE_MODE_RAW_TIMESTAMP = &H1000
+    Public Const PROCESS_TRACE_MODE_EVENT_RECORD = &H10000000
+
+    Public Enum ETW_PROVIDER_TRAIT_TYPE
+        EtwProviderTraitTypeGroup  ' Provider group GUID.
+        EtwProviderTraitDecodeGuid ' Decode GUID (when different from control GUID)
+        EtwProviderTraitTypeMax
+    End Enum
+
+
+    Public Const EVENT_TRACE_TYPE_INFO As Byte = &H0 ' Info or point event
+    Public Const EVENT_TRACE_TYPE_START As Byte = &H1 ' Start event
+    Public Const EVENT_TRACE_TYPE_END As Byte = &H2 ' End event
+    Public Const EVENT_TRACE_TYPE_STOP As Byte = &H2 ' Stop event (WinEvent compatible)
+    Public Const EVENT_TRACE_TYPE_DC_START As Byte = &H3 ' Collection start marker
+    Public Const EVENT_TRACE_TYPE_DC_END As Byte = &H4 ' Collection end marker
+    Public Const EVENT_TRACE_TYPE_EXTENSION As Byte = &H5 ' Extension/continuation
+    Public Const EVENT_TRACE_TYPE_REPLY As Byte = &H6 ' Reply event
+    Public Const EVENT_TRACE_TYPE_DEQUEUE As Byte = &H7 ' De-queue event
+    Public Const EVENT_TRACE_TYPE_RESUME As Byte = &H7 ' Resume event (WinEvent compatible)
+    Public Const EVENT_TRACE_TYPE_CHECKPOINT As Byte = &H8 ' Generic checkpoint event
+    Public Const EVENT_TRACE_TYPE_SUSPEND As Byte = &H8 ' Suspend event (WinEvent compatible)
+    Public Const EVENT_TRACE_TYPE_WINEVT_SEND As Byte = &H9 ' Send Event (WinEvent compatible)
+    Public Const EVENT_TRACE_TYPE_WINEVT_RECEIVE As Byte = &HF0   ' Receive Event (WinEvent compatible)
+ 
+    Public Const EVENT_TRACE_TYPE_LOAD As Byte = &HA ' Load image
+    Public Const EVENT_TRACE_TYPE_TERMINATE As Byte = &HB ' Terminate Process
+    '  Event types for IO subsystem
+    Public Const EVENT_TRACE_TYPE_IO_READ As Byte = &HA
+    Public Const EVENT_TRACE_TYPE_IO_WRITE As Byte = &HB
+    Public Const EVENT_TRACE_TYPE_IO_READ_INIT As Byte = &HC
+    Public Const EVENT_TRACE_TYPE_IO_WRITE_INIT As Byte = &HD
+    Public Const EVENT_TRACE_TYPE_IO_FLUSH As Byte = &HE
+    Public Const EVENT_TRACE_TYPE_IO_FLUSH_INIT As Byte = &HF
+    Public Const EVENT_TRACE_TYPE_IO_REDIRECTED_INIT As Byte = &H10
+    '  Event types for Memory subsystem
+    Public Const EVENT_TRACE_TYPE_MM_TF As Byte = &HA ' Transition fault
+    Public Const EVENT_TRACE_TYPE_MM_DZF As Byte = &HB ' Demand Zero fault
+    Public Const EVENT_TRACE_TYPE_MM_COW As Byte = &HC ' Copy on Write
+    Public Const EVENT_TRACE_TYPE_MM_GPF As Byte = &HD ' Guard Page fault
+    Public Const EVENT_TRACE_TYPE_MM_HPF As Byte = &HE ' Hard page fault
+    Public Const EVENT_TRACE_TYPE_MM_AV As Byte = &HF ' Access violation
+    '  Event types for Network subsystem, all protocols
+    Public Const EVENT_TRACE_TYPE_SEND As Byte = &HA ' Send
+    Public Const EVENT_TRACE_TYPE_RECEIVE As Byte = &HB ' Receive
+    Public Const EVENT_TRACE_TYPE_CONNECT As Byte = &HC ' Connect
+    Public Const EVENT_TRACE_TYPE_DISCONNECT As Byte = &HD ' Disconnect
+    Public Const EVENT_TRACE_TYPE_RETRANSMIT As Byte = &HE ' ReTransmit
+    Public Const EVENT_TRACE_TYPE_ACCEPT As Byte = &HF ' Accept
+    Public Const EVENT_TRACE_TYPE_RECONNECT As Byte = &H10   ' ReConnect
+    Public Const EVENT_TRACE_TYPE_CONNFAIL As Byte = &H11   ' Fail
+    Public Const EVENT_TRACE_TYPE_COPY_TCP As Byte = &H12   ' Copy in PendData
+    Public Const EVENT_TRACE_TYPE_COPY_ARP As Byte = &H13   ' NDIS_STATUS_RESOURCES Copy
+    Public Const EVENT_TRACE_TYPE_ACKFULL As Byte = &H14   ' A full data ACK
+    Public Const EVENT_TRACE_TYPE_ACKPART As Byte = &H15   ' A Partial data ACK
+    Public Const EVENT_TRACE_TYPE_ACKDUP As Byte = &H16   ' A Duplicate data ACK
+    '  Event Types for the Header (to handle internal event headers)
+    Public Const EVENT_TRACE_TYPE_GUIDMAP As Byte = &HA
+    Public Const EVENT_TRACE_TYPE_CONFIG As Byte = &HB
+    Public Const EVENT_TRACE_TYPE_SIDINFO As Byte = &HC
+    Public Const EVENT_TRACE_TYPE_SECURITY As Byte = &HD
+    Public Const EVENT_TRACE_TYPE_DBGID_RSDS As Byte = &H40
+    '  Event Types for Registry subsystem
+    Public Const EVENT_TRACE_TYPE_REGCREATE As Byte = &HA ' NtCreateKey
+    Public Const EVENT_TRACE_TYPE_REGOPEN As Byte = &HB ' NtOpenKey
+    Public Const EVENT_TRACE_TYPE_REGDELETE As Byte = &HC ' NtDeleteKey
+    Public Const EVENT_TRACE_TYPE_REGQUERY As Byte = &HD ' NtQueryKey
+    Public Const EVENT_TRACE_TYPE_REGSETVALUE As Byte = &HE ' NtSetValueKey
+    Public Const EVENT_TRACE_TYPE_REGDELETEVALUE As Byte = &HF ' NtDeleteValueKey
+    Public Const EVENT_TRACE_TYPE_REGQUERYVALUE As Byte = &H10   ' NtQueryValueKey
+    Public Const EVENT_TRACE_TYPE_REGENUMERATEKEY As Byte = &H11   ' NtEnumerateKey
+    Public Const EVENT_TRACE_TYPE_REGENUMERATEVALUEKEY As Byte = &H12   ' NtEnumerateValueKey
+    Public Const EVENT_TRACE_TYPE_REGQUERYMULTIPLEVALUE As Byte = &H13   ' NtQueryMultipleValueKey
+    Public Const EVENT_TRACE_TYPE_REGSETINFORMATION As Byte = &H14   ' NtSetInformationKey
+    Public Const EVENT_TRACE_TYPE_REGFLUSH As Byte = &H15   ' NtFlushKey
+    Public Const EVENT_TRACE_TYPE_REGKCBCREATE As Byte = &H16   ' KcbCreate
+    Public Const EVENT_TRACE_TYPE_REGKCBDELETE As Byte = &H17   ' KcbDelete
+    Public Const EVENT_TRACE_TYPE_REGKCBRUNDOWNBEGIN As Byte = &H18   ' KcbRundownBegin
+    Public Const EVENT_TRACE_TYPE_REGKCBRUNDOWNEND As Byte = &H19   ' KcbRundownEnd
+    Public Const EVENT_TRACE_TYPE_REGVIRTUALIZE As Byte = &H1A   ' VirtualizeKey
+    Public Const EVENT_TRACE_TYPE_REGCLOSE As Byte = &H1B   ' NtClose (KeyObject)
+    Public Const EVENT_TRACE_TYPE_REGSETSECURITY As Byte = &H1C   ' SetSecurityDescriptor (KeyObject)
+    Public Const EVENT_TRACE_TYPE_REGQUERYSECURITY As Byte = &H1D   ' QuerySecurityDescriptor (KeyObject)
+    Public Const EVENT_TRACE_TYPE_REGCOMMIT As Byte = &H1E   ' CmKtmNotification (TRANSACTION_NOTIFY_COMMIT)
+    Public Const EVENT_TRACE_TYPE_REGPREPARE As Byte = &H1F   ' CmKtmNotification (TRANSACTION_NOTIFY_PREPARE)
+    Public Const EVENT_TRACE_TYPE_REGROLLBACK As Byte = &H20   ' CmKtmNotification (TRANSACTION_NOTIFY_ROLLBACK)
+    Public Const EVENT_TRACE_TYPE_REGMOUNTHIVE As Byte = &H21   ' NtLoadKey variations + system hives
+    '  Event types for system configuration records
+    Public Const EVENT_TRACE_TYPE_CONFIG_CPU As Byte = &HA ' CPU Configuration
+    Public Const EVENT_TRACE_TYPE_CONFIG_PHYSICALDISK As Byte = &HB ' Physical Disk Configuration
+    Public Const EVENT_TRACE_TYPE_CONFIG_LOGICALDISK As Byte = &HC ' Logical Disk Configuration
+    Public Const EVENT_TRACE_TYPE_CONFIG_NIC As Byte = &HD ' NIC Configuration
+    Public Const EVENT_TRACE_TYPE_CONFIG_VIDEO As Byte = &HE ' Video Adapter Configuration
+    Public Const EVENT_TRACE_TYPE_CONFIG_SERVICES As Byte = &HF ' Active Services
+    Public Const EVENT_TRACE_TYPE_CONFIG_POWER As Byte = &H10   ' ACPI Configuration
+    Public Const EVENT_TRACE_TYPE_CONFIG_NETINFO As Byte = &H11   ' Networking Configuration
+    Public Const EVENT_TRACE_TYPE_CONFIG_OPTICALMEDIA As Byte = &H12   ' Optical Media Configuration
+    Public Const EVENT_TRACE_TYPE_CONFIG_PHYSICALDISK_EX As Byte = &H13 ' Physical Disk Extended Configuration
+
+    Public Const EVENT_TRACE_TYPE_CONFIG_IRQ As Byte = &H15   ' IRQ assigned to devices
+    Public Const EVENT_TRACE_TYPE_CONFIG_PNP As Byte = &H16   ' PnP device info
+    Public Const EVENT_TRACE_TYPE_CONFIG_IDECHANNEL As Byte = &H17   ' Primary/Secondary IDE channel Configuration
+    Public Const EVENT_TRACE_TYPE_CONFIG_NUMANODE As Byte = &H18   ' Numa configuration
+    Public Const EVENT_TRACE_TYPE_CONFIG_PLATFORM As Byte = &H19   ' Platform Configuration
+    Public Const EVENT_TRACE_TYPE_CONFIG_PROCESSORGROUP As Byte = &H1A   ' Processor Group Configuration
+    Public Const EVENT_TRACE_TYPE_CONFIG_PROCESSORNUMBER As Byte = &H1B   ' ProcessorIndex -> ProcNumber mapping
+    Public Const EVENT_TRACE_TYPE_CONFIG_DPI As Byte = &H1C   ' Display DPI Configuration
+    Public Const EVENT_TRACE_TYPE_CONFIG_CI_INFO As Byte = &H1D   ' Display System Code Integrity Information
+    Public Const EVENT_TRACE_TYPE_CONFIG_MACHINEID As Byte = &H1E   ' SQM Machine Id
+    Public Const EVENT_TRACE_TYPE_CONFIG_DEFRAG As Byte = &H1F   ' Logical Disk Defragmenter Information
+    Public Const EVENT_TRACE_TYPE_CONFIG_MOBILEPLATFORM As Byte = &H20   ' Mobile Platform Configuration
+    Public Const EVENT_TRACE_TYPE_CONFIG_DEVICEFAMILY As Byte = &H21   ' Device Family Information
+    Public Const EVENT_TRACE_TYPE_CONFIG_FLIGHTID As Byte = &H22   ' Flights on the machine
+    Public Const EVENT_TRACE_TYPE_CONFIG_PROCESSOR As Byte = &H23   ' CentralProcessor records
+    Public Const EVENT_TRACE_TYPE_CONFIG_VIRTUALIZATION As Byte = &H24  ' virtualization config info
+    Public Const EVENT_TRACE_TYPE_CONFIG_BOOT As Byte = &H25  ' boot config info
+
+    '  Event types for Optical IO subsystem
+    Public Const EVENT_TRACE_TYPE_OPTICAL_IO_READ As Byte = &H37
+    Public Const EVENT_TRACE_TYPE_OPTICAL_IO_WRITE As Byte = &H38
+    Public Const EVENT_TRACE_TYPE_OPTICAL_IO_FLUSH As Byte = &H39
+    Public Const EVENT_TRACE_TYPE_OPTICAL_IO_READ_INIT As Byte = &H3A
+    Public Const EVENT_TRACE_TYPE_OPTICAL_IO_WRITE_INIT As Byte = &H3B
+    Public Const EVENT_TRACE_TYPE_OPTICAL_IO_FLUSH_INIT As Byte = &H3C
+    '  Event types for Filter Manager
+    Public Const EVENT_TRACE_TYPE_FLT_PREOP_INIT As Byte = &H60   ' Minifilter preop initiation
+    Public Const EVENT_TRACE_TYPE_FLT_POSTOP_INIT As Byte = &H61   ' Minifilter postop initiation
+    Public Const EVENT_TRACE_TYPE_FLT_PREOP_COMPLETION As Byte = &H62   ' Minifilter preop completion
+    Public Const EVENT_TRACE_TYPE_FLT_POSTOP_COMPLETION As Byte = &H63   ' Minifilter postop completion
+    Public Const EVENT_TRACE_TYPE_FLT_PREOP_FAILURE As Byte = &H64   ' Minifilter failed preop
+    Public Const EVENT_TRACE_TYPE_FLT_POSTOP_FAILURE As Byte = &H65   ' Minifilter failed postop
+
+
+    Public Const TRACE_LEVEL_NONE As Byte = 0   ' Tracing is not on
+    Public Const TRACE_LEVEL_CRITICAL As Byte = 1    ' Abnormal exit or termination
+    Public Const TRACE_LEVEL_FATAL As Byte = 1    ' Deprecated name for Abnormal exit or termination
+    Public Const TRACE_LEVEL_ERROR  As Byte = 2   ' Severe errors that need logging
+    Public Const TRACE_LEVEL_WARNING As Byte = 3   ' Warnings such as allocation failure
+    Public Const TRACE_LEVEL_INFORMATION As Byte = 4    ' Includes non-error cases(e.g.,Entry-Exit)
+    Public Const TRACE_LEVEL_VERBOSE As Byte = 5    ' Detailed traces from intermediate steps
+    Public Const TRACE_LEVEL_RESERVED6 As Byte = 6
+    Public Const TRACE_LEVEL_RESERVED7  As Byte = 7
+    Public Const TRACE_LEVEL_RESERVED8  As Byte = 8
+    Public Const TRACE_LEVEL_RESERVED9 As Byte = 9
+
+    Public Enum EventTraceFlags
+    '// Enable flags for Kernel Events
+        EVENT_TRACE_FLAG_PROCESS = &H1   ' process start & end
+        EVENT_TRACE_FLAG_THREAD = &H2   ' thread start & end
+        EVENT_TRACE_FLAG_IMAGE_LOAD = &H4   ' image load
+        EVENT_TRACE_FLAG_DISK_IO = &H100 ' physical disk IO
+        EVENT_TRACE_FLAG_DISK_FILE_IO = &H200 ' requires disk IO
+        EVENT_TRACE_FLAG_MEMORY_PAGE_FAULTS = &H1000 ' all page faults
+        EVENT_TRACE_FLAG_MEMORY_HARD_FAULTS = &H2000 ' hard faults only
+        EVENT_TRACE_FLAG_NETWORK_TCPIP = &H10000   ' tcpip send & receive
+        EVENT_TRACE_FLAG_REGISTRY = &H20000   ' registry calls
+        EVENT_TRACE_FLAG_DBGPRINT = &H40000   ' DbgPrint(ex) Calls
+    '  Enable flags for Kernel Events on Vista and above
+        EVENT_TRACE_FLAG_PROCESS_COUNTERS = &H8   ' process perf counters
+        EVENT_TRACE_FLAG_CSWITCH = &H10  ' context switches
+        EVENT_TRACE_FLAG_DPC = &H20  ' deferred procedure calls
+        EVENT_TRACE_FLAG_INTERRUPT = &H40  ' interrupts
+        EVENT_TRACE_FLAG_SYSTEMCALL = &H80  ' system calls
+        EVENT_TRACE_FLAG_DISK_IO_INIT = &H400 ' physical disk IO initiation
+        EVENT_TRACE_FLAG_ALPC = &H100000  ' ALPC traces
+        EVENT_TRACE_FLAG_SPLIT_IO = &H200000  ' split io traces (VolumeManager)
+        EVENT_TRACE_FLAG_DRIVER = &H800000  ' driver delays
+        EVENT_TRACE_FLAG_PROFILE = &H1000000 ' sample based profiling
+        EVENT_TRACE_FLAG_FILE_IO = &H2000000 ' file IO
+        EVENT_TRACE_FLAG_FILE_IO_INIT = &H4000000 ' file IO initiation
+    '  Enable flags for Kernel Events on Win7 and above
+        EVENT_TRACE_FLAG_DISPATCHER = &H800 ' scheduler (ReadyThread)
+        EVENT_TRACE_FLAG_VIRTUAL_ALLOC = &H4000 ' VM operations
+    '  Enable flags for Kernel Events on Win8 and above
+        EVENT_TRACE_FLAG_VAMAP = &H8000& ' map/unmap (excluding images)
+        EVENT_TRACE_FLAG_NO_SYSCONFIG = &H10000000   ' Do not do sys config rundown
+    '  Enable flags for Kernel Events on Threshold and above
+        EVENT_TRACE_FLAG_JOB = &H80000   ' job start & end
+        EVENT_TRACE_FLAG_DEBUG_EVENTS = &H400000  ' debugger events (break/continue/...)
+    '  Pre-defined Enable flags for everybody else
+        EVENT_TRACE_FLAG_EXTENSION = &H80000000   ' Indicates more flags
+        PERF_OB_HANDLE = &H80000040
+        EVENT_TRACE_FLAG_FORWARD_WMI = &H40000000   ' Can forward to WMI
+        EVENT_TRACE_FLAG_ENABLE_RESERVE = &H20000000   ' Reserved
+    End Enum
+
+    Public Enum LoggerModeFlags
+        EVENT_TRACE_FILE_MODE_NONE = &H0          ' Logfile is off
+        EVENT_TRACE_FILE_MODE_SEQUENTIAL = &H1          ' Log sequentially
+        EVENT_TRACE_FILE_MODE_CIRCULAR = &H2          ' Log in circular manner
+        EVENT_TRACE_FILE_MODE_APPEND = &H4          ' Append sequential log
+        EVENT_TRACE_REAL_TIME_MODE = &H100        ' Real time mode on
+        EVENT_TRACE_DELAY_OPEN_FILE_MODE = &H200        ' Delay opening file
+        EVENT_TRACE_BUFFERING_MODE = &H400        ' Buffering mode only
+        EVENT_TRACE_PRIVATE_LOGGER_MODE = &H800        ' Process Public Logger
+        EVENT_TRACE_ADD_HEADER_MODE = &H1000       ' Add a logfile header
+        EVENT_TRACE_USE_GLOBAL_SEQUENCE = &H4000       ' Use global sequence no.
+        EVENT_TRACE_USE_LOCAL_SEQUENCE = &H8000&       ' Use local sequence no.
+        EVENT_TRACE_RELOG_MODE = &H10000      ' Relogger
+        EVENT_TRACE_USE_PAGED_MEMORY = &H1000000    ' Use pageable buffers
+    '  Logger Mode flags on XP and above
+        EVENT_TRACE_FILE_MODE_NEWFILE = &H8          ' Auto-switch log file
+        EVENT_TRACE_FILE_MODE_PREALLOCATE = &H20         ' Pre-allocate mode
+    '  Logger Mode flags on Vista and above
+        EVENT_TRACE_NONSTOPPABLE_MODE = &H40         ' Session cannot be stopped (Autologger only)
+        EVENT_TRACE_SECURE_MODE = &H80         ' Secure session
+        EVENT_TRACE_USE_KBYTES_FOR_SIZE = &H2000       ' Use KBytes as file size unit
+        EVENT_TRACE_PRIVATE_IN_PROC = &H20000      ' In process Public logger
+        EVENT_TRACE_MODE_RESERVED = &H100000     ' Reserved bit, used to signal Heap/Critsec tracing
+    '  Logger Mode flags on Win7 and above
+        EVENT_TRACE_NO_PER_PROCESSOR_BUFFERING = &H10000000   ' Use this for low frequency sessions.
+    '  Logger Mode flags on Win8 and above
+        EVENT_TRACE_SYSTEM_LOGGER_MODE = &H2000000    ' Receive events from SystemTraceProvider
+        EVENT_TRACE_ADDTO_TRIAGE_DUMP = &H80000000   ' Add ETW buffers to triage dumps
+        EVENT_TRACE_STOP_ON_HYBRID_SHUTDOWN = &H400000     ' Stop on hybrid shutdown
+        EVENT_TRACE_PERSIST_ON_HYBRID_SHUTDOWN = &H800000     ' Persist on hybrid shutdown
+    '  Logger Mode flags on Blue and above
+        EVENT_TRACE_INDEPENDENT_SESSION_MODE = &H8000000    ' Independent logger session
+    '  Logger Mode flags on Redstone and above
+        EVENT_TRACE_COMPRESSED_MODE = &H4000000    ' Compressed logger session.
+    End Enum
+
+    Public Enum ControlTraceCodes
+        EVENT_TRACE_CONTROL_QUERY = 0
+        EVENT_TRACE_CONTROL_STOP = 1
+        EVENT_TRACE_CONTROL_UPDATE = 2
+        EVENT_TRACE_CONTROL_FLUSH = 3  'Flushes all the buffers
+        EVENT_TRACE_CONTROL_INCREMENT_FILE = 4
+        EVENT_TRACE_CONTROL_CONVERT_TO_REALTIME = 5
+    End Enum
+
+    Public Enum WMITraceMessages
+        TRACE_MESSAGE_SEQUENCE = 1   ' Message should include a sequence number
+        TRACE_MESSAGE_GUID = 2   ' Message includes a GUID
+        TRACE_MESSAGE_COMPONENTID = 4   ' Message has no GUID, Component ID instead
+        TRACE_MESSAGE_TIMESTAMP = 8   ' Message includes a timestamp
+        TRACE_MESSAGE_PERFORMANCE_TIMESTAMP = 16   ' *Obsolete* Clock type is controlled by the logger
+        TRACE_MESSAGE_SYSTEMINFO = 32   ' Message includes system information TID,PID
+    '  Vista flags set by system to indicate provider pointer size.
+        TRACE_MESSAGE_POINTER32 = &H40     ' Message logged by 32 bit provider
+        TRACE_MESSAGE_POINTER64 = &H80     ' Message logged by 64 bit provider
+        TRACE_MESSAGE_FLAG_MASK = &HFFFF&   ' Only the lower 16 bits of flags are placed in the message
+    '  those above 16 bits are reserved for local processing
+    '  Maximum size allowed for a single TraceMessage message.
+    '  N.B. This limit was increased from 8K to 64K in Win8.
+        TRACE_MESSAGE_MAXIMUM_SIZE = 65536 '(64 * 1024)
+    End Enum
+
+    Public Const EVENT_TRACE_USE_PROCTIME = &H1   'ProcessorTime field is valid
+    Public Const EVENT_TRACE_USE_NOCPUTIME = &H2  'No Kernel/User/Processor Times
+
+    Public Enum TraceHeaderFlags
+        TRACE_HEADER_FLAG_USE_TIMESTAMP = &H200
+        TRACE_HEADER_FLAG_TRACED_GUID = &H20000      ' denotes a trace
+        TRACE_HEADER_FLAG_LOG_WNODE = &H40000      ' request to log Wnode
+        TRACE_HEADER_FLAG_USE_GUID_PTR = &H80000      ' Guid is actually a pointer
+        TRACE_HEADER_FLAG_USE_MOF_PTR = &H100000     ' MOF data are dereferenced
+    End Enum
+
+    '  Keywords to be used for the System ALPC Provider.
+    Public Const SYSTEM_ALPC_KW_GENERAL  As LongLong = &H0000000000000001
+    '  Keywords to be used for the System Config Provider.
+    Public Const SYSTEM_CONFIG_KW_SYSTEM  As LongLong = &H0000000000000001
+    Public Const SYSTEM_CONFIG_KW_GRAPHICS  As LongLong = &H0000000000000002
+    Public Const SYSTEM_CONFIG_KW_STORAGE  As LongLong = &H0000000000000004
+    Public Const SYSTEM_CONFIG_KW_NETWORK  As LongLong = &H0000000000000008
+    Public Const SYSTEM_CONFIG_KW_SERVICES  As LongLong = &H0000000000000010
+    Public Const SYSTEM_CONFIG_KW_PNP  As LongLong = &H0000000000000020
+    Public Const SYSTEM_CONFIG_KW_OPTICAL  As LongLong = &H0000000000000040
+    '  Keywords to be used for the System CPU Provider.
+    Public Const SYSTEM_CPU_KW_CONFIG  As LongLong = &H0000000000000001
+    Public Const SYSTEM_CPU_KW_CACHE_FLUSH  As LongLong = &H0000000000000002
+    Public Const SYSTEM_CPU_KW_SPEC_CONTROL  As LongLong = &H0000000000000004
+    '  Keywords to be used for the System Hypervisor Provider.
+    Public Const SYSTEM_HYPERVISOR_KW_PROFILE  As LongLong = &H0000000000000001
+    Public Const SYSTEM_HYPERVISOR_KW_CALLOUTS  As LongLong = &H0000000000000002
+    Public Const SYSTEM_HYPERVISOR_KW_VTL_CHANGE  As LongLong = &H0000000000000004
+    '  Keywords to be used for the System Interrupt Provider.
+    Public Const SYSTEM_INTERRUPT_KW_GENERAL  As LongLong = &H0000000000000001
+    Public Const SYSTEM_INTERRUPT_KW_CLOCK_INTERRUPT  As LongLong = &H0000000000000002
+    Public Const SYSTEM_INTERRUPT_KW_DPC  As LongLong = &H0000000000000004
+    Public Const SYSTEM_INTERRUPT_KW_DPC_QUEUE  As LongLong = &H0000000000000008
+    Public Const SYSTEM_INTERRUPT_KW_WDF_DPC  As LongLong = &H0000000000000010
+    Public Const SYSTEM_INTERRUPT_KW_WDF_INTERRUPT  As LongLong = &H0000000000000020
+    Public Const SYSTEM_INTERRUPT_KW_IPI  As LongLong = &H0000000000000040
+    '  Keywords to be used for the System IO Provider.
+    Public Const SYSTEM_IO_KW_DISK  As LongLong = &H0000000000000001
+    Public Const SYSTEM_IO_KW_DISK_INIT  As LongLong = &H0000000000000002
+    Public Const SYSTEM_IO_KW_FILENAME  As LongLong = &H0000000000000004
+    Public Const SYSTEM_IO_KW_SPLIT  As LongLong = &H0000000000000008
+    Public Const SYSTEM_IO_KW_FILE  As LongLong = &H0000000000000010
+    Public Const SYSTEM_IO_KW_OPTICAL  As LongLong = &H0000000000000020
+    Public Const SYSTEM_IO_KW_OPTICAL_INIT  As LongLong = &H0000000000000040
+    Public Const SYSTEM_IO_KW_DRIVERS  As LongLong = &H0000000000000080
+    Public Const SYSTEM_IO_KW_CC  As LongLong = &H0000000000000100
+    Public Const SYSTEM_IO_KW_NETWORK  As LongLong = &H0000000000000200
+    '  Keywords to be used for the System IoFilter Provider.
+    Public Const SYSTEM_IOFILTER_KW_GENERAL  As LongLong = &H0000000000000001
+    Public Const SYSTEM_IOFILTER_KW_INIT  As LongLong = &H0000000000000002
+    Public Const SYSTEM_IOFILTER_KW_FASTIO  As LongLong = &H0000000000000004
+    Public Const SYSTEM_IOFILTER_KW_FAILURE  As LongLong = &H0000000000000008
+    '  Keywords to be used for the System SpinLock Provider.
+    Public Const SYSTEM_LOCK_KW_SPINLOCK  As LongLong = &H0000000000000001
+    Public Const SYSTEM_LOCK_KW_SPINLOCK_COUNTERS  As LongLong = &H0000000000000002
+    Public Const SYSTEM_LOCK_KW_SYNC_OBJECTS  As LongLong = &H0000000000000004
+    '  Keywords to be used for the System Memory Provider.
+    Public Const SYSTEM_MEMORY_KW_GENERAL  As LongLong = &H0000000000000001
+    Public Const SYSTEM_MEMORY_KW_HARD_FAULTS  As LongLong = &H0000000000000002
+    Public Const SYSTEM_MEMORY_KW_ALL_FAULTS  As LongLong = &H0000000000000004
+    Public Const SYSTEM_MEMORY_KW_POOL  As LongLong = &H0000000000000008
+    Public Const SYSTEM_MEMORY_KW_MEMINFO  As LongLong = &H0000000000000010
+    Public Const SYSTEM_MEMORY_KW_PFSECTION  As LongLong = &H0000000000000020
+    Public Const SYSTEM_MEMORY_KW_MEMINFO_WS  As LongLong = &H0000000000000040
+    Public Const SYSTEM_MEMORY_KW_HEAP  As LongLong = &H0000000000000080
+    Public Const SYSTEM_MEMORY_KW_WS  As LongLong = &H0000000000000100
+    Public Const SYSTEM_MEMORY_KW_CONTMEM_GEN  As LongLong = &H0000000000000200
+    Public Const SYSTEM_MEMORY_KW_VIRTUAL_ALLOC  As LongLong = &H0000000000000400
+    Public Const SYSTEM_MEMORY_KW_FOOTPRINT  As LongLong = &H0000000000000800
+    Public Const SYSTEM_MEMORY_KW_SESSION  As LongLong = &H0000000000001000
+    Public Const SYSTEM_MEMORY_KW_REFSET  As LongLong = &H0000000000002000
+    Public Const SYSTEM_MEMORY_KW_VAMAP  As LongLong = &H0000000000004000
+    Public Const SYSTEM_MEMORY_KW_NONTRADEABLE  As LongLong = &H0000000000008000^
+    '  Keywords to be used for the System Object Provider.
+    Public Const SYSTEM_OBJECT_KW_GENERAL  As LongLong = &H0000000000000001
+    Public Const SYSTEM_OBJECT_KW_HANDLE  As LongLong = &H0000000000000002
+    '  Keywords to be used for the System Power Provider.
+    Public Const SYSTEM_POWER_KW_GENERAL  As LongLong = &H0000000000000001
+    Public Const SYSTEM_POWER_KW_HIBER_RUNDOWN  As LongLong = &H0000000000000002
+    Public Const SYSTEM_POWER_KW_PROCESSOR_IDLE  As LongLong = &H0000000000000004
+    Public Const SYSTEM_POWER_KW_IDLE_SELECTION  As LongLong = &H0000000000000008
+    Public Const SYSTEM_POWER_KW_PPM_EXIT_LATENCY  As LongLong = &H0000000000000010
+    '  Keywords to be used for the System Process Provider.
+    Public Const SYSTEM_PROCESS_KW_GENERAL  As LongLong = &H0000000000000001
+    Public Const SYSTEM_PROCESS_KW_INSWAP  As LongLong = &H0000000000000002
+    Public Const SYSTEM_PROCESS_KW_FREEZE  As LongLong = &H0000000000000004
+    Public Const SYSTEM_PROCESS_KW_PERF_COUNTER  As LongLong = &H0000000000000008
+    Public Const SYSTEM_PROCESS_KW_WAKE_COUNTER  As LongLong = &H0000000000000010
+    Public Const SYSTEM_PROCESS_KW_WAKE_DROP  As LongLong = &H0000000000000020
+    Public Const SYSTEM_PROCESS_KW_WAKE_EVENT  As LongLong = &H0000000000000040
+    Public Const SYSTEM_PROCESS_KW_DEBUG_EVENTS  As LongLong = &H0000000000000080
+    Public Const SYSTEM_PROCESS_KW_DBGPRINT  As LongLong = &H0000000000000100
+    Public Const SYSTEM_PROCESS_KW_JOB  As LongLong = &H0000000000000200
+    Public Const SYSTEM_PROCESS_KW_WORKER_THREAD  As LongLong = &H0000000000000400
+    Public Const SYSTEM_PROCESS_KW_THREAD  As LongLong = &H0000000000000800
+    Public Const SYSTEM_PROCESS_KW_LOADER  As LongLong = &H0000000000001000
+    '  Keywords to be used for the System Profile Provider.
+    Public Const SYSTEM_PROFILE_KW_GENERAL  As LongLong = &H0000000000000001
+    Public Const SYSTEM_PROFILE_KW_PMC_PROFILE  As LongLong = &H0000000000000002
+    '  Keywords to be used for the System Registry Provider.
+    Public Const SYSTEM_REGISTRY_KW_GENERAL  As LongLong = &H0000000000000001
+    Public Const SYSTEM_REGISTRY_KW_HIVE  As LongLong = &H0000000000000002
+    Public Const SYSTEM_REGISTRY_KW_NOTIFICATION  As LongLong = &H0000000000000004
+    '  Keywords to be used for the System Scheduler Provider.
+    Public Const SYSTEM_SCHEDULER_KW_XSCHEDULER  As LongLong = &H0000000000000001
+    Public Const SYSTEM_SCHEDULER_KW_DISPATCHER  As LongLong = &H0000000000000002
+    Public Const SYSTEM_SCHEDULER_KW_KERNEL_QUEUE  As LongLong = &H0000000000000004
+    Public Const SYSTEM_SCHEDULER_KW_SHOULD_YIELD  As LongLong = &H0000000000000008
+    Public Const SYSTEM_SCHEDULER_KW_ANTI_STARVATION  As LongLong = &H0000000000000010
+    Public Const SYSTEM_SCHEDULER_KW_LOAD_BALANCER  As LongLong = &H0000000000000020
+    Public Const SYSTEM_SCHEDULER_KW_AFFINITY  As LongLong = &H0000000000000040
+    Public Const SYSTEM_SCHEDULER_KW_PRIORITY  As LongLong = &H0000000000000080
+    Public Const SYSTEM_SCHEDULER_KW_IDEAL_PROCESSOR  As LongLong = &H0000000000000100
+    Public Const SYSTEM_SCHEDULER_KW_CONTEXT_SWITCH  As LongLong = &H0000000000000200
+    Public Const SYSTEM_SCHEDULER_KW_COMPACT_CSWITCH  As LongLong = &H0000000000000400
+    '  Keywords to be used for the System Syscall Provider.
+    Public Const SYSTEM_SYSCALL_KW_GENERAL  As LongLong = &H0000000000000001
+    '  Keywords to be used for the System Timer Provider.
+    Public Const SYSTEM_TIMER_KW_GENERAL  As LongLong = &H0000000000000001
+    Public Const SYSTEM_TIMER_KW_CLOCK_TIMER  As LongLong = &H0000000000000002
+
+
+    Public Enum ETW_COMPRESSION_RESUMPTION_MODE
+        EtwCompressionModeRestart = 0
+        EtwCompressionModeNoDisable = 1
+        EtwCompressionModeNoRestart = 2
+    End Enum
+
+    'Trace header for all legacy events.
+    '(WHO DESIGNED THIS GARBAGE?)
+
+    Public Type EVENT_TRACE_HEADER 'typedef struct _EVENT_TRACE_HEADER {        // overlays WNODE_HEADER
+        size As Integer                'USHORT          Size;                   // Size of entire record
+                                       'union {
+        FieldTypeFlags As Integer      '    USHORT      FieldTypeFlags;         // Indicates valid fields
+                                        'struct {
+                                        '           UCHAR   HeaderType              // Header type - internal use only
+                                        '           UCHAR   MarkerFlags;            // Marker - internal use only
+                                        '        } DUMMYSTRUCTNAME;
+                                        '    } DUMMYUNIONNAME;
+                                        'union {
+        'VersionOrTypeLevelVersion As Long '   ULONG       Version;
+                                        '      struct {
+        uType As Byte                   '          UCHAR   Type;                   // event type
+        uLevel As Byte                  '          UCHAR   Level;                  // trace instrumentation level
+        wVersion As Integer             '          USHORT  Version;                // version of trace record
+                                        '      } Class;
+                                        '  } DUMMYUNIONNAME2;
+        ThreadID As Long                'ULONG           ThreadId;               // Thread Id
+        ProcessID As Long               'ULONG           ProcessId;              // Process Id
+        TimeStamp As LARGE_INTEGER      'LARGE_INTEGER   TimeStamp;              // time when event happens
+                                        'union {
+        tGUID As UUID                   '    GUID        Guid;                   // Guid that identifies event
+                                        '    ULONGLONG   GuidPtr;                // use with WNODE_FLAG_USE_GUID_PTR
+                                        '} DUMMYUNIONNAME3;
+                                        'union {
+        Value1 As Long                  '    struct {
+        Value2 As Long                  '        ULONG   KernelTime;             // Kernel Mode CPU ticks
+                                        '        ULONG   UserTime;               // User mode CPU ticks
+                                        '    } DUMMYSTRUCTNAME;
+                                        '    ULONG64     ProcessorTime;          // Processor Clock
+                                        '    struct {
+                                        '        ULONG   ClientContext;          // Reserved
+                                        '        ULONG   Flags;                  // Event Flags
+                                        '    } DUMMYSTRUCTNAME2;
+                                        '} DUMMYUNIONNAME4;
+    End Type  '48 Bytes, qword aligned  '} EVENT_TRACE_HEADER, *PEVENT_TRACE_HEADER;
+    Public Type EVENT_TRACE             'typedef struct _EVENT_TRACE {
+        Header As EVENT_TRACE_HEADER    '    EVENT_TRACE_HEADER      Header;             // Event trace header
+        InstanceId As Long              '    ULONG                   InstanceId;         // Instance Id of this event
+        ParentInstanceId As Long        '    ULONG                   ParentInstanceId;   // Parent Instance Id.
+        ParentGuid As UUID              '    GUID                    ParentGuid;         // Parent Guid;
+        MofData As LongPtr              '    PVOID                   MofData;            // Pointer to Variable Data
+        MofLength As Long               '    ULONG                   MofLength;          // Variable Datablock Length
+                                        '    union {
+        Context As Long                 '        ULONG               ClientContext;
+                                        '        ETW_BUFFER_CONTEXT  BufferContext;
+    End Type                            '} EVENT_TRACE, *PEVENT_TRACE;
+
+    Public Enum TraceDataTypes
+        ETW_NULL_TYPE_VALUE = 0
+        ETW_OBJECT_TYPE_VALUE = 1
+        ETW_STRING_TYPE_VALUE = 2
+        ETW_SBYTE_TYPE_VALUE = 3
+        ETW_BYTE_TYPE_VALUE = 4
+        ETW_INT16_TYPE_VALUE = 5
+        ETW_UINT16_TYPE_VALUE = 6
+        ETW_INT32_TYPE_VALUE = 7
+        ETW_UINT32_TYPE_VALUE = 8
+        ETW_INT64_TYPE_VALUE = 9
+        ETW_UINT64_TYPE_VALUE = 10
+        ETW_CHAR_TYPE_VALUE = 11
+        ETW_SINGLE_TYPE_VALUE = 12
+        ETW_DOUBLE_TYPE_VALUE = 13
+        ETW_BOOLEAN_TYPE_VALUE = 14
+        ETW_DECIMAL_TYPE_VALUE = 15
+    '  Extended types
+        ETW_GUID_TYPE_VALUE = 101
+        ETW_ASCIICHAR_TYPE_VALUE = 102
+        ETW_ASCIISTRING_TYPE_VALUE = 103
+        ETW_COUNTED_STRING_TYPE_VALUE = 104
+        ETW_POINTER_TYPE_VALUE = 105
+        ETW_SIZET_TYPE_VALUE = 106
+        ETW_HIDDEN_TYPE_VALUE = 107
+        ETW_BOOL_TYPE_VALUE = 108
+        ETW_COUNTED_ANSISTRING_TYPE_VALUE = 109
+        ETW_REVERSED_COUNTED_STRING_TYPE_VALUE = 110
+        ETW_REVERSED_COUNTED_ANSISTRING_TYPE_VALUE = 111
+        ETW_NON_NULL_TERMINATED_STRING_TYPE_VALUE = 112
+        ETW_REDUCED_ANSISTRING_TYPE_VALUE = 113
+        ETW_REDUCED_STRING_TYPE_VALUE = 114
+        ETW_SID_TYPE_VALUE = 115
+        ETW_VARIANT_TYPE_VALUE = 116
+        ETW_PTVECTOR_TYPE_VALUE = 117
+        ETW_WMITIME_TYPE_VALUE = 118
+        ETW_DATETIME_TYPE_VALUE = 119
+        ETW_REFRENCE_TYPE_VALUE = 120
+    End Enum
+
+    Public Type EVENT_INSTANCE_INFO
+        RegHandle As LongPtr
+        InstanceId As Long
+    End Type
+
+    Public Type TRACE_GUID_REGISTRATION
+        GUID As LongPtr 'LPCUUID ' Guid of data block being registered or updated.
+        RegHandle As LongPtr ' Guid Registration Handle is returned.
+    End Type
+
+    Public Type TRACE_GUID_PROPERTIES
+        GUID As UUID
+        GuidType As Long
+        LoggerId As Long
+        EnableLevel As Long
+        EnableFlags As Long
+        IsEnable As Boolean
+    End Type
+
+
+    Public Enum TraceProviderFlags
+        TRACE_PROVIDER_FLAG_LEGACY = (&H00000001)
+        TRACE_PROVIDER_FLAG_PRE_ENABLE = (&H00000002)
+    End Enum
+    Public Type TRACE_ENABLE_INFO
+        IsEnabled As Long
+        Level As Byte
+        Reserved1 As Byte
+        LoggerId As Integer
+        EnableProperty As Long
+        Reserved2 As Long
+        MatchAnyKeyword As LongLong
+        MatchAllKeyword As LongLong
+    End Type
+    Public Type TRACE_PROVIDER_INSTANCE_INFO
+        NextOffset As Long
+        EnableCount As Long
+        Pid As Long
+        Flags As TraceProviderFlags
+    End Type
+
+    Public Type TRACE_GUID_INFO
+        InstanceCount As Long
+        Reserved As Long
+    End Type
+
+    [Description("Description is a variable C-style array. Buffer will likely be less.")]
+    Public Type PROFILE_SOURCE_INFO
+        NextEntryOffset As Long
+        Source As Long
+        MinInterval As Long
+        MaxInterval As Long
+        Reserved As LongLong
+        Description(200) As Integer
+    End Type
+
+    Public Enum ETW_PMC_COUNTER_OWNER_TYPE
+        EtwPmcOwnerFree = 0
+        EtwPmcOwnerUntagged = 1
+        EtwPmcOwnerTagged = 2
+        EtwPmcOwnerTaggedWithSource = 3
+    End Enum
+    Public Type ETW_PMC_COUNTER_OWNER
+        OwnerType As ETW_PMC_COUNTER_OWNER_TYPE
+        ProfileSource As Long
+        OwnerTag As Long
+    End Type
+    [Description("Description is a variable C-style array. Buffer will likely be more.")]
+    Public Type ETW_PMC_COUNTER_OWNERSHIP_STATUS
+        ProcessorNumber As Long
+        NumberOfCounters As Long
+        CounterOwners(0) As ETW_PMC_COUNTER_OWNER
+    End Type
+
+    Public Type ETW_PMC_SESSION_INFO
+        NextEntryOffset As Long
+        LoggerId As Integer
+        Reserved As Integer
+        ProfileSourceCount As Long
+        HookIdCount As Long
+        ' These two fields follow as a ULONG blob after the initial header.
+        ' ULONG ProfileSources[]; // Count indicated by ProfileSourceCount
+        ' USHORT HookIds[]; // Count indicated by HookIdCount
+    End Type
+
+    Public Type ETW_BUFFER_HEADER
+        Reserved1(0 To 3) As Long
+        TimeStamp As LARGE_INTEGER ' Time of flush
+        Reserved2(0 To 3) As Long
+        ClientContext As ETW_BUFFER_CONTEXT
+        Reserved3 As Long
+        FilledBytes As Long ' Number of bytes written to the buffer.  Essentially the filled length of the buffer.
+        Reserved4(0 To 4) As Long
+    End Type
+
+    Public Type ETW_BUFFER_CALLBACK_INFORMATION
+        TraceHandle As LongLong
+        LogfileHeader As TRACE_LOGFILE_HEADER
+        BuffersRead As Long
+    End Type
+
+    Public Enum ETW_PROCESS_TRACE_MODES
+        ETW_PROCESS_TRACE_MODE_NONE = 0
+        ETW_PROCESS_TRACE_MODE_RAW_TIMESTAMP = &H00000001
+    End Enum
+
+    Public Delegate Function EventTraceBufferCallbackA (Logfile As EVENT_TRACE_LOGFILEA) As Long
+    Public Delegate Function EventTraceBufferCallbackW (Logfile As EVENT_TRACE_LOGFILEW) As Long
+    Public Delegate Function EventTraceBufferCallback (Logfile As EVENT_TRACE_LOGFILE) As Long
+    Public Delegate Sub EventCallback (pEvent As EVENT_TRACE)
+    Public Delegate Sub EventRecordCallback (EventRecord As EVENT_RECORD)
+    Public Delegate Function EtwBufferCallback (ByVal Buffer As LongPtr, ByVal BufferSize As Long, ConsumerInfo As ETW_BUFFER_CALLBACK_INFORMATION, ByVal CallbackContext As LongPtr) As BOOL
+    Public Delegate Sub EtwBufferCompletionCallback (ByVal Buffer As LongPtr, ByVal CallbackContext As LongPtr)
+
+
+    ' Public Type ETW_OPEN_TRACE_OPTIONS
+    '     ProcessTraceModes As ETW_PROCESS_TRACE_MODES
+    '     ' This callback will be called for each event in time order.
+    '     ' If left NULL, all event playback code will be bypassed.
+    '     EventCallback As EventRecordCallback 'PEVENT_RECORD_CALLBACK
+    '     EventCallbackContext As LongPtr 'void*
+    '     ' This callback will get called once buffer processing is complete.
+    '     BufferCallback As LongPtr 'PETW_BUFFER_CALLBACK
+    '     BufferCallbackContext As LongPtr 'void*
+    ' End Type
+    Public Type ETW_OPEN_TRACE_OPTIONS
+        ProcessTraceModes As ETW_PROCESS_TRACE_MODES
+        ' This callback will be called for each event in time order.
+        ' If left NULL, all event playback code will be bypassed.
+        EventCallback As LongPtr 'PEVENT_RECORD_CALLBACK
+        EventCallbackContext As LongPtr 'void*
+        ' This callback will get called once buffer processing is complete.
+        BufferCallback As LongPtr 'PETW_BUFFER_CALLBACK
+        BufferCallbackContext As LongPtr 'void*
+    End Type
+
+
+    Public Type EVENT_FILTER_DESCRIPTOR
+        ptr As LongLong
+        size As Long
+        type As EventFilterType
+    End Type
+
+    Public Const ENABLE_TRACE_PARAMETERS_VERSION = 1
+    Public Const ENABLE_TRACE_PARAMETERS_VERSION_2 = 2
+    Public Type ENABLE_TRACE_PARAMETERS_V1         'typedef struct _ENABLE_TRACE_PARAMETERS {
+        Version As Long                         '    ULONG                    Version;
+        EnableProperty As EnablePropertyFlags   '    ULONG                    EnableProperty;
+        ControlFlags As Long                    '    ULONG                    ControlFlags;
+        SourceId As UUID                        '    GUID                     SourceId;
+        EnableFilterDesc As LongPtr             '    PEVENT_FILTER_DESCRIPTOR EnableFilterDesc;
+    End Type
+    Public Type ENABLE_TRACE_PARAMETERS         'typedef struct _ENABLE_TRACE_PARAMETERS {
+        Version As Long                         '    ULONG                    Version;
+        EnableProperty As EnablePropertyFlags   '    ULONG                    EnableProperty;
+        ControlFlags As Long                    '    ULONG                    ControlFlags;
+        SourceId As UUID                        '    GUID                     SourceId;
+        EnableFilterDesc As LongPtr             '    PEVENT_FILTER_DESCRIPTOR EnableFilterDesc;
+        FilterDescCount As Long                 '    ULONG                    FilterDescCount;
+    End Type                                    '} ENABLE_TRACE_PARAMETERS, *PENABLE_TRACE_PARAMETERS;
+
+
+    Public Enum EnablePropertyFlags
+            EVENT_ENABLE_PROPERTY_SID = &H1
+            EVENT_ENABLE_PROPERTY_TS_ID = &H2
+            EVENT_ENABLE_PROPERTY_STACK_TRACE = &H4
+            EVENT_ENABLE_PROPERTY_PSM_KEY = &H8
+            EVENT_ENABLE_PROPERTY_IGNORE_KEYWORD_0 = &H10
+            EVENT_ENABLE_PROPERTY_PROVIDER_GROUP = &H20
+            EVENT_ENABLE_PROPERTY_ENABLE_KEYWORD_0 = &H40
+            EVENT_ENABLE_PROPERTY_PROCESS_START_KEY = &H80
+            EVENT_ENABLE_PROPERTY_EVENT_KEY = &H100
+            EVENT_ENABLE_PROPERTY_EXCLUDE_INPRIVATE = &H200
+            EVENT_ENABLE_PROPERTY_ENABLE_SILOS = &H400
+            EVENT_ENABLE_PROPERTY_SOURCE_CONTAINER_TRACKING = &H800
+    End Enum
+    Public Enum EventControlCodes
+        EVENT_CONTROL_CODE_DISABLE_PROVIDER = 0
+        EVENT_CONTROL_CODE_ENABLE_PROVIDER = 1
+        EVENT_CONTROL_CODE_CAPTURE_STATE = 2
+    End Enum
+
+    Public Type TRACE_LOGFILE_HEADER           'typedef struct _TRACE_LOGFILE_HEADER {
+        BufferSize As Long                      '    ULONG           BufferSize;         // Logger buffer size in Kbytes
+                                                '    union {
+        Version As Long                         '        ULONG       Version;            // Logger version
+                                                '        struct {
+                                                '            UCHAR   MajorVersion;
+                                                '            UCHAR   MinorVersion;
+                                                '            UCHAR   SubVersion;
+                                                '            UCHAR   SubMinorVersion;
+                                                '        } VersionDetail;
+                                                '    } DUMMYUNIONNAME;
+        ProviderVersion As Long                 '    ULONG           ProviderVersion;    // defaults to NT version
+        NumberOfProcessors As Long              '    ULONG           NumberOfProcessors; // Number of Processors
+        EndTime As LARGE_INTEGER                '    LARGE_INTEGER   EndTime;            // Time when logger stops
+        TimerResolution As Long                 '    ULONG           TimerResolution;    // assumes timer is constant!!!
+        MaximumFileSize As Long                 '    ULONG           MaximumFileSize;    // Maximum in Mbytes
+        LogFileMode As LoggerModeFlags          '    ULONG           LogFileMode;        // specify logfile mode
+        BuffersWritten As Long                  '    ULONG           BuffersWritten;     // used to file start of Circular File
+                                                '    union {
+                                                '        GUID LogInstanceGuid;           // For RealTime Buffer Delivery
+                                                '        struct {
+        StartBuffers As Long                    '            ULONG   StartBuffers;       // Count of buffers written at start.
+        PointerSize As Long                     '            ULONG   PointerSize;        // Size of pointer type in bits
+        EventsLost As Long                      '            ULONG   EventsLost;         // Events lost during log session
+        CpuSpeedInMhz As Long                   '            ULONG   CpuSpeedInMHz;      // Cpu Speed in MHz
+                                                '        } DUMMYSTRUCTNAME;
+                                                '    } DUMMYUNIONNAME2;
+                                                '#if defined(_WMIKM_)
+                                                '    PWCHAR          LoggerName;
+                                                '    PWCHAR          LogFileName;
+                                                '    RTL_TIME_ZONE_INFORMATION TimeZone;
+                                                '#Else
+        LoggerName As LongPtr                   '    LPWSTR          LoggerName;
+        LogFileName As LongPtr   '72            '    LPWSTR          LogFileName;
+        TimeZone As TIME_ZONE_INFORMATION '172  '    TIME_ZONE_INFORMATION TimeZone;
+        'tzpadding(0 To 3) As Byte               '#End If
+        BootTime As LARGE_INTEGER               '    LARGE_INTEGER   BootTime;
+        PerfFreq As LARGE_INTEGER               '    LARGE_INTEGER   PerfFreq;           // Reserved
+        starttime As LARGE_INTEGER              '    LARGE_INTEGER   StartTime;          // Reserved
+        ReservedFlags As Long                   '    ULONG           ReservedFlags;      // ClockType
+        BuffersLost As Long                     '    ULONG           BuffersLost;
+        'lhpad(0 To 3) As Byte
+    End Type  '272 bytes, qword-aligned         '} TRACE_LOGFILE_HEADER, *PTRACE_LOGFILE_HEADER;
+
+    ' Public Type EVENT_TRACE_LOGFILEA            'typedef struct _EVENT_TRACE_LOGFILEA {
+    '     LogFileName As String                   '  LPSTR                        LogFileName;
+    '     LoggerName As String                    '  LPSTR                        LoggerName;
+    '     CurrentTime As LongLong                 '  LONGLONG                      CurrentTime;
+    '     BuffersRead As Long                     '  ULONG                         BuffersRead;
+    '                                             '  union {
+    '     Mode As Long                            '    ULONG LogFileMode;
+    '                                             '    ULONG ProcessTraceMode;
+    '                                             '  } DUMMYUNIONNAME;
+    '     CurrentEvent As EVENT_TRACE '88A'112    '  EVENT_TRACE                   CurrentEvent;
+    '     LogfileHeader As TRACE_LOGFILE_HEADER   '  TRACE_LOGFILE_HEADER          LogfileHeader;
+    '     BufferCallback As EventTraceBufferCallbackA '  PEVENT_TRACE_BUFFER_CALLBACKA BufferCallback;
+    '     BufferSize As Long                      '  ULONG                         BufferSize;
+    '     Filled As Long                          '  ULONG                         Filled;
+    '     EventsLost As Long                      '  ULONG                         EventsLost;
+    '                                             '  union {
+    '     EventCallback As EventRecordCallback    '    PEVENT_CALLBACK        EventCallback;
+    '                                             '    PEVENT_RECORD_CALLBACK EventRecordCallback;
+    '                                             '  } DUMMYUNIONNAME2;
+    '     IsKernelTrace As Long                   '  ULONG                         IsKernelTrace;
+    '     Context As LongPtr                      '  PVOID                         Context;
+    ' End Type                                    '} EVENT_TRACE_LOGFILEW, *PEVENT_TRACE_LOGFILEW;
+    ' Public Type EVENT_TRACE_LOGFILEW            'typedef struct _EVENT_TRACE_LOGFILEW {
+    '     LogFileName As LongPtr                   '  LPSTR                        LogFileName;
+    '     LoggerName As LongPtr                    '  LPSTR                        LoggerName;
+    '     CurrentTime As LongLong                 '  LONGLONG                      CurrentTime;
+    '     BuffersRead As Long                     '  ULONG                         BuffersRead;
+    '                                             '  union {
+    '     Mode As Long                            '    ULONG LogFileMode;
+    '                                             '    ULONG ProcessTraceMode;
+    '                                             '  } DUMMYUNIONNAME;
+    '     CurrentEvent As EVENT_TRACE '88A'112    '  EVENT_TRACE                   CurrentEvent;
+    '     LogfileHeader As TRACE_LOGFILE_HEADER   '  TRACE_LOGFILE_HEADER          LogfileHeader;
+    '     BufferCallback As EventTraceBufferCallbackW '  PEVENT_TRACE_BUFFER_CALLBACKW BufferCallback;
+    '     BufferSize As Long                      '  ULONG                         BufferSize;
+    '     Filled As Long                          '  ULONG                         Filled;
+    '     EventsLost As Long                      '  ULONG                         EventsLost;
+    '                                             '  union {
+    '     EventCallback As EventRecordCallback    '    PEVENT_CALLBACK        EventCallback;
+    '                                             '    PEVENT_RECORD_CALLBACK EventRecordCallback;
+    '                                             '  } DUMMYUNIONNAME2;
+    '     IsKernelTrace As Long                   '  ULONG                         IsKernelTrace;
+    '     Context As LongPtr                      '  PVOID                         Context;
+    ' End Type                                    '} EVENT_TRACE_LOGFILEW, *PEVENT_TRACE_LOGFILEW;
+    ' Public Type EVENT_TRACE_LOGFILE             'typedef struct _EVENT_TRACE_LOGFILEW {
+    '     LogFileName As LongPtr                   '  LPSTR                        LogFileName;
+    '     LoggerName As LongPtr                    '  LPSTR                        LoggerName;
+    '     CurrentTime As LongLong                 '  LONGLONG                      CurrentTime;
+    '     BuffersRead As Long                     '  ULONG                         BuffersRead;
+    '                                             '  union {
+    '     Mode As Long                            '    ULONG LogFileMode;
+    '                                             '    ULONG ProcessTraceMode;
+    '                                             '  } DUMMYUNIONNAME;
+    '     CurrentEvent As EVENT_TRACE '88A'112    '  EVENT_TRACE                   CurrentEvent;
+    '     LogfileHeader As TRACE_LOGFILE_HEADER   '  TRACE_LOGFILE_HEADER          LogfileHeader;
+    '     BufferCallback As EventTraceBufferCallback '  PEVENT_TRACE_BUFFER_CALLBACKW BufferCallback;
+    '     BufferSize As Long                      '  ULONG                         BufferSize;
+    '     Filled As Long                          '  ULONG                         Filled;
+    '     EventsLost As Long                      '  ULONG                         EventsLost;
+    '                                             '  union {
+    '     EventCallback As EventRecordCallback    '    PEVENT_CALLBACK        EventCallback;
+    '                                             '    PEVENT_RECORD_CALLBACK EventRecordCallback;
+    '                                             '  } DUMMYUNIONNAME2;
+    '     IsKernelTrace As Long                   '  ULONG                         IsKernelTrace;
+    '     Context As LongPtr                      '  PVOID                         Context;
+    ' End Type                                    '} EVENT_TRACE_LOGFILEW, *PEVENT_TRACE_LOGFILEW;
+    Public Type EVENT_TRACE_LOGFILEA            'typedef struct _EVENT_TRACE_LOGFILEA {
+        LogFileName As String                   '  LPSTR                        LogFileName;
+        LoggerName As String                    '  LPSTR                        LoggerName;
+        CurrentTime As LongLong                 '  LONGLONG                      CurrentTime;
+        BuffersRead As Long                     '  ULONG                         BuffersRead;
+                                                '  union {
+        Mode As Long                            '    ULONG LogFileMode;
+                                                '    ULONG ProcessTraceMode;
+                                                '  } DUMMYUNIONNAME;
+        CurrentEvent As EVENT_TRACE '88A'112    '  EVENT_TRACE                   CurrentEvent;
+        LogfileHeader As TRACE_LOGFILE_HEADER   '  TRACE_LOGFILE_HEADER          LogfileHeader;
+        BufferCallback As LongPtr '  PEVENT_TRACE_BUFFER_CALLBACKA BufferCallback;
+        BufferSize As Long                      '  ULONG                         BufferSize;
+        Filled As Long                          '  ULONG                         Filled;
+        EventsLost As Long                      '  ULONG                         EventsLost;
+                                                '  union {
+        EventCallback As LongPtr    '    PEVENT_CALLBACK        EventCallback;
+                                                '    PEVENT_RECORD_CALLBACK EventRecordCallback;
+                                                '  } DUMMYUNIONNAME2;
+        IsKernelTrace As Long                   '  ULONG                         IsKernelTrace;
+        Context As LongPtr                      '  PVOID                         Context;
+    End Type                                    '} EVENT_TRACE_LOGFILEW, *PEVENT_TRACE_LOGFILEW;
+    Public Type EVENT_TRACE_LOGFILEW            'typedef struct _EVENT_TRACE_LOGFILEW {
+        LogFileName As LongPtr                   '  LPSTR                        LogFileName;
+        LoggerName As LongPtr                    '  LPSTR                        LoggerName;
+        CurrentTime As LongLong                 '  LONGLONG                      CurrentTime;
+        BuffersRead As Long                     '  ULONG                         BuffersRead;
+                                                '  union {
+        Mode As Long                            '    ULONG LogFileMode;
+                                                '    ULONG ProcessTraceMode;
+                                                '  } DUMMYUNIONNAME;
+        CurrentEvent As EVENT_TRACE '88A'112    '  EVENT_TRACE                   CurrentEvent;
+        LogfileHeader As TRACE_LOGFILE_HEADER   '  TRACE_LOGFILE_HEADER          LogfileHeader;
+        BufferCallback As LongPtr '  PEVENT_TRACE_BUFFER_CALLBACKW BufferCallback;
+        BufferSize As Long                      '  ULONG                         BufferSize;
+        Filled As Long                          '  ULONG                         Filled;
+        EventsLost As Long                      '  ULONG                         EventsLost;
+                                                '  union {
+        EventCallback As LongPtr    '    PEVENT_CALLBACK        EventCallback;
+                                                '    PEVENT_RECORD_CALLBACK EventRecordCallback;
+                                                '  } DUMMYUNIONNAME2;
+        IsKernelTrace As Long                   '  ULONG                         IsKernelTrace;
+        Context As LongPtr                      '  PVOID                         Context;
+    End Type                                    '} EVENT_TRACE_LOGFILEW, *PEVENT_TRACE_LOGFILEW;
+    Public Type EVENT_TRACE_LOGFILE             'typedef struct _EVENT_TRACE_LOGFILEW {
+        LogFileName As LongPtr                   '  LPSTR                        LogFileName;
+        LoggerName As LongPtr                    '  LPSTR                        LoggerName;
+        CurrentTime As LongLong                 '  LONGLONG                      CurrentTime;
+        BuffersRead As Long                     '  ULONG                         BuffersRead;
+                                                '  union {
+        Mode As Long                            '    ULONG LogFileMode;
+                                                '    ULONG ProcessTraceMode;
+                                                '  } DUMMYUNIONNAME;
+        CurrentEvent As EVENT_TRACE '88A'112    '  EVENT_TRACE                   CurrentEvent;
+        LogfileHeader As TRACE_LOGFILE_HEADER   '  TRACE_LOGFILE_HEADER          LogfileHeader;
+        BufferCallback As LongPtr '  PEVENT_TRACE_BUFFER_CALLBACKW BufferCallback;
+        BufferSize As Long                      '  ULONG                         BufferSize;
+        Filled As Long                          '  ULONG                         Filled;
+        EventsLost As Long                      '  ULONG                         EventsLost;
+                                                '  union {
+        EventCallback As LongPtr    '    PEVENT_CALLBACK        EventCallback;
+                                                '    PEVENT_RECORD_CALLBACK EventRecordCallback;
+                                                '  } DUMMYUNIONNAME2;
+        IsKernelTrace As Long                   '  ULONG                         IsKernelTrace;
+        Context As LongPtr                      '  PVOID                         Context;
+    End Type
+
+
+    Public Enum TRACE_QUERY_INFO_CLASS
+        ' 
+        '  TraceGuidQueryList:
+        '  - EnumerateTraceGuidsEx.
+        '       Returns a list of provider GUIDs that are currently registered with the kernel.
+        '       Note: This is not the same thing as having an installed manifest.
+        ' 
+        '       Input Format: None.
+        '       Output Format: An array of GUIDs.
+        ' 
+        TraceGuidQueryList = 0
+        ' 
+        '  TraceGuidQueryList:
+        '  - EnumerateTraceGuidsEx.
+        '       Returns the current registration and enablement information for the input GUID.
+        ' 
+        '       Input Format: GUID
+        '       Output Format: TRACE_GUID_INFO followed by TRACE_GUID_INFO.InstanceCount
+        '                      TRACE_PROVIDER_INSTANCE_INFO structs, each bundled with
+        '                      TRACE_PROVIDER_INSTANCE_INFO.EnableCount TRACE_ENABLE_INFO.
+        '                 For example, a GUID with two provider registrations, the first enabled
+        '                   by two loggers and the second by three loggers would look like:
+        '                   {
+        '                       TRACE_GUID_INFO;  // Where InstanceCount = 2
+        '                       TRACE_PROVIDER_INSTANCE_INFO; // Where EnableCount = 2
+        '                       TRACE_ENABLE_INFO;
+        '                       TRACE_ENABLE_INFO;
+        '                       TRACE_PROVIDER_INSTANCE_INFO; // Where EnableCount = 3
+        '                       TRACE_ENABLE_INFO;
+        '                       TRACE_ENABLE_INFO;
+        '                       TRACE_ENABLE_INFO;
+        '                   }
+        ' 
+        TraceGuidQueryInfo = 1
+        ' 
+        '  TraceGuidQueryProcess:
+        '  - EnumerateTraceGuidsEx.
+        '       Returns a list of provider GUIDs that are registered in the current process.
+        '       Note: This is not the same thing as having an installed manifest.
+        ' 
+        '       Input Format: None.
+        '       Output Format: An array of GUIDs.
+        ' 
+        TraceGuidQueryProcess = 2
+        ' 
+        '  TraceStackTracingInfo:
+        '  - TraceSetInformation.
+        '       Turns on stack trace collection for the specified kernel events for the specified logger.
+        '       It also turns off stack tracing for all kernel events not on this list, regardless of prior status.
+        ' 
+        '       Input Format: An array of CLASSIC_EVENT_ID structs.
+        ' 
+        TraceStackTracingInfo = 3
+        ' 
+        '  TraceSystemTraceEnableFlagsInfo:
+        '  - TraceSetInformation
+        '       Sets the Group Mask state for the specified logging session.
+        ' 
+        '       Input Format: PERFINFO_GROUPMASK
+        ' 
+        '  - TraceQueryInformation
+        '       Queries the current Group Mask state for the specified logging session.
+        ' 
+        '       Return Format: PERFINFO_GROUPMASK
+        ' 
+        TraceSystemTraceEnableFlagsInfo = 4
+        ' 
+        '  TraceSampledProfileIntervalInfo:
+        '  - TraceSetInformation
+        '       Sets the Sample Profile interval for the system.
+        '       Expects NULL SessionHandle parameter.
+        ' 
+        '       Input Format: TRACE_PROFILE_INTERVAL
+        ' 
+        '  - TraceQueryInformation
+        '       Queries the current Sample Profile Interval for the system.
+        '       Expects NULL SessionHandle parameter.
+        ' 
+        '       Output Format: TRACE_PROFILE_INTERVAL
+        ' 
+        TraceSampledProfileIntervalInfo = 5
+        ' 
+        '  TraceProfileSourceConfigInfo:
+        '  - TraceSetInformation
+        '       Sets a list of sources to be used for PMC Profiling system-wide.
+        '       Expects NULL SessionHandle parameter.
+        ' 
+        '       Input Format: An array of ULONGs specifying the IDs of the sources.
+        ' 
+        TraceProfileSourceConfigInfo = 6
+        ' 
+        '  TraceProfileSourceListInfo:
+        '  - TraceQueryInformation
+        '       Queries the list of PMC Profiling sources available on the system.
+        '       Expects NULL SessionHandle parameter.
+        ' 
+        '       Output Format: An array of PROFILE_SOURCE_INFO structs.
+        ' 
+        TraceProfileSourceListInfo = 7
+        ' 
+        '  TracePmcEventListInfo:
+        '  - TraceSetInformation
+        '       Updates the list of kernel events for which PMC counters will be collected
+        '       for the specified logger.  This can only be set once per logger and cannot
+        '       be updated.
+        '       The counters collected are specified by
+        '       TraceSetInformation(TracePmcCounterListInfo, ...) described below.
+        ' 
+        '       Input Format: An array of CLASSIC_EVENT_ID structs.
+        ' 
+        TracePmcEventListInfo = 8
+        ' 
+        '  TracePmcCounterListInfo:
+        '  - TraceSetInformation
+        '       Sets the list of PMC counters to be collected on system events.
+        '       This can only be set once per logger and cannot be updated.
+        '       The specified counters will be collected on the events specified by
+        '       TraceSetInformation(TracePmcEventListInfo, ...) described above.
+        ' 
+        '       Input Format: An array of ULONGs.
+        ' 
+        TracePmcCounterListInfo = 9
+        ' 
+        '  TraceSetDisallowList:
+        '  - TraceSetInformation
+        '       Sets a list of provider GUIDs that should not be enabled via
+        '       Provider Groups on the specified logging session.
+        ' 
+        '       Input Format: An array of GUIDs.
+        ' 
+        TraceSetDisallowList = 10
+        ' 
+        '  TraceVersionInfo:
+        '  - TraceQueryInformation
+        '       Queries the version number of the trace processing code.
+        ' 
+        '       Output Format: TRACE_VERSION_INFO
+        ' 
+        TraceVersionInfo = 11
+        ' 
+        '  TraceGroupQueryList:
+        '  - EnumerateTraceGuidsEx.
+        '       Returns a list of Group GUIDs that are currently known to the kernel.
+        ' 
+        '       Input Format: None.
+        '       Output Format: An array of GUIDs.
+        ' 
+        TraceGroupQueryList = 12
+        ' 
+        '  TraceGroupQueryInfo:
+        '  - EnumerateTraceGuidsEx.
+        '       Returns the current enablement information and list of member providers
+        '       for the input Group GUID.
+        ' 
+        '       Input Format: GUID
+        '       Output Format:  a) ULONG - Length of the following TRACE_ENABLE_INFO array.
+        '                       b) Array of TRACE_ENABLE_INFO. Size of the array is inferred from (a)
+        '                       c) ULONG - Count of the Number of Unique Providers that belong to this Group
+        '                       d) Array of GUID - Size of the array is specified by (c)
+        ' 
+        '                   PseudoStructure -
+        '                       struct TRACE_GROUP_INFO {
+        '                           ULONG TraceEnableInfoSize;
+        '                           TRACE_ENABLE_INFO TraceEnableInfos[TraceEnableInfoSize];
+        '                           ULONG GuidArraySize;
+        '                           GUID UniqueProviders[GuidArraySize];
+        '                       }
+        ' 
+        TraceGroupQueryInfo = 13
+        ' 
+        '  TraceDisallowListQuery:
+        '  - TraceQueryInformation
+        '       Queries the list of provider GUIDs that should not be enabled via
+        '       Provider Groups on the specified logging session.
+        ' 
+        '       Output Format: An array of GUIDs.
+        ' 
+        TraceDisallowListQuery = 14
+        TraceInfoReserved15 = 15
+        ' 
+        '  TracePeriodicCaptureStateListInfo:
+        '  - TraceSetInformation
+        '       Sets the list of providers for which capture stat should be collected
+        '       at periodic time intervals for the specified logging session.
+        '       If a NULL input buffer is specified, then the current periodic capture state
+        '       settings are cleared.
+        ' 
+        '       Input Format: TRACE_PERIODIC_CAPTURE_STATE_INFO followed by an array of ProviderCount
+        '                       Provider GUIDs. Or a NULL Buffer.
+        ' 
+        TracePeriodicCaptureStateListInfo = 16
+        ' 
+        '  TracePeriodicCaptureStatInfo:
+        '  - TraceQueryInformation
+        '       Queries the limits of periodic capture settings on this system, including
+        '       the minimum time frequency and the maximum number of providers that can be
+        '       enabled for periodic capture state.
+        ' 
+        '       Output Format: TRACE_PERIODIC_CAPTURE_STATE_INFO
+        ' 
+        TracePeriodicCaptureStateInfo = 17
+        ' 
+        '  TraceProviderBinaryTracking:
+        '  - TraceSetInformation
+        '       Instructs ETW to begin tracking binaries for all providers that are enabled
+        '       to the session. The tracking applies retroactively for providers that were
+        '       enabled to the session prior to the call, as well as for all future providers
+        '       that are enabled to the session.
+        ' 
+        '       ETW fabricates tracking events for these tracked providers that contain a
+        '       mapping between provider GUID(s). ETW also fabricates the file path that describes
+        '       where the registered provider is located on disk. If the session is in realtime,
+        '       the events are provided live in the realtime buffers. If the session is file-based
+        '       (i.e. trace is saved to an .etl file), the events are aggregated and written to the
+        '       file header; they will be among some of the first events the ETW runtime provides
+        '       when the .etl file is played back.
+        ' 
+        '       The binary tracking events will come from the EventTraceGuid provider, with an opcode
+        '       of WMI_LOG_TYPE_BINARY_PATH.
+        ' 
+        '       Input Format: BOOLEAN (The 1-byte type, rather than the 4-byte BOOL.)
+        '                     True to turn tracking on. False to turn tracking off.
+        ' 
+        TraceProviderBinaryTracking = 18
+        ' 
+        '  TraceMaxLoggersQuery:
+        '  - TraceQueryInformation
+        '       Queries the maximum number of system-wide loggers that can be running at a time
+        '       on this system.
+        ' 
+        '       Output Format: ULONG
+        ' 
+        TraceMaxLoggersQuery = 19
+        ' 
+        '  TraceLbrConfigurationInfo:
+        '  - TraceSetInformation
+        '       Sets a bitfield of configuration options for Last Branch Record tracing.
+        ' 
+        '       Input Format: ULONG
+        ' 
+        TraceLbrConfigurationInfo = 20
+        ' 
+        '  TraceLbrEventListInfo:
+        '  - TraceSetInformation
+        '       Provides a list of kernel events to collect Last Branch Records on.
+        '       The events are specified by their HookIds.
+        ' 
+        '       Input Format: An array of ULONGs
+        ' 
+        TraceLbrEventListInfo = 21
+        ' 
+        '  TraceMaxPmcCounterQuery:
+        '  - TraceQueryInformation
+        '       Queries the maximum number of PMC counters supported on this platform.
+        ' 
+        '       Output Format: ULONG
+        ' 
+        TraceMaxPmcCounterQuery = 22
+        ' 
+        '  TraceStreamCount:
+        '  - TraceQueryInformation
+        '       Queries the number of streams that a given session can be expected
+        '       to emit. This is usually proportional to CPU count, or 1 if no
+        '       per-processor buffering is enabled.
+        ' 
+        '       Output Format: ULONG
+        ' 
+        TraceStreamCount = 23
+        ' 
+        '  TraceStackCachingInfo:
+        '  - TraceSetInformation
+        '       Turns on stack caching for classic event stacks.
+        ' 
+        '       Input Format: TRACE_STACK_CACHING_INFO
+        ' 
+        TraceStackCachingInfo = 24
+        ' 
+        '  TracePmcCounterOwners:
+        '  - TraceQueryInformation
+        '       Queries ownership information for active PMC counters.
+        '       Expects NULL SessionHandle.
+        ' 
+        '       Input Format: ETW_PMC_COUNTER_OWNERSHIP_STATUS with ProcessorNumber set to an
+        '                     appropriate processor index. The input buffer must be of size at least
+        '                     RTL_SIZEOF_THROUGH_FIELD(ETW_PMC_COUNTER_OWNERSHIP_STATUS, NumberOfCounters) +
+        '                     (sizeof(ETW_PMC_COUNTER_OWNER) * EtwMaxPmcCounters), where EtwMaxPmcCounters
+        '                     is the result of a TraceQueryInformation(TraceMaxPmcCounterQuery, ...) operation.
+        ' 
+        '       Output Format: ETW_PMC_COUNTER_OWNERSHIP_STATUS with CounterOwners filled out. NumberOfCounters is
+        '                      set to the number of items in the CounterOwners array.
+        '                      If a counter owner's OwnershipType is EtwPmcOwnerTagged, then OwnerTag contains
+        '                      a tag provided by the counter owner.
+        ' 
+        TracePmcCounterOwners = 25
+        ' 
+        '  TraceStackCachingInfo:
+        '  - TraceSetInformation
+        '       Turns on unified stack caching for all event stacks.
+        ' 
+        '       Input Format: TRACE_STACK_CACHING_INFO
+        ' 
+        TraceUnifiedStackCachingInfo = 26
+        ' 
+        '  TracePmcSessionInformation:
+        '     TraceQueryInformation
+        '       Queries information about enabled PMC counters for all sessions.
+        ' 
+        '       Output Format: The supplied output buffer will be set to a blob of filled out ETW_PMC_SESSION_INFO.
+        '                      The NextEntryOffset member of each item will be set to the offset from the start of
+        '                      the current item to the next item, or 0 if there are no more items.
+        '                      The ProfileSourceCount and HookId count members will be set to the number of items that
+        '                      exist in the ProfileSources array and HookIds arrays, respectively.
+        ' 
+        TracePmcSessionInformation = 27
+        MaxTraceSetInfoClass
+    End Enum
+    Public Type CLASSIC_EVENT_ID
+        EventGuid As UUID
+        type As Byte
+        Reserved(0 To 6) As Byte
+    End Type
+    Public Type TRACE_STACK_CACHING_INFO
+        Enabled As Byte
+        CacheSize As Long
+        BucketCount As Long
+    End Type
+    Public Type TRACE_PROFILE_INTERVAL
+        Source As Long
+        Interval As Long
+    End Type
+    Public Type TRACE_VERSION_INFO
+        EtwTraceProcessingVersion As Long
+        Reserved As Long
+    End Type
+    Public Type TRACE_PERIODIC_CAPTURE_STATE_INFO
+        CaptureStateFrequencyInSeconds As Long
+        ProviderCount As Integer
+        Reserved As Integer
+    End Type
+
+
+    Public Enum EventHeaderProperty
+        EVENT_HEADER_PROPERTY_XML = &H1
+        EVENT_HEADER_PROPERTY_FORWARDED_XML = &H2
+        EVENT_HEADER_PROPERTY_LEGACY_EVENTLOG = &H4
+        EVENT_HEADER_PROPERTY_RELOGGABLE = &H8
+    End Enum
+    Public Enum EventHeaderExtType
+        EVENT_HEADER_EXT_TYPE_RELATED_ACTIVITYID = &H1
+        EVENT_HEADER_EXT_TYPE_SID = &H2
+        EVENT_HEADER_EXT_TYPE_TS_ID = &H3
+        EVENT_HEADER_EXT_TYPE_INSTANCE_INFO = &H4
+        EVENT_HEADER_EXT_TYPE_STACK_TRACE32 = &H5
+        EVENT_HEADER_EXT_TYPE_STACK_TRACE64 = &H6
+        EVENT_HEADER_EXT_TYPE_PEBS_INDEX = &H7
+        EVENT_HEADER_EXT_TYPE_PMC_COUNTERS = &H8
+        EVENT_HEADER_EXT_TYPE_PSM_KEY = &H9
+        EVENT_HEADER_EXT_TYPE_EVENT_KEY = &HA
+        EVENT_HEADER_EXT_TYPE_EVENT_SCHEMA_TL = &HB
+        EVENT_HEADER_EXT_TYPE_PROV_TRAITS = &HC
+        EVENT_HEADER_EXT_TYPE_PROCESS_START_KEY = &HD
+        EVENT_HEADER_EXT_TYPE_CONTROL_GUID = &HE
+        EVENT_HEADER_EXT_TYPE_QPC_DELTA = &H000F
+        EVENT_HEADER_EXT_TYPE_CONTAINER_ID = &H0010
+        EVENT_HEADER_EXT_TYPE_STACK_KEY32 = &H0011
+        EVENT_HEADER_EXT_TYPE_STACK_KEY64 = &H0012
+        EVENT_HEADER_EXT_TYPE_MAX = &H0013
+    End Enum
+    Public Enum EventHeaderFlags
+        EVENT_HEADER_FLAG_EXTENDED_INFO = &H1
+        EVENT_HEADER_FLAG_PRIVATE_SESSION = &H2
+        EVENT_HEADER_FLAG_STRING_ONLY = &H4
+        EVENT_HEADER_FLAG_TRACE_MESSAGE = &H8
+        EVENT_HEADER_FLAG_NO_CPUTIME = &H10
+        EVENT_HEADER_FLAG_32_BIT_HEADER = &H20
+        EVENT_HEADER_FLAG_64_BIT_HEADER = &H40
+        EVENT_HEADER_FLAG_DECODE_GUID = &H80     ' ProviderId is decode GUID.
+        EVENT_HEADER_FLAG_CLASSIC_HEADER = &H100
+        EVENT_HEADER_FLAG_PROCESSOR_INDEX = &H200
+    End Enum
+
+    Public Type EVENT_DESCRIPTOR            'typedef struct _EVENT_DESCRIPTOR {
+        id As Integer                       '  USHORT    Id;
+        Version As Byte                     '  UCHAR     Version;
+        Channel As Byte                     '  UCHAR     Channel;
+        Level As Byte                       '  UCHAR     Level;
+        OpCode As Byte                      '  UCHAR     Opcode;
+        Task As Integer                     '  USHORT    Task;
+        Keyword As LongLong                 '  ULONGLONG Keyword;
+    End Type                                '} EVENT_DESCRIPTOR, *PEVENT_DESCRIPTOR;
+
+    Public Type EVENT_HEADER                'typedef struct _EVENT_HEADER {
+        size As Integer                     '  USHORT           Size;
+        HeaderType As Integer               '  USHORT           HeaderType;
+        Flags As Integer                    '  USHORT           Flags;           EventHeaderFlags Enum
+        EventProperty As Integer            '  USHORT           EventProperty;   EventHeaderProperty Enum
+        ThreadID As Long                    '  ULONG            ThreadId;
+        ProcessID As Long                   '  ULONG            ProcessId;
+        TimeStamp As LARGE_INTEGER          '  LARGE_INTEGER    TimeStamp;
+        ProviderId As UUID                  '  GUID             ProviderId;
+        EventDescriptor As EVENT_DESCRIPTOR '  EVENT_DESCRIPTOR EventDescriptor;
+                                            '  union {
+                                            '    struct {
+        KernelTime As Long                  '      ULONG KernelTime;
+        UserTime As Long                    '      ULONG UserTime;
+                                            '    } DUMMYSTRUCTNAME;
+                                            '    ULONG64 ProcessorTime;
+                                            '  } DUMMYUNIONNAME;
+        ActivityGuid As UUID                '  GUID             ActivityId;
+    End Type                                '} EVENT_HEADER, *PEVENT_HEADER;
+
+
+    Public Type ETW_BUFFER_CONTEXT          'typedef struct _ETW_BUFFER_CONTEXT {
+                                            '  union {
+                                            '    struct {
+        ProcessorNumber As Byte             '      UCHAR ProcessorNumber;
+        Alignment As Byte                   '      UCHAR Alignment;
+                                            '    } DUMMYSTRUCTNAME;
+                                            '    USHORT ProcessorIndex;
+                                            '  } DUMMYUNIONNAME;
+        LoggerId As Integer                 '  USHORT LoggerId;
+    End Type                                '} ETW_BUFFER_CONTEXT, *PETW_BUFFER_CONTEXT;
+
+    Public Type EVENT_RECORD                'typedef struct _EVENT_RECORD {
+        EventHeader As EVENT_HEADER         '  EVENT_HEADER                     EventHeader;
+        BufferContext As ETW_BUFFER_CONTEXT '  ETW_BUFFER_CONTEXT               BufferContext;
+        ExtendedDataCount As Integer        '  USHORT                           ExtendedDataCount;
+        UserDataLength As Integer           '  USHORT                           UserDataLength;
+        ExtendedData As LongPtr             '  PEVENT_HEADER_EXTENDED_DATA_ITEM ExtendedData;
+        UserData As LongPtr                 '  PVOID                            UserData;
+        UserContext As LongPtr              '  PVOID                            UserContext;
+    End Type                                '} EVENT_RECORD, *PEVENT_RECORD;
+
+    Public Type EVENT_HEADER_EXTENDED_DATA_ITEM 'typedef struct _EVENT_HEADER_EXTENDED_DATA_ITEM {
+        Reserved1 As Integer                '  USHORT    Reserved1;
+        ExtType As Integer                  '  USHORT    ExtType;
+                                            '  struct {
+        Linkage As Integer                  '    USHORT Linkage : 1;
+                                            '    USHORT Reserved2 : 15;
+                                            '  };
+        DataSize As Integer                 '  USHORT    DataSize;
+        DataPtr As LongLong                 '  ULONGLONG DataPtr;
+    End Type                                '} EVENT_HEADER_EXTENDED_DATA_ITEM, *PEVENT_HEADER_EXTENDED_DATA_ITEM;
+
+    Public Type EVENT_EXTENDED_ITEM_INSTANCE
+        InstanceId As Long
+        ParentInstanceId As Long
+        ParentGuid As UUID
+    End Type
+
+    Public Type EVENT_EXTENDED_ITEM_RELATED_ACTIVITYID
+        RelatedActivityId As UUID
+    End Type
+
+    Public Type EVENT_EXTENDED_ITEM_TS_ID
+        SessionId As Long
+    End Type
+
+    Public Type EVENT_EXTENDED_ITEM_STACK_TRACE32
+        MatchId As LongLong
+        ' Address(0 To (ANYSIZE_ARRAY - 1)) As Long
+    End Type
+
+    Public Type EVENT_EXTENDED_ITEM_STACK_TRACE64
+        MatchId As LongLong
+        ' Address(0 To (ANYSIZE_ARRAY - 1)) As LongLong
+    End Type
+
+    Public Type EVENT_EXTENDED_ITEM_STACK_KEY32
+        MatchId As LongLong
+        StackKey As Long
+        Padding As Long
+    End Type
+
+    Public Type EVENT_EXTENDED_ITEM_STACK_KEY64
+        MatchId As LongLong
+        StackKey As LongLong
+    End Type
+
+    Public Type EVENT_EXTENDED_ITEM_PEBS_INDEX
+        PebsIndex As LongLong
+    End Type
+
+    Public Type EVENT_EXTENDED_ITEM_PMC_COUNTERS
+        Counter(4095) As LongLong
+    End Type
+
+    Public Type EVENT_EXTENDED_ITEM_PROCESS_START_KEY
+        ProcessStartKey As LongLong
+    End Type
+
+    Public Type EVENT_EXTENDED_ITEM_EVENT_KEY
+        Key As LongLong
+    End Type
+
+
+
+    Public Const EVENT_MIN_LEVEL = (0)
+    '    Lowest value for an event level is 0. */
+    Public Const EVENT_MAX_LEVEL = (&HFF)
+    '    Highest value for an event level is 255. */
+
+    '/*
+    'EVENT_ACTIVITY_CTRL values for the ControlCode parameter of
+    'EventActivityIdControl.
+    '*/
+    Public Const EVENT_ACTIVITY_CTRL_GET_ID = (1)
+    '    EventActivityIdControl will return the current thread's activity ID. */
+    Public Const EVENT_ACTIVITY_CTRL_SET_ID = (2)
+    '    EventActivityIdControl will set the current thread's activity ID. */
+    Public Const EVENT_ACTIVITY_CTRL_CREATE_ID = (3)
+    '    EventActivityIdControl will generate and return a new activity ID. Note
+    '    that the returned activity ID is not a GUID. The EventActivityIdControl
+    '    function uses a faster generation algorithm than UuidCreate. The returned
+    '    ID is guaranteed to be different from any valid GUID and different from any
+    '    other activity ID generated by EventActivityIdControl on the same machine
+    '    during the same boot session. */
+    Public Const EVENT_ACTIVITY_CTRL_GET_SET_ID = (4)
+    '    EventActivityIdControl will set the current thread's activity ID and
+    '    return the previous activity ID. */
+    Public Const EVENT_ACTIVITY_CTRL_CREATE_SET_ID = (5)
+    '    EventActivityIdControl will generate a new activity ID, set the current
+    '    Thread 's activity ID to the new value, and return the previous activity
+    '    ID. */
+
+    Public Const MAX_EVENT_DATA_DESCRIPTORS = (128)
+    '    The maximum number of EVENT_DATA_DESCRIPTORs that can be used in an event.
+    '    Used with EventWrite, EventWriteTransfer, EventWriteEx. */
+    Public Const MAX_EVENT_FILTER_DATA_SIZE = (1024)
+    '    The maximum data size for many of the filter types.
+    '    Used with EVENT_FILTER_DESCRIPTOR. */
+    Public Const MAX_EVENT_FILTER_PAYLOAD_SIZE = (4096)
+    '    The maximum data size for an event payload filter.
+    '    Used with EVENT_FILTER_DESCRIPTOR of type EVENT_FILTER_TYPE_PAYLOAD. */
+    Public Const MAX_EVENT_FILTER_EVENT_NAME_SIZE = (4096)
+    '    The maximum data size for a name-based filter.
+    '    Used with EVENT_FILTER_DESCRIPTOR for name-based filters. */
+
+    Public Const MAX_EVENT_FILTERS_COUNT = (13)
+    '    The maximum number of filters that can be provided in a call to
+    '    EnableTraceEx2.
+    '    Used with ENABLE_TRACE_PARAMETERS. */
+
+    Public Const MAX_EVENT_FILTER_PID_COUNT = (8)
+    '    The maximum number of process IDs in a PID filter.
+    '    Used with EVENT_FILTER_DESCRIPTOR of type EVENT_FILTER_TYPE_PID. */
+
+    Public Const MAX_EVENT_FILTER_EVENT_ID_COUNT = (64)
+    '    The maximum number of event IDs in an event ID or stackwalk filter.
+    '    Used with EVENT_FILTER_DESCRIPTOR of type EVENT_FILTER_TYPE_EVENT_ID or
+    '    EVENT_FILTER_TYPE_STACKWALK. */
+    Public Enum EventFilterType
+        EVENT_FILTER_TYPE_NONE = (&H0)
+        EVENT_FILTER_TYPE_SCHEMATIZED = (&H80000000)   ' Provider-side.
+        EVENT_FILTER_TYPE_SYSTEM_FLAGS = (&H80000001)   ' Internal use only.
+        EVENT_FILTER_TYPE_TRACEHANDLE = (&H80000002)   ' Initiate rundown.
+        EVENT_FILTER_TYPE_PID = (&H80000004)   ' Process ID.
+        EVENT_FILTER_TYPE_EXECUTABLE_NAME = (&H80000008)   ' EXE file name.
+        EVENT_FILTER_TYPE_PACKAGE_ID = (&H80000010)   ' Package ID.
+        EVENT_FILTER_TYPE_PACKAGE_APP_ID = (&H80000020)   ' Package Relative App Id (PRAID).
+        EVENT_FILTER_TYPE_PAYLOAD = (&H80000100)   ' TDH payload filter.
+        EVENT_FILTER_TYPE_EVENT_ID = (&H80000200)   ' Event IDs.
+        EVENT_FILTER_TYPE_EVENT_NAME = (&H80000400)   ' Event name (TraceLogging only).
+        EVENT_FILTER_TYPE_STACKWALK = (&H80001000)   ' Event IDs for stack.
+        EVENT_FILTER_TYPE_STACKWALK_NAME = (&H80002000)   ' Event name for stack (TraceLogging only).
+        EVENT_FILTER_TYPE_STACKWALK_LEVEL_KW = (&H80004000)   ' Filter stack collection by level and keyword.
+    End Enum
+    
+    Public Enum ETWEventDataDescriptorTypes
+        EVENT_DATA_DESCRIPTOR_TYPE_NONE = (0) /*
+        data  = (payload). */
+        EVENT_DATA_DESCRIPTOR_TYPE_EVENT_METADATA = (1) /*
+        event  = decoding information. */
+        EVENT_DATA_DESCRIPTOR_TYPE_PROVIDER_METADATA = (2) /*
+        provider  = traits. For use with operating systems that do
+        support  = attaching provider traits via EventSetInformation. This data
+        be  = ignored if provider traits have been configured via
+         = */
+        EVENT_DATA_DESCRIPTOR_TYPE_TIMESTAMP_OVERRIDE = (3) /*
+        event  = timestamp override. For use when relogging. Note that logging
+        out  = of timestamp order may lead to event ordering issues during
+        processing.  = */
+    End Enum
+    
+    Public Enum ETWEventWriteFlags
+        EVENT_WRITE_FLAG_NO_FAULTING = &H00000001 /*
+        is  = used in kernel-mode calls to EtwWriteEx.
+        ETW  = functionality requires paging. ETW will automatically disable
+        functionality  = when it is called at high IRQL (dispatch or above).
+        call  = ETW at low IRQL (below dispatch) from a context in which page
+        are  = not tolerated, use EtwWriteEx and include this flag. */
+        EVENT_WRITE_FLAG_INPRIVATE = &H00000002 /*
+        indicates  = that an event should be dropped on any
+        the  = uses EVENT_ENABLE_PROPERTY_EXCLUDE_INPRIVATE. */
+    End Enum
+ 
+    Public Type EVENT_DATA_DESCRIPTOR
+        Ptr As LongLong ' Pointer to data. Set to (ULONGLONG)(ULONG_PTR)pData.
+        Size As Long ' Size of data in bytes.
+        ' union {
+            ' ULONG       Reserved; // Set to 0 if not using a special data item type.
+            ' struct {
+                ' UCHAR   Type;     // Default is EVENT_DATA_DESCRIPTOR_TYPE_NONE, meaning normal payload data.
+                ' UCHAR   Reserved1;
+                ' USHORT  Reserved2;
+            ' } DUMMYSTRUCTNAME;
+        ' } DUMMYUNIONNAME;
+        Type As Byte
+        Reserved1 As Byte
+        Reserved2 As Integer
+    End Type
+    
+    
+    
+
+    Public Type EVENT_FILTER_HEADER             'typedef struct _EVENT_FILTER_HEADER {
+        id As Integer                           '    USHORT     Id;
+        Version As Byte                         '    UCHAR      Version;
+        Reserved(0 To 4) As Byte                '    UCHAR      Reserved[5];
+        InstanceId As LongLong                  '    ULONGLONG  InstanceId;
+        size As Long                            '    ULONG      Size;
+        NextOffset As Long                      '    ULONG      NextOffset;
+    End Type                                    '} EVENT_FILTER_HEADER, *PEVENT_FILTER_HEADER;
+
+    [Description("🛈 Do not use LenB for computing the size of this type. The total size should be 4 + 2 * Count (number of event IDs actually used)")]                          '
+    Public Type EVENT_FILTER_EVENT_ID           'typedef struct _EVENT_FILTER_EVENT_ID {
+        FilterIn As Byte                        '    BOOLEAN FilterIn;
+        Reserved As Byte                        '    UCHAR Reserved;
+        Count As Integer                        '    USHORT Count;
+        Events(0 To (MAX_EVENT_FILTER_EVENT_ID_COUNT - 1)) As Integer               '    USHORT Events[ANYSIZE_ARRAY];
+    End Type                                    '} EVENT_FILTER_EVENT_ID, *PEVENT_FILTER_EVENT_ID;
+
+    [Description("WARNING: Buffer substituted for variable C-style array.")]
+    Public Type EVENT_FILTER_EVENT_NAME
+        MatchAnyKeyword As LongLong
+        MatchAllKeyword As LongLong
+        Level As Byte
+        FilterIn As Byte
+        NameCount As Integer
+        Names(511) As Byte ' utf-8
+    End Type
+    
+    Public Type EVENT_FILTER_LEVEL_KW
+        MatchAnyKeyword As LongLong
+        MatchAllKeyword As LongLong
+        Level As Byte
+        FilterIn As Byte
+    End Type
+    
+    Public Enum EVENT_INFO_CLASS
+        EventProviderBinaryTrackInfo   '
+    '         Requests that the ETW runtime add the full path to the binary that
+    '         registered the provider into each trace. The full path is important if
+    '         if the binary contains the mc.exe-generated decoding resources but is
+    '         not globally registered. Decoding tools can use the path to locate the
+    '         binary and extract the decoding resources. */
+        EventProviderSetReserved1   '
+    '         Not used. */
+        EventProviderSetTraits  '
+    '         Provides the ETW runtime with additional information about the
+    '         provider, potentially including the provider name and a group GUID.
+    '         Refer the the MSDN Provider Traits topic for more information about the
+    '         format of the data to be used with this control code.
+    '         Setting this trait also configures the ETW runtime to respect the
+    '         Type field of EVENT_DATA_DESCRIPTOR (by default the Type field is
+    '         ignored). */
+        EventProviderUseDescriptorType  '
+    '         Configures whether the ETW runtime should respect the Type field of the
+    '         EVENT_DATA_DESCRIPTOR. The data for this control code is a BOOLEAN
+    '         (1 byte, value FALSE or TRUE). */
+        MaxEventInfo
+    End Enum
+    
+    Public Delegate Sub PENABLECALLBACK (SourceId As UUID, ByVal IsEnabled As Long, ByVal Level As Byte, ByVal MatchAnyKeyword As LongLong, ByVal MatchAllKeyword As LongLong, EventData As EVENT_FILTER_DESCRIPTOR, ByVal CallbackContext As LongPtr)
+    
+    ' #If WINDEVLIB_NO_DELEGATES Then
+    Public Declare PtrSafe Function EventRegister Lib "advapi32" (ProviderId As UUID, ByVal EnableCallback As LongPtr, ByVal CallbackContext As LongPtr, RegHandle As LongLong) As Long
+    ' #Else
+    ' Public Declare PtrSafe Function EventRegister Lib "advapi32" (ProviderId As UUID, ByVal EnableCallback As PENABLECALLBACK, ByVal CallbackContext As LongPtr, RegHandle As LongLong) As Long
+    ' #End If
+    ' #If WINDEVLIB_NO_DELEGATES Then
+    Public Declare PtrSafe Function EtwEventRegister Lib "ntdll" (ProviderId As UUID, ByVal EnableCallback As LongPtr, ByVal CallbackContext As LongPtr, RegHandle As LongLong) As Long
+    ' #Else
+    ' Public Declare PtrSafe Function EtwEventRegister Lib "ntdll" (ProviderId As UUID, ByVal EnableCallback As PENABLECALLBACK, ByVal CallbackContext As LongPtr, RegHandle As LongLong) As Long
+    ' #End If
+    Public Declare PtrSafe Function EventUnregister Lib "advapi32" (ByVal RegHandle As LongLong) As Long
+    Public Declare PtrSafe Function EtwEventUnregister Lib "ntdll" (ByVal RegHandle As LongLong) As Long
+    Public Declare PtrSafe Function EventSetInformation Lib "advapi32" (ByVal RegHandle As LongLong, ByVal InformationClass As EVENT_INFO_CLASS, EventInformation As Any, ByVal InformationLength As Long) As Long
+    Public Declare PtrSafe Function EtwEventSetInformation Lib "ntdll" (ByVal RegHandle As LongLong, ByVal InformationClass As EVENT_INFO_CLASS, EventInformation As Any, ByVal InformationLength As Long) As Long
+    Public Declare PtrSafe Function EventEnabled Lib "advapi32" (ByVal RegHandle As LongLong, EventDescriptor As EVENT_DESCRIPTOR) As Byte
+    Public Declare PtrSafe Function EtwEventEnabled Lib "ntdll" (ByVal RegHandle As LongLong, EventDescriptor As EVENT_DESCRIPTOR) As Byte
+    Public Declare PtrSafe Function EventProviderEnabled Lib "advapi32" (ByVal RegHandle As LongLong, ByVal Level As Byte, ByVal Keyword As LongLong) As Byte
+    Public Declare PtrSafe Function EtwEventProviderEnabled Lib "ntdll" (ByVal RegHandle As LongLong, ByVal Level As Byte, ByVal Keyword As LongLong) As Byte
+    Public Declare PtrSafe Function EventWrite Lib "advapi32" (ByVal RegHandle As LongLong, EventDescriptor As EVENT_DESCRIPTOR, ByVal UserDataCount As Long, UserData As Any) As Long
+    Public Declare PtrSafe Function EtwEventWrite Lib "ntdll" (ByVal RegHandle As LongLong, EventDescriptor As EVENT_DESCRIPTOR, ByVal UserDataCount As Long, UserData As Any) As Long
+    Public Declare PtrSafe Function EventWriteTransfer Lib "advapi32" (ByVal RegHandle As LongLong, EventDescriptor As EVENT_DESCRIPTOR, ActivityId As UUID, RelatedActivityId As UUID, ByVal UserDataCount As Long, UserData As Any) As Long
+    Public Declare PtrSafe Function EtwEventWriteTransfer Lib "ntdll" (ByVal RegHandle As LongLong, EventDescriptor As EVENT_DESCRIPTOR, ActivityId As UUID, RelatedActivityId As UUID, ByVal UserDataCount As Long, UserData As Any) As Long
+    Public Declare PtrSafe Function EventWriteEx Lib "advapi32" (ByVal RegHandle As LongLong, EventDescriptor As EVENT_DESCRIPTOR, ByVal Filter As LongLong, ByVal Flags As ETWEventWriteFlags, ActivityId As UUID, RelatedActivityId As UUID, ByVal UserDataCount As Long, UserData As Any) As Long
+    Public Declare PtrSafe Function EtwEventWriteEx Lib "ntdll" (ByVal RegHandle As LongLong, EventDescriptor As EVENT_DESCRIPTOR, ByVal Filter As LongLong, ByVal Flags As ETWEventWriteFlags, ActivityId As UUID, RelatedActivityId As UUID, ByVal UserDataCount As Long, UserData As Any) As Long
+    Public Declare PtrSafe Function EventWriteString Lib "advapi32" (ByVal RegHandle As LongLong, ByVal Level As Byte, ByVal Keyword As LongLong, ByVal pString As LongPtr) As Long
+    Public DeclareWide PtrSafe Function EventWriteString Lib "advapi32" (ByVal RegHandle As LongLong, ByVal Level As Byte, ByVal Keyword As LongLong, ByVal pString As String) As Long
+    Public Declare PtrSafe Function EtwEventWriteString Lib "ntdll" (ByVal RegHandle As LongLong, ByVal Level As Byte, ByVal Keyword As LongLong, ByVal pString As LongPtr) As Long
+    Public DeclareWide PtrSafe Function EtwEventWriteString Lib "ntdll" (ByVal RegHandle As LongLong, ByVal Level As Byte, ByVal Keyword As LongLong, ByVal pString As String) As Long
+    Public Declare PtrSafe Function EventActivityIdControl Lib "advapi32" (ByVal ControlCode As Long, ActivityId As UUID) As Long
+    Public Declare PtrSafe Function EtwEventActivityIdControl Lib "ntdll" (ByVal ControlCode As Long, ActivityId As UUID) As Long
+    
+    Public Sub EventDataDescCreate(EventDataDescriptor As EVENT_DATA_DESCRIPTOR, ByVal DataPtr As LongPtr, ByVal DataSize As Long)
+        EventDataDescriptor.Ptr = DataPtr
+        EventDataDescriptor.Size = DataSize
+        EventDataDescriptor.Type = 0 ' Reserved MUST be initialized.
+        EventDataDescriptor.Reserved1 = 0 ' Reserved MUST be initialized.
+        EventDataDescriptor.Reserved2 = 0 ' Reserved MUST be initialized.
+    End Sub
+    
+    Public Sub EventDescCreate(EventDescriptor As EVENT_DESCRIPTOR, ByVal id As Integer, ByVal Version As Byte, ByVal Channel As Byte, _
+                    ByVal Level As Byte, ByVal Task As Integer, ByVal Opcode As Byte, ByVal Keyword As LongLong)
+        EventDescriptor.id = id
+        EventDescriptor.Version = Version
+        EventDescriptor.Channel = Channel
+        EventDescriptor.Level = Level
+        EventDescriptor.Task = Task
+        EventDescriptor.OpCode = Opcode
+        EventDescriptor.Keyword = Keyword
+    End Sub
+    
+    Public Sub EventDescZero(EventDescriptor As EVENT_DESCRIPTOR)
+        ZeroMemory EventDescriptor, LenB(Of EVENT_DESCRIPTOR)
+    End Sub
+    
+    Public Function EventDescGetId(EventDescriptor As EVENT_DESCRIPTOR) As Integer
+        Return EventDescriptor.id
+    End Function
+    Public Function EventDescGetVersion(EventDescriptor As EVENT_DESCRIPTOR) As Byte
+        Return EventDescriptor.Version
+    End Function
+    Public Function EventDescGetTask(EventDescriptor As EVENT_DESCRIPTOR) As Integer
+        Return EventDescriptor.Task
+    End Function
+    Public Function EventDescGetOpcode(EventDescriptor As EVENT_DESCRIPTOR) As Byte
+        Return EventDescriptor.OpCode
+    End Function
+    Public Function EventDescGetChannel(EventDescriptor As EVENT_DESCRIPTOR) As Byte
+        Return EventDescriptor.Channel
+    End Function
+    Public Function EventDescGetLevel(EventDescriptor As EVENT_DESCRIPTOR) As Byte
+        Return EventDescriptor.Level
+    End Function
+    Public Function EventDescGetKeyword(EventDescriptor As EVENT_DESCRIPTOR) As LongLong
+        Return EventDescriptor.Keyword
+    End Function
+    
+    Public Function EventDescSetId(EventDescriptor As EVENT_DESCRIPTOR, ByVal Id As Integer) As EVENT_DESCRIPTOR
+        EventDescriptor.id = Id
+        Return EventDescriptor
+    End Function
+    Public Function EventDescSetVersion(EventDescriptor As EVENT_DESCRIPTOR, ByVal Version As Byte) As EVENT_DESCRIPTOR
+        EventDescriptor.Version = Version
+        Return EventDescriptor
+    End Function
+    Public Function EventDescSetTask(EventDescriptor As EVENT_DESCRIPTOR, ByVal Task As Integer) As EVENT_DESCRIPTOR
+        EventDescriptor.Task = Task
+        Return EventDescriptor
+    End Function
+    Public Function EventDescSetOpcode(EventDescriptor As EVENT_DESCRIPTOR, ByVal Opcode As Byte) As EVENT_DESCRIPTOR
+        EventDescriptor.OpCode = Opcode
+        Return EventDescriptor
+    End Function
+    Public Function EventDescSetLevel(EventDescriptor As EVENT_DESCRIPTOR, ByVal Level As Byte) As EVENT_DESCRIPTOR
+        EventDescriptor.Level = Level
+        Return EventDescriptor
+    End Function
+    Public Function EventDescSetChannel(EventDescriptor As EVENT_DESCRIPTOR, ByVal Channel As Byte) As EVENT_DESCRIPTOR
+        EventDescriptor.Channel = Channel
+        Return EventDescriptor
+    End Function
+    Public Function EventDescSetKeyword(EventDescriptor As EVENT_DESCRIPTOR, ByVal Keyword As LongLong) As EVENT_DESCRIPTOR
+        EventDescriptor.Keyword = Keyword
+        Return EventDescriptor
+    End Function
+                                             
+    Public Function EventDescOrKeyword(EventDescriptor As EVENT_DESCRIPTOR, ByVal Keyword As LongLong) As EVENT_DESCRIPTOR
+        EventDescriptor.Keyword = EventDescriptor.Keyword Or Keyword
+        Return EventDescriptor
+    End Function
+    
+    
+    Public Enum ETW_PROCESS_HANDLE_INFO_TYPE
+        EtwQueryPartitionInformation = 1
+        EtwQueryPartitionInformationV2 = 2
+        EtwQueryLastDroppedTimes = 3
+        EtwQueryLogFileHeader = 4
+        EtwQueryProcessHandleInfoMax = 2
+    End Enum
+    Public Type ETW_TRACE_PARTITION_INFORMATION
+        PartitionId As UUID
+        ParentId As UUID
+        QpcOffsetFromRoot As LongLong
+        PartitionType As Long
+    End Type
+    Public Type ETW_TRACE_PARTITION_INFORMATION_V2
+        QpcOffsetFromRoot As LongLong
+        PartitionType As Long
+        PartitionId As LongPtr
+        ParentId As LongPtr
+    End Type
+ 
+    Public Enum EVENTSECURITYOPERATION
+        EventSecuritySetDACL = 0
+        EventSecuritySetSACL = 1
+        EventSecurityAddDACL = 2
+        EventSecurityAddSACL = 3
+        EventSecurityMax = 4
+    End Enum
+
+
+
+    ' typedef ULONG (
+    ' #ifndef MIDL_PASS
+    ' WINAPI
+    ' #endif
+    ' *WMIDPREQUEST)(
+        ' _In_ WMIDPREQUESTCODE RequestCode,
+        ' _In_ PVOID RequestContext,
+        ' _Inout_ ULONG *BufferSize,
+        ' _Inout_ PVOID Buffer
+        ' );
+    Public Delegate Function WMIDPREQUEST (ByVal RequestCode As WMIDPREQUESTCODE, ByVal RequestContext As LongPtr, BufferSize As Long, ByVal Buffer As LongPtr) As Long
+
+    Public Declare PtrSafe Function StartTraceA Lib "advapi32" (TraceHandle As LongLong, ByVal InstanceName As String, Properties As Any) As Long
+    Public Declare PtrSafe Function StartTraceW Lib "advapi32" (TraceHandle As LongLong, ByVal InstanceName As LongPtr, Properties As Any) As Long
+    Public DeclareWide PtrSafe Function StartTrace Lib "advapi32" Alias "StartTraceW" (TraceHandle As LongLong, ByVal InstanceName As String, Properties As Any) As Long
+    Public Declare PtrSafe Function StopTraceA Lib "advapi32" (ByVal TraceHandle As LongLong, ByVal InstanceName As String, Properties As EVENT_TRACE_PROPERTIES) As Long
+    Public Declare PtrSafe Function StopTraceW Lib "advapi32" (ByVal TraceHandle As LongLong, ByVal InstanceName As LongPtr, Properties As EVENT_TRACE_PROPERTIES) As Long
+    Public DeclareWide PtrSafe Function StopTrace Lib "advapi32" Alias "StopTraceW" (ByVal TraceHandle As LongLong, ByVal InstanceName As String, Properties As EVENT_TRACE_PROPERTIES) As Long
+    Public Declare PtrSafe Function QueryTraceA Lib "advapi32" (ByVal TraceHandle As LongLong, ByVal InstanceName As String, Properties As EVENT_TRACE_PROPERTIES) As Long
+    Public Declare PtrSafe Function QueryTraceW Lib "advapi32" (ByVal TraceHandle As LongLong, ByVal InstanceName As LongPtr, Properties As EVENT_TRACE_PROPERTIES) As Long
+    Public DeclareWide PtrSafe Function QueryTrace Lib "advapi32" Alias "QueryTraceW" (ByVal TraceHandle As LongLong, ByVal InstanceName As String, Properties As EVENT_TRACE_PROPERTIES) As Long
+    Public Declare PtrSafe Function UpdateTraceA Lib "advapi32" (ByVal TraceHandle As LongLong, ByVal InstanceName As String, Properties As Any) As Long
+    Public Declare PtrSafe Function UpdateTraceW Lib "advapi32" (ByVal TraceHandle As LongLong, ByVal InstanceName As LongPtr, Properties As Any) As Long
+    Public DeclareWide PtrSafe Function UpdateTrace Lib "advapi32" Alias "UpdateTraceW" (ByVal TraceHandle As LongLong, ByVal InstanceName As String, Properties As Any) As Long
+    Public Declare PtrSafe Function FlushTraceA Lib "advapi32" (ByVal TraceHandle As LongLong, ByVal InstanceName As String, Properties As EVENT_TRACE_PROPERTIES) As Long
+    Public Declare PtrSafe Function FlushTraceW Lib "advapi32" (ByVal TraceHandle As LongLong, ByVal InstanceName As LongPtr, Properties As EVENT_TRACE_PROPERTIES) As Long
+    Public DeclareWide PtrSafe Function FlushTrace Lib "advapi32" Alias "FlushTraceW" (ByVal TraceHandle As LongLong, ByVal InstanceName As String, Properties As EVENT_TRACE_PROPERTIES) As Long
+    Public Declare PtrSafe Function ControlTraceA Lib "advapi32" (ByVal TraceHandle As LongLong, ByVal InstanceName As String, Properties As Any, ByVal ControlCode As ControlTraceCodes) As Long
+    Public Declare PtrSafe Function ControlTraceW Lib "advapi32" (ByVal TraceHandle As LongLong, ByVal InstanceName As LongPtr, Properties As Any, ByVal ControlCode As ControlTraceCodes) As Long
+    Public DeclareWide PtrSafe Function ControlTrace Lib "advapi32" Alias "ControlTraceW" (ByVal TraceHandle As LongLong, ByVal InstanceName As String, Properties As Any, ByVal ControlCode As ControlTraceCodes) As Long
+    Public Declare PtrSafe Function QueryAllTracesA Lib "advapi32" (PropertyArray As LongPtr, ByVal PropertyArrayCount As Long, LoggerCount As Long) As Long
+    Public Declare PtrSafe Function QueryAllTracesW Lib "advapi32" (PropertyArray As LongPtr, ByVal PropertyArrayCount As Long, LoggerCount As Long) As Long
+    Public DeclareWide PtrSafe Function QueryAllTraces Lib "advapi32" Alias "QueryAllTracesW" (PropertyArray As LongPtr, ByVal PropertyArrayCount As Long, LoggerCount As Long) As Long
+    Public Declare PtrSafe Function EnableTrace Lib "advapi32" (ByVal Enable As Long, ByVal EnableFlag As Long, ByVal EnableLevel As Long, ControlGuid As UUID, ByVal TraceHandle As LongLong) As Long
+    Public Declare PtrSafe Function EnableTraceEx Lib "advapi32" (ProviderId As UUID, SourceId As UUID, ByVal TraceHandle As LongLong, ByVal IsEnabled As Long, ByVal Level As Byte, ByVal MatchAnyKeyWord As LongLong, ByVal MatchAllKeyword As LongLong, ByVal EnableProperty As Long, EnableFilterDesc As EVENT_FILTER_DESCRIPTOR) As Long
+    Public Declare PtrSafe Function EnableTraceEx2 Lib "advapi32" (ByVal TraceHandle As LongLong, ProviderId As UUID, ByVal ControlCode As EventControlCodes, _
+                                ByVal Level As Byte, ByVal MatchAnyKeyWord As LongLong, ByVal MatchAllKeyword As LongLong, _
+                                ByVal TimeOut As Long, EnableParameters As ENABLE_TRACE_PARAMETERS) As Long
+    Public Declare PtrSafe Function EnumerateTraceGuidsEx Lib "advapi32" (ByVal TraceQueryInfoClass As TRACE_QUERY_INFO_CLASS, InBuffer As Any, ByVal InBufferSize As Long, OutBuffer As Any, ByVal OutBufferSize As Long, ReturnLength As Long) As Long
+    Public Declare PtrSafe Function TraceSetInformation Lib "advapi32" (ByVal SessionHandle As LongLong, ByVal InformationClass As TRACE_QUERY_INFO_CLASS, TraceInformation As Any, ByVal InformationLength As Long) As Long
+    Public Declare PtrSafe Function TraceQueryInformation Lib "advapi32" (ByVal SessionHandle As LongLong, ByVal InformationClass As TRACE_QUERY_INFO_CLASS, TraceInformation As Long, ByVal InformationLength As Long, ReturnLength As Long) As Long
+    Public Declare PtrSafe Function CreateTraceInstanceId Lib "advapi32" (ByVal RegHandle As LongPtr, InstInfo As EVENT_INSTANCE_INFO) As Long
+    Public Declare PtrSafe Function TraceEvent Lib "advapi32" (ByVal TraceHandle As LongLong, EventTrace As EVENT_TRACE_HEADER) As Long
+    Public Declare PtrSafe Function TraceEventInstance Lib "advapi32" (ByVal TraceHandle As LongLong, EventTrace As EVENT_TRACE_HEADER, InstInfo As EVENT_INSTANCE_INFO, ParentInstInfo As EVENT_INSTANCE_INFO) As Long
+    ' Public Declare PtrSafe Function RegisterTraceGuidsA Lib "advapi32" (ByVal RequestAddress As WMIDPREQUEST, ByVal RequestContext As LongPtr, ControlGuid As UUID, ByVal GuidCount As Long, TraceGuidReg As TRACE_GUID_REGISTRATION, ByVal MofImagePath As String, ByVal MofResourceName As String, RegistrationHandle As LongLong) As Long
+    ' Public Declare PtrSafe Function RegisterTraceGuidsW Lib "advapi32" (ByVal RequestAddress As WMIDPREQUEST, ByVal RequestContext As LongPtr, ControlGuid As UUID, ByVal GuidCount As Long, TraceGuidReg As TRACE_GUID_REGISTRATION, ByVal MofImagePath As LongPtr, ByVal MofResourceName As LongPtr, RegistrationHandle As LongLong) As Long
+    ' Public DeclareWide PtrSafe Function RegisterTraceGuids Lib "advapi32" Alias "RegisterTraceGuidsW" (ByVal RequestAddress As WMIDPREQUEST, ByVal RequestContext As LongPtr, ControlGuid As UUID, ByVal GuidCount As Long, TraceGuidReg As TRACE_GUID_REGISTRATION, ByVal MofImagePath As String, ByVal MofResourceName As String, RegistrationHandle As LongLong) As Long
+    Public Declare PtrSafe Function RegisterTraceGuidsA Lib "advapi32" (ByVal RequestAddress As LongPtr, ByVal RequestContext As LongPtr, ControlGuid As UUID, ByVal GuidCount As Long, TraceGuidReg As TRACE_GUID_REGISTRATION, ByVal MofImagePath As String, ByVal MofResourceName As String, RegistrationHandle As LongLong) As Long
+    Public Declare PtrSafe Function RegisterTraceGuidsW Lib "advapi32" (ByVal RequestAddress As LongPtr, ByVal RequestContext As LongPtr, ControlGuid As UUID, ByVal GuidCount As Long, TraceGuidReg As TRACE_GUID_REGISTRATION, ByVal MofImagePath As LongPtr, ByVal MofResourceName As LongPtr, RegistrationHandle As LongLong) As Long
+    Public DeclareWide PtrSafe Function RegisterTraceGuids Lib "advapi32" Alias "RegisterTraceGuidsW" (ByVal RequestAddress As LongPtr, ByVal RequestContext As LongPtr, ControlGuid As UUID, ByVal GuidCount As Long, TraceGuidReg As TRACE_GUID_REGISTRATION, ByVal MofImagePath As String, ByVal MofResourceName As String, RegistrationHandle As LongLong) As Long
+    Public Declare PtrSafe Function UnregisterTraceGuids Lib "advapi32" (ByVal RegistrationHandle As LongLong) As Long
+    Public Declare PtrSafe Function GetTraceLoggerHandle Lib "advapi32" (Buffer As Any) As LongLong
+    Public Declare PtrSafe Function GetTraceEnableLevel Lib "advapi32" (ByVal TraceHandle As LongLong) As Long
+    Public Declare PtrSafe Function GetTraceEnableFlags Lib "advapi32" (ByVal TraceHandle As LongLong) As Long
+    Public Declare PtrSafe Function OpenTraceA Lib "advapi32" (logfile As EVENT_TRACE_LOGFILEA) As LongLong
+    Public Declare PtrSafe Function OpenTraceW Lib "advapi32" (logfile As EVENT_TRACE_LOGFILEW) As LongLong
+    Public DeclareWide PtrSafe Function OpenTrace Lib "advapi32" Alias "OpenTraceW" (logfile As EVENT_TRACE_LOGFILE) As LongLong
+    Public Declare PtrSafe Function ProcessTrace Lib "advapi32" (ByVal HandleArray As LongPtr, ByVal HandleCount As Long, StartTime As FILETIME, EndTime As FILETIME) As Long
+    Public Declare PtrSafe Function CloseTrace Lib "advapi32" (ByVal TraceHandle As LongLong) As Long
+    ' Public Declare PtrSafe Function OpenTraceFromBufferStream Lib "sechost" (Options As ETW_OPEN_TRACE_OPTIONS, ByVal BufferCompletionCallback As EtwBufferCompletionCallback /*PETW_BUFFER_COMPLETION_CALLBACK*/, Optional ByVal BufferCompletionContext As LongPtr) As LongLong
+    Public Declare PtrSafe Function OpenTraceFromBufferStream Lib "sechost" (Options As ETW_OPEN_TRACE_OPTIONS, ByVal BufferCompletionCallback As LongPtr /*PETW_BUFFER_COMPLETION_CALLBACK*/, Optional ByVal BufferCompletionContext As LongPtr) As LongLong
+    Public DeclareWide PtrSafe Function OpenTraceFromRealTimeLogger Lib "sechost" (ByVal LoggerName As String, Options As ETW_OPEN_TRACE_OPTIONS, LogFileHeader As TRACE_LOGFILE_HEADER) As LongLong
+    Public DeclareWide PtrSafe Function OpenTraceFromRealTimeLoggerWithAllocationOptions Lib "sechost" (ByVal LoggerName As String, Options As ETW_OPEN_TRACE_OPTIONS, ByVal AllocationSize As LongPtr, ByVal MemoryPartitionHandle As LongPtr, LogFileHeader As TRACE_LOGFILE_HEADER) As LongLong
+    Public DeclareWide PtrSafe Function OpenTraceFromFile Lib "sechost" (ByVal LogFileName As String, Options As ETW_OPEN_TRACE_OPTIONS, LogFileHeader As TRACE_LOGFILE_HEADER) As LongLong
+    Public Declare PtrSafe Function ProcessTraceBufferIncrementReference Lib "sechost" (ByVal TraceHandle As LongLong, Buffer As ETW_BUFFER_HEADER) As Long
+    Public Declare PtrSafe Function ProcessTraceBufferDecrementReference Lib "sechost" (Buffer As ETW_BUFFER_HEADER) As Long
+    Public Declare PtrSafe Function ProcessTraceAddBufferToBufferStream Lib "sechost" (ByVal TraceHandle As LongLong, Buffer As ETW_BUFFER_HEADER, ByVal BufferSize As Long) As Long
+    Public DeclareWide PtrSafe Function QueryTraceProcessingHandle Lib "advapi32" (ByVal ProcessingHandle As LongLong, ByVal InformationClass As ETW_PROCESS_HANDLE_INFO_TYPE, InBuffer As Any, ByVal InBufferSize As Long, OutBuffer As Any, ByVal OutBufferSize As Long, ReturnLength As Long) As Long
+    Public Declare PtrSafe Function SetTraceCallback Lib "advapi32" (pGuid As UUID, ByVal EventCallback As LongPtr) As Long
+    Public Declare PtrSafe Function RemoveTraceCallback Lib "advapi32" (pGuid As UUID) As Long
+    [Unimplemented, Description("This API uses an unsupported language feature. Use TraceMessageVa.")]
+    Public Declare PtrSafe Function TraceMessage Lib "advapi32" (ByVal TraceHandle As LongLong, ByVal MessageFlags As Long, MessageGuid As UUID, ByVal MessageNumber As Integer) As Long
+    Public Declare PtrSafe Function TraceMessageVa Lib "advapi32" (ByVal TraceHandle As LongLong, ByVal MessageFlags As Long, MessageGuid As UUID, ByVal MessageNumber As Integer, MessageArgList As Any) As Long
+
+    Public Declare PtrSafe Function EventAccessControl Lib "advapi32" (Guid As UUID, ByVal Operation As EVENTSECURITYOPERATION, ByVal Sid As LongPtr, ByVal Rights As WmiGuidAndTraceLogFlags, ByVal AllowOrDeny As Byte) As Long
+    Public Declare PtrSafe Function EventAccessQuery Lib "advapi32" (Guid As UUID, Buffer As SECURITY_DESCRIPTOR, BufferSize As Long) As Long
+    Public Declare PtrSafe Function EventAccessRemove Lib "advapi32" (Guid As UUID) As Long
+
+
+    Public Function GetEventProcessorIndex(EventRecord As EVENT_RECORD) As Long
+        If ((EventRecord.EventHeader.Flags And EVENT_HEADER_FLAG_PROCESSOR_INDEX) <> 0) Then
+            Dim ProcessorIndex As Integer
+            CopyMemory ProcessorIndex, EventRecord.BufferContext.ProcessorNumber, 2
+            Return ProcessorIndex
+        Else
+            Return EventRecord.BufferContext.ProcessorNumber
+        End If
+    End Function
+
+    Public Sub EtwGetTraitFromProviderTraits(ByVal ProviderTraits As LongPtr, [TypeHint(ETW_PROVIDER_TRAIT_TYPE)] ByVal TraitType As Byte, Trait As LongPtr, Size As Integer)
+        Dim ByteCount As Integer
+        CopyMemory ByteCount, ByVal ProviderTraits, 2
+        Dim Ptr As LongPtr = ProviderTraits
+        Dim PtrEnd As LongPtr = Ptr + ByteCount
+    
+        Trait = 0
+        Size = 0
+    
+        If ByteCount < 3 Then Exit Sub
+        
+        Ptr += 2
+    
+        Ptr += lstrlenA(ByVal Ptr)
+        Ptr += 1
+    
+        Do While (Ptr < PtrEnd)
+            Dim TraitByteCount As Integer
+            CopyMemory TraitByteCount, ByVal Ptr, 2
+            If TraitByteCount < 3 Then Exit Do
+        
+            Dim tmp As Byte
+            CopyMemory tmp, ByVal Ptr + 2, 1
+            If (tmp = TraitType) And (Ptr + TraitByteCount < PtrEnd) Then
+                Trait = Ptr + 3
+                Size = TraitByteCount - 3
+                Exit Sub
+            End If
+        
+            Ptr += TraitByteCount
+        Loop
+    End Sub
+
+    #Region "tdh"
+    'tdh.h
+
+    Public Type EVENT_MAP_ENTRY
+        OutputOffset As Long
+        '    union {
+        '        ULONG Value;        // For ULONG value (valuemap and bitmap).
+        '        ULONG InputOffset;  // For String value (patternmap or valuemap in WBEM).
+        '    };
+        ValueOrInputOffset As Long
+    End Type
+
+    Public Enum MAP_FLAGS
+        EVENTMAP_INFO_FLAG_MANIFEST_VALUEMAP = &H1
+        EVENTMAP_INFO_FLAG_MANIFEST_BITMAP = &H2
+        EVENTMAP_INFO_FLAG_MANIFEST_PATTERNMAP = &H4
+        EVENTMAP_INFO_FLAG_WBEM_VALUEMAP = &H8
+        EVENTMAP_INFO_FLAG_WBEM_BITMAP = &H10
+        EVENTMAP_INFO_FLAG_WBEM_FLAG = &H20
+        EVENTMAP_INFO_FLAG_WBEM_NO_MAP = &H40
+    End Enum
+    Public Enum MAP_VALUETYPE
+        EVENTMAP_ENTRY_VALUETYPE_ULONG
+        EVENTMAP_ENTRY_VALUETYPE_STRING
+    End Enum
+
+    [Description("Array can be any size. 128 entries are provided as a default buffer. EVENT_MAP_INFO_sa is available with it as a SAFEARRAY for split copying as a receiver. If more needed as a sender, use a byte array and append additional entries.")]
+    Public Type EVENT_MAP_INFO
+        NameOffset As Long
+        Flag As MAP_FLAGS
+        EntryCount As Long
+        '    union {
+        '        MAP_VALUETYPE MapEntryValueType;
+        '        ULONG FormatStringOffset;
+        '    };
+        ValueTypeOrFmtStrOffset As Long
+        MapEntryArray(127) As EVENT_MAP_ENTRY
+    End Type
+    Public Type EVENT_MAP_INFO_sa
+        NameOffset As Long
+        Flag As MAP_FLAGS
+        EntryCount As Long
+        '    union {
+        '        MAP_VALUETYPE MapEntryValueType;
+        '        ULONG FormatStringOffset;
+        '    };
+        ValueTypeOrFmtStrOffset As Long
+        MapEntryArray() As EVENT_MAP_ENTRY
+    End Type
+
+    Public Enum TDH_IN_TYPE
+        TDH_INTYPE_NULL ' Invalid InType value. */
+        TDH_INTYPE_UNICODESTRING   '
+    '         Field size depends on the Flags and length fields of the corresponding
+    '         EVENT_PROPERTY_INFO structure (epi) as follows:
+    '         - If ((epi.Flags & PropertyParamLength) != 0), the
+    '           epi.lengthPropertyIndex field contains the index of the property that
+    '           contains the number of WCHARs in the string.
+    '         - Else if ((epi.Flags & PropertyLength) != 0 || epi.length != 0), the
+    '           epi.length field contains number of WCHARs in the string.
+    '         - Else the string is nul-terminated (terminated by (WCHAR)0).
+    '         Note that some event providers do not correctly nul-terminate the last
+    '         string field in the event. While this is technically invalid, event
+    '         decoders may silently tolerate such behavior instead of rejecting the
+    '         event as invalid. */
+        TDH_INTYPE_ANSISTRING   '
+    '         Field size depends on the Flags and length fields of the corresponding
+    '         EVENT_PROPERTY_INFO structure (epi) as follows:
+    '         - If ((epi.Flags & PropertyParamLength) != 0), the
+    '           epi.lengthPropertyIndex field contains the index of the property that
+    '           contains the number of BYTEs in the string.
+    '         - Else if ((epi.Flags & PropertyLength) != 0 || epi.length != 0), the
+    '           epi.length field contains number of BYTEs in the string.
+    '         - Else the string is nul-terminated (terminated by (CHAR)0).
+    '         Note that some event providers do not correctly nul-terminate the last
+    '         string field in the event. While this is technically invalid, event
+    '         decoders may silently tolerate such behavior instead of rejecting the
+    '         event as invalid. */
+        TDH_INTYPE_INT8   ' Field size is 1 byte. */
+        TDH_INTYPE_UINT8   ' Field size is 1 byte. */
+        TDH_INTYPE_INT16   ' Field size is 2 bytes. */
+        TDH_INTYPE_UINT16   ' Field size is 2 bytes. */
+        TDH_INTYPE_INT32   ' Field size is 4 bytes. */
+        TDH_INTYPE_UINT32   ' Field size is 4 bytes. */
+        TDH_INTYPE_INT64  ' Field size is 8 bytes. */
+        TDH_INTYPE_UINT64  ' Field size is 8 bytes. */
+        TDH_INTYPE_FLOAT  ' Field size is 4 bytes. */
+        TDH_INTYPE_DOUBLE   ' Field size is 8 bytes. */
+        TDH_INTYPE_BOOLEAN   ' Field size is 4 bytes. */
+        TDH_INTYPE_BINARY   '
+    '         Field size depends on the OutType, Flags, and length fields of the
+    '         corresponding EVENT_PROPERTY_INFO structure (epi) as follows:
+    '         - If ((epi.Flags & PropertyParamLength) != 0), the
+    '           epi.lengthPropertyIndex field contains the index of the property that
+    '           contains the number of BYTEs in the field.
+    '         - Else if ((epi.Flags & PropertyLength) != 0 || epi.length != 0), the
+    '           epi.length field contains number of BYTEs in the field.
+    '         - Else if (epi.OutType == IPV6), the field size is 16 bytes.
+    '         - Else the field is incorrectly encoded. */
+        TDH_INTYPE_GUID  ' Field size is 16 bytes. */
+        TDH_INTYPE_POINTER   '
+    '         Field size depends on the eventRecord.EventHeader.Flags value. If the
+    '         EVENT_HEADER_FLAG_32_BIT_HEADER flag is set, the field size is 4 bytes.
+    '         If the EVENT_HEADER_FLAG_64_BIT_HEADER flag is set, the field size is 8
+    '         bytes. Default OutType is HEXINT64. Other usable OutTypes include
+    '         CODE_POINTER, LONG, UNSIGNEDLONG.
+    '         */
+        TDH_INTYPE_FILETIME   ' Field size is 8 bytes. */
+        TDH_INTYPE_SYSTEMTIME   ' Field size is 16 bytes. */
+        TDH_INTYPE_SID   '
+    '         Field size is determined by reading the first few bytes of the field
+    '         value to determine the number of relative IDs. */
+        TDH_INTYPE_HEXINT32   ' Field size is 4 bytes. */
+        TDH_INTYPE_HEXINT64   ' Field size is 8 bytes. */
+        TDH_INTYPE_MANIFEST_COUNTEDSTRING   '
+    '         Supported in Windows 2018 Fall Update or later. This is the same as
+    '         TDH_INTYPE_COUNTEDSTRING, but can be used in manifests.
+    '         Field contains a little-endian 16-bit bytecount followed by a WCHAR
+    '         (16-bit character) string. Default OutType is STRING. Other usable
+    '         OutTypes include XML, JSON. Field size is determined by reading the
+    '         first two bytes of the payload, which are then interpreted as a
+    '         little-endian 16-bit integer which gives the number of additional bytes
+    '         (not characters) in the field. */
+        TDH_INTYPE_MANIFEST_COUNTEDANSISTRING  '
+    '         Supported in Windows 2018 Fall Update or later. This is the same as
+    '         TDH_INTYPE_COUNTEDANSISTRING, but can be used in manifests.
+    '         Field contains a little-endian 16-bit bytecount followed by a CHAR
+    '         (8-bit character) string. Default OutType is STRING. Other usable
+    '         OutTypes include XML, JSON, UTF8. Field size is determined by reading
+    '         the first two bytes of the payload, which are then interpreted as a
+    '         little-endian 16-bit integer which gives the number of additional bytes
+    '         (not characters) in the field. */
+        TDH_INTYPE_RESERVED24
+        TDH_INTYPE_MANIFEST_COUNTEDBINARY  '
+    '         Supported in Windows 2018 Fall Update or later.
+    '         Field contains a little-endian 16-bit bytecount followed by binary
+    '         data. Default OutType is HEXBINARY. Other usable
+    '         OutTypes include IPV6, SOCKETADDRESS, PKCS7_WITH_TYPE_INFO. Field size
+    '         is determined by reading the first two bytes of the payload, which are
+    '         then interpreted as a little-endian 16-bit integer which gives the
+    '         number of additional bytes in the field. */
+        '  End of winmeta intypes.
+        '  Start of TDH intypes for WBEM. These types cannot be used in manifests.
+        TDH_INTYPE_COUNTEDSTRING = 300 '
+    '         Field contains a little-endian 16-bit bytecount followed by a WCHAR
+    '         (16-bit character) string. Default OutType is STRING. Other usable
+    '         OutTypes include XML, JSON. Field size is determined by reading the
+    '         first two bytes of the payload, which are then interpreted as a
+    '         little-endian 16-bit integer which gives the number of additional bytes
+    '         (not characters) in the field. */
+        TDH_INTYPE_COUNTEDANSISTRING
+    '         Field contains a little-endian 16-bit bytecount followed by a CHAR
+    '         (8-bit character) string. Default OutType is STRING. Other usable
+    '         OutTypes include XML, JSON, UTF8. Field size is determined by reading
+    '         the first two bytes of the payload, which are then interpreted as a
+    '         little-endian 16-bit integer which gives the number of additional bytes
+    '         (not characters) in the field. */
+        TDH_INTYPE_REVERSEDCOUNTEDSTRING
+    '         Deprecated. Prefer TDH_INTYPE_COUNTEDSTRING.
+    '         Field contains a big-endian 16-bit bytecount followed by a WCHAR
+    '         (16-bit little-endian character) string. Default OutType is STRING.
+    '         Other usable OutTypes include XML, JSON. Field size is determined by
+    '         reading the first two bytes of the payload, which are then interpreted
+    '         as a big-endian 16-bit integer which gives the number of additional
+    '         bytes (not characters) in the field. */
+        TDH_INTYPE_REVERSEDCOUNTEDANSISTRING
+    '         Deprecated. Prefer TDH_INTYPE_COUNTEDANSISTRING.
+    '         Field contains a big-endian 16-bit bytecount followed by a CHAR (8-bit
+    '         character) string. Default OutType is STRING. Other usable OutTypes
+    '         include XML, JSON, UTF8. Field size is determined by reading the first
+    '         two bytes of the payload, which are then interpreted as a big-endian
+    '         16-bit integer which gives the number of additional bytes in the
+    '         field. */
+        TDH_INTYPE_NONNULLTERMINATEDSTRING
+    '         Deprecated. Prefer TDH_INTYPE_COUNTEDSTRING.
+    '         Field contains a WCHAR (16-bit character) string. Default OutType is
+    '         STRING. Other usable OutTypes include XML, JSON. Field size is the
+    '         remaining bytes of data in the event. */
+        TDH_INTYPE_NONNULLTERMINATEDANSISTRING
+    '         Deprecated. Prefer TDH_INTYPE_COUNTEDANSISTRING.
+    '         Field contains a CHAR (8-bit character) string. Default OutType is
+    '         STRING. Other usable OutTypes include XML, JSON, UTF8. Field size is
+    '         the remaining bytes of data in the event. */
+        TDH_INTYPE_UNICODECHAR
+    '         Deprecated. Prefer TDH_INTYPE_UINT16 with TDH_OUTTYPE_STRING.
+    '         Field contains a WCHAR (16-bit character) value. Default OutType is
+    '         STRING. Field size is 2 bytes. */
+        TDH_INTYPE_ANSICHAR
+    '         Deprecated. Prefer TDH_INTYPE_UINT8 with TDH_OUTTYPE_STRING.
+    '         Field contains a CHAR (8-bit character) value. Default OutType is
+    '         STRING. Field size is 1 byte. */
+        TDH_INTYPE_SIZET
+    '         Deprecated. Prefer TDH_INTYPE_POINTER with TDH_OUTTYPE_UNSIGNEDLONG.
+    '         Field contains a SIZE_T (UINT_PTR) value. Default OutType is HEXINT64.
+    '         Field size depends on the eventRecord.EventHeader.Flags value. If the
+    '         EVENT_HEADER_FLAG_32_BIT_HEADER flag is set, the field size is 4 bytes.
+    '         If the EVENT_HEADER_FLAG_64_BIT_HEADER flag is set, the field size is
+    '         8 bytes. */
+        TDH_INTYPE_HEXDUMP
+    '         Deprecated. Prefer TDH_INTYPE_BINARY.
+    '         Field contains binary data. Default OutType is HEXBINARY. Field size is
+    '         determined by reading the first four bytes of the payload, which are
+    '         then interpreted as a little-endian UINT32 which gives the number of
+    '         additional bytes in the field. */
+        TDH_INTYPE_WBEMSID
+    '         Deprecated. Prefer TDH_INTYPE_SID.
+    '         Field contains an SE_TOKEN_USER (security identifier) value. Default
+    '         OutType is STRING (i.e. the SID will be converted to a string during
+    '         decoding using ConvertSidToStringSid or equivalent). Field size is
+    '         determined by reading the first few bytes of the field value to
+    '         determine the number of relative IDs. Because the SE_TOKEN_USER
+    '         structure includes pointers, decoding this structure requires accurate
+    '         knowledge of the event provider's pointer size (i.e. from
+    '         eventRecord.EventHeader.Flags). */
+    End Enum
+    Public Enum TDH_OUT_TYPE
+        TDH_OUTTYPE_NULL
+    '         Default OutType value. If a field's OutType is set to this value, the
+    '         decoder should determine the default OutType corresponding to the
+    '         field's InType and use that OutType when decoding the field. */
+        TDH_OUTTYPE_STRING
+    '         Implied by the STRING, CHAR, and SID InType values. Applicable to the
+    '         INT8, UINT8, UINT16 InType values. Specifies that the field should be
+    '         decoded as text. Decoding depends on the InType. For INT8, UINT8, and
+    '         ANSISTRING InTypes, the data is decoded using the ANSI code page of the
+    '         event provider. For UINT16 and UNICODESTRING InTypes, the data is
+    '         decoded as UTF-16LE. For SID InTypes, the data is decoded using
+    '         ConvertSidToStringSid or equivalent. */
+        TDH_OUTTYPE_DATETIME
+    '         Implied by the FILETIME and SYSTEMTIME InType values. Data is decoded
+    '         as a date/time. FILETIME is decoded as a 64-bit integer representing
+    '         the number of 100-nanosecond intervals since January 1, 1601.
+    '         SYSTEMTIME is decoded as the Win32 SYSTEMTIME structure. In both cases,
+    '         the time zone must be determined using other methods. (FILETIME is
+    '         usually but not always UTC.) */
+        TDH_OUTTYPE_BYTE
+    '         Implied by the INT8 InType value. Data is decoded as a signed integer. */
+        TDH_OUTTYPE_UNSIGNEDBYTE
+    '         Implied by the UINT8 InType value. Data is decoded as an unsigned
+    '         integer. */
+        TDH_OUTTYPE_SHORT
+    '         Implied by the INT16 InType value. Data is decoded as a signed
+    '         little-endian integer. */
+        TDH_OUTTYPE_UNSIGNEDSHORT
+    '         Implied by the UINT16 InType value. Data is decoded as an unsigned
+    '         little-endian integer. */
+        TDH_OUTTYPE_INT
+    '         Implied by the INT32 InType value. Data is decoded as a signed
+    '         little-endian integer. */
+        TDH_OUTTYPE_UNSIGNEDINT
+    '         Implied by the UINT32 InType value. Data is decoded as an unsigned
+    '         little-endian integer. */
+        TDH_OUTTYPE_LONG
+    '         Implied by the INT64 InType value. Applicable to the INT32 InType value
+    '         (i.e. to distinguish between the C data types "long int" and "int").
+    '         Data is decoded as a signed little-endian integer. */
+        TDH_OUTTYPE_UNSIGNEDLONG
+    '         Implied by the UINT64 InType value. Applicable to the UINT32 InType
+    '         value (i.e. to distinguish between the C data types "long int" and
+    '         "int"). Data is decoded as an unsigned little-endian integer. */
+        TDH_OUTTYPE_FLOAT
+    '         Implied by the FLOAT InType value. Data is decoded as a
+    '         single-precision floating-point number. */
+        TDH_OUTTYPE_DOUBLE
+    '         Implied by the DOUBLE InType value. Data is decoded as a
+    '         double-precision floating-point number. */
+        TDH_OUTTYPE_BOOLEAN
+    '         Implied by the BOOL InType value. Applicable to the UINT8 InType value.
+    '         Data is decoded as a Boolean (false if zero, true if non-zero). */
+        TDH_OUTTYPE_GUID
+    '         Implied by the GUID InType value. Data is decoded as a GUID. */
+        TDH_OUTTYPE_HEXBINARY
+    '         Not commonly used. Implied by the BINARY and HEXDUMP InType values. */
+        TDH_OUTTYPE_HEXINT8
+    '         Specifies that the field should be formatted as a hexadecimal integer.
+    '         Applicable to the UINT8 InType value. */
+        TDH_OUTTYPE_HEXINT16
+    '         Specifies that the field should be formatted as a hexadecimal integer.
+    '         Applicable to the UINT16 InType value. */
+        TDH_OUTTYPE_HEXINT32
+    '         Not commonly used. Implied by the HEXINT32 InType value. Applicable to
+    '         the UINT32 InType value. */
+        TDH_OUTTYPE_HEXINT64
+    '         Not commonly used. Implied by the HEXINT64 InType value. Applicable to
+    '         the UINT64 InType value. */
+        TDH_OUTTYPE_PID
+    '         Specifies that the field is a process identifier. Applicable to the
+    '         UINT32 InType value. */
+        TDH_OUTTYPE_TID
+    '         Specifies that the field is a thread identifier. Applicable to the
+    '         UINT32 InType value. */
+        TDH_OUTTYPE_PORT
+    '         Specifies that the field is an Internet Protocol port number, specified
+    '         in network byte order (big-endian). Applicable to the UINT16 InType
+    '         value. */
+        TDH_OUTTYPE_IPV4
+    '         Specifies that the field is an Internet Protocol V4 address. Applicable
+    '         to the UINT32 InType value. */
+        TDH_OUTTYPE_IPV6
+    '         Specifies that the field is an Internet Protocol V6 address. Applicable
+    '         to the BINARY InType value. If the length of a field is unspecified in
+    '         the EVENT_PROPERTY_INFO but the field's InType is BINARY and its
+    '         OutType is IPV6, the field's length should be assumed to be 16 bytes. */
+        TDH_OUTTYPE_SOCKETADDRESS
+    '         Specifies that the field is a SOCKADDR structure. Applicable to the
+    '         BINARY InType value. Note that different address types have different
+    '         sizes. */
+        TDH_OUTTYPE_CIMDATETIME
+    '         Not commonly used. */
+        TDH_OUTTYPE_ETWTIME
+    '         Not commonly used. Applicable to the UINT32 InType value. */
+        TDH_OUTTYPE_XML
+    '         Specifies that the field should be treated as XML text. Applicable to
+    '         the *STRING InType values. When this OutType is used, decoders should
+    '         use standard XML decoding rules (i.e. assume a Unicode encoding unless
+    '         the document specifies a different encoding in its encoding
+    '         attribute). */
+        TDH_OUTTYPE_ERRORCODE
+    '         Not commonly used. Specifies that the field is an error code of
+    '         some type. Applicable to the UINT32 InType value. */
+        TDH_OUTTYPE_WIN32ERROR
+    '         Specifies that the field is a Win32 error code. Applicable to the
+    '         UINT32 and HEXINT32 InType values. */
+        TDH_OUTTYPE_NTSTATUS
+    '         Specifies that the field is an NTSTATUS code. Applicable to the UINT32
+    '         and HEXINT32 InType values. */
+        TDH_OUTTYPE_HRESULT
+    '         Specifies that the field is an HRESULT error code. Applicable to the
+    '         INT32 InType value. */
+        TDH_OUTTYPE_CULTURE_INSENSITIVE_DATETIME
+    '         Specifies that a date/time value should be formatted in a
+    '         locale-invariant format. Applicable to the FILETIME and SYSTEMTIME
+    '         InType values. */
+        TDH_OUTTYPE_JSON
+    '         Specifies that the field should be treated as JSON text. Applicable to
+    '         the *STRING InType values. When this OutType is used with the ANSI
+    '         string InType values, decoders should decode the data as UTF-8. */
+        TDH_OUTTYPE_UTF8
+    '         Specifies that the field should be treated as UTF-8 text. Applicable to
+    '         the *ANSISTRING InType values. */
+        TDH_OUTTYPE_PKCS7_WITH_TYPE_INFO
+    '         Specifies that the field should be treated as a PKCS#7 message (e.g.
+    '         encrypted and/or signed). Applicable to the BINARY InType value. One
+    '         or more bytes of TraceLogging-compatible type information (providing
+    '         the type of the inner content) may optionally be appended immediately
+    '         after the PKCS#7 message. For example, the byte 0x01
+    '         (TlgInUNICODESTRING = 0x01) might be appended to indicate that the
+    '         inner content is to be interpreted as InType = UNICODESTRING; the bytes
+    '         0x82 0x22 (TlgInANSISTRING + TlgInChain = 0x82, TlgOutJSON = 0x22)
+    '         might be appended to indicate that the inner content is to be
+    '         interpreted as InType = ANSISTRING, OutType = JSON. */
+        TDH_OUTTYPE_CODE_POINTER
+    '         Specifies that the field should be treated as an address that can
+    '         potentially be decoded into a symbol name. Applicable to InTypes
+    '         UInt32, UInt64, HexInt32, HexInt64, and Pointer. */
+        TDH_OUTTYPE_DATETIME_UTC
+    '         Usable with the FILETIME and SYSTEMTIME InType values. Data is decoded
+    '         as a date/time. FILETIME is decoded as a 64-bit integer representing
+    '         the number of 100-nanosecond intervals since January 1, 1601.
+    '         SYSTEMTIME is decoded as the Win32 SYSTEMTIME structure. In both cases,
+    '         the time zone is assumed to be UTC.) */
+        '  End of winmeta outtypes.
+        '  Start of TDH outtypes for WBEM.
+        TDH_OUTTYPE_REDUCEDSTRING = 300 '
+    '         Not commonly used. */
+        TDH_OUTTYPE_NOPRINT
+    '         Not commonly used. Specifies that the field should not be shown in the
+    '         output of the decoding tool. This might be applied to a Count or a
+    '         Length field. Applicable to all InType values. Most decoders ignore
+    '         this value. */
+        TDH_OUTYTPE_ERRORCODE = TDH_OUTTYPE_ERRORCODE
+    End Enum
+
+    Public Enum PROPERTY_FLAGS
+        PropertyStruct = &H1 ' Type is struct.
+        PropertyParamLength = &H2 ' Length field is index of param with length.
+        PropertyParamCount = &H4 ' Count field is index of param with count.
+        PropertyWBEMXmlFragment = &H8 ' WBEM extension flag for property.
+        PropertyParamFixedLength = &H10 ' Length of the parameter is fixed.
+        PropertyParamFixedCount = &H20 ' Count of the parameter is fixed.
+        PropertyHasTags = &H40 ' The Tags field has been initialized.
+        PropertyHasCustomSchema = &H80 ' Type is described with a custom schema.
+    End Enum
+
+    Public Type EVENT_PROPERTY_INFO
+        Flags As PROPERTY_FLAGS
+        NameOffset As Long
+        ' union {
+            ' struct _nonStructType {
+                ' USHORT InType;
+                ' USHORT OutType;
+                ' ULONG MapNameOffset;
+            ' } nonStructType;
+            ' struct _structType {
+                ' USHORT StructStartIndex;
+                ' USHORT NumOfStructMembers;
+                ' ULONG padding;
+            ' } structType;
+            ' struct _customSchemaType {
+                ' // Data of this field is described by a user-defined serialization
+                ' // protocol such as Bond or Protocol Buffers. InType and OutType
+                ' // should be set for best-effort decoding by decoders that do not
+                ' // understand the schema, e.g. InType could be set to
+                ' // TDH_INTYPE_BINARY so that a decoder can properly extract or skip
+                ' // the raw serialized data even if it can't parse it. The
+                ' // CustomSchemaOffset points at a structure laid out as:
+                ' // UINT16 Protocol; // User-defined value from 5..31
+                ' // UINT16 Length;
+                ' // BYTE SchemaData[Length];
+                ' USHORT InType;
+                ' USHORT OutType;
+                ' ULONG CustomSchemaOffset;
+            ' } customSchemaType;
+        ' };
+        ' union {
+            ' USHORT count;
+            ' USHORT countPropertyIndex;
+        ' };
+        ' union {
+            ' USHORT length;
+            ' USHORT lengthPropertyIndex;
+        ' };
+        ' union {
+            ' ULONG Reserved;
+            ' struct {
+                ' ULONG Tags : 28;
+            ' };
+        ' };
+        InTypeOrStartIndex As Integer
+        OutTypeOrNumMembers As Integer
+        OffsetOrPadding As Long
+        Count As Integer
+        Length As Integer
+        Tags As Long
+    End Type
+
+    Public Enum DECODING_SOURCE
+        DecodingSourceXMLFile
+        DecodingSourceWbem
+        DecodingSourceWPP
+        DecodingSourceTlg
+        DecodingSourceMax
+    End Enum
+
+    Public Enum TEMPLATE_FLAGS
+        TEMPLATE_EVENT_DATA = 1 ' Used when custom xml is not specified.
+        TEMPLATE_USER_DATA = 2 ' Used when custom xml is specified.
+        TEMPLATE_CONTROL_GUID = 4 ' EventGuid contains the manifest control GUID.
+    End Enum
+
+    [Description("Array can be any size. 128 entries are provided as a default buffer. TRACE_EVENT_INFO_sa is available with it as a SAFEARRAY for split copying as a receiver. If more needed as a sender, use a byte array and append additional entries.")]
+    Public Type TRACE_EVENT_INFO
+        ProviderGuid As UUID /* The meaning of this field depends on DecodingSource.
+            - XMLFile: ProviderGuid contains the decode GUID (the provider GUID of
+              the manifest).
+            - Wbem: If EventGuid is GUID_NULL, ProviderGuid contains the decode
+              GUID. Otherwise, ProviderGuid contains the control GUID.
+            - WPP: ProviderGuid is not used (always GUID_NULL).
+            - Tlg: ProviderGuid contains the control GUID. */
+
+        EventGuid As UUID /* The meaning of this field depends on DecodingSource.
+            - XMLFile: If the provider specifies a controlGuid, EventGuid contains
+              the controlGuid and Flags contains TEMPLATE_CONTROL_GUID. Otherwise,
+              if the event's Task specifies an eventGUID, EventGuid contains the
+              eventGUID. Otherwise, EventGuid is GUID_NULL.
+            - Wbem: If EventGuid is not GUID_NULL, it is the decode GUID.
+            - WPP: EventGuid contains the decode GUID.
+            - Tlg: EventGuid is not used (always GUID_NULL). */
+
+        EventDescriptor As EVENT_DESCRIPTOR
+        DecodingSource As DECODING_SOURCE
+        ProviderNameOffset As Long
+        LevelNameOffset As Long
+        ChannelNameOffset As Long
+        KeywordsNameOffset As Long
+
+        TaskNameOffset As Long /* Meaning of this field depends on DecodingSource.
+            - XMLFile: The offset to the name of the associated task.
+            - Wbem: The offset to the event's MOF "DisplayName" property. For many
+              Wbem providers, ProviderName is a provider category and TaskName is
+              the provider subcategory.
+            - WPP: Not used.
+            - Tlg: The offset to the name of the event. */
+
+        OpcodeNameOffset As Long /* Meaning of this field depends on DecodingSource.
+            - XMLFile: The offset to the name of the associated opcode.
+            - Wbem: The offset to the event's MOF "EventTypeName" property. For
+              many Wbem providers, OpcodeName is the event's name.
+            - WPP: Not used.
+            - Tlg: The offset to the name of the associated opcode. */
+
+        EventMessageOffset As Long
+        ProviderMessageOffset As Long
+        BinaryXMLOffset As Long
+        BinaryXMLSize As Long
+
+    ' //    union {
+    ' //        ULONG EventNameOffset; /* Event name for manifest-based events.
+    '             This field is valid only if DecodingSource is set to
+    '             DecodingSourceXMLFile or DecodingSourceTlg.
+
+    '             EventNameOffset contains the offset from the beginning of this
+    '             structure to a nul-terminated Unicode string that contains the
+    '             event's name.
+
+    '             This field will be 0 if the event does not have an assigned name or
+    '             if this event is decoded on a system that does not support decoding
+    '             manifest event names. Event name decoding is supported on Windows
+    '             10 Fall Creators Update (2017) and later. */
+
+    '  //       ULONG ActivityIDNameOffset; /* Activity ID name for WBEM events.
+    '             This field is valid only if DecodingSource is set to
+    '             DecodingSourceWbem.
+
+    '             ActivityIDNameOffset contains the offset from the beginning of this
+    '             structure to a nul-terminated Unicode string that contains the
+    '             property name of the activity identifier in the MOF class. */
+    ' //   };
+        EventNameOrActivityIdNameOffset As Long
+    ' //    union {
+    ' //        ULONG EventAttributesOffset; /* Attributes for manifest-based events.
+    '             This field is valid only if DecodingSource is set to
+    '             DecodingSourceXMLFile.
+
+    '             EventAttributesOffset contains the offset from the beginning of
+    '             this structure to a nul-terminated Unicode string that contains a
+    '             semicolon-separated list of name=value attributes associated with
+    '             the event.
+
+    '             This field will be 0 if the event does not have attributes or if
+    '             this event is decoded on a system that does not support decoding
+    '             manifest event attributes. Attribute decoding is supported on
+    '             Windows 10 Fall Creators Update (2017) and later.
+
+    '             Defined attributes include:
+    '             FILE=Filename of source code associated with event;
+    '             LINE=Line number of source code associated with event;
+    '             COL=Column of source code associated with event;
+    '             FUNC=Function name associated with event;
+    '             MJ=Major component associated with event;
+    '             MN=Minor component associated with event.
+
+    '             Values containing semicolons or double-quotes should be quoted
+    '             using double-quotes. Double-quotes within the value should be
+    '             doubled. Example string:
+    '             FILE=source.cpp;LINE=123;MJ="Value; ""Quoted""" */
+
+    '  //       ULONG RelatedActivityIDNameOffset; /* Related activity ID name (WBEM).
+    '             This field is valid only if DecodingSource is set to
+    '             DecodingSourceWbem.
+
+    '             RelatedActivityIDNameOffset contains the offset from the beginning
+    '             of this structure to a nul-terminated Unicode string that contains
+    '             the property name of the related activity identifier in the MOF
+    '             class. */
+    ' //    };
+        EventAttributesOrRelatedActivityIDNameOffset As Long
+    
+        PropertyCount As Long
+        TopLevelPropertyCount As Long
+    '    union {
+            Flags As TEMPLATE_FLAGS
+    '        struct {
+    '            ULONG Reserved : 4; // TEMPLATE_FLAGS values
+    '           ULONG Tags : 28;
+    '        };
+    '    };
+      'EVENT_PROPERTY_INFO EventPropertyInfoArray[ANYSIZE_ARRAY];
+      EventPropertyInfoArray(127) As EVENT_PROPERTY_INFO
+    End Type
+    Public Type TRACE_EVENT_INFO_sa
+        ProviderGuid As UUID /* The meaning of this field depends on DecodingSource.
+            - XMLFile: ProviderGuid contains the decode GUID (the provider GUID of
+              the manifest).
+            - Wbem: If EventGuid is GUID_NULL, ProviderGuid contains the decode
+              GUID. Otherwise, ProviderGuid contains the control GUID.
+            - WPP: ProviderGuid is not used (always GUID_NULL).
+            - Tlg: ProviderGuid contains the control GUID. */
+
+        EventGuid As UUID /* The meaning of this field depends on DecodingSource.
+            - XMLFile: If the provider specifies a controlGuid, EventGuid contains
+              the controlGuid and Flags contains TEMPLATE_CONTROL_GUID. Otherwise,
+              if the event's Task specifies an eventGUID, EventGuid contains the
+              eventGUID. Otherwise, EventGuid is GUID_NULL.
+            - Wbem: If EventGuid is not GUID_NULL, it is the decode GUID.
+            - WPP: EventGuid contains the decode GUID.
+            - Tlg: EventGuid is not used (always GUID_NULL). */
+
+        EventDescriptor As EVENT_DESCRIPTOR
+        DecodingSource As DECODING_SOURCE
+        ProviderNameOffset As Long
+        LevelNameOffset As Long
+        ChannelNameOffset As Long
+        KeywordsNameOffset As Long
+
+        TaskNameOffset As Long /* Meaning of this field depends on DecodingSource.
+            - XMLFile: The offset to the name of the associated task.
+            - Wbem: The offset to the event's MOF "DisplayName" property. For many
+              Wbem providers, ProviderName is a provider category and TaskName is
+              the provider subcategory.
+            - WPP: Not used.
+            - Tlg: The offset to the name of the event. */
+
+        OpcodeNameOffset As Long /* Meaning of this field depends on DecodingSource.
+            - XMLFile: The offset to the name of the associated opcode.
+            - Wbem: The offset to the event's MOF "EventTypeName" property. For
+              many Wbem providers, OpcodeName is the event's name.
+            - WPP: Not used.
+            - Tlg: The offset to the name of the associated opcode. */
+
+        EventMessageOffset As Long
+        ProviderMessageOffset As Long
+        BinaryXMLOffset As Long
+        BinaryXMLSize As Long
+
+    ' //    union {
+    ' //        ULONG EventNameOffset; /* Event name for manifest-based events.
+    '             This field is valid only if DecodingSource is set to
+    '             DecodingSourceXMLFile or DecodingSourceTlg.
+
+    '             EventNameOffset contains the offset from the beginning of this
+    '             structure to a nul-terminated Unicode string that contains the
+    '             event's name.
+
+    '             This field will be 0 if the event does not have an assigned name or
+    '             if this event is decoded on a system that does not support decoding
+    '             manifest event names. Event name decoding is supported on Windows
+    '             10 Fall Creators Update (2017) and later. */
+
+    '  //       ULONG ActivityIDNameOffset; /* Activity ID name for WBEM events.
+    '             This field is valid only if DecodingSource is set to
+    '             DecodingSourceWbem.
+
+    '             ActivityIDNameOffset contains the offset from the beginning of this
+    '             structure to a nul-terminated Unicode string that contains the
+    '             property name of the activity identifier in the MOF class. */
+    ' //   };
+        EventNameOrActivityIdNameOffset As Long
+    ' //    union {
+    ' //        ULONG EventAttributesOffset; /* Attributes for manifest-based events.
+    '             This field is valid only if DecodingSource is set to
+    '             DecodingSourceXMLFile.
+
+    '             EventAttributesOffset contains the offset from the beginning of
+    '             this structure to a nul-terminated Unicode string that contains a
+    '             semicolon-separated list of name=value attributes associated with
+    '             the event.
+
+    '             This field will be 0 if the event does not have attributes or if
+    '             this event is decoded on a system that does not support decoding
+    '             manifest event attributes. Attribute decoding is supported on
+    '             Windows 10 Fall Creators Update (2017) and later.
+
+    '             Defined attributes include:
+    '             FILE=Filename of source code associated with event;
+    '             LINE=Line number of source code associated with event;
+    '             COL=Column of source code associated with event;
+    '             FUNC=Function name associated with event;
+    '             MJ=Major component associated with event;
+    '             MN=Minor component associated with event.
+
+    '             Values containing semicolons or double-quotes should be quoted
+    '             using double-quotes. Double-quotes within the value should be
+    '             doubled. Example string:
+    '             FILE=source.cpp;LINE=123;MJ="Value; ""Quoted""" */
+
+    '  //       ULONG RelatedActivityIDNameOffset; /* Related activity ID name (WBEM).
+    '             This field is valid only if DecodingSource is set to
+    '             DecodingSourceWbem.
+
+    '             RelatedActivityIDNameOffset contains the offset from the beginning
+    '             of this structure to a nul-terminated Unicode string that contains
+    '             the property name of the related activity identifier in the MOF
+    '             class. */
+    ' //    };
+        EventAttributesOrRelatedActivityIDNameOffset As Long
+    
+        PropertyCount As Long
+        TopLevelPropertyCount As Long
+    '    union {
+            Flags As TEMPLATE_FLAGS
+    '        struct {
+    '            ULONG Reserved : 4; // TEMPLATE_FLAGS values
+    '           ULONG Tags : 28;
+    '        };
+    '    };
+      'EVENT_PROPERTY_INFO EventPropertyInfoArray[ANYSIZE_ARRAY];
+      EventPropertyInfoArray() As EVENT_PROPERTY_INFO
+    End Type
+
+    Public Type PROPERTY_DATA_DESCRIPTOR
+        PropertyName As LongLong ' Pointer to property name.
+        ArrayIndex As Long ' Array Index.
+        Reserved As Long
+    End Type
+
+    Public Enum PAYLOAD_OPERATOR
+        ' 
+        '  For integers, comparison can be one of:
+        ' 
+        PAYLOADFIELD_EQ = 0
+        PAYLOADFIELD_NE = 1
+        PAYLOADFIELD_LE = 2
+        PAYLOADFIELD_GT = 3
+        PAYLOADFIELD_LT = 4
+        PAYLOADFIELD_GE = 5
+        PAYLOADFIELD_BETWEEN = 6 ' Two values: lower/upper bounds
+        PAYLOADFIELD_NOTBETWEEN = 7 ' Two values: lower/upper bounds
+        PAYLOADFIELD_MODULO = 8 ' For periodically sampling a field
+        ' 
+        '  For strings:
+        ' 
+        PAYLOADFIELD_CONTAINS = 20 ' Substring identical to Value
+        PAYLOADFIELD_DOESNTCONTAIN = 21 ' No substring identical to Value
+        ' 
+        '  For strings or other non-integer values
+        ' 
+        PAYLOADFIELD_IS = 30 ' Field is identical to Value
+        PAYLOADFIELD_ISNOT = 31 ' Field is NOT identical to Value
+        PAYLOADFIELD_INVALID = 32
+    End Enum
+
+    Public Type PAYLOAD_FILTER_PREDICATE
+        FieldName As LongPtr
+        /* [TypeHint(PAYLOAD_OPERATOR)] */ CompareOp As Integer ' PAYLOAD_OPERATOR
+        Value As LongPtr ' One or two values (i.e., two for BETWEEN operations)
+    End Type
+
+    Public Const MAX_PAYLOAD_PREDICATES = 8
+
+    Public Declare PtrSafe Function TdhCreatePayloadFilter Lib "tdh.dll" (ProviderGuid As UUID, EventDescriptor As EVENT_DESCRIPTOR, ByVal EventMatchANY As Byte, ByVal PayloadPredicateCount As Long, PayloadPredicates As PAYLOAD_FILTER_PREDICATE, PayloadFilter As LongPtr) As Long
+    Public Declare PtrSafe Function TdhDeletePayloadFilter Lib "tdh.dll" (PayloadFilter As LongPtr) As Long
+    Public Declare PtrSafe Function TdhAggregatePayloadFilters Lib "tdh.dll" (ByVal PayloadFilterCount As Long, PayloadFilterPtrs As LongPtr, EventMatchALLFlags As Byte, EventFilterDescriptor As EVENT_FILTER_DESCRIPTOR) As Long
+    Public Declare PtrSafe Function TdhCleanupPayloadEventFilterDescriptor Lib "tdh.dll" (EventFilterDescriptor As EVENT_FILTER_DESCRIPTOR) As Long
+
+    Public Type PROVIDER_FILTER_INFO
+        Id As Byte
+        Version As Byte
+        MessageOffset As Long
+        Reserved As Long
+        PropertyCount As Long
+        EventPropertyInfoArray(127) As EVENT_PROPERTY_INFO
+    End Type
+
+    Public Enum EVENT_FIELD_TYPE
+        EventKeywordInformation = 0
+        EventLevelInformation
+        EventChannelInformation
+        EventTaskInformation
+        EventOpcodeInformation
+        EventInformationMax
+    End Enum
+
+    Public Type PROVIDER_FIELD_INFO
+        NameOffset As Long ' English only.
+        DescriptionOffset As Long ' Localizable String.
+        Value As LongLong
+    End Type
+    Public Type PROVIDER_FIELD_INFOARRAY
+        NumberOfElements As Long
+        FieldType As EVENT_FIELD_TYPE
+        FieldInfoArray(127) As PROVIDER_FIELD_INFO
+    End Type
+
+    Public Type TRACE_PROVIDER_INFO
+        ProviderGuid As UUID
+        SchemaSource As Long
+        ProviderNameOffset As Long
+    End Type
+    Public Type PROVIDER_ENUMERATION_INFO
+        NumberOfProviders As Long
+        Reserved As Long
+        TraceProviderInfoArray(63) As TRACE_PROVIDER_INFO
+    End Type
+
+    Public Type PROVIDER_EVENT_INFO
+        NumberOfEvents As Long
+        Reserved As Long
+        EventDescriptorsArray(127) As EVENT_DESCRIPTOR
+    End Type
+
+    Public Enum TDH_CONTEXT_TYPE
+        TDH_CONTEXT_WPP_TMFFILE   ' LPCWSTR path to the TMF file for a WPP event. */
+        TDH_CONTEXT_WPP_TMFSEARCHPATH = 1 ' LPCWSTR semicolon-separated list of
+    '         directories to search for the TMF file for a WPP event. Only files
+    '         with the name [ProviderId].TMF will be found during the search. */
+        TDH_CONTEXT_WPP_GMT  ' Integer value. If set to 1, the TdhGetWppProperty
+    '         and TdhGetWppMessage functions will format a WPP event's timestamp in
+    '         UTC (GMT). By default, the timestamp is formatted in local time. */
+        TDH_CONTEXT_POINTERSIZE  ' Integer value, set to 4 or 8. Used when
+    '         decoding POINTER or SIZE_T fields on WPP events that do not set a
+    '         pointer size in the event header. If the event does not set a pointer
+    '         size in the event header and this context is not set, the decoder will
+    '         use the pointer size of the current process. */
+        TDH_CONTEXT_PDB_PATH   ' LPCWSTR semicolon-separated list of PDB files
+    '         to be search for decoding information when decoding an event using
+    '         TdhGetWppProperty or TdhGetWppMessage. (Not used by TdhGetProperty
+    '         or TdhGetEventInformation.) */
+        TDH_CONTEXT_MAXIMUM
+    End Enum
+
+    Public Type TDH_CONTEXT
+        ParameterValue As LongLong /* For GMT or POINTERSIZE, directly stores
+        pointin As parameter's Longeger value. For other types, stores an LongPtr
+         As to a nul-terminated string with the parameter value. */
+        ParameterType As TDH_CONTEXT_TYPE
+        ParameterSize As Long ' Reserved. Set to 0.
+    End Type
+
+    Public Declare PtrSafe Function TdhGetEventInformation Lib "tdh.dll" (Event As EVENT_RECORD, ByVal TdhContextCount As Long, TdhContext As TDH_CONTEXT, Buffer As Any, BufferSize As Long) As Long
+    Public Declare PtrSafe Function TdhGetEventMapInformation Lib "tdh.dll" (pEvent As EVENT_RECORD, ByVal pMapName As LongPtr, pBuffer As Any, pBufferSize As Long) As Long
+    Public Declare PtrSafe Function TdhGetPropertySize Lib "tdh.dll" (pEvent As EVENT_RECORD, ByVal TdhContextCount As Long, TdhContext As TDH_CONTEXT, ByVal PropertyDataCount As Long, pPropertyData As PROPERTY_DATA_DESCRIPTOR, pPropertySize As Long) As Long
+    Public Declare PtrSafe Function TdhGetProperty Lib "tdh.dll" (pEvent As EVENT_RECORD, ByVal TdhContextCount As Long, TdhContext As TDH_CONTEXT, ByVal PropertyDataCount As Long, pPropertyData As PROPERTY_DATA_DESCRIPTOR, ByVal BufferSize As Long, pBuffer As Any) As Long
+    Public Declare PtrSafe Function TdhEnumerateProviders Lib "tdh.dll" (pBuffer As Any, pBufferSize As Long) As Long
+    Public Declare PtrSafe Function TdhEnumerateProvidersForDecodingSource Lib "tdh.dll" (ByVal filter As DECODING_SOURCE, buffer As Any, ByVal bufferSize As Long, bufferRequired As Long) As Long
+    Public Declare PtrSafe Function TdhQueryProviderFieldInformation Lib "tdh.dll" (pGuid As UUID, ByVal EventFieldValue As LongLong, ByVal EventFieldType As EVENT_FIELD_TYPE, pBuffer As Any, pBufferSize As Long) As Long
+    Public Declare PtrSafe Function TdhEnumerateProviderFieldInformation Lib "tdh.dll" (pGuid As UUID, ByVal EventFieldType As EVENT_FIELD_TYPE, pBuffer As Any, pBufferSize As Long) As Long
+    Public Declare PtrSafe Function TdhEnumerateProviderFilters Lib "tdh.dll" (pGuid As UUID, ByVal TdhContextCount As Long, TdhContext As TDH_CONTEXT, FilterCount As Long, Buffer As Any, BufferSize As Long) As Long
+    Public Declare PtrSafe Function TdhLoadManifest Lib "tdh.dll" (ByVal Manifest As LongPtr) As Long
+    Public Declare PtrSafe Function TdhLoadManifestFromMemory Lib "tdh.dll" (pData As Any, ByVal cbData As Long) As Long
+    Public Declare PtrSafe Function TdhUnloadManifest Lib "tdh.dll" (ByVal Manifest As LongPtr) As Long
+    Public Declare PtrSafe Function TdhUnloadManifestFromMemory Lib "tdh.dll" (pData As Any, ByVal cbData As Long) As Long
+    Public Declare PtrSafe Function TdhFormatProperty Lib "tdh.dll" (EventInfo As TRACE_EVENT_INFO, MapInfo As EVENT_MAP_INFO, ByVal PointerSize As Long, [TypeHint(TDH_IN_TYPE)] ByVal PropertyInType As Integer, [TypeHint(TDH_OUT_TYPE)] ByVal PropertyOutType As Integer, ByVal PropertyLength As Integer, ByVal UserDataLength As Integer, UserData As Any, BufferSize As Long, Buffer As Any, UserDataConsumed As Integer) As Long
+    Public Declare PtrSafe Function TdhOpenDecodingHandle Lib "tdh.dll" (Handle As LongPtr) As Long
+    Public Declare PtrSafe Function TdhSetDecodingParameter Lib "tdh.dll" (ByVal Handle As LongPtr, TdhContext As TDH_CONTEXT) As Long
+    Public Declare PtrSafe Function TdhGetDecodingParameter Lib "tdh.dll" (ByVal Handle As LongPtr, TdhContext As TDH_CONTEXT) As Long
+    Public Declare PtrSafe Function TdhGetWppProperty Lib "tdh.dll" (ByVal Handle As LongPtr, EventRecord As EVENT_RECORD, ByVal PropertyName As LongPtr, BufferSize As Long, Buffer As Any) As Long
+    Public Declare PtrSafe Function TdhGetWppMessage Lib "tdh.dll" (ByVal Handle As LongPtr, EventRecord As EVENT_RECORD, BufferSize As Long, Buffer As Any) As Long
+    Public Declare PtrSafe Function TdhCloseDecodingHandle Lib "tdh.dll" (ByVal Handle As LongPtr) As Long
+    Public Declare PtrSafe Function TdhLoadManifestFromBinary Lib "tdh.dll" (ByVal BinaryPath As LongPtr) As Long
+    Public Declare PtrSafe Function TdhEnumerateManifestProviderEvents Lib "tdh.dll" (ProviderGuid As UUID, Buffer As Any, BufferSize As Long) As Long
+    Public Declare PtrSafe Function TdhGetManifestEventInformation Lib "tdh.dll" (ProviderGuid As UUID, EventDescriptor As EVENT_DESCRIPTOR, Buffer As Any, BufferSize As Long) As Long
+
+
+    #End Region
+    
+    Public Function CLSID_TraceRelogger() As UUID
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H7b40792d, &H05ff, &H44c4, &H90, &H58, &Hf4, &H40, &Hc7, &H1f, &H17, &Hd4)
+    CLSID_TraceRelogger = iid
+    End Function
+    Public Function IID_ITraceEvent() As UUID
+    '{8CC97F40-9028-4FF3-9B62-7D1F79CA7BCB}
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H8CC97F40, CInt(&H9028), CInt(&H4FF3), &H9B, &H62, &H7D, &H1F, &H79, &HCA, &H7B, &HCB)
+     IID_ITraceEvent = iid
+    End Function
+    Public Function IID_ITraceEventCallback() As UUID
+    '{3ED25501-593F-43E9-8F38-3AB46F5A4A52}
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H3ED25501, CInt(&H593F), CInt(&H43E9), &H8F, &H38, &H3A, &HB4, &H6F, &H5A, &H4A, &H52)
+     IID_ITraceEventCallback = iid
+    End Function
+    Public Function IID_ITraceRelogger() As UUID
+    '{F754AD43-3BCC-4286-8009-9C5DA214E84E}
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HF754AD43, CInt(&H3BCC), CInt(&H4286), &H80, &H09, &H9C, &H5D, &HA2, &H14, &HE8, &H4E)
+     IID_ITraceRelogger = iid
+    End Function
+End Module
