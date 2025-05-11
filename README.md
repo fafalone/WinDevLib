@@ -229,7 +229,8 @@ This project has grown well beyond it's original mission of shell programming. W
    Note: This was done assuming "LIFTED_SDK" was not defined. There's some deleted vtable entries, additional interfaces, additional coclasses, and entirely different GUIDs for everything if that is defined; the meaning is entirely undocumented. Will look into it in the future.\
 -D2D1 PredeclaredId class from The trick's bas for e.g. D2D1::RectF. Disabled by default, to enable, set WINDEVLIB_DXHELPERS\
    Note: __F functions will be converted to overloads pending a tB bug fix concerning them.\
--Added some missing content from lmaccess.h and lmwksta.h to bring coverage to 100%; added LMalert.h, LMaudit.h, LMErrlog.h, LMRemUtl.h, LMSvc.h, LMDFS.h 100%, 
+-Added some missing content from lmaccess.h and lmwksta.h to bring coverage to 100%; added LMalert.h, LMaudit.h, LMErrlog.h, LMRemUtl.h, LMSvc.h, LMDFS.h 100%
+-Some netapi32 structs changed from String to LongPtr for consistency with vast majority of others.
 
 **Update (v8.11.528, 08 May 2025):**\
 -Added WebAuthN APIs (Windows Hello and other new security tokens; webauthn.h 100%)\
