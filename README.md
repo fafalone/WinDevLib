@@ -222,7 +222,7 @@ This project has grown well beyond it's original mission of shell programming. W
 
 **Update (v8.12.530, 10 May 2025):**\
 -Basic date/time format APIs from datetimeapi.h were inexplicably not done yet.\
--Added Extended Language Services (ELS) APIs from ELSCore.h and ElsSrvc.h, 100% coverage.\
+-Added Extended Linguistic Services (ELS) APIs from ELSCore.h and ElsSrvc.h, 100% coverage.\
 -Added D3DX11 General Purpose GPU computing algorithms (d3dcsx.h, 100%)\
 -Added remaining ETW interfaces/APIs from evntprov.h, relogger.h (100% inc. delegates, macros, and inlines)\
 -Added DirectManipulation interfaces/etc (directmanipulation.h, 100%)\
