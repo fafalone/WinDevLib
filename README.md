@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 8.11.528 (May 8th, 2025)**
+**Current Version: 8.12.530 (May 10th, 2025)**
 
 (c) 2022-2025 Jon Johnson (fafalone)
 
@@ -219,6 +219,17 @@ Finally, there's numerous additional API sets from small to large for independen
 This project has grown well beyond it's original mission of shell programming. While that's still the largest single part, it's no longer a majority of the code, and the name change now much better reflects the purpose of providing a general Windows API experience like windows.h. Compiler constants and module names/file names have been updated to reflect the name change. tbShellLibImpl is now WinDevLibImpl. There are also some major chanages associated with this update, please see the full changelog below.
 
 ### Updates
+
+**Update (v8.12.530, 10 May 2025):**\
+-Basic date/time format APIs from datetimeapi.h were inexplicably not done yet.\
+-Added Extended Language Services (ELS) APIs from ELSCore.h and ElsSrvc.h, 100% coverage.\
+-Added D3DX11 General Purpose GPU computing algorithms (d3dcsx.h, 100%)\
+-Added remaining ETW interfaces/APIs from evntprov.h, relogger.h (100% inc. delegates, macros, and inlines)\
+-Added DirectManipulation interfaces/etc (directmanipulation.h, 100%)\
+   Note: This was done assuming "LIFTED_SDK" was not defined. There's some deleted vtable entries, additional interfaces, additional coclasses, and entirely different GUIDs for everything if that is defined; the meaning is entirely undocumented. Will look into it in the future.\
+-D2D1 PredeclaredId class from The trick's bas for e.g. D2D1::RectF. Disabled by default, to enable, set WINDEVLIB_DXHELPERS\
+   Note: __F functions will be converted to overloads pending a tB bug fix concerning them.\
+-Added some missing content from lmaccess.h and lmwksta.h to bring coverage to 100%; added LMalert.h, LMaudit.h, LMErrlog.h, LMRemUtl.h, LMSvc.h, LMDFS.h 100%, 
 
 **Update (v8.11.528, 08 May 2025):**\
 -Added WebAuthN APIs (Windows Hello and other new security tokens; webauthn.h 100%)\
