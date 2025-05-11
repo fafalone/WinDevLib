@@ -1,3 +1,18 @@
+ 
+**Update (v8.12.530, 10 May 2025):** 
+-Basic date/time format APIs from datetimeapi.h were inexplicably not done yet.
+-Added Extended Language Services (ELS) APIs from ELSCore.h and ElsSrvc.h, 100% coverage.
+-Added D3DX11 General Purpose GPU computing algorithms (d3dcsx.h, 100%)
+-Added remaining ETW interfaces/APIs from evntprov.h, relogger.h (100% inc. delegates, macros, and inlines)
+-Added DirectManipulation interfaces/etc (directmanipulation.h, 100%)
+   Note: This was done assuming "LIFTED_SDK" was not defined. There's some deleted vtable entries, additional
+         interfaces, additional coclasses, and entirely different GUIDs for everything if that is defined; the
+         meaning is entirely undocumented. Will look into it in the future.
+-D2D1 PredeclaredId class from The trick's bas for e.g. D2D1::RectF. Disabled by default, to enable, set WINDEVLIB_DXHELPERS
+   Note: __F functions will be converted to overloads pending a tB bug fix concerning them.
+-Added some missing content from lmaccess.h and lmwksta.h to bring coverage to 100%; added LMalert.h, LMaudit.h,
+     LMErrlog.h, LMRemUtl.h, LMSvc.h, LMDFS.h 100%, 
+-Some netapi32 structs changed from String to LongPtr for consistency with vast majority of others.
 
 **Update (v8.11.528, 08 May 2025):** 
 -Added WebAuthN APIs (Windows Hello and other new security tokens; webauthn.h 100%)
