@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 8.12.530 (May 10th, 2025)**
+**Current Version: 8.12.532 (May 13th, 2025)**
 
 (c) 2022-2025 Jon Johnson (fafalone)
 
@@ -219,6 +219,13 @@ Finally, there's numerous additional API sets from small to large for independen
 This project has grown well beyond it's original mission of shell programming. While that's still the largest single part, it's no longer a majority of the code, and the name change now much better reflects the purpose of providing a general Windows API experience like windows.h. Compiler constants and module names/file names have been updated to reflect the name change. tbShellLibImpl is now WinDevLibImpl. There are also some major chanages associated with this update, please see the full changelog below.
 
 ### Updates
+
+**Update (v8.12.532, 13 May 2025):**\
+-Added lcid/LANGID helpers and some additional internationalization APIs\
+-Added WINDEVLIB_NO_WS_ALIASES compile const to remove ws_ prefix from Winsock functions with short, generic names (bind, socket, recv, etc)\
+-Added keycredmgr.h, 100% all\
+-Added lzexpand.h, 100% all\
+-(Bug fix) MappingRecognizeText used MAPPING_ENUM_OPTIONS instead of MAPPING_OPTIONS
 
 **Update (v8.12.530, 10 May 2025):**\
 -Basic date/time format APIs from datetimeapi.h were inexplicably not done yet.\
