@@ -1,7 +1,15 @@
  
+**Update (v8.12.532, 13 May 2025):** 
+-Added lcid/LANGID helpers and some additional internationalization APIs
+-Added WINDEVLIB_NO_WS_ALIASES compile const to remove ws_ prefix from Winsock functions with short,
+ generic names (bind, socket, recv, etc)
+-Added keycredmgr.h, 100% all
+-Added lzexpand.h, 100% all
+-(Bug fix) MappingRecognizeText used MAPPING_ENUM_OPTIONS instead of MAPPING_OPTIONS
+
 **Update (v8.12.530, 10 May 2025):** 
 -Basic date/time format APIs from datetimeapi.h were inexplicably not done yet.
--Added Extended Language Services (ELS) APIs from ELSCore.h and ElsSrvc.h, 100% coverage.
+-Added Extended Linguistic Services (ELS) APIs from ELSCore.h and ElsSrvc.h, 100% coverage.
 -Added D3DX11 General Purpose GPU computing algorithms (d3dcsx.h, 100%)
 -Added remaining ETW interfaces/APIs from evntprov.h, relogger.h (100% inc. delegates, macros, and inlines)
 -Added DirectManipulation interfaces/etc (directmanipulation.h, 100%)

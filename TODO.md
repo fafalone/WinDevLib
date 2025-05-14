@@ -121,15 +121,15 @@ wdXAudio
 -Create coverage list by header.
 Excluded from completed %: 
     -Definitions unsupported by the tB language with no reasonable substitute.
-    -Definitions disabled by conditional compilation with version flags for XP and earlier or non-Windows platforms.
+    -Definitions disabled by conditional compilation with version flags for XP and earlier, non-Windows platforms, or kernel mode only.
 Basic Coverage: excludes macros, callbacks->delegates,
 ANSI APIs (though most are covered), and other headers from #include statements. Anything else missing is a bug and a report should be filed
 Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.0); .
-    UtilApiSet.h,processtopologyapi.h,msdelta.h,handleapi.h,cfgmgr32.h,ole2.h,lmuse.h,lmuseflg.h,lmrepl.h,lmat.h,avrt.h,
-    realtimeapiset.h,msime.h,msimeapi.h,ws2bth.h,VersionHelpers.h,minwinbase.h,wsman.h,wcmapi.h,nb30.h,GPEdit.h,InputPanelConfiguration.h,
+    UtilApiSet.h,processtopologyapi.h,msdelta.h,handleapi.h,cfgmgr32.h,ole2.h,avrt.h,KnownFolders.h,keycredmgr.h,mcx.h,windef.h,winver.h,dlgs.h,
+    realtimeapiset.h,msime.h,msimeapi.h,ws2bth.h,VersionHelpers.h,minwinbase.h,wsman.h,wcmapi.h,nb30.h,GPEdit.h,InputPanelConfiguration.h,commoncontrols.h,
     WinEFS.h,winstring.h,qos2.h,traffic.h,qosobjs.h,qos.h,qossp.h,bluetoothleapis.h,bluetoothapis.h,bthsdpdef.h,fhcfg.h,fhsvcctl.h,fhstatus.h,fherrors.h,
     fwpmu.h,ipsectypes.h,iketypes.h,fdi_fcitypes.h,fdi.h,fci.h,namespaceapi.h,physicalmonitorenumerationapi.h,highlevelmonitorconfigurationapi.h,
-    lowlevelmonitorconfigurationapi.h,wmistr.h,evntcons.h,wincodec.h,hidclass.h,hidusage.h,hidpi.h,hidsdi.h,WinML.h,sysinfoapi.h,cderr.h,
+    lowlevelmonitorconfigurationapi.h,wmistr.h,evntcons.h,wincodec.h,hidclass.h,hidusage.h,hidpi.h,hidsdi.h,WinML.h,sysinfoapi.h,cderr.h,commctrl.h,
     ShellScalingApi.h,imagehlp.h,dbghelp.h,interlockedapi.h,upnp.h,upnp.idl,upnphost.h,upnphost.idl,RTWorkQ.h,wlanapi.h,magnification.h,threadpoolapiset.h,
     cfapi.h,amsi.h,tokenbinding.h,WcnApi.h,WcnTypes.h,WcnDevice.h,WcnFunctionDiscoveryKeys.h,lmserver.h,cimfs.h,icmpapi.h,LMJoin.h,LMMsg.h,LMShare.h,
     ObjSel.h,DSClient.h,security.h,minschannel.h,sspi.h,issper16.h,credssp.h,vbinterf.h,vdserr.h,vdscmprv.idl,vsprvcm.idl,vdshwprv.idl,vdscmmn.idl,
@@ -161,14 +161,15 @@ Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.
     d2d1effects_1.h,d2d1effects_2.h,d2d1Effectauthor.h,d3dcommon.h,d3dcommon.idl,d3d10.h,d3d10.idl,d3d10misc.h,d3d10shader.h,d3d10effects.h,d3d10sdklayers.h,
     d3d10sdklayers.idl,d3d10_1shader.h,d3d10_1.h,d3d10_1.idl,d3dcsx.h,presentation.idl,presentationtypes.h,presentationtypes.idl,wldp.h,webauthn.h,
     ActivityCoordinator.h,ActivityCoordinatorTypes.h,ActivScp.h,ActivScp.idl,atacct.h,lm.h,lmcons.h,lmaccess.h,lmalert.h,lmapibuf.h,lmat.h,lmaudit.h,lmconfig.h,
-    lmerrlog.h,lmjoin.h,lmmsg.h,lmremutl.h,lmrepl.h,lmserver.h,lmshare.h,lmsname.h,lmstats.h,lmsvc.hlmuse.h,lmuseflg.h,lmwksta.h,lmerr.h,lmdfs.h,
-    datetimeapi.h,ElsCore.h,ElsSrvc.h,
+    lmerrlog.h,lmjoin.h,lmmsg.h,lmremutl.h,lmrepl.h,lmserver.h,lmshare.h,lmsname.h,lmstats.h,lmsvc.h,lmuse.h,lmuseflg.h,lmwksta.h,lmerr.h,lmdfs.h,
+    datetimeapi.h,ElsCore.h,ElsSrvc.h,Gb18030.h,stringsetapi.h,imm.h,tcpestats.h,tcpmib.h,mprapidef.h,ipifcons.h,ifdef.h,nldef.h,ipmib.h,iprtrmib.h,
+    ipexport.h,iptypes.h,iphlpapi.h,
     
 Coverage in the 90%+ range
     winbase.h, oleidl.h, oaidl.h, ocidl.h, ocidl.idl, presentation.h,
 
 Substantial coverage
-    mmsciapi.h, winnt.h,winternl.h
+    mmsciapi.h, winnt.h,winternl.h,immdev.h
 
 Minimal coverage
     windot11.h
