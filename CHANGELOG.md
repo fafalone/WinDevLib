@@ -1,4 +1,15 @@
- 
+
+**Update (v8.12.534, 16 May 2025):** 
+-Added common control macros for Edit, Button, Tab, DateTime, MonthCal, Static, IPAddress, Animate controls. 
+   In all cases, these include the macros from both commctrl.h and windowsx.h.
+-Added helper function `GetMem(Of T)` generic to dereference and cast a LongPtr to any type, even intrinsic types.
+-Added helper function `DCast(Of T, T2)` (direct cast) to copy `LenB(Of T)` bytes from any type, with no 
+   conversion like CInt would do where 65535 would overflow instead of giving -1. Also allows converting to UDTs,
+   e.g. If you have ptll As LongLong containing a POINT, Dim pt As POINT = DCast(Of POINT)(ptll)
+-Some Tooltip types were only defined by their tag names instead of proper names. Tag names remain for compatibility.
+-(Bug fix) Some GET_*_WPARAM helpers would overflow due to use of CLng().
+
+
 **Update (v8.12.532, 13 May 2025):** 
 -Added lcid/LANGID helpers and some additional internationalization APIs
 -Added WINDEVLIB_NO_WS_ALIASES compile const to remove ws_ prefix from Winsock functions with short,

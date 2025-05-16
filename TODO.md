@@ -1,6 +1,8 @@
 Known omissions where a priority update neccessitated not finishing 
 before release, or waiting on feature support:
- 
+
+-ComboBox and ListBox windowsx.h macros
+
 -Verify new xaudio2 and helper math functions
 
 -Finish D2D1 helper class pending overload class bug fix
@@ -133,7 +135,7 @@ Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.
     ShellScalingApi.h,imagehlp.h,dbghelp.h,interlockedapi.h,upnp.h,upnp.idl,upnphost.h,upnphost.idl,RTWorkQ.h,wlanapi.h,magnification.h,threadpoolapiset.h,
     cfapi.h,amsi.h,tokenbinding.h,WcnApi.h,WcnTypes.h,WcnDevice.h,WcnFunctionDiscoveryKeys.h,lmserver.h,cimfs.h,icmpapi.h,LMJoin.h,LMMsg.h,LMShare.h,
     ObjSel.h,DSClient.h,security.h,minschannel.h,sspi.h,issper16.h,credssp.h,vbinterf.h,vdserr.h,vdscmprv.idl,vsprvcm.idl,vdshwprv.idl,vdscmmn.idl,
-    vdslun.idl,vdssp.idl,vdshp.idl,vdsvd.idl,vds.idl,vdshpcm.idl,vds.h,vdshwprv.h,vdslun.h,vdssys.h,directml.h,restartmanager.h,dde.h,ddeml.h,
+    vdslun.idl,vdssp.idl,vdshp.idl,vdsvd.idl,vds.idl,vdshpcm.idl,vds.h,vdshwprv.h,vdslun.h,vdssys.h,directml.h,restartmanager.h,dde.h,ddeml.h,zmouse.h,
     winbio_err.h,winbio_ioctl.h,winbio_types.h,winbio.h,winsvc.h,mssign.h,shellapi.h,bits.idl,bits1_5.idl,bits2_0.idl,bits2_5.idl,bits3_0.idl,bits4_0.idl,
     bits5_0.h,bits10_1.h,bits10_2.h,bits10_3.h,bitscfg.h,qmgr.h,bits2_0.h,bits2_5.h,bits3_0.h,bits4_0.h,bits5_0.idl,bits10_1.idl,bits10_2.idl,bits10_3.idl,
     bitscfg.h,qmgr.h,bitsmsg.h,dwrite.h,dwrite_1.h,dwrite_2.h,dwrite_3.h,shdeprecated.h,UserEnv.h,mscat.h,processenv.h,netioapi.h,iwscapi.h,wscapi.h,
