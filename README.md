@@ -228,7 +228,7 @@ This project has grown well beyond it's original mission of shell programming. W
 -Added common control macros for Edit, Button, Tab, DateTime, MonthCal, Static, IPAddress, Animate controls.\ 
    In all cases, these include the macros from both commctrl.h and windowsx.h.\
 -Added helper function `GetMem(Of T)` generic to dereference and cast a LongPtr to any type, even intrinsic types.\
--Added helper function `DCast(Of T, T2)` (direct cast) to copy `LenB(Of T)` bytes from any type, with no conversion like CInt would do where 65535 would overflow instead of giving -1. Also allows converting to UDTs, e.g. If you have ptll As LongLong containing a POINT, Dim pt As POINT = DCast(Of POINT)(ptll)
+-Added helper function `DCast(Of T, T2)` (direct cast) to copy `LenB(Of T)` bytes from any type, with no conversion like CInt would do where 65535 would overflow instead of giving -1. Also allows converting to UDTs, e.g. If you have ptll As LongLong containing a `POINT`, `Dim pt As POINT = DCast(Of POINT)(ptll)`.\
 -Some Tooltip types were only defined by their tag names instead of proper names. Tag names remain for compatibility.\
 -(Bug fix) Some GET_*_WPARAM helpers would overflow due to use of CLng().
 
