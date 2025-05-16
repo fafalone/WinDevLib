@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 8.12.532 (May 13th, 2025)**
+**Current Version: 8.12.534 (May 16th, 2025)**
 
 (c) 2022-2025 Jon Johnson (fafalone)
 
@@ -60,6 +60,10 @@ WinDevLib has some compiler constants you can enable:
 
 #### Custom Helper Functions
 In addition to coverage of common Windows SDK-defined macros and inlined functions, a small number of custom helper functions are provided to deal with Windows data types and similar not properly supported by the language. These are:
+
+`Public Function GetMem(Of T)(ByVal ptr As LongPtr) As T` - A generic to dereference a pointer into any type. The native `CType(Of )` allows dereferencing to UDTs, but this helper allows instrinsic types in addition to UDTs, and is used the same way.
+
+`Public Function DCast(Of T, T2)(ByVal v As T2) As T` - Direct Cast: Copies the data of v into any type, without modification, so no overflows, and possible to e.g. go from `LongLong` to `POINT`, with `Dim pt As POINT = DCast(Of POINT)(SomeLongLong)`
 
 `Public Function LPWSTRtoStr(lPtr As LongPtr, Optional ByVal fFree As Boolean = True) As String`\
 Converts a pointer to an LPWSTR/LPCWSTR/PWSTR/etc to an instrinsic `String` (BSTR)
@@ -219,6 +223,14 @@ Finally, there's numerous additional API sets from small to large for independen
 This project has grown well beyond it's original mission of shell programming. While that's still the largest single part, it's no longer a majority of the code, and the name change now much better reflects the purpose of providing a general Windows API experience like windows.h. Compiler constants and module names/file names have been updated to reflect the name change. tbShellLibImpl is now WinDevLibImpl. There are also some major chanages associated with this update, please see the full changelog below.
 
 ### Updates
+
+**Update (v8.12.534, 16 May 2025):**\
+-Added common control macros for Edit, Button, Tab, DateTime, MonthCal, Static, IPAddress, Animate controls.\ 
+   In all cases, these include the macros from both commctrl.h and windowsx.h.\
+-Added helper function `GetMem(Of T)` generic to dereference and cast a LongPtr to any type, even intrinsic types.\
+-Added helper function `DCast(Of T, T2)` (direct cast) to copy `LenB(Of T)` bytes from any type, with no conversion like CInt would do where 65535 would overflow instead of giving -1. Also allows converting to UDTs, e.g. If you have ptll As LongLong containing a POINT, Dim pt As POINT = DCast(Of POINT)(ptll)
+-Some Tooltip types were only defined by their tag names instead of proper names. Tag names remain for compatibility.\
+-(Bug fix) Some GET_*_WPARAM helpers would overflow due to use of CLng().
 
 **Update (v8.12.532, 13 May 2025):**\
 -Added lcid/LANGID helpers and some additional internationalization APIs\
