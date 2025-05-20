@@ -13293,7 +13293,7 @@ Public Declare PtrSafe Function Escape Lib "gdi32" (ByVal hdc As LongPtr, ByVal 
 Public Declare PtrSafe Function ExtEscape Lib "gdi32" (ByVal hdc As LongPtr, ByVal iEscape As GDI_ESCAPES, ByVal cjInput As Long, ByVal lpszInData As String /* ANSI */, ByVal cjOutput As Long, ByVal lpszOutData As String /* ANSI */) As Long
 
 
-Public Declare PtrSafe Function CreateDIBSection Lib "gdi32" (ByVal hDC As LongPtr, pbmi As Any, ByVal usage As Long, ByRef ppvBits As Any, ByVal hSection As LongPtr, ByVal offset As Long) As LongPtr
+Public Declare PtrSafe Function CreateDIBSection Lib "gdi32" (ByVal hDC As LongPtr, pbmi As Any, ByVal usage As GdiDIBitsColorUse, ByRef ppvBits As Any, ByVal hSection As LongPtr, ByVal offset As Long) As LongPtr
 Public DeclareWide PtrSafe Function CreateDIBitmap Lib "gdi32" (ByVal hDC As LongPtr, pbmih As BITMAPV5HEADER, ByVal flInit As CreateDIBitmapFlags, pjBits As Any, pbmi As Any, ByVal iUsage As GdiDIBitsColorUse) As LongPtr
 Public Declare PtrSafe Function CreateDIBPatternBrush Lib "gdi32" (ByVal h As LongPtr, ByVal iUsage As GdiDIBitsColorUse) As LongPtr
 Public DeclareWide PtrSafe Function CreateDIBPatternBrushPt Lib "gdi32" (lpPackedDIB As Any, ByVal iUsage As GdiDIBitsColorUse) As LongPtr
@@ -41797,6 +41797,1041 @@ Public Declare PtrSafe Function WebAuthNGetW3CExceptionDOMError Lib "webauthn.dl
  
 #End Region
 
+#Region "smartcard"
+
+'winsmcrd.h
+
+Public Const SCARD_ATR_LENGTH = 33
+
+Public Enum WinscardProtocolTypes
+    SCARD_PROTOCOL_UNDEFINED = &H00000000  ' There is no active protocol.
+    SCARD_PROTOCOL_T0 = &H00000001  ' T=0 is the active protocol.
+    SCARD_PROTOCOL_T1 = &H00000002  ' T=1 is the active protocol.
+    SCARD_PROTOCOL_RAW = &H00010000  ' Raw is the active protocol.
+'  This is the mask of ISO defined transmission protocols
+    SCARD_PROTOCOL_Tx = (SCARD_PROTOCOL_T0 Or SCARD_PROTOCOL_T1)
+'  Use the default transmission parameters / card clock freq.
+    SCARD_PROTOCOL_DEFAULT = &H80000000
+'  Use optimal transmission parameters / card clock freq.
+'  Since using the optimal parameters is the default case no bit is defined to be 1
+    SCARD_PROTOCOL_OPTIMAL = &H00000000
+End Enum
+
+[Description("Power down the card.")] Public Const SCARD_POWER_DOWN  = 0
+[Description("Cycle power and reset the card.")] Public Const SCARD_COLD_RESET  = 1
+[Description("Force a reset on the card.")] Public Const SCARD_WARM_RESET  = 2
+ 
+Public Const IOCTL_SMARTCARD_POWER                = &H310004 'CTL_CODE(FILE_DEVICE_SMARTCARD, (1), METHOD_BUFFERED, FILE_ANY_ACCESS)
+Public Const IOCTL_SMARTCARD_GET_ATTRIBUTE        = &H310008 'CTL_CODE(FILE_DEVICE_SMARTCARD, (2), METHOD_BUFFERED, FILE_ANY_ACCESS)
+Public Const IOCTL_SMARTCARD_SET_ATTRIBUTE        = &H31000C 'CTL_CODE(FILE_DEVICE_SMARTCARD, (3), METHOD_BUFFERED, FILE_ANY_ACCESS)
+Public Const IOCTL_SMARTCARD_CONFISCATE           = &H310010 'CTL_CODE(FILE_DEVICE_SMARTCARD, (4), METHOD_BUFFERED, FILE_ANY_ACCESS)
+Public Const IOCTL_SMARTCARD_TRANSMIT             = &H310014 'CTL_CODE(FILE_DEVICE_SMARTCARD, (5), METHOD_BUFFERED, FILE_ANY_ACCESS)
+Public Const IOCTL_SMARTCARD_EJECT                = &H310018 'CTL_CODE(FILE_DEVICE_SMARTCARD, (6), METHOD_BUFFERED, FILE_ANY_ACCESS)
+Public Const IOCTL_SMARTCARD_SWALLOW              = &H31001C 'CTL_CODE(FILE_DEVICE_SMARTCARD, (7), METHOD_BUFFERED, FILE_ANY_ACCESS)
+Public Const IOCTL_SMARTCARD_IS_PRESENT           = &H310028 'CTL_CODE(FILE_DEVICE_SMARTCARD, (10), METHOD_BUFFERED, FILE_ANY_ACCESS)
+Public Const IOCTL_SMARTCARD_IS_ABSENT            = &H31002C 'CTL_CODE(FILE_DEVICE_SMARTCARD, (11), METHOD_BUFFERED, FILE_ANY_ACCESS)
+Public Const IOCTL_SMARTCARD_SET_PROTOCOL         = &H310030 'CTL_CODE(FILE_DEVICE_SMARTCARD, (12), METHOD_BUFFERED, FILE_ANY_ACCESS)
+Public Const IOCTL_SMARTCARD_GET_STATE            = &H310038 'CTL_CODE(FILE_DEVICE_SMARTCARD, (14), METHOD_BUFFERED, FILE_ANY_ACCESS)
+Public Const IOCTL_SMARTCARD_GET_LAST_ERROR       = &H31003C 'CTL_CODE(FILE_DEVICE_SMARTCARD, (15), METHOD_BUFFERED, FILE_ANY_ACCESS)
+Public Const IOCTL_SMARTCARD_GET_PERF_CNTR        = &H310040 'CTL_CODE(FILE_DEVICE_SMARTCARD, (16), METHOD_BUFFERED, FILE_ANY_ACCESS)
+Public Const IOCTL_SMARTCARD_GET_FEATURE_REQUEST  = &H313520 'CTL_CODE(FILE_DEVICE_SMARTCARD, (3400), METHOD_BUFFERED, FILE_ANY_ACCESS) 
+
+Public Const MAXIMUM_ATTR_STRING_LENGTH  = 32  ' Nothing bigger than this from getAttr
+Public Const MAXIMUM_SMARTCARD_READERS  = 10  ' Limit the readers on the system
+
+Public Enum WinscardAttrClass
+    SCARD_CLASS_VENDOR_INFO = 1  ' Vendor information definitions
+    SCARD_CLASS_COMMUNICATIONS = 2  ' Communication definitions
+    SCARD_CLASS_PROTOCOL = 3  ' Protocol definitions
+    SCARD_CLASS_POWER_MGMT = 4  ' Power Management definitions
+    SCARD_CLASS_SECURITY = 5  ' Security Assurance definitions
+    SCARD_CLASS_MECHANICAL = 6  ' Mechanical characteristic definitions
+    SCARD_CLASS_VENDOR_DEFINED = 7  ' Vendor specific definitions
+    SCARD_CLASS_IFD_PROTOCOL = 8  ' Interface Device Protocol options
+    SCARD_CLASS_ICC_STATE = 9  ' ICC State specific definitions
+    SCARD_CLASS_PERF = &H7ffe  ' performace counters
+    SCARD_CLASS_SYSTEM = &H7fff  ' System-specific definitions
+End Enum
+
+Public Function SCARD_ATTR_VALUE(ByVal Class As WinscardAttrClass, ByVal Tag As Long) As Long
+    Return (((Class)) << 16) Or ((Tag))
+End Function
+
+Public Enum WinscardAttrIds
+    SCARD_ATTR_VENDOR_NAME = &H10100
+    SCARD_ATTR_VENDOR_IFD_TYPE = &H10101
+    SCARD_ATTR_VENDOR_IFD_VERSION = &H10102
+    SCARD_ATTR_VENDOR_IFD_SERIAL_NO = &H10103
+    SCARD_ATTR_CHANNEL_ID = &H20110
+    SCARD_ATTR_PROTOCOL_TYPES = &H30120
+    SCARD_ATTR_ASYNC_PROTOCOL_TYPES = &H30120
+    SCARD_ATTR_DEFAULT_CLK = &H30121
+    SCARD_ATTR_MAX_CLK = &H30122
+    SCARD_ATTR_DEFAULT_DATA_RATE = &H30123
+    SCARD_ATTR_MAX_DATA_RATE = &H30124
+    SCARD_ATTR_MAX_IFSD = &H30125
+    SCARD_ATTR_SYNC_PROTOCOL_TYPES = &H30126
+    SCARD_ATTR_POWER_MGMT_SUPPORT = &H40131
+    SCARD_ATTR_USER_TO_CARD_AUTH_DEVICE = &H50140
+    SCARD_ATTR_USER_AUTH_INPUT_DEVICE = &H50142
+    SCARD_ATTR_CHARACTERISTICS = &H60150
+    SCARD_ATTR_CURRENT_PROTOCOL_TYPE = &H80201
+    SCARD_ATTR_CURRENT_CLK = &H80202
+    SCARD_ATTR_CURRENT_F = &H80203
+    SCARD_ATTR_CURRENT_D = &H80204
+    SCARD_ATTR_CURRENT_N = &H80205
+    SCARD_ATTR_CURRENT_W = &H80206
+    SCARD_ATTR_CURRENT_IFSC = &H80207
+    SCARD_ATTR_CURRENT_IFSD = &H80208
+    SCARD_ATTR_CURRENT_BWT = &H80209
+    SCARD_ATTR_CURRENT_CWT = &H8020A
+    SCARD_ATTR_CURRENT_EBC_ENCODING = &H8020B
+    SCARD_ATTR_EXTENDED_BWT = &H8020C
+    SCARD_ATTR_ICC_PRESENCE = &H90300
+    SCARD_ATTR_ICC_INTERFACE_STATUS = &H90301
+    SCARD_ATTR_CURRENT_IO_STATE = &H90302
+    SCARD_ATTR_ATR_STRING = &H90303
+    SCARD_ATTR_ICC_TYPE_PER_ATR = &H90304
+    SCARD_ATTR_ESC_RESET = &H7A000
+    SCARD_ATTR_ESC_CANCEL = &H7A003
+    SCARD_ATTR_ESC_AUTHREQUEST = &H7A005
+    SCARD_ATTR_MAXINPUT = &H7A007
+    SCARD_ATTR_VENDOR_SPECIFIC_INFO = &H7A008
+    SCARD_ATTR_DEVICE_UNIT = &H7FFF0001
+    SCARD_ATTR_DEVICE_IN_USE = &H7FFF0002
+    SCARD_ATTR_DEVICE_FRIENDLY_NAME_A = &H7FFF0003
+    SCARD_ATTR_DEVICE_SYSTEM_NAME_A = &H7FFF0004
+    SCARD_ATTR_DEVICE_FRIENDLY_NAME_W = &H7FFF0005
+    SCARD_ATTR_DEVICE_SYSTEM_NAME_W = &H7FFF0006
+    SCARD_ATTR_SUPRESS_T1_IFS_REQUEST = &H7FFF0007
+    SCARD_PERF_NUM_TRANSMISSIONS = &H7FFE0001
+    SCARD_PERF_BYTES_TRANSMITTED = &H7FFE0002
+    SCARD_PERF_TRANSMISSION_TIME = &H7FFE0003
+
+    SCARD_ATTR_DEVICE_FRIENDLY_NAME = SCARD_ATTR_DEVICE_FRIENDLY_NAME_W
+    SCARD_ATTR_DEVICE_SYSTEM_NAME = SCARD_ATTR_DEVICE_SYSTEM_NAME_W
+ End Enum
+
+Public Const SCARD_T0_HEADER_LENGTH  = 7
+Public Const SCARD_T0_CMD_LENGTH  = 5
+'  T=1 Protocol Defines
+Public Const SCARD_T1_PROLOGUE_LENGTH  = 3
+Public Const SCARD_T1_EPILOGUE_LENGTH  = 2  ' CRC
+Public Const SCARD_T1_EPILOGUE_LENGTH_LRC  = 1
+Public Const SCARD_T1_MAX_IFS  = 254
+
+Public Enum WinscardCardStates
+    SCARD_UNKNOWN = 0   ' This value implies the driver is unaware
+                        '  of the current state of the reader.
+    SCARD_ABSENT = 1    ' This value implies there is no card in
+                        '  the reader.
+    SCARD_PRESENT = 2   ' This value implies there is a card is
+                        '  present in the reader, but that it has
+                        '  not been moved into position for use.
+    SCARD_SWALLOWED = 3 ' This value implies there is a card in the
+                        '  reader in position for use.  The card is
+                        '  not powered.
+    SCARD_POWERED = 4   ' This value implies there is power is
+                        '  being provided to the card, but the
+                        '  Reader Driver is unaware of the mode of
+                        '  the card.
+    SCARD_NEGOTIABLE = 5 ' This value implies the card has been
+                        '  reset and is awaiting PTS negotiation.
+    SCARD_SPECIFIC = 6  ' This value implies the card has been
+                        '  reset and specific communication
+                        '  protocols have been established.
+End Enum
+
+Public Type SCARD_IO_REQUEST
+    dwProtocol As Long ' Protocol identifier
+    cbPciLength As Long ' Protocol Control Information Length
+End Type
+
+Public Type SCARD_T0_COMMAND
+    bCla As Byte ' The instruction class
+    bIns As Byte ' The instruction code within the instruction class
+    bP1 As Byte
+    bP2 As Byte ' Parameters to the instruction
+    bP3 As Byte ' Size of I/O Transfer
+End Type
+
+[Description("Note: rgbHeader bytes can be transposed from SCARD_T0_COMMAND bytes")]
+Public Type SCARD_T0_REQUEST
+    ioRequest As SCARD_IO_REQUEST
+    bSw1 As Byte
+    bSw2 As Byte ' Return codes from the instruction
+    ' union
+    ' {
+        ' SCARD_T0_COMMAND CmdBytes;
+        ' BYTE rgbHeader[5];
+    ' } DUMMYUNIONNAME;
+    CmdBytes As SCARD_T0_COMMAND
+End Type
+
+Public Type SCARD_T1_REQUEST
+    ioRequest As SCARD_IO_REQUEST
+End Type
+
+Public Enum WinscardDriverAttrFlags
+    SCARD_READER_SWALLOWS = &H00000001  ' Reader has a card swallowing mechanism.
+    SCARD_READER_EJECTS = &H00000002  ' Reader has a card ejection mechanism.
+    SCARD_READER_CONFISCATES = &H00000004  ' Reader has a card capture mechanism.
+    SCARD_READER_CONTACTLESS = &H00000008  ' Reader supports contactless
+End Enum
+
+Public Enum WinscardReaderTypes
+    SCARD_READER_TYPE_SERIAL = &H01
+    SCARD_READER_TYPE_PARALELL = &H02
+    SCARD_READER_TYPE_KEYBOARD = &H04
+    SCARD_READER_TYPE_SCSI = &H08
+    SCARD_READER_TYPE_IDE = &H10
+    SCARD_READER_TYPE_USB = &H20
+    SCARD_READER_TYPE_PCMCIA = &H40
+    SCARD_READER_TYPE_TPM = &H80
+    SCARD_READER_TYPE_NFC = &H100
+    SCARD_READER_TYPE_UICC = &H200
+    SCARD_READER_TYPE_NGC = &H400
+    SCARD_READER_TYPE_EMBEDDEDSE = &H800
+    SCARD_READER_TYPE_VENDOR = &HF0
+End Enum
+
+
+'winscard.h
+
+' /* In clr:pure we cannot mark data export with dllimport.
+' * We should add small functions which returns the value of
+' * the global.
+' */
+' #if !defined(_M_CEE_PURE)
+' WINSCARDDATA extern const SCARD_IO_REQUEST
+   ' g_rgSCardT0Pci,
+   ' g_rgSCardT1Pci,
+   ' g_rgSCardRawPci;
+' #define SCARD_PCI_T0  (&g_rgSCardT0Pci)
+' #define SCARD_PCI_T1  (&g_rgSCardT1Pci)
+' #define SCARD_PCI_RAW (&g_rgSCardRawPci)
+
+Public Const SCARD_AUTOALLOCATE = (-1&)
+
+Public Enum WinscardContextScope
+    SCARD_SCOPE_USER = 0        ' The context is a user context, and any
+                                '  database operations are performed within the
+                                '  domain of the user.
+    SCARD_SCOPE_TERMINAL = 1    ' The context is that of the current terminal,
+                                '  and any database operations are performed
+                                '  within the domain of that terminal.  (The
+                                '  calling application must have appropriate
+                                '  access permissions for any database actions.)
+    SCARD_SCOPE_SYSTEM = 2      ' The context is the system context, and any
+                                '  database operations are performed within the
+                                '  domain of the system.  (The calling
+                                '  application must have appropriate access
+                                '  permissions for any database actions.)
+End Enum
+
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardEstablishContext Lib "winscard.dll" (ByVal dwScope As WinscardContextScope, ByVal pvReserved1 As LongPtr, ByVal pvReserved2 As LongPtr, phContext As LongPtr) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardReleaseContext Lib "winscard.dll" (ByVal hContext As LongPtr) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardIsValidContext Lib "winscard.dll" (ByVal hContext As LongPtr) As Long
+
+Public Const SCARD_ALL_READERS  = "SCard$AllReaders" & vbnullchar
+Public Const SCARD_DEFAULT_READERS  = "SCard$DefaultReaders" & vbnullchar
+Public Const SCARD_LOCAL_READERS  = "SCard$LocalReaders" & vbnullchar
+Public Const SCARD_SYSTEM_READERS  = "SCard$SystemReaders" & vbnullchar
+
+Public Enum WinscardCryptoProviders
+    SCARD_PROVIDER_PRIMARY = 1  ' Primary Provider Id
+    SCARD_PROVIDER_CSP = 2  ' Crypto Service Provider Id
+    SCARD_PROVIDER_KSP = 3  ' Key Storage Provider Id
+End Enum
+
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardListReaderGroupsA Lib "winscard.dll" (ByVal hContext As LongPtr, ByVal mszGroups As String, pcchGroups As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardListReaderGroupsW Lib "winscard.dll" (ByVal hContext As LongPtr, ByVal mszGroups As LongPtr, pcchGroups As Long) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function SCardListReaderGroups Lib "winscard.dll" Alias "SCardListReaderGroupsW" (ByVal hContext As LongPtr, ByVal mszGroups As String, pcchGroups As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardListReadersA Lib "winscard.dll" (ByVal hContext As LongPtr, ByVal mszGroups As String, ByVal mszReaders As String, pcchReaders As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardListReadersW Lib "winscard.dll" (ByVal hContext As LongPtr, ByVal mszGroups As LongPtr, ByVal mszReaders As LongPtr, pcchReaders As Long) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function SCardListReaders Lib "winscard.dll" Alias "SCardListReadersW" (ByVal hContext As LongPtr, ByVal mszGroups As String, ByVal mszReaders As String, pcchReaders As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardListCardsA Lib "winscard.dll" (ByVal hContext As LongPtr, pbAtr As Any, rgquidInterfaces As UUID, ByVal cguidInterfaceCount As Long, ByVal mszCards As String, pcchCards As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardListCardsW Lib "winscard.dll" (ByVal hContext As LongPtr, pbAtr As Any, rgquidInterfaces As UUID, ByVal cguidInterfaceCount As Long, ByVal mszCards As LongPtr, pcchCards As Long) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function SCardListCards Lib "winscard.dll" Alias "SCardListCardsW" (ByVal hContext As LongPtr, pbAtr As Any, rgquidInterfaces As UUID, ByVal cguidInterfaceCount As Long, ByVal mszCards As String, pcchCards As Long) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function SCardListCardTypes Lib "winscard.dll" Alias "SCardListCardsW" (ByVal hContext As LongPtr, pbAtr As Any, rgquidInterfaces As UUID, ByVal cguidInterfaceCount As Long, ByVal mszCards As String, pcchCards As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardListInterfacesA Lib "winscard.dll" (ByVal hContext As LongPtr, ByVal szCard As String, pguidInterfaces As UUID, pcguidInterfaces As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardListInterfacesW Lib "winscard.dll" (ByVal hContext As LongPtr, ByVal szCard As LongPtr, pguidInterfaces As UUID, pcguidInterfaces As Long) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function SCardListInterfaces Lib "winscard.dll" Alias "SCardListInterfacesW" (ByVal hContext As LongPtr, ByVal szCard As String, pguidInterfaces As UUID, pcguidInterfaces As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardGetProviderIdA Lib "winscard.dll" (ByVal hContext As LongPtr, ByVal szCard As String, pguidProviderId As UUID) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardGetProviderIdW Lib "winscard.dll" (ByVal hContext As LongPtr, ByVal szCard As LongPtr, pguidProviderId As UUID) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function SCardGetProviderId Lib "winscard.dll" Alias "SCardGetProviderIdW" (ByVal hContext As LongPtr, ByVal szCard As String, pguidProviderId As UUID) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardGetCardTypeProviderNameA Lib "winscard.dll" (ByVal hContext As LongPtr, ByVal szCard As String, ByVal dwProviderId As WinscardCryptoProviders, ByVal szProvider As String, pcchProvider As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardGetCardTypeProviderNameW Lib "winscard.dll" (ByVal hContext As LongPtr, ByVal szCard As LongPtr, ByVal dwProviderId As WinscardCryptoProviders, ByVal szProvider As String, pcchProvider As Long) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function SCardGetCardTypeProviderName Lib "winscard.dll" Alias "SCardGetCardTypeProviderNameW" (ByVal hContext As LongPtr, ByVal szCard As String, ByVal dwProviderId As WinscardCryptoProviders, ByVal szProvider As String, pcchProvider As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardIntroduceReaderGroupA Lib "winscard.dll" (ByVal hContext As LongPtr, ByVal szGroupName As String) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardIntroduceReaderGroupW Lib "winscard.dll" (ByVal hContext As LongPtr, ByVal szGroupName As LongPtr) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function SCardIntroduceReaderGroup Lib "winscard.dll" Alias "SCardIntroduceReaderGroupW" (ByVal hContext As LongPtr, ByVal szGroupName As String) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardForgetReaderGroupA Lib "winscard.dll" (ByVal hContext As LongPtr, ByVal szGroupName As String) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardForgetReaderGroupW Lib "winscard.dll" (ByVal hContext As LongPtr, ByVal szGroupName As LongPtr) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function SCardForgetReaderGroup Lib "winscard.dll" Alias "SCardForgetReaderGroupW" (ByVal hContext As LongPtr, ByVal szGroupName As String) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardIntroduceReaderA Lib "winscard.dll" (ByVal hContext As LongPtr, ByVal szReaderName As String, ByVal szDeviceName As String) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardIntroduceReaderW Lib "winscard.dll" (ByVal hContext As LongPtr, ByVal szReaderName As LongPtr, ByVal szDeviceName As LongPtr) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function SCardIntroduceReader Lib "winscard.dll" Alias "SCardIntroduceReaderW" (ByVal hContext As LongPtr, ByVal szReaderName As String, ByVal szDeviceName As String) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardForgetReaderA Lib "winscard.dll" (ByVal hContext As LongPtr, ByVal szReaderName As String) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardForgetReaderW Lib "winscard.dll" (ByVal hContext As LongPtr, ByVal szReaderName As LongPtr) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function SCardForgetReader Lib "winscard.dll" Alias "SCardForgetReaderW" (ByVal hContext As LongPtr, ByVal szReaderName As String) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardAddReaderToGroupA Lib "winscard.dll" (ByVal hContext As LongPtr, ByVal szReaderName As String, ByVal szGroupName As String) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardAddReaderToGroupW Lib "winscard.dll" (ByVal hContext As LongPtr, ByVal szReaderName As LongPtr, ByVal szGroupName As LongPtr) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function SCardAddReaderToGroup Lib "winscard.dll" Alias "SCardAddReaderToGroupW" (ByVal hContext As LongPtr, ByVal szReaderName As String, ByVal szGroupName As String) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardRemoveReaderFromGroupA Lib "winscard.dll" (ByVal hContext As LongPtr, ByVal szReaderName As String, ByVal szGroupName As String) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardRemoveReaderFromGroupW Lib "winscard.dll" (ByVal hContext As LongPtr, ByVal szReaderName As LongPtr, ByVal szGroupName As LongPtr) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function SCardRemoveReaderFromGroup Lib "winscard.dll" Alias "SCardRemoveReaderFromGroupW" (ByVal hContext As LongPtr, ByVal szReaderName As String, ByVal szGroupName As String) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardIntroduceCardTypeA Lib "winscard.dll" (ByVal hContext As LongPtr, ByVal szCardName As String, pguidPrimaryProvider As UUID, rgguidInterfaces As UUID, ByVal dwInterfaceCount As Long, pbAtr As Any, pbAtrMask As Any, ByVal cbAtrLen As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardIntroduceCardTypeW Lib "winscard.dll" (ByVal hContext As LongPtr, ByVal szCardName As LongPtr, pguidPrimaryProvider As UUID, rgguidInterfaces As UUID, ByVal dwInterfaceCount As Long, pbAtr As Any, pbAtrMask As Any, ByVal cbAtrLen As Long) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function SCardIntroduceCardType Lib "winscard.dll" Alias "SCardIntroduceCardTypeW" (ByVal hContext As LongPtr, ByVal szCardName As String, pguidPrimaryProvider As UUID, rgguidInterfaces As UUID, ByVal dwInterfaceCount As Long, pbAtr As Any, pbAtrMask As Any, ByVal cbAtrLen As Long) As Long
+
+Public Function PCSCardIntroduceCardType(ByVal hContext As LongPtr, ByVal szCardName As LongPtr, ByVal pbAtr As LongPtr, ByVal pbAtrMask As LongPtr, ByVal cbAtrLen As Long, pguidPrimaryProvider As UUID, rgguidInterfaces As UUID, ByVal dwInterfaceCount As Long) As Long
+    Return SCardIntroduceCardType(hContext, szCardName, pguidPrimaryProvider, rgguidInterfaces, dwInterfaceCount, ByVal pbAtr, ByVal pbAtrMask, cbAtrLen)
+End Function
+
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardSetCardTypeProviderNameA Lib "winscard.dll" (ByVal hContext As LongPtr, ByVal szCardName As String, ByVal dwProviderId As WinscardCryptoProviders, ByVal szProvider As String) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardSetCardTypeProviderNameW Lib "winscard.dll" (ByVal hContext As LongPtr, ByVal szCardName As LongPtr, ByVal dwProviderId As WinscardCryptoProviders, ByVal szProvider As LongPtr) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function SCardSetCardTypeProviderName Lib "winscard.dll" Alias "SCardSetCardTypeProviderNameW" (ByVal hContext As LongPtr, ByVal szCardName As String, ByVal dwProviderId As WinscardCryptoProviders, ByVal szProvider As String) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardForgetCardTypeA Lib "winscard.dll" (ByVal hContext As LongPtr, ByVal szCardName As String) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardForgetCardTypeW Lib "winscard.dll" (ByVal hContext As LongPtr, ByVal szCardName As LongPtr) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function SCardForgetCardType Lib "winscard.dll" Alias "SCardForgetCardTypeW" (ByVal hContext As LongPtr, ByVal szCardName As String) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardFreeMemory Lib "winscard.dll" (ByVal hContext As LongPtr, ByVal pvMem As LongPtr) As Long
+Public Declare PtrSafe Function SCardAccessStartedEvent Lib "winscard.dll" () As LongPtr
+Public Declare PtrSafe Sub SCardReleaseStartedEvent Lib "winscard.dll" ()
+
+Public Type SCARD_READERSTATEA
+    szReader As String ' reader name
+    pvUserData As LongPtr ' user defined data
+    dwCurrentState As WinscardReaderStates ' current state of reader at time of call
+    dwEventState As WinscardReaderStates ' state of reader after state change
+    cbAtr As Long ' Number of bytes in the returned ATR.
+    rgbAtr(0 To 35) As Byte ' Atr of inserted card, (extra alignment bytes)
+End Type
+Public Type SCARD_READERSTATEW
+    szReader As LongPtr ' reader name
+    pvUserData As LongPtr ' user defined data
+    dwCurrentState As WinscardReaderStates ' current state of reader at time of call
+    dwEventState As WinscardReaderStates ' state of reader after state change
+    cbAtr As Long ' Number of bytes in the returned ATR.
+    rgbAtr(0 To 35) As Byte ' Atr of inserted card, (extra alignment bytes)
+End Type
+'Alias SCARD_READERSTATE As SCARD_READERSTATEW
+Public Type SCARD_READERSTATE
+    szReader As LongPtr ' reader name
+    pvUserData As LongPtr ' user defined data
+    dwCurrentState As WinscardReaderStates ' current state of reader at time of call
+    dwEventState As WinscardReaderStates ' state of reader after state change
+    cbAtr As Long ' Number of bytes in the returned ATR.
+    rgbAtr(0 To 35) As Byte ' Atr of inserted card, (extra alignment bytes)
+End Type
+
+'Alias alias alias
+Public Type SCARD_READERSTATE_A
+    szReader As String ' reader name
+    pvUserData As LongPtr ' user defined data
+    dwCurrentState As WinscardReaderStates ' current state of reader at time of call
+    dwEventState As WinscardReaderStates ' state of reader after state change
+    cbAtr As Long ' Number of bytes in the returned ATR.
+    rgbAtr(0 To 35) As Byte ' Atr of inserted card, (extra alignment bytes)
+End Type
+Public Type SCARD_READERSTATE_W
+    szReader As LongPtr ' reader name
+    pvUserData As LongPtr ' user defined data
+    dwCurrentState As WinscardReaderStates ' current state of reader at time of call
+    dwEventState As WinscardReaderStates ' state of reader after state change
+    cbAtr As Long ' Number of bytes in the returned ATR.
+    rgbAtr(0 To 35) As Byte ' Atr of inserted card, (extra alignment bytes)
+End Type
+
+
+
+
+Public Enum WinscardReaderStates
+    SCARD_STATE_UNAWARE = &H00000000    ' The application is unaware of the
+                                        '  current state, and would like to
+                                        '  know.  The use of this value
+                                        '  results in an immediate return
+                                        '  from state transition monitoring
+                                        '  services.  This is represented by
+                                        '  all bits set to zero.
+    SCARD_STATE_IGNORE = &H00000001     ' The application requested that
+                                        '  this reader be ignored.  No other
+                                        '  bits will be set.
+    SCARD_STATE_CHANGED = &H00000002    ' This implies that there is a
+                                        '  difference between the state
+                                        '  believed by the application, and
+                                        '  the state known by the Service
+                                        '  Manager.  When this bit is set,
+                                        '  the application may assume a
+                                        '  significant state change has
+                                        '  occurred on this reader.
+    SCARD_STATE_UNKNOWN = &H00000004    ' This implies that the given
+                                        '  reader name is not recognized by
+                                        '  the Service Manager.  If this bit
+                                        '  is set, then SCARD_STATE_CHANGED
+                                        '  and SCARD_STATE_IGNORE will also
+                                        '  be set.
+    SCARD_STATE_UNAVAILABLE = &H00000008  ' This implies that the actual
+                                        '  state of this reader is not
+                                        '  available.  If this bit is set,
+                                        '  then all the following bits are
+                                        '  clear.
+    SCARD_STATE_EMPTY = &H00000010      ' This implies that there is not
+                                        '  card in the reader.  If this bit
+                                        '  is set, all the following bits
+                                        '  will be clear.
+    SCARD_STATE_PRESENT = &H00000020    ' This implies that there is a card
+                                        '  in the reader.
+    SCARD_STATE_ATRMATCH = &H00000040   ' This implies that there is a card
+                                        '  in the reader with an ATR
+                                        '  matching one of the target cards.
+                                        '  If this bit is set,
+                                        '  SCARD_STATE_PRESENT will also be
+                                        '  set.  This bit is only returned
+                                        '  on the SCardLocateCard() service.
+    SCARD_STATE_EXCLUSIVE = &H00000080  ' This implies that the card in the
+                                        '  reader is allocated for exclusive
+                                        '  use by another application.  If
+                                        '  this bit is set,
+                                        '  SCARD_STATE_PRESENT will also be
+                                        '  set.
+    SCARD_STATE_INUSE = &H00000100      ' This implies that the card in the
+                                        '  reader is in use by one or more
+                                        '  other applications, but may be
+                                        '  connected to in shared mode.  If
+                                        '  this bit is set,
+                                        '  SCARD_STATE_PRESENT will also be
+                                        '  set.
+    SCARD_STATE_MUTE = &H00000200       ' This implies that the card in the
+                                        '  reader is unresponsive or not
+                                        '  supported by the reader or
+                                        '  software.
+    SCARD_STATE_UNPOWERED = &H00000400  ' This implies that the card in the
+                                        '  reader has not been powered up.
+End Enum
+
+
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardLocateCardsA Lib "winscard.dll" (ByVal hContext As LongPtr, ByVal mszCards As String, rgReaderStates As SCARD_READERSTATEA, ByVal cReaders As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardLocateCardsW Lib "winscard.dll" (ByVal hContext As LongPtr, ByVal mszCards As LongPtr, rgReaderStates As SCARD_READERSTATEW, ByVal cReaders As Long) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function SCardLocateCards Lib "winscard.dll" Alias "SCardLocateCardsW" (ByVal hContext As LongPtr, ByVal mszCards As String, rgReaderStates As SCARD_READERSTATE, ByVal cReaders As Long) As Long
+
+Public Type SCARD_ATRMASK
+    cbAtr As Long ' Number of bytes in the ATR and the mask.
+    rgbAtr(0 To 35) As Byte ' Atr of card (extra alignment bytes)
+    rgbMask(0 To 35) As Byte ' Mask for the Atr (extra alignment bytes)
+End Type
+
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardLocateCardsByATRA Lib "winscard.dll" (ByVal hContext As LongPtr, rgAtrMasks As SCARD_ATRMASK, ByVal cAtrs As Long, rgReaderStates As SCARD_READERSTATEA, ByVal cReaders As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardLocateCardsByATRW Lib "winscard.dll" (ByVal hContext As LongPtr, rgAtrMasks As SCARD_ATRMASK, ByVal cAtrs As Long, rgReaderStates As SCARD_READERSTATEW, ByVal cReaders As Long) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function SCardLocateCardsByATR Lib "winscard.dll" Alias "SCardLocateCardsByATRW" (ByVal hContext As LongPtr, rgAtrMasks As SCARD_ATRMASK, ByVal cAtrs As Long, rgReaderStates As SCARD_READERSTATE, ByVal cReaders As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardGetStatusChangeA Lib "winscard.dll" (ByVal hContext As LongPtr, ByVal dwTimeout As Long, rgReaderStates As SCARD_READERSTATEA, ByVal cReaders As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardGetStatusChangeW Lib "winscard.dll" (ByVal hContext As LongPtr, ByVal dwTimeout As Long, rgReaderStates As SCARD_READERSTATEW, ByVal cReaders As Long) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function SCardGetStatusChange Lib "winscard.dll" Alias "SCardGetStatusChangeW" (ByVal hContext As LongPtr, ByVal dwTimeout As Long, rgReaderStates As SCARD_READERSTATE, ByVal cReaders As Long) As Long
+
+Public Enum WinscardCardShareFlags
+    SCARD_SHARE_EXCLUSIVE = 1   ' This application is not willing to share this
+                                '  card with other applications.
+    SCARD_SHARE_SHARED = 2      ' This application is willing to share this
+                                '  card with other applications.
+    SCARD_SHARE_DIRECT = 3      ' This application demands direct control of
+                                '  the reader, so it is not available to other
+                                '  applications.
+End Enum
+
+Public Enum WinscardOnCloseAction
+    SCARD_LEAVE_CARD = 0  ' Don't do anything special on close
+    SCARD_RESET_CARD = 1  ' Reset the card on close
+    SCARD_UNPOWER_CARD = 2  ' Power down the card on close
+    SCARD_EJECT_CARD = 3  ' Eject the card on close
+End Enum
+
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardConnectA Lib "winscard.dll" (ByVal hContext As LongPtr, ByVal szReader As String, ByVal dwShareMode As WinscardCardShareFlags, ByVal dwPreferredProtocols As WinscardProtocolTypes, phCard As LongPtr, pdwActiveProtocol As WinscardProtocolTypes) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardConnectW Lib "winscard.dll" (ByVal hContext As LongPtr, ByVal szReader As LongPtr, ByVal dwShareMode As WinscardCardShareFlags, ByVal dwPreferredProtocols As WinscardProtocolTypes, phCard As LongPtr, pdwActiveProtocol As WinscardProtocolTypes) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function SCardConnect Lib "winscard.dll" Alias "SCardConnectW" (ByVal hContext As LongPtr, ByVal szReader As String, ByVal dwShareMode As WinscardCardShareFlags, ByVal dwPreferredProtocols As WinscardProtocolTypes, phCard As LongPtr, pdwActiveProtocol As WinscardProtocolTypes) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardReconnect Lib "winscard.dll" (ByVal hCard As LongPtr, ByVal dwShareMode As WinscardCardShareFlags, ByVal dwPreferredProtocols As WinscardProtocolTypes, ByVal dwInitialization As WinscardOnCloseAction, Optional pdwActiveProtocol As WinscardProtocolTypes) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardDisconnect Lib "winscard.dll" (ByVal hCard As LongPtr, ByVal dwDisposition As WinscardOnCloseAction) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardBeginTransaction Lib "winscard.dll" (ByVal hCard As LongPtr) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardEndTransaction Lib "winscard.dll" (ByVal hCard As LongPtr, ByVal dwDisposition As WinscardOnCloseAction) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardCancelTransaction Lib "winscard.dll" (ByVal hCard As LongPtr) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardState Lib "winscard.dll" (ByVal hCard As LongPtr, pdwState As WinscardCardStates, pdwProtocol As WinscardProtocolTypes, pbAtr As Any, pcbAtrLen As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardStatusA Lib "winscard.dll" (ByVal hCard As LongPtr, ByVal mszReaderNames As String, pcchReaderLen As Long, pdwState As WinscardCardStates, pdwProtocol As WinscardProtocolTypes, pbAtr As Any, pcbAtrLen As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardStatusW Lib "winscard.dll" (ByVal hCard As LongPtr, ByVal mszReaderNames As LongPtr, pcchReaderLen As Long, pdwState As WinscardCardStates, pdwProtocol As WinscardProtocolTypes, pbAtr As Any, pcbAtrLen As Long) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function SCardStatus Lib "winscard.dll" Alias "SCardStatusW" (ByVal hCard As LongPtr, ByVal mszReaderNames As String, pcchReaderLen As Long, pdwState As WinscardCardStates, pdwProtocol As WinscardProtocolTypes, pbAtr As Any, pcbAtrLen As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardTransmit Lib "winscard.dll" (ByVal hCard As LongPtr, pioSendPci As SCARD_IO_REQUEST, pbSendBuffer As Any, ByVal cbSendLength As Long, pioRecvPci As SCARD_IO_REQUEST, pbRecvBuffer As Any, pcbRecvLength As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardGetTransmitCount Lib "winscard.dll" (ByVal hCard As LongPtr, pcTransmitCount As Long) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function SCardControl Lib "kernel32" (ByVal hCard As LongPtr, ByVal dwControlCode As Long, lpInBuffer As Any, ByVal cbBufferSize As Long, lpOutBuffer As Any, ByVal cbBufferSize As Long, lpBytesReturned As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardGetAttrib Lib "winscard.dll" (ByVal hCard As LongPtr, ByVal dwAttrId As WinscardAttrIds, pbAttr As Any, pcbAttrLen As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardSetAttrib Lib "winscard.dll" (ByVal hCard As LongPtr, ByVal dwAttrId As WinscardAttrIds, pbAttr As Any, ByVal cbAttrLen As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardSetReaderCapabilities Lib "winscard.dll" Alias "SCardSetAttrib" (ByVal hCard As LongPtr, ByVal dwAttrId As WinscardAttrIds, pbAttr As Any, ByVal cbAttrLen As Long) As Long
+
+Public Enum WinscardDialogFlags
+    SC_DLG_MINIMAL_UI = &H01
+    SC_DLG_NO_UI = &H02
+    SC_DLG_FORCE_UI = &H04
+End Enum
+
+Public Const SCERR_NOCARDNAME  = &H4000
+Public Const SCERR_NOGUIDS  = &H8000
+
+Public Delegate Function OCNCONNPROCA (ByVal hSCardContext As LongPtr, ByVal szReader As LongPtr, ByVal mszCards As LongPtr, ByVal pvUserData As LongPtr) As LongPtr
+Public Delegate Function OCNCONNPROCW (ByVal hSCardContext As LongPtr, ByVal szReader As LongPtr, ByVal mszCards As LongPtr, ByVal pvUserData As LongPtr) As LongPtr
+Public Delegate Function OCNCONNPROC (ByVal hSCardContext As LongPtr, ByVal szReader As LongPtr, ByVal mszCards As LongPtr, ByVal pvUserData As LongPtr) As LongPtr
+
+Public Delegate Function OCNCHKPROC (ByVal hSCardContext As LongPtr, ByVal hCard As LongPtr, ByVal pvUserData As LongPtr) As BOOL
+
+Public Delegate Sub OCNDSCPROC (ByVal hSCardContext As LongPtr, ByVal hCard As LongPtr, ByVal pvUserData As LongPtr)
+
+Public Type OPENCARD_SEARCH_CRITERIAA
+    dwStructSize As Long
+    lpstrGroupNames As String ' OPTIONAL reader groups to include in
+    nMaxGroupNames As Long '          search.  NULL defaults to
+    '          SCard$DefaultReaders
+    rgguidInterfaces As LongPtr 'LPCUUID ' OPTIONAL requested interfaces
+    cguidInterfaces As Long '          supported by card's SSP
+    lpstrCardNames As String ' OPTIONAL requested card names; all cards w/
+    nMaxCardNames As Long '          matching ATRs will be accepted
+    ' #If WINDEVLIB_NO_DELEGATES Then
+    lpfnCheck As LongPtr ' OPTIONAL if NULL no user check will be performed.
+    lpfnConnect As LongPtr ' OPTIONAL if lpfnConnect is provided,
+    lpfnDisconnect As LongPtr '          lpfnDisconnect must also be set.
+    ' #Else
+    ' lpfnCheck As OCNCHKPROC ' OPTIONAL if NULL no user check will be performed.
+    ' lpfnConnect As OCNCONNPROCA ' OPTIONAL if lpfnConnect is provided,
+    ' lpfnDisconnect As OCNDSCPROC '          lpfnDisconnect must also be set.
+    ' #End If
+    pvUserData As LongPtr ' OPTIONAL parameter to callbacks
+    dwShareMode As WinscardCardShareFlags ' OPTIONAL must be set if lpfnCheck is not null
+    dwPreferredProtocols As WinscardProtocolTypes ' OPTIONAL
+End Type
+Public Type OPENCARD_SEARCH_CRITERIAW
+    dwStructSize As Long
+    lpstrGroupNames As LongPtr ' OPTIONAL reader groups to include in
+    nMaxGroupNames As Long '          search.  NULL defaults to
+    '          SCard$DefaultReaders
+    rgguidInterfaces As LongPtr 'LPCUUID ' OPTIONAL requested interfaces
+    cguidInterfaces As Long '          supported by card's SSP
+    lpstrCardNames As LongPtr ' OPTIONAL requested card names; all cards w/
+    nMaxCardNames As Long '          matching ATRs will be accepted
+    ' #If WINDEVLIB_NO_DELEGATES Then
+    lpfnCheck As LongPtr ' OPTIONAL if NULL no user check will be performed.
+    lpfnConnect As LongPtr ' OPTIONAL if lpfnConnect is provided,
+    lpfnDisconnect As LongPtr '          lpfnDisconnect must also be set.
+    ' #Else
+    ' lpfnCheck As OCNCHKPROC ' OPTIONAL if NULL no user check will be performed.
+    ' lpfnConnect As OCNCONNPROCW ' OPTIONAL if lpfnConnect is provided,
+    ' lpfnDisconnect As OCNDSCPROC '          lpfnDisconnect must also be set.
+    ' #End If
+    pvUserData As LongPtr ' OPTIONAL parameter to callbacks
+    dwShareMode As WinscardCardShareFlags ' OPTIONAL must be set if lpfnCheck is not null
+    dwPreferredProtocols As WinscardProtocolTypes ' OPTIONAL
+End Type
+'Alias OPENCARD_SEARCH_CRITERIA as OPENCARD_SEARCH_CRITERIAW
+Public Type OPENCARD_SEARCH_CRITERIA
+    dwStructSize As Long
+    lpstrGroupNames As LongPtr ' OPTIONAL reader groups to include in
+    nMaxGroupNames As Long '          search.  NULL defaults to
+    '          SCard$DefaultReaders
+    rgguidInterfaces As LongPtr 'LPCUUID ' OPTIONAL requested interfaces
+    cguidInterfaces As Long '          supported by card's SSP
+    lpstrCardNames As LongPtr ' OPTIONAL requested card names; all cards w/
+    nMaxCardNames As Long '          matching ATRs will be accepted
+    ' #If WINDEVLIB_NO_DELEGATES Then
+    lpfnCheck As LongPtr ' OPTIONAL if NULL no user check will be performed.
+    lpfnConnect As LongPtr ' OPTIONAL if lpfnConnect is provided,
+    lpfnDisconnect As LongPtr '          lpfnDisconnect must also be set.
+    ' #Else
+    ' lpfnCheck As OCNCHKPROC ' OPTIONAL if NULL no user check will be performed.
+    ' lpfnConnect As OCNCONNPROC  ' OPTIONAL if lpfnConnect is provided,
+    ' lpfnDisconnect As OCNDSCPROC '          lpfnDisconnect must also be set.
+    ' #End If
+    pvUserData As LongPtr ' OPTIONAL parameter to callbacks
+    dwShareMode As WinscardCardShareFlags ' OPTIONAL must be set if lpfnCheck is not null
+    dwPreferredProtocols As WinscardProtocolTypes ' OPTIONAL
+End Type
+
+Public Type OPENCARDNAME_EXA
+    dwStructSize As Long ' REQUIRED
+    hSCardContext As LongPtr 'SCARDCONTEXT ' REQUIRED
+    hwndOwner As LongPtr ' OPTIONAL
+    dwFlags As WinscardDialogFlags ' OPTIONAL -- default is SC_DLG_MINIMAL_UI
+    lpstrTitle As String ' OPTIONAL
+    lpstrSearchDesc As String ' OPTIONAL (eg. "Please insert your <brandname> smart card.")
+    hIcon As LongPtr ' OPTIONAL 32x32 icon for your brand insignia
+    pOpenCardSearchCriteria As LongPtr 'POPENCARD_SEARCH_CRITERIAW ' OPTIONAL
+    ' #If WINDEVLIB_NO_DELEGATES Then 
+    lpfnConnect As LongPtr ' OPTIONAL - performed on successful selection
+    ' #Else
+    ' lpfnConnect As OCNCONNPROCA ' OPTIONAL - performed on successful selection
+    ' #End If
+    pvUserData As LongPtr ' OPTIONAL parameter to lpfnConnect
+    dwShareMode As WinscardCardShareFlags ' OPTIONAL - if lpfnConnect is NULL, dwShareMode and
+    dwPreferredProtocols As WinscardProtocolTypes ' OPTIONAL dwPreferredProtocols will be used to
+                                 '          connect to the selected card
+    lpstrRdr As String ' REQUIRED [IN|OUT] Name of selected reader
+    nMaxRdr As Long ' REQUIRED [IN|OUT]
+    lpstrCard As String ' REQUIRED [IN|OUT] Name of selected card
+    nMaxCard As Long ' REQUIRED [IN|OUT]
+    dwActiveProtocol As WinscardProtocolTypes ' [OUT] set only if dwShareMode not NULL
+    hCardHandle As LongPtr 'SCARDHANDLE [OUT] set if a card connection was indicated
+End Type
+Public Type OPENCARDNAME_EXW
+    dwStructSize As Long ' REQUIRED
+    hSCardContext As LongPtr 'SCARDCONTEXT ' REQUIRED
+    hwndOwner As LongPtr ' OPTIONAL
+    dwFlags As WinscardDialogFlags ' OPTIONAL -- default is SC_DLG_MINIMAL_UI
+    lpstrTitle As LongPtr ' OPTIONAL
+    lpstrSearchDesc As LongPtr ' OPTIONAL (eg. "Please insert your <brandname> smart card.")
+    hIcon As LongPtr ' OPTIONAL 32x32 icon for your brand insignia
+    pOpenCardSearchCriteria As LongPtr 'POPENCARD_SEARCH_CRITERIAW ' OPTIONAL
+    ' #If WINDEVLIB_NO_DELEGATES Then 
+    lpfnConnect As LongPtr ' OPTIONAL - performed on successful selection
+    ' #Else
+    ' lpfnConnect As OCNCONNPROCW ' OPTIONAL - performed on successful selection
+    ' #End If
+    pvUserData As LongPtr ' OPTIONAL parameter to lpfnConnect
+    dwShareMode As WinscardCardShareFlags ' OPTIONAL - if lpfnConnect is NULL, dwShareMode and
+    dwPreferredProtocols As WinscardProtocolTypes ' OPTIONAL dwPreferredProtocols will be used to
+                                 '          connect to the selected card
+    lpstrRdr As LongPtr ' REQUIRED [IN|OUT] Name of selected reader
+    nMaxRdr As Long ' REQUIRED [IN|OUT]
+    lpstrCard As LongPtr ' REQUIRED [IN|OUT] Name of selected card
+    nMaxCard As Long ' REQUIRED [IN|OUT]
+    dwActiveProtocol As WinscardProtocolTypes ' [OUT] set only if dwShareMode not NULL
+    hCardHandle As LongPtr 'SCARDHANDLE [OUT] set if a card connection was indicated
+End Type
+'Alias OPENCARDNAME_EX as OPENCARDNAME_EXW
+Public Type OPENCARDNAME_EX
+    dwStructSize As Long ' REQUIRED
+    hSCardContext As LongPtr 'SCARDCONTEXT ' REQUIRED
+    hwndOwner As LongPtr ' OPTIONAL
+    dwFlags As WinscardDialogFlags ' OPTIONAL -- default is SC_DLG_MINIMAL_UI
+    lpstrTitle As LongPtr ' OPTIONAL
+    lpstrSearchDesc As LongPtr ' OPTIONAL (eg. "Please insert your <brandname> smart card.")
+    hIcon As LongPtr ' OPTIONAL 32x32 icon for your brand insignia
+    pOpenCardSearchCriteria As LongPtr 'POPENCARD_SEARCH_CRITERIAW ' OPTIONAL
+    ' #If WINDEVLIB_NO_DELEGATES Then 
+    lpfnConnect As LongPtr ' OPTIONAL - performed on successful selection
+    ' #Else
+    ' lpfnConnect As OCNCONNPROC  ' OPTIONAL - performed on successful selection
+    ' #End If
+    pvUserData As LongPtr ' OPTIONAL parameter to lpfnConnect
+    dwShareMode As WinscardCardShareFlags ' OPTIONAL - if lpfnConnect is NULL, dwShareMode and
+    dwPreferredProtocols As WinscardProtocolTypes ' OPTIONAL dwPreferredProtocols will be used to
+                                 '          connect to the selected card
+    lpstrRdr As LongPtr ' REQUIRED [IN|OUT] Name of selected reader
+    nMaxRdr As Long ' REQUIRED [IN|OUT]
+    lpstrCard As LongPtr ' REQUIRED [IN|OUT] Name of selected card
+    nMaxCard As Long ' REQUIRED [IN|OUT]
+    dwActiveProtocol As WinscardProtocolTypes ' [OUT] set only if dwShareMode not NULL
+    hCardHandle As LongPtr 'SCARDHANDLE [OUT] set if a card connection was indicated
+End Type
+
+'Alias Alias
+Public Type OPENCARDNAMEA_EX
+    dwStructSize As Long ' REQUIRED
+    hSCardContext As LongPtr 'SCARDCONTEXT ' REQUIRED
+    hwndOwner As LongPtr ' OPTIONAL
+    dwFlags As WinscardDialogFlags ' OPTIONAL -- default is SC_DLG_MINIMAL_UI
+    lpstrTitle As String ' OPTIONAL
+    lpstrSearchDesc As String ' OPTIONAL (eg. "Please insert your <brandname> smart card.")
+    hIcon As LongPtr ' OPTIONAL 32x32 icon for your brand insignia
+    pOpenCardSearchCriteria As LongPtr 'POPENCARD_SEARCH_CRITERIAW ' OPTIONAL
+    ' #If WINDEVLIB_NO_DELEGATES Then 
+    lpfnConnect As LongPtr ' OPTIONAL - performed on successful selection
+    ' #Else
+    ' lpfnConnect As OCNCONNPROCA ' OPTIONAL - performed on successful selection
+    ' #End If
+    pvUserData As LongPtr ' OPTIONAL parameter to lpfnConnect
+    dwShareMode As WinscardCardShareFlags ' OPTIONAL - if lpfnConnect is NULL, dwShareMode and
+    dwPreferredProtocols As WinscardProtocolTypes ' OPTIONAL dwPreferredProtocols will be used to
+                                 '          connect to the selected card
+    lpstrRdr As String ' REQUIRED [IN|OUT] Name of selected reader
+    nMaxRdr As Long ' REQUIRED [IN|OUT]
+    lpstrCard As String ' REQUIRED [IN|OUT] Name of selected card
+    nMaxCard As Long ' REQUIRED [IN|OUT]
+    dwActiveProtocol As WinscardProtocolTypes ' [OUT] set only if dwShareMode not NULL
+    hCardHandle As LongPtr 'SCARDHANDLE [OUT] set if a card connection was indicated
+End Type
+Public Type OPENCARDNAMEW_EX
+    dwStructSize As Long ' REQUIRED
+    hSCardContext As LongPtr 'SCARDCONTEXT ' REQUIRED
+    hwndOwner As LongPtr ' OPTIONAL
+    dwFlags As WinscardDialogFlags ' OPTIONAL -- default is SC_DLG_MINIMAL_UI
+    lpstrTitle As LongPtr ' OPTIONAL
+    lpstrSearchDesc As LongPtr ' OPTIONAL (eg. "Please insert your <brandname> smart card.")
+    hIcon As LongPtr ' OPTIONAL 32x32 icon for your brand insignia
+    pOpenCardSearchCriteria As LongPtr 'POPENCARD_SEARCH_CRITERIAW ' OPTIONAL
+    ' #If WINDEVLIB_NO_DELEGATES Then 
+    lpfnConnect As LongPtr ' OPTIONAL - performed on successful selection
+    ' #Else
+    ' lpfnConnect As OCNCONNPROCW ' OPTIONAL - performed on successful selection
+    ' #End If
+    pvUserData As LongPtr ' OPTIONAL parameter to lpfnConnect
+    dwShareMode As WinscardCardShareFlags ' OPTIONAL - if lpfnConnect is NULL, dwShareMode and
+    dwPreferredProtocols As WinscardProtocolTypes ' OPTIONAL dwPreferredProtocols will be used to
+                                 '          connect to the selected card
+    lpstrRdr As LongPtr ' REQUIRED [IN|OUT] Name of selected reader
+    nMaxRdr As Long ' REQUIRED [IN|OUT]
+    lpstrCard As LongPtr ' REQUIRED [IN|OUT] Name of selected card
+    nMaxCard As Long ' REQUIRED [IN|OUT]
+    dwActiveProtocol As WinscardProtocolTypes ' [OUT] set only if dwShareMode not NULL
+    hCardHandle As LongPtr 'SCARDHANDLE [OUT] set if a card connection was indicated
+End Type
+
+Public Const SCARD_READER_SEL_AUTH_PACKAGE As Long = (-629&)
+
+Public Enum READER_SEL_REQUEST_MATCH_TYPE
+    RSR_MATCH_TYPE_READER_AND_CONTAINER = 1
+    RSR_MATCH_TYPE_SERIAL_NUMBER
+    RSR_MATCH_TYPE_ALL_CARDS
+End Enum
+
+[Description("Union structs available: READER_SEL_REQUEST_ReaderAndContainerParameter and READER_SEL_REQUEST_SerialNumberParameter")]
+Public Type READER_SEL_REQUEST
+    dwShareMode As WinscardCardShareFlags
+    dwPreferredProtocols As WinscardProtocolTypes
+    MatchType As READER_SEL_REQUEST_MATCH_TYPE
+    ' union {
+        ' struct {
+            ' DWORD                   cbReaderNameOffset;
+            ' DWORD                   cchReaderNameLength;
+            ' DWORD                   cbContainerNameOffset;
+            ' DWORD                   cchContainerNameLength;
+            ' DWORD                   dwDesiredCardModuleVersion;
+            ' DWORD                   dwCspFlags;
+        ' } ReaderAndContainerParameter;
+        ' struct {
+            ' DWORD                   cbSerialNumberOffset;
+            ' DWORD                   cbSerialNumberLength;
+            ' DWORD                   dwDesiredCardModuleVersion;
+        ' } SerialNumberParameter;
+    ' } DUMMYUNIONNAME;
+    u(5) As Long
+End Type
+Public Type READER_SEL_REQUEST_ReaderAndContainerParameter
+    cbReaderNameOffset As Long
+    cchReaderNameLength As Long
+    cbContainerNameOffset As Long
+    cchContainerNameLength As Long
+    dwDesiredCardModuleVersion As Long
+    dwCspFlags As Crypt_AC_Flags
+End Type
+Public Type READER_SEL_REQUEST_SerialNumberParameter
+    cbSerialNumberOffset As Long
+    cbSerialNumberLength As Long
+    dwDesiredCardModuleVersion As Long
+End Type
+
+Public Type READER_SEL_RESPONSE
+    cbReaderNameOffset As Long
+    cchReaderNameLength As Long
+    cbCardNameOffset As Long
+    cchCardNameLength As Long
+End Type
+
+
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardUIDlgSelectCardA Lib "winscard.dll" (ocn As OPENCARDNAME_EXA) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardUIDlgSelectCardW Lib "winscard.dll" (ocn As OPENCARDNAME_EXW) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function SCardUIDlgSelectCard Lib "winscard.dll" Alias "SCardUIDlgSelectCardW" (ocn As OPENCARDNAME_EX) As Long
+
+Public Type OPENCARDNAMEA
+    dwStructSize As Long
+    hwndOwner As LongPtr
+    hSCardContext As LongPtr 'SCARDCONTEXT
+    lpstrGroupNames As String
+    nMaxGroupNames As Long
+    lpstrCardNames As String
+    nMaxCardNames As Long
+    rgguidInterfaces As LongPtr 'LPCUUID
+    cguidInterfaces As Long
+    lpstrRdr As LongPtr
+    nMaxRdr As Long
+    lpstrCard As String
+    nMaxCard As Long
+    lpstrTitle As String
+    dwFlags As WinscardDialogFlags
+    pvUserData As LongPtr
+    dwShareMode As WinscardCardShareFlags
+    dwPreferredProtocols As WinscardProtocolTypes
+    dwActiveProtocol As WinscardProtocolTypes
+    ' #If WINDEVLIB_NO_DELEGATES Then 
+    lpfnConnect As LongPtr
+    lpfnCheck As LongPtr
+    lpfnDisconnect As LongPtr
+    ' #Else
+    ' lpfnConnect As OCNCONNPROCA
+    ' lpfnCheck As OCNCHKPROC
+    ' lpfnDisconnect As OCNDSCPROC
+    ' #End If
+    hCardHandle As LongPtr 'SCARDHANDLE
+End Type
+Public Type OPENCARDNAMEW
+    dwStructSize As Long
+    hwndOwner As LongPtr
+    hSCardContext As LongPtr 'SCARDCONTEXT
+    lpstrGroupNames As LongPtr
+    nMaxGroupNames As Long
+    lpstrCardNames As LongPtr
+    nMaxCardNames As Long
+    rgguidInterfaces As LongPtr 'LPCUUID
+    cguidInterfaces As Long
+    lpstrRdr As LongPtr
+    nMaxRdr As Long
+    lpstrCard As LongPtr
+    nMaxCard As Long
+    lpstrTitle As LongPtr
+    dwFlags As WinscardDialogFlags
+    pvUserData As LongPtr
+    dwShareMode As WinscardCardShareFlags
+    dwPreferredProtocols As WinscardProtocolTypes
+    dwActiveProtocol As WinscardProtocolTypes
+    ' #If WINDEVLIB_NO_DELEGATES Then 
+    lpfnConnect As LongPtr
+    lpfnCheck As LongPtr
+    lpfnDisconnect As LongPtr
+    ' #Else
+    ' lpfnConnect As OCNCONNPROCW
+    ' lpfnCheck As OCNCHKPROC
+    ' lpfnDisconnect As OCNDSCPROC
+    ' #End If
+    hCardHandle As LongPtr 'SCARDHANDLE
+End Type
+'Alias OPENCARDNAME as OPENCARDNAMEW
+Public Type OPENCARDNAME
+    dwStructSize As Long
+    hwndOwner As LongPtr
+    hSCardContext As LongPtr 'SCARDCONTEXT
+    lpstrGroupNames As LongPtr
+    nMaxGroupNames As Long
+    lpstrCardNames As LongPtr
+    nMaxCardNames As Long
+    rgguidInterfaces As LongPtr 'LPCUUID
+    cguidInterfaces As Long
+    lpstrRdr As LongPtr
+    nMaxRdr As Long
+    lpstrCard As LongPtr
+    nMaxCard As Long
+    lpstrTitle As LongPtr
+    dwFlags As WinscardDialogFlags
+    pvUserData As LongPtr
+    dwShareMode As WinscardCardShareFlags
+    dwPreferredProtocols As WinscardProtocolTypes
+    dwActiveProtocol As WinscardProtocolTypes
+    ' #If WINDEVLIB_NO_DELEGATES Then 
+    lpfnConnect As LongPtr
+    lpfnCheck As LongPtr
+    lpfnDisconnect As LongPtr
+    ' #Else
+    ' lpfnConnect As OCNCONNPROC 
+    ' lpfnCheck As OCNCHKPROC
+    ' lpfnDisconnect As OCNDSCPROC
+    ' #End If
+    hCardHandle As LongPtr 'SCARDHANDLE
+End Type
+
+'Alias OPENCARDNAME_A as OPENCARDNAMEA
+'Alias OPENCARDNAME_W as OPENCARDNAMEW
+Public Type OPENCARDNAME_A
+    dwStructSize As Long
+    hwndOwner As LongPtr
+    hSCardContext As LongPtr 'SCARDCONTEXT
+    lpstrGroupNames As String
+    nMaxGroupNames As Long
+    lpstrCardNames As String
+    nMaxCardNames As Long
+    rgguidInterfaces As LongPtr 'LPCUUID
+    cguidInterfaces As Long
+    lpstrRdr As LongPtr
+    nMaxRdr As Long
+    lpstrCard As String
+    nMaxCard As Long
+    lpstrTitle As String
+    dwFlags As WinscardDialogFlags
+    pvUserData As LongPtr
+    dwShareMode As WinscardCardShareFlags
+    dwPreferredProtocols As WinscardProtocolTypes
+    dwActiveProtocol As WinscardProtocolTypes
+    ' #If WINDEVLIB_NO_DELEGATES Then 
+    lpfnConnect As LongPtr
+    lpfnCheck As LongPtr
+    lpfnDisconnect As LongPtr
+    ' #Else
+    ' lpfnConnect As OCNCONNPROCA
+    ' lpfnCheck As OCNCHKPROC
+    ' lpfnDisconnect As OCNDSCPROC
+    ' #End If
+    hCardHandle As LongPtr 'SCARDHANDLE
+End Type
+Public Type OPENCARDNAME_W
+    dwStructSize As Long
+    hwndOwner As LongPtr
+    hSCardContext As LongPtr 'SCARDCONTEXT
+    lpstrGroupNames As LongPtr
+    nMaxGroupNames As Long
+    lpstrCardNames As LongPtr
+    nMaxCardNames As Long
+    rgguidInterfaces As LongPtr 'LPCUUID
+    cguidInterfaces As Long
+    lpstrRdr As LongPtr
+    nMaxRdr As Long
+    lpstrCard As LongPtr
+    nMaxCard As Long
+    lpstrTitle As LongPtr
+    dwFlags As WinscardDialogFlags
+    pvUserData As LongPtr
+    dwShareMode As WinscardCardShareFlags
+    dwPreferredProtocols As WinscardProtocolTypes
+    dwActiveProtocol As WinscardProtocolTypes
+    ' #If WINDEVLIB_NO_DELEGATES Then 
+    lpfnConnect As LongPtr
+    lpfnCheck As LongPtr
+    lpfnDisconnect As LongPtr
+    ' #Else
+    ' lpfnConnect As OCNCONNPROCW
+    ' lpfnCheck As OCNCHKPROC
+    ' lpfnDisconnect As OCNDSCPROC
+    ' #End If
+    hCardHandle As LongPtr 'SCARDHANDLE
+End Type
+
+
+[UseGetLastError(False)]
+Public Declare PtrSafe Function GetOpenCardNameA Lib "winscard.dll" (ocn As OPENCARDNAMEA) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function GetOpenCardNameW Lib "winscard.dll" (ocn As OPENCARDNAMEW) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function GetOpenCardName Lib "winscard.dll" Alias "GetOpenCardNameW" (ocn As OPENCARDNAME) As Long
+
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardReadCacheA Lib "winscard.dll" (ByVal hContext As LongPtr, CardIdentifier As UUID, ByVal FreshnessCounter As Long, ByVal LookupName As String, Data As Any, DataLen As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardReadCacheW Lib "winscard.dll" (ByVal hContext As LongPtr, CardIdentifier As UUID, ByVal FreshnessCounter As Long, ByVal LookupName As LongPtr, Data As Any, DataLen As Long) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function SCardReadCache Lib "winscard.dll" Alias "SCardReadCacheW" (ByVal hContext As LongPtr, CardIdentifier As UUID, ByVal FreshnessCounter As Long, ByVal LookupName As String, Data As Any, DataLen As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardWriteCacheA Lib "winscard.dll" (ByVal hContext As LongPtr, CardIdentifier As UUID, ByVal FreshnessCounter As Long, ByVal LookupName As String, Data As Any, ByVal DataLen As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardWriteCacheW Lib "winscard.dll" (ByVal hContext As LongPtr, CardIdentifier As UUID, ByVal FreshnessCounter As Long, ByVal LookupName As LongPtr, Data As Any, ByVal DataLen As Long) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function SCardWriteCache Lib "winscard.dll" Alias "SCardWriteCacheW" (ByVal hContext As LongPtr, CardIdentifier As UUID, ByVal FreshnessCounter As Long, ByVal LookupName As String, Data As Any, ByVal DataLen As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardGetReaderIconA Lib "winscard.dll" (ByVal hContext As LongPtr, ByVal szReaderName As String, pbIcon As Any, pcbIcon As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardGetReaderIconW Lib "winscard.dll" (ByVal hContext As LongPtr, ByVal szReaderName As LongPtr, pbIcon As Any, pcbIcon As Long) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function SCardGetReaderIcon Lib "winscard.dll" Alias "SCardGetReaderIconW" (ByVal hContext As LongPtr, ByVal szReaderName As String, pbIcon As Any, pcbIcon As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardGetDeviceTypeIdA Lib "winscard.dll" (ByVal hContext As LongPtr, ByVal szReaderName As String, pdwDeviceTypeId As WinscardReaderTypes) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardGetDeviceTypeIdW Lib "winscard.dll" (ByVal hContext As LongPtr, ByVal szReaderName As LongPtr, pdwDeviceTypeId As WinscardReaderTypes) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function SCardGetDeviceTypeId Lib "winscard.dll" Alias "SCardGetDeviceTypeIdW" (ByVal hContext As LongPtr, ByVal szReaderName As String, pdwDeviceTypeId As WinscardReaderTypes) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardGetReaderDeviceInstanceIdA Lib "winscard.dll" (ByVal hContext As LongPtr, ByVal szReaderName As String, ByVal szDeviceInstanceId As String, pcchDeviceInstanceId As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardGetReaderDeviceInstanceIdW Lib "winscard.dll" (ByVal hContext As LongPtr, ByVal szReaderName As LongPtr, ByVal szDeviceInstanceId As LongPtr, pcchDeviceInstanceId As Long) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function SCardGetReaderDeviceInstanceId Lib "winscard.dll" Alias "SCardGetReaderDeviceInstanceIdW" (ByVal hContext As LongPtr, ByVal szReaderName As String, ByVal szDeviceInstanceId As String, pcchDeviceInstanceId As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardListReadersWithDeviceInstanceIdA Lib "winscard.dll" (ByVal hContext As LongPtr, ByVal szDeviceInstanceId As String, ByVal mszReaders As String, pcchReaders As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardListReadersWithDeviceInstanceIdW Lib "winscard.dll" (ByVal hContext As LongPtr, ByVal szDeviceInstanceId As LongPtr, ByVal mszReaders As LongPtr, pcchReaders As Long) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function SCardListReadersWithDeviceInstanceId Lib "winscard.dll" Alias "SCardListReadersWithDeviceInstanceIdW" (ByVal hContext As LongPtr, ByVal szDeviceInstanceId As String, ByVal mszReaders As String, pcchReaders As Long) As Long
+
+Public Enum WinscardAuditgFlags
+    SCARD_AUDIT_CHV_FAILURE = &H0   ' A smart card holder verification (CHV)
+                                    '  attempt failed.
+    SCARD_AUDIT_CHV_SUCCESS = &H1   ' A smart card holder verification (CHV)
+                                    '  attempt succeeded.
+End Enum
+
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SCardAudit Lib "winscard.dll" (ByVal hContext As LongPtr, ByVal dwEvent As WinscardAuditgFlags) As Long
+
+
+
+#End Region
 
 #Region "Misc"
  
@@ -41833,7 +42868,7 @@ Public Enum MagnifierFilterModes
     MW_FILTERMODE_INCLUDE = 1
 End Enum
 
-[Description("Reminder: Dimensions inverted compared to C def (`float v[3][3];`)")]
+[Description("Reminder: Dimensions inverted compared to C def (`float v[3] [3] ;`)")]
 Public Type MAGTRANSFORM
     v(0 To 2, 0 To 2) As Single
 End Type
@@ -41847,7 +42882,7 @@ Public Type MAGIMAGEHEADER
     cbSize As LongPtr
 End Type
 
-[Description("Reminder: Dimensions inverted compared to C def (`float transform[5][5];`)")]
+[Description("Reminder: Dimensions inverted compared to C def (`float transform[5] [5] ;`)")]
 Public Type MAGCOLOREFFECT
     transform(0 To 4, 0 To 4) As Single
 End Type
