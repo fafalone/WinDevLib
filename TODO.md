@@ -19,6 +19,9 @@ IDCompositionScaleTransform3D, IDCompositionRotateTransform3D, IDCompositionMatr
 ID2D1SvgStrokeDashArray, IDWriteGdiInterop1, IDWriteFontFace4, IDWriteFactory4, IDWriteFontSet1
 Note: ID2D1SvgElement overloads currently left tagged because tB cannot disambiguate 2 of them. 
 
+-Implements/PreserveSig support IMFTimedTextNotify,IMFMediaSourceExtensionNotify,IMFBufferListNotify,IMFBufferListNotify
+IMFMediaEngineNeedKeyNotify,IMFMediaEngineEMENotify,IMFMediaKeySessionNotify2
+
 -OpenGL (needs Alias support)
 
 -Dispinterfaces pending support:
@@ -165,13 +168,13 @@ Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.
     ActivityCoordinator.h,ActivityCoordinatorTypes.h,ActivScp.h,ActivScp.idl,atacct.h,lm.h,lmcons.h,lmaccess.h,lmalert.h,lmapibuf.h,lmat.h,lmaudit.h,lmconfig.h,
     lmerrlog.h,lmjoin.h,lmmsg.h,lmremutl.h,lmrepl.h,lmserver.h,lmshare.h,lmsname.h,lmstats.h,lmsvc.h,lmuse.h,lmuseflg.h,lmwksta.h,lmerr.h,lmdfs.h,
     datetimeapi.h,ElsCore.h,ElsSrvc.h,Gb18030.h,stringsetapi.h,imm.h,tcpestats.h,tcpmib.h,mprapidef.h,ipifcons.h,ifdef.h,nldef.h,ipmib.h,iprtrmib.h,
-    ipexport.h,iptypes.h,iphlpapi.h,
+    ipexport.h,iptypes.h,iphlpapi.h,winsmcrd.h,SCardErr.h,winscard.h,schannel.h,
     
 Coverage in the 90%+ range
     winbase.h, oleidl.h, oaidl.h, ocidl.h, ocidl.idl, presentation.h,
 
 Substantial coverage
-    mmsciapi.h, winnt.h,winternl.h,immdev.h
+    mmsciapi.h, winnt.h,winternl.h,immdev.h,winioctl.h
 
 Minimal coverage
     windot11.h
@@ -179,5 +182,4 @@ Minimal coverage
     xapobase.h
 Zero or near-zero coverage
     (all other files)
- 
-    
+  
