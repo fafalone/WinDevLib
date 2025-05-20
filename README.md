@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 8.12.536 (May 20th, 2025)**
+**Current Version: 8.12.538 (May 20th, 2025)**
 
 (c) 2022-2025 Jon Johnson (fafalone)
 
@@ -224,13 +224,18 @@ This project has grown well beyond it's original mission of shell programming. W
 
 ### Updates
 
-**Update (v8.12.536, 20 May 2025):**\
+**Update (v8.12.538, 20 May 2025):**\
 -Added SmartCard API (winscard.h, winsmcrd.h, SCardErr.h 100% inc delegates etc)\
 -Added SSL-related APIs from schannel.h (100% including delegates etc)\
 -Added numerous missing WIC error consts\
--Helper generic DCast now includes a safety check that the source type isn't smaller than the destination type, and if it is, only copies the number of bytes in the source.\
+-Helper generic DCast now includes a safety check that the source type isn't smaller than the destination type, and if it is, only copies the number of bytes in the source.
+-The following interfaces are clearly meant to be used with Implements but used [PreserveSig]\
+      IMFTimedTextNotify, IMFMediaSourceExtensionNotify, IMFBufferListNotify, IMFBufferListNotify, IMFMediaEngineNeedKeyNotify, IMFMediaEngineEMENotify, IMFMediaKeySessionNotify2\
+   [PreserveSig] was removed but that means they'll likely require v-table swaps or redirects to not crash.\
+   Tip: You can copy these interfaces to your project and use [RedirectToStaticImplementation] to simplify.\
 -(Bug fix) MFInitAMMediaTypeFromMFMediaType definition incorrect.\
 -(Bug fix) New GetMem generic helper used Len instead of LenB.
+
 
 **Update (v8.12.534, 16 May 2025):**\
 -Added common control macros for Edit, Button, Tab, DateTime, MonthCal, Static, IPAddress, Animate controls.\ 
