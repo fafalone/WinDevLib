@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 8.12.534 (May 16th, 2025)**
+**Current Version: 8.12.536 (May 20th, 2025)**
 
 (c) 2022-2025 Jon Johnson (fafalone)
 
@@ -223,6 +223,14 @@ Finally, there's numerous additional API sets from small to large for independen
 This project has grown well beyond it's original mission of shell programming. While that's still the largest single part, it's no longer a majority of the code, and the name change now much better reflects the purpose of providing a general Windows API experience like windows.h. Compiler constants and module names/file names have been updated to reflect the name change. tbShellLibImpl is now WinDevLibImpl. There are also some major chanages associated with this update, please see the full changelog below.
 
 ### Updates
+
+**Update (v8.12.536, 20 May 2025):**\
+-Added SmartCard API (winscard.h, winsmcrd.h, SCardErr.h 100% inc delegates etc)\
+-Added SSL-related APIs from schannel.h (100% including delegates etc)\
+-Added numerous missing WIC error consts\
+-Helper generic DCast now includes a safety check that the source type isn't smaller than the destination type, and if it is, only copies the number of bytes in the source.\
+-(Bug fix) MFInitAMMediaTypeFromMFMediaType definition incorrect.\
+-(Bug fix) New GetMem generic helper used Len instead of LenB.
 
 **Update (v8.12.534, 16 May 2025):**\
 -Added common control macros for Edit, Button, Tab, DateTime, MonthCal, Static, IPAddress, Animate controls.\ 
