@@ -1,3 +1,6 @@
+**Update (v8.12.539, 21 May 2025):**
+-(Bug fix) Several ByRef As Byte that should be ByRef As LongPtr in Media Foundation interfaces.
+-(Bug fix) Numerous ByVal/ByRef mixups in Media Foundation interfaces. 
 
 **Update (v8.12.538, 20 May 2025):**
 -Added SmartCard API (winscard.h, winsmcrd.h, SCardErr.h 100% inc delegates etc)
