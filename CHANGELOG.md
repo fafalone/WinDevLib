@@ -3,6 +3,7 @@
 -Added DXGI debug interfaces/APIs (dxgidebug.h, 100%)
 -Added effect processor CLSIDs, MEDIASUBTYPE_ GUIDs, and MFPKEY_ PROPERTYKEYs from wmcodecdsp.h
 -Added structs/guids from dxva9typ.h (100%)
+-Added some additional undocumented RichEdit constants/enums/types.
 -(Bug fix) DCast helper wasn't working with a UDT as the source.
 -(Bug fix) MAX_DEINTERLACE_SURFACES value incorrect.
 
