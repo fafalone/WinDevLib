@@ -1,3 +1,11 @@
+
+**Update (v8.12.542, 24 May 2025):**
+-Added DXGI debug interfaces/APIs (dxgidebug.h, 100%)
+-Added effect processor CLSIDs, MEDIASUBTYPE_ GUIDs, and MFPKEY_ PROPERTYKEYs from wmcodecdsp.h
+-Added structs/guids from dxva9typ.h (100%)
+-(Bug fix) DCast helper wasn't working with a UDT as the source.
+-(Bug fix) MAX_DEINTERLACE_SURFACES value incorrect.
+
 **Update (v8.12.539, 21 May 2025):**
 -(Bug fix) Several ByRef As Byte that should be ByRef As LongPtr in Media Foundation interfaces.
 -(Bug fix) Numerous ByVal/ByRef mixups in Media Foundation interfaces. 
