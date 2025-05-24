@@ -7729,7 +7729,9 @@ Public Const EM_SETDISABLEOLELINKCONVERSION  = (WM_USER + 404)
 Public Const EM_INSERTTABLE = (WM_USER + 232)
 Public Const EM_GETAUTOCORRECTPROC = (WM_USER + 233)
 Public Const EM_SETAUTOCORRECTPROC = (WM_USER + 234)
+Public Const EM_SETADJUSTTEXTPROC = (WM_USER + 234)
 Public Const EM_CALLAUTOCORRECTPROC = (WM_USER + 255)
+Public Const EM_TRANSFORMMATH = (WM_USER + 264)
 Public Const EM_GETTABLEPARMS = (WM_USER + 265)
 Public Const EM_SETEDITSTYLEEX = (WM_USER + 275)
 Public Const EM_GETEDITSTYLEEX = (WM_USER + 276)
@@ -7743,6 +7745,7 @@ Public Const EM_SETTOUCHOPTIONS = (WM_USER + 311)
 Public Const EM_INSERTIMAGE = (WM_USER + 314)
 Public Const EM_SETUIANAME = (WM_USER + 320)
 Public Const EM_GETELLIPSISSTATE= (WM_USER + 322)
+Public Const EM_DISPLAYIMAGE= (WM_USER + 386)
 Public Const EM_SWITCHTOD2D = (WM_USER + 389)
 
 Public Const EN_MSGFILTER  = &H0700
@@ -7770,7 +7773,20 @@ Public Const EN_ENDCOMPOSITION  = &H0714
 
 Public Const cchTextLimitDefault  = 32767
 
+Public Const MATH_LCID = &H0001007F
 
+Public Enum RichEdTransformMathFlags
+    XM_LINEARIZE = 0
+    XM_BUILDUP = 1
+    XM_LINEARFORMAT = 2
+    XM_TEX = 3
+    XM_NEEDTERMOP = 4
+    XM_BMPALPHABETICS = 8
+    XM_MATHALPHABETICS = 9
+    XM_BUILDMATHZONES = 16
+    XM_NOMATHAUTOCORRECT = 32
+    XM_MATHAUTOCORRECT = 33
+End Enum
 
 Public Enum TEXTMODE
     TM_PLAINTEXT = 1
@@ -7788,6 +7804,10 @@ Public Enum AutoURL_Flags
     AURL_ENABLEEAURLS = 8
     AURL_ENABLEDRIVELETTERS = 16
     AURL_DISABLEMIXEDLGC = 32    '/ / Disable mixed Latin Greek Cyrillic IDNs
+    AURL_DISABLEAUTOFORMAT = 64    ' Disable auto URL formatting
+    AURL_URLRTFHTMLSTRICT = 128    ' Only encode URLs defined in RTF/HTML source
+    AURL_NOINITIALSCAN = 256    ' Don’t scan doc when enabling autoURL reco
+    AURL_ENABLEGETURL = 512    ' Make ITextRange2::GetURL() return autoURLs
 End Enum
 
 Public Enum RichEd_ExtendedEditStyles
@@ -7878,6 +7898,7 @@ Public Enum RichEdit_LanguageOptions
 '#endif
 '#If (_RICHEDIT_VER >= = &H0810)
     IMF_IMEUIINTEGRATION = &H2000
+    IMF_TKBAUTOCORRECTION = &H2000
 End Enum
 
 Public Enum RichEdit_IMECompModes
@@ -8025,6 +8046,8 @@ Public Enum RichEdit_ExtendedEditStylesEx
     SES_EX_MULTITOUCH = &H08000000  ' Only works under Win8+
     SES_EX_HIDETEMPFORMAT = &H10000000
     SES_EX_USEMOUSEWPARAM = &H20000000  ' Use wParam when handling WM_MOUSEMOVE message and do not call GetAsyncKeyState    4
+    SES_EX_SHOWPLACEHOLDERONFOCUS = &H80000000
+    ST_PLACEHOLDERTEXT
 End Enum
 
 Public Const ELLIPSIS_MASK  = &H00000003  ' all meaningful bits
@@ -8068,7 +8091,7 @@ Public Enum RichEdit_EventNotifiyMasks
     ENM_PAGECHANGE = &H00000040
     '(_RICHEDIT_VER  = >= &H0800)
     ENM_CLIPFORMAT = &H00000080
-
+    ENM_IMAGE = &H00000400    ' Event mask for mouse over image
     ENM_KEYEVENTS = &H00010000
     ENM_MOUSEEVENTS = &H00020000
     ENM_REQUESTRESIZE = &H00040000
@@ -8087,6 +8110,32 @@ Public Enum RichEdit_EventNotifiyMasks
     ENM_GROUPTYPINGCHANGE = &H40000000
     ENM_HIDELINKTOOLTIP = &H80000000
 End Enum
+
+Public Type RichEd_IMAGEDATA
+    cp As Long
+    Type As RichEd_IMAGETYPE
+    Width As Long
+    Height As Long
+End Type
+Public Enum RichEd_IMAGETYPE
+    IT_NONE = 0
+    IT_BMP = 1
+    IT_GIF = 2
+    IT_JPEG = 3
+    IT_PNG = 4
+    IT_ICO = 5
+    IT_TIFF = 6
+    IT_WMP = 7
+    IT_UNKNOWN = 8
+End Enum
+Public Type RichEd_ENIMAGE
+    nmhdr As NMHDR
+    msg As Long
+    wParam As LongPtr
+    lParam As LongPtr
+    ImageData As RichEd_IMAGEDATA
+End Type
+
 
 Public Enum RichEdit_TxEditStyleFlags
     TXES_ISDIALOG = 1
@@ -8352,6 +8401,7 @@ Public Enum RichEdit_CharFmtFlags
     '(_RICHEDIT_VER  = >= &H0500)
     SCF_SMARTFONT = &H0080  ' Apply font only if it can handle script (5.0)
     SCF_CHARREPFROMLCID = &H0100  ' Get character repertoire from lcid (5.0)
+    SCF_ONLYCFEFFECTS = &H0200
     SPF_DONTSETDEFAULT = &H0002  ' Suppress setting default on empty control
     SPF_SETDEFAULT = &H0004  ' Set the default paraformat
 End Enum
@@ -8707,6 +8757,7 @@ Public Enum RichEdit_SetTextFlags
     ST_SELECTION = 2
     ST_NEWCHARS = 4
     ST_UNICODE = 8
+    ST_PLACEHOLDERTEXT = &H0010
 End Enum
 [PackingAlignment(4)]
 Public Type SETTEXTEX
