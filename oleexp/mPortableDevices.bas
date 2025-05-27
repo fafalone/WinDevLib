@@ -48,7 +48,78 @@ For i = 0 To UBound(lIDs)
 Next i
 End Sub
 
-
+Public Function CLSID_PortableDeviceManager() As UUID
+'{0AF10CEC-2ECD-4B92-9581-34F6AE0637F3}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HAF10CEC, CInt(&H2ECD), CInt(&H4B92), &H95, &H81, &H34, &HF6, &HAE, &H6, &H37, &HF3)
+ CLSID_PortableDeviceManager = iid
+End Function
+Public Function CLSID_PortableDevice() As UUID
+'{728A21C5-3D9E-48D7-9810-864848F0F404}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H728A21C5, CInt(&H3D9E), CInt(&H48D7), &H98, &H10, &H86, &H48, &H48, &HF0, &HF4, &H4)
+ CLSID_PortableDevice = iid
+End Function
+Public Function CLSID_PortableDeviceFTM() As UUID
+'{F7C0039A-4762-488A-B4B3-760EF9A1BA9B}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HF7C0039A, CInt(&H4762), CInt(&H488A), &HB4, &HB3, &H76, &HE, &HF9, &HA1, &HBA, &H9B)
+ CLSID_PortableDeviceFTM = iid
+End Function
+Public Function CLSID_WpdSerializer() As UUID
+'{0B91A74B-AD7C-4A9D-B563-29EEF9167172}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HB91A74B, CInt(&HAD7C), CInt(&H4A9D), &HB5, &H63, &H29, &HEE, &HF9, &H16, &H71, &H72)
+ CLSID_WpdSerializer = iid
+End Function
+Public Function CLSID_PortableDeviceService() As UUID
+'{EF5DB4C2-9312-422C-9152-411CD9C4DD84}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HEF5DB4C2, CInt(&H9312), CInt(&H422C), &H91, &H52, &H41, &H1C, &HD9, &HC4, &HDD, &H84)
+ CLSID_PortableDeviceService = iid
+End Function
+Public Function CLSID_PortableDeviceDispatchFactory() As UUID
+'{43232233-8338-4658-AE01-0B4AE830B6B0}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H43232233, CInt(&H8338), CInt(&H4658), &HAE, &H1, &HB, &H4A, &HE8, &H30, &HB6, &HB0)
+ CLSID_PortableDeviceDispatchFactory = iid
+End Function
+Public Function CLSID_PortableDeviceServiceFTM() As UUID
+'{1649B154-C794-497A-9B03-F3F0121302F3}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H1649B154, CInt(&HC794), CInt(&H497A), &H9B, &H3, &HF3, &HF0, &H12, &H13, &H2, &HF3)
+ CLSID_PortableDeviceServiceFTM = iid
+End Function
+Public Function CLSID_PortableDeviceWebControl() As UUID
+'{186dd02c-2dec-41b5-a7d4-b59056fade51}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H186DD02C, CInt(&H2DEC), CInt(&H41B5), &HA7, &HD4, &HB5, &H90, &H56, &HFA, &HDE, &H51)
+ CLSID_PortableDeviceWebControl = iid
+End Function
+Public Function CLSID_PortableDeviceValues() As UUID
+'{0c15d503-d017-47ce-9016-7b3f978721cc}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HC15D503, CInt(&HD017), CInt(&H47CE), &H90, &H16, &H7B, &H3F, &H97, &H87, &H21, &HCC)
+ CLSID_PortableDeviceValues = iid
+End Function
+Public Function CLSID_PortableDevicePropVariantCollection() As UUID
+'{08a99e2f-6d6d-4b80-af5a-baf2bcbe4cb9}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H8A99E2F, CInt(&H6D6D), CInt(&H4B80), &HAF, &H5A, &HBA, &HF2, &HBC, &HBE, &H4C, &HB9)
+ CLSID_PortableDevicePropVariantCollection = iid
+End Function
+Public Function CLSID_PortableDeviceKeyCollection() As UUID
+'{de2d022d-2480-43be-97f0-d1fa2cf98f4f}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HDE2D022D, CInt(&H2480), CInt(&H43BE), &H97, &HF0, &HD1, &HFA, &H2C, &HF9, &H8F, &H4F)
+ CLSID_PortableDeviceKeyCollection = iid
+End Function
+Public Function CLSID_EnumBthMtpConnectors() As UUID
+'{A1570149-E645-4F43-8B0D-409B061DB2FC}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HA1570149, CInt(&HE645), CInt(&H4F43), &H8B, &HD, &H40, &H9B, &H6, &H1D, &HB2, &HFC)
+ CLSID_EnumBthMtpConnectors = iid
+End Function
 Public Function GUID_DEVINTERFACE_WPD_SERVICE() As UUID
 Static iid As UUID
  If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H9EF44F80, &H3D64, &H4246, &HA6, &HAA, &H20, &H6F, &H32, &H8D, &H1E, &HDC)

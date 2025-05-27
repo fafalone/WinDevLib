@@ -10,9 +10,9 @@ Option Explicit
 ' // Signatures for data structures.,
 ' //,
 'Data structure signature: WARNING: CONVERT TO ANSI FIRST
-Public Const APO_CONNECTION_DESCRIPTOR_SIGNATURE = "ACDS"
-Public Const APO_CONNECTION_PROPERTY_SIGNATURE = "ACPS"
-Public Const APO_CONNECTION_PROPERTY_V2_SIGNATURE = "ACP2"
+Public Const APO_CONNECTION_DESCRIPTOR_SIGNATURE = &H41434453
+Public Const APO_CONNECTION_PROPERTY_SIGNATURE = &H41435053
+Public Const APO_CONNECTION_PROPERTY_V2_SIGNATURE = &H41435032
 
 ' Min and max framerates for the engine,
 Public Const AUDIO_MIN_FRAMERATE As Single = 10#      '// Minimum frame rate for APOs,
@@ -21,6 +21,8 @@ Public Const AUDIO_MAX_FRAMERATE As Single = 384000#  '// Maximum frame rate for
 ' Min and max # of channels (samples per frame) for the APOs,
 Public Const AUDIO_MIN_CHANNELS = 1                       '// Current minimum number of channels for APOs,
 Public Const AUDIO_MAX_CHANNELS = 4096                    '// Current maximum number of channels for APOs,
+
+Public Const ENDPOINT_FORMAT_RESET_MIX_ONLY = 1
 Public Function DEVINTERFACE_AUDIO_RENDER() As UUID
 '{E6327CAD-DCEC-4949-AE8A-991E976A79D2}
 Static iid As UUID
@@ -646,6 +648,12 @@ Static iid As UUID
  If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H25385759, CInt(&H3236), CInt(&H4101), &HA9, &H43, &H25, &H69, &H3D, &HFB, &H5D, &H2D)
 IID_IApoAcousticEchoCancellation = iid
 End Function
+Public Function IID_IApoAcousticEchoCancellation2() As UUID
+'{F235855F-F06D-45B3-A63F-EE4B71509DC2}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HF235855F, CInt(&HF06D), CInt(&H45B3), &HA6, &H3F, &HEE, &H4B, &H71, &H50, &H9D, &HC2)
+ IID_IApoAcousticEchoCancellation2 = iid
+End Function
 Public Function IID_IAudioSystemEffectsPropertyChangeNotificationClient() As UUID
 '{20049D40-56D5-400E-A2EF-385599FEED49}
 Static iid As UUID
@@ -658,7 +666,48 @@ Static iid As UUID
  If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H302AE7F9, CInt(&HD7E0), CInt(&H43E4), &H97, &H1B, &H1F, &H82, &H93, &H61, &H3D, &H2A)
 IID_IAudioSystemEffectsPropertyStore = iid
 End Function
-
+Public Function IID_IAudioEndpoint() As UUID
+'{30A99515-1527-4451-AF9F-00C5F0234DAF}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H30A99515, CInt(&H1527), CInt(&H4451), &HAF, &H9F, &H0, &HC5, &HF0, &H23, &H4D, &HAF)
+IID_IAudioEndpoint = iid
+End Function
+Public Function IID_IAudioEndpointRT() As UUID
+'{DFD2005F-A6E5-4d39-A265-939ADA9FBB4D}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HDFD2005F, CInt(&HA6E5), CInt(&H4D39), &HA2, &H65, &H93, &H9A, &HDA, &H9F, &HBB, &H4D)
+IID_IAudioEndpointRT = iid
+End Function
+Public Function IID_IAudioInputEndpointRT() As UUID
+'{8026AB61-92B2-43c1-A1DF-5C37EBD08D82}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H8026AB61, CInt(&H92B2), CInt(&H43C1), &HA1, &HDF, &H5C, &H37, &HEB, &HD0, &H8D, &H82)
+IID_IAudioInputEndpointRT = iid
+End Function
+Public Function IID_IAudioOutputEndpointRT() As UUID
+'{8FA906E4-C31C-4e31-932E-19A66385E9AA}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H8FA906E4, CInt(&HC31C), CInt(&H4E31), &H93, &H2E, &H19, &HA6, &H63, &H85, &HE9, &HAA)
+IID_IAudioOutputEndpointRT = iid
+End Function
+Public Function IID_IAudioDeviceEndpoint() As UUID
+'{D4952F5A-A0B2-4cc4-8B82-9358488DD8AC}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HD4952F5A, CInt(&HA0B2), CInt(&H4CC4), &H8B, &H82, &H93, &H58, &H48, &H8D, &HD8, &HAC)
+IID_IAudioDeviceEndpoint = iid
+End Function
+Public Function IID_IAudioEndpointControl() As UUID
+'{C684B72A-6DF4-4774-BDF9-76B77509B653}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HC684B72A, CInt(&H6DF4), CInt(&H4774), &HBD, &HF9, &H76, &HB7, &H75, &H9, &HB6, &H53)
+IID_IAudioEndpointControl = iid
+End Function
+Public Function IID_IAudioAmbisonicsControl() As UUID
+'{28724C91-DF35-4856-9F76-D6A26413F3DF}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H28724C91, CInt(&HDF35), CInt(&H4856), &H9F, &H76, &HD6, &HA2, &H64, &H13, &HF3, &HDF)
+ IID_IAudioAmbisonicsControl = iid
+End Function
 
 
 Public Function PKEY_AudioEndpoint_FormFactor() As PROPERTYKEY

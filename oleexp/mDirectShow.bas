@@ -8,6 +8,38 @@ Option Explicit
 '
 '----------------------------------------------------------------------
 
+Public Const MPBOOL_TRUE As Single = 1!
+Public Const MPBOOL_FALSE As Single = 0!
+
+Public Const DWORD_ALLPARAMS = -1
+Public Function IID_IMediaParamInfo() As UUID
+'{6d6cbb60-a223-44aa-842f-a2f06750be6d}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H6D6CBB60, CInt(&HA223), CInt(&H44AA), &H84, &H2F, &HA2, &HF0, &H67, &H50, &HBE, &H6D)
+IID_IMediaParamInfo = iid
+End Function
+Public Function IID_IMediaParams() As UUID
+'{6d6cbb61-a223-44aa-842f-a2f06750be6e}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H6D6CBB61, CInt(&HA223), CInt(&H44AA), &H84, &H2F, &HA2, &HF0, &H67, &H50, &HBE, &H6E)
+IID_IMediaParams = iid
+End Function
+Public Function GUID_TIME_REFERENCE() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H93AD712B, &HDAA0, &H4FFE, &HBC, &H81, &HB0, &HCE, &H50, &HF, &HCD, &HD9)
+GUID_TIME_REFERENCE = iid
+End Function
+Public Function GUID_TIME_MUSIC() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H574C49D, &H5B04, &H4B15, &HA5, &H42, &HAE, &H28, &H20, &H30, &H11, &H7B)
+GUID_TIME_MUSIC = iid
+End Function
+Public Function GUID_TIME_SAMPLES() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HA8593D05, &HC43, &H4984, &H9A, &H63, &H97, &HAF, &H9E, &H2, &HC4, &HC0)
+GUID_TIME_SAMPLES = iid
+End Function
+
 Public Function LIBID_QuartzNetTypeLib() As UUID
 Static iid As UUID
  If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H56A868B1, &HAD4, &H11CE, &HB0, &H3A, &H0, &H20, &HAF, &HB, &HA7, &H70)

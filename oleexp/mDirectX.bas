@@ -1953,6 +1953,16 @@ End Function
 
 
 
+Public Function IID_ID3D12Debug() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H344488B7, &H6846, &H474B, &HB9, &H89, &HF0, &H27, &H44, &H82, &H45, &HE0)
+IID_ID3D12Debug = iid
+End Function
+Public Function IID_ID3D12Debug1() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HAFFAA4CA, &H63FE, &H4D8E, &HB8, &HAD, &H15, &H90, &H0, &HAF, &H43, &H4)
+IID_ID3D12Debug1 = iid
+End Function
 Public Function IID_ID3D12Object() As UUID
 Static iid As UUID
  If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HC4FEC28F, &H7966, &H4E95, &H9F, &H94, &HF4, &H31, &HCB, &H56, &HC3, &HB8)
@@ -2003,6 +2013,11 @@ Static iid As UUID
  If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HA753DCF, &HC4D8, &H4B91, &HAD, &HF6, &HBE, &H5A, &H60, &HD9, &H5A, &H76)
 IID_ID3D12Fence = iid
 End Function
+Public Function IID_ID3D12Fence1() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H433685FE, &HE22B, &H4CA0, &HA8, &HDB, &HB5, &HB4, &HF4, &HDD, &HE, &H4A)
+IID_ID3D12Fence1 = iid
+End Function
 Public Function IID_ID3D12PipelineState() As UUID
 Static iid As UUID
  If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H765A30F3, &HF624, &H4C6F, &HA8, &H28, &HAC, &HE9, &H48, &H62, &H24, &H45)
@@ -2033,6 +2048,16 @@ Static iid As UUID
  If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H5B160D0F, &HAC1B, &H4185, &H8B, &HA8, &HB3, &HAE, &H42, &HA5, &HA4, &H55)
 IID_ID3D12GraphicsCommandList = iid
 End Function
+Public Function IID_ID3D12GraphicsCommandList1() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H553103FB, &H1FE7, &H4557, &HBB, &H38, &H94, &H6D, &H7D, &HE, &H7C, &HA7)
+IID_ID3D12GraphicsCommandList1 = iid
+End Function
+Public Function IID_ID3D12GraphicsCommandList2() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H38C3E585, &HFF17, &H412C, &H91, &H50, &H4F, &HC6, &HF9, &HD7, &H2A, &H28)
+IID_ID3D12GraphicsCommandList2 = iid
+End Function
 Public Function IID_ID3D12CommandQueue() As UUID
 Static iid As UUID
  If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HEC870A6, &H5D7E, &H4C22, &H8C, &HFC, &H5B, &HAA, &HE0, &H76, &H16, &HED)
@@ -2048,21 +2073,242 @@ Static iid As UUID
  If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HC64226A8, &H9201, &H46AF, &HB4, &HCC, &H53, &HFB, &H9F, &HF7, &H41, &H4F)
 IID_ID3D12PipelineLibrary = iid
 End Function
+Public Function IID_ID3D12PipelineLibrary1() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H80EABF42, &H2568, &H4E5E, &HBD, &H82, &HC3, &H7F, &H86, &H96, &H1D, &HC3)
+IID_ID3D12PipelineLibrary1 = iid
+End Function
 Public Function IID_ID3D12Device1() As UUID
 Static iid As UUID
  If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H77ACCE80, &H638E, &H4E65, &H88, &H95, &HC1, &HF2, &H33, &H86, &H86, &H3E)
 IID_ID3D12Device1 = iid
 End Function
-Public Function IID_ID3D12Debug() As UUID
+Public Function IID_ID3D12Device2() As UUID
 Static iid As UUID
- If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H344488B7, &H6846, &H474B, &HB9, &H89, &HF0, &H27, &H44, &H82, &H45, &HE0)
-IID_ID3D12Debug = iid
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H30BAA41E, &HB15B, &H475C, &HA0, &HBB, &H1A, &HF5, &HC5, &HB6, &H43, &H28)
+IID_ID3D12Device2 = iid
 End Function
-Public Function IID_ID3D12Debug1() As UUID
+Public Function IID_ID3D12Device3() As UUID
 Static iid As UUID
- If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HAFFAA4CA, &H63FE, &H4D8E, &HB8, &HAD, &H15, &H90, &H0, &HAF, &H43, &H4)
-IID_ID3D12Debug1 = iid
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H81DADC15, &H2BAD, &H4392, &H93, &HC5, &H10, &H13, &H45, &HC4, &HAA, &H98)
+IID_ID3D12Device3 = iid
 End Function
+Public Function IID_ID3D12ProtectedSession() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HA1533D18, &HAC1, &H4084, &H85, &HB9, &H89, &HA9, &H61, &H16, &H80, &H6B)
+IID_ID3D12ProtectedSession = iid
+End Function
+Public Function IID_ID3D12ProtectedResourceSession() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H6CD696F4, &HF289, &H40CC, &H80, &H91, &H5A, &H6C, &HA, &H9, &H9C, &H3D)
+IID_ID3D12ProtectedResourceSession = iid
+End Function
+Public Function IID_ID3D12Device4() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HE865DF17, &HA9EE, &H46F9, &HA4, &H63, &H30, &H98, &H31, &H5A, &HA2, &HE5)
+IID_ID3D12Device4 = iid
+End Function
+Public Function IID_ID3D12LifetimeOwner() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HE667AF9F, &HCD56, &H4F46, &H83, &HCE, &H3, &H2E, &H59, &H5D, &H70, &HA8)
+IID_ID3D12LifetimeOwner = iid
+End Function
+Public Function IID_ID3D12SwapChainAssistant() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HF1DF64B6, &H57FD, &H49CD, &H88, &H7, &HC0, &HEB, &H88, &HB4, &H5C, &H8F)
+IID_ID3D12SwapChainAssistant = iid
+End Function
+Public Function IID_ID3D12LifetimeTracker() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H3FD03D36, &H4EB1, &H424A, &HA5, &H82, &H49, &H4E, &HCB, &H8B, &HA8, &H13)
+IID_ID3D12LifetimeTracker = iid
+End Function
+Public Function IID_ID3D12StateObject() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H47016943, &HFCA8, &H4594, &H93, &HEA, &HAF, &H25, &H8B, &H55, &H34, &H6D)
+IID_ID3D12StateObject = iid
+End Function
+Public Function IID_ID3D12StateObjectProperties() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HDE5FA827, &H9BF9, &H4F26, &H89, &HFF, &HD7, &HF5, &H6F, &HDE, &H38, &H60)
+IID_ID3D12StateObjectProperties = iid
+End Function
+Public Function IID_ID3D12Device5() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H8B4F173B, &H2FEA, &H4B80, &H8F, &H58, &H43, &H7, &H19, &H1A, &HB9, &H5D)
+IID_ID3D12Device5 = iid
+End Function
+Public Function IID_ID3D12DeviceRemovedExtendedDataSettings() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H82BC481C, &H6B9B, &H4030, &HAE, &HDB, &H7E, &HE3, &HD1, &HDF, &H1E, &H63)
+IID_ID3D12DeviceRemovedExtendedDataSettings = iid
+End Function
+Public Function IID_ID3D12DeviceRemovedExtendedDataSettings1() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HDBD5AE51, &H3317, &H4F0A, &HAD, &HF9, &H1D, &H7C, &HED, &HCA, &HAE, &HB)
+IID_ID3D12DeviceRemovedExtendedDataSettings1 = iid
+End Function
+Public Function IID_ID3D12DeviceRemovedExtendedDataSettings2() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H61552388, &H1AB, &H4008, &HA4, &H36, &H83, &HDB, &H18, &H95, &H66, &HEA)
+IID_ID3D12DeviceRemovedExtendedDataSettings2 = iid
+End Function
+Public Function IID_ID3D12DeviceRemovedExtendedData() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H98931D33, &H5AE8, &H4791, &HAA, &H3C, &H1A, &H73, &HA2, &H93, &H4E, &H71)
+IID_ID3D12DeviceRemovedExtendedData = iid
+End Function
+Public Function IID_ID3D12DeviceRemovedExtendedData1() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H9727A022, &HCF1D, &H4DDA, &H9E, &HBA, &HEF, &HFA, &H65, &H3F, &HC5, &H6)
+IID_ID3D12DeviceRemovedExtendedData1 = iid
+End Function
+Public Function IID_ID3D12DeviceRemovedExtendedData2() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H67FC5816, &HE4CA, &H4915, &HBF, &H18, &H42, &H54, &H12, &H72, &HDA, &H54)
+IID_ID3D12DeviceRemovedExtendedData2 = iid
+End Function
+Public Function IID_ID3D12Device6() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HC70B221B, &H40E4, &H4A17, &H89, &HAF, &H2, &H5A, &H7, &H27, &HA6, &HDC)
+IID_ID3D12Device6 = iid
+End Function
+Public Function IID_ID3D12ProtectedResourceSession1() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HD6F12DD6, &H76FB, &H406E, &H89, &H61, &H42, &H96, &HEE, &HFC, &H4, &H9)
+IID_ID3D12ProtectedResourceSession1 = iid
+End Function
+Public Function IID_ID3D12Device7() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H5C014B53, &H68A1, &H4B9B, &H8B, &HD1, &HDD, &H60, &H46, &HB9, &H35, &H8B)
+IID_ID3D12Device7 = iid
+End Function
+Public Function IID_ID3D12Device8() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H9218E6BB, &HF944, &H4F7E, &HA7, &H5C, &HB1, &HB2, &HC7, &HB7, &H1, &HF3)
+IID_ID3D12Device8 = iid
+End Function
+Public Function IID_ID3D12Resource1() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H9D5E227A, &H4430, &H4161, &H88, &HB3, &H3E, &HCA, &H6B, &HB1, &H6E, &H19)
+IID_ID3D12Resource1 = iid
+End Function
+Public Function IID_ID3D12Resource2() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HBE36EC3B, &HEA85, &H4AEB, &HA4, &H5A, &HE9, &HD7, &H64, &H4, &HA4, &H95)
+IID_ID3D12Resource2 = iid
+End Function
+Public Function IID_ID3D12Heap1() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H572F7389, &H2168, &H49E3, &H96, &H93, &HD6, &HDF, &H58, &H71, &HBF, &H6D)
+IID_ID3D12Heap1 = iid
+End Function
+Public Function IID_ID3D12GraphicsCommandList3() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H6FDA83A7, &HB84C, &H4E38, &H9A, &HC8, &HC7, &HBD, &H22, &H1, &H6B, &H3D)
+IID_ID3D12GraphicsCommandList3 = iid
+End Function
+Public Function IID_ID3D12MetaCommand() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HDBB84C27, &H36CE, &H4FC9, &HB8, &H1, &HF0, &H48, &HC4, &H6A, &HC5, &H70)
+IID_ID3D12MetaCommand = iid
+End Function
+Public Function IID_ID3D12GraphicsCommandList4() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H8754318E, &HD3A9, &H4541, &H98, &HCF, &H64, &H5B, &H50, &HDC, &H48, &H74)
+IID_ID3D12GraphicsCommandList4 = iid
+End Function
+Public Function IID_ID3D12ShaderCacheSession() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H28E2495D, &HF64, &H4AE4, &HA6, &HEC, &H12, &H92, &H55, &HDC, &H49, &HA8)
+IID_ID3D12ShaderCacheSession = iid
+End Function
+Public Function IID_ID3D12Device9() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H4C80E962, &HF032, &H4F60, &HBC, &H9E, &HEB, &HC2, &HCF, &HA1, &HD8, &H3C)
+IID_ID3D12Device9 = iid
+End Function
+Public Function IID_ID3D12Device10() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H517F8718, &HAA66, &H49F9, &HB0, &H2B, &HA7, &HAB, &H89, &HC0, &H60, &H31)
+IID_ID3D12Device10 = iid
+End Function
+Public Function IID_ID3D12Device11() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H5405C344, &HD457, &H444E, &HB4, &HDD, &H23, &H66, &HE4, &H5A, &HEE, &H39)
+IID_ID3D12Device11 = iid
+End Function
+Public Function IID_ID3D12Device12() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H5AF5C532, &H4C91, &H4CD0, &HB5, &H41, &H15, &HA4, &H5, &H39, &H5F, &HC5)
+IID_ID3D12Device12 = iid
+End Function
+Public Function IID_ID3D12VirtualizationGuestDevice() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HBC66D368, &H7373, &H4943, &H87, &H57, &HFC, &H87, &HDC, &H79, &HE4, &H76)
+IID_ID3D12VirtualizationGuestDevice = iid
+End Function
+Public Function IID_ID3D12Tools() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H7071E1F0, &HE84B, &H4B33, &H97, &H4F, &H12, &HFA, &H49, &HDE, &H65, &HC5)
+IID_ID3D12Tools = iid
+End Function
+Public Function IID_ID3D12SDKConfiguration() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HE9EB5314, &H33AA, &H42B2, &HA7, &H18, &HD7, &H7F, &H58, &HB1, &HF1, &HC7)
+IID_ID3D12SDKConfiguration = iid
+End Function
+Public Function IID_ID3D12SDKConfiguration1() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H8AAF9303, &HAD25, &H48B9, &H9A, &H57, &HD9, &HC3, &H7E, &H0, &H9D, &H9F)
+IID_ID3D12SDKConfiguration1 = iid
+End Function
+Public Function IID_ID3D12DeviceFactory() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H61F307D3, &HD34E, &H4E7C, &H83, &H74, &H3B, &HA4, &HDE, &H23, &HCC, &HCB)
+IID_ID3D12DeviceFactory = iid
+End Function
+Public Function IID_ID3D12DeviceConfiguration() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H78DBF87B, &HF766, &H422B, &HA6, &H1C, &HC8, &HC4, &H46, &HBD, &HB9, &HAD)
+IID_ID3D12DeviceConfiguration = iid
+End Function
+Public Function IID_ID3D12GraphicsCommandList5() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H55050859, &H4024, &H474C, &H87, &HF5, &H64, &H72, &HEA, &HEE, &H44, &HEA)
+IID_ID3D12GraphicsCommandList5 = iid
+End Function
+Public Function IID_ID3D12GraphicsCommandList6() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HC3827890, &HE548, &H4CFA, &H96, &HCF, &H56, &H89, &HA9, &H37, &HF, &H80)
+IID_ID3D12GraphicsCommandList6 = iid
+End Function
+Public Function IID_ID3D12GraphicsCommandList7() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HDD171223, &H8B61, &H4769, &H90, &HE3, &H16, &HC, &HCD, &HE4, &HE2, &HC1)
+IID_ID3D12GraphicsCommandList7 = iid
+End Function
+Public Function IID_ID3D12GraphicsCommandList8() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HEE936EF9, &H599D, &H4D28, &H93, &H8E, &H23, &HC4, &HAD, &H5, &HCE, &H51)
+IID_ID3D12GraphicsCommandList8 = iid
+End Function
+Public Function IID_ID3D12GraphicsCommandList9() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H34ED2808, &HFFE6, &H4C2B, &HB1, &H1A, &HCA, &HBD, &H2B, &HC, &H59, &HE1)
+IID_ID3D12GraphicsCommandList9 = iid
+End Function
+
+
+
+
+
+
+
+
+
+
+
 Public Function IID_ID3D12DebugDevice1() As UUID
 Static iid As UUID
  If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HA9B71770, &HD099, &H4A65, &HA6, &H98, &H3D, &HEE, &H10, &H2, &HF, &H88)
@@ -2097,6 +2343,452 @@ Public Function DXGI_DEBUG_D3D12() As UUID
 Static iid As UUID
  If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HCF59A98C, &HA950, &H4326, &H91, &HEF, &H9B, &HBA, &HA1, &H7B, &HFD, &H95)
 DXGI_DEBUG_D3D12 = iid
+End Function
+Public Function D3D12_PROTECTED_RESOURCES_SESSION_HARDWARE_PROTECTED() As UUID
+'{62B0084E-C70E-4DAA-A109-30FF8D5A0482}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H62B0084E, CInt(&HC70E), CInt(&H4DAA), &HA1, &H9, &H30, &HFF, &H8D, &H5A, &H4, &H82)
+ D3D12_PROTECTED_RESOURCES_SESSION_HARDWARE_PROTECTED = iid
+End Function
+Public Function D3D12ExperimentalShaderModels() As UUID
+'{76f5573e-f13a-40f5-b297-81ce9e18933f}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H76F5573E, CInt(&HF13A), CInt(&H40F5), &HB2, &H97, &H81, &HCE, &H9E, &H18, &H93, &H3F)
+ D3D12ExperimentalShaderModels = iid
+End Function
+Public Function D3D12TiledResourceTier4() As UUID
+'{c9c4725f-a81a-4f56-8c5b-c51039d694fb}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HC9C4725F, CInt(&HA81A), CInt(&H4F56), &H8C, &H5B, &HC5, &H10, &H39, &HD6, &H94, &HFB)
+ D3D12TiledResourceTier4 = iid
+End Function
+Public Function CLSID_D3D12Debug() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HF2352AEB, &HDD84, &H49FE, &HB9, &H7B, &HA9, &HDC, &HFD, &HCC, &H1B, &H4F)
+CLSID_D3D12Debug = iid
+End Function
+Public Function CLSID_D3D12Tools() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HE38216B1, &H3C8C, &H4833, &HAA, &H9, &HA, &H6, &HB6, &H5D, &H96, &HC8)
+CLSID_D3D12Tools = iid
+End Function
+Public Function CLSID_D3D12DeviceRemovedExtendedData() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H4A75BBC4, &H9FF4, &H4AD8, &H9F, &H18, &HAB, &HAE, &H84, &HDC, &H5F, &HF2)
+CLSID_D3D12DeviceRemovedExtendedData = iid
+End Function
+Public Function CLSID_D3D12SDKConfiguration() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H7CDA6ACA, &HA03E, &H49C8, &H94, &H58, &H3, &H34, &HD2, &HE, &H7, &HCE)
+CLSID_D3D12SDKConfiguration = iid
+End Function
+Public Function CLSID_D3D12DeviceFactory() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H114863BF, &HC386, &H4AEE, &HB3, &H9D, &H8F, &HB, &HBB, &H6, &H29, &H55)
+CLSID_D3D12DeviceFactory = iid
+End Function
+
+
+
+Public Function D3D12_VIDEO_DECODE_PROFILE_MPEG2() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HEE27417F, &H5E28, &H4E65, &HBE, &HEA, &H1D, &H26, &HB5, &H8, &HAD, &HC9)
+D3D12_VIDEO_DECODE_PROFILE_MPEG2 = iid
+End Function
+Public Function D3D12_VIDEO_DECODE_PROFILE_MPEG1_AND_MPEG2() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H86695F12, &H340E, &H4F04, &H9F, &HD3, &H92, &H53, &HDD, &H32, &H74, &H60)
+D3D12_VIDEO_DECODE_PROFILE_MPEG1_AND_MPEG2 = iid
+End Function
+Public Function D3D12_VIDEO_DECODE_PROFILE_H264() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H1B81BE68, &HA0C7, &H11D3, &HB9, &H84, &H0, &HC0, &H4F, &H2E, &H73, &HC5)
+D3D12_VIDEO_DECODE_PROFILE_H264 = iid
+End Function
+Public Function D3D12_VIDEO_DECODE_PROFILE_H264_STEREO_PROGRESSIVE() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HD79BE8DA, &HCF1, &H4C81, &HB8, &H2A, &H69, &HA4, &HE2, &H36, &HF4, &H3D)
+D3D12_VIDEO_DECODE_PROFILE_H264_STEREO_PROGRESSIVE = iid
+End Function
+Public Function D3D12_VIDEO_DECODE_PROFILE_H264_STEREO() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HF9AACCBB, &HC2B6, &H4CFC, &H87, &H79, &H57, &H7, &HB1, &H76, &H5, &H52)
+D3D12_VIDEO_DECODE_PROFILE_H264_STEREO = iid
+End Function
+Public Function D3D12_VIDEO_DECODE_PROFILE_H264_MULTIVIEW() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H705B9D82, &H76CF, &H49D6, &HB7, &HE6, &HAC, &H88, &H72, &HDB, &H1, &H3C)
+D3D12_VIDEO_DECODE_PROFILE_H264_MULTIVIEW = iid
+End Function
+Public Function D3D12_VIDEO_DECODE_PROFILE_VC1() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H1B81BEA3, &HA0C7, &H11D3, &HB9, &H84, &H0, &HC0, &H4F, &H2E, &H73, &HC5)
+D3D12_VIDEO_DECODE_PROFILE_VC1 = iid
+End Function
+Public Function D3D12_VIDEO_DECODE_PROFILE_VC1_D2010() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H1B81BEA4, &HA0C7, &H11D3, &HB9, &H84, &H0, &HC0, &H4F, &H2E, &H73, &HC5)
+D3D12_VIDEO_DECODE_PROFILE_VC1_D2010 = iid
+End Function
+Public Function D3D12_VIDEO_DECODE_PROFILE_MPEG4PT2_SIMPLE() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HEFD64D74, &HC9E8, &H41D7, &HA5, &HE9, &HE9, &HB0, &HE3, &H9F, &HA3, &H19)
+D3D12_VIDEO_DECODE_PROFILE_MPEG4PT2_SIMPLE = iid
+End Function
+Public Function D3D12_VIDEO_DECODE_PROFILE_MPEG4PT2_ADVSIMPLE_NOGMC() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HED418A9F, &H10D, &H4EDA, &H9A, &HE3, &H9A, &H65, &H35, &H8D, &H8D, &H2E)
+D3D12_VIDEO_DECODE_PROFILE_MPEG4PT2_ADVSIMPLE_NOGMC = iid
+End Function
+Public Function D3D12_VIDEO_DECODE_PROFILE_HEVC_MAIN() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H5B11D51B, &H2F4C, &H4452, &HBC, &HC3, &H9, &HF2, &HA1, &H16, &HC, &HC0)
+D3D12_VIDEO_DECODE_PROFILE_HEVC_MAIN = iid
+End Function
+Public Function D3D12_VIDEO_DECODE_PROFILE_HEVC_MAIN10() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H107AF0E0, &HEF1A, &H4D19, &HAB, &HA8, &H67, &HA1, &H63, &H7, &H3D, &H13)
+D3D12_VIDEO_DECODE_PROFILE_HEVC_MAIN10 = iid
+End Function
+Public Function D3D12_VIDEO_DECODE_PROFILE_VP9() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H463707F8, &HA1D0, &H4585, &H87, &H6D, &H83, &HAA, &H6D, &H60, &HB8, &H9E)
+D3D12_VIDEO_DECODE_PROFILE_VP9 = iid
+End Function
+Public Function D3D12_VIDEO_DECODE_PROFILE_VP9_10BIT_PROFILE2() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HA4C749EF, &H6ECF, &H48AA, &H84, &H48, &H50, &HA7, &HA1, &H16, &H5F, &HF7)
+D3D12_VIDEO_DECODE_PROFILE_VP9_10BIT_PROFILE2 = iid
+End Function
+Public Function D3D12_VIDEO_DECODE_PROFILE_VP8() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H90B899EA, &H3A62, &H4705, &H88, &HB3, &H8D, &HF0, &H4B, &H27, &H44, &HE7)
+D3D12_VIDEO_DECODE_PROFILE_VP8 = iid
+End Function
+Public Function D3D12_VIDEO_DECODE_PROFILE_AV1_PROFILE0() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HB8BE4CCB, &HCF53, &H46BA, &H8D, &H59, &HD6, &HB8, &HA6, &HDA, &H5D, &H2A)
+D3D12_VIDEO_DECODE_PROFILE_AV1_PROFILE0 = iid
+End Function
+Public Function D3D12_VIDEO_DECODE_PROFILE_AV1_PROFILE1() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H6936FF0F, &H45B1, &H4163, &H9C, &HC1, &H64, &H6E, &HF6, &H94, &H61, &H8)
+D3D12_VIDEO_DECODE_PROFILE_AV1_PROFILE1 = iid
+End Function
+Public Function D3D12_VIDEO_DECODE_PROFILE_AV1_PROFILE2() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HC5F2AA1, &HE541, &H4089, &HBB, &H7B, &H98, &H11, &HA, &H19, &HD7, &HC8)
+D3D12_VIDEO_DECODE_PROFILE_AV1_PROFILE2 = iid
+End Function
+Public Function D3D12_VIDEO_DECODE_PROFILE_AV1_12BIT_PROFILE2() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H17127009, &HA00F, &H4CE1, &H99, &H4E, &HBF, &H40, &H81, &HF6, &HF3, &HF0)
+D3D12_VIDEO_DECODE_PROFILE_AV1_12BIT_PROFILE2 = iid
+End Function
+Public Function D3D12_VIDEO_DECODE_PROFILE_AV1_12BIT_PROFILE2_420() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H2D80BED6, &H9CAC, &H4835, &H9E, &H91, &H32, &H7B, &HBC, &H4F, &H9E, &HE8)
+D3D12_VIDEO_DECODE_PROFILE_AV1_12BIT_PROFILE2_420 = iid
+End Function
+
+Public Function IID_ID3D12VideoDecoderHeap() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(IID_ID3D12VideoDecoderHeap, &H946B7C9, &HEBF6, &H4047, &HBB, &H73, &H86, &H83, &HE2, &H7D, &HBB, &H1F)
+IID_ID3D12VideoDecoderHeap = iid
+End Function
+Public Function IID_ID3D12VideoDevice() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(IID_ID3D12VideoDevice, &H1F052807, &HB46, &H4ACC, &H8A, &H89, &H36, &H4F, &H79, &H37, &H18, &HA4)
+IID_ID3D12VideoDevice = iid
+End Function
+Public Function IID_ID3D12VideoDecoder() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(IID_ID3D12VideoDecoder, &HC59B6BDC, &H7720, &H4074, &HA1, &H36, &H17, &HA1, &H56, &H3, &H74, &H70)
+IID_ID3D12VideoDecoder = iid
+End Function
+Public Function IID_ID3D12VideoProcessor() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(IID_ID3D12VideoProcessor, &H304FDB32, &HBEDE, &H410A, &H85, &H45, &H94, &H3A, &HC6, &HA4, &H61, &H38)
+IID_ID3D12VideoProcessor = iid
+End Function
+Public Function IID_ID3D12VideoDecodeCommandList() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(IID_ID3D12VideoDecodeCommandList, &H3B60536E, &HAD29, &H4E64, &HA2, &H69, &HF8, &H53, &H83, &H7E, &H5E, &H53)
+IID_ID3D12VideoDecodeCommandList = iid
+End Function
+Public Function IID_ID3D12VideoProcessCommandList() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(IID_ID3D12VideoProcessCommandList, &HAEB2543A, &H167F, &H4682, &HAC, &HC8, &HD1, &H59, &HED, &H4A, &H62, &H9)
+IID_ID3D12VideoProcessCommandList = iid
+End Function
+Public Function IID_ID3D12VideoDecodeCommandList1() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(IID_ID3D12VideoDecodeCommandList1, &HD52F011B, &HB56E, &H453C, &HA0, &H5A, &HA7, &HF3, &H11, &HC8, &HF4, &H72)
+IID_ID3D12VideoDecodeCommandList1 = iid
+End Function
+Public Function IID_ID3D12VideoProcessCommandList1() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(IID_ID3D12VideoProcessCommandList1, &H542C5C4D, &H7596, &H434F, &H8C, &H93, &H4E, &HFA, &H67, &H66, &HF2, &H67)
+IID_ID3D12VideoProcessCommandList1 = iid
+End Function
+Public Function IID_ID3D12VideoMotionEstimator() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(IID_ID3D12VideoMotionEstimator, &H33FDAE0E, &H98B, &H428F, &H87, &HBB, &H34, &HB6, &H95, &HDE, &H8, &HF8)
+IID_ID3D12VideoMotionEstimator = iid
+End Function
+Public Function IID_ID3D12VideoMotionVectorHeap() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(IID_ID3D12VideoMotionVectorHeap, &H5BE17987, &H743A, &H4061, &H83, &H4B, &H23, &HD2, &H2D, &HAE, &HA5, &H5)
+IID_ID3D12VideoMotionVectorHeap = iid
+End Function
+Public Function IID_ID3D12VideoDevice1() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(IID_ID3D12VideoDevice1, &H981611AD, &HA144, &H4C83, &H98, &H90, &HF3, &HE, &H26, &HD6, &H58, &HAB)
+IID_ID3D12VideoDevice1 = iid
+End Function
+Public Function IID_ID3D12VideoEncodeCommandList() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(IID_ID3D12VideoEncodeCommandList, &H8455293A, &HCBD, &H4831, &H9B, &H39, &HFB, &HDB, &HAB, &H72, &H47, &H23)
+IID_ID3D12VideoEncodeCommandList = iid
+End Function
+Public Function IID_ID3D12VideoDecoder1() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(IID_ID3D12VideoDecoder1, &H79A2E5FB, &HCCD2, &H469A, &H9F, &HDE, &H19, &H5D, &H10, &H95, &H1F, &H7E)
+IID_ID3D12VideoDecoder1 = iid
+End Function
+Public Function IID_ID3D12VideoDecoderHeap1() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(IID_ID3D12VideoDecoderHeap1, &HDA1D98C5, &H539F, &H41B2, &HBF, &H6B, &H11, &H98, &HA0, &H3B, &H6D, &H26)
+IID_ID3D12VideoDecoderHeap1 = iid
+End Function
+Public Function IID_ID3D12VideoProcessor1() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(IID_ID3D12VideoProcessor1, &HF3CFE615, &H553F, &H425C, &H86, &HD8, &HEE, &H8C, &H1B, &H1F, &HB0, &H1C)
+IID_ID3D12VideoProcessor1 = iid
+End Function
+Public Function IID_ID3D12VideoExtensionCommand() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(IID_ID3D12VideoExtensionCommand, &H554E41E8, &HAE8E, &H4A8C, &HB7, &HD2, &H5B, &H4F, &H27, &H4A, &H30, &HE4)
+IID_ID3D12VideoExtensionCommand = iid
+End Function
+Public Function IID_ID3D12VideoDevice2() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(IID_ID3D12VideoDevice2, &HF019AC49, &HF838, &H4A95, &H9B, &H17, &H57, &H94, &H37, &HC8, &HF5, &H13)
+IID_ID3D12VideoDevice2 = iid
+End Function
+Public Function IID_ID3D12VideoDecodeCommandList2() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(IID_ID3D12VideoDecodeCommandList2, &H6E120880, &HC114, &H4153, &H80, &H36, &HD2, &H47, &H5, &H1E, &H17, &H29)
+IID_ID3D12VideoDecodeCommandList2 = iid
+End Function
+Public Function IID_ID3D12VideoDecodeCommandList3() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(IID_ID3D12VideoDecodeCommandList3, &H2AEE8C37, &H9562, &H42DA, &H8A, &HBF, &H61, &HEF, &HEB, &H2E, &H45, &H13)
+IID_ID3D12VideoDecodeCommandList3 = iid
+End Function
+Public Function IID_ID3D12VideoProcessCommandList2() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(IID_ID3D12VideoProcessCommandList2, &HDB525AE4, &H6AD6, &H473C, &HBA, &HA7, &H59, &HB2, &HE3, &H70, &H82, &HE4)
+IID_ID3D12VideoProcessCommandList2 = iid
+End Function
+Public Function IID_ID3D12VideoProcessCommandList3() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(IID_ID3D12VideoProcessCommandList3, &H1A0A4CA4, &H9F08, &H40CE, &H95, &H58, &HB4, &H11, &HFD, &H26, &H66, &HFF)
+IID_ID3D12VideoProcessCommandList3 = iid
+End Function
+Public Function IID_ID3D12VideoEncodeCommandList1() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(IID_ID3D12VideoEncodeCommandList1, &H94971ECA, &H2BDB, &H4769, &H88, &HCF, &H36, &H75, &HEA, &H75, &H7E, &HBC)
+IID_ID3D12VideoEncodeCommandList1 = iid
+End Function
+Public Function IID_ID3D12VideoEncoder() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(IID_ID3D12VideoEncoder, &H2E0D212D, &H8DF9, &H44A6, &HA7, &H70, &HBB, &H28, &H9B, &H18, &H27, &H37)
+IID_ID3D12VideoEncoder = iid
+End Function
+Public Function IID_ID3D12VideoEncoderHeap() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(IID_ID3D12VideoEncoderHeap, &H22B35D96, &H876A, &H44C0, &HB2, &H5E, &HFB, &H8C, &H9C, &H7F, &H1C, &H4A)
+IID_ID3D12VideoEncoderHeap = iid
+End Function
+Public Function IID_ID3D12VideoDevice3() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(IID_ID3D12VideoDevice3, &H4243ADB4, &H3A32, &H4666, &H97, &H3C, &HC, &HCC, &H56, &H25, &HDC, &H44)
+IID_ID3D12VideoDevice3 = iid
+End Function
+Public Function IID_ID3D12VideoEncodeCommandList2() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(IID_ID3D12VideoEncodeCommandList2, &H895491E2, &HE701, &H46A9, &H9A, &H1F, &H8D, &H34, &H80, &HED, &H86, &H7A)
+IID_ID3D12VideoEncodeCommandList2 = iid
+End Function
+Public Function IID_ID3D12VideoEncodeCommandList3() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(IID_ID3D12VideoEncodeCommandList3, &H7F027B22, &H1515, &H4E85, &HAA, &HD, &H2, &H64, &H86, &H58, &H5, &H76)
+IID_ID3D12VideoEncodeCommandList3 = iid
+End Function
+Public Function CLSID_D2D1YCbCr() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H99503CC1, &H66C7, &H45C9, &HA8, &H75, &H8A, &HD8, &HA7, &H91, &H44, &H1)
+CLSID_D2D1YCbCr = iid
+End Function
+Public Function CLSID_D2D1Contrast() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HB648A78A, &HED5, &H4F80, &HA9, &H4A, &H8E, &H82, &H5A, &HCA, &H6B, &H77)
+CLSID_D2D1Contrast = iid
+End Function
+Public Function CLSID_D2D1RgbToHue() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H23F3E5EC, &H91E8, &H4D3D, &HAD, &HA, &HAF, &HAD, &HC1, &H0, &H4A, &HA1)
+CLSID_D2D1RgbToHue = iid
+End Function
+Public Function CLSID_D2D1HueToRgb() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H7B78A6BD, &H141, &H4DEF, &H8A, &H52, &H63, &H56, &HEE, &HC, &HBD, &HD5)
+CLSID_D2D1HueToRgb = iid
+End Function
+Public Function CLSID_D2D1ChromaKey() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H74C01F5B, &H2A0D, &H408C, &H88, &HE2, &HC7, &HA3, &HC7, &H19, &H77, &H42)
+CLSID_D2D1ChromaKey = iid
+End Function
+Public Function CLSID_D2D1Emboss() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HB1C5EB2B, &H348, &H43F0, &H81, &H7, &H49, &H57, &HCA, &HCB, &HA2, &HAE)
+CLSID_D2D1Emboss = iid
+End Function
+Public Function CLSID_D2D1Exposure() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HB56C8CFA, &HF634, &H41EE, &HBE, &HE0, &HFF, &HA6, &H17, &H10, &H60, &H4)
+CLSID_D2D1Exposure = iid
+End Function
+Public Function CLSID_D2D1Grayscale() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H36DDE0EB, &H3725, &H42E0, &H83, &H6D, &H52, &HFB, &H20, &HAE, &HE6, &H44)
+CLSID_D2D1Grayscale = iid
+End Function
+Public Function CLSID_D2D1Invert() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HE0C3784D, &HCB39, &H4E84, &HB6, &HFD, &H6B, &H72, &HF0, &H81, &H2, &H63)
+CLSID_D2D1Invert = iid
+End Function
+Public Function CLSID_D2D1Posterize() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H2188945E, &H33A3, &H4366, &HB7, &HBC, &H8, &H6B, &HD0, &H2D, &H8, &H84)
+CLSID_D2D1Posterize = iid
+End Function
+Public Function CLSID_D2D1Sepia() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H3A1AF410, &H5F1D, &H4DBE, &H84, &HDF, &H91, &H5D, &HA7, &H9B, &H71, &H53)
+CLSID_D2D1Sepia = iid
+End Function
+Public Function CLSID_D2D1Sharpen() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HC9B887CB, &HC5FF, &H4DC5, &H97, &H79, &H27, &H3D, &HCF, &H41, &H7C, &H7D)
+CLSID_D2D1Sharpen = iid
+End Function
+Public Function CLSID_D2D1Straighten() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H4DA47B12, &H79A3, &H4FB0, &H82, &H37, &HBB, &HC3, &HB2, &HA4, &HDE, &H8)
+CLSID_D2D1Straighten = iid
+End Function
+Public Function CLSID_D2D1TemperatureTint() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H89176087, &H8AF9, &H4A08, &HAE, &HB1, &H89, &H5F, &H38, &HDB, &H17, &H66)
+CLSID_D2D1TemperatureTint = iid
+End Function
+Public Function CLSID_D2D1Vignette() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HC00C40BE, &H5E67, &H4CA3, &H95, &HB4, &HF4, &HB0, &H2C, &H11, &H51, &H35)
+CLSID_D2D1Vignette = iid
+End Function
+Public Function CLSID_D2D1EdgeDetection() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HEFF583CA, &HCB07, &H4AA9, &HAC, &H5D, &H2C, &HC4, &H4C, &H76, &H46, &HF)
+CLSID_D2D1EdgeDetection = iid
+End Function
+Public Function CLSID_D2D1HighlightsShadows() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HCADC8384, &H323F, &H4C7E, &HA3, &H61, &H2E, &H2B, &H24, &HDF, &H6E, &HE4)
+CLSID_D2D1HighlightsShadows = iid
+End Function
+Public Function CLSID_D2D1LookupTable3D() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H349E0EDA, &H88, &H4A79, &H9C, &HA3, &HC7, &HE3, &H0, &H20, &H20, &H20)
+CLSID_D2D1LookupTable3D = iid
+End Function
+Public Function CLSID_D2D1Opacity() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H811D79A4, &HDE28, &H4454, &H80, &H94, &HC6, &H46, &H85, &HF8, &HBD, &H4C)
+CLSID_D2D1Opacity = iid
+End Function
+Public Function CLSID_D2D1AlphaMask() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HC80ECFF0, &H3FD5, &H4F05, &H83, &H28, &HC5, &HD1, &H72, &H4B, &H4F, &HA)
+CLSID_D2D1AlphaMask = iid
+End Function
+Public Function CLSID_D2D1CrossFade() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H12F575E8, &H4DB1, &H485F, &H9A, &H84, &H3, &HA0, &H7D, &HD3, &H82, &H9F)
+CLSID_D2D1CrossFade = iid
+End Function
+Public Function CLSID_D2D1Tint() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H36312B17, &HF7DD, &H4014, &H91, &H5D, &HFF, &HCA, &H76, &H8C, &HF2, &H11)
+CLSID_D2D1Tint = iid
+End Function
+Public Function CLSID_D2D1WhiteLevelAdjustment() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H44A1CADB, &H6CDD, &H4818, &H8F, &HF4, &H26, &HC1, &HCF, &HE9, &H5B, &HDB)
+CLSID_D2D1WhiteLevelAdjustment = iid
+End Function
+Public Function CLSID_D2D1HdrToneMap() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H7B0B748D, &H4610, &H4486, &HA9, &HC, &H99, &H9D, &H9A, &H2E, &H2B, &H11)
+CLSID_D2D1HdrToneMap = iid
+End Function
+
+
+Public Function IID_ID2D1SvgAttribute() As UUID
+'{c9cdb0dd-f8c9-4e70-b7c2-301c80292c5e}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HC9CDB0DD, CInt(&HF8C9), CInt(&H4E70), &HB7, &HC2, &H30, &H1C, &H80, &H29, &H2C, &H5E)
+ IID_ID2D1SvgAttribute = iid
+End Function
+Public Function IID_ID2D1SvgPaint() As UUID
+'{d59bab0a-68a2-455b-a5dc-9eb2854e2490}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HD59BAB0A, CInt(&H68A2), CInt(&H455B), &HA5, &HDC, &H9E, &HB2, &H85, &H4E, &H24, &H90)
+ IID_ID2D1SvgPaint = iid
+End Function
+Public Function IID_ID2D1SvgStrokeDashArray() As UUID
+'{f1c0ca52-92a3-4f00-b4ce-f35691efd9d9}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HF1C0CA52, CInt(&H92A3), CInt(&H4F00), &HB4, &HCE, &HF3, &H56, &H91, &HEF, &HD9, &HD9)
+ IID_ID2D1SvgStrokeDashArray = iid
+End Function
+Public Function IID_ID2D1SvgPointCollection() As UUID
+'{9dbe4c0d-3572-4dd9-9825-5530813bb712}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H9DBE4C0D, CInt(&H3572), CInt(&H4DD9), &H98, &H25, &H55, &H30, &H81, &H3B, &HB7, &H12)
+ IID_ID2D1SvgPointCollection = iid
+End Function
+Public Function IID_ID2D1SvgPathData() As UUID
+'{c095e4f4-bb98-43d6-9745-4d1b84ec9888}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HC095E4F4, CInt(&HBB98), CInt(&H43D6), &H97, &H45, &H4D, &H1B, &H84, &HEC, &H98, &H88)
+ IID_ID2D1SvgPathData = iid
+End Function
+Public Function IID_ID2D1SvgElement() As UUID
+'{ac7b67a6-183e-49c1-a823-0ebe40b0db29}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HAC7B67A6, CInt(&H183E), CInt(&H49C1), &HA8, &H23, &HE, &HBE, &H40, &HB0, &HDB, &H29)
+ IID_ID2D1SvgElement = iid
+End Function
+Public Function IID_ID2D1SvgDocument() As UUID
+'{86b88e4d-afa4-4d7b-88e4-68a51c4a0aec}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H86B88E4D, CInt(&HAFA4), CInt(&H4D7B), &H88, &HE4, &H68, &HA5, &H1C, &H4A, &HA, &HEC)
+ IID_ID2D1SvgDocument = iid
 End Function
 
 
@@ -7231,4 +7923,578 @@ Public Function IID_IDirectDrawStreamSample() As UUID
 Static iid As UUID
  If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HF4104FCF, CInt(&H9A70), CInt(&H11D0), &H8F, &HDE, &H0, &HC0, &H4F, &HD9, &H18, &H9D)
 IID_IDirectDrawStreamSample = iid
+End Function
+
+
+Public Function IID_IDMLObject() As UUID
+'{c8263aac-9e0c-4a2d-9b8e-007521a3317c}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HC8263AAC, CInt(&H9E0C), CInt(&H4A2D), &H9B, &H8E, &H0, &H75, &H21, &HA3, &H31, &H7C)
+IID_IDMLObject = iid
+End Function
+Public Function IID_IDMLDevice() As UUID
+'{6dbd6437-96fd-423f-a98c-ae5e7c2a573f}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H6DBD6437, CInt(&H96FD), CInt(&H423F), &HA9, &H8C, &HAE, &H5E, &H7C, &H2A, &H57, &H3F)
+IID_IDMLDevice = iid
+End Function
+Public Function IID_IDMLDeviceChild() As UUID
+'{27e83142-8165-49e3-974e-2fd66e4cb69d}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H27E83142, CInt(&H8165), CInt(&H49E3), &H97, &H4E, &H2F, &HD6, &H6E, &H4C, &HB6, &H9D)
+IID_IDMLDeviceChild = iid
+End Function
+Public Function IID_IDMLPageable() As UUID
+'{b1ab0825-4542-4a4b-8617-6dde6e8f6201}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HB1AB0825, CInt(&H4542), CInt(&H4A4B), &H86, &H17, &H6D, &HDE, &H6E, &H8F, &H62, &H1)
+IID_IDMLPageable = iid
+End Function
+Public Function IID_IDMLOperator() As UUID
+'{26caae7a-3081-4633-9581-226fbe57695d}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H26CAAE7A, CInt(&H3081), CInt(&H4633), &H95, &H81, &H22, &H6F, &HBE, &H57, &H69, &H5D)
+IID_IDMLOperator = iid
+End Function
+Public Function IID_IDMLDispatchable() As UUID
+'{dcb821a8-1039-441e-9f1c-b1759c2f3cec}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HDCB821A8, CInt(&H1039), CInt(&H441E), &H9F, &H1C, &HB1, &H75, &H9C, &H2F, &H3C, &HEC)
+IID_IDMLDispatchable = iid
+End Function
+Public Function IID_IDMLCompiledOperator() As UUID
+'{6b15e56a-bf5c-4902-92d8-da3a650afea4}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H6B15E56A, CInt(&HBF5C), CInt(&H4902), &H92, &HD8, &HDA, &H3A, &H65, &HA, &HFE, &HA4)
+IID_IDMLCompiledOperator = iid
+End Function
+Public Function IID_IDMLOperatorInitializer() As UUID
+'{427c1113-435c-469c-8676-4d5dd072f813}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H427C1113, CInt(&H435C), CInt(&H469C), &H86, &H76, &H4D, &H5D, &HD0, &H72, &HF8, &H13)
+IID_IDMLOperatorInitializer = iid
+End Function
+Public Function IID_IDMLBindingTable() As UUID
+'{29c687dc-de74-4e3b-ab00-1168f2fc3cfc}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H29C687DC, CInt(&HDE74), CInt(&H4E3B), &HAB, &H0, &H11, &H68, &HF2, &HFC, &H3C, &HFC)
+IID_IDMLBindingTable = iid
+End Function
+Public Function IID_IDMLCommandRecorder() As UUID
+'{e6857a76-2e3e-4fdd-bff4-5d2ba10fb453}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HE6857A76, CInt(&H2E3E), CInt(&H4FDD), &HBF, &HF4, &H5D, &H2B, &HA1, &HF, &HB4, &H53)
+IID_IDMLCommandRecorder = iid
+End Function
+Public Function IID_IDMLDebugDevice() As UUID
+'{7d6f3ac9-394a-4ac3-92a7-390cc57a8217}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H7D6F3AC9, CInt(&H394A), CInt(&H4AC3), &H92, &HA7, &H39, &HC, &HC5, &H7A, &H82, &H17)
+IID_IDMLDebugDevice = iid
+End Function
+Public Function IID_IDMLDevice1() As UUID
+'{a0884f9a-d2be-4355-aa5d-5901281ad1d2}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HA0884F9A, CInt(&HD2BE), CInt(&H4355), &HAA, &H5D, &H59, &H1, &H28, &H1A, &HD1, &HD2)
+IID_IDMLDevice1 = iid
+End Function
+
+
+
+Public Function DXVA2_ModeMPEG2_MoComp() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HE6A9F44B, &H61B0, &H4563, &H9E, &HA4, &H63, &HD2, &HA3, &HC6, &HFE, &H66)
+DXVA2_ModeMPEG2_MoComp = iid
+End Function
+Public Function DXVA2_ModeMPEG2_IDCT() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HBF22AD00, &H3EA, &H4690, &H80, &H77, &H47, &H33, &H46, &H20, &H9B, &H7E)
+DXVA2_ModeMPEG2_IDCT = iid
+End Function
+Public Function DXVA2_ModeMPEG2_VLD() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HEE27417F, &H5E28, &H4E65, &HBE, &HEA, &H1D, &H26, &HB5, &H8, &HAD, &HC9)
+DXVA2_ModeMPEG2_VLD = iid
+End Function
+Public Function DXVA2_ModeMPEG1_VLD() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H6F3EC719, &H3735, &H42CC, &H80, &H63, &H65, &HCC, &H3C, &HB3, &H66, &H16)
+DXVA2_ModeMPEG1_VLD = iid
+End Function
+Public Function DXVA2_ModeMPEG2and1_VLD() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H86695F12, &H340E, &H4F04, &H9F, &HD3, &H92, &H53, &HDD, &H32, &H74, &H60)
+DXVA2_ModeMPEG2and1_VLD = iid
+End Function
+Public Function DXVA2_ModeH264_A() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H1B81BE64, &HA0C7, &H11D3, &HB9, &H84, &H0, &HC0, &H4F, &H2E, &H73, &HC5)
+DXVA2_ModeH264_A = iid
+End Function
+Public Function DXVA2_ModeH264_B() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H1B81BE65, &HA0C7, &H11D3, &HB9, &H84, &H0, &HC0, &H4F, &H2E, &H73, &HC5)
+DXVA2_ModeH264_B = iid
+End Function
+Public Function DXVA2_ModeH264_C() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H1B81BE66, &HA0C7, &H11D3, &HB9, &H84, &H0, &HC0, &H4F, &H2E, &H73, &HC5)
+DXVA2_ModeH264_C = iid
+End Function
+Public Function DXVA2_ModeH264_D() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H1B81BE67, &HA0C7, &H11D3, &HB9, &H84, &H0, &HC0, &H4F, &H2E, &H73, &HC5)
+DXVA2_ModeH264_D = iid
+End Function
+Public Function DXVA2_ModeH264_E() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H1B81BE68, &HA0C7, &H11D3, &HB9, &H84, &H0, &HC0, &H4F, &H2E, &H73, &HC5)
+DXVA2_ModeH264_E = iid
+End Function
+Public Function DXVA2_ModeH264_F() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H1B81BE69, &HA0C7, &H11D3, &HB9, &H84, &H0, &HC0, &H4F, &H2E, &H73, &HC5)
+DXVA2_ModeH264_F = iid
+End Function
+Public Function DXVA2_ModeH264_VLD_WithFMOASO_NoFGT() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HD5F04FF9, &H3418, &H45D8, &H95, &H61, &H32, &HA7, &H6A, &HAE, &H2D, &HDD)
+DXVA2_ModeH264_VLD_WithFMOASO_NoFGT = iid
+End Function
+Public Function DXVA2_ModeH264_VLD_Stereo_Progressive_NoFGT() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HD79BE8DA, &HCF1, &H4C81, &HB8, &H2A, &H69, &HA4, &HE2, &H36, &HF4, &H3D)
+DXVA2_ModeH264_VLD_Stereo_Progressive_NoFGT = iid
+End Function
+Public Function DXVA2_ModeH264_VLD_Stereo_NoFGT() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HF9AACCBB, &HC2B6, &H4CFC, &H87, &H79, &H57, &H7, &HB1, &H76, &H5, &H52)
+DXVA2_ModeH264_VLD_Stereo_NoFGT = iid
+End Function
+Public Function DXVA2_ModeH264_VLD_Multiview_NoFGT() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H705B9D82, &H76CF, &H49D6, &HB7, &HE6, &HAC, &H88, &H72, &HDB, &H1, &H3C)
+DXVA2_ModeH264_VLD_Multiview_NoFGT = iid
+End Function
+Public Function DXVA2_ModeWMV8_A() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H1B81BE80, &HA0C7, &H11D3, &HB9, &H84, &H0, &HC0, &H4F, &H2E, &H73, &HC5)
+DXVA2_ModeWMV8_A = iid
+End Function
+Public Function DXVA2_ModeWMV8_B() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H1B81BE81, &HA0C7, &H11D3, &HB9, &H84, &H0, &HC0, &H4F, &H2E, &H73, &HC5)
+DXVA2_ModeWMV8_B = iid
+End Function
+Public Function DXVA2_ModeWMV9_A() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H1B81BE90, &HA0C7, &H11D3, &HB9, &H84, &H0, &HC0, &H4F, &H2E, &H73, &HC5)
+DXVA2_ModeWMV9_A = iid
+End Function
+Public Function DXVA2_ModeWMV9_B() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H1B81BE91, &HA0C7, &H11D3, &HB9, &H84, &H0, &HC0, &H4F, &H2E, &H73, &HC5)
+DXVA2_ModeWMV9_B = iid
+End Function
+Public Function DXVA2_ModeWMV9_C() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H1B81BE94, &HA0C7, &H11D3, &HB9, &H84, &H0, &HC0, &H4F, &H2E, &H73, &HC5)
+DXVA2_ModeWMV9_C = iid
+End Function
+Public Function DXVA2_ModeVC1_A() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H1B81BEA0, &HA0C7, &H11D3, &HB9, &H84, &H0, &HC0, &H4F, &H2E, &H73, &HC5)
+DXVA2_ModeVC1_A = iid
+End Function
+Public Function DXVA2_ModeVC1_B() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H1B81BEA1, &HA0C7, &H11D3, &HB9, &H84, &H0, &HC0, &H4F, &H2E, &H73, &HC5)
+DXVA2_ModeVC1_B = iid
+End Function
+Public Function DXVA2_ModeVC1_C() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H1B81BEA2, &HA0C7, &H11D3, &HB9, &H84, &H0, &HC0, &H4F, &H2E, &H73, &HC5)
+DXVA2_ModeVC1_C = iid
+End Function
+Public Function DXVA2_ModeVC1_D() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H1B81BEA3, &HA0C7, &H11D3, &HB9, &H84, &H0, &HC0, &H4F, &H2E, &H73, &HC5)
+DXVA2_ModeVC1_D = iid
+End Function
+Public Function DXVA2_ModeVC1_D2010() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H1B81BEA4, &HA0C7, &H11D3, &HB9, &H84, &H0, &HC0, &H4F, &H2E, &H73, &HC5)
+DXVA2_ModeVC1_D2010 = iid
+End Function
+Public Function DXVA2_NoEncrypt() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H1B81BED0, &HA0C7, &H11D3, &HB9, &H84, &H0, &HC0, &H4F, &H2E, &H73, &HC5)
+DXVA2_NoEncrypt = iid
+End Function
+Public Function DXVA2_VideoProcProgressiveDevice() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H5A54A0C9, &HC7EC, &H4BD9, &H8E, &HDE, &HF3, &HC7, &H5D, &HC4, &H39, &H3B)
+DXVA2_VideoProcProgressiveDevice = iid
+End Function
+Public Function DXVA2_VideoProcBobDevice() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H335AA36E, &H7884, &H43A4, &H9C, &H91, &H7F, &H87, &HFA, &HF3, &HE3, &H7E)
+DXVA2_VideoProcBobDevice = iid
+End Function
+Public Function DXVA2_VideoProcSoftwareDevice() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H4553D47F, &HEE7E, &H4E3F, &H94, &H75, &HDB, &HF1, &H37, &H6C, &H48, &H10)
+DXVA2_VideoProcSoftwareDevice = iid
+End Function
+Public Function DXVA2_ModeMPEG4pt2_VLD_Simple() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HEFD64D74, &HC9E8, &H41D7, &HA5, &HE9, &HE9, &HB0, &HE3, &H9F, &HA3, &H19)
+DXVA2_ModeMPEG4pt2_VLD_Simple = iid
+End Function
+Public Function DXVA2_ModeMPEG4pt2_VLD_AdvSimple_NoGMC() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HED418A9F, &H10D, &H4EDA, &H9A, &HE3, &H9A, &H65, &H35, &H8D, &H8D, &H2E)
+DXVA2_ModeMPEG4pt2_VLD_AdvSimple_NoGMC = iid
+End Function
+Public Function DXVA2_ModeMPEG4pt2_VLD_AdvSimple_GMC() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HAB998B5B, &H4258, &H44A9, &H9F, &HEB, &H94, &HE5, &H97, &HA6, &HBA, &HAE)
+DXVA2_ModeMPEG4pt2_VLD_AdvSimple_GMC = iid
+End Function
+Public Function DXVA2_ModeHEVC_VLD_Main() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H5B11D51B, &H2F4C, &H4452, &HBC, &HC3, &H9, &HF2, &HA1, &H16, &HC, &HC0)
+DXVA2_ModeHEVC_VLD_Main = iid
+End Function
+Public Function DXVA2_ModeHEVC_VLD_Main10() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H107AF0E0, &HEF1A, &H4D19, &HAB, &HA8, &H67, &HA1, &H63, &H7, &H3D, &H13)
+DXVA2_ModeHEVC_VLD_Main10 = iid
+End Function
+Public Function DXVA2_ModeVP9_VLD_Profile0() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H463707F8, &HA1D0, &H4585, &H87, &H6D, &H83, &HAA, &H6D, &H60, &HB8, &H9E)
+DXVA2_ModeVP9_VLD_Profile0 = iid
+End Function
+Public Function DXVA2_ModeVP9_VLD_10bit_Profile2() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HA4C749EF, &H6ECF, &H48AA, &H84, &H48, &H50, &HA7, &HA1, &H16, &H5F, &HF7)
+DXVA2_ModeVP9_VLD_10bit_Profile2 = iid
+End Function
+Public Function DXVA2_ModeVP8_VLD() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H90B899EA, &H3A62, &H4705, &H88, &HB3, &H8D, &HF0, &H4B, &H27, &H44, &HE7)
+DXVA2_ModeVP8_VLD = iid
+End Function
+Public Function DXVA2_ModeWMV8_PostProc() As UUID
+    DXVA2_ModeWMV8_PostProc = DXVA2_ModeWMV8_A
+End Function
+Public Function DXVA2_ModeWMV8_MoComp() As UUID
+    DXVA2_ModeWMV8_MoComp = DXVA2_ModeWMV8_B
+End Function
+Public Function DXVA2_ModeWMV9_PostProc() As UUID
+    DXVA2_ModeWMV9_PostProc = DXVA2_ModeWMV9_A
+End Function
+Public Function DXVA2_ModeWMV9_MoComp() As UUID
+    DXVA2_ModeWMV9_MoComp = DXVA2_ModeWMV9_B
+End Function
+Public Function DXVA2_ModeWMV9_IDCT() As UUID
+    DXVA2_ModeWMV9_IDCT = DXVA2_ModeWMV9_C
+End Function
+Public Function DXVA2_ModeVC1_PostProc() As UUID
+    DXVA2_ModeVC1_PostProc = DXVA2_ModeVC1_A
+End Function
+Public Function DXVA2_ModeVC1_MoComp() As UUID
+    DXVA2_ModeVC1_MoComp = DXVA2_ModeVC1_B
+End Function
+Public Function DXVA2_ModeVC1_IDCT() As UUID
+    DXVA2_ModeVC1_IDCT = DXVA2_ModeVC1_C
+End Function
+Public Function DXVA2_ModeVC1_VLD() As UUID
+    DXVA2_ModeVC1_VLD = DXVA2_ModeVC1_D
+End Function
+Public Function DXVA2_ModeH264_MoComp_NoFGT() As UUID
+    DXVA2_ModeH264_MoComp_NoFGT = DXVA2_ModeH264_A
+End Function
+Public Function DXVA2_ModeH264_MoComp_FGT() As UUID
+    DXVA2_ModeH264_MoComp_FGT = DXVA2_ModeH264_B
+End Function
+Public Function DXVA2_ModeH264_IDCT_NoFGT() As UUID
+    DXVA2_ModeH264_IDCT_NoFGT = DXVA2_ModeH264_C
+End Function
+Public Function DXVA2_ModeH264_IDCT_FGT() As UUID
+    DXVA2_ModeH264_IDCT_FGT = DXVA2_ModeH264_D
+End Function
+Public Function DXVA2_ModeH264_VLD_NoFGT() As UUID
+    DXVA2_ModeH264_VLD_NoFGT = DXVA2_ModeH264_E
+End Function
+Public Function DXVA2_ModeH264_VLD_FGT() As UUID
+    DXVA2_ModeH264_VLD_FGT = DXVA2_ModeH264_F
+End Function
+     
+    
+Public Function IID_IDirect3DDeviceManager9() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HA0CADE0F, &H6D5, &H4CF4, &HA1, &HC7, &HF3, &HCD, &HD7, &H25, &HAA, &H75)
+IID_IDirect3DDeviceManager9 = iid
+End Function
+Public Function IID_IDirectXVideoAccelerationService() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HFC51A550, &HD5E7, &H11D9, &HAF, &H55, &H0, &H5, &H4E, &H43, &HFF, &H2)
+IID_IDirectXVideoAccelerationService = iid
+End Function
+Public Function IID_IDirectXVideoDecoderService() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HFC51A551, &HD5E7, &H11D9, &HAF, &H55, &H0, &H5, &H4E, &H43, &HFF, &H2)
+IID_IDirectXVideoDecoderService = iid
+End Function
+Public Function IID_IDirectXVideoProcessorService() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HFC51A552, &HD5E7, &H11D9, &HAF, &H55, &H0, &H5, &H4E, &H43, &HFF, &H2)
+IID_IDirectXVideoProcessorService = iid
+End Function
+Public Function IID_IDirectXVideoDecoder() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HF2B0810A, &HFD00, &H43C9, &H91, &H8C, &HDF, &H94, &HE2, &HD8, &HEF, &H7D)
+IID_IDirectXVideoDecoder = iid
+End Function
+Public Function IID_IDirectXVideoProcessor() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H8C3A39F0, &H916E, &H4690, &H80, &H4F, &H4C, &H80, &H1, &H35, &H5D, &H25)
+IID_IDirectXVideoProcessor = iid
+End Function
+Public Function IID_IDirectXVideoMemoryConfiguration() As UUID
+'{b7f916dd-db3b-49c1-84d7-e45ef99ec726}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HB7F916DD, CInt(&HDB3B), CInt(&H49C1), &H84, &HD7, &HE4, &H5E, &HF9, &H9E, &HC7, &H26)
+IID_IDirectXVideoMemoryConfiguration = iid
+End Function
+Public Function IID_IDXVAHD_Device() As UUID
+'{95f12dfd-d77e-49be-815f-57d579634d6d}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H95F12DFD, CInt(&HD77E), CInt(&H49BE), &H81, &H5F, &H57, &HD5, &H79, &H63, &H4D, &H6D)
+IID_IDXVAHD_Device = iid
+End Function
+Public Function IID_IDXVAHD_VideoProcessor() As UUID
+'{95f4edf4-6e03-4cd7-be1b-3075d665aa52}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H95F4EDF4, CInt(&H6E03), CInt(&H4CD7), &HBE, &H1B, &H30, &H75, &HD6, &H65, &HAA, &H52)
+IID_IDXVAHD_VideoProcessor = iid
+End Function
+
+Public Function DXVAHD_STREAM_STATE_PRIVATE_IVTC() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H9C601E3C, &HF33, &H414C, &HA7, &H39, &H99, &H54, &HE, &HE4, &H2D, &HA5)
+DXVAHD_STREAM_STATE_PRIVATE_IVTC = iid
+End Function
+Public Function DXVAHDControlGuid() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HA0386E75, &HF70C, &H464C, &HA9, &HCE, &H33, &HC4, &H4E, &H9, &H16, &H23)
+DXVAHDControlGuid = iid
+End Function
+Public Function DXVAHDETWGUID_CREATEVIDEOPROCESSOR() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H681E3D1E, &H5674, &H4FB3, &HA5, &H3, &H2F, &H20, &H55, &HE9, &H1F, &H60)
+DXVAHDETWGUID_CREATEVIDEOPROCESSOR = iid
+End Function
+Public Function DXVAHDETWGUID_VIDEOPROCESSBLTSTATE() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H76C94B5A, &H193F, &H4692, &H94, &H84, &HA4, &HD9, &H99, &HDA, &H81, &HA8)
+DXVAHDETWGUID_VIDEOPROCESSBLTSTATE = iid
+End Function
+Public Function DXVAHDETWGUID_VIDEOPROCESSSTREAMSTATE() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H262C0B02, &H209D, &H47ED, &H94, &HD8, &H82, &HAE, &H2, &HB8, &H4A, &HA7)
+DXVAHDETWGUID_VIDEOPROCESSSTREAMSTATE = iid
+End Function
+Public Function DXVAHDETWGUID_VIDEOPROCESSBLTHD() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HBEF3D435, &H78C7, &H4DE3, &H97, &H7, &HCD, &H1B, &H8, &H3B, &H16, &HA)
+DXVAHDETWGUID_VIDEOPROCESSBLTHD = iid
+End Function
+Public Function DXVAHDETWGUID_VIDEOPROCESSBLTHD_STREAM() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H27AE473E, &HA5FC, &H4BE5, &HB4, &HE3, &HF2, &H49, &H94, &HD3, &HC4, &H95)
+DXVAHDETWGUID_VIDEOPROCESSBLTHD_STREAM = iid
+End Function
+Public Function DXVAHDETWGUID_DESTROYVIDEOPROCESSOR() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HF943F0A0, &H3F16, &H43E0, &H80, &H93, &H10, &H5A, &H98, &H6A, &HA5, &HF1)
+DXVAHDETWGUID_DESTROYVIDEOPROCESSOR = iid
+End Function
+
+
+Public Function IID_IDirect3DDevice9() As UUID
+'{D0223B96-BF7A-43FD-92BD-A43B0D82B9EB}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HD0223B96, CInt(&HBF7A), CInt(&H43FD), &H92, &HBD, &HA4, &H3B, &HD, &H82, &HB9, &HEB)
+IID_IDirect3DDevice9 = iid
+End Function
+Public Function IID_IDirect3DSurface9() As UUID
+'{0CFBAF3A-9FF6-429A-99B3-A2796AF8B89B}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HCFBAF3A, CInt(&H9FF6), CInt(&H429A), &H99, &HB3, &HA2, &H79, &H6A, &HF8, &HB8, &H9B)
+IID_IDirect3DSurface9 = iid
+End Function
+Public Function IID_IDirect3DResource9() As UUID
+'{05EEC05D-8F7D-4362-B999-D1BAF357C704}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H5EEC05D, CInt(&H8F7D), CInt(&H4362), &HB9, &H99, &HD1, &HBA, &HF3, &H57, &HC7, &H4)
+IID_IDirect3DResource9 = iid
+End Function
+Public Function IID_IDirect3DSwapChain9() As UUID
+'{794950F2-ADFC-458A-905E-10A10B0B503B}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H794950F2, CInt(&HADFC), CInt(&H458A), &H90, &H5E, &H10, &HA1, &HB, &HB, &H50, &H3B)
+IID_IDirect3DSwapChain9 = iid
+End Function
+Public Function IID_IDirect3DTexture9() As UUID
+'{85C31227-3DE5-4F00-9B3A-F11AC38C18B5}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H85C31227, CInt(&H3DE5), CInt(&H4F00), &H9B, &H3A, &HF1, &H1A, &HC3, &H8C, &H18, &HB5)
+IID_IDirect3DTexture9 = iid
+End Function
+Public Function IID_IDirect3DBaseTexture9() As UUID
+'{580CA87E-1D3C-4D54-991D-B7D3E3C298CE}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H580CA87E, CInt(&H1D3C), CInt(&H4D54), &H99, &H1D, &HB7, &HD3, &HE3, &HC2, &H98, &HCE)
+IID_IDirect3DBaseTexture9 = iid
+End Function
+Public Function IID_IDirect3DVolumeTexture9() As UUID
+'{2518526C-E789-4111-A7B9-47EF328D13E6}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H2518526C, CInt(&HE789), CInt(&H4111), &HA7, &HB9, &H47, &HEF, &H32, &H8D, &H13, &HE6)
+IID_IDirect3DVolumeTexture9 = iid
+End Function
+Public Function IID_IDirect3DVolume9() As UUID
+'{24F416E6-1F67-4AA7-B88E-D33F6F3128A1}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H24F416E6, CInt(&H1F67), CInt(&H4AA7), &HB8, &H8E, &HD3, &H3F, &H6F, &H31, &H28, &HA1)
+IID_IDirect3DVolume9 = iid
+End Function
+Public Function IID_IDirect3DCubeTexture9() As UUID
+'{FFF32F81-D953-473A-9223-93D652ABA93F}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HFFF32F81, CInt(&HD953), CInt(&H473A), &H92, &H23, &H93, &HD6, &H52, &HAB, &HA9, &H3F)
+IID_IDirect3DCubeTexture9 = iid
+End Function
+Public Function IID_IDirect3DVertexBuffer9() As UUID
+'{B64BB1B5-FD70-4DF6-BF91-19D0A12455E3}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HB64BB1B5, CInt(&HFD70), CInt(&H4DF6), &HBF, &H91, &H19, &HD0, &HA1, &H24, &H55, &HE3)
+IID_IDirect3DVertexBuffer9 = iid
+End Function
+Public Function IID_IDirect3DIndexBuffer9() As UUID
+'{7C9DD65E-D3F7-4529-ACEE-785830ACDE35}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H7C9DD65E, CInt(&HD3F7), CInt(&H4529), &HAC, &HEE, &H78, &H58, &H30, &HAC, &HDE, &H35)
+IID_IDirect3DIndexBuffer9 = iid
+End Function
+Public Function IID_IDirect3DStateBlock9() As UUID
+'{B07C4FE5-310D-4BA8-A23C-4F0F206F218B}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HB07C4FE5, CInt(&H310D), CInt(&H4BA8), &HA2, &H3C, &H4F, &HF, &H20, &H6F, &H21, &H8B)
+IID_IDirect3DStateBlock9 = iid
+End Function
+Public Function IID_IDirect3DVertexDeclaration9() As UUID
+'{DD13C59C-36FA-4098-A8FB-C7ED39DC8546}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HDD13C59C, CInt(&H36FA), CInt(&H4098), &HA8, &HFB, &HC7, &HED, &H39, &HDC, &H85, &H46)
+IID_IDirect3DVertexDeclaration9 = iid
+End Function
+Public Function IID_IDirect3DVertexShader9() As UUID
+'{EFC5557E-6265-4613-8A94-43857889EB36}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HEFC5557E, CInt(&H6265), CInt(&H4613), &H8A, &H94, &H43, &H85, &H78, &H89, &HEB, &H36)
+IID_IDirect3DVertexShader9 = iid
+End Function
+Public Function IID_IDirect3DPixelShader9() As UUID
+'{6D3BDBDC-5B02-4415-B852-CE5E8BCCB289}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H6D3BDBDC, CInt(&H5B02), CInt(&H4415), &HB8, &H52, &HCE, &H5E, &H8B, &HCC, &HB2, &H89)
+IID_IDirect3DPixelShader9 = iid
+End Function
+Public Function IID_IDirect3DQuery9() As UUID
+'{D9771460-A695-4F26-BBD3-27B840B541CC}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HD9771460, CInt(&HA695), CInt(&H4F26), &HBB, &HD3, &H27, &HB8, &H40, &HB5, &H41, &HCC)
+IID_IDirect3DQuery9 = iid
+End Function
+Public Function IID_IDirect3D9Ex() As UUID
+'{02177241-69FC-400C-8FF1-93A44DF6861D}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H2177241, CInt(&H69FC), CInt(&H400C), &H8F, &HF1, &H93, &HA4, &H4D, &HF6, &H86, &H1D)
+IID_IDirect3D9Ex = iid
+End Function
+Public Function IID_IDirect3DDevice9Ex() As UUID
+'{B18B10CE-2649-405a-870F-95F777D4313A}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HB18B10CE, CInt(&H2649), CInt(&H405A), &H87, &HF, &H95, &HF7, &H77, &HD4, &H31, &H3A)
+IID_IDirect3DDevice9Ex = iid
+End Function
+Public Function IID_IDirect3DSwapChain9Ex() As UUID
+'{91886CAF-1C3D-4d2e-A0AB-3E4C7D8D3303}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H91886CAF, CInt(&H1C3D), CInt(&H4D2E), &HA0, &HAB, &H3E, &H4C, &H7D, &H8D, &H33, &H3)
+IID_IDirect3DSwapChain9Ex = iid
+End Function
+Public Function IID_IDirect3D9ExOverlayExtension() As UUID
+'{187AEB13-AAF5-4C59-876D-E059088C0DF8}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H187AEB13, CInt(&HAAF5), CInt(&H4C59), &H87, &H6D, &HE0, &H59, &H8, &H8C, &HD, &HF8)
+IID_IDirect3D9ExOverlayExtension = iid
+End Function
+Public Function IID_IDirect3DDevice9Video() As UUID
+'{26DC4561-A1EE-4ae7-96DA-118A36C0EC95}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H26DC4561, CInt(&HA1EE), CInt(&H4AE7), &H96, &HDA, &H11, &H8A, &H36, &HC0, &HEC, &H95)
+IID_IDirect3DDevice9Video = iid
+End Function
+Public Function IID_IDirect3DAuthenticatedChannel9() As UUID
+'{FF24BEEE-DA21-4beb-98B5-D2F899F98AF9}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HFF24BEEE, CInt(&HDA21), CInt(&H4BEB), &H98, &HB5, &HD2, &HF8, &H99, &HF9, &H8A, &HF9)
+IID_IDirect3DAuthenticatedChannel9 = iid
+End Function
+Public Function IID_IDirect3DCryptoSession9() As UUID
+'{FA0AB799-7A9C-48CA-8C5B-237E71A54434}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HFA0AB799, CInt(&H7A9C), CInt(&H48CA), &H8C, &H5B, &H23, &H7E, &H71, &HA5, &H44, &H34)
+IID_IDirect3DCryptoSession9 = iid
+End Function
+Public Function IID_ID3DXConstantTable() As UUID
+'{AB3C758F-093E-4356-B762-4DB18F1B3A01}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HAB3C758F, CInt(&H93E), CInt(&H4356), &HB7, &H62, &H4D, &HB1, &H8F, &H1B, &H3A, &H1)
+IID_ID3DXConstantTable = iid
+End Function
+Public Function IID_ID3DXInclude() As UUID
+'{D3914005-8E8C-49D3-9A97-4B402FD89AAB)}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HD3914005, CInt(&H8E8C), CInt(&H49D3), &H9A, &H97, &H4B, &H40, &H2F, &HD8, &H9A, &HAB)
+ IID_ID3DXInclude = iid
+End Function
+Public Function IID_IDirect3D9() As UUID
+'{81BDCBCA-64D4-426D-AE8D-AD0147F4275C}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H81BDCBCA, CInt(&H64D4), CInt(&H426D), &HAE, &H8D, &HAD, &H1, &H47, &HF4, &H27, &H5C)
+ IID_IDirect3D9 = iid
+End Function
+Public Function IID_IEVRVideoStreamControl() As UUID
+'{d0cfe38b-93e7-4772-8957-0400c49a4485}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HD0CFE38B, CInt(&H93E7), CInt(&H4772), &H89, &H57, &H4, &H0, &HC4, &H9A, &H44, &H85)
+IID_IEVRVideoStreamControl = iid
+End Function
+Public Function IID_IMFVideoProcessor() As UUID
+'{6AB0000C-FECE-4d1f-A2AC-A9573530656E}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H6AB0000C, CInt(&HFECE), CInt(&H4D1F), &HA2, &HAC, &HA9, &H57, &H35, &H30, &H65, &H6E)
+IID_IMFVideoProcessor = iid
+End Function
+Public Function IID_IMFVideoMixerBitmap() As UUID
+'{814C7B20-0FDB-4eec-AF8F-F957C8F69EDC}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H814C7B20, CInt(&HFDB), CInt(&H4EEC), &HAF, &H8F, &HF9, &H57, &HC8, &HF6, &H9E, &HDC)
+IID_IMFVideoMixerBitmap = iid
 End Function
