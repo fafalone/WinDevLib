@@ -1393,6 +1393,10 @@
         Sub GetDroppedInfo(ByVal lSize As Long, ByRef plArray As Long, ByRef plNumCopied As Long)
         Sub GetAverageFrameSize(ByRef plAverageSize As Long)
     End Interface
+    
+    
+    
+    
 
  
     [InterfaceId("0579154A-2B53-4994-B0D0-E773148EFF85")]
@@ -1733,6 +1737,33 @@
         [Default] Interface IFilterGraph2
     End CoClass
     
+    
+    
+    
+    [InterfaceId("6d6cbb60-a223-44aa-842f-a2f06750be6d")]
+    [OleAutomation(False)]
+    Interface IMediaParamInfo Extends IUnknown
+        Sub GetParamCount(ByRef pdwParams As Long)
+        Sub GetParamInfo(ByVal dwParamIndex As Long, ByRef pInfo As MP_PARAMINFO)
+        Sub GetParamText(ByVal dwParamIndex As Long, ByRef ppwchText As LongPtr)
+        Sub GetNumTimeFormats(ByRef pdwNumTimeFormats As Long)
+        Sub GetSupportedTimeFormat(ByVal dwFormatIndex As Long, ByRef pguidTimeFormat As UUID)
+        Sub GetCurrentTimeFormat(ByRef pguidTimeFormat As UUID, ByRef pTimeData As Long)
+    End Interface
+
+    [InterfaceId("6d6cbb61-a223-44aa-842f-a2f06750be6e")]
+    [OleAutomation(False)]
+    Interface IMediaParams Extends IUnknown
+        Sub GetParam(ByVal dwParamIndex As Long, ByRef pValue As Single)
+        Sub SetParam(ByVal dwParamIndex As Long, ByVal value As Single)
+        Sub AddEnvelope(ByVal dwParamIndex As Long, ByVal cSegments As Long, ByRef pEnvelopeSegments As MP_ENVELOPE_SEGMENT)
+        Sub FlushEnvelope(ByVal dwParamIndex As Long, ByVal refTimeStart As LongLong, ByVal refTimeEnd As LongLong)
+        #If Win64 Then
+        Sub SetTimeFormat(guidTimeFormat As UUID, ByVal mpTimeData As Long)
+        #Else
+        Sub SetTimeFormat(ByVal guidTimeFormat1 As Long, ByVal guidTimeFormat2 As Long, ByVal guidTimeFormat3 As Long, ByVal guidTimeFormat4 As Long, ByVal mpTimeData As Long)
+        #End If
+    End Interface
     
 Module wdDirectShow
 
@@ -2848,6 +2879,161 @@ Public Enum AM_GBF_Flags
     AM_GBF_NOWAIT = 4
     AM_GBF_NODDSURFACELOCK = 8
 End Enum
+
+Public Enum MP_Type
+    MPT_INT   ' data is signed 23 bit integer (mantissa)
+    MPT_FLOAT   ' data is 32bit IEEE float
+    MPT_BOOL   ' data is true or false (using ANSI C++ definition)
+    MPT_ENUM   ' data is a set (represented by consecutive integers)
+    MPT_MAX
+End Enum
+
+Public Enum MP_CURVE_TYPE
+    MP_CURVE_JUMP = &H0001 ' No interpolation, just jump to next point
+    MP_CURVE_LINEAR = &H0002 ' Linear interpolation (y follows x from 0.0 to 1.0)
+    MP_CURVE_SQUARE = &H0004 ' y follow x^2 from 0.0 to 1.0
+    MP_CURVE_INVSQUARE = &H0008 ' y follows 1-(x^2) from 0.0 to 1.0
+    MP_CURVE_SINE = &H0010 ' y follows sin(x) from -pi/2 to pi/2
+End Enum
+
+Public Enum MP_CAPS
+    '  Curve capabilities - If the cap bit is set, that type of curve is supported
+    MP_CAPS_CURVE_JUMP = MP_CURVE_JUMP
+    MP_CAPS_CURVE_LINEAR = MP_CURVE_LINEAR
+    MP_CAPS_CURVE_SQUARE = MP_CURVE_SQUARE
+    MP_CAPS_CURVE_INVSQUARE = MP_CURVE_INVSQUARE
+    MP_CAPS_CURVE_SINE = MP_CURVE_SINE
+End Enum
+
+Public Const DWORD_ALLPARAMS = -1
+
+Public Type MP_PARAMINFO
+    mpType As MP_Type ' One of MP_TYPE_xxx codes
+    mopCaps As MP_CAPS ' A collection of MP_CAPS flags
+    ' Minimum and maximum values
+    mpdMinValue As Single 'MP_DATA ' minimum legal value
+    mpdMaxValue As Single 'MP_DATA ' maximum legal value
+    mpdNeutralValue As Single 'MP_DATA ' default or 'center' value
+    ' Defualt Unit and Label text. These strings will ALWAYS be English
+    ' strings in the UNICODE character set. For international text
+    ' use the GetParamText member function
+    szUnitText(0 To 31) As Integer ' units of the parameter
+    szLabel(0 To 31) As Integer ' name of the parameter
+End Type
+
+Public Enum MP_FLAGS
+    MPF_ENVLP_STANDARD = 0
+    MPF_ENVLP_BEGIN_CURRENTVAL = &H1
+    MPF_ENVLP_BEGIN_NEUTRALVAL = &H2
+End Enum
+
+Public Type MP_ENVELOPE_SEGMENT
+    rtStart As LongLong 'REFERENCE_TIME
+    rtEnd As LongLong 'REFERENCE_TIME
+    valStart As Single 'MP_DATA
+    valEnd As Single 'MP_DATA
+    iCurve As MP_CURVE_TYPE
+    flags As MP_FLAGS
+End Type
+
+Public Enum MPF_PUNCHIN
+    MPF_PUNCHIN_REFTIME = 0
+    MPF_PUNCHIN_NOW = &H1
+    MPF_PUNCHIN_STOPPED = &H2
+End Enum
+
+
+Public Function DMOCATEGORY_AUDIO_DECODER() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H57f2db8b, &He6bb, &H4513, &H9d, &H43, &Hdc, &Hd2, &Ha6, &H59, &H31, &H25)
+DMOCATEGORY_AUDIO_DECODER = iid
+End Function
+Public Function DMOCATEGORY_AUDIO_ENCODER() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H33D9A761, &H90C8, &H11d0, &HBD, &H43, &H00, &HA0, &HC9, &H11, &HCE, &H86)
+DMOCATEGORY_AUDIO_ENCODER = iid
+End Function
+Public Function DMOCATEGORY_VIDEO_DECODER() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H4a69b442, &H28be, &H4991, &H96, &H9c, &Hb5, &H00, &Had, &Hf5, &Hd8, &Ha8)
+DMOCATEGORY_VIDEO_DECODER = iid
+End Function
+Public Function DMOCATEGORY_VIDEO_ENCODER() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H33D9A760, &H90C8, &H11d0, &HBD, &H43, &H00, &HA0, &HC9, &H11, &HCE, &H86)
+DMOCATEGORY_VIDEO_ENCODER = iid
+End Function
+Public Function DMOCATEGORY_AUDIO_EFFECT() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hf3602b3f, &H0592, &H48df, &Ha4, &Hcd, &H67, &H47, &H21, &He7, &Heb, &Heb)
+DMOCATEGORY_AUDIO_EFFECT = iid
+End Function
+Public Function DMOCATEGORY_VIDEO_EFFECT() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hd990ee14, &H776c, &H4723, &Hbe, &H46, &H3d, &Ha2, &Hf5, &H6f, &H10, &Hb9)
+DMOCATEGORY_VIDEO_EFFECT = iid
+End Function
+Public Function DMOCATEGORY_AUDIO_CAPTURE_EFFECT() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hf665aaba, &H3e09, &H4920, &Haa, &H5f, &H21, &H98, &H11, &H14, &H8f, &H09)
+DMOCATEGORY_AUDIO_CAPTURE_EFFECT = iid
+End Function
+Public Function DMOCATEGORY_ACOUSTIC_ECHO_CANCEL() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HBF963D80, &HC559, &H11D0, &H8A, &H2B, &H00, &HA0, &HC9, &H25, &H5A, &HC1)
+DMOCATEGORY_ACOUSTIC_ECHO_CANCEL = iid
+End Function
+Public Function DMOCATEGORY_AUDIO_NOISE_SUPPRESS() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &He07f903f, &H62fd, &H4e60, &H8c, &Hdd, &Hde, &Ha7, &H23, &H66, &H65, &Hb5)
+DMOCATEGORY_AUDIO_NOISE_SUPPRESS = iid
+End Function
+Public Function DMOCATEGORY_AGC() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HE88C9BA0, &HC557, &H11D0, &H8A, &H2B, &H00, &HA0, &HC9, &H25, &H5A, &HC1)
+DMOCATEGORY_AGC = iid
+End Function
+
+Public Type DMO_PARTIAL_MEDIATYPE
+    type As UUID
+    subtype As UUID
+End Type
+Public Enum DMO_REGISTER_FLAGS
+    DMO_REGISTERF_IS_KEYED = &H00000001
+End Enum
+
+Public Enum DMO_ENUM_FLAGS
+    DMO_ENUMF_INCLUDE_KEYED = &H00000001
+End Enum
+
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function DMORegister Lib "msdmo.dll" (ByVal szName As String, clsidDMO As UUID, guidCategory As UUID, ByVal dwFlags As DMO_REGISTER_FLAGS, ByVal cInTypes As Long, pInTypes As DMO_PARTIAL_MEDIATYPE, ByVal cOutTypes As Long, pOutTypes As DMO_PARTIAL_MEDIATYPE) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function DMOUnregister Lib "msdmo.dll" (clsidDMO As UUID, guidCategory As UUID) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function DMOEnum Lib "msdmo.dll" (guidCategory As UUID, ByVal dwFlags As DMO_ENUM_FLAGS, ByVal cInTypes As Long, pInTypes As DMO_PARTIAL_MEDIATYPE, ByVal cOutTypes As Long, pOutTypes As DMO_PARTIAL_MEDIATYPE, ppEnum As IEnumDMO) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function DMOGetTypes Lib "msdmo.dll" (clsidDMO As UUID, ByVal ulInputTypesRequested As Long, pulInputTypesSupplied As Long, pInputTypes As DMO_PARTIAL_MEDIATYPE, ByVal ulOutputTypesRequested As Long, pulOutputTypesSupplied As Long, pOutputTypes As DMO_PARTIAL_MEDIATYPE) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function DMOGetName Lib "msdmo.dll" (clsidDMO As UUID, ByVal szName As String) As Long
+
+
+
+Public Function GUID_TIME_REFERENCE() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H93ad712b, &Hdaa0, &H4ffe, &Hbc, &H81, &Hb0, &Hce, &H50, &Hf, &Hcd, &Hd9)
+GUID_TIME_REFERENCE = iid
+End Function
+Public Function GUID_TIME_MUSIC() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H574c49d, &H5b04, &H4b15, &Ha5, &H42, &Hae, &H28, &H20, &H30, &H11, &H7b)
+GUID_TIME_MUSIC = iid
+End Function
+Public Function GUID_TIME_SAMPLES() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Ha8593d05, &Hc43, &H4984, &H9a, &H63, &H97, &Haf, &H9e, &H2, &Hc4, &Hc0)
+GUID_TIME_SAMPLES = iid
+End Function
 
 
 Public Function LIBID_QuartzNetTypeLib() As UUID
@@ -4074,7 +4260,18 @@ End Function
 
 
 
-
+Public Function IID_IMediaParamInfo() As UUID
+'{6d6cbb60-a223-44aa-842f-a2f06750be6d}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H6d6cbb60, CInt(&Ha223), CInt(&H44aa), &H84, &H2f, &Ha2, &Hf0, &H67, &H50, &Hbe, &H6d)
+IID_IMediaParamInfo = iid
+End Function
+Public Function IID_IMediaParams() As UUID
+'{6d6cbb61-a223-44aa-842f-a2f06750be6e}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H6d6cbb61, CInt(&Ha223), CInt(&H44aa), &H84, &H2f, &Ha2, &Hf0, &H67, &H50, &Hbe, &H6e)
+IID_IMediaParams = iid
+End Function
 
 
 Public Function CLSID_AMMultiMediaStream() As UUID

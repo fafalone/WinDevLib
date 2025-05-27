@@ -1906,6 +1906,166 @@ Public Type WAVEFORMATEXTENSIBLE
 	SubFormat As UUID
 End Type
 
+Public Enum ACM_MPEG_Layers
+    ACM_MPEG_LAYER1 = (&H0001)
+    ACM_MPEG_LAYER2 = (&H0002)
+    ACM_MPEG_LAYER3 = (&H0004)
+End Enum
+Public Enum ACM_MPEG_HeadMode
+    ACM_MPEG_STEREO = (&H0001)
+    ACM_MPEG_JOINTSTEREO = (&H0002)
+    ACM_MPEG_DUALCHANNEL = (&H0004)
+    ACM_MPEG_SINGLECHANNEL = (&H0008)
+End Enum
+Public Enum ACM_MPEG_HeadFlags
+    ACM_MPEG_PRIVATEBIT = (&H0001)
+    ACM_MPEG_COPYRIGHT = (&H0002)
+    ACM_MPEG_ORIGINALHOME = (&H0004)
+    ACM_MPEG_PROTECTIONBIT = (&H0008)
+    ACM_MPEG_ID_MPEG1 = (&H0010)
+End Enum
+
+[PackingAlignment(1)]
+Public Type MPEG1WAVEFORMAT
+    wfx As WAVEFORMATEX
+    /* [TypeHint(ACM_MPEG_Layers)] */ fwHeadLayer As Integer
+    dwHeadBitrate As Long
+    /* [TypeHint(ACM_MPEG_HeadMode)] */ fwHeadMode As Integer
+    fwHeadModeExt As Integer
+    wHeadEmphasis As Integer
+    /* [TypeHint(ACM_MPEG_HeadFlags)] */ fwHeadFlags As Integer
+    dwPTSLow As Long
+    dwPTSHigh As Long
+End Type
+
+Public Const MPEGLAYER3_WFX_EXTRA_BYTES = 12
+
+[PackingAlignment(1)]
+Public Type MPEGLAYER3WAVEFORMAT
+    wfx As WAVEFORMATEX
+    /* [TypeHint(MpegLayer3Ids)] */ wID As Integer
+    fdwFlags As MpegLayer3Flags
+    nBlockSize As Integer
+    nFramesPerBlock As Integer
+    nCodecDelay As Integer
+End Type
+
+Public Enum MpegLayer3Ids
+    MPEGLAYER3_ID_UNKNOWN = 0
+    MPEGLAYER3_ID_MPEG = 1
+    MPEGLAYER3_ID_CONSTANTFRAMESIZE = 2
+End Enum
+Public Enum MpegLayer3Flags
+    MPEGLAYER3_FLAG_PADDING_ISO = &H00000000
+    MPEGLAYER3_FLAG_PADDING_ON = &H00000001
+    MPEGLAYER3_FLAG_PADDING_OFF = &H00000002
+End Enum
+
+[PackingAlignment(1)]
+Public Type HEAACWAVEINFO
+    ' Defines core AAC properties. See description above. WAVEFORMATEX is of size 18 bytes.
+    wfx As WAVEFORMATEX
+    ' Defines the payload type
+    ' 0-RAW.  The stream contains raw_data_block() elements only.
+    ' 1-ADTS. The stream contains an adts_sequence(), as defined by MPEG-2.
+    ' 2-ADIF. The stream contains an adif_sequence(), as defined by MPEG-2.
+    ' 3-LOAS. The stream contains an MPEG-4 audio transport stream with a
+    '         synchronization layer LOAS and a multiplex layer LATM.
+    ' All other codes are reserved.
+    wPayloadType As Integer
+    ' This is the 8-bit field audioProfileLevelIndication available in the
+    ' MPEG-4 object descriptor.  It is an indication (as defined in MPEG-4 audio)
+    ' of the audio profile and level required to process the content associated
+    ' with this stream. For example values 0x28-0x2B correspond to AAC Profile,
+    ' values 0x2C-0x2F correspond to HE-AAC profile and 0x30-0x33 for HE-AAC v2 profile.
+    ' If unknown, set to zero or 0xFE ("no audio profile specified").
+    wAudioProfileLevelIndication As Integer
+    ' Defines the data that follows this structure. Currently only one data type is supported:
+    ' 0- AudioSpecificConfig() (as defined by MPEG-4 Audio, ISO/IEC 14496-3) will follow this structure.
+    '    wfx.cbSize will indicate the total length including AudioSpecificConfig().
+    '    Use HEAACWAVEFORMAT to gain easy access to the address of the first byte of
+    '    AudioSpecificConfig() for parsing.
+    '    Typical values for the size of AudioSpecificConfig (ASC) are:
+    '    - 2 bytes for AAC or HE-AAC v1/v2 with implicit signaling of SBR,
+    '    - 5 bytes for HE-AAC v1 with explicit signaling of SBR,
+    '    - 7 bytes for HE-AAC v2 with explicit signaling of SBR and PS.
+    '    The size may be longer than 7 bytes if the 4-bit channelConfiguration field in ASC is zero,
+    '    which means program_config_element() is present in ASC.
+    ' All other codes are reserved.
+    wStructType As Integer
+    ' Set these to zero
+    wReserved1 As Integer
+    dwReserved2 As Long
+End Type
+
+[PackingAlignment(1), Description("WARNING: Buffer substituted for variable C-style array.")]
+Public Type HEAACWAVEFORMAT
+    wfInfo As HEAACWAVEINFO ' This structure has a size of 30 bytes
+    pbAudioSpecificConfig(0 To 4095) As Byte ' First byte of AudioSpecificConfig()
+End Type
+
+Public Const MM_MSFT_ACM_WMAUDIO  = 39
+Public Const WMAUDIO_BITS_PER_SAMPLE  = 16  ' just an uncompressed size...
+Public Const WMAUDIO_MAX_CHANNELS  = 2
+'   Windows Media Audio V1 (a.k.a. "MSAudio")
+'       for WAVE_FORMAT_MSAUDIO1        (0x0160)
+Public Const MM_MSFT_ACM_MSAUDIO1  = 39
+
+Public Type MSAUDIO1WAVEFORMAT
+    wfx As WAVEFORMATEX
+    wSamplesPerBlock As Integer ' only counting "new" samples "= half of what will be used due to overlapping
+    wEncodeOptions As Integer
+End Type
+
+Public Const MSAUDIO1_BITS_PER_SAMPLE  = WMAUDIO_BITS_PER_SAMPLE
+Public Const MSAUDIO1_MAX_CHANNELS  = WMAUDIO_MAX_CHANNELS
+Public Const MSAUDIO1_WFX_EXTRA_BYTES  = 4 ' (LenB(Of MSAUDIO1WAVEFORMAT) - LenB(Of WAVEFORMATEX))
+
+Public Const MM_MSFT_ACM_WMAUDIO2  = 101
+
+[PackingAlignment(1)]
+Public Type WMAUDIO2WAVEFORMAT
+    wfx As WAVEFORMATEX
+    dwSamplesPerBlock As Long ' only counting "new" samples "= half of what will be used due to overlapping
+    wEncodeOptions As Integer
+    dwSuperBlockAlign As Long ' the big size...  should be multiples of wfx.nBlockAlign.
+End Type
+
+Public Const WMAUDIO2_BITS_PER_SAMPLE  = WMAUDIO_BITS_PER_SAMPLE
+Public Const WMAUDIO2_MAX_CHANNELS  = WMAUDIO_MAX_CHANNELS
+Public Const WMAUDIO2_WFX_EXTRA_BYTES  = 10 '(sizeof(WMAUDIO2WAVEFORMAT) - sizeof(WAVEFORMATEX))
+
+[PackingAlignment(1)]
+Public Type WMAUDIO3WAVEFORMAT
+    wfx As WAVEFORMATEX
+    wValidBitsPerSample As Integer ' bits of precision 
+    dwChannelMask As Long ' which channels are present in stream
+    dwReserved1 As Long
+    dwReserved2 As Long
+    wEncodeOptions As Integer
+    wReserved3 As Integer
+End Type
+
+
+Public Function KSDATAFORMAT_SUBTYPE_PCM() As UUID
+'{00000001-0000-0010-8000-00aa00389b71}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H00000001, CInt(&H0000), CInt(&H0010), &H80, &H00, &H00, &Haa, &H00, &H38, &H9b, &H71)
+ KSDATAFORMAT_SUBTYPE_PCM = iid
+End Function
+Public Function KSDATAFORMAT_SUBTYPE_IEEE_FLOAT() As UUID
+'{00000003-0000-0010-8000-00aa00389b71}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H00000003, CInt(&H0000), CInt(&H0010), &H80, &H00, &H00, &Haa, &H00, &H38, &H9b, &H71)
+ KSDATAFORMAT_SUBTYPE_IEEE_FLOAT = iid
+End Function
+Public Function KSDATAFORMAT_SUBTYPE_WAVEFORMATEX() As UUID
+'{00000000-0000-0010-8000-00aa00389b71}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H00000000, CInt(&H0000), CInt(&H0010), &H80, &H00, &H00, &Haa, &H00, &H38, &H9b, &H71)
+ KSDATAFORMAT_SUBTYPE_WAVEFORMATEX = iid
+End Function
+
 Public Enum AUDCLNT_BUFFERFLAGS
 	AUDCLNT_BUFFERFLAGS_DATA_DISCONTINUITY = &H01
 	AUDCLNT_BUFFERFLAGS_SILENT = &H02
