@@ -123,7 +123,7 @@ wdWSC,
 wdWTS,
 wdXAudio
 
--Create coverage list by header.
+-Create coverage list by header. (So long as this list is in todo.md it's incomplete--numerous other headers are covered.)
 Excluded from completed %: 
     -Definitions unsupported by the tB language with no reasonable substitute.
     -Definitions disabled by conditional compilation with version flags for XP and earlier, non-Windows platforms, or kernel mode only.
@@ -168,13 +168,14 @@ Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.
     ActivityCoordinator.h,ActivityCoordinatorTypes.h,ActivScp.h,ActivScp.idl,atacct.h,lm.h,lmcons.h,lmaccess.h,lmalert.h,lmapibuf.h,lmat.h,lmaudit.h,lmconfig.h,
     lmerrlog.h,lmjoin.h,lmmsg.h,lmremutl.h,lmrepl.h,lmserver.h,lmshare.h,lmsname.h,lmstats.h,lmsvc.h,lmuse.h,lmuseflg.h,lmwksta.h,lmerr.h,lmdfs.h,
     datetimeapi.h,ElsCore.h,ElsSrvc.h,Gb18030.h,stringsetapi.h,imm.h,tcpestats.h,tcpmib.h,mprapidef.h,ipifcons.h,ifdef.h,nldef.h,ipmib.h,iprtrmib.h,
-    ipexport.h,iptypes.h,iphlpapi.h,winsmcrd.h,SCardErr.h,winscard.h,schannel.h,axcore.idl,devenum.idl,axextendedenums.h,
+    ipexport.h,iptypes.h,iphlpapi.h,winsmcrd.h,SCardErr.h,winscard.h,schannel.h,axcore.idl,devenum.idl,axextendedenums.h,mediaerr.h,dxva9typ.h,dxva2api.h,
+    dxva2api.idl,dxvahd.h,dxvahd.idl,icodecapi.h,wmcontainer.h,medparam.h,medparam.idl,mediaobj.h,mediaobj.idl,dmoreg.h,ksopmapi.h,opmapi.h,opmapi.idl,
     
 Coverage in the 90%+ range
     winbase.h, oleidl.h, oaidl.h, ocidl.h, ocidl.idl, presentation.h,
 
 Substantial coverage
-    mmsciapi.h, winnt.h,winternl.h,immdev.h,winioctl.h
+    mmsciapi.h, winnt.h,winternl.h,immdev.h,winioctl.h,mmreg.h
 
 Minimal coverage
     windot11.h

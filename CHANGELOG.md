@@ -1,4 +1,9 @@
 
+**Update (v8.12.544, 27 May 2025):**
+-Added additional Media Foundation interfaces/APIs from wmcontainer.h, ksopmapi.h, opmapi.h (100%)
+-Added additional DirectShow interfaces (axcore.idl, now 100%; medparam.h, dmoreg.h 100%)
+-(Bug fix) GetMem(Of T) helper generic broken
+
 **Update (v8.12.542, 24 May 2025):**
 -Added DXGI debug interfaces/APIs (dxgidebug.h, 100%)
 -Added effect processor CLSIDs, MEDIASUBTYPE_ GUIDs, and MFPKEY_ PROPERTYKEYs from wmcodecdsp.h
