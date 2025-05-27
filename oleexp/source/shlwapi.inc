@@ -284,8 +284,24 @@ module shlwapi {
 
 //oleexp additions
 
+	[entry("SHCreateStreamOnFileW")]
+	int SHCreateStreamOnFileW(
+		[in] LPWSTR pszFile,
+		[in] STGM grfMode,
+		[out] IStream **ppstm);
+
+    [entry("SHCreateStreamOnFileEx")]
+	int SHCreateStreamOnFileEx(
+		[in] LONG pszFile,
+		[in] STGM grfMode,
+		[in] FILE_ATTRIBUTES dwAttributes,
+		[in] BOOL fCreate,
+		[in] IStream *pstmTemplate,
+		[out] IStream **ppstm);
+
+
     [entry("SHCreateMemStream")]
-    IStream** SHCreateMemStream([in] LPVOID pInit, [in] ULONG cbInit);
+    IStream* SHCreateMemStream([in] LPVOID pInit, [in] ULONG cbInit);
 
 	[entry("IUnknown_QueryService")]
 	int IUnknown_QueryService(

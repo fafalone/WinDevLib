@@ -1302,7 +1302,10 @@ interface ITextRow;
     [
       odl,
       uuid(C241F5E2-7206-11D8-A2C7-00A0D1D6C6B3),
-      version(2.0)
+      version(2.0),
+      dual,
+      nonextensible,
+      oleautomation
     ]
     interface ITextRange2 : ITextSelection {
         [id(0x00000244), propget]
@@ -1446,7 +1449,7 @@ interface ITextRow;
                         [in] long ascent, 
                         [in] long Type, 
                         [in] BSTR bstrAltText, 
-                        [in] IStream* pStream);
+                        [in] long pStream);
     };
 
     [
@@ -1578,16 +1581,19 @@ interface ITextRow;
 
     [
         odl,
-        uuid(C241F5E5-7206-11D8-A2C7-00A0D1D6C6B3)
+        uuid(C241F5E5-7206-11D8-A2C7-00A0D1D6C6B3),
+        dual
     ]
     interface ITextStoryRanges2 : ITextStoryRanges
     {
+        [id(0x00000003)]
         HRESULT Item2([in] long Index, [out, retval] ITextRange2 **ppRange);
     };
 
     [
       odl,
       uuid(C241F5E7-7206-11D8-A2C7-00A0D1D6C6B3),
+      dual,
       version(2.0)
     ]
     interface ITextStrings : IDispatch {
@@ -2198,6 +2204,7 @@ interface ITextHost2 : stdole.IUnknown
 	HRESULT		TxGetHorzExtent([in, out] LONG *plHorzExtent);
 };
 
+
 interface ID2D1RenderTarget;
 
 [
@@ -2218,11 +2225,11 @@ interface ITextServices2 : ITextServices
 							[out] LONG *pheight, 
 							[out] LONG *pascent);
 
-	HRESULT		TxDrawD2D(
-							[in] ID2D1RenderTarget* pRenderTarget,
-							[in] RECT* lprcBounds,
-							[in] RECT* lprcUpdate,
-							[in] LONG lViewId);
+ 	HRESULT		TxDrawD2D(
+ 							[in] ID2D1RenderTarget* pRenderTarget,
+ 							[in] RECT* lprcBounds,
+ 							[in] RECT* lprcUpdate,
+ 							[in] LONG lViewId);
 };
 
 [

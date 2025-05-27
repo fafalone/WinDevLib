@@ -548,14 +548,7 @@ module shell32 {
 
 
 
-	[entry("SHCreateStreamOnFileEx")]
-	int SHCreateStreamOnFileEx(
-		[in] LONG pszFile,
-		[in] STGM grfMode,
-		[in] FILE_ATTRIBUTES dwAttributes,
-		[in] BOOL fCreate,
-		[in] IStream *pstmTemplate,
-		[out] IStream **ppstm);
+
 
 
 	[entry("SHGetSetSettings")]

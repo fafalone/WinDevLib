@@ -2813,6 +2813,14 @@ typedef struct RECT {
     long Right;
     long Bottom;
 } RECT;
+    typedef [uuid(71C567F6-3600-43CF-B8AF-191138633CB7), version(1.0)]
+    struct udtSanityCheck9
+    {
+        long ALongValue;
+        BSTR AStringValue;
+        VARIANT_BOOL ABoolean;
+        RECT ARect;
+    } udtSanityCheck9;
 
 typedef struct SIZE {
     long cx;
@@ -2846,7 +2854,7 @@ typedef struct DVTARGETDEVICE {
 } DVTARGETDEVICE;
 
 typedef struct FORMATETC {
-    long cfFormat;
+    short cfFormat;
     long pDVTARGETDEVICE;
     DVASPECT dwAspect;
     long lindex;
@@ -2870,7 +2878,7 @@ typedef struct PALETTEENTRY {
 typedef struct LOGPALETTE {
     short palVersion;
     short palNumEntries;
-    PALETTEENTRY* palPalEntry;
+    PALETTEENTRY palPalEntry[255];
 } LOGPALETTE;
 
 typedef struct DVASPECTINFO {
@@ -3210,10 +3218,10 @@ typedef struct  NETRESOURCE {
     LONG dwType;
     LONG dwDisplayType;
     LONG dwUsage;
-    LPSTR lpLocalName;
-    LPSTR lpRemoteName;
-    LPSTR lpComment;
-    LPSTR lpProvider;
+    LongPtr lpLocalName;
+    LongPtr lpRemoteName;
+    LongPtr lpComment;
+    LongPtr lpProvider;
 }NETRESOURCE;
 
 //
