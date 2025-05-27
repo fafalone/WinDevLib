@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 8.12.542 (May 24th, 2025)**
+**Current Version: 8.12.544 (May 27th, 2025)**
 
 (c) 2022-2025 Jon Johnson (fafalone)
 
@@ -223,6 +223,11 @@ Finally, there's numerous additional API sets from small to large for independen
 This project has grown well beyond it's original mission of shell programming. While that's still the largest single part, it's no longer a majority of the code, and the name change now much better reflects the purpose of providing a general Windows API experience like windows.h. Compiler constants and module names/file names have been updated to reflect the name change. tbShellLibImpl is now WinDevLibImpl. There are also some major chanages associated with this update, please see the full changelog below.
 
 ### Updates
+
+**Update (v8.12.544, 27 May 2025):**\
+-Added additional Media Foundation interfaces/APIs from wmcontainer.h, ksopmapi.h, opmapi.h (100%)\
+-Added additional DirectShow interfaces (axcore.idl, now 100%; medparam.h, dmoreg.h 100%)\
+-(Bug fix) GetMem(Of T) helper generic broken
 
 **Update (v8.12.542, 24 May 2025):**\
 -Added DXGI debug interfaces/APIs (dxgidebug.h, 100%)\
