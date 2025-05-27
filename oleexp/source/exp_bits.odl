@@ -1,0 +1,1986 @@
+
+    typedef struct BG_FILE_PROGRESS
+    {
+        UINT64 BytesTotal;
+        UINT64 BytesTransferred;
+        BOOL   Completed;
+    } BG_FILE_PROGRESS;
+
+[
+        odl,
+   uuid(01b7bd23-fb88-4a77-8490-5891d3e4653a)
+ ]
+interface IBackgroundCopyFile : stdole.IUnknown
+{
+
+    //--------------------------------------------------------------------
+
+    HRESULT GetRemoteName([in, out] LongPtr* pVal);
+    HRESULT GetLocalName([in, out] LongPtr* pVal);
+
+    HRESULT GetProgress([in, out] BG_FILE_PROGRESS* pVal);
+}
+
+//--------------------------------------------------------------------
+//
+[
+        odl,
+    uuid(ca51e165-c365-424c-8d41-24aaa4ff3c40),
+        helpstring("IEnumBackgroundCopyFiles Interface")
+]
+interface IEnumBackgroundCopyFiles : stdole.IUnknown
+{
+    HRESULT Next([in] ULONG celt,
+        [in, out] IBackgroundCopyFile** rgelt,
+        [in, out] ULONG* pceltFetched);
+
+    HRESULT Skip([in] ULONG celt);
+
+    HRESULT Reset();
+
+    HRESULT Clone([in, out] IEnumBackgroundCopyFiles** ppenum);
+
+    HRESULT GetCount([in, out] ULONG* puCount);
+}
+
+//--------------------------------------------------------------------
+//
+    typedef enum BG_ERROR_CONTEXT
+    {
+        BG_ERROR_CONTEXT_NONE = 0,
+        BG_ERROR_CONTEXT_UNKNOWN = 1,
+        BG_ERROR_CONTEXT_GENERAL_QUEUE_MANAGER = 2,
+        BG_ERROR_CONTEXT_QUEUE_MANAGER_NOTIFICATION = 3,
+        BG_ERROR_CONTEXT_LOCAL_FILE = 4,
+        BG_ERROR_CONTEXT_REMOTE_FILE = 5,
+        BG_ERROR_CONTEXT_GENERAL_TRANSPORT = 6,
+        BG_ERROR_CONTEXT_REMOTE_APPLICATION = 7,
+        BG_ERROR_CONTEXT_SERVER_CERTIFICATE_CALLBACK = 8,
+    } BG_ERROR_CONTEXT;
+[
+        odl,
+    uuid(19c613a0-fcb8-4f28-81ae-897c3d078f81),
+        helpstring("error object for IBackgroundCopyJob")
+]
+interface IBackgroundCopyError : stdole.IUnknown
+{
+
+
+    HRESULT GetError([in, out] BG_ERROR_CONTEXT* pContext,
+        [in, out] HRESULT* pCode);
+
+    // Returns BG_E_FILE_NOT_AVAILABLE if no file is available
+    HRESULT GetFile([in, out] IBackgroundCopyFile** pVal);
+
+    // Return a human readable description of the error.
+    // Use CoTaskMemFree to free the description.
+    HRESULT GetErrorDescription([in] DWORD LanguageId,
+        [in, out] LongPtr* pErrorDescription);
+
+    // Return a human readable description of the error context.
+    // Use CoTaskMemFree to free the description.
+    HRESULT GetErrorContextDescription(
+        [in] DWORD LanguageId,
+        [in, out] LongPtr* pContextDescription);
+
+    // Returns BG_E_PROTOCOL_NOT_AVAILABLE if no protocol is available
+    HRESULT GetProtocol([in, out] LongPtr* pProtocol);
+}
+    typedef struct BG_FILE_INFO
+    {
+    LongPtr    RemoteName;
+    LongPtr    LocalName;
+    } BG_FILE_INFO;
+
+    typedef struct BG_JOB_PROGRESS
+    {
+        UINT64  BytesTotal;
+        UINT64  BytesTransferred;
+
+        ULONG   FilesTotal;
+        ULONG   FilesTransferred;
+    } BG_JOB_PROGRESS;
+
+    typedef struct BG_JOB_TIMES
+    {
+        FILETIME CreationTime;
+        FILETIME ModificationTime;
+        FILETIME TransferCompletionTime;
+    } BG_JOB_TIMES;
+
+    typedef enum BG_JOB_PRIORITY
+    {
+        BG_JOB_PRIORITY_FOREGROUND,
+        BG_JOB_PRIORITY_HIGH,
+        BG_JOB_PRIORITY_NORMAL,
+        BG_JOB_PRIORITY_LOW,
+
+    } BG_JOB_PRIORITY;
+
+    typedef enum BG_JOB_STATE
+    {
+        BG_JOB_STATE_QUEUED,
+        BG_JOB_STATE_CONNECTING,
+        BG_JOB_STATE_TRANSFERRING,
+        BG_JOB_STATE_SUSPENDED,
+        BG_JOB_STATE_ERROR,
+        BG_JOB_STATE_TRANSIENT_ERROR,
+        BG_JOB_STATE_TRANSFERRED,
+        BG_JOB_STATE_ACKNOWLEDGED,
+        BG_JOB_STATE_CANCELLED
+
+    } BG_JOB_STATE;
+
+    typedef enum BG_JOB_TYPE
+    {
+        BG_JOB_TYPE_DOWNLOAD,
+        BG_JOB_TYPE_UPLOAD,
+        BG_JOB_TYPE_UPLOAD_REPLY
+
+    } BG_JOB_TYPE;
+
+    typedef enum BG_JOB_PROXY_USAGE
+    {
+        BG_JOB_PROXY_USAGE_PRECONFIG,
+        BG_JOB_PROXY_USAGE_NO_PROXY,
+        BG_JOB_PROXY_USAGE_OVERRIDE,
+        BG_JOB_PROXY_USAGE_AUTODETECT
+    } BG_JOB_PROXY_USAGE;
+
+// ==============================================
+// Job Interface
+[
+        odl,
+    uuid(37668d37-507e-4160-9316-26306d150b12),
+        helpstring("IBackgroundCopyJob Interface")
+]
+interface IBackgroundCopyJob : stdole.IUnknown
+{
+
+    //--------------------------------------------------------------------
+
+    //
+    // Returns E_INVALIDARG if one of the filesets has
+    //      - local name is blank
+    //      - local name contains invalid characters
+    //      - remote name is blank
+    //      - remote name has invalid format
+    //
+    // Returns CO_E_NOT_SUPPORTED if
+    //      - remote URL contains unsupported protocol
+    //
+    HRESULT
+        AddFileSet(
+            [in] ULONG cFileCount,
+            [in] BG_FILE_INFO* pFileSet
+        );
+
+    HRESULT
+        AddFile(
+            [in]  LongPtr RemoteUrl,
+            [in]  LongPtr LocalName
+        );
+
+    //
+    // Gets an enumerator object for all files in the job.
+    //
+    HRESULT
+        EnumFiles(
+            [in, out] IEnumBackgroundCopyFiles** pEnum
+        );
+
+    //
+    // Pause all activity on the job.  The service will take no action until one of
+    // Resume(), Cancel(), Complete() is called.
+    //
+    // if already suspended, just returns S_OK.
+    //
+    HRESULT Suspend();
+
+    //
+    // Enable downloading for this job.  Job properties cannot be modified
+    // after Resume() until the app calls Suspend().
+    //
+    // if already running, just returns S_OK.
+    //
+    HRESULT Resume();
+
+    //
+    // Permanently stop the job.  The service will delete the job metadata and downloaded files.
+    //
+    // If already cancelled or resumed, returns ???
+    //
+    HRESULT Cancel();
+
+    //
+    // Acknowledges receipt of the job-complete notification.  The service will delete
+    // the job metadata and leave the downloaded files.
+    //
+    HRESULT Complete();
+
+    //--------------------------------------------------------------------
+
+    HRESULT GetId([in, out] UUID* pVal);
+
+    HRESULT GetType([in, out] BG_JOB_TYPE* pVal);
+
+    HRESULT GetProgress([in, out] BG_JOB_PROGRESS* pVal);
+
+    HRESULT GetTimes([in, out] BG_JOB_TIMES* pVal);
+
+    HRESULT GetState([in, out] BG_JOB_STATE* pVal);
+
+    HRESULT GetError([in, out] IBackgroundCopyError** ppError);
+
+    //
+    // The owner of the job, represented as a string.
+    // Only the owner and admins are allowed to see or change the job.
+    //
+    HRESULT GetOwner([in, out] LongPtr* pVal);
+
+    //
+    // name of the job, suitable for display in UI
+    //
+    HRESULT SetDisplayName([in]  LongPtr Val);
+    HRESULT GetDisplayName([in, out] LongPtr* pVal);
+
+    //
+    // a field for use by the app
+    //
+    HRESULT SetDescription([in]  LongPtr Val);
+    HRESULT GetDescription([in, out] LongPtr* pVal);
+
+    //
+    // the priority of the job in the queue.
+    // default = PRIORITY_NORMAL
+    // values not in BG_JOB_PRIORITY return E_NOTIMPL.
+    //
+    HRESULT SetPriority([in]  BG_JOB_PRIORITY Val);
+    HRESULT GetPriority([in, out] BG_JOB_PRIORITY* pVal);
+
+    //
+    // ignores extra flags?
+    //
+    HRESULT SetNotifyFlags([in]  ULONG Val);
+    HRESULT GetNotifyFlags([in, out] ULONG* pVal);
+
+    // interface pointer that implements the IBackgroundCallback interface for notifications.
+    // If the pointer becomes invalid, the service will try to create a new notification object
+    // with the notify CLSID.
+    HRESULT SetNotifyInterface([in]  IUnknown* Val);
+    HRESULT GetNotifyInterface([in, out] IUnknown** pVal);
+
+    HRESULT SetMinimumRetryDelay([in]  ULONG Seconds);
+    HRESULT GetMinimumRetryDelay([in, out] ULONG* Seconds);
+
+    HRESULT SetNoProgressTimeout([in]  ULONG Seconds);
+    HRESULT GetNoProgressTimeout([in, out] ULONG* Seconds);
+
+    HRESULT GetErrorCount([in, out] ULONG* Errors);
+
+    HRESULT SetProxySettings(
+        [in] BG_JOB_PROXY_USAGE ProxyUsage,
+        [in] LongPtr ProxyList,
+        [in] LongPtr ProxyBypassList);
+
+    HRESULT GetProxySettings(
+        [in, out] BG_JOB_PROXY_USAGE* pProxyUsage,
+        [in, out] LongPtr* pProxyList,
+        [in, out] LongPtr* pProxyBypassList);
+
+    HRESULT TakeOwnership();
+
+}
+
+
+// ==============================================
+// IEnumJobs Interface
+//     This interface allows enumerating the jobs under a Job
+[
+        odl,
+    uuid(1af4f612-3b71-466f-8f58-7b6f73ac57ad),
+        helpstring("IEnumBackgroundCopyJobs2 Interface")
+]
+interface IEnumBackgroundCopyJobs : stdole.IUnknown
+{
+    HRESULT Next([in] ULONG celt,
+        [in, out] IBackgroundCopyJob** rgelt,
+        [in, out] ULONG* pceltFetched);
+
+    HRESULT Skip([in] ULONG celt);
+
+    HRESULT Reset();
+
+    HRESULT Clone([in, out] IEnumBackgroundCopyJobs** ppenum);
+
+    HRESULT GetCount([in, out] ULONG* puCount);
+}
+
+typedef enum BITSNotifyFlags {
+      BG_NOTIFY_JOB_TRANSFERRED        = 0x0001,
+      BG_NOTIFY_JOB_ERROR = 0x0002,
+      BG_NOTIFY_DISABLE = 0x0004,
+      BG_NOTIFY_JOB_MODIFICATION = 0x0008,
+      BG_NOTIFY_FILE_TRANSFERRED = 0x0010,
+      BG_NOTIFY_FILE_RANGES_TRANSFERRED = 0x0020
+} BITSNotifyFlags;
+// ==============================================
+// IBackgroundCallback Interface
+//     This interface is implemented by the client and is used by the queue manager
+//     to supply progress information to the client.
+//#if !defined( BITS_DONT_USE_ASYNC_DCOM )
+//        async_uuid(ca29d251-b4bb-4679-a3d9-ae8006119d54),
+//#endif
+[
+        odl,
+    uuid(97ea99c7-0186-4ad4-8df9-c5b4e0ed6b22),
+        helpstring("IBackgroundCopyCallback Interface")
+]
+interface IBackgroundCopyCallback : stdole.IUnknown
+{
+    //
+    // A job has transferred successfully.
+    //
+    HRESULT JobTransferred([in] IBackgroundCopyJob* pJob);
+
+    //
+    // An error occurred, and the service has suspended the job.
+    // Fix the error and resume the job.
+    // Get error details by calling (*pFailingJob)->GetStatus().
+    //
+    HRESULT JobError([in] IBackgroundCopyJob* pJob,
+        [in] IBackgroundCopyError* pError);
+
+    //
+    // The job has been modified.   Intendended for user interfaces.
+    //
+    HRESULT JobModification([in] IBackgroundCopyJob* pJob,
+        [in] DWORD dwReserved);
+
+}
+
+typedef enum BITSJobEnumFlags {
+    //
+    // Without this flag, jobs not owned by the caller are excluded from the enumeration.
+    // With this flag, those jobs are included.  Only works if the caller is an administrator.
+    //
+           BG_JOB_ENUM_ALL_USERS = 0x0001
+} BITSJobEnumFlags;
+//
+// IBackgroundCopyManager is the "root" interface to the background file copy component.
+//
+[
+        odl,
+    uuid(5ce34c0d-0dc9-4c1f-897c-daa1b78cee7c),
+        helpstring("Background Copy interface")
+]
+interface IBackgroundCopyManager : stdole.IUnknown
+{
+
+    HRESULT CreateJob(
+        [in]  LongPtr       DisplayName,
+        [in]  BG_JOB_TYPE   Type,
+        [in, out] UUID* pJobId,
+        [in, out] IBackgroundCopyJob** ppJob);
+
+    HRESULT GetJob([in] REFGUID jobID,
+        [in, out] IBackgroundCopyJob** ppJob);
+
+
+        HRESULT EnumJobs([in] BITSJobEnumFlags dwFlags,
+            [in, out] IEnumBackgroundCopyJobs** ppEnum);
+
+    HRESULT GetErrorDescription(
+        [in] HRESULT hResult,
+        [in] DWORD LanguageId,
+        [in, out] LongPtr* pErrorDescription);
+}
+
+//---------------------------------------------------------------------------
+
+//[
+//    uuid(1deeb74f-7915-4560-b558-918c83f176a6),
+//        helpstring("Microsoft Background Copy Queue Manager 1.0"),
+//        lcid(0x0000),
+//        version(1.0)
+//]
+//library BackgroundCopyManager
+//{
+    [
+        uuid(4991d34b-80a1-4291-83b6-3328366b9097),
+            helpstring("Background copy control class")
+    ]
+        coclass BackgroundCopyManager
+    {
+        [default] interface IBackgroundCopyManager;
+    };
+    //interface IBackgroundCopyCallback;
+//}
+
+
+
+
+    //
+    // Measure the progress of the reply of an upload-reply job.
+    // ReplyBytesTotal is BG_SIZE_UNKNOWN if the reply has not begun yet,
+    // and zero if the job type is not BG_JOB_TYPE_UPLOAD_REPLY.
+    //
+    typedef struct BG_JOB_REPLY_PROGRESS
+    {
+        UINT64  BytesTotal;
+        UINT64  BytesTransferred;
+    }     BG_JOB_REPLY_PROGRESS;
+    //
+    // Security controls.
+    //
+    typedef enum BG_AUTH_TARGET
+    {
+        BG_AUTH_TARGET_SERVER = 1,
+        BG_AUTH_TARGET_PROXY
+
+    } BG_AUTH_TARGET;
+
+    typedef enum BG_AUTH_SCHEME
+    {
+        BG_AUTH_SCHEME_BASIC = 1,
+        BG_AUTH_SCHEME_DIGEST,
+        BG_AUTH_SCHEME_NTLM,
+        BG_AUTH_SCHEME_NEGOTIATE,
+        BG_AUTH_SCHEME_PASSPORT
+
+    } BG_AUTH_SCHEME;
+
+    typedef struct BG_BASIC_CREDENTIALS
+    {
+        LongPtr UserName;
+        LongPtr Password;
+
+    } BG_BASIC_CREDENTIALS;
+
+    //typedef BG_BASIC_CREDENTIALS* PBG_BASIC_CREDENTIALS;
+
+    //typedef [switch_type(BG_AUTH_SCHEME)] union
+    //{
+
+    //    [case(BG_AUTH_SCHEME_BASIC, BG_AUTH_SCHEME_DIGEST, BG_AUTH_SCHEME_NTLM,
+    //        BG_AUTH_SCHEME_NEGOTIATE, BG_AUTH_SCHEME_PASSPORT)] BG_BASIC_CREDENTIALS Basic;
+    //    [default] ;
+
+    //} BG_AUTH_CREDENTIALS_UNION;
+
+    typedef struct BG_AUTH_CREDENTIALS
+    {
+        BG_AUTH_TARGET Target;
+        BG_AUTH_SCHEME Scheme;
+        //[switch_is(Scheme)] BG_AUTH_CREDENTIALS_UNION Credentials;
+    } BG_AUTH_CREDENTIALS;
+
+    //typedef BG_AUTH_CREDENTIALS* PBG_AUTH_CREDENTIALS;
+
+[
+        odl,
+    uuid(54b50739-686f-45eb-9dff-d6a9a0faa9af),
+        helpstring("IBackgroundCopyJob2 Interface")
+]
+interface IBackgroundCopyJob2 : IBackgroundCopyJob
+{
+    // a progam and optional arguments to launch when the job enters
+    // ERROR or TRANSFERRED state.
+    //
+    HRESULT SetNotifyCmdLine([in]  LongPtr Program, [in] LongPtr Parameters);
+    HRESULT GetNotifyCmdLine([in, out] LongPtr* pProgram, [in, out] LongPtr* pParameters);
+
+
+    HRESULT
+        GetReplyProgress(
+            [in, out] BG_JOB_REPLY_PROGRESS* pProgress
+        );
+
+    //
+    // Retrieve the reply data as an in-memory buffer.
+    //
+    HRESULT
+        GetReplyData(
+            [in, out] LongPtr* ppBuffer,
+            [in, out]           UINT64* pLength
+        );
+
+    //
+    // Set a location to place the reply as a file.
+    //
+    HRESULT SetReplyFileName([in] LongPtr   ReplyFileName);
+    HRESULT GetReplyFileName([in, out]        LPWSTR* pReplyFileName);
+
+
+    //
+    // Sets the explicit credentials for a particular auth scheme.
+    // The app calls this through the IBackgroundCopyJob2 interface.
+    // If the { target, scheme } pair match an existing credential,
+    // the existing credential is replaced with the new one.
+    //
+    HRESULT SetCredentials([in] BG_AUTH_CREDENTIALS* credentials);
+
+    HRESULT RemoveCredentials([in] BG_AUTH_TARGET Target, [in] BG_AUTH_SCHEME Scheme);
+
+}
+
+//---------------------------------------------------------------------------
+
+//[
+//    uuid(ea9319ea-c628-480f-8331-768fac397e4e),
+//        helpstring("Microsoft Background Copy Manager 1.5"),
+//        lcid(0x0000),
+//        version(1.0)
+//]
+//library BackgroundCopyManager1_5
+//{
+    [
+        uuid(f087771f-d74f-4c1a-bb8a-e16aca9124ea),
+            helpstring("Background copy job 2")
+    ]
+        coclass BackgroundCopyManager1_5
+    {
+        [default] interface IBackgroundCopyManager;
+    };
+    //interface IBackgroundCopyCallback;
+    //interface IBackgroundCopyJob2;
+//}
+
+
+
+
+
+//
+//
+//
+// ********************************************
+//  
+//  bits_2.0
+
+
+typedef struct BG_FILE_RANGE
+{
+    UINT64	InitialOffset;
+    UINT64	Length;
+}
+BG_FILE_RANGE;
+
+typedef enum BITSCopyAclFlags {
+    BG_COPY_FILE_OWNER  = 1,
+    BG_COPY_FILE_GROUP = 2,
+    BG_COPY_FILE_DACL = 4,
+    BG_COPY_FILE_SACL = 8,
+    BG_COPY_FILE_ALL = 15
+} BITSCopyAclFlags;
+[
+        odl,
+    uuid(443c8934-90ff-48ed-bcde-26f5c7450042),
+        helpstring("IBackgroundCopyJob3 Interface")
+]
+interface IBackgroundCopyJob3 : IBackgroundCopyJob2
+{
+    // Changes all remote names that match the prefix.
+    //
+    HRESULT
+        ReplaceRemotePrefix(
+            [in]  LongPtr OldPrefix,
+            [in]  LongPtr NewPrefix
+        );
+
+    // Like AddFile, but only downloads specific ranges (subsets) of a file.
+    //
+    HRESULT
+        AddFileWithRanges(
+            [in]  LongPtr RemoteUrl,
+            [in]  LongPtr LocalName,
+            [in] DWORD RangeCount,
+            [in] BG_FILE_RANGE* Ranges
+        );
+
+    HRESULT
+        SetFileACLFlags(
+            [in] BITSCopyAclFlags Flags);
+
+    HRESULT
+        GetFileACLFlags(
+            [in, out] BITSCopyAclFlags* Flags);
+
+}
+
+[
+         odl,
+   uuid(83e81b93-0873-474d-8a8c-f2018b1a939c),
+        helpstring("IBackgroundCopyFile2")
+]
+interface IBackgroundCopyFile2 : IBackgroundCopyFile
+{
+    HRESULT
+        GetFileRanges(
+            [in, out] DWORD* RangeCount,
+            //[in, out] BG_FILE_RANGE** Ranges
+            [in, out] LongPtr* Ranges
+        );
+
+    HRESULT
+        SetRemoteName(
+            [in] LongPtr Val
+        );
+}
+
+//---------------------------------------------------------------------------
+
+//[
+//    uuid(2289a9af-dc96-486e-b268-89c9e3397c3d),
+//        helpstring("Microsoft Background Copy Manager 2.0"),
+//        lcid(0x0000),
+//        version(1.0)
+//]
+//library BackgroundCopyManager2_0
+//{
+    [
+        uuid(6d18ad12-bde3-4393-b311-099c346e6df9),
+            helpstring("Background copy manager 2.0")
+    ]
+        coclass BackgroundCopyManager2_0
+    {
+        [default] interface IBackgroundCopyManager;
+    };
+    //interface IBackgroundCopyCallback;
+    //interface IBackgroundCopyJob3;
+    //interface IBackgroundCopyFile2;
+//}
+
+
+
+/* *************************************************************************
+
+
+
+bits 2.5
+
+
+
+*/
+
+    typedef enum BG_CERT_STORE_LOCATION {
+        BG_CERT_STORE_LOCATION_CURRENT_USER = 0,
+        BG_CERT_STORE_LOCATION_LOCAL_MACHINE,
+        BG_CERT_STORE_LOCATION_CURRENT_SERVICE,
+        BG_CERT_STORE_LOCATION_SERVICES,
+        BG_CERT_STORE_LOCATION_USERS,
+        BG_CERT_STORE_LOCATION_CURRENT_USER_GROUP_POLICY,
+        BG_CERT_STORE_LOCATION_LOCAL_MACHINE_GROUP_POLICY,
+        BG_CERT_STORE_LOCATION_LOCAL_MACHINE_ENTERPRISE
+    } BG_CERT_STORE_LOCATION;
+[
+       odl,
+    uuid(f1bd1079-9f01-4bdc-8036-f09b70095066),
+        helpstring("IBackgroundCopyJobHttpOptions Interface")
+ ]
+interface IBackgroundCopyJobHttpOptions : stdole.IUnknown
+{
+
+
+    HRESULT SetClientCertificateByID(
+        [in] BG_CERT_STORE_LOCATION StoreLocation,
+        [in] LongPtr StoreName,
+        [in, out] void* pCertHashBlob
+    );
+
+    HRESULT SetClientCertificateByName(
+        [in] BG_CERT_STORE_LOCATION StoreLocation,
+        [in] LongPtr StoreName,
+        [in] LongPtr SubjectName
+    );
+
+    HRESULT RemoveClientCertificate(
+    );
+
+    HRESULT GetClientCertificate(
+        [in, out] BG_CERT_STORE_LOCATION* pStoreLocation,
+        [in, out] LongPtr* pStoreName,
+        [in, out] LongPtr* ppCertHashBlob,
+        [in, out] LPWSTR* pSubjectName
+    );
+
+    HRESULT SetCustomHeaders(
+        [in] LongPtr RequestHeaders
+    );
+
+    HRESULT GetCustomHeaders(
+        [in, out] LongPtr* pRequestHeaders
+    );
+
+    HRESULT SetSecurityFlags(
+        [in] ULONG Flags
+    );
+
+    HRESULT GetSecurityFlags(
+        [in, out] ULONG* pFlags
+    );
+
+}
+
+//---------------------------------------------------------------------------
+
+//[
+//    uuid(4974177c-3bb6-4c37-9ff0-6b7426f0aba9),
+//        helpstring("Microsoft Background Copy Manager 2.5"),
+//        lcid(0x0000),
+//        version(1.0)
+//]
+//library BackgroundCopyManager2_5
+//{
+    [
+        uuid(03ca98d6-ff5d-49b8-abc6-03dd84127020),
+            helpstring("Background copy manager 2.5")
+    ]
+        coclass BackgroundCopyManager2_5
+    {
+        [default] interface IBackgroundCopyManager;
+    };
+    //interface IBackgroundCopyCallback;
+    //interface IBackgroundCopyFile2;
+    //interface IBackgroundCopyJob3;
+    //interface IBackgroundCopyJobHttpOptions;
+//}
+
+typedef enum BITSSSLFlags
+{
+      BG_SSL_ENABLE_CRL_CHECK = 0x0001,
+      BG_SSL_IGNORE_CERT_CN_INVALID = 0x0002,
+      BG_SSL_IGNORE_CERT_DATE_INVALID = 0x0004,
+      BG_SSL_IGNORE_UNKNOWN_CA = 0x0008,
+      BG_SSL_IGNORE_CERT_WRONG_USAGE       = 0x0010
+} BITSSSLFlags;
+typedef enum BITSRedirectFlags {
+// 
+// Main redirection policy: defines how BITS treats HTTP redirects
+// - default = BG_HTTP_REDIRECT_POLICY_SILENT; for any other value
+//   BITS will update IBackgroundCopyFile's RemoteName with the final URL
+// - DISALLOW will cause bits to enter error state when a redirect occurs
+//
+// ALLOW_SILENT and ALLOW_REPORT may be combined with 
+// BG_HTTP_REDIRECT_POLICY_ALLOW_HTTPS_TO_HTTP (see below)
+// 
+      BG_HTTP_REDIRECT_POLICY_MASK = 0x0700,
+
+      BG_HTTP_REDIRECT_POLICY_ALLOW_SILENT = 0x0000,
+      BG_HTTP_REDIRECT_POLICY_ALLOW_REPORT = 0x0100,
+      BG_HTTP_REDIRECT_POLICY_DISALLOW = 0x0200,
+
+//
+// Supplemental redirection policy: 
+//     By default, redirection from HTTPS to HTTP is not allowed.
+//     Set this flag to allow it.
+//
+      BG_HTTP_REDIRECT_POLICY_ALLOW_HTTPS_TO_HTTP = 0x0800 
+} BITSRedirectFlags;
+
+
+
+// *******************************************************************
+
+
+
+//  bits3_0.idl
+
+
+
+[
+        odl,
+    uuid(659cdeaf-489e-11d9-a9cd-000d56965251),
+        helpstring("IBitsPeerCacheRecord")
+]
+interface IBitsPeerCacheRecord : stdole.IUnknown
+{
+    HRESULT GetId([in, out] UUID* pVal);
+
+    HRESULT GetOriginUrl([in, out] LongPtr* pVal);
+
+    HRESULT GetFileSize([in, out] UINT64* pVal);
+
+    HRESULT GetFileModificationTime([in, out] FILETIME* pVal);
+
+    HRESULT GetLastAccessTime([in, out] FILETIME* pVal);
+
+    /**
+     * returns S_OK if validated, S_FALSE if not
+     */
+    HRESULT IsFileValidated();
+
+    HRESULT
+        GetFileRanges(
+            [in, out] DWORD* pRangeCount,
+            //[in, out] BG_FILE_RANGE** ppRanges)
+            [in, out] LongPtr* ppRanges);
+
+};
+
+/**
+ * IEnumBitsPeerCacheRecords - deprecated interface
+ */
+[
+        odl,
+    uuid(659cdea4-489e-11d9-a9cd-000d56965251),
+        helpstring("IEnumBitsPeerCacheRecords")
+]
+interface IEnumBitsPeerCacheRecords : stdole.IUnknown
+{
+    HRESULT
+        Next(
+            [in] ULONG celt,
+            [in, out] IBitsPeerCacheRecord** rgelt,
+            [in, out] ULONG* pceltFetched);
+
+    HRESULT
+        Skip(
+            [in] ULONG celt);
+
+    HRESULT
+        Reset();
+
+    HRESULT
+        Clone(
+            [in, out] IEnumBitsPeerCacheRecords** ppenum);
+
+    HRESULT
+        GetCount(
+            [in, out] ULONG* puCount);
+};
+
+
+[
+        odl,
+    uuid(659cdea2-489e-11d9-a9cd-000d56965251),
+        helpstring("IBitsPeer")
+]
+interface IBitsPeer : stdole.IUnknown
+{
+    HRESULT GetPeerName([in, out] LongPtr* pName);
+
+    HRESULT IsAuthenticated([in, out] BOOL* pAuth);
+
+    HRESULT IsAvailable([in, out] BOOL* pOnline);
+};
+
+/**
+ * IEnumBitsPeers - deprecated interface
+ */
+[
+        odl,
+    uuid(659cdea5-489e-11d9-a9cd-000d56965251),
+        helpstring("IEnumBitsPeers")
+]
+interface IEnumBitsPeers : stdole.IUnknown
+{
+    HRESULT
+        Next(
+            [in] ULONG celt,
+            [in, out] IBitsPeer** rgelt,
+            [in, out] ULONG* pceltFetched);
+
+    HRESULT
+        Skip(
+            [in] ULONG celt);
+
+    HRESULT
+        Reset();
+
+    HRESULT
+        Clone(
+            [in, out] IEnumBitsPeers** ppenum);
+
+    HRESULT
+        GetCount(
+            [in, out] ULONG* puCount);
+}
+
+
+typedef enum BITSPeerCachineFlags {
+          BG_ENABLE_PEERCACHING_CLIENT  = 0x0001,
+              BG_ENABLE_PEERCACHING_SERVER =  0x0002,
+              BG_DISABLE_BRANCH_CACHE       = 0x0004 
+
+} BITSPeerCachineFlags;
+/**
+ * IBitsPeerCacheAdministration - deprecated interface
+ */
+[
+        odl,
+    uuid(659cdead-489e-11d9-a9cd-000d56965251),
+        helpstring("IBitsPeerCacheAdministration")
+]
+interface IBitsPeerCacheAdministration : stdole.IUnknown
+{
+
+
+        /**
+         * control of caching policy in general
+         */
+        HRESULT GetMaximumCacheSize([in, out] DWORD* pBytes);
+    HRESULT SetMaximumCacheSize([in] DWORD Bytes);
+
+    HRESULT GetMaximumContentAge([in, out] ULONG* pSeconds);
+    HRESULT SetMaximumContentAge([in] ULONG Seconds);
+
+    HRESULT GetConfigurationFlags([in, out] BITSPeerCachineFlags* pFlags);
+    HRESULT SetConfigurationFlags([in] BITSPeerCachineFlags Flags);
+
+    /**
+     * cache record management
+     */
+    HRESULT EnumRecords([in, out] IEnumBitsPeerCacheRecords** ppEnum);
+
+    HRESULT GetRecord([in] REFGUID id,
+        [in, out] IBitsPeerCacheRecord** ppRecord);
+
+    HRESULT ClearRecords();
+
+    HRESULT DeleteRecord([in] REFGUID id);
+
+    HRESULT DeleteUrl([in] LongPtr url);
+
+    /**
+     * peer management
+     */
+    HRESULT EnumPeers([in, out] IEnumBitsPeers** ppEnum);
+
+    HRESULT ClearPeers();
+
+    HRESULT DiscoverPeers();
+};
+
+typedef enum BITSJobPeerCachingFlags {
+          BG_JOB_ENABLE_PEERCACHING_CLIENT = 0x0001,
+              BG_JOB_ENABLE_PEERCACHING_SERVER = 0x0002,
+              BG_JOB_DISABLE_BRANCH_CACHE = 0x0004
+
+} BITSJobPeerCachingFlags;
+[
+        odl,
+    uuid(659cdeae-489e-11d9-a9cd-000d56965251),
+        helpstring("IBackgroundCopyJob4 Interface")
+]
+interface IBackgroundCopyJob4 : IBackgroundCopyJob3
+{
+
+
+        //
+        // control of peer-caching
+        //
+    HRESULT SetPeerCachingFlags([in] BITSJobPeerCachingFlags Flags);
+
+    HRESULT GetPeerCachingFlags([in, out] BITSJobPeerCachingFlags* pFlags);
+
+    //
+    // inspecting token characteristics
+    //
+    HRESULT GetOwnerIntegrityLevel([in, out] ULONG* pLevel);
+
+    HRESULT GetOwnerElevationState([in, out] BOOL* pElevated);
+
+
+    // Download Timeout
+
+    HRESULT SetMaximumDownloadTime([in] ULONG Timeout);
+
+    HRESULT GetMaximumDownloadTime([in, out] ULONG* pTimeout);
+
+};
+
+[
+        odl,
+    uuid(659cdeaa-489e-11d9-a9cd-000d56965251),
+        helpstring("IBackgroundCopyFile3 interface")
+]
+interface IBackgroundCopyFile3 : IBackgroundCopyFile2
+{
+    //
+    // Get the name of the temporary file, allowing access to data before 
+    // the job is complete.
+    //
+    HRESULT GetTemporaryName([in, out] LongPtr* pFilename);
+
+    //
+    // Calling SetValidationState(TRUE) allows the data to be shared with peers,
+    // if peer-caching is otherwise enabled for this job.
+    // 
+    // Calling SetValidationState(FALSE) triggers another download attempt if the 
+    // file was downloaded from a peer; otherwise, it puts the job in ERROR state.
+    //
+    HRESULT SetValidationState([in] BOOL state);
+
+    //
+    // Retrieves the current validation state of this file.
+    //
+    HRESULT GetValidationState([in, out] BOOL* pState);
+
+    //
+    // *pVal is set to TRUE if any part of the file was downloaded from a peer server.
+    //
+    HRESULT IsDownloadedFromPeer([in, out] BOOL* pVal);
+}
+
+
+[
+       odl,
+    uuid(659cdeac-489e-11d9-a9cd-000d56965251),
+        helpstring("IBackgroundCopyCallback2 Interface")
+ ]
+interface IBackgroundCopyCallback2 : stdole.IUnknown
+{
+    //IBackgroundCopyCallback Methods
+
+        //
+    // A job has transferred successfully.
+    //
+    HRESULT JobTransferred([in] IBackgroundCopyJob* pJob);
+
+    //
+    // An error occurred, and the service has suspended the job.
+    // Fix the error and resume the job.
+    // Get error details by calling (*pFailingJob)->GetStatus().
+    //
+    HRESULT JobError([in] IBackgroundCopyJob* pJob,
+        [in] IBackgroundCopyError* pError);
+
+    //
+    // The job has been modified.   Intendended for user interfaces.
+    //
+    HRESULT JobModification([in] IBackgroundCopyJob* pJob,
+        [in] DWORD dwReserved);
+
+
+    //IBackgroundCopyCallback2 Methods
+
+    // A file has been transferred.
+    //
+    HRESULT FileTransferred([in] IBackgroundCopyJob* pJob,
+        [in] IBackgroundCopyFile* pFile);
+}
+
+
+
+//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+//                         enumerators
+//+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
+//---------------------------------------------------------------------------
+
+//[
+//    uuid(659cdea6-489e-11d9-a9cd-000d56965251),
+//        helpstring("Microsoft Background Copy Manager 3.0"),
+//        lcid(0x0000),
+//        version(1.0)
+//]
+//library BackgroundCopyManager3_0
+//{
+    [
+        uuid(659cdea7-489e-11d9-a9cd-000d56965251),
+            helpstring("Background copy manager 3.0")
+    ]
+        coclass BackgroundCopyManager3_0
+    {
+        [default] interface IBackgroundCopyManager;
+    };
+    //interface IBackgroundCopyCallback2;
+    //interface IBackgroundCopyFile3;
+    //interface IBackgroundCopyJob4;
+    //interface IBackgroundCopyJobHttpOptions;
+    //interface IBitsPeer;
+    //interface IBitsPeerCacheAdministration;
+    //interface IBitsPeerCacheRecord;
+    //interface IEnumBitsPeerCacheRecords;
+    //interface IEnumBitsPeers;
+//}
+
+
+
+/*
+sequential uuids that can be used for new interfaces, etc:
+
+
+
+bb6df56d-cace-11dc-9992-0019b93a3a84
+bb6df56e-cace-11dc-9992-0019b93a3a84
+bb6df56f-cace-11dc-9992-0019b93a3a84
+bb6df570-cace-11dc-9992-0019b93a3a84
+bb6df571-cace-11dc-9992-0019b93a3a84
+bb6df572-cace-11dc-9992-0019b93a3a84
+bb6df573-cace-11dc-9992-0019b93a3a84
+*/
+
+
+typedef enum BITSHelperTokenFlags {
+        BG_TOKEN_LOCAL_FILE     = 0x0001,
+            BG_TOKEN_NETWORK        = 0x0002
+
+} BITSHelperTokenFlags;
+[
+         odl,
+   uuid(9a2584c3-f7d2-457a-9a5e-22b67bffc7d2),
+        helpstring("IBitsTokenOptions")
+]
+interface IBitsTokenOptions : stdole.IUnknown
+{
+
+
+        // set the usage flags (only)
+        //
+        HRESULT SetHelperTokenFlags([in] BITSHelperTokenFlags UsageFlags);
+
+    // return the usage flags 
+    //
+    HRESULT GetHelperTokenFlags([in, out] BITSHelperTokenFlags* pFlags);
+
+
+    // Set the helper token to be the COM client's token.
+    // Requires that the proxy blanket use 
+    // RPC_C_IMP_LEVEL_IMPERSONATE or RPC_C_IMP_LEVEL_DELEGATE      
+    //
+    HRESULT SetHelperToken();
+
+    // discard the token without changing the usage flags
+    //
+    HRESULT ClearHelperToken();
+
+    // return the SID of the helper token in pVal, if one is set. 
+    // If no token available, set pVal to NULL.
+    //
+    HRESULT GetHelperTokenSid([in, out] LongPtr* pSid);
+};
+
+
+[
+        odl,
+    uuid(ef7e0655-7888-4960-b0e5-730846e03492),
+        helpstring("IBackgroundCopyFile4 interface")
+]
+interface IBackgroundCopyFile4 : IBackgroundCopyFile3
+{
+    HRESULT GetPeerDownloadStats([in, out] UINT64* pFromOrigin, [in, out] UINT64* pFromPeers);
+}
+
+//---------------------------------------------------------------------------
+
+//[
+//    uuid(bb6df56a-cace-11dc-9992-0019b93a3a84),
+//        helpstring("Microsoft Background Copy Manager 4.0"),
+//        lcid(0x0000),
+//        version(1.0)
+//]
+//library BackgroundCopyManager4_0
+//{
+    [
+        uuid(bb6df56b-cace-11dc-9992-0019b93a3a84),
+            helpstring("Background copy manager 3.0")
+    ]
+        coclass BackgroundCopyManager4_0
+    {
+        [default] interface IBackgroundCopyManager;
+    };
+    //interface IBackgroundCopyCallback2;
+    //interface IBackgroundCopyFile4;
+    //interface IBackgroundCopyJob4;
+    //interface IBackgroundCopyJobHttpOptions;
+    //interface IBitsPeer;
+    //interface IBitsPeerCacheAdministration;
+    //interface IBitsPeerCacheRecord;
+    //interface IBitsTokenOptions;
+    //interface IEnumBitsPeerCacheRecords;
+    //interface IEnumBitsPeers;
+//}
+
+
+
+
+
+
+
+
+
+typedef enum BITSCostStateFlags {
+// OR'able Cost Flags constants
+    BITS_COST_STATE_UNRESTRICTED          = 0x1,
+    BITS_COST_STATE_CAPPED_USAGE_UNKNOWN  = 0x2,
+    BITS_COST_STATE_BELOW_CAP             = 0x4,
+    BITS_COST_STATE_NEAR_CAP              = 0x8,
+    BITS_COST_STATE_OVERCAP_CHARGED       = 0x10,
+    BITS_COST_STATE_OVERCAP_THROTTLED     = 0x20,
+    BITS_COST_STATE_USAGE_BASED           = 0x40,
+    BITS_COST_STATE_ROAMING               = 0x80,
+    BITS_COST_OPTION_IGNORE_CONGESTION    = 0x80000000,
+
+// placeholder -  for internal use
+    BITS_COST_STATE_RESERVED              = 0x40000000, 
+    
+    
+    
+    
+   
+
+    BITS_COST_STATE_TRANSFER_NOT_ROAMING  = 0x8000007F, //(BITS_COST_OPTION_IGNORE_CONGESTION|BITS_COST_STATE_USAGE_BASED|BITS_COST_STATE_OVERCAP_THROTTLED|BITS_COST_STATE_OVERCAP_CHARGED|BITS_COST_STATE_NEAR_CAP|BITS_COST_STATE_BELOW_CAP|BITS_COST_STATE_CAPPED_USAGE_UNKNOWN|BITS_COST_STATE_UNRESTRICTED),
+    BITS_COST_STATE_TRANSFER_NO_SURCHARGE = 0x8000006F, //(BITS_COST_OPTION_IGNORE_CONGESTION|BITS_COST_STATE_USAGE_BASED|BITS_COST_STATE_OVERCAP_THROTTLED|BITS_COST_STATE_NEAR_CAP|BITS_COST_STATE_BELOW_CAP|BITS_COST_STATE_CAPPED_USAGE_UNKNOWN|BITS_COST_STATE_UNRESTRICTED),
+    BITS_COST_STATE_TRANSFER_STANDARD     = 0x80000067, //(BITS_COST_OPTION_IGNORE_CONGESTION|BITS_COST_STATE_USAGE_BASED|BITS_COST_STATE_OVERCAP_THROTTLED|BITS_COST_STATE_BELOW_CAP|BITS_COST_STATE_CAPPED_USAGE_UNKNOWN|BITS_COST_STATE_UNRESTRICTED),
+    BITS_COST_STATE_TRANSFER_UNRESTRICTED = 0x80000021, //(BITS_COST_OPTION_IGNORE_CONGESTION|BITS_COST_STATE_OVERCAP_THROTTLED|BITS_COST_STATE_UNRESTRICTED)")
+    BITS_COST_STATE_TRANSFER_ALWAYS       = 0x800000FF //(BITS_COST_OPTION_IGNORE_CONGESTION|BITS_COST_STATE_ROAMING|BITS_COST_STATE_USAGE_BASED|BITS_COST_STATE_OVERCAP_THROTTLED|BITS_COST_STATE_OVERCAP_CHARGED|BITS_COST_STATE_NEAR_CAP|BITS_COST_STATE_BELOW_CAP|BITS_COST_STATE_CAPPED_USAGE_UNKNOWN|BITS_COST_STATE_UNRESTRICTED)
+} BITSCostStateFlags;
+
+typedef enum BITS_JOB_TRANSFER_POLICY
+{
+    BITS_JOB_TRANSFER_POLICY_ALWAYS = 0x800000FF,  // BITS_COST_STATE_TRANSFER_ALWAYS
+    BITS_JOB_TRANSFER_POLICY_NOT_ROAMING = 0x8000007F,  // BITS_COST_STATE_TRANSFER_NOT_ROAMING
+    BITS_JOB_TRANSFER_POLICY_NO_SURCHARGE = 0x8000006F,  // BITS_COST_STATE_TRANSFER_NO_SURCHARGE
+    BITS_JOB_TRANSFER_POLICY_STANDARD = 0x80000067,  // BITS_COST_STATE_TRANSFER_STANDARD
+    BITS_JOB_TRANSFER_POLICY_UNRESTRICTED = 0x80000021  // BITS_COST_STATE_TRANSFER_UNRESTRICTED
+}
+BITS_JOB_TRANSFER_POLICY;
+
+
+// Enum values that define ID values corresponding to BITS properties
+typedef enum BITS_JOB_PROPERTY_ID
+{
+    // ID for the 'CostFlags' property (read-write) used to control transfer behavior over cellular and similar networks
+    BITS_JOB_PROPERTY_ID_COST_FLAGS = 1,
+
+    // ID for the CLSID notification for BITS (read-write).
+    BITS_JOB_PROPERTY_NOTIFICATION_CLSID = 2,
+
+    // ID for marking the BITS job adaptive to dynamic contents.
+    BITS_JOB_PROPERTY_DYNAMIC_CONTENT = 3,
+
+    // ID for marking the BITS job as optimized download.
+    BITS_JOB_PROPERTY_HIGH_PERFORMANCE = 4,
+
+    // ID for marking the BITS job as optimized download.
+    BITS_JOB_PROPERTY_MAX_DOWNLOAD_SIZE = 5,
+
+    // ID for marking the BITS job to use stored or automatic credentials.
+    BITS_JOB_PROPERTY_USE_STORED_CREDENTIALS = 7,
+
+    // ID for setting the minimum notification interval for job modifications (in milliseconds).
+    BITS_JOB_PROPERTY_MINIMUM_NOTIFICATION_INTERVAL_MS = 9,
+
+    // ID for configuring the BITS job to transfer data only when the application explicitly asks for it.
+    BITS_JOB_PROPERTY_ON_DEMAND_MODE = 10,
+} BITS_JOB_PROPERTY_ID;
+
+typedef struct BITS_JOB_PROPERTY_VALUE {
+
+//typedef [switch_type(BITS_JOB_PROPERTY_ID)] union
+//{
+//    [case(BITS_JOB_PROPERTY_ID_COST_FLAGS, 6, 8, BITS_JOB_PROPERTY_MINIMUM_NOTIFICATION_INTERVAL_MS)]
+//        DWORD Dword;
+//
+//    [case(BITS_JOB_PROPERTY_NOTIFICATION_CLSID)]
+//        GUID ClsID;
+//
+//    [case(BITS_JOB_PROPERTY_DYNAMIC_CONTENT, BITS_JOB_PROPERTY_HIGH_PERFORMANCE, BITS_JOB_PROPERTY_ON_DEMAND_MODE)]
+//        BOOL Enable;
+//
+//    [case(BITS_JOB_PROPERTY_MAX_DOWNLOAD_SIZE)]
+//        UINT64 Uint64;
+//
+//    [case(BITS_JOB_PROPERTY_USE_STORED_CREDENTIALS)]
+//        BG_AUTH_TARGET Target;
+//}
+//BITS_JOB_PROPERTY_VALUE;
+    int u[4];
+} BITS_JOB_PROPERTY_VALUE;
+
+// Enum values that define ID values corresponding to BackgroundCopyFile properties
+typedef enum BITS_FILE_PROPERTY_ID
+{
+    // ID for the 'HttpResponseHeaders' property (read-write) used for CDN identification.
+    BITS_FILE_PROPERTY_ID_HTTP_RESPONSE_HEADERS = 1
+} BITS_FILE_PROPERTY_ID;
+
+typedef struct BITS_FILE_PROPERTY_VALUE
+{
+
+//typedef [switch_type(BITS_FILE_PROPERTY_ID)] union
+//{
+//    [case(BITS_FILE_PROPERTY_ID_HTTP_RESPONSE_HEADERS)]
+//        LPWSTR String;
+//}
+//BITS_FILE_PROPERTY_VALUE;
+
+        LongPtr pString;
+} BITS_FILE_PROPERTY_VALUE;
+// ------------------ New extended BITS API ------------------
+
+[
+        odl,
+    uuid(E847030C-BBBA-4657-AF6D-484AA42BF1FE),
+        helpstring("IBackgroundCopyJob5 interface")
+]
+interface IBackgroundCopyJob5 : IBackgroundCopyJob4
+{
+
+    /**
+     * Generic job property setter method.
+     *
+     * The caller specifies the property that they want to set and its value.
+     * This provides looser coupling between new job properties in the future
+     * and the need to create new 'extension' interfaces to provide explicit
+     * setters and getters for these properties.
+     */
+    HRESULT SetProperty(
+        [in]                         BITS_JOB_PROPERTY_ID       PropertyId,
+        //[in] BITS_JOB_PROPERTY_VALUE  PropertyValue
+        [in] int PropertyValue1, [in] int PropertyValue2, [in] int PropertyValue3, [in] int PropertyValue4
+    );
+
+
+    /**
+     * Generic job property getter method.
+     *
+     * The caller specifies the property that they want to obtain the value of.
+     * This provides looser coupling between new job properties in the future
+     * and the need to create new 'extension' interfaces to provide explicit
+     * setters and getters for these properties.
+     */
+    HRESULT GetProperty(
+        [in]                         BITS_JOB_PROPERTY_ID       PropertyId,
+        [in, out] BITS_JOB_PROPERTY_VALUE* PropertyValue
+    );
+
+}
+
+
+[
+         odl,
+   uuid(85C1657F-DAFC-40E8-8834-DF18EA25717E),
+        helpstring("IBackgroundCopyFile5 interface")
+]
+interface IBackgroundCopyFile5 : IBackgroundCopyFile4
+{
+
+    /**
+     * Generic file property setter method.
+     *
+     * The caller specifies the file property that they want to set and its value.
+     * This provides looser coupling between new file properties in the future
+     * and the need to create new 'extension' interfaces to provide explicit
+     * setters and getters for these properties.
+     */
+    HRESULT SetProperty(
+        [in]                         BITS_FILE_PROPERTY_ID     PropertyId,
+        [in]  /*BITS_FILE_PROPERTY_VALUE*/  LongPtr  PropertyValue
+    );
+
+
+    /**
+     * Generic file property getter method.
+     *
+     * The caller specifies the property that they want to obtain the value of.
+     * This provides looser coupling between new file properties in the future
+     * and the need to create new 'extension' interfaces to provide explicit
+     * setters and getters for these properties.
+     */
+    HRESULT GetProperty(
+        [in]                          BITS_FILE_PROPERTY_ID      PropertyId,
+        [in, out]  BITS_FILE_PROPERTY_VALUE* PropertyValue
+    );
+
+}
+
+
+//[
+//    uuid(D548BC1B-6C12-432E-B176-A96E10681A31),
+//        helpstring("Microsoft Background Copy Manager 5.0"),
+//        lcid(0x0000),
+//        version(1.0)
+//]
+//library BackgroundCopyManager5_0
+//{
+    [
+        uuid(1ECCA34C-E88A-44E3-8D6A-8921BDE9E452),
+            helpstring("Background copy manager 5.0")
+    ]
+        coclass BackgroundCopyManager5_0
+    {
+        [default] interface IBackgroundCopyManager;
+    };
+    //interface IBackgroundCopyCallback2;
+    //interface IBackgroundCopyFile5;
+    //interface IBackgroundCopyJob5;
+    //interface IBackgroundCopyJobHttpOptions;
+    //interface IBitsPeer;
+    //interface IBitsPeerCacheAdministration;
+    //interface IBitsPeerCacheRecord;
+    //interface IBitsTokenOptions;
+    //interface IEnumBitsPeerCacheRecords;
+    //interface IEnumBitsPeers;
+//}
+
+
+
+
+[
+    odl,
+    uuid(98c97bd2-e32b-4ad8-a528-95fd8b16bd42)
+]
+interface IBackgroundCopyCallback3 : stdole.IUnknown
+{
+        //IBackgroundCopyCallback Methods
+
+        //
+    // A job has transferred successfully.
+    //
+    HRESULT JobTransferred([in] IBackgroundCopyJob* pJob);
+
+    //
+    // An error occurred, and the service has suspended the job.
+    // Fix the error and resume the job.
+    // Get error details by calling (*pFailingJob)->GetStatus().
+    //
+    HRESULT JobError([in] IBackgroundCopyJob* pJob,
+        [in] IBackgroundCopyError* pError);
+
+    //
+    // The job has been modified.   Intendended for user interfaces.
+    //
+    HRESULT JobModification([in] IBackgroundCopyJob* pJob,
+        [in] DWORD dwReserved);
+
+
+    //IBackgroundCopyCallback2 Methods
+
+    // A file has been transferred.
+    //
+    HRESULT FileTransferred([in] IBackgroundCopyJob* pJob,
+        [in] IBackgroundCopyFile* pFile);
+
+
+    //IBackgroundCopyCallback3 Methods
+    HRESULT FileRangesTransferred(
+        [in] IBackgroundCopyJob* job,
+        [in] IBackgroundCopyFile* file,
+        [in] DWORD rangeCount,
+        [in] BG_FILE_RANGE* ranges
+    );
+}
+
+[
+    odl,
+    uuid(CF6784F7-D677-49FD-9368-CB47AEE9D1AD)
+]
+interface IBackgroundCopyFile6 : IBackgroundCopyFile5
+{
+    HRESULT UpdateDownloadPosition([in] UINT64 offset);
+
+    HRESULT
+        RequestFileRanges(
+            [in] DWORD rangeCount,
+            [in] BG_FILE_RANGE* ranges
+        );
+
+    HRESULT
+        GetFilledFileRanges(
+            [in, out] DWORD* rangeCount,
+            [in, out] BG_FILE_RANGE** ranges
+        );
+}
+
+//[
+//    uuid(8A39E4B6-22C9-4B39-9E0C-B1CDF5F967FD),
+//        lcid(0x0000),
+//        version(1.0)
+//]
+//library BackgroundCopyManager10_1
+//{
+    [
+        uuid(4BD3E4E1-7BD4-4A2B-9964-496400DE5193)
+    ]
+        coclass BackgroundCopyManager10_1
+    {
+        [default] interface IBackgroundCopyManager;
+    };
+    //interface IBackgroundCopyCallback3;
+    //interface IBackgroundCopyFile6;
+    //interface IBackgroundCopyJob5;
+    //interface IBackgroundCopyJobHttpOptions;
+    //interface IBitsPeer;
+    //interface IBitsPeerCacheAdministration;
+    //interface IBitsPeerCacheRecord;
+    //interface IBitsTokenOptions;
+    //interface IEnumBitsPeerCacheRecords;
+    //interface IEnumBitsPeers;
+//}
+
+
+
+
+
+
+
+
+
+[
+    odl,
+    uuid(B591A192-A405-4FC3-8323-4C5C542578FC)
+]
+interface IBackgroundCopyJobHttpOptions2 : IBackgroundCopyJobHttpOptions
+{
+    HRESULT SetHttpMethod(
+        [in] LongPtr method
+    );
+
+    HRESULT GetHttpMethod(
+        [in, out] LongPtr* method
+    );
+}
+
+//[
+//    uuid(70CDC92E-4B95-49EB-8CDA-AD39AA7CC4A0),
+//        lcid(0x0000),
+//        version(1.0)
+//]
+//library BackgroundCopyManager10_2
+//{
+    [
+        uuid(4575438F-A6C8-4976-B0FE-2F26B80D959E)
+    ]
+        coclass BackgroundCopyManager10_2
+    {
+        [default] interface IBackgroundCopyManager;
+    };
+    //interface IBackgroundCopyCallback3;
+    //interface IBackgroundCopyFile6;
+    //interface IBackgroundCopyJob5;
+    //interface IBackgroundCopyJobHttpOptions2;
+    //interface IBitsPeer;
+    //interface IBitsPeerCacheAdministration;
+    //interface IBitsPeerCacheRecord;
+    //interface IBitsTokenOptions;
+    //interface IEnumBitsPeerCacheRecords;
+    //interface IEnumBitsPeers;
+//}
+
+
+
+
+
+
+
+
+
+
+
+
+[
+    odl,
+    uuid(4CEC0D02-DEF7-4158-813A-C32A46945FF7)
+]
+interface IBackgroundCopyServerCertificateValidationCallback : stdole.IUnknown
+{
+    HRESULT ValidateServerCertificate(
+        [in] IBackgroundCopyJob* job,
+        [in] IBackgroundCopyFile* file,
+        [in] DWORD certLength,
+        [in] void* certData,
+        [in] DWORD certEncodingType,
+        [in] DWORD certStoreLength,
+        [in] void* certStoreData);
+}
+
+[
+    odl,
+    uuid(8A9263D3-FD4C-4EDA-9B28-30132A4D4E3C)
+]
+interface IBackgroundCopyJobHttpOptions3 : IBackgroundCopyJobHttpOptions2
+{
+    HRESULT SetServerCertificateValidationInterface(
+        [in] IUnknown* certValidationCallback);
+
+    HRESULT MakeCustomHeadersWriteOnly();
+}
+
+//[
+//    uuid(9FD340E7-BB7E-46E6-B912-C6D0894F9AC9),
+//        lcid(0x0000),
+//        version(1.0)
+//]
+//library BackgroundCopyManager10_3
+//{
+    [
+        uuid(5FD42AD5-C04E-4D36-ADC7-E08FF15737AD)
+    ]
+        coclass BackgroundCopyManager10_3
+    {
+        [default] interface IBackgroundCopyManager;
+    };
+    //interface IBackgroundCopyCallback3;
+    //interface IBackgroundCopyFile6;
+    //interface IBackgroundCopyJob5;
+    //interface IBackgroundCopyJobHttpOptions3;
+    //interface IBackgroundCopyServerCertificateValidationCallback;
+    //interface IBitsPeer;
+    //interface IBitsPeerCacheAdministration;
+    //interface IBitsPeerCacheRecord;
+    //interface IBitsTokenOptions;
+    //interface IEnumBitsPeerCacheRecords;
+    //interface IEnumBitsPeers;
+//}
+
+
+
+//
+// =============================
+// Marshalled interfaces
+// =============================
+//
+
+[
+         odl,
+   uuid(29cfbbf7-09e4-4b97-b0bc-f2287e3d8eb3),
+        dual
+]
+interface IBITSExtensionSetup : IDispatch
+{
+
+    [id(1)] HRESULT EnableBITSUploads();
+
+    [id(2)] HRESULT DisableBITSUploads();
+
+    // Returns the MSTask scheduled task name for this virtual directory
+    // if one has been created.   If one has not been created, NULL is
+    // returned and the HRESULT is S_FALSE;
+    [id(3)] HRESULT GetCleanupTaskName([out, retval] BSTR* pTaskName);
+
+    // Returns the MSTask scheduled task for this virtual directory 
+    // if one has been created.  If one has not been created, NULL is 
+    // returned and the HRESULT is S_FALSE. Set riid to the UUID of
+    // the task interface required.  See ITaskScheduler::Activate for details.
+
+    [id(4)] HRESULT GetCleanupTask([in] REFIID riid, [out, retval] IUnknown** ppUnk);
+}
+
+[
+        odl,
+    uuid(d5d2d542-5503-4e64-8b48-72ef91a32ee1),
+        dual
+]
+interface IBITSExtensionSetupFactory : IDispatch
+{
+
+    [id(1)] HRESULT GetObject([in] BSTR Path, [out, retval] IBITSExtensionSetup** ppExtensionSetup);
+}
+
+//[
+//    uuid(B0937B9C-D66D-4d9b-B741-49C6D66A1CD5),
+//        helpstring("Microsoft BITS Server Extensions Setup 1.0"),
+//        version(1.0)
+//]
+//library BITSExtensionSetup
+//{
+    [
+        uuid(efbbab68-7286-4783-94bf-9461d8b7e7e9),
+            helpstring("BITS Server Extensions Setup Factory")
+    ]
+        coclass BITSExtensionSetupFactory
+    {
+        [default] interface IBITSExtensionSetupFactory;
+    };
+//}
+
+
+
+//cpp_quote("// Background Copy QMgr Public Interface")
+
+//various events and flags
+
+/*************Notify flags**************/
+typedef enum QMgrNotifyFlags {
+     QM_NOTIFY_FILE_DONE         = 0x00000001,
+     QM_NOTIFY_JOB_DONE          = 0x00000002,
+     QM_NOTIFY_GROUP_DONE        = 0x00000004,
+     QM_NOTIFY_DISABLE_NOTIFY    = 0x00000040,
+     QM_NOTIFY_USE_PROGRESSEX    = 0x00000080 
+} QMgrNotifyFlags;
+/*************Status flags**************/
+typedef enum QMgrStatusFlags {
+     QM_STATUS_FILE_COMPLETE     = 0x00000001,
+     QM_STATUS_FILE_INCOMPLETE   = 0x00000002,
+     QM_STATUS_JOB_COMPLETE      = 0x00000004,
+     QM_STATUS_JOB_INCOMPLETE    = 0x00000008,
+     QM_STATUS_JOB_ERROR         = 0x00000010,
+     QM_STATUS_JOB_FOREGROUND    = 0x00000020,
+     QM_STATUS_GROUP_COMPLETE    = 0x00000040,
+     QM_STATUS_GROUP_INCOMPLETE  = 0x00000080,
+     QM_STATUS_GROUP_SUSPENDED   = 0x00000100,
+     QM_STATUS_GROUP_ERROR       = 0x00000200,
+     QM_STATUS_GROUP_FOREGROUND  = 0x00000400 
+} QMgrStatusFlags;
+/*************Protocol flags***************/
+typedef enum QMgrProtocolFlags {
+     QM_PROTOCOL_HTTP = 1,
+     QM_PROTOCOL_FTP = 2,
+     QM_PROTOCOL_SMB = 3,
+     QM_PROTOCOL_CUSTOM = 4
+} QMgrProtocolFlags;
+/**************Progress Flags**************/
+typedef enum QMgrProgressFlags {
+     QM_PROGRESS_PERCENT_DONE = 1,
+     QM_PROGRESS_TIME_DONE = 2,
+     QM_PROGRESS_SIZE_DONE = 3
+} QMgrProgressFlags;
+/**************Error Codes****************/
+typedef enum QMgrErrorCodes {
+     QM_E_INVALID_STATE          = 0x81001001,
+     QM_E_SERVICE_UNAVAILABLE    = 0x81001002,
+     QM_E_DOWNLOADER_UNAVAILABLE = 0x81001003,
+     QM_E_ITEM_NOT_FOUND         = 0x81001004 
+} QMgrErrorCodes;
+//#if defined(TEST_TIMES)
+
+typedef struct BACKGROUND_COPY_TIMES
+{
+    FILETIME ftCreationTime;
+    FILETIME ftModificationTime;
+    FILETIME ftCompletionTime;
+} BACKGROUND_COPY_TIMES;
+
+//#endif
+
+//
+// =============================
+// Marshalled interfaces
+// =============================
+    typedef struct FILESETINFO
+    {
+        BSTR bstrRemoteFile;
+        BSTR bstrLocalFile;
+        DWORD dwSizeHint;
+    } FILESETINFO;
+// ==============================================
+// IJob Interface
+//     The IJob interface is the management layer for a file (or set of files)
+//     to be transferred.
+[
+        odl,
+    uuid(59f5553c-2031-4629-bb18-2645a6970947),
+        helpstring("IBackgroundCopyJob Interface")
+]
+interface IBackgroundCopyJob1 : stdole.IUnknown
+{
+
+
+    HRESULT CancelJob();
+
+    HRESULT GetProgress([in] QMgrProgressFlags dwFlags, [in, out] DWORD* pdwProgress);
+
+    HRESULT GetStatus([in, out] QMgrStatusFlags* pdwStatus,
+        [in, out] DWORD* pdwWin32Result,
+        [in, out] DWORD* pdwTransportResult,
+        [in, out] DWORD* pdwNumOfRetries);
+
+    HRESULT AddFiles([in] ULONG cFileCount, [in] FILESETINFO** ppFileSet);
+
+    HRESULT GetFile([in] ULONG cFileIndex, [in, out] FILESETINFO* pFileInfo);
+
+    HRESULT GetFileCount([in, out] DWORD* pdwFileCount);
+
+    HRESULT SwitchToForeground();
+
+    HRESULT get_JobID([in, out] UUID* pguidJobID); // used to a identify a job when enumerating jobs
+
+//#if defined(TEST_TIMES)
+
+    HRESULT GetTimes([in, out]  BACKGROUND_COPY_TIMES* pTimes);
+
+//#endif
+}
+
+// ==============================================
+// IEnumJobs Interface
+//     This interface allows enumerating the jobs under a Group
+[
+        odl,
+    uuid(8baeba9d-8f1c-42c4-b82c-09ae79980d25),
+        helpstring("IEnumBackgroundCopyJobs Interface")
+]
+interface IEnumBackgroundCopyJobs1 : stdole.IUnknown
+{
+    HRESULT Next([in] ULONG celt, [in, out] UUID* rgelt, [in, out] ULONG* pceltFetched);
+
+    HRESULT Skip([in] ULONG celt);
+    HRESULT Reset();
+    HRESULT Clone([in, out] IEnumBackgroundCopyJobs1** ppenum);
+    HRESULT GetCount([in, out] ULONG* puCount);
+}
+
+// ==============================================
+// IGroup Interface
+//     This interface is the base unit of management for a Job or Set of Jobs
+[
+        odl,
+    uuid(1ded80a7-53ea-424f-8a04-17fea9adc4f5),
+        helpstring("IBackgroundCopyGroup Interface")
+]
+interface IBackgroundCopyGroup : stdole.IUnknown
+{
+    typedef enum GROUPPROP {
+        GROUPPROP_PRIORITY = 0,
+        GROUPPROP_REMOTEUSERID = 1,
+        GROUPPROP_REMOTEUSERPWD = 2,
+        GROUPPROP_LOCALUSERID = 3,
+        GROUPPROP_LOCALUSERPWD = 4,
+        GROUPPROP_PROTOCOLFLAGS = 5,
+        GROUPPROP_NOTIFYFLAGS = 6,
+        GROUPPROP_NOTIFYCLSID = 7,
+        GROUPPROP_PROGRESSSIZE = 8,
+        GROUPPROP_PROGRESSPERCENT = 9,
+        GROUPPROP_PROGRESSTIME = 10,
+        GROUPPROP_DISPLAYNAME = 11,
+        GROUPPROP_DESCRIPTION = 12
+    } GROUPPROP;
+
+    HRESULT GetProp([in] GROUPPROP propID, [in, out] VARIANT* pvarVal);
+//[local]
+     HRESULT SetProp([in] GROUPPROP propID, [in] VARIANT* pvarVal);
+    //[call_as(SetProp)] HRESULT InternalSetProp([in] GROUPPROP propID, [in] VARIANT* pvarVal);
+
+    HRESULT GetProgress([in] QMgrProgressFlags dwFlags, [in, out] DWORD* pdwProgress);
+    HRESULT GetStatus([in, out] QMgrStatusFlags* pdwStatus, [in, out] DWORD* pdwJobIndex);
+
+    //HRESULT GetJob([in] GUID jobID, [in, out] IBackgroundCopyJob1** ppJob);
+    HRESULT GetJob([in] int guidJobID1, [in] int guidJobID2, [in] int guidJobID3, [in] int guidJobID4, [in, out] IBackgroundCopyJob1** ppJob);
+    HRESULT SuspendGroup();
+    HRESULT ResumeGroup(); // New groups are by default suspended, when all jobs are initialized call resumegroup to enable the group
+    HRESULT CancelGroup();
+
+    HRESULT get_Size([in, out] DWORD* pdwSize); // gets the calculated size of the jobs in this group
+    HRESULT get_GroupID([in, out] UUID* pguidGroupID); // used to identify a group when enumerating groups
+
+    //HRESULT CreateJob([in] GUID guidJobID, [in, out] IBackgroundCopyJob1** ppJob);
+    HRESULT CreateJob([in] int guidJobID1, [in] int guidJobID2, [in] int guidJobID3, [in] int guidJobID4, [in, out] IBackgroundCopyJob1** ppJob);
+    HRESULT EnumJobs([in] DWORD dwFlags, [in, out] IEnumBackgroundCopyJobs1** ppEnumJobs);
+
+    HRESULT SwitchToForeground();
+
+    // end of the original  interface is here
+
+    HRESULT QueryNewJobInterface([in] REFIID iid, [in, out] IUnknown** pUnk);
+
+    HRESULT SetNotificationPointer([in] REFIID iid, [in] IUnknown* pUnk);
+}
+
+// ==============================================
+// IEnumGroups Interface
+[
+        odl,
+    uuid(d993e603-4aa4-47c5-8665-c20d39c2ba4f),
+        helpstring("IEnumBackgroundCopyGroups Interface")
+]
+interface IEnumBackgroundCopyGroups : stdole.IUnknown
+{
+    HRESULT Next([in] ULONG celt, [in, out] UUID* rgelt, [in, out] ULONG* pceltFetched);
+    HRESULT Skip([in] ULONG celt);
+    HRESULT Reset();
+    HRESULT Clone([in, out] IEnumBackgroundCopyGroups** ppenum);
+    HRESULT GetCount([in, out] ULONG* puCount);
+}
+
+// ==============================================
+// IBackgroundCallback Interface
+//     This interface is implemented by the client and is used by the queue manager to supply status and
+//     progress information to the client.
+[
+        odl,
+    uuid(084f6593-3800-4e08-9b59-99fa59addf82),
+        helpstring("IBackgroundCopyCallback Interface")
+]
+interface IBackgroundCopyCallback1 : stdole.IUnknown
+{
+    HRESULT OnStatus([in] IBackgroundCopyGroup* pGroup,
+        [in] IBackgroundCopyJob1* pJob,
+        [in] DWORD dwFileIndex,
+        [in] DWORD dwStatus,
+        [in] DWORD dwNumOfRetries,
+        [in] DWORD dwWin32Result,
+        [in] DWORD dwTransportResult);
+
+    HRESULT OnProgress([in] DWORD ProgressType,
+        [in] IBackgroundCopyGroup* pGroup,
+        [in] IBackgroundCopyJob1* pJob,
+        [in] DWORD dwFileIndex,
+        [in] DWORD dwProgressValue);
+
+    HRESULT OnProgressEx([in] DWORD ProgressType,
+        [in] IBackgroundCopyGroup* pGroup,
+        [in] IBackgroundCopyJob1* pJob,
+        [in] DWORD dwFileIndex,
+        [in] DWORD dwProgressValue,
+        [in] DWORD dwByteArraySize,
+        [in] void* pByte);
+}
+
+[
+        odl,
+    uuid(16f41c69-09f5-41d2-8cd8-3c08c47bc8a8), 
+        helpstring("Background Copy QMgr interface")
+]
+interface IBackgroundCopyQMgr : stdole.IUnknown
+{
+    //HRESULT CreateGroup([in] GUID guidGroupID, [in, out] IBackgroundCopyGroup** ppGroup);
+    HRESULT CreateGroup([in] int guidGroupID1,[in] int guidGroupID2, [in] int guidGroupID3, [in] int guidGroupID4, [in, out] IBackgroundCopyGroup** ppGroup);
+    HRESULT GetGroup([in] int groupID1, [in] int groupID2, [in] int groupID3, [in] int groupID4, [in, out] IBackgroundCopyGroup** ppGroup);
+    HRESULT EnumGroups([in] DWORD dwFlags, [in, out] IEnumBackgroundCopyGroups** ppEnumGroups);
+}
+
+//---------------------------------------------------------------------------
+
+//[
+//    uuid(f5b26dcb-b37e-4d7c-ae7a-1cb3fbeb183e),
+//        helpstring("Microsoft Background Copy Queue Manager 1.0"),
+//        lcid(0x0000),
+//        version(1.0)
+//]
+//library BackgroundCopyQMgr
+//{
+    //-------------------------------------------------------------
+    // QMgr
+    //-------------------------------------------------------------
+
+    [
+        uuid(69AD4AEE-51BE-439b-A92C-86AE490E8B30),
+            helpstring("Background Copy QMgr Class")
+    ]
+        coclass BackgroundCopyQMgr
+    {
+        [default] interface IBackgroundCopyQMgr;
+    };
+
+//}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

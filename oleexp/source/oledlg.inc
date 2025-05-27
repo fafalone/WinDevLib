@@ -360,7 +360,7 @@ typedef struct OLEUICONVERT {
                           //      We'll do lookup if NULL.
                           //      This gets freed on exit.
     BOOL fObjectsIconChanged; // OUT: TRUE == ChangeIcon was called
-    LPWSTR lpszDefLabel;      //IN-OUT: default label to use for icon.
+    LONG lpszDefLabel;      //IN-OUT: default label to use for icon.
                               //  if NULL, the short user type name
                               //  will be used. if the object is a
                               //  link, the caller should pass the

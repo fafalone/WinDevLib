@@ -1,0 +1,879 @@
+//upnp.h/upnphost.h
+//While these are *mostly* VB6 compatible in their system-provided
+//automation library defs, the use of stdole.GUID and DWORD with
+//unsigned types makes a couple things unusuable, and since it's 
+//maybe 15min to add the whole thing here...
+
+
+interface IUPnPDeviceFinder;
+interface IUPnPDeviceFinderCallback;
+interface IUPnPDevice;
+interface IUPnPDevices;
+interface IUPnPDeviceDocumentAccess;
+interface IUPnPDeviceDocumentAccessEx;
+interface IUPnPService;
+interface IUPnPServices;
+interface IUPnPDevices;
+interface IUPnPDescriptionDocument;
+interface IUPnPDescriptionDocumentCallback;
+interface IUPnPDeviceFinderAddCallbackWithInterface;
+interface IUPnPAddressFamilyControl;
+interface IUPnPHttpHeaderControl;
+interface IUPnPAsyncResult;
+interface IUPnPServiceAsync;
+interface IUPnPServiceEnumProperty;
+interface IUPnPServiceDocumentAccess;
+
+typedef enum UPnPError
+{
+	UPNP_E_ROOT_ELEMENT_EXPECTED = 0x80040200,
+	UPNP_E_DEVICE_ELEMENT_EXPECTED = 0x80040201,
+	UPNP_E_SERVICE_ELEMENT_EXPECTED = 0x80040202,
+	UPNP_E_SERVICE_NODE_INCOMPLETE = 0x80040203,
+	UPNP_E_DEVICE_NODE_INCOMPLETE = 0x80040204,
+	UPNP_E_ICON_ELEMENT_EXPECTED = 0x80040205,
+	UPNP_E_ICON_NODE_INCOMPLETE = 0x80040206,
+	UPNP_E_INVALID_ACTION = 0x80040207,
+	UPNP_E_INVALID_ARGUMENTS = 0x80040208,
+	UPNP_E_OUT_OF_SYNC = 0x80040209,
+	UPNP_E_ACTION_REQUEST_FAILED = 0x80040210,
+	UPNP_E_TRANSPORT_ERROR = 0x80040211,
+	UPNP_E_VARIABLE_VALUE_UNKNOWN = 0x80040212,
+	UPNP_E_INVALID_VARIABLE = 0x80040213,
+	UPNP_E_DEVICE_ERROR = 0x80040214,
+	UPNP_E_PROTOCOL_ERROR = 0x80040215,
+	UPNP_E_ERROR_PROCESSING_RESPONSE = 0x80040216,
+	UPNP_E_DEVICE_TIMEOUT = 0x80040217,
+	UPNP_E_DEVICE_SPECIFIC_ERROR = 0x80040300,
+	UPNP_E_INVALID_DOCUMENT = 0x80040500,
+	UPNP_E_EVENT_SUBSCRIPTION_FAILED = 0x80040501,
+	UPNP_E_UPNP_NOT_INSTALLED = 0x1AD,
+	UPNP_E_ACTION_SPECIFIC_BASE = 0x80040300,
+	UPNP_E_ACTION_SPECIFIC_MAX = 0x8004042B //(UPNP_E_ACTION_SPECIFIC_BASE + (FAULT_ACTION_SPECIFIC_MAX - FAULT_ACTION_SPECIFIC_BASE))
+} UPnPError;
+
+typedef enum UPnPFault
+{
+	 FAULT_INVALID_ACTION = 401,
+	 FAULT_INVALID_ARG = 402,
+	 FAULT_INVALID_SEQUENCE_NUMBER = 403,
+	 FAULT_INVALID_VARIABLE = 404,
+	 FAULT_DEVICE_INTERNAL_ERROR = 501,
+	 FAULT_ACTION_SPECIFIC_BASE = 600,
+	 FAULT_ACTION_SPECIFIC_MAX = 899
+} UPnPFault;
+
+typedef enum UPnPAddressFamily
+{
+	UPNP_ADDRESSFAMILY_IPv4 = 0x1,
+	UPNP_ADDRESSFAMILY_IPv6 = 0x2,
+	UPNP_ADDRESSFAMILY_BOTH = 0x3
+} UPnPAddressFamily;
+
+typedef enum UPnPServiceDelayFlag
+{
+	UPNP_SERVICE_DELAY_SCPD_AND_SUBSCRIPTION = 0x1
+} UPnPServiceDelayFlag;
+
+typedef enum UPnPDispatchIDs
+{
+    DISPID_XOBJ_MIN                =  0x60020000,
+    DISPID_XOBJ_MAX                =  0x6002FFFF,
+    DISPID_XOBJ_BASE               = 0x60020000, // DISPID_XOBJ_MIN
+
+    DISPID_UPNPFINDDEVICES          = 0x600203E8, //(DISPID_XOBJ_BASE               + 1000)
+    DISPID_UPNPFINDDEVICESCALLBACK  = 0x600205DC, //(DISPID_UPNPFINDDEVICES         + 500)
+    DISPID_UPNPSERVICES             = 0x600207D0, //(DISPID_UPNPFINDDEVICESCALLBACK + 500)
+    DISPID_UPNPSERVICE              = 0x600209C4, //(DISPID_UPNPSERVICES            + 500)
+    DISPID_UPNPDEVICES              = 0x60020DAC, //(DISPID_UPNPSERVICE             + 1000)
+    DISPID_UPNPDEVICE               = 0x60020FA0, //(DISPID_UPNPDEVICES             + 500)
+    DISPID_UPNPDESCRIPTIONDOC       = 0x60021194, //(DISPID_UPNPDEVICE              + 500)
+    DISPID_UPNPADDRESSFAMILY        = 0x600211F8, //(DISPID_UPNPDESCRIPTIONDOC      + 100)
+    DISPID_UPNPASYNCRESULT          = 0x600213EC, //(DISPID_UPNPADDRESSFAMILY       + 500)
+    DISPID_UPNPSERVICEASYNC         = 0x600215E0, //(DISPID_UPNPASYNCRESULT         + 500)
+
+    DISPID_UPNPFINDDEVICES_FINDBYTYPE = 0x600203E9, //(DISPID_UPNPFINDDEVICES + 1)
+    DISPID_UPNPFINDDEVICES_FINDBYDCPI = 0x600203EA, //       (DISPID_UPNPFINDDEVICES + 2)
+    DISPID_UPNPFINDDEVICES_FINDBYUDN = 0x600203EB, //    (DISPID_UPNPFINDDEVICES + 3)
+    DISPID_UPNPFINDDEVICES_CREATEASYNCFIND = 0x600203EC, //  (DISPID_UPNPFINDDEVICES + 4)
+    DISPID_UPNPFINDDEVICES_STARTASYNCFIND = 0x600203ED, // (DISPID_UPNPFINDDEVICES + 5)
+    DISPID_UPNPFINDDEVICES_CANCELASYNCFIND = 0x600203EE, //(DISPID_UPNPFINDDEVICES + 6)
+
+    DISPID_UPNPFINDDEVICESCALLBACK_NEWDEVICE = 0x600205DD, //   (DISPID_UPNPFINDDEVICESCALLBACK + 1)
+    DISPID_UPNPFINDDEVICESCALLBACK_SEARCHCOMPLETE = 0x600205DE, //   (DISPID_UPNPFINDDEVICESCALLBACK + 2)
+
+    DISPID_UPNPSERVICES_COUNT = 0x600207D1, //            (DISPID_UPNPSERVICES + 1)
+
+    DISPID_UPNPSERVICE_QUERYSTATEVARIABLE = 0x600209C5, //   (DISPID_UPNPSERVICE  + 1)
+    DISPID_UPNPSERVICE_INVOKEACTION = 0x600209C6, //      (DISPID_UPNPSERVICE  + 2)
+    DISPID_UPNPSERVICE_SERVICETYPEIDENTIFIER = 0x600209C7, //(DISPID_UPNPSERVICE  + 3)
+    DISPID_UPNPSERVICE_ADDSTATECHANGECALLBACK = 0x600209C8, // (DISPID_UPNPSERVICE  + 4)
+    DISPID_UPNPSERVICE_SERVICEID = 0x600209C9, //   (DISPID_UPNPSERVICE  + 5)
+    DISPID_UPNPSERVICE_LASTTRANSPORTSTATUS = 0x600209CA, //  (DISPID_UPNPSERVICE  + 6)
+
+    DISPID_UPNPSERVICEASYNC_BEGININVOKEACTION = 0x600215E1, //(DISPID_UPNPSERVICEASYNC  + 1)
+    DISPID_UPNPSERVICEASYNC_ENDINVOKEACTION = 0x600215E2, //(DISPID_UPNPSERVICEASYNC  + 2)
+    DISPID_UPNPSERVICEASYNC_BEGINQUERYSTATEVARIABLE = 0x600215E3, //(DISPID_UPNPSERVICEASYNC  + 3)
+    DISPID_UPNPSERVICEASYNC_ENDQUERYSTATEVARIABLE = 0x600215E4, //(DISPID_UPNPSERVICEASYNC  + 4)
+    DISPID_UPNPSERVICEASYNC_BEGINSUBSCRIBETOEVENTS = 0x600215E5, //(DISPID_UPNPSERVICEASYNC  + 5)
+    DISPID_UPNPSERVICEASYNC_ENDSUBSCRIBETOEVENTS = 0x600215E6, // (DISPID_UPNPSERVICEASYNC  + 6)
+    DISPID_UPNPSERVICEASYNC_BEGINSCPDDOWNLOAD = 0x600215E7, // (DISPID_UPNPSERVICEASYNC  + 7)
+    DISPID_UPNPSERVICEASYNC_ENDSCPDDOWNLOAD = 0x600215E8, // (DISPID_UPNPSERVICEASYNC  + 8)
+    DISPID_UPNPSERVICEASYNC_CANCELASYNCOPERATION = 0x600215E9, // (DISPID_UPNPSERVICEASYNC  + 9)
+
+    DISPID_UPNPASYNCRESULT_ASYNCOPERATIONCOMPLETE = 0x600213ED, //(DISPID_UPNPASYNCRESULT + 1)
+
+    DISPID_UPNPDEVICES_COUNT = 0x60020DAD, // (DISPID_UPNPDEVICES  + 1)
+
+    DISPID_UPNPDEVICE_ISROOTDEVICE = 0x60020FA1, // (DISPID_UPNPDEVICE   + 1)
+    DISPID_UPNPDEVICE_ROOT = 0x60020FA2, // (DISPID_UPNPDEVICE   + 2)
+    DISPID_UPNPDEVICE_PARENT = 0x60020FA3, // (DISPID_UPNPDEVICE   + 3)
+    DISPID_UPNPDEVICE_HASCHILDREN = 0x60020FA4, //  (DISPID_UPNPDEVICE   + 4)
+    DISPID_UPNPDEVICE_CHILDREN = 0x60020FA5, //  (DISPID_UPNPDEVICE   + 5)
+    DISPID_UPNPDEVICE_UDN = 0x60020FA6, //  (DISPID_UPNPDEVICE   + 6)
+    DISPID_UPNPDEVICE_FRIENDLYNAME = 0x60020FA7, //    (DISPID_UPNPDEVICE   + 7)
+    DISPID_UPNPDEVICE_DEVICETYPE = 0x60020FA8, // (DISPID_UPNPDEVICE   + 8)
+    DISPID_UPNPDEVICE_PRESENTATIONURL = 0x60020FA9, // (DISPID_UPNPDEVICE   + 9)
+    DISPID_UPNPDEVICE_MANUFACTURERNAME = 0x60020FAA, // (DISPID_UPNPDEVICE   + 10)
+    DISPID_UPNPDEVICE_MANUFACTURERURL = 0x60020FAB, // (DISPID_UPNPDEVICE   + 11)
+    DISPID_UPNPDEVICE_MODELNAME = 0x60020FAC, // (DISPID_UPNPDEVICE   + 12)
+    DISPID_UPNPDEVICE_MODELNUMBER = 0x60020FAD, //  (DISPID_UPNPDEVICE   + 13)
+    DISPID_UPNPDEVICE_DESCRIPTION = 0x60020FAE, // (DISPID_UPNPDEVICE   + 14)
+    DISPID_UPNPDEVICE_MODELURL = 0x60020FAF, // (DISPID_UPNPDEVICE   + 15)
+    DISPID_UPNPDEVICE_UPC = 0x60020FB0, // (DISPID_UPNPDEVICE   + 16)
+    DISPID_UPNPDEVICE_SERIALNUMBER = 0x60020FB1, // (DISPID_UPNPDEVICE   + 17)
+    DISPID_UPNPDEVICE_LOADSMALLICON = 0x60020FB2, // (DISPID_UPNPDEVICE   + 18)
+    DISPID_UPNPDEVICE_LOADICON = 0x60020FB3, // (DISPID_UPNPDEVICE   + 19)
+    DISPID_UPNPDEVICE_SERVICES = 0x60020FB4, // (DISPID_UPNPDEVICE   + 20)
+
+    DISPID_UPNPDESCRIPTIONDOC_LOAD = 0x60021195, // (DISPID_UPNPDESCRIPTIONDOC + 1)
+    DISPID_UPNPDESCRIPTIONDOC_LOADASYNC = 0x60021196, // (DISPID_UPNPDESCRIPTIONDOC + 2)
+    DISPID_UPNPDESCRIPTIONDOC_LOADERROR = 0x60021197, // (DISPID_UPNPDESCRIPTIONDOC + 3)
+    DISPID_UPNPDESCRIPTIONDOC_ABORT = 0x60021198, // (DISPID_UPNPDESCRIPTIONDOC + 4)
+    DISPID_UPNPDESCRIPTIONDOC_ROOTDEVICE = 0x60021199, // (DISPID_UPNPDESCRIPTIONDOC + 5)
+    DISPID_UPNPDESCRIPTIONDOC_DEVICEBYUDN = 0x6002119A // (DISPID_UPNPDESCRIPTIONDOC + 6)
+
+
+} UPnPDispatchIDs;
+
+
+[
+    odl,
+        uuid(ADDA3D55-6F72-4319-BFF9-18600A539B10),
+        helpstring("IUPnPDeviceFinder Interface")
+]
+interface IUPnPDeviceFinder : IDispatch
+{
+    [id(0x600203E9),
+        helpstring("method FindByType")]
+        HRESULT FindByType([in] BSTR bstrTypeURI,
+            [in] DWORD dwFlags,
+            [out, retval] IUPnPDevices** pDevices);
+
+    [id(0x600203EC),
+        helpstring("method CreateAsyncFind")]
+        HRESULT CreateAsyncFind([in] BSTR bstrTypeURI,
+            [in] DWORD dwFlags,
+            [in] IUnknown* punkDeviceFinderCallback,
+            [out, retval] LONG* plFindData);
+
+    [id(0x600203ED),
+        helpstring("method StartAsyncFind")]
+        HRESULT StartAsyncFind([in] LONG lFindData);
+
+    [id(0x600203EE),
+        helpstring("method CancelAsyncFind")]
+        HRESULT CancelAsyncFind([in] LONG lFindData);
+
+    [id(0x600203EB),
+        helpstring("method FindByUDN")]
+        HRESULT FindByUDN([in] BSTR bstrUDN,
+            [out, retval] IUPnPDevice** pDevice);
+};
+
+[
+    odl,
+        uuid(E3BF6178-694E-459F-A5A6-191EA0FFA1C7)
+]
+interface IUPnPAddressFamilyControl : stdole.IUnknown
+{
+
+    HRESULT SetAddressFamily(
+        [in] LONG dwFlags);
+
+    HRESULT GetAddressFamily(
+        [out] LONG* pdwFlags);
+
+};
+
+
+[
+    odl,
+        uuid(0405AF4F-8B5C-447C-80F2-B75984A31F3C)
+]
+interface IUPnPHttpHeaderControl : stdole.IUnknown
+{
+
+    HRESULT AddRequestHeaders(
+        [in] BSTR bstrHttpHeaders);
+
+};
+
+
+[
+    odl,
+        uuid(415A984A-88B3-49F3-92AF-0508BEDF0D6C)
+]
+interface IUPnPDeviceFinderCallback : stdole.IUnknown
+{
+    HRESULT DeviceAdded([in] LONG lFindData,
+        [in] IUPnPDevice* pDevice);
+
+    HRESULT DeviceRemoved([in] LONG lFindData,
+        [in] BSTR bstrUDN);
+
+    HRESULT SearchComplete([in] LONG lFindData);
+};
+
+
+[
+    odl,
+        uuid(3F8C8E9E-9A7A-4DC8-BC41-FF31FA374956)
+]
+interface IUPnPServices : IDispatch
+{
+    [propget, id(0x600207D1), helpstring("property Count")]
+        HRESULT Count([out, retval] long* plCount);
+
+    [propget, id(-4), restricted, hidden, helpstring("property _NewEnum")]
+        HRESULT _NewEnum([out, retval] IUnknown** ppunk);
+
+    [propget, id(0), helpstring("property Item")]
+        HRESULT Item([in] BSTR bstrServiceId,
+            [out, retval] IUPnPService** ppService);
+};
+
+
+[
+    odl,
+        uuid(A295019C-DC65-47DD-90DC-7FE918A1AB44)
+]
+interface IUPnPService : IDispatch
+{
+    [id(0x600209C5),
+        helpstring("method QueryStateVariable")]
+        HRESULT QueryStateVariable([in] BSTR bstrVariableName,
+            [out, retval] VARIANT* pValue);
+
+    [id(0x600209C6),
+        helpstring("method InvokeAction")]
+        HRESULT InvokeAction([in] BSTR bstrActionName,
+            [in] VARIANT vInActionArgs,
+            [in, out] VARIANT* pvOutActionArgs,
+            [out, retval] VARIANT* pvRetVal);
+
+    [propget, id(0x600209C7),
+        helpstring("property ServiceTypeIdentifier")]
+        HRESULT ServiceTypeIdentifier([out, retval] BSTR* pVal);
+
+    [id(0x600209C8),
+        helpstring("method AddStateChangeCallback")]
+        HRESULT AddCallback([in] IUnknown* pUnkCallback);
+
+    [propget, id(0x600209C9),
+        helpstring("property Id")]
+        HRESULT Id([out, retval] BSTR* pbstrId);
+
+    [propget, id(0x600209CA),
+        helpstring("property LastTransportStatus")]
+        HRESULT LastTransportStatus([out, retval] long* plValue);
+};
+
+
+[
+    odl,
+        uuid(4D65FD08-D13E-4274-9C8B-DD8D028C8644)
+]
+interface IUPnPAsyncResult : stdole.IUnknown
+{
+    [id(0x600213ED),
+        helpstring("method AsyncOperationComplete")]
+        HRESULT AsyncOperationComplete([in] ULONG64 ullRequestID);
+};
+
+
+[
+    odl,
+        uuid(098BDAF5-5EC1-49e7-A260-B3A11DD8680C)
+]
+interface IUPnPServiceAsync : stdole.IUnknown
+{
+
+    [id(0x600215E1),
+        helpstring("method BeginInvokeAction")]
+        HRESULT BeginInvokeAction([in] BSTR bstrActionName,
+            [in] VARIANT vInActionArgs,
+            [in] IUPnPAsyncResult* pAsyncResult,
+            [out] ULONG64* pullRequestID);
+
+
+    [id(0x600215E2),
+        helpstring("method EndInvokeAction")]
+        HRESULT EndInvokeAction([in] ULONG64 ullRequestID,
+            [in, out] VARIANT* pvOutActionArgs,
+            [in, out] VARIANT* pvRetVal);
+
+
+    [id(0x600215E3),
+        helpstring("method BeginQueryStateVariable")]
+        HRESULT BeginQueryStateVariable([in] BSTR bstrVariableName,
+            [in] IUPnPAsyncResult* pAsyncResult,
+            [out] ULONG64* pullRequestID);
+
+
+    [id(0x600215E4),
+        helpstring("method EndQueryStateVariable")]
+        HRESULT EndQueryStateVariable([in] ULONG64 ullRequestID,
+            [in, out] VARIANT* pValue);
+
+
+    [id(0x600215E5),
+        helpstring("method BeginSubscribeToEvents")]
+        HRESULT BeginSubscribeToEvents([in]  IUnknown* pUnkCallback,
+            [in]  IUPnPAsyncResult* pAsyncResult,
+            [out] ULONG64* pullRequestID);
+
+
+    [id(0x600215E6),
+        helpstring("method EndSubscribeToEvents")]
+        HRESULT EndSubscribeToEvents([in] ULONG64 ullRequestID);
+
+
+    [id(0x600215E7),
+        helpstring("method BeginSCPDDownload")]
+        HRESULT BeginSCPDDownload([in]  IUPnPAsyncResult* pAsyncResult,
+            [out] ULONG64* pullRequestID);
+
+
+    [id(0x600215E8),
+        helpstring("method EndSCPDDownload")]
+        HRESULT EndSCPDDownload([in] ULONG64 ullRequestID,
+            [out] BSTR* pbstrSCPDDoc);
+
+
+    [id(0x600215E9),
+        helpstring("method CancelAsyncOperation")]
+        HRESULT CancelAsyncOperation([in] ULONG64 ullRequestID);
+
+};
+
+
+[
+    odl,
+        uuid(31fadca9-ab73-464b-b67d-5c1d0f83c8b8)
+]
+interface IUPnPServiceCallback : stdole.IUnknown
+{
+    HRESULT
+        StateVariableChanged([in]   IUPnPService* pus,
+            [in]   LPCWSTR         pcwszStateVarName,
+            [in]   VARIANT         vaValue);
+    HRESULT
+        ServiceInstanceDied([in]    IUPnPService* pus);
+
+};
+
+
+[
+    odl,
+        uuid(38873B37-91BB-49f4-B249-2E8EFBB8A816)
+]
+interface IUPnPServiceEnumProperty : stdole.IUnknown
+{
+    HRESULT SetServiceEnumProperty([in] DWORD dwMask);
+};
+
+
+[
+    odl,
+        uuid(21905529-0A5E-4589-825D-7E6D87EA6998)
+]
+interface IUPnPServiceDocumentAccess : stdole.IUnknown
+{
+    HRESULT GetDocumentURL([out] BSTR* pbstrDocUrl);
+    HRESULT GetDocument([out] BSTR* pbstrDoc);
+};
+
+
+[
+    odl,
+        uuid(FDBC0C73-BDA3-4C66-AC4F-F2D96FDAD68C)
+]
+interface IUPnPDevices : IDispatch
+{
+    [propget, id(0x60020DAD), helpstring("property Count")]
+        HRESULT Count([out, retval] long* plCount);
+
+    [propget, id(-4), restricted, hidden, helpstring("property _NewEnum")]
+        HRESULT _NewEnum([out, retval] IUnknown** ppunk);
+
+    [propget, id(0), helpstring("property Item")]
+        HRESULT Item([in] BSTR bstrUDN,
+            [out, retval] IUPnPDevice** ppDevice);
+};
+
+
+[
+    odl,
+        uuid(3D44D0D1-98C9-4889-ACD1-F9D674BF2221)
+]
+interface IUPnPDevice : IDispatch
+{
+    [propget, id(0x60020FA1),
+        helpstring("denotes whether the device is the highest-level device in the device tree")]
+        HRESULT IsRootDevice([out, retval] VARIANT_BOOL* pvarb);
+
+    [propget, id(0x60020FA2),
+        helpstring("returns the top device in the device tree")]
+        HRESULT RootDevice([out, retval] IUPnPDevice** ppudRootDevice);
+
+    [propget, id(0x60020FA3),
+        helpstring("returns the parent of the current device")]
+        HRESULT ParentDevice([out, retval] IUPnPDevice** ppudDeviceParent);
+
+    [propget, id(0x60020FA4),
+        helpstring("denotes whether the current device contains child devices")]
+        HRESULT HasChildren([out, retval] VARIANT_BOOL* pvarb);
+
+    [propget, id(0x60020FA5),
+        helpstring("returns a collection of the children of the current device")]
+        HRESULT Children([out, retval] IUPnPDevices** ppudChildren);
+
+    [propget, id(0x60020FA6),
+        helpstring("returns the UDN of the device")]
+        HRESULT UniqueDeviceName([out, retval] BSTR* pbstr);
+
+    [propget, id(0x60020FA7),
+        helpstring("returns the (optional) display name of the device")]
+        HRESULT FriendlyName([out, retval] BSTR* pbstr);
+
+    [propget, id(0x60020FA8),
+        helpstring("returns the device type URI")]
+        HRESULT Type([out, retval] BSTR* pbstr);
+
+    [propget, id(0x60020FA9),
+        helpstring("obtains a presentation URL to a web page that can control the device")]
+        HRESULT PresentationURL([out, retval] BSTR* pbstr);
+
+    [propget, id(0x60020FAA),
+        helpstring("displayable manufacturer name")]
+        HRESULT ManufacturerName([out, retval] BSTR* pbstr);
+
+    [propget, id(0x60020FAB),
+        helpstring("URL to the manufacturer's website")]
+        HRESULT ManufacturerURL([out, retval] BSTR* pbstr);
+
+    [propget, id(0x60020FAC),
+        helpstring("a displayable string containing the model name")]
+        HRESULT ModelName([out, retval] BSTR* pbstr);
+
+    [propget, id(0x60020FAD),
+        helpstring("a displayable string containing the model number")]
+        HRESULT ModelNumber([out, retval] BSTR* pbstr);
+
+    [propget, id(0x60020FAE),
+        helpstring("displayable summary of the device's function")]
+        HRESULT Description([out, retval] BSTR* pbstr);
+
+    [propget, id(0x60020FAF),
+        helpstring("URL to a webpage containing model-specific information")]
+        HRESULT ModelURL([out, retval] BSTR* pbstr);
+
+    [propget, id(0x60020FB0),
+        helpstring("displayable product code")]
+        HRESULT UPC([out, retval] BSTR* pbstr);
+
+    [propget, id(0x60020FB1),
+        helpstring("displayable serial number")]
+        HRESULT SerialNumber([out, retval] BSTR* pbstr);
+
+    [id(0x60020FB2),
+        helpstring("retrieves an url from which an icon of the specified format can be loaded")]
+        HRESULT IconURL([in] BSTR bstrEncodingFormat,
+            [in] LONG lSizeX,
+            [in] LONG lSizeY,
+            [in] LONG lBitDepth,
+            [out, retval] BSTR* pbstrIconURL);
+
+    [propget, id(0x60020FB3),
+        helpstring("returns the collection of services exposed by the device")]
+        HRESULT Services([out, retval] IUPnPServices** ppusServices);
+};
+
+[
+    odl,
+        uuid(E7772804-3287-418e-9072-CF2B47238981)
+]
+interface IUPnPDeviceDocumentAccess : stdole.IUnknown
+{
+    HRESULT GetDocumentURL([out, retval] BSTR* pbstrDocument);
+}
+
+[
+    odl,
+        uuid(C4BC4050-6178-4BD1-A4B8-6398321F3247)
+]
+interface IUPnPDeviceDocumentAccessEx : stdole.IUnknown
+{
+    HRESULT GetDocument([out, retval] BSTR* pbstrDocument);
+}
+
+
+[
+    odl,
+        uuid(11d1c1b2-7daa-4c9e-9595-7f82ed206d1e)
+]
+interface IUPnPDescriptionDocument : IDispatch
+{
+    [propget, id(-525),
+        helpstring("the current status of the document's loading process")]
+        HRESULT ReadyState([out, retval] LONG* plReadyState);
+
+    [id(0x60021195),
+        helpstring("loads a document synchronously from an URL")]
+        HRESULT Load([in] BSTR bstrUrl);
+
+    [id(0x60021196),
+        helpstring("starts an asynchronous download, returning immediately")]
+        HRESULT LoadAsync([in] BSTR bstrUrl, [in] IUnknown* punkCallback);
+
+    [propget, id(0x60021197),
+        helpstring("the success or failure code of the completed load operation")]
+        HRESULT LoadResult([out, retval] long* phrError);
+
+    [id(0x60021198),
+        helpstring("stops an asynchronous loading operation")]
+        HRESULT Abort();
+
+    [id(0x60021199),
+        helpstring("returns the root device of the loaded document's device tree")]
+        HRESULT RootDevice([out, retval] IUPnPDevice** ppudRootDevice);
+
+    [id(0x6002119A),
+        helpstring("returns a device by its unique device name (UDN)")]
+        HRESULT DeviceByUDN([in] BSTR bstrUDN,
+            [out, retval] IUPnPDevice** ppudDevice);
+};
+
+[
+    odl,
+        uuid(983dfc0b-1796-44df-8975-ca545b620ee5)
+]
+interface IUPnPDeviceFinderAddCallbackWithInterface : stdole.IUnknown
+{
+    HRESULT DeviceAddedWithInterface(
+        [in] LONG lFindData,
+        [in] IUPnPDevice* pDevice,
+        [in] UUID* pguidInterface);
+};
+
+[
+    odl,
+        uuid(77394c69-5486-40d6-9bc3-4991983e02da)
+]
+interface IUPnPDescriptionDocumentCallback : stdole.IUnknown
+{
+    HRESULT LoadComplete([in] HRESULT hrLoadResult);
+};
+
+[
+    uuid(E2085F28-FEB7-404A-B8E7-E659BDEAAA02),
+        helpstring("UPnPDeviceFinder Class")
+]
+coclass UPnPDeviceFinder
+{
+    [default] interface IUPnPDeviceFinder;
+    interface IUPnPAddressFamilyControl;
+    interface IUPnPHttpHeaderControl;
+};
+[
+    uuid(B9E84FFD-AD3C-40A4-B835-0882EBCBAAA8),
+        helpstring("UPnPDevices Class")
+]
+coclass UPnPDevices
+{
+    [default] interface IUPnPDevices;
+};
+[
+    uuid(A32552C5-BA61-457A-B59A-A2561E125E33),
+        helpstring("UPnPDevice Class")
+]
+coclass UPnPDevice
+{
+    [default] interface IUPnPDevice;
+
+};
+[
+    uuid(C0BC4B4A-A406-4EFC-932F-B8546B8100CC),
+        helpstring("UPnPServices Class")
+]
+coclass UPnPServices
+{
+    [default] interface IUPnPServices;
+    interface IUPnPServiceEnumProperty;
+};
+[
+    uuid(C624BA95-FBCB-4409-8C03-8CCEEC533EF1),
+        helpstring("UPnPService Class")
+]
+coclass UPnPService
+{
+    [default] interface IUPnPService;
+    interface IUPnPServiceAsync;
+    interface IUPnPServiceDocumentAccess;
+    interface IUPnPHttpHeaderControl;
+};
+
+[
+    uuid(1d8a9b47-3a28-4ce2-8a4b-bd34e45bceeb),
+        helpstring("UPnPDescriptionDocument Class")
+]
+coclass UPnPDescriptionDocument
+{
+    [default] interface IUPnPDescriptionDocument;
+    interface IUPnPHttpHeaderControl;
+};
+
+[
+    uuid(181b54fc-380b-4a75-b3f1-4ac45e9605b0),
+        helpstring("UPnPDeviceFinderEx Class")
+]
+coclass UPnPDeviceFinderEx
+{
+    [default] interface IUPnPDeviceFinder;
+    interface IUPnPAddressFamilyControl;
+    interface IUPnPHttpHeaderControl;
+};
+
+[
+    uuid(33fd0563-d81a-4393-83cc-0195b1da2f91),
+        helpstring("UPnPDescriptionDocumentEx Class")
+]
+coclass UPnPDescriptionDocumentEx
+{
+    [default] interface IUPnPDescriptionDocument;
+    interface IUPnPHttpHeaderControl;
+};
+
+
+
+[
+    odl,
+        uuid(9C416740-A34E-446F-BA06-ABD04C3149AE),
+        helpstring("INATExternalIPAddressCallback Interface, for use with NATUPnP Type Library v1.0 (NATUPNPLib, included with Windows)")
+]
+interface INATExternalIPAddressCallback : stdole.IUnknown
+{
+    [id(0), helpstring("NewExternalIPAddress")]
+        HRESULT NewExternalIPAddress([in] BSTR bstrNewExternalIPAddress);
+};
+
+
+
+
+
+
+
+
+
+
+interface IUPnPEventSink;
+interface IUPnPEventSource;
+interface IUPnPRegistrar;
+interface IUPnPReregistrar;
+interface IUPnPDeviceControl;
+interface IUPnPDeviceControlHttpHeaders;
+interface IUPnPDeviceProvider;
+interface IUPnPRemoteEndpointInfo;
+
+typedef enum UPnPHostError
+{
+    UPNP_E_REQUIRED_ELEMENT_ERROR   = 0x8004A020,      //MAKE_HRESULT(SEVERITY_ERROR, FACILITY_ITF, 0xA020)
+    UPNP_E_DUPLICATE_NOT_ALLOWED  = 0x8004A021, //        MAKE_HRESULT(SEVERITY_ERROR, FACILITY_ITF, 0xA021)
+    UPNP_E_DUPLICATE_SERVICE_ID  = 0x8004A022, //         MAKE_HRESULT(SEVERITY_ERROR, FACILITY_ITF, 0xA022)
+    UPNP_E_INVALID_DESCRIPTION  = 0x8004A023, //          MAKE_HRESULT(SEVERITY_ERROR, FACILITY_ITF, 0xA023)
+    UPNP_E_INVALID_SERVICE   = 0x8004A024, //              MAKE_HRESULT(SEVERITY_ERROR, FACILITY_ITF, 0xA024)
+    UPNP_E_INVALID_ICON   = 0x8004A025, //                 MAKE_HRESULT(SEVERITY_ERROR, FACILITY_ITF, 0xA025)
+    UPNP_E_INVALID_XML   = 0x8004A026, //                  MAKE_HRESULT(SEVERITY_ERROR, FACILITY_ITF, 0xA026)
+    UPNP_E_INVALID_ROOT_NAMESPACE   = 0x8004A027, //       MAKE_HRESULT(SEVERITY_ERROR, FACILITY_ITF, 0xA027)
+    UPNP_E_SUFFIX_TOO_LONG   = 0x8004A028, //              MAKE_HRESULT(SEVERITY_ERROR, FACILITY_ITF, 0xA028)
+    UPNP_E_URLBASE_PRESENT   = 0x8004A029, //              MAKE_HRESULT(SEVERITY_ERROR, FACILITY_ITF, 0xA029)
+    UPNP_E_VALUE_TOO_LONG  = 0x8004A030, //               MAKE_HRESULT(SEVERITY_ERROR, FACILITY_ITF, 0xA030)
+    UPNP_E_DEVICE_RUNNING                = 0x8004A031, //MAKE_HRESULT(SEVERITY_ERROR, FACILITY_ITF, 0xA031)
+    UPNP_E_DEVICE_NOTREGISTERED          = 0x8004A032, // MAKE_HRESULT(SEVERITY_ERROR, FACILITY_ITF, 0xA032)
+} UPnPHostError;
+
+// Remote address value is a string
+//#define REMOTE_ADDRESS_VALUE_NAME L"RemoteAddress"
+// Address family value is a DWORD
+//#define ADDRESS_FAMILY_VALUE_NAME L"AddressFamily"
+
+[
+    odl,
+    uuid(204810b4-73b2-11d4-bf42-00b0d0118b56)
+]
+interface IUPnPEventSink : stdole.IUnknown
+{
+    [helpstring("method OnStateChanged"), hidden]
+        HRESULT OnStateChanged(
+            [in] DWORD cChanges,
+            [in] DISPID *rgdispidChanges);
+
+    [helpstring("method OnStateChangedSafe")]
+        HRESULT OnStateChangedSafe(
+            [in] VARIANT varsadispidChanges);
+}
+
+[
+    odl,
+        uuid(204810b5-73b2-11d4-bf42-00b0d0118b56)
+]
+interface IUPnPEventSource : stdole.IUnknown
+{
+    [helpstring("method Advise")]
+        HRESULT Advise(
+            [in] IUPnPEventSink* pesSubscriber);
+
+    [helpstring("method Unadvise")]
+        HRESULT Unadvise(
+            [in] IUPnPEventSink* pesSubscriber);
+}
+
+[
+    odl,
+        uuid(204810b6-73b2-11d4-bf42-00b0d0118b56)
+]
+interface IUPnPRegistrar : stdole.IUnknown
+{
+    HRESULT RegisterDevice(
+        [in] BSTR     bstrXMLDesc,
+        [in] BSTR     bstrProgIDDeviceControlClass,
+        [in] BSTR     bstrInitString,
+        [in] BSTR     bstrContainerId,
+        [in] BSTR     bstrResourcePath,
+        [in] long     nLifeTime,
+        [out, retval] BSTR* pbstrDeviceIdentifier);
+    HRESULT RegisterRunningDevice(
+        [in] BSTR     bstrXMLDesc,
+        [in] IUnknown* punkDeviceControl,
+        [in] BSTR     bstrInitString,
+        [in] BSTR     bstrResourcePath,
+        [in] long     nLifeTime,
+        [out, retval] BSTR* pbstrDeviceIdentifier);
+    HRESULT RegisterDeviceProvider(
+        [in] BSTR     bstrProviderName,
+        [in] BSTR     bstrProgIDProviderClass,
+        [in] BSTR     bstrInitString,
+        [in] BSTR     bstrContainerId);
+    HRESULT GetUniqueDeviceName(
+        [in]          BSTR   bstrDeviceIdentifier,
+        [in]          BSTR   bstrTemplateUDN,
+        [out, retval] BSTR* pbstrUDN);
+    HRESULT UnregisterDevice(
+        [in] BSTR     bstrDeviceIdentifier,
+        [in] BOOL     fPermanent);
+    HRESULT UnregisterDeviceProvider(
+        [in] BSTR     bstrProviderName);
+}
+
+[
+    odl,
+        uuid(204810b7-73b2-11d4-bf42-00b0d0118b56)
+]
+interface IUPnPReregistrar : stdole.IUnknown
+{
+    HRESULT ReregisterDevice(
+        [in] BSTR     bstrDeviceIdentifier,
+        [in] BSTR     bstrXMLDesc,
+        [in] BSTR     bstrProgIDDeviceControlClass,
+        [in] BSTR     bstrInitString,
+        [in] BSTR     bstrContainerId,
+        [in] BSTR     bstrResourcePath,
+        [in] long     nLifeTime);
+    HRESULT ReregisterRunningDevice(
+        [in] BSTR     bstrDeviceIdentifier,
+        [in] BSTR     bstrXMLDesc,
+        [in] IUnknown* punkDeviceControl,
+        [in] BSTR     bstrInitString,
+        [in] BSTR     bstrResourcePath,
+        [in] long     nLifeTime);
+}
+
+[
+    odl,
+        uuid(204810ba-73b2-11d4-bf42-00b0d0118b56)
+]
+interface IUPnPDeviceControl : stdole.IUnknown
+{
+    HRESULT Initialize(
+        [in] BSTR     bstrXMLDesc,
+        [in] BSTR     bstrDeviceIdentifier,
+        [in] BSTR     bstrInitString);
+    HRESULT GetServiceObject(
+        [in]          BSTR     bstrUDN,
+        [in]          BSTR     bstrServiceId,
+        [out, retval] IDispatch** ppdispService);
+}
+
+[
+    odl,
+        uuid(204810bb-73b2-11d4-bf42-00b0d0118b56)
+]
+interface IUPnPDeviceControlHttpHeaders : stdole.IUnknown
+{
+    HRESULT GetAdditionalResponseHeaders(
+        [out, retval] BSTR* bstrHttpResponseHeaders);
+}
+
+[
+    odl,
+        uuid(204810b8-73b2-11d4-bf42-00b0d0118b56)
+]
+interface IUPnPDeviceProvider : stdole.IUnknown
+{
+    HRESULT Start([in] BSTR   bstrInitString);
+    HRESULT Stop();
+}
+
+// IUPnPRemoteEndpointInfo
+[
+    odl,
+        uuid(c92eb863-0269-4aff-9c72-75321bba2952)
+]
+interface IUPnPRemoteEndpointInfo : stdole.IUnknown
+{
+    HRESULT GetDwordValue([in] BSTR bstrValueName,
+        [out] DWORD* pdwValue);
+
+    HRESULT GetStringValue([in] BSTR bstrValueName,
+        [out] BSTR* pbstrValue);
+
+    HRESULT GetGuidValue([in] BSTR bstrValueName,
+        [out] UUID* pguidValue);
+};
+
+[
+        uuid(204810b9-73b2-11d4-bf42-00b0d0118b56)
+]
+coclass UPnPRegistrar
+{
+    [default] interface stdole.IUnknown;
+};
+
+[
+    uuid(2e5e84e9-4049-4244-b728-2d24227157c7)
+]
+coclass UPnPRemoteEndpointInfo
+{
+    [default] interface stdole.IUnknown;
+};

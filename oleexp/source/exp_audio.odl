@@ -568,7 +568,7 @@ typedef struct KSJACK_SINK_INFORMATION
   WORD  AudioLatency;                               // Sink audio latency
   BOOL  HDCPCapable;                                // HDCP Support
   BOOL  AICapable;                                  // ACP Packet, ISRC1, and ISRC2 Support
-  char SinkDescriptionLength;                      // Monitor/Sink name length
+  UCHAR SinkDescriptionLength;                      // Monitor/Sink name length
   WCHAR SinkDescription[32];   // Monitor/Sink name
   LUID  PortId;                                     // Video port identifier
 }  KSJACK_SINK_INFORMATION;
@@ -1156,7 +1156,10 @@ typedef enum AUDCLNT_STREAMOPTIONS
 {
     AUDCLNT_STREAMOPTIONS_NONE  = 0x00,
     AUDCLNT_STREAMOPTIONS_RAW   = 0x01,
-    AUDCLNT_STREAMOPTIONS_MATCH_FORMAT   = 0x02
+    AUDCLNT_STREAMOPTIONS_MATCH_FORMAT   = 0x02,
+    AUDCLNT_STREAMOPTIONS_AMBISONICS = 0x04,
+//#if(NTDDI_VERSION > NTDDI_WIN11_ZN)
+    AUDCLNT_STREAMOPTIONS_POST_VOLUME_LOOPBACK = 0x08,
 } AUDCLNT_STREAMOPTIONS;
 typedef enum AudioSessionState
 {
@@ -1387,6 +1390,135 @@ interface IAudioStreamVolume : stdole.IUnknown
     long GetAllVolumes([in] UINT32 dwCount,[out] float *pfVolumes); //ptr to array (0)
 }
 
+
+typedef enum AMBISONICS_TYPE
+{
+    AMBISONICS_TYPE_FULL3D = 0
+
+} AMBISONICS_TYPE;
+
+//------------------------------------------------------------------------- 
+// Description: Enumeration of ambisonics channel ordering 
+// 
+//      AMBISONICS_CHANNEL_ORDERING_ACN - Ambisonics channel number. 
+//                                        Only option supported by AMBIX_BASIC format.
+//  
+typedef enum AMBISONICS_CHANNEL_ORDERING
+{
+    AMBISONICS_CHANNEL_ORDERING_ACN = 0
+
+} AMBISONICS_CHANNEL_ORDERING;
+
+typedef enum AMBISONICS_NORMALIZATION
+{
+    AMBISONICS_NORMALIZATION_SN3D = 0,
+    AMBISONICS_NORMALIZATION_N3D
+
+} AMBISONICS_NORMALIZATION;
+
+typedef struct AMBISONICS_PARAMS
+{
+    UINT32                          u32Size;
+    UINT32                          u32Version;
+    AMBISONICS_TYPE                 u32Type;
+    AMBISONICS_CHANNEL_ORDERING     u32ChannelOrdering;
+    AMBISONICS_NORMALIZATION        u32Normalization;
+    UINT32                          u32Order;
+    UINT32                          u32NumChannels;
+    LongPtr pu32ChannelMap;
+} AMBISONICS_PARAMS;
+
+
+[
+    odl,
+        uuid(28724C91-DF35-4856-9F76-D6A26413F3DF)
+]
+interface IAudioAmbisonicsControl : stdole.IUnknown
+{
+    //-------------------------------------------------------------------------
+    // Description:
+    //
+    //  Sets the Ambisonics Metadata for the audio stream.
+    //
+    // Parameters:
+    //
+    //     cbAmbisonicsParams - [in] complete size of the buffer point by AMBISONICS_PARAMS.
+    //     pAmbisonicsParams  - [in] buffer containing metadata.
+    //
+    // Return values:
+    //
+    //     S_OK        Successful completion.
+    //     OTHER       Other error.
+    //
+    //
+    HRESULT SetData([in] AMBISONICS_PARAMS* pAmbisonicsParams, [in] UINT32 cbAmbisonicsParams);
+
+    //-------------------------------------------------------------------------
+    // Description:
+    //
+    //  Enables/Disables head tracking
+    //
+    // Parameters:
+    //
+    //     bEnableHeadTracking - [in] bool to decide whether the Audio Ambisonics renderer does head tracking. 
+    //                            Default value is set to TRUE  if endpoint like HMD is capable of head tracking otherwise FALSE
+    //
+    // Return values:
+    //
+    //     S_OK        Successful completion.
+    //     OTHER       Other error.
+    //
+    //
+    HRESULT SetHeadTracking([in] BOOL bEnableHeadTracking);
+
+    //-------------------------------------------------------------------------
+    // Description:
+    //
+    //  Gets if head tracking is enabled or not
+    //
+    // Parameters:
+    //
+    //     pbEnableHeadTracking - [out] bool indicating if Audio Ambisonic renderer does head tracking. 
+    //                             Default value is set to TRUE if endpoint like HMD is capable of head tracking otherwise FALSE   
+    //
+    // Return values:
+    //
+    //
+    // Return values:
+    //
+    //     S_OK        Successful completion.
+    //     OTHER       Other error.
+    //
+    //
+    HRESULT GetHeadTracking([out] BOOL* pbEnableHeadTracking);
+
+
+    //-------------------------------------------------------------------------
+    // Description:
+    //
+    //  Sets rotation values in Quaternion
+    //  Quaternion represents orientation and rotation of objects in 3D
+    //  These Rotation values corresponds to head rotation/head tracking.
+    //  For e.g. a user panning 360 degree video to 90 degrees on the right will hear the audio as if the user's head is rotated to 90 degrees on the right.
+    //  This method will return error AUDCLNT_E_HEADTRACKING_ENABLED if the SetHeadTracking is set to TRUE (default is TRUE) i.e., the user will have to first call SetHeadTracking(FALSE) before using SetRotation.
+    //
+    // Parameters:
+    //
+    //    X - [in] X component of Quaternion
+    //    Y - [in] Y component of Quaternion
+    //    Z - [in] Z component of Quaternion
+    //    W - [in] W component of Quaternion
+    //
+    // Return values:
+    //
+    //     S_OK        Successful completion.
+    //     OTHER       Other error.
+    //
+    //
+    HRESULT SetRotation([in] float X, [in] float Y, [in] float Z, [in] float W);
+}
+
+
 [
     odl,
     uuid(1C158861-B533-4B30-B1CF-E853E51C59B8)
@@ -1404,6 +1536,9 @@ interface IChannelAudioVolume : stdole.IUnknown
     //long GetAllVolumes([in] UINT32 dwCount,[out] float *pfVolumes);
 	long GetAllVolumes([in] UINT32 dwCount,[out] float *pfVolumes); //pointer to single array(0)
 }
+
+
+
 
 
 //=========================================
@@ -1642,6 +1777,12 @@ interface IAudioEndpointLastBufferControl : stdole.IUnknown
     BOOL IsLastBufferControlSupported();
     HRESULT ReleaseOutputDataPointerForLastBuffer([in] APO_CONNECTION_PROPERTY *pConnectionProperty);
 };
+
+
+
+
+
+
 [
 	odl,
     uuid(5FA00F27-ADD6-499a-8A9D-6B98521FA75B)
@@ -1711,6 +1852,730 @@ interface IHardwareAudioEngineBase : stdole.IUnknown
 };
 
 
+
+
+
+[
+    odl,
+        uuid(30A99515-1527-4451-AF9F-00C5F0234DAF)
+]
+interface IAudioEndpoint : stdole.IUnknown 
+{
+    //-------------------------------------------------------------------------
+    // Description:
+    //
+    //  Returns the format of the endpoint.
+    //
+    // Parameters:
+    //
+    //     ppFormat - [out] If S_OK, returns the format of the AudioEndpoint.
+    //
+    // Return values:
+    //
+    //     S_OK        Successful completion.
+    //
+    // Remarks:
+    //
+    //  For example, an AudioEndpoint that is abstracting an audio device
+    //  should return the device format. An AudioEndpoint that is abstracting a
+    //  file should return the file format.
+    //
+    //  Clients must release ppFormat by calling CoTaskMemFree.
+    //
+    //  This method may not be called from a real-time processing thread.
+    //
+    HRESULT GetFrameFormat([out] WAVEFORMATEX** ppFormat);
+
+
+    //-------------------------------------------------------------------------
+    // Description:
+    //
+    //  Returns the maximum frame count of the endpoint.
+    //
+    // Parameters:
+    //
+    //     pFramesPerPacket - [out] If S_OK, returns the maximum number of frames
+    //                              that may be requested in GetInputDataPointer
+    //                              or GetOutputDataPointer.
+    //
+    // Return values:
+    //
+    //     S_OK        Successful completion.
+    //
+    // Remarks:
+    //
+    //  This method returns the maximum frame count that the endpoint in question
+    //  is capable of supporting. The endpoint must accept any request for input
+    //  or output data pointers as long as the requested number of frames is less
+    //  than or equal to the value returned by this function. Requesting a frame
+    //  count from IAudioInputEndpointRT::GetInputDataPointer or
+    //  IAudioOutputEndpointRT::GetOutputDataPointer that is greater than
+    //  the value returned by this function will result in undefined behavior (in
+    //  the debug build, an assert is likely; in retail, the audio data may glitch).
+    //
+    //  This is often referred to as the "periodicity" of the engine or pump.
+    //
+    //  Note: This method may be not be called from a real-time processing thread.
+    //
+    HRESULT GetFramesPerPacket([out] UINT32* pFramesPerPacket);
+
+
+    //-------------------------------------------------------------------------
+    // Description:
+    //
+    //  Returns the latency of the endpoint.
+    //
+    // Parameters:
+    //
+    //     pLatency   - [out] If S_OK, returns the latency introduced by the endpoint.
+    //
+    // Return values:
+    //
+    //     S_OK        Successful completion.
+    //
+    // Remarks:
+    //
+    //  This method returns the latency that the endpoint inserts into the stream.
+    //  The latency for a typical buffer endpoint will be zero (i.e. there is no
+    //  latency writing data to a RAM buffer). The latency for a typical hardware
+    //  endpoint will be how ever much buffer latency the endpoint is using to stay
+    //  ahead of the hardware. As an example, if an endpoint is double buffering on
+    //  top of hardware using 5 ms buffers, the latency reported by the endpoint would
+    //  be 5 ms.
+    //
+    //  Note: This method may not be called from a real-time processing thread.
+    //
+    HRESULT GetLatency([out] HNSTIME* pLatency);
+
+    //-------------------------------------------------------------------------
+    // Description:
+    //
+    //  Pass the IAudioClient::Initialize streamFlags to the endpoint
+    //
+    // Parameters:
+    //
+    //     streamFlags - the stream flags passed to IAudioClient::Initialize
+    //
+    // Return values:
+    //
+    //     S_OK         Successful completion.
+    //
+    // Remarks:
+    //
+    //  Note: This method may not be called from a real-time processing thread.
+    //
+    HRESULT SetStreamFlags([in] DWORD streamFlags);
+
+
+    //-------------------------------------------------------------------------
+    // Description:
+    //
+    //  A WASAPI client supplies this event handle for a buffer completion
+    //  callback
+    //
+    // Parameters:
+    //
+    //     eventHandle - event handle to be signaled when a buffer completes
+    //
+    // Return values:
+    //
+    //     S_OK         Successful completion.
+    //     E_INVALIDARG eventHandle is NULL or invalid
+    //
+    // Remarks:
+    //
+    //     This is the event handle passed in IAudioClient::SetEventHandle
+    //
+    //  Note: This method may not be called from a real-time processing thread.
+    //
+    HRESULT SetEventHandle([in] HANDLE eventHandle);
+}; // IAudioEndpoint
+
+
+//  The AudioProcessor uses this interface to discover the current padding between read
+//  and write positions.
+[
+    odl,
+        uuid(DFD2005F-A6E5-4d39-A265-939ADA9FBB4D)
+]
+interface IAudioEndpointRT : stdole.IUnknown 
+{
+    //-------------------------------------------------------------------------
+    // Description:
+    //
+    //  Returns the amount of data queued up in the endpoint.
+    //
+    // Parameters:
+    //
+    //     pPadding - [out] Returns the current difference between
+    //                  the read and write pointers.
+    //
+    //     pAeCurrentPosition - [out] Returns the current position information
+    //                  for the endpoint.
+    //
+    // Return values:
+    //
+    //     S_OK        Successful completion.
+    //
+    // Remarks:
+    //
+    //  This method returns the difference between the read and write positions.
+    //  The Audio Pump will use this information to decide how much more processing
+    //  is required.
+    //
+    //  Different AudioEndpoints will calculate this differently.
+    //  For example an AudioEndpoint that is abstracting a looped-render buffer
+    //  on a HW device will return the difference between the read and write
+    //  offsets.
+    //
+    //  Note: This method may be called from a real-time processing thread. The
+    //  implementation of this method does not and should not block, touch
+    //  paged memory, or call any blocking system routines.
+    //
+    void GetCurrentPadding([out] HNSTIME* pPadding, [out] AE_CURRENT_POSITION* pAeCurrentPosition);
+
+    //-------------------------------------------------------------------------
+    // Description:
+    //
+    //  Calls into the endpoint to indicate that a processing pass has been completed
+    //
+    // Parameters:
+    //
+    //     none
+    //
+    // Return values:
+    //
+    //     none
+    //
+    // Remarks:
+    //
+    //  This method allows the Audio Pump to call into the Endpoint to set an event indicating
+    //  that a processing pass had been completed and that there is audio data to be passed to/from
+    //  the endpoint device. This is necessary for Standard streaming on a multiprocessor
+    //  system to ensure that the sequence of events prevents glitching. It may be ignored by an
+    //  RT thread.
+    //
+    //  Note: This method may be called from a real-time processing thread. The
+    //  implementation of this method does not and should not block, touch
+    //  paged memory, or call any blocking system routines.
+    //
+    void ProcessingComplete(void);
+
+    //-------------------------------------------------------------------------
+    // Description:
+    //
+    //  Calls into the endpoint to tell it to change the state of the underlying KS
+    //  pin to inactive
+    //
+    // Parameters:
+    //
+    //     none
+    //
+    // Return values:
+    //
+    //     S_OK
+    //     FAILURECODE
+    //
+    // Remarks:
+    //
+    //  This method allows the Audio Pump to call into the Endpoint to tell it to set the state
+    //  of the underlying KS pin to "pause" or "not running".  If the endpoint is virtual or does not
+    //  otherwise sit on top of physical hardware, this method may simply return S_OK
+    //
+    //  Note: This method may be called from a real-time processing thread. The
+    //  implementation of this method does not and should not block, touch
+    //  paged memory, or call any blocking system routines.
+    //
+    HRESULT SetPinInactive(void);
+
+    //-------------------------------------------------------------------------
+    // Description:
+    //
+    //  Calls into the endpoint to tell it to change the state of the underlying KS
+    //  pin to active
+    //
+    // Parameters:
+    //
+    //     none
+    //
+    // Return values:
+    //
+    //     S_OK
+    //     FAILURECODE
+    //
+    // Remarks:
+    //
+    //  This method allows the Audio Pump to call into the Endpoint to tell it to set the state
+    //  of the underlying KS pin to "running".  If the endpoint is virtual or does not
+    //  otherwise sit on top of physical hardware, this method may simply return S_OK
+    //
+    //  Note: This method may be called from a real-time processing thread. The
+    //  implementation of this method does not and should not block, touch
+    //  paged memory, or call any blocking system routines.
+    //
+    HRESULT SetPinActive(void);
+}; // IAudioEndpointRT
+
+
+//  The AudioProcessor uses this interface to get appropriate input buffers for
+//  each processing pass.
+[
+    odl,
+        uuid(8026AB61-92B2-43c1-A1DF-5C37EBD08D82)
+]
+interface IAudioInputEndpointRT : stdole.IUnknown 
+{
+    //-------------------------------------------------------------------------
+    // Description:
+    //
+    //  Returns pointer to the data that will be read.
+    //
+    // Parameters:
+    //
+    //     pConnectionProperty - [in,out] A pointer to an APO_CONNECTION_PROPERTY
+    //          structure. Upon entry, the fields are set as follows:
+    //
+    //          pBuffer - NULL.
+    //
+    //          u32ValidFrameCount - Used to determine how many frames need to be
+    //          in the returned data pointer. AudioEndpoint should not cache this
+    //          information. AudioProcessor can change this number depending on
+    //          its processing needs.
+    //
+    //          u32BufferFlags - BUFFER_INVALID.
+    //
+    //          Upon exit, the endpoint should set the fields as follows:
+    //
+    //          pBuffer - pointer to valid memory where either real data is or
+    //          silence could be placed, depending on the value of u32BufferFlags.
+    //
+    //          u32ValidFrameCount - remains unchanged.
+    //
+    //          u32BufferFlags - set to BUFFER_VALID if data pointer contains
+    //          valid audio data that is not silent; BUFFER_SILENT if the data
+    //          pointer would contain only silent data. The data in the buffer does
+    //          not actually need to be silence, but the buffer given in pBuffer
+    //          must be capable of holding the u32ValidFrameCount frames worth of
+    //          silence.
+    //
+    //      pAeTimeStamp - [in] The time-stamp of the data that is captured.
+    //                  This parameter is optional.
+    //
+    // Remarks:
+    //
+    //  This method returns a pointer to the data (in pConnectionProperty->pBuffer) that
+    //  needs to be input into the engine.
+    //
+    //  The data should be valid in the buffer until the
+    //  ReleaseInputDataPointer method is called. The object should return
+    //  the requested amount of information, inserting silence if there is no
+    //  valid data.
+    //
+    //  The returned buffer pointer pConnectionProperty->pBuffer must be frame-aligned.
+    //
+    //  Endpoints do not support the 'extraBuffer' space which may be available in
+    //  the APO_CONNECTION_DESCRIPTOR associated with the Connection Properties
+    //  passed to it.
+    //
+    //  A pConnectionBuffer->u32ValidFrameCount of 0 is a valid request. In this case,
+    //  the input pointer should be valid but will not be read from. u32ValidFrameCount
+    //  must be <= to the frame count returned in IAudioEndpoint::GetFramesPerPacket.
+    //
+    //  In the case where there is no or not enough valid data to satisfy the
+    //  u32ValidFrameCount request, a glitch should be logged with the wmi services
+    //  available and silence should be returned.
+    //
+    //  Note: This method may be called from a real-time processing thread. The
+    //  implementation of this method does not and should not block, touch
+    //  paged memory, or call any blocking system routines.
+    //
+    void GetInputDataPointer([in, out] APO_CONNECTION_PROPERTY* pConnectionProperty,
+        [in, out] AE_CURRENT_POSITION* pAeTimeStamp);
+
+    //-------------------------------------------------------------------------
+    // Description:
+    //
+    //  Releases the acquired data pointer.
+    //
+    // Parameters:
+    //
+    //     u32FrameCount - [in] Used to determine how many frames have been
+    //                  consumed by the AudioProcessor. This count might not
+    //                  be the same as GetInputDataPointer
+    //
+    //     pDataPointer  - [in] The pointer that has been returned from
+    //                  GetInputDataPointer.
+    //
+    // Return values:
+    //
+    //     S_OK        Successful completion.
+    //
+    // Remarks:
+    //
+    //  This method tells the AudioEndpoint that the AudioProcessor is done
+    //  with the input data pointer and also tells how many frames have been
+    //  consumed.
+    //
+    //  For example, an AudioEndpoint that is attached to the input of the
+    //  AudioProcessor and that abstracts a looped buffer can advance its read
+    //  cursor.
+    //
+    //  An u32FrameCount of 0 means that the client did not utilize any data
+    //  from the given input buffer. The u32FrameCount must be <=  to the request
+    //  size from GetInputDataPointer.
+    //
+    //  Note: This method may be called from a real-time processing thread. The
+    //  implementation of this method does not and should not block, touch
+    //  paged memory, or call any blocking system routines.
+    //
+    void ReleaseInputDataPointer([in] UINT32 u32FrameCount, [in] UINT_PTR pDataPointer);
+
+    //-------------------------------------------------------------------------
+    // Description:
+    //
+    //  "Pulses" the endpoint, normally by signaling a client-supplied event handle
+    //
+    // Parameters:
+    //
+    //
+    // Return values:
+    //
+    //     S_OK        Successful completion.
+    //
+    // Remarks:
+    //
+    //  This method is normally called at the end of a pump pass and signals
+    //  a client event handle
+    //
+    //  Note: This method may be called from a real-time processing thread. The
+    //  implementation of this method does not and should not block, touch
+    //  paged memory, or call any blocking system routines.
+    //
+    // See Also:
+    //      IAudioProcessor::EndProcess
+    //
+    void PulseEndpoint(void);
+
+}; // IAudioInputEndpointRT
+
+
+//  The AudioProcessor uses this interface to get appropriate output buffers
+//  for each processing pass.
+[
+    odl,
+        uuid(8FA906E4-C31C-4e31-932E-19A66385E9AA)
+]
+interface IAudioOutputEndpointRT : stdole.IUnknown 
+{
+    //-------------------------------------------------------------------------
+    // Description:
+    //
+    //  Returns pointer to a buffer that will be written to.
+    //
+    // Parameters:
+    //
+    //     u32FrameCount - [in] Used to determine how many frames need to be
+    //                  in the returned data pointer. AudioEndpoint should not
+    //                  cache this information. AudioProcessor can change this
+    //                  number depending on its processing needs
+    //      pAeTimeStamp - [in] The time-stamp of the data that is rendered.
+    //                  This parameter is optional.
+    //
+    // Return values:
+    //
+    //     The data pointer that needs to be played/recorded.
+    //
+    // Remarks:
+    //
+    //  This method returns a pointer to a buffer into which to place the data
+    //  that is output from the engine.
+    //
+    //  The data won’t be valid except during the duration of the
+    //  ReleaseOutputDataPointer method.
+    //
+    //  The returned pointer must be frame-aligned.
+    //
+    //  A u32FrameCount of 0 is a valid request. In this case, the output pointer
+    //  will not be written into, but it should be a valid pointer. u32FrameCount
+    //  must be <= to the frame count returned in IAudioEndpoint::GetFramesPerPacket.
+    //
+    //  In the case where there is internally not enough
+    //  room to satisfy the client’s request for a buffer pointer, a glitch may
+    //  occur. In this case, the endpoint should still return an address which can
+    //  be written to, however, when ReleaseOutputDataPointer is called this
+    //  data will be lost. The glitch should be logged with the wmi logging
+    //  services available.
+    //
+    //  Note: This method may be called from a real-time processing thread. The
+    //  implementation of this method does not and should not block, touch
+    //  paged memory, or call any blocking system routines.
+    //
+    UINT_PTR GetOutputDataPointer([in] UINT32 u32FrameCount,
+        [in] AE_CURRENT_POSITION* pAeTimeStamp);
+
+
+
+    //-------------------------------------------------------------------------
+    // Description:
+    //
+    //  Releases the acquired data pointer.
+    //
+    // Parameters:
+    //
+    //     pConnectionProperty - [in] A pointer to an APO_CONNECTION_PROPERTY
+    //      structure. This structure is only an input parameter and cannot be
+    //      changed. The fields are set as follows:
+    //
+    //      pBuffer - The pointer that has been returned from GetOutputDataPointer.
+    //
+    //      u32ValidFrameCount - Used to determine how many frames have been
+    //      generated by the AudioProcessor. This count might not be the same
+    //      as GetOutputDataPointer.
+    //
+    //      u32BufferFlags - BUFFER_VALID or BUFFER_SILENT. If the flags are
+    //      BUFFER_VALID, the pBuffer pointer contains valid audio data. If the
+    //      flags are BUFFER_SILENT, the endpoint should write silence into the
+    //      destination buffer where the audio data is to end up.
+    //
+    // Remarks:
+    //
+    //  This method tells the AudioEndpoint that the AudioProcessor is done
+    //  with the data pointer, what time corresponds to the samples in the
+    //  data pointer, how many frames have been generated, and if the buffer
+    //  is full of valid data or silent.
+    //
+    //  For example, an AudioEndpoint that is attached to the output of the
+    //  AudioProcessor and that abstracts a looped buffer can advance its
+    //  write cursor.
+    //
+    //  An u32FrameCount of 0 means that the client did not generate any
+    //  valid data into the buffer. The u32FrameCount must be <= to the frame
+    //  count requested in GetOutputDataPointer. Note that the only valid data
+    //  in the buffer is denoted by the u32FrameCount. The endpoint should not
+    //  assume that all data requested was written.
+    //
+    //  Note: This method may be called from a real-time processing thread. The
+    //  implementation of this method does not and should not block, touch
+    //  paged memory, or call any blocking system routines.
+    //
+    void ReleaseOutputDataPointer([in]   APO_CONNECTION_PROPERTY* pConnectionProperty);
+
+    //-------------------------------------------------------------------------
+    // Description:
+    //
+    //  "Pulses" the endpoint, normally by signaling a client-supplied event handle
+    //
+    // Parameters:
+    //
+    //
+    // Return values:
+    //
+    //     S_OK        Successful completion.
+    //
+    // Remarks:
+    //
+    //  This method is normally called at the end of a pump pass and signals
+    //  a client event handle
+    //
+    //  Note: This method may be called from a real-time processing thread. The
+    //  implementation of this method does not and should not block, touch
+    //  paged memory, or call any blocking system routines.
+    //
+    // See Also:
+    //      IAudioProcessor::EndProcess
+    //
+    void PulseEndpoint(void);
+}; // IAudioOutputEndpointRT
+
+//-------------------------------------------------------------------------
+// IAudioDeviceEndpoint
+//
+//  This interface is used to initialize a Device Endpoint.
+//
+[
+    odl,
+        uuid(D4952F5A-A0B2-4cc4-8B82-9358488DD8AC)
+]
+interface IAudioDeviceEndpoint : stdole.IUnknown
+{
+    //-------------------------------------------------------------------------
+    // Description:
+    //
+    //  Allocates data buffers internally.
+    //
+    // Parameters:
+    //
+    //     MaxPeriod - [in] Processing period of the device in 
+    //                      HNSTIME units.
+    //
+    //     u32LatencyCoefficient - [in] The latency coefficient for this
+    //          device. This coefficient will be multiplied with MaxPeriod to
+    //          calculate latency. Note that each device has a minimum latency
+    //          and if the coefficient is less than the minimum latency, the
+    //          endpoint will apply minimum latency. Clients can obtain the
+    //          actual latency using the IAudioEndpoint interface.
+    //          0 as the coefficient, applies the minimum latency coefficient.
+    //
+    // Return values:
+    //
+    //     S_OK        Successful completion.
+    //
+    // Remarks:
+    //
+    //      Clients should not call SetBuffer when the endpoint is utilized
+    //  in exclusive mode.
+    //
+    HRESULT  SetBuffer(
+        [in] HNSTIME MaxPeriod,
+        [in] UINT32 u32LatencyCoefficient);
+
+
+    //-------------------------------------------------------------------------
+    // Description:
+    //
+    //  Returns the RT capabilities of the device endpoints.
+    //
+    // Parameters:
+    //
+    //     pbIsRTCapable - [out] TRUE, if the device is an RT capable device.
+    //
+    // Return values:
+    //
+    //     S_OK        Successful completion.
+    //
+    HRESULT  GetRTCaps([out] BOOL* pbIsRTCapable);
+
+    //-------------------------------------------------------------------------
+    // Description:
+    //
+    //  Determine the endpoint's capability to be event driven.
+    //
+    // Parameters:
+    //
+    //     pbisEventCapable - pointer to a boolean value which indicates if the 
+    //                        endpoint can be event driven. TRUE means it can.
+    //
+    // Return values:
+    //
+    //     S_OK         Successful completion.
+    //
+    // Remarks:
+    //
+    //  Note: This method may not be called from a real-time processing thread.
+    //
+    HRESULT GetEventDrivenCapable([out] BOOL* pbisEventCapable);
+
+    //-------------------------------------------------------------------------
+    // Description:
+    //
+    //  Creates and writes the exclusive mode parameters to shared memory
+    //
+    // Parameters:
+    //
+    //     hTargetProcess - [in] Handle of the process for which the handles
+    //              will be duplicated.
+    //
+    //     hnsPeriod - [in] period (packet size) to use in 100-ns units, taking into
+    //              account device min period and client requested periodicity
+    //
+    //     hnsBufferDuration - [in] client requested buffer duration in 100-ns units
+    //
+    //     u32LatencyCoefficient - [in] device latency coefficient
+    //
+    //     pu32SharedMemorySize - [out] The size of the shared memory region.
+    //
+    //     phSharedMemory - [out] The handle to the shared memory region between
+    //              the service and the process.
+    //
+
+    // Return values:
+    //
+    //     S_OK        Successful completion.
+    //
+    // Remarks:
+    //
+    //      This method is used in exclusive mode to extract endpoint properties.
+    //  It will fail if the endpoint is fully initialized with SetBuffer.
+    //
+    //      The shared memory region has a
+    //  AUDIO_ENDPOINT_EXCLUSIVE_CREATE_PARAMS structure in it. The handles
+    //  in the structure are duplicated for the calling process.
+    //
+    //      Note that the shared region and handles are owned by the endpoint
+    //  and will be released when the endpoint is released.
+    //
+    HRESULT  WriteExclusiveModeParametersToSharedMemory(
+        [in] UINT_PTR hTargetProcess,
+        [in] HNSTIME hnsPeriod,
+        [in] HNSTIME hnsBufferDuration,
+        [in] UINT32 u32LatencyCoefficient,
+        [out] UINT32* pu32SharedMemorySize,
+        [out] UINT_PTR* phSharedMemory);
+};
+[
+    odl,
+        uuid(C684B72A-6DF4-4774-BDF9-76B77509B653)
+]
+interface IAudioEndpointControl : stdole.IUnknown {
+    //-------------------------------------------------------------------------
+    // Description:
+    //
+    //  Starts an endpoint immediately
+    //
+    // Return values:
+    //
+    //      S_OK                    Successful completion.
+    //
+    // Remarks:
+    //
+    //  The implementation of this method may differ for various endpoints.
+    //  For example a RenderDevice endpoint will put the underlying pin to
+    //  RUN state or a Client-Side crossprocess endpoint will set the Start
+    //  bit in the shared memory region.
+    //
+    //  Note: This method may not be called from a real-time processing thread.
+    //
+    HRESULT Start(void);
+
+    //-------------------------------------------------------------------------
+    // Description:
+    //
+    //  Resets an endpoint immediately.
+    //
+    // Return values:
+    //
+    //      S_OK                    Successful completion.
+    //
+    // Remarks:
+    //
+    //  Reset discards all data that has not been processed yet.
+    //
+    //  The implementation of this method may differ for various endpoints.
+    //  For example an Output-Client-Side crossprocess endpoint will set the
+    //  write cursor to the beginning of the buffer and queue a reset
+    //  request for the Input-Server-Side crossprocess endpoint.
+    //
+    //  Note: This method may not be called from a real-time processing thread.
+    //
+    HRESULT Reset(void);
+
+    //-------------------------------------------------------------------------
+    // Description:
+    //
+    //  Stops an endpoint immediately.
+    //
+    // Return values:
+    //
+    //      S_OK                    Successful completion.
+    //
+    // Remarks:
+    //
+    //  The implementation of this method may differ for various endpoints.
+    //
+    //  Note: This method may not be called from a real-time processing thread.
+    //
+    HRESULT Stop(void);
+};
 
 
 
@@ -4216,6 +5081,24 @@ interface IApoAcousticEchoCancellation : stdole.IUnknown
 {
 };
 
+typedef enum APO_REFERENCE_STREAM_PROPERTIES
+{
+    APO_REFERENCE_STREAM_PROPERTIES_NONE = 0x00,
+    APO_REFERENCE_STREAM_PROPERTIES_POST_VOLUME_LOOPBACK = 0x01
+} APO_REFERENCE_STREAM_PROPERTIES;
+
+//cpp_quote("DEFINE_ENUM_FLAG_OPERATORS(APO_REFERENCE_STREAM_PROPERTIES);")
+
+// This interface is used to identify APOs that implement Acoustic Echo Cancellation
+// and wish to use post-volume processing loopback streams.
+[
+    odl,
+        uuid(F235855F-F06D-45B3-A63F-EE4B71509DC2)
+]
+interface IApoAcousticEchoCancellation2 : IApoAcousticEchoCancellation
+{
+    HRESULT GetDesiredReferenceStreamProperties([out] APO_REFERENCE_STREAM_PROPERTIES* pProperties);
+};
 
 //
 // This is the structure that gets passed to the system effects APO for

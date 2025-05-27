@@ -65,7 +65,7 @@ module olepro32 {
         [in, defaultvalue(0)] LONG dwReserved,
         [in, defaultvalue(0)] LONG pvReserved);
 
-    [entry("OleCreatePropertyFrame")]
+    [entry("OleCreatePropertyFrameIndirect")]
     HRESULT OleCreatePropertyFrameIndirect(
         [in] OCPFIPARAMS *lpParams);
 

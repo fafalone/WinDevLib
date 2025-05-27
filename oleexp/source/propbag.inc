@@ -60,12 +60,12 @@ interface IPropertyBag2 : stdole.IUnknown {
         [in] PROPBAG2 *pPropBag,
         [in] IErrorLog *pErrLog,
         [in] LONG pvarValue,
-        [in] LONG phrError);
+        [in] LONG* phrError);
 
     HRESULT Write(
         [in] LONG cProperties,
         [in, out] PROPBAG2 *pPropBag,
-        [in] LONG pvarValue);
+        [in] VARIANT* pvarValue);
 
     HRESULT CountProperties(
         [out, retval] LONG *pcProperties);

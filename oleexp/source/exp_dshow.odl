@@ -517,7 +517,7 @@ the quartz.dll typelib
         HRESULT _stdcall InvokeAtStreamTime(
                         [out] IDeferredCommand** pCmd, 
                         [in] double time, 
-                        [in] GUID* iid, 
+                        [in] UUID* iid, 
                         [in] long dispidMethod, 
                         [in] short wFlags, 
                         [in] long cArgs, 
@@ -527,7 +527,7 @@ the quartz.dll typelib
         HRESULT _stdcall InvokeAtPresentationTime(
                         [out] IDeferredCommand** pCmd, 
                         [in] double time, 
-                        [in] GUID* iid, 
+                        [in] UUID* iid, 
                         [in] long dispidMethod, 
                         [in] short wFlags, 
                         [in] long cArgs, 
@@ -2965,3 +2965,172 @@ coclass VideoMixingRenderer { interface IBaseFilter; }
 	uuid(51b4abf3-748f-4e3b-a276-c828330e926a)
 ]
 coclass VideoMixingRenderer9 { interface IBaseFilter; }
+
+
+
+
+
+
+typedef float MP_DATA;          // All data is 32-bit floats
+
+typedef enum MP_Type {
+    MPT_INT,                     // data is signed 23 bit integer (mantissa)
+    MPT_FLOAT,                   // data is 32bit IEEE float
+    MPT_BOOL,                    // data is true or false (using ANSI C++ definition)
+    MPT_ENUM,                    // data is a set (represented by consecutive integers)
+    MPT_MAX,
+} MP_TYPE;
+
+
+//------------------------------------------------------------------------------
+// Define the types of curves which are supported
+//------------------------------------------------------------------------------
+typedef enum MP_CURVE_TYPE {
+    MP_CURVE_JUMP = 0x0001, // No interpolation, just jump to next point
+    MP_CURVE_LINEAR = 0x0002, // Linear interpolation (y follows x from 0.0 to 1.0)
+    MP_CURVE_SQUARE = 0x0004, // y follow x^2 from 0.0 to 1.0
+    MP_CURVE_INVSQUARE = 0x0008, // y follows 1-(x^2) from 0.0 to 1.0
+    MP_CURVE_SINE = 0x0010, // y follows sin(x) from -pi/2 to pi/2
+} MP_CURVE_TYPE;
+
+
+//------------------------------------------------------------------------------
+// Capability bits. Used by the object to specify what capabilities it has.
+//------------------------------------------------------------------------------
+typedef enum MP_CAPS {
+// Curve capabilities - If the cap bit is set, that type of curve is supported
+    MP_CAPS_CURVE_JUMP = 1, //MP_CURVE_JUMP;
+    MP_CAPS_CURVE_LINEAR = 2, //MP_CURVE_LINEAR;
+    MP_CAPS_CURVE_SQUARE = 4, //MP_CURVE_SQUARE;
+    MP_CAPS_CURVE_INVSQUARE = 8, //MP_CURVE_INVSQUARE;
+    MP_CAPS_CURVE_SINE = 0x10, //MP_CURVE_SINE;
+} MP_CAPS;
+
+
+typedef struct _MP_PARAMINFO {
+    MP_TYPE mpType;      // One of MP_TYPE_xxx codes
+    MP_CAPS  mopCaps;    // A collection of MP_CAPS flags
+
+    // Minimum and maximum values
+    MP_DATA mpdMinValue;     // minimum legal value
+    MP_DATA mpdMaxValue;     // maximum legal value
+    MP_DATA mpdNeutralValue; // default or 'center' value
+
+    // Defualt Unit and Label text. These strings will ALWAYS be English
+    // strings in the UNICODE character set. For international text
+    // use the GetParamText member function
+    WCHAR                   szUnitText[32];  // units of the parameter
+    WCHAR                   szLabel[32];     // name of the parameter
+
+} MP_PARAMINFO;
+
+typedef enum MP_FLAGS 
+{
+    MPF_ENVLP_STANDARD = 0,
+
+    MPF_ENVLP_BEGIN_CURRENTVAL = 0x1,
+
+    MPF_ENVLP_BEGIN_NEUTRALVAL = 0x2,
+} MP_FLAGS;
+
+
+typedef struct _MP_ENVELOPE_SEGMENT
+{
+    REFERENCE_TIME rtStart;
+    REFERENCE_TIME rtEnd;
+    MP_DATA valStart;
+    MP_DATA valEnd;
+    MP_CURVE_TYPE iCurve;
+    MP_FLAGS flags;
+} 	MP_ENVELOPE_SEGMENT;
+
+typedef enum MPF_PUNCHIN
+{
+    MPF_PUNCHIN_REFTIME = 0,
+
+    MPF_PUNCHIN_NOW = 0x1,
+
+    MPF_PUNCHIN_STOPPED = 0x2,
+} MPF_PUNCHIN;
+
+
+[
+    odl,
+        uuid(6d6cbb60-a223-44aa-842f-a2f06750be6d) 
+]
+interface IMediaParamInfo : stdole.IUnknown
+{
+    HRESULT GetParamCount(
+        [out] DWORD* pdwParams
+    );
+    HRESULT GetParamInfo(
+        [in] DWORD dwParamIndex,
+        [out] MP_PARAMINFO* pInfo
+    );
+    // returns a series of null terminated strings. strings are in the
+    // following order:
+    // Param Label, Units Text, 1st Enum Text, 2nd Enum Text, etc...
+    HRESULT GetParamText(
+        [in] DWORD dwParamIndex,    // which param to get text for
+        [out] WCHAR** ppwchText     // returns ptr to CoTaskMemAlloc'd string
+    );
+
+    // Returns the number of diffrent time formats this object understands
+    HRESULT GetNumTimeFormats(
+        [out] DWORD* pdwNumTimeFormats
+    );
+
+    // Returns the GUID for the ith supported time format
+    HRESULT GetSupportedTimeFormat(
+        [in] DWORD dwFormatIndex,
+        [out] GUID* pguidTimeFormat
+    );
+
+    // Returns the current time format
+    HRESULT GetCurrentTimeFormat(
+        [out] GUID* pguidTimeFormat,
+        [out] MP_TIMEDATA* pTimeData
+    );
+}
+
+//------------------------------------------------------------------------------
+// IMediaParams - Interfaes used to actually set the media params and the
+// envelopes to follow
+//------------------------------------------------------------------------------
+[
+    odl,
+        uuid(6d6cbb61-a223-44aa-842f-a2f06750be6e) 
+]
+interface IMediaParams : stdole.IUnknown
+{
+    // Single param Get/Set methods
+    HRESULT GetParam(
+        [in] DWORD dwParamIndex,
+        [out] MP_DATA* pValue
+    );
+    HRESULT SetParam(
+        [in] DWORD dwParamIndex,
+        [in] MP_DATA value
+    );
+
+    // Envelope methods (param change over time)
+    HRESULT AddEnvelope(
+        [in] DWORD dwParamIndex,
+        [in] DWORD cSegments,
+        [in]  MP_ENVELOPE_SEGMENT* pEnvelopeSegments
+    );
+
+    // Flush all of the envelope information for the given paramter between
+    // the timestamps specified
+    HRESULT FlushEnvelope(
+        [in] DWORD dwParamIndex,
+        [in] REFERENCE_TIME refTimeStart,
+        [in] REFERENCE_TIME refTimeEnd
+    );
+
+    // Change the time format being used by the object
+    HRESULT SetTimeFormat(
+        [in] GUID guidTimeFormat,
+        [in] MP_TIMEDATA mpTimeData
+    );
+}

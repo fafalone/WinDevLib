@@ -1,0 +1,1734 @@
+/*
+MiniShell Type library v0.1
+
+Provides a minimal set of shell interfaces for basic
+code requirements.
+
+
+*/
+
+[
+        uuid(79FAF6B2-7F07-43EF-8190-F95FD4FAAC9F),
+        version(0.1),
+        helpstring("MiniShell - Minimal Shell Interfaces for VB6"),
+        lcid(0x0)
+]
+library minishell {
+
+    // OLE Automation
+    importlib("stdole2.tlb");
+
+    #include <typedef.odl>
+
+
+    [
+        odl,
+            uuid(000214F2-0000-0000-C000-000000000046),
+            helpstring("IEnumIDList interface")
+    ]
+        interface IEnumIDList : IUnknown
+    {
+        // *** IEnumIDList methods ***
+        long    Next(
+            [in]     ULONG         celt,
+            [in, out] LPITEMIDLIST* rgelt,
+            [in, out] ULONG* pceltFetched);
+        HRESULT Skip([in] ULONG celt);                     // E_NOTIMPL
+        HRESULT Reset();                                   // E_NOTIMPL
+        HRESULT Clone([in, out] IEnumIDList** ppenum);      // E_NOTIMPL
+    }
+
+    typedef [helpstring("IShellFolder.GetDisplayNameOf/SetNameOf uFlags")]
+        enum SHGNO_Flags {
+        [helpstring("default (display purpose)")]
+        SHGDN_NORMAL = 0,
+        [helpstring("displayed under a folder (relative)")]
+        SHGDN_INFOLDER = 1,
+        [helpstring("for displaying in the address (drives dropdown) bar")]
+        SHGDN_FORADDRESSBAR = 0x4000,
+        [helpstring("ParseDisplayName or path")]
+        SHGDN_FORPARSING = 0x8000,
+    } SHGNO_Flags;
+
+    typedef [helpstring("IShellFolder.EnumObjects Flags")]
+        enum SHCONTF {
+        SHCONTF_CHECKING_FOR_CHILDREN = 0x00010,
+        [helpstring("only want folders enumerated (SFGAO_FOLDER)")]
+        SHCONTF_FOLDERS = 0x0020,
+        [helpstring("include non folders")]
+        SHCONTF_NONFOLDERS = 0x0040,
+        [helpstring("show items normally hidden")]
+        SHCONTF_INCLUDEHIDDEN = 0x0080,
+        [helpstring("allow EnumObject() to return before validating enum")]
+        SHCONTF_INIT_ON_FIRST_NEXT = 0x0100,
+        [helpstring("hint that client is looking for printers")]
+        SHCONTF_NETPRINTERSRCH = 0x0200,
+        [helpstring("hint that client is looking sharable resources (remote shares)")]
+        SHCONTF_SHAREABLE = 0x0400,
+        [helpstring("include all items with accessible storage and their ancestors")]
+        SHCONTF_STORAGE = 0x0800,
+        SHCONTF_NAVIGATION_ENUM = 0x01000,
+        SHCONTF_FASTITEMS = 0x02000,
+        SHCONTF_FLATLIST = 0x04000,
+        SHCONTF_ENABLE_ASYNC = 0x08000,
+        SHCONTF_INCLUDESUPERHIDDEN = 0x10000
+    } SHCONTF;
+
+    [
+        odl,
+            uuid(000214E6-0000-0000-C000-000000000046),
+            helpstring("IShellFolder interface")
+    ]
+        interface IShellFolder : stdole.IUnknown{
+
+            [helpstring("ParseDisplayName")]
+            long    ParseDisplayName(
+                        [in]     LONG          hwndOwner,        // Handle of owner window
+                        [in]     LONG          pbcReserved,      // Reserved (LPBC)
+                        [in]     LONG          lpszDisplayName,  // Pointer to diplay name 
+                        [in,out] LONG * pchEaten,        // Pointer to value for parsed characters
+                        [in,out] LPITEMIDLIST * ppidl,           // Pointer to new item identifier list
+                        [in,out] LONG * pdwAttributes);  // Address receiving attributes of file object
+
+            [helpstring("EnumObjects")]
+            long    EnumObjects(
+                        [in]     HWND          hwndOwner,
+                        [in]     SHCONTF       grfFlags,
+                        [in,out] LPENUMIDLIST* ppenumIDList);
+
+            [helpstring("BindToObject")]
+            long    BindToObject(
+                        [in]     LPCITEMIDLIST pidl,
+                        [in]     long          pbcReserved,
+                        [in]     UUID* riid,
+                        [in,out] LPVOID        ppvOut);
+
+            // VB handles E_NOTIMPL
+            [helpstring("BindToStorage")]
+            long BindToStorage(
+                        [in]     LPCITEMIDLIST pidl,
+                        [in]     long          pbcReserved,  // (LPBC)
+                        [in]     UUID* riid,
+                        [in,out] LPVOID        ppvObj);      // * v1.2, was *ppvObj
+
+            [helpstring("CompareIDs")]
+            long    CompareIDs(
+                        [in]     LONG        lParam,
+                        [in]     LPCITEMIDLIST pidl1,
+                        [in]     LPCITEMIDLIST pidl2);
+
+            [helpstring("CreateViewObject")]
+            long    CreateViewObject(
+                        [in]     HWND          hwndOwner,
+                        [in]     UUID* riid,
+                        [in,out] LPVOID        ppvOut);      // * v1.2, was *ppvOut
+
+            [helpstring("GetAttributesOf")]
+            long    GetAttributesOf(
+                        [in]     LONG          cidl,
+                        [in]     LPCITEMIDLIST* apidl,
+                        [in,out] LONG* rgfInOut);
+
+            [helpstring("GetUIObjectOf")]
+            long    GetUIObjectOf(
+                        [in]     LONG          hwndOwner,
+                        [in]     LONG          cidl,
+                        [in]     LPCITEMIDLIST* apidl,
+                        [in]     UUID* riid,
+                        [in]     LONG* prgfInOut,
+                        [in,out] LPVOID        ppvOut);   // *ppvOut
+
+            [helpstring("GetDisplayNameOf")]
+            long    GetDisplayNameOf(
+                        [in]     LPCITEMIDLIST pidl,
+                        [in]     SHGNO_Flags   uFlags,
+                        [in,out] STRRET* lpName);
+
+            [helpstring("SetNameOf")]
+            long    SetNameOf(
+                        [in]     LONG          hwndOwner,
+                        [in]     LPCITEMIDLIST pidl,
+                //[in]     LPCOLESTR     lpszName,
+                [in]     LONG     lpszName,
+                [in]     SHGNO_Flags   uFlags,
+                [in,out] LPCITEMIDLIST* ppidlOut);
+    };
+
+    typedef enum GILFlags {
+        [helpstring("allows containers to specify an \"open\" look")]
+        GIL_OPENICON = 0x0001,
+        [helpstring("icon is to be displayed in a ShellFolder")]
+        GIL_FORSHELL = 0x0002,
+        [helpstring("this is an async extract, return E_ASYNC")]
+        GIL_ASYNC = 0x0020,
+        [helpstring("get the default icon location if the final one takes too long to get")]
+        GIL_DEFAULTICON = 0x0040,
+        [helpstring("the icon is for a shortcut to the object")]
+        GIL_FORSHORTCUT = 0x0080,
+        [helpstring("return GIL_SHIELD or GIL_FORCENOSHIELD, don't block if GIL_ASYNC is set")]
+        GIL_CHECKSHIELD = 0x0200,
+    } GILFlags;
+    [
+        odl,
+            uuid(000214E5-0000-0000-C000-000000000046)
+    ]
+        interface IShellIcon : stdole.Iunknown{
+ 
+            HRESULT GetIconOf(
+                [in] LONG pidl,
+                [in] GILFlags flags,
+                [in] int* lpIconIndex);
+
+    };
+
+    [
+        odl,
+            uuid(7d688a70-c613-11d0-999b-00c04fd655e1)
+    ]
+        interface IShellIconOverlay : stdole.IUnknown
+    {
+        HRESULT GetOverlayIndex([in] LONG pidlRel,
+                                [in] LONG pIndex);
+        HRESULT GetOverlayIconIndex([in] LONG pidlRel,
+                                    [in] LONG pIndex);
+    };
+
+
+    typedef enum SIIGBF {
+        SIIGBF_RESIZETOFIT = 0x00,
+        SIIGBF_BIGGERSIZEOK = 0x01,
+        SIIGBF_MEMORYONLY = 0x02,
+        SIIGBF_ICONONLY = 0x04,
+        SIIGBF_THUMBNAILONLY = 0x08,
+        SIIGBF_INCACHEONLY = 0x10,
+        //Windows 8+
+        SIIGBF_CROPTOSQUARE = 0x20,
+        SIIGBF_WIDETHUMBNAILS = 0x40,
+        SIIGBF_ICONBACKGROUND = 0x80,
+        SIIGBF_SCALEUP = 0x100,
+    } SIIGBF;
+
+    typedef enum SICHINTF {
+        SICHINT_DISPLAY = 0x00000000,
+        SICHINT_ALLFIELDS = 0x80000000,
+        SICHINT_CANONICAL = 0x10000000,
+        SICHINT_TEST_FILESYSPATH_IF_NOT_EQUAL = 0x20000000
+    } SICHINTF;
+
+    typedef enum SIGDN {
+        SIGDN_NORMALDISPLAY = 0x00000000,
+        SIGDN_PARENTRELATIVEPARSING = 0x80018001,
+        SIGDN_DESKTOPABSOLUTEPARSING = 0x80028000,
+        SIGDN_PARENTRELATIVEEDITING = 0x80031001,
+        SIGDN_DESKTOPABSOLUTEEDITING = 0x8004c000,
+        SIGDN_FILESYSPATH = 0x80058000,
+        SIGDN_URL = 0x80068000,
+        SIGDN_PARENTRELATIVEFORADDRESSBAR = 0x8007c001,
+        SIGDN_PARENTRELATIVE = 0x80080001,
+        SIGDN_PARENTRELATIVEFORUI = 0x80094001
+    } SIGDN;
+
+    typedef [helpstring("IShellFolder.GetAttributesOf flags")]
+        enum SFGAO_Flags {
+        [helpstring("Objects can be copied")]
+        SFGAO_CANCOPY = 0x00000001,
+        [helpstring("Objects can be moved")]
+        SFGAO_CANMOVE = 0x00000002,
+        [helpstring("Objects can be linked")]
+        SFGAO_CANLINK = 0x00000004,
+        [helpstring("Supports BindToObject(IID_IStorage")]
+        SFGAO_STORAGE = 0x00000008,
+        [helpstring("Objects can be renamed")]
+        SFGAO_CANRENAME = 0x00000010,
+        [helpstring("Objects can be deleted")]
+        SFGAO_CANDELETE = 0x00000020,
+        [helpstring("Objects have property sheets")]
+        SFGAO_HASPROPSHEET = 0x00000040,
+        [helpstring("Objects are drop target")]
+        SFGAO_DROPTARGET = 0x00000100,
+        SFGAO_CAPABILITYMASK = 0x00000177,
+        SFGAO_SYSTEM = 0x00001000,
+        [helpstring("object is encrypted (use alt color)")]
+        SFGAO_ENCRYPTED = 0x00002000,
+        [helpstring("'slow' object")]
+        SFGAO_ISSLOW = 0x00004000,
+        [helpstring("Ghosted icon")]
+        SFGAO_GHOSTED = 0x00008000,
+        [helpstring("Objects are shortcuts")]
+        SFGAO_LINK = 0x00010000,
+        [helpstring("Objects are shared")]
+        SFGAO_SHARE = 0x00020000,
+        [helpstring("Objects are read-only")]
+        SFGAO_READONLY = 0x00040000,
+        [helpstring("Objects are hidden")]
+        SFGAO_HIDDEN = 0x00080000,
+        SFGAO_DISPLAYATTRMASK = 0x000FC000,
+
+        [helpstring("It contains file system folder")]
+        SFGAO_FILESYSANCESTOR = 0x10000000,
+        [helpstring("Is a folder")]
+        SFGAO_FOLDER = 0x20000000,
+        [helpstring("Is a file system thing (file/folder/root)")]
+        SFGAO_FILESYSTEM = 0x40000000,
+        [helpstring("Expandable in the map pane")]
+        SFGAO_HASSUBFOLDER = 0x80000000,
+        SFGAO_CONTENTSMASK = 0x80000000,
+
+        [helpstring("Invalidate cached information")]
+        SFGAO_VALIDATE = 0x01000000,
+        [helpstring("Is this removeable media?")]
+        SFGAO_REMOVABLE = 0x02000000,
+        [helpstring("Object is compressed (use alt color)")]
+        SFGAO_COMPRESSED = 0x04000000,
+        [helpstring("Is in-place browsable")]
+        SFGAO_BROWSABLE = 0x08000000,
+        [helpstring("Is a non-enumerated object")]
+        SFGAO_NONENUMERATED = 0x00100000,
+        [helpstring("Should show bold in explorer tree")]
+        SFGAO_NEWCONTENT = 0x00200000,
+
+        [helpstring("Obsolete")]
+        SFGAO_CANMONIKER = 0x00400000,
+        [helpstring("Obsolete")]
+        SFGAO_HASSTORAGE = 0x00400000,
+        [helpstring("supports BindToObject(IID_IStream)")]
+        SFGAO_STREAM = 0x00400000,
+        [helpstring("may contain children with SFGAO_STORAGE or SFGAO_STREAM")]
+        SFGAO_STORAGEANCESTOR = 0x00800000,
+        [helpstring("for determining storage capabilities, ie for open/save semantics")]
+        SFGAO_STORAGECAPMASK = 0x70C50008,
+        [helpstring("Attributes that are masked out for PKEY_SFGAOFlags because they are considered to cause slow calculations or lack context (SFGAO_VALIDATE | SFGAO_ISSLOW | SFGAO_HASSUBFOLDER and others")]
+        SFGAO_PKEYSFGAOMASK = 0x81044000,
+    } SFGAO_Flags;
+
+    [
+        odl,
+            uuid(43826D1E-E718-42EE-BC55-A1E261C37BFE)
+    ]
+        interface IShellItem : stdole.IUnknown{
+            long BindToHandler(
+                [in] LONG pbc, //IBindCtx *pbc, --rare; can accept ObtPtr(bindctx) instead
+                [in] UUID * rbhid,
+                [in] UUID * riid,
+                [in, out] LPVOID ppvOut);
+
+            long GetParent(
+                [in, out] IShellItem** ppsi);
+
+            long GetDisplayName(
+                [in] SIGDN sigdnName,
+                [out] LONG* ppszName);
+
+            long GetAttributes(
+                [in] SFGAO_Flags sfgaoMask,
+                [in, out] SFGAO_Flags* psfgaoAttribs);
+
+            long Compare(
+                [in] IShellItem* psi,
+                [in] SICHINTF hint,
+                [in, out] LONG* piOrder);
+
+    };
+
+    typedef enum GETPROPERTYSTOREFLAGS {
+        GPS_DEFAULT = 0,
+        GPS_HANDLERPROPERTIESONLY = 0x1,
+        GPS_READWRITE = 0x2,
+        GPS_TEMPORARY = 0x4,
+        GPS_FASTPROPERTIESONLY = 0x8,
+        GPS_OPENSLOWITEM = 0x10,
+        GPS_DELAYCREATION = 0x20,
+        GPS_BESTEFFORT = 0x40,
+        GPS_NO_OPLOCK = 0x80,
+        GPS_PREFERQUERYPROPERTIES = 0x100,
+        GPS_MASK_VALID = 0x1ff,
+        GPS_EXTRINSICPROPERTIES = 0x00000200,
+        GPS_EXTRINSICPROPERTIESONLY = 0x00000400
+    } GETPROPERTYSTOREFLAGS;
+
+    [
+        odl,
+            uuid(7e9fb0d3-919f-4307-ab2e-9b1860310c93)
+    ]
+        interface IShellItem2 : IShellItem
+    {
+        long GetPropertyStore(
+            [in] GETPROPERTYSTOREFLAGS flags,
+            [in] UUID* riid,
+            [in, out] LPVOID ppv);
+
+        long GetPropertyStoreWithCreateObject(
+            [in] GETPROPERTYSTOREFLAGS flags,
+            [in] IUnknown* punkCreateObject,   // factory for low-rights creation of type ICreateObject
+            [in] UUID* riid,
+            [in, out] LPVOID ppv);
+
+        long GetPropertyStoreForKeys(
+            [in] PROPERTYKEY* rgKeys,
+            [in] LONG cKeys,
+            [in] GETPROPERTYSTOREFLAGS flags,
+            [in] UUID* riid,
+            [in, out] LPVOID ppv);
+
+        long GetPropertyDescriptionList(
+            [in] PROPERTYKEY* keyType,
+            [in] UUID* riid,
+            [in, out] LPVOID ppv);
+
+        // Ensures any cached information in this item is up to date, or returns __HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND) if the item does not exist.
+        long Update([in] IBindCtx* pbc);
+
+        long GetProperty(
+            [in] PROPERTYKEY* key,
+            [out] VARIANT* ppropvar);
+
+        long GetCLSID(
+            [in] PROPERTYKEY* key,
+            [out] CLSID* pclsid);
+
+        long GetFileTime(
+            [in] PROPERTYKEY* key,
+            [out] void* pft);
+
+        long GetInt32(
+            [in] PROPERTYKEY* key,
+            [out] int* pi);
+
+        long GetString(
+            [in] PROPERTYKEY* key,
+            [out] LONG* ppsz); // LPWSTR *ppsz
+
+        long GetUInt32(
+            [in] PROPERTYKEY* key,
+            [out] ULONG* pui);
+
+        long GetUInt64(
+            [in] PROPERTYKEY* key,
+            [out] CURRENCY* pull);
+
+        long GetBool(
+            [in] PROPERTYKEY* key,
+            [out] BOOL* pf);
+    };
+    [
+        odl,
+            uuid(bcc18b79-ba16-442f-80c4-8a59c30c463b)
+    ]
+        interface IShellItemImageFactory : stdole.IUnknown{
+            long GetImage(
+                //[in] SIZE* size,
+                [in] LONG cx,
+                [in] LONG cy,
+                [in] SIIGBF flags,
+                [out] HBITMAP * phbm);
+    };
+
+    [
+        odl,
+            uuid(70629033-e363-4a28-a567-0db78006e6d7),
+    ]
+        interface IEnumShellItems : stdole.IUnknown
+    {
+        //[local]
+        long Next(
+            [in] LONG celt,
+            [out] IShellItem * *rgelt,
+            [out] LONG * pceltFetched);
+
+    //[call_as(Next)]
+    //long RemoteNext(
+    //    [in] LONG celt,
+    //    [out] IShellItem **rgelt,
+    //    [out] LONG *pceltFetched);
+
+    HRESULT Skip([in] LONG celt);
+
+    HRESULT Reset();
+
+    HRESULT Clone([out] IEnumShellItems** ppenum);
+    //use same as IEnumIDList
+    };
+
+    [
+        odl,
+            uuid(b63ea76d-1f85-456f-a19c-48159efa858b),
+    ]
+        interface IShellItemArray : stdole.IUnknown
+    {
+
+        //cpp_quote("DEFINE_ENUM_FLAG_OPERATORS(SIATTRIBFLAGS)")  // some bits are flags, others are not
+
+        // bhid values supported for the handler type are defined in shlguid.h
+        // BHID_DataObject - IDataObject, only works for flat data objects or item arrays produced directly using SHCreateShellItemArrayFromDataObject()
+        // BHID_AssociationArray - IQueryAssociations from the first item in the array
+        // BHID_SFUIObject - only works for flat (items in the same folder) item array
+        HRESULT BindToHandler(
+                            [in] LONG pbc,
+                            [in] UUID * bhid,
+                            [in] UUID * riid,
+                            [in, out] LPVOID ppvOut);
+    //[out, iid_is(riid)] void **ppvOut);
+
+HRESULT GetPropertyStore(
+                        [in] GETPROPERTYSTOREFLAGS flags,
+                        [in] UUID* riid,
+                        [in, out] LPVOID ppv);
+//[out, iid_is(riid)] void **ppv);
+
+HRESULT GetPropertyDescriptionList(
+                        [in] REFPROPERTYKEY keyType,
+                        [in] UUID* riid,
+                        [in, out] LPVOID ppv);
+//[out, iid_is(riid)] void **ppv);
+
+// get the attributes for the items using different methods defined by SIATTRIBFLAGS
+HRESULT GetAttributes(
+                        [in] SIATTRIBFLAGS AttribFlags,
+                        [in] SFGAO_Flags sfgaoMask,
+                        [out] SFGAO_Flags* psfgaoAttribs);
+
+HRESULT GetCount([out] LONG* pdwNumItems);
+
+HRESULT GetItemAt([in] LONG dwIndex,[out] IShellItem** ppsi);
+
+HRESULT EnumItems([out] IEnumShellItems** ppenumShellItems);
+    };
+
+
+    typedef enum SIATTRIBFLAGS
+    {
+        SIATTRIBFLAGS_AND = 0x00000001, // if multiple items and the attirbutes together.
+        SIATTRIBFLAGS_OR = 0x00000002, // if multiple items or the attributes together.
+        SIATTRIBFLAGS_APPCOMPAT = 0x00000003, // Call GetAttributes directly on the ShellFolder for multiple attributes
+        SIATTRIBFLAGS_MASK = 0x00000003, // for the AND/OR/APPCOMPAT value
+        SIATTRIBFLAGS_ALLITEMS = 0x00004000, // normally only the first few items are used to compute the attributes, pass this to force all of them
+        // doing all will result in poor performance for large arrays so use this carefuly
+    } SIATTRIBFLAGS;
+
+
+
+    typedef enum PROPDESC_TYPE_FLAGS
+    {
+        PDTF_DEFAULT = 0x00000000,
+        PDTF_MULTIPLEVALUES = 0x00000001,   // This property can have multiple values (as VT_VECTOR)
+        PDTF_ISINNATE = 0x00000002,   // This property cannot be written to
+        PDTF_ISGROUP = 0x00000004,   // This property is a group heading
+        PDTF_CANGROUPBY = 0x00000008,   // The user can group by this property
+        PDTF_CANSTACKBY = 0x00000010,   // The user can stack by this property
+        PDTF_ISTREEPROPERTY = 0x00000020,   // This property contains a hierarchy
+        PDTF_INCLUDEINFULLTEXTQUERY = 0x00000040,   // Deprecated
+        PDTF_ISVIEWABLE = 0x00000080,   // This property is meant to be viewed by the user
+        PDTF_ISQUERYABLE = 0x00000100,   // Deprecated
+        PDTF_CANBEPURGED = 0x00000200,   // This property can be purged, even if it is innate (property handler should respect this)
+        PDTF_SEARCHRAWVALUE = 0x00000400,   // The raw (rather than formatted) value of this property should be used for searching
+        PDTF_ISSYSTEMPROPERTY = 0x80000000, // This property is owned by the system
+        PDTF_MASK_ALL = 0x800007FF
+    } PROPDESC_TYPE_FLAGS;
+
+    //cpp_quote("DEFINE_ENUM_FLAG_OPERATORS(PROPDESC_TYPE_FLAGS)")
+
+    typedef enum PROPDESC_VIEW_FLAGS
+    {
+        PDVF_DEFAULT = 0x00000000,
+        PDVF_CENTERALIGN = 0x00000001,   // This property should be centered
+        PDVF_RIGHTALIGN = 0x00000002,   // This property should be right aligned
+        PDVF_BEGINNEWGROUP = 0x00000004,   // Show this property as the beginning of the next collection of properties in the view
+        PDVF_FILLAREA = 0x00000008,   // Fill the remainder of the view area with the content of this property
+        PDVF_SORTDESCENDING = 0x00000010,   // If this flag is set, the default sort for this property is highest-to-lowest. If this flag is not set, the default sort is lowest-to-highest
+        PDVF_SHOWONLYIFPRESENT = 0x00000020,   // Only show this property if it is present
+        PDVF_SHOWBYDEFAULT = 0x00000040,   // the property should be shown by default in a view (where applicable)
+        PDVF_SHOWINPRIMARYLIST = 0x00000080,   // the property should be shown by default in primary column selection UI
+        PDVF_SHOWINSECONDARYLIST = 0x00000100,   // the property should be shown by default in secondary column selection UI
+        PDVF_HIDELABEL = 0x00000200,   // Hide the label if the view is normally inclined to show the label
+        // obsolete                 = 0x00000400,
+        PDVF_HIDDEN = 0x00000800,   // Don't display this property as a column in the UI
+        PDVF_CANWRAP = 0x00001000,   // the property can be wrapped to the next row
+        PDVF_MASK_ALL = 0x00001BFF
+    } PROPDESC_VIEW_FLAGS;
+
+    //cpp_quote("DEFINE_ENUM_FLAG_OPERATORS(PROPDESC_VIEW_FLAGS)")
+
+    typedef enum PROPDESC_DISPLAYTYPE
+    {
+        PDDT_STRING = 0,
+        PDDT_NUMBER = 1,
+        PDDT_BOOLEAN = 2,
+        PDDT_DATETIME = 3,
+        PDDT_ENUMERATED = 4,    // Use GetEnumTypeList
+    } PROPDESC_DISPLAYTYPE;
+
+    typedef enum PROPDESC_GROUPING_RANGE
+    {
+        PDGR_DISCRETE = 0,    // Display individual values
+        PDGR_ALPHANUMERIC = 1,    // Display static alphanumeric ranges for values
+        PDGR_SIZE = 2,    // Display static size ranges for values
+        PDGR_DYNAMIC = 3,    // Display dynamically created ranges for the values
+        PDGR_DATE = 4,    // Display month/year groups
+        PDGR_PERCENT = 5,    // Display percent buckets
+        PDGR_ENUMERATED = 6,    // Display buckets from GetEnumTypeList
+    } PROPDESC_GROUPING_RANGE;
+
+    typedef enum PROPDESC_FORMAT_FLAGS
+    {
+        PDFF_DEFAULT = 0x00000000,
+        PDFF_PREFIXNAME = 0x00000001,   // Prefix the value with the property name
+        PDFF_FILENAME = 0x00000002,   // Treat as a file name
+        PDFF_ALWAYSKB = 0x00000004,   // Always format byte sizes as KB
+        PDFF_RESERVED_RIGHTTOLEFT = 0x00000008,   // Reserved for legacy use.
+        PDFF_SHORTTIME = 0x00000010,   // Show time as "5:17 pm"
+        PDFF_LONGTIME = 0x00000020,   // Show time as "5:17:14 pm"
+        PDFF_HIDETIME = 0x00000040,   // Hide the time-portion of the datetime
+        PDFF_SHORTDATE = 0x00000080,   // Show date as "3/21/04"
+        PDFF_LONGDATE = 0x00000100,   // Show date as "Monday, March 21, 2004"
+        PDFF_HIDEDATE = 0x00000200,   // Hide the date-portion of the datetime
+        PDFF_RELATIVEDATE = 0x00000400,   // Use friendly date descriptions like "Yesterday"
+        PDFF_USEEDITINVITATION = 0x00000800,   // Use edit invitation text if failed or empty
+        PDFF_READONLY = 0x00001000,   // Use readonly format, fill with default text if empty and !PDFF_FAILIFEMPTYPROP
+        PDFF_NOAUTOREADINGORDER = 0x00002000,   // Don't detect reading order automatically. Useful if you will be converting to Ansi and don't want Unicode reading order characters
+    } PROPDESC_FORMAT_FLAGS;
+
+    //cpp_quote("DEFINE_ENUM_FLAG_OPERATORS(PROPDESC_FORMAT_FLAGS)")
+
+    typedef enum PROPDESC_SORTDESCRIPTION
+    {
+        PDSD_GENERAL = 0,
+        PDSD_A_Z = 1,
+        PDSD_LOWEST_HIGHEST = 2,
+        PDSD_SMALLEST_BIGGEST = 3,
+        PDSD_OLDEST_NEWEST = 4,
+    } PROPDESC_SORTDESCRIPTION;
+
+    typedef enum PROPDESC_RELATIVEDESCRIPTION_TYPE
+    {
+        PDRDT_GENERAL = 0,
+        PDRDT_DATE = 1,
+        PDRDT_SIZE = 2,
+        PDRDT_COUNT = 3,
+        PDRDT_REVISION = 4,
+        PDRDT_LENGTH = 5,
+        PDRDT_DURATION = 6,
+        PDRDT_SPEED = 7,
+        PDRDT_RATE = 8,
+        PDRDT_RATING = 9,
+        PDRDT_PRIORITY = 10,
+    } PROPDESC_RELATIVEDESCRIPTION_TYPE;
+
+    typedef enum PROPDESC_AGGREGATION_TYPE
+    {
+        PDAT_DEFAULT = 0,    // Display "multiple-values"
+        PDAT_FIRST = 1,    // Display first property value in the selection.
+        PDAT_SUM = 2,    // Display the numerical sum of the values. This is never returned for VT_LPWSTR, VT_BOOL, and VT_FILETIME types.
+        PDAT_AVERAGE = 3,    // Display the numerical average of the values. This is never returned for VT_LPWSTR, VT_BOOL, and VT_FILETIME types.
+        PDAT_DATERANGE = 4,    // Display the date range of the values. This is only returned for VT_FILETIME types.
+        PDAT_UNION = 5,    // Display values as union of all values. The order is undefined.
+        PDAT_MAX = 6,    // Displays the maximum of all the values.
+        PDAT_MIN = 7,    // Displays the minimum of all the values.
+    } PROPDESC_AGGREGATION_TYPE;
+
+    typedef enum PROPDESC_CONDITION_TYPE
+    {
+        PDCOT_NONE = 0,
+        PDCOT_STRING = 1,
+        PDCOT_SIZE = 2,
+        PDCOT_DATETIME = 3,
+        PDCOT_BOOLEAN = 4,
+        PDCOT_NUMBER = 5,
+    } PROPDESC_CONDITION_TYPE;
+
+    typedef enum CONDITION_OPERATION {
+        COP_IMPLICIT = 0,
+        COP_EQUAL = 1,
+        COP_NOTEQUAL = 2,
+        COP_LESSTHAN = 3,
+        COP_GREATERTHAN = 4,
+        COP_LESSTHANOREQUAL = 5,
+        COP_GREATERTHANOREQUAL = 6,
+        COP_VALUE_STARTSWITH = 7,
+        COP_VALUE_ENDSWITH = 8,
+        COP_VALUE_CONTAINS = 9,
+        COP_VALUE_NOTCONTAINS = 10,
+        COP_DOSWILDCARDS = 11,
+        COP_WORD_EQUAL = 12,
+        COP_WORD_STARTSWITH = 13,
+        COP_APPLICATION_SPECIFIC = 14
+    } CONDITION_OPERATION;
+
+    typedef enum SHCOLSTATEF {
+        SHCOLSTATE_TYPE_STR = 0x00000001,
+        SHCOLSTATE_TYPE_INT = 0x00000002,
+        SHCOLSTATE_TYPE_DATE = 0x00000003,
+        SHCOLSTATE_TYPEMASK = 0x0000000F,
+        [helpstring("should on by default in details view")]
+        SHCOLSTATE_ONBYDEFAULT = 0x00000010,
+        [helpstring("will be slow to compute, do on a background thread")]
+        SHCOLSTATE_SLOW = 0x00000020,
+        [helpstring("provided by a handler, not the folder")]
+        SHCOLSTATE_EXTENDED = 0x00000040,
+        [helpstring("not displayed in context menu, but listed in the 'More...' dialog")]
+        SHCOLSTATE_SECONDARYUI = 0x00000080,
+        [helpstring("not displayed in the UI")]
+        SHCOLSTATE_HIDDEN = 0x00000100,
+        [helpstring("VarCmp() (with folderness test) produces same result as CompareIDs()")]
+        SHCOLSTATE_PREFER_VARCMP = 0x00000200,
+        [helpstring("comparison of PSFormatForDisplay result produces same result as CompareIDs()")]
+        SHCOLSTATE_PREFER_FMTCMP = 0x00000400,
+        [helpstring("do not sort folders separately")]
+        SHCOLSTATE_NOSORTBYFOLDERNESS = 0x00000800,
+        [helpstring("only displayed in the UI")]
+        SHCOLSTATE_VIEWONLY = 0x00010000,
+        [helpstring("marks columns with values that should be read in a batch")]
+        SHCOLSTATE_BATCHREAD = 0x00020000,
+        [helpstring("grouping is disabled for this column")]
+        SHCOLSTATE_NO_GROUPBY = 0x00040000,
+        [helpstring("Can't resize the column")]
+        SHCOLSTATE_FIXED_WIDTH = 0x00001000,
+        [helpstring("Width is the same in all DPIs")]
+        SHCOLSTATE_NODPISCALE = 0x00002000,
+        [helpstring("Fixed width augments with height")]
+        SHCOLSTATE_FIXED_RATIO = 0x00004000,
+        [helpstring("To filter out new display flags")]
+        SHCOLSTATE_DISPLAYMASK = 0x0000F000,
+    } SHCOLSTATEF;
+
+    [
+        odl,
+            uuid(6f79d558-3e96-4549-a1d1-7d75d2288814)
+    ]
+        interface IPropertyDescription : stdole.IUnknown
+    {
+
+
+        long GetPropertyKey(
+            [out] PROPERTYKEY * pkey);
+
+        long GetCanonicalName(
+            [out] LONG* ppszName);
+
+        long GetPropertyType(
+            [out] short* pvartype);
+
+        long GetDisplayName(
+            [out] LONG* ppszName);
+
+        long GetEditInvitation(
+            [out] LONG* ppszInvite);
+
+        long GetTypeFlags(
+            [in] PROPDESC_TYPE_FLAGS mask,
+            [out] PROPDESC_TYPE_FLAGS* ppdtFlags);
+
+        long GetViewFlags(
+            [out] PROPDESC_VIEW_FLAGS* ppdvFlags);
+
+        long GetDefaultColumnWidth(
+            [out] UINT* pcxChars);
+
+        long GetDisplayType(
+            [out] PROPDESC_DISPLAYTYPE* pdisplaytype);
+
+        long GetColumnState(
+            [out] SHCOLSTATEF* pcsFlags);   // Needs to correspond to bits in SHCOLSTATE_TYPEMASK
+
+        long GetGroupingRange(
+            [out] PROPDESC_GROUPING_RANGE* pgr);
+
+        long GetRelativeDescriptionType(
+            [out] PROPDESC_RELATIVEDESCRIPTION_TYPE* prdt);
+
+        long GetRelativeDescription(
+            [in] VARIANT* propvar1,
+            [in] VARIANT* propvar2,
+            [out] LONG* ppszDesc1,
+            [out] LONG* ppszDesc2);
+
+        long GetSortDescription(
+            [out] PROPDESC_SORTDESCRIPTION* psd);
+
+        long GetSortDescriptionLabel(
+            [in] BOOL fDescending,
+            [out] LONG* ppszDescription);
+
+        long GetAggregationType(
+            [out] PROPDESC_AGGREGATION_TYPE* paggtype);
+
+        long GetConditionType(
+            [out] PROPDESC_CONDITION_TYPE* pcontype,
+            [out] CONDITION_OPERATION* popDefault);
+
+        // Returns an IPropertyEnumTypeList interface
+        long GetEnumTypeList(
+            [in] UUID* riid,
+            [in,out]  LPVOID ppv);
+
+        long CoerceToCanonicalValue(
+            [in, out] VARIANT* ppropvar);
+
+        long FormatForDisplay(
+            [in] VARIANT* propvar,
+            [in] PROPDESC_FORMAT_FLAGS pdfFlags,
+            [out] LONG* ppszDisplay);
+
+        long IsValueCanonical(
+            [in] VARIANT* propvar); //[in] REFPROPVARIANT propvar);
+    }
+
+        [
+            odl,
+                uuid(c8e2d566-186e-4d49-bf41-6909ead56acc)
+        ]
+        interface IPropertyStoreCapabilities : stdole.IUnknown
+    {
+        long IsPropertyWritable([in] LONG pkey);
+    }
+
+        [
+            odl,
+                uuid(1f9fc1d0-c39b-4b26-817f-011967d3440e)
+        ]
+        interface IPropertyDescriptionList : stdole.IUnknown
+    {
+        HRESULT GetCount(
+            [out] UINT * pcElem);
+
+    // Returns an IPropertyDescription interface
+    HRESULT GetAt(
+        [in] UINT iElem,
+        [in] UUID* riid,
+        [out] LPVOID ppv);
+    };
+
+    typedef enum PROPDESC_ENUMFILTER
+    {
+        PDEF_ALL = 0,        // All properties in system
+        PDEF_SYSTEM = 1,        // Only system properties
+        PDEF_NONSYSTEM = 2,        // Only non-system properties
+        PDEF_VIEWABLE = 3,        // Only viewable properties
+        PDEF_QUERYABLE = 4,        // Deprecated
+        PDEF_INFULLTEXTQUERY = 5,        // Deprecated
+        PDEF_COLUMN = 6,        // Only properties that are columns
+    } PROPDESC_ENUMFILTER;
+
+    [
+        odl,
+            uuid(ca724e8a-c3e6-442b-88a4-6fb0db8035a3)
+    ]
+        interface IPropertySystem : stdole.IUnknown
+    {
+        // Returns an IPropertyDescription interface
+        HRESULT GetPropertyDescription(
+            [in] PROPERTYKEY * propkey,
+            [in] UUID * riid,
+            [in, out] LPVOID ppv);
+
+        HRESULT GetPropertyDescriptionByName(
+            [in] LPCWSTR pszCanonicalName,
+            [in] UUID* riid,
+            [in, out] LPVOID ppv);
+
+        // Returns an IPropertyDescriptionList interface
+        HRESULT GetPropertyDescriptionListFromString(
+            [in] LPCWSTR pszPropList,
+            [in] UUID* riid,
+            [in, out] LPVOID ppv);
+
+        HRESULT EnumeratePropertyDescriptions(
+            [in] PROPDESC_ENUMFILTER filterOn,
+            [in] UUID* riid,
+            [in, out] LPVOID ppv);
+
+        HRESULT FormatForDisplay(
+            [in] PROPERTYKEY* key,
+            [in] VARIANT* propvar,
+            [in] PROPDESC_FORMAT_FLAGS pdff,
+            [out] LONG* pszText,
+            [in] DWORD cchText); // 32K should be enough for anybody
+
+        HRESULT FormatForDisplayAlloc(
+            [in] PROPERTYKEY* key,
+            [in] VARIANT* propvar,
+            [in] PROPDESC_FORMAT_FLAGS pdff,
+            [out] LONG* ppszDisplay);
+
+        HRESULT RegisterPropertySchema(
+            [in] LPCWSTR pszPath);
+
+        HRESULT UnregisterPropertySchema(
+            [in] LPCWSTR pszPath);
+
+        HRESULT RefreshPropertySchema();
+    }
+
+    [
+        odl,
+        uuid(00021500-0000-0000-C000-000000000046),
+    ]
+    interface IQueryInfo : stdole.IUnknown 
+    {
+            typedef enum QITipFlags {
+                QITIPF_DEFAULT = 0x00000000,
+                QITIPF_USENAME = 0x00000001,
+                QITIPF_LINKNOTARGET = 0x00000002,
+                QITIPF_LINKUSETARGET = 0x00000004,
+                [helpstring("Flag says it's OK to take a long time generating tip")]
+                QITIPF_USESLOWTIP = 0x00000008,
+                QITIPF_SINGLELINE = 0x00000010,
+            } QITipFlags;
+
+            typedef enum QIFlags {
+                QIF_CACHED = 0x00000001,
+                QIF_DONTEXPANDFOLDER = 0x00000002,
+            } QIFlags;
+
+            HRESULT GetInfoTip(
+                [in] QITipFlags dwFlags,
+                [in, out] LONG* ppwszTip);
+
+            HRESULT GetInfoFlags(
+                [in, out] QITipFlags* pdwFlags);
+
+    };
+
+    typedef enum IEIFlags {
+        [helpstring("(deprecated) ask the extractor if it supports ASYNC extract (free threaded)")]
+        IEIFLAG_ASYNC = 0x0001,
+        [helpstring("returned from the extractor if it does NOT cache the thumbnail")]
+        IEIFLAG_CACHE = 0x0002,
+        [helpstring("passed to the extractor to beg it to render to the aspect ratio of the supplied rect")]
+        IEIFLAG_ASPECT = 0x0004,
+        [helpstring("if the extractor shouldn't hit the net to get any content neede for the rendering")]
+        IEIFLAG_OFFLINE = 0x0008,
+        [helpstring("does the image have a gleam ? this will be returned if it does")]
+        IEIFLAG_GLEAM = 0x0010,
+        [helpstring("render as if for the screen  (this is exlusive with IEIFLAG_ASPECT )")]
+        IEIFLAG_SCREEN = 0x0020,
+        [helpstring("render to the approx size passed, but crop if neccessary")]
+        IEIFLAG_ORIGSIZE = 0x0040,
+        [helpstring("returned from the extractor if it does NOT want an icon stamp on the thumbnail")]
+        IEIFLAG_NOSTAMP = 0x0080,
+        [helpstring("returned from the extractor if it does NOT want an a border around the thumbnail")]
+        IEIFLAG_NOBORDER = 0x0100,
+        [helpstring("passed to the Extract method to indicate that a slower, higher quality image is desired, re-compute the thumbnail")]
+        IEIFLAG_QUALITY = 0x0200,
+        [helpstring("returned from the extractor if it would like to have Refresh Thumbnail available")]
+        IEIFLAG_REFRESH = 0x0400,
+    } IEIFlags;
+
+    [
+        odl,
+            uuid(BB2E617C-0920-11d1-9A0B-00C04FC2D6C1)
+    ]
+        interface IExtractImage : stdole.IUnknown{
+
+            HRESULT GetLocation(
+                [in] LONG pszPathBuffer,
+                [in] LONG cch,
+                [in, out] LONG * pdwPriority,
+                [in, out] void * prgSize,
+                [in] LONG dwRecClrDepth,
+                [in, out] IEIFlags * pdwFlags);
+
+            HRESULT Extract(
+                [out, retval] LONG* phBmpThumbnail);
+    };
+
+
+    typedef enum KF_CATEGORY
+    {
+        KF_CATEGORY_VIRTUAL = 1,       // virtual folders, have not file system path
+        KF_CATEGORY_FIXED = 2,       // fixed, predefined OS folders, might be different for different users
+        KF_CATEGORY_COMMON = 3,       // Public folders shared by all users, can be redirected
+        KF_CATEGORY_PERUSER = 4,       // User folders, can be redirected
+    } KF_CATEGORY;
+
+    typedef enum KF_DEFINITION_FLAGS
+    {
+        KFDF_LOCAL_REDIRECT_ONLY = 0x00000002,    // Can only be redirected to a local disk
+        KFDF_ROAMABLE = 0x00000004,    // Can be roamed via PC to PC sync
+        KFDF_PRECREATE = 0x00000008,    // Pre create folder
+        KFDF_STREAM = 0x00000010,    // folder is actually a file
+        KFDF_PUBLISHEXPANDEDPATH = 0x00000020,    // Expanded path is published in the registry under HKCU
+        KFDF_NO_REDIRECT_UI = 0x00000040,
+    } KF_DEFINITION_FLAGS;
+
+    typedef enum KF_REDIRECT_FLAGS
+    {
+        KF_REDIRECT_USER_EXCLUSIVE = 0x00000001, // Give user exclusive permission
+        KF_REDIRECT_COPY_SOURCE_DACL = 0x00000002, // Copy the DACL of the source directory to target
+
+        // Ownership checks for the target folder if the folder exists, by default, the API does not do any ownership checks
+        KF_REDIRECT_OWNER_USER = 0x00000004, // The owner of the folder must be the user itself
+        KF_REDIRECT_SET_OWNER_EXPLICIT = 0x00000008, // The owner of any newly created folder will be set explicitly
+        // by default if user belongs to Administrators group Administrators will be the owner
+
+        // Check if the redirection is already done, S_OK if yes, S_FALSE if some actions need to be done.
+        KF_REDIRECT_CHECK_ONLY = 0x00000010,
+
+        // Enable user interaction when redirecting
+        KF_REDIRECT_WITH_UI = 0x00000020,
+
+        // CSC related settings
+        KF_REDIRECT_UNPIN = 0x00000040, // Unpin the source folder
+        KF_REDIRECT_PIN = 0x00000080, // Pin the target folder
+
+        KF_REDIRECT_COPY_CONTENTS = 0x00000200, // Copy the contents (both files and subfolders) under the known folder
+        KF_REDIRECT_DEL_SOURCE_CONTENTS = 0x00000400, // Delete source, valid only if KF_REDIRECT_COPY_CONTENTS set
+
+        KF_REDIRECT_EXCLUDE_ALL_KNOWN_SUBFOLDERS
+        = 0x00000800, // Exclude all known subfolders from redirection
+    } KF_REDIRECT_FLAGS;
+
+    typedef enum KF_REDIRECTION_CAPABILITIES
+    {
+        KF_REDIRECTION_CAPABILITIES_ALLOW_ALL = 0x000000FF, // if any of these flags set this means that
+        // the folder can potentially be redirected unless
+        // any deny flag is set
+        KF_REDIRECTION_CAPABILITIES_REDIRECTABLE = 0x00000001, // the folder can potentially be redirected
+        // currently we only allow redirection for
+        // common and user's folders.
+        // Fixed and virtual can not be redirected
+
+        KF_REDIRECTION_CAPABILITIES_DENY_ALL = 0x000FFF00, // If any of there flags set then redirection is blocked
+        KF_REDIRECTION_CAPABILITIES_DENY_POLICY_REDIRECTED = 0x00000100, // Folder can not be redirected because it is redirected by group policy
+        KF_REDIRECTION_CAPABILITIES_DENY_POLICY = 0x00000200, // Folder can not be redirected because the policy prohibits redirecting this folder
+        KF_REDIRECTION_CAPABILITIES_DENY_PERMISSIONS = 0x00000400, // Folder can not be redirected because the caller does not have sufficient permissions
+    } KF_REDIRECTION_CAPABILITIES;
+
+    typedef struct KNOWNFOLDER_DEFINITION
+    {
+        KF_CATEGORY             category;
+        LONG                    pszName;
+        LONG                    pszDescription;
+        KNOWNFOLDERID           fidParent;
+        LONG                    pszRelativePath;
+        LONG                    pszParsingName;
+        LONG                    pszTooltip;
+        LONG                    pszLocalizedName;
+        LONG                    pszIcon;
+        LONG                    pszSecurity;
+        DWORD                   dwAttributes;
+        KF_DEFINITION_FLAGS     kfdFlags;
+        FOLDERTYPEID            ftidType;
+    } KNOWNFOLDER_DEFINITION;
+
+    // Known Folder Interface
+    [
+        odl,
+            uuid(3AA7AF7E-9B36-420c-A8E3-F77D4674A488)
+    ]
+        interface IKnownFolder : stdole.IUnknown
+    {
+        HRESULT GetId([out] KNOWNFOLDERID * pkfid);
+
+        HRESULT GetCategory([out] KF_CATEGORY* pCategory);
+
+        // get the ShellItem (IShellItem or derived interface) for this known folder
+        HRESULT GetShellItem(
+            [in] KNOWN_FOLDER_FLAG dwFlags,
+            [in] UUID* riid,
+            [out] LPVOID ppv);
+
+        HRESULT GetPath(
+            [in] KNOWN_FOLDER_FLAG dwFlags,
+            [out] LONG* ppszPath);
+
+        HRESULT SetPath(
+            [in] KNOWN_FOLDER_FLAG dwFlags,
+            [in] LPCWSTR pszPath);
+
+        HRESULT GetIDList(
+            [in] KNOWN_FOLDER_FLAG dwFlags,
+            [out] LONG* ppidl);
+
+        HRESULT GetFolderType([out] FOLDERTYPEID* pftid);
+
+        HRESULT GetRedirectionCapabilities([out] KF_REDIRECTION_CAPABILITIES* pCapabilities);
+
+        HRESULT GetFolderDefinition([out] KNOWNFOLDER_DEFINITION* pKFD);
+    }
+        typedef enum FFFP_MODE
+    {
+        FFFP_EXACTMATCH = 0,
+        FFFP_NEARESTPARENTMATCH = 1,
+    } FFFP_MODE;
+    // Known Folder Manager
+    [
+        odl,
+            uuid(8BE2D872-86AA-4d47-B776-32CCA40C7018)
+    ]
+        interface IKnownFolderManager : stdole.IUnknown
+    {
+        long FolderIdFromCsidl(
+            [in] int nCsidl,
+            [out] KNOWNFOLDERID * pfid);
+
+        long FolderIdToCsidl(
+            [in] REFKNOWNFOLDERID rfid,
+            [out] int* pnCsidl);
+
+        long GetFolderIds(
+            [out] long* ppKFId,
+            [in, out] UINT* pCount);
+
+        long GetFolder(
+            [in] REFKNOWNFOLDERID rfid,
+            [out] IKnownFolder** ppkf);
+
+        long GetFolderByName(
+            [in] LPCWSTR pszCanonicalName,
+            [out] IKnownFolder** ppkf);
+
+        long RegisterFolder(
+            [in] REFKNOWNFOLDERID rfid,
+            [in] KNOWNFOLDER_DEFINITION* pKFD);
+
+        long UnregisterFolder([in] REFKNOWNFOLDERID rfid);
+
+        long FindFolderFromPath(
+            [in] LONG pszPath,
+            [in] FFFP_MODE mode,
+            [out] IKnownFolder** ppkf);
+
+        long FindFolderFromIDList(
+            [in] LONG pidl,
+            [out] IKnownFolder** ppkf);
+
+        //[local]
+        long Redirect(
+            [in] REFKNOWNFOLDERID rfid,
+            [in] HWND hwnd,
+            [in] KF_REDIRECT_FLAGS flags,
+            [in] LONG pszTargetPath,
+            [in] UINT cFolders,
+            [in] KNOWNFOLDERID* pExclusion,
+            [out] LONG* ppszError);
+
+        //[call_as(Redirect)]
+        //HRESULT RemoteRedirect(
+        //    [in] REFKNOWNFOLDERID rfid,
+        //    [in] HWND hwnd,
+        //    [in] KF_REDIRECT_FLAGS flags,
+        //    [in] LPCWSTR pszTargetPath,
+        //    [in] UINT cFolders,
+        //    [in] UUID *pExclusion,
+        //    [out] LONG *ppszError);
+    };
+
+
+    // CLSID_KnownFolderManager
+    [uuid(4df0c730-df9d-4ae3-9153-aa6b82e9795a)]
+        coclass KnownFolderManager {
+        interface IKnownFolderManager;
+    }
+
+
+
+
+
+    [
+        odl,
+            uuid(00000122-0000-0000-C000-000000000046),
+    ]
+        interface IDropTarget : stdole.IUnknown{
+
+            HRESULT DragEnter(
+                [in] IDataObject * pDataObj,
+                [in] LONG grfKeyState,
+                [in] LONG ptX,
+                [in] LONG ptY,
+                [in, out] DROPEFFECTS * pdwEffect);
+
+            HRESULT DragOver(
+                [in] LONG grfKeyState,
+                [in] LONG ptX,
+                [in] LONG ptY,
+                [in, out] DROPEFFECTS* pdwEffect);
+
+            HRESULT DragLeave();
+
+            HRESULT Drop(
+                [in] IDataObject* pDataObj,
+                [in] LONG grfKeyState,
+                [in] LONG ptX,
+                [in] LONG ptY,
+                [in, out] DROPEFFECTS* pdwEffect);
+    }
+
+        [
+            odl,
+                uuid(00000121-0000-0000-C000-000000000046)
+        ]
+        interface IDropSource : stdole.IUnknown{
+
+            HRESULT QueryContinueDrag(
+                [in] BOOL fEscapePressed,
+                [in] LONG grfKeyState);
+
+            HRESULT GiveFeedback(
+                [in] DROPEFFECTS dwEffect);
+    }
+
+        [
+            odl,
+                uuid(00000103-0000-0000-C000-000000000046),
+        ]
+        interface IEnumFORMATETC : stdole.IUnknown{
+
+            LONG Next(
+                [in] LONG celt,
+                [in, out] void * rgelt,
+                [out, defaultvalue(0)] LONG * pceltFetched);
+
+            HRESULT Skip(
+                [in] LONG celt);
+
+            HRESULT Reset();
+
+            HRESULT Clone(
+                [out, retval] IEnumFORMATETC** ppenum);
+    }
+
+        [
+            odl,
+                uuid(0000010E-0000-0000-C000-000000000046)
+        ]
+        interface IDataObject : stdole.IUnknown{
+
+            LONG GetData(
+                [in, out] void* pformatetcIn,
+                [in, out] void* pmedium);
+
+            LONG GetDataHere(
+                [in, out] void* pformatetc,
+                [in, out] void* pmedium);
+
+            LONG QueryGetData(
+                [in, out] void* pformatetc);
+
+            HRESULT GetCanonicalFormatEtc(
+                [in, out] void* pformatectIn,
+                [in, out] void* pformatetcOut);
+
+            HRESULT SetData(
+                [in, out] void* pformatetc,
+                [in, out] void* pmedium,
+                [in] BOOL fRelease);
+
+            HRESULT EnumFormatEtc(
+                [in] DATADIR dwDirection,
+                [out, retval] IEnumFORMATETC** ppenumFormatEtc);
+
+            HRESULT DAdvise(
+                [in, out] void* pformatetc,
+                [in] long advf,
+                [in] void* pAdvSink,
+                [out, retval] long* pdwConnection);
+
+            HRESULT DUnadvise(
+                [in] long dwConnection);
+
+            HRESULT EnumDAdvise(
+                [out, retval] stdole.IUnknown* pIEnumAdvise);
+
+    };
+
+    typedef struct SHDRAGIMAGE {
+        SIZE sizeDragImage;
+        POINT ptOffset;
+        LONG hbmpDragImage;
+        LONG crColorKey;
+    } SHDRAGIMAGE;
+
+    [
+        odl,
+            uuid(4657278B-411B-11D2-839A-00C04FD918D0),
+            helpstring("Create with CoCreateInstance CLSID_DragDropHelper")
+    ]
+        interface IDropTargetHelper : stdole.IUnknown
+    {
+        HRESULT DragEnter(
+            [in] HWND hwndTarget,
+            [in] IDataObject * pDataObject,
+            [in] void * ppt,
+            [in] DWORD dwEffect);
+
+        HRESULT DragLeave();
+
+        HRESULT DragOver(
+            [in] POINT* ppt,
+            [in] DWORD dwEffect);
+
+        HRESULT Drop(
+            [in] IDataObject* pDataObject,
+            [in] void* ppt,
+            [in] DWORD dwEffect);
+
+        HRESULT Show([in] BOOL fShow);
+    }
+
+        [
+            odl,
+                uuid(DE5BF786-477A-11D2-839D-00C04FD918D0),
+                helpstring("Create with CoCreateInstance CLSID_DragDropHelper")
+        ]
+        interface IDragSourceHelper : stdole.IUnknown
+    {
+        // IDragSourceHelper
+        HRESULT InitializeFromBitmap(
+            [in] SHDRAGIMAGE * pshdi,
+            [in] IDataObject * pDataObject);
+
+        HRESULT InitializeFromWindow(
+            [in] HWND hwnd,
+            [in] POINT* ppt,
+            [in] IDataObject* pDataObject);
+    };
+    typedef enum DSH_FLAGS
+    {
+        DSH_ALLOWDROPDESCRIPTIONTEXT = 0x0001,   // Allow text specified in DropDescription to be displayed on drag image
+    } DSH_FLAGS;
+
+    [
+        odl,
+            uuid(83E07D0D-0C5F-4163-BF1A-60B274051E40),
+            helpstring("Create with CoCreateInstance CLSID_DragDropHelper")
+    ]
+        interface IDragSourceHelper2 : IDragSourceHelper
+    {
+        HRESULT SetFlags(
+            [in] DSH_FLAGS dwFlags);
+    };
+
+
+    //CLSID_DragDropHelper
+    [uuid(4657278A-411B-11D2-839A-00C04FD918D0)]
+        coclass DragDropHelper {
+        interface IDragSourceHelper2;
+        interface IDragSourceHelper;
+        interface IDropTargetHelper;
+    }
+
+    typedef enum IMAGELISTDRAWFLAGS {
+        ILD_NORMAL = 0x00000000,
+        ILD_TRANSPARENT = 0x00000001,
+        ILD_BLEND25 = 0x00000002,
+        ILD_FOCUS = 0x00000002, //ILD_BLEND25,
+        ILD_BLEND50 = 0x00000004,
+        ILD_SELECTED = 0x00000004, //ILD_BLEND50,
+        ILD_BLEND = 0x00000004, //ILD_BLEND50,
+        ILD_MASK = 0x00000010,
+        ILD_IMAGE = 0x00000020,
+        ILD_ROP = 0x00000040, //(WIN32_IE >= &H300)
+        ILD_OVERLAYMASK = 0x00000F00,
+        ILD_PRESERVEALPHA = 0x00001000,
+        ILD_SCALE = 0x00002000,
+        ILD_DPISCALE = 0x00004000,
+        ILD_ASYNC = 0x00008000
+    } IMAGELISTDRAWFLAGS;
+    typedef enum IMAGELISTSTATEFLAGS {
+        ILS_NORMAL = 0x00000000,
+        ILS_GLOW = 0x00000001, //Not supported
+        ILS_SHADOW = 0x00000002, //Not supported
+        ILS_SATURATE = 0x00000004,
+        ILS_ALPHA = 0x00000008
+    } IMAGELISTSTATEFLAGS;
+
+    typedef enum ILIMAGEQUALITY {
+        ILIF_ALPHA = 0x00000001,
+        ILIF_LOWQUALITY = 0x00000002
+    } ILIMAGEQUALITY;
+
+    // return values (if SUCCEEDED()) for IImageList::Draw
+    typedef enum ILDRAWRESULTS {
+        ILDRF_IMAGELOWQUALITY = 0x00000001,
+        ILDRF_OVERLAYLOWQUALITY = 0x00000010
+    } ILDRAWRESULTS;
+
+    [
+        odl,
+            uuid(46EB5926-582E-4017-9FDF-E8998DAA0950)
+    ]
+        interface IImageList : stdole.IUnknown
+    {
+        HRESULT Add([in] HBITMAP hbmImage,
+                 [in] HBITMAP hbmMask,
+                 [out] int* pi);
+
+        HRESULT ReplaceIcon([in] int i,
+                         [in] HICON hicon,
+                         [out] int* pi);
+
+        HRESULT SetOverlayImage([in] int iImage,
+                             [in] int iOverlay);
+
+        HRESULT Replace([in] int i,
+                     [in] HBITMAP hbmImage,
+                     [in] HBITMAP hbmMask);
+
+        HRESULT AddMasked([in] HBITMAP hbmImage,
+                       [in] COLORREF crMask,
+                       [out] int* pi);
+
+        HRESULT Draw([in] IMAGELISTDRAWPARAMS* pimldp);
+
+        HRESULT Remove([in] int i);
+
+        HRESULT GetIcon([in] int i,
+                     [in] IMAGELISTDRAWFLAGS flags,
+                     [out] HICON* picon);
+
+        HRESULT GetImageInfo([in] int i,
+                          [out] IMAGEINFO* pImageInfo);
+
+        HRESULT Copy([in] int iDst,
+                  [in] IUnknown* punkSrc,
+                  [in] int iSrc,
+                  [in] UINT uFlags);
+
+        HRESULT Merge([in] int i1,
+                   [in] IUnknown* punk2,
+                   [in] int i2,
+                   [in] int dx,
+                   [in] int dy,
+                   [in] UUID* riid,
+                   [out] LPVOID ppv);
+
+        HRESULT Clone([in] UUID* riid,
+                   [out] LPVOID ppv);
+
+        HRESULT GetImageRect([in] int i,
+                          [out] void* prc);
+
+        HRESULT GetIconSize([out] int* cx,
+                         [out] int* cy);
+
+        HRESULT SetIconSize([in] int cx,
+                         [in] int cy);
+
+        HRESULT GetImageCount([out] int* pi);
+
+        HRESULT SetImageCount([in] UINT uNewCount);
+
+        HRESULT SetBkColor([in] COLORREF clrBk,
+                        [out] COLORREF* pclr);
+
+        HRESULT GetBkColor([out] COLORREF* pclr);
+
+        HRESULT BeginDrag([in] int iTrack,
+                       [in] int dxHotspot,
+                       [in] int dyHotspot);
+
+        HRESULT EndDrag();
+
+        HRESULT DragEnter([in] HWND hwndLock,
+                       [in] int x,
+                       [in] int y);
+
+        HRESULT DragLeave([in] HWND hwndLock);
+
+        HRESULT DragMove([in] int x,[in] int y);
+
+        HRESULT SetDragCursorImage([in] IUnknown* punk,
+                                [in] int iDrag,
+                                [in] int dxHotspot,
+                                [in] int dyHotspot);
+
+        HRESULT DragShowNolock([in] BOOL fShow);
+
+        HRESULT GetDragImage([out] void* ppt,
+                          [out] void* pptHotspot,
+                          [in] UUID* riid,
+                          [out] LPVOID ppv);
+
+        HRESULT GetItemFlags([in] int i,
+                          [out] DWORD* dwFlags);
+
+        HRESULT GetOverlayImage([in] int iOverlay,
+                             [out] int* piIndex);
+    };
+    typedef enum ILRFLAGS {
+        ILR_DEFAULT = 0x0000,
+        ILR_HORIZONTAL_LEFT = 0x0000,
+        ILR_HORIZONTAL_CENTER = 0x0001,
+        ILR_HORIZONTAL_RIGHT = 0x0002,
+        ILR_VERTICAL_TOP = 0x0000,
+        ILR_VERTICAL_CENTER = 0x0010,
+        ILR_VERTICAL_BOTTOM = 0x0020,
+        ILR_SCALE_CLIP = 0x0000,
+        ILR_SCALE_ASPECTRATIO = 0x0100
+    } ILRFLAGS;
+
+    //  Flags for GetOriginalSize
+    typedef enum ILGOSFLAGS {
+        ILGOS_ALWAYS = 0x00000000, // always get the original size (can be slow)
+        ILGOS_FROMSTANDBY = 0x00000001 // only if present or on standby
+    } ILGOSFLAGS;
+    //  Flags for ForceImagePresent
+    typedef enum ILFIPFLAGS {
+        ILFIP_ALWAYS = 0x00000000, // always get the image (can be slow)
+        ILFIP_FROMSTANDBY = 0x00000001 // only if on standby
+    } ILFIPFLAGS;
+
+    //  Flags for DiscardImages
+    //
+    //  ILDI_STANDBY and ILDI_PURGE are mutually exclusive.
+    //  ILDI_RESETACCESS can be combined with either.
+    typedef enum ILDIFLAGS {
+        ILDI_PURGE = 0x00000001, // discard and purge
+        ILDI_STANDBY = 0x00000002, // discard to standby list
+        ILDI_RESETACCESS = 0x00000004, // reset "has been accessed" flag
+        ILDI_QUERYACCESS = 0x00000008 // ask whether access flag is set (but do not reset)
+    } ILDIFLAGS;
+
+    typedef struct IMAGELISTSTATS
+    {
+        DWORD       cbSize;
+        int         cAlloc;     // number of images allocated
+        int         cUsed;      // number of images in use
+        int         cStandby;   // number of standby images
+    } IMAGELISTSTATS;// New for (_WIN32_IE >= 0x0605)
+
+    [
+        odl,
+            uuid(192b9d83-50fc-457b-90a0-2b82a8b5dae1)
+    ]
+        interface IImageList2 : IImageList
+    {
+        long Resize([in] int cxNewIconSize,
+            [in] int cyNewIconSize);
+
+        long GetOriginalSize([in] int iImage,
+            [in] ILGOSFLAGS dwFlags,
+            [out] int* pcx,
+            [out] int* pcy);
+
+        long SetOriginalSize([in] int iImage,
+            [in] int cx,
+            [in] int cy);
+
+        long SetCallback([in] IUnknown* punk);
+
+        long GetCallback([in] UUID* riid,
+            [out] LPVOID ppv);
+
+        long ForceImagePresent([in] int iImage,
+            [in] ILFIPFLAGS dwFlags);
+
+        long DiscardImages([in] int iFirstImage,
+            [in] int iLastImage,
+            [in] ILDIFLAGS dwFlags);
+
+        long PreloadImages([in] IMAGELISTDRAWPARAMS* pimldp);
+
+        long GetStatistics([in, out] IMAGELISTSTATS* pils);
+
+        long Initialize([in] int cx, [in] int cy,
+            [in] UINT flags,
+            [in] int cInitial,
+            [in] int cGrow);
+
+        long Replace2([in] int i,
+            [in] HBITMAP hbmImage,
+            [in] HBITMAP hbmMask,
+            [in] IUnknown* punk,
+            [in] DWORD dwFlags);
+
+        long ReplaceFromImageList([in] int i,
+            [in] IImageList* pil,
+            [in] int iSrc,
+            [in] IUnknown* punk,
+            [in] DWORD dwFlags);
+    };
+
+
+    [
+        odl,
+            uuid(b3a4b685-b685-4805-99d9-5dead2873236)
+    ]
+        interface IParentAndItem : stdole.IUnknown
+    {
+        // 2 ways to init
+        //      pidlParent == NULL
+        //      psf is folder, pidlChild is child relative to psf
+        HRESULT SetParentAndItem(
+            [in] PCIDLIST_ABSOLUTE pidlParent,
+            [in] IShellFolder * psf,
+            [in] PCUITEMID_CHILD pidlChild);
+
+    // all params optional
+    //      ppidlParent gets full pidl to parent of item
+    //      ppsf gets parent folder for item
+    //      ppidlChild gets item relitve to psf
+
+    HRESULT GetParentAndItem(
+        [out] PIDLIST_ABSOLUTE* ppidlParent,
+        [out] IShellFolder** ppsf,
+        [out] PITEMID_CHILD* ppidlChild);
+    };
+
+
+
+
+#define D3DMAXUSERCLIPPLANES 32
+#define D3D_MAX_SIMULTANEOUS_RENDERTARGETS 4
+#define D3DRENDERSTATE_WRAPBIAS                 128UL
+
+#define D3DDMAPSAMPLER 256
+
+#define D3DVERTEXTEXTURESAMPLER0 (D3DDMAPSAMPLER+1)
+#define D3DVERTEXTEXTURESAMPLER1 (D3DDMAPSAMPLER+2)
+#define D3DVERTEXTEXTURESAMPLER2 (D3DDMAPSAMPLER+3)
+#define D3DVERTEXTEXTURESAMPLER3 (D3DDMAPSAMPLER+4)
+
+#define MAXD3DDECLUSAGE         D3DDECLUSAGE_SAMPLE
+#define MAXD3DDECLUSAGEINDEX    15
+#define MAXD3DDECLLENGTH        64 // does not include "end" marker vertex element
+
+#define MAXD3DDECLMETHOD D3DDECLMETHOD_LOOKUPPRESAMPLED
+
+ #define MAXD3DDECLTYPE      D3DDECLTYPE_UNUSED
+
+#define D3DDECL_END() {0xFF,0,D3DDECLTYPE_UNUSED,0,0,0}
+
+// Maximum supported number of texture coordinate sets
+#define D3DDP_MAXTEXCOORD   8
+
+#define D3DSI_OPCODE_MASK       0x0000FFFF
+
+#define D3DSI_INSTLENGTH_MASK   0x0F000000
+#define D3DSI_INSTLENGTH_SHIFT  24
+
+#define D3DSINCOSCONST1 -1.5500992e-006f, -2.1701389e-005f,  0.0026041667f, 0.00026041668f
+#define D3DSINCOSCONST2 -0.020833334f, -0.12500000f, 1.0f, 0.50000000f
+
+//---------------------------------------------------------------------
+// Co-Issue Instruction Modifier - if set then this instruction is to be
+// issued in parallel with the previous instruction(s) for which this bit
+// is not set.
+//
+#define D3DSI_COISSUE           0x40000000
+
+//---------------------------------------------------------------------
+// Opcode specific controls
+
+#define D3DSP_OPCODESPECIFICCONTROL_MASK  0x00ff0000
+#define D3DSP_OPCODESPECIFICCONTROL_SHIFT 16
+
+// ps_2_0 texld controls
+#define D3DSI_TEXLD_PROJECT (0x01 << D3DSP_OPCODESPECIFICCONTROL_SHIFT)
+#define D3DSI_TEXLD_BIAS    (0x02 << D3DSP_OPCODESPECIFICCONTROL_SHIFT)
+
+    // Comparison is part of instruction opcode token:
+#define D3DSHADER_COMPARISON_SHIFT D3DSP_OPCODESPECIFICCONTROL_SHIFT
+#define D3DSHADER_COMPARISON_MASK  (0x7<<D3DSHADER_COMPARISON_SHIFT)
+
+//---------------------------------------------------------------------
+// Predication flags on instruction token
+#define D3DSHADER_INSTRUCTION_PREDICATED    (0x1 << 28)
+
+
+#define D3DSP_DCL_USAGE_SHIFT 0
+#define D3DSP_DCL_USAGE_MASK  0x0000000f
+
+#define D3DSP_DCL_USAGEINDEX_SHIFT 16
+#define D3DSP_DCL_USAGEINDEX_MASK  0x000f0000
+
+// DCL pixel shader sampler info token.
+#define D3DSP_TEXTURETYPE_SHIFT 27
+#define D3DSP_TEXTURETYPE_MASK  0x78000000
+
+#define D3DSP_REGNUM_MASK       0x000007FF
+
+#define D3DVS_ADDRESSMODE_SHIFT 13
+#define D3DVS_ADDRESSMODE_MASK  (1 << D3DVS_ADDRESSMODE_SHIFT)
+
+#define D3DSHADER_ADDRESSMODE_SHIFT 13
+#define D3DSHADER_ADDRESSMODE_MASK  (1 << D3DSHADER_ADDRESSMODE_SHIFT)
+
+        // pixel shader version token
+#define D3DPS_VERSION(_Major,_Minor) (0xFFFF0000|((_Major)<<8)|(_Minor))
+
+// vertex shader version token
+#define D3DVS_VERSION(_Major,_Minor) (0xFFFE0000|((_Major)<<8)|(_Minor))
+
+// extract major/minor from version cap
+#define D3DSHADER_VERSION_MAJOR(_Version) (((_Version)>>8)&0xFF)
+#define D3DSHADER_VERSION_MINOR(_Version) (((_Version)>>0)&0xFF)
+
+// destination/source parameter register type
+#define D3DSI_COMMENTSIZE_SHIFT     16
+#define D3DSI_COMMENTSIZE_MASK      0x7FFF0000
+#define D3DSHADER_COMMENT(_DWordSize) \
+        ((((_DWordSize) << D3DSI_COMMENTSIZE_SHIFT)& D3DSI_COMMENTSIZE_MASK) | D3DSIO_COMMENT)
+
+            // pixel/vertex shader end token
+#define D3DPS_END()  0x0000FFFF
+#define D3DVS_END()  0x0000FFFF
+
+#define D3DFVF_TEXTUREFORMAT2 0         // Two floating point values
+#define D3DFVF_TEXTUREFORMAT1 3         // One floating point value
+#define D3DFVF_TEXTUREFORMAT3 1         // Three floating point values
+#define D3DFVF_TEXTUREFORMAT4 2         // Four floating point values
+
+#define D3DFVF_TEXCOORDSIZE3(CoordIndex) (D3DFVF_TEXTUREFORMAT3 << (CoordIndex*2 + 16))
+#define D3DFVF_TEXCOORDSIZE2(CoordIndex) (D3DFVF_TEXTUREFORMAT2)
+#define D3DFVF_TEXCOORDSIZE4(CoordIndex) (D3DFVF_TEXTUREFORMAT4 << (CoordIndex*2 + 16))
+#define D3DFVF_TEXCOORDSIZE1(CoordIndex) (D3DFVF_TEXTUREFORMAT1 << (CoordIndex*2 + 16))
+
+#define D3DPRESENT_RATE_DEFAULT         0x00000000
+
+#define MAX_DEVICE_IDENTIFIER_STRING        512
+ 
+#define D3DRTYPECOUNT 8 // (D3DRTYPE_INDEXBUFFER+1)
+
+#define D3DCOMPOSERECTS_MAXNUMRECTS 0xFFFF
+#define D3DCONVOLUTIONMONO_MAXWIDTH  7
+#define D3DCONVOLUTIONMONO_MAXHEIGHT D3DCONVOLUTIONMONO_MAXWIDTH
+#define D3DFMT_A1_SURFACE_MAXWIDTH  8192
+#define D3DFMT_A1_SURFACE_MAXHEIGHT 2048
+
+#define D3D_OMAC_SIZE    16
+
+#define D3DVS20CAPS_PREDICATION             (1<<0)
+
+#define D3DVS20_MAX_DYNAMICFLOWCONTROLDEPTH  24
+#define D3DVS20_MIN_DYNAMICFLOWCONTROLDEPTH  0
+#define D3DVS20_MAX_NUMTEMPS    32
+#define D3DVS20_MIN_NUMTEMPS    12
+#define D3DVS20_MAX_STATICFLOWCONTROLDEPTH    4
+#define D3DVS20_MIN_STATICFLOWCONTROLDEPTH    1
+
+
+#define D3DPS20_MAX_DYNAMICFLOWCONTROLDEPTH    24
+#define D3DPS20_MIN_DYNAMICFLOWCONTROLDEPTH    0
+#define D3DPS20_MAX_NUMTEMPS    32
+#define D3DPS20_MIN_NUMTEMPS    12
+#define D3DPS20_MAX_STATICFLOWCONTROLDEPTH    4
+#define D3DPS20_MIN_STATICFLOWCONTROLDEPTH    0
+#define D3DPS20_MAX_NUMINSTRUCTIONSLOTS    512
+#define D3DPS20_MIN_NUMINSTRUCTIONSLOTS    96
+
+#define D3DMIN30SHADERINSTRUCTIONS 512
+#define D3DMAX30SHADERINSTRUCTIONS 32768
+
+
+#define DIRECT3D_VERSION         0x0900
+
+#define D3D_SDK_VERSION   32
+#define D3D9b_SDK_VERSION 31
+
+
+
+            IDirect3D9* WINAPI Direct3DCreate9(UINT SDKVersion);
+
+        /*
+         * Stubs for graphics profiling.
+         */
+
+        int WINAPI D3DPERF_BeginEvent(D3DCOLOR col, LPCWSTR wszName);
+        int WINAPI D3DPERF_EndEvent(void);
+        void WINAPI D3DPERF_SetMarker(D3DCOLOR col, LPCWSTR wszName);
+        void WINAPI D3DPERF_SetRegion(D3DCOLOR col, LPCWSTR wszName);
+        BOOL WINAPI D3DPERF_QueryRepeatFrame(void);
+
+        void WINAPI D3DPERF_SetOptions(DWORD dwOptions);
+        DWORD WINAPI D3DPERF_GetStatus(void);

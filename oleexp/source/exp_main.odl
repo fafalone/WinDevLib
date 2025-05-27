@@ -711,24 +711,76 @@ typedef enum MENUPOPUPPOPUPFLAGS
         MPPF_ALIGN_LEFT      = 0x02000000,    // Default alignment
         MPPF_ALIGN_RIGHT     = 0x04000000     // Popup menu aligned to right of exclude rect
     } MENUPOPUPPOPUPFLAGS;
-[
-	odl,
-    uuid(8278F932-2A3E-11d2-838F-00C04FD918D0)
-]
-interface ITrackShellMenu : IShellMenu
+typedef enum MENUPOPUPSELECT
     {
-		HRESULT SetObscured( 
-            [in] HWND hwndTB,
-            [in] IUnknown *punkBand,
-            [in] DWORD dwSMSetFlags);
-        
-        HRESULT Popup( 
-            [in] HWND hwnd,
-            [in] POINT *ppt,
-            [in] RECT *prcExclude,
-            [in] MENUPOPUPPOPUPFLAGS dwFlags);
-        
-    };
+        MPOS_EXECUTE = 0,           // Execute the selected menu item
+        MPOS_FULLCANCEL,            // Cancel the entire menu
+        MPOS_CANCELLEVEL,           // Cancel the current cascaded menu
+        MPOS_SELECTLEFT,            // select one to the left of the cur selection
+        MPOS_SELECTRIGHT,           // select one to the right of the cur selection
+        MPOS_CHILDTRACKING          // the child got a tracking select (mouse moved over)
+    } MENUPOPUPSELECT;
+
+[
+    odl,
+        uuid(EB0FE173-1A3A-11D0-89B3-00A0C90A90AC)
+]
+interface IDeskBar : IOleWindow
+{ 
+    HRESULT   SetClient(
+        /* [annotation][unique][in] */
+        [in]  IUnknown* punkClient);
+
+      HRESULT   GetClient(
+        /* [annotation][out] */
+       [in,out]  IUnknown** ppunkClient);
+
+      HRESULT   OnPosRectChangeDB(
+        /* [annotation][in] */
+        [in]  RECT* prc);
+
+};
+
+typedef enum MP_POPUPFLAGS
+{
+    MPPF_SETFOCUS = 0x1,
+    MPPF_INITIALSELECT = 0x2,
+    MPPF_NOANIMATE = 0x4,
+    MPPF_KEYBOARD = 0x10,
+    MPPF_REPOSITION = 0x20,
+    MPPF_FORCEZORDER = 0x40,
+    MPPF_FINALSELECT = 0x80,
+    MPPF_TOP = 0x20000000,
+    MPPF_LEFT = 0x40000000,
+    MPPF_RIGHT = 0x60000000,
+    MPPF_BOTTOM = 0x80000000,
+    MPPF_POS_MASK = 0xe0000000,
+    MPPF_ALIGN_LEFT = 0x2000000,
+    MPPF_ALIGN_RIGHT = 0x4000000
+} MP_POPUPFLAGS;
+
+[
+    odl,
+    uuid(D1E7AFEB-6A2E-11d0-8C78-00C04FD918B4) 
+]
+interface IMenuPopup : IDeskBar
+{
+    // Type values for IMenuPopup::OnSelect
+
+ 
+    HRESULT Popup(
+        [in] POINT* ppt,
+        [in] RECT* prcExclude,
+        [in] MP_POPUPFLAGS dwFlags);
+
+    HRESULT OnSelect([in] MENUPOPUPSELECT dwSelectType);
+
+    HRESULT SetSubMenu(
+        [in] IMenuPopup* pmp,
+        [in] BOOL fSet);
+}
+
+
 
     typedef enum LIBRARYFOLDERFILTER
     {
@@ -1245,6 +1297,25 @@ interface IFileOperation : stdole.IUnknown
     // 5) Were any operations aborted?
 	long GetAnyOperationsAborted([out] LONG *pfAnyOperationsAborted);
 }
+
+typedef /* [v1_enum] */
+enum FILE_OPERATION_FLAGS2
+{
+    FOF2_NONE = 0,
+    FOF2_MERGEFOLDERSONCOLLISION = 0x1
+} 	FILE_OPERATION_FLAGS2;
+
+[
+    odl,
+        uuid(cd8f23c1-8f61-4916-909d-55bdd0918753)
+]
+interface IFileOperation2 : IFileOperation
+{
+ 
+      HRESULT   SetOperationFlags2(
+        [in] FILE_OPERATION_FLAGS2 operationFlags2);
+
+};
 
 [
     odl,
@@ -1824,6 +1895,25 @@ interface IShellMenu2 : IShellMenu
 };
 
 
+[
+    odl,
+        uuid(8278F932-2A3E-11d2-838F-00C04FD918D0)
+]
+interface ITrackShellMenu : IShellMenu
+{
+    HRESULT SetObscured(
+        [in] HWND hwndTB,
+        [in] IUnknown* punkBand,
+        [in] DWORD dwSMSetFlags);
+
+    HRESULT Popup(
+        [in] HWND hwnd,
+        [in] POINT* ppt,
+        [in] RECT* prcExclude,
+        [in] MENUPOPUPPOPUPFLAGS dwFlags);
+
+};
+
 // Invoke an associated app handler
 [
 	odl,
@@ -2213,7 +2303,7 @@ interface ITransferAdviseSink : stdole.IUnknown
         [in] IShellItem *psi,
         [in] LONG pszItem,
         [in] LONG hrError,
-        [out] LONG *pszRename,
+        [in] LONG pszRename,
         [in] LONG cchRename);
 
     HRESULT SubStreamFailure(
@@ -2258,7 +2348,7 @@ interface ITransferSource : stdole.IUnknown
     //      other HRESULTs indicate a failure.
     HRESULT Advise(
         [in] ITransferAdviseSink *psink,
-        [out] DWORD *pdwCookie);
+        [in, out] DWORD *pdwCookie);
 
     //  Description:
     //      Terminates an advisory connection previously established through
@@ -2324,7 +2414,7 @@ interface ITransferSource : stdole.IUnknown
         [in] IShellItem *psiParentDst,
         [in] LPCWSTR pszNameDst,
         [in] TRANSFER_SOURCE_FLAGS flags,
-        [out] IShellItem **ppsiNew);
+        [in, out] IShellItem **ppsiNew);
 
     // Recycle the item into the provided recycle location, returning the new
     // recycled item in that location.
@@ -2332,7 +2422,7 @@ interface ITransferSource : stdole.IUnknown
         [in] IShellItem *psiSource,
         [in] IShellItem *psiParentDest,
         [in] TRANSFER_SOURCE_FLAGS flags,
-        [out] IShellItem **ppsiNewDest);
+        [in, out] IShellItem **ppsiNewDest);
 
     // Removed the item (without recycle support)
     HRESULT RemoveItem(
@@ -2344,7 +2434,7 @@ interface ITransferSource : stdole.IUnknown
         [in] IShellItem *psiSource,
         [in] LPCWSTR pszNewName,
         [in] TRANSFER_SOURCE_FLAGS flags,
-        [out] IShellItem **ppsiNewDest);
+        [in, out] IShellItem **ppsiNewDest);
 
     // not used or supported, return E_NOTIMPL
     HRESULT LinkItem(
@@ -2352,18 +2442,18 @@ interface ITransferSource : stdole.IUnknown
         [in] IShellItem *psiParentDest,
         [in] LPCWSTR pszNewName,
         [in] TRANSFER_SOURCE_FLAGS flags,
-        [out] IShellItem **ppsiNewDest);
+        [in, out] IShellItem **ppsiNewDest);
 
     // Apply a set of property changes to an item, return the modified shell item.
     HRESULT ApplyPropertiesToItem(
         [in] IShellItem *psiSource,
-        [out] IShellItem **ppsiNew);
+        [in, out] IShellItem **ppsiNew);
 
     // Return the default name, if different from the items parsing name.
     HRESULT GetDefaultDestinationName(
         [in] IShellItem *psiSource,
         [in] IShellItem *psiParentDest,
-        [out] LONG *ppszDestinationName);
+        [in, out] LONG *ppszDestinationName);
 
 	HRESULT EnterFolder([in] IShellItem *psiChildFolderDest);
 
@@ -3249,6 +3339,43 @@ interface ISearchBoxInfo : stdole.IUnknown
         
     HRESULT GetText([out] LONG *ppsz);
 };
+
+//[
+//    odl,
+//    uuid(37A378C0-F82D-11CE-AE65-08002B2E1262)
+//]
+//interface IShellFolderView : stdole.IUnknown 
+//{
+//    STDMETHOD(Rearrange) (THIS_ LPARAM lParamSort) PURE; // use IFolderView2::SetSortColumns
+//    STDMETHOD(GetArrangeParam) (THIS_ _Out_ LPARAM * plParamSort) PURE; // use IFolderView2::GetSortColumns
+//    STDMETHOD(ArrangeGrid) (THIS) PURE; // select Arrange by Grid
+//    STDMETHOD(AutoArrange) (THIS) PURE; // select Auto Arrange
+//    STDMETHOD(GetAutoArrange) (THIS) PURE; // use IFolderView::GetAutoArrange
+//    STDMETHOD(AddObject) (THIS_ _In_ PUITEMID_CHILD pidl, _Out_ UINT * puItem) PURE; // items added here may disappear (the data source is the final arbiter of which items are available to the view)
+//    STDMETHOD(GetObject) (THIS_ _Outptr_ PITEMID_CHILD * ppidl, UINT uItem) PURE; // use IFolderView::Item
+//    STDMETHOD(RemoveObject) (THIS_ _In_opt_ PUITEMID_CHILD pidl, _Out_ UINT * puItem) PURE; // items removed here may reappear (the data source is the final arbiter of which items are available to the view)
+//    STDMETHOD(GetObjectCount) (THIS_ _Out_ UINT * puCount) PURE; // use IFolderView::ItemCount
+//    STDMETHOD(SetObjectCount) (THIS_ UINT uCount, UINT dwFlags) PURE; // not implemented on Vista.  Sends LVM_SETITEMCOUNT with WPARAM=uCount and LPARAM=dwFlags to listview on XP.
+//    STDMETHOD(UpdateObject) (THIS_ _In_ PUITEMID_CHILD pidlOld, _In_ PUITEMID_CHILD pidlNew, _Out_ UINT * puItem) PURE; // swaps ITEMID_CHILDs, returning new index.  Changes may be discarded (the data source is the final arbiter of which items are available to the view)
+//    STDMETHOD(RefreshObject) (THIS_ _In_ PUITEMID_CHILD pidl, _Out_ UINT * puItem) PURE; // tickles the listview to re-draw the item
+//    STDMETHOD(SetRedraw) (THIS_ BOOL bRedraw) PURE; // sends WM_SETREDRAW to the listview
+//    STDMETHOD(GetSelectedCount) (THIS_ _Out_ UINT * puSelected) PURE; // use IFolderView2::GetSelection
+//    // NOTE: GetSelectedObjects hands out const pointers to internal ITEMID_CHILD structures. The caller is expected to act on them immediately (and not cache them).  LocalFree the array, but not the items it contains.
+//    STDMETHOD(GetSelectedObjects) (THIS_ _Outptr_result_buffer_(*puItems) PCUITEMID_CHILD * *pppidl, _Out_ UINT * puItems) PURE; // use IFolderView2::GetSelection.
+//    STDMETHOD(IsDropOnSource) (THIS_ _In_opt_ IDropTarget * pDropTarget) PURE; // use IFolderView2::IsMoveInSameFolder
+//    STDMETHOD(GetDragPoint) (THIS_ _Out_ POINT * ppt) PURE; // returns point corresponding to drag-and-drop operation
+//    STDMETHOD(GetDropPoint) (THIS_ _Out_ POINT * ppt) PURE; // returns point corresponding to drag-and-drop operation
+//    STDMETHOD(MoveIcons) (THIS_ _In_ IDataObject * pDataObject) PURE; // not implemented
+//    STDMETHOD(SetItemPos) (THIS_ _In_ PCUITEMID_CHILD pidl, _In_ POINT * ppt) PURE; // use IFolderView::SelectAndPositionItems
+//    STDMETHOD(IsBkDropTarget) (THIS_ _In_opt_ IDropTarget * pDropTarget) PURE; // returns S_OK if drag-and-drop is on the background, S_FALSE otherwise
+//    STDMETHOD(SetClipboard) (THIS_ BOOL bMove) PURE; // if bMove is TRUE, this attempts to cut (edit.cut, ctrl-x) the current selection.  bMove of FALSE is not supported.
+//    STDMETHOD(SetPoints) (THIS_ _In_ IDataObject * pDataObject) PURE; // copies points of current selection in to data object.  Call is not needed if drag operation was originated by the IShellView.
+//    STDMETHOD(GetItemSpacing) (THIS_ _Out_ ITEMSPACING * pSpacing) PURE; // use IFolderView::GetSpacing instead.  GetItemSpacing returns the spacing for small and large view modes only, returning S_OK if the current view mode is is positionable, S_FALSE otherwise.
+//    STDMETHOD(SetCallback) (THIS_ _In_opt_ IShellFolderViewCB * pNewCB, _Outptr_result_maybenull_ IShellFolderViewCB * *ppOldCB) PURE; // replace the IShellFolderViewCB that the IShellView uses
+//    STDMETHOD(Select) (THIS_  UINT dwFlags) PURE; // SFVS_ select flags: select all, select none, invert selection
+//    STDMETHOD(QuerySupport) (THIS_ _Inout_ UINT * pdwSupport) PURE; // does nothing, returns S_OK.
+//    STDMETHOD(SetAutomationObject)(THIS_ _In_opt_ IDispatch * pdisp) PURE; // replaces the IShellView's internal automation object.
+//};
 
 //NOTE: V_TABLE SWAP REQUIRED
 //Default 0/S_OK return interpreted as message handled
@@ -5625,7 +5752,7 @@ interface IManipulationProcessor : stdole.IUnknown
 [uuid(abb27087-4ce0-4e58-a0cb-e24df96814be)]
 coclass InertiaProcessor {
 	[default] interface IInertiaProcessor;
-	interface IManipulationEvents;
+    [default, source] interface IManipulationEvents;
 };
 
 
@@ -5633,7 +5760,7 @@ coclass InertiaProcessor {
 [uuid(597D4FB0-47FD-4aff-89B9-C6CFAE8CF08E)] 
 coclass ManipulationProcessor { 
 	[default] interface IManipulationProcessor;
-	interface IManipulationEvents;
+    [default, source] interface IManipulationEvents;
 };
 
 [
@@ -6936,19 +7063,7 @@ interface IDeskBarClient : IOleWindow
     HRESULT UIActivateDBC([in] DWORD dwState);
     HRESULT GetSize([in] DWORD dwWhich, [in, out] RECT *prc);
 }
-
-[
-    odl,
-    uuid(EB0FE173-1A3A-11D0-89B3-00A0C90A90AC)
-]
-interface IDeskBar : IOleWindow
-{
-    HRESULT SetClient([in] IUnknown* punkClient);
-
-    HRESULT GetClient([out] IUnknown** ppunkClient);
-
-    HRESULT OnPosRectChangeDB([in] RECT* prc);
-}
+ 
 
 [
     odl,
@@ -7923,7 +8038,73 @@ interface IThumbnailStreamCache : stdole.IUnknown
         [in] IStream* thumbnailStream);
 }
 
+typedef enum VBGCWhich {
+     GC_WCH_SIBLING        = 0x00000001,
+     GC_WCH_CONTAINER = 0x00000002,   // no FONLYAFTER/BEFORE
+     GC_WCH_CONTAINED = 0x00000003,   // no FONLYAFTER/BEFORE
+     GC_WCH_ALL = 0x00000004,
+     GC_WCH_FREVERSEDIR = 0x08000000,   // OR'd with others
+     GC_WCH_FONLYAFTER = 0x10000000,   // OR'd with others
+     GC_WCH_FONLYBEFORE = 0x20000000,   // OR'd with others
+     GC_WCH_FSELECTED = 0x40000000   // OR'd with others
+} VBGCWhich;
 
+[
+    odl,
+        uuid(40A050A0-3C31-101B-A82E-08002B2B2337)
+]
+interface IVBGetControl : stdole.IUnknown
+{
+    // *** IVBGetControl methods ****
+    HRESULT EnumControls([in] DWORD dwOleContF, [in] VBGCWhich dwWhich, [in, out] IEnumUnknown **ppenumUnk);
+};
+
+//---------------------------------------------------------------------------
+// IGetOleObject
+//---------------------------------------------------------------------------
+// This interface lives on the Extender Object (X-Object / hctl)
+//---------------------------------------------------------------------------
+[
+    odl,
+        uuid(8A701DA0-4FEB-101B-A82E-08002B2B2337)
+]
+interface IGetOleObject : stdole.IUnknown
+{
+    HRESULT GetOleObject([in] REFIID riid, [in, out] LongPtr* ppvObj);
+};
+
+[
+    odl,
+        uuid(9849FD60-3768-101B-8D72-AE6164FFE3CF)
+]
+interface IVBFormat : stdole.IUnknown
+{
+    HRESULT Format([in] VARIANT* vData, [in] BSTR bstrFormat, [in] LongPtr lpBuffer,
+        [in] USHORT cb, [in] LONG lcid ,[in] SHORT sFirstDayOfWeek,
+        [in] USHORT sFirstWeekOfYear,[in, out] USHORT * rcb);
+};
+
+[
+    odl,
+    uuid(91733A60-3F4C-101B-A3F6-00AA0034E4E9)
+]
+interface IGetVBAObject : stdole.IUnknown
+{
+   HRESULT GetObject([in] REFIID riid, [in, out] LongPtr* ppvObj, [in] DWORD dwReserved);
+};
+
+
+[
+    odl,
+        uuid(ED2AA515-602F-469C-A130-CE69FD0FA878)
+]
+interface IObjectWithPackageFullName : stdole.IUnknown
+{
+ 
+      HRESULT   GetPackageFullName(
+        [in, out] LongPtr * packageFullName);
+
+};
 
 
     // Thumbnail Stream Cache
@@ -8158,6 +8339,14 @@ coclass TaskbarList {
 ]
 coclass ShellLinkW {
    [default] interface IShellLinkW;
+   interface IPersistFile;
+};
+[uuid(0afaced1-e828-11d1-9187-b532f1e9575d),
+helpstring("VB IShellLinkW Class")
+]
+coclass FolderShortcut {
+    [default] interface IShellLinkW;
+    interface IPersistFile;
 };
 // CLSID_FileOperation
 [ uuid(3ad05575-8857-4850-9277-11b85bdb8e09) ]
@@ -8204,3 +8393,12 @@ coclass InternetZoneManager {
 	uuid(208d2c60-3aea-1069-a2d7-08002b30309d)
 ] coclass NetworkPlaces { [default] interface IInitializeNetworkFolder;
 									interface IShellFolder2; }
+
+[uuid(E88DCCE0-B7B3-11d1-A9F0-00AA0060FA31)]
+coclass CompressedFolder {
+    [default] interface IShellExtInit;
+    interface IPersistFolder;
+    interface IPersistFolder2;
+    interface IStorage;
+    interface IShellFolder;
+};
