@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 8.12.544 (May 27th, 2025)**
+**Current Version: 8.12.548 (June 5th, 2025)**
 
 (c) 2022-2025 Jon Johnson (fafalone)
 
@@ -223,6 +223,21 @@ Finally, there's numerous additional API sets from small to large for independen
 This project has grown well beyond it's original mission of shell programming. While that's still the largest single part, it's no longer a majority of the code, and the name change now much better reflects the purpose of providing a general Windows API experience like windows.h. Compiler constants and module names/file names have been updated to reflect the name change. tbShellLibImpl is now WinDevLibImpl. There are also some major chanages associated with this update, please see the full changelog below.
 
 ### Updates
+
+**Update (v8.12.548, 05 Jun 2025):**\
+-Added some D3DX coverage (d3dx9core.h, d3d9x.h, d3d9xshader.h, d3d9xtex.h, d3dx11core.h, d3dx11tex.h 100%)\
+-Added additional Winsock APIs (ws_closesocket from ws2api; then WS2spi.h partial, SpOrder.h 100%)\
+-Added numerous missing shlwapi aliases and some missing functions.\
+-Added Filter Manager usermode APIs (fltUserStructures.h, fltUser.h 100%)\
+-wvsprintf[A,W] didn't make use of ByRef ParamArray args As Any()\
+-(API Standards) Changed numerous byte array inputs typed as Byte to As Any to conform with standard.\
+-(API Standards) StrCpy didn't use String.\
+-(Bug fix) Duplicated constant: FACILITY_HID_ERROR_CODE\
+-(Bug fix) IAMMediaTypeSample::GetPointer incorrectly returned Byte instead of LongPtr for a double pointer.\
+-(Bug fix) String overload for StrCmpLogicalW didn't use DeclareWide\
+-(Bug fix) WSASocket invalid duplicate (Thanks to forliny)\
+-(Bug fix) COINIT_MULTITHREADED value incorrect (Thanks to forliny)\
+-(Disabled) wvnsprintf and wvsprintf functions commented out pending tB bugfix
 
 **Update (v8.12.544, 27 May 2025):**\
 -Added additional Media Foundation interfaces/APIs from wmcontainer.h, ksopmapi.h, opmapi.h (100%)\
