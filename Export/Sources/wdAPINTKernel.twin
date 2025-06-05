@@ -6060,6 +6060,42 @@ Public Enum USER_ACTIVITY_PRESENCE
     PowerUserMaximum = 3
     PowerUserInvalid = PowerUserMaximum
 End Enum
+Public Enum ENERGY_SAVER_STATUS
+    ENERGY_SAVER_OFF = 0
+    ENERGY_SAVER_STANDARD
+    ENERGY_SAVER_HIGH_SAVINGS
+End Enum
+' typedef union _POWER_STATE {
+' SYSTEM_POWER_STATE SystemState;
+' DEVICE_POWER_STATE DeviceState;
+' } POWER_STATE,
+[Description("Union of SYSTEM_POWER_STATE and DEVICE_POWER_STATE")]
+Public Enum POWER_STATE
+    [_]
+    /* [TypeHint(SYSTEM_POWER_STATE, DEVICE_POWER_STATE)] State As Long */
+End Enum
+Public Enum POWER_STATE_TYPE
+    SystemPowerState = 0
+    DevicePowerState
+End Enum
+Public Type SYSTEM_POWER_STATE_CONTEXT
+    ' union {
+        ' struct {
+            ' ULONG   Reserved1               : 8;
+            ' ULONG   TargetSystemState       : 4;
+            ' ULONG   EffectiveSystemState    : 4;
+            ' ULONG   CurrentSystemState      : 4;
+            ' ULONG   IgnoreHibernationPath   : 1;
+            ' ULONG   PseudoTransition        : 1;
+            ' ULONG   KernelSoftReboot        : 1;
+            ' ULONG   DirectedDripsTransition : 1;
+            ' ULONG   Reserved2               : 8;
+        ' } DUMMYSTRUCTNAME;
+
+        ' ULONG ContextAsUlong;
+    ' } DUMMYUNIONNAME;
+    ContextAsUlong As Long
+End Type
 Public Enum EXECUTION_STATE
     ES_SYSTEM_REQUIRED = (&H00000001)
     ES_DISPLAY_REQUIRED = (&H00000002)
@@ -18211,7 +18247,10 @@ Public Declare PtrSafe Function _wcsupr CDecl Lib "ntdll" (ByVal _Str As LongPtr
 Public Declare PtrSafe Function _wcsrev CDecl Lib "ntdll" (ByVal _Str As LongPtr) As LongPtr
 Public Declare PtrSafe Function wcschr CDecl Lib "ntdll" (ByVal str As LongPtr, ByVal Ch As Integer) As LongPtr
 Public Declare PtrSafe Function wcsstr CDecl Lib "ntdll" (ByVal dest As LongPtr, ByVal src As LongPtr) As LongPtr
-    
+Public DeclareWide PtrSafe Function swprintf_s CDecl Lib "ntdll" (ByVal buf As String, ByVal sizeOfBuffer As LongPtr, ByVal format As String, ByVal ParamArray args As Any()) As Long
+[Description("WARNING: You should use the secure version of this API, swprintf_s.")]
+Public DeclareWide PtrSafe Function swprintf CDecl Lib "ntdll" (ByVal buf As String, ByVal format As String, ByVal ParamArray args As Any()) As Long
+
 
 'Memory partitions
 Public Enum PartitionAccessRights
@@ -18810,9 +18849,9 @@ Public Function RtlEqualMemory(ByVal Source1 As LongPtr, ByVal Source2 As LongPt
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlNtStatusToDosError Lib "ntdll" (ByVal ntStatus As NTSTATUS) As Long
 [Description("Generates a uniform random number using D.H. Lehmer's 1948 algorithm.")]
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlUniform Lib "ntdll" (Seed As Long) As Long
-[UseGetLastError(False)] Public Declare PtrSafe Function RtlImageNtHeader Lib "ntdll" (ByVal ModuleBase As LongPtr) As LongPtr
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlImageRvaToVa Lib "ntdll" (ByVal NtHeaders As LongPtr, ByVal ModuleBase As LongPtr, ByVal Rva As Long, pLastSection As IMAGE_SECTION_HEADER) As LongPtr
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlImageRvaToSection Lib "ntdll" (nt As IMAGE_NT_HEADERS, ByVal BaseAddress As LongPtr, ByVal rva As Long) As LongPtr
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlImageNtHeader Lib "ntdll" (ByVal ModuleBase As LongPtr) As LongPtr
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlImageDirectoryEntryToData Lib "ntdll" (ByVal BaseAddress As LongPtr, ByVal MappedAsImage As Byte, [TypeHint(ImageDirectories)] ByVal Directory As Integer, size As Long) As LongPtr
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlGetNtGlobalFlags Lib "ntdll" () As NTGLB_Flags
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlAllocateHeap Lib "ntdll" (ByVal HeapHandle As LongPtr, ByVal Flags As HeapFlags, ByVal Size As LongPtr) As LongPtr
@@ -18857,6 +18896,7 @@ Public Function RtlEqualMemory(ByVal Source1 As LongPtr, ByVal Source2 As LongPt
 [Description("While MSDN asserts this as required for accessing the NtSystemRoot field of KUSER_SHARED_DATA, a field present since NT4, it's only available in Win10 RS2+")]
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlGetNtSystemRoot Lib "ntdll" () As LongPtr
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlTimeToSecondsSince1970 Lib "ntdll" (Time As LARGE_INTEGER, ElapsedSeconds As Long) As Byte
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlGUIDFromString Lib "ntdll" (GuidString As UNICODE_STRING, Guid As UUID) As NTSTATUS
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlConvertSidToUnicodeString Lib "ntdll" (UnicodeString As UNICODE_STRING, ByVal Sid As LongPtr, ByVal AllocateDestinationString As Byte) As NTSTATUS
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlLengthSidAsUnicodeString Lib "ntdll" (ByVal Sid As LongPtr, StringLength As Long) As NTSTATUS
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlValidSid Lib "ntdll" (ByVal Sid As LongPtr) As Byte
@@ -19117,7 +19157,7 @@ Public Declare PtrSafe Function RtlRaiseCustomSystemEventTrigger Lib "ntdll" (Tr
 [UseGetLastError(False)] Public Declare PtrSafe Function LdrDisableThreadCalloutsForDll Lib "ntdll" (ByVal DllHandle As LongPtr) As NTSTATUS
 
 
-[UseGetLastError(False)] Public Declare PtrSafe Function DbgPrint CDecl Lib "ntdll" (ByVal Format As String, ByVal ParamArray vargs As Any()) As Long
+[UseGetLastError(False)] Public Declare PtrSafe Function DbgPrint CDecl Lib "ntdll" (ByVal Format As String, ByRef ParamArray vargs As Any()) As Long
 
 
 

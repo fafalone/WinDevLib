@@ -1,0 +1,554 @@
+'*****************************************************************************************
+'This file is a part of WinDevLib - Windows Development Library for twinBASIC
+'https://github.com/fafalone/WinDevLib
+'Code ported by Jon Johnson. 
+'"Windows" is a trademark of the Microsoft Corporation.
+'Certain Description attributes (c) Microsoft, taken from SDK headers and official docs.
+'Licensed under Creative Commons CC0 1.0 Universal
+'*****************************************************************************************
+
+    /*
+    wdAPIFlt - Filter Manager Usermode APIs
+    fltUserStructures.h - 100%
+    fltUser.h - 100%
+    Note: This file uses the same FLT_MGR_WIN8 conditional compilation flag as kernel mode.
+    FLT_MGR_WIN7/FLT_MGR_LONGHORN/FLT_MGR_AFTER_XPSP2/FLT_MGR_BASELINE are treated as True
+      (Like the rest of WinDevLib, pre-Vista systems aren't supported)
+    */
+     
+Module wdAPIFlt
+
+    'fltUserStructures.h - Shared with usermode (100%)
+
+    Public Const FILTER_NAME_MAX_CHARS  = 255
+    Public Const FILTER_NAME_MAX_BYTES  = (FILTER_NAME_MAX_CHARS * 2)
+    Public Const VOLUME_NAME_MAX_CHARS  = 1024
+    Public Const VOLUME_NAME_MAX_BYTES  = (VOLUME_NAME_MAX_CHARS * 2)
+    Public Const INSTANCE_NAME_MAX_CHARS  = 255
+    Public Const INSTANCE_NAME_MAX_BYTES  = (INSTANCE_NAME_MAX_CHARS * 2)
+
+    Public Enum FLT_FILESYSTEM_TYPE
+        FLT_FSTYPE_UNKNOWN = 0 'an UNKNOWN file system type
+        FLT_FSTYPE_RAW = 1 'Microsoft's RAW file system       (\FileSystem\RAW)
+        FLT_FSTYPE_NTFS = 2 'Microsoft's NTFS file system      (\FileSystem\Ntfs)
+        FLT_FSTYPE_FAT = 3 'Microsoft's FAT file system       (\FileSystem\Fastfat)
+        FLT_FSTYPE_CDFS = 4 'Microsoft's CDFS file system      (\FileSystem\Cdfs)
+        FLT_FSTYPE_UDFS = 5 'Microsoft's UDFS file system      (\FileSystem\Udfs)
+        FLT_FSTYPE_LANMAN = 6 'Microsoft's LanMan Redirector     (\FileSystem\MRxSmb)
+        FLT_FSTYPE_WEBDAV = 7 'Microsoft's WebDav redirector     (\FileSystem\MRxDav)
+        FLT_FSTYPE_RDPDR = 8 'Microsoft's Terminal Server redirector    (\Driver\rdpdr)
+        FLT_FSTYPE_NFS = 9 'Microsoft's NFS file system       (\FileSystem\NfsRdr)
+        FLT_FSTYPE_MS_NETWARE = 10 'Microsoft's NetWare redirector    (\FileSystem\nwrdr)
+        FLT_FSTYPE_NETWARE = 11 'Novell's NetWare redirector
+        FLT_FSTYPE_BSUDF = 12 'The BsUDF CD-ROM driver           (\FileSystem\BsUDF)
+        FLT_FSTYPE_MUP = 13 'Microsoft's Mup redirector        (\FileSystem\Mup)
+        FLT_FSTYPE_RSFX = 14 'Microsoft's WinFS redirector      (\FileSystem\RsFxDrv)
+        FLT_FSTYPE_ROXIO_UDF1 = 15 'Roxio's UDF writeable file system (\FileSystem\cdudf_xp)
+        FLT_FSTYPE_ROXIO_UDF2 = 16 'Roxio's UDF readable file system  (\FileSystem\UdfReadr_xp)
+        FLT_FSTYPE_ROXIO_UDF3 = 17 'Roxio's DVD file system           (\FileSystem\DVDVRRdr_xp)
+        FLT_FSTYPE_TACIT = 18 'Tacit FileSystem                  (\Device\TCFSPSE)
+        FLT_FSTYPE_FS_REC = 19 'Microsoft's File system recognizer (\FileSystem\Fs_rec)
+        FLT_FSTYPE_INCD = 20 'Nero's InCD file system           (\FileSystem\InCDfs)
+        FLT_FSTYPE_INCD_FAT = 21 'Nero's InCD FAT file system       (\FileSystem\InCDFat)
+        FLT_FSTYPE_EXFAT = 22 'Microsoft's EXFat FILE SYSTEM     (\FileSystem\exfat)
+        FLT_FSTYPE_PSFS = 23 'PolyServ's file system            (\FileSystem\psfs)
+        FLT_FSTYPE_GPFS = 24 'IBM General Parallel File System  (\FileSystem\gpfs)
+        FLT_FSTYPE_NPFS = 25 'Microsoft's Named Pipe file system(\FileSystem\npfs)
+        FLT_FSTYPE_MSFS = 26 'Microsoft's Mailslot file system  (\FileSystem\msfs)
+        FLT_FSTYPE_CSVFS = 27 'Microsoft's Cluster Shared Volume file system  (\FileSystem\csvfs)
+        FLT_FSTYPE_REFS = 28 'Microsoft's ReFS file system      (\FileSystem\Refs or \FileSystem\Refsv1)
+        FLT_FSTYPE_OPENAFS = 29 'OpenAFS file system               (\Device\AFSRedirector)
+        FLT_FSTYPE_CIMFS = 30 'Composite Image file system       (\FileSystem\cimfs)
+    End Enum
+
+    Public Enum FILTER_INFORMATION_CLASS
+        FilterFullInformation
+        FilterAggregateBasicInformation   'Added to XP SP2 via QFE
+        FilterAggregateStandardInformation  'Longhorn and later
+    End Enum
+
+    [Description("WARNING: Buffer substituted for variable C-style array.")]
+    Public Type FILTER_FULL_INFORMATION
+        NextEntryOffset As Long
+        FrameID As Long
+        NumberOfInstances As Long
+        FilterNameLength As Integer
+        FilterNameBuffer(0 To FILTER_NAME_MAX_CHARS) As Integer
+    End Type
+
+    Public Enum FltAgBasicInfoFlags
+        FLTFL_AGGREGATE_INFO_IS_MINIFILTER = &H00000001
+        FLTFL_AGGREGATE_INFO_IS_LEGACYFILTER = &H00000002
+    End Enum
+
+    Public Type FILTER_AGGREGATE_BASIC_INFORMATION
+        NextEntryOffset As Long
+        '  ABI - Aggregate Basic Information flags
+        Flags As FltAgBasicInfoFlags
+        ' union {
+
+            ' //
+            ' //  Minifilter FULL information
+            ' //
+
+            ' struct {
+
+            '     ULONG FrameID;
+
+            '     ULONG NumberOfInstances;
+
+            '     USHORT FilterNameLength;
+            '     USHORT FilterNameBufferOffset;
+
+            '     USHORT FilterAltitudeLength;
+            '     USHORT FilterAltitudeBufferOffset;
+
+            ' } MiniFilter;
+
+            ' //
+            ' //  Legacyfilter information
+            ' //
+
+            ' struct {
+
+                ' USHORT FilterNameLength;
+                ' USHORT FilterNameBufferOffset;
+
+            ' } LegacyFilter;
+
+        ' } Type;
+        Type As FABI_Type_Minifilter 'You can extract the Legacy filter option by copying FrameID
+    End Type
+    Public Type FABI_Type_Minifilter
+        FrameID As Long
+        NumberOfInstances As Long
+        FilterNameLength As Integer
+        FilterNameBufferOffset As Integer
+        FilterAltitudeLength As Integer
+        FilterAltitudeBufferOffset As Integer
+    End Type
+    Public Type FABI_Type_LegacyFilter
+        FilterNameLength As Integer
+        FilterNameBufferOffset As Integer
+    End Type
+
+    Public Enum FltAgStdInfoFlags
+        FLTFL_ASI_IS_MINIFILTER = &H00000001
+        FLTFL_ASI_IS_LEGACYFILTER = &H00000002
+    End Enum
+    Public Type FILTER_AGGREGATE_STANDARD_INFORMATION
+        NextEntryOffset As Long
+        '  ASI - Aggregate Standard Information flags
+        Flags As FltAgStdInfoFlags
+        ' union {
+
+            ' //
+            ' //  Minifilter FULL information
+            ' //
+
+            ' struct {
+
+            '     //
+            '     //  ASIM - Aggregate Standard Information Minifilter flags
+            '     //
+
+            '     ULONG Flags;
+
+
+            '     ULONG FrameID;
+
+            '     ULONG NumberOfInstances;
+
+            '     USHORT FilterNameLength;
+            '     USHORT FilterNameBufferOffset;
+
+            '     USHORT FilterAltitudeLength;
+            '     USHORT FilterAltitudeBufferOffset;
+
+            ' } MiniFilter;
+
+            ' //
+            ' //  Legacyfilter information
+            ' //
+
+            ' struct {
+
+                ' //
+                ' //  ASIL - Aggregate Standard Information LegacyFilter flags
+                ' //
+
+                ' ULONG Flags;
+
+
+                ' USHORT FilterNameLength;
+                ' USHORT FilterNameBufferOffset;
+
+                ' USHORT FilterAltitudeLength;
+                ' USHORT FilterAltitudeBufferOffset;
+
+            ' } LegacyFilter;
+
+        ' } Type;
+        Type As FASI_Type_Minifilter 'Copy this onto FASI_Type_LegacyFilter for that option
+    End Type
+    Public Type FASI_Type_Minifilter
+        '  ASIM - Aggregate Standard Information Minifilter flags
+        Flags As Long
+        FrameID As Long
+        NumberOfInstances As Long
+        FilterNameLength As Integer
+        FilterNameBufferOffset As Integer
+        FilterAltitudeLength As Integer
+        FilterAltitudeBufferOffset As Integer
+    End Type
+    Public Type FASI_Type_LegacyFilter
+        '  ASIM - Aggregate Standard Information Minifilter flags
+        Flags As Long
+        FilterNameLength As Integer
+        FilterNameBufferOffset As Integer
+        FilterAltitudeLength As Integer
+        FilterAltitudeBufferOffset As Integer
+    End Type
+
+    Public Enum FILTER_VOLUME_INFORMATION_CLASS
+        FilterVolumeBasicInformation = 0
+        FilterVolumeStandardInformation = 1 'Longhorn and later
+    End Enum
+
+    [Description("WARNING: Buffer substituted for variable C-style array.")]
+    Public Type FILTER_VOLUME_BASIC_INFORMATION
+        '  Length of name
+        FilterVolumeNameLength As Integer
+        '  Buffer containing name (it's NOT NULL-terminated)
+        FilterVolumeName(0 To (VOLUME_NAME_MAX_CHARS - 1)) As Integer
+    End Type
+
+
+    Public Enum FltVolStdInfoFlags
+        '  If set this volume is not current attached to a storage stack 
+        FLTFL_VSI_DETACHED_VOLUME = &H00000001
+    End Enum
+    [Description("WARNING: Buffer substituted for variable C-style array.")]
+    Public Type FILTER_VOLUME_STANDARD_INFORMATION
+        NextEntryOffset As Long
+        '  VSI - VOlume Standard Information flags
+        Flags As FltVolStdInfoFlags
+        '  Identifies which frame this volume structure is in
+        FrameID As Long
+        '  Identifies the type of file system being used on the volume
+        FileSystemType As FLT_FILESYSTEM_TYPE
+        '  Length of name
+        FilterVolumeNameLength As Integer
+        '  Buffer containing name (it's NOT NULL-terminated)
+        FilterVolumeName(0 To (VOLUME_NAME_MAX_CHARS - 1)) As Integer
+    End Type
+
+    Public Enum INSTANCE_INFORMATION_CLASS
+        InstanceBasicInformation
+        InstancePartialInformation
+        InstanceFullInformation
+        InstanceAggregateStandardInformation   'LONGHORN and later
+    End Enum
+
+    Public Type INSTANCE_BASIC_INFORMATION
+        NextEntryOffset As Long
+        InstanceNameLength As Integer
+        InstanceNameBufferOffset As Integer
+    End Type
+
+    Public Type INSTANCE_PARTIAL_INFORMATION
+        NextEntryOffset As Long
+        InstanceNameLength As Integer
+        InstanceNameBufferOffset As Integer
+        AltitudeLength As Integer
+        AltitudeBufferOffset As Integer
+    End Type
+
+    Public Type INSTANCE_FULL_INFORMATION
+        NextEntryOffset As Long
+        InstanceNameLength As Integer
+        InstanceNameBufferOffset As Integer
+        AltitudeLength As Integer
+        AltitudeBufferOffset As Integer
+        VolumeNameLength As Integer
+        VolumeNameBufferOffset As Integer
+        FilterNameLength As Integer
+        FilterNameBufferOffset As Integer
+    End Type
+
+    Public Enum FltInstStdInfoFlags
+        FLTFL_IASI_IS_MINIFILTER = &H00000001
+        FLTFL_IASI_IS_LEGACYFILTER = &H00000002
+    End Enum
+    Public Type INSTANCE_AGGREGATE_STANDARD_INFORMATION
+        NextEntryOffset As Long
+        '  IASI - Instance Aggregate Standard Information flags
+        Flags As FltInstStdInfoFlags
+        ' union {
+
+            ' //
+            ' //  MiniFilter information
+            ' //
+
+            ' struct {
+
+                ' //
+                ' //  IASIM - Instance Aggregate Standard Information Minifilter flags
+                ' //
+
+                ' ULONG Flags;
+
+                    ' //
+                    ' //  If set this volume is not current attached to a storage stack
+                    ' //
+
+                    ' #define FLTFL_IASIM_DETACHED_VOLUME 0x00000001
+
+                ' //
+                ' //  Identifies which frame this volume structure is in
+                ' //
+
+                ' ULONG FrameID;
+
+                ' //
+                ' //  The type of file system this instance is attached to
+                ' //
+
+                ' FLT_FILESYSTEM_TYPE VolumeFileSystemType;
+
+                ' //
+                ' //  The name of this instance (unicode string)
+                ' //
+
+                ' USHORT InstanceNameLength;              //in bytes
+                ' USHORT InstanceNameBufferOffset;
+
+                ' //
+                ' //  The altitude of this instance (unicode string)
+                ' //
+
+                ' USHORT AltitudeLength;
+                ' USHORT AltitudeBufferOffset;
+
+                ' //
+                ' //  The volume name this instance is attached to (unicode string)
+                ' //
+
+                ' USHORT VolumeNameLength;
+                ' USHORT VolumeNameBufferOffset;
+
+                ' //
+                ' //  The name of the minifilter associated with this instace (unicode string)
+                ' //
+
+                ' USHORT FilterNameLength;
+                ' USHORT FilterNameBufferOffset;
+
+    ' #if FLT_MGR_WIN8
+                ' //
+                ' //  Identifies the "SupportedFeatures" state for this filter
+                ' //  The flag values for this can be found in ntifs.h and begin
+                ' //  with: FSFILTER_SUPPORTED_FEATURES_
+                ' //
+
+                ' ULONG SupportedFeatures;
+    ' #endif
+
+            ' } MiniFilter;
+
+            ' //
+            ' //  Legacyfilter information
+            ' //
+
+            ' struct {
+
+                ' //
+                ' //  IASIL - Instance Aggregate Standard Information LegacyFilter flags
+                ' //
+
+                ' ULONG Flags;
+
+                    ' //
+                    ' //  If set this volume is not current attached to a storage stack
+                    ' //
+
+                    ' #define FLTFL_IASIL_DETACHED_VOLUME 0x00000001
+
+                ' //
+                ' //  The altitude of this attachment (unicode string)
+                ' //
+
+                ' USHORT AltitudeLength;
+                ' USHORT AltitudeBufferOffset;
+
+                ' //
+                ' //  The volume name this filter is attached to (unicode string)
+                ' //
+
+                ' USHORT VolumeNameLength;
+                ' USHORT VolumeNameBufferOffset;
+
+                ' //
+                ' //  The name of the filter associated with this attachment (unicode string)
+                ' //
+
+                ' USHORT FilterNameLength;
+                ' USHORT FilterNameBufferOffset;
+
+    ' #if FLT_MGR_WIN8
+                ' //
+                ' //  Identifies the "SupportedFeatures" state for this filter
+                ' //  The flag values for this can be found in ntifs.h and begin
+                ' //  with: SUPPORTED_FS_FEATURES_
+                ' //
+
+                ' ULONG SupportedFeatures;
+    ' #endif
+
+            ' } LegacyFilter;
+
+        ' } Type;
+        Type As IASI_Type_Minifilter 'Copy into a IASI_Type_LegacyFilter type for that option
+    End Type
+    Public Enum IASIMinifilterFlags
+        FLTFL_IASIM_DETACHED_VOLUME = &H00000001
+    End Enum
+    Public Enum IASILegacyFilterFlags
+        FLTFL_IASIL_DETACHED_VOLUME = &H00000001
+    End Enum
+    Public Type IASI_Type_Minifilter
+        '  IASIM - Instance Aggregate Standard Information Minifilter flags
+        Flags As IASIMinifilterFlags
+        '  Identifies which frame this volume structure is in
+        FrameID As Long
+        '  The type of file system this instance is attached to
+        VolumeFileSystemType As FLT_FILESYSTEM_TYPE
+        '  The name of this instance (unicode string)
+        InstanceNameLength As Integer 'in bytes
+        InstanceNameBufferOffset As Integer
+        '  The altitude of this instance (unicode string)
+        AltitudeLength As Integer
+        AltitudeBufferOffset As Integer
+        '  The volume name this instance is attached to (unicode string)
+        VolumeNameLength As Integer
+        VolumeNameBufferOffset As Integer
+        '  The name of the minifilter associated with this instace (unicode string)
+        FilterNameLength As Integer
+        FilterNameBufferOffset As Integer
+        #If FLT_MGR_WIN8 Then
+        '  Identifies the "SupportedFeatures" state for this filter
+        '  The flag values for this can be found in ntifs.h and begin
+        '  with: FSFILTER_SUPPORTED_FEATURES_
+        SupportedFeatures As Long
+        #End If
+    End Type
+    Public Type IASI_Type_LegacyFilter
+        '  IASIL - Instance Aggregate Standard Information LegacyFilter flags
+        Flags As IASILegacyFilterFlags
+        '  The altitude of this attachment (unicode string)
+        AltitudeLength As Integer
+        AltitudeBufferOffset As Integer
+        '  The volume name this filter is attached to (unicode string)
+        VolumeNameLength As Integer
+        VolumeNameBufferOffset As Integer
+        '  The name of the filter associated with this attachment (unicode string)
+        FilterNameLength As Integer
+        FilterNameBufferOffset As Integer
+         #If FLT_MGR_WIN8 Then
+        '  Identifies the "SupportedFeatures" state for this filter
+        '  The flag values for this can be found in ntifs.h and begin
+        '  with: SUPPORTED_FS_FEATURES_
+        SupportedFeatures As Long
+        #End If
+    End Type
+
+    Public Type FILTER_MESSAGE_HEADER
+        '  OUT
+        '  Total buffer length in bytes, including the FILTER_REPLY_HEADER, of
+        '  the expected reply.  If no reply is expected, 0 is returned.
+        ReplyLength As Long
+        '  OUT
+        '  Unique Id for this message.  This will be set when the kernel message
+        '  satifies this FilterGetMessage or FilterInstanceGetMessage request.
+        '  If replying to this message, this is the MessageId that should be used.
+        MessageId As LongLong
+        '  General filter-specific buffer data follows...
+    End Type
+    Public Type FILTER_REPLY_HEADER
+        '  IN.
+        '  Status of this reply. This status will be returned back to the filter
+        '  driver who is waiting for a reply.
+        Status As NTSTATUS
+        '  IN
+        '  Unique Id for this message.  This id was returned in the
+        '  FILTER_MESSAGE_HEADER from the kernel message to which we are replying.
+        MessageId As LongLong
+        '  General filter-specific buffer data follows...
+    End Type
+
+    
+    'fltUser.h
+
+    Public Enum FilterConnectComPortOptions
+        FLT_PORT_FLAG_SYNC_HANDLE = 1
+    End Enum
+    
+    
+    [UseGetLastError(False)]
+    Public DeclareWide PtrSafe Function FilterLoad Lib "FltLib.dll" (ByVal lpFilterName As String) As Long
+    [UseGetLastError(False)]
+    Public DeclareWide PtrSafe Function FilterUnload Lib "FltLib.dll" (ByVal lpFilterName As String) As Long
+    [UseGetLastError(False)]
+    Public DeclareWide PtrSafe Function FilterCreate Lib "FltLib.dll" (ByVal lpFilterName As String, hFilter As LongPtr) As Long
+    [UseGetLastError(False)]
+    Public Declare PtrSafe Function FilterClose Lib "FltLib.dll" (ByVal hFilter As LongPtr) As Long
+    [UseGetLastError(False)]
+    Public DeclareWide PtrSafe Function FilterInstanceCreate Lib "FltLib.dll" (ByVal lpFilterName As String, ByVal lpVolumeName As String, ByVal lpInstanceName As String, hInstance As LongPtr) As Long
+    [UseGetLastError(False)]
+    Public Declare PtrSafe Function FilterInstanceClose Lib "FltLib.dll" (ByVal hInstance As LongPtr) As Long
+    [UseGetLastError(False)]
+    Public Declare PtrSafe Function FilterAttach Lib "FltLib.dll" (ByVal lpFilterName As String, ByVal lpVolumeName As String, ByVal lpInstanceName As String, ByVal dwCreatedInstanceNameLength As Long, ByVal lpCreatedInstanceName As String) As Long
+    [UseGetLastError(False)]
+    Public Declare PtrSafe Function FilterAttachAtAltitude Lib "FltLib.dll" (ByVal lpFilterName As String, ByVal lpVolumeName As String, ByVal lpAltitude As String, ByVal lpInstanceName As String, ByVal dwCreatedInstanceNameLength As Long, ByVal lpCreatedInstanceName As String) As Long
+    [UseGetLastError(False)]
+    Public Declare PtrSafe Function FilterDetach Lib "FltLib.dll" (ByVal lpFilterName As String, ByVal lpVolumeName As String, ByVal lpInstanceName As String) As Long
+    [UseGetLastError(False)]
+    Public Declare PtrSafe Function FilterFindFirst Lib "FltLib.dll" (ByVal dwInformationClass As FILTER_INFORMATION_CLASS, lpBuffer As Any, ByVal dwBufferSize As Long, lpBytesReturned As Long, lpFilterFind As LongPtr) As Long
+    [UseGetLastError(False)]
+    Public Declare PtrSafe Function FilterFindNext Lib "FltLib.dll" (ByVal hFilterFind As LongPtr, ByVal dwInformationClass As FILTER_INFORMATION_CLASS, lpBuffer As Any, ByVal dwBufferSize As Long, lpBytesReturned As Long) As Long
+    [UseGetLastError(False)]
+    Public Declare PtrSafe Function FilterFindClose Lib "FltLib.dll" (ByVal hFilterFind As LongPtr) As Long
+    [UseGetLastError(False)]
+    Public Declare PtrSafe Function FilterVolumeFindFirst Lib "FltLib.dll" (ByVal dwInformationClass As FILTER_VOLUME_INFORMATION_CLASS, lpBuffer As Any, ByVal dwBufferSize As Long, lpBytesReturned As Long, lpVolumeFind As LongPtr) As Long
+    [UseGetLastError(False)]
+    Public Declare PtrSafe Function FilterVolumeFindNext Lib "FltLib.dll" (ByVal hVolumeFind As LongPtr, ByVal dwInformationClass As FILTER_VOLUME_INFORMATION_CLASS, lpBuffer As Any, ByVal dwBufferSize As Long, lpBytesReturned As Long) As Long
+    [UseGetLastError(False)]
+    Public Declare PtrSafe Function FilterVolumeFindClose Lib "FltLib.dll" (ByVal hVolumeFind As LongPtr) As Long
+    [UseGetLastError(False)]
+    Public DeclareWide PtrSafe Function FilterInstanceFindFirst Lib "FltLib.dll" (ByVal lpFilterName As String, ByVal dwInformationClass As INSTANCE_INFORMATION_CLASS, lpBuffer As Any, ByVal dwBufferSize As Long, lpBytesReturned As Long, lpFilterInstanceFind As LongPtr) As Long
+    [UseGetLastError(False)]
+    Public Declare PtrSafe Function FilterInstanceFindNext Lib "FltLib.dll" (ByVal hFilterInstanceFind As LongPtr, ByVal dwInformationClass As INSTANCE_INFORMATION_CLASS, lpBuffer As Any, ByVal dwBufferSize As Long, lpBytesReturned As Long) As Long
+    [UseGetLastError(False)]
+    Public Declare PtrSafe Function FilterInstanceFindClose Lib "FltLib.dll" (ByVal hFilterInstanceFind As LongPtr) As Long
+    [UseGetLastError(False)]
+    Public DeclareWide PtrSafe Function FilterVolumeInstanceFindFirst Lib "FltLib.dll" (ByVal lpVolumeName As String, ByVal dwInformationClass As INSTANCE_INFORMATION_CLASS, lpBuffer As Any, ByVal dwBufferSize As Long, lpBytesReturned As Long, lpVolumeInstanceFind As LongPtr) As Long
+    [UseGetLastError(False)]
+    Public Declare PtrSafe Function FilterVolumeInstanceFindNext Lib "FltLib.dll" (ByVal hVolumeInstanceFind As LongPtr, ByVal dwInformationClass As INSTANCE_INFORMATION_CLASS, lpBuffer As Any, ByVal dwBufferSize As Long, lpBytesReturned As Long) As Long
+    [UseGetLastError(False)]
+    Public Declare PtrSafe Function FilterVolumeInstanceFindClose Lib "FltLib.dll" (ByVal hVolumeInstanceFind As LongPtr) As Long
+    [UseGetLastError(False)]
+    Public Declare PtrSafe Function FilterGetInformation Lib "FltLib.dll" (ByVal hFilter As LongPtr, ByVal dwInformationClass As FILTER_INFORMATION_CLASS, lpBuffer As Any, ByVal dwBufferSize As Long, lpBytesReturned As Long) As Long
+    [UseGetLastError(False)]
+    Public Declare PtrSafe Function FilterInstanceGetInformation Lib "FltLib.dll" (ByVal hInstance As LongPtr, ByVal dwInformationClass As INSTANCE_INFORMATION_CLASS, lpBuffer As Any, ByVal dwBufferSize As Long, lpBytesReturned As Long) As Long
+    [UseGetLastError(False)]
+    Public DeclareWide PtrSafe Function FilterConnectCommunicationPort Lib "FltLib.dll" (ByVal lpPortName As String, ByVal dwOptions As FilterConnectComPortOptions, ByVal lpContext As LongPtr, ByVal wSizeOfContext As Integer, lpSecurityAttributes As SECURITY_ATTRIBUTES, hPort As LongPtr) As Long
+    [UseGetLastError(False)]
+    Public Declare PtrSafe Function FilterSendMessage Lib "FltLib.dll" (ByVal hPort As LongPtr, lpInBuffer As Any, ByVal dwInBufferSize As Long, lpOutBuffer As Any, ByVal dwOutBufferSize As Long, lpBytesReturned As Long) As Long
+    [UseGetLastError(False)]
+    Public Declare PtrSafe Function FilterGetMessage Lib "FltLib.dll" (ByVal hPort As LongPtr, lpMessageBuffer As Any, ByVal dwMessageBufferSize As Long, lpOverlapped As OVERLAPPED) As Long
+    [UseGetLastError(False)]
+    Public Declare PtrSafe Function FilterReplyMessage Lib "FltLib.dll" (ByVal hPort As LongPtr, lpReplyBuffer As Any, ByVal dwReplyBufferSize As Long) As Long
+    [UseGetLastError(False)]
+    Public DeclareWide PtrSafe Function FilterGetDosName Lib "FltLib.dll" (ByVal lpVolumeName As String, ByVal lpDosName As String, ByVal dwDosNameBufferSize As Long) As Long
+    
+End Module
