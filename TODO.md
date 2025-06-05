@@ -170,12 +170,15 @@ Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.
     datetimeapi.h,ElsCore.h,ElsSrvc.h,Gb18030.h,stringsetapi.h,imm.h,tcpestats.h,tcpmib.h,mprapidef.h,ipifcons.h,ifdef.h,nldef.h,ipmib.h,iprtrmib.h,
     ipexport.h,iptypes.h,iphlpapi.h,winsmcrd.h,SCardErr.h,winscard.h,schannel.h,axcore.idl,devenum.idl,axextendedenums.h,mediaerr.h,dxva9typ.h,dxva2api.h,
     dxva2api.idl,dxvahd.h,dxvahd.idl,icodecapi.h,wmcontainer.h,medparam.h,medparam.idl,mediaobj.h,mediaobj.idl,dmoreg.h,ksopmapi.h,opmapi.h,opmapi.idl,
+    d3dx9core.h,d3d9x.h,d3d9xshader.h,d3d9xtex.h,d3dx11core.h,d3dx11tex.h,d3d12compatibility.h,d3d12compatibility.idl,d3d12shader.h,d3d12video.h,d3d12video.idl,
+    d3d12.h,d3d12.idl,fltUserStructures.h,fltUser.h,SpOrder.h
+    
     
 Coverage in the 90%+ range
     winbase.h, oleidl.h, oaidl.h, ocidl.h, ocidl.idl, presentation.h,
 
 Substantial coverage
-    mmsciapi.h, winnt.h,winternl.h,immdev.h,winioctl.h,mmreg.h
+    mmsciapi.h, winnt.h,winternl.h,immdev.h,winioctl.h,mmreg.h,WS2spi.h
 
 Minimal coverage
     windot11.h
