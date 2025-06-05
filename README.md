@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 8.12.548 (June 5th, 2025)**
+**Current Version: 8.12.550 (June 5th, 2025)**
 
 (c) 2022-2025 Jon Johnson (fafalone)
 
@@ -224,7 +224,7 @@ This project has grown well beyond it's original mission of shell programming. W
 
 ### Updates
 
-**Update (v8.12.548, 05 Jun 2025):**\
+**Update (v8.12.550, 05 Jun 2025):**\
 -Added some D3DX coverage (d3dx9core.h, d3d9x.h, d3d9xshader.h, d3d9xtex.h, d3dx11core.h, d3dx11tex.h 100%)\
 -Added additional Winsock APIs (ws_closesocket from ws2api; then WS2spi.h partial, SpOrder.h 100%)\
 -Added numerous missing shlwapi aliases and some missing functions.\
