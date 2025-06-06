@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 8.12.550 (June 5th, 2025)**
+**Current Version: 8.12.552 (June 6th, 2025)**
 
 (c) 2022-2025 Jon Johnson (fafalone)
 
@@ -223,6 +223,18 @@ Finally, there's numerous additional API sets from small to large for independen
 This project has grown well beyond it's original mission of shell programming. While that's still the largest single part, it's no longer a majority of the code, and the name change now much better reflects the purpose of providing a general Windows API experience like windows.h. Compiler constants and module names/file names have been updated to reflect the name change. tbShellLibImpl is now WinDevLibImpl. There are also some major chanages associated with this update, please see the full changelog below.
 
 ### Updates
+
+**Update (v8.12.552, 06 Jun 2025):**\
+-More D3DX coverage (d3dx11.h, d3dx11async.h).\
+--Note: D3DX11 APIs use d3dx11_43.dll, and D3D9X APIs use d3dx9_43.dll. This are the most recent versions, but may not be included with Windows 10 and 11 installations. It's recommended you obtain the June 2010 DirectX SDK for redistributable files you can install. You can also downgrade to installed versions.\
+        https://www.microsoft.com/en-us/download/details.aspx?id=6812 and https://www.microsoft.com/en-us/download/details.aspx?id=8109
+        
+-Added missing constants for IFilter HRESULTs.\
+-Added NTQuery.h coverage\
+-Added appnotify.h coverage (100%)\
+-Added missing WIN32_FILE_ATTRIBUTE_DATA\
+-Misc API additions\
+-(Bug fix) IFilter::GetValue definition incorrect.
 
 **Update (v8.12.550, 05 Jun 2025):**\
 -Added some D3DX coverage (d3dx9core.h, d3d9x.h, d3d9xshader.h, d3d9xtex.h, d3dx11core.h, d3dx11tex.h 100%)\
