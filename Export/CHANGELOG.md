@@ -1,4 +1,222 @@
+ 
+**Update (v8.12.552, 06 Jun 2025):**
+-More D3DX coverage (d3dx11.h, d3dx11async.h). 
+--Note: D3DX11 APIs use d3dx11_43.dll, and D3D9X APIs use d3dx9_43.dll. This are the most recent versions,
+        but may not be included with Windows 10 and 11 installations. It's recommended you obtain the June 2010
+        DirectX SDK for redistributable files you can install. You can also downgrade to installed versions.
+        https://www.microsoft.com/en-us/download/details.aspx?id=6812
+        https://www.microsoft.com/en-us/download/details.aspx?id=8109
+-Added missing constants for IFilter HRESULTs.
+-Added NTQuery.h coverage
+-Added appnotify.h coverage (100%)
+-Added missing WIN32_FILE_ATTRIBUTE_DATA
+-Misc API additions
+-(Bug fix) IFilter::GetValue definition incorrect.
 
+**Update (v8.12.550, 05 Jun 2025):**
+-Added some D3DX coverage (d3dx9core.h, d3d9x.h, d3d9xshader.h, d3d9xtex.h, d3dx11core.h, d3dx11tex.h 100%)
+-Added additional Winsock APIs (ws_closesocket from ws2api; then WS2spi.h partial, SpOrder.h 100%)
+-Added numerous missing shlwapi aliases and some missing functions.
+-Added Filter Manager usermode APIs (fltUserStructures.h, fltUser.h 100%)
+-wvsprintf[A,W] didn't make use of ByRef ParamArray args As Any()
+-(API Standards) Changed numerous byte array inputs typed as Byte to As Any to conform with standard.
+-(API Standards) StrCpy didn't use String.
+-(Bug fix) Duplicated constant: FACILITY_HID_ERROR_CODE
+-(Bug fix) IAMMediaTypeSample::GetPointer incorrectly returned Byte instead of LongPtr for a double pointer.
+-(Bug fix) String overload for StrCmpLogicalW didn't use DeclareWide
+-(Bug fix) WSASocket invalid duplicate (Thanks to forliny)
+-(Bug fix) COINIT_MULTITHREADED value incorrect (Thanks to forliny)
+-(Disabled) wvnsprintf and wvsprintf functions commented out pending tB bugfix
+
+**Update (v8.12.544, 27 May 2025):**
+-Added additional Media Foundation interfaces/APIs from wmcontainer.h, ksopmapi.h, opmapi.h (100%)
+-Added additional DirectShow interfaces (axcore.idl, now 100%; medparam.h, dmoreg.h 100%)
+-(Bug fix) GetMem(Of T) helper generic broken
+
+**Update (v8.12.542, 24 May 2025):**
+-Added DXGI debug interfaces/APIs (dxgidebug.h, 100%)
+-Added effect processor CLSIDs, MEDIASUBTYPE_ GUIDs, and MFPKEY_ PROPERTYKEYs from wmcodecdsp.h
+-Added structs/guids from dxva9typ.h (100%)
+-Added some additional undocumented RichEdit constants/enums/types.
+-(Bug fix) DCast helper wasn't working with a UDT as the source.
+-(Bug fix) MAX_DEINTERLACE_SURFACES value incorrect.
+
+**Update (v8.12.539, 21 May 2025):**
+-(Bug fix) Several ByRef As Byte that should be ByRef As LongPtr in Media Foundation interfaces.
+-(Bug fix) Numerous ByVal/ByRef mixups in Media Foundation interfaces. 
+
+**Update (v8.12.538, 20 May 2025):**
+-Added SmartCard API (winscard.h, winsmcrd.h, SCardErr.h 100% inc delegates etc)
+-Added SSL-related APIs from schannel.h (100% including delegates etc)
+-Added numerous missing WIC error consts
+-Helper generic DCast now includes a safety check that the source type isn't smaller than the destination
+  type, and if it is, only copies the number of bytes in the source.
+-The following interfaces are clearly meant to be used with Implements but used [PreserveSig]
+      IMFTimedTextNotify, IMFMediaSourceExtensionNotify, IMFBufferListNotify, IMFBufferListNotify
+      IMFMediaEngineNeedKeyNotify, IMFMediaEngineEMENotify, IMFMediaKeySessionNotify2
+   [PreserveSig] was removed but that means they'll likely require v-table swaps or redirects to not crash.
+   Tip: You can copy these interfaces to your project and use [RedirectToStaticImplementation] to simplify.
+-(Bug fix) MFInitAMMediaTypeFromMFMediaType definition incorrect.
+-(Bug fix) New GetMem generic helper used Len instead of LenB.
+
+
+**Update (v8.12.534, 16 May 2025):**
+-Added common control macros for Edit, Button, Tab, DateTime, MonthCal, Static, IPAddress, Animate controls. 
+   In all cases, these include the macros from both commctrl.h and windowsx.h.
+-Added helper function `GetMem(Of T)` generic to dereference and cast a LongPtr to any type, even intrinsic types.
+-Added helper function `DCast(Of T, T2)` (direct cast) to copy `LenB(Of T)` bytes from any type, with no 
+   conversion like CInt would do where 65535 would overflow instead of giving -1. Also allows converting to UDTs,
+   e.g. If you have ptll As LongLong containing a POINT, Dim pt As POINT = DCast(Of POINT)(ptll)
+-Some Tooltip types were only defined by their tag names instead of proper names. Tag names remain for compatibility.
+-(Bug fix) Some GET_*_WPARAM helpers would overflow due to use of CLng().
+
+**Update (v8.12.532, 13 May 2025):** 
+-Added lcid/LANGID helpers and some additional internationalization APIs
+-Added WINDEVLIB_NO_WS_ALIASES compile const to remove ws_ prefix from Winsock functions with short,
+ generic names (bind, socket, recv, etc)
+-Added keycredmgr.h, 100% all
+-Added lzexpand.h, 100% all
+-(Bug fix) MappingRecognizeText used MAPPING_ENUM_OPTIONS instead of MAPPING_OPTIONS
+
+**Update (v8.12.530, 10 May 2025):** 
+-Basic date/time format APIs from datetimeapi.h were inexplicably not done yet.
+-Added Extended Linguistic Services (ELS) APIs from ELSCore.h and ElsSrvc.h, 100% coverage.
+-Added D3DX11 General Purpose GPU computing algorithms (d3dcsx.h, 100%)
+-Added remaining ETW interfaces/APIs from evntprov.h, relogger.h (100% inc. delegates, macros, and inlines)
+-Added DirectManipulation interfaces/etc (directmanipulation.h, 100%)
+   Note: This was done assuming "LIFTED_SDK" was not defined. There's some deleted vtable entries, additional
+         interfaces, additional coclasses, and entirely different GUIDs for everything if that is defined; the
+         meaning is entirely undocumented. Will look into it in the future.
+-D2D1 PredeclaredId class from The trick's bas for e.g. D2D1::RectF. Disabled by default, to enable, set WINDEVLIB_DXHELPERS
+   Note: __F functions will be converted to overloads pending a tB bug fix concerning them.
+-Added some missing content from lmaccess.h and lmwksta.h to bring coverage to 100%; added LMalert.h, LMaudit.h,
+     LMErrlog.h, LMRemUtl.h, LMSvc.h, LMDFS.h 100%, 
+-Some netapi32 structs changed from String to LongPtr for consistency with vast majority of others.
+
+**Update (v8.11.528, 08 May 2025):** 
+-Added WebAuthN APIs (Windows Hello and other new security tokens; webauthn.h 100%)
+-IWICImageEncoder methods now use proper ID2D1Image type. (This is a breaking change against typelibs, but the next
+    version of oleexp will use it too)
+-PROPVARIANT now uses more convenient 2x/4x Long, renamed pVar/pVar2/etc to harmonize with oleexp (unnamed in SDK)
+-(Bug fix) WICImageParameters improperly substituted Long for D2D1_PIXEL_FORMAT (now used).
+
+
+**Update (v8.11.526, 05 May 2025):** 
+-Added Direct3D 10. Was weird having 9, 11, and 12 but not 10.
+   100% coverage of d3d10.h, d3d10misc.h, d3d10shader.h, d3d10effects.h, d3d10sdklayers.h, d3d10_1shader.h, d3d10_1.h 
+-Added Windows Lockdown Policy APIs (wldp.h, 100% inc. all). Note: VALUENAME enum renamed WLDP_VALUENAME.
+-Added Activity Coordinator API ActivityCoordinator.h, ActivityCoordinatorTypes.h - 100% (Win11+)
+-(Bug fix) ID2D1Bitmap inherits from ID2D1Image. No consequences besides a warning in some circumstances, since
+      ID2D1Image has no methods.
+-(Bug fix) Some D3D_PRIMITIVE_TOPOLOGY values incorrect.
+-(Bug fix) A number of uxtheme APIs were missing ByVal on LPWSTR arguments.
+
+
+**Update (v8.10.524, 02 May 2025):** 
+-Added XAudio2 interfaces and APIs - xaudio2.h, xaudio2fx.h, x3daudio.h, xapo.h, xapobase.h, hrtfapoapi.h 100%
+   IMPORTANT: For Windows 8, define compiler constant WINDEVLIB_XAUDIO8.
+   NOTE: Inlined functions included, but the math conversion from C to tB has not yet been verified accurate.
+-Misc Native API additions, including NtCurrentTeb implemented by Emit().
+-Completed adding known documented CLSID_xxx constants in usuable UUID form for all coclasses.
+-Added numerous overloads for compatibility with oleexp.tlb API signatures using [PreserveSig(False)]
+  (where the last argument becomes the return)
+-CoInitialize/OleInitialize/vbCoInitialize now use Optional ByVal LongPtr for useless reserved argument.
+-Added math helpers. Constants from corecrt_math_defines.h;
+   Functions: The first column take Double arguments, the second (with f) take Single (float).
+   Log10, Log10f   - Base 10 logarithm; native Log is actually Ln 
+   Pow, powf       - Power function for easier porting of code from langs w/o x^y.
+   Asin, Asinf     - Arcsine
+   Acos, Acosf     - Arccosine
+   Atan, Atanf     - Arctangent (alias for Atn)
+   Sec, Secf       - Secant
+   Asec, Asecf     - Arcsecant
+   Cosec, Cosecf   - Cosecant
+   Acosec, Acosecf - Arccosecant
+   Acotan, Acotan  - Arccotangent
+   Sinh, Sinhf     - Hyperbolic sine
+   Cosh, Coshf     - Hyperbolic cosine
+   Tanh, Tanhf     - Hyperbolic tangent
+   Sech, Sech      - Hyperbolic secant
+   Cosech, Cosechf - Hyperbolic cosecant
+   Cotanh, Cotanhf - Hyperbolic cotangent
+   Asinh, Asinhf   - Hyperbolic arcsine
+   Acosh, Acoshf   - Hyperbolic arccosine
+   Atanh, Atanhf   - Hyperbolic arccotangent
+   Asech, Asechf   - Hyperbolic arcsecant
+   Acosech, Acosechf - Hyperbolic arccosecant
+   Acotanh, Acotanh - Hyperbolic arccotangent
+   As with the native trig functions, these are in radians.
+   To disable, define #WINDEVLIB_NOMATH. Note: XAudio2 inlined helper functions unavailable when math disabled.
+   Note: Currently not verified for accuracy; I believe I tested most of these when I wrote them decades ago,
+         but can't remember for sure and will need time to re-check them.
+-(Bug fix) Certain oleaut32 Var*, and some hlink, functions improperly used String without DeclareWide
+-(Bug fix) StrRetToStr[A] incorrect signature, inconsistent use of ByRef/ByVal
+
+**Update (v8.9.520, 27 Apr 2025):** 
+-Added Uniscribe API (usp10.h, 100%)/ UDTs harmonized with work by Michael Kaplan and Tanner Helland 
+      However the APIs they used have signatures that just stray way too far from the documentation; many ByVal 
+      LongPtr arguments are now ByRef. Reminder: vbNullPtr replaces ByVal 0 for skipping an optional UDT. 
+-Added coverage of DSAdmin.h. Note: The interfaces for this rely on activeds.tlb. After you add a
+  reference to that, add the compiler option ADS_DEFINED=1.
+-Added numerous missing Visual Styles theme constants, vssym32.h 100%
+-Added basic Winstation APIs from phnt winsta.h.
+-Because they may contain pointers to data stored in a contiguous byte array, MEM_EXTENDED_PARAMETERS arguments have
+ been changed to As Any. No change is needed to existing code.
+-Misc Native API additions
+-(Bug fix) HD_TEXTFILTERW name typo.
+
+
+**Update (v8.9.518, 23 Apr 2025):** 
+-**BREAKING CHANGE** SHCreateShellItemArray will now use the proper definition of ByRef ppidl As LongPtr. Workarounds using
+   ByVal VarPtr() should remove that.
+-**BREAKING CHANGE** Since tB supports overloads, DirectComposition overloaded methods have had their tags
+   (usally _A) removed. Affected interfaces:
+   IDCompositionVisual, IDCompositionVisual3, IDCompositionGaussianBlurEffect, IDCompositionBrightnessEffect, 
+   IDCompositionColorMatrixEffect, IDCompositionShadowEffect, IDCompositionHueRotationEffect, IDCompositionSaturationEffect,
+   IDCompositionLinearTransferEffect, IDCompositionTableTransferEffect, IDCompositionArithmeticCompositeEffect,
+   IDCompositionAffineTransform2DEffect, IDCompositionTranslateTransform, IDCompositionScaleTransform, IDCompositionRotateTransform,
+   IDCompositionSkewTransform, IDCompositionMatrixTransform, IDCompositionEffectGroup, IDCompositionTranslateTransform3D,
+   IDCompositionScaleTransform3D, IDCompositionRotateTransform3D, IDCompositionMatrixTransform3D, IDCompositionRectangleClip,
+   ID2D1SvgStrokeDashArray, IDWriteGdiInterop1, IDWriteFontFace4, IDWriteFactory4, IDWriteFontSet1
+   Note: ID2D1SvgElement overloads currently left tagged because tB cannot disambiguate 2 of them. 
+   Note: This is experimental. Please report any problems. May be reverted if any arise.
+-Added missing IDXGIFactory6/7 interfaces from dxgi_6.h
+-Added custom UUIDs for system default GDIP encoders: ImageCodecBMP, ImageCodecJPG, ImageCodecGIF, ImageCodecTIF, ImageCodecPNG, 
+   and ImageCodecICO. It's still advisable to use the documented way of finding these.
+-Added some missing interfaces, enums, and consts from oleidl.h.
+-Some imagehlp (dbghelp) APIs with only ANSI versions now use String for input instead of LongPtr
+-Misc API additions
+-(API Standards) WTSSetUserConfig[A,W] did not follow String/LongPtr convention for buffer arg
+-(Bug fix) DXGI_FORMAT missing and incorrect values
+-(Bug fix) SELFREG_E_CLASS value incorrect
+-(Bug fix) WTSSetUserConfig incorrect alias
+-(Bug fix) ByRef/ByVal mixups:
+         UiaNavigate, UiaFind, UiaNodeFromPoint, UiaNodeFromFocus
+         ISyncMgrHandler::Synchronize
+         IDXGIDevice2::ReclaimResources/::OfferResources, IDXGISwapChain::GetFullscreenState, IDXGIDevice::QueryResourceResidency, 
+         IDXGIDevice4::OfferResources1/::ReclaimResources1, ID3DXInclude::Open 
+
+**Update (v8.8.516, 15 Apr 2025):** 
+-Added all missing MetaFile/ENHMF APIs and structs
+-Added numerous other missing gdi32 APIs
+-Added missing APIs from coml2api.h, now 100% covered
+-Changed As BITMAPINFO args to As Any since this sometimes uses a variable C-style array.
+-(Bug fix) EnumEnhMetaFile, DeleteEnhMetaFile returned Boolean (2 bytes) instead of BOOL (4 bytes)
+-(Bug fix) ENHMETA_SIGNATURE conditional compilation value wrong 
+-(Bug fix) CFSEPCHAR type and value incorrect
+
+**Update (v8.8.513, 31 Mar 2025):**
+-winspool.h now covered 100%; added async printer notification ifaces/apis from prnasnot.h (100% coverage)
+-(Bug fix) PRINTER_NOTIFY_INFO_DATA, INPUT incorrect union substitution sizes; sorry don't know how I missed them in the 8.8.504 fix.
+-(Bug fix) PRINTER_OPTION_FLAGS incorrect and missing values.
+
+**Update (v8.8.512, 26 Mar 2025):**
+-Updated WebView2 to 1.0.3124.44 Release SDK
+-Added missing 32bit aliases for GetWindowLongPtr[A,W]/SetWindowLongPtr[A,W]/GetClassLongPtr[A,W]/SetClassLongPtr[A,W]
+-UNREFERENCED_PARAMETER is now available as a generic; this lets you opt individual variables/arguments out of compiler messages
+   about unused variables instead of opting out whole functions.
+-Misc minor additions/fixes   
+   
 **Update (v8.8.511, 20 Mar 2025):** 
 -(Bug fix) DirectX 2D arrays updated to match the layout you see with oleexp and other VB6 typelibs. The dimensions are inverted,
             e.g. m(y,x) instead of m(x,y) in VB/tB arrays, in order to get the same memory layout C/C++ expects from a caller of 
