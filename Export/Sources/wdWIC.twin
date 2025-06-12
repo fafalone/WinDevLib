@@ -258,6 +258,7 @@
         Function WriteSource(ByRef ppPlanes As IWICBitmapSource, ByVal cPlanes As Long, prcSource As WICRect) As Long
     End Interface
 
+    #If WDL_NO_DIRECTX = 0 Then
     [InterfaceId("04C75BF8-3CE1-473B-ACC5-3CC4F5E94999")]
     [OleAutomation(False)]
     Interface IWICImageEncoder Extends stdole.IUnknown
@@ -268,7 +269,18 @@
         [PreserveSig]
         Function WriteThumbnail(ByVal pImage As ID2D1Image, ByVal pEncoder As IWICBitmapEncoder, ByRef pImageParameters As WICImageParameters) As Long
     End Interface
-
+    #Else
+    [InterfaceId("04C75BF8-3CE1-473B-ACC5-3CC4F5E94999")]
+    [OleAutomation(False)]
+    Interface IWICImageEncoder Extends stdole.IUnknown
+        [PreserveSig]
+        Function WriteFrame(ByVal pImage As IUnknown, ByVal pFrameEncode As IWICBitmapFrameEncode, ByRef pImageParameters As WICImageParameters) As Long
+        [PreserveSig]
+        Function WriteFrameThumbnail(ByVal pImage As IUnknown, ByVal pFrameEncode As IWICBitmapFrameEncode, ByRef pImageParameters As WICImageParameters) As Long
+        [PreserveSig]
+        Function WriteThumbnail(ByVal pImage As IUnknown, ByVal pEncoder As IWICBitmapEncoder, ByRef pImageParameters As WICImageParameters) As Long
+    End Interface
+    #End If
     [InterfaceId("9EDDE9E7-8DEE-47EA-99DF-E6FAF2ED44BF")]
     [OleAutomation(False)]
     Interface IWICBitmapDecoder Extends stdole.IUnknown
@@ -364,7 +376,7 @@
     [OleAutomation(False)]
     Interface IWICBitmapCodecProgressNotification Extends stdole.IUnknown
         [PreserveSig]
-        ' #If WINDEVLIB_NO_DELEGATES Then
+        ' #If WDL_NO_DELEGATES Then
         Function RegisterProgressNotification(ByVal pfnProgressNotification As LongPtr, ByRef pvData As Any, [TypeHint(WICProgressOperation, WICProgressNotification)] ByVal dwProgressFlags As Long) As Long
         ' #Else
         ' Function RegisterProgressNotification(ByVal pfnProgressNotification As PFNProgressNotification, ByRef pvData As Any, [TypeHint(WICProgressOperation, WICProgressNotification)] ByVal dwProgressFlags As Long) As Long
@@ -521,12 +533,21 @@
         Function CreateQueryWriterFromReader(ByVal pIQueryReader As IWICMetadataQueryReader, ByRef pguidVendor As UUID, ByRef ppIQueryWriter As IWICMetadataQueryWriter) As Long
     End Interface
 
+    #If WDL_NO_DIRECTX = 0 Then
     [InterfaceId("7B816B45-1996-4476-B132-DE9E247C8AF0")]
     [OleAutomation(False)]
     Interface IWICImagingFactory2 Extends IWICImagingFactory
         [PreserveSig]
         Function CreateImageEncoder(ByVal pD2DDevice As ID2D1Device, ByRef ppWICImageEncoder As IWICImageEncoder) As Long
     End Interface
+    #Else
+    [InterfaceId("7B816B45-1996-4476-B132-DE9E247C8AF0")]
+    [OleAutomation(False)]
+    Interface IWICImagingFactory2 Extends IWICImagingFactory
+        [PreserveSig]
+        Function CreateImageEncoder(ByVal pD2DDevice As IUnknown, ByRef ppWICImageEncoder As IWICImageEncoder) As Long
+    End Interface
+    #End If
 
     [InterfaceId("95C75A6E-3E8C-4EC2-85A8-AEBCC551E59B")]
     [OleAutomation(False)]
@@ -1435,7 +1456,11 @@ Public Enum WICJpegScanType
 End Enum
 
 Public Type WICImageParameters
+    #If WDL_NO_DIRECTX = 0 Then
     PixelFormat As D2D1_PIXEL_FORMAT
+    #Else
+    PixelFormat As Long
+    #End If
     DpiX As Single
     DpiY As Single
     Top As Single
@@ -1818,18 +1843,19 @@ Public Type WICMetadataHeader
     DataOffset As LARGE_INTEGER
 End Type
 
+#If WINDEVLIB_LITE = 0 Then
 Public Const WINCODEC_ERR_BASE = &H2000
 ' #define MAKE_WINCODECHR(sev, code) MAKE_HRESULT(sev, FACILITY_WINCODEC_ERR, (WINCODEC_ERR_BASE + code))
 [ConstantFoldable]
 Public Function MAKE_WINCODECHR(ByVal sev As HResultSeverity, ByVal code As Long) As Long
     Return MAKE_HRESULT(sev, FACILITY_WINCODEC_ERR, (WINCODEC_ERR_BASE + code))
 End Function
-
 ' #define MAKE_WINCODECHR_ERR(code) MAKE_WINCODECHR(1, code)
 [ConstantFoldable]
 Public Function MAKE_WINCODECHR_ERR(ByVal code As Long) As Long
     Return MAKE_WINCODECHR(SEVERITY_ERROR, code)
 End Function
+#End If
 Public Const WINCODEC_ERR_GENERIC_ERROR    = &H80004005 'E_FAIL
 Public Const WINCODEC_ERR_INVALIDPARAMETER = &H80070057 'E_INVALIDARG
 Public Const WINCODEC_ERR_OUTOFMEMORY      = &H8007000E 'E_OUTOFMEMORY
@@ -3291,7 +3317,7 @@ GUID_MetadataFormatHeif = iid
 End Function
 Public Function GUID_MetadataFormatHeifHDR() As UUID
 Static iid As UUID
- If (iid.Data1 = 0) Then Call DEFINE_UUID(GUID_MetadataFormatHeifHDR, &H568b8d8a, &H1e65, &H438c, &H89, &H68, &Hd6, &He, &H10, &H12, &Hbe, &Hb9)
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H568b8d8a, &H1e65, &H438c, &H89, &H68, &Hd6, &He, &H10, &H12, &Hbe, &Hb9)
 GUID_MetadataFormatHeifHDR = iid
 End Function
 Public Function GUID_MetadataFormatWebpANIM() As UUID

@@ -1,6 +1,10 @@
 Known omissions where a priority update neccessitated not finishing 
 before release, or waiting on feature support:
 
+-DirectDraw
+
+-Finish DirectShow (major project)
+
 -ComboBox and ListBox windowsx.h macros
 
 -Verify new xaudio2 and helper math functions
@@ -60,6 +64,8 @@ Macros
 #define D3D_SET_OBJECT_NAME_W(pObject, pName) D3D_SET_OBJECT_NAME_N_W(pObject, wcslen(pName), pName)
  
 -advpub.h
+
+-d3d9xmath.h; D3DX10 (base D3D10 covered; X is from the DX SDK, not Windows Platform SDK). D3DX11 already done. No 12.
 
 -ID3D12GraphicsCommandList::OMSetBlendFactor, ID3D11DeviceContext::OMSetBlendState, ID3D11DeviceContext1::ClearView,
  ID3D12GraphicsCommandList::::ClearUnorderedAccessViewUint, ID3D12GraphicsCommandList::::ClearUnorderedAccessViewFloat
@@ -129,7 +135,7 @@ Excluded from completed %:
     -Definitions disabled by conditional compilation with version flags for XP and earlier, non-Windows platforms, or kernel mode only.
 Basic Coverage: excludes macros, callbacks->delegates,
 ANSI APIs (though most are covered), and other headers from #include statements. Anything else missing is a bug and a report should be filed
-Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.0); .
+Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.0);  
     UtilApiSet.h,processtopologyapi.h,msdelta.h,handleapi.h,cfgmgr32.h,ole2.h,avrt.h,KnownFolders.h,keycredmgr.h,mcx.h,windef.h,winver.h,dlgs.h,
     realtimeapiset.h,msime.h,msimeapi.h,ws2bth.h,VersionHelpers.h,minwinbase.h,wsman.h,wcmapi.h,nb30.h,GPEdit.h,InputPanelConfiguration.h,commoncontrols.h,
     WinEFS.h,winstring.h,qos2.h,traffic.h,qosobjs.h,qos.h,qossp.h,bluetoothleapis.h,bluetoothapis.h,bthsdpdef.h,fhcfg.h,fhsvcctl.h,fhstatus.h,fherrors.h,
@@ -162,29 +168,32 @@ Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.
     devguid.h,setupapi.h,prnasnot.h,winspool.h,libloaderapi.h,libloaderapi2.h,ioapiset.h,wingdi.h,coml2api.h,evr9.h,dxgi_1.h,dxgi_1.idl,dxgi_2.h,dxgi_2.idl,
     dxgi_3.h,dxgi_3.idl,dxgi_4.h,dxgi_4.idl,dxgi_5.h,dxgi_5.idl,dxgi_6.h,dxgi_6.idl,DXGI_Messages.h,dxgitype.h,dxgitype.idl,dxgicommon.h,dxgicommon.idl,dxgidebug.h,
     ntlsa.h,vsstyle.h,vssym32.h,usp10.h,xapo.h,xaudio2.h,xaudio2fx.h,x3daudio.h,hrtfapoapi.h,WpdShellExtension.h,WpdMtpExtensions.h,evr.h,evr.idl,d3d11.h,d3d11.idl,
-    d3d11_2.h,d3d11_2.idl,d3d11_3.h,d3d11_3.idl,d3d11_4.h,d3d11_4.idl,d3d11on12.idl,d2d1.h,d2d1_1.h,d2d1_2.h,d2d1_3.h,d2d1effectauthor.h,d2d1effects.h,
-    d2d1effects_1.h,d2d1effects_2.h,d2d1Effectauthor.h,d3dcommon.h,d3dcommon.idl,d3d10.h,d3d10.idl,d3d10misc.h,d3d10shader.h,d3d10effects.h,d3d10sdklayers.h,
-    d3d10sdklayers.idl,d3d10_1shader.h,d3d10_1.h,d3d10_1.idl,d3dcsx.h,presentation.idl,presentationtypes.h,presentationtypes.idl,wldp.h,webauthn.h,
+    d3d11_2.h,d3d11_2.idl,d3d11_3.h,d3d11_3.idl,d3d11_4.h,d3d11_4.idl,d3d11on12.h,d3d11on12.idl,d2d1.h,d2d1_1.h,d2d1_2.h,d2d1_3.h,d2d1effectauthor.h,d2d1effects.h,
+    d2d1effects_1.h,d2d1effects_2.h,d2d1EffectauIEVRTrustedVideoPluginthor.h,d3dcommon.h,d3dcommon.idl,d3d10.h,d3d10.idl,d3d10misc.h,d3d10shader.h,d3d10effects.h,
+    d3d10sdklayers.h,d3d10sdklayers.idl,d3d10_1shader.h,d3d10_1.h,d3d10_1.idl,d3dcsx.h,presentation.idl,presentationtypes.h,presentationtypes.idl,wldp.h,webauthn.h,
     ActivityCoordinator.h,ActivityCoordinatorTypes.h,ActivScp.h,ActivScp.idl,atacct.h,lm.h,lmcons.h,lmaccess.h,lmalert.h,lmapibuf.h,lmat.h,lmaudit.h,lmconfig.h,
     lmerrlog.h,lmjoin.h,lmmsg.h,lmremutl.h,lmrepl.h,lmserver.h,lmshare.h,lmsname.h,lmstats.h,lmsvc.h,lmuse.h,lmuseflg.h,lmwksta.h,lmerr.h,lmdfs.h,
     datetimeapi.h,ElsCore.h,ElsSrvc.h,Gb18030.h,stringsetapi.h,imm.h,tcpestats.h,tcpmib.h,mprapidef.h,ipifcons.h,ifdef.h,nldef.h,ipmib.h,iprtrmib.h,
-    ipexport.h,iptypes.h,iphlpapi.h,winsmcrd.h,SCardErr.h,winscard.h,schannel.h,axcore.idl,devenum.idl,axextendedenums.h,mediaerr.h,dxva9typ.h,dxva2api.h,
+    ipexport.h,iptypes.h,iphlpapi.h,winsmcrd.h,SCardErr.h,winscard.h,schannel.h,axcore.idl,devenum.idl,axextendedenums.h,mediaerr.h,dxva.h,dxva9typ.h,dxva2api.h,
     dxva2api.idl,dxvahd.h,dxvahd.idl,icodecapi.h,wmcontainer.h,medparam.h,medparam.idl,mediaobj.h,mediaobj.idl,dmoreg.h,ksopmapi.h,opmapi.h,opmapi.idl,
-    d3dx9core.h,d3d9x.h,d3d9xshader.h,d3d9xtex.h,d3dx11core.h,d3dx11tex.h,d3dx11async.h,d3d12compatibility.h,d3d12compatibility.idl,d3d12shader.h,d3d12video.h,
-    d3d12video.idl,d3d12.h,d3d12.idl,fltUserStructures.h,fltUser.h,SpOrder.h,Filter.h,Filterr.h,NTQuery.h,apiquery2.h,appnotify.h,
-    
+    d3dx9core.h,d3d9x.h,d3d9xshader.h,d3d9xtex.h,d3dx9xof.h,d3dx9mesh.h,d3dx9shape.h,d3dx11core.h,d3dx11tex.h,d3dx11async.h,d3d12compatibility.h,d3d12compatibility.idl,
+    d3d12shader.h,d3d12video.h,d3d12video.idl,d3d12.h,d3d12.idl,fltUserStructures.h,fltUser.h,SpOrder.h,Filter.h,Filterr.h,NTQuery.h,apiquery2.h,appnotify.h,
+    cpl.h,cplext.h,ddraw.h,ddstream.h,ddstream.idl,vmr9.h,vmr9.idl,vmrender.idl,amvideo.h,Dvp.h,uuids.h,amaudio.h,evcode.h,dyngraph.idl,dvdmedia.h,edevdefs.h,
+    xprtdefs.h,axextend.idl,amparse.h,vidcap.h,vidcap.idl,dmodshow.h,dmodshow.idl,CameraUIControl.h,CameraUIControl.idl,austream.h,austream.idl,qnetwork.h,il21dec.h,
+    iwstdec.h,
     
 Coverage in the 90%+ range
     winbase.h, oleidl.h, oaidl.h, ocidl.h, ocidl.idl, presentation.h,
 
 Substantial coverage
-    mmsciapi.h, winnt.h,winternl.h,immdev.h,winioctl.h,mmreg.h,WS2spi.h,WindowsSearchErrors.h,
+    mmsciapi.h, winnt.h,winternl.h,immdev.h,winioctl.h,mmreg.h,WS2spi.h,winerror.h,WindowsSearchErrors.h,
 
 Minimal coverage
     windot11.h
     peninputpanel.h
     xapobase.h
     wmcodecdsp.h
+    ksmedia.h
     
 Zero or near-zero coverage
     (all other files)
