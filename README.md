@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 9.0.560 (June 12th, 2025)**
+**Current Version: 9.0.562 (June 13th, 2025)**
 
 (c) 2022-2025 Jon Johnson (fafalone)
 
@@ -223,6 +223,10 @@ Finally, there's numerous additional API sets from small to large for independen
 This project has grown well beyond it's original mission of shell programming. While that's still the largest single part, it's no longer a majority of the code, and the name change now much better reflects the purpose of providing a general Windows API experience like windows.h. Compiler constants and module names/file names have been updated to reflect the name change. tbShellLibImpl is now WinDevLibImpl. There are also some major chanages associated with this update, please see the full changelog below.
 
 ### Updates
+
+**Update (v9.0.562, 13 Jun 2025):**
+- Added some remaining DirectShow content (dvdif.h 100%, strmif.h now 100%)
+- (Bug fix) STRRET did not account for x64 union padding. 
 
 **Update (v9.0.560, 12 Jun 2025):**
 - Added complete coverage of DirectDraw (ddraw.h, ddstream.h 100%)
