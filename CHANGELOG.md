@@ -1,4 +1,9 @@
  
+
+**Update (v9.0.562, 13 Jun 2025):**
+- Added some remaining DirectShow content (dvdif.h 100%, strmif.h now 100%)
+- (Bug fix) STRRET did not account for x64 union padding. 
+
 **Update (v9.0.560, 12 Jun 2025):**
 - Added complete coverage of DirectDraw (ddraw.h, ddstream.h 100%)
   - (While highly similar, this is not equivalent to the DX7VB implementation. That uses

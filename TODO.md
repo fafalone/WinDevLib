@@ -180,7 +180,7 @@ Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.
     d3d12shader.h,d3d12video.h,d3d12video.idl,d3d12.h,d3d12.idl,fltUserStructures.h,fltUser.h,SpOrder.h,Filter.h,Filterr.h,NTQuery.h,apiquery2.h,appnotify.h,
     cpl.h,cplext.h,ddraw.h,ddstream.h,ddstream.idl,vmr9.h,vmr9.idl,vmrender.idl,amvideo.h,Dvp.h,uuids.h,amaudio.h,evcode.h,dyngraph.idl,dvdmedia.h,edevdefs.h,
     xprtdefs.h,axextend.idl,amparse.h,vidcap.h,vidcap.idl,dmodshow.h,dmodshow.idl,CameraUIControl.h,CameraUIControl.idl,austream.h,austream.idl,qnetwork.h,il21dec.h,
-    iwstdec.h,
+    iwstdec.h,dvdif.h,strmif.h,strmif.idl,
     
 Coverage in the 90%+ range
     winbase.h, oleidl.h, oaidl.h, ocidl.h, ocidl.idl, presentation.h,
