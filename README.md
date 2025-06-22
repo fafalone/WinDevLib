@@ -1,9 +1,12 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 9.0.562 (June 13th, 2025)**
+**Current Version: 9.1.564 (June 22nd, 2025)**
 
 (c) 2022-2025 Jon Johnson (fafalone)
+
+> [!IMPORTANT]
+> **Version 9.1.564 and higher now requires twinBASIC Beta 814 or newer.** Even if you're not using anything new. The package has hit a size threshold that due to a WebView2 bug will crash earlier versions if they attempt to load it.
 
 WinDevLib is a project to supply Windows API COM interfaces and DLL declares in a format consumable by twinBASIC. This involves not only writing the definitions, but using tB compatible types-- so in some cases, even though there may be an existing way to import references to interfaces, they may be unusable due to e.g. the use of unsigned types, C-style arrays, double pointers, etc. In most cases these definitions are also compatible with VBA7, and with minor adjustments VB6; where they're not it's usually minor syntax adjustments, so this is also a great resource for APIs for those, covering vastly more than other other similar project.
 
@@ -224,6 +227,28 @@ This project has grown well beyond it's original mission of shell programming. W
 
 ### Updates
 
+**Update (v9.1.564, 22 Jun 2025):**
+- **IMPORTANT:** WinDevLib now requires twinBASIC Beta 814 or newer, *regardless of whether you're
+  using anything new.* This is due a longstanding bug concerning the size of packages, and WDL is 
+  now large enough that it triggers this bug. 
+- (API Standards) **BREAKING CHANGE** :: Shell functions taking pidl arrays were inconsistently
+  defined. Some took ByVal and some took ByRef (VarPtr(pidls(0)) vs just pidls(0)). For the sake
+  of consistency, correctness, and WDL API standards, SHCreateShellItemArrayFromIDLists, SHCreateDataObject, 
+  SHCreateFileDataObject, and IDefaultFolderMenuInitialize::Initialize have now been changed to 
+  use the more correct ByRef semantics. Where you passed `VarPtr(pidls(0))` you'll need to change
+  that to just `pidls(0)`. oleexp will also change in its next release.
+- Added some urlmon.h content that was strongly related to that already included.
+- Added all error consts from sherrors.h
+- Added META_ metafile function codes missing from current SDK headers (but present in older ones)
+- AVISave[A,W] functions no longer [Unimplemented] 
+- PROPVARIANT APIs now all take As Any to accomonodate use of `PROPVARIANT` UDT as well as Variant. Most
+  inlined APIs do not yet, pending a bug fix in overload resolution. 
+- New helpers InitPropVariantFromStringPtr/VariantSetTypePtr for versions of the original that take 
+  a LongPtr to a Variant/PROPVARIANT instead. LongPtr for String overloads for InitPropVariantFromString[Ptr].
+- For compatibility, IPropertyValue will now use `PROPVARIANT` UDT instead of tB Variant.
+- (Bug fix) IPropertyValue::InitValue definition incorrect.
+
+  
 **Update (v9.0.562, 13 Jun 2025):**
 - Added some remaining DirectShow content (dvdif.h 100%, strmif.h now 100%)
 - (Bug fix) STRRET did not account for x64 union padding. 
