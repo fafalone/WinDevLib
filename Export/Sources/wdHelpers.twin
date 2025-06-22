@@ -1007,6 +1007,30 @@ End Function
         SwapVtableEntry = lOldAddr
     
     End Function
+    
+    [Description("Creates a PROPVARIANT of type VT_LPWSTR from a tB String")]
+    Public Function InitPropVariantFromStringPtr(psz As String, ByVal ppropvar As LongPtr) As Long
+        'This unfortunately isn't as easy as making a VT_BSTR Variant then calling VariantChangeType; that fails.
+        If VarPtr(ppropvar) = 0 Then Return E_POINTER
+        Dim lpAlloc As LongPtr = CoTaskMemAlloc((lstrlenW(ByVal StrPtr(psz)) + 1) * 2)
+        ZeroMemory ByVal lpAlloc, (lstrlenW(ByVal StrPtr(psz)) + 1) * 2
+        CopyMemory ByVal lpAlloc, ByVal StrPtr(psz), lstrlenW(ByVal StrPtr(psz)) * 2
+        VariantSetTypePtr ppropvar, CInt(VT_LPWSTR)
+        CopyMemory ByVal PointerAdd(ppropvar, 8), lpAlloc, LenB(Of LongPtr)
+        Return S_OK
+    End Function
+    [Description("Creates a PROPVARIANT of type VT_LPWSTR from a tB String")]
+    Public Function InitPropVariantFromStringPtr(ByVal psz As LongPtr, ByVal ppropvar As LongPtr) As Long
+        'This unfortunately isn't as easy as making a VT_BSTR Variant then calling VariantChangeType; that fails.
+        If VarPtr(ppropvar) = 0 Then Return E_POINTER
+        Dim lpAlloc As LongPtr = CoTaskMemAlloc((lstrlenW(ByVal psz) + 1) * 2)
+        ZeroMemory ByVal lpAlloc, (lstrlenW(ByVal psz) + 1) * 2
+        CopyMemory ByVal lpAlloc, ByVal psz, lstrlenW(ByVal psz) * 2
+        VariantSetTypePtr ppropvar, CInt(VT_LPWSTR)
+        CopyMemory ByVal PointerAdd(VarPtr(ppropvar), 8), lpAlloc, LenB(Of LongPtr)
+        Return S_OK
+    End Function
+    
 
     [ConstantFoldable]
     Public Function MAKELCID(ByVal lgid As Integer, ByVal srtid As Integer) As Long
@@ -1101,7 +1125,7 @@ End Function
         ' Return CType(Of VARENUM)(CType(Of PROPVARIANT)(VarPtr(pvar)).vt)
     End Function
 
-    [Description("Sets a Variant to the specified type without any alteration to the data. vtOnlyIf raises an error if the original type is other than specified.  " & vbCrLf & "⚠️ WARNING: Many data formats are incompatible, use VariantChangeType absent specific need....")]
+    [Description("Sets a Variant to the specified type without any alteration to the data. vtOnlyIf raises an error if the original type is other than specified.  " & vbCrLf & "⚠️ WARNING: Many data formats are incompatible, use VariantChangeType absent specific need." & vbCrLf & "Use VariantSetTypePtr to set the type by pointer to Variant/PROPVARIANT.")]
     Public Function VariantSetType(pvar As Variant, [TypeHint(VARENUM)] ByVal vt As Integer, [TypeHint(VARENUM)] Optional ByVal vtOnlyIf As Integer = -1) As Boolean
         If VarPtr(pvar) = 0 Then Return False
         If vtOnlyIf <> -1 Then
@@ -1110,6 +1134,17 @@ End Function
             End If
         End If
         CopyMemory pvar, vt, 2
+        Return True
+    End Function
+    [Description("Sets a Variant to the specified type without any alteration to the data. vtOnlyIf raises an error if the original type is other than specified.  " & vbCrLf & "⚠️ WARNING: Many data formats are incompatible, use VariantChangeType absent specific need." & vbCrLf & "Use VariantSetTypePtr to set the type by pointer to Variant/PROPVARIANT.")]
+    Public Function VariantSetTypePtr(ByVal pvar As LongPtr, [TypeHint(VARENUM)] ByVal vt As Integer, [TypeHint(VARENUM)] Optional ByVal vtOnlyIf As Integer = -1) As Boolean
+        If pvar = 0 Then Return False
+        If vtOnlyIf <> -1 Then
+            If CType(Of Integer)(pvar) <> vtOnlyIf Then
+                Return False
+            End If
+        End If
+        CopyMemory ByVal pvar, vt, 2
         Return True
     End Function
     [Description("Performs an unsigned add on a LongPtr (Long or LongLong)")]
