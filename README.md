@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 9.1.564 (June 22nd, 2025)**
+**Current Version: 9.1.566 (July 2nd, 2025)**
 
 (c) 2022-2025 Jon Johnson (fafalone)
 
@@ -226,6 +226,16 @@ Finally, there's numerous additional API sets from small to large for independen
 This project has grown well beyond it's original mission of shell programming. While that's still the largest single part, it's no longer a majority of the code, and the name change now much better reflects the purpose of providing a general Windows API experience like windows.h. Compiler constants and module names/file names have been updated to reflect the name change. tbShellLibImpl is now WinDevLibImpl. There are also some major chanages associated with this update, please see the full changelog below.
 
 ### Updates
+
+**Update (v9.1.566, 02 Jul 2025):**
+- Added coclasses for ListView subitem controls (using their common CLSID-derived names,
+   CBooleanControl for CLSID_CBooleanControl, etc).
+- Added DirectShow BDA interfaces not covered by VBx/tB compatible tuner typelib. 
+- Some DirectWrite enum values from dwrite.h were missing.
+- Added numerous additional PE header types/consts from winnt.h.
+- Added undocumented IGlobalOptions/ISecurityOptions and GlobalOptions coclass.
+- Misc API additions
+- (Bug fix) DWM_TIMING_INFO and DWM_THUMBNAIL_PROPERTIES missing req'd PackingAlignment attrib.
 
 **Update (v9.1.564, 22 Jun 2025):**
 - **IMPORTANT:** WinDevLib now requires twinBASIC Beta 814 or newer, *regardless of whether you're
