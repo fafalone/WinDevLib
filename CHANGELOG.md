@@ -1,4 +1,11 @@
  
+
+**Update (v9.1.567, 08 Jul 2025):**
+- IDWriteColorGlyphRunEnumerator had its GetCurrentRun method named GetCurrentRun1,
+  which would be confusing when IDWriteColorGlyphRunEnumerator1 was just GetCurrentRun.
+  They're both GetCurrentRun now as they are in SDK. 
+- (Bug fix) IFileOperationProgressSink::PostNewItem missing argument.
+  
 **Update (v9.1.566, 02 Jul 2025):**
 - Added coclasses for ListView subitem controls (using their common CLSID-derived names,
    CBooleanControl for CLSID_CBooleanControl, etc).
