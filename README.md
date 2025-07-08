@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 9.1.566 (July 2nd, 2025)**
+**Current Version: 9.1.567 (July 8th, 2025)**
 
 (c) 2022-2025 Jon Johnson (fafalone)
 
@@ -226,6 +226,10 @@ Finally, there's numerous additional API sets from small to large for independen
 This project has grown well beyond it's original mission of shell programming. While that's still the largest single part, it's no longer a majority of the code, and the name change now much better reflects the purpose of providing a general Windows API experience like windows.h. Compiler constants and module names/file names have been updated to reflect the name change. tbShellLibImpl is now WinDevLibImpl. There are also some major chanages associated with this update, please see the full changelog below.
 
 ### Updates
+
+**Update (v9.1.567, 08 Jul 2025):**
+- IDWriteColorGlyphRunEnumerator had its GetCurrentRun method named GetCurrentRun1, which would be confusing when IDWriteColorGlyphRunEnumerator1 was just GetCurrentRun. They're both GetCurrentRun now as they are in SDK. 
+- (Bug fix) IFileOperationProgressSink::PostNewItem missing argument.
 
 **Update (v9.1.566, 02 Jul 2025):**
 - Added coclasses for ListView subitem controls (using their common CLSID-derived names,
