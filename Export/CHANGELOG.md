@@ -1,4 +1,22 @@
  
+
+**Update (v9.1.567, 08 Jul 2025):**
+- IDWriteColorGlyphRunEnumerator had its GetCurrentRun method named GetCurrentRun1,
+  which would be confusing when IDWriteColorGlyphRunEnumerator1 was just GetCurrentRun.
+  They're both GetCurrentRun now as they are in SDK. 
+- (Bug fix) IFileOperationProgressSink::PostNewItem missing argument.
+  
+**Update (v9.1.566, 02 Jul 2025):**
+- Added coclasses for ListView subitem controls (using their common CLSID-derived names,
+   CBooleanControl for CLSID_CBooleanControl, etc).
+- Added DirectShow BDA interfaces not covered by VBx/tB compatible tuner typelib. 
+- Some DirectWrite enum values from dwrite.h were missing.
+- Added numerous additional PE header types/consts from winnt.h.
+- Added undocumented IGlobalOptions/ISecurityOptions and GlobalOptions coclass.
+- Misc API additions
+- (Bug fix) DWM_TIMING_INFO and DWM_THUMBNAIL_PROPERTIES missing req'd PackingAlignment attrib.
+
+  
 **Update (v9.1.564, 22 Jun 2025):**
 - **IMPORTANT:** WinDevLib now requires twinBASIC Beta 814 or newer, *regardless of whether you're
   using anything new.* This is due a longstanding bug concerning the size of packages, and WDL is 
