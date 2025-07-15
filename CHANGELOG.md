@@ -1,5 +1,17 @@
- 
 
+
+**Update (v9.1.570, 15 Jul 2025):**
+- **BREAKING CHANGES** 
+   - LUID_AND_ATTRIBUTES LUID member is not a pointer so "pLuid" was not only 
+       wrong but misleading. Now just Luid to match SDK.
+   - TOKEN_OWNER and TOKEN_PRIMARY_GROUP members now use their name rather than type.
+- Updated WebView2 definitions to match stable release 1.0.3351.48 
+- Added windowsx.h macros for ListBox, ComboBox, and ScrollBar.
+- Misc API additions (inc. native api sync and richedit undoc'd)
+- (Bug fix) Duplicated constant ST_PLACEHOLDERTEXT 
+- (Bug fix) NtCreateToken / NtCreateTokenEx missing ObjectAttributes argument.
+  
+ 
 **Update (v9.1.567, 08 Jul 2025):**
 - IDWriteColorGlyphRunEnumerator had its GetCurrentRun method named GetCurrentRun1,
   which would be confusing when IDWriteColorGlyphRunEnumerator1 was just GetCurrentRun.
