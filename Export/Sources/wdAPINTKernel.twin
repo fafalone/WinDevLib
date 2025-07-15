@@ -4018,21 +4018,30 @@ Public Enum SymbolicLinkAccessRights
     SYMBOLIC_LINK_ALL_ACCESS = (STANDARD_RIGHTS_REQUIRED Or &H1)
 End Enum
 Public Enum EventAccessRights
-    EVENT_ALL_ACCESS = &H1F0003
+    EVENT_QUERY_STATE = &H0001
     EVENT_MODIFY_STATE = &H0002
+    EVENT_ALL_ACCESS = (STANDARD_RIGHTS_REQUIRED Or SYNCHRONIZE Or &H3)
+End Enum
+Public Enum EventPairAccessRights
+    EVENT_PAIR_ALL_ACCESS = (STANDARD_RIGHTS_REQUIRED Or SYNCHRONIZE)
 End Enum
 Public Enum MutexAccessRights
-    MUTEX_ALL_ACCESS = &H1F0001
-    MUTEX_MODIFY_STATE = &H0001
+    MUTEX_ALL_ACCESS = MUTANT_ALL_ACCESS
+    MUTEX_MODIFY_STATE = MUTANT_QUERY_STATE
+End Enum
+Public Enum MutantAccessRights
+    MUTANT_QUERY_STATE = &H0001
+    MUTANT_ALL_ACCESS = (STANDARD_RIGHTS_REQUIRED Or SYNCHRONIZE Or MUTANT_QUERY_STATE)
 End Enum
 Public Enum SemaphoreAccessRights
-    SEMAPHORE_ALL_ACCESS = &H1F0003
+    SEMAPHORE_QUERY_STATE = &H0001
     SEMAPHORE_MODIFY_STATE = &H0002
+    SEMAPHORE_ALL_ACCESS = (STANDARD_RIGHTS_REQUIRED Or SYNCHRONIZE Or &H3)
 End Enum
 Public Enum TimerAccessRights
-    TIMER_ALL_ACCESS = &H1F0003
-    TIMER_MODIFY_STATE = &H0002
     TIMER_QUERY_STATE = &H0001
+    TIMER_MODIFY_STATE = &H0002
+    TIMER_ALL_ACCESS = (STANDARD_RIGHTS_REQUIRED Or SYNCHRONIZE Or TIMER_QUERY_STATE Or TIMER_MODIFY_STATE)
 End Enum
 
 Public Const INVALID_HANDLE_VALUE = -1&
@@ -17299,11 +17308,11 @@ Public Type TOKEN_GROUPS
 End Type
 
 Public Type TOKEN_OWNER
-    psid As LongPtr
+    Owner As LongPtr 'PSID
 End Type
 
 Public Type TOKEN_PRIMARY_GROUP
-    psid As LongPtr
+    PrimaryGroup As LongPtr 'PSID
 End Type
 
 Public Type TOKEN_DEFAULT_DACL
@@ -18565,6 +18574,26 @@ Public Type TIMER_BASIC_INFORMATION
     TimerState As Byte
 End Type
 
+Public Delegate Sub TIMER_APC_ROUTINE (ByVal TimerContext As LongPtr, ByVal TimerLowValue As Long, ByVal TimerHighValue As Long)
+
+Public Enum TIMER_SET_INFORMATION_CLASS
+    TimerSetCoalescableTimer   ' TIMER_SET_COALESCABLE_TIMER_INFO
+    MaxTimerInfoClass
+End Enum
+Public Type TIMER_SET_COALESCABLE_TIMER_INFO
+    DueTime As LARGE_INTEGER
+    ' #If WDL_NO_DELEGATES Then
+    TimerApcRoutine As LongPtr
+    ' #Else
+    ' TimerApcRoutine As TIMER_APC_ROUTINE
+    ' #End If
+    TimerContext As LongPtr
+    WakeContext As LongPtr 'PCOUNTED_REASON_CONTEXT
+    Period As Long
+    TolerableDelay As Long
+    PreviousState As LongPtr
+End Type
+
 Public Enum ElevationFlags
     ELEVATION_UAC_ENABLED = 1
     ELEVATION_VIRTUALIZATION_ENABLED = 2
@@ -18769,7 +18798,41 @@ Public Enum NtFlushFileFlags
     FLUSH_FLAGS_FLUSH_AND_PURGE = &H00000008
 End Enum
 
- 
+Public Enum EVENT_TYPE
+    NotificationEvent
+    SynchronizationEvent
+End Enum
+
+Public Enum EVENT_INFORMATION_CLASS
+    EventBasicInformation
+End Enum
+Public Type EVENT_BASIC_INFORMATION
+    EventType As EVENT_TYPE ' The type of the event object (NotificationEvent or SynchronizationEvent).
+    EventState As Long ' The current state of the event object. Nonzero if the event is signaled; zero if not signaled.
+End Type
+
+Public Enum MUTANT_INFORMATION_CLASS
+    MutantBasicInformation  ' MUTANT_BASIC_INFORMATION
+    MutantOwnerInformation   ' MUTANT_OWNER_INFORMATION
+End Enum
+Public Type MUTANT_BASIC_INFORMATION
+    CurrentCount As Long
+    OwnedByCaller As Byte
+    AbandonedState As Byte
+End Type
+Public Type MUTANT_OWNER_INFORMATION
+    ClientId As CLIENT_ID
+End Type
+
+Public Enum SEMAPHORE_INFORMATION_CLASS
+    SemaphoreBasicInformation
+End Enum
+Public Type SEMAPHORE_BASIC_INFORMATION
+    CurrentCount As Long
+    MaximumCount As Long
+End Type
+
+
 'NTDLL APIs should only be added if they don't have higher level equivalents. If the NTDLL version has substantially more functionality, it's not equivalent and should be added.
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtQuerySystemInformation Lib "ntdll" (ByVal SystemInformationClass As SYSTEM_INFORMATION_CLASS, SystemInformation As Any, ByVal SystemInformationLength As Long, ReturnLength As Long) As Long
@@ -18892,13 +18955,68 @@ Public Declare PtrSafe Function NtResumeThread Lib "ntdll" (ByVal ThreadHandle A
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtAlertResumeThread Lib "ntdll" (ByVal ThreadHandle As LongPtr, SuspendCount As Long) As NTSTATUS
 [UseGetLastError(False)]
+Public Declare PtrSafe Function NtCreateEvent Lib "ntdll" (EventHandle As LongPtr, [TypeHint(EventAccessRights, StandardAccessTypes)] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, ByVal EventType As EVENT_TYPE, ByVal InitialState As Byte) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtOpenEvent Lib "ntdll" (ByVal EventHandle As LongPtr, [TypeHint(EventAccessRights, StandardAccessTypes)] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtSetEvent Lib "ntdll" (ByVal EventHandle As LongPtr, Optional PreviousState As Long) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtSetEventEx Lib "ntdll" (ByVal EventHandle As LongPtr, Lock As RTL_SRWLOCK) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtSetEventBoostPriority Lib "ntdll" (ByVal EventHandle As LongPtr) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtClearEvent Lib "ntdll" (ByVal EventHandle As LongPtr) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtResetEvent Lib "ntdll" (ByVal EventHandle As LongPtr, Optional PreviousState As Long) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtPulseEvent Lib "ntdll" (ByVal EventHandle As LongPtr, Optional PreviousState As Long) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtQueryEvent Lib "ntdll" (ByVal EventHandle As LongPtr, ByVal EventInformationClass As EVENT_INFORMATION_CLASS, EventInformation As Any, ByVal EventInformationLength As Long, Optional ReturnLength As Long) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtCreateEventPair Lib "ntdll" (EventPairHandle As LongPtr, [TypeHint(EventPairAccessRights, StandardAccessTypes)] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtOpenEventPair Lib "ntdll" (ByVal EventPairHandle As LongPtr, [TypeHint(EventPairAccessRights, StandardAccessTypes)] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtSetLowEventPair Lib "ntdll" (ByVal EventPairHandle As LongPtr) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtSetHighEventPair Lib "ntdll" (ByVal EventPairHandle As LongPtr) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtWaitLowEventPair Lib "ntdll" (ByVal EventPairHandle As LongPtr) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtWaitHighEventPair Lib "ntdll" (ByVal EventPairHandle As LongPtr) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtSetLowWaitHighEventPair Lib "ntdll" (ByVal EventPairHandle As LongPtr) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtSetHighWaitLowEventPair Lib "ntdll" (ByVal EventPairHandle As LongPtr) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtCreateMutant Lib "ntdll" (MutantHandle As LongPtr, [TypeHint(MutantAccessRights, StandardAccessTypes)] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, ByVal InitialOwner As Byte) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtOpenMutant Lib "ntdll" (ByVal MutantHandle As LongPtr, [TypeHint(MutantAccessRights, StandardAccessTypes)] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtReleaseMutant Lib "ntdll" (ByVal MutantHandle As LongPtr, Optional PreviousCount As Long) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtQueryMutant Lib "ntdll" (ByVal MutantHandle As LongPtr, ByVal MutantInformationClass As MUTANT_INFORMATION_CLASS, MutantInformation As Any, ByVal MutantInformationLength As Long, Optional ReturnLength As Long) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtCreateSemaphore Lib "ntdll" (SemaphoreHandle As LongPtr, [TypeHint(SemaphoreAccessRights, StandardAccessTypes)] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, ByVal InitialCount As Long, ByVal MaximumCount As Long) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtOpenSemaphore Lib "ntdll" (ByVal SemaphoreHandle As LongPtr, [TypeHint(SemaphoreAccessRights, StandardAccessTypes)] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtReleaseSemaphore Lib "ntdll" (ByVal SemaphoreHandle As LongPtr, ByVal ReleaseCount As Long, Optional PreviousCount As Long) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtQuerySemaphore Lib "ntdll" (ByVal SemaphoreHandle As LongPtr, ByVal SemaphoreInformationClass As SEMAPHORE_INFORMATION_CLASS, SemaphoreInformation As Any, ByVal SemaphoreInformationLength As Long, Optional ReturnLength As Long) As NTSTATUS
+
+
+
+[UseGetLastError(False)]
 Public Declare PtrSafe Function NtDeviceIoControlFile Lib "ntdll" (ByVal FileHandle As LongPtr, ByVal hEvent As LongPtr, ByVal ApcRoutine As LongPtr, ByVal ApcContext As LongPtr, ByRef IoStatusBlock As IO_STATUS_BLOCK, ByVal IoControlCode As Long, InputBuffer As Any, ByVal InputBufferLength As Long, OutputBuffer As Any, ByVal OutputBufferLength As Long) As NTSTATUS
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtAllocateLocallyUniqueId Lib "ntdll" (pLuid As LUID) As NTSTATUS
 [UseGetLastError(False)]
-Public Declare PtrSafe Function NtCreateToken Lib "ntdll" (TokenHandle As LongPtr, [TypeHint(TokenAccessRights, StandardAccessTypes)] ByVal DesiredAccess As Long, ByVal TokenType As TOKEN_TYPE, AuthenticationId As LUID, ExpirationTime As LongLong, TokenUser As Any, TokenGroups As Any, TokenPrivileges As Any, TokenOwner As TOKEN_OWNER, TokenPrimaryGroup As TOKEN_PRIMARY_GROUP, TokenDefaultDacl As TOKEN_DEFAULT_DACL, TokenSource As TOKEN_SOURCE) As NTSTATUS
+Public Declare PtrSafe Function NtCreateToken Lib "ntdll" (TokenHandle As LongPtr, [TypeHint(TokenAccessRights, StandardAccessTypes)] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, ByVal TokenType As TOKEN_TYPE, AuthenticationId As LUID, ExpirationTime As LongLong, TokenUser As Any, TokenGroups As Any, TokenPrivileges As Any, TokenOwner As TOKEN_OWNER, TokenPrimaryGroup As TOKEN_PRIMARY_GROUP, TokenDefaultDacl As TOKEN_DEFAULT_DACL, TokenSource As TOKEN_SOURCE) As NTSTATUS
 [UseGetLastError(False)]
-Public Declare PtrSafe Function NtCreateTokenEx Lib "ntdll" (TokenHandle As LongPtr, [TypeHint(TokenAccessRights, StandardAccessTypes)] ByVal DesiredAccess As Long, ByVal TokenType As TOKEN_TYPE, AuthenticationId As LUID, ExpirationTime As LongLong, TokenUser As Any, TokenGroups As Any, TokenPrivileges As Any, UserAttributes As TOKEN_SECURITY_ATTRIBUTES_INFORMATION, DeviceAttributes As TOKEN_SECURITY_ATTRIBUTES_INFORMATION, DeviceGroups As Any, MandatoryPolicy As TOKEN_MANDATORY_POLICY, Owner As TOKEN_OWNER, PrimaryGroup As TOKEN_PRIMARY_GROUP, DefaultDacl As TOKEN_DEFAULT_DACL, TokenSource As TOKEN_SOURCE) As NTSTATUS
+Public Declare PtrSafe Function NtCreateTokenEx Lib "ntdll" (TokenHandle As LongPtr, [TypeHint(TokenAccessRights, StandardAccessTypes)] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, ByVal TokenType As TOKEN_TYPE, AuthenticationId As LUID, ExpirationTime As LongLong, TokenUser As Any, TokenGroups As Any, TokenPrivileges As Any, UserAttributes As TOKEN_SECURITY_ATTRIBUTES_INFORMATION, DeviceAttributes As TOKEN_SECURITY_ATTRIBUTES_INFORMATION, DeviceGroups As Any, MandatoryPolicy As TOKEN_MANDATORY_POLICY, Owner As TOKEN_OWNER, PrimaryGroup As TOKEN_PRIMARY_GROUP, DefaultDacl As TOKEN_DEFAULT_DACL, TokenSource As TOKEN_SOURCE) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtCreateLowBoxToken Lib "ntdll" (TokenHandle As LongPtr, ByVal ExistingTokenHandle As LongPtr, [TypeHint(TokenAccessRights, StandardAccessTypes)] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, ByVal PackageSid As LongPtr, ByVal CapabilityCount As Long, Capabilities As SID_AND_ATTRIBUTES, ByVal HandleCount As Long, Handles As LongPtr) As NTSTATUS
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtCompareTokens Lib "ntdll" (ByVal FirstTokenHandle As LongPtr, ByVal SecondTokenHandle As LongPtr, pEqual As Byte) As NTSTATUS
 [UseGetLastError(False)]
@@ -18909,6 +19027,8 @@ Public Declare PtrSafe Function NtFilterToken Lib "ntdll" (ByVal ExistingTokenHa
 Public Declare PtrSafe Function NtAdjustPrivilegesToken Lib "ntdll" (ByVal TokenHandle As LongPtr, ByVal DisableAllPrivileges As Byte, NewState As TOKEN_PRIVILEGES, ByVal BufferLength As Long, PreviousState As TOKEN_PRIVILEGES, Optional Length As Long) As NTSTATUS
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtAdjustGroupsToken Lib "ntdll" (ByVal TokenHandle As LongPtr, ByVal ResetToDefault As Byte, NewState As TOKEN_GROUPS, ByVal BufferLength As Long, PreviousState As TOKEN_GROUPS, Optional Length As Long) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtAdjustTokenClaimsAndDeviceGroups Lib "ntdll" (ByVal TokenHandle As LongPtr, ByVal UserResetToDefault As Byte, ByVal DeviceResetToDefault As Byte, ByVal DeviceGroupsResetToDefault As Byte, NewUserState As TOKEN_SECURITY_ATTRIBUTES_INFORMATION, NewDeviceState As TOKEN_SECURITY_ATTRIBUTES_INFORMATION, NewDeviceGroupsState As Any, ByVal UserBufferLength As Long, PreviousUserState As TOKEN_SECURITY_ATTRIBUTES_INFORMATION, ByVal DeviceBufferLength As Long, PreviousDeviceState As TOKEN_SECURITY_ATTRIBUTES_INFORMATION, ByVal DeviceGroupsBufferLength As Long, PreviousDeviceGroups As Any, Optional UserReturnLength As Long, Optional DeviceReturnLength As Long, Optional DeviceGroupsReturnBufferLength As Long) As NTSTATUS
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtQuerySecurityAttributesToken Lib "ntdll" (ByVal TokenHandle As LongPtr, Attributes As UNICODE_STRING, ByVal NumberOfAttributes As Long, Buffer As Any, ByVal Length As Long, ReturnLength As Long) As NTSTATUS
 [UseGetLastError(False)]
@@ -18983,7 +19103,9 @@ Public Declare PtrSafe Function NtCancelTimer Lib "ntdll" (ByVal TimerHandle As 
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtSetTimer Lib "ntdll" (ByVal TimerHandle As LongPtr, DueTime As LARGE_INTEGER, ByVal TimerApcRoutine As LongPtr, ByVal TimerContext As LongPtr, ByVal ResumeTimer As Byte, Optional ByVal Period As Long, Optional PreviousState As Byte) As NTSTATUS
 [UseGetLastError(False)]
-Public Declare PtrSafe Function NtQueryTimer Lib "ntdll" (ByVal TimerHandle As LongPtr, ByVal TimerInformationClass As TIMER_INFORMATION_CLASS, TimerInformation As Any, ReturnLength As Long) As NTSTATUS
+Public Declare PtrSafe Function NtSetTimerEx Lib "ntdll" (ByVal TimerHandle As LongPtr, ByVal TimerSetInformationClass As TIMER_SET_INFORMATION_CLASS, TimerSetInformation As Any, ByVal TimerSetInformationLength As Long) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtQueryTimer Lib "ntdll" (ByVal TimerHandle As LongPtr, ByVal TimerInformationClass As TIMER_INFORMATION_CLASS, TimerInformation As Any, ByVal TimerInformationLength As Long, Optional ReturnLength As Long) As NTSTATUS
 Public Declare PtrSafe Function NtGetTickCount Lib "ntdll" () As Long
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtYieldExecution Lib "ntdll" () As NTSTATUS
@@ -19719,6 +19841,33 @@ Public Declare PtrSafe Function RtlValidRelativeSecurityDescriptor Lib "ntdll" (
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlGetDaclSecurityDescriptor Lib "ntdll" (SecurityDescriptor As SECURITY_DESCRIPTOR, DaclPresent As Byte, Dacl As LongPtr, DaclDefaulted As Byte) As NTSTATUS
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlGetSaclSecurityDescriptor Lib "ntdll" (SecurityDescriptor As SECURITY_DESCRIPTOR, SaclPresent As Byte, Sacl As LongPtr, SaclDefaulted As Byte) As NTSTATUS
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlSetProcessIsCritical Lib "ntdll" (ByVal bNew As Byte, pbOld As Byte, ByVal bNeedScb As Byte) As NTSTATUS
+
+Public Function RtlIsEqualLuid(L1 As LUID, L2 As LUID) As Byte
+    Return CByte(If((L1.lowPart = L2.lowPart) And (L1.highPart = L2.highPart), 1, 0))
+End Function
+Public Function RtlIsZeroLuid(Ll As LUID) As Byte
+    Return CByte(If((Ll.lowPart Or Ll.highPart) = 0, 1, 0))
+End Function
+Public Function RtlConvertLongToLuid(ByVal long As Long) As LUID
+    RtlConvertLongToLuid.lowPart = long
+End Function
+Public Function RtlConvertUlongToLuid(ByVal Ulong As Long) As LUID
+    RtlConvertUlongToLuid.lowPart = Ulong
+End Function
+Public Function RtlConvertLuidToLonglong(Luid As LUID) As LongLong
+    Dim sli As SLARGE_INTEGER
+    sli.lowpart = Luid.lowPart
+    sli.highpart = Luid.highPart
+    Return DCast(Of LongLong)(sli)
+End Function
+Public Function RtlConvertLuidToUlonglong(Luid As LUID) As LongLong
+    Dim sli As SLARGE_INTEGER
+    sli.lowpart = Luid.lowPart
+    sli.highpart = Luid.highPart
+    Return DCast(Of LongLong)(sli)
+End Function
+
+
 
 
 

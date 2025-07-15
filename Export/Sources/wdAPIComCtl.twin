@@ -1755,6 +1755,27 @@ End Interface
 Interface IRicheditWindowlessAccessibility Extends stdole.IUnknown
     Sub CreateProvider(ByVal pSite As IRawElementProviderWindowlessSite, ppProvider As IRawElementProviderSimple)
 End Interface
+
+#If WDL_NO_DIRECTX = 0 Then
+[Description("See https://devblogs.microsoft.com/math-in-office/richedit-font-binding/")]
+[InterfaceId("7502135B-17C1-4A25-BDC9-55E6BCB8598A")]
+[OleAutomation(False)]
+Interface IProvideFontInfo Extends stdole.IUnknown
+    [PreserveSig] Function GetDefaultFont() As LongPtr
+    [PreserveSig] Function GetRunFontFaceId(ByVal pCurrentFontName As LongPtr, ByVal weight As DWRITE_FONT_WEIGHT, ByVal stretch As DWRITE_FONT_STRETCH, ByVal style As DWRITE_FONT_STYLE, ByVal lcid As Long, ByVal pText As LongPtr, ByVal charCount As Long, ByVal fontFaceIdCurrent As Long, runCount As Long) As Long
+    [PreserveSig] Function GetFontFace(ByVal fontFaceId As Long) As IDWriteFontFace
+    [PreserveSig] Function GetSerializableFontName(ByVal fontFaceId As Long) As LongPtr
+End Interface
+[Description("See https://devblogs.microsoft.com/math-in-office/richedit-font-binding/")]
+[InterfaceId("F71EE023-E909-4F63-B569-EA08956D0004")]
+[OleAutomation(False)]
+Interface IProvideFontInfo2 Extends IProvideFontInfo
+    Sub GetDefaultFontFace(pDwriteFontFace As IDWriteFontFace)
+    Sub RefreshFontFaceCache(ByVal gdiName As LongPtr)
+End Interface
+#End If
+
+
     
 #End Region
 
@@ -7964,8 +7985,10 @@ Public Const EM_GETAUTOCORRECTPROC = (WM_USER + 233)
 Public Const EM_SETAUTOCORRECTPROC = (WM_USER + 234)
 Public Const EM_SETADJUSTTEXTPROC = (WM_USER + 234)
 Public Const EM_CALLAUTOCORRECTPROC = (WM_USER + 255)
+Public Const EM_SELECTSTORY = (WM_USER + 263)
 Public Const EM_TRANSFORMMATH = (WM_USER + 264)
 Public Const EM_GETTABLEPARMS = (WM_USER + 265)
+Public Const EM_SETTARGETDEVICEEX = (WM_USER + 266)
 Public Const EM_SETEDITSTYLEEX = (WM_USER + 275)
 Public Const EM_GETEDITSTYLEEX = (WM_USER + 276)
 Public Const EM_GETSTORYTYPE = (WM_USER + 290)
@@ -7978,8 +8001,14 @@ Public Const EM_SETTOUCHOPTIONS = (WM_USER + 311)
 Public Const EM_INSERTIMAGE = (WM_USER + 314)
 Public Const EM_SETUIANAME = (WM_USER + 320)
 Public Const EM_GETELLIPSISSTATE = (WM_USER + 322)
+Public Const EM_SETFORMATACCELERATORS = (WM_USER + 363)
 Public Const EM_DISPLAYIMAGE = (WM_USER + 386)
 Public Const EM_SWITCHTOD2D = (WM_USER + 389)
+Public Const EM_SETMSOAUTOCORRECT = (WM_USER + 391)
+Public Const EM_GETAUTOFORMAT = (WM_USER + 392)
+Public Const EM_SETAUTOFORMAT = (WM_USER + 393)
+
+
 
 Public Const EN_MSGFILTER  = &H0700
 Public Const EN_REQUESTRESIZE  = &H0701
@@ -8006,7 +8035,25 @@ Public Const EN_ENDCOMPOSITION  = &H0714
 
 Public Const cchTextLimitDefault  = 32767
 
+Public Const SSS_DONTDISPLAYSTORY = 1
+
+
+Public Type TARGETDEVICEDESCR
+    dxWidth As Long
+    dyHeight As Long
+    dwFlags As Long
+End Type
+
 Public Const MATH_LCID = &H0001007F
+
+Public Enum RichEditAutoFormatFlags
+    acflgNoSmartQuotes = 2
+    acflgNoSuperscript = 128
+    acflgNoEmDash = 256
+    acflgNoFraction = 1024
+    acflgNoBulletedLists = 8192
+    acflgNoNumberedLists = 16384
+End Enum
 
 Public Enum RichEdTransformMathFlags
     XM_LINEARIZE = 0
@@ -8132,6 +8179,8 @@ Public Enum RichEdit_LanguageOptions
 '#If (_RICHEDIT_VER >= = &H0810)
     IMF_IMEUIINTEGRATION = &H2000
     IMF_TKBAUTOCORRECTION = &H2000
+    
+    IMF_EMOTICONSHORTCUTS = &H8000&
 End Enum
 
 Public Enum RichEdit_IMECompModes
@@ -8280,7 +8329,6 @@ Public Enum RichEdit_ExtendedEditStylesEx
     SES_EX_HIDETEMPFORMAT = &H10000000
     SES_EX_USEMOUSEWPARAM = &H20000000  ' Use wParam when handling WM_MOUSEMOVE message and do not call GetAsyncKeyState    4
     SES_EX_SHOWPLACEHOLDERONFOCUS = &H80000000
-    ST_PLACEHOLDERTEXT
 End Enum
 
 Public Const ELLIPSIS_MASK  = &H00000003  ' all meaningful bits
@@ -14573,7 +14621,215 @@ Animate_Seek = Animate_Play(hwnd, frame, frame, 1)
 End Function
 #End Region
 
+#Region "ButtonMacros"
+Public Function Button_Enable(ByVal hwndCtl As LongPtr, ByVal fEnable As BOOL) As BOOL
+Return EnableWindow(hwndCtl, fEnable)
+End Function
+
+Public Function Button_GetText(ByVal hwndCtl As LongPtr, ByVal lpch As LongPtr, ByVal cchMax As Long) As Long
+Button_GetText = GetWindowTextW(hwndCtl, lpch, cchMax)
+End Function
+
+Public Function Button_GetTextLength(ByVal hwndCtl As LongPtr) As Long
+Button_GetTextLength = GetWindowTextLength(hwndCtl)
+End Function
+
+Public Function Button_SetText(ByVal hwndCtl As LongPtr, ByVal lpsz As LongPtr) As BOOL
+Button_SetText = SetWindowTextW(hwndCtl, lpsz)
+End Function
+Public Function Button_GetIdealSize(hWnd As LongPtr, psize As Long) As Long
+Button_GetIdealSize = CLng(SendMessage(hWnd, BCM_GETIDEALSIZE, 0, psize))
+End Function
+Public Function Button_SetImageList(hWnd As LongPtr, pbuttonImagelist As LongPtr) As LongPtr
+Button_SetImageList = SendMessage(hWnd, BCM_SETIMAGELIST, 0, ByVal pbuttonImagelist)
+End Function
+Public Function Button_GetImageList(hWnd As LongPtr, pbuttonImagelist As LongPtr) As LongPtr
+Button_GetImageList = SendMessage(hWnd, BCM_GETIMAGELIST, 0, ByVal pbuttonImagelist)
+End Function
+Public Function Button_SetTextMargin(hWnd As LongPtr, pmargin As LongPtr) As Long
+Button_SetTextMargin = CLng(SendMessage(hWnd, BCM_SETTEXTMARGIN, 0, ByVal pmargin))
+End Function
+Public Function Button_GetTextMargin(hWnd As LongPtr, pmargin As LongPtr) As Long
+Button_GetTextMargin = CLng(SendMessage(hWnd, BCM_GETTEXTMARGIN, 0, pmargin))
+End Function
+Public Function Button_SetDropDownState(hWnd As LongPtr, fDropDown As Long) As Long
+Button_SetDropDownState = CLng(SendMessage(hWnd, BCM_SETDROPDOWNSTATE, fDropDown, ByVal 0&))
+End Function
+Public Function Button_SetSplitInfo(hWnd As LongPtr, pInfo As BUTTON_SPLITINFO) As Long
+Button_SetSplitInfo = CLng(SendMessage(hWnd, BCM_SETSPLITINFO, 0, pInfo))
+End Function
+Public Function Button_GetSplitInfo(hWnd As LongPtr, pInfo As BUTTON_SPLITINFO) As Long
+Button_GetSplitInfo = CLng(SendMessage(hWnd, BCM_GETSPLITINFO, 0, pInfo))
+End Function
+Public Function Button_SetNote(hWnd As LongPtr, psz As LongPtr) As Long
+Button_SetNote = CLng(SendMessage(hWnd, BCM_SETNOTE, 0, ByVal psz))
+End Function
+Public Function Button_GetNote(hWnd As LongPtr, pcc As Long, psz As LongPtr) As Long
+Button_GetNote = CLng(SendMessage(hWnd, BCM_GETNOTE, pcc, ByVal psz))
+End Function
+Public Function Button_GetNoteLength(hWnd As LongPtr) As Long
+Button_GetNoteLength = CLng(SendMessage(hWnd, BCM_GETNOTELENGTH, 0, ByVal 0&))
+End Function
+Public Function Button_SetElevationRequiredState(hWnd As LongPtr, fRequired As BOOL) As Long
+Button_SetElevationRequiredState = CLng(SendMessage(hWnd, BCM_SETSHIELD, 0, ByVal fRequired))
+End Function
+Public Function Button_SetStyle(hWnd As LongPtr, dwStyle As ButtonStyles, fRedraw As BOOL) As Long
+Button_SetStyle = CLng(SendMessage(hWnd, BM_SETSTYLE, LOWORD(dwStyle), ByVal MAKELPARAM(fRedraw, 0)))
+End Function
+Public Function Button_GetState(hWnd As LongPtr) As ButtonStates
+Return CType(Of ButtonStates)(CLng(SendMessage(hWnd, BM_GETSTATE, 0, ByVal 0&)))
+End Function
+Public Function Button_SetState(hWnd As LongPtr, State As ButtonStates) As Long
+Button_SetState = CLng(SendMessage(hWnd, BM_SETSTATE, State, ByVal 0&))
+End Function
+Public Function Button_GetCheck(hWnd As LongPtr) As Long
+Button_GetCheck = CLng(SendMessage(hWnd, BM_GETCHECK, 0, ByVal 0&))
+End Function
+Public Function Button_SetCheck(hWnd As LongPtr, check As Long) As Long
+Button_SetCheck = CLng(SendMessage(hWnd, BM_SETCHECK, check, ByVal 0&))
+End Function
+Public Function SetButtonStyle(hWnd As LongPtr, dwNewStyle As ButtonStyles, Optional bAdd As Boolean = True) As Long
+Dim dwStyle As Long
+If bAdd Then
+    dwStyle = CLng(GetWindowLong(hWnd, GWL_STYLE))
+End If
+dwStyle = dwStyle Or dwNewStyle
+SetButtonStyle = CLng(SetWindowLong(hWnd, GWL_STYLE, dwStyle))
+End Function
+#End Region
+
 #Region "ComboMacros"
+Public Function ComboBox_Enable(hwndCtl As LongPtr, fEnable As BOOL) As Boolean
+    Return EnableWindow(hwndCtl, fEnable)
+End Function
+
+Public Function ComboBox_GetText(hwndCtl As LongPtr, lpch As String, cchMax As Long) As Long
+    Return GetWindowText(hwndCtl, lpch, cchMax)
+End Function
+
+Public Function ComboBox_GetTextLength(hwndCtl As LongPtr) As Long
+    Return GetWindowTextLength(hwndCtl)
+End Function
+
+Public Function ComboBox_SetText(hwndCtl As LongPtr, lpsz As String) As BOOL
+    Return SetWindowText(hwndCtl, lpsz)
+End Function
+
+Public Function ComboBox_LimitText(hwndCtl As LongPtr, cchLimit As Long) As Long
+    Return CLng(SendMessage(hwndCtl, CB_LIMITTEXT, cchLimit, ByVal 0))
+End Function
+
+Public Function ComboBox_GetEditSel(hwndCtl As LongPtr) As Long
+    Return CLng(SendMessage(hwndCtl, CB_GETEDITSEL, 0, ByVal 0))
+End Function
+
+Public Function ComboBox_SetEditSel(hwndCtl As LongPtr, ichStart As Long, ichEnd As Long) As Long
+    Return CLng(SendMessage(hwndCtl, CB_SETEDITSEL, 0, ByVal MAKELPARAM(ichStart, ichEnd)))
+End Function
+
+Public Function ComboBox_GetCount(hwndCtl As LongPtr) As Long
+    Return CLng(SendMessage(hwndCtl, CB_GETCOUNT, 0, ByVal 0))
+End Function
+
+Public Function ComboBox_ResetContent(hwndCtl As LongPtr) As Long
+    Return CLng(SendMessage(hwndCtl, CB_RESETCONTENT, 0, ByVal 0))
+End Function
+
+Public Function ComboBox_AddString(hwndCtl As LongPtr, lpsz As String) As Long
+    Return CLng(SendMessage(hwndCtl, CB_ADDSTRING, 0, ByVal StrPtr(lpsz)))
+End Function
+
+Public Function ComboBox_InsertString(hwndCtl As LongPtr, index As Long, lpsz As String) As Long
+    Return CLng(SendMessage(hwndCtl, CB_INSERTSTRING, index, ByVal StrPtr(lpsz)))
+End Function
+
+Public Function ComboBox_AddItemData(hwndCtl As LongPtr, data As LongPtr) As Long
+    Return CLng(SendMessage(hwndCtl, CB_ADDSTRING, 0, ByVal data))
+End Function
+
+Public Function ComboBox_InsertItemData(hwndCtl As LongPtr, index As Long, data As LongPtr) As Long
+    Return CLng(SendMessage(hwndCtl, CB_INSERTSTRING, index, data))
+End Function
+
+Public Function ComboBox_DeleteString(hwndCtl As LongPtr, index As Long) As Long
+    Return CLng(SendMessage(hwndCtl, CB_DELETESTRING, index, ByVal 0))
+End Function
+
+Public Function ComboBox_GetLBTextLen(hwndCtl As LongPtr, index As Long) As Long
+    Return CLng(SendMessage(hwndCtl, CB_GETLBTEXTLEN, index, ByVal 0))
+End Function
+
+Public Function ComboBox_GetLBText(hwndCtl As LongPtr, index As Long, lpszBuffer As String) As Long
+    Return CLng(SendMessage(hwndCtl, CB_GETLBTEXT, index, ByVal StrPtr(lpszBuffer)))
+End Function
+
+Public Function ComboBox_GetItemData(hwndCtl As LongPtr, index As Long) As LongPtr
+    Return SendMessage(hwndCtl, CB_GETITEMDATA, index, ByVal 0)
+End Function
+
+Public Function ComboBox_SetItemData(hwndCtl As LongPtr, index As Long, data As LongPtr) As Long
+    Return CLng(SendMessage(hwndCtl, CB_SETITEMDATA, index, ByVal data))
+End Function
+
+Public Function ComboBox_FindString(hwndCtl As LongPtr, indexStart As Long, lpszFind As String) As Long
+    Return CLng(SendMessage(hwndCtl, CB_FINDSTRING, indexStart, ByVal StrPtr(lpszFind)))
+End Function
+
+Public Function ComboBox_FindItemData(hwndCtl As LongPtr, indexStart As Long, data As LongPtr) As Long
+    Return CLng(SendMessage(hwndCtl, CB_FINDSTRING, indexStart, ByVal data))
+End Function
+
+Public Function ComboBox_GetCurSel(hwndCtl As LongPtr) As Long
+    Return CLng(SendMessage(hwndCtl, CB_GETCURSEL, 0, ByVal 0))
+End Function
+
+Public Function ComboBox_SetCurSel(hwndCtl As LongPtr, index As Long) As Long
+    Return CLng(SendMessage(hwndCtl, CB_SETCURSEL, index, ByVal 0))
+End Function
+
+Public Function ComboBox_SelectString(hwndCtl As LongPtr, indexStart As Long, lpszSelect As String) As Long
+    Return CLng(SendMessage(hwndCtl, CB_SELECTSTRING, indexStart, ByVal StrPtr(lpszSelect)))
+End Function
+
+Public Function ComboBox_SelectItemData(hwndCtl As LongPtr, indexStart As Long, data As LongPtr) As Long
+    Return CLng(SendMessage(hwndCtl, CB_SELECTSTRING, indexStart, ByVal data))
+End Function
+
+Public Function ComboBox_Dir(hwndCtl As LongPtr, attrs As Long, lpszFileSpec As String) As Long
+    Return CLng(SendMessage(hwndCtl, CB_DIR, attrs, ByVal StrPtr(lpszFileSpec)))
+End Function
+
+Public Function ComboBox_ShowDropdown(hwndCtl As LongPtr, fShow As BOOL) As Boolean
+    Return CBool(SendMessage(hwndCtl, CB_SHOWDROPDOWN, CLng(fShow), ByVal 0))
+End Function
+ 
+Public Function ComboBox_FindStringExact(hwndCtl As LongPtr, indexStart As Long, lpszFind As String) As Long
+    Return CLng(SendMessage(hwndCtl, CB_FINDSTRINGEXACT, indexStart, ByVal StrPtr(lpszFind)))
+End Function
+
+Public Function ComboBox_GetDroppedState(hwndCtl As LongPtr) As Boolean
+    Return CBool(SendMessage(hwndCtl, CB_GETDROPPEDSTATE, 0, ByVal 0))
+End Function
+
+Public Sub ComboBox_GetDroppedControlRect(hwndCtl As LongPtr, lprc As RECT)
+    SendMessage(hwndCtl, CB_GETDROPPEDCONTROLRECT, 0, lprc)
+End Sub
+
+Public Function ComboBox_GetItemHeight(hwndCtl As LongPtr) As Long
+    Return CLng(SendMessage(hwndCtl, CB_GETITEMHEIGHT, 0, ByVal 0))
+End Function
+
+Public Function ComboBox_SetItemHeight(hwndCtl As LongPtr, index As Long, cyItem As Long) As Long
+    Return CLng(SendMessage(hwndCtl, CB_SETITEMHEIGHT, index, ByVal cyItem))
+End Function
+
+Public Function ComboBox_GetExtendedUI(hwndCtl As LongPtr) As Long
+    Return CLng(SendMessage(hwndCtl, CB_GETEXTENDEDUI, 0, ByVal 0))
+End Function
+
+Public Function ComboBox_SetExtendedUI(hwndCtl As LongPtr, flags As Long) As Long
+    Return CLng(SendMessage(hwndCtl, CB_SETEXTENDEDUI, flags, ByVal 0))
+End Function
 
 Public Function ComboBox_SetMinVisible(ByVal hWnd As LongPtr, iMinVisible As Long) As Long
 ComboBox_SetMinVisible = CLng(SendMessage(hWnd, CB_SETMINVISIBLE, iMinVisible, ByVal 0&))
@@ -15130,83 +15386,6 @@ Private Function MAKELONG(ByVal low As Long, ByVal high As Long) As Long
 End Function
 #End Region
 
-#Region "ButtonMacros"
-Public Function Button_Enable(ByVal hwndCtl As LongPtr, ByVal fEnable As BOOL) As BOOL
-Return EnableWindow(hwndCtl, fEnable)
-End Function
-
-Public Function Button_GetText(ByVal hwndCtl As LongPtr, ByVal lpch As LongPtr, ByVal cchMax As Long) As Long
-Button_GetText = GetWindowTextW(hwndCtl, lpch, cchMax)
-End Function
-
-Public Function Button_GetTextLength(ByVal hwndCtl As LongPtr) As Long
-Button_GetTextLength = GetWindowTextLength(hwndCtl)
-End Function
-
-Public Function Button_SetText(ByVal hwndCtl As LongPtr, ByVal lpsz As LongPtr) As BOOL
-Button_SetText = SetWindowTextW(hwndCtl, lpsz)
-End Function
-Public Function Button_GetIdealSize(hWnd As LongPtr, psize As Long) As Long
-Button_GetIdealSize = CLng(SendMessage(hWnd, BCM_GETIDEALSIZE, 0, psize))
-End Function
-Public Function Button_SetImageList(hWnd As LongPtr, pbuttonImagelist As LongPtr) As LongPtr
-Button_SetImageList = SendMessage(hWnd, BCM_SETIMAGELIST, 0, ByVal pbuttonImagelist)
-End Function
-Public Function Button_GetImageList(hWnd As LongPtr, pbuttonImagelist As LongPtr) As LongPtr
-Button_GetImageList = SendMessage(hWnd, BCM_GETIMAGELIST, 0, ByVal pbuttonImagelist)
-End Function
-Public Function Button_SetTextMargin(hWnd As LongPtr, pmargin As LongPtr) As Long
-Button_SetTextMargin = CLng(SendMessage(hWnd, BCM_SETTEXTMARGIN, 0, ByVal pmargin))
-End Function
-Public Function Button_GetTextMargin(hWnd As LongPtr, pmargin As LongPtr) As Long
-Button_GetTextMargin = CLng(SendMessage(hWnd, BCM_GETTEXTMARGIN, 0, pmargin))
-End Function
-Public Function Button_SetDropDownState(hWnd As LongPtr, fDropDown As Long) As Long
-Button_SetDropDownState = CLng(SendMessage(hWnd, BCM_SETDROPDOWNSTATE, fDropDown, ByVal 0&))
-End Function
-Public Function Button_SetSplitInfo(hWnd As LongPtr, pInfo As BUTTON_SPLITINFO) As Long
-Button_SetSplitInfo = CLng(SendMessage(hWnd, BCM_SETSPLITINFO, 0, pInfo))
-End Function
-Public Function Button_GetSplitInfo(hWnd As LongPtr, pInfo As BUTTON_SPLITINFO) As Long
-Button_GetSplitInfo = CLng(SendMessage(hWnd, BCM_GETSPLITINFO, 0, pInfo))
-End Function
-Public Function Button_SetNote(hWnd As LongPtr, psz As LongPtr) As Long
-Button_SetNote = CLng(SendMessage(hWnd, BCM_SETNOTE, 0, ByVal psz))
-End Function
-Public Function Button_GetNote(hWnd As LongPtr, pcc As Long, psz As LongPtr) As Long
-Button_GetNote = CLng(SendMessage(hWnd, BCM_GETNOTE, pcc, ByVal psz))
-End Function
-Public Function Button_GetNoteLength(hWnd As LongPtr) As Long
-Button_GetNoteLength = CLng(SendMessage(hWnd, BCM_GETNOTELENGTH, 0, ByVal 0&))
-End Function
-Public Function Button_SetElevationRequiredState(hWnd As LongPtr, fRequired As BOOL) As Long
-Button_SetElevationRequiredState = CLng(SendMessage(hWnd, BCM_SETSHIELD, 0, ByVal fRequired))
-End Function
-Public Function Button_SetStyle(hWnd As LongPtr, dwStyle As ButtonStyles, fRedraw As BOOL) As Long
-Button_SetStyle = CLng(SendMessage(hWnd, BM_SETSTYLE, LOWORD(dwStyle), ByVal MAKELPARAM(fRedraw, 0)))
-End Function
-Public Function Button_GetState(hWnd As LongPtr) As ButtonStates
-Return CType(Of ButtonStates)(CLng(SendMessage(hWnd, BM_GETSTATE, 0, ByVal 0&)))
-End Function
-Public Function Button_SetState(hWnd As LongPtr, State As ButtonStates) As Long
-Button_SetState = CLng(SendMessage(hWnd, BM_SETSTATE, State, ByVal 0&))
-End Function
-Public Function Button_GetCheck(hWnd As LongPtr) As Long
-Button_GetCheck = CLng(SendMessage(hWnd, BM_GETCHECK, 0, ByVal 0&))
-End Function
-Public Function Button_SetCheck(hWnd As LongPtr, check As Long) As Long
-Button_SetCheck = CLng(SendMessage(hWnd, BM_SETCHECK, check, ByVal 0&))
-End Function
-Public Function SetButtonStyle(hWnd As LongPtr, dwNewStyle As ButtonStyles, Optional bAdd As Boolean = True) As Long
-Dim dwStyle As Long
-If bAdd Then
-    dwStyle = CLng(GetWindowLong(hWnd, GWL_STYLE))
-End If
-dwStyle = dwStyle Or dwNewStyle
-SetButtonStyle = CLng(SetWindowLong(hWnd, GWL_STYLE, dwStyle))
-End Function
-#End Region
-
 #Region "PropSheetMacros"
 Public Function PropSheet_SetCurSel(hDlg As LongPtr, hPage As LongPtr, index As Long) As Long
     Return CLng(SendMessage(hDlg, PSM_SETCURSEL, index, ByVal hPage))
@@ -15328,6 +15507,152 @@ End Function
 
 Public Function ImageList_LoadBitmap(hi As LongPtr, lpbmp As LongPtr, CX As Long, cGrow As Long, crMask As Long) As LongPtr
   ImageList_LoadBitmap = ImageList_LoadImage(hi, lpbmp, CX, cGrow, crMask, IMAGE_BITMAP, 0)
+End Function
+#End Region
+
+#Region "ListBoxMacros"
+Public Function ListBox_Enable(hwndCtl As LongPtr, fEnable As BOOL) As BOOL
+    Return EnableWindow(hwndCtl, fEnable)
+End Function
+
+Public Function ListBox_GetCount(hwndCtl As LongPtr) As Long
+    Return CLng(SendMessage(hwndCtl, LB_GETCOUNT, 0, ByVal 0))
+End Function
+
+Public Function ListBox_ResetContent(hwndCtl As LongPtr) As Boolean
+    Return CBool(SendMessage(hwndCtl, LB_RESETCONTENT, 0, ByVal 0))
+End Function
+
+Public Function ListBox_AddString(hwndCtl As LongPtr, lpsz As String) As Long
+    Return CLng(SendMessage(hwndCtl, LB_ADDSTRING, 0, ByVal StrPtr(lpsz)))
+End Function
+
+Public Function ListBox_InsertString(hwndCtl As LongPtr, index As Long, lpsz As String) As Long
+    Return CLng(SendMessage(hwndCtl, LB_INSERTSTRING, index, ByVal StrPtr(lpsz)))
+End Function
+
+Public Function ListBox_AddItemData(hwndCtl As LongPtr, data As LongPtr) As Long
+    Return CLng(SendMessage(hwndCtl, LB_ADDSTRING, 0, ByVal data))
+End Function
+
+Public Function ListBox_InsertItemData(hwndCtl As LongPtr, index As Long, data As LongPtr) As Long
+    Return CLng(SendMessage(hwndCtl, LB_INSERTSTRING, index, ByVal data))
+End Function
+
+Public Function ListBox_DeleteString(hwndCtl As LongPtr, index As Long) As Long
+    Return CLng(SendMessage(hwndCtl, LB_DELETESTRING, index, ByVal 0))
+End Function
+
+Public Function ListBox_GetTextLen(hwndCtl As LongPtr, index As Long) As Long
+    Return CLng(SendMessage(hwndCtl, LB_GETTEXTLEN, index, ByVal 0))
+End Function
+
+Public Function ListBox_GetText(hwndCtl As LongPtr, index As Long, lpszBuffer As String) As Long
+    Return CLng(SendMessage(hwndCtl, LB_GETTEXT, index, ByVal StrPtr(lpszBuffer)))
+End Function
+
+Public Function ListBox_GetItemData(hwndCtl As LongPtr, index As Long) As LongPtr
+    Return SendMessage(hwndCtl, LB_GETITEMDATA, index, ByVal 0)
+End Function
+
+Public Function ListBox_SetItemData(hwndCtl As LongPtr, index As Long, data As LongPtr) As Long
+    Return CLng(SendMessage(hwndCtl, LB_SETITEMDATA, index, ByVal data))
+End Function
+
+Public Function ListBox_FindString(hwndCtl As LongPtr, indexStart As Long, lpszFind As String) As Long
+    Return CLng(SendMessage(hwndCtl, LB_FINDSTRING, indexStart, ByVal StrPtr(lpszFind)))
+End Function
+
+Public Function ListBox_FindItemData(hwndCtl As LongPtr, indexStart As Long, data As LongPtr) As Long
+    Return CLng(SendMessage(hwndCtl, LB_FINDSTRING, indexStart, ByVal data))
+End Function
+
+Public Function ListBox_SetSel(hwndCtl As LongPtr, fSelect As BOOL, index As Long) As Long
+    Return CLng(SendMessage(hwndCtl, LB_SETSEL, CLng(fSelect), ByVal index))
+End Function
+
+Public Function ListBox_SelItemRange(hwndCtl As LongPtr, fSelect As BOOL, first As Long, last As Long) As Long
+    Return CLng(SendMessage(hwndCtl, LB_SELITEMRANGE, CLng(fSelect), ByVal MAKELPARAM(first, last)))
+End Function
+
+Public Function ListBox_GetCurSel(hwndCtl As LongPtr) As Long
+    Return CLng(SendMessage(hwndCtl, LB_GETCURSEL, 0, ByVal 0))
+End Function
+
+Public Function ListBox_SetCurSel(hwndCtl As LongPtr, index As Long) As Long
+    Return CLng(SendMessage(hwndCtl, LB_SETCURSEL, index, ByVal 0))
+End Function
+
+Public Function ListBox_SelectString(hwndCtl As LongPtr, indexStart As Long, lpszFind As String) As Long
+    Return CLng(SendMessage(hwndCtl, LB_SELECTSTRING, indexStart, ByVal StrPtr(lpszFind)))
+End Function
+
+Public Function ListBox_SelectItemData(hwndCtl As LongPtr, indexStart As Long, data As LongPtr) As Long
+    Return CLng(SendMessage(hwndCtl, LB_SELECTSTRING, indexStart, ByVal data))
+End Function
+
+Public Function ListBox_GetSel(hwndCtl As LongPtr, index As Long) As Long
+    Return CLng(SendMessage(hwndCtl, LB_GETSEL, index, ByVal 0))
+End Function
+
+Public Function ListBox_GetSelCount(hwndCtl As LongPtr) As Long
+    Return CLng(SendMessage(hwndCtl, LB_GETSELCOUNT, 0, ByVal 0))
+End Function
+
+Public Function ListBox_GetTopIndex(hwndCtl As LongPtr) As Long
+    Return CLng(SendMessage(hwndCtl, LB_GETTOPINDEX, 0, ByVal 0))
+End Function
+
+Public Function ListBox_GetSelItems(hwndCtl As LongPtr, cItems As Long, lpItems As Long) As Long
+    Return CLng(SendMessage(hwndCtl, LB_GETSELITEMS, cItems, lpItems))
+End Function
+
+Public Function ListBox_SetTopIndex(hwndCtl As LongPtr, indexTop As Long) As Long
+    Return CLng(SendMessage(hwndCtl, LB_SETTOPINDEX, indexTop, ByVal 0))
+End Function
+
+Public Sub ListBox_SetColumnWidth(hwndCtl As LongPtr, cxColumn As Long)
+    SendMessage(hwndCtl, LB_SETCOLUMNWIDTH, cxColumn, ByVal 0)
+End Sub
+
+Public Function ListBox_GetHorizontalExtent(hwndCtl As LongPtr) As Long
+    Return CLng(SendMessage(hwndCtl, LB_GETHORIZONTALEXTENT, 0, ByVal 0))
+End Function
+
+Public Sub ListBox_SetHorizontalExtent(hwndCtl As LongPtr, cxExtent As Long)
+    SendMessage(hwndCtl, LB_SETHORIZONTALEXTENT, cxExtent, ByVal 0)
+End Sub
+
+Public Function ListBox_SetTabStops(hwndCtl As LongPtr, cTabs As Long, lpTabs() As Long) As Boolean
+    Return CBool(SendMessage(hwndCtl, LB_SETTABSTOPS, cTabs, lpTabs(0)))
+End Function
+
+Public Function ListBox_GetItemRect(hwndCtl As LongPtr, index As Long, lprc As RECT) As Long
+    Return CLng(SendMessage(hwndCtl, LB_GETITEMRECT, index, lprc))
+End Function
+
+Public Function ListBox_SetCaretIndex(hwndCtl As LongPtr, index As Long) As Long
+    Return CLng(SendMessage(hwndCtl, LB_SETCARETINDEX, index, ByVal 0))
+End Function
+
+Public Function ListBox_GetCaretIndex(hwndCtl As LongPtr) As Long
+    Return CLng(SendMessage(hwndCtl, LB_GETCARETINDEX, 0, ByVal 0))
+End Function
+
+Public Function ListBox_FindStringExact(hwndCtl As LongPtr, indexStart As Long, lpszFind As String) As Long
+    Return CLng(SendMessage(hwndCtl, LB_FINDSTRINGEXACT, indexStart, ByVal StrPtr(lpszFind)))
+End Function
+
+Public Function ListBox_SetItemHeight(hwndCtl As LongPtr, index As Long, cy As Long) As Long
+    Return CLng(SendMessage(hwndCtl, LB_SETITEMHEIGHT, index, ByVal MAKELPARAM(cy, 0)))
+End Function
+
+Public Function ListBox_GetItemHeight(hwndCtl As LongPtr, index As Long) As Long
+    Return CLng(SendMessage(hwndCtl, LB_GETITEMHEIGHT, index, ByVal 0))
+End Function
+
+Public Function ListBox_Dir(hwndCtl As LongPtr, attrs As Long, lpszFileSpec As String) As Long
+    Return CLng(SendMessage(hwndCtl, LB_DIR, attrs, ByVal StrPtr(lpszFileSpec)))
 End Function
 #End Region
 
@@ -16175,6 +16500,33 @@ Public Function Header_SetFocusedItem(hWnd As LongPtr, iItem As Long) As LongPtr
 '        (BOOL)SNDMSG((hwnd), HDM_SETFOCUSEDITEM, (WPARAM)(0), (LPARAM)(iItem))
 Header_SetFocusedItem = SendMessage(hWnd, HDM_SETFOCUSEDITEM, 0, ByVal iItem)
 End Function
+#End Region
+
+#Region "ScrollBarMacros"
+Public Function ScrollBar_Enable(hwndCtl As LongPtr, flags As ESB_Flags) As Boolean
+    Return EnableScrollBar(hwndCtl, SB_CTL, flags)
+End Function
+
+Public Function ScrollBar_Show(hwndCtl As LongPtr, fShow As BOOL) As BOOL
+    Return ShowWindow(hwndCtl, If(fShow, SW_SHOWNORMAL, SW_HIDE))
+End Function
+
+Public Function ScrollBar_SetPos(hwndCtl As LongPtr, pos As Long, fRedraw As Boolean) As Long
+    Return SetScrollPos(hwndCtl, SB_CTL, pos, fRedraw)
+End Function
+
+Public Function ScrollBar_GetPos(hwndCtl As LongPtr) As Long
+    Return GetScrollPos(hwndCtl, SB_CTL)
+End Function
+
+Public Function ScrollBar_SetRange(hwndCtl As LongPtr, posMin As Long, posMax As Long, fRedraw As Boolean) As Boolean
+    Return SetScrollRange(hwndCtl, SB_CTL, posMin, posMax, fRedraw)
+End Function
+
+Public Function ScrollBar_GetRange(hwndCtl As LongPtr, lpposMin As Long, lpposMax As Long) As Boolean
+    Return GetScrollRange(hwndCtl, SB_CTL, lpposMin, lpposMax)
+End Function
+
 #End Region
 
 #Region "StaticMacros"
