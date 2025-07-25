@@ -195,12 +195,36 @@ Public Type PROCESS_HEAP_ENTRY_REGION
 End Type
 
 Public Enum HEAP_INFORMATION_CLASS
-    HeapCompatibilityInformation = 0
-    HeapEnableTerminationOnCorruption = 1
-    HeapOptimizeResources = 3
-    HeapTag = 7
+    HeapCompatibilityInformation = &H0  ' q; s: ULONG
+    HeapEnableTerminationOnCorruption = &H1  ' q; s: NULL
+    HeapExtendedInformation = &H2  ' q; s: HEAP_EXTENDED_INFORMATION
+    HeapOptimizeResources = &H3  ' q;RTLP_HEAP_TAGGING_INFO s: HEAP_OPTIMIZE_RESOURCES_INFORMATION
+    HeapTaggingInformation = &H4  ' q: 
+    HeapStackDatabase = &H5  ' q: RTL_HEAP_STACK_QUERY; s: RTL_HEAP_STACK_CONTROL
+    HeapMemoryLimit = &H6  ' since 19H2
+    HeapTag = &H7  ' since 20H1
+    HeapDetailedFailureInformation = &H80000001
+    HeapSetDebuggingInformation = &H80000002  ' q; s: HEAP_DEBUGGING_INFORMATION
 End Enum
 
+Public Enum HEAP_COMPATIBILITY_MODE
+    HEAP_COMPATIBILITY_MODE_STANDARD = 0
+    HEAP_COMPATIBILITY_MODE_LAL = 1  ' Lookaside list heap (LAL) compatibility mode.
+    HEAP_COMPATIBILITY_MODE_LFH = 2  ' Low-fragmentation heap (LFH) compatibility mode.
+End Enum
+Public Type RTLP_TAG_INFO
+    Id As UUID
+    CurrentAllocatedBytes As LongPtr
+End Type
+
+Public Const RTLP_HEAP_TAGGING_INFO_VERSION = 1
+Public Type RTLP_HEAP_TAGGING_INFO
+    Version As Integer
+    Flags As Integer ' 1: Multiple Tags, 2: Single Tag + Hash
+    ProcessHandle As LongPtr
+    EntriesCount As LongPtr
+    Entries(0 To 0) As RTLP_TAG_INFO
+End Type
 
 Public Enum FINDEX_SEARCH_OPS
     FindExSearchNameMatch
@@ -18832,6 +18856,151 @@ Public Type SEMAPHORE_BASIC_INFORMATION
     MaximumCount As Long
 End Type
 
+Public Enum WAIT_TYPE
+    WaitAll
+    WaitAny
+    WaitNotification
+    WaitDequeue
+    WaitDpc
+End Enum
+
+Public Enum NtHeapRangeTypes
+    HEAP_RANGE_TYPE_COMMITTED = 1
+    HEAP_RANGE_TYPE_RESERVED = 2
+End Enum
+
+Public Enum NtHeapBlockFlags
+    HEAP_BLOCK_BUSY = 1
+    HEAP_BLOCK_EXTRA_INFORMATION = 2
+    HEAP_BLOCK_LARGE_BLOCK = 4
+    HEAP_BLOCK_LFH_BLOCK = 8
+End Enum
+
+Public Enum HEAP_INFORMATION_LEVEL
+    HEAP_INFORMATION_LEVEL_PROCESS = 1
+    HEAP_INFORMATION_LEVEL_HEAP = 2
+    HEAP_INFORMATION_LEVEL_REGION = 3
+    HEAP_INFORMATION_LEVEL_RANGE = 4
+    HEAP_INFORMATION_LEVEL_BLOCK = 5
+    HEAP_INFORMATION_LEVEL_PERFORMANCECOUNTERS = &H80000000
+    HEAP_INFORMATION_LEVEL_TAGGING = &H40000000
+    HEAP_INFORMATION_LEVEL_STACK_DUMP = &H20000000
+    HEAP_INFORMATION_LEVEL_STACK_CONTROL = &H10000000
+    HEAP_INFORMATION_LEVEL_INTERNAL_PROCESS_INFO = &H08000000
+End Enum
+
+Public Type PROCESS_HEAP_INFORMATION
+    ReserveSize As LongPtr
+    CommitSize As LongPtr
+    NumberOfHeaps As Long
+    FirstHeapInformationOffset As LongPtr
+End Type
+
+Public Type HEAP_BLOCK_INFORMATION
+    Address As LongPtr
+    Flags As NtHeapBlockFlags
+    DataSize As LongPtr
+    OverheadSize As LongPtr
+    NextBlockInformationOffset As LongPtr
+End Type
+
+Public Type HEAP_INFORMATION
+    Address As LongPtr
+    Mode As Long
+    ReserveSize As LongPtr
+    CommitSize As LongPtr
+    FirstRegionInformationOffset As LongPtr
+    NextHeapInformationOffset As LongPtr
+End Type
+
+Public Type SEGMENT_HEAP_PERFORMANCE_COUNTER_INFORMATION
+    SegmentReserveSize As LongPtr
+    SegmentCommitSize As LongPtr
+    SegmentCount As LongPtr
+    AllocatedSize As LongPtr
+    LargeAllocReserveSize As LongPtr
+    LargeAllocCommitSize As LongPtr
+End Type
+
+Public Const HeapPerformanceCountersInformationStandardHeapVersion  = &H1
+Public Const HeapPerformanceCountersInformationSegmentHeapVersion  = &H2
+
+Public Type HEAP_PERFORMANCE_COUNTERS_INFORMATION
+    Size As Long
+    Version As Long
+    HeapIndex As Long
+    LastHeapIndex As Long
+    BaseAddress As LongPtr
+    ReserveSize As LongPtr
+    CommitSize As LongPtr
+    SegmentCount As Long
+    LargeUCRMemory As LongPtr
+    UCRLength As Long
+    AllocatedSpace As LongPtr
+    FreeSpace As LongPtr
+    FreeListLength As Long
+    Contention As Long
+    VirtualBlocks As Long
+    CommitRate As Long
+    DecommitRate As Long
+    SegmentHeapPerfInformation As SEGMENT_HEAP_PERFORMANCE_COUNTER_INFORMATION ' since WIN8
+End Type
+
+Public Type HEAP_INFORMATION_ITEM
+    Level As Long
+    Size As LongPtr
+    ' union
+    ' {
+        ' PROCESS_HEAP_INFORMATION ProcessHeapInformation;
+        ' HEAP_INFORMATION HeapInformation;
+        ' HEAP_REGION_INFORMATION HeapRegionInformation;
+        ' HEAP_RANGE_INFORMATION HeapRangeInformation;
+        ' HEAP_BLOCK_INFORMATION HeapBlockInformation;
+        ' HEAP_PERFORMANCE_COUNTERS_INFORMATION HeapPerfInformation;
+        ' ULONG_PTR DynamicStart;
+    ' };
+    #If Win64 Then
+    u(&H98) As Byte
+    #Else
+    u(&H5C) As Byte
+    #End If
+End Type
+
+Public Delegate Function RTL_HEAP_EXTENDED_ENUMERATION_ROUTINE (Information As HEAP_INFORMATION_ITEM, ByVal Context As LongPtr) As NTSTATUS
+
+Public Enum HeapExtendedInformationLevel
+    HeapExtendedProcessHeapInformationLevel = &H1
+    HeapExtendedHeapInformationLevel = &H2
+    HeapExtendedHeapRegionInformationLevel = &H3
+    HeapExtendedHeapRangeInformationLevel = &H4
+    HeapExtendedHeapBlockInformationLevel = &H5
+    HeapExtendedHeapHeapPerfInformationLevel = &H80000000
+End Enum
+
+Public Type HEAP_EXTENDED_INFORMATION
+    ProcessHandle As LongPtr
+    HeapHandle As LongPtr
+    Level As Long
+    ' #If WDL_NO_DELEGATES Then
+    CallbackRoutine As LongPtr
+    ' #Else
+    ' CallbackRoutine As RTL_HEAP_EXTENDED_ENUMERATION_ROUTINE
+    ' #End If
+    CallbackContext As LongPtr
+    ' union
+    ' {
+        ' PROCESS_HEAP_INFORMATION ProcessHeapInformation;
+        ' HEAP_INFORMATION HeapInformation;
+    ' };
+    #If Win64 Then
+    u(&H30) As Byte
+    #Else
+    u(&H18) As Byte
+    #End If
+End Type
+
+
+
 
 'NTDLL APIs should only be added if they don't have higher level equivalents. If the NTDLL version has substantially more functionality, it's not equivalent and should be added.
 [UseGetLastError(False)]
@@ -18925,6 +19094,8 @@ Public Declare PtrSafe Function NtResumeProcess Lib "ntdll" (ByVal hProcess As L
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtTerminateProcess Lib "ntdll" (ByVal ProcessHandle As LongPtr, ByVal ExitStatus As NTSTATUS) As NTSTATUS
 [UseGetLastError(False)]
+Public Declare PtrSafe Function NtTerminateThread Lib "ntdll" (ByVal ThreadHandle As LongPtr, ByVal ExitStatus As NTSTATUS) As NTSTATUS
+[UseGetLastError(False)]
 Public Declare PtrSafe Function NtQueryInformationToken Lib "ntdll" (ByVal TokenHandle As LongPtr, ByVal TokenInformationClass As TOKEN_INFORMATION_CLASS, TokenInformation As Any, ByVal TokenInformationLength As Long, ReturnLength As Long) As NTSTATUS
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtSetInformationToken Lib "ntdll" (ByVal TokenHandle As LongPtr, ByVal TokenInformationClass As TOKEN_INFORMATION_CLASS, TokenInformation As Any, ByVal TokenInformationLength As Long) As NTSTATUS
@@ -19012,9 +19183,9 @@ Public Declare PtrSafe Function NtDeviceIoControlFile Lib "ntdll" (ByVal FileHan
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtAllocateLocallyUniqueId Lib "ntdll" (pLuid As LUID) As NTSTATUS
 [UseGetLastError(False)]
-Public Declare PtrSafe Function NtCreateToken Lib "ntdll" (TokenHandle As LongPtr, [TypeHint(TokenAccessRights, StandardAccessTypes)] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, ByVal TokenType As TOKEN_TYPE, AuthenticationId As LUID, ExpirationTime As LongLong, TokenUser As Any, TokenGroups As Any, TokenPrivileges As Any, TokenOwner As TOKEN_OWNER, TokenPrimaryGroup As TOKEN_PRIMARY_GROUP, TokenDefaultDacl As TOKEN_DEFAULT_DACL, TokenSource As TOKEN_SOURCE) As NTSTATUS
+Public Declare PtrSafe Function NtCreateToken Lib "ntdll" (TokenHandle As LongPtr, [TypeHint(TokenAccessRights, StandardAccessTypes)] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, ByVal TokenType As TOKEN_TYPE, AuthenticationId As LUID, ExpirationTime As LARGE_INTEGER, TokenUser As Any, TokenGroups As Any, TokenPrivileges As Any, TokenOwner As TOKEN_OWNER, TokenPrimaryGroup As TOKEN_PRIMARY_GROUP, TokenDefaultDacl As TOKEN_DEFAULT_DACL, TokenSource As TOKEN_SOURCE) As NTSTATUS
 [UseGetLastError(False)]
-Public Declare PtrSafe Function NtCreateTokenEx Lib "ntdll" (TokenHandle As LongPtr, [TypeHint(TokenAccessRights, StandardAccessTypes)] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, ByVal TokenType As TOKEN_TYPE, AuthenticationId As LUID, ExpirationTime As LongLong, TokenUser As Any, TokenGroups As Any, TokenPrivileges As Any, UserAttributes As TOKEN_SECURITY_ATTRIBUTES_INFORMATION, DeviceAttributes As TOKEN_SECURITY_ATTRIBUTES_INFORMATION, DeviceGroups As Any, MandatoryPolicy As TOKEN_MANDATORY_POLICY, Owner As TOKEN_OWNER, PrimaryGroup As TOKEN_PRIMARY_GROUP, DefaultDacl As TOKEN_DEFAULT_DACL, TokenSource As TOKEN_SOURCE) As NTSTATUS
+Public Declare PtrSafe Function NtCreateTokenEx Lib "ntdll" (TokenHandle As LongPtr, [TypeHint(TokenAccessRights, StandardAccessTypes)] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, ByVal TokenType As TOKEN_TYPE, AuthenticationId As LUID, ExpirationTime As LARGE_INTEGER, TokenUser As Any, TokenGroups As Any, TokenPrivileges As Any, UserAttributes As TOKEN_SECURITY_ATTRIBUTES_INFORMATION, DeviceAttributes As TOKEN_SECURITY_ATTRIBUTES_INFORMATION, DeviceGroups As Any, MandatoryPolicy As TOKEN_MANDATORY_POLICY, Owner As TOKEN_OWNER, PrimaryGroup As TOKEN_PRIMARY_GROUP, DefaultDacl As TOKEN_DEFAULT_DACL, TokenSource As TOKEN_SOURCE) As NTSTATUS
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtCreateLowBoxToken Lib "ntdll" (TokenHandle As LongPtr, ByVal ExistingTokenHandle As LongPtr, [TypeHint(TokenAccessRights, StandardAccessTypes)] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, ByVal PackageSid As LongPtr, ByVal CapabilityCount As Long, Capabilities As SID_AND_ATTRIBUTES, ByVal HandleCount As Long, Handles As LongPtr) As NTSTATUS
 [UseGetLastError(False)]
@@ -19113,6 +19284,8 @@ Public Declare PtrSafe Function NtYieldExecution Lib "ntdll" () As NTSTATUS
 Public Declare PtrSafe Function NtDelayExecution Lib "ntdll" (ByVal Alertable As Byte, DelayInterval As LARGE_INTEGER) As NTSTATUS
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtWaitForSingleObject Lib "ntdll" (ByVal Handle As LongPtr, ByVal Alertable As Byte, Timeout As LARGE_INTEGER) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtWaitForMultipleObjects Lib "ntdll" (ByVal Count As Long, Handles As LongPtr, ByVal WaitType As WAIT_TYPE, ByVal Alertable As Byte, Timeout As LARGE_INTEGER) As NTSTATUS
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtRaiseHardError Lib "ntdll" (ByVal ErrorStatus As NTSTATUS, ByVal NumberOfParameters As Long, ByVal UnicodeStringParametersMask As Long, Parameters As Any, ByVal ResponseOption As HARDERROR_RESPONSE_OPTION, Response As HARDERROR_RESPONSE) As NTSTATUS
 [UseGetLastError(False)]
@@ -19692,6 +19865,21 @@ Public Enum AlpcImpersonateFlags
     ALPC_IMPERSONATE_LEVEL = 2
 End Enum
 
+Public Enum NtAlpcFlags
+    ALPC_FLG_MSG_SEC_ATTR = &H80000000
+    ALPC_FLG_MSG_DATAVIEW_ATTR = &H40000000
+    ALPC_FLG_MSG_CONTEXT_ATTR = &H20000000
+    ALPC_FLG_MSG_HANDLE_ATTR = &H10000000
+    ALPC_FLG_MSG_TOKEN_ATTR = &H08000000
+    ALPC_FLG_MSG_DIRECT_ATTR = &H04000000
+    ALPC_FLG_MSG_WORK_ON_BEHALF_ATTR = &H02000000
+    ALPC_FLG_MSG_ALL_ATTR = &Hff000000
+End Enum
+
+
+
+
+
 Public Type RTL_SRWLOCK
     ' union
     ' {
@@ -19778,6 +19966,9 @@ Public Function RtlEqualMemory(ByVal Source1 As LongPtr, ByVal Source2 As LongPt
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlCreateEnvironment Lib "ntdll" (ByVal bInherit As Byte, Environment As LongPtr) As NTSTATUS
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlDestroyProcessParameters Lib "ntdll" (pProcessParameters As Any) As NTSTATUS
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlQueryModuleInformation Lib "ntdll" (InformationLength As Long, ByVal SizePerModule As Long, InformationBuffer As Any) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlQueryHeapInformation Lib "ntdll" (ByVal HeapHandle As LongPtr, ByVal HeapInformationClass As HEAP_INFORMATION_CLASS, HeapInformation As Any, ByVal HeapInformationLength As LongPtr, Optional ReturnLength As LongPtr) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlSetHeapInformation Lib "ntdll" (ByVal HeapHandle As LongPtr, ByVal HeapInformationClass As HEAP_INFORMATION_CLASS, HeapInformation As Any, ByVal HeapInformationLength As LongPtr) As NTSTATUS
+
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlCrc32 Lib "ntdll" (Buffer As Any, ByVal size As LongPtr, ByVal InitialCrc As Long) As Long
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlCrc64 Lib "ntdll" (Buffer As Any, ByVal size As LongPtr, ByVal InitialCrc As LongLong) As LongLong
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlCompressBuffer Lib "ntdll" ([TypeHint(NT_COMPRESSION_FORMAT)] ByVal CompressionFormatAndEngine As Integer, UncompressedBuffer As Any, ByVal UncompressedBufferSize As Long, CompressedBuffer As Any, ByVal CompressedBufferSize As Long, ByVal UncompressedChunkSize As Long, FinalCompressedSize As Long, ByVal Workspace As LongPtr) As NTSTATUS
@@ -19790,6 +19981,8 @@ Public Function RtlEqualMemory(ByVal Source1 As LongPtr, ByVal Source2 As LongPt
 [UseGetLastError(False)] Public Declare PtrSafe Sub RtlGetDeviceFamilyInfoEnum Lib "ntdll" (pullUAPInfo As LongLong, pulDeviceFamily As DEVICEFAMILYINFOENUM, pulDeviceForm As DEVICEFAMILYDEVICEFORM)
 [UseGetLastError(False)] Public DeclareWide PtrSafe Function RtlConvertDeviceFamilyInfoToString Lib "ntdll" (pulDeviceFamilyBufferSize As Long, pulDeviceFormBufferSize As Long, ByVal DeviceFamily As String, ByVal DeviceForm As String) As Long
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlCreateUserThread Lib "ntdll" (ByVal ProcessHandle As LongPtr, SecurityDescriptor As SECURITY_DESCRIPTOR, ByVal CreateSuspended As Byte, ByVal StackZeroBits As Long, ByVal StackReserve As LongPtr, ByVal StackCommit As LongPtr, ByVal StartAddress As LongPtr, Parameter As Any, ThreadHandle As LongPtr, ClientId As CLIENT_ID) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Sub RtlExitUserProcess Lib "ntdll" (ByVal status As NTSTATUS)
+[UseGetLastError(False)] Public Declare PtrSafe Sub RtlExitUserThread Lib "ntdll" (ByVal status As NTSTATUS)
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlTimeFieldsToTime Lib "ntdll" (TimeFields As TIME_FIELDS, pTime As LARGE_INTEGER) As Byte
 [UseGetLastError(False)] Public Declare PtrSafe Sub RtlTimeToTimeFields Lib "ntdll" (pTime As LARGE_INTEGER, TimeFields As TIME_FIELDS)
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlInitializeCorrelationVector Lib "ntdll" (CorrelationVector As CORRELATION_VECTOR, ByVal Version As Long, Guid As UUID) As Long

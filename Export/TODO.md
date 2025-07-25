@@ -1,16 +1,17 @@
 Known omissions where a priority update neccessitated not finishing 
 before release, or waiting on feature support:
 
+
+-Finish up NT Timer APIs (Timer2) then copy that and other new NT sync APIs to tbKMode.
+
 -Variant/PROPVARIANT overloads / As Any to overload, pending tB bug fix
 
--Finish DirectShow (now 95% done)
-
--ComboBox and ListBox windowsx.h macros
-
+-Finish DirectShow (now 98% done)
+ 
 -Verify new xaudio2 and helper math functions
 
 -Finish D2D1 helper class pending overload class bug fix
-
+ 
 -ntlsa delegates
 
 -BUG FIX PENDING: Overloaded interface vtable order vs source, reverse after patch:
@@ -180,13 +181,14 @@ Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.
     d3d12shader.h,d3d12video.h,d3d12video.idl,d3d12.h,d3d12.idl,fltUserStructures.h,fltUser.h,SpOrder.h,Filter.h,Filterr.h,NTQuery.h,apiquery2.h,appnotify.h,
     cpl.h,cplext.h,ddraw.h,ddstream.h,ddstream.idl,vmr9.h,vmr9.idl,vmrender.idl,amvideo.h,Dvp.h,uuids.h,amaudio.h,evcode.h,dyngraph.idl,dvdmedia.h,edevdefs.h,
     xprtdefs.h,axextend.idl,amparse.h,vidcap.h,vidcap.idl,dmodshow.h,dmodshow.idl,CameraUIControl.h,CameraUIControl.idl,austream.h,austream.idl,qnetwork.h,il21dec.h,
-    iwstdec.h,dvdif.h,strmif.h,strmif.idl,control.h,control.idl,amstream.h,amstream.idl,amva.h,sherrors.h,
+    iwstdec.h,dvdif.h,strmif.h,strmif.idl,control.h,control.idl,amstream.h,amstream.idl,amva.h,sherrors.h,bcp47mrm.h,regbag.h,regbag.idl,wimgapi.h,lsalookupi.h,
+    bdatypes.h,bdaiface_enums.h,bdaiface.h,bdaiface.idl,mpeg2structs.h,Mpeg2Structs.idl,Mpeg2Bits.h,Mpeg2Data.h,Mpeg2Data.idl,Mpeg2PsiParser.idl,AtscPsipParser.h
     
 Coverage in the 90%+ range
     winbase.h, oleidl.h, oaidl.h, ocidl.h, ocidl.idl, presentation.h,
 
 Substantial coverage
-    mmsciapi.h, winnt.h,winternl.h,immdev.h,winioctl.h,mmreg.h,WS2spi.h,winerror.h,WindowsSearchErrors.h,
+    mmsciapi.h, winnt.h,winternl.h,immdev.h,winioctl.h,mmreg.h,WS2spi.h,winerror.h,WindowsSearchErrors.h,windowsx.h,
 
 Minimal coverage
     windot11.h

@@ -34,24 +34,26 @@ WinDevLib has some compiler constants you can enable:
 
 `WINDEVLIB_LITE` - This flag disables most API declares and misc WinAPI definitions, including everything in wdAPIComCtl, wdAPI, and wdDefs. I used to like doing my APIs separate too, which is why oleexp never had the expansive coverage. But with that coverage now present, I think it's worth using, but this option will still be supported.
 
-`WINDEVLIB_COMCTL_LIB_DEFINED` - You can use this flag if you already have an alternative common controls definition set, e.g. tbComCtlLib; it will disable wdAPIComCtl. (Note: WinDevLib has more complete comctl defs than tbComCtlLib, as that project was deprecated and not updated).
+`WDL_NO_COMCTL` - You can use this flag if you already have an alternative common controls definition set, e.g. tbComCtlLib; it will disable wdAPIComCtl. (Note: WinDevLib has more complete comctl defs than tbComCtlLib, as that project was deprecated and not updated).
 
-`WINDEVLIB_DLGH` - This enabled constants from dlg.h. These are extremely uncommon to use, and have very short, generic names likely to cause conflicts, so they're opt-in.
+`WDL_DLGSH` - This enabled constants from dlg.h. These are extremely uncommon to use, and have very short, generic names likely to cause conflicts, so they're opt-in.
 
-`WINDEVLIB_NOQUADLI` - Restores the old `LARGE_INTEGER` definition of lo/high Long values.
+`WDL_NOQUADLI` - Restores the old `LARGE_INTEGER` definition of lo/high Long values.
 
 >[!WARNING]
->The `WINDEVLIB_NOQUADLI` constant will break alignment on numerous Types; most only on x64, but some on both. 
+>The `WDL_NOQUADLI` constant will break alignment on numerous Types; most only on x64, but some on both. 
 
-`WINDEVLIB_AVOID_INTRINSICS` - Uses the `Interlocked*` APIs that are exported from kernel32.dll (32bit mode only) instead of the static library containing compiler intrinsic versions of those in addition to all the ones not exported and all the 64bit ones.
+`WDL_AVOID_INTRINSICS` - Uses the `Interlocked*` APIs that are exported from kernel32.dll (32bit mode only) instead of the static library containing compiler intrinsic versions of those in addition to all the ones not exported and all the 64bit ones.
 
-`WINDEVLIB_NOLIBS` - Fully exclude static libraries (currently only Interlocked); mainly intended for comparing current tB versions to Beta 423 where the `Import Library` syntax is not yet supported.
+`WDL_NO_LIBS` - Fully exclude static libraries (currently only Interlocked); mainly intended for comparing current tB versions to Beta 423 where the `Import Library` syntax is not yet supported.
 
-`WINDEVLIB_NO_DELEGATES` - Do not use Delegate functions in place of function pointers.
+`WDL_NO_DELEGATES` - Do not use Delegate functions in place of function pointers.
 
-`WINDEVLIB_XAUDIO8` - Use XAudio8 DLLs for XAudio2 APIs (Windows 8)
+`WDL_XAUDIO8` - Use XAudio8 DLLs for XAudio2 APIs (Windows 8)
 
-`WINDEVLIB_NOMATH` - Exclude built in math helper function (see below). Note: XAudio2 inlined helper functions unavailable when math disabled.
+`WDL_NOMATH` - Exclude built in math helper function (see below). Note: XAudio2 inlined helper functions unavailable when math disabled.
+
+`WDL_ADS_DEFINED` - activeds.tlb is referenced, enable interfaces using its contents.
 
 >[!IMPORTANT]
 >Currently flags are not inherited from the main project, so the only way to use these is to set them in the compiler flags for WinDevLib.twinproj then build a custom twinpack.

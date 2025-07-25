@@ -19173,9 +19173,103 @@ Public Declare PtrSafe Function LsaInsertProtectedProcessAddress Lib "secur32" (
 Public Declare PtrSafe Function LsaRemoveProtectedProcessAddress Lib "secur32" (ByVal BufferAddress As LongPtr, ByVal BufferSize As Long) As NTSTATUS
 
 
+'lsalookupi.h - removed from SDK but still documented on MSDN
+
+Public Const LSA_UNKNOWN_ID  = (&HFFFFFFFF)
+Public Const LSA_UNKNOWN_INDEX  = (-1&)
+
+Public Enum LSA_SID_NAME_MAPPING_OPERATION_TYPE
+    LsaSidNameMappingOperation_Add = 0
+    LsaSidNameMappingOperation_Remove = 1
+    LsaSidNameMappingOperation_AddMultiple = 2
+End Enum
+
+Public Const LSA_MAXIMUM_NUMBER_OF_CHARACTERS_IN_NAMES_FOR_SNMC  = &H400
+
+Public Type LSA_SID_NAME_MAPPING_OPERATION_ADD_INPUT
+    DomainName As UNICODE_STRING
+    AccountName As UNICODE_STRING
+    Sid As LongPtr 'REF SID_POINTER (PSID)
+    Flags As Long
+End Type
+
+Public Type LSA_SID_NAME_MAPPING_OPERATION_REMOVE_INPUT
+    DomainName As UNICODE_STRING
+    AccountName As UNICODE_STRING
+End Type
+
+Public Const LSA_MAXIMUM_NUMBER_OF_MAPPINGS_IN_ADD_MULTIPLE_INPUT  = &H1000
+
+Public Type LSA_SID_NAME_MAPPING_OPERATION_ADD_MULTIPLE_INPUT
+    Count As Long
+    Mappings As LongPtr 'PLSA_SID_NAME_MAPPING_OPERATION_ADD_INPUT
+End Type
+
+' typedef SWITCH_TYPE( LSA_SID_NAME_MAPPING_OPERATION_TYPE ) union _LSA_SID_NAME_MAPPING_OPERATION_INPUT {
+
+' CASE( LsaSidNameMappingOperation_Add )
+    ' LSA_SID_NAME_MAPPING_OPERATION_ADD_INPUT            AddInput;
+' CASE( LsaSidNameMappingOperation_Remove )
+    ' LSA_SID_NAME_MAPPING_OPERATION_REMOVE_INPUT         RemoveInput;
+' CASE( LsaSidNameMappingOperation_AddMultiple )
+    ' LSA_SID_NAME_MAPPING_OPERATION_ADD_MULTIPLE_INPUT   AddMultipleInput;
+
+' } LSA_SID_NAME_MAPPING_OPERATION_INPUT, *PLSA_SID_NAME_MAPPING_OPERATION_INPUT;
+Public Type LSA_SID_NAME_MAPPING_OPERATION_INPUT
+    #If Win64 Then
+    u(&H2F) As Byte
+    #Else
+    u(&H17) As Byte
+    #End If
+End Type
+
+Public Enum LSA_SID_NAME_MAPPING_OPERATION_ERROR
+    LsaSidNameMappingOperation_Success
+    LsaSidNameMappingOperation_NonMappingError
+    LsaSidNameMappingOperation_NameCollision
+    LsaSidNameMappingOperation_SidCollision
+    LsaSidNameMappingOperation_DomainNotFound
+    LsaSidNameMappingOperation_DomainSidPrefixMismatch
+    LsaSidNameMappingOperation_MappingNotFound
+End Enum
+   
+Public Type LSA_SID_NAME_MAPPING_OPERATION_GENERIC_OUTPUT
+    ErrorCode As LSA_SID_NAME_MAPPING_OPERATION_ERROR
+End Type
+' typedef LSA_SID_NAME_MAPPING_OPERATION_GENERIC_OUTPUT LSA_SID_NAME_MAPPING_OPERATION_ADD_OUTPUT, *PLSA_SID_NAME_MAPPING_OPERATION_ADD_OUTPUT;
+' typedef LSA_SID_NAME_MAPPING_OPERATION_GENERIC_OUTPUT LSA_SID_NAME_MAPPING_OPERATION_REMOVE_OUTPUT, *PLSA_SID_NAME_MAPPING_OPERATION_REMOVE_OUTPUT;
+' typedef LSA_SID_NAME_MAPPING_OPERATION_GENERIC_OUTPUT LSA_SID_NAME_MAPPING_OPERATION_ADD_MULTIPLE_OUTPUT, *PLSA_SID_NAME_MAPPING_OPERATION_ADD_MULTIPLE_OUTPUT;
+'Alias alias alias
+Public Type LSA_SID_NAME_MAPPING_OPERATION_ADD_OUTPUT
+    ErrorCode As LSA_SID_NAME_MAPPING_OPERATION_ERROR
+End Type
+Public Type LSA_SID_NAME_MAPPING_OPERATION_REMOVE_OUTPUT
+    ErrorCode As LSA_SID_NAME_MAPPING_OPERATION_ERROR
+End Type
+Public Type LSA_SID_NAME_MAPPING_OPERATION_ADD_MULTIPLE_OUTPUT
+    ErrorCode As LSA_SID_NAME_MAPPING_OPERATION_ERROR
+End Type
+
+' typedef SWITCH_TYPE( LSA_SID_NAME_MAPPING_OPERATION_TYPE ) union _LSA_SID_NAME_MAPPING_OPERATION_OUTPUT {
+
+' CASE( LsaSidNameMappingOperation_Add )
+    ' LSA_SID_NAME_MAPPING_OPERATION_ADD_OUTPUT           AddOutput;
+' CASE( LsaSidNameMappingOperation_Remove )
+    ' LSA_SID_NAME_MAPPING_OPERATION_REMOVE_OUTPUT        RemoveOutput;
+' CASE( LsaSidNameMappingOperation_AddMultiple )
+    ' LSA_SID_NAME_MAPPING_OPERATION_ADD_MULTIPLE_OUTPUT  AddMultipleOutput;
+
+' } LSA_SID_NAME_MAPPING_OPERATION_OUTPUT,
+Public Type LSA_SID_NAME_MAPPING_OPERATION_OUTPUT
+    Output As LSA_SID_NAME_MAPPING_OPERATION_GENERIC_OUTPUT
+End Type
+
+[UseGetLastError(False)]
+Public Declare PtrSafe Function LsaLookupManageSidNameMapping Lib "sechost" (ByVal OperationType As LSA_SID_NAME_MAPPING_OPERATION_TYPE, OperationInput As LSA_SID_NAME_MAPPING_OPERATION_INPUT, OperationOutput As LongPtr) As NTSTATUS
 
 
-
+[UseGetLastError(False)]
+Public Declare PtrSafe Function LsaManageSidNameMapping Lib "advapi32" (ByVal OperationType As LSA_SID_NAME_MAPPING_OPERATION_TYPE, OperationInput As LSA_SID_NAME_MAPPING_OPERATION_INPUT, OperationOutput As LongPtr) As NTSTATUS
 
 
 Public Delegate Function PFN_LSA_CALL_AUTH_PKG (ByVal LsaHandle As LongPtr, ByVal AuthenticationPackage As Long, ProtocolSubmitBuffer As Any, ByVal SubmitBufferLength As Long, ProtocolReturnBuffer As LongPtr, ReturnBufferLength As Long, ProtocolStatus As NTSTATUS) As NTSTATUS
@@ -43132,6 +43226,122 @@ Public Declare PtrSafe Function LZRead Lib "lz32.dll" (ByVal hFile As Long, lpBu
 [UseGetLastError(False)]
 Public Declare PtrSafe Sub LZClose Lib "lz32.dll" (ByVal hFile As Long)
 
+
+
+'FMAPI
+Public Const FILE_RESTORE_MAJOR_VERSION_1  = &H0001
+Public Const FILE_RESTORE_MAJOR_VERSION_2  = &H0002
+Public Const FILE_RESTORE_MINOR_VERSION_1  = &H0001
+Public Const FILE_RESTORE_MINOR_VERSION_2  = &H0000
+Public Enum FileRestoreApiVersions
+    FILE_RESTORE_VERSION_1 = ((FILE_RESTORE_MAJOR_VERSION_1 << 16) Or FILE_RESTORE_MINOR_VERSION_1)
+    FILE_RESTORE_VERSION_2 = ((FILE_RESTORE_MAJOR_VERSION_2 << 16) Or FILE_RESTORE_MINOR_VERSION_2)
+    FILE_RESTORE_VERSION_CURRENT = FILE_RESTORE_VERSION_2
+End Enum
+
+Public Enum BOOT_SECTOR_FILE_SYSTEM_TYPE
+    ' / <summary>The file system is not known.</summary>
+    FileSystemUnknown
+    ' / <summary>The file system is FAT12.</summary>
+    FileSystemFAT12
+    ' / <summary>The file system is FAT16.</summary>
+    FileSystemFAT16
+    ' / <summary>The file system is FAT32.</summary>
+    FileSystemFAT32
+    ' / <summary>The file system is NTFS.</summary>
+    FileSystemNTFS
+End Enum
+Public Type BOOT_SECTOR_INFO
+    TotalSectors As LongLong
+    FileSystem As BOOT_SECTOR_FILE_SYSTEM_TYPE
+    BytePerSector As Long
+    SectorPerCluster As Long
+    IsEncrypted As BOOL
+End Type
+
+
+Public Enum FILE_RESTORE_PACKET_TYPE
+    ' / <summary>
+    ' / The progress of the restoration process is reported by the callback function. The structure of the progress information is
+    ' / defined in <c>FILE_RESTORE_PROGRESS_INFORMATION</c>.
+    ' / </summary>
+    FileRestoreProgressInfo = 100
+    ' / <summary>
+    ' / The final status of the restoration process is reported by the callback function. The structure of the status information is
+    ' / defined in <c>FILE_RESTORE_FINISHED_INFORMATION</c>.
+    ' / </summary>
+    FileRestoreFinished
+End Enum
+
+
+Public Enum RESTORE_CONTEXT_FLAGS
+    ContextFlagVolume = &H00000001
+    ContextFlagDisk = &H00000002
+    FlagScanRemovedFiles = &H00000004
+    FlagScanRegularFiles = &H00000008
+    FlagScanIncludeRemovedDirectories = &H00000010
+End Enum
+
+[Description("WARNING: Uses a buffer in place of C-style variable array.")]
+Public Type RESTORABLE_FILE_INFO
+    Size As Long
+    Version As Long
+    FileSize As LongLong
+    CreationTime As FILETIME
+    LastAccessTime As FILETIME
+    LastWriteTime As FILETIME
+    Attributes As Long
+    IsRemoved As BOOL
+    ClustersUsedByFile As LongLong
+    ClustersCurrentlyInUse As LongLong
+    RestoreDataOffset As Long
+    FileName(0 To 259) As Integer
+End Type
+
+Public Enum VOLUME_INFO
+    ' / <summary>Used to define the encrypted status of a volume.</summary>
+    VOLUME_INFO_ENCRYPTED = &H0001
+    ' / <summary>Used to define the locked status of a volume.</summary>
+    VOLUME_INFO_LOCKED = &H0002
+End Enum
+
+Public Type FILE_RESTORE_FINISHED_INFORMATION
+    Success As BOOL
+    FinalResult As Long
+    ClbkArg As LongPtr
+End Type
+
+Public Type FILE_RESTORE_PROGRESS_INFORMATION
+    TotalFileSize As LongLong
+    TotalBytesCompleted As LongLong
+    StreamSize As LongLong
+    StreamBytesCompleted As LongLong
+    ClbkArg As LongPtr
+End Type
+
+Public Delegate Function FILE_RESTORE_CALLBACK (ByVal PacketType As FILE_RESTORE_PACKET_TYPE, ByVal PacketLength As Long, ByVal PacketData As LongPtr) As Byte
+
+
+[Description("Note: On some versions of Windows, this and other file restore APIs are only available in the OS bitness, i.e. Windows 64bit only includes a 64bit fmapi.dll")]
+Public Declare PtrSafe Function CreateFileRestoreContext Lib "fmapi.dll" (ByVal Volume As String, ByVal Flags As RESTORE_CONTEXT_FLAGS, ByVal StartSector As LongLong, ByVal BootSector As LongLong, ByVal Version As FileRestoreApiVersions, Context As LongPtr) As BOOL
+[Description("Note: On some versions of Windows, this and other file restore APIs are only available in the OS bitness, i.e. Windows 64bit only includes a 64bit fmapi.dll")]
+Public Declare PtrSafe Function CreateFileRestoreContext Lib "fmapi.dll" (ByVal Volume As LongPtr, ByVal Flags As RESTORE_CONTEXT_FLAGS, ByVal StartSector As LongLong, ByVal BootSector As LongLong, ByVal Version As FileRestoreApiVersions, Context As LongPtr) As BOOL
+Public Declare PtrSafe Function CloseFileRestoreContext Lib "fmapi.dll" (ByVal Context As LongPtr) As BOOL
+[Description("For BootSector, it is a pointer to the first 512 bytes of the boot sector. The size of this buffer should always be 512 bytes, even if the sector size of the drive is not 512 bytes.")]
+Public Declare PtrSafe Function DetectBootSector Lib "fmapi.dll" (BootSector As Any, BootSectorParams As BOOT_SECTOR_INFO) As BOOL
+Public Declare PtrSafe Function DetectEncryptedVolume Lib "fmapi.dll" (ByVal Context As LongPtr, VolumeEncryptionInfo As VOLUME_INFO) As BOOL
+Public Declare PtrSafe Function DetectEncryptedVolumeEx Lib "fmapi.dll" (ByVal Context As LongPtr, VolumeEncryptionInfo As VOLUME_INFO, VolumeSize As LongLong) As BOOL
+Public Declare PtrSafe Function ScanRestorableFiles Lib "fmapi.dll" (ByVal Context As LongPtr, ByVal Path As String, ByVal FileInfoSize As Long, FileInfo As Any, FileInfoUsed As Long) As BOOL
+Public Declare PtrSafe Function ScanRestorableFiles Lib "fmapi.dll" (ByVal Context As LongPtr, ByVal Path As LongPtr, ByVal FileInfoSize As Long, FileInfo As Any, FileInfoUsed As Long) As BOOL
+' #If WDL_NO_DELEGATES Then
+Public Declare PtrSafe Function RestoreFile Lib "fmapi.dll" (ByVal Context As LongPtr, RestorableFile As Any, ByVal DstFile As String, Optional ByVal Callback As LongPtr, Optional ByVal ClbkArg As LongPtr) As BOOL
+Public Declare PtrSafe Function RestoreFile Lib "fmapi.dll" (ByVal Context As LongPtr, RestorableFile As Any, ByVal DstFile As LongPtr, Optional ByVal Callback As LongPtr, Optional ByVal ClbkArg As LongPtr) As BOOL
+' #Else
+' Public Declare PtrSafe Function RestoreFile Lib "fmapi.dll" (ByVal Context As LongPtr, RestorableFile As Any, ByVal DstFile As String, Optional ByVal Callback As FILE_RESTORE_CALLBACK, Optional ByVal ClbkArg As LongPtr) As BOOL
+' Public Declare PtrSafe Function RestoreFile Lib "fmapi.dll" (ByVal Context As LongPtr, RestorableFile As Any, ByVal DstFile As LongPtr, Optional ByVal Callback As FILE_RESTORE_CALLBACK, Optional ByVal ClbkArg As LongPtr) As BOOL
+' #End If
+Public Declare PtrSafe Function SupplyDecryptionInfo Lib "fmapi.dll" (ByVal Context As LongPtr, ByVal RecoveryKeyFilePath As String, RecoveryPassword As Any, KeyPackage As Any, ByVal KeyPackage As Long) As BOOL
+Public Declare PtrSafe Function SupplyDecryptionInfo Lib "fmapi.dll" (ByVal Context As LongPtr, ByVal RecoveryKeyFilePath As LongPtr, RecoveryPassword As Any, KeyPackage As Any, ByVal KeyPackage As Long) As BOOL
 
 
 'CimFs.h
