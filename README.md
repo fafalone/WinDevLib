@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 9.1.570 (July 15th, 2025)**
+**Current Version: 9.1.572 (July 25th, 2025)**
 
 (c) 2022-2025 Jon Johnson (fafalone)
 
@@ -39,24 +39,26 @@ WinDevLib has some compiler constants you can enable:
 
 `WINDEVLIB_LITE` - This flag disables most API declares and misc WinAPI definitions, including everything in wdAPIComCtl, wdAPI, and wdDefs. I used to like doing my APIs separate too, which is why oleexp never had the expansive coverage. But with that coverage now present, I think it's worth using, but this option will still be supported.
 
-`WINDEVLIB_COMCTL_LIB_DEFINED` - You can use this flag if you already have an alternative common controls definition set, e.g. tbComCtlLib; it will disable wdAPIComCtl. (Note: WinDevLib has more complete comctl defs than tbComCtlLib, as that project was deprecated and not updated).
+`WDL_NO_COMCTL` - You can use this flag if you already have an alternative common controls definition set, e.g. tbComCtlLib; it will disable wdAPIComCtl. (Note: WinDevLib has more complete comctl defs than tbComCtlLib, as that project was deprecated and not updated).
 
-`WINDEVLIB_DLGSH` - This enabled constants from dlg.h. These are extremely uncommon to use, and have very short, generic names likely to cause conflicts, so they're opt-in.
+`WDL_DLGSH` - This enabled constants from dlg.h. These are extremely uncommon to use, and have very short, generic names likely to cause conflicts, so they're opt-in.
 
-`WINDEVLIB_NOQUADLI` - Restores the old `LARGE_INTEGER` definition of lo/high Long values.
+`WDL_NOQUADLI` - Restores the old `LARGE_INTEGER` definition of lo/high Long values.
 
 >[!WARNING]
->The `WINDEVLIB_NOQUADLI` constant will break alignment on numerous Types; most only on x64, but some on both. 
+>The `WDL_NOQUADLI` constant will break alignment on numerous Types; most only on x64, but some on both. 
 
-`WINDEVLIB_AVOID_INTRINSICS` - Uses the `Interlocked*` APIs that are exported from kernel32.dll (32bit mode only) instead of the static library containing compiler intrinsic versions of those in addition to all the ones not exported and all the 64bit ones.
+`WDL_AVOID_INTRINSICS` - Uses the `Interlocked*` APIs that are exported from kernel32.dll (32bit mode only) instead of the static library containing compiler intrinsic versions of those in addition to all the ones not exported and all the 64bit ones.
 
-`WINDEVLIB_NOLIBS` - Fully exclude static libraries (currently only Interlocked); mainly intended for comparing current tB versions to Beta 423 where the `Import Library` syntax is not yet supported.
+`WDL_NO_LIBS` - Fully exclude static libraries (currently only Interlocked); mainly intended for comparing current tB versions to Beta 423 where the `Import Library` syntax is not yet supported.
 
-`WINDEVLIB_NO_DELEGATES` - Do not use Delegate functions in place of function pointers.
+`WDL_NO_DELEGATES` - Do not use Delegate functions in place of function pointers.
 
-`WINDEVLIB_XAUDIO8` - Use XAudio8 DLLs for XAudio2 APIs (Windows 8)
+`WDL_XAUDIO8` - Use XAudio8 DLLs for XAudio2 APIs (Windows 8)
 
-`WINDEVLIB_NOMATH` - Exclude built in math helper function (see below). Note: XAudio2 inlined helper functions unavailable when math disabled.
+`WDL_NOMATH` - Exclude built in math helper function (see below). Note: XAudio2 inlined helper functions unavailable when math disabled.
+
+`WDL_ADS_DEFINED` - activeds.tlb is referenced, enable interfaces using its contents.
 
 >[!IMPORTANT]
 >Currently flags are not inherited from the main project, so the only way to use these is to set them in the compiler flags for WinDevLib.twinproj then build a custom twinpack.
@@ -226,6 +228,14 @@ Finally, there's numerous additional API sets from small to large for independen
 This project has grown well beyond it's original mission of shell programming. While that's still the largest single part, it's no longer a majority of the code, and the name change now much better reflects the purpose of providing a general Windows API experience like windows.h. Compiler constants and module names/file names have been updated to reflect the name change. tbShellLibImpl is now WinDevLibImpl. There are also some major chanages associated with this update, please see the full changelog below.
 
 ### Updates
+
+**Update (v9.1.572, 25 Jul 2025):**
+- Added deleted file restore APIs (fmapi.dll)
+- Breaking Change: NtCreateToken[Ex] now uses proper LARGE_INTEGER type instead of LongLong.
+- Added numerous missing keys from propkey.h added from when modPKEY was initially done with the
+   Windows 7 SDK to the latest Windows 11 SDK. 
+- Breaking Change: IEnumExplorerCommand::Next now returns HRESULT; Implements version added to WinDevLibImpl. 
+- Misc. API additions
 
 **Update (v9.1.570, 15 Jul 2025):**
 - **BREAKING CHANGES** 
