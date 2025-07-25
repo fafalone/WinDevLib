@@ -1,5 +1,12 @@
 
-
+**Update (v9.1.572, 25 Jul 2025):**
+- Added deleted file restore APIs (fmapi.dll)
+- Breaking Change: NtCreateToken[Ex] now uses proper LARGE_INTEGER type instead of LongLong.
+- Added numerous missing keys from propkey.h added from when modPKEY was initially done with the
+   Windows 7 SDK to the latest Windows 11 SDK. 
+- Breaking Change: IEnumExplorerCommand::Next now returns HRESULT; Implements version added to WinDevLibImpl. 
+- Misc. API additions
+ 
 **Update (v9.1.570, 15 Jul 2025):**
 - **BREAKING CHANGES** 
    - LUID_AND_ATTRIBUTES LUID member is not a pointer so "pLuid" was not only 
