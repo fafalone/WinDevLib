@@ -2,7 +2,7 @@ Known omissions where a priority update neccessitated not finishing
 before release, or waiting on feature support:
 
 
--Finish up NT Timer APIs (Timer2) then copy that and other new NT sync APIs to tbKMode.
+- copy  new NT sync APIs to tbKMode.
 
 -Variant/PROPVARIANT overloads / As Any to overload, pending tB bug fix
 
@@ -152,7 +152,7 @@ Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.
     WebEvnts.idl,WebEvnts.h,propkey.h,propkeydef.h,winsafer.h,powerbase.h,powersetting.h,powrprof.h,synchapi.h,dpa_dsa.h,DocumentTarget.idl,DocumentTarget.h,
     propsys.h,SrRestorePtApi.h,compressapi.h,wincrypt.h,dpapi.h,mssip.h,memoryapi.h,wintrust.h,bcrypt.h,ncrypt.h,ncryptprotect.h,mobsync.h,ProcessSnapshot.h,
     wincred.h,winhttp.h,websocket.h,photoacquire.h,oleacc.h,sddl.h,securitybaseapi.h,dssec.h,oleauto.h,olectl.h,newdev.h,processthreadsapi.h,virtdisk.h,
-    cryptuiapi.h,limits.h,winuser.h,evntrace.h,evntprov.h,relogger.h,relogger.idl,WinNls.h,ktmw32.h,fileapi.h,AccCtrl.h,AclAPI.h,dbt.h,TlHelp32.h,winnetwk.h,
+    cryptuiapi.h,limits.h,winuser.h,evntrace.h,evntprov.h,relogger.h,relogger.idl,WinNls.h,WinNls32.h,ktmw32.h,fileapi.h,AccCtrl.h,AclAPI.h,dbt.h,TlHelp32.h,winnetwk.h,
     enclaveapi.h,wincon.h,wincontypes.h,consoleapi.h,consoleapi2.h,consoleapi3.h,winreg.h,lsalookup.h,adtgen.h,authz.h,cfg.h,sfc.h,secext.h,AudioAPOTypes.h,
     audioclient.h,audioclient.idl,audioclientactivationparams.h,audioendpoints.h,audioendpoints.idl,audioenginebaseapo.h,audioenginebaseapo.idl,
     audioengineendpoint.h,audioengineendpoint.idl,audiomediatype.h,audiomediatype.idl,audiostatemonitorapi.h,audiopolicy.h,audiopolicy.idl,audiosessiontypes.h,
@@ -173,8 +173,8 @@ Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.
     d2d1effects_1.h,d2d1effects_2.h,d2d1EffectauIEVRTrustedVideoPluginthor.h,d3dcommon.h,d3dcommon.idl,d3d10.h,d3d10.idl,d3d10misc.h,d3d10shader.h,d3d10effects.h,
     d3d10sdklayers.h,d3d10sdklayers.idl,d3d10_1shader.h,d3d10_1.h,d3d10_1.idl,d3dcsx.h,presentation.idl,presentationtypes.h,presentationtypes.idl,wldp.h,webauthn.h,
     ActivityCoordinator.h,ActivityCoordinatorTypes.h,ActivScp.h,ActivScp.idl,atacct.h,lm.h,lmcons.h,lmaccess.h,lmalert.h,lmapibuf.h,lmat.h,lmaudit.h,lmconfig.h,
-    lmerrlog.h,lmjoin.h,lmmsg.h,lmremutl.h,lmrepl.h,lmserver.h,lmshare.h,lmsname.h,lmstats.h,lmsvc.h,lmuse.h,lmuseflg.h,lmwksta.h,lmerr.h,lmdfs.h,
-    datetimeapi.h,ElsCore.h,ElsSrvc.h,Gb18030.h,stringsetapi.h,imm.h,tcpestats.h,tcpmib.h,mprapidef.h,ipifcons.h,ifdef.h,nldef.h,ipmib.h,iprtrmib.h,
+    lmerrlog.h,lmjoin.h,lmmsg.h,lmremutl.h,lmrepl.h,lmserver.h,lmshare.h,lmsname.h,lmstats.h,lmsvc.h,lmuse.h,lmuseflg.h,lmwksta.h,lmerr.h,lmdfs.h,poclass.h,
+    datetimeapi.h,ElsCore.h,ElsSrvc.h,Gb18030.h,stringsetapi.h,ime.h,imm.h,tcpestats.h,tcpmib.h,mprapidef.h,ipifcons.h,ifdef.h,nldef.h,ipmib.h,iprtrmib.h,
     ipexport.h,iptypes.h,iphlpapi.h,winsmcrd.h,SCardErr.h,winscard.h,schannel.h,axcore.idl,devenum.idl,axextendedenums.h,mediaerr.h,dxva.h,dxva9typ.h,dxva2api.h,
     dxva2api.idl,dxvahd.h,dxvahd.idl,icodecapi.h,wmcontainer.h,medparam.h,medparam.idl,mediaobj.h,mediaobj.idl,dmoreg.h,ksopmapi.h,opmapi.h,opmapi.idl,
     d3dx9core.h,d3d9x.h,d3d9xshader.h,d3d9xtex.h,d3dx9xof.h,d3dx9mesh.h,d3dx9shape.h,d3dx11core.h,d3dx11tex.h,d3dx11async.h,d3d12compatibility.h,d3d12compatibility.idl,
@@ -182,7 +182,8 @@ Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.
     cpl.h,cplext.h,ddraw.h,ddstream.h,ddstream.idl,vmr9.h,vmr9.idl,vmrender.idl,amvideo.h,Dvp.h,uuids.h,amaudio.h,evcode.h,dyngraph.idl,dvdmedia.h,edevdefs.h,
     xprtdefs.h,axextend.idl,amparse.h,vidcap.h,vidcap.idl,dmodshow.h,dmodshow.idl,CameraUIControl.h,CameraUIControl.idl,austream.h,austream.idl,qnetwork.h,il21dec.h,
     iwstdec.h,dvdif.h,strmif.h,strmif.idl,control.h,control.idl,amstream.h,amstream.idl,amva.h,sherrors.h,bcp47mrm.h,regbag.h,regbag.idl,wimgapi.h,lsalookupi.h,
-    bdatypes.h,bdaiface_enums.h,bdaiface.h,bdaiface.idl,mpeg2structs.h,Mpeg2Structs.idl,Mpeg2Bits.h,Mpeg2Data.h,Mpeg2Data.idl,Mpeg2PsiParser.idl,AtscPsipParser.h
+    bdatypes.h,bdaiface_enums.h,bdaiface.h,bdaiface.idl,mpeg2structs.h,Mpeg2Structs.idl,Mpeg2Bits.h,Mpeg2Data.h,Mpeg2Data.idl,Mpeg2PsiParser.idl,AtscPsipParser.h,
+    callobj.h,callobj.idl,
     
 Coverage in the 90%+ range
     winbase.h, oleidl.h, oaidl.h, ocidl.h, ocidl.idl, presentation.h,
@@ -196,6 +197,9 @@ Minimal coverage
     xapobase.h
     wmcodecdsp.h
     ksmedia.h
+    d3dkmdt.h
+    d3dukmdt.h
+    d3dkmthk.h
     
 Zero or near-zero coverage
     (all other files)
