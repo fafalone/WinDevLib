@@ -1,4 +1,11 @@
 
+**Update (v9.1.578, 29 Jul 2025):**
+- Add coverage of COM interceptors (callobj.h, 100%)
+- Add coverage of WinNls32.h, ime.h (100%)
+- Add coverage of poclass.h (100%)
+- Misc. API additions
+- (Bug fix) WNetDisconnectDialog name incorrect; WNetRestoreSingleConnectionA does not exist
+  
 **Update (v9.1.572, 25 Jul 2025):**
 - Added deleted file restore APIs (fmapi.dll)
 - Breaking Change: NtCreateToken[Ex] now uses proper LARGE_INTEGER type instead of LongLong.

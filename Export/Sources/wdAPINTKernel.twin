@@ -9229,23 +9229,89 @@ Public Enum FILE_ACTION_TYPES
     FILE_ACTION_MODIFIED = &H00000003
     FILE_ACTION_RENAMED_OLD_NAME = &H00000004
     FILE_ACTION_RENAMED_NEW_NAME = &H00000005
+    FILE_ACTION_ADDED_STREAM = &H00000006
+    FILE_ACTION_REMOVED_STREAM = &H00000007
+    FILE_ACTION_MODIFIED_STREAM = &H00000008
+    FILE_ACTION_REMOVED_BY_DELETE = &H00000009
+    FILE_ACTION_ID_NOT_TUNNELLED = &H0000000A
+    FILE_ACTION_TUNNELLED_ID_COLLISION = &H0000000B
 End Enum
 Public Type FILE_NOTIFY_INFORMATION
     NextEntryOffset As Long
     Action As FILE_ACTION_TYPES
     FileNameLength As Long
-    FileName(0 To MAX_PATH) As Integer
+    FileName(0 To MAX_PATH - 1) As Integer
+End Type
+Public Type FILE_NOTIFY_EXTENDED_INFORMATION
+    NextEntryOffset As Long
+    Action As FILE_ACTION_TYPES
+    CreationTime As LARGE_INTEGER
+    LastModificationTime As LARGE_INTEGER
+    LastChangeTime As LARGE_INTEGER
+    LastAccessTime As LARGE_INTEGER
+    AllocatedLength As LARGE_INTEGER
+    FileSize As LARGE_INTEGER
+    FileAttributes As FILE_ATTRIBUTES
+    'union
+    '{
+    '    ULONG ReparsePointTag;
+    '    ULONG EaSize;
+    '};
+    ReparsePointTagOrEaSize As Long
+    FileId As FILE_INTERNAL_INFORMATION
+    ParentFileId As FILE_INTERNAL_INFORMATION
+    FileNameLength As Long
+    FileName(0 To MAX_PATH - 1) As Integer
 End Type
 
+Public Enum NtFileNameFlags
+    FILE_NAME_FLAG_HARDLINK = 0  ' not part of a name pair
+    FILE_NAME_FLAG_NTFS = &H01  ' NTFS name in a name pair
+    FILE_NAME_FLAG_DOS = &H02  ' DOS name in a name pair
+    FILE_NAME_FLAG_BOTH = &H03  ' NTFS+DOS combined name
+    FILE_NAME_FLAGS_UNSPECIFIED = &H80  ' not specified by file system (do not combine with other flags)
+End Enum
+
+Public Type FILE_NOTIFY_FULL_INFORMATION
+    NextEntryOffset As Long
+    Action As FILE_ACTION_TYPES
+    CreationTime As LARGE_INTEGER
+    LastModificationTime As LARGE_INTEGER
+    LastChangeTime As LARGE_INTEGER
+    LastAccessTime As LARGE_INTEGER
+    AllocatedLength As LARGE_INTEGER
+    FileSize As LARGE_INTEGER
+    FileAttributes As FILE_ATTRIBUTES
+    'union
+    '{
+    '    ULONG ReparsePointTag;
+    '    ULONG EaSize;
+    '};
+    ReparsePointTagOrEaSize As Long
+    FileId As FILE_INTERNAL_INFORMATION
+    ParentFileId As FILE_INTERNAL_INFORMATION
+    FileNameLength As Integer
+    /* [TypeHint(NtFileNameFlags)] */ FileNameFlags As Byte
+    Reserved As Byte
+    FileName(0 To (MAX_PATH - 1)) As Integer
+End Type
+
+
 Public Enum FILE_NOTIFY_CHANGE
-    FILE_NOTIFY_CHANGE_FILE_NAME = &H00000001
-    FILE_NOTIFY_CHANGE_DIR_NAME = &H00000002
-    FILE_NOTIFY_CHANGE_ATTRIBUTES = &H00000004
-    FILE_NOTIFY_CHANGE_SIZE = &H00000008
-    FILE_NOTIFY_CHANGE_LAST_WRITE = &H00000010
-    FILE_NOTIFY_CHANGE_LAST_ACCESS = &H00000020
-    FILE_NOTIFY_CHANGE_CREATION = &H00000040
-    FILE_NOTIFY_CHANGE_SECURITY = &H00000100
+    FILE_NOTIFY_CHANGE_FILE_NAME = &H00000001  ' winnt
+    FILE_NOTIFY_CHANGE_DIR_NAME = &H00000002  ' winnt
+    FILE_NOTIFY_CHANGE_NAME = &H00000003
+    FILE_NOTIFY_CHANGE_ATTRIBUTES = &H00000004  ' winnt
+    FILE_NOTIFY_CHANGE_SIZE = &H00000008  ' winnt
+    FILE_NOTIFY_CHANGE_LAST_WRITE = &H00000010  ' winnt
+    FILE_NOTIFY_CHANGE_LAST_ACCESS = &H00000020  ' winnt
+    FILE_NOTIFY_CHANGE_CREATION = &H00000040  ' winnt
+    FILE_NOTIFY_CHANGE_EA = &H00000080
+    FILE_NOTIFY_CHANGE_SECURITY = &H00000100  ' winnt
+    FILE_NOTIFY_CHANGE_STREAM_NAME = &H00000200
+    FILE_NOTIFY_CHANGE_STREAM_SIZE = &H00000400
+    FILE_NOTIFY_CHANGE_STREAM_WRITE = &H00000800
+    FILE_NOTIFY_VALID_MASK = &H00000fff
 End Enum
 
 Public Enum MoveFileExFlags
@@ -14239,7 +14305,7 @@ Public Enum SharedDataFlagsMasks
 End Enum
 
 
-[Description("Included members are through XP SP2; above that they are increasingly volatile.")]
+[Description("Resides at &H7FFE0000. Included members are through XP SP2; above that they are increasingly volatile.")]
 Public Type KUSER_SHARED_DATA
     TickCountLowDeprecated As Long '0x0
     TickCountMultiplier As Long '0x4
@@ -18999,10 +19065,24 @@ Public Type HEAP_EXTENDED_INFORMATION
     #End If
 End Type
 
+Public Type T2_SET_PARAMETERS
+    Version As Long
+    Reserved As Long
+    NoWakeTolerance As LongLong
+End Type
+
+Public Enum DIRECTORY_NOTIFY_INFORMATION_CLASS
+    DirectoryNotifyInformation = 1 ' FILE_NOTIFY_INFORMATION
+    DirectoryNotifyExtendedInformation   ' FILE_NOTIFY_EXTENDED_INFORMATION
+    DirectoryNotifyFullInformation   ' FILE_NOTIFY_FULL_INFORMATION // since 22H2
+    DirectoryNotifyMaximumInformation
+End Enum
 
 
 
-'NTDLL APIs should only be added if they don't have higher level equivalents. If the NTDLL version has substantially more functionality, it's not equivalent and should be added.
+
+Public Delegate Sub IO_APC_ROUTINE (ByVal ApcContext As LongPtr, IoStatusBlock As IO_STATUS_BLOCK, ByVal Reserved As Long)
+
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtQuerySystemInformation Lib "ntdll" (ByVal SystemInformationClass As SYSTEM_INFORMATION_CLASS, SystemInformation As Any, ByVal SystemInformationLength As Long, ReturnLength As Long) As Long
 [UseGetLastError(False)]
@@ -19031,6 +19111,7 @@ Public Declare PtrSafe Function NtClose Lib "ntdll" (ByVal ObjectHandle As LongP
 Public Declare PtrSafe Function NtCreateFile Lib "ntdll" (FileHandle As LongPtr, [TypeHint(GenericRights, FileAccessRights)] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, IoStatusBlock As IO_STATUS_BLOCK, AllocationSize As Any, ByVal FileAttributes As FILE_ATTRIBUTES, ByVal ShareAccess As FileShareMode, ByVal CreateDisposition As FileCreateDisposition, ByVal CreateOptions As FileAccessFlags, EaBuffer As Any, ByVal EaLength As Long) As NTSTATUS
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtOpenFile Lib "ntdll" (FileHandle As LongPtr, [TypeHint(GenericRights, FileAccessRights)] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, IoStatusBlock As IO_STATUS_BLOCK, ByVal ShareAccess As FileShareMode, ByVal OpenOptions As Long) As NTSTATUS
+' #If WDL_NO_DELEGATES Then
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtReadFile Lib "ntdll" (ByVal FileHandle As LongPtr, ByVal hEvent As LongPtr, ByVal ApcRoutine As LongPtr, ByVal ApcContext As LongPtr, ByRef IoStatusBlock As IO_STATUS_BLOCK, Buffer As Any, ByVal Length As Long, ByteOffset As LARGE_INTEGER, Optional Key As Long) As NTSTATUS
 [UseGetLastError(False)]
@@ -19040,11 +19121,26 @@ Public Declare PtrSafe Function NtLockFile Lib "ntdll" (ByVal FileHandle As Long
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtFsControlFile Lib "ntdll" (ByVal FileHandle As LongPtr, ByVal hEvent As LongPtr, ByVal ApcRoutine As LongPtr, ByVal ApcContext As LongPtr, ByRef IoStatusBlock As IO_STATUS_BLOCK, ByVal FsControlCode As Long, InputBuffer As Any, ByVal InputBufferLength As Long, OutputBuffer As Any, ByVal OutputBufferLength As Long) As NTSTATUS
 [UseGetLastError(False)]
-Public Declare PtrSafe Function NtUnlockFile Lib "ntdll" (ByVal FileHandle As LongPtr, ByRef IoStatusBlock As IO_STATUS_BLOCK, ByteOffset As LARGE_INTEGER, Length As LARGE_INTEGER, ByVal Key As Long) As NTSTATUS
-[UseGetLastError(False)]
 Public Declare PtrSafe Function NtQueryDirectoryFile Lib "ntdll" (ByVal FileHandle As LongPtr, ByVal hEvent As LongPtr, ByVal ApcRoutine As LongPtr, ByVal ApcContext As LongPtr, ByRef IoStatusBlock As IO_STATUS_BLOCK, FileInformation As Any, ByVal Length As Long, ByVal FileInformationClass As FILE_INFORMATION_CLASS, ByVal ReturnSingleEntry As Byte, FileName As Any, ByVal RestartScan As Byte) As NTSTATUS
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtQueryDirectoryFileEx Lib "ntdll" (ByVal FileHandle As LongPtr, ByVal hEvent As LongPtr, ByVal ApcRoutine As LongPtr, ByVal ApcContext As LongPtr, ByRef IoStatusBlock As IO_STATUS_BLOCK, FileInformation As Any, ByVal Length As Long, ByVal FileInformationClass As FILE_INFORMATION_CLASS, ByVal QueryFlags As NtFileQueryFlags, Filename As UNICODE_STRING) As NTSTATUS
+' #Else
+' [UseGetLastError(False)]
+' Public Declare PtrSafe Function NtReadFile Lib "ntdll" (ByVal FileHandle As LongPtr, ByVal hEvent As LongPtr, ByVal ApcRoutine As IO_APC_ROUTINE, ByVal ApcContext As LongPtr, ByRef IoStatusBlock As IO_STATUS_BLOCK, Buffer As Any, ByVal Length As Long, ByteOffset As LARGE_INTEGER, Optional Key As Long) As NTSTATUS
+' [UseGetLastError(False)]
+' Public Declare PtrSafe Function NtWriteFile Lib "ntdll" (ByVal FileHandle As LongPtr, ByVal hEvent As LongPtr, ByVal ApcRoutine As IO_APC_ROUTINE, ByVal ApcContext As LongPtr, ByRef IoStatusBlock As IO_STATUS_BLOCK, Buffer As Any, ByVal Length As Long, ByteOffset As LARGE_INTEGER, Optional Key As Long) As NTSTATUS
+' [UseGetLastError(False)]
+' Public Declare PtrSafe Function NtLockFile Lib "ntdll" (ByVal FileHandle As LongPtr, ByVal hEvent As LongPtr, ByVal ApcRoutine As IO_APC_ROUTINE, ByVal ApcContext As LongPtr, ByRef IoStatusBlock As IO_STATUS_BLOCK, ByteOffset As LARGE_INTEGER, Length As LARGE_INTEGER, ByVal Key As Long, ByVal FailImmediately As Byte, ByVal ExclusiveLock As Byte) As NTSTATUS
+' [UseGetLastError(False)]
+' Public Declare PtrSafe Function NtFsControlFile Lib "ntdll" (ByVal FileHandle As LongPtr, ByVal hEvent As LongPtr, ByVal ApcRoutine As IO_APC_ROUTINE, ByVal ApcContext As LongPtr, ByRef IoStatusBlock As IO_STATUS_BLOCK, ByVal FsControlCode As Long, InputBuffer As Any, ByVal InputBufferLength As Long, OutputBuffer As Any, ByVal OutputBufferLength As Long) As NTSTATUS
+' [UseGetLastError(False)]
+' Public Declare PtrSafe Function NtQueryDirectoryFile Lib "ntdll" (ByVal FileHandle As LongPtr, ByVal hEvent As LongPtr, ByVal ApcRoutine As IO_APC_ROUTINE, ByVal ApcContext As LongPtr, ByRef IoStatusBlock As IO_STATUS_BLOCK, FileInformation As Any, ByVal Length As Long, ByVal FileInformationClass As FILE_INFORMATION_CLASS, ByVal ReturnSingleEntry As Byte, FileName As Any, ByVal RestartScan As Byte) As NTSTATUS
+' [UseGetLastError(False)]
+' Public Declare PtrSafe Function NtQueryDirectoryFileEx Lib "ntdll" (ByVal FileHandle As LongPtr, ByVal hEvent As LongPtr, ByVal ApcRoutine As IO_APC_ROUTINE, ByVal ApcContext As LongPtr, ByRef IoStatusBlock As IO_STATUS_BLOCK, FileInformation As Any, ByVal Length As Long, ByVal FileInformationClass As FILE_INFORMATION_CLASS, ByVal QueryFlags As NtFileQueryFlags, Filename As UNICODE_STRING) As NTSTATUS
+' #End If
+
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtUnlockFile Lib "ntdll" (ByVal FileHandle As LongPtr, ByRef IoStatusBlock As IO_STATUS_BLOCK, ByteOffset As LARGE_INTEGER, Length As LARGE_INTEGER, ByVal Key As Long) As NTSTATUS
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtQueryInformationByName Lib "ntdll" (ObjectAttributes As OBJECT_ATTRIBUTES, IoStatusBlock As IO_STATUS_BLOCK, FileInformation As Any, ByVal Length As Long, ByVal FileInformationClass As FILE_INFORMATION_CLASS) As NTSTATUS
 [UseGetLastError(False)]
@@ -19060,11 +19156,14 @@ Public Declare PtrSafe Function NtSetVolumeInformationFile Lib "ntdll" (ByVal Fi
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtQueryFullAttributesFile Lib "ntdll" (ObjectAttributes As OBJECT_ATTRIBUTES, Attributes As Any) As NTSTATUS
 [UseGetLastError(False)]
+Public Declare PtrSafe Function NtQueryAttributesFile Lib "ntdll" (ObjectAttributes As OBJECT_ATTRIBUTES, FileInformation As FILE_BASIC_INFORMATION) As NTSTATUS
+[UseGetLastError(False)]
 Public Declare PtrSafe Function NtQueryQuotaInformationFile Lib "ntdll" (ByVal FileHandle As LongPtr, IoStatusBlock As IO_STATUS_BLOCK, Buffer As Any, ByVal Length As Long, ByVal ReturnSingleEntry As Byte, ByVal SidList As LongPtr, ByVal SidListLength As Long, ByVal StartSid As LongPtr, ByVal RestartScan As Byte) As NTSTATUS
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtSetQuotaInformationFile Lib "ntdll" (ByVal FileHandle As LongPtr, IoStatusBlock As IO_STATUS_BLOCK, Buffer As Any, ByVal Length As Long) As NTSTATUS
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtFlushBuffersFile Lib "ntdll" (ByVal FileHandle As LongPtr, IoStatusBlock As IO_STATUS_BLOCK) As NTSTATUS
+
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtFlushBuffersFileEx Lib "ntdll" (ByVal FileHandle As LongPtr, ByVal Flags As NtFlushFileFlags, Parameters As Any, ByVal ParametersSize As Long, IoStatusBlock As IO_STATUS_BLOCK) As NTSTATUS
 Public Declare PtrSafe Function NtCancelIoFile Lib "ntdll" (ByVal hFile As LongPtr) As BOOL
@@ -19075,6 +19174,23 @@ Public Declare PtrSafe Function NtDeleteFile Lib "ntdll" (ObjectAttributes As OB
 Public Declare PtrSafe Function NtCopyFileChunk Lib "ntdll" (ByVal SourceHandle As LongPtr, ByVal DestHandle As LongPtr, ByVal Event As LongPtr, IoStatusBlock As IO_STATUS_BLOCK, ByVal Length As Long, SourceOffset As LARGE_INTEGER, DestOffset As LARGE_INTEGER, SourceKey As Long, DestKey As Long, [TypeHint(NtCopyFileChunkFlags)] ByVal Flags As Long) As NTSTATUS
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtCreateNamedPipeFile Lib "ntdll" (FileHandle As LongPtr, [TypeHint(GenericRights, FileAccessRights)] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, IoStatusBlock As IO_STATUS_BLOCK, ByVal ShareAccess As FileShareMode, ByVal CreateDisposition As FileCreateDisposition, [TypeHint(FileAccessFlags, FILE_PIPE_CONFIG)] ByVal CreateOptions As Long, [TypeHint(FILE_PIPE_TYPE)] ByVal NamedPipeType As Long, [TypeHint(FILE_PIPE_READ_MODE)] ByVal ReadMode As Long, [TypeHint(FILE_PIPE_COMPLETION_MODE)] ByVal CompletionMode As Long, ByVal MaximumInstances As Long, ByVal InboundQuota As Long, ByVal OutboundQuota As Long, DefaultTimeout As LARGE_INTEGER) As NTSTATUS
+' #If WDL_NO_DELEGATES Then
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtNotifyChangeDirectoryFile Lib "ntdll" (ByVal FileHandle As LongPtr, ByVal Event As LongPtr, ByVal ApcRoutine As LongPtr, ByVal ApcContext As LongPtr, IoStatusBlock As IO_STATUS_BLOCK, Buffer As Any, ByVal Length As Long, ByVal CompletionFilter As Long, ByVal WatchTree As Byte) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtNotifyChangeDirectoryFileEx Lib "ntdll" (ByVal FileHandle As LongPtr, ByVal Event As LongPtr, ByVal ApcRoutine As LongPtr, ByVal ApcContext As LongPtr, IoStatusBlock As IO_STATUS_BLOCK, Buffer As Any, ByVal Length As Long, ByVal CompletionFilter As Long, ByVal WatchTree As Byte, Optional ByVal DirectoryNotifyInformationClass As DIRECTORY_NOTIFY_INFORMATION_CLASS) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtDeviceIoControlFile Lib "ntdll" (ByVal FileHandle As LongPtr, ByVal hEvent As LongPtr, ByVal ApcRoutine As LongPtr, ByVal ApcContext As LongPtr, ByRef IoStatusBlock As IO_STATUS_BLOCK, ByVal IoControlCode As Long, InputBuffer As Any, ByVal InputBufferLength As Long, OutputBuffer As Any, ByVal OutputBufferLength As Long) As NTSTATUS
+' #E;se
+' [UseGetLastError(False)]
+' Public Declare PtrSafe Function NtNotifyChangeDirectoryFile Lib "ntdll" (ByVal FileHandle As LongPtr, ByVal Event As LongPtr, ByVal ApcRoutine As IO_APC_ROUTINE, ByVal ApcContext As LongPtr, IoStatusBlock As IO_STATUS_BLOCK, Buffer As Any, ByVal Length As Long, ByVal CompletionFilter As Long, ByVal WatchTree As Byte) As NTSTATUS
+' [UseGetLastError(False)]
+' Public Declare PtrSafe Function NtNotifyChangeDirectoryFileEx Lib "ntdll" (ByVal FileHandle As LongPtr, ByVal Event As LongPtr, ByVal ApcRoutine As IO_APC_ROUTINE, ByVal ApcContext As LongPtr, IoStatusBlock As IO_STATUS_BLOCK, Buffer As Any, ByVal Length As Long, ByVal CompletionFilter As Long, ByVal WatchTree As Byte, Optional ByVal DirectoryNotifyInformationClass As DIRECTORY_NOTIFY_INFORMATION_CLASS) As NTSTATUS
+' [UseGetLastError(False)]
+' Public Declare PtrSafe Function NtDeviceIoControlFile Lib "ntdll" (ByVal FileHandle As LongPtr, ByVal hEvent As LongPtr, ByVal ApcRoutine As IO_APC_ROUTINE, ByVal ApcContext As LongPtr, ByRef IoStatusBlock As IO_STATUS_BLOCK, ByVal IoControlCode As Long, InputBuffer As Any, ByVal InputBufferLength As Long, OutputBuffer As Any, ByVal OutputBufferLength As Long) As NTSTATUS
+' #End If
+
+
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtCreateMailslotFile Lib "ntdll" (FileHandle As LongPtr, [TypeHint(GenericRights)] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, IoStatusBlock As IO_STATUS_BLOCK, ByVal CreateOptions As Long, ByVal MailslotQuota As Long, ByVal MaximumMessageSize As Long, ReadTimeout As LARGE_INTEGER) As NTSTATUS
 [UseGetLastError(False)]
@@ -19179,8 +19295,6 @@ Public Declare PtrSafe Function NtQuerySemaphore Lib "ntdll" (ByVal SemaphoreHan
 
 
 [UseGetLastError(False)]
-Public Declare PtrSafe Function NtDeviceIoControlFile Lib "ntdll" (ByVal FileHandle As LongPtr, ByVal hEvent As LongPtr, ByVal ApcRoutine As LongPtr, ByVal ApcContext As LongPtr, ByRef IoStatusBlock As IO_STATUS_BLOCK, ByVal IoControlCode As Long, InputBuffer As Any, ByVal InputBufferLength As Long, OutputBuffer As Any, ByVal OutputBufferLength As Long) As NTSTATUS
-[UseGetLastError(False)]
 Public Declare PtrSafe Function NtAllocateLocallyUniqueId Lib "ntdll" (pLuid As LUID) As NTSTATUS
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtCreateToken Lib "ntdll" (TokenHandle As LongPtr, [TypeHint(TokenAccessRights, StandardAccessTypes)] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, ByVal TokenType As TOKEN_TYPE, AuthenticationId As LUID, ExpirationTime As LARGE_INTEGER, TokenUser As Any, TokenGroups As Any, TokenPrivileges As Any, TokenOwner As TOKEN_OWNER, TokenPrimaryGroup As TOKEN_PRIMARY_GROUP, TokenDefaultDacl As TOKEN_DEFAULT_DACL, TokenSource As TOKEN_SOURCE) As NTSTATUS
@@ -19277,6 +19391,18 @@ Public Declare PtrSafe Function NtSetTimer Lib "ntdll" (ByVal TimerHandle As Lon
 Public Declare PtrSafe Function NtSetTimerEx Lib "ntdll" (ByVal TimerHandle As LongPtr, ByVal TimerSetInformationClass As TIMER_SET_INFORMATION_CLASS, TimerSetInformation As Any, ByVal TimerSetInformationLength As Long) As NTSTATUS
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtQueryTimer Lib "ntdll" (ByVal TimerHandle As LongPtr, ByVal TimerInformationClass As TIMER_INFORMATION_CLASS, TimerInformation As Any, ByVal TimerInformationLength As Long, Optional ReturnLength As Long) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtCreateIRTimer Lib "ntdll" (TimerHandle As LongPtr, ByVal Reserved As LongPtr, ByVal DesiredAccess As TimerAccessRights) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtSetIRTimer Lib "ntdll" (ByVal TimerHandle As LongPtr, DueTime As LARGE_INTEGER) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtCreateTimer2 Lib "ntdll" (TimerHandle As LongPtr, ByVal Reserved1 As LongPtr, ObjectAttributes As OBJECT_ATTRIBUTES, ByVal Attributes As TIMER_TYPE, ByVal DesiredAccess As TimerAccessRights) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtSetTimer2 Lib "ntdll" (ByVal TimerHandle As LongPtr, DueTime As LARGE_INTEGER, Period As LARGE_INTEGER, Parameters As T2_SET_PARAMETERS) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtCancelTimer2 Lib "ntdll" (ByVal TimerHandle As LongPtr, ByVal Parameters As LongPtr) As NTSTATUS
+
+
 Public Declare PtrSafe Function NtGetTickCount Lib "ntdll" () As Long
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtYieldExecution Lib "ntdll" () As NTSTATUS
