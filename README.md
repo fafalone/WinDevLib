@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 9.1.576 (July 29th, 2025)**
+**Current Version: 9.1.578 (July 29th, 2025)**
 
 (c) 2022-2025 Jon Johnson (fafalone)
 
@@ -231,7 +231,7 @@ This project has grown well beyond it's original mission of shell programming. W
 
 ### Updates
 
-**Update (v9.1.576, 29 Jul 2025):**
+**Update (v9.1.578, 29 Jul 2025):**
 - Add coverage of COM interceptors (callobj.h, 100%)
 - Add coverage of WinNls32.h, ime.h (100%)
 - Add coverage of poclass.h (100%)
