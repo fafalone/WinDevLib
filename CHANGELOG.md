@@ -1,4 +1,6 @@
 
+**Update (v9.1.581, 30 Jul 2025):**
+- Some new WBEM interfaces used inconvenient LongPtr instead of ByRef Interface
 **Update (v9.1.580, 29 Jul 2025):**
 - Added WBEM Client COM interfaces (WbemCli.h/.idl, 100%). Note: WDL will not duplicate the WMI Scripting Library, and in most cases you should use that.
 - Misc. API additions
