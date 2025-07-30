@@ -13830,6 +13830,36 @@ Module wdD3DKMT
         DisplayFixedOutput As Long
         Flags As D3DKMDT_DISPLAYMODE_FLAGS
     End Type
+    
+    Public Type D3DKMT_GETDISPLAYMODELIST
+        hAdapter As Long ' in: adapter handle
+        VidPnSourceId As D3DDDI_VIDEO_PRESENT_SOURCE_ID ' in: adapter's VidPN source ID
+        pModeList As LongPtr 'D3DKMT_DISPLAYMODE, ' out:
+        ModeCount As Long ' in/out:
+    End Type
+    
+    [Description("WARNING: Buffer substituted for variable C-style array.")]
+    Public Type D3DKMT_DISPLAYMODELIST
+        VidPnSourceId As D3DDDI_VIDEO_PRESENT_SOURCE_ID
+        ModeCount As Long
+        pModeList(0 To 255) As D3DKMT_DISPLAYMODE
+    End Type
+    
+    Public Type D3DKMT_SETDISPLAYMODE_FLAGS
+        ' BOOLEAN  PreserveVidPn   : 1;
+        ' UINT     Reserved       : 31;   :
+        PreserveVidPn As Long
+    End Type
+    
+    Public Type D3DKMT_SETDISPLAYMODE
+        hDevice As Long ' in: Identifies the device
+        hPrimaryAllocation As Long ' in:
+        ScanLineOrdering As D3DDDI_VIDEO_SIGNAL_SCANLINE_ORDERING ' in:
+        DisplayOrientation As D3DDDI_ROTATION ' in:
+        PrivateDriverFormatAttribute As Long ' out: Private Format Attribute of the current primary surface if DxgkSetDisplayMode failed with STATUS_GRAPHICS_INCOMPATIBLE_PRIVATE_FORMAT
+        Flags As D3DKMT_SETDISPLAYMODE_FLAGS ' in:
+    End Type
+    
     Public Type D3DKMT_CURRENTDISPLAYMODE
         VidPnSourceId As D3DDDI_VIDEO_PRESENT_SOURCE_ID
         DisplayMode As D3DKMT_DISPLAYMODE
@@ -13896,8 +13926,217 @@ Module wdD3DKMT
         '};
     End Type
     
+    Public Type D3DKMT_OPENADAPTERFROMGDIDISPLAYNAME
+        DeviceName(0 To 31) As Integer ' in:  Name of GDI device from which to open an adapter instance
+        hAdapter As Long ' out: adapter handle
+        AdapterLuid As LUID ' out: adapter LUID
+        VidPnSourceId As D3DDDI_VIDEO_PRESENT_SOURCE_ID ' out: VidPN source ID for that particular display
+    End Type
+    
+    Public Type D3DKMT_OPENADAPTERFROMDEVICENAME
+        pDeviceName As LongPtr ' in:  NULL terminated string containing the device name to open
+        hAdapter As Long ' out: adapter handle
+        AdapterLuid As LUID ' out: adapter LUID
+    End Type
+    
+    Public Type D3DKMT_CLOSEADAPTER
+        hAdapter As Long ' in: adapter handle
+    End Type
+    
+    Public Enum D3DKMT_MEMORY_SEGMENT_GROUP
+        D3DKMT_MEMORY_SEGMENT_GROUP_LOCAL = 0
+        D3DKMT_MEMORY_SEGMENT_GROUP_NON_LOCAL = 1
+    End Enum
+    Public Type D3DKMT_QUERYVIDEOMEMORYINFO
+        hProcess As LongPtr ' in,opt: A handle to a process. If NULL, the current process is used.
+                            '         The process handle must be opened with PROCESS_QUERY_INFORMATION privileges
+        hAdapter As Long ' in : The adapter to query for this process
+        MemorySegmentGroup As D3DKMT_MEMORY_SEGMENT_GROUP ' in : The memory segment group to query.
+        Budget As LongLong ' out: Total memory the application may use
+        CurrentUsage As LongLong ' out: Current memory usage of the device
+        CurrentReservation As LongLong ' out: Current reservation of the device
+        AvailableForReservation As LongLong ' out: Total that the device may reserve
+        PhysicalAdapterIndex As Long ' in : Zero based physical adapter index in the LDA configuration.
+    End Type
+    
+    Public Type D3DKMT_QUERYSTATISTICS_MEMORY
+        TotalBytesEvicted As LongLong
+        AllocsCommitted As Long
+        AllocsResident As Long
+    End Type
+    
+    Public Enum D3DKMT_QUERYSTATISTICS_SEGMENT_TYPE
+        D3DKMT_QUERYSTATISTICS_SEGMENT_TYPE_APERTURE = 0
+        D3DKMT_QUERYSTATISTICS_SEGMENT_TYPE_MEMORY = 1
+        D3DKMT_QUERYSTATISTICS_SEGMENT_TYPE_SYSMEM = 2
+    End Enum
+    
+    Public Const D3DKMT_QUERYSTATISTICS_ALLOCATION_PRIORITY_CLASS_MAX = 5
+    Public Const D3DKMT_QUERYSTATISTICS_SEGMENT_PREFERENCE_MAX = 5
+    Public Type D3DKMT_QUERYSTATISTICS_COUNTER
+        Count As Long
+        Bytes As LongLong
+    End Type
+    
+    Public Type D3DKMT_QUERYSTATISTICS_SEGMENT_INFORMATION
+        '#if (DXGKDDI_INTERFACE_VERSION >= DXGKDDI_INTERFACE_VERSION_WIN8)
+        CommitLimit As LongLong
+        BytesCommitted As LongLong
+        BytesResident As LongLong
+        ' #else
+        ' ULONG CommitLimit;
+        ' ULONG BytesCommitted;
+        ' ULONG BytesResident;
+    ' #endif
+        Memory As D3DKMT_QUERYSTATISTICS_MEMORY
+        Aperture As Long
+        TotalBytesEvictedByPriority(D3DKMT_QUERYSTATISTICS_ALLOCATION_PRIORITY_CLASS_MAX - 1) As LongLong
+        ' #if (DXGKDDI_INTERFACE_VERSION >= DXGKDDI_INTERFACE_VERSION_WIN8)
+        SystemMemoryEndAddress As LongLong
+        ' struct D3DKMT_ALIGN64
+        ' {
+            ' UINT64 PreservedDuringStandby : 1;
+            ' UINT64 PreservedDuringHibernate : 1;
+            ' UINT64 PartiallyPreservedDuringHibernate : 1;
+            ' UINT64 Reserved : 61;
+        ' } PowerFlags;
+        PowerFlags As LongLong
+        ' #if (DXGKDDI_INTERFACE_VERSION >= DXGKDDI_INTERFACE_VERSION_WDDM2_9)
+        ' struct D3DKMT_ALIGN64
+        ' {
+            ' UINT64 SystemMemory : 1;
+            ' UINT64 PopulatedByReservedDDRByFirmware : 1;
+    ' #if (DXGKDDI_INTERFACE_VERSION >= DXGKDDI_INTERFACE_VERSION_WDDM3_1)
+            ' UINT64 SegmentType : 4; // D3DKMT_QUERYSTATISTICS_SEGMENT_TYPE
+    ' #if (DXGKDDI_INTERFACE_VERSION >= DXGKDDI_INTERFACE_VERSION_WDDM3_2)
+            ' UINT64 SegmentGroup : 2;
+            ' UINT64 FullyCPUVisible: 1;
+            ' UINT64 Reserved : 55;
+    ' #else
+            ' UINT64 Reserved : 58;
+    ' #endif // (DXGKDDI_INTERFACE_VERSION >= DXGKDDI_INTERFACE_VERSION_WDDM3_2)
+    ' #else
+            ' UINT64 Reserved : 62;
+    ' #endif // (DXGKDDI_INTERFACE_VERSION >= DXGKDDI_INTERFACE_VERSION_WDDM3_1)
+        ' } SegmentProperties;
+        ' D3DKMT_ALIGN64 UINT64 Reserved[5];
+        SegmentProperties As LongLong
+        Reserved(4) As LongLong
+    End Type
+    
+    Public Type D3DKMT_QUERYSTATISTICS_VIDEO_MEMORY
+        AllocsCommitted As Long
+        AllocsResidentInP(0 To (D3DKMT_QUERYSTATISTICS_SEGMENT_PREFERENCE_MAX - 1)) As D3DKMT_QUERYSTATISTICS_COUNTER
+        AllocsResidentInNonPreferred As D3DKMT_QUERYSTATISTICS_COUNTER
+        TotalBytesEvictedDueToPreparation As LongLong
+    End Type
+    
+    Public Enum D3DKMT_QUERYSTATISTICS_TYPE
+        D3DKMT_QUERYSTATISTICS_ADAPTER = 0
+        D3DKMT_QUERYSTATISTICS_PROCESS = 1
+        D3DKMT_QUERYSTATISTICS_PROCESS_ADAPTER = 2
+        D3DKMT_QUERYSTATISTICS_SEGMENT = 3
+        D3DKMT_QUERYSTATISTICS_PROCESS_SEGMENT = 4
+        D3DKMT_QUERYSTATISTICS_NODE = 5
+        D3DKMT_QUERYSTATISTICS_PROCESS_NODE = 6
+        D3DKMT_QUERYSTATISTICS_VIDPNSOURCE = 7
+        D3DKMT_QUERYSTATISTICS_PROCESS_VIDPNSOURCE = 8
+        ' #if (DXGKDDI_INTERFACE_VERSION >= DXGKDDI_INTERFACE_VERSION_WDDM2_1)
+        D3DKMT_QUERYSTATISTICS_PROCESS_SEGMENT_GROUP = 9
+        ' #endif
+        ' #if (DXGKDDI_INTERFACE_VERSION >= DXGKDDI_INTERFACE_VERSION_WDDM2_4)
+        D3DKMT_QUERYSTATISTICS_PHYSICAL_ADAPTER = 10
+        ' #endif
+        ' #if (DXGKDDI_INTERFACE_VERSION >= DXGKDDI_INTERFACE_VERSION_WDDM3_1)
+        D3DKMT_QUERYSTATISTICS_ADAPTER2 = 11
+        D3DKMT_QUERYSTATISTICS_SEGMENT2 = 12
+        D3DKMT_QUERYSTATISTICS_PROCESS_ADAPTER2 = 13
+        D3DKMT_QUERYSTATISTICS_PROCESS_SEGMENT2 = 14
+        D3DKMT_QUERYSTATISTICS_PROCESS_SEGMENT_GROUP2 = 15
+        D3DKMT_QUERYSTATISTICS_SEGMENT_USAGE = 16
+        D3DKMT_QUERYSTATISTICS_SEGMENT_GROUP_USAGE = 17
+        D3DKMT_QUERYSTATISTICS_NODE2 = 18
+        D3DKMT_QUERYSTATISTICS_PROCESS_NODE2 = 19
+        ' #endif
+    End Enum
+    
+    ' typedef union _D3DKMT_QUERYSTATISTICS_RESULT
+    ' {
+        ' D3DKMT_QUERYSTATISTICS_ADAPTER_INFORMATION AdapterInformation;                          // out: result of D3DKMT_QUERYSTATISTICS_ADAPTER(2) query
+    ' #if (DXGKDDI_INTERFACE_VERSION >= DXGKDDI_INTERFACE_VERSION_WDDM2_4)
+        ' D3DKMT_QUERYSTATISTICS_PHYSICAL_ADAPTER_INFORMATION PhysAdapterInformation;             // out: result of D3DKMT_QUERYSTATISTICS_PHYSICAL_ADAPTER query
+    ' #endif
+        ' D3DKMT_QUERYSTATISTICS_SEGMENT_INFORMATION SegmentInformation;                          // out: result of D3DKMT_QUERYSTATISTICS_SEGMENT(2) query
+        ' D3DKMT_QUERYSTATISTICS_NODE_INFORMATION NodeInformation;                                // out: result of D3DKMT_QUERYSTATISTICS_NODE query
+        ' D3DKMT_QUERYSTATISTICS_VIDPNSOURCE_INFORMATION VidPnSourceInformation;                  // out: result of D3DKMT_QUERYSTATISTICS_VIDPNSOURCE query
+        ' D3DKMT_QUERYSTATISTICS_PROCESS_INFORMATION ProcessInformation;                          // out: result of D3DKMT_QUERYSTATISTICS_PROCESS query
+        ' D3DKMT_QUERYSTATISTICS_PROCESS_ADAPTER_INFORMATION ProcessAdapterInformation;           // out: result of D3DKMT_QUERYSTATISTICS_PROCESS_ADAPTER(2) query
+        ' D3DKMT_QUERYSTATISTICS_PROCESS_SEGMENT_INFORMATION ProcessSegmentInformation;           // out: result of D3DKMT_QUERYSTATISTICS_PROCESS_SEGMENT(2) query
+        ' D3DKMT_QUERYSTATISTICS_PROCESS_NODE_INFORMATION ProcessNodeInformation;                 // out: result of D3DKMT_QUERYSTATISTICS_PROCESS_NODE query
+        ' D3DKMT_QUERYSTATISTICS_PROCESS_VIDPNSOURCE_INFORMATION ProcessVidPnSourceInformation;   // out: result of D3DKMT_QUERYSTATISTICS_PROCESS_VIDPNSOURCE query
+    ' #if (DXGKDDI_INTERFACE_VERSION >= DXGKDDI_INTERFACE_VERSION_WDDM2_1)
+        ' D3DKMT_QUERYSTATISTICS_PROCESS_SEGMENT_GROUP_INFORMATION ProcessSegmentGroupInformation;// out: result of D3DKMT_QUERYSTATISTICS_PROCESS_SEGMENT_GROUP(2) query
+    ' #endif
+    ' #if (DXGKDDI_INTERFACE_VERSION >= DXGKDDI_INTERFACE_VERSION_WDDM3_1)
+        ' D3DKMT_QUERYSTATISTICS_MEMORY_USAGE SegmentUsageInformation;                            // out: result of D3DKMT_QUERYSTATISTICS_SEGMENT_USAGE query
+        ' D3DKMT_QUERYSTATISTICS_MEMORY_USAGE SegmentGroupUsageInformation;                       // out: result of D3DKMT_QUERYSTATISTICS_SEGMENT_GROUP_USAGE query
+    ' #endif
+    ' } D3DKMT_QUERYSTATISTICS_RESULT;
+    Public Type D3DKMT_QUERYSTATISTICS_RESULT
+        u(96) As LongLong
+    End Type
+    
+    Public Type D3DKMT_QUERYSTATISTICS
+        Type As D3DKMT_QUERYSTATISTICS_TYPE ' in: type of data requested
+        AdapterLuid As LUID ' in: adapter to get export / statistics from
+        hProcess As LongPtr ' in: process to get statistics for, if required for this query type
+        QueryResult As D3DKMT_QUERYSTATISTICS_RESULT ' out: requested data
+        ' union
+        ' {
+            ' D3DKMT_QUERYSTATISTICS_QUERY_SEGMENT QuerySegment;                // in: id of segment to get statistics for
+            ' D3DKMT_QUERYSTATISTICS_QUERY_SEGMENT QueryProcessSegment;         // in: id of segment to get statistics for
+    ' #if (DXGKDDI_INTERFACE_VERSION >= DXGKDDI_INTERFACE_VERSION_WDDM2_1)
+            ' D3DKMT_MEMORY_SEGMENT_GROUP QueryProcessSegmentGroup;             // in: id of segment group to get statistics for
+    ' #endif
+            ' D3DKMT_QUERYSTATISTICS_QUERY_NODE QueryNode;                      // in: id of node to get statistics for
+            ' D3DKMT_QUERYSTATISTICS_QUERY_NODE QueryProcessNode;               // in: id of node to get statistics for
+            ' D3DKMT_QUERYSTATISTICS_QUERY_VIDPNSOURCE QueryVidPnSource;        // in: id of vidpnsource to get statistics for
+            ' D3DKMT_QUERYSTATISTICS_QUERY_VIDPNSOURCE QueryProcessVidPnSource; // in: id of vidpnsource to get statistics for
+    ' #if (DXGKDDI_INTERFACE_VERSION >= DXGKDDI_INTERFACE_VERSION_WDDM2_4)
+            ' D3DKMT_QUERYSTATISTICS_QUERY_PHYSICAL_ADAPTER QueryPhysAdapter;   // in: id of physical adapter to get statistics for
+    ' #endif
+    ' #if (DXGKDDI_INTERFACE_VERSION >= DXGKDDI_INTERFACE_VERSION_WDDM3_1)
+        ' D3DKMT_QUERYSTATISTICS_QUERY_ADAPTER2 QueryAdapter2;
+        ' D3DKMT_QUERYSTATISTICS_QUERY_SEGMENT2 QuerySegment2;
+        ' D3DKMT_QUERYSTATISTICS_QUERY_ADAPTER2 QueryProcessAdapter2;
+        ' D3DKMT_QUERYSTATISTICS_QUERY_SEGMENT2 QueryProcessSegment2;
+        ' D3DKMT_QUERYSTATISTICS_QUERY_PROCESS_SEGMENT_GROUP2 QueryProcessSegmentGroup2;
+        ' D3DKMT_QUERYSTATISTICS_QUERY_SEGMENT_USAGE QuerySegmentUsage;
+        ' D3DKMT_QUERYSTATISTICS_QUERY_SEGMENT_GROUP_USAGE QuerySegmentGroupUsage;
+        ' D3DKMT_QUERYSTATISTICS_QUERY_NODE2 QueryNode2;                      // in: id of node to get statistics for
+        ' D3DKMT_QUERYSTATISTICS_QUERY_NODE2 QueryProcessNode2;               // in: id of node to get statistics for
+    ' #endif
+        ' };
+        u As Long
+    End Type
+    
     [UseGetLastError(False)]
     Public Declare PtrSafe Function D3DKMTQueryAdapterInfo Lib "gdi32" (pAdapterInfo As D3DKMT_QUERYADAPTERINFO) As NTSTATUS
-    
+    [UseGetLastError(False)]
+    Public Declare PtrSafe Function D3DKMTOpenAdapterFromHdc Lib "gdi32" (pAdapterInfo As D3DKMT_OPENADAPTERFROMHDC) As NTSTATUS
+    [UseGetLastError(False)]
+    Public Declare PtrSafe Function D3DKMTOpenAdapterFromGdiDisplayName Lib "gdi32" (pAdapterInfo As D3DKMT_OPENADAPTERFROMGDIDISPLAYNAME) As NTSTATUS
+    [UseGetLastError(False)]
+    Public Declare PtrSafe Function D3DKMTOpenAdapterFromDeviceName Lib "gdi32" (pAdapterInfo As D3DKMT_OPENADAPTERFROMDEVICENAME) As NTSTATUS
+    [UseGetLastError(False)]
+    Public Declare PtrSafe Function D3DKMTCloseAdapter Lib "gdi32" (pClose As D3DKMT_CLOSEADAPTER) As NTSTATUS
+    [UseGetLastError(False)]
+    Public Declare PtrSafe Function D3DKMTGetDisplayModeList Lib "gdi32" (pList As D3DKMT_GETDISPLAYMODELIST) As NTSTATUS
+    [UseGetLastError(False)]
+    Public Declare PtrSafe Function D3DKMTSetDisplayMode Lib "gdi32" (pMode As D3DKMT_SETDISPLAYMODE) As NTSTATUS
+    [UseGetLastError(False)]
+    Public Declare PtrSafe Function D3DKMTQueryVideoMemoryInfo Lib "gdi32" (pInfo As D3DKMT_QUERYVIDEOMEMORYINFO) As NTSTATUS
+    [UseGetLastError(False)]
+    Public Declare PtrSafe Function D3DKMTQueryStatistics Lib "gdi32" (pStats As D3DKMT_QUERYSTATISTICS) As NTSTATUS
 End Module
 #End If
