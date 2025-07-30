@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 9.1.580 (July 29th, 2025)**
+**Current Version: 9.1.581 (July 30th, 2025)**
 
 (c) 2022-2025 Jon Johnson (fafalone)
 
@@ -231,6 +231,8 @@ This project has grown well beyond it's original mission of shell programming. W
 
 ### Updates
 
+**Update (v9.1.581, 30 Jul 2025):**
+- Some new WBEM interfaces used inconvenient LongPtr instead of ByRef Interface
 **Update (v9.1.580, 29 Jul 2025):**
 - Added WBEM Client COM interfaces (WbemCli.h/.idl, 100%). Note: WDL will not duplicate the WMI Scripting Library, and in most cases you should use that.
 - Misc. API additions
