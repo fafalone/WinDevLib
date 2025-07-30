@@ -1,4 +1,8 @@
 
+**Update (v9.1.580, 29 Jul 2025):**
+- Added WBEM Client COM interfaces (WbemCli.h/.idl, 100%). Note: WDL will not duplicate the WMI Scripting Library, and in most cases you should use that.
+- Misc. API additions
+
 **Update (v9.1.578, 29 Jul 2025):**
 - Add coverage of COM interceptors (callobj.h, 100%)
 - Add coverage of WinNls32.h, ime.h (100%)
