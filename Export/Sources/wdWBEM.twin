@@ -9,6 +9,7 @@
 
 'WMI non-scripting client interfaces
 'WbemCli.h/.idl
+'WMIUtils.h/.idl
 
 'Note: WDL does not duplicate the WMI Scripting Library, and in most cases you should use that.
 
@@ -288,6 +289,78 @@ CoClass WbemObjectTextSrc
     [Default] Interface IWbemObjectTextSrc
 End CoClass
 
+
+'WMIUtil
+[InterfaceId("9AE62877-7544-4bb0-AA26-A13824659ED6")]
+[OleAutomation(False)]
+Interface IWbemPathKeyList Extends IUnknown
+    Sub GetCount(ByRef puKeyCount As Long)
+    Sub SetKey(ByVal wszName As LongPtr, ByVal uFlags As Long, ByVal uCimType As Long, ByVal pKeyVal As LongPtr)
+    Sub SetKey2(ByVal wszName As LongPtr, ByVal uFlags As Long, ByVal uCimType As Long, ByRef pKeyVal As Variant)
+    Sub GetKey(ByVal uKeyIx As Long, ByVal uFlags As Long, ByRef puNameBufSize As Long, ByVal pszKeyName As LongPtr, ByRef puKeyValBufSize As Long, ByVal pKeyVal As LongPtr, ByRef puApparentCimType As Long)
+    Sub GetKey2(ByVal uKeyIx As Long, ByVal uFlags As Long, ByRef puNameBufSize As Long, ByVal pszKeyName As LongPtr, ByRef pKeyValue As Variant, ByRef puApparentCimType As Long)
+    Sub RemoveKey(ByVal wszName As LongPtr, ByVal uFlags As Long)
+    Sub RemoveAllKeys(ByVal uFlags As Long)
+    Sub MakeSingleton(ByVal bSet As BOOL)
+    Sub GetInfo(ByVal uRequestedInfo As Long, ByRef puResponse As LongLong)
+    Sub GetText(ByVal lFlags As Long, ByRef puBuffLength As Long, ByVal pszText As LongPtr)
+End Interface
+
+[InterfaceId("3BC15AF2-736C-477e-9E51-238AF8667DCC")]
+[OleAutomation(False)]
+Interface IWbemPath Extends IUnknown
+    Sub SetText(ByVal uMode As Long, ByVal pszPath As LongPtr)
+    Sub GetText(ByVal lFlags As Long, ByRef puBuffLength As Long, ByVal pszText As LongPtr)
+    Sub GetInfo(ByVal uRequestedInfo As Long, ByRef puResponse As LongLong)
+    Sub SetServer(ByVal Name As LongPtr)
+    Sub GetServer(ByRef puNameBufLength As Long, ByVal pName As LongPtr)
+    Sub GetNamespaceCount(ByRef puCount As Long)
+    Sub SetNamespaceAt(ByVal uIndex As Long, ByVal pszName As LongPtr)
+    Sub GetNamespaceAt(ByVal uIndex As Long, ByRef puNameBufLength As Long, ByVal pName As LongPtr)
+    Sub RemoveNamespaceAt(ByVal uIndex As Long)
+    Sub RemoveAllNamespaces()
+    Sub GetScopeCount(ByRef puCount As Long)
+    Sub SetScope(ByVal uIndex As Long, ByVal pszClass As LongPtr)
+    Sub SetScopeFromText(ByVal uIndex As Long, ByVal pszText As LongPtr)
+    Sub GetScope(ByVal uIndex As Long, ByRef puClassNameBufSize As Long, ByVal pszClass As LongPtr, ByRef pKeyList As IWbemPathKeyList)
+    Sub GetScopeAsText(ByVal uIndex As Long, ByRef puTextBufSize As Long, ByVal pszText As LongPtr)
+    Sub RemoveScope(ByVal uIndex As Long)
+    Sub RemoveAllScopes()
+    Sub SetClassName(ByVal Name As LongPtr)
+    Sub GetClassName(ByRef puBuffLength As Long, ByVal pszName As LongPtr)
+    Sub GetKeyList(ByRef pOut As IWbemPathKeyList)
+    Sub CreateClassPart(ByVal lFlags As Long, ByVal Name As LongPtr)
+    Sub DeleteClassPart(ByVal lFlags As Long)
+    [PreserveSig] Function IsRelative(ByVal wszMachine As LongPtr, ByVal wszNamespace As LongPtr) As BOOL
+    [PreserveSig] Function IsRelativeOrChild(ByVal wszMachine As LongPtr, ByVal wszNamespace As LongPtr, ByVal lFlags As Long) As BOOL
+    [PreserveSig] Function IsLocal(ByVal wszMachine As LongPtr) As BOOL
+    [PreserveSig] Function IsSameClassName(ByVal wszClass As LongPtr) As BOOL
+End Interface
+
+[Description("CLSID_WbemDefPath")]
+[CoClassId("cf4cc405-e2c5-4ddd-b3ce-5e7582d8c9fa")]
+CoClass WbemDefPath
+    [Default] Interface IWbemPath
+End CoClass
+
+[Description("CLSID_WbemQuery")]
+[CoClassId("EAC8A024-21E2-4523-AD73-A71A0AA2F56A")]
+CoClass WbemQuery
+    [Default] Interface IWbemQuery
+End CoClass
+
+[InterfaceId("81166f58-dd98-11d3-a120-00105a1f515a")]
+[OleAutomation(False)]
+Interface IWbemQuery Extends IUnknown
+    Sub Empty()
+    [Description("If not called, all features are supported")]
+    Sub SetLanguageFeatures(ByVal uFlags As Long, ByVal uArraySize As Long, puFeatures As Long)
+    Sub TestLanguageFeatures(ByVal uFlags As Long, ByRef uArraySize As Long, puFeatures As Long)
+    Sub Parse(ByVal pszLang As LongPtr, ByVal pszQuery As LongPtr, ByVal uFlags As Long)
+    Sub GetAnalysis(ByVal uAnalysisType As WMIQ_ANALYSIS_TYPE, ByVal uFlags As Long, ByRef pAnalysis As LongPtr)
+    Sub FreeMemory(ByVal pMem As LongPtr)
+    Sub GetQueryInfo(ByVal uAnalysisType As Long, ByVal uInfoId As Long, ByVal uBufSize As Long, pDestBuf As Any)
+End Interface
 
 
 Module wdWBEM
@@ -926,5 +999,318 @@ Static iid As UUID
 End Function
 
 
+Public Enum WBEM_PATH_STATUS_FLAG
+    WBEMPATH_INFO_ANON_LOCAL_MACHINE = &H1 '  <path has \\. as server name>
+    WBEMPATH_INFO_HAS_MACHINE_NAME = &H2 '  <not a dot>
+    WBEMPATH_INFO_IS_CLASS_REF = &H4 '  <a path to a classs, not a path to an instance>
+    WBEMPATH_INFO_IS_INST_REF = &H8 '  <a path to an instance>
+    WBEMPATH_INFO_HAS_SUBSCOPES = &H10 '  <true if a subscope is present>
+    WBEMPATH_INFO_IS_COMPOUND = &H20 '  <true if compound key is used>
+    WBEMPATH_INFO_HAS_V2_REF_PATHS = &H40 '  <true if V2-style ref paths are used>
+    WBEMPATH_INFO_HAS_IMPLIED_KEY = &H80 '  <true if keynames are missing somewhere>
+    WBEMPATH_INFO_CONTAINS_SINGLETON = &H100 '  <true if one or more singletons>
+    WBEMPATH_INFO_V1_COMPLIANT = &H200 '  <true if path is WBEM-V1-compliant>
+    WBEMPATH_INFO_V2_COMPLIANT = &H400 '  <true if path is WBEM-V2-compliant>
+    WBEMPATH_INFO_CIM_COMPLIANT = &H800 '  <true if path is CIM-compliant>
+    WBEMPATH_INFO_IS_SINGLETON = &H1000 ' <a path to a singleton>
+    WBEMPATH_INFO_IS_PARENT = &H2000 ' <path is just "..">
+    WBEMPATH_INFO_SERVER_NAMESPACE_ONLY = &H4000 ' <path is just "..">
+    WBEMPATH_INFO_NATIVE_PATH = &H8000&
+    WBEMPATH_INFO_WMI_PATH = &H10000
+    WBEMPATH_INFO_PATH_HAD_SERVER = &H20000 ' server name is present and was not set by default
+End Enum
+Public Enum WBEM_PATH_CREATE_FLAG
+    WBEMPATH_CREATE_ACCEPT_RELATIVE = &H1
+    WBEMPATH_CREATE_ACCEPT_ABSOLUTE = &H2
+    WBEMPATH_CREATE_ACCEPT_ALL = &H4
+    WBEMPATH_TREAT_SINGLE_IDENT_AS_NS = &H8
+End Enum
+
+Public Enum WBEM_GET_TEXT_FLAGS
+    WBEMPATH_COMPRESSED = &H1 ' Obsolete, dont use
+    WBEMPATH_GET_RELATIVE_ONLY = &H2 ' gets relative path
+    WBEMPATH_GET_SERVER_TOO = &H4 ' gets everything
+    WBEMPATH_GET_SERVER_AND_NAMESPACE_ONLY = &H8 ' gets server and namespace
+    WBEMPATH_GET_NAMESPACE_ONLY = &H10 ' gets just namespace
+    WBEMPATH_GET_ORIGINAL = &H20 ' returns whatever was passed in
+End Enum
+
+Public Enum WBEM_GET_KEY_FLAGS
+    WBEMPATH_TEXT = &H1
+    WBEMPATH_QUOTEDTEXT = &H2
+End Enum
+
+Public Enum WMIQ_ANALYSIS_TYPE
+    WMIQ_ANALYSIS_RPN_SEQUENCE = &H1
+    WMIQ_ANALYSIS_ASSOC_QUERY = &H2
+    WMIQ_ANALYSIS_PROP_ANALYSIS_MATRIX = &H3
+    WMIQ_ANALYSIS_QUERY_TEXT = &H4
+    WMIQ_ANALYSIS_RESERVED = &H8000000
+End Enum
+
+Public Enum WMIQ_RPN_TOKEN_FLAGS
+    '  Group 1
+    WMIQ_RPN_TOKEN_EXPRESSION = 1
+    WMIQ_RPN_TOKEN_AND = 2
+    WMIQ_RPN_TOKEN_OR = 3
+    WMIQ_RPN_TOKEN_NOT = 4
+    '  Group 2
+    WMIQ_RPN_OP_UNDEFINED = 0
+    WMIQ_RPN_OP_EQ = 1
+    WMIQ_RPN_OP_NE = 2
+    WMIQ_RPN_OP_GE = 3
+    WMIQ_RPN_OP_LE = 4
+    WMIQ_RPN_OP_LT = 5
+    WMIQ_RPN_OP_GT = 6
+    WMIQ_RPN_OP_LIKE = 7
+    WMIQ_RPN_OP_ISA = 8
+    WMIQ_RPN_OP_ISNOTA = 9
+    WMIQ_RPN_OP_ISNULL = 10
+    WMIQ_RPN_OP_ISNOTNULL = 11
+    '  Group 3
+    WMIQ_RPN_LEFT_PROPERTY_NAME = &H1
+    WMIQ_RPN_RIGHT_PROPERTY_NAME = &H2
+    WMIQ_RPN_CONST2 = &H4
+    WMIQ_RPN_CONST = &H8
+    WMIQ_RPN_RELOP = &H10
+    WMIQ_RPN_LEFT_FUNCTION = &H20
+    WMIQ_RPN_RIGHT_FUNCTION = &H40
+    '  Group 4
+    WMIQ_RPN_GET_TOKEN_TYPE = 1 ' Returns Group 1 ULONG value
+    WMIQ_RPN_GET_EXPR_SHAPE = 2 ' Returns Group 3 ULONG mask
+    WMIQ_RPN_GET_LEFT_FUNCTION = 3 ' Returns LPWSTR
+    WMIQ_RPN_GET_RIGHT_FUNCTION = 4 ' Returns LPWSTR
+    WMIQ_RPN_GET_RELOP = 5 ' Returns a Group 2 ULONG
+    '  Group 5
+    WMIQ_RPN_NEXT_TOKEN = 1
+    '  Group 6 (FROM clause options)
+    WMIQ_RPN_FROM_UNARY = &H1
+    WMIQ_RPN_FROM_PATH = &H2
+    WMIQ_RPN_FROM_CLASS_LIST = &H4
+    WMIQ_RPN_FROM_MULTIPLE = &H8
+End Enum
+
+Public Enum WMIQ_ASSOCQ_FLAGS
+    WMIQ_ASSOCQ_ASSOCIATORS = &H1
+    WMIQ_ASSOCQ_REFERENCES = &H2
+    WMIQ_ASSOCQ_RESULTCLASS = &H4
+    WMIQ_ASSOCQ_ASSOCCLASS = &H8
+    WMIQ_ASSOCQ_ROLE = &H10
+    WMIQ_ASSOCQ_RESULTROLE = &H20
+    WMIQ_ASSOCQ_REQUIREDQUALIFIER = &H40
+    WMIQ_ASSOCQ_REQUIREDASSOCQUALIFIER = &H80
+    WMIQ_ASSOCQ_CLASSDEFSONLY = &H100
+    WMIQ_ASSOCQ_KEYSONLY = &H200
+    WMIQ_ASSOCQ_SCHEMAONLY = &H400
+    WMIQ_ASSOCQ_CLASSREFSONLY = &H800
+End Enum
+
+Public Type SWbemQueryQualifiedName
+    m_uVersion As Long
+    m_uTokenType As Long
+    m_uNameListSize As Long
+    m_ppszNameList As LongPtr 'LPCWSTR*
+    m_bArraysUsed As BOOL
+    m_pbArrayElUsed As LongPtr 'BOOL*
+    m_puArrayIndex As LongPtr 'ULONG*
+End Type
+
+' typedef union tag_SWbemRpnConst
+' {
+    ' LPCWSTR m_pszStrVal;        // VT_LPWSTR
+    ' BOOL    m_bBoolVal;         // VT_BOOL
+    ' LONG    m_lLongVal;         // VT_I4
+    ' ULONG   m_uLongVal;         // VT_UI4
+    ' double  m_dblVal;           // VT_R8
+    ' __int64 m_lVal64;           // VT_I8
+    ' __int64 m_uVal64;           // VT_UI8
+
+' }   SWbemRpnConst;
+Public Type SWbemRpnConst
+    u As LongLong
+End Type
+
+Public Type SWbemRpnQueryToken
+    m_uVersion As Long
+    m_uTokenType As Long
+    m_uSubexpressionShape As Long
+    m_uOperator As Long
+    m_pRightIdent As LongPtr 'SWbemQueryQualifiedName*
+    m_pLeftIdent As LongPtr 'SWbemQueryQualifiedName*
+    m_uConstApparentType As Long ' VT_
+    m_Const As SWbemRpnConst
+    ' Const2 used only for BETWEEN
+    m_uConst2ApparentType As Long ' VT_
+    m_Const2 As SWbemRpnConst
+    m_pszRightFunc As LongPtr
+    m_pszLeftFunc As LongPtr
+End Type
+
+Public Type SWbemRpnTokenList
+    m_uVersion As Long
+    m_uTokenType As Long
+    m_uNumTokens As Long
+End Type
+
+Public Enum WMIQ_LANGUAGE_FEATURES
+    '  The LF1 corresponds to the integer value. Do not alter!
+    WMIQ_LF1_BASIC_SELECT = 1 ' *
+    WMIQ_LF2_CLASS_NAME_IN_QUERY = 2 ' *
+    WMIQ_LF3_STRING_CASE_FUNCTIONS = 3 ' *
+    WMIQ_LF4_PROP_TO_PROP_TESTS = 4 ' *
+    WMIQ_LF5_COUNT_STAR = 5
+    WMIQ_LF6_ORDER_BY = 6 ' *
+    WMIQ_LF7_DISTINCT = 7
+    WMIQ_LF8_ISA = 8 ' *
+    WMIQ_LF9_THIS = 9 ' *
+    WMIQ_LF10_COMPEX_SUBEXPRESSIONS = 10
+    WMIQ_LF11_ALIASING = 11
+    WMIQ_LF12_GROUP_BY_HAVING = 12 ' *
+    WMIQ_LF13_WMI_WITHIN = 13 ' *
+    WMIQ_LF14_SQL_WRITE_OPERATIONS = 14
+    WMIQ_LF15_GO = 15
+    WMIQ_LF16_SINGLE_LEVEL_TRANSACTIONS = 16
+    WMIQ_LF17_QUALIFIED_NAMES = 17 ' *
+    WMIQ_LF18_ASSOCIATONS = 18 ' *
+    WMIQ_LF19_SYSTEM_PROPERTIES = 19
+    WMIQ_LF20_EXTENDED_SYSTEM_PROPERTIES = 20
+    WMIQ_LF21_SQL89_JOINS = 21
+    WMIQ_LF22_SQL92_JOINS = 22
+    WMIQ_LF23_SUBSELECTS = 23
+    WMIQ_LF24_UMI_EXTENSIONS = 24
+    WMIQ_LF25_DATEPART = 25 ' *
+    WMIQ_LF26_LIKE = 26 ' *
+    WMIQ_LF27_CIM_TEMPORAL_CONSTRUCTS = 27 ' *
+    WMIQ_LF28_STANDARD_AGGREGATES = 28
+    WMIQ_LF29_MULTI_LEVEL_ORDER_BY = 29
+    WMIQ_LF30_WMI_PRAGMAS = 30
+    WMIQ_LF31_QUALIFIER_TESTS = 31
+    WMIQ_LF32_SP_EXECUTE = 32
+    WMIQ_LF33_ARRAY_ACCESS = 33 ' *
+    WMIQ_LF34_UNION = 34
+    WMIQ_LF35_COMPLEX_SELECT_TARGET = 35
+    WMIQ_LF36_REFERENCE_TESTS = 36
+    WMIQ_LF37_SELECT_INTO = 37
+    WMIQ_LF38_BASIC_DATETIME_TESTS = 38
+    WMIQ_LF39_COUNT_COLUMN = 39
+    WMIQ_LF40_BETWEEN = 40
+    WMIQ_LF_LAST = 40
+End Enum
+
+Public Enum WMIQ_RPNF_FEATURE
+    WMIQ_RPNF_WHERE_CLAUSE_PRESENT = &H1 ' *
+    WMIQ_RPNF_QUERY_IS_CONJUNCTIVE = &H2 ' *
+    WMIQ_RPNF_QUERY_IS_DISJUNCTIVE = &H4 ' *
+    WMIQ_RPNF_PROJECTION = &H8 ' *
+    WMIQ_RPNF_FEATURE_SELECT_STAR = &H10 ' *
+    WMIQ_RPNF_EQUALITY_TESTS_ONLY = &H20 ' *
+    WMIQ_RPNF_COUNT_STAR = &H40 ' *
+    WMIQ_RPNF_QUALIFIED_NAMES_USED = &H80 ' *
+    WMIQ_RPNF_SYSPROP_CLASS_USED = &H100 ' *
+    WMIQ_RPNF_PROP_TO_PROP_TESTS = &H200 ' *
+    WMIQ_RPNF_ORDER_BY = &H400 ' *
+    WMIQ_RPNF_ISA_USED = &H800 ' *
+    WMIQ_RPNF_GROUP_BY_HAVING = &H1000 ' *
+    WMIQ_RPNF_ARRAY_ACCESS_USED = &H2000 ' *
+End Enum
+
+Public Type SWbemRpnEncodedQuery
+    m_uVersion As Long
+    m_uTokenType As Long
+    ' General query features
+    ' ======================
+    m_uParsedFeatureMask As LongLong 'unsigned __int64
+    ' Overall language features encountered
+    ' ======================================
+    m_uDetectedArraySize As Long
+    m_puDetectedFeatures As LongPtr 'ULONG* ' Array of LFn_ constants
+    ' Values being selected if WMIQ_RPNF_PROJECTION is set
+    ' =====================================================
+    m_uSelectListSize As Long
+    m_ppSelectList As LongPtr 'SWbemQueryQualifiedName**
+    ' FROM clause
+    ' ===========
+    m_uFromTargetType As WMIQ_RPN_TOKEN_FLAGS ' WMIQ_RPN_FROM_ constants
+    m_pszOptionalFromPath As LongPtr ' NULL if not used
+    m_uFromListSize As Long
+    m_ppszFromList As LongPtr 'LPCWSTR *
+    ' Where clause
+    ' ============
+    m_uWhereClauseSize As Long
+    m_ppRpnWhereClause As LongPtr 'SWbemRpnQueryToken**
+    ' WITHIN value
+    ' ============
+    m_dblWithinPolling As Double
+    m_dblWithinWindow As Double
+    ' ORDER BY
+    ' ========
+    m_uOrderByListSize As Long
+    m_ppszOrderByList As LongPtr
+    m_uOrderDirectionEl As LongPtr 'ULONG*
+End Type
+
+Public Type SWbemAnalysisMatrix
+    m_uVersion As Long
+    m_uMatrixType As Long
+    m_pszProperty As LongPtr
+    m_uPropertyType As Long
+    m_uEntries As Long
+    m_pValues As LongPtr
+    m_pbTruthTable As LongPtr 'BOOL*
+End Type
+
+Public Type _SWbemAnalysisMatrixList
+    m_uVersion As Long
+    m_uMatrixType As Long
+    m_uNumMatrices As Long
+    m_pMatrices As LongPtr 'SWbemAnalysisMatrix*
+End Type
+
+Public Type _SWbemAssocQueryInf
+    m_uVersion As Long
+    m_uAnalysisType As Long
+    m_uFeatureMask As Long
+    m_pPath As IWbemPath
+    m_pszPath As LongPtr
+    m_pszQueryText As LongPtr
+    m_pszResultClass As LongPtr
+    m_pszAssocClass As LongPtr
+    m_pszRole As LongPtr
+    m_pszResultRole As LongPtr
+    m_pszRequiredQualifier As LongPtr
+    m_pszRequiredAssocQualifier As LongPtr
+End Type
+
+Public Function IID_IWbemPathKeyList() As UUID
+'{9AE62877-7544-4bb0-AA26-A13824659ED6}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H9AE62877, CInt(&H7544), CInt(&H4bb0), &HAA, &H26, &HA1, &H38, &H24, &H65, &H9E, &HD6)
+ IID_IWbemPathKeyList = iid
+End Function
+Public Function IID_IWbemPath() As UUID
+'{3BC15AF2-736C-477e-9E51-238AF8667DCC}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H3BC15AF2, CInt(&H736C), CInt(&H477e), &H9E, &H51, &H23, &H8A, &HF8, &H66, &H7D, &HCC)
+ IID_IWbemPath = iid
+End Function
+Public Function IID_IWbemQuery() As UUID
+'{81166f58-dd98-11d3-a120-00105a1f515a}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H81166f58, CInt(&Hdd98), CInt(&H11d3), &Ha1, &H20, &H00, &H10, &H5a, &H1f, &H51, &H5a)
+ IID_IWbemQuery = iid
+End Function
+
+Public Function CLSID_WbemDefPath() As UUID
+'{cf4cc405-e2c5-4ddd-b3ce-5e7582d8c9fa}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hcf4cc405, CInt(&He2c5), CInt(&H4ddd), &Hb3, &Hce, &H5e, &H75, &H82, &Hd8, &Hc9, &Hfa)
+ CLSID_WbemDefPath = iid
+End Function
+Public Function CLSID_WbemQuery() As UUID
+'{EAC8A024-21E2-4523-AD73-A71A0AA2F56A}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HEAC8A024, CInt(&H21E2), CInt(&H4523), &HAD, &H73, &HA7, &H1A, &H0A, &HA2, &HF5, &H6A)
+ CLSID_WbemQuery = iid
+End Function
 
 End Module

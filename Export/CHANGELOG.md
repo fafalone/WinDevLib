@@ -1,4 +1,12 @@
 
+
+**Update (v9.1.584, 02 Aug 2025):**
+- Added DirectInput (dinput.h, 100% inc. macros, delegates and statically exported data)
+- Added WMI utility interfaces (WMIUtils.h/.idl, 100%; the system typelib for this is full of unsupported types)
+- (Bug fix) Many helper functions used ByRef instead of ByVal for in only args, which causes issues with other functions that call them.
+
+**Update (v9.1.581, 30 Jul 2025):**
+- Some new WBEM interfaces used inconvenient LongPtr instead of ByRef Interface
 **Update (v9.1.580, 29 Jul 2025):**
 - Added WBEM Client COM interfaces (WbemCli.h/.idl, 100%). Note: WDL will not duplicate the WMI Scripting Library, and in most cases you should use that.
 - Misc. API additions
