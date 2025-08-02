@@ -1,6 +1,7 @@
 Known omissions where a priority update neccessitated not finishing 
 before release, or waiting on feature support:
 
+- Verify dinput static lib replacements
 
 - copy  new NT sync APIs to tbKMode.
 
@@ -183,7 +184,7 @@ Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.
     xprtdefs.h,axextend.idl,amparse.h,vidcap.h,vidcap.idl,dmodshow.h,dmodshow.idl,CameraUIControl.h,CameraUIControl.idl,austream.h,austream.idl,qnetwork.h,il21dec.h,
     iwstdec.h,dvdif.h,strmif.h,strmif.idl,control.h,control.idl,amstream.h,amstream.idl,amva.h,sherrors.h,bcp47mrm.h,regbag.h,regbag.idl,wimgapi.h,lsalookupi.h,
     bdatypes.h,bdaiface_enums.h,bdaiface.h,bdaiface.idl,mpeg2structs.h,Mpeg2Structs.idl,Mpeg2Bits.h,Mpeg2Data.h,Mpeg2Data.idl,Mpeg2PsiParser.idl,AtscPsipParser.h,
-    callobj.h,callobj.idl,WbemCli.h,WbemCli.idl
+    callobj.h,callobj.idl,WbemCli.h,WbemCli.idl,WMIUtils.h,WMIUtils.idl
     
 Coverage in the 90%+ range
     winbase.h, oleidl.h, oaidl.h, ocidl.h, ocidl.idl, presentation.h,
