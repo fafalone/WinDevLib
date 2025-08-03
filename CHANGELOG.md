@@ -1,5 +1,7 @@
 
 
+**Update (v9.1.585, 03 Aug 2025):**
+- (Bug fix) New DirectInput interfaces used stdole.GUID.
 **Update (v9.1.584, 02 Aug 2025):**
 - Added DirectInput (dinput.h, 100% inc. macros, delegates and statically exported data)
 - Added WMI utility interfaces (WMIUtils.h/.idl, 100%; the system typelib for this is full of unsupported types)
