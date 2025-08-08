@@ -1,3 +1,6 @@
+(This list was initially created to track parity with oleexp.tlb. It will no longer be updated and numerous others have been added since.)
+
+
 ## Raw list of interfaces contained in WinDevLib. This does not include any of the coclasses, APIs, etc, just interfaces.
 
 ### Interfaces are sorted alphabetically, with no grouping.
