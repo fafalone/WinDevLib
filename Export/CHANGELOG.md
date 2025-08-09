@@ -1,7 +1,12 @@
 
-
+**Update (v9.1.586, 09 Aug 2025):**
+- Added HTTP Server API (http.h, 100% inc. macros)
+- Added Image Color Management / Windows Color System APIs (icm.h, wcsplugin.h/.idl, 100%)
+- Misc API additions
+ 
 **Update (v9.1.585, 03 Aug 2025):**
 - (Bug fix) New DirectInput interfaces used stdole.GUID.
+
 **Update (v9.1.584, 02 Aug 2025):**
 - Added DirectInput (dinput.h, 100% inc. macros, delegates and statically exported data)
 - Added WMI utility interfaces (WMIUtils.h/.idl, 100%; the system typelib for this is full of unsupported types)
@@ -129,7 +134,7 @@
 
 **Update (v8.12.552, 06 Jun 2025):**
 - More D3DX coverage (d3dx11.h, d3dx11async.h). 
-  - Note: D3DX11 APIs use d3dx11_43.dll, and D3D9X APIs use d3dx9_43.dll. This are the most recent versions,
+  - Note: D3DX11 APIs use d3dx11_43.dll, and D3D9X APIs use d3dx9_43.dll. These are the most recent versions,
         but may not be included with Windows 10 and 11 installations. It's recommended you obtain the June 2010
         DirectX SDK for redistributable files you can install. You can also downgrade to installed versions.
         https://www.microsoft.com/en-us/download/details.aspx?id=6812
@@ -1656,7 +1661,7 @@ RmRemoveFilter
 
 **Update (v4.1.94):** Added Packaging API interfaces (msopc.idl). Added Netaddress control defs (newer version of old IP address control, msctls_netaddress; the old one, SysIPAddress32, is still there).
 
-**Update (v4.0.93):** `Currency` in new interfaces changed to `LongLong`. 
+**Update (v4.0.93, 01 Apr 2023):** `Currency` in new interfaces changed to `LongLong`. 
 
 **Update (v4.0.92):** 
 
@@ -1762,9 +1767,9 @@ RmRemoveFilter
 
 **Update (v3.2.16):** Added WebView2 (EXPERIMENTAL). Added IObjectProvider, IEnumObjects, and IIOCancelInformation interfaces.
 
-**Update (v3.1.14):** Added Microsoft Speech APIs v5.4. Added IHttpNegotiate3.
+**Update (v3.1.14, 20 Feb 2023):** Added Microsoft Speech APIs v5.4. Added IHttpNegotiate3.
 
-**Update (v3.0.13):**
+**Update (v3.0.13, 17 Feb 2023):**
 - Added missing PROPSHEETHEADER and PROPSHEETHEADER_V2 types and PropSheet/PropSheetW APIs. Also corrected wrong values for PSN_TRANSLATEACCELERATOR/PSN_QUERYINITIALFOCUS.
 
 - Began adding back in some Optionals in DirectX interfaces which weren't supported by MKTYPLIB so weren't in oleexp, where the tB code was generated from.
@@ -1877,7 +1882,7 @@ Update (v2.4.49): IShellView::TranslateAccelerator was incorrectly named IShellV
 
 **Update (v2.3.40):** Fixes for SHGetPathFromIDList[W] and IVirtualDesktopManager::IsWindowOnCurrentVirtualDesktop.
 
-**Update (v2.3.38):** ICategorizer::GetCategory had apidl argument incorrectly defined as ByVal.
+**Update (v2.3.38, 17 Dec 2022):** ICategorizer::GetCategory had apidl argument incorrectly defined as ByVal.
 
 **Update (v2.3.35):** IShellIconOverlay had incorrect pIndex params in both methods. This didn't effect 32bit projects as pointers were the same size as the index. 
 

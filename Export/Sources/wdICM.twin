@@ -1,0 +1,908 @@
+'*****************************************************************************************
+'This file is a part of WinDevLib - Windows Development Library for twinBASIC
+'https://github.com/fafalone/WinDevLib
+'Code ported by Jon Johnson. 
+'"Windows" is a trademark of the Microsoft Corporation.
+'Certain Description attributes (c) Microsoft, taken from SDK headers and official docs.
+'Licensed under Creative Commons CC0 1.0 Universal
+'*****************************************************************************************
+
+' Image Color Management / Windows Color System APIs (icm.h, wcsplugin.h/.idl, 100%)
+
+#If WINDEVLIB_LITE = 0 Then
+
+    
+[InterfaceId("1CD63475-07C4-46FE-A903-D655316D11FD")]
+[Description("WCS device model plug-in interface.")]
+[OleAutomation(False)]
+Interface IDeviceModelPlugIn Extends IUnknown
+    Sub Initialize(ByVal bstrXml As String, ByVal cNumModels As Long, ByVal iModelPosition As Long)
+    Sub GetNumChannels(ByRef pNumChannels As Long)
+    Sub DeviceToColorimetricColors(ByVal cColors As Long, ByVal cChannels As Long, ByRef pDeviceValues As Single, ByRef pXYZColors As XYZColorF)
+    Sub ColorimetricToDeviceColors(ByVal cColors As Long, ByVal cChannels As Long, ByRef pXYZColors As XYZColorF, ByRef pDeviceValues As Single)
+    Sub ColorimetricToDeviceColorsWithBlack(ByVal cColors As Long, ByVal cChannels As Long, ByRef pXYZColors As XYZColorF, ByRef pBlackInformation As BlackInformation, ByRef pDeviceValues As Single)
+    Sub SetTransformDeviceModelInfo(ByVal iModelPosition As Long, ByVal pIDeviceModelOther As IDeviceModelPlugIn)
+    Sub GetPrimarySamples(ByRef pPrimaryColor As PrimaryXYZColors)
+    Sub GetGamutBoundaryMeshSize(ByRef pNumVertices As Long, ByRef pNumTriangles As Long)
+    Sub GetGamutBoundaryMesh(ByVal cChannels As Long, ByVal cVertices As Long, ByVal cTriangles As Long, ByRef pVertices As Single, ByRef pTriangles As GamutShellTriangle)
+    Sub GetNeutralAxisSize(ByRef pcColors As Long)
+    Sub GetNeutralAxis(ByVal cColors As Long, ByRef pXYZColors As XYZColorF)
+End Interface
+
+[InterfaceId("2DD80115-AD1E-41F6-A219-A4F4B583D1F9")]
+[Description("WCS gamut map plug-in interface.")]
+[OleAutomation(False)]
+Interface IGamutMapModelPlugIn Extends IUnknown
+    Sub Initialize(ByVal bstrXml As String, ByVal pSrcPlugIn As IDeviceModelPlugIn, ByVal pDestPlugIn As IDeviceModelPlugIn, pSrcGBD As GamutBoundaryDescription, pDestGBD As GamutBoundaryDescription)
+    Sub SourceToDestinationAppearanceColors(ByVal cColors As Long, ByRef pInputColors As JChColorF, ByRef pOutputColors As JChColorF)
+End Interface
+
+
+
+Module wdICM
+
+'icm.h
+
+Public Type COLOR_NAME
+	c(31) As Byte
+End Type
+
+Public Type NAMED_PROFILE_INFO
+	dwFlags As Long
+	dwCount As Long
+	dwCountDevCoordinates As Long
+	szPrefix As COLOR_NAME
+	szSuffix As COLOR_NAME
+End Type
+
+Public Const MAX_COLOR_CHANNELS= 6
+
+Public Type GRAYCOLOR
+	gray As Integer
+End Type
+
+Public Type RGBCOLOR
+	red As Integer
+	green As Integer
+	blue As Integer
+End Type
+
+Public Type CMYKCOLOR
+	cyan As Integer
+	magenta As Integer
+	yellow As Integer
+	black As Integer
+End Type
+
+Public Type XYZCOLOR
+	X As Integer
+	Y As Integer
+	Z As Integer
+End Type
+
+Public Type YxyCOLOR
+	Y As Integer
+	x As Integer
+	yy As Integer
+End Type
+
+Public Type LabCOLOR
+	L As Integer
+	a As Integer
+	b As Integer
+End Type
+
+Public Type GENERIC3CHANNEL
+	ch1 As Integer
+	ch2 As Integer
+	ch3 As Integer
+End Type
+
+Public Type NAMEDCOLOR
+	dwIndex As Long
+End Type
+
+Public Type HiFiCOLOR
+	channel(0 To (MAX_COLOR_CHANNELS - 1)) As Byte
+End Type
+
+' typedef union tagCOLOR {
+' struct GRAYCOLOR        gray;
+' struct RGBCOLOR         rgb;
+' struct CMYKCOLOR        cmyk;
+' struct XYZCOLOR         XYZ;
+' struct YxyCOLOR         Yxy;
+' struct LabCOLOR         Lab;
+' struct GENERIC3CHANNEL  gen3ch;
+' struct NAMEDCOLOR       named;
+' struct HiFiCOLOR        hifi;
+
+' struct {                // alignment padding.
+	' DWORD reserved1;
+	' VOID *reserved2;
+' };
+
+' } COLOR;
+Public Type COLOR
+	reserved1 As Long
+	reserved2 As LongPtr
+End Type
+
+Public Enum COLORTYPE
+	COLOR_GRAY = 1
+	COLOR_RGB = 2
+	COLOR_XYZ = 3
+	COLOR_Yxy = 4
+	COLOR_Lab = 5
+	COLOR_3_CHANNEL = 6
+	COLOR_CMYK = 7
+	COLOR_5_CHANNEL = 8
+	COLOR_6_CHANNEL = 9
+	COLOR_7_CHANNEL = 10
+	COLOR_8_CHANNEL = 11
+	COLOR_NAMED = 12
+End Enum
+
+Public Enum IcmColorIntent
+	INTENT_PERCEPTUAL = 0
+	INTENT_RELATIVE_COLORIMETRIC = 1
+	INTENT_SATURATION = 2
+	INTENT_ABSOLUTE_COLORIMETRIC = 3
+End Enum
+
+Public Enum COLORPROFILETYPE
+	CPT_ICC
+	CPT_DMP
+	CPT_CAMP
+	CPT_GMMP
+End Enum
+
+Public Enum COLORPROFILESUBTYPE
+	'  intent
+	CPST_PERCEPTUAL = INTENT_PERCEPTUAL
+	CPST_RELATIVE_COLORIMETRIC = INTENT_RELATIVE_COLORIMETRIC
+	CPST_SATURATION = INTENT_SATURATION
+	CPST_ABSOLUTE_COLORIMETRIC = INTENT_ABSOLUTE_COLORIMETRIC
+	'  working space
+	CPST_NONE
+	CPST_RGB_WORKING_SPACE
+	CPST_CUSTOM_WORKING_SPACE
+	'  advanced color aware
+	CPST_STANDARD_DISPLAY_COLOR_MODE
+	CPST_EXTENDED_DISPLAY_COLOR_MODE
+End Enum
+
+Public Enum COLORDATATYPE
+	COLOR_BYTE = 1 ' BYTE per channel. data range [0, 255]
+	COLOR_WORD   ' WORD per channel. data range [0, 65535]
+	COLOR_FLOAT  ' FLOAT per channel. IEEE 32-bit floating point
+	COLOR_S2DOT13FIXED   ' WORD per channel. data range [-4, +4] using s2.13
+	' #if NTDDI_VERSION >= NTDDI_WIN7
+	COLOR_10b_R10G10B10A2   ' Packed WORD per channel.  data range [0, 1]
+	COLOR_10b_R10G10B10A2_XR  ' Packed extended range WORD per channel.  data range [-1, 3]
+	'  using 4.0 scale and -1.0 bias.
+	COLOR_FLOAT16   ' FLOAT16 per channel.
+	' #endif //NTDDI_VERSION >= NTDDI_WIN7
+End Enum
+
+Public Enum BMFORMAT
+	' //
+	' // 16bpp - 5 bits per channel. The most significant bit is ignored.
+	' //
+
+	BM_x555RGB = &H0000
+	BM_x555XYZ = &H0101
+	BM_x555Yxy
+	BM_x555Lab
+	BM_x555G3CH
+
+	' //
+	' // Packed 8 bits per channel => 8bpp for GRAY and
+	' // 24bpp for the 3 channel colors more for hifi channels
+	' //
+
+	BM_RGBTRIPLETS = &H0002
+	BM_BGRTRIPLETS = &H0004
+	BM_XYZTRIPLETS = &H0201
+	BM_YxyTRIPLETS
+	BM_LabTRIPLETS
+	BM_G3CHTRIPLETS
+	BM_5CHANNEL
+	BM_6CHANNEL
+	BM_7CHANNEL
+	BM_8CHANNEL
+	BM_GRAY
+
+	' //
+	' // 32bpp - 8 bits per channel. The most significant byte is ignored
+	' // for the 3 channel colors.
+	' //
+
+	BM_xRGBQUADS = &H0008
+	BM_xBGRQUADS = &H0010
+	BM_xG3CHQUADS = &H0304
+	BM_KYMCQUADS
+	BM_CMYKQUADS = &H0020
+
+	' //
+	' // 32bpp - 10 bits per channel. The 2 most significant bits are ignored.
+	' //
+
+	BM_10b_RGB = &H0009
+	BM_10b_XYZ = &H0401
+	BM_10b_Yxy
+	BM_10b_Lab
+	BM_10b_G3CH
+
+	' //
+	' // 32bpp - named color indices (1-based)
+	' //
+
+	BM_NAMED_INDEX
+
+	' //
+	' // Packed 16 bits per channel => 16bpp for GRAY and
+	' // 48bpp for the 3 channel colors.
+	' //
+
+	BM_16b_RGB = &H000A
+	BM_16b_XYZ = &H0501
+	BM_16b_Yxy
+	BM_16b_Lab
+	BM_16b_G3CH
+	BM_16b_GRAY
+
+	' //
+	' // 16 bpp - 5 bits for Red & Blue 6 bits for Green
+	' //
+
+	BM_565RGB = &H0001
+
+	' //#if NTDDI_VERSION >= NTDDI_VISTA
+	' //
+	' // scRGB - 32 bits per channel floating point
+	' //         16 bits per channel floating point
+	' //
+
+	BM_32b_scRGB = &H0601
+	BM_32b_scARGB = &H0602
+	BM_S2DOT13FIXED_scRGB = &H0603
+	BM_S2DOT13FIXED_scARGB = &H0604
+	' //#endif // NTDDI_VERSION >= NTDDI_VISTA
+
+	' //#if NTDDI_VERSION >= NTDDI_WIN7
+	BM_R10G10B10A2 = &H0701
+	BM_R10G10B10A2_XR = &H0702
+	BM_R16G16B16A16_FLOAT = &H0703
+	' //#endif // NTDDI_VERSION >= NTDDI_WIN7 
+End Enum
+
+Public Delegate Function BMCALLBACKFN (ByVal ulMax As Long, ByVal ulCurrent As Long, ByVal ulCallbackData As LongPtr) As BOOL
+
+Public Type PROFILEHEADER
+	phSize As Long ' profile size in bytes
+	phCMMType As Long ' CMM for this profile
+	phVersion As Long ' profile format version number
+	phClass As IcmProfileClass ' type of profile
+	phDataColorSpace As Long ' color space of data
+	phConnectionSpace As IcmColorSpaceValues ' PCS
+	phDateTime(0 To 2) As Long ' date profile was created
+	phSignature As Long ' magic number
+	phPlatform As Long ' primary platform
+	phProfileFlags As IcmProfileFlags ' various bit settings
+	phManufacturer As Long ' device manufacturer
+	phModel As Long ' device model number
+	phAttributes(0 To 1) As IcmProfileAttribs ' device attributes
+	phRenderingIntent As IcmColorIntent ' rendering intent
+	phIlluminant As CIEXYZ ' profile illuminant
+	phCreator As Long ' profile creator
+	phReserved(0 To 43) As Byte ' reserved for future use
+End Type
+
+Public Enum IcmProfileClass
+	CLASS_MONITOR = &H6d6e7472  ' 'mntr'
+	CLASS_PRINTER = &H70727472  ' 'prtr'
+	CLASS_SCANNER = &H73636e72  ' 'scnr'
+	CLASS_LINK = &H6c696e6b  ' 'link'
+	CLASS_ABSTRACT = &H61627374  ' 'abst'
+	CLASS_COLORSPACE = &H73706163  ' 'spac'
+	CLASS_NAMED = &H6e6d636c  ' 'nmcl'
+' #if NTDDI_VERSION >= NTDDI_VISTA
+	CLASS_CAMP = &H63616d70  ' 'camp'
+	CLASS_GMMP = &H676d6d70  ' 'gmmp'
+End Enum
+
+Public Enum IcmColorSpaceValues
+	SPACE_XYZ = &H58595a20
+	SPACE_Lab = &H4c616220
+	SPACE_Luv = &H4c757620
+	SPACE_YCbCr = &H59436272
+	SPACE_Yxy = &H59787920
+	SPACE_RGB = &H52474220
+	SPACE_GRAY = &H47524159
+	SPACE_HSV = &H48535620
+	SPACE_HLS = &H484c5320
+	SPACE_CMYK = &H434d594b
+	SPACE_CMY = &H434d5920
+	SPACE_2_CHANNEL = &H32434c52
+	SPACE_3_CHANNEL = &H33434c52
+	SPACE_4_CHANNEL = &H34434c52 '4CLR'
+	SPACE_5_CHANNEL = &H35434c52 '5CLR'
+	SPACE_6_CHANNEL = &H36434c52 '6CLR'
+	SPACE_7_CHANNEL = &H37434c52 '7CLR'
+	SPACE_8_CHANNEL = &H38434C52  '8CLR'
+End Enum
+
+Public Enum IcmProfileFlags
+	FLAG_EMBEDDEDPROFILE = &H00000001
+	FLAG_DEPENDENTONDATA = &H00000002
+End Enum
+
+Public Enum IcmProfileAttribs
+	ATTRIB_TRANSPARENCY = &H00000001
+	ATTRIB_MATTE = &H00000002
+End Enum
+
+Public Type PROFILE
+	dwType As IcmProfileTypes ' profile type
+	pProfileData As LongPtr ' filename or buffer containing profile
+	cbDataSize As Long ' size of profile data
+End Type
+
+Public Enum IcmProfileTypes
+	PROFILE_FILENAME = 1  ' profile data is NULL terminated filename
+	PROFILE_MEMBUFFER = 2  ' profile data is a buffer containing
+'  the profile
+End Enum
+
+Public Enum IcmProfileAccessRights
+	PROFILE_READ = 1  ' opened for read access
+	PROFILE_READWRITE = 2  ' opened for read and write access
+End Enum
+
+Public Const INDEX_DONT_CARE  = 0
+
+Public Const CMM_FROM_PROFILE  = INDEX_DONT_CARE  ' Use CMM specified in profile.
+Public Const CMM_WINDOWS_DEFAULT = &H57696e20 'Win '          // Use Windows default CMM always.
+
+Public Enum IcmEnumTypeVersion
+	ENUM_TYPE_VERSION = &H300
+End Enum
+
+Public Type ENUMTYPEA
+	dwSize As Long ' structure size
+	dwVersion As IcmEnumTypeVersion ' structure version
+	dwFields As IcmEnumTypesFields ' bit fields
+	pDeviceName As String ' device friendly name
+	dwMediaType As Long ' media type
+	dwDitheringMode As Long ' dithering mode
+	dwResolution(0 To 1) As Long ' x and y resolutions
+	dwCMMType As Long ' cmm ID
+	dwClass As IcmProfileClass ' profile class
+	dwDataColorSpace As Long ' color space of data
+	dwConnectionSpace As Long ' pcs
+	dwSignature As Long ' magic number
+	dwPlatform As Long ' primary platform
+	dwProfileFlags As Long ' various bit settings in profile
+	dwManufacturer As Long ' manufacturer ID
+	dwModel As Long ' model ID
+	dwAttributes(0 To 1) As Long ' device attributes
+	dwRenderingIntent As Long ' rendering intent
+	dwCreator As Long ' profile creator
+	dwDeviceClass As Long ' device class
+End Type
+Public Type ENUMTYPEW
+	dwSize As Long ' structure size
+	dwVersion As IcmEnumTypeVersion ' structure version
+	dwFields As IcmEnumTypesFields ' bit fields
+	pDeviceName As LongPtr ' device friendly name
+	dwMediaType As Long ' media type
+	dwDitheringMode As Long ' dithering mode
+	dwResolution(0 To 1) As Long ' x and y resolutions
+	dwCMMType As Long ' cmm ID
+	dwClass As IcmProfileClass ' profile class
+	dwDataColorSpace As Long ' color space of data
+	dwConnectionSpace As Long ' pcs
+	dwSignature As Long ' magic number
+	dwPlatform As Long ' primary platform
+	dwProfileFlags As Long ' various bit settings in profile
+	dwManufacturer As Long ' manufacturer ID
+	dwModel As Long ' model ID
+	dwAttributes(0 To 1) As Long ' device attributes
+	dwRenderingIntent As Long ' rendering intent
+	dwCreator As Long ' profile creator
+	dwDeviceClass As Long ' device class
+End Type
+'Alias ENUMTYPE As ENUMTYPE 
+Public Type ENUMTYPE
+	dwSize As Long ' structure size
+	dwVersion As IcmEnumTypeVersion ' structure version
+	dwFields As IcmEnumTypesFields ' bit fields
+	pDeviceName As LongPtr ' device friendly name
+	dwMediaType As Long ' media type
+	dwDitheringMode As Long ' dithering mode
+	dwResolution(0 To 1) As Long ' x and y resolutions
+	dwCMMType As Long ' cmm ID
+	dwClass As IcmProfileClass ' profile class
+	dwDataColorSpace As Long ' color space of data
+	dwConnectionSpace As Long ' pcs
+	dwSignature As Long ' magic number
+	dwPlatform As Long ' primary platform
+	dwProfileFlags As Long ' various bit settings in profile
+	dwManufacturer As Long ' manufacturer ID
+	dwModel As Long ' model ID
+	dwAttributes(0 To 1) As Long ' device attributes
+	dwRenderingIntent As Long ' rendering intent
+	dwCreator As Long ' profile creator
+	dwDeviceClass As Long ' device class
+End Type
+Public Enum IcmEnumTypesFields
+	ET_DEVICENAME = &H00000001
+	ET_MEDIATYPE = &H00000002
+	ET_DITHERMODE = &H00000004
+	ET_RESOLUTION = &H00000008
+	ET_CMMTYPE = &H00000010
+	ET_CLASS = &H00000020
+	ET_DATACOLORSPACE = &H00000040
+	ET_CONNECTIONSPACE = &H00000080
+	ET_SIGNATURE = &H00000100
+	ET_PLATFORM = &H00000200
+	ET_PROFILEFLAGS = &H00000400
+	ET_MANUFACTURER = &H00000800
+	ET_MODEL = &H00001000
+	ET_ATTRIBUTES = &H00002000
+	ET_RENDERINGINTENT = &H00004000
+	ET_CREATOR = &H00008000&
+	ET_DEVICECLASS = &H00010000
+	ET_STANDARDDISPLAYCOLOR = &H00020000
+	ET_EXTENDEDDISPLAYCOLOR = &H00040000
+End Enum
+
+Public Enum WCS_PROFILE_MANAGEMENT_SCOPE
+	WCS_PROFILE_MANAGEMENT_SCOPE_SYSTEM_WIDE
+	WCS_PROFILE_MANAGEMENT_SCOPE_CURRENT_USER
+End Enum
+
+Public Enum IcmColorTransformFlags
+	PROOF_MODE = &H00000001
+	NORMAL_MODE = &H00000002
+	BEST_MODE = &H00000003
+	ENABLE_GAMUT_CHECKING = &H00010000
+	USE_RELATIVE_COLORIMETRIC = &H00020000
+	FAST_TRANSLATE = &H00040000
+' #if NTDDI_VERSION >= NTDDI_VISTA
+	PRESERVEBLACK = &H00100000
+	WCS_ALWAYS = &H00200000
+	SEQUENTIAL_TRANSFORM = &H80800000
+' #endif // NTDDI_VERSION >= NTDDI_VISTA
+	RESERVED = &H80000000
+End Enum
+
+[Description("Parameter for GetPS2ColorSpaceArray")]
+Public Enum IcmColorSpaceArrayTypes
+	CSA_A = 1
+	CSA_ABC = 2
+	CSA_DEF = 3
+	CSA_DEFG = 4
+	CSA_GRAY = 5
+	CSA_RGB = 6
+	CSA_CMYK = 7
+	CSA_Lab = 8
+End Enum
+
+[Description("Parameter for CMGetInfo()")]
+Public Enum IcmGetInfoFlags
+	CMM_WIN_VERSION = 0
+	CMM_IDENT = 1
+	CMM_DRIVER_VERSION = 2
+	CMM_DLL_VERSION = 3
+	CMM_VERSION = 4
+	CMM_DESCRIPTION = 5
+	CMM_LOGOICON = 6
+End Enum
+
+[Description("Parameter for CMTranslateRGBs()")]
+Public Enum IcmTranslateRGBFlags
+	CMS_FORWARD = 0
+	CMS_BACKWARD = 1
+End Enum
+
+
+Public Const COLOR_MATCH_VERSION = &H0200
+
+Public Enum IcmColorMatchingFlags
+	CMS_DISABLEICM = 1  ' Disable color matching
+	CMS_ENABLEPROOFING = 2  ' Enable proofing
+	CMS_SETRENDERINTENT = 4  ' Use passed in value
+	CMS_SETPROOFINTENT = 8
+	CMS_SETMONITORPROFILE = &H10  ' Use passed in profile name initially
+	CMS_SETPRINTERPROFILE = &H20
+	CMS_SETTARGETPROFILE = &H40
+	CMS_USEHOOK = &H80  ' Use hook procedure in lpfnHook
+	CMS_USEAPPLYCALLBACK = &H100  ' Use callback procedure when applied
+	CMS_USEDESCRIPTION = &H200  ' Use profile description in UI
+'    (default is filename)
+	CMS_DISABLEINTENT = &H400  ' Disable intent selection (render & proofing) always
+	CMS_DISABLERENDERINTENT = &H800  ' Disable rendering intent selection while in proofing mode
+'  Only proofing intent selection is enabled.
+'   Used to denote too-small buffers (output only)
+	CMS_MONITOROVERFLOW = &H80000000
+	CMS_PRINTEROVERFLOW = &H40000000
+	CMS_TARGETOVERFLOW = &H20000000
+End Enum
+
+Public Delegate Function CMSCALLBACKA (lpcms As COLORMATCHSETUPA, ByVal lParam As LongPtr) As BOOL
+Public Delegate Function CMSCALLBACKW (lpcms As COLORMATCHSETUPW, ByVal lParam As LongPtr) As BOOL
+Public Delegate Function CMSCALLBACK (lpcms As COLORMATCHSETUP, ByVal lParam As LongPtr) As BOOL
+
+Public Type COLORMATCHSETUPA
+	dwSize As Long '  Size of structure in bytes
+	dwVersion As Long '  Set to COLOR_MATCH_VERSION
+	dwFlags As IcmColorMatchingFlags '  See constants listed previously
+	hwndOwner As LongPtr '  Window handle of owner
+	pSourceName As String '  Name of Image Source, defaults to "sRGB Color Space"
+	pDisplayName As String '  If null, defaults to first enumerated monitor
+	pPrinterName As String '  If null, defaults to default printer.
+	dwRenderIntent As Long '  Rendering Intent
+	dwProofingIntent As Long '  Rendering Intent for Proofing
+	pMonitorProfile As String '  Monitor profile name
+	ccMonitorProfile As Long '  Size of above in characters
+	pPrinterProfile As String '  Printer profile name
+	ccPrinterProfile As Long '  Size of above in characters
+	pTargetProfile As String '  Target profile name
+	ccTargetProfile As Long '  Size of above in characters
+	' #If WDL_NO_DELEGATES Then
+	lpfnHook As LongPtr '  Hook Procedure address
+	lParam As LongPtr '  Given to hook procedure at WM_INITDIALOG
+	lpfnApplyCallback As LongPtr '  Callback Procedure address when apply is pushed
+	' #Else
+	' lpfnHook As DlgProc '  Hook Procedure address
+	' lParam As LongPtr '  Given to hook procedure at WM_INITDIALOG
+	' lpfnApplyCallback As CMSCALLBACKA '  Callback Procedure address when apply is pushed
+	' #End If
+	lParamApplyCallback As LongPtr '  Given to callback Procedure for apply
+End Type
+Public Type COLORMATCHSETUPW
+	dwSize As Long '  Size of structure in bytes
+	dwVersion As Long '  Set to COLOR_MATCH_VERSION
+	dwFlags As IcmColorMatchingFlags '  See constants listed previously
+	hwndOwner As LongPtr '  Window handle of owner
+	pSourceName As LongPtr '  Name of Image Source, defaults to "sRGB Color Space"
+	pDisplayName As LongPtr '  If null, defaults to first enumerated monitor
+	pPrinterName As LongPtr '  If null, defaults to default printer.
+	dwRenderIntent As Long '  Rendering Intent
+	dwProofingIntent As Long '  Rendering Intent for Proofing
+	pMonitorProfile As LongPtr '  Monitor profile name
+	ccMonitorProfile As Long '  Size of above in characters
+	pPrinterProfile As LongPtr '  Printer profile name
+	ccPrinterProfile As Long '  Size of above in characters
+	pTargetProfile As LongPtr '  Target profile name
+	ccTargetProfile As Long '  Size of above in characters
+	' #If WDL_NO_DELEGATES Then
+	lpfnHook As LongPtr '  Hook Procedure address
+	lParam As LongPtr '  Given to hook procedure at WM_INITDIALOG
+	lpfnApplyCallback As LongPtr '  Callback Procedure address when apply is pushed
+	' #Else
+	' lpfnHook As DlgProc '  Hook Procedure address
+	' lParam As LongPtr '  Given to hook procedure at WM_INITDIALOG
+	' lpfnApplyCallback As CMSCALLBACKW '  Callback Procedure address when apply is pushed
+	' #End If
+	lParamApplyCallback As LongPtr '  Given to callback Procedure for apply
+End Type
+'Alias 
+Public Type COLORMATCHSETUP
+	dwSize As Long '  Size of structure in bytes
+	dwVersion As Long '  Set to COLOR_MATCH_VERSION
+	dwFlags As IcmColorMatchingFlags '  See constants listed previously
+	hwndOwner As LongPtr '  Window handle of owner
+	pSourceName As LongPtr '  Name of Image Source, defaults to "sRGB Color Space"
+	pDisplayName As LongPtr '  If null, defaults to first enumerated monitor
+	pPrinterName As LongPtr '  If null, defaults to default printer.
+	dwRenderIntent As Long '  Rendering Intent
+	dwProofingIntent As Long '  Rendering Intent for Proofing
+	pMonitorProfile As LongPtr '  Monitor profile name
+	ccMonitorProfile As Long '  Size of above in characters
+	pPrinterProfile As LongPtr '  Printer profile name
+	ccPrinterProfile As Long '  Size of above in characters
+	pTargetProfile As LongPtr '  Target profile name
+	ccTargetProfile As Long '  Size of above in characters
+	' #If WDL_NO_DELEGATES Then
+	lpfnHook As LongPtr '  Hook Procedure address
+	lParam As LongPtr '  Given to hook procedure at WM_INITDIALOG
+	lpfnApplyCallback As LongPtr '  Callback Procedure address when apply is pushed
+	' #Else
+	' lpfnHook As DlgProc '  Hook Procedure address
+	' lParam As LongPtr '  Given to hook procedure at WM_INITDIALOG
+	' lpfnApplyCallback As CMSCALLBACK  '  Callback Procedure address when apply is pushed
+	' #End If
+	lParamApplyCallback As LongPtr '  Given to callback Procedure for apply
+End Type
+
+Public Enum TAGTYPE: [_]: End Enum
+
+Public Declare PtrSafe Function OpenColorProfileA Lib "Mscms.dll" (ByRef pProfile As PROFILE, [TypeHint(IcmProfileAccessRights)] ByVal dwDesiredAccess As Long, ByVal dwShareMode As FileShareMode, ByVal dwCreationMode As CreateFileDisposition) As LongPtr
+Public Declare PtrSafe Function OpenColorProfileW Lib "Mscms.dll" (ByRef pProfile As PROFILE, [TypeHint(IcmProfileAccessRights)] ByVal dwDesiredAccess As Long, ByVal dwShareMode As FileShareMode, ByVal dwCreationMode As CreateFileDisposition) As LongPtr
+Public DeclareWide PtrSafe Function OpenColorProfile Lib "Mscms.dll" Alias "OpenColorProfileW" (ByRef pProfile As PROFILE, [TypeHint(IcmProfileAccessRights)] ByVal dwDesiredAccess As Long, ByVal dwShareMode As FileShareMode, ByVal dwCreationMode As CreateFileDisposition) As LongPtr
+Public Declare PtrSafe Function CloseColorProfile Lib "Mscms.dll" (ByVal hProfile As LongPtr) As BOOL
+Public Declare PtrSafe Function GetColorProfileFromHandle Lib "Mscms.dll" (ByVal hProfile As LongPtr, pProfile As Any, ByRef pcbProfile As Long) As BOOL
+Public Declare PtrSafe Function IsColorProfileValid Lib "Mscms.dll" (ByVal hProfile As LongPtr, ByRef pbValid As BOOL) As BOOL
+Public Declare PtrSafe Function CreateProfileFromLogColorSpaceA Lib "Mscms.dll" (ByRef pLogColorSpace As LOGCOLORSPACEA, ByRef pProfile As LongPtr) As BOOL
+Public Declare PtrSafe Function CreateProfileFromLogColorSpaceW Lib "Mscms.dll" (ByRef pLogColorSpace As LOGCOLORSPACEW, ByRef pProfile As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function CreateProfileFromLogColorSpace Lib "Mscms.dll" Alias "CreateProfileFromLogColorSpaceW" (ByRef pLogColorSpace As LOGCOLORSPACE, ByRef pProfile As LongPtr) As BOOL
+Public Declare PtrSafe Function GetCountColorProfileElements Lib "Mscms.dll" (ByVal hProfile As LongPtr, ByRef pnElementCount As Long) As BOOL
+Public Declare PtrSafe Function GetColorProfileHeader Lib "Mscms.dll" (ByVal hProfile As LongPtr, ByRef pHeader As PROFILEHEADER) As BOOL
+Public Declare PtrSafe Function GetColorProfileElementTag Lib "Mscms.dll" (ByVal hProfile As LongPtr, ByVal dwIndex As Long, ByRef pTag As TAGTYPE) As BOOL
+Public Declare PtrSafe Function IsColorProfileTagPresent Lib "Mscms.dll" (ByVal hProfile As LongPtr, ByVal tag As TAGTYPE, ByRef pbPresent As BOOL) As BOOL
+Public Declare PtrSafe Function GetColorProfileElement Lib "Mscms.dll" (ByVal hProfile As LongPtr, ByVal tag As TAGTYPE, ByVal dwOffset As Long, ByRef pcbElement As Long, pElement As Any, ByRef pbReference As BOOL) As BOOL
+Public Declare PtrSafe Function SetColorProfileHeader Lib "Mscms.dll" (ByVal hProfile As LongPtr, ByRef pHeader As PROFILEHEADER) As BOOL
+Public Declare PtrSafe Function SetColorProfileElementSize Lib "Mscms.dll" (ByVal hProfile As LongPtr, ByVal tagType As TAGTYPE, ByVal pcbElement As Long) As BOOL
+Public Declare PtrSafe Function SetColorProfileElement Lib "Mscms.dll" (ByVal hProfile As LongPtr, ByVal tag As TAGTYPE, ByVal dwOffset As Long, ByRef pcbElement As Long, pElement As Any) As BOOL
+Public Declare PtrSafe Function SetColorProfileElementReference Lib "Mscms.dll" (ByVal hProfile As LongPtr, ByVal newTag As TAGTYPE, ByVal refTag As TAGTYPE) As BOOL
+Public Declare PtrSafe Function GetPS2ColorSpaceArray Lib "Mscms.dll" (ByVal hProfile As LongPtr, ByVal dwIntent As IcmColorIntent, ByVal dwCSAType As IcmColorSpaceArrayTypes, pPS2ColorSpaceArray As Any, ByRef pcbPS2ColorSpaceArray As Long, ByRef pbBinary As BOOL) As BOOL
+Public Declare PtrSafe Function GetPS2ColorRenderingIntent Lib "Mscms.dll" (ByVal hProfile As LongPtr, ByVal dwIntent As IcmColorIntent, pBuffer As Any, ByRef pcbPS2ColorRenderingIntent As Long) As BOOL
+Public Declare PtrSafe Function GetPS2ColorRenderingDictionary Lib "Mscms.dll" (ByVal hProfile As LongPtr, ByVal dwIntent As IcmColorIntent, pPS2ColorRenderingDictionary As Any, ByRef pcbPS2ColorRenderingDictionary As Long, ByRef pbBinary As BOOL) As BOOL
+Public Declare PtrSafe Function GetNamedProfileInfo Lib "Mscms.dll" (ByVal hProfile As LongPtr, ByRef pNamedProfileInfo As NAMED_PROFILE_INFO) As BOOL
+Public Declare PtrSafe Function ConvertColorNameToIndex Lib "Mscms.dll" (ByVal hProfile As LongPtr, ByRef paColorName As COLOR_NAME, ByRef paIndex As Long, ByVal dwCount As Long) As BOOL
+Public Declare PtrSafe Function ConvertIndexToColorName Lib "Mscms.dll" (ByVal hProfile As LongPtr, ByRef paIndex As Long, ByRef paColorName As COLOR_NAME, ByVal dwCount As Long) As BOOL
+Public Declare PtrSafe Function CreateDeviceLinkProfile Lib "Mscms.dll" (ByRef hProfile As LongPtr, ByVal nProfiles As Long, ByRef padwIntent As Long, ByVal nIntents As Long, ByVal dwFlags As Long, ByRef pProfileData As LongPtr, ByVal indexPreferredCMM As Long) As BOOL
+Public Declare PtrSafe Function CreateColorTransformA Lib "Mscms.dll" (ByRef pLogColorSpace As LOGCOLORSPACEA, ByVal hDestProfile As LongPtr, ByVal hTargetProfile As LongPtr, ByVal dwFlags As IcmColorTransformFlags) As LongPtr
+Public Declare PtrSafe Function CreateColorTransformW Lib "Mscms.dll" (ByRef pLogColorSpace As LOGCOLORSPACEW, ByVal hDestProfile As LongPtr, ByVal hTargetProfile As LongPtr, ByVal dwFlags As IcmColorTransformFlags) As LongPtr
+Public DeclareWide PtrSafe Function CreateColorTransform Lib "Mscms.dll" Alias "CreateColorTransformW" (ByRef pLogColorSpace As LOGCOLORSPACE, ByVal hDestProfile As LongPtr, ByVal hTargetProfile As LongPtr, ByVal dwFlags As IcmColorTransformFlags) As LongPtr
+Public Declare PtrSafe Function CreateMultiProfileTransform Lib "Mscms.dll" (ByRef pahProfiles As LongPtr, ByVal nProfiles As Long, ByRef padwIntent As IcmColorIntent, ByVal nIntents As Long, ByVal dwFlags As IcmColorTransformFlags, ByVal indexPreferredCMM As Long) As LongPtr
+Public Declare PtrSafe Function DeleteColorTransform Lib "Mscms.dll" (ByVal hxform As LongPtr) As BOOL
+' #If WDL_NO_DELEGATES Then
+Public Declare PtrSafe Function TranslateBitmapBits Lib "Mscms.dll" (ByVal hColorTransform As LongPtr, ByVal pSrcBits As LongPtr, ByVal bmInput As BMFORMAT, ByVal dwWidth As Long, ByVal dwHeight As Long, ByVal dwInputStride As Long, ByVal pDestBits As LongPtr, ByVal bmOutput As BMFORMAT, ByVal dwOutputStride As Long, Optional ByVal pfnCallBack As LongPtr, Optional ByVal ulCallbackData As LongPtr) As BOOL
+Public Declare PtrSafe Function CheckBitmapBits Lib "Mscms.dll" (ByVal hColorTransform As LongPtr, ByVal pSrcBits As LongPtr, ByVal bmInput As BMFORMAT, ByVal dwWidth As Long, ByVal dwHeight As Long, ByVal dwStride As Long, ByVal paResult As LongPtr, Optional ByVal pfnCallback As LongPtr, Optional ByVal lpCallbackData As LongPtr) As BOOL
+' #Else
+' Public Declare PtrSafe Function TranslateBitmapBits Lib "Mscms.dll" (ByVal hColorTransform As LongPtr, ByVal pSrcBits As LongPtr, ByVal bmInput As BMFORMAT, ByVal dwWidth As Long, ByVal dwHeight As Long, ByVal dwInputStride As Long, ByVal pDestBits As LongPtr, ByVal bmOutput As BMFORMAT, ByVal dwOutputStride As Long, Optional ByVal pfnCallBack As BMCALLBACKFN, Optional ByVal ulCallbackData As LongPtr) As BOOL
+' Public Declare PtrSafe Function CheckBitmapBits Lib "Mscms.dll" (ByVal hColorTransform As LongPtr, ByVal pSrcBits As LongPtr, ByVal bmInput As BMFORMAT, ByVal dwWidth As Long, ByVal dwHeight As Long, ByVal dwStride As Long, ByVal paResult As LongPtr, Optional ByVal pfnCallback As BMCALLBACKFN, Optional ByVal lpCallbackData As LongPtr) As BOOL
+' #End If
+Public Declare PtrSafe Function TranslateColors Lib "Mscms.dll" (ByVal hColorTransform As LongPtr, ByRef paInputColors As COLOR, ByVal nColors As Long, ByVal ctInput As COLORTYPE, ByRef paOutputColors As COLOR, ByVal ctOutput As COLORTYPE) As BOOL
+Public Declare PtrSafe Function CheckColors Lib "Mscms.dll" (ByVal hColorTransform As LongPtr, ByRef paInputColors As COLOR, ByVal nColors As Long, ByVal ctInput As COLORTYPE, ByVal paResult As LongPtr) As BOOL
+Public Declare PtrSafe Function GetCMMInfo Lib "Mscms.dll" (ByVal hColorTransform As LongPtr, ByVal dwInfo As Long) As Long
+Public Declare PtrSafe Function RegisterCMMA Lib "Mscms.dll" (ByVal pMachineName As String, ByVal cmmID As Long, ByVal pCMMdll As String) As BOOL
+Public Declare PtrSafe Function RegisterCMMW Lib "Mscms.dll" (ByVal pMachineName As LongPtr, ByVal cmmID As Long, ByVal pCMMdll As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function RegisterCMM Lib "Mscms.dll" Alias "RegisterCMMW" (ByVal pMachineName As String, ByVal cmmID As Long, ByVal pCMMdll As String) As BOOL
+Public Declare PtrSafe Function UnregisterCMMA Lib "Mscms.dll" (ByVal pMachineName As String, ByVal cmmID As Long) As BOOL
+Public Declare PtrSafe Function UnregisterCMMW Lib "Mscms.dll" (ByVal pMachineName As LongPtr, ByVal cmmID As Long) As BOOL
+Public DeclareWide PtrSafe Function UnregisterCMM Lib "Mscms.dll" Alias "UnregisterCMMW" (ByVal pMachineName As String, ByVal cmmID As Long) As BOOL
+Public Declare PtrSafe Function SelectCMM Lib "Mscms.dll" (ByVal dwCMMType As Long) As BOOL
+[Description("GetColorDirectoryA is deprecated and might not work on all platforms. For more info, see MSDN.")]
+Public Declare PtrSafe Function GetColorDirectoryA Lib "Mscms.dll" (ByVal pMachineName As String, pBuffer As Any, pdwSize As Long) As BOOL
+[Description("GetColorDirectoryW is deprecated and might not work on all platforms. For more info, see MSDN.")]
+Public Declare PtrSafe Function GetColorDirectoryW Lib "Mscms.dll" (ByVal pMachineName As LongPtr, pBuffer As Any, pdwSize As Long) As BOOL
+[Description("GetColorDirectory is deprecated and might not work on all platforms. For more info, see MSDN.")]
+Public DeclareWide PtrSafe Function GetColorDirectory Lib "Mscms.dll" Alias "GetColorDirectoryW" (ByVal pMachineName As String, pBuffer As Any, pdwSize As Long) As BOOL
+Public Declare PtrSafe Function InstallColorProfileA Lib "Mscms.dll" (ByVal pMachineName As String, ByVal pProfileName As String) As BOOL
+Public Declare PtrSafe Function InstallColorProfileW Lib "Mscms.dll" (ByVal pMachineName As LongPtr, ByVal pProfileName As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function InstallColorProfile Lib "Mscms.dll" Alias "InstallColorProfileW" (ByVal pMachineName As String, ByVal pProfileName As String) As BOOL
+Public Declare PtrSafe Function UninstallColorProfileA Lib "Mscms.dll" (ByVal pMachineName As String, ByVal pProfileName As String, ByVal bDelete As BOOL) As BOOL
+Public Declare PtrSafe Function UninstallColorProfileW Lib "Mscms.dll" (ByVal pMachineName As LongPtr, ByVal pProfileName As LongPtr, ByVal bDelete As BOOL) As BOOL
+Public DeclareWide PtrSafe Function UninstallColorProfile Lib "Mscms.dll" Alias "UninstallColorProfileW" (ByVal pMachineName As String, ByVal pProfileName As String, ByVal bDelete As BOOL) As BOOL
+Public Declare PtrSafe Function EnumColorProfilesA Lib "Mscms.dll" (ByVal pMachineName As String, ByRef pEnumRecord As ENUMTYPEA, pEnumerationBuffer As Any, ByRef pdwSizeOfEnumerationBuffer As Long, Optional ByRef pnProfiles As Long) As BOOL
+Public Declare PtrSafe Function EnumColorProfilesW Lib "Mscms.dll" (ByVal pMachineName As LongPtr, ByRef pEnumRecord As ENUMTYPEW, pEnumerationBuffer As Any, ByRef pdwSizeOfEnumerationBuffer As Long, Optional ByRef pnProfiles As Long) As BOOL
+Public DeclareWide PtrSafe Function EnumColorProfiles Lib "Mscms.dll" Alias "EnumColorProfilesW" (ByVal pMachineName As String, ByRef pEnumRecord As ENUMTYPEA, pEnumerationBuffer As Any, ByRef pdwSizeOfEnumerationBuffer As Long, Optional ByRef pnProfiles As Long) As BOOL
+Public Declare PtrSafe Function SetStandardColorSpaceProfileA Lib "Mscms.dll" (ByVal pMachineName As String, ByVal dwProfileID As Long, ByVal pProfilename As String) As BOOL
+Public Declare PtrSafe Function SetStandardColorSpaceProfileW Lib "Mscms.dll" (ByVal pMachineName As LongPtr, ByVal dwProfileID As Long, ByVal pProfileName As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function SetStandardColorSpaceProfile Lib "Mscms.dll" Alias "SetStandardColorSpaceProfileW" (ByVal pMachineName As String, ByVal dwProfileID As Long, ByVal pProfilename As String) As BOOL
+Public Declare PtrSafe Function GetStandardColorSpaceProfileA Lib "Mscms.dll" (ByVal pMachineName As String, ByVal dwSCS As LCSCSTYPE, ByVal pBuffer As String, pcbSize As Long) As BOOL
+Public Declare PtrSafe Function GetStandardColorSpaceProfileW Lib "Mscms.dll" (ByVal pMachineName As LongPtr, ByVal dwSCS As LCSCSTYPE, ByVal pBuffer As LongPtr, pcbSize As Long) As BOOL
+Public DeclareWide PtrSafe Function GetStandardColorSpaceProfile Lib "Mscms.dll" Alias "GetStandardColorSpaceProfileW" (ByVal pMachineName As String, ByVal dwSCS As LCSCSTYPE, ByVal pBuffer As String, pcbSize As Long) As BOOL
+Public Declare PtrSafe Function AssociateColorProfileWithDeviceA Lib "Mscms.dll" (ByVal pMachineName As String, ByVal pProfileName As String, ByVal pDeviceName As String) As BOOL
+Public Declare PtrSafe Function AssociateColorProfileWithDeviceW Lib "Mscms.dll" (ByVal pMachineName As LongPtr, ByVal pProfileName As LongPtr, ByVal pDeviceName As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function AssociateColorProfileWithDevice Lib "Mscms.dll" Alias "AssociateColorProfileWithDeviceW" (ByVal pMachineName As String, ByVal pProfileName As String, ByVal pDeviceName As String) As BOOL
+Public Declare PtrSafe Function DisassociateColorProfileFromDeviceA Lib "Mscms.dll" (ByVal pMachineName As String, ByVal pProfileName As String, ByVal pDeviceName As String) As BOOL
+Public Declare PtrSafe Function DisassociateColorProfileFromDeviceW Lib "Mscms.dll" (ByVal pMachineName As LongPtr, ByVal pProfileName As LongPtr, ByVal pDeviceName As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function DisassociateColorProfileFromDevice Lib "Mscms.dll" Alias "DisassociateColorProfileFromDeviceW" (ByVal pMachineName As String, ByVal pProfileName As String, ByVal pDeviceName As String) As BOOL
+Public Declare PtrSafe Function SetupColorMatchingA Lib "Mscms.dll" (pcms As COLORMATCHSETUPA) As BOOL
+Public Declare PtrSafe Function SetupColorMatchingW Lib "Mscms.dll" (pcms As COLORMATCHSETUPW) As BOOL
+Public DeclareWide PtrSafe Function SetupColorMatching Lib "Mscms.dll" Alias "SetupColorMatchingW" (pcms As COLORMATCHSETUP) As BOOL
+
+Public DeclareWide PtrSafe Function WcsAssociateColorProfileWithDevice Lib "Mscms.dll" (ByVal scope As WCS_PROFILE_MANAGEMENT_SCOPE, ByVal pProfileName As String, ByVal pDeviceName As String) As BOOL
+Public DeclareWide PtrSafe Function WcsDisassociateColorProfileFromDevice Lib "Mscms.dll" (ByVal scope As WCS_PROFILE_MANAGEMENT_SCOPE, ByVal pProfileName As String, ByVal pDeviceName As String) As BOOL
+Public DeclareWide PtrSafe Function WcsEnumColorProfilesSize Lib "Mscms.dll" (ByVal scope As WCS_PROFILE_MANAGEMENT_SCOPE, pEnumRecord As ENUMTYPEW, pdwSize As Long) As BOOL
+Public DeclareWide PtrSafe Function WcsEnumColorProfiles Lib "Mscms.dll" (ByVal scope As WCS_PROFILE_MANAGEMENT_SCOPE, pEnumRecord As ENUMTYPEW, pBuffer As Any, ByVal dwSize As Long, Optional pnProfiles As Long) As BOOL
+Public DeclareWide PtrSafe Function WcsGetDefaultColorProfileSize Lib "Mscms.dll" (ByVal scope As WCS_PROFILE_MANAGEMENT_SCOPE, ByVal pDeviceName As String, ByVal cptColorProfileType As COLORPROFILETYPE, ByVal cpstColorProfileSubType As COLORPROFILESUBTYPE, ByVal dwProfileID As Long, pcbProfileName As Long) As BOOL
+Public DeclareWide PtrSafe Function WcsGetDefaultColorProfile Lib "Mscms.dll" (ByVal scope As WCS_PROFILE_MANAGEMENT_SCOPE, ByVal pDeviceName As String, ByVal cptColorProfileType As COLORPROFILETYPE, ByVal cpstColorProfileSubType As COLORPROFILESUBTYPE, ByVal dwProfileID As Long, ByVal cbProfileName As Long, ByVal pProfileName As String) As BOOL
+Public DeclareWide PtrSafe Function WcsSetDefaultColorProfile Lib "Mscms.dll" (ByVal scope As WCS_PROFILE_MANAGEMENT_SCOPE, ByVal pDeviceName As String, ByVal cptColorProfileType As COLORPROFILETYPE, ByVal cpstColorProfileSubType As COLORPROFILESUBTYPE, ByVal dwProfileID As Long, Optional ByVal pProfileName As String) As BOOL
+Public DeclareWide PtrSafe Function WcsSetDefaultRenderingIntent Lib "Mscms.dll" (ByVal scope As WCS_PROFILE_MANAGEMENT_SCOPE, ByVal dwRenderingIntent As IcmColorIntent) As BOOL
+Public DeclareWide PtrSafe Function WcsGetDefaultRenderingIntent Lib "Mscms.dll" (ByVal scope As WCS_PROFILE_MANAGEMENT_SCOPE, pdwRenderingIntent As IcmColorIntent) As BOOL
+Public DeclareWide PtrSafe Function WcsGetUsePerUserProfiles Lib "Mscms.dll" (ByVal pDeviceName As String, ByVal dwDeviceClass As IcmProfileClass, ByRef pUsePerUserProfiles As BOOL) As BOOL
+Public DeclareWide PtrSafe Function WcsSetUsePerUserProfiles Lib "Mscms.dll" (ByVal pDeviceName As String, ByVal dwDeviceClass As IcmProfileClass, ByVal usePerUserProfiles As BOOL) As BOOL
+Public DeclareWide PtrSafe Function WcsTranslateColors Lib "Mscms.dll" (ByVal hColorTransform As LongPtr, ByVal nColors As Long, ByVal nInputChannels As Long, ByVal cdtInput As COLORDATATYPE, ByVal cbInput As Long, pInputData As Any, ByVal nOutputChannels As Long, ByVal cdtOutput As COLORDATATYPE, ByVal cbOutput As Long, pOutputData As Any) As BOOL
+Public DeclareWide PtrSafe Function WcsCheckColors Lib "Mscms.dll" (ByVal hColorTransform As LongPtr, ByVal nColors As Long, ByVal nInputChannels As Long, ByVal cdtInput As COLORDATATYPE, ByVal cbInput As Long, pInputData As Any, paResult As Any) As BOOL
+
+Public Declare PtrSafe Function CMCheckColors Lib "icm32.dll" (ByVal hcmTransform As LongPtr, ByRef lpaInputColors As COLOR, ByVal nColors As Long, ByVal ctInput As COLORTYPE, ByRef lpaResult As Any) As BOOL
+' #If WDL_NO_DELEGATES Then
+Public Declare PtrSafe Function CMCheckRGBs Lib "icm32.dll" (ByVal hcmTransform As LongPtr, lpSrcBits As Any, ByVal bmInput As BMFORMAT, ByVal dwWidth As Long, ByVal dwHeight As Long, ByVal dwStride As Long, ByRef lpaResult As Any, ByVal pfnCallback As LongPtr, ByVal ulCallbackData As LongPtr) As BOOL
+' #Else
+' Public Declare PtrSafe Function CMCheckRGBs Lib "icm32.dll" (ByVal hcmTransform As LongPtr, lpSrcBits As Any, ByVal bmInput As BMFORMAT, ByVal dwWidth As Long, ByVal dwHeight As Long, ByVal dwStride As Long, ByRef lpaResult As Any, ByVal pfnCallback As BMCALLBACKFN, ByVal ulCallbackData As LongPtr) As BOOL
+' #End If
+Public Declare PtrSafe Function CMConvertColorNameToIndex Lib "icm32.dll" (ByVal hProfile As LongPtr, ByRef paColorName As COLOR_NAME, ByRef paIndex As Long, ByVal dwCount As Long) As BOOL
+Public Declare PtrSafe Function CMConvertIndexToColorName Lib "icm32.dll" (ByVal hProfile As LongPtr, ByRef paIndex As Long, ByRef paColorName As COLOR_NAME, ByVal dwCount As Long) As BOOL
+Public Declare PtrSafe Function CMCreateDeviceLinkProfile Lib "icm32.dll" (ByRef pahProfiles As LongPtr, ByVal nProfiles As Long, ByRef padwIntents As IcmColorIntent, ByVal nIntents As Long, ByVal dwFlags As IcmColorTransformFlags, ByRef lpProfileData As LongPtr) As BOOL
+Public Declare PtrSafe Function CMCreateMultiProfileTransform Lib "icm32.dll" (ByRef pahProfiles As LongPtr, ByVal nProfiles As Long, ByRef padwIntents As IcmColorIntent, ByVal nIntents As Long, ByVal dwFlags As IcmColorTransformFlags) As LongPtr
+Public Declare PtrSafe Function CMCreateProfileW Lib "icm32.dll" (ByRef lpColorSpace As LOGCOLORSPACEW, ByRef lpProfileData As LongPtr) As BOOL
+[Description("WARNING: This API is no longer implemented on Windows 7+ and will fail with ERROR_NOT_SUPPORTED. Use CMCreateProfileW.")]
+Public Declare PtrSafe Function CMCreateProfile Lib "icm32.dll" (ByRef lpColorSpace As LOGCOLORSPACEA, ByRef lpProfileData As LongPtr) As BOOL
+[Description("WARNING: This API is no longer implemented on Windows Vista+ and will fail with ERROR_NOT_SUPPORTED.")]
+Public Declare PtrSafe Function CMCreateTransform Lib "icm32.dll" (ByRef lpColorSpace As LOGCOLORSPACEA, ByRef lpDevCharacter As Any, ByRef lpTargetDevCharacter As Any) As LongPtr
+[Description("WARNING: This API is no longer implemented on Windows Vista+ and will fail with ERROR_NOT_SUPPORTED.")]
+Public Declare PtrSafe Function CMCreateTransformW Lib "icm32.dll" (ByRef lpColorSpace As LOGCOLORSPACEW, ByRef lpDevCharacter As Any, ByRef lpTargetDevCharacter As Any) As LongPtr
+[Description("WARNING: This API is no longer implemented on Windows Vista+ and will fail with ERROR_NOT_SUPPORTED. Use CMCreateTransformExtW.")]
+Public Declare PtrSafe Function CMCreateTransformExt Lib "icm32.dll" (ByRef lpColorSpace As LOGCOLORSPACEA, ByRef lpDevCharacter As Any, ByRef lpTargetDevCharacter As Any, ByVal dwFlags As Long) As LongPtr
+[Description("WARNING: This API is no longer implemented on Windows 7+ and will fail with ERROR_NOT_SUPPORTED. Usse CMCreateProfileW.")]
+Public Declare PtrSafe Function CMCheckColorsInGamut Lib "icm32.dll" (ByVal hcmTransform As LongPtr, ByRef lpaRGBTriple As RGBTRIPLE, ByRef lpaResult As Byte, ByVal nCount As Long) As BOOL
+[Description("WARNING: This API is no longer implemented on Windows 7+ and will fail with ERROR_NOT_SUPPORTED. Usse CMCreateProfileW.")]
+Public Declare PtrSafe Function CMTranslateRGB Lib "icm32.dll" (ByVal hcmTransform As LongPtr, ByVal ColorRef As Long, ByRef lpColorRef As Long, ByVal dwFlags As Long) As BOOL
+[Description("WARNING: This API is no longer implemented on Windows 7+ and will fail with ERROR_NOT_SUPPORTED. Usse CMCreateProfileW.")]
+Public Declare PtrSafe Function CMTranslateRGBs Lib "icm32.dll" (ByVal hcmTransform As LongPtr, lpSrcBits As Any, ByVal bmInput As BMFORMAT, ByVal dwWidth As Long, ByVal dwHeight As Long, ByVal dwStride As Long, lpDestBits As Any, ByVal bmOutput As BMFORMAT, ByVal dwTranslateDirection As Long) As BOOL
+Public DeclareWide PtrSafe Function CMCreateTransformExtW Lib "icm32.dll" (ByRef lpColorSpace As LOGCOLORSPACEW, ByRef lpDevCharacter As Any, ByRef lpTargetDevCharacter As Any, ByVal dwFlags As Long) As LongPtr
+Public Declare PtrSafe Function CMDeleteTransform Lib "icm32.dll" (ByVal hcmTransform As LongPtr) As BOOL
+Public Declare PtrSafe Function CMGetInfo Lib "icm32.dll" (ByVal dwInfo As Long) As Long
+Public Declare PtrSafe Function CMGetNamedProfileInfo Lib "icm32.dll" (ByVal hProfile As LongPtr, ByRef pNamedProfileInfo As NAMED_PROFILE_INFO) As BOOL
+Public Declare PtrSafe Function CMGetPS2ColorRenderingDictionary Lib "icm32.dll" (ByVal hProfile As LongPtr, ByVal dwIntent As IcmColorIntent, ByRef lpBuffer As Any, ByRef lpcbSize As Long, ByRef lpbBinary As BOOL) As BOOL
+Public Declare PtrSafe Function CMGetPS2ColorRenderingIntent Lib "icm32.dll" (ByVal hProfile As LongPtr, ByVal dwIntent As IcmColorIntent, ByRef lpBuffer As Any, ByRef lpcbSize As Long) As BOOL
+Public Declare PtrSafe Function CMGetPS2ColorSpaceArray Lib "icm32.dll" (ByVal hProfile As LongPtr, ByVal dwIntent As IcmColorIntent, ByVal dwCSAType As IcmColorSpaceArrayTypes, ByRef lpBuffer As Any, ByRef lpcbSize As Long, ByRef lpbBinary As BOOL) As BOOL
+Public Declare PtrSafe Function CMIsProfileValid Lib "icm32.dll" (ByVal hProfile As LongPtr, ByRef lpbValid As BOOL) As BOOL
+Public Declare PtrSafe Function CMTranslateColors Lib "icm32.dll" (ByVal hcmTransform As LongPtr, ByRef lpaInputColors As COLOR, ByVal nColors As Long, ByVal ctInput As COLORTYPE, ByRef lpaOutputColors As COLOR, ByVal ctOutput As COLORTYPE) As BOOL
+' #If WDL_NO_DELEGATES Then
+Public Declare PtrSafe Function CMTranslateRGBsExt Lib "icm32.dll" (ByVal hcmTransform As LongPtr, lpSrcBits As Any, ByVal bmInput As BMFORMAT, ByVal dwWidth As Long, ByVal dwHeight As Long, ByVal dwInputStride As Long, lpDestBits As Any, ByVal bmOutput As BMFORMAT, ByVal dwOutputStride As Long, ByVal lpfnCallback As LongPtr, ByVal ulCallbackData As LongPtr) As BOOL
+' #Else
+' Public Declare PtrSafe Function CMTranslateRGBsExt Lib "icm32.dll" (ByVal hcmTransform As LongPtr, lpSrcBits As Any, ByVal bmInput As BMFORMAT, ByVal dwWidth As Long, ByVal dwHeight As Long, ByVal dwInputStride As Long, lpDestBits As Any, ByVal bmOutput As BMFORMAT, ByVal dwOutputStride As Long, ByVal lpfnCallback As BMCALLBACKFN, ByVal ulCallbackData As LongPtr) As BOOL
+' #End If
+
+Public Enum WcsOpenColorProfileFlags
+	DONT_USE_EMBEDDED_WCS_PROFILES = &H00000001
+End Enum
+Public Declare PtrSafe Function WcsOpenColorProfileA Lib "Mscms.dll" (pCDMPProfile As PROFILE, pCAMPProfile As PROFILE, pGMMPProfile As PROFILE, [TypeHint(IcmProfileAccessRights)] ByVal dwDesiredAccess As Long, ByVal dwShareMode As FileShareMode, ByVal dwCreationMode As CreateFileDisposition, ByVal dwFlags As WcsOpenColorProfileFlags) As LongPtr
+Public Declare PtrSafe Function WcsOpenColorProfileW Lib "Mscms.dll" (pCDMPProfile As PROFILE, pCAMPProfile As PROFILE, pGMMPProfile As PROFILE, [TypeHint(IcmProfileAccessRights)] ByVal dwDesiredAccess As Long, ByVal dwShareMode As FileShareMode, ByVal dwCreationMode As CreateFileDisposition, ByVal dwFlags As WcsOpenColorProfileFlags) As LongPtr
+Public DeclareWide PtrSafe Function WcsOpenColorProfile Lib "Mscms.dll" Alias "WcsOpenColorProfileW" (pCDMPProfile As PROFILE, pCAMPProfile As PROFILE, pGMMPProfile As PROFILE, [TypeHint(IcmProfileAccessRights)] ByVal dwDesiredAccess As Long, ByVal dwShareMode As FileShareMode, ByVal dwCreationMode As CreateFileDisposition, ByVal dwFlags As WcsOpenColorProfileFlags) As LongPtr
+Public Enum WcsCreateIccProfileOptions
+	WCS_DEFAULT = &H00000000
+	WCS_ICCONLY = &H00010000
+End Enum
+Public Declare PtrSafe Function WcsCreateIccProfile Lib "Mscms.dll" (ByVal hWcsProfile As LongPtr, ByVal dwOptions As WcsCreateIccProfileOptions) As LongPtr
+
+Public Const WCS_EMBEDDED_TAG_TYPE_SIGNATURE = &H4d533130
+Public Const WCS_EMBEDDED_TAG_SIGNATURE = &H4d533030
+
+Public Declare PtrSafe Function WcsGetCalibrationManagementState Lib "Mscms.dll" (pbIsEnabled As BOOL) As BOOL
+Public Declare PtrSafe Function WcsSetCalibrationManagementState Lib "Mscms.dll" (ByVal bIsEnabled As BOOL) As BOOL
+
+[Description("Note: LongLong substituted for ByVal LUID. Use DCast(Of LongLong)(someLUID)")]
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function ColorProfileAddDisplayAssociation Lib "Mscms.dll" (ByVal scope As WCS_PROFILE_MANAGEMENT_SCOPE, ByVal profileName As String, ByVal targetAdapterID As LongLong /* LUID */, ByVal sourceID As Long, ByVal setAsDefault As BOOL, ByVal associateAsAdvancedColor As BOOL) As Long
+[Description("Note: LongLong substituted for ByVal LUID. Use DCast(Of LongLong)(someLUID)")]
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function ColorProfileRemoveDisplayAssociation Lib "Mscms.dll" (ByVal scope As WCS_PROFILE_MANAGEMENT_SCOPE, ByVal profileName As String, ByVal targetAdapterID As LongLong /* LUID */, ByVal sourceID As Long, ByVal dissociateAdvancedColor As BOOL) As Long
+[Description("Note: LongLong substituted for ByVal LUID. Use DCast(Of LongLong)(someLUID)")]
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function ColorProfileSetDisplayDefaultAssociation Lib "Mscms.dll" (ByVal scope As WCS_PROFILE_MANAGEMENT_SCOPE, ByVal profileName As String, ByVal profileType As COLORPROFILETYPE, ByVal profileSubType As COLORPROFILESUBTYPE, ByVal targetAdapterID As LongLong /* LUID */, ByVal sourceID As Long) As Long
+[Description("Note: LongLong substituted for ByVal LUID. Use DCast(Of LongLong)(someLUID)")]
+[UseGetLastError(False)]
+Public Declare PtrSafe Function ColorProfileGetDisplayList Lib "Mscms.dll" (ByVal scope As WCS_PROFILE_MANAGEMENT_SCOPE, ByVal targetAdapterID As LongLong /* LUID */, ByVal sourceID As Long, ByRef profileList As LongPtr, ByRef profileCount As Long) As Long
+[Description("Note: LongLong substituted for ByVal LUID. Use DCast(Of LongLong)(someLUID)")]
+[UseGetLastError(False)]
+Public Declare PtrSafe Function ColorProfileGetDisplayDefault Lib "Mscms.dll" (ByVal scope As WCS_PROFILE_MANAGEMENT_SCOPE, ByVal targetAdapterID As LongLong /* LUID */, ByVal sourceID As Long, ByVal profileType As COLORPROFILETYPE, ByVal profileSubType As COLORPROFILESUBTYPE, ByRef profileName As LongPtr) As Long
+[Description("Note: LongLong substituted for ByVal LUID. Use DCast(Of LongLong)(someLUID)")]
+[UseGetLastError(False)]
+Public Declare PtrSafe Function ColorProfileGetDisplayUserScope Lib "Mscms.dll" (ByVal targetAdapterID As LongLong /* LUID */, ByVal sourceID As Long, ByRef scope As WCS_PROFILE_MANAGEMENT_SCOPE) As Long
+
+Public Type WCS_DEVICE_VCGT_CAPABILITIES
+	Size As Long '  Size of structure in bytes
+	SupportsVcgt As BOOL '  Indicates if display supports VCGT 
+End Type
+
+Public Type WCS_DEVICE_MHC2_CAPABILITIES
+	Size As Long '  Size of structure in bytes
+	SupportsMhc2 As BOOL '  Indicates if display supports MHC2
+	RegammaLutEntryCount As Long '  Max number of entries in the regamma lut
+	' Color space transform (CSC) matrix (row-major)
+	CscXyzMatrixRows As Long '  Number of rows in the color transform matrix
+	CscXyzMatrixColumns As Long '  Number of columns in the color transform matrix
+End Type
+
+Public Enum WCS_DEVICE_CAPABILITIES_TYPE
+	VideoCardGammaTable = 1
+	MicrosoftHardwareColorV2 = 2
+End Enum
+
+[Description("Note: LongLong substituted for ByVal LUID. Use DCast(Of LongLong)(someLUID)")]
+[UseGetLastError(False)]
+Public Declare PtrSafe Function ColorProfileGetDeviceCapabilities Lib "Mscms.dll" (ByVal scope As WCS_PROFILE_MANAGEMENT_SCOPE, ByVal targetAdapterID As LongLong /* LUID */, ByVal sourceID As Long, ByVal capsType As WCS_DEVICE_CAPABILITIES_TYPE, outputCapabilities As Any) As Long
+
+
+
+'wcsplugin.h
+
+Public Type XYZColorF
+    X As Single
+    Y As Single
+    Z As Single
+End Type
+
+Public Type JChColorF
+    J As Single
+    C As Single
+    h As Single
+End Type
+
+Public Type JabColorF
+    J As Single
+    a As Single
+    b As Single
+End Type
+
+Public Type GamutShellTriangle
+    aVertexIndex(0 To 2) As Long
+End Type
+
+Public Type GamutShell
+    JMin As Single
+    JMax As Single
+    cVertices As Long
+    cTriangles As Long
+    pVertices As LongPtr 'JabColorF*
+    pTriangles As LongPtr 'GamutShellTriangle*
+End Type
+
+Public Type PrimaryJabColors
+    red As JabColorF
+    yellow As JabColorF
+    green As JabColorF
+    cyan As JabColorF
+    blue As JabColorF
+    magenta As JabColorF
+    black As JabColorF
+    white As JabColorF
+End Type
+
+Public Type PrimaryXYZColors
+    red As XYZColorF
+    yellow As XYZColorF
+    green As XYZColorF
+    cyan As XYZColorF
+    blue As XYZColorF
+    magenta As XYZColorF
+    black As XYZColorF
+    white As XYZColorF
+End Type
+
+Public Type GamutBoundaryDescription
+    pPrimaries As LongPtr 'PrimaryJabColors*
+    cNeutralSamples As Long
+    pNeutralSamples As LongPtr 'JabColorF*
+    pReferenceShell As LongPtr 'GamutShell*
+    pPlausibleShell As LongPtr 'GamutShell*
+    pPossibleShell As LongPtr 'amutShell*
+End Type
+
+Public Type BlackInformation
+    fBlackOnly As BOOL
+    blackWeight As Single
+End Type
+
+
+
+Public Function IID_IDeviceModelPlugIn() As UUID
+'{1CD63475-07C4-46FE-A903-D655316D11FD}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H1CD63475, CInt(&H07C4), CInt(&H46FE), &HA9, &H03, &HD6, &H55, &H31, &H6D, &H11, &HFD)
+ IID_IDeviceModelPlugIn = iid
+End Function
+Public Function IID_IGamutMapModelPlugIn() As UUID
+'{2DD80115-AD1E-41F6-A219-A4F4B583D1F9}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H2DD80115, CInt(&HAD1E), CInt(&H41F6), &HA2, &H19, &HA4, &HF4, &HB5, &H83, &HD1, &HF9)
+ IID_IGamutMapModelPlugIn = iid
+End Function
+Public Function CATID_WcsPlugin() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Ha0b402e0, &H8240, &H405f, &H8a, &H16, &H8a, &H5b, &H4d, &Hf2, &Hf0, &Hdd)
+CATID_WcsPlugin = iid
+End Function
+
+End Module
+
+#End If

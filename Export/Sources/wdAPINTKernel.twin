@@ -11967,6 +11967,8 @@ Public Declare PtrSafe Function _hwrite Lib "kernel32" (ByVal hFile As Long, ByV
 
 #Region "ntdll"
 
+Public Delegate Function NtProcessStartup (ppeb As PEB) As NTSTATUS
+
 Public Const IMAGE_DOS_SIGNATURE  = &H5A4D  ' MZ
 Public Const IMAGE_OS2_SIGNATURE  = &H454E  ' NE
 Public Const IMAGE_OS2_SIGNATURE_LE  = &H454C  ' LE
@@ -19078,13 +19080,17 @@ Public Enum DIRECTORY_NOTIFY_INFORMATION_CLASS
     DirectoryNotifyMaximumInformation
 End Enum
 
-
+Public Enum NtAtomFlags
+    ATOM_FLAG_GLOBAL = &H2
+End Enum
 
 
 Public Delegate Sub IO_APC_ROUTINE (ByVal ApcContext As LongPtr, IoStatusBlock As IO_STATUS_BLOCK, ByVal Reserved As Long)
 
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtQuerySystemInformation Lib "ntdll" (ByVal SystemInformationClass As SYSTEM_INFORMATION_CLASS, SystemInformation As Any, ByVal SystemInformationLength As Long, ReturnLength As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtQuerySystemInformationEx Lib "ntdll" (ByVal SystemInformationClass As SYSTEM_INFORMATION_CLASS, InputBuffer As Any, ByVal InputBufferLength As Long, SystemInformation As Any, ByVal SystemInformationLength As Long, ReturnLength As Long) As Long
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtSetSystemInformation Lib "ntdll" (ByVal SystemInformationClass As SYSTEM_INFORMATION_CLASS, SystemInformation As Any, ByVal SystemInformationLength As Long) As Long
 [UseGetLastError(False)]
@@ -19402,7 +19408,32 @@ Public Declare PtrSafe Function NtSetTimer2 Lib "ntdll" (ByVal TimerHandle As Lo
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtCancelTimer2 Lib "ntdll" (ByVal TimerHandle As LongPtr, ByVal Parameters As LongPtr) As NTSTATUS
 
-
+'Alias RTL_ATOM as Integer
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtAddAtom Lib "ntdll" (ByVal AtomName As LongPtr, ByVal Length As Long, Atom As Integer /* RTL_ATOM */) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtAddAtomEx Lib "ntdll" (ByVal AtomName As LongPtr, ByVal Length As Long, Atom As Integer /* RTL_ATOM */, ByVal Flags As NtAtomFlags) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtFindAtom Lib "ntdll" (ByVal AtomName As LongPtr, ByVal Length As Long, Atom As Integer /* RTL_ATOM */) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtDeleteAtom Lib "ntdll" (ByVal Atom As Integer /* RTL_ATOM */) As NTSTATUS
+Public Enum ATOM_INFORMATION_CLASS
+    AtomBasicInformation
+    AtomTableInformation
+End Enum
+Public Type ATOM_BASIC_INFORMATION
+    UsageCount As Integer
+    Flags As Integer
+    NameLength As Integer
+    Name(0 To 127) As Integer 'atom name cannot exceed 255 bytes
+End Type
+[Description("WARNING: SAFEARRAY substituted for variable C-style array. DO NOT USE AS IS. Retrieve a byte array buffer, copy the first 4 bytes for the count, then redim and copy rest to Atoms(0).")]
+Public Type ATOM_TABLE_INFORMATION
+    NumberOfAtoms As Long
+    Atoms() As Integer /* RTL_ATOM */
+End Type
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtQueryInformationAtom Lib "ntdll" (ByVal Atom As Integer /* RTL_ATOM */, ByVal AtomInformationClass As ATOM_INFORMATION_CLASS, AtomInformation As Any, ByVal AtomInformationLength As Long, ReturnLength As Long) As NTSTATUS
 Public Declare PtrSafe Function NtGetTickCount Lib "ntdll" () As Long
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtYieldExecution Lib "ntdll" () As NTSTATUS
@@ -19412,6 +19443,12 @@ Public Declare PtrSafe Function NtDelayExecution Lib "ntdll" (ByVal Alertable As
 Public Declare PtrSafe Function NtWaitForSingleObject Lib "ntdll" (ByVal Handle As LongPtr, ByVal Alertable As Byte, Timeout As LARGE_INTEGER) As NTSTATUS
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtWaitForMultipleObjects Lib "ntdll" (ByVal Count As Long, Handles As LongPtr, ByVal WaitType As WAIT_TYPE, ByVal Alertable As Byte, Timeout As LARGE_INTEGER) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtDisplayString Lib "ntdll" (Strng As UNICODE_STRING) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtDrawText Lib "ntdll" (Text As UNICODE_STRING) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtSetDefaultHardErrorPort Lib "ntdll" (ByVal DefaultHardErrorPort As LongPtr) As NTSTATUS
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtRaiseHardError Lib "ntdll" (ByVal ErrorStatus As NTSTATUS, ByVal NumberOfParameters As Long, ByVal UnicodeStringParametersMask As Long, Parameters As Any, ByVal ResponseOption As HARDERROR_RESPONSE_OPTION, Response As HARDERROR_RESPONSE) As NTSTATUS
 [UseGetLastError(False)]
@@ -19428,9 +19465,9 @@ Public Function NtCurrentPeb() As LongPtr: Return RtlGetCurrentPeb(): End Functi
 #If (TWINBASIC_BUILD >= 606) Then
 Public Function NtCurrentTeb CDecl Naked() As LongPtr
     #If Win64 Then
-    Emit(&H65, &H48, &H8b, &H04, &H25, &H30, &H00)   'mov    rax,QWORD PTR gs:0x30
-    Emit(&H00, &H00)
-    Emit(&Hc3)                                       'ret      
+    Emit (&H65, &H48, &H8b, &H04, &H25, &H30, &H00)   'mov    rax,QWORD PTR gs:0x30
+    Emit (&H00, &H00)
+    Emit (&Hc3)                                       'ret      
     #Else
     Emit(&H64, &Ha1, &H18, &H00, &H00, &H00)    'mov    eax,fs:0x18
     Emit(&Hc3)                                  'ret
