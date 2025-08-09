@@ -5610,6 +5610,89 @@ Public Type _CONTEXT
     LastExceptionToRip As LongLong
     LastExceptionFromRip As LongLong
 End Type
+'Alias _CONTEXT As _CONTEXT
+Public Type CONTEXT
+    ' Register parameter home addresses.
+    ' N.B. These fields are for convience - they could be used to extend the
+    '      context record in the future.
+    P1Home As LongLong
+    P2Home As LongLong
+    P3Home As LongLong
+    P4Home As LongLong
+    P5Home As LongLong
+    P6Home As LongLong
+    ' Control flags.
+    ContextFlags As EXCEPTION_CONTEXT_FLAGS
+    MxCsr As Long
+    ' Segment Registers and processor flags.
+    SegCs As Integer
+    SegDs As Integer
+    SegEs As Integer
+    SegFs As Integer
+    SegGs As Integer
+    SegSs As Integer
+    EFlags As Long
+    ' Debug registers
+    Dr0 As LongLong
+    Dr1 As LongLong
+    Dr2 As LongLong
+    Dr3 As LongLong
+    Dr6 As LongLong
+    Dr7 As LongLong
+    ' Integer registers.
+    Rax As LongLong
+    Rcx As LongLong
+    Rdx As LongLong
+    Rbx As LongLong
+    Rsp As LongLong
+    Rbp As LongLong
+    Rsi As LongLong
+    Rdi As LongLong
+    R8 As LongLong
+    R9 As LongLong
+    R10 As LongLong
+    R11 As LongLong
+    R12 As LongLong
+    R13 As LongLong
+    R14 As LongLong
+    R15 As LongLong
+    ' Program counter.
+    Rip As LongLong
+    ' Floating point state.
+    'union {
+    FltSave As XMM_SAVE_AREA32
+    '    struct {
+    '        M128A Header[2];
+    '        M128A Legacy[8];
+    '        M128A Xmm0;
+    '        M128A Xmm1;
+    '        M128A Xmm2;
+    '        M128A Xmm3;
+    '        M128A Xmm4;
+    '        M128A Xmm5;
+    '        M128A Xmm6;
+    '        M128A Xmm7;
+    '        M128A Xmm8;
+    '        M128A Xmm9;
+    '        M128A Xmm10;
+    '        M128A Xmm11;
+    '        M128A Xmm12;
+    '        M128A Xmm13;
+    '        M128A Xmm14;
+    '        M128A Xmm15;
+    '    } DUMMYSTRUCTNAME;
+    '} DUMMYUNIONNAME;
+    ' Vector registers.
+    VectorRegister(0 To 25) As M128A
+    VectorControl As LongLong
+    ' Special debug control registers.
+    DebugControl As LongLong
+    LastBranchToRip As LongLong
+    LastBranchFromRip As LongLong
+    LastExceptionToRip As LongLong
+    LastExceptionFromRip As LongLong
+End Type
+
 
 
 Public Enum WOW64_EXCEPTION_CONTEXT_FLAGS
@@ -5743,6 +5826,60 @@ Public Type FLOATING_SAVE_AREA
 End Type
 Public Const MAXIMUM_SUPPORTED_EXTENSION = 512
 Public Type _CONTEXT
+    ' The flags values within this flag control the contents of
+    ' a CONTEXT record.
+    ' If the context record is used as an input parameter, then
+    ' for each portion of the context record controlled by a flag
+    ' whose value is set, it is assumed that that portion of the
+    ' context record contains valid context. If the context record
+    ' is being used to modify a threads context, then only that
+    ' portion of the threads context will be modified.
+    ' If the context record is used as an IN OUT parameter to capture
+    ' the context of a thread, then only those portions of the thread's
+    ' context corresponding to set flags will be returned.
+    ' The context record is never used as an OUT only parameter.
+    ContextFlags As EXCEPTION_CONTEXT_FLAGS
+    ' This section is specified/returned if CONTEXT_DEBUG_REGISTERS is
+    ' set in ContextFlags.  Note that CONTEXT_DEBUG_REGISTERS is NOT
+    ' included in CONTEXT_FULL.
+    Dr0 As Long
+    Dr1 As Long
+    Dr2 As Long
+    Dr3 As Long
+    Dr6 As Long
+    Dr7 As Long
+    ' This section is specified/returned if the
+    ' ContextFlags word contians the flag CONTEXT_FLOATING_POINT.
+    FloatSave As FLOATING_SAVE_AREA
+    ' This section is specified/returned if the
+    ' ContextFlags word contians the flag CONTEXT_SEGMENTS.
+    SegGs As Long
+    SegFs As Long
+    SegEs As Long
+    SegDs As Long
+    ' This section is specified/returned if the
+    ' ContextFlags word contians the flag CONTEXT_INTEGER.
+    Edi As Long
+    Esi As Long
+    Ebx As Long
+    Edx As Long
+    Ecx As Long
+    Eax As Long
+    ' This section is specified/returned if the
+    ' ContextFlags word contians the flag CONTEXT_CONTROL.
+    Ebp As Long
+    Eip As Long
+    SegCs As Long ' MUST BE SANITIZED
+    EFlags As Long ' MUST BE SANITIZED
+    Esp As Long
+    SegSs As Long
+    ' This section is specified/returned if the ContextFlags word
+    ' contains the flag CONTEXT_EXTENDED_REGISTERS.
+    ' The format and contexts are processor specific
+    ExtendedRegisters(0 To (MAXIMUM_SUPPORTED_EXTENSION - 1)) As Byte
+End Type
+'Alias _CONTEXT As CONTEXT
+Public Type CONTEXT
     ' The flags values within this flag control the contents of
     ' a CONTEXT record.
     ' If the context record is used as an input parameter, then
@@ -17842,6 +17979,7 @@ Public Enum PROCESS_CREATE_FLAGS
     PROCESS_CREATE_FLAGS_USE_PROTECTED_ENVIRONMENT = &H00040000  ' NtCreateProcessEx & NtCreateUserProces
 End Enum
 Public Enum THREAD_CREATE_FLAGS
+    THREAD_CREATE_FLAGS_NONE = &H00000000
     THREAD_CREATE_FLAGS_CREATE_SUSPENDED = &H00000001  ' NtCreateUserProcess & NtCreateThreadEx
     THREAD_CREATE_FLAGS_SKIP_THREAD_ATTACH = &H00000002  ' NtCreateThreadEx only
     THREAD_CREATE_FLAGS_HIDE_FROM_DEBUGGER = &H00000004  ' NtCreateThreadEx only
@@ -17956,6 +18094,8 @@ Public Enum PS_ATTRIBUTE_NUM
     PsAttributeMachineType ' since WIN11
     PsAttributeComponentFilter
     PsAttributeEnableOptionalXStateFeatures
+    PsAttributeSupportedMachines ' in ULONG // since 24H2
+    PsAttributeSveVectorLength ' PPS_PROCESS_CREATION_SVE_VECTOR_LENGTH
     PsAttributeMax
 End Enum
 Public Const PS_ATTRIBUTE_NUMBER_MASK  = &H0000ffff
@@ -18027,11 +18167,20 @@ Public Type PS_STD_HANDLE_INFO
     StdHandleSubsystemType As Long
 End Type
 
+
+
 Public Type PS_BNO_ISOLATION_PARAMETERS
     IsolationPrefix As UNICODE_STRING
     HandleCount As Long
     Handles As LongPtr
     IsolationEnabled As Byte
+End Type
+
+Public Type PS_PROCESS_CREATION_SVE_VECTOR_LENGTH
+    ' ULONG VectorLength : 24;
+    ' ULONG FlagsReserved : 8;
+    VectorLength(2) As Byte
+    FlagsReserved As Byte
 End Type
 
 Public Enum PS_MITIGATION_OPTION
@@ -19226,6 +19375,13 @@ Public Declare PtrSafe Function NtOpenProcessToken Lib "ntdll" (ByVal ProcessHan
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtOpenProcessTokenEx Lib "ntdll" (ByVal ProcessHandle As LongPtr, [TypeHint(TokenAccessRights, StandardAccessTypes)] ByVal DesiredAccess As Long, ByVal HandleAttributes As ObjectAttributeValues, TokenHandle As LongPtr) As NTSTATUS
 [UseGetLastError(False)]
+Public Declare PtrSafe Function NtCreateThread Lib "ntdll" (ThreadHandle As LongPtr, [TypeHint(ThreadAccessRights)] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, ByVal ProcessHandle As LongPtr, ClientId As CLIENT_ID, ThreadContext As CONTEXT, InitialTeb As INITIAL_TEB, ByVal CreateSuspended As Byte) As NTSTATUS
+
+Public Delegate Function USER_THREAD_START_ROUTINE (ByVal ThreadParameter As LongPtr) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtCreateThreadEx Lib "ntdll" (ThreadHandle As LongPtr, [TypeHint(ThreadAccessRights)] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, ByVal ProcessHandle As LongPtr, ByVal StartRoutine As LongPtr, Argument As Any, ByVal CreateFlags As THREAD_CREATE_FLAGS, ByVal ZeroBits As LongPtr, ByVal StackSize As LongPtr, ByVal MaximumStackSize As LongPtr, AttributeList As PS_ATTRIBUTE_LIST) As NTSTATUS
+
+[UseGetLastError(False)]
 Public Declare PtrSafe Function NtOpenThread Lib "ntdll" (ThreadHandle As LongPtr, ByVal DesiredAccess As ThreadAccessRights, ObjectAttributes As OBJECT_ATTRIBUTES, ClientId As CLIENT_ID) As NTSTATUS
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtOpenThreadToken Lib "ntdll" (ByVal ProcessHandle As LongPtr, [TypeHint(TokenAccessRights, StandardAccessTypes)] ByVal DesiredAccess As Long, ByVal OpenAsSelf As Boolean, TokenHandle As LongPtr) As NTSTATUS
@@ -19451,6 +19607,7 @@ Public Declare PtrSafe Function NtDrawText Lib "ntdll" (Text As UNICODE_STRING) 
 Public Declare PtrSafe Function NtSetDefaultHardErrorPort Lib "ntdll" (ByVal DefaultHardErrorPort As LongPtr) As NTSTATUS
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtRaiseHardError Lib "ntdll" (ByVal ErrorStatus As NTSTATUS, ByVal NumberOfParameters As Long, ByVal UnicodeStringParametersMask As Long, Parameters As Any, ByVal ResponseOption As HARDERROR_RESPONSE_OPTION, Response As HARDERROR_RESPONSE) As NTSTATUS
+
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtCreateUserProcess Lib "ntdll" (ProcessHandle As LongPtr, ThreadHandle As LongPtr, [TypeHint(ProcessAccessRights, StandardAccessTypes)] ByVal ProcessDesiredAccess As Long, [TypeHint(ThreadAccessRights, StandardAccessTypes)] ByVal ThreadDesiredAccess As Long, _
                                                                     ProcessObjectAttributes As OBJECT_ATTRIBUTES, ThreadObjectAttributes As OBJECT_ATTRIBUTES, ByVal ProcessFlags As PROCESS_CREATE_FLAGS, ByVal ThreadFlags As THREAD_CREATE_FLAGS, ProcessParameters As Any, CreateInfo As PS_CREATE_INFO, AttributeList As PS_ATTRIBUTE_LIST) As NTSTATUS
@@ -19465,9 +19622,9 @@ Public Function NtCurrentPeb() As LongPtr: Return RtlGetCurrentPeb(): End Functi
 #If (TWINBASIC_BUILD >= 606) Then
 Public Function NtCurrentTeb CDecl Naked() As LongPtr
     #If Win64 Then
-    Emit (&H65, &H48, &H8b, &H04, &H25, &H30, &H00)   'mov    rax,QWORD PTR gs:0x30
-    Emit (&H00, &H00)
-    Emit (&Hc3)                                       'ret      
+    Emit(&H65, &H48, &H8b, &H04, &H25, &H30, &H00)   'mov    rax,QWORD PTR gs:0x30
+    Emit(&H00, &H00)
+    Emit(&Hc3)                                       'ret      
     #Else
     Emit(&H64, &Ha1, &H18, &H00, &H00, &H00)    'mov    eax,fs:0x18
     Emit(&Hc3)                                  'ret

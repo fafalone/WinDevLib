@@ -1,4 +1,7 @@
 
+**Update (v9.1.588, 09 Aug 2025):**
+- Misc API additions for upcoming project
+
 **Update (v9.1.586, 09 Aug 2025):**
 - Added HTTP Server API (http.h, 100% inc. macros)
 - Added Image Color Management / Windows Color System APIs (icm.h, wcsplugin.h/.idl, 100%)
