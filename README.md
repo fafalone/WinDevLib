@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 9.1.586 (August 9th, 2025)**
+**Current Version: 9.1.588 (August 9th, 2025)**
 
 (c) 2022-2025 Jon Johnson (fafalone)
 
@@ -230,6 +230,9 @@ Finally, there's numerous additional API sets from small to large for independen
 This project has grown well beyond it's original mission of shell programming. While that's still the largest single part, it's no longer a majority of the code, and the name change now much better reflects the purpose of providing a general Windows API experience like windows.h. Compiler constants and module names/file names have been updated to reflect the name change. tbShellLibImpl is now WinDevLibImpl. There are also some major chanages associated with this update, please see the full changelog below.
 
 ### Updates
+
+**Update (v9.1.588, 09 Aug 2025):**
+- Misc API additions for upcoming project
 
 **Update (v9.1.586, 09 Aug 2025):**
 - Added HTTP Server API (http.h, 100% inc. macros)
