@@ -5,17 +5,17 @@ before release, or waiting on feature support:
 
 - copy  new NT sync APIs to tbKMode.
 
--Variant/PROPVARIANT overloads / As Any to overload, pending tB bug fix
+- Variant/PROPVARIANT overloads / As Any to overload, pending tB bug fix
 
--Finish DirectShow (now 98% done)
+- Finish DirectShow (now 98% done)
  
--Verify new xaudio2 and helper math functions
+- Verify new xaudio2 and helper math functions
 
--Finish D2D1 helper class pending overload class bug fix
+- Finish D2D1 helper class pending overload class bug fix
  
--ntlsa delegates
+- ntlsa delegates
 
--BUG FIX PENDING: Overloaded interface vtable order vs source, reverse after patch:
+- BUG FIX PENDING: Overloaded interface vtable order vs source, reverse after patch:
 IDCompositionVisual, IDCompositionVisual3, IDCompositionGaussianBlurEffect, IDCompositionBrightnessEffect, 
 IDCompositionColorMatrixEffect, IDCompositionShadowEffect, IDCompositionHueRotationEffect, IDCompositionSaturationEffect,
 IDCompositionLinearTransferEffect, IDCompositionTableTransferEffect, IDCompositionArithmeticCompositeEffect,
@@ -25,120 +25,122 @@ IDCompositionScaleTransform3D, IDCompositionRotateTransform3D, IDCompositionMatr
 ID2D1SvgStrokeDashArray, IDWriteGdiInterop1, IDWriteFontFace4, IDWriteFactory4, IDWriteFontSet1
 Note: ID2D1SvgElement overloads currently left tagged because tB cannot disambiguate 2 of them. 
 
--Implements/PreserveSig support IMFTimedTextNotify,IMFMediaSourceExtensionNotify,IMFBufferListNotify,IMFBufferListNotify
+- Implements/PreserveSig support IMFTimedTextNotify,IMFMediaSourceExtensionNotify,IMFBufferListNotify,IMFBufferListNotify
 IMFMediaEngineNeedKeyNotify,IMFMediaEngineEMENotify,IMFMediaKeySessionNotify2
 
--OpenGL (needs Alias support)
+- OpenGL (needs Alias support)
 
--Dispinterfaces pending support:
+- Dispinterfaces pending support:
     DWebBrowserEvents[2], DShellNameSpaceEvents 
     _ISpeechRecoContextEvents, _ISpeechVoiceEvents
 
--POLID_ guids only partially complete
+- POLID_ guids only partially complete
 
--winbio_adapter.h
+- winbio_adapter.h
  
--vfw.h/vfsmsg/vfwext (AVIFil32 done; other sections under consideration)
+- vfw.h/vfsmsg/vfwext (AVIFil32 done; other sections under consideration)
  
 
--SQL.h/obdc32.dll (needs Alias support)
+- SQL.h/obdc32.dll (needs Alias support)
 
--test IsVariantString / IsPropVariantString
+- test IsVariantString / IsPropVariantString
 
--Tablet interfaces (waiting on dispinterface support)
+- Tablet interfaces (waiting on dispinterface support)
 
--ndfapi.h
+- ndfapi.h
 
--When enum descriptions supported, convert NErr_ netapi32 error values to enum for APIs
+- When enum descriptions supported, convert NErr_ netapi32 error values to enum for APIs
 
--NT reg VR differencing
+- NT reg VR differencing
 
--bluetooth btdef.h macros
+- bluetooth btdef.h macros
 
--Convert additional static lib stuff to Emit()
+- Convert additional static lib stuff to Emit()
 
--Put   delegates back
+- Put   delegates back
 
-Macros
+- ByVal LUIDs in ICM apis
+
+- Macros\
 #define D3D_SET_OBJECT_NAME_N_A(pObject, Chars, pName) (pObject)->SetPrivateData(WKPDID_D3DDebugObjectName, Chars, pName)
 #define D3D_SET_OBJECT_NAME_A(pObject, pName) D3D_SET_OBJECT_NAME_N_A(pObject, lstrlenA(pName), pName)
 #define D3D_SET_OBJECT_NAME_N_W(pObject, Chars, pName) (pObject)->SetPrivateData(WKPDID_D3DDebugObjectNameW, Chars*2, pName)
 #define D3D_SET_OBJECT_NAME_W(pObject, pName) D3D_SET_OBJECT_NAME_N_W(pObject, wcslen(pName), pName)
  
--advpub.h
+- advpub.h
 
--d3d9xmath.h; D3DX10 (base D3D10 covered; X is from the DX SDK, not Windows Platform SDK). D3DX11 already done. No 12.
+- d3d9xmath.h; D3DX10 (base D3D10 covered; X is from the DX SDK, not Windows Platform SDK). D3DX11 already done. No 12.
 
--ID3D12GraphicsCommandList::OMSetBlendFactor, ID3D11DeviceContext::OMSetBlendState, ID3D11DeviceContext1::ClearView,
+- ID3D12GraphicsCommandList::OMSetBlendFactor, ID3D11DeviceContext::OMSetBlendState, ID3D11DeviceContext1::ClearView,
  ID3D12GraphicsCommandList::::ClearUnorderedAccessViewUint, ID3D12GraphicsCommandList::::ClearUnorderedAccessViewFloat
    et al adjust when tB has syntax support for [in] type t[x] syntax.
 
--(COMPLETED) CLSIDs for coclasses
-keep file list for other tasks  
-wdAccessible, 
-wdAMSI,
+- (COMPLETED) CLSIDs for coclasses\
+keep file list for other tasks\
+wdAccessible,\
+wdAMSI,\
 wdAPI* 
-wdBITS, 
-wdCOM,
-wdCoreAudio,
-wdCredProv,
-wdD3D*
-wdDefs,
-wdDeprecated,
-wdDevices, 
-wdDirectML,
-wdDirectShow,
-wdDSound, 
-wdDStorage,
-wdDXVA,
-wdExplorer, 
-wdFileHist,
-wdGDIP,
-wdGP,
-wdHelpers,
-wdIID,
-wdIMAPI,
-wdInternet, 
-wdLegacy,
-wdManipulations, 
-wdNetcon, 
-wdOLE,
-wdOPC,
-wdPhotoAcq,
-wdPKEY,
-wdPrintNotify,
-wdRadio,
-wdRTWorkQ,
-wdScript,
-wdSearch,
-wdSecurity, 
-wdSensors, 
-wdShellCore, 
-wdShellObj, 
-wdSpeech, 
-wdSpellCheck, 
-wdSyncMgr, 
-wdTablet, 
-wdTaskScheduler, 
-wdUIAnimation, 
-wdUIRibbon, 
-wdUPNP, 
-wdWIC,
-wdWinML,
-wdWinRTBase,
-wdWMDM,
-wdWSC, 
-wdWTS,
+wdBITS,\ 
+wdCOM,\
+wdCoreAudio,\
+wdCredProv,\
+wdD3D*\
+wdDefs,\
+wdDeprecated,\
+wdDevices,\ 
+wdDirectML,\
+wdDirectShow,\
+wdDSound,\ 
+wdDStorage,\
+wdDXVA,\
+wdExplorer,\ 
+wdFileHist,\
+wdGDIP,\
+wdGP,\
+wdHelpers,\
+wdIID,\
+wdIMAPI,\
+wdInternet,\ 
+wdLegacy,\
+wdManipulations,\ 
+wdNetcon,\ 
+wdOLE,\
+wdOPC,\
+wdPhotoAcq,\
+wdPKEY,\
+wdPrintNotify,\
+wdRadio,\
+wdRTWorkQ,\
+wdScript,\
+wdSearch,\
+wdSecurity,\ 
+wdSensors,\ 
+wdShellCore,\ 
+wdShellObj,\ 
+wdSpeech,\ 
+wdSpellCheck,\ 
+wdSyncMgr,\ 
+wdTablet,\ 
+wdTaskScheduler,\ 
+wdUIAnimation,\ 
+wdUIRibbon,\ 
+wdUPNP,\ 
+wdWIC,\
+wdWinML,\
+wdWinRTBase,\
+wdWMDM,\
+wdWSC,\ 
+wdWTS,\
 wdXAudio
 
--Create coverage list by header. (WORK IN PROGRESS: So long as this list is in todo.md it's incomplete--numerous other headers are covered.)
-Excluded from completed %: 
-    -Definitions unsupported by the tB language with no reasonable substitute.
-    -Definitions disabled by conditional compilation with version flags for XP and earlier, non-Windows platforms, or kernel mode only.
-Basic Coverage: excludes macros, callbacks->delegates,
-ANSI APIs (though most are covered), and other headers from #include statements. Anything else missing is a bug and a report should be filed
-Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.0);  
-    UtilApiSet.h,processtopologyapi.h,msdelta.h,handleapi.h,cfgmgr32.h,ole2.h,avrt.h,KnownFolders.h,keycredmgr.h,mcx.h,windef.h,winver.h,dlgs.h,
+- Create coverage list by header. (WORK IN PROGRESS: So long as this list is in todo.md it's incomplete--numerous other headers are covered.)
+Excluded from completed %:
+    - Definitions unsupported by the tB language with no reasonable substitute.
+    - Definitions disabled by conditional compilation with version flags for XP and earlier, non-Windows platforms, or kernel mode only.
+Basic Coverage: excludes macros, callbacks->delegates, ANSI APIs (though most are covered), and other headers from #include statements.\
+Anything else missing is a bug and a report should be filed
+Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.0);\
+    winuser.h,UtilApiSet.h,processtopologyapi.h,msdelta.h,handleapi.h,cfgmgr32.h,ole2.h,avrt.h,KnownFolders.h,keycredmgr.h,mcx.h,windef.h,winver.h,dlgs.h,
     realtimeapiset.h,msime.h,msimeapi.h,ws2bth.h,VersionHelpers.h,minwinbase.h,wsman.h,wcmapi.h,nb30.h,GPEdit.h,InputPanelConfiguration.h,commoncontrols.h,
     WinEFS.h,winstring.h,qos2.h,traffic.h,qosobjs.h,qos.h,qossp.h,bluetoothleapis.h,bluetoothapis.h,bthsdpdef.h,fhcfg.h,fhsvcctl.h,fhstatus.h,fherrors.h,
     fwpmu.h,ipsectypes.h,iketypes.h,fdi_fcitypes.h,fdi.h,fci.h,namespaceapi.h,physicalmonitorenumerationapi.h,highlevelmonitorconfigurationapi.h,
@@ -149,11 +151,11 @@ Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.
     vdslun.idl,vdssp.idl,vdshp.idl,vdsvd.idl,vds.idl,vdshpcm.idl,vds.h,vdshwprv.h,vdslun.h,vdssys.h,directml.h,restartmanager.h,dde.h,ddeml.h,zmouse.h,
     winbio_err.h,winbio_ioctl.h,winbio_types.h,winbio.h,winsvc.h,mssign.h,shellapi.h,bits.idl,bits1_5.idl,bits2_0.idl,bits2_5.idl,bits3_0.idl,bits4_0.idl,
     bits5_0.h,bits10_1.h,bits10_2.h,bits10_3.h,bitscfg.h,qmgr.h,bits2_0.h,bits2_5.h,bits3_0.h,bits4_0.h,bits5_0.idl,bits10_1.idl,bits10_2.idl,bits10_3.idl,
-    bitscfg.h,qmgr.h,bitsmsg.h,dwrite.h,dwrite_1.h,dwrite_2.h,dwrite_3.h,shdeprecated.h,UserEnv.h,mscat.h,processenv.h,netioapi.h,iwscapi.h,wscapi.h,
+    bitscfg.h,qmgr.h,bitsmsg.h,dwrite.h,dwrite_1.h,dwrite_2.h,dwrite_3.h,shdeprecated.h,UserEnv.h,mscat.h,processenv.h,netioapi.h,iwscapi.h,wscapi.h,http.h,
     WebEvnts.idl,WebEvnts.h,propkey.h,propkeydef.h,winsafer.h,powerbase.h,powersetting.h,powrprof.h,synchapi.h,dpa_dsa.h,DocumentTarget.idl,DocumentTarget.h,
     propsys.h,SrRestorePtApi.h,compressapi.h,wincrypt.h,dpapi.h,mssip.h,memoryapi.h,wintrust.h,bcrypt.h,ncrypt.h,ncryptprotect.h,mobsync.h,ProcessSnapshot.h,
     wincred.h,winhttp.h,websocket.h,photoacquire.h,oleacc.h,sddl.h,securitybaseapi.h,dssec.h,oleauto.h,olectl.h,newdev.h,processthreadsapi.h,virtdisk.h,
-    cryptuiapi.h,limits.h,winuser.h,evntrace.h,evntprov.h,relogger.h,relogger.idl,WinNls.h,WinNls32.h,ktmw32.h,fileapi.h,AccCtrl.h,AclAPI.h,dbt.h,TlHelp32.h,winnetwk.h,
+    cryptuiapi.h,limits.h,evntrace.h,evntprov.h,relogger.h,relogger.idl,WinNls.h,WinNls32.h,ktmw32.h,fileapi.h,AccCtrl.h,AclAPI.h,dbt.h,TlHelp32.h,winnetwk.h,
     enclaveapi.h,wincon.h,wincontypes.h,consoleapi.h,consoleapi2.h,consoleapi3.h,winreg.h,lsalookup.h,adtgen.h,authz.h,cfg.h,sfc.h,secext.h,AudioAPOTypes.h,
     audioclient.h,audioclient.idl,audioclientactivationparams.h,audioendpoints.h,audioendpoints.idl,audioenginebaseapo.h,audioenginebaseapo.idl,
     audioengineendpoint.h,audioengineendpoint.idl,audiomediatype.h,audiomediatype.idl,audiostatemonitorapi.h,audiopolicy.h,audiopolicy.idl,audiosessiontypes.h,
@@ -184,15 +186,15 @@ Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.
     xprtdefs.h,axextend.idl,amparse.h,vidcap.h,vidcap.idl,dmodshow.h,dmodshow.idl,CameraUIControl.h,CameraUIControl.idl,austream.h,austream.idl,qnetwork.h,il21dec.h,
     iwstdec.h,dvdif.h,strmif.h,strmif.idl,control.h,control.idl,amstream.h,amstream.idl,amva.h,sherrors.h,bcp47mrm.h,regbag.h,regbag.idl,wimgapi.h,lsalookupi.h,
     bdatypes.h,bdaiface_enums.h,bdaiface.h,bdaiface.idl,mpeg2structs.h,Mpeg2Structs.idl,Mpeg2Bits.h,Mpeg2Data.h,Mpeg2Data.idl,Mpeg2PsiParser.idl,AtscPsipParser.h,
-    callobj.h,callobj.idl,WbemCli.h,WbemCli.idl,WMIUtils.h,WMIUtils.idl,dinput.h,
+    callobj.h,callobj.idl,WbemCli.h,WbemCli.idl,WMIUtils.h,WMIUtils.idl,dinput.h,icm.h,wcsplugin.h,wcsplugin.idl,jobapi.h,jobapi2.h,mixerocx.h,mixerocx.idl,
     
-Coverage in the 90%+ range
+Coverage in the 90%+ range\
     winbase.h, oleidl.h, oaidl.h, ocidl.h, ocidl.idl, presentation.h,
 
-Substantial coverage
+Substantial coverage\
     mmsciapi.h, winnt.h,winternl.h,immdev.h,winioctl.h,mmreg.h,WS2spi.h,winerror.h,WindowsSearchErrors.h,windowsx.h,
 
-Minimal coverage
+Minimal coverage\
     windot11.h
     peninputpanel.h
     xapobase.h
@@ -202,6 +204,6 @@ Minimal coverage
     d3dukmdt.h
     d3dkmthk.h
     
-Zero or near-zero coverage
+Zero or near-zero coverage\
     (all other files)
   
