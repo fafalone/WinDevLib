@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 9.1.590 (August 27th, 2025)**
+**Current Version: 9.1.591 (August 27th, 2025)**
 
 (c) 2022-2025 Jon Johnson (fafalone)
 
@@ -231,6 +231,9 @@ This project has grown well beyond it's original mission of shell programming. W
 
 ### Updates
 
+**Update (v9.1.591, 27 Aug 2025):**
+- (Bug fix) Some DirectDraw interfaces missing correct inheritance
+- 
 **Update (v9.1.590, 27 Aug 2025):**
 - Added SENS APIs/interfaces (SensAPI.h, Sens.h, SensEvts.idl 100%)
 - Added GetProcAddress overload (https://github.com/fafalone/WinDevLib/issues/38)
