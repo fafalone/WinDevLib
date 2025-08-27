@@ -1,4 +1,12 @@
 
+
+**Update (v9.1.590, 27 Aug 2025):**
+- Added SENS APIs/interfaces (SensAPI.h, Sens.h, SensEvts.idl 100%)
+- Added GetProcAddress overload (https://github.com/fafalone/WinDevLib/issues/38)
+- (Bug fix) SCardUIDlgSelectCard[A,W], GetOpenCardName[A,W] are in scarddlg.dll, not winscard.dll
+- (Bug fix) PostMessage[A,W] wParam arg incorrect for x64 (https://github.com/fafalone/WinDevLib/issues/39)
+ 
+
 **Update (v9.1.588, 09 Aug 2025):**
 - Misc API additions for upcoming project
 
