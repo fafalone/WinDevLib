@@ -1,5 +1,8 @@
 
 
+**Update (v9.1.591, 27 Aug 2025):**
+- (Bug fix) Some DirectDraw interfaces missing correct inheritance
+
 **Update (v9.1.590, 27 Aug 2025):**
 - Added SENS APIs/interfaces (SensAPI.h, Sens.h, SensEvts.idl 100%)
 - Added GetProcAddress overload (https://github.com/fafalone/WinDevLib/issues/38)
