@@ -860,6 +860,56 @@ CoClass NetworkListManager
     Interface IEnumNetworkConnections
 End CoClass
 
+
+
+'SensEvts.idl
+
+[InterfaceId("d597bab1-5b9f-11d1-8dd2-00aa004abd5e")]
+Interface ISensNetwork Extends IDispatch
+    [DispId(&H00000001)] Sub ConnectionMade(ByVal bstrConnection As String, ByVal ulType As SensApiNetworkTypes, ByRef lpQOCInfo As SENS_QOCINFO)
+    [DispId(&H00000002)] Sub ConnectionMadeNoQOCInfo(ByVal bstrConnection As String, ByVal ulType As SensApiNetworkTypes)
+    [DispId(&H00000003)] Sub ConnectionLost(ByVal bstrConnection As String, ByVal ulType As SensApiNetworkTypes)
+    [DispId(&H00000004)] Sub DestinationReachable(ByVal bstrDestination As String, ByVal bstrConnection As String, ByVal ulType As SensApiNetworkTypes, ByRef lpQOCInfo As SENS_QOCINFO)
+    [DispId(&H00000005)] Sub DestinationReachableNoQOCInfo(ByVal bstrDestination As String, ByVal bstrConnection As String, ByVal ulType As SensApiNetworkTypes)
+End Interface
+
+[InterfaceId("d597bab2-5b9f-11d1-8dd2-00aa004abd5e")]
+Interface ISensOnNow Extends IDispatch
+    [DispId(&H00000001)] Sub OnACPower()
+    [DispId(&H00000002)] Sub OnBatteryPower(ByVal dwBatteryLifePercent As Long)
+    [DispId(&H00000003)] Sub BatteryLow(ByVal dwBatteryLifePercent As Long)
+End Interface
+
+[InterfaceId("d597bab3-5b9f-11d1-8dd2-00aa004abd5e")]
+Interface ISensLogon Extends IDispatch
+    [DispId(&H00000001)] Sub Logon(ByVal bstrUserName As String)
+    [DispId(&H00000002)] Sub Logoff(ByVal bstrUserName As String)
+    [DispId(&H00000003)] Sub StartShell(ByVal bstrUserName As String)
+    [DispId(&H00000004)] Sub DisplayLock(ByVal bstrUserName As String)
+    [DispId(&H00000005)] Sub DisplayUnlock(ByVal bstrUserName As String)
+    [DispId(&H00000006)] Sub StartScreenSaver(ByVal bstrUserName As String)
+    [DispId(&H00000007)] Sub StopScreenSaver(ByVal bstrUserName As String)
+End Interface
+
+[InterfaceId("d597bab4-5b9f-11d1-8dd2-00aa004abd5e")]
+Interface ISensLogon2 Extends IDispatch
+    [DispId(&H00000001)] Sub Logon(ByVal bstrUserName As String, ByVal dwSessionId As Long)
+    [DispId(&H00000002)] Sub Logoff(ByVal bstrUserName As String, ByVal dwSessionId As Long)
+    [DispId(&H00000003)] Sub SessionDisconnect(ByVal bstrUserName As String, ByVal dwSessionId As Long)
+    [DispId(&H00000004)] Sub SessionReconnect(ByVal bstrUserName As String, ByVal dwSessionId As Long)
+    [DispId(&H00000005)] Sub PostShell(ByVal bstrUserName As String, ByVal dwSessionId As Long)
+End Interface
+
+[CoClassId("d597cafe-5b9f-11d1-8dd2-00aa004abd5e")]
+CoClass SENS
+    [Default, Source] Interface ISensNetwork
+    [Source] Interface ISensOnNow
+    [Source] Interface ISensLogon
+    [Source] Interface ISensLogon2
+End CoClass
+
+
+
 #End Region
 
 Module wdInternet
@@ -10463,7 +10513,7 @@ Module wdAPIInternet
     Public Declare PtrSafe Function WSCWriteNameSpaceOrder32 Lib "WS2_32.DLL" (lpProviderId As UUID, ByVal dwNumberOfEntries As Long) As Long
     #Else
     [Description("For 64it, use WSCInstallProviderAndChains64_32")]
-    Public DeclareWide PtrSafe Function WSCInstallProviderAndChains Lib "ws2_32.dll" (lpProviderId As UUID, ByVal lpszProviderDllPath As String, ByVal lpszLspName as String, ByVal dwServiceFlags as Long,lpProtocolInfoList  As WSAPROTOCOL_INFOW, ByVal dwNumberOfEntries As Long, lpdwCatalogEntryId as Long, lpErrno As Long) As Long
+    Public DeclareWide PtrSafe Function WSCInstallProviderAndChains Lib "ws2_32.dll" (lpProviderId As UUID, ByVal lpszProviderDllPath As String, ByVal lpszLspName As String, ByVal dwServiceFlags As Long, lpProtocolInfoList As WSAPROTOCOL_INFOW, ByVal dwNumberOfEntries As Long, lpdwCatalogEntryId As Long, lpErrno As Long) As Long
     #End If
       ' Declare Function WSCInstallQOSTemplate Lib "qosname.dll" (ByVal Guid As Long, ByRef QosName As WSABUF, ByRef Qos As QOS) As Long
     ' Declare Function WSCRemoveQOSTemplate Lib "qosname.dll" (ByVal Guid As Long, ByRef QosName As WSABUF) As Long
@@ -15734,52 +15784,118 @@ Public Declare PtrSafe Function HttpDeleteServiceConfiguration Lib "httpapi.dll"
 Public Declare PtrSafe Function HttpQueryServiceConfiguration Lib "httpapi.dll" (ByVal ServiceHandle As LongPtr, ByVal ConfigId As HTTP_SERVICE_CONFIG_ID, pInput As Any, ByVal InputLength As Long, pOutput As Any, ByVal OutputLength As Long, ByRef pReturnLength As Long, ByRef pOverlapped As OVERLAPPED) As Long
 Public Declare PtrSafe Function HttpGetExtension Lib "httpapi.dll" (ByVal Version As Long /* HTTPAPI_VERSION */, ByVal Extension As Long, Buffer As Any, ByVal BufferSize As Long) As Long
 
+#End Region
+
+#Region "sens"
+'SensAPI.h
+
+Public Enum SensAliveFlags
+    NETWORK_ALIVE_LAN = &H00000001
+    NETWORK_ALIVE_WAN = &H00000002
+    NETWORK_ALIVE_AOL = &H00000004
+    NETWORK_ALIVE_INTERNET = &H00000008
+End Enum
+
+Public Type QOCINFO
+    dwSize As Long
+    dwFlags As SensAliveFlags
+    dwInSpeed As Long
+    dwOutSpeed As Long
+End Type
+
+Public Declare PtrSafe Function IsDestinationReachableA Lib "SensApi.dll" (ByVal lpszDestination As String, lpQOCInfo As QOCINFO) As BOOL
+Public Declare PtrSafe Function IsDestinationReachableW Lib "SensApi.dll" (ByVal lpszDestination As LongPtr, lpQOCInfo As QOCINFO) As BOOL
+Public DeclareWide PtrSafe Function IsDestinationReachable Lib "SensApi.dll" Alias "IsDestinationReachableW" (ByVal lpszDestination As String, lpQOCInfo As QOCINFO) As BOOL
+Public Declare PtrSafe Function IsNetworkAlive Lib "SensApi.dll" (lpdwFlags As SensAliveFlags) As BOOL
+
+'SensEvts.idl
+
+'ID: d597fad1-5b9f-11d1-8dd2-00aa004abd5e
+Public Type SENS_QOCINFO
+    dwSize As Long
+    dwFlags As SensAliveFlags
+    dwInSpeed As Long
+    dwOutSpeed As Long
+End Type
+
+
+Public Function IID_ISensNetwork() As UUID
+'{d597bab1-5b9f-11d1-8dd2-00aa004abd5e}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hd597bab1, CInt(&H5b9f), CInt(&H11d1), &H8d, &Hd2, &H00, &Haa, &H00, &H4a, &Hbd, &H5e)
+ IID_ISensNetwork = iid
+End Function
+Public Function IID_ISensOnNow() As UUID
+'{d597bab2-5b9f-11d1-8dd2-00aa004abd5e}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hd597bab2, CInt(&H5b9f), CInt(&H11d1), &H8d, &Hd2, &H00, &Haa, &H00, &H4a, &Hbd, &H5e)
+ IID_ISensOnNow = iid
+End Function
+Public Function IID_ISensLogon() As UUID
+'{d597bab3-5b9f-11d1-8dd2-00aa004abd5e}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hd597bab3, CInt(&H5b9f), CInt(&H11d1), &H8d, &Hd2, &H00, &Haa, &H00, &H4a, &Hbd, &H5e)
+ IID_ISensLogon = iid
+End Function
+Public Function IID_ISensLogon2() As UUID
+'{d597bab4-5b9f-11d1-8dd2-00aa004abd5e}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hd597bab4, CInt(&H5b9f), CInt(&H11d1), &H8d, &Hd2, &H00, &Haa, &H00, &H4a, &Hbd, &H5e)
+ IID_ISensLogon2 = iid
+End Function
 
 
 
 
+'Sens.h
+Public Enum SensApiNetworkTypes
+    CONNECTION_LAN = &H00000001
+    CONNECTION_WAN = &H00000002
+    CONNECTION_AOL = &H00000004
+End Enum
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+Public Function SENSGUID_PUBLISHER() As UUID
+'{5fee1bd6-5b9b-11d1-8dd2-00aa004abd5e}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H5fee1bd6, CInt(&H5b9b), CInt(&H11d1), &H8d, &Hd2, &H00, &Haa, &H00, &H4a, &Hbd, &H5e)
+ SENSGUID_PUBLISHER = iid
+End Function
+Public Function SENSGUID_SUBSCRIBER_LCE() As UUID
+'{d3938ab0-5b9d-11d1-8dd2-00aa004abd5e}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hd3938ab0, CInt(&H5b9d), CInt(&H11d1), &H8d, &Hd2, &H00, &Haa, &H00, &H4a, &Hbd, &H5e)
+ SENSGUID_SUBSCRIBER_LCE = iid
+End Function
+Public Function SENSGUID_SUBSCRIBER_WININET() As UUID
+'{d3938ab5-5b9d-11d1-8dd2-00aa004abd5e}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hd3938ab5, CInt(&H5b9d), CInt(&H11d1), &H8d, &Hd2, &H00, &Haa, &H00, &H4a, &Hbd, &H5e)
+ SENSGUID_SUBSCRIBER_WININET = iid
+End Function
+Public Function SENSGUID_EVENTCLASS_NETWORK() As UUID
+'{d5978620-5b9f-11d1-8dd2-00aa004abd5e}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hd5978620, CInt(&H5b9f), CInt(&H11d1), &H8d, &Hd2, &H00, &Haa, &H00, &H4a, &Hbd, &H5e)
+ SENSGUID_EVENTCLASS_NETWORK = iid
+End Function
+Public Function SENSGUID_EVENTCLASS_LOGON() As UUID
+'{d5978630-5b9f-11d1-8dd2-00aa004abd5e}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hd5978630, CInt(&H5b9f), CInt(&H11d1), &H8d, &Hd2, &H00, &Haa, &H00, &H4a, &Hbd, &H5e)
+ SENSGUID_EVENTCLASS_LOGON = iid
+End Function
+Public Function SENSGUID_EVENTCLASS_ONNOW() As UUID
+'{d5978640-5b9f-11d1-8dd2-00aa004abd5e}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hd5978640, CInt(&H5b9f), CInt(&H11d1), &H8d, &Hd2, &H00, &Haa, &H00, &H4a, &Hbd, &H5e)
+ SENSGUID_EVENTCLASS_ONNOW = iid
+End Function
+Public Function SENSGUID_EVENTCLASS_LOGON2() As UUID
+'{d5978650-5b9f-11d1-8dd2-00aa004abd5e}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hd5978650, CInt(&H5b9f), CInt(&H11d1), &H8d, &Hd2, &H00, &Haa, &H00, &H4a, &Hbd, &H5e)
+ SENSGUID_EVENTCLASS_LOGON2 = iid
+End Function
 
 
 #End Region
