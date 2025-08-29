@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 9.1.591 (August 27th, 2025)**
+**Current Version: 9.1.592 (August 29th, 2025)**
 
 (c) 2022-2025 Jon Johnson (fafalone)
 
@@ -230,6 +230,9 @@ Finally, there's numerous additional API sets from small to large for independen
 This project has grown well beyond it's original mission of shell programming. While that's still the largest single part, it's no longer a majority of the code, and the name change now much better reflects the purpose of providing a general Windows API experience like windows.h. Compiler constants and module names/file names have been updated to reflect the name change. tbShellLibImpl is now WinDevLibImpl. There are also some major chanages associated with this update, please see the full changelog below.
 
 ### Updates
+
+**Update (v9.1.592, 29 Aug 2025):**
+- (Bug fix) hostent and netent definitions incorrect (https://github.com/fafalone/WinDevLib/issues/40)
 
 **Update (v9.1.591, 27 Aug 2025):**
 - (Bug fix) Some DirectDraw interfaces missing correct inheritance
