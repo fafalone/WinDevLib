@@ -1,5 +1,8 @@
 
 
+**Update (v9.1.592, 29 Aug 2025):**
+- (Bug fix) hostent and netent definitions incorrect (https://github.com/fafalone/WinDevLib/issues/40)
+
 **Update (v9.1.591, 27 Aug 2025):**
 - (Bug fix) Some DirectDraw interfaces missing correct inheritance
 
