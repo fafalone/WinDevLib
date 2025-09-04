@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 9.1.592 (August 29th, 2025)**
+**Current Version: 9.1.5942 (September 3rd, 2025)**
 
 (c) 2022-2025 Jon Johnson (fafalone)
 
@@ -233,6 +233,12 @@ This project has grown well beyond it's original mission of shell programming. W
 
 ### Updates
 
+**Update (v9.1.594, 03 Sep 2025):**
+- Added Direct3D 8 and DirectPlay interfaces for additional dxvb conversions. I now intend to cover all DXVB equivalent C defs.
+- (Bug fix) Duplicated consts MDITILE_* and MDIS_ALLCHILDSTYLES, LOGONID_CURRENT, SERVERNAME_CURRENT, D3D11_DEFAULT_SLOPE_SCALED_DEPTH_BIAS,
+      D3D11_DEFAULT_VIEWPORT_MAX_DEPTH, D3D11_DEFAULT_VIEWPORT_MIN_DEPTH, OLEIVERB_PROPERTIES, DISPID_IADCCTL_*, DVB_ST_PID_16/17/18/19/20,
+      WINSTATIONNAME_LENGTH, and DOMAIN_LENGTHDOMAIN_LENGTH.
+  
 **Update (v9.1.592, 29 Aug 2025):**
 - (Bug fix) hostent and netent definitions incorrect (https://github.com/fafalone/WinDevLib/issues/40)
 
