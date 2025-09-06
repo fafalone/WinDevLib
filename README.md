@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 9.1.594 (September 3rd, 2025)**
+**Current Version: 9.1.595 (September 6th, 2025)**
 
 (c) 2022-2025 Jon Johnson (fafalone)
 
@@ -232,6 +232,10 @@ Finally, there's numerous additional API sets from small to large for independen
 This project has grown well beyond it's original mission of shell programming. While that's still the largest single part, it's no longer a majority of the code, and the name change now much better reflects the purpose of providing a general Windows API experience like windows.h. Compiler constants and module names/file names have been updated to reflect the name change. tbShellLibImpl is now WinDevLibImpl. There are also some major chanages associated with this update, please see the full changelog below.
 
 ### Updates
+
+**Update (v9.1.595, 06 Sep 2025):**
+- (Bug fix) ID2D1DeviceContext5::CreateSvgDocument missing argument
+- (Bug fix/API Standards) Many uses of Currency not replaced with LongLong (where not explicitly Currency in the SDK). In some cases this would have caused improper alignment.
 
 **Update (v9.1.594, 03 Sep 2025):**
 - Added Direct3D 8 and DirectPlay interfaces for additional dxvb conversions. I now intend to cover all DXVB equivalent C defs.
