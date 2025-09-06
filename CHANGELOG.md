@@ -1,5 +1,9 @@
 
 
+**Update (v9.1.595, 06 Sep 2025):**
+- (Bug fix) ID2D1DeviceContext5::CreateSvgDocument missing argument
+- (Bug fix/API Standards) Many uses of Currency not replaced with LongLong (where not explicitly Currency in the SDK). In some cases this would have caused improper alignment.
+ 
 **Update (v9.1.594, 03 Sep 2025):**
 - Added Direct3D 8 and DirectPlay interfaces for additional dxvb conversions. I now intend to cover all DXVB equivalent C defs.
 - (Bug fix) Duplicated consts MDITILE_* and MDIS_ALLCHILDSTYLES, LOGONID_CURRENT, SERVERNAME_CURRENT, D3D11_DEFAULT_SLOPE_SCALED_DEPTH_BIAS,
