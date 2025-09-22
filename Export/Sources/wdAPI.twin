@@ -46094,6 +46094,231 @@ Public Declare PtrSafe Sub UnregisterAppConstrainedChangeNotification Lib "Twina
 ' #End If
 
 
+'pathcch.h
+
+Public Enum PATHCCH_OPTIONS
+    PATHCCH_NONE = &H0
+    '  This option allows applications to gain access to long paths. It has two
+    '  different behaviors. For process configured to enable long paths it will allow
+    '  the returned path to be longer than the max path limit that is normally imposed.
+    '  For process that are not this option will convert long paths into the extended
+    '  length DOS device form (with \\?\ prefix) when the path is longer than the limit.
+    '  This form is not length limited by the Win32 file system API on all versions of Windows.
+    '  This second behavior is the same behavior for OSes that don't have the long path feature.
+    '  This can not be specified with PATHCCH_ENSURE_IS_EXTENDED_LENGTH_PATH.
+    PATHCCH_ALLOW_LONG_PATHS = &H01
+    '  Can only be used when PATHCCH_ALLOW_LONG_PATHS is specified. This
+    '  Forces the API to treat the caller as long path enabled, independent of the
+    '  process's long name enabled state. Cannot be used with PATHCCH_FORCE_DISABLE_LONG_NAME_PROCESS.
+    PATHCCH_FORCE_ENABLE_LONG_NAME_PROCESS = &H02
+    '  Can only be used when PATHCCH_ALLOW_LONG_PATHS is specified. This
+    '  Forces the API to treat the caller as long path disabled, independent of the
+    '  process's long name enabled state. Cannot be used with PATHCCH_FORCE_ENABLE_LONG_NAME_PROCESS.
+    PATHCCH_FORCE_DISABLE_LONG_NAME_PROCESS = &H04
+    '  Disable the normalization of path segments that includes removing trailing dots and spaces.
+    '  This enables access to paths that win32 path normalization will block.
+    PATHCCH_DO_NOT_NORMALIZE_SEGMENTS = &H08
+    '  Convert the input path into the extended length DOS device path form (with the \\?\ prefix)
+    '  if not already in that form. This enables access to paths that are otherwise not addressable
+    '  due to Win32 normalization rules (that can strip trailing dots and spaces) and path
+    '  length limitations. This option implies the same behavior of PATHCCH_DO_NOT_NORMALIZE_SEGMENTS.
+    '  This can not be specified with PATHCCH_ALLOW_LONG_PATHS.
+    PATHCCH_ENSURE_IS_EXTENDED_LENGTH_PATH = &H10
+    '  When combining or normalizing a path ensure there is a trailing backslash.
+    PATHCCH_ENSURE_TRAILING_SLASH = &H020
+    '  Convert forward slashes to back slashes and collapse multiple slashes.
+    '  This is needed to to support sub-path or identity comparisons.
+    PATHCCH_CANONICALIZE_SLASHES = &H040
+End Enum
+
+Public Const VOLUME_PREFIX  = "\\?\Volume"
+Public Const VOLUME_PREFIX_LEN  = 10 'lenb("\\?\Volume") ' (ARRAYSIZE(VOLUME_PREFIX) - 1)
+'  max # of characters we support using the "\\?\" syntax
+'  (0x7FFF + 1 for NULL terminator)
+Public Const PATHCCH_MAX_CCH  = &H8000
+
+Public DeclareWide PtrSafe Function PathIsUNCEx Lib "kernelbase.dll" (ByVal pszPath As String, ppszServer As LongPtr) As BOOL
+Public Declare PtrSafe Function PathIsUNCEx Lib "kernelbase.dll" (ByVal pszPath As LongPtr, ppszServer As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function PathCchIsRoot Lib "kernelbase.dll" (ByVal pszPath As String) As BOOL
+Public Declare PtrSafe Function PathCchIsRoot Lib "kernelbase.dll" (ByVal pszPath As LongPtr) As BOOL
+
+Public DeclareWide PtrSafe Function PathCchAddBackslashEx Lib "kernelbase.dll" (ByVal pszPath As String, ByVal cchPath As LongPtr, ByRef ppszEnd As LongPtr, ByRef pcchRemaining As LongPtr) As Long
+Public Declare PtrSafe Function PathCchAddBackslashEx Lib "kernelbase.dll" (ByVal pszPath As LongPtr, ByVal cchPath As LongPtr, ByRef ppszEnd As LongPtr, ByRef pcchRemaining As LongPtr) As Long
+
+Public DeclareWide PtrSafe Function PathCchAddBackslash Lib "kernelbase.dll" (ByVal pszPath As String, ByVal cchPath As LongPtr) As Long
+Public Declare PtrSafe Function PathCchAddBackslash Lib "kernelbase.dll" (ByVal pszPath As LongPtr, ByVal cchPath As LongPtr) As Long
+
+Public DeclareWide PtrSafe Function PathCchRemoveBackslashEx Lib "kernelbase.dll" (ByVal pszPath As String, ByVal cchPath As LongPtr, ByRef ppszEnd As LongPtr, ByRef pcchRemaining As LongPtr) As Long
+Public Declare PtrSafe Function PathCchRemoveBackslashEx Lib "kernelbase.dll" (ByVal pszPath As LongPtr, ByVal cchPath As LongPtr, ByRef ppszEnd As LongPtr, ByRef pcchRemaining As LongPtr) As Long
+
+Public DeclareWide PtrSafe Function PathCchRemoveBackslash Lib "kernelbase.dll" (ByVal pszPath As String, ByVal cchPath As LongPtr) As Long
+Public Declare PtrSafe Function PathCchRemoveBackslash Lib "kernelbase.dll" (ByVal pszPath As LongPtr, ByVal cchPath As LongPtr) As Long
+
+Public DeclareWide PtrSafe Function PathCchSkipRoot Lib "kernelbase.dll" (ByVal pszPath As String, ByRef ppszRootEnd As LongPtr) As Long
+Public Declare PtrSafe Function PathCchSkipRoot Lib "kernelbase.dll" (ByVal pszPath As LongPtr, ByRef ppszRootEnd As LongPtr) As Long
+
+Public DeclareWide PtrSafe Function PathCchStripToRoot Lib "kernelbase.dll" (ByVal pszPath As String, ByVal cchPath As LongPtr) As Long
+Public Declare PtrSafe Function PathCchStripToRoot Lib "kernelbase.dll" (ByVal pszPath As LongPtr, ByVal cchPath As LongPtr) As Long
+
+Public DeclareWide PtrSafe Function PathCchRemoveFileSpec Lib "kernelbase.dll" (ByVal pszPath As String, ByVal cchPath As LongPtr) As Long
+Public Declare PtrSafe Function PathCchRemoveFileSpec Lib "kernelbase.dll" (ByVal pszPath As LongPtr, ByVal cchPath As LongPtr) As Long
+
+Public DeclareWide PtrSafe Function PathCchFindExtension Lib "kernelbase.dll" (ByVal pszPath As String, ByVal cchPath As LongPtr, ByRef ppszExt As LongPtr) As Long
+Public Declare PtrSafe Function PathCchFindExtension Lib "kernelbase.dll" (ByVal pszPath As LongPtr, ByVal cchPath As LongPtr, ByRef ppszExt As LongPtr) As Long
+
+Public DeclareWide PtrSafe Function PathCchAddExtension Lib "kernelbase.dll" (ByVal pszPath As String, ByVal cchPath As LongPtr, ByVal pszExt As String) As Long
+Public Declare PtrSafe Function PathCchAddExtension Lib "kernelbase.dll" (ByVal pszPath As LongPtr, ByVal cchPath As LongPtr, ByVal pszExt As LongPtr) As Long
+
+Public DeclareWide PtrSafe Function PathCchRenameExtension Lib "kernelbase.dll" (ByVal pszPath As String, ByVal cchPath As LongPtr, ByVal pszExt As String) As Long
+Public Declare PtrSafe Function PathCchRenameExtension Lib "kernelbase.dll" (ByVal pszPath As LongPtr, ByVal cchPath As LongPtr, ByVal pszExt As LongPtr) As Long
+
+Public DeclareWide PtrSafe Function PathCchRemoveExtension Lib "kernelbase.dll" (ByVal pszPath As String, ByVal cchPath As LongPtr) As Long
+Public Declare PtrSafe Function PathCchRemoveExtension Lib "kernelbase.dll" (ByVal pszPath As LongPtr, ByVal cchPath As LongPtr) As Long
+
+Public DeclareWide PtrSafe Function PathCchCanonicalizeEx Lib "kernelbase.dll" (ByVal pszPathOut As String, ByVal cchPathOut As LongPtr, ByVal pszPathIn As String, ByVal dwFlags As PATHCCH_OPTIONS) As Long
+Public Declare PtrSafe Function PathCchCanonicalizeEx Lib "kernelbase.dll" (ByVal pszPathOut As LongPtr, ByVal cchPathOut As LongPtr, ByVal pszPathIn As LongPtr, ByVal dwFlags As PATHCCH_OPTIONS) As Long
+
+Public DeclareWide PtrSafe Function PathCchCanonicalize Lib "kernelbase.dll" (ByVal pszPathOut As String, ByVal cchPathOut As LongPtr, ByVal pszPathIn As String) As Long
+Public Declare PtrSafe Function PathCchCanonicalize Lib "kernelbase.dll" (ByVal pszPathOut As LongPtr, ByVal cchPathOut As LongPtr, ByVal pszPathIn As LongPtr) As Long
+
+Public DeclareWide PtrSafe Function PathCchCombineEx Lib "kernelbase.dll" (ByVal pszPathOut As String, ByVal cchPathOut As LongPtr, ByVal pszPathIn As String, ByVal pszMore As String, ByVal dwFlags As PATHCCH_OPTIONS) As Long
+Public Declare PtrSafe Function PathCchCombineEx Lib "kernelbase.dll" (ByVal pszPathOut As LongPtr, ByVal cchPathOut As LongPtr, ByVal pszPathIn As LongPtr, ByVal pszMore As LongPtr, ByVal dwFlags As PATHCCH_OPTIONS) As Long
+
+Public DeclareWide PtrSafe Function PathCchCombine Lib "kernelbase.dll" (ByVal pszPathOut As String, ByVal cchPathOut As LongPtr, ByVal pszPathIn As String, ByVal pszMore As String) As Long
+Public Declare PtrSafe Function PathCchCombine Lib "kernelbase.dll" (ByVal pszPathOut As LongPtr, ByVal cchPathOut As LongPtr, ByVal pszPathIn As LongPtr, ByVal pszMore As LongPtr) As Long
+
+Public DeclareWide PtrSafe Function PathCchAppendEx Lib "kernelbase.dll" (ByVal pszPath As String, ByVal cchPath As LongPtr, ByVal pszMore As String, ByVal dwFlags As PATHCCH_OPTIONS) As Long
+Public Declare PtrSafe Function PathCchAppendEx Lib "kernelbase.dll" (ByVal pszPath As LongPtr, ByVal cchPath As LongPtr, ByVal pszMore As LongPtr, ByVal dwFlags As PATHCCH_OPTIONS) As Long
+
+Public DeclareWide PtrSafe Function PathCchAppend Lib "kernelbase.dll" (ByVal pszPath As String, ByVal cchPath As LongPtr, ByVal pszMore As String) As Long
+Public Declare PtrSafe Function PathCchAppend Lib "kernelbase.dll" (ByVal pszPath As LongPtr, ByVal cchPath As LongPtr, ByVal pszMore As LongPtr) As Long
+
+Public DeclareWide PtrSafe Function PathCchStripPrefix Lib "kernelbase.dll" (ByVal pszPath As String, ByVal cchPath As LongPtr) As Long
+Public Declare PtrSafe Function PathCchStripPrefix Lib "kernelbase.dll" (ByVal pszPath As LongPtr, ByVal cchPath As LongPtr) As Long
+
+Public DeclareWide PtrSafe Function PathAllocCombine Lib "kernelbase.dll" (ByVal pszPathIn As String, ByVal pszMore As String, ByVal dwFlags As PATHCCH_OPTIONS, ByRef ppszPathOut As LongPtr) As Long
+Public Declare PtrSafe Function PathAllocCombine Lib "kernelbase.dll" (ByVal pszPathIn As LongPtr, ByVal pszMore As LongPtr, ByVal dwFlags As PATHCCH_OPTIONS, ByRef ppszPathOut As LongPtr) As Long
+
+Public DeclareWide PtrSafe Function PathAllocCanonicalize Lib "kernelbase.dll" (ByVal pszPathIn As String, ByVal dwFlags As PATHCCH_OPTIONS, ByRef ppszPathOut As LongPtr) As Long
+Public Declare PtrSafe Function PathAllocCanonicalize Lib "kernelbase.dll" (ByVal pszPathIn As LongPtr, ByVal dwFlags As PATHCCH_OPTIONS, ByRef ppszPathOut As LongPtr) As Long
+
+'appmgmt.h
+
+Public Enum INSTALLSPECTYPE
+    INSTALLSPECTYPE_APPNAME = 1
+    INSTALLSPECTYPE_FILEEXT
+    INSTALLSPECTYPE_PROGID
+    INSTALLSPECTYPE_COMCLASS
+End Enum
+
+' typedef union _INSTALLSPEC
+' {
+    ' struct
+    ' {
+        ' WCHAR * Name;
+        ' GUID    GPOId;
+    ' } AppName;
+    ' WCHAR * FileExt;
+    ' WCHAR * ProgId;
+    ' struct
+    ' {
+        ' GUID    Clsid;
+        ' DWORD   ClsCtx;
+    ' } COMClass;
+' } INSTALLSPEC;
+Public Type INSTALLSPEC
+    #If Win64 Then
+        u(23) As Byte
+    #Else
+        u(19) as Byte
+    #End If
+End Type
+
+Public Type INSTALLDATA
+    Type As INSTALLSPECTYPE
+    Spec As INSTALLSPEC
+End Type
+
+Public Enum APPSTATE
+    APPSTATE_ABSENT
+    APPSTATE_ASSIGNED
+    APPSTATE_PUBLISHED
+End Enum
+
+Public Enum ManagedAppLocalState
+    LOCALSTATE_ASSIGNED = &H1  ' app is assigned
+    LOCALSTATE_PUBLISHED = &H2  ' app is published
+    LOCALSTATE_UNINSTALL_UNMANAGED = &H4  ' uninstall any unmanaged version before assigning
+    LOCALSTATE_POLICYREMOVE_ORPHAN = &H8  ' app is orphaned when policy removed
+    LOCALSTATE_POLICYREMOVE_UNINSTALL = &H10  ' app is uninstalled when policy removed
+    LOCALSTATE_ORPHANED = &H20  ' app is orphaned after being applied
+    LOCALSTATE_UNINSTALLED = &H40  ' app is uninstalled after being applied
+End Enum
+
+Public Type LOCALMANAGEDAPPLICATION
+    pszDeploymentName As LongPtr
+    pszPolicyName As LongPtr
+    pszProductId As LongPtr
+    dwState As Long
+End Type
+
+Public Enum ManagedAppQueryFlags
+    MANAGED_APPS_USERAPPLICATIONS = &H1
+    MANAGED_APPS_FROMCATEGORY = &H2
+End Enum
+Public Enum ManagedAppInfoLevel
+    MANAGED_APPS_INFOLEVEL_DEFAULT = &H10000
+End Enum
+
+Public Enum ManagedAppType
+    MANAGED_APPTYPE_WINDOWSINSTALLER = &H1
+    MANAGED_APPTYPE_SETUPEXE = &H2
+    MANAGED_APPTYPE_UNSUPPORTED = &H3
+End Enum
+
+Public Type MANAGEDAPPLICATION
+    pszPackageName As LongPtr
+    pszPublisher As LongPtr
+    dwVersionHi As Long
+    dwVersionLo As Long
+    dwRevision As Long
+    GpoId As UUID
+    pszPolicyName As LongPtr
+    ProductId As UUID
+    Language As Integer 'LANGID
+    pszOwner As LongPtr
+    pszCompany As LongPtr
+    pszComments As LongPtr
+    pszContact As LongPtr
+    pszSupportUrl As LongPtr
+    dwPathType As Long
+    bInstalled As BOOL
+End Type
+
+Public Declare PtrSafe Function InstallApplication Lib "advapi32.dll" (ByRef pInstallInfo As INSTALLDATA) As Long
+
+' Strings: wide & pointer overloads
+Public DeclareWide PtrSafe Function UninstallApplication Lib "advapi32.dll" (ByVal ProductCode As String, ByVal dwStatus As Long) As Long
+Public Declare PtrSafe Function UninstallApplication Lib "advapi32.dll" (ByVal ProductCode As LongPtr, ByVal dwStatus As Long) As Long
+
+Public DeclareWide PtrSafe Function CommandLineFromMsiDescriptor Lib "advapi32.dll" (ByVal Descriptor As String, ByVal CommandLine As String, ByRef CommandLineLength As Long) As Long
+Public Declare PtrSafe Function CommandLineFromMsiDescriptor Lib "advapi32.dll" (ByVal Descriptor As LongPtr, ByVal CommandLine As LongPtr, ByRef CommandLineLength As Long) As Long
+ 
+Public Declare PtrSafe Function GetManagedApplications Lib "advapi32.dll" (ByRef pCategory As GUID, ByVal dwQueryFlags As ManagedAppQueryFlags, ByVal dwInfoLevel As ManagedAppInfoLevel, ByRef pdwApps As Long, ByRef prgManagedApps As LongPtr) As Long
+
+Public Declare PtrSafe Function GetLocalManagedApplications Lib "advapi32.dll" (ByVal bUserApps As BOOL, ByRef pdwApps As Long, ByRef prgLocalApps As LongPtr) As Long
+ 
+Public DeclareWide PtrSafe Sub GetLocalManagedApplicationData Lib "advapi32.dll" (ByVal ProductCode As String, ByRef DisplayName As LongPtr, ByRef SupportUrl As LongPtr)
+Public Declare PtrSafe Sub GetLocalManagedApplicationData Lib "advapi32.dll" (ByVal ProductCode As LongPtr, ByRef DisplayName As LongPtr, ByRef SupportUrl As LongPtr)
+ 
+Public Declare PtrSafe Function GetManagedApplicationCategories Lib "advapi32.dll" (ByVal dwReserved As Long, ByRef pAppCategory As APPCATEGORYINFOLIST) As Long
+
+
+
+
+
+
+
 /*
 cards.dll 
 */

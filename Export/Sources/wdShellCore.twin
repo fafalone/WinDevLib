@@ -1,6 +1,6 @@
 '************************************************************************************
 'WinDevLib - Windows Development Library for twinBASIC
-'Version 9.1.595
+'Version 9.1.596
 '(c) 2022-2025 Jon Johnson (fafalone)
 'Project GUID: {1FCDB98D-617D-4995-9736-2ED0E4746A10}
 ' 
@@ -2689,6 +2689,32 @@ Interface IDelegateFolder Extends stdole.IUnknown
     [PreserveSig]
     Function SetItemAlloc(ByVal pmalloc As IMalloc) As Long
 End Interface
+
+[InterfaceId("99180163-DA16-101A-935C-444553540000")]
+[OleAutomation(False)]
+Interface INotifyReplica Extends IUnknown
+    Sub YouAreAReplica(ByVal ulcOtherReplicas As Long, ByRef rgpmkOtherReplicas As IMoniker)
+End Interface
+
+[InterfaceId("99180161-DA16-101A-935C-444553540000")]
+[OleAutomation(False)]
+Interface IReconcileInitiator Extends IUnknown
+    Sub SetAbortCallback(ByVal punkForAbort As IUnknown)
+    Sub SetProgressFeedback(ByVal ulProgress As Long, ByVal ulProgressMax As Long)
+End Interface
+
+[InterfaceId("99180162-DA16-101A-935C-444553540000")]
+[OleAutomation(False)]
+Interface IReconcilableObject Extends IUnknown
+    Sub Reconcile(ByRef pInitiator As IReconcileInitiator, ByVal dwFlags As RECONCILEF, ByVal hwndOwner As LongPtr, ByVal hwndProgressFeedback As LongPtr, ByVal ulcInput As Long, ByRef rgpmkOtherInput As IMoniker, ByRef plOutIndex As Long, ByRef pstgNewResidues As IStorage, ByVal pvReserved As LongPtr)
+    Sub GetProgressFeedbackMaxEstimate(ByRef pulProgressMax As Long)
+End Interface
+
+[InterfaceId("99180164-DA16-101A-935C-444553540000")]
+[OleAutomation(False)]
+Interface IBriefcaseInitiator Extends IUnknown
+    Sub IsMonikerInBriefcase(ByRef pmk As IMoniker)
+End Interface
     
 [InterfaceId("4CD19ADA-25A5-4A32-B3B7-347BEE5BE36B")]
 [OleAutomation(False)]
@@ -3501,6 +3527,45 @@ End Interface
 [InterfaceId("91733A60-3F4C-101B-A3F6-00AA0034E4E9")]
 Interface IGetVBAObject Extends stdole.IUnknown
     Sub GetObject(riid As UUID, ppvObj As Any, ByVal dwReserved As Long)
+End Interface
+
+[InterfaceId("7EBFDD87-AD18-11d3-A4C5-00C04F72D6B8")]
+[Description("ITravelLogEntry interface")]
+[OleAutomation(False)]
+Interface ITravelLogEntry Extends IUnknown
+    [Description("Get page title")] Sub GetTitle(ByRef ppszTitle As LongPtr)
+    [Description("Get URL")] Sub GetURL(ByRef ppszURL As LongPtr)
+End Interface
+
+[InterfaceId("241C033E-E659-43DA-AA4D-4086DBC4758D")]
+[Description("ITravelClient interface")]
+[OleAutomation(False)]
+Interface ITravelLogClient Extends IUnknown
+    [Description("Finds the window with the specified index.")] Sub FindWindowByIndex(ByVal dwID As Long, ByRef ppunk As IUnknown)
+    [Description("Finds and returns the travel entry containing the specified URL.")] Sub GetWindowData(ByVal pStream As IStream, ByRef pWinData As WINDOWDATA)
+    [Description("Loads the Url Location and position")] Sub LoadHistoryPosition(ByVal pszUrlLocation As LongPtr, ByVal dwPosition As Long)
+End Interface
+
+[InterfaceId("7EBFDD85-AD18-11d3-A4C5-00C04F72D6B8")]
+[Description("IEnumTravelLogEntry interface")]
+[OleAutomation(False)]
+Interface IEnumTravelLogEntry Extends IUnknown
+    [Description("Get the next items in the enumeration sequence")] Sub Next(ByVal cElt As Long, ByRef rgElt As ITravelLogEntry, ByRef pcEltFetched As Long)
+    [Description("Skip over the next cElt elements")] Sub Skip(ByVal cElt As Long)
+    [Description("Reset the enumeration sequence")] Sub Reset()
+    [Description("Creates a copy of the current state of enumeration")] Sub Clone(ByRef ppEnum As IEnumTravelLogEntry)
+End Interface
+
+[InterfaceId("7EBFDD80-AD18-11d3-A4C5-00C04F72D6B8")]
+[OleAutomation(False)]
+Interface ITravelLogStg Extends IUnknown
+    [Description("Insert a dummy entry in the travel log")] Sub CreateEntry(ByVal pszUrl As LongPtr, ByVal pszTitle As LongPtr, ByVal ptleRelativeTo As ITravelLogEntry, ByVal fPrepend As BOOL, ByRef pptle As ITravelLogEntry)
+    [Description("Navigate to an entry")] Sub TravelTo(ByVal ptle As ITravelLogEntry)
+    [Description("Create enumerator for travel log entries")] Sub EnumEntries(ByVal flags As TLENUMF, ByRef ppenum As IEnumTravelLogEntry)
+    [Description("Search for all entries with given URL")] Sub FindEntries(ByVal flags As TLENUMF, ByVal pszUrl As LongPtr, ByRef ppenum As IEnumTravelLogEntry)
+    [Description("Number of entries in the travel log")] Sub GetCount(ByVal flags As TLENUMF, ByRef pcEntries As Long)
+    [Description("Delete from travel log")] Sub RemoveEntry(ByVal ptle As ITravelLogEntry)
+    [Description("Get entry from the travel log")] Sub GetRelativeEntry(ByVal iOffset As Long, ByRef ptle As ITravelLogEntry)
 End Interface
 
 
@@ -8616,6 +8681,25 @@ Public Enum PERSIST_SPROPSTORE_FLAGS
     FPSPS_TREAT_NEW_VALUES_AS_DIRTY = &H00000002
 End Enum
 
+Public Type WINDOWDATA
+    dwWindowID As Long 			' Window ID
+    uiCP As Long 				' Codepage of the current entry
+    pidl As LongPtr 			' Current pidl - pidl and lpszUrl are exclusive.
+    lpszUrl As LongPtr 			' Pointer to a buffer to hold the window URL
+    lpszUrlLocation As LongPtr  ' Pointer to a buffer to hold the window URL Location (local anchor).
+    lpszTitle As LongPtr 		' Pointer to a buffer to hold the window Title
+End Type
+
+Public Enum TLENUMF
+    TLEF_RELATIVE_INCLUDE_CURRENT = &H00000001
+    TLEF_RELATIVE_BACK = &H00000010
+    TLEF_RELATIVE_FORE = &H00000020
+    TLEF_INCLUDE_UNINVOKEABLE = &H00000040
+    TLEF_ABSOLUTE = &H00000031
+    TLEF_EXCLUDE_SUBFRAME_ENTRIES = &H00000080
+    TLEF_EXCLUDE_ABOUT_PAGES = &H00000100
+End Enum
+
 [Description("⚠️ **WARNING:** Buffered array substituted for variable C-style array. LenB is invalid. If cbInner > 4095, rgb is invalid.")]
 [PackingAlignment(1)]
 Public Type DELEGATEITEMID
@@ -9949,6 +10033,72 @@ Public Const STR_WPDNSE_FAST_ENUM  = "WPDNSE Fast Enum"
 '  is used.  The limited property set contains name, persistent unique id, and
 '  the content type.
 Public Const STR_WPDNSE_SIMPLE_ITEM  = "WPDNSE SimpleItem"
+
+
+Public Const DLG_SCRNSAVECONFIGURE = 2003
+
+Public Enum ScreenSaverIDs
+    scrnsv_idsIsPassword = 1000
+    scrnsv_idsIniFile = 1001
+    scrnsv_idsScreenSaver = 1002
+    scrnsv_idsPassword = 1003
+    scrnsv_idsDifferentPW = 1004
+    scrnsv_idsChangePW = 1005
+    scrnsv_idsBadOldPW = 1006
+    scrnsv_idsAppName = 1007
+    scrnsv_idsNoHelpMemory = 1008
+    scrnsv_idsHelpFile = 1009
+    scrnsv_idsDefKeyword = 1010
+End Enum
+
+Public Delegate Function ScreenSaverProc (ByVal hWnd As LongPtr, ByVal message As Long, ByVal wParam As LongPtr, ByVal lParam As LongPtr) As LongPtr
+Public Delegate Function ScreenSaverProcW (ByVal hWnd As LongPtr, ByVal message As Long, ByVal wParam As LongPtr, ByVal lParam As LongPtr) As LongPtr
+
+Public Delegate Function DefScreenSaverProc (ByVal hWnd As LongPtr, ByVal msg As Long, ByVal wParam As LongPtr, ByVal lParam As LongPtr) As LongPtr
+
+Public Delegate Function ScreenSaverConfigureDialog (ByVal hDlg As LongPtr, ByVal message As Long, ByVal wParam As LongPtr, ByVal lParam As LongPtr) As BOOL
+
+Public Delegate Function RegisterDialogClasses (ByVal hInst As LongPtr) As BOOL
+
+Public Const SCRM_VERIFYPW  = WM_APP
+
+Public Delegate Sub ScreenSaverChangePassword (ByVal hParent As LongPtr)
+
+
+Public Const REC_S_IDIDTHEUPDATES As Long = &H4100 'MAKE_HRESULT(SEVERITY_SUCCESS, FACILITY_ITF, &H1000)
+Public Const REC_S_NOTCOMPLETE As Long = &H4101 'MAKE_HRESULT(SEVERITY_SUCCESS, FACILITY_ITF, &H1001)
+Public Const REC_S_NOTCOMPLETEBUTPROPAGATE As Long = &H4102 'MAKE_HRESULT(SEVERITY_SUCCESS, FACILITY_ITF, &H1002)
+
+Public Const REC_E_ABORTED As Long = &H80041000 ' MAKE_HRESULT(SEVERITY_ERROR, FACILITY_ITF, &H1000)
+Public Const REC_E_NOCALLBACK As Long = &H80041001 'MAKE_HRESULT(SEVERITY_ERROR, FACILITY_ITF, &H1001)
+Public Const REC_E_NORESIDUES As Long = &H80041002 'MAKE_HRESULT(SEVERITY_ERROR, FACILITY_ITF, &H1002)
+Public Const REC_E_TOODIFFERENT As Long = &H80041003 'MAKE_HRESULT(SEVERITY_ERROR, FACILITY_ITF, &H1003)
+Public Const REC_E_INEEDTODOTHEUPDATES As Long = &H80041004 'MAKE_HRESULT(SEVERITY_ERROR, FACILITY_ITF, &H1004)
+
+Public Enum RECONCILEF
+    '  interaction with the user is allowed
+    RECONCILEF_MAYBOTHERUSER = &H0001
+    '  hwndProgressFeedback may be used to provide reconciliation progress
+    '  feedback to the user.
+    RECONCILEF_FEEDBACKWINDOWVALID = &H0002
+    '  residue support not required
+    RECONCILEF_NORESIDUESOK = &H0004
+    '  caller not interested in callee's residues
+    RECONCILEF_OMITSELFRESIDUE = &H0008
+    '  Reconcile call resuming after a previous Reconcile() call returned
+    '  REC_E_NOTCOMPLETE
+    RECONCILEF_RESUMERECONCILIATION = &H0010
+    '  Object may perform all updates.
+    RECONCILEF_YOUMAYDOTHEUPDATES = &H0020
+    '  Only this object has been changed.
+    RECONCILEF_ONLYYOUWERECHANGED = &H0040
+    '  flag combinations
+    ALL_RECONCILE_FLAGS = (RECONCILEF_MAYBOTHERUSER Or RECONCILEF_FEEDBACKWINDOWVALID Or RECONCILEF_NORESIDUESOK Or RECONCILEF_OMITSELFRESIDUE Or RECONCILEF_RESUMERECONCILIATION Or RECONCILEF_YOUMAYDOTHEUPDATES Or RECONCILEF_ONLYYOUWERECHANGED)
+End Enum
+
+
+
+
 
 Public Const sCLSID_DragDropHelper = "new: {4657278A-411B-11D2-839A-00C04FD918D0}"
 Public Const sCLSID_KnownFolderManager = "new: {4df0c730-df9d-4ae3-9153-aa6b82e9795a}"
