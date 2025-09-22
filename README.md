@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 9.1.595 (September 6th, 2025)**
+**Current Version: 9.1.596 (September 21st, 2025)**
 
 (c) 2022-2025 Jon Johnson (fafalone)
 
@@ -233,6 +233,15 @@ This project has grown well beyond it's original mission of shell programming. W
 
 ### Updates
 
+**Update (v9.1.596, 21 Sep 2025):**
+- Added missing standard shell header tlogstg.h/.idl (100%)
+- Added missing standard shell header PathCch.h (100%)
+- Added missing standard shell header ScrnSave.h (95%; some constants were highly generic names and skipped)
+  Note: ids* constants prefixed with scrnsv_ and placed in enum ScreenSaverIDs.
+- Added missing standard shell header appmgmt.h. Note: Some constants with simple, common names had prefixes added. See header region in wdAPI.twin.
+- Added missing standard shell header Reconcil.h (100%)
+- Added ActiveIMM interfaces (Dimm.h/.idl, 100%)
+  
 **Update (v9.1.595, 06 Sep 2025):**
 - (Bug fix) ID2D1DeviceContext5::CreateSvgDocument missing argument
 - (Bug fix/API Standards) Many uses of Currency not replaced with LongLong (where not explicitly Currency in the SDK). In some cases this would have caused improper alignment.
