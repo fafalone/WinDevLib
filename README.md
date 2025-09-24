@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 9.1.596 (September 21st, 2025)**
+**Current Version: 9.1.598 (September 23rd, 2025)**
 
 (c) 2022-2025 Jon Johnson (fafalone)
 
@@ -232,6 +232,11 @@ Finally, there's numerous additional API sets from small to large for independen
 This project has grown well beyond it's original mission of shell programming. While that's still the largest single part, it's no longer a majority of the code, and the name change now much better reflects the purpose of providing a general Windows API experience like windows.h. Compiler constants and module names/file names have been updated to reflect the name change. tbShellLibImpl is now WinDevLibImpl. There are also some major chanages associated with this update, please see the full changelog below.
 
 ### Updates
+
+**Update (v9.1.598, 23 Sep 2025):**
+- Added numerous missing COM APIs/interfaces from objidl.idl, objidlbase.idl and objbase.h
+- (Bug fix) CoFileTimeNow PreserveSig(False) overload definition incorrect.
+- (Bug fix) Some 'As GUID' arguments escaped replacement with UUID.
 
 **Update (v9.1.596, 21 Sep 2025):**
 - Added missing standard shell header tlogstg.h/.idl (100%)
