@@ -3252,6 +3252,33 @@ End Type
 
 Public Const CCH_MAX_PROPSTG_NAME = 31
 
+Public Const MARSHALINTERFACE_MIN  = 500  ' minimum number of bytes for interface marshal
+/* flags for internet asynchronous And layout docfile */
+Public Const ASYNC_MODE_COMPATIBILITY  = &H00000001
+Public Const ASYNC_MODE_DEFAULT  = &H00000000
+Public Const STGTY_REPEAT  = &H00000100
+Public Const STG_TOEND  = &HFFFFFFFF
+Public Const STG_LAYOUT_SEQUENTIAL  = &H00000000
+Public Const STG_LAYOUT_INTERLEAVED  = &H00000001
+
+Public Enum COMSD
+    SD_LAUNCHPERMISSIONS = 0 ' Machine wide launch permissions
+    SD_ACCESSPERMISSIONS = 1 ' Machine wide acesss permissions
+    SD_LAUNCHRESTRICTIONS = 2 ' Machine wide launch limits
+    SD_ACCESSRESTRICTIONS = 3 ' Machine wide access limits
+End Enum
+
+Public Enum ACTIVATIONTYPE
+    ACTIVATIONTYPE_UNCATEGORIZED = &H0
+    ACTIVATIONTYPE_FROM_MONIKER = &H1
+    ACTIVATIONTYPE_FROM_DATA = &H2
+    ACTIVATIONTYPE_FROM_STORAGE = &H4
+    ACTIVATIONTYPE_FROM_STREAM = &H8
+    ACTIVATIONTYPE_FROM_FILE = &H10
+End Enum
+
+
+
 ' Public Declare PtrSafe Function CoCreateInstance Lib "ole32" (rclsid As Any, ByVal pUnkOuter As LongPtr, ByVal dwClsContext As CLSCTX, riid As Any, pvarResult As Any) As Long
 Public Declare PtrSafe Function CoCreateInstance Lib "ole32" (ByRef clsid As UUID, ByVal pUnkOuter As stdole.IUnknown, ByVal dwClsContext As CLSCTX, ByRef iid As UUID, ByRef ppv As Any) As Long
 Public Declare PtrSafe Function CoCreateGuid Lib "ole32" (ByRef pGUID As UUID) As Long
@@ -3310,6 +3337,7 @@ Public Declare PtrSafe Function PropVariantCopy Lib "ole32" (ByRef pvarDest As A
 Public Declare PtrSafe Function FreePropVariantArray Lib "ole32" (ByVal cVariants As Long, rgvars As Variant) As Long
 Public DeclareWide PtrSafe Function CLSIDFromProgID Lib "ole32" (ByVal lpszProgID As String, ByRef lpclsid As UUID) As Long
 Public DeclareWide PtrSafe Function CLSIDFromProgIDEx Lib "ole32" (ByVal lpszProgID As String, ByRef lpclsid As UUID) As Long
+Public Declare PtrSafe Function CLSIDFromProgIDEx Lib "ole32.dll" (ByVal lpszProgID As LongPtr, ByRef lpclsid As UUID) As Long
 Public DeclareWide PtrSafe Function CLSIDFromString Lib "ole32" (ByVal lpsz As String, ByRef lpclsid As UUID) As Long
 Public Declare PtrSafe Function ProgIDFromCLSID Lib "ole32" (ByRef clsid As UUID, ByRef lplpszProgID As LongPtr) As Long
 Public DeclareWide PtrSafe Function IIDFromString Lib "ole32" (ByVal lpsz As String, lpiid As UUID) As Long
@@ -3368,9 +3396,29 @@ Public Declare PtrSafe Sub CoFreeLibrary Lib "ole32" (ByVal hInst As LongPtr)
 Public Declare PtrSafe Sub CoFreeAllLibraries Lib "ole32" ()
 Public Declare PtrSafe Sub CoFreeUnusedLibraries Lib "ole32" ()
 Public Declare PtrSafe Sub CoFreeUnusedLibrariesEx Lib "ole32" (ByVal dwUnloadDelay As Long, ByVal dwReserved As Long)
+Public Declare PtrSafe Function CoGetInstanceFromFile Lib "ole32" (pServerInfo As COSERVERINFO, pClsid As UUID, ByVal punkOuter As IUnknown, ByVal dwClsCtx As CLSCTX, ByVal grfMode As STGM, ByVal pwszName As LongPtr, ByVal dwCount As Long, pResults As MULTI_QI) As Long
+Public DeclareWide PtrSafe Function CoGetInstanceFromFile Lib "ole32" (pServerInfo As COSERVERINFO, pClsid As UUID, ByVal punkOuter As IUnknown, ByVal dwClsCtx As CLSCTX, ByVal grfMode As STGM, ByVal pwszName As String, ByVal dwCount As Long, pResults As MULTI_QI) As Long
+Public Declare PtrSafe Function CoGetInstanceFromIStorage Lib "ole32" (pServerInfo As COSERVERINFO, pClsid As UUID, ByVal punkOuter As IUnknown, ByVal dwClsCtx As CLSCTX, ByVal grfMode As STGM, ByVal pStg As IStorage, ByVal dwCount As Long, pResults As MULTI_QI) As Long
+ 
 Public Declare PtrSafe Function CoFileTimeNow Lib "ole32" (lpFileTime As FILETIME) As Long
 [PreserveSig(False)]
-Public Declare PtrSafe Function CoFileTimeNow Lib "ole32" () As FILETIME
+Public Declare PtrSafe Function CoFileTimeNow Lib "ole32" () As LongPtr '*FILETIME
+Public Declare PtrSafe Function CoAllowSetForegroundWindow Lib "ole32.dll" (ByVal pUnk As IUnknown, ByVal lpvReserved As LongPtr) As Long
+Public Declare PtrSafe Function DcomChannelSetHResult Lib "ole32.dll" (ByVal pvReserved As LongPtr, ByVal pulReserved As LongPtr, ByVal appsHR As Long) As Long
+Public Declare PtrSafe Function CoIsOle1Class Lib "ole32.dll" (ByRef rclsid As UUID) As BOOL
+Public Declare PtrSafe Function CoFileTimeToDosDateTime Lib "ole32.dll" (ByRef lpFileTime As FILETIME, ByRef lpDosDate As Integer, ByRef lpDosTime As Integer) As BOOL
+Public Declare PtrSafe Function CoDosDateTimeToFileTime Lib "ole32.dll" (ByVal nDosDate As Integer, ByVal nDosTime As Integer, ByRef lpFileTime As FILETIME) As BOOL
+Public Declare PtrSafe Function CoRegisterChannelHook Lib "ole32.dll" (ByRef ExtensionUuid As UUID, ByVal pChannelHook As IChannelHook) As Long
+Public Declare PtrSafe Function CoTreatAsClass Lib "ole32.dll" (ByRef clsidOld As UUID, ByRef clsidNew As UUID) As Long
+Public Declare PtrSafe Function CreateDataCache Lib "ole32.dll" (ByVal pUnkOuter As IUnknown, ByRef rclsid As UUID, ByRef iid As UUID, ByRef ppv As LongPtr) As Long
+Public Declare PtrSafe Function StgOpenAsyncDocfileOnIFillLockBytes Lib "ole32.dll" (ByVal pflb As IFillLockBytes, ByVal grfMode As Long, ByVal asyncFlags As Long, ByRef ppstgOpen As LongPtr) As Long
+Public Declare PtrSafe Function StgGetIFillLockBytesOnILockBytes Lib "ole32.dll" (ByVal pilb As ILockBytes, ByRef ppflb As LongPtr) As Long
+Public Declare PtrSafe Function StgGetIFillLockBytesOnFile Lib "ole32.dll" (ByVal pwcsName As LongPtr, ByRef ppflb As LongPtr) As Long
+Public Declare PtrSafe Function StgOpenLayoutDocfile Lib "ole32.dll" (ByVal pwcsDfName As LongPtr, ByVal grfMode As Long, ByVal reserved As Long, ByRef ppstgOpen As LongPtr) As Long
+Public Declare PtrSafe Function CoInstall Lib "ole32.dll" (ByVal pbc As IBindCtx, ByVal dwFlags As Long, ByRef pClassSpec As Any, ByRef pQuery As Any, ByVal pszCodeBase As LongPtr) As Long
+
+
+
 Public DeclareWide PtrSafe Function CreateStdProgressIndicator Lib "ole32" (ByVal hwndParent As LongPtr, ByVal pszTitle As String, ByVal pIbscCaller As IBindStatusCallback, ppIbsc As IBindStatusCallback) As Long
 [PreserveSig(False)]
 Public DeclareWide PtrSafe Function CreateStdProgressIndicator Lib "ole32" (ByVal hwndParent As LongPtr, ByVal pszTitle As String, ByVal pIbscCaller As IBindStatusCallback) As IBindStatusCallback
@@ -3386,6 +3434,14 @@ Public Declare PtrSafe Sub vbCoUninitialize Lib "ole32" Alias "CoUninitialize" (
 Public Declare PtrSafe Function CoGetMalloc Lib "ole32" (ByVal dwMemContext As MEMCTX, ppMalloc As IMalloc) As Long
 [PreserveSig(False)]
 Public Declare PtrSafe Function CoGetMalloc Lib "ole32" (ByVal dwMemContext As MEMCTX) As IMalloc
+Public Declare PtrSafe Function CoRegisterMallocSpy Lib "ole32" (ByVal pMallocSpy As IMallocSpy) As Long
+Public Declare PtrSafe Function CoRevokeMallocSpy Lib "ole32" () As Long
+Public Declare PtrSafe Function CoCreateStandardMalloc Lib "ole32" (ByVal MEMCTX As MEMCTX, ppMalloc As IMalloc) As Long
+[PreserveSig(False)]
+Public Declare PtrSafe Function CoCreateStandardMalloc Lib "ole32" (ByVal MEMCTX As MEMCTX) As IMalloc
+Public Declare PtrSafe Function CoRegisterInitializeSpy Lib "ole32" (ByVal pSpy As IInitializeSpy, puliCookie As ULARGE_INTEGER) As Long
+Public Declare PtrSafe Function CoRevokeInitializeSpy Lib "ole32" (ByRef uliCookie As ULARGE_INTEGER) As Long
+Public Declare PtrSafe Function CoGetSystemSecurityPermissions Lib "ole32" (ByVal comSDType As COMSD, ppSD As LongPtr /*PSECURITY_DESCRIPTOR*/) As Long
 Public Declare PtrSafe Function CoCreateInstanceEx Lib "ole32" (ByRef clsid As UUID, ByVal pUnkOuter As stdole.IUnknown, ByVal dwClsContext As CLSCTX, pServerInfo As COSERVERINFO, ByVal dwCount As Long, pResults As MULTI_QI) As Long
 Public Declare PtrSafe Function CoGetCurrentProcess Lib "ole32" () As Long
 Public Declare PtrSafe Function CoGetCallerTID Lib "ole32" (lpwdwTID As Long) As Long
@@ -3393,9 +3449,6 @@ Public Declare PtrSafe Function CoGetCurrentLogicalThreadId Lib "ole32" (ByRef p
 Public Declare PtrSafe Function CoGetContextToken Lib "ole32" (pToken As LongPtr) As Long
 Public Declare PtrSafe Function CoGetDefaultContext Lib "ole32" (ByVal aptType As APTTYPE, ByRef riid As UUID, ByRef ppv As Any) As Long
 Public Declare PtrSafe Function CoGetApartmentType Lib "ole32" (pAptType As APTTYPE, pAptQualifier As APTTYPEQUALIFIER) As Long
-Public Declare PtrSafe Function CoCreateStandardMalloc Lib "ole32" (ByVal MEMCTX As MEMCTX, ppMalloc As IMalloc) As Long
-[PreserveSig(False)]
-Public Declare PtrSafe Function CoCreateStandardMalloc Lib "ole32" (ByVal MEMCTX As MEMCTX) As IMalloc
 Public Declare PtrSafe Function CoGetMarshalSizeMax Lib "ole32" (ByRef pulSize As Long, ByRef riid As UUID, ByVal pUnk As stdole.IUnknown, ByVal dwDestContext As MSHCTX, ByRef pvDestContext As Any, ByVal MSHLFLAGS As MSHLFLAGS) As Long
 Public Declare PtrSafe Function CoMarshalInterface Lib "ole32" (ByVal pStm As IStream, ByRef riid As UUID, ByVal pUnk As stdole.IUnknown, ByVal dwDestContext As MSHCTX, ByRef pvDestContext As Any, ByVal MSHLFLAGS As MSHLFLAGS) As Long
 Public Declare PtrSafe Function CoMarshalInterface Lib "ole32" (ByVal pStm As LongPtr, ByRef riid As UUID, ByVal pUnk As stdole.IUnknown, ByVal dwDestContext As MSHCTX, ByRef pvDestContext As Any, ByVal MSHLFLAGS As MSHLFLAGS) As Long
@@ -41753,7 +41806,7 @@ Public Type WEBAUTHN_AUTHENTICATOR_MAKE_CREDENTIAL_OPTIONS
     ' Version of this structure, to allow for modifications in the future.
     dwVersion As WebauthnAuthMakeCredOptions
     ' Time that the operation is expected to complete within.
-    ' This is used as guidance, and can be overridden by the platform.
+    ' This is used As UUIDance, and can be overridden by the platform.
     dwTimeoutMilliseconds As Long
     ' Credentials used for exclusion.
     CredentialList As WEBAUTHN_CREDENTIALS
@@ -41824,7 +41877,7 @@ Public Type WEBAUTHN_AUTHENTICATOR_GET_ASSERTION_OPTIONS
     ' Version of this structure, to allow for modifications in the future.
     dwVersion As WebauthnAuthGetAssertOptsVersions
     ' Time that the operation is expected to complete within.
-    ' This is used as guidance, and can be overridden by the platform.
+    ' This is used As UUIDance, and can be overridden by the platform.
     dwTimeoutMilliseconds As Long
     ' Allowed Credentials List.
     CredentialList As WEBAUTHN_CREDENTIALS
@@ -46230,7 +46283,7 @@ Public Type INSTALLSPEC
     #If Win64 Then
         u(23) As Byte
     #Else
-        u(19) as Byte
+        u(19) As Byte
     #End If
 End Type
 
@@ -46304,7 +46357,7 @@ Public Declare PtrSafe Function UninstallApplication Lib "advapi32.dll" (ByVal P
 Public DeclareWide PtrSafe Function CommandLineFromMsiDescriptor Lib "advapi32.dll" (ByVal Descriptor As String, ByVal CommandLine As String, ByRef CommandLineLength As Long) As Long
 Public Declare PtrSafe Function CommandLineFromMsiDescriptor Lib "advapi32.dll" (ByVal Descriptor As LongPtr, ByVal CommandLine As LongPtr, ByRef CommandLineLength As Long) As Long
  
-Public Declare PtrSafe Function GetManagedApplications Lib "advapi32.dll" (ByRef pCategory As GUID, ByVal dwQueryFlags As ManagedAppQueryFlags, ByVal dwInfoLevel As ManagedAppInfoLevel, ByRef pdwApps As Long, ByRef prgManagedApps As LongPtr) As Long
+Public Declare PtrSafe Function GetManagedApplications Lib "advapi32.dll" (ByRef pCategory As UUID, ByVal dwQueryFlags As ManagedAppQueryFlags, ByVal dwInfoLevel As ManagedAppInfoLevel, ByRef pdwApps As Long, ByRef prgManagedApps As LongPtr) As Long
 
 Public Declare PtrSafe Function GetLocalManagedApplications Lib "advapi32.dll" (ByVal bUserApps As BOOL, ByRef pdwApps As Long, ByRef prgLocalApps As LongPtr) As Long
  
