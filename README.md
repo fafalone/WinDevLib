@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 9.1.600 (September 23rd, 2025)**
+**Current Version: 9.1.602 (September 24th, 2025)**
 
 (c) 2022-2025 Jon Johnson (fafalone)
 
@@ -232,6 +232,10 @@ Finally, there's numerous additional API sets from small to large for independen
 This project has grown well beyond it's original mission of shell programming. While that's still the largest single part, it's no longer a majority of the code, and the name change now much better reflects the purpose of providing a general Windows API experience like windows.h. Compiler constants and module names/file names have been updated to reflect the name change. tbShellLibImpl is now WinDevLibImpl. There are also some major chanages associated with this update, please see the full changelog below.
 
 ### Updates
+
+**Update (v9.1.602, 24 Sep 2025):**
+- Added numerous missing COM APIs/interfaces from objidl.idl, objidlbase.idl and objbase.h
+- (Bug fix) Numerous instances of LongPtr that should be As Any and ByVal/ByRef mixups in additions from last release.
 
 **Update (v9.1.600, 23 Sep 2025):**
 - Added numerous missing COM APIs/interfaces from objidl.idl, objidlbase.idl and objbase.h
