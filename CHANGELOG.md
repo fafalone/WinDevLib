@@ -1,4 +1,8 @@
 
+**Update (v9.1.602, 24 Sep 2025):**
+- Added numerous missing COM APIs/interfaces from objidl.idl, objidlbase.idl and objbase.h
+- (Bug fix) Numerous instances of LongPtr that should be As Any and ByVal/ByRef mixups in additions from last release.
+
 **Update (v9.1.600, 23 Sep 2025):**
 - Added numerous missing COM APIs/interfaces from objidl.idl, objidlbase.idl and objbase.h
 - (Bug fix) CoFileTimeNow PreserveSig(False) overload definition incorrect.

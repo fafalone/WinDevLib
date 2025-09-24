@@ -1,8 +1,7 @@
 Known omissions where a priority update neccessitated not finishing 
 before release, or waiting on feature support:
 
-- Continue objidlbase.idl after IPipe* interfaces, objbase.h after CoInstall
-
+  
 - d3d8 flag args
 
 - Verify dinput static lib replacements
@@ -192,10 +191,10 @@ Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.
     bdatypes.h,bdaiface_enums.h,bdaiface.h,bdaiface.idl,mpeg2structs.h,Mpeg2Structs.idl,Mpeg2Bits.h,Mpeg2Data.h,Mpeg2Data.idl,Mpeg2PsiParser.idl,AtscPsipParser.h,
     callobj.h,callobj.idl,WbemCli.h,WbemCli.idl,WMIUtils.h,WMIUtils.idl,dinput.h,icm.h,wcsplugin.h,wcsplugin.idl,jobapi.h,jobapi2.h,mixerocx.h,mixerocx.idl,
     SensAPI.h,Sens.h,SensEvts.idl,OleDlg.h,dplay8.h,dpaddr.h,dplobby8.h,dpnathlp.h,d3d8.h,d3d8types.h,d3d8caps.h,
-    tlogstg.h,tlogstg.idl,PathCch.h,appmgmt.h,Dimm.h,Dimm.idl,Reconcil.h,
-     
+    tlogstg.h,tlogstg.idl,PathCch.h,appmgmt.h,Dimm.h,Dimm.idl,Reconcil.h,objbase.h,objidlbase.h,objidlbase.idl,
+      
 Coverage in the 90%+ range\
-    winbase.h, oleidl.h, oaidl.h, ocidl.h, ocidl.idl, presentation.h,ScrnSave.h
+    winbase.h, oleidl.h, oaidl.h, ocidl.h, ocidl.idl, ,objidl.h,objidl.idl,presentation.h,ScrnSave.h
 
 Substantial coverage\
     mmsciapi.h, winnt.h,winternl.h,immdev.h,winioctl.h,mmreg.h,WS2spi.h,winerror.h,WindowsSearchErrors.h,windowsx.h,
