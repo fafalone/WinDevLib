@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 9.1.598 (September 23rd, 2025)**
+**Current Version: 9.1.600 (September 23rd, 2025)**
 
 (c) 2022-2025 Jon Johnson (fafalone)
 
@@ -233,7 +233,7 @@ This project has grown well beyond it's original mission of shell programming. W
 
 ### Updates
 
-**Update (v9.1.598, 23 Sep 2025):**
+**Update (v9.1.600, 23 Sep 2025):**
 - Added numerous missing COM APIs/interfaces from objidl.idl, objidlbase.idl and objbase.h
 - (Bug fix) CoFileTimeNow PreserveSig(False) overload definition incorrect.
 - (Bug fix) Some 'As GUID' arguments escaped replacement with UUID.
