@@ -1,4 +1,9 @@
 
+**Update (v9.1.600, 23 Sep 2025):**
+- Added numerous missing COM APIs/interfaces from objidl.idl, objidlbase.idl and objbase.h
+- (Bug fix) CoFileTimeNow PreserveSig(False) overload definition incorrect.
+- (Bug fix) Some 'As GUID' arguments escaped replacement with UUID.
+
 **Update (v9.1.596, 21 Sep 2025):**
 - Added missing standard shell header tlogstg.h/.idl (100%)
 - Added missing standard shell header PathCch.h (100%)

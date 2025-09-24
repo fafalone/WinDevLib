@@ -1,6 +1,8 @@
 Known omissions where a priority update neccessitated not finishing 
 before release, or waiting on feature support:
 
+- Continue objidlbase.idl after IPipe* interfaces, objbase.h after CoInstall
+
 - d3d8 flag args
 
 - Verify dinput static lib replacements
