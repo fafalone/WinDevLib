@@ -1,4 +1,11 @@
 
+**Update (v9.1.603, 24 Sep 2025):**
+- Some additional process heap APIs
+- Misc bug fixes and API standards corrections
+- (Bug fix) ICallFrameWalker, D3D10CreateBlob ByVal/ByRef
+- (Bug fix) ISearchCatalogManager::GetParameter definition incorrect
+- (Bug fix) IViewObject::Draw definition incorrect for x64
+
 **Update (v9.1.602, 24 Sep 2025):**
 - Added numerous missing COM APIs/interfaces from objidl.idl, objidlbase.idl and objbase.h
 - (Bug fix) Numerous instances of LongPtr that should be As Any and ByVal/ByRef mixups in additions from last release.

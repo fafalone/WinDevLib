@@ -42,8 +42,7 @@ IMFMediaEngineNeedKeyNotify,IMFMediaEngineEMENotify,IMFMediaKeySessionNotify2
 - winbio_adapter.h
  
 - vfw.h/vfsmsg/vfwext (AVIFil32 done; other sections under consideration)
- 
-
+  
 - SQL.h/obdc32.dll (needs Alias support)
 
 - test IsVariantString / IsPropVariantString
