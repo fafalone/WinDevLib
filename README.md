@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 9.1.603 (September 24th, 2025)**
+**Current Version: 9.1.606 (October 10th, 2025)**
 
 (c) 2022-2025 Jon Johnson (fafalone)
 
@@ -232,6 +232,15 @@ Finally, there's numerous additional API sets from small to large for independen
 This project has grown well beyond it's original mission of shell programming. While that's still the largest single part, it's no longer a majority of the code, and the name change now much better reflects the purpose of providing a general Windows API experience like windows.h. Compiler constants and module names/file names have been updated to reflect the name change. tbShellLibImpl is now WinDevLibImpl. There are also some major chanages associated with this update, please see the full changelog below.
 
 ### Updates
+
+**Update (v9.1.606, 10 Oct 2025):**
+- Added Microsoft Active Accessibility Text Services interfaces/coclasses (MSAAText.h/.idl, TextStor.h/.idl 100%)
+- Added many Comctl/dwn/uxtheme overloads for using either String or LongPtr/StrPtr
+- Restored version gating around va_list APIs per https://github.com/fafalone/WinDevLib/issues/41
+- Remaining _CONTEXT usages changed to CONTEXT.
+- Misc Native API additions
+- (Bug fix) wvnsprintfW definition incorrect
+- (Bug fix) DrawShadowText expects LPCWSTR but used String without DeclareWide (now overloaded to accept either properly)
 
 **Update (v9.1.603, 24 Sep 2025):**
 - Some additional process heap APIs
