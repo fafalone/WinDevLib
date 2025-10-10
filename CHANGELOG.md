@@ -1,4 +1,13 @@
 
+**Update (v9.1.606, 10 Oct 2025):**
+- Added Microsoft Active Accessibility Text Services interfaces/coclasses (MSAAText.h/.idl, TextStor.h/.idl 100%)
+- Added many Comctl/dwn/uxtheme overloads for using either String or LongPtr/StrPtr
+- Restored version gating around va_list APIs per https://github.com/fafalone/WinDevLib/issues/41
+- Remaining _CONTEXT usages changed to CONTEXT.
+- Misc Native API additions
+- (Bug fix) wvnsprintfW definition incorrect
+- (Bug fix) DrawShadowText expects LPCWSTR but used String without DeclareWide (now overloaded to accept either properly)
+
 **Update (v9.1.603, 24 Sep 2025):**
 - Some additional process heap APIs
 - Misc bug fixes and API standards corrections
