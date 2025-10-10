@@ -5789,6 +5789,53 @@ Public Type WOW64_LDT_ENTRY
     BaseHi As Byte
 End Type
 
+Public Type KNONVOLATILE_CONTEXT_POINTERS
+    ' union {
+        ' PM128A FloatingContext[16];
+        ' struct {
+            ' PM128A Xmm0;
+            ' PM128A Xmm1;
+            ' PM128A Xmm2;
+            ' PM128A Xmm3;
+            ' PM128A Xmm4;
+            ' PM128A Xmm5;
+            ' PM128A Xmm6;
+            ' PM128A Xmm7;
+            ' PM128A Xmm8;
+            ' PM128A Xmm9;
+            ' PM128A Xmm10;
+            ' PM128A Xmm11;
+            ' PM128A Xmm12;
+            ' PM128A Xmm13;
+            ' PM128A Xmm14;
+            ' PM128A Xmm15;
+        ' } DUMMYSTRUCTNAME;
+    ' } DUMMYUNIONNAME;
+    FloatingContext(15) As LongPtr
+    ' union {
+        ' PDWORD64 IntegerContext[16];
+        ' struct {
+            ' PDWORD64 Rax;
+            ' PDWORD64 Rcx;
+            ' PDWORD64 Rdx;
+            ' PDWORD64 Rbx;
+            ' PDWORD64 Rsp;
+            ' PDWORD64 Rbp;
+            ' PDWORD64 Rsi;
+            ' PDWORD64 Rdi;
+            ' PDWORD64 R8;
+            ' PDWORD64 R9;
+            ' PDWORD64 R10;
+            ' PDWORD64 R11;
+            ' PDWORD64 R12;
+            ' PDWORD64 R13;
+            ' PDWORD64 R14;
+            ' PDWORD64 R15;
+        ' } DUMMYSTRUCTNAME;
+    ' } DUMMYUNIONNAME2;
+    IntegerContext(15) As LongLong
+End Type
+
 #Else
 
 Public Enum EXCEPTION_CONTEXT_FLAGS
@@ -5931,6 +5978,10 @@ Public Type CONTEXT
     ' contains the flag CONTEXT_EXTENDED_REGISTERS.
     ' The format and contexts are processor specific
     ExtendedRegisters(0 To (MAXIMUM_SUPPORTED_EXTENSION - 1)) As Byte
+End Type
+
+Public Type KNONVOLATILE_CONTEXT_POINTERS
+    Dummy as Long
 End Type
 #End If
 
@@ -6500,8 +6551,8 @@ Public Declare PtrSafe Function DebugSetProcessKillOnExit Lib "kernel32" (ByVal 
 Public Declare PtrSafe Function DebugBreakProcess Lib "kernel32" (ByVal hProcess As LongPtr) As BOOL
 Public Declare PtrSafe Sub FatalExit Lib "kernel32" (ByVal ExitCode As Long)
 Public Declare PtrSafe Function FlushInstructionCache Lib "kernel32" (ByVal hProcess As LongPtr, ByVal lpBaseAddress As LongPtr, ByVal dwSize As LongPtr) As BOOL
-Public Declare PtrSafe Function GetThreadContext Lib "kernel32" (ByVal hThread As LongPtr, lpContext As _CONTEXT) As BOOL
-Public Declare PtrSafe Function SetThreadContext Lib "kernel32" (ByVal hThread As LongPtr, lpContext As _CONTEXT) As BOOL
+Public Declare PtrSafe Function GetThreadContext Lib "kernel32" (ByVal hThread As LongPtr, lpContext As CONTEXT) As BOOL
+Public Declare PtrSafe Function SetThreadContext Lib "kernel32" (ByVal hThread As LongPtr, lpContext As CONTEXT) As BOOL
 #If Win64 Then
 Public Declare PtrSafe Function Wow64GetThreadContext Lib "kernel32" (ByVal hThread As LongPtr, lpContext As WOW64_CONTEXT) As BOOL
 Public Declare PtrSafe Function Wow64SetThreadContext Lib "kernel32" (ByVal hThread As LongPtr, lpContext As WOW64_CONTEXT) As BOOL
@@ -20333,7 +20384,12 @@ Public Delegate Function RTL_ENUM_HEAPS_ROUTINE (ByVal HeapHandle As LongPtr, By
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlValidateCorrelationVector Lib "ntdll" (CorrelationVector As CORRELATION_VECTOR) As Long
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlCaptureStackBackTrace Lib "ntdll" (ByVal FramesToSkip As Long, ByVal FramesToCapture As Long, BackTrace As LongPtr, Optional BackTraceHash As Long) As Integer
 [UseGetLastError(False)] Public Declare PtrSafe Sub RtlUnwind Lib "ntdll" (ByVal TargetFrame As LongPtr, ByVal TargetIp As LongPtr, ExceptionRecord As EXCEPTION_RECORD, ByVal ReturnValue As LongPtr)
-[UseGetLastError(False)] Public Declare PtrSafe Sub RtlUnwindEx Lib "ntdll" (ByVal TargetFrame As LongPtr, ByVal TargetIp As LongPtr, ExceptionRecord As EXCEPTION_RECORD, ByVal ReturnValue As LongPtr, ContextRecord As _CONTEXT, HistoryTable As UNWIND_HISTORY_TABLE)
+[UseGetLastError(False)] Public Declare PtrSafe Sub RtlUnwindEx Lib "ntdll" (ByVal TargetFrame As LongPtr, ByVal TargetIp As LongPtr, ExceptionRecord As EXCEPTION_RECORD, ByVal ReturnValue As LongPtr, ContextRecord As CONTEXT, HistoryTable As UNWIND_HISTORY_TABLE)
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlVirtualUnwind Lib "ntdll" (ByVal HandlerType As Long, ByVal ImageBase As LongPtr, ByVal ControlPc As LongPtr, FunctionEntry As RUNTIME_FUNCTION, ContextRecord As CONTEXT, HandlerData As LongPtr, EstablisherFrame As LongPtr, ContextPointers As KNONVOLATILE_CONTEXT_POINTERS) As LongPtr 'PEXCEPTION_ROUTINE
+[UseGetLastError(False)] Public Declare PtrSafe Sub RtlCaptureContext Lib "ntdll" (ContextRecord As CONTEXT)
+#If Win64 Then
+[UseGetLastError(False)] Public Declare PtrSafe Sub RtlCaptureContext2 Lib "ntdll" (ContextRecord As CONTEXT)
+#End If
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlQueryElevationFlags Lib "ntdll" (pFlags As ElevationFlags) As NTSTATUS
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlAddFunctionTable CDecl Lib "ntdll" (FunctionTable As RUNTIME_FUNCTION, ByVal EntryCount As Long, ByVal BaseAddress As LongLong) As Byte
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlDeleteFunctionTable CDecl Lib "ntdll" (FunctionTable As RUNTIME_FUNCTION) As Byte
