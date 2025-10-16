@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 9.1.606 (October 10th, 2025)**
+**Current Version: 9.1.607 (October 16th, 2025)**
 
 (c) 2022-2025 Jon Johnson (fafalone)
 
@@ -232,6 +232,15 @@ Finally, there's numerous additional API sets from small to large for independen
 This project has grown well beyond it's original mission of shell programming. While that's still the largest single part, it's no longer a majority of the code, and the name change now much better reflects the purpose of providing a general Windows API experience like windows.h. Compiler constants and module names/file names have been updated to reflect the name change. tbShellLibImpl is now WinDevLibImpl. There are also some major chanages associated with this update, please see the full changelog below.
 
 ### Updates
+
+**Update (v9.1.607, 16 Oct 2025):**
+- (Bug fix) GetEnvironmentStrings[A], GetCommandLine[A], StrCat[A], StrCpyN[A], CharUpper[A], CharLower[A], 
+      D3D10GetPixelShaderProfile, D3D10GetVertexShaderProfile, D3D10GetGeometryShaderProfile had String returns
+      for non-BSTR strings, causing access violations or incorrect values.
+- (WinDevLibImpl) Added Media Foundation PreserveSig notify interfaces. You *should* be able to use the
+   versions in WinDevLib main, and indeed IMFTimedTextNotify has PreserveSig commented out and appears to
+   work, but just in case I added them.
+- (WinDevLibImpl) Removed empty modules since all they did was cause name conflicts.
 
 **Update (v9.1.606, 10 Oct 2025):**
 - Added Microsoft Active Accessibility Text Services interfaces/coclasses (MSAAText.h/.idl, TextStor.h/.idl 100%)
