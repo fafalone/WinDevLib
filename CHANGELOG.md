@@ -1,4 +1,13 @@
 
+
+**Update (v9.1.608, 26 Oct 2025):**
+- Experimental: WDL_QUALIFY compiler const will remove everything except interfaces and coclasses from the global
+ namespace and require it to be prefixed with "WinDevLib."
+- Added coverage of SubAuth.h (100%, inc delegates)
+- (Bug fix) ISecurityInformation::GetSecurity missing argument
+- (Bug fix) IEffectivePermission2 incorrect argument and API Standards noncompliance
+- (Bug fix) MEMORY_BASIC_INFORMATION extra member in 32bit
+
 **Update (v9.1.607, 16 Oct 2025):**
 - (Bug fix) GetEnvironmentStrings[A], GetCommandLine[A], StrCat[A], StrCpyN[A], CharUpper[A], CharLower[A], 
       D3D10GetPixelShaderProfile, D3D10GetVertexShaderProfile, D3D10GetGeometryShaderProfile had String returns
