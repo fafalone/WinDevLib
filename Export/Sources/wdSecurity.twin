@@ -37,8 +37,8 @@
     [OleAutomation(False)]
     Interface ISecurityInformation Extends stdole.IUnknown
         Sub GetObjectInformation(ByRef pObjectInfo As SI_OBJECT_INFO)
-        Sub GetSecurity(ByVal RequestedInformation As Long, ByRef pSecurityDescriptor As LongPtr)
-        Sub SetSecurity(ByVal securityInformation As Long, ByVal pSecurityDescriptpr As LongPtr)
+        Sub GetSecurity(ByVal RequestedInformation As SECURITY_INFORMATION, ByRef pSecurityDescriptor As LongPtr, ByVal fDefault As BOOL)
+        Sub SetSecurity(ByVal securityInformation As SECURITY_INFORMATION, ByVal pSecurityDescriptpr As LongPtr)
         Sub GetAccessRights(ByRef pguidObjectType As UUID, ByVal dwFlags As Long, ByRef ppAccess As LongPtr, ByRef pcAccesses As Long, ByRef piDefaultAccess As Long)
         Sub MapGeneric(ByRef pguidObjectType As UUID, ByVal pAceFlags As LongPtr, ByRef pMask As Long)
         Sub GetInheritTypes(ByRef ppInheritTypes As LongPtr, ByRef pcInheritTypes As Long)
@@ -80,11 +80,19 @@
     [InterfaceId("941FABCA-DD47-4FCA-90BB-B0E10255F20D")]
     [OleAutomation(False)]
     Interface IEffectivePermission2 Extends stdole.IUnknown
-        Sub ComputeEffectivePermissionWithSecondarySecurity(ByVal pSid As LongPtr, ByVal pDeviceSid As LongPtr, ByVal pszServerName As LongPtr, ByRef pSecurityObjects As SECURITY_OBJECT, ByVal dwSecurityObjectCount As Long, ByVal pUserGroups As LongPtr, ByVal pAuthzUserGroupsOperations As LongPtr, ByVal pDeviceGroups As LongPtr, ByVal pAuthzDeviceGroupsOperations As LongPtr, ByVal pAuthzUserClaims As LongPtr, ByVal pAuthzUserClaimsOperations As LongPtr, ByVal pAuthzDeviceClaims As LongPtr, ByVal pAuthzDeviceClaimsOperations As LongPtr, ByRef pEffpermResultLists As LongPtr)
+        Sub ComputeEffectivePermissionWithSecondarySecurity(ByVal pSid As LongPtr, ByVal pDeviceSid As LongPtr, ByVal pszServerName As LongPtr, _
+                  pSecurityObjects As SECURITY_OBJECT, ByVal dwSecurityObjectCount As Long, pUserGroups As TOKEN_GROUPS, _
+                  pAuthzUserGroupsOperations As AUTHZ_SID_OPERATION, pDeviceGroups As TOKEN_GROUPS, _
+                  pAuthzDeviceGroupsOperations As AUTHZ_SID_OPERATION, pAuthzUserClaims As AUTHZ_SECURITY_ATTRIBUTES_INFORMATION, _
+                  pAuthzUserClaimsOperations As AUTHZ_SECURITY_ATTRIBUTE_OPERATION, pAuthzDeviceClaims As AUTHZ_SECURITY_ATTRIBUTES_INFORMATION, _
+                  pAuthzDeviceClaimsOperations As AUTHZ_SECURITY_ATTRIBUTE_OPERATION, pEffpermResultLists As EFFPERM_RESULT_LIST)
     End Interface
 
     
     
+#If WDL_QUALIFY Then
+[MustBeQualified]
+#End If
 Module wdSecurity
 
 
@@ -2942,6 +2950,228 @@ Public Declare PtrSafe Function KeyCredentialManagerShowUIOperation Lib "KeyCred
 Public Declare PtrSafe Function KeyCredentialManagerGetInformation Lib "KeyCredMgr.dll" (keyCredentialManagerInfo As LongPtr) As Long
 [UseGetLastError(False)]
 Public Declare PtrSafe Sub KeyCredentialManagerFreeInformation Lib "KeyCredMgr.dll" (ByVal keyCredentialManagerInfo As LongPtr)
+
+
+'SubAuth.h
+
+
+Public Type OLD_LARGE_INTEGER
+    LowPart As Long
+    HighPart As Long
+End Type
+
+Public Const SAM_DAYS_PER_WEEK  = (7)
+Public Const SAM_HOURS_PER_WEEK  = (24 * SAM_DAYS_PER_WEEK)
+Public Const SAM_MINUTES_PER_WEEK  = (60 * SAM_HOURS_PER_WEEK)
+
+Public Type LOGON_HOURS
+    UnitsPerWeek As Integer
+    ' UnitsPerWeek is the number of equal length time units the week is
+    ' divided into.  This value is used to compute the length of the bit
+    ' string in logon_hours.  Must be less than or equal to
+    ' SAM_UNITS_PER_WEEK (10080) for this release.
+    ' LogonHours is a bit map of valid logon times.  Each bit represents
+    ' a unique division in a week.  The largest bit map supported is 1260
+    ' bytes (10080 bits), which represents minutes per week.  In this case
+    ' the first bit (bit 0, byte 0) is Sunday, 00:00:00 - 00-00:59; bit 1,
+    ' byte 0 is Sunday, 00:01:00 - 00:01:59, etc.  A NULL pointer means
+    ' DONT_CHANGE for SamSetInformationUser() calls.
+    LogonHours As LongPtr
+End Type
+
+Public Type SR_SECURITY_DESCRIPTOR
+    Length As Long
+    SecurityDescriptor As LongPtr
+End Type
+
+[PackingAlignment(4)]
+Public Type USER_ALL_INFORMATION
+    LastLogon As LARGE_INTEGER
+    LastLogoff As LARGE_INTEGER
+    PasswordLastSet As LARGE_INTEGER
+    AccountExpires As LARGE_INTEGER
+    PasswordCanChange As LARGE_INTEGER
+    PasswordMustChange As LARGE_INTEGER
+    UserName As UNICODE_STRING
+    FullName As UNICODE_STRING
+    HomeDirectory As UNICODE_STRING
+    HomeDirectoryDrive As UNICODE_STRING
+    ScriptPath As UNICODE_STRING
+    ProfilePath As UNICODE_STRING
+    AdminComment As UNICODE_STRING
+    WorkStations As UNICODE_STRING
+    UserComment As UNICODE_STRING
+    Parameters As UNICODE_STRING
+    LmPassword As UNICODE_STRING
+    NtPassword As UNICODE_STRING
+    PrivateData As UNICODE_STRING
+    SecurityDescriptor As SR_SECURITY_DESCRIPTOR
+    UserId As Long
+    PrimaryGroupId As Long
+    UserAccountControl As Long
+    WhichFields As Long
+    LogonHours As LOGON_HOURS
+    BadPasswordCount As Integer
+    LogonCount As Integer
+    CountryCode As Integer
+    CodePage As Integer
+    LmPasswordPresent As Byte
+    NtPasswordPresent As Byte
+    PasswordExpired As Byte
+    PrivateDataSensitive As Byte
+End Type
+
+Public Const USER_ALL_PARAMETERS  = &H00200000
+ 
+Public Const CLEAR_BLOCK_LENGTH  = 8
+
+Public Type CLEAR_BLOCK
+    data(0 To (CLEAR_BLOCK_LENGTH - 1)) As Byte
+End Type
+' Alias CLEAR_BLOCK                 LM_CHALLENGE;
+Public Type LM_CHALLENGE
+    data(0 To (CLEAR_BLOCK_LENGTH - 1)) As Byte
+End Type
+
+
+Public Const CYPHER_BLOCK_LENGTH = 8
+
+Public Type CYPHER_BLOCK
+    data(0 To (CYPHER_BLOCK_LENGTH - 1)) As Byte
+End Type
+
+Public Type LM_OWF_PASSWORD
+    data(0 To 1) As CYPHER_BLOCK
+End Type
+'Alias NT_OWF_PASSWORD As LM_OWF_PASSWORD
+Public Type NT_OWF_PASSWORD
+    data(0 To 1) As CYPHER_BLOCK
+End Type
+
+
+
+
+Public Const USER_SESSION_KEY_LENGTH = (CYPHER_BLOCK_LENGTH * 2)
+
+Public Type USER_SESSION_KEY
+    data(0 To 1) As CYPHER_BLOCK
+End Type
+
+Public Enum NETLOGON_LOGON_INFO_CLASS
+    NetlogonInteractiveInformation = 1
+    NetlogonNetworkInformation
+    NetlogonServiceInformation
+    NetlogonGenericInformation
+    NetlogonInteractiveTransitiveInformation
+    NetlogonNetworkTransitiveInformation
+    NetlogonServiceTransitiveInformation
+    NetlogonTicketLogonInformation
+End Enum
+
+Public Type NETLOGON_LOGON_IDENTITY_INFO
+    LogonDomainName As UNICODE_STRING
+    ParameterControl As Long
+    LogonId As OLD_LARGE_INTEGER
+    UserName As UNICODE_STRING
+    Workstation As UNICODE_STRING
+End Type
+
+Public Type NETLOGON_INTERACTIVE_INFO
+    Identity As NETLOGON_LOGON_IDENTITY_INFO
+    LmOwfPassword As LM_OWF_PASSWORD
+    NtOwfPassword As NT_OWF_PASSWORD
+End Type
+
+Public Type NETLOGON_SERVICE_INFO
+    Identity As NETLOGON_LOGON_IDENTITY_INFO
+    LmOwfPassword As LM_OWF_PASSWORD
+    NtOwfPassword As NT_OWF_PASSWORD
+End Type
+
+Public Type NETLOGON_NETWORK_INFO
+    Identity As NETLOGON_LOGON_IDENTITY_INFO
+    LmChallenge As LM_CHALLENGE
+    NtChallengeResponse As NT_STRING
+    LmChallengeResponse As NT_STRING
+End Type
+
+Public Type NETLOGON_GENERIC_INFO
+    Identity As NETLOGON_LOGON_IDENTITY_INFO
+    PackageName As UNICODE_STRING
+    DataLength As Long
+    LogonData As LongPtr
+End Type
+
+Public Enum NetLogonTargetInfoTypes
+    NETLOGON_TARGET_INFO_TYPE_NTLM = 1
+    NETLOGON_TARGET_INFO_TYPE_KERBEROS = 2
+End Enum
+Public Type NETLOGON_TARGET_INFO
+    Type As NetLogonTargetInfoTypes
+    NbComputerName As UNICODE_STRING
+    NbDomainName As UNICODE_STRING
+    DnsComputerName As UNICODE_STRING
+    DnsDomainName As UNICODE_STRING
+    DnsTreeName As UNICODE_STRING
+    TargetName As UNICODE_STRING
+End Type
+
+Public Enum MSV1_0_SubAuthRoutineFlags
+    MSV1_0_PASSTHRU = &H01
+    MSV1_0_GUEST_LOGON = &H02
+    MSV1_0_KERBEROS_LOGON = &H04
+End Enum
+
+Public Delegate Function Msv1_0SubAuthenticationRoutine (ByVal LogonLevel As NETLOGON_LOGON_INFO_CLASS, _
+                                                        ByVal LogonInformation As LongPtr, _
+                                                        ByVal Flags As MSV1_0_SubAuthRoutineFlags, _
+                                                        UserAll As USER_ALL_INFORMATION, _
+                                                        WhichFields As MSV1_0_ValidationFields, _
+                                                        UserFlags As Long, _
+                                                        Authoritative As Byte, _
+                                                        LogoffTime As LARGE_INTEGER, _
+                                                        KickoffTime As LARGE_INTEGER) As NTSTATUS
+
+
+Public Type MSV1_0_VALIDATION_INFO
+    LogoffTime As LARGE_INTEGER
+    KickoffTime As LARGE_INTEGER
+    LogonServer As UNICODE_STRING
+    LogonDomainName As UNICODE_STRING
+    SessionKey As USER_SESSION_KEY
+    Authoritative As Byte
+    UserFlags As Long
+    WhichFields As MSV1_0_ValidationFields
+    UserId As Long
+End Type
+
+Public Enum MSV1_0_ValidationFields
+    MSV1_0_VALIDATION_LOGOFF_TIME = &H00000001
+    MSV1_0_VALIDATION_KICKOFF_TIME = &H00000002
+    MSV1_0_VALIDATION_LOGON_SERVER = &H00000004
+    MSV1_0_VALIDATION_LOGON_DOMAIN = &H00000008
+    MSV1_0_VALIDATION_SESSION_KEY = &H00000010
+    MSV1_0_VALIDATION_USER_FLAGS = &H00000020
+    MSV1_0_VALIDATION_USER_ID = &H00000040
+End Enum
+
+Public Enum MSV1_0_ValidationActions
+    MSV1_0_SUBAUTH_ACCOUNT_DISABLED = &H00000001
+    MSV1_0_SUBAUTH_PASSWORD = &H00000002
+    MSV1_0_SUBAUTH_WORKSTATIONS = &H00000004
+    MSV1_0_SUBAUTH_LOGON_HOURS = &H00000008
+    MSV1_0_SUBAUTH_ACCOUNT_EXPIRY = &H00000010
+    MSV1_0_SUBAUTH_PASSWORD_EXPIRY = &H00000020
+    MSV1_0_SUBAUTH_ACCOUNT_TYPE = &H00000040
+    MSV1_0_SUBAUTH_LOCKOUT = &H00000080
+End Enum
+
+Public Delegate Function Msv1_0SubAuthenticationRoutineEx (ByVal LogonLevel As NETLOGON_LOGON_INFO_CLASS, ByVal LogonInformation As LongPtr, ByVal Flags As Long, UserAll As USER_ALL_INFORMATION, ByVal UserHandle As LongPtr, ValidationInfo As MSV1_0_VALIDATION_INFO, ActionsPerformed As MSV1_0_ValidationActions) As NTSTATUS
+
+Public Delegate Function Msv1_0SubAuthenticationRoutineGeneric (ByVal SubmitBuffer As LongPtr, ByVal SubmitBufferLength As Long, ReturnBufferLength As Long, ByRef ReturnBuffer As LongPtr) As NTSTATUS
+
+Public Delegate Function Msv1_0SubAuthenticationFilter (ByVal LogonLevel As NETLOGON_LOGON_INFO_CLASS, ByVal LogonInformation As LongPtr, ByVal Flags As Long, UserAll As USER_ALL_INFORMATION, WhichFields As MSV1_0_ValidationFields, UserFlags As Long, Authoritative As Byte, LogoffTime As LARGE_INTEGER, KickoffTime As LARGE_INTEGER) As NTSTATUS
+
 
 
 
