@@ -1,4 +1,8 @@
 
+**Update (v9.1.610, 27 Oct 2025):**
+- (BREAKING CHANGE) LdrGetDllHandle now uses phnt signature of ByRef DllCharacteristics As Long for 2nd argument
+- Additional loader, native, and low level actctx APIs
+- (Bug fix) Some Websocket APIs used String for PCSTR* 
 
 **Update (v9.1.608, 26 Oct 2025):**
 - Experimental: WDL_QUALIFY compiler const will remove everything except interfaces and coclasses from the global
