@@ -17938,7 +17938,29 @@ Public Type PEB_FREE_BLOCK
     Size As Long
 End Type
 
-
+' typedef struct _RTL_BALANCED_NODE
+' {
+    ' union
+    ' {
+        ' struct _RTL_BALANCED_NODE *Children[2];
+        ' struct
+        ' {
+            ' struct _RTL_BALANCED_NODE *Left;
+            ' struct _RTL_BALANCED_NODE *Right;
+        ' };
+    ' };
+    ' union
+    ' {
+        ' UCHAR Red : 1;
+        ' UCHAR Balance : 2;
+        ' ULONG_PTR ParentValue;
+    ' };
+' } RTL_BALANCED_NODE, *PRTL_BALANCED_NODE;
+Public Type RTL_BALANCED_NODE
+    Left As LongPtr
+    Right As LongPtr
+    ParentValue As LongPtr
+End Type
 
 Public Enum IrpFlags
     IRP_NOCACHE = &H1
@@ -18014,6 +18036,25 @@ Public Type LDR_DATA_TABLE_ENTRY
     TimeDateStamp As Long
     EntryPointActivationContext As LongPtr
     PatchInformationOrLock As LongPtr 'PatchInfo on XP-8, Lock on 10
+    
+    DdagNode As LongPtr 'PLDR_DDAG_NODE
+    NodeModuleLink As LIST_ENTRY
+    LoadContext As LongPtr 'PLDRP_LOAD_CONTEXT
+    ParentDllBase As LongPtr
+    SwitchBackContext As LongPtr
+    BaseAddressIndexNode As RTL_BALANCED_NODE
+    MappingInfoIndexNode As RTL_BALANCED_NODE
+    OriginalBase As LongPtr
+    LoadTime As LARGE_INTEGER
+    BaseNameHashValue As Long
+    LoadReason As LDR_DLL_LOAD_REASON ' since WIN8
+    ImplicitPathOptions As Long
+    ReferenceCount As Long ' since WIN10
+    DependentLoadFlags As Long
+    SigningLevel As Byte ' since REDSTONE2
+    CheckSum As Long ' since 22H1
+    ActivePatchImageBase As LongPtr
+    HotPatchState As LDR_HOT_PATCH_STATE
 End Type
 
 [Description("This structure is complete only up until Windows XP. Additional members have been added.")]
@@ -18831,6 +18872,126 @@ Public Type MEMORY_PHYSICAL_CONTIGUITY_INFORMATION
     ContiguityUnitInformation As LongPtr 'PMEMORY_PHYSICAL_CONTIGUITY_UNIT_INFORMATION
 End Type
 
+Public Enum MMLISTS
+    MMPFNLIST_ZERO = 0
+    MMPFNLIST_FREE = 1
+    MMPFNLIST_STANDBY = 2
+    MMPFNLIST_MODIFIED = 3
+    MMPFNLIST_MODIFIEDNOWRITE = 4
+    MMPFNLIST_BAD = 5
+    MMPFNLIST_ACTIVE = 6
+    MMPFNLIST_TRANSITION = 7
+End Enum
+Public Enum MMPFNUSE
+    MMPFNUSE_PROCESSPRIVATE = 0
+    MMPFNUSE_FILE = 1
+    MMPFNUSE_PAGEFILEMAPPED = 2
+    MMPFNUSE_PAGETABLE = 3
+    MMPFNUSE_PAGEDPOOL = 4
+    MMPFNUSE_NONPAGEDPOOL = 5
+    MMPFNUSE_SYSTEMPTE = 6
+    MMPFNUSE_SESSIONPRIVATE = 7
+    MMPFNUSE_METAFILE = 8
+    MMPFNUSE_AWEPAGE = 9
+    MMPFNUSE_DRIVERLOCKPAGE = 10
+    MMPFNUSE_KERNELSTACK = 11
+End Enum
+
+' typedef struct _MEMORY_FRAME_INFORMATION
+' {
+    ' ULONGLONG UseDescription : 4; // MMPFNUSE_*
+    ' ULONGLONG ListDescription : 3; // MMPFNLIST_*
+    ' ULONGLONG Cold : 1; // 19H1
+    ' ULONGLONG Pinned : 1; // 1 - pinned, 0 - not pinned
+    ' ULONGLONG DontUse : 48; // *_INFORMATION overlay
+    ' ULONGLONG Priority : 3;
+    ' ULONGLONG NonTradeable : 1;
+    ' ULONGLONG Reserved : 3;
+' } MEMORY_FRAME_INFORMATION;
+Public Type MEMORY_FRAME_INFORMATION
+    Bitfield As LongLong
+End Type
+
+' typedef struct _FILEOFFSET_INFORMATION
+' {
+    ' ULONGLONG DontUse : 9; // MEMORY_FRAME_INFORMATION overlay
+    ' ULONGLONG Offset : 48; // mapped files
+    ' ULONGLONG Reserved : 7;
+' } FILEOFFSET_INFORMATION;
+Public Type FILEOFFSET_INFORMATION
+    Bitfield As LongLong
+End Type
+
+' typedef struct _PAGEDIR_INFORMATION
+' {
+    ' ULONGLONG DontUse : 9; // MEMORY_FRAME_INFORMATION overlay
+    ' ULONGLONG PageDirectoryBase : 48; // private pages
+    ' ULONGLONG Reserved : 7;
+' } PAGEDIR_INFORMATION;
+Public Type PAGEDIR_INFORMATION
+    Bitfield As LongLong
+End Type
+
+' typedef struct _UNIQUE_PROCESS_INFORMATION
+' {
+    ' ULONGLONG DontUse : 9; // MEMORY_FRAME_INFORMATION overlay
+    ' ULONGLONG UniqueProcessKey : 48; // ProcessId
+    ' ULONGLONG Reserved  : 7;
+' } UNIQUE_PROCESS_INFORMATION, *PUNIQUE_PROCESS_INFORMATION;
+Public Type UNIQUE_PROCESS_INFORMATION
+    Bitfield As LongLong
+End Type
+
+Public Type MMPFN_IDENTITY
+    ' union
+    ' {
+        ' MEMORY_FRAME_INFORMATION e1; // all
+        ' FILEOFFSET_INFORMATION e2; // mapped files
+        ' PAGEDIR_INFORMATION e3; // private pages
+        ' UNIQUE_PROCESS_INFORMATION e4; // owning process
+    ' } u1;
+    u1 As LongLong
+    ' ULONG_PTR PageFrameIndex; // all
+    PageFrameIndex As LongPtr
+    ' union
+    ' {
+        ' struct
+        ' {
+            ' ULONG_PTR Image : 1;
+            ' ULONG_PTR Mismatch : 1;
+        ' } e1;
+        ' struct
+        ' {
+            ' ULONG_PTR CombinedPage;
+        ' } e2;
+        ' ULONG_PTR FileObject; // mapped files
+        ' ULONG_PTR UniqueFileObjectKey;
+        ' ULONG_PTR ProtoPteAddress;
+        ' ULONG_PTR VirtualAddress;  // everything else
+    ' } u2;
+    u2 As LongPtr
+End Type
+
+Public Type MMPFN_MEMSNAP_INFORMATION
+    InitialPageFrameIndex As LongPtr
+    Count As LongPtr
+End Type
+
+
+Public Enum NtMemExecOptions
+    MEM_EXECUTE_OPTION_ENABLE = &H1
+    MEM_EXECUTE_OPTION_DISABLE = &H2
+    MEM_EXECUTE_OPTION_DISABLE_THUNK_EMULATION = &H4
+    MEM_EXECUTE_OPTION_PERMANENT = &H8
+    MEM_EXECUTE_OPTION_EXECUTE_DISPATCH_ENABLE = &H10
+    MEM_EXECUTE_OPTION_IMAGE_DISPATCH_ENABLE = &H20
+    MEM_EXECUTE_OPTION_DISABLE_EXCEPTION_CHAIN_VALIDATION = &H40
+    MEM_EXECUTE_OPTION_VALID_FLAGS = &H7f
+End Enum
+
+
+
+
 Public Enum LockVMMapTypes
     MAP_PROCESS = 1
     MAP_SYSTEM = 2
@@ -19327,6 +19488,36 @@ Public Enum NtAtomFlags
     ATOM_FLAG_GLOBAL = &H2
 End Enum
 
+Public Enum VIRTUAL_MEMORY_INFORMATION_CLASS
+    VmPrefetchInformation ' ULONG
+    VmPagePriorityInformation ' OFFER_PRIORITY
+    VmCfgCallTargetInformation ' CFG_CALL_TARGET_LIST_INFORMATION // REDSTONE2
+    VmPageDirtyStateInformation ' REDSTONE3
+    VmImageHotPatchInformation ' 19H1
+    VmPhysicalContiguityInformation ' 20H1
+    VmVirtualMachinePrepopulateInformation
+    VmRemoveFromWorkingSetInformation
+    MaxVmInfoClass
+End Enum
+
+Public Type MEMORY_RANGE_ENTRY
+    VirtualAddress As LongPtr
+    NumberOfBytes As LongPtr
+End Type
+
+Public Type CFG_CALL_TARGET_LIST_INFORMATION
+    NumberOfEntries As Long
+    Reserved As Long
+    NumberOfEntriesProcessed As LongPtr
+    CallTargetInfo As LongPtr 'PCFG_CALL_TARGET_INFO
+    Section As LongPtr ' since REDSTONE5
+    FileOffset As LongLong
+End Type
+
+
+
+
+
 
 Public Delegate Sub IO_APC_ROUTINE (ByVal ApcContext As LongPtr, IoStatusBlock As IO_STATUS_BLOCK, ByVal Reserved As Long)
 
@@ -19345,11 +19536,21 @@ Public Declare PtrSafe Function NtQueryVirtualMemory Lib "ntdll" (ByVal ProcessH
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtAllocateVirtualMemory Lib "ntdll" (ByVal ProcessHandle As LongPtr, BaseAddress As LongPtr, ByVal ZeroBits As LongPtr, RegionSize As LongPtr, ByVal AllocationType As MemAllocType, ByVal Protect As MemProtectFlags) As NTSTATUS
 [UseGetLastError(False)]
+Public Declare PtrSafe Function NtAllocateVirtualMemoryEx Lib "ntdll" (ByVal ProcessHandle As LongPtr, BaseAddress As LongPtr, RegionSize As LongPtr, ByVal AllocationType As MemAllocType, ByVal PageProtection As MemProtectFlags, ExtendedParameters As MEM_EXTENDED_PARAMETER, ByVal ExtendedParameterCount As Long) As NTSTATUS
+[UseGetLastError(False)]
 Public Declare PtrSafe Function NtFreeVirtualMemory Lib "ntdll" (ByVal ProcessHandle As LongPtr, BaseAddress As LongPtr, RegionSize As LongPtr, ByVal FreeType As MemAllocType) As NTSTATUS
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtWriteVirtualMemory Lib "ntdll" (ByVal ProcessHandle As LongPtr, ByVal BaseAddress As LongPtr, Buffer As Any, ByVal BufferSize As LongPtr, NumberOfBytesWritten As LongPtr) As NTSTATUS
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtReadVirtualMemory Lib "ntdll" (ByVal ProcessHandle As LongPtr, ByVal BaseAddress As LongPtr, Buffer As Any, ByVal BufferSize As LongPtr, NumberOfBytesRead As LongPtr) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtReadVirtualMemoryEx Lib "ntdll" (ByVal ProcessHandle As LongPtr, ByVal BaseAddress As LongPtr, Buffer As Any, ByVal BufferSize As LongPtr, NumberOfBytesRead As LongPtr, ByVal Flags As Long) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtProtectVirtualMemory Lib "ntdll" (ByVal ProcessHandle As LongPtr, BaseAddress As LongPtr, RegionSize As LongPtr, ByVal NewProtect As MemProtectFlags, OldProtect As MemProtectFlags) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtFlushVirtualMemory Lib "ntdll" (ByVal ProcessHandle As LongPtr, BaseAddress As LongPtr, RegionSize As LongPtr, IoStatus As IO_STATUS_BLOCK) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtSetInformationVirtualMemory Lib "ntdll" (ByVal ProcessHandle As LongPtr, ByVal VmInformationClass As VIRTUAL_MEMORY_INFORMATION_CLASS, ByVal NumberOfEntries As LongPtr, VirtualAddresses As MEMORY_RANGE_ENTRY, VmInformation As Any, ByVal VmInformationLength As Long) As NTSTATUS
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtLockVirtualMemory Lib "ntdll" (ByVal ProcessHandle As LongPtr, BaseAddress As LongPtr, RegionSize As LongPtr, ByVal MapType As LockVMMapTypes) As NTSTATUS
 [UseGetLastError(False)]
@@ -19592,6 +19793,31 @@ Public Declare PtrSafe Function NtMapViewOfSectionEx Lib "ntdll" (ByVal SectionH
 Public Declare PtrSafe Function NtUnmapViewOfSection Lib "ntdll" (ByVal ProcessHandle As LongPtr, Optional ByVal BaseAddress As LongPtr) As NTSTATUS
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtUnmapViewOfSectionEx Lib "ntdll" (ByVal ProcessHandle As LongPtr, ByVal BaseAddress As LongPtr, ByVal Flags As Long) As NTSTATUS
+
+Public Delegate Sub ENCLAVE_ROUTINE (ByVal lpThreadParameter As LongPtr)
+
+Public Enum NtEnclaveTerminateFlags
+    TERMINATE_ENCLAVE_VALID_FLAGS = &H00000005
+    TERMINATE_ENCLAVE_FLAG_NO_WAIT = &H00000001
+    TERMINATE_ENCLAVE_FLAG_WAIT_ERROR = &H00000004  ' STATUS_PENDING -> STATUS_ENCLAVE_NOT_TERMINATED
+End Enum
+
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtCreateEnclave Lib "ntdll" (ByVal ProcessHandle As LongPtr, ByRef BaseAddress As LongPtr, ByVal ZeroBits As LongPtr, ByVal Size As LongPtr, ByVal InitialCommitment As LongPtr, ByVal EnclaveType As ENCLAVE_TYPE, EnclaveInformation As Any, ByVal EnclaveInformationLength As Long, Optional ByRef EnclaveError As Long) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtLoadEnclaveData Lib "ntdll" (ByVal ProcessHandle As LongPtr, ByVal BaseAddress As LongPtr, ByVal Buffer As LongPtr, ByVal BufferSize As LongPtr, [TypeHint(MemProtectFlags, MemProtectEnclave)] ByVal Protect As Long, PageInformation As Any, ByVal PageInformationLength As Long, ByRef NumberOfBytesWritten As LongPtr, Optional ByRef EnclaveError As Long) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtInitializeEnclave Lib "ntdll" (ByVal ProcessHandle As LongPtr, ByVal BaseAddress As LongPtr, EnclaveInformation As Any, ByVal EnclaveInformationLength As Long, Optional ByRef EnclaveError As Long) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtTerminateEnclave Lib "ntdll" (ByVal BaseAddress As LongPtr, ByVal Flags As NtEnclaveTerminateFlags) As NTSTATUS
+[UseGetLastError(False)]
+' #If WDL_NO_DELEGATES Then
+Public Declare PtrSafe Function NtCallEnclave Lib "ntdll" (ByVal Routine As LongPtr, ByVal Reserved As LongPtr, ByVal Flags As NtEnclaveCallFlags, ByRef RoutineParamReturn As LongPtr) As NTSTATUS
+' #Else
+' Public Declare PtrSafe Function NtCallEnclave Lib "ntdll" (ByVal Routine As ENCLAVE_ROUTINE, ByVal Reserved As LongPtr, ByVal Flags As NtEnclaveCallFlags, ByRef RoutineParamReturn As LongPtr) As NTSTATUS
+' #End If
+
+
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtCreateProfile Lib "ntdll" (ProfileHandle As LongPtr, ByVal Process As LongPtr, ByVal ProfileBase As LongPtr, ByVal ProfileSize As LongPtr, Buffer As Long, ByVal BufferSize As Long, ByVal ProfileSource As KPROFILE_SOURCE, ByVal Affinity As LongPtr) As NTSTATUS
 [UseGetLastError(False)]
@@ -19860,7 +20086,27 @@ Public Declare PtrSafe Function NtOpenPartition Lib "ntdll" (ByVal PartitionHand
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtManagePartition Lib "ntdll" (ByVal TargetHandle As LongPtr, ByVal SourceHandle As LongPtr, ByVal PartitionInformationClass As PARTITION_INFORMATION_CLASS, PartitionInformation As Any, ByVal PartitionInformationLength As Long) As NTSTATUS
 
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtMapUserPhysicalPages Lib "ntdll" (ByVal VirtualAddress As LongPtr, ByVal NumberOfPages As LongPtr, UserPfnArray As LongPtr) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtMapUserPhysicalPagesScatter Lib "ntdll" (VirtualAddresses As LongPtr, ByVal NumberOfPages As LongPtr, UserPfnArray As LongPtr) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtAllocateUserPhysicalPages Lib "ntdll" (ByVal ProcessHandle As LongPtr, ByRef NumberOfPages As LongPtr, UserPfnArray As LongPtr) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtAllocateUserPhysicalPagesEx Lib "ntdll" (ByVal ProcessHandle As LongPtr, ByRef NumberOfPages As LongPtr, UserPfnArray As LongPtr, ByRef ExtendedParameters As MEM_EXTENDED_PARAMETER, ByVal ExtendedParameterCount As Long) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtFreeUserPhysicalPages Lib "ntdll" (ByVal ProcessHandle As LongPtr, ByRef NumberOfPages As LongPtr, UserPfnArray As LongPtr) As NTSTATUS
 
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtGetWriteWatch Lib "ntdll" (ByVal ProcessHandle As LongPtr, ByVal Flags As Long, ByVal BaseAddress As LongPtr, ByVal RegionSize As LongPtr, UserAddressArray As LongPtr, ByRef EntriesInUserAddressArray As LongPtr, ByRef Granularity As Long) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtResetWriteWatch Lib "ntdll" (ByVal ProcessHandle As LongPtr, ByVal BaseAddress As LongPtr, ByVal RegionSize As LongPtr) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtCreatePagingFile Lib "ntdll" (ByRef PageFileName As UNICODE_STRING, ByRef MinimumSize As LARGE_INTEGER, ByRef MaximumSize As LARGE_INTEGER, ByVal Priority As Long) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtFlushInstructionCache Lib "ntdll" (ByVal ProcessHandle As LongPtr, ByVal BaseAddress As LongPtr, ByVal Length As LongPtr) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Sub NtFlushWriteBuffer Lib "ntdll" ()
 
 'Registry
 Public Enum NtRegBootConditionFlags
@@ -20721,8 +20967,110 @@ Public Declare PtrSafe Function RtlRaiseCustomSystemEventTrigger Lib "ntdll" (Tr
 [UseGetLastError(False)] Public DeclareWide PtrSafe Function RtlIpv6StringToAddressEx Lib "ntdll" Alias "RtlIpv6StringToAddressExW" (ByVal AddressString As String, Address As IN6_ADDR, ScopeId As Long, Port As Integer) As Long
 
 
-[UseGetLastError(False)] Public Declare PtrSafe Function LdrGetDllHandle Lib "ntdll" (ByVal pwPath As LongPtr, ByVal unused As LongPtr, ModuleFileName As UNICODE_STRING, pHModule As LongPtr) As NTSTATUS
+Public Delegate Function LDR_INIT_ROUTINE (ByVal DllHandle As LongPtr, ByVal Reason As LDR_DLL_LOAD_REASON, ByVal Context As LongPtr) As Byte
+
+Public Delegate Sub LDR_IMPORT_MODULE_CALLBACK (ByVal Parameter As LongPtr, ByVal ModuleName As LongPtr)
+
+Public Delegate Sub LDR_ENUM_CALLBACK (ModuleInformation As LDR_DATA_TABLE_ENTRY, ByVal Parameter As LongPtr, Stop As Byte)
+
+Public Delegate Sub DELAYLOAD_FAILURE_DLL_CALLBACK (ByVal NotificationReason As Long, DelayloadInfo As DELAYLOAD_INFO)
+
+Public Delegate Function DELAYLOAD_FAILURE_SYSTEM_ROUTINE (ByVal DllName As LongPtr, ByVal ProcedureName As LongPtr) As LongPtr
+
+Public Type LDR_SERVICE_TAG_RECORD
+    Next As LongPtr '_LDR_SERVICE_TAG_RECORD*
+    ServiceTag As Long
+End Type
+
+Public Type LDRP_CSLIST
+    Tail As LongPtr 'PSINGLE_LIST_ENTRY
+End Type
+
+Public Enum LDR_DDAG_STATE
+    LdrModulesMerged = -5
+    LdrModulesInitError = -4
+    LdrModulesSnapError = -3
+    LdrModulesUnloaded = -2
+    LdrModulesUnloading = -1
+    LdrModulesPlaceHolder = 0
+    LdrModulesMapping = 1
+    LdrModulesMapped = 2
+    LdrModulesWaitingForDependencies = 3
+    LdrModulesSnapping = 4
+    LdrModulesSnapped = 5
+    LdrModulesCondensed = 6
+    LdrModulesReadyToInit = 7
+    LdrModulesInitializing = 8
+    LdrModulesReadyToRun = 9
+End Enum
+
+Public Type LDR_DDAG_NODE
+    Modules As LIST_ENTRY
+    ServiceTagList As LongPtr 'PLDR_SERVICE_TAG_RECORD
+    LoadCount As Long
+    LoadWhileUnloadingCount As Long
+    LowestLink As Long
+    'union
+    '{
+    '    LDRP_CSLIST Dependencies;
+    '    SINGLE_LIST_ENTRY RemovalLink;
+    '};
+    DependsOrRemoval As LongPtr
+    IncomingDependencies As LDRP_CSLIST
+    State As LDR_DDAG_STATE
+    CondenseLink As SINGLE_LIST_ENTRY
+    PreorderNumber As Long
+End Type
+
+Public Type LDR_DEPENDENCY_RECORD
+    DependencyLink As SINGLE_LIST_ENTRY
+    DependencyNode As LongPtr 'PLDR_DDAG_NODE
+    IncomingDependencyLink As SINGLE_LIST_ENTRY
+    IncomingDependencyNode As LongPtr 'PLDR_DDAG_NODE
+End Type
+
+Public Enum LDR_DLL_LOAD_REASON
+    LoadReasonStaticDependency
+    LoadReasonStaticForwarderDependency
+    LoadReasonDynamicForwarderDependency
+    LoadReasonDelayloadDependency
+    LoadReasonDynamicLoad
+    LoadReasonAsImageLoad
+    LoadReasonAsDataLoad
+    LoadReasonEnclavePrimary ' since REDSTONE3
+    LoadReasonEnclaveDependency
+    LoadReasonPatchImage ' since WIN11
+    LoadReasonUnknown = -1
+End Enum
+
+Public Enum LDR_HOT_PATCH_STATE
+    LdrHotPatchBaseImage
+    LdrHotPatchNotApplied
+    LdrHotPatchAppliedReverse
+    LdrHotPatchAppliedForward
+    LdrHotPatchFailedToPatch
+    LdrHotPatchStateMax
+End Enum
+
+
+
+
+[UseGetLastError(False)] Public Declare PtrSafe Function LdrGetDllHandle Lib "ntdll" (ByVal DllPath As LongPtr, DllCharacteristics As Long, DllName As UNICODE_STRING, DllHandle As LongPtr) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function LdrGetDllHandleEx Lib "ntdll" (ByVal Flags As LdrGetHandleExFlags, ByVal DllPath As LongPtr, DllCharacteristics As Long, DllName As UNICODE_STRING, DllHandle As LongPtr) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function LdrGetDllHandleByMapping Lib "ntdll" (ByVal BaseAddress As LongPtr, DllHandle As LongPtr) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function LdrGetDllHandleByName Lib "ntdll" (BaseDllName As UNICODE_STRING, FullDllName As UNICODE_STRING, DllHandle As LongPtr) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function LdrGetDllFullName Lib "ntdll" (ByVal DllHandle As LongPtr, FullDllName As UNICODE_STRING) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function LdrGetDllPath Lib "ntdll" (ByVal DllName As LongPtr, ByVal Flags As LoadLibraryFlags, DllPath As LongPtr, SearchPaths As LongPtr) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function LdrGetDllDirectory Lib "ntdll" (DllDirectory As UNICODE_STRING) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function LdrSetDllDirectory Lib "ntdll" (DllDirectory As UNICODE_STRING) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function LdrAddRefDll Lib "ntdll" (ByVal Flags As LdrDllAddRefFlags, ByVal DllHandle As LongPtr) As NTSTATUS
 [UseGetLastError(False)] Public Declare PtrSafe Function LdrGetProcedureAddress Lib "ntdll" (ByVal ModuleHandle As LongPtr, FunctionName As ANSI_STRING, ByVal Ordinal As Integer, FunctionAddress As LongPtr) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function LdrGetProcedureAddressEx Lib "ntdll" (ByVal DllHandle As LongPtr, ProcedureName As ANSI_STRING, ByVal ProcedureNumber As Integer, ProcedureAddress As LongPtr, ByVal Flags As LdrGetProcAddrExFlags) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function LdrGetKnownDllSectionHandle Lib "ntdll" (ByVal DllName As LongPtr, ByVal KnownDlls32 As Byte, Section As LongPtr) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function LdrGetProcedureAddressForCaller Lib "ntdll" (ByVal DllHandle As LongPtr, ProcedureName As ANSI_STRING, ByVal ProcedureNumber As Integer, ProcedureAddress As LongPtr, ByVal Flags As LdrGetProcAddrExFlags, Callback As LongPtr) As NTSTATUS
+
+
+
 [UseGetLastError(False)] Public Declare PtrSafe Function LdrLoadDll Lib "ntdll" (ByVal PathToFile As LongPtr, ByVal Flags As LoadLibraryFlags, ModuleFileName As UNICODE_STRING, ModuleHandle As LongPtr) As NTSTATUS
 [UseGetLastError(False)] Public Declare PtrSafe Function LdrUnloadDll Lib "ntdll" (ByVal ModuleHandle As LongPtr) As NTSTATUS
 [UseGetLastError(False)] Public Declare PtrSafe Function LdrRegisterDllNotification Lib "ntdll" (ByVal Flags As Long, ByVal NotificationFunction As LongPtr, ByVal Context As LongPtr, Cookie As LongPtr) As NTSTATUS
@@ -20730,13 +21078,271 @@ Public Declare PtrSafe Function RtlRaiseCustomSystemEventTrigger Lib "ntdll" (Tr
 [UseGetLastError(False)] Public Declare PtrSafe Sub LdrFastFailInLoaderCallout Lib "ntdll" ()
 [UseGetLastError(False)] Public Declare PtrSafe Function LdrDisableThreadCalloutsForDll Lib "ntdll" (ByVal DllHandle As LongPtr) As NTSTATUS
 [UseGetLastError(False)] Public Declare PtrSafe Function LdrOpenImageFileOptionsKey Lib "ntdll" (lpImageFile As UNICODE_STRING, ByVal bWow64 As Byte, phKey As LongPtr) As NTSTATUS
-[UseGetLastError(False)] Public Declare PtrSafe Function LdrQueryImageFileExecutionOptions Lib "ntdll" (lpImageFile As UNICODE_STRING, ByVal lpszOption As LongPtr, ByVal dwType As REGTYPES, lpData As Any, ByVal cbData As Long, lpcbData As Long) As NTSTATUS
-[UseGetLastError(False)] Public Declare PtrSafe Function LdrQueryImageFileExecutionOptionsEx Lib "ntdll" (lpImageFile As UNICODE_STRING, ByVal lpszOption As LongPtr, ByVal dwType As REGTYPES, lpData As Any, ByVal cbData As Long, lpcbData As Long, ByVal bWow64 As Byte) As NTSTATUS
-[UseGetLastError(False)] Public Declare PtrSafe Function LdrQueryImageFileKeyOption Lib "ntdll" (ByVal hKey As LongPtr, ByVal lpszOption As LongPtr, ByVal dwType As REGTYPES, lpData As Any, ByVal cbData As Long, lpcbData As Long) As NTSTATUS
 [UseGetLastError(False)] Public Declare PtrSafe Function LdrLockLoaderLock Lib "ntdll" (ByVal Flags As NtLoaderLockFlags, Disposition As NtLoaderLockDispositions, Cookie As LongPtr) As NTSTATUS
 [UseGetLastError(False)] Public Declare PtrSafe Function LdrUnlockLoaderLock Lib "ntdll" (ByVal Flags As NtLoaderUnlockFlags, ByVal Cookie As LongPtr) As NTSTATUS
-[UseGetLastError(False)] Public Declare PtrSafe Function LdrLoadAlternateResourceModuleEx Lib "ntdll" (ByVal ModuleHandle As LongPtr, ByVal LangId As Integer, pAltResourceDllHandle As LongPtr, ViewSize As LongPtr) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function LdrRelocateImage Lib "ntdll" (ByVal NewBase As LongPtr, ByVal LoaderName As String, ByVal Success As NTSTATUS, ByVal Conflict As NTSTATUS, ByVal Invalid As NTSTATUS) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function LdrRelocateImageWithBias Lib "ntdll" (ByVal NewBase As LongPtr, ByVal Bias As LongLong, ByVal LoaderName As String, ByVal Success As NTSTATUS, ByVal Conflict As NTSTATUS, ByVal Invalid As NTSTATUS) As NTSTATUS
+Public Declare PtrSafe Function LdrProcessRelocationBlock Lib "ntdll" (ByVal VA As LongPtr, ByVal SizeOfBlock As Long, NextOffset As Integer, ByVal Diff As LongPtr) As LongPtr 'PIMAGE_BASE_RELOCATION
+Public Declare PtrSafe Function LdrProcessRelocationBlockEx Lib "ntdll" (ByVal Machine As ImageMachineType, ByVal VA As LongPtr, ByVal SizeOfBlock As Long, NextOffset As Integer, ByVal Diff As LongPtr) As LongPtr 'PIMAGE_BASE_RELOCATION
+[UseGetLastError(False)] Public Declare PtrSafe Function LdrVerifyMappedImageMatchesChecksum Lib "ntdll" (ByVal BaseAddress As LongPtr, ByVal NumberOfBytes As LongPtr, ByVal FileLength As Long) As Byte
+' #If WDL_NO_DELEGATES Then
+[UseGetLastError(False)] Public Declare PtrSafe Function LdrVerifyImageMatchesChecksum Lib "ntdll" (ByVal ImageFileHandle As LongPtr, ByVal ImportCallbackRoutine As LongPtr, ByVal ImportCallbackParameter As LongPtr, Optional ImageCharacteristics As Integer) As NTSTATUS
+Public Type LDR_IMPORT_CALLBACK_INFO
+    ImportCallbackRoutine As LongPtr 'PLDR_IMPORT_MODULE_CALLBACK
+    ImportCallbackParameter As LongPtr
+End Type
+[UseGetLastError(False)] Public Declare PtrSafe Function LdrEnumerateLoadedModules Lib "ntdll" (ByVal ReservedFlag As Byte, ByVal EnumProc As LongPtr, ByVal Context As LongPtr) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function LdrResolveDelayLoadedAPI Lib "ntdll" (ByVal ParentModuleBase As LongPtr, ByRef DelayloadDescriptor As IMAGE_DELAYLOAD_DESCRIPTOR, ByVal FailureDllHook As LongPtr, ByVal FailureSystemHook As LongPtr, ByRef ThunkAddress As IMAGE_THUNK_DATA, ByVal Flags As Long) As LongPtr
 
+
+' #Else
+' [UseGetLastError(False)] Public Declare PtrSafe Function LdrVerifyImageMatchesChecksum Lib "ntdll" (ByVal ImageFileHandle As LongPtr, ByVal ImportCallbackRoutine As LDR_IMPORT_MODULE_CALLBACK, ByVal ImportCallbackParameter As LongPtr, Optional ImageCharacteristics As Integer) As NTSTATUS
+' Public Type LDR_IMPORT_CALLBACK_INFO
+    ' ImportCallbackRoutine As LDR_IMPORT_MODULE_CALLBACK
+    ' ImportCallbackParameter As LongPtr
+' End Type
+' [UseGetLastError(False)] Public Declare PtrSafe Function LdrEnumerateLoadedModules Lib "ntdll" (ByVal ReservedFlag As Byte, ByVal EnumProc As LDR_ENUM_CALLBACK, ByVal Context As LongPtr) As NTSTATUS
+' [UseGetLastError(False)] Public Declare PtrSafe Function LdrResolveDelayLoadedAPI Lib "ntdll" (ByVal ParentModuleBase As LongPtr, ByRef DelayloadDescriptor As IMAGE_DELAYLOAD_DESCRIPTOR, ByVal FailureDllHook As DELAYLOAD_FAILURE_DLL_CALLBACK, ByVal FailureSystemHook As DELAYLOAD_FAILURE_SYSTEM_ROUTINE, ByRef ThunkAddress As IMAGE_THUNK_DATA, ByVal Flags As Long) As LongPtr
+' #End If
+[UseGetLastError(False)] Public Declare PtrSafe Function LdrVerifyImageMatchesChecksumEx Lib "ntdll" (ByVal ImageFileHandle As LongPtr, VerifyInfo As LDR_VERIFY_IMAGE_INFO) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function LdrQueryModuleServiceTags Lib "ntdll" (ByVal DllHandle As LongPtr, ServiceTagBuffer As Long, BufferSize As Long) As NTSTATUS
+Public Declare PtrSafe Function LdrStandardizeSystemPath Lib "ntdll" (SystemPath As UNICODE_STRING) As LongPtr 'PUNICODE_STRING
+Public Declare PtrSafe Function LdrGetFailureData Lib "ntdll" () As LongPtr 'PLDR_FAILURE_DATA
+[UseGetLastError(False)] Public Declare PtrSafe Function LdrAddLoadAsDataTable Lib "ntdll" (ByVal Module As LongPtr, ByVal FilePath As LongPtr, ByVal Size As LongPtr, ByVal Handle As LongPtr, ActCtx As ACTIVATION_CONTEXT) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function LdrRemoveLoadAsDataTable Lib "ntdll" (ByVal InitModule As LongPtr, BaseModule As LongPtr, Size As LongPtr, ByVal Flags As Long) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function LdrGetFileNameFromLoadAsDataTable Lib "ntdll" (ByVal Module As LongPtr, pFileNamePrt As LongPtr) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function LdrAccessResource Lib "ntdll" (ByVal DllHandle As LongPtr, ResourceDataEntry As IMAGE_RESOURCE_DATA_ENTRY, ResourceBuffer As LongPtr, ResourceLength As Long) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function LdrFindResource_U Lib "ntdll" (ByVal DllHandle As LongPtr, ResourceInfo As LDR_RESOURCE_INFO, ByVal Level As LdrResourceLevels, ResourceDataEntry As LongPtr) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function LdrFindResourceEx_U Lib "ntdll" (ByVal Flags As Long, ByVal DllHandle As LongPtr, ResourceInfo As LDR_RESOURCE_INFO, ByVal Level As LdrResourceLevels, ResourceDataEntry As LongPtr) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function LdrFindResourceDirectory_U Lib "ntdll" (ByVal DllHandle As LongPtr, ResourceInfo As LDR_RESOURCE_INFO, ByVal Level As LdrResourceLevels, ResourceDirectory As LongPtr) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function LdrEnumResources Lib "ntdll" (ByVal DllHandle As LongPtr, ResourceInfo As LDR_RESOURCE_INFO, ByVal Level As LdrResourceLevels, ResourceCount As Long, Resources As LDR_ENUM_RESOURCE_ENTRY) As NTSTATUS
+Public Function LdrNameOrIdFromResourceEntry(ResourceDirectory As IMAGE_RESOURCE_DIRECTORY, Entry As IMAGE_RESOURCE_DIRECTORY_ENTRY) As LongPtr
+    If (Entry.Name And &H1) Then
+        Dim NameOffset As Long = (Entry.Name And &H7FFFFFFF)
+        Return VarPtr(ResourceDirectory) + NameOffset
+    Else
+        Return (Entry.Name And &HFFFF&)
+    End If
+End Function
+[UseGetLastError(False)] Public Declare PtrSafe Function LdrFindEntryForAddress Lib "ntdll" (ByVal DllHandle As LongPtr, Entry As LongPtr) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function LdrLoadAlternateResourceModule Lib "ntdll" (ByVal DllHandle As LongPtr, ResourceDllBase As LongPtr, ResourceOffset As LongPtr, ByVal Flags As Long) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function LdrLoadAlternateResourceModuleEx Lib "ntdll" (ByVal ModuleHandle As LongPtr, ByVal LangId As Integer, ResourceDllBase As LongPtr, ResourceOffset As LongPtr, ByVal Flags As Long) As NTSTATUS
+Public Declare PtrSafe Function LdrUnloadAlternateResourceModule Lib "ntdll" (ByVal DllHandle As LongPtr) As Byte
+Public Declare PtrSafe Function LdrUnloadAlternateResourceModuleEx Lib "ntdll" (ByVal DllHandle As LongPtr, ByVal Flags As Long) As Byte
+[UseGetLastError(False)] Public Declare PtrSafe Function LdrQueryProcessModuleInformation Lib "ntdll" (ModuleInformation As Any, ByVal Size As Long, ReturnedSize As Long) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function LdrOpenImageFileOptionsKey Lib "ntdll" (ByRef SubKey As UNICODE_STRING, ByVal Wow64 As Boolean, ByRef NewKeyHandle As LongPtr) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function LdrQueryImageFileKeyOption Lib "ntdll" (ByVal KeyHandle As LongPtr, ByVal ValuName As LongPtr, ByVal dwType As REGTYPES, Buffer As Any, ByVal BufferSize As Long, Optional ReturnedLength As Long) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function LdrQueryImageFileExecutionOptions Lib "ntdll" (SubKey As UNICODE_STRING, ByVal ValueName As LongPtr, ByVal dwType As REGTYPES, Buffer As Any, ByVal BufferSize As Long, Optional ReturnedLength As Long) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function LdrQueryImageFileExecutionOptionsEx Lib "ntdll" (SubKey As UNICODE_STRING, ByVal ValueName As LongPtr, ByVal dwType As REGTYPES, Buffer As Any, ByVal BufferSize As Long, ReturnedLength As Long, ByVal bWow64 As Byte) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function LdrQueryOptionalDelayLoadedAPI Lib "ntdll" (ByVal ParentModuleBase As LongPtr, ByVal DllName As String, ByVal ProcedureName As String, ByVal Flags As Long) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function LdrResolveDelayLoadsFromDll Lib "ntdll" (ByVal ParentModuleBase As LongPtr, ByVal TargetDllName As String, ByVal Flags As Long) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function LdrSetDefaultDllDirectories Lib "ntdll" (ByVal DirectoryFlags As Long) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function LdrAddDllDirectory Lib "ntdll" (ByRef NewDirectory As UNICODE_STRING, ByRef Cookie As LongPtr) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function LdrRemoveDllDirectory Lib "ntdll" (ByVal Cookie As LongPtr) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Sub LdrShutdownProcess Lib "ntdll" ()
+[UseGetLastError(False)] Public Declare PtrSafe Sub LdrShutdownThread Lib "ntdll" ()
+[UseGetLastError(False)] Public Declare PtrSafe Function LdrSetImplicitPathOptions Lib "ntdll" (ByVal ImplicitPathOptions As Long) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function LdrControlFlowGuardEnforced Lib "ntdll" () As Boolean
+[UseGetLastError(False)] Public Declare PtrSafe Function LdrIsModuleSxsRedirected Lib "ntdll" (ByVal DllHandle As LongPtr) As Boolean
+[UseGetLastError(False)] Public Declare PtrSafe Function LdrUpdatePackageSearchPath Lib "ntdll" (ByVal SearchPath As LongPtr) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function LdrCreateEnclave Lib "ntdll" (ByVal ProcessHandle As LongPtr, ByRef BaseAddress As LongPtr, ByVal Reserved As Long, ByVal Size As LongPtr, ByVal InitialCommitment As LongPtr, ByVal EnclaveType As Long, EnclaveInformation As Any, ByVal EnclaveInformationLength As Long, ByRef EnclaveError As Long) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function LdrInitializeEnclave Lib "ntdll" (ByVal ProcessHandle As LongPtr, ByVal BaseAddress As LongPtr, EnclaveInformation As Any, ByVal EnclaveInformationLength As Long, ByRef EnclaveError As Long) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function LdrDeleteEnclave Lib "ntdll" (ByVal BaseAddress As LongPtr) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function LdrCallEnclave Lib "ntdll" (ByVal Routine As LongPtr, ByVal Flags As NtEnclaveCallFlags, ByRef RoutineParamReturn As LongPtr) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function LdrLoadEnclaveModule Lib "ntdll" (ByVal BaseAddress As LongPtr, ByVal DllPath As LongPtr, ByRef DllName As UNICODE_STRING) As NTSTATUS
+
+
+Public Enum NtEnclaveCallFlags
+    ENCLAVE_CALL_VALID_FLAGS = &H00000001
+    ENCLAVE_CALL_FLAG_NO_WAIT = &H00000001
+End Enum
+
+Public Enum RtlCritSectionFlags
+    RTL_CRITICAL_SECTION_FLAG_NO_DEBUG_INFO = &H01000000
+    RTL_CRITICAL_SECTION_FLAG_DYNAMIC_SPIN = &H02000000
+    RTL_CRITICAL_SECTION_FLAG_STATIC_INIT = &H04000000
+    RTL_CRITICAL_SECTION_FLAG_RESOURCE_TYPE = &H08000000
+    RTL_CRITICAL_SECTION_FLAG_FORCE_DEBUG_INFO = &H10000000
+    RTL_CRITICAL_SECTION_ALL_FLAG_BITS = &HFF000000
+    RTL_CRITICAL_SECTION_FLAG_RESERVED = (RTL_CRITICAL_SECTION_ALL_FLAG_BITS And (Not (RTL_CRITICAL_SECTION_FLAG_NO_DEBUG_INFO Or RTL_CRITICAL_SECTION_FLAG_DYNAMIC_SPIN Or RTL_CRITICAL_SECTION_FLAG_STATIC_INIT Or RTL_CRITICAL_SECTION_FLAG_RESOURCE_TYPE Or RTL_CRITICAL_SECTION_FLAG_FORCE_DEBUG_INFO)))
+    
+    RTL_CRITICAL_SECTION_DEBUG_FLAG_STATIC_INIT = &H00000001
+End Enum
+
+Public Type RTL_CRITICAL_SECTION_DEBUG
+    Type As Integer
+    CreatorBackTraceIndex As Integer
+    CriticalSection As LongPtr 'struct _RTL_CRITICAL_SECTION
+    ProcessLocksList As LIST_ENTRY
+    EntryCount As Long
+    ContentionCount As Long
+    Flags As RtlCritSectionFlags
+    CreatorBackTraceIndexHigh As Integer
+    Identifier As Integer
+End Type
+
+Public Type RTL_CRITICAL_SECTION
+    DebugInfo As LongPtr 'PRTL_CRITICAL_SECTION_DEBUG
+    '  The following three fields control entering and exiting the critical
+    '  section for the resource
+    LockCount As Long
+    RecursionCount As Long
+    OwningThread As LongPtr ' from the thread's ClientId->UniqueThread
+    LockSemaphore As LongPtr
+    SpinCount As LongPtr ' force size on 64-bit systems when packed
+End Type
+
+Public Type LDR_SOFTWARE_ENCLAVE
+    Links As LIST_ENTRY ' ntdll!LdrpEnclaveList
+    CriticalSection As RTL_CRITICAL_SECTION
+    EnclaveType As Long ' ENCLAVE_TYPE_*
+    ReferenceCount As Long
+    EnclaveState As Long ' ENCLAVE_STATE_*
+    BaseAddress As LongPtr
+    Size As LongPtr
+    PreviousBaseAddress As LongPtr
+    Modules As LIST_ENTRY ' LDR_DATA_TABLE_ENTRY.InLoadOrderLinks
+    PrimaryModule As LongPtr 'PLDR_DATA_TABLE_ENTRY
+    BCryptModule As LongPtr 'PLDR_DATA_TABLE_ENTRY
+    BCryptPrimitivesModule As LongPtr 'PLDR_DATA_TABLE_ENTRY
+End Type
+
+Public Enum LdrEnclaveFlags
+    ENCLAVE_STATE_CREATED = &H00000000  ' LdrpCreateSoftwareEnclave initial state
+    ENCLAVE_STATE_INITIALIZED = &H00000001  ' ZwInitializeEnclave successful (LdrInitializeEnclave)
+    ENCLAVE_STATE_INITIALIZED_VBS = &H00000002  ' only for ENCLAVE_TYPE_VBS (LdrInitializeEnclave)
+End Enum
+
+Public Type DELAYLOAD_PROC_DESCRIPTOR
+    ImportDescribedByName As Long
+    'union
+    '{
+    '    PCSTR Name;
+    '    ULONG Ordinal;
+    '} Description;
+    Description As LongPtr
+End Type
+Public Type DELAYLOAD_INFO
+    Size As Long
+    DelayloadDescriptor As LongPtr 'PCIMAGE_DELAYLOAD_DESCRIPTOR
+    ThunkAddress As LongPtr 'PIMAGE_THUNK_DATA
+    TargetDllName As LongPtr 'PCSTR
+    TargetApiDescriptor As DELAYLOAD_PROC_DESCRIPTOR
+    TargetModuleBase As LongPtr
+    Unused As LongPtr
+    LastError As Long
+End Type
+
+Public Type LDR_ENUM_RESOURCE_ENTRY
+    'union
+    '{
+    '    ULONG_PTR NameOrId;
+    '    PIMAGE_RESOURCE_DIRECTORY_STRING Name;
+    '    struct
+    '    {
+    '        USHORT Id;
+    '        USHORT NameIsPresent;
+    '    };
+    '} Path[3];
+    Path(0 To 2) As LongPtr
+    Data As LongPtr
+    Size As Long
+    Reserved As Long
+End Type
+
+
+
+Public Type LDR_RESOURCE_INFO
+    Type As LongPtr
+    Name As LongPtr
+    Language As LongPtr
+End Type
+
+Public Enum LdrResourceLevels
+    RESOURCE_TYPE_LEVEL = 0
+    RESOURCE_NAME_LEVEL = 1
+    RESOURCE_LANGUAGE_LEVEL = 2
+    RESOURCE_DATA_LEVEL = 3
+End Enum
+
+Public Type PS_MITIGATION_OPTIONS_MAP
+    Map(0 To 2) As LongPtr ' 2 < 20H1
+End Type
+Public Type PS_MITIGATION_AUDIT_OPTIONS_MAP
+    Map(0 To 2) As LongPtr ' 2 < 20H1
+End Type
+
+Public Type PS_SYSTEM_DLL_INIT_BLOCK
+    Size As Long
+    SystemDllWowRelocation As LongPtr
+    SystemDllNativeRelocation As LongPtr
+    Wow64SharedInformation(0 To 15) As LongPtr ' use WOW64_SHARED_INFORMATION as index
+    RngData As Long
+    'union
+    '{
+    Flags As Long
+    '    struct
+    '    {
+    '        ULONG CfgOverride : 1;
+    '        ULONG Reserved : 31;
+    '    };
+    '};
+    MitigationOptionsMap As PS_MITIGATION_OPTIONS_MAP
+    CfgBitMap As LongPtr
+    CfgBitMapSize As LongPtr
+    Wow64CfgBitMap As LongPtr
+    Wow64CfgBitMapSize As LongPtr
+    MitigationAuditOptionsMap As PS_MITIGATION_AUDIT_OPTIONS_MAP ' REDSTONE3
+End Type
+
+
+
+
+
+
+
+
+
+
+Public Type LDR_FAILURE_DATA
+    Status As NTSTATUS
+    DllName(0 To (&H20 - 1)) As Integer
+    AdditionalInfo(0 To (&H20 - 1)) As Integer
+End Type
+
+
+Public Type LDR_SECTION_INFO
+    SectionHandle As LongPtr
+    DesiredAccess As Long 'ACCESS_MASK
+    ObjA As LongPtr 'POBJECT_ATTRIBUTES
+    SectionPageProtection As Long
+    AllocationAttributes As Long
+End Type
+
+Public Type LDR_VERIFY_IMAGE_INFO
+    Size As Long
+    Flags As Long
+    CallbackInfo As LDR_IMPORT_CALLBACK_INFO
+    SectionInfo As LDR_SECTION_INFO
+    ImageCharacteristics As Integer
+End Type
+
+
+
+
+
+Public Enum LdrGetProcAddrExFlags
+    LDR_GET_PROCEDURE_ADDRESS_DONT_RECORD_FORWARDER = &H00000001
+End Enum
+
+Public Enum LdrDllAddRefFlags
+    LDR_ADDREF_DLL_PIN = &H00000001
+End Enum
+
+Public Enum LdrGetHandleExFlags
+    LDR_GET_DLL_HANDLE_EX_UNCHANGED_REFCOUNT = &H00000001
+    LDR_GET_DLL_HANDLE_EX_PIN = &H00000002
+End Enum
 
 Public Enum NtLoaderLockFlags
     LDR_LOCK_LOADER_LOCK_FLAG_RAISE_ON_ERRORS = (&H00000001)
@@ -20810,6 +21416,444 @@ Public Declare Function NtWow64CallFunction64 Lib "ntdll" ( _
 
 
 #End If
+
+
+Public Const ACTIVATION_CONTEXT_DATA_MAGIC = &H78746341 'xtcA'
+Public Const ACTIVATION_CONTEXT_DATA_FORMAT_WHISTLER  = 1
+Public Const ACTIVATION_CONTEXT_FLAG_NO_INHERIT  = &H00000001
+
+Public Type ACTIVATION_CONTEXT_DATA
+    Magic As Long
+    HeaderSize As Long
+    FormatVersion As Long
+    TotalSize As Long
+    DefaultTocOffset As Long ' to ACTIVATION_CONTEXT_DATA_TOC_HEADER
+    ExtendedTocOffset As Long ' to ACTIVATION_CONTEXT_DATA_EXTENDED_TOC_HEADER
+    AssemblyRosterOffset As Long ' to ACTIVATION_CONTEXT_DATA_ASSEMBLY_ROSTER_HEADER
+    Flags As Long ' ACTIVATION_CONTEXT_FLAG_*
+End Type
+
+Public Enum ActCtxTocHdrFlags
+    ACTIVATION_CONTEXT_DATA_TOC_HEADER_DENSE = &H00000001
+    ACTIVATION_CONTEXT_DATA_TOC_HEADER_INORDER = &H00000002
+End Enum
+Public Type ACTIVATION_CONTEXT_DATA_TOC_HEADER
+    HeaderSize As Long
+    EntryCount As Long
+    FirstEntryOffset As Long ' to ACTIVATION_CONTEXT_DATA_TOC_ENTRY[], from ACTIVATION_CONTEXT_DATA base
+    Flags As ActCtxTocHdrFlags ' ACTIVATION_CONTEXT_DATA_TOC_HEADER_*
+End Type
+
+Public Type ACTIVATION_CONTEXT_DATA_TOC_ENTRY
+    Id As ActivationContextSections ' ACTIVATION_CONTEXT_SECTION_*
+    Offset As Long ' to ACTIVATION_CONTEXT_*_SECTION_HEADER, from ACTIVATION_CONTEXT_DATA base
+    Length As Long
+    Format As ActCtxSectionFmtFlags ' ACTIVATION_CONTEXT_SECTION_FORMAT_*
+End Type
+
+Public Type ACTIVATION_CONTEXT_DATA_EXTENDED_TOC_HEADER
+    HeaderSize As Long
+    EntryCount As Long
+    FirstEntryOffset As Long ' to ACTIVATION_CONTEXT_DATA_EXTENDED_TOC_ENTRY[], from ACTIVATION_CONTEXT_DATA base
+    Flags As Long
+End Type
+
+Public Type ACTIVATION_CONTEXT_DATA_EXTENDED_TOC_ENTRY
+    ExtensionGuid As UUID
+    TocOffset As Long ' to ACTIVATION_CONTEXT_DATA_TOC_HEADER, from ACTIVATION_CONTEXT_DATA base
+    Length As Long
+End Type
+
+Public Enum ActCtxDataAsmRosterEntryFlags
+    ACTIVATION_CONTEXT_DATA_ASSEMBLY_ROSTER_ENTRY_INVALID = &H00000001
+    ACTIVATION_CONTEXT_DATA_ASSEMBLY_ROSTER_ENTRY_ROOT = &H00000002
+End Enum
+
+Public Type ACTIVATION_CONTEXT_DATA_ASSEMBLY_ROSTER_HEADER
+    HeaderSize As Long
+    HashAlgorithm As Long ' HASH_STRING_ALGORITHM_*
+    EntryCount As Long
+    FirstEntryOffset As Long ' to ACTIVATION_CONTEXT_DATA_ASSEMBLY_ROSTER_ENTRY[], from ACTIVATION_CONTEXT_DATA base
+    AssemblyInformationSectionOffset As Long ' to resolve section-relative offsets
+End Type
+
+Public Type ACTIVATION_CONTEXT_DATA_ASSEMBLY_ROSTER_ENTRY
+    Flags As Long
+    PseudoKey As Long
+    AssemblyNameOffset As Long ' to WCHAR[], from ACTIVATION_CONTEXT_DATA base
+    AssemblyNameLength As Long
+    AssemblyInformationOffset As Long ' to ACTIVATION_CONTEXT_DATA_ASSEMBLY_INFORMATION, from ACTIVATION_CONTEXT_DATA base
+    AssemblyInformationLength As Long
+End Type
+
+Public Enum ActCtxSectionFmtFlags
+    ACTIVATION_CONTEXT_SECTION_FORMAT_UNKNOWN = 0
+    ACTIVATION_CONTEXT_SECTION_FORMAT_STRING_TABLE = 1  ' ACTIVATION_CONTEXT_STRING_SECTION_HEADER
+    ACTIVATION_CONTEXT_SECTION_FORMAT_GUID_TABLE = 2  ' ACTIVATION_CONTEXT_GUID_SECTION_HEADER
+End Enum
+
+Public Const ACTIVATION_CONTEXT_STRING_SECTION_FORMAT_WHISTLER  = 1
+Public Const ACTIVATION_CONTEXT_STRING_SECTION_CASE_INSENSITIVE  = &H00000001
+Public Const ACTIVATION_CONTEXT_STRING_SECTION_ENTRIES_IN_PSEUDOKEY_ORDER  = &H00000002
+
+
+
+Public Const ACTIVATION_CONTEXT_STRING_SECTION_MAGIC = &H64487353 'dHsS'
+Public Const ACTIVATION_CONTEXT_GUID_SECTION_MAGIC = &H64487347 'dHsG'
+
+Public Type ACTIVATION_CONTEXT_STRING_SECTION_HEADER
+    Magic As Long
+    HeaderSize As Long
+    FormatVersion As Long
+    DataFormatVersion As Long
+    Flags As Long ' ACTIVATION_CONTEXT_STRING_SECTION_*
+    ElementCount As Long
+    ElementListOffset As Long ' to ACTIVATION_CONTEXT_STRING_SECTION_ENTRY[], from this struct base
+    HashAlgorithm As Long ' HASH_STRING_ALGORITHM_*
+    SearchStructureOffset As Long ' to ACTIVATION_CONTEXT_STRING_SECTION_HASH_TABLE, from this struct base
+    UserDataOffset As Long ' to data depending on section Id, from this struct base
+    UserDataSize As Long
+End Type
+
+Public Type ACTIVATION_CONTEXT_STRING_SECTION_ENTRY
+    PseudoKey As Long
+    KeyOffset As Long ' to WCHAR[], from section header
+    KeyLength As Long
+    Offset As Long ' to data depending on section Id, from section header
+    Length As Long
+    AssemblyRosterIndex As Long
+End Type
+
+Public Type ACTIVATION_CONTEXT_STRING_SECTION_HASH_TABLE
+    BucketTableEntryCount As Long
+    BucketTableOffset As Long ' to ACTIVATION_CONTEXT_STRING_SECTION_HASH_BUCKET[], from section header
+End Type
+
+Public Type ACTIVATION_CONTEXT_STRING_SECTION_HASH_BUCKET
+    ChainCount As Long
+    ChainOffset As Long ' to LONG[], from section header
+End Type
+
+Public Const ACTIVATION_CONTEXT_GUID_SECTION_FORMAT_WHISTLER  = 1
+Public Const ACTIVATION_CONTEXT_GUID_SECTION_ENTRIES_IN_ORDER  = &H00000001
+
+Public Type ACTIVATION_CONTEXT_GUID_SECTION_HEADER
+    Magic As Long
+    HeaderSize As Long
+    FormatVersion As Long
+    DataFormatVersion As Long
+    Flags As Long ' ACTIVATION_CONTEXT_GUID_SECTION_*
+    ElementCount As Long
+    ElementListOffset As Long ' to ACTIVATION_CONTEXT_GUID_SECTION_ENTRY[], from this struct base
+    SearchStructureOffset As Long ' to ACTIVATION_CONTEXT_GUID_SECTION_HASH_TABLE, from this struct base
+    UserDataOffset As Long ' to data depending on section Id, from this struct base
+    UserDataSize As Long
+End Type
+
+Public Type ACTIVATION_CONTEXT_GUID_SECTION_ENTRY
+    Guid As UUID
+    Offset As Long ' to data depending on section Id, from section header
+    Length As Long
+    AssemblyRosterIndex As Long
+End Type
+
+Public Type ACTIVATION_CONTEXT_GUID_SECTION_HASH_TABLE
+    BucketTableEntryCount As Long
+    BucketTableOffset As Long ' to ACTIVATION_CONTEXT_GUID_SECTION_HASH_BUCKET, from section header
+End Type
+
+Public Type ACTIVATION_CONTEXT_GUID_SECTION_HASH_BUCKET
+    ChainCount As Long
+    ChainOffset As Long ' to LONG[], from section header
+End Type
+
+Public Const ACTIVATION_CONTEXT_DATA_ASSEMBLY_INFORMATION_FORMAT_WHISTLER  = 1
+Public Const ACTIVATION_CONTEXT_DATA_ASSEMBLY_INFORMATION_ROOT_ASSEMBLY  = &H00000001
+Public Const ACTIVATION_CONTEXT_DATA_ASSEMBLY_INFORMATION_POLICY_APPLIED  = &H00000002
+Public Const ACTIVATION_CONTEXT_DATA_ASSEMBLY_INFORMATION_ASSEMBLY_POLICY_APPLIED  = &H00000004
+Public Const ACTIVATION_CONTEXT_DATA_ASSEMBLY_INFORMATION_ROOT_POLICY_APPLIED  = &H00000008
+Public Const ACTIVATION_CONTEXT_DATA_ASSEMBLY_INFORMATION_PRIVATE_ASSEMBLY  = &H00000010
+
+[PackingAlignment(4)]
+Public Type ACTIVATION_CONTEXT_DATA_ASSEMBLY_INFORMATION
+    Size As Long
+    Flags As Long ' ACTIVATION_CONTEXT_DATA_ASSEMBLY_INFORMATION_*
+    EncodedAssemblyIdentityLength As Long
+    EncodedAssemblyIdentityOffset As Long ' to WCHAR[], from section header
+    ManifestPathType As Long ' ACTIVATION_CONTEXT_PATH_TYPE_*
+    ManifestPathLength As Long
+    ManifestPathOffset As Long ' to WCHAR[], from section header
+    ManifestLastWriteTime As LARGE_INTEGER
+    PolicyPathType As Long ' ACTIVATION_CONTEXT_PATH_TYPE_*
+    PolicyPathLength As Long
+    PolicyPathOffset As Long ' to WCHAR[], from section header
+    PolicyLastWriteTime As LARGE_INTEGER
+    MetadataSatelliteRosterIndex As Long
+    Unused2 As Long
+    ManifestVersionMajor As Long
+    ManifestVersionMinor As Long
+    PolicyVersionMajor As Long
+    PolicyVersionMinor As Long
+    AssemblyDirectoryNameLength As Long
+    AssemblyDirectoryNameOffset As Long ' to WCHAR[], from section header
+    NumOfFilesInAssembly As Long
+    LanguageLength As Long
+    LanguageOffset As Long ' to WCHAR[], from section header
+    RunLevel As ACTCTX_REQUESTED_RUN_LEVEL
+    UiAccess As Long
+End Type
+
+Public Type ACTIVATION_CONTEXT_DATA_ASSEMBLY_GLOBAL_INFORMATION
+    Size As Long
+    Flags As Long
+    PolicyCoherencyGuid As UUID
+    PolicyOverrideGuid As UUID
+    ApplicationDirectoryPathType As Long ' ACTIVATION_CONTEXT_PATH_TYPE_*
+    ApplicationDirectoryLength As Long
+    ApplicationDirectoryOffset As Long ' to WCHAR[], from this struct base
+    ResourceName As Long
+End Type
+
+Public Const ACTIVATION_CONTEXT_DATA_DLL_REDIRECTION_FORMAT_WHISTLER  = 1
+Public Const ACTIVATION_CONTEXT_DATA_DLL_REDIRECTION_PATH_INCLUDES_BASE_NAME  = &H00000001
+Public Const ACTIVATION_CONTEXT_DATA_DLL_REDIRECTION_PATH_OMITS_ASSEMBLY_ROOT  = &H00000002
+Public Const ACTIVATION_CONTEXT_DATA_DLL_REDIRECTION_PATH_EXPAND  = &H00000004
+Public Const ACTIVATION_CONTEXT_DATA_DLL_REDIRECTION_PATH_SYSTEM_DEFAULT_REDIRECTED_SYSTEM32_DLL  = &H00000008
+
+Public Type ACTIVATION_CONTEXT_DATA_DLL_REDIRECTION
+    Size As Long
+    Flags As Long ' ACTIVATION_CONTEXT_DATA_DLL_REDIRECTION_*
+    TotalPathLength As Long
+    PathSegmentCount As Long
+    PathSegmentOffset As Long ' to ACTIVATION_CONTEXT_DATA_DLL_REDIRECTION_PATH_SEGMENT[], from section header
+End Type
+
+Public Type ACTIVATION_CONTEXT_DATA_DLL_REDIRECTION_PATH_SEGMENT
+    Length As Long
+    Offset As Long ' to WCHAR[], from section header
+End Type
+
+Public Const ACTIVATION_CONTEXT_DATA_WINDOW_CLASS_REDIRECTION_FORMAT_WHISTLER = 1
+
+Public Type ACTIVATION_CONTEXT_DATA_WINDOW_CLASS_REDIRECTION
+    Size As Long
+    Flags As Long
+    VersionSpecificClassNameLength As Long
+    VersionSpecificClassNameOffset As Long ' to WHCAR[], from this struct base
+    DllNameLength As Long
+    DllNameOffset As Long ' to WCHAR[], from section header
+End Type
+
+Public Const ACTIVATION_CONTEXT_DATA_COM_SERVER_REDIRECTION_FORMAT_WHISTLER  = 1
+
+Public Enum ActCtxComSrvThreadingModels
+    ACTIVATION_CONTEXT_DATA_COM_SERVER_REDIRECTION_THREADING_MODEL_INVALID = 0
+    ACTIVATION_CONTEXT_DATA_COM_SERVER_REDIRECTION_THREADING_MODEL_APARTMENT = 1
+    ACTIVATION_CONTEXT_DATA_COM_SERVER_REDIRECTION_THREADING_MODEL_FREE = 2
+    ACTIVATION_CONTEXT_DATA_COM_SERVER_REDIRECTION_THREADING_MODEL_SINGLE = 3
+    ACTIVATION_CONTEXT_DATA_COM_SERVER_REDIRECTION_THREADING_MODEL_BOTH = 4
+    ACTIVATION_CONTEXT_DATA_COM_SERVER_REDIRECTION_THREADING_MODEL_NEUTRAL = 5
+End Enum
+Public Enum ActCtxComSrvStatus
+    ACTIVATION_CONTEXT_DATA_COM_SERVER_MISCSTATUS_FLAG_OFFSET = 8
+    ACTIVATION_CONTEXT_DATA_COM_SERVER_MISCSTATUS_HAS_DEFAULT = (&H01 << ACTIVATION_CONTEXT_DATA_COM_SERVER_MISCSTATUS_FLAG_OFFSET)
+    ACTIVATION_CONTEXT_DATA_COM_SERVER_MISCSTATUS_HAS_ICON = (&H02 << ACTIVATION_CONTEXT_DATA_COM_SERVER_MISCSTATUS_FLAG_OFFSET)
+    ACTIVATION_CONTEXT_DATA_COM_SERVER_MISCSTATUS_HAS_CONTENT = (&H04 << ACTIVATION_CONTEXT_DATA_COM_SERVER_MISCSTATUS_FLAG_OFFSET)
+    ACTIVATION_CONTEXT_DATA_COM_SERVER_MISCSTATUS_HAS_THUMBNAIL = (&H08& << ACTIVATION_CONTEXT_DATA_COM_SERVER_MISCSTATUS_FLAG_OFFSET)
+    ACTIVATION_CONTEXT_DATA_COM_SERVER_MISCSTATUS_HAS_DOCPRINT = (&H10& << ACTIVATION_CONTEXT_DATA_COM_SERVER_MISCSTATUS_FLAG_OFFSET)
+End Enum
+
+Public Type ACTIVATION_CONTEXT_DATA_COM_SERVER_REDIRECTION
+    Size As Long
+    Flags As Long
+    ThreadingModel As ActCtxComSrvThreadingModels ' ACTIVATION_CONTEXT_DATA_COM_SERVER_REDIRECTION_THREADING_MODEL_*
+    ReferenceClsid As UUID
+    ConfiguredClsid As UUID
+    ImplementedClsid As UUID
+    TypeLibraryId As UUID
+    ModuleLength As Long
+    ModuleOffset As Long ' to WCHAR[], from section header
+    ProgIdLength As Long
+    ProgIdOffset As Long ' to WCHAR[], from this struct base
+    ShimDataLength As Long
+    ShimDataOffset As Long ' to ACTIVATION_CONTEXT_DATA_COM_SERVER_REDIRECTION_SHIM, from this struct base
+    MiscStatusDefault As Long
+    MiscStatusContent As Long
+    MiscStatusThumbnail As Long
+    MiscStatusIcon As Long
+    MiscStatusDocPrint As Long
+End Type
+
+Public Const ACTIVATION_CONTEXT_DATA_COM_SERVER_REDIRECTION_SHIM_TYPE_OTHER  = 1
+Public Const ACTIVATION_CONTEXT_DATA_COM_SERVER_REDIRECTION_SHIM_TYPE_CLR_CLASS  = 2
+
+Public Type ACTIVATION_CONTEXT_DATA_COM_SERVER_REDIRECTION_SHIM
+    Size As Long
+    Flags As Long
+    Type As Long ' ACTIVATION_CONTEXT_DATA_COM_SERVER_REDIRECTION_SHIM_TYPE_*
+    ModuleLength As Long
+    ModuleOffset As Long ' to WCHAR[], from section header
+    TypeLength As Long
+    TypeOffset As Long ' to WCHAR[], from this struct base
+    ShimVersionLength As Long
+    ShimVersionOffset As Long ' to WCHAR[], from this struct base
+    DataLength As Long
+    DataOffset As Long ' from this struct base
+End Type
+
+Public Const ACTIVATION_CONTEXT_DATA_COM_INTERFACE_REDIRECTION_FORMAT_WHISTLER  = 1
+
+Public Const ACTIVATION_CONTEXT_DATA_COM_INTERFACE_REDIRECTION_FLAG_NUM_METHODS_VALID  = &H00000001
+Public Const ACTIVATION_CONTEXT_DATA_COM_INTERFACE_REDIRECTION_FLAG_BASE_INTERFACE_VALID  = &H00000002
+
+Public Type ACTIVATION_CONTEXT_DATA_COM_INTERFACE_REDIRECTION
+    Size As Long
+    Flags As Long ' ACTIVATION_CONTEXT_DATA_COM_INTERFACE_REDIRECTION_FLAG_*
+    ProxyStubClsid32 As UUID
+    NumMethods As Long
+    TypeLibraryId As UUID
+    BaseInterface As UUID
+    NameLength As Long
+    NameOffset As Long ' to WCHAR[], from this struct base
+End Type
+
+Public Const ACTIVATION_CONTEXT_DATA_COM_TYPE_LIBRARY_REDIRECTION_FORMAT_WHISTLER = 1
+
+Public Type ACTIVATION_CONTEXT_DATA_TYPE_LIBRARY_VERSION
+    Major As Integer
+    Minor As Integer
+End Type
+
+Public Type ACTIVATION_CONTEXT_DATA_COM_TYPE_LIBRARY_REDIRECTION
+    Size As Long
+    Flags As Long
+    NameLength As Long
+    NameOffset As Long ' to WCHAR[], from section header
+    ResourceId As Integer
+    LibraryFlags As Integer ' LIBFLAG_* oaidl.h
+    HelpDirLength As Long
+    HelpDirOffset As Long ' to WCHAR[], from this struct base
+    Version As ACTIVATION_CONTEXT_DATA_TYPE_LIBRARY_VERSION
+End Type
+
+Public Const ACTIVATION_CONTEXT_DATA_COM_PROGID_REDIRECTION_FORMAT_WHISTLER  = 1
+
+Public Type ACTIVATION_CONTEXT_DATA_COM_PROGID_REDIRECTION
+    Size As Long
+    Flags As Long
+    ConfiguredClsidOffset As Long ' to CLSID, from section header
+End Type
+
+Public Const ACTIVATION_CONTEXT_DATA_CLR_SURROGATE_FORMAT_WHISTLER  = 1
+
+Public Type ACTIVATION_CONTEXT_DATA_CLR_SURROGATE
+    Size As Long
+    Flags As Long
+    SurrogateIdent As UUID
+    VersionOffset As Long
+    VersionLength As Long
+    TypeNameOffset As Long
+    TypeNameLength As Long ' to WCHAR[], from this struct base
+End Type
+
+Public Const ACTIVATION_CONTEXT_DATA_APPLICATION_SETTINGS_FORMAT_LONGHORN  = 1
+Public Const SXS_WINDOWS_SETTINGS_NAMESPACE  = "http://schemas.microsoft.com/SMI/2005/WindowsSettings"
+Public Const SXS_WINDOWS_SETTINGS_2011_NAMESPACE  = "http://schemas.microsoft.com/SMI/2011/WindowsSettings"
+Public Const SXS_WINDOWS_SETTINGS_2013_NAMESPACE  = "http://schemas.microsoft.com/SMI/2013/WindowsSettings"
+Public Const SXS_WINDOWS_SETTINGS_2014_NAMESPACE  = "http://schemas.microsoft.com/SMI/2014/WindowsSettings"
+Public Const SXS_WINDOWS_SETTINGS_2016_NAMESPACE  = "http://schemas.microsoft.com/SMI/2016/WindowsSettings"
+Public Const SXS_WINDOWS_SETTINGS_2017_NAMESPACE  = "http://schemas.microsoft.com/SMI/2017/WindowsSettings"
+Public Const SXS_WINDOWS_SETTINGS_2019_NAMESPACE  = "http://schemas.microsoft.com/SMI/2019/WindowsSettings"
+Public Const SXS_WINDOWS_SETTINGS_2020_NAMESPACE  = "http://schemas.microsoft.com/SMI/2020/WindowsSettings"
+
+Public Type ACTIVATION_CONTEXT_DATA_APPLICATION_SETTINGS
+    Size As Long
+    Flags As Long
+    SettingNamespaceLength As Long
+    SettingNamespaceOffset As Long ' to WCHAR[], from this struct base
+    SettingNameLength As Long
+    SettingNameOffset As Long ' to WCHAR[], from this struct base
+    SettingValueLength As Long
+    SettingValueOffset As Long ' to WCHAR[], from this struct base
+End Type
+
+Public Type COMPATIBILITY_CONTEXT_ELEMENT_LEGACY
+    Id As UUID
+    Type As ACTCTX_COMPATIBILITY_ELEMENT_TYPE
+End Type
+
+[Description("WARNING: Buffer substituted for variable C-style array.")]
+Public Type ACTIVATION_CONTEXT_COMPATIBILITY_INFORMATION_LEGACY
+    ElementCount As Long
+    Elements(0 To 63) As COMPATIBILITY_CONTEXT_ELEMENT_LEGACY
+End Type
+
+Public Type ASSEMBLY_STORAGE_MAP_ENTRY
+    Flags As Long
+    DosPath As UNICODE_STRING
+    Handle As LongPtr
+End Type
+
+Public Const ASSEMBLY_STORAGE_MAP_ASSEMBLY_ARRAY_IS_HEAP_ALLOCATED  = &H00000001
+
+Public Type ASSEMBLY_STORAGE_MAP
+    Flags As Long
+    AssemblyCount As Long
+    AssemblyArray As LongPtr 'PASSEMBLY_STORAGE_MAP_ENTRY *
+End Type
+
+Public Enum ActCtxNotifyTypes
+    ACTIVATION_CONTEXT_NOTIFICATION_DESTROY = 1
+    ACTIVATION_CONTEXT_NOTIFICATION_ZOMBIFY = 2
+    ACTIVATION_CONTEXT_NOTIFICATION_USED = 3
+End Enum
+
+Public Delegate Sub ACTIVATION_CONTEXT_NOTIFY_ROUTINE (ByVal NotificationType As ActCtxNotifyTypes, ActivationContext As ACTIVATION_CONTEXT, _
+    ActivationContextData As ACTIVATION_CONTEXT_DATA, ByVal NotificationContext As LongPtr, ByVal NotificationData As LongPtr, DisableThisNotification As Byte)
+ 
+Public Type ACTIVATION_CONTEXT
+    RefCount As Long
+    Flags As Long
+    ActivationContextData As LongPtr 'PACTIVATION_CONTEXT_DATA
+    ' #If WDL_NO_DELEGATES Then
+    NotificationRoutine As LongPtr 'PACTIVATION_CONTEXT_NOTIFY_ROUTINE
+    ' #Else
+    ' NotificationRoutine As ACTIVATION_CONTEXT_NOTIFY_ROUTINE
+    ' #End If
+    NotificationContext As LongPtr
+    SentNotifications(0 To 7) As Long
+    DisabledNotifications(0 To 7) As Long
+    StorageMap As ASSEMBLY_STORAGE_MAP
+    InlineStorageMapEntries(0 To 31) As LongPtr 'PASSEMBLY_STORAGE_MAP_ENTRY
+End Type
+
+Public Enum ActCtxStackFrameFlags
+    RTL_ACTIVATION_CONTEXT_STACK_FRAME_FLAG_RELEASE_ON_DEACTIVATION = &H00000001
+    RTL_ACTIVATION_CONTEXT_STACK_FRAME_FLAG_NO_DEACTIVATE = &H00000002
+    RTL_ACTIVATION_CONTEXT_STACK_FRAME_FLAG_ON_FREE_LIST = &H00000004
+    RTL_ACTIVATION_CONTEXT_STACK_FRAME_FLAG_HEAP_ALLOCATED = &H00000008
+    RTL_ACTIVATION_CONTEXT_STACK_FRAME_FLAG_NOT_REALLY_ACTIVATED = &H00000010
+End Enum
+
+Public Type RTL_ACTIVATION_CONTEXT_STACK_FRAME
+    Previous As LongPtr '_RTL_ACTIVATION_CONTEXT_STACK_FRAME
+    ActivationContext As LongPtr 'PACTIVATION_CONTEXT
+    Flags As ActCtxStackFrameFlags ' RTL_ACTIVATION_CONTEXT_STACK_FRAME_FLAG_*
+End Type
+
+Public Const ACTIVATION_CONTEXT_STACK_FLAG_QUERIES_DISABLED = &H00000001
+
+Public Type ACTIVATION_CONTEXT_STACK
+    ActiveFrame As LongPtr 'PRTL_ACTIVATION_CONTEXT_STACK_FRAME
+    FrameListCache As LIST_ENTRY
+    Flags As Long ' ACTIVATION_CONTEXT_STACK_FLAG_*
+    NextCookieSequenceNumber As Long
+    StackId As Long
+End Type
+
+
+
+
 
 
 
