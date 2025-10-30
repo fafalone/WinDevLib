@@ -2423,16 +2423,286 @@
     End Interface
     
     
+'dxcapi.h
+
+[InterfaceId("8BA5FB08-5195-40e2-AC58-0D989C3A0102")]
+Interface IDxcBlob Extends IUnknown
+    [Description("Retrieves a pointer to the blob's data.")]
+    [PreserveSig] Function GetBufferPointer() As LongPtr
+    [Description("Retrieves the size, in bytes, of the blob's data.")]
+    [PreserveSig] Function GetBufferSize() As LongPtr
+End Interface
+
+[InterfaceId("7241d424-2646-4191-97c0-98e96e42fc68")]
+Interface IDxcBlobEncoding Extends IDxcBlob
+    [Description("Retrieve the encoding for this blob. If the encoding is not known then pCodePage will be set to CP_ACP.")]
+    Sub GetEncoding(ByRef pKnown As BOOL, ByRef pCodePage As Long)
+End Interface
+
+[InterfaceId("A3F84EAB-0FAA-497E-A39C-EE6ED60B2D84")]
+Interface IDxcBlobWide Extends IDxcBlobEncoding
+    [Description("Retrieves a pointer to the string stored in this blob.")]
+    [PreserveSig] Function GetStringPointer() As LongPtr
+    [Description("Retrieves the length of the string stored in this blob, in characters, excluding the null-terminator.")]
+    [PreserveSig] Function GetStringLength() As LongPtr
+End Interface
+
+[InterfaceId("3DA636C9-BA71-4024-A301-30CBF125305B")]
+Interface IDxcBlobUtf8 Extends IDxcBlobEncoding
+    [Description("Retrieves a pointer to the string stored in this blob.")]
+    [PreserveSig] Function GetStringPointer() As LongPtr
+    [Description("Retrieves the length of the string stored in this blob, in characters, excluding the null-terminator.")]
+    [PreserveSig] Function GetStringLength() As LongPtr
+End Interface
+
+[InterfaceId("7f61fc7d-950d-467f-b3e3-3c02fb49187c")]
+Interface IDxcIncludeHandler Extends IUnknown
+    [Description("Load a source file to be included by the compiler.")]
+    Sub LoadSource(ByVal pFilename As LongPtr, ByRef ppIncludeSource As IDxcBlob)
+End Interface
     
-    
-    
+[InterfaceId("73EFFE2A-70DC-45F8-9690-EFF64C02429D")]
+[Description("Interface for managing arguments passed to DXC. Use IDxcUtils::BuildArguments to create an instance of this interface.")]
+Interface IDxcCompilerArgs Extends IUnknown
+    [Description("Retrieve the array of arguments. This can be passed directly to the pArguments parameter of the Compile() method.")]
+    [PreserveSig] Function GetArguments() As LongPtr
+    [Description("Retrieve the number of arguments. This can be passed directly to the argCount parameter of the Compile() method.")]
+    [PreserveSig] Function GetCount() As Long
+    [Description("Add additional arguments to this list of compiler arguments.")]
+    Sub AddArguments(ByVal pArguments As LongPtr, ByVal argCount As Long)
+    [Description("Add additional UTF-8 encoded arguments to this list of compiler arguments.")]
+    Sub AddArgumentsUTF8(ByVal pArguments As LongPtr, ByVal argCount As Long)
+    [Description("Add additional defines to this list of compiler arguments.")]
+    Sub AddDefines(ByRef pDefines As DxcDefine, ByVal defineCount As Long)
+End Interface
+
+[InterfaceId("e5204dc7-d18c-4c3c-bdfb-851673980fe7")]
+[Description("IDxcUtils replaces IDxcLibrary; please use IDxcUtils insted.")]
+Interface IDxcLibrary Extends IUnknown
+    Sub SetMalloc(ByVal pMalloc As IMalloc)
+    Sub CreateBlobFromBlob(ByVal pBlob As IDxcBlob, ByVal offset As Long, ByVal length As Long, ByRef ppResult As IDxcBlob)
+    Sub CreateBlobFromFile(ByVal pFileName As LongPtr, ByRef codePage As Long, ByRef pBlobEncoding As IDxcBlobEncoding)
+    Sub CreateBlobWithEncodingFromPinned(ByVal pText As LongPtr, ByVal size As Long, ByVal codePage As Long, ByRef pBlobEncoding As IDxcBlobEncoding)
+    Sub CreateBlobWithEncodingOnHeapCopy(ByVal pText As LongPtr, ByVal size As Long, ByVal codePage As Long, ByRef pBlobEncoding As IDxcBlobEncoding)
+    Sub CreateBlobWithEncodingOnMalloc(ByVal pText As LongPtr, ByVal pIMalloc As IMalloc, ByVal size As Long, ByVal codePage As Long, ByRef pBlobEncoding As IDxcBlobEncoding)
+    Sub CreateIncludeHandler(ByRef ppResult As IDxcIncludeHandler)
+    Sub CreateStreamFromBlobReadOnly(ByVal pBlob As IDxcBlob, ByRef ppStream As IStream)
+    Sub GetBlobAsUtf8(ByVal pBlob As IDxcBlob, ByRef pBlobEncoding As IDxcBlobEncoding)
+    Sub GetBlobAsWide(ByVal pBlob As IDxcBlob, ByRef pBlobEncoding As IDxcBlobEncoding)
+    ' #ifdef _WIN32
+    ' // Alias to GetBlobAsWide on Win32
+    ' /// \deprecated 
+    ' inline HRESULT GetBlobAsUtf16(
+        ' _In_ IDxcBlob *pBlob, _COM_Outptr_ IDxcBlobEncoding **pBlobEncoding) {
+        ' return this->GetBlobAsWide(pBlob, pBlobEncoding);
+    ' }
+    ' #endif
+End Interface
+
+[InterfaceId("CEDB484A-D4E9-445A-B991-CA21CA157DC2")]
+[Description("The results of a DXC operation. Note: IDxcResult replaces IDxcOperationResult and should be used wherever possible.")]
+Interface IDxcOperationResult Extends IUnknown
+    [Description("Retrieve the overall status of the operation.")]
+    Sub GetStatus(ByRef pStatus As Long)
+    [Description("Retrieve the primary output of the operation.")]
+    Sub GetResult(ByRef ppResult As IDxcBlob)
+    [Description("Retrieves the error buffer from the operation, if there is one. This corresponds to calling IDxcResult::GetOutput() with DXC_OUT_ERRORS.")]
+    Sub GetErrorBuffer(ByRef ppErrors As IDxcBlobEncoding)
+End Interface
+
+[InterfaceId("8c210bf3-011f-4422-8d70-6f9acb8db617")]
+[Description("Please use IDxcCompiler3 instead.")]
+Interface IDxcCompiler Extends IUnknown
+    [Description("Compile a single entry point to the target shader model. Please use IDxcCompiler3::Compile() instead.")]
+    Sub Compile(ByVal pSource As IDxcBlob, ByVal pSourceName As LongPtr, ByVal pEntryPoint As LongPtr, ByVal pTargetProfile As LongPtr, pArguments As LongPtr, ByVal argCount As Long, ByRef pDefines As DxcDefine, ByVal defineCount As Long, ByVal pIncludeHandler As IDxcIncludeHandler, ByRef ppResult As IDxcOperationResult)
+    [Description("Preprocess source text. Please use IDxcCompiler3::Compile() with the ""-P"" argument instead.")]
+    Sub Preprocess(ByVal pSource As IDxcBlob, ByVal pSourceName As LongPtr, pArguments As LongPtr, ByVal argCount As Long, ByRef pDefines As DxcDefine, ByVal defineCount As Long, ByVal pIncludeHandler As IDxcIncludeHandler, ByRef ppResult As IDxcOperationResult)
+    [Description("Disassemble a program. Please use IDxcCompiler3::Disassemble() instead.")]
+    Sub Disassemble(ByVal pSource As IDxcBlob, ByRef ppDisassembly As IDxcBlobEncoding)
+End Interface
+
+[InterfaceId("A005A9D9-B8BB-4594-B5C9-0E633BEC4D37")]
+[Description("Please use IDxcCompiler3 instead.")]
+Interface IDxcCompiler2 Extends IDxcCompiler
+    [Description("Compile a single entry point to the target shader model with debug information. Please use IDxcCompiler3::Compile() instead.")]
+    Sub CompileWithDebug(ByVal pSource As IDxcBlob, ByVal pSourceName As LongPtr, ByVal pEntryPoint As LongPtr, ByVal pTargetProfile As LongPtr, pArguments As LongPtr, ByVal argCount As Long, ByRef pDefines As DxcDefine, ByVal defineCount As Long, ByVal pIncludeHandler As IDxcIncludeHandler, ByRef ppResult As IDxcOperationResult, ByRef ppDebugBlobName As LongPtr, ByRef ppDebugBlob As IDxcBlob)
+End Interface
+
+[InterfaceId("F1B5BE2A-62DD-4327-A1C2-42AC1E1E78E6")]
+[Description("DXC linker interface. Use DxcCreateInstance with CLSID_DxcLinker to obtain an instance of this interface.")]
+Interface IDxcLinker Extends IUnknown
+    [Description("Register a library with name to reference it later.")]
+    Sub RegisterLibrary(ByVal pLibName As LongPtr, ByVal pLib As IDxcBlob)
+    [Description("Links the shader and produces a shader blob that the Direct3D runtime can use.")]
+    Sub Link(ByVal pEntryName As LongPtr, ByVal pTargetProfile As LongPtr, pLibNames As LongPtr, ByVal libCount As Long, pArguments As LongPtr, ByVal argCount As Long, ByRef ppResult As IDxcOperationResult)
+End Interface
+
+[InterfaceId("4605C4CB-2019-492A-ADA4-65F20BB7D67F")]
+[Description("Use DxcCreateInstance with CLSID_DxcUtils to obtain an instance of this Interface.")]
+Interface IDxcUtils Extends IUnknown
+    [Description("Create a Sub-blob that holds a reference to the outer blob and\" & vbCrLf & _ 
+        "points to its memory. ")]
+    Sub CreateBlobFromBlob(ByVal pBlob As IDxcBlob, ByVal offset As Long, ByVal length As Long, ppResult As IDxcBlob)
+
+    [Description("For codePage, use 0 (or DXC_CP_ACP) for raw binary or ANSI code page.\" & vbCrLf & _ 
+      "brief Create a blob referencing existing memory, with no copy.\" & vbCrLf & _ 
+      "param pData Pointer to buffer containing the contents of the new blob.\" & vbCrLf & _ 
+      "param size The size of the pData buffer, in bytes.\" & vbCrLf & _ 
+      "param codePage The code page to use if the blob contains text.  Use\" & vbCrLf & _ 
+      "DXC_CP_ACP for binary or ANSI code page.\" & vbCrLf & _ 
+      "param ppBlobEncoding Address of the pointer that receives a pointer to\" & vbCrLf & _ 
+      "the newly created blob.\" & vbCrLf & _ 
+      "The user must manage the memory lifetime separately.\" & vbCrLf & _ 
+      "This replaces IDxcLibrary::CreateBlobWithEncodingFromPinned.")]
+    Sub CreateBlobFromPinned(pData As any, ByVal size As Long, ByVal codePage As Long, ppBlobEncoding As IDxcBlobEncoding)
+    [Description("Create a blob, taking ownership of memory allocated with the\" & vbCrLf & _
+    "supplied allocator.\" & vbCrLf & _
+    "param pData Pointer to buffer containing the contents of the new blob.\" & vbCrLf & _
+    "param pIMalloc The memory allocator to use.\" & vbCrLf & _
+    "param size The size of thee pData buffer, in bytes.\" & vbCrLf & _
+    "param codePage The code page to use if the blob contains text. Use\" & vbCrLf & _
+    "DXC_CP_ACP for binary or ANSI code page.\" & vbCrLf & _
+    "param ppBlobEncoding Address of the pointer that receives a pointer to\" & vbCrLf & _
+    "the newly created blob.\" & vbCrLf & _
+    "This replaces IDxcLibrary::CreateBlobWithEncodingOnMalloc.")]
+    Sub MoveToBlob(pData As Any, ByVal pIMalloc As IMalloc, ByVal size As Long, ByVal codePage As Long, ByRef ppBlobEncoding As IDxcBlobEncoding)
+    [Description("Create a blob containing a copy of the existing data.\" & vbCrLf & _
+    "param pData Pointer to buffer containing the contents of the new blob.\" & vbCrLf & _
+    "param size The size of thee pData buffer, in bytes.\" & vbCrLf & _
+    "param codePage The code page to use if the blob contains text.  Use\" & vbCrLf & _
+    "DXC_CP_ACP for binary or ANSI code page.\" & vbCrLf & _
+    "param ppBlobEncoding Address of the pointer that receives a pointer to\" & vbCrLf & _
+    "the newly created blob.\" & vbCrLf & _
+    "The new blob and its contents are allocated with the current allocator.\" & vbCrLf & _
+    "This replaces IDxcLibrary::CreateBlobWithEncodingOnHeapCopy.")]
+    Sub CreateBlob(pData As Any, ByVal size As Long, ByVal codePage As Long, ByRef ppBlobEncoding As IDxcBlobEncoding)
+    [Description("Create a blob with data loaded from a file.\" & vbCrLf & _
+    "param pFileName The name of the file to load from.\" & vbCrLf & _
+    "param pCodePage Optional code page to use if the blob contains text. Pass\" & vbCrLf & _
+    "NULL for binary data.\" & vbCrLf & _
+    "param ppBlobEncoding Address of the pointer that receives a pointer to\" & vbCrLf & _
+    "the newly created blob.\" & vbCrLf & _
+    "The new blob and its contents are allocated with the current allocator.\" & vbCrLf & _
+    "This replaces IDxcLibrary::CreateBlobFromFile.")]
+    Sub LoadFile(ByVal pFileName As LongPtr, ByRef pCodePage As Long, ByRef ppBlobEncoding As IDxcBlobEncoding)
+    [Description("Create a stream that reads data from a blob.\" & vbCrLf & _
+    "param pBlob The blob to read from.\" & vbCrLf & _
+    "param ppStream Address of the pointer that receives a pointer to the\" & vbCrLf & _
+    "newly created stream.")]
+    Sub CreateReadOnlyStreamFromBlob(ByVal pBlob As IDxcBlob, ByRef ppStream As IStream)
+    [Description("Create default file-based include handler.\" & vbCrLf & _
+    "param ppResult Address of the pointer that receives a pointer to the\" & vbCrLf & _
+    "newly created include handler.")]
+    Sub CreateDefaultIncludeHandler(ByRef ppResult As IDxcIncludeHandler)
+    [Description("Convert or return matching encoded text blob as UTF-8.\" & vbCrLf & _
+    "param pBlob The blob to convert.\" & vbCrLf & _
+    "param ppBlobEncoding Address of the pointer that receives a pointer to\" & vbCrLf & _
+    "the newly created blob.")]
+    Sub GetBlobAsUtf8(ByVal pBlob As IDxcBlob, ByRef ppBlobEncoding As IDxcBlobUtf8)
+    [Description("Convert or return matching encoded text blob as UTF-16.\" & vbCrLf & _
+    "param pBlob The blob to convert.\" & vbCrLf & _
+    "param ppBlobEncoding Address of the pointer that receives a pointer to\" & vbCrLf & _
+    "the newly created blob.")]
+    Sub GetBlobAsWide(ByVal pBlob As IDxcBlob, ByRef ppBlobEncoding As IDxcBlobWide)
+    [Description("Retrieve a single part from a DXIL container.\" & vbCrLf & _
+    "param pShader The shader to retrieve the part from.\" & vbCrLf & _
+    "param DxcPart The part to retrieve (eg DXC_PART_ROOT_SIGNATURE).\" & vbCrLf & _
+    "param ppPartData Address of the pointer that receives a pointer to the\" & vbCrLf & _
+    "part.\" & vbCrLf & _
+    "param pPartSizeInBytes Address of the pointer that receives the size of\" & vbCrLf & _
+    "the part.\" & vbCrLf & _
+    "The returned pointer points inside the buffer passed in pShader.")]
+    Sub GetDxilContainerPart(ByRef pShader As DxcBuffer, ByVal DxcPart As Long, ByRef ppPartData As LongPtr, ByRef pPartSizeInBytes As Long)
+    [Description("Create reflection interface from serialized DXIL container or the\" & vbCrLf & _
+    "DXC_OUT_REFLECTION blob contents.\" & vbCrLf & _
+    "param pData The source data.\" & vbCrLf & _
+    "param iid The interface ID of the reflection interface to create.\" & vbCrLf & _
+    "param ppvReflection Address of the pointer that receives a pointer to the\" & vbCrLf & _
+    "newly created reflection interface.\" & vbCrLf & _
+    "Use this with interfaces such as ID3D12ShaderReflection.")]
+    Sub CreateReflection(ByRef pData As DxcBuffer, ByRef iid As UUID, ByRef ppvReflection As Any)
+    [Description("Build arguments that can be passed to the Compile method.")]
+    Sub BuildArguments(ByVal pSourceName As LongPtr, ByVal pEntryPoint As LongPtr, ByVal pTargetProfile As LongPtr, pArguments As LongPtr, ByVal argCount As Long, ByRef pDefines As DxcDefine, ByVal defineCount As Long, ByRef ppArgs As IDxcCompilerArgs)
+    [Description("Retrieve the hash and contents of a shader PDB.\" & vbCrLf & _
+    "param pPDBBlob The blob containing the PDB.\" & vbCrLf & _
+    "param ppHash Address of the pointer that receives a pointer to the hash\" & vbCrLf & _
+    "blob.\" & vbCrLf & _
+    "param ppContainer Address of the pointer that receives a pointer to the\" & vbCrLf & _
+    "bloc containing the contents of the PDB.")]
+    Sub GetPDBContents(ByVal pPDBBlob As IDxcBlob, ByRef ppHash As IDxcBlob, ByRef ppContainer As IDxcBlob)
+End Interface
+
+[InterfaceId("58346CDA-DDE7-4497-9461-6F87AF5E0659")]
+[Description("Result of a DXC operation.\" & vbCrLf & _
+    "DXC operations may have multiple outputs, such as a shader object and\" & vbCrLf & _
+    "errors. This interface provides access to the outputs.")]
+Interface IDxcResult Extends IDxcOperationResult
+    [Description("Determines whether or not this result has the specified output.\" & vbCrLf & _
+        "param dxcOutKind The kind of output to check for.")]
+    [PreserveSig] Function HasOutput(ByVal dxcOutKind As DXC_OUT_KIND) As BOOL
+    [Description("Retrieves the specified output.\" & vbCrLf & _
+        "param dxcOutKind The kind of output to retrieve.\" & vbCrLf & _
+        "param iid The interface ID of the output interface.\" & vbCrLf & _
+        "param ppvObject Address of the pointer that receives a pointer to the\" & vbCrLf & _
+        "output.\" & vbCrLf & _
+        "param ppOutputName Optional address of a pointer to receive the name\" & vbCrLf & _
+        "blob, if there is one.")]
+    Sub GetOutput(ByVal dxcOutKind As DXC_OUT_KIND, ByRef iid As UUID, ByRef ppvObject As Any, ByRef ppOutputName As IDxcBlobWide)
+    [Description("Retrieves the number of outputs available in this result.")]
+    [PreserveSig] Function GetNumOutputs() As Long
+    [Description("Retrieves the output kind at the specified index.")]
+    [PreserveSig] Function GetOutputByIndex(ByVal Index As Long) As DXC_OUT_KIND
+    [Description("Retrieves the primary output kind for this result.\" & vbCrLf & _
+        "See IDxcOperationResult::GetResult() for more information on the primary\" & vbCrLf & _
+        "output kinds.")]
+    [PreserveSig] Function PrimaryOutput() As DXC_OUT_KIND
+End Interface
+
+[InterfaceId("319b37a2-a5c2-494a-a5de-4801b2faf989")]
+[Description("Additional outputs from a DXC operation.\" & vbCrLf & _
+    "This can be used to obtain outputs that don't have an explicit DXC_OUT_KIND.\" & vbCrLf & _
+    "Use DXC_OUT_EXTRA_OUTPUTS to obtain instances of this.")]
+Interface IDxcExtraOutputs Extends IUnknown
+    [Description("Retrieves the number of outputs available")]
+    [PreserveSig] Function GetOutputCount() As Long
+    [Description("Retrieves the specified output.\" & vbCrLf & _
+        "param uIndex The index of the output to retrieve.\" & vbCrLf & _
+        "param iid The interface ID of the output interface.\" & vbCrLf & _
+        "param ppvObject Optional address of the pointer that receives a pointer\" & vbCrLf & _
+        "to the output if there is one.\" & vbCrLf & _
+        "param ppOutputType Optional address of the pointer that receives the\" & vbCrLf & _
+        "output type name blob if there is one.\" & vbCrLf & _
+        "param ppOutputName Optional address of the pointer that receives the\" & vbCrLf & _
+        "output name blob if there is one.")]
+    Sub GetOutput(ByVal uIndex As Long, ByRef iid As UUID, ByRef ppvObject As Any, ByRef ppOutputType As IDxcBlobWide, ByRef ppOutputName As IDxcBlobWide)
+End Interface
+
+[InterfaceId("228B4687-5A6A-4730-900C-9702B2203F54")]
+[Description("Interface to the DirectX Shader Compiler.\" & vbCrLf & _
+    "Use DxcCreateInstance with CLSID_DxcCompiler to obtain an instance of this\" & vbCrLf & _
+    "interface.")]
+Interface IDxcCompiler3 Extends IUnknown
+    [Description("Compile a shader.\" & vbCrLf & _
+        "IDxcUtils::BuildArguments can be used to assist building the pArguments\" & vbCrLf & _
+        "and argCount parameters.\" & vbCrLf & _
+        "Depending on the arguments, this method can be used to:\" & vbCrLf & _
+        "* Compile a single entry point to the target shader model,\" & vbCrLf & _
+        "* Compile a library to a library target (-T lib_*)\" & vbCrLf & _
+        "* Compile a root signature (-T rootsig_*),\" & vbCrLf & _
+        "* Preprocess HLSL source (-P).")]
+    Sub Compile(ByRef pSource As DxcBuffer, pArguments As LongPtr, ByVal argCount As Long, ByVal pIncludeHandler As IDxcIncludeHandler, ByRef riid As UUID, ByRef ppResult As Any)
+    [Description("Disassemble a program.")]
+    Sub Disassemble(ByRef pObject As DxcBuffer, ByRef riid As UUID, ByRef ppResult As Any)
+End Interface
+
+
     
 #End Region
 #If WDL_QUALIFY Then
 [MustBeQualified]
 #End If
 Module wdD3D
-    
+ 
 Public Type FloatArrayArgWorkaround
     f1 As Single
     f2 As Single
@@ -13362,6 +13632,135 @@ Public Declare PtrSafe Function D3DDecompressShaders Lib "d3dcompiler_44" (pSrcD
 Public Declare PtrSafe Function D3DDisassemble10Effect Lib "d3dcompiler_44" (ByVal pEffect As IUnknown, ByVal Flags As D3D10_SHADER_FLAGS, ppDisassembly As ID3D10Blob) As Long
 	
 #End If
+
+#Region "dxcapi"
+
+Public Delegate Function DxcCreateInstanceProc (rclsid As UUID, riid As UUID, ppv As Any) As Long
+
+Public Delegate Function DxcCreateInstance2Proc (ByVal pMalloc As IMalloc, rclsid As UUID, riid As UUID, ppv As Any) As Long
+
+Public Declare PtrSafe Function DxcCreateInstance Lib "dxilconv.dll" (rclsid As UUID, riid As UUID, ppv As Any) As Long
+
+Public Declare PtrSafe Function DxcCreateInstance2 Lib "dxilconv.dll" (ByVal pMalloc As IMalloc, rclsid As UUID, riid As UUID, ppv As Any) As Long
+
+Public Enum DxcCodePage
+' For convenience, equivalent definitions to CP_UTF8 and CP_UTF16.
+    DXC_CP_UTF8 = 65001
+    DXC_CP_UTF16 = 1200
+    DXC_CP_UTF32 = 12000
+'  Use DXC_CP_ACP for: Binary;  ANSI Text;  Autodetect UTF with BOM
+    DXC_CP_ACP = 0
+    DXC_CP_WIDE = DXC_CP_UTF16
+End Enum
+
+Public Enum DxcHashFlags
+' / Indicates that the shader hash was computed taking into account source
+' / information (-Zss).
+    DXC_HASHFLAG_INCLUDES_SOURCE = 1
+End Enum
+
+[Description("Hash digest type for ShaderHash.")]
+Public Type DxcShaderHash
+    Flags As DxcHashFlags '/< DXC_HASHFLAG_*
+    HashDigest(0 To 15) As Byte '/< The hash digest
+End Type
+
+Public Const DXC_PART_PDB = &H42444c49                      ' DXC_FOURCC('I', 'L', 'D', 'B')
+Public Const DXC_PART_PDB_NAME = &H4e444c49                 ' DXC_FOURCC('I', 'L', 'D', 'N')
+Public Const DXC_PART_PRIVATE_DATA = &H56495250             ' DXC_FOURCC('P', 'R', 'I', 'V')
+Public Const DXC_PART_ROOT_SIGNATURE = &H30535452           ' DXC_FOURCC('R', 'T', 'S', '0')
+Public Const DXC_PART_DXIL = &H4c495844                     ' DXC_FOURCC('D', 'X', 'I', 'L')
+Public Const DXC_PART_REFLECTION_DATA = &H54415453          ' DXC_FOURCC('S', 'T', 'A', 'T')
+Public Const DXC_PART_SHADER_HASH = &H48534148              ' DXC_FOURCC('H', 'A', 'S', 'H')
+Public Const DXC_PART_INPUT_SIGNATURE = &H31475349          ' DXC_FOURCC('I', 'S', 'G', '1')
+Public Const DXC_PART_OUTPUT_SIGNATURE = &H3147534f         ' DXC_FOURCC('O', 'S', 'G', '1')
+Public Const DXC_PART_PATCH_CONSTANT_SIGNATURE = &H31475350 ' DXC_FOURCC('P', 'S', 'G', '1')
+
+Public Const DXC_ARG_DEBUG  = "-Zi"
+Public Const DXC_ARG_SKIP_VALIDATION  = "-Vd"
+Public Const DXC_ARG_SKIP_OPTIMIZATIONS  = "-Od"
+Public Const DXC_ARG_PACK_MATRIX_ROW_MAJOR  = "-Zpr"
+Public Const DXC_ARG_PACK_MATRIX_COLUMN_MAJOR  = "-Zpc"
+Public Const DXC_ARG_AVOID_FLOW_CONTROL  = "-Gfa"
+Public Const DXC_ARG_PREFER_FLOW_CONTROL  = "-Gfp"
+Public Const DXC_ARG_ENABLE_STRICTNESS  = "-Ges"
+Public Const DXC_ARG_ENABLE_BACKWARDS_COMPATIBILITY  = "-Gec"
+Public Const DXC_ARG_IEEE_STRICTNESS  = "-Gis"
+Public Const DXC_ARG_OPTIMIZATION_LEVEL0  = "-O0"
+Public Const DXC_ARG_OPTIMIZATION_LEVEL1  = "-O1"
+Public Const DXC_ARG_OPTIMIZATION_LEVEL2  = "-O2"
+Public Const DXC_ARG_OPTIMIZATION_LEVEL3  = "-O3"
+Public Const DXC_ARG_WARNINGS_ARE_ERRORS  = "-WX"
+Public Const DXC_ARG_RESOURCES_MAY_ALIAS  = "-res_may_alias"
+Public Const DXC_ARG_ALL_RESOURCES_BOUND  = "-all_resources_bound"
+Public Const DXC_ARG_DEBUG_NAME_FOR_SOURCE  = "-Zss"
+Public Const DXC_ARG_DEBUG_NAME_FOR_BINARY  = "-Zsb"
+
+Public Type DxcBuffer
+    '/ \brief Pointer to the start of the buffer.
+    Ptr As LongPtr 'LPCVOID
+    '/ \brief Size of the buffer in bytes.
+    Size As LongPtr
+    '/ \brief Encoding of the buffer.
+    '/
+    '/ Use Encoding = 0 for non-text bytes, ANSI text, or unknown with BOM.
+    Encoding As Long
+End Type
+
+Public Type DxcDefine
+    Name As LongPtr '/< The define name.
+    Value As LongPtr '/< Optional value for the define.
+End Type
+
+Public Enum DXC_OUT_KIND
+    DXC_OUT_NONE = 0 '/< No output.
+    DXC_OUT_OBJECT = 1 '/< IDxcBlob - Shader or library object.
+    DXC_OUT_ERRORS = 2 '/< IDxcBlobUtf8 or IDxcBlobWide.
+    DXC_OUT_PDB = 3 '/< IDxcBlob.
+    DXC_OUT_SHADER_HASH = 4 '/< IDxcBlob - DxcShaderHash of shader or shader with source info (-Zsb/-Zss).
+    DXC_OUT_DISASSEMBLY = 5 '/< IDxcBlobUtf8 or IDxcBlobWide - from Disassemble.
+    DXC_OUT_HLSL = 6 '/< IDxcBlobUtf8 or IDxcBlobWide - from Preprocessor or Rewriter.
+    DXC_OUT_TEXT = 7 '/< IDxcBlobUtf8 or IDxcBlobWide - other text, such as -ast-dump or -Odump.
+    DXC_OUT_REFLECTION = 8 '/< IDxcBlob - RDAT part with reflection data.
+    DXC_OUT_ROOT_SIGNATURE = 9 '/< IDxcBlob - Serialized root signature output.
+    DXC_OUT_EXTRA_OUTPUTS = 10 '/< IDxcExtraOutputs - Extra outputs.
+    DXC_OUT_REMARKS = 11 '/< IDxcBlobUtf8 or IDxcBlobWide - text directed at stdout.
+    DXC_OUT_TIME_REPORT = 12 '/< IDxcBlobUtf8 or IDxcBlobWide - text directed at stdout.
+    DXC_OUT_TIME_TRACE = 13 '/< IDxcBlobUtf8 or IDxcBlobWide - text directed at stdout.
+    DXC_OUT_LAST = DXC_OUT_TIME_TRACE '/< Last value for a counter.
+    DXC_OUT_NUM_ENUMS
+    DXC_OUT_FORCE_DWORD = &HFFFFFFFF
+End Enum
+
+Public Const DXC_EXTRA_OUTPUT_NAME_STDOUT  = "*stdout*"
+Public Const DXC_EXTRA_OUTPUT_NAME_STDERR  = "*stderr*"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#End Region
 
 #Region "Macros"
 Public Function D3D12_ENCODE_BASIC_FILTER(min As Long, mag As Long, mip As Long, reduction As Long) As Long
