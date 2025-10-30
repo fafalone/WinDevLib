@@ -1,4 +1,11 @@
 
+
+**Update (v9.1.612, 30 Oct 2025):**
+- Added WebDAV APIs (davclient.h, 100% inc. delegates)
+- Additional native APIs
+- (Bug fix) ITaskbarList3 missing method
+
+
 **Update (v9.1.610, 27 Oct 2025):**
 - (BREAKING CHANGE) LdrGetDllHandle now uses phnt signature of ByRef DllCharacteristics As Long for 2nd argument
 - Additional loader, native, and low level actctx APIs
