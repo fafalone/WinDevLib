@@ -9059,9 +9059,83 @@ Public Enum TRANSACTION_OBJECT_RIGHTS
 End Enum
 Public Enum TRANSACTION_OUTCOME
     TransactionOutcomeUndetermined = 1
-    TransactionOutcomeCommitted = 2
-    TransactionOutcomeAborted = 3
+    TransactionOutcomeCommitted
+    TransactionOutcomeAborted
 End Enum
+
+Public Enum TRANSACTION_STATE
+    TransactionStateNormal = 1
+    TransactionStateIndoubt
+    TransactionStateCommittedNotify
+End Enum
+
+Public Type TRANSACTION_BASIC_INFORMATION
+    TransactionId As UUID
+    State As Long
+    Outcome As Long
+End Type
+
+Public Type TRANSACTIONMANAGER_BASIC_INFORMATION
+    TmIdentity As UUID
+    VirtualClock As LARGE_INTEGER
+End Type
+
+Public Type TRANSACTIONMANAGER_LOG_INFORMATION
+    LogIdentity As UUID
+End Type
+
+Public Type TRANSACTIONMANAGER_LOGPATH_INFORMATION
+    LogPathLength As Long
+    LogPath(0 To 0) As Integer ' Variable size
+    '  Data[1];                                        // Variable size data not declared
+End Type
+
+Public Type TRANSACTIONMANAGER_RECOVERY_INFORMATION
+    LastRecoveredLsn As LongLong
+End Type
+
+Public Type TRANSACTIONMANAGER_OLDEST_INFORMATION
+    OldestTransactionGuid As UUID
+End Type
+
+Public Type TRANSACTION_PROPERTIES_INFORMATION
+    IsolationLevel As Long
+    IsolationFlags As Long
+    Timeout As LARGE_INTEGER
+    Outcome As Long
+    DescriptionLength As Long
+    Description(0 To 0) As Integer ' Variable size
+    '          Data[1];            // Variable size data not declared
+End Type
+
+Public Type TRANSACTION_BIND_INFORMATION
+    TmHandle As LongPtr
+End Type
+
+Public Type TRANSACTION_ENLISTMENT_PAIR
+    EnlistmentId As UUID
+    ResourceManagerId As UUID
+End Type
+
+Public Type TRANSACTION_ENLISTMENTS_INFORMATION
+    NumberOfEnlistments As Long
+    EnlistmentPair(0 To 0) As TRANSACTION_ENLISTMENT_PAIR ' Variable size
+End Type
+
+Public Type TRANSACTION_SUPERIOR_ENLISTMENT_INFORMATION
+    SuperiorEnlistmentPair As TRANSACTION_ENLISTMENT_PAIR
+End Type
+
+ 
+
+
+
+
+
+
+
+
+
 Public Enum TXFS_MINIVERSION
     TXFS_MINIVERSION_COMMITTED_VIEW = &H0000
     TXFS_MINIVERSION_DIRTY_VIEW = &HFFFE&
@@ -9095,6 +9169,28 @@ Public Enum EnlistmentObjectRights
     ENLISTMENT_GENERIC_EXECUTE = (STANDARD_RIGHTS_EXECUTE Or ENLISTMENT_RECOVER Or ENLISTMENT_SUBORDINATE_RIGHTS Or ENLISTMENT_SUPERIOR_RIGHTS)
     ENLISTMENT_ALL_ACCESS = (STANDARD_RIGHTS_REQUIRED Or ENLISTMENT_GENERIC_READ Or ENLISTMENT_GENERIC_WRITE Or ENLISTMENT_GENERIC_EXECUTE)
 End Enum
+
+Public Type ENLISTMENT_BASIC_INFORMATION
+    EnlistmentId As UUID
+    TransactionId As UUID
+    ResourceManagerId As UUID
+End Type
+
+Public Type ENLISTMENT_CRM_INFORMATION
+    CrmTransactionManagerId As UUID
+    CrmResourceManagerId As UUID
+    CrmEnlistmentId As UUID
+End Type
+
+Public Enum ENLISTMENT_INFORMATION_CLASS
+    EnlistmentBasicInformation
+    EnlistmentRecoveryInformation
+    EnlistmentCrmInformation
+End Enum
+
+
+
+
 
 
 Public Enum ReplaceFileFlags
@@ -9473,6 +9569,7 @@ Public Type FILE_NOTIFY_INFORMATION
     FileNameLength As Long
     FileName(0 To MAX_PATH - 1) As Integer
 End Type
+[Description("WARNING: Buffer substituted for variable C-style array.")]
 Public Type FILE_NOTIFY_EXTENDED_INFORMATION
     NextEntryOffset As Long
     Action As FILE_ACTION_TYPES
@@ -9503,6 +9600,7 @@ Public Enum NtFileNameFlags
     FILE_NAME_FLAGS_UNSPECIFIED = &H80  ' not specified by file system (do not combine with other flags)
 End Enum
 
+[Description("WARNING: Buffer substituted for variable C-style array.")]
 Public Type FILE_NOTIFY_FULL_INFORMATION
     NextEntryOffset As Long
     Action As FILE_ACTION_TYPES
@@ -9790,6 +9888,10 @@ Public Enum FileSystemFlags
     FILE_DAX_VOLUME = &H20000000
     FILE_SUPPORTS_GHOSTING = &H40000000
 End Enum
+
+Public Const FILE_INVALID_FILE_ID As LongLong = -1^
+
+
 
 
 Public Type TIME_ZONE_INFORMATION
@@ -16722,6 +16824,12 @@ Public Type FILE_FULL_EA_INFORMATION
     EaValueLength As Integer
     EaName(MAX_PATH - 1) As Byte
 End Type
+Public Type FILE_GET_EA_INFORMATION
+    NextEntryOffset As Long
+    EaNameLength As Byte
+    EaName(0 To 0) As Byte
+End Type
+
 Public Type FILE_MODE_INFORMATION
     Mode As FileAccessFlags
 End Type
@@ -16786,6 +16894,9 @@ Public Enum FILE_PIPE_END
     FILE_PIPE_CLIENT_END = &H00000000
     FILE_PIPE_SERVER_END = &H00000001
 End Enum
+
+Public Const FILE_PIPE_UNLIMITED_INSTANCES = &Hffffffff
+
 Public Type FILE_PIPE_LOCAL_INFORMATION
     NamedPipeType As FILE_PIPE_TYPE
     NamedPipeConfiguration As FILE_PIPE_CONFIG
@@ -16927,6 +17038,10 @@ End Type
 Public Type FILE_VALID_DATA_LENGTH_INFORMATION
     ValidDataLength As LARGE_INTEGER
 End Type
+
+ 
+
+
 Public Type FILE_IO_COMPLETION_NOTIFICATION_INFORMATION
     Flags As FileCompletionModeFlags
 End Type
@@ -16946,6 +17061,12 @@ Public Type FILE_IO_PRIORITY_HINT_INFORMATION
     PriorityHint As IO_PRIORITY_HINT
     Pad As Long 'DESCLSPEC_ALIGN(8)
 End Type
+
+Public Type FILE_IO_PRIORITY_HINT_INFORMATION_EX
+    PriorityHint As IO_PRIORITY_HINT
+    BoostOutstanding As Byte
+End Type
+
 Public Type FILE_SFIO_RESERVE_INFORMATION
     RequestsPerPeriod As Long
     Period As Long
@@ -17027,14 +17148,57 @@ Public Type FILE_REMOTE_PROTOCOL_INFORMATION
     Reserved As Integer
     Flags As REMOTE_PROTOCOL_FLAGS
     GenericReserved(7) As Long
+    ' union
+    ' {
+        ' struct
+        ' {
+            ' struct
+            ' {
+                ' ULONG Capabilities;
+            ' } Server;
+            ' struct
+            ' {
+                ' ULONG Capabilities;
+                ' ULONG ShareFlags; // previoulsly CachingFlags before 21H1
+                ' UCHAR ShareType; // RS5
+                ' UCHAR Reserved0[3];
+                ' ULONG Reserved1;
+            ' } Share;
+        ' } Smb2;
+        ' ULONG Reserved[16];
+    ' } ProtocolSpecific;
     ProtocolSpecific(15) As Long
 End Type
+
+Public Enum FileIntegrityStreamInfoFlags
+    CHECKSUM_ENFORCEMENT_OFF = &H00000001
+End Enum
+Public Type FILE_INTEGRITY_STREAM_INFORMATION
+    ChecksumAlgorithm As Integer
+    ChecksumChunkShift As Byte
+    ClusterShift As Byte
+    Flags As FileIntegrityStreamInfoFlags
+End Type
+
 Public Type FILE_VOLUME_NAME_INFORMATION
     DeviceNameLength As Long
-    DeviceName(31) As Integer
+    DeviceName (31) As Integer
 End Type
 Public Type FILE_ID_INFORMATION
     VolumeSerialNumber As LongLong
+    ' union
+    ' {
+        ' FILE_ID_128 FileId;
+        ' struct
+        ' {
+            ' union
+            ' {
+                ' FILE_INTERNAL_INFORMATION FileInternal; // rev
+                ' LONGLONG FileIdLowPart; // rev
+            ' };
+            ' LONGLONG FileIdHighPart; // rev
+        ' };
+    ' };
     FileId As FILE_ID_128
 End Type
 Public Type FILE_ID_EXTD_DIR_INFORMATION
@@ -17051,13 +17215,18 @@ Public Type FILE_ID_EXTD_DIR_INFORMATION
     EaSize As Long
     ReparsePointTag As Long
     FileId As FILE_ID_128
-    FileName(0 To MAX_PATH) As Integer
+    FileName (0 To MAX_PATH) As Integer
 End Type
 Public Type FILE_LINK_ENTRY_FULL_ID_INFORMATION
     NextEntryOffset As Long
     ParentFileId As FILE_ID_128
     FileNameLength As Long
-    FileName(0 To MAX_PATH) As Integer
+    FileName (0 To MAX_PATH) As Integer
+End Type
+Public Type FILE_LINKS_FULL_ID_INFORMATION
+    BytesNeeded As Long
+    EntriesReturned As Long
+    Entry As FILE_LINK_ENTRY_FULL_ID_INFORMATION
 End Type
 Public Type FILE_ID_EXTD_BOTH_DIR_INFORMATION
     NextEntryOffset As Long
@@ -17074,8 +17243,8 @@ Public Type FILE_ID_EXTD_BOTH_DIR_INFORMATION
     ReparsePointTag As Long
     FileId As FILE_ID_128
     ShortNameLength As Byte
-    ShortName(0 To 11) As Integer
-    FileName(0 To MAX_PATH) As Integer
+    ShortName (0 To 11) As Integer
+    FileName (0 To MAX_PATH) As Integer
 End Type
 Public Enum FILE_DISPOSITION_EX_FLAGS
     FILE_DISPOSITION_FLAG_DO_NOT_DELETE = &H00000000
@@ -17216,6 +17385,21 @@ Public Type FILE_STAT_BASIC_INFORMATION
     VolumeSerialNumber As LARGE_INTEGER
     FileId128 As FILE_ID_128
 End Type
+
+Public Enum STORAGE_RESERVE_ID
+    StorageReserveIdNone = 0
+    StorageReserveIdHard
+    StorageReserveIdSoft
+    StorageReserveIdUpdateScratch
+    StorageReserveIdMax
+End Enum
+
+Public Type FILE_STORAGE_RESERVE_ID_INFORMATION
+    StorageReserveId As STORAGE_RESERVE_ID
+End Type
+
+
+
 Public Enum FILE_CS_FLAGS
     FILE_CS_FLAG_CASE_SENSITIVE_DIR = &H00000001
 End Enum
@@ -17243,22 +17427,31 @@ Public Type FILE_LINK_INFORMATION_EX
 End Type
 Public Enum FILE_KNOWN_FOLDER_TYPE
     KnownFolderNone = 0
-    KnownFolderDesktop = 1
-    KnownFolderDocuments = 2
-    KnownFolderDownloads = 3
-    KnownFolderMusic = 4
-    KnownFolderPictures = 5
-    KnownFolderVideos = 6
-    KnownFolderOther = 7
-    KnownFolderMax = 7
+    KnownFolderDesktop
+    KnownFolderDocuments
+    KnownFolderDownloads
+    KnownFolderMusic
+    KnownFolderPictures
+    KnownFolderVideos
+    KnownFolderOther
+    KnownFolderMax
 End Enum
 Public Type FILE_KNOWN_FOLDER_INFORMATION
     Type As FILE_KNOWN_FOLDER_TYPE
 End Type
 
+Public Type FILE_STREAM_RESERVATION_INFORMATION
+    TrackedReservation As LongPtr
+    EnforcedReservation As LongPtr
+End Type
 
+Public Type MUP_PROVIDER_INFORMATION
+    Level As Long
+    Buffer As LongPtr
+    BufferSize As LongPtr
+End Type
 
-
+ 
 [Description("WARNING: Buffer substituted for variable C-style array.")]
 Public Type FILE_ID_64_EXTD_DIR_INFORMATION
     NextEntryOffset As Long
@@ -17291,6 +17484,11 @@ Public Type FILE_ID_64_EXTD_BOTH_DIR_INFORMATION
     FileNameLength As Long
     EaSize As Long
     ReparsePointTag As Long
+    ' union
+    ' {
+        ' LARGE_INTEGER FileId;
+        ' FILE_INTERNAL_INFORMATION FileInternal; // rev
+    ' };
     FileId As LARGE_INTEGER
     ShortNameLength As Byte 'CCHAR
     ShortName(0 To 11) As Integer
@@ -17311,6 +17509,11 @@ Public Type FILE_ID_ALL_EXTD_DIR_INFORMATION
     FileNameLength As Long
     EaSize As Long
     ReparsePointTag As Long
+    ' union
+    ' {
+        ' LARGE_INTEGER FileId;
+        ' FILE_INTERNAL_INFORMATION FileInternal; // rev
+    ' };
     FileId As LARGE_INTEGER
     FileId128 As FILE_ID_128
     FileName(0 To (MAX_PATH - 1)) As Integer
@@ -17330,7 +17533,11 @@ Public Type FILE_ID_ALL_EXTD_BOTH_DIR_INFORMATION
     FileNameLength As Long
     EaSize As Long
     ReparsePointTag As Long
+    ' union
+    ' {
     FileId As LARGE_INTEGER
+        ' FILE_INTERNAL_INFORMATION FileInternal; // rev
+    ' };
     FileId128 As FILE_ID_128
     ShortNameLength As Byte 'CCHAR
     ShortName(0 To 11) As Integer
@@ -17438,21 +17645,27 @@ Public Enum FILE_INFORMATION_CLASS
 End Enum
 
 Public Enum FS_INFORMATION_CLASS
-    FileFsVolumeInformation
-    FileFsLabelInformation
-    FileFsSizeInformation
-    FileFsDeviceInformation
-    FileFsAttributeInformation
-    FileFsControlInformation
-    FileFsFullSizeInformation
-    FileFsObjectIdInformation
-    FileFsDriverPathInformation
-    FileFsVolumeFlagsInformation
-    FileFsSectorSizeInformation
-    FileFsDataCopyInformation
-    FileFsMetadataSizeInformation
-    FileFsFullSizeInformationEx
+    FileFsVolumeInformation = 1 ' q: FILE_FS_VOLUME_INFORMATION
+    FileFsLabelInformation ' s: FILE_FS_LABEL_INFORMATION // SeManageVolumePrivilege
+    FileFsSizeInformation ' q: FILE_FS_SIZE_INFORMATION
+    FileFsDeviceInformation ' q: FILE_FS_DEVICE_INFORMATION
+    FileFsAttributeInformation ' q: FILE_FS_ATTRIBUTE_INFORMATION
+    FileFsControlInformation ' qs: FILE_FS_CONTROL_INFORMATION // SeManageVolumePrivilege
+    FileFsFullSizeInformation ' q: FILE_FS_FULL_SIZE_INFORMATION
+    FileFsObjectIdInformation ' qs: FILE_FS_OBJECTID_INFORMATION // SeRestorePrivilege
+    FileFsDriverPathInformation ' q: FILE_FS_DRIVER_PATH_INFORMATION
+    FileFsVolumeFlagsInformation ' qs: FILE_FS_VOLUME_FLAGS_INFORMATION // SeManageVolumePrivilege // 10
+    FileFsSectorSizeInformation ' q: FILE_FS_SECTOR_SIZE_INFORMATION // since WIN8
+    FileFsDataCopyInformation ' q: FILE_FS_DATA_COPY_INFORMATION
+    FileFsMetadataSizeInformation ' q: FILE_FS_METADATA_SIZE_INFORMATION // since THRESHOLD
+    FileFsFullSizeInformationEx ' q: FILE_FS_FULL_SIZE_INFORMATION_EX // since REDSTONE5
+    FileFsGuidInformation ' q: FILE_FS_GUID_INFORMATION // since 23H2
     FileFsMaximumInformation
+End Enum
+'Alias FSINFOCLASS As FS_INFORMATION_CLASS
+[Description("Use FS_INFORMATION_CLASS  instead.")]
+Public Enum FSINFOCLASS
+    [_]
 End Enum
 Public Type FILE_FS_VOLUME_INFORMATION
     VolumeCreationTime As LARGE_INTEGER
@@ -17862,6 +18075,8 @@ Public Enum FileCreateDisposition
     FILE_OVERWRITE_IF = &H00000005
     FILE_MAXIMUM_DISPOSITION = &H00000005
 End Enum
+
+
 Public Enum FileCreateOutcome
     FILE_SUPERSEDED = &H00000000
     FILE_OPENED = &H00000001
@@ -17870,6 +18085,44 @@ Public Enum FileCreateOutcome
     FILE_EXISTS = &H00000004
     FILE_DOES_NOT_EXIST = &H00000005
 End Enum
+
+Public Const FILE_WRITE_TO_END_OF_FILE  = &Hffffffff
+Public Const FILE_USE_FILE_POINTER_POSITION  = &Hfffffffe
+
+Public Const FILE_BYTE_ALIGNMENT  = &H00000000
+Public Const FILE_WORD_ALIGNMENT  = &H00000001
+Public Const FILE_LONG_ALIGNMENT  = &H00000003
+Public Const FILE_QUAD_ALIGNMENT  = &H00000007
+Public Const FILE_OCTA_ALIGNMENT  = &H0000000f
+Public Const FILE_32_BYTE_ALIGNMENT  = &H0000001f
+Public Const FILE_64_BYTE_ALIGNMENT  = &H0000003f
+Public Const FILE_128_BYTE_ALIGNMENT  = &H0000007f
+Public Const FILE_256_BYTE_ALIGNMENT  = &H000000ff
+Public Const FILE_512_BYTE_ALIGNMENT  = &H000001ff
+
+'  Maximum length of a filename string
+Public Const DOS_MAX_COMPONENT_LENGTH  = 255
+Public Const DOS_MAX_PATH_LENGTH  = (DOS_MAX_COMPONENT_LENGTH + 5)
+
+Public Const MAXIMUM_FILENAME_LENGTH  = 256
+
+'  Extended attributes
+Public Const FILE_NEED_EA  = &H00000080
+
+Public Enum FileExtendedAttributeTypes
+    FILE_EA_TYPE_BINARY = &Hfffe&
+    FILE_EA_TYPE_ASCII = &Hfffd&
+    FILE_EA_TYPE_BITMAP = &Hfffb&
+    FILE_EA_TYPE_METAFILE = &Hfffa&
+    FILE_EA_TYPE_ICON = &Hfff9&
+    FILE_EA_TYPE_EA = &Hffee&
+    FILE_EA_TYPE_MVMT = &Hffdf&
+    FILE_EA_TYPE_MVST = &Hffde&
+    FILE_EA_TYPE_ASN1 = &Hffdd&
+    FILE_EA_TYPE_FAMILY_IDS = &Hff01&
+End Enum
+
+
 Public Enum FileAccessFlags
     FILE_DIRECTORY_FILE = &H00000001
     FILE_WRITE_THROUGH = &H00000002
@@ -17895,14 +18148,22 @@ Public Enum FileAccessFlags
     FILE_OPEN_REPARSE_POINT = &H00200000
     FILE_OPEN_NO_RECALL = &H00400000
     FILE_OPEN_FOR_FREE_SPACE_QUERY = &H00800000
+    
+    TREE_CONNECT_WRITE_THROUGH = &H00000002
+    TREE_CONNECT_NO_CLIENT_BUFFERING = &H00000008
+    
     'Windows 11
     FILE_CONTAINS_EXTENDED_CREATE_INFORMATION = &H10000000
+    FILE_VALID_EXTENDED_OPTION_FLAGS = &H10000000
 ' #endif
 
     FILE_VALID_OPTION_FLAGS = &H00ffffff
     FILE_VALID_PIPE_OPTION_FLAGS = &H00000032
     FILE_VALID_MAILSLOT_OPTION_FLAGS = &H00000032
     FILE_VALID_SET_FLAGS = &H00000036
+    
+    FILE_COPY_STRUCTURED_STORAGE = &H00000041
+    FILE_STRUCTURED_STORAGE = &H00000441
 End Enum
 
 Public Type PEB_LDR_DATA
@@ -18447,6 +18708,22 @@ Public Type _TOKEN
     IndexEntry As LongPtr '_SEP_LUID_TO_INDEX_MAP_ENTRY*
     DiagnosticInfo As LongPtr '_SEP_TOKEN_DIAG_TRACK_ENTRY*
     VariablePart As LongLong
+End Type
+
+
+
+
+
+
+
+
+Public Type EXTENDED_CREATE_DUAL_OPLOCK_KEYS
+    '  Parent oplock key.
+    '  All-zero if not set.
+    ParentOplockKey As UUID
+    '  Target oplock key.
+    '  All-zero if not set.
+    TargetOplockKey As UUID
 End Type
 
 Public Enum EXTENDED_CREATE_FLAGS
@@ -18998,6 +19275,40 @@ Public Enum LockVMMapTypes
 End Enum
 
 Public Enum NtFileQueryFlags
+    /**
+    * The scan will start at the first entry in the directory. If this flag is not set, the scan will resume from where the last query ended.
+    */
+    
+    FILE_QUERY_RESTART_SCAN = &H00000001
+    /**
+    * Normally the return buffer is packed with as many matching directory entries that fit.
+    * If this flag is set, the file system will return only one directory entry at a time.
+    * This does make the operation less efficient.
+    */
+    FILE_QUERY_RETURN_SINGLE_ENTRY = &H00000002
+    /**
+    * The scan should start at a specified indexed position in the directory.
+    * This flag can only be set if you generate your own IRP_MJ_DIRECTORY_CONTROL IRP; the index is specified in the IRP.
+    * How the position is specified varies from file system to file system.
+    */
+    FILE_QUERY_INDEX_SPECIFIED = &H00000004
+    /**
+    * Any file system filters that perform directory virtualization or just-in-time expansion should simply pass the request
+    * through to the file system and return entries that are currently on disk. Not all file systems support this flag.
+    */
+    FILE_QUERY_RETURN_ON_DISK_ENTRIES_ONLY = &H00000008
+    /**
+    * File systems maintain per-FileObject directory cursor information. When multiple threads do queries using the same FileObject,
+    * access to the per-FileObject structure is single threaded to prevent corruption of the cursor state.
+    * This flag tells the file system to not update per-FileObject cursor state information thus allowing multiple threads 
+    * to query in parallel using the same handle. It behaves as if SL_RESTART_SCAN is specified on each call. If a wild card pattern
+    * is given on the next call, the operation will not pick up where the last query ended. 
+    * This allows for true asynchronous directory query support. Not all file systems support this flag.
+    */
+    FILE_QUERY_NO_CURSOR_UPDATE = &H00000010  ' RS5
+    
+    
+    
     SL_RESTART_SCAN = &H01
     SL_RETURN_SINGLE_ENTRY = &H02
     SL_INDEX_SPECIFIED = &H04
@@ -19267,6 +19578,12 @@ Public Enum NtCopyFileChunkFlags
 End Enum
 
 Public Enum NtFlushFileFlags
+    ' // If set, File data and metadata in the file cache will be written, and the 
+    ' // underlying storage is synchronized to flush its cache.
+    ' // Windows file systems supported: NTFS, ReFS, FAT, exFAT.
+    ' //
+    
+    FLUSH_FLAGS_FILE_NORMAL = &H00000000
 ' //
 ' //  If set, this operation will write the data for the given file from the
 ' //  Windows in-memory cache.  This will NOT commit any associated metadata
@@ -19515,11 +19832,124 @@ Public Type CFG_CALL_TARGET_LIST_INFORMATION
 End Type
 
 
+Public Enum RESOURCEMANAGER_INFORMATION_CLASS
+    ResourceManagerBasicInformation
+    ResourceManagerCompletionInformation
+End Enum
+
+[Description("WARNING: Buffer substituted for variable C-style array.")]
+Public Type RESOURCEMANAGER_BASIC_INFORMATION
+    ResourceManagerId As UUID
+    DescriptionLength As Long
+    Description(0 To 1023) As Integer ' Variable size
+End Type
+
+Public Type RESOURCEMANAGER_COMPLETION_INFORMATION
+    IoCompletionPortHandle As LongPtr
+    CompletionKey As LongPtr
+End Type
 
 
+Public Enum TRANSACTION_INFORMATION_CLASS
+    TransactionBasicInformation
+    TransactionPropertiesInformation
+    TransactionEnlistmentInformation
+    TransactionSuperiorEnlistmentInformation
+    '  end_wdm
+    '  The following info-classes are intended for DTC's use only; it will be
+    '  deprecated, and no one else should take a dependency on it.
+    TransactionBindInformation ' private and deprecated
+    TransactionDTCPrivateInformation ' private and deprecated
+    '  begin_wdm
+End Enum
 
+Public Enum TRANSACTIONMANAGER_INFORMATION_CLASS
+    TransactionManagerBasicInformation
+    TransactionManagerLogInformation
+    TransactionManagerLogPathInformation
+    TransactionManagerRecoveryInformation = 4
+    '  end_wdm
+    '  The following info-classes are intended for internal use only; they
+    '  are considered deprecated, and no one else should take a dependency
+    '  on them.
+    TransactionManagerOnlineProbeInformation = 3
+    TransactionManagerOldestTransactionInformation = 5
+    '  end_wdm
+    '  begin_wdm
+End Enum
+
+Public Enum KTMOBJECT_TYPE
+    KTMOBJECT_TRANSACTION
+    KTMOBJECT_TRANSACTION_MANAGER
+    KTMOBJECT_RESOURCE_MANAGER
+    KTMOBJECT_ENLISTMENT
+    KTMOBJECT_INVALID
+End Enum
+
+[Description("WARNING: Buffer substituted for variable C-style array.")]
+Public Type KTMOBJECT_CURSOR
+    ' The last GUID enumerated; zero if beginning enumeration.
+    LastQuery As UUID
+    ' A count of GUIDs filled in by this last enumeration.
+    ObjectIdCount As Long
+    ' ObjectIdCount GUIDs from the namespace specified.
+    ObjectIds(0 To 511) As UUID
+End Type
+
+Public Type SECURITY_CLIENT_CONTEXT
+    SecurityQos As SECURITY_QUALITY_OF_SERVICE
+    ClientToken As LongPtr 'PACCESS_TOKEN
+    DirectlyAccessClientToken As Byte
+    DirectAccessEffectiveOnly As Byte
+    ServerIsRemote As Byte
+    ClientTokenControl As TOKEN_CONTROL
+End Type
 
 Public Delegate Sub IO_APC_ROUTINE (ByVal ApcContext As LongPtr, IoStatusBlock As IO_STATUS_BLOCK, ByVal Reserved As Long)
+
+Public Enum NtIoCompletionAccessRights
+    IO_COMPLETION_QUERY_STATE = &H0001
+    IO_COMPLETION_MODIFY_STATE = &H0002
+    IO_COMPLETION_ALL_ACCESS = (IO_COMPLETION_QUERY_STATE Or IO_COMPLETION_MODIFY_STATE Or STANDARD_RIGHTS_REQUIRED Or SYNCHRONIZE)
+End Enum
+
+Public Enum IO_COMPLETION_INFORMATION_CLASS
+    IoCompletionBasicInformation
+End Enum
+
+Public Type IO_COMPLETION_BASIC_INFORMATION
+    Depth As Long
+End Type
+
+Public Type FILE_IO_COMPLETION_INFORMATION
+    KeyContext As LongPtr
+    ApcContext As LongPtr
+    IoStatusBlock As IO_STATUS_BLOCK
+End Type
+
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtCreateIoCompletion Lib "ntdll" (ByRef IoCompletionHandle As LongPtr, [TypeHint(NtIoCompletionAccessRights)] ByVal DesiredAccess As Long, ByRef ObjectAttributes As OBJECT_ATTRIBUTES, Optional ByVal NumberOfConcurrentThreads As Long) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtOpenIoCompletion Lib "ntdll" (ByRef IoCompletionHandle As LongPtr, [TypeHint(NtIoCompletionAccessRights)] ByVal DesiredAccess As Long, ByRef ObjectAttributes As OBJECT_ATTRIBUTES) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtQueryIoCompletion Lib "ntdll" (ByVal IoCompletionHandle As LongPtr, ByVal IoCompletionInformationClass As IO_COMPLETION_INFORMATION_CLASS, IoCompletionInformation As Any, ByVal IoCompletionInformationLength As Long, Optional ByRef ReturnLength As Long) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtSetIoCompletion Lib "ntdll" (ByVal IoCompletionHandle As LongPtr, ByVal KeyContext As LongPtr, ByVal ApcContext As LongPtr, ByVal IoStatus As NTSTATUS, ByVal IoStatusInformation As LongPtr) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtSetIoCompletionEx Lib "ntdll" (ByVal IoCompletionHandle As LongPtr, ByVal IoCompletionPacketHandle As LongPtr, ByVal KeyContext As LongPtr, ByVal ApcContext As LongPtr, ByVal IoStatus As NTSTATUS, ByVal IoStatusInformation As LongPtr) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtRemoveIoCompletion Lib "ntdll" (ByVal IoCompletionHandle As LongPtr, ByRef KeyContext As LongPtr, ByRef ApcContext As LongPtr, ByRef IoStatusBlock As IO_STATUS_BLOCK, ByRef Timeout As LARGE_INTEGER) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtRemoveIoCompletionEx Lib "ntdll" (ByVal IoCompletionHandle As LongPtr, ByRef IoCompletionInformation As FILE_IO_COMPLETION_INFORMATION, ByVal Count As Long, ByRef NumEntriesRemoved As Long, ByRef Timeout As LARGE_INTEGER, ByVal Alertable As Byte) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtCreateWaitCompletionPacket Lib "ntdll" (ByRef WaitCompletionPacketHandle As LongPtr, ByVal DesiredAccess As Long, ByRef ObjectAttributes As OBJECT_ATTRIBUTES) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtAssociateWaitCompletionPacket Lib "ntdll" (ByVal WaitCompletionPacketHandle As LongPtr, ByVal IoCompletionHandle As LongPtr, ByVal TargetObjectHandle As LongPtr, ByVal KeyContext As LongPtr, ByVal ApcContext As LongPtr, ByVal IoStatus As NTSTATUS, ByVal IoStatusInformation As LongPtr, ByRef AlreadySignaled As Byte) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtCancelWaitCompletionPacket Lib "ntdll" (ByVal WaitCompletionPacketHandle As LongPtr, ByVal RemoveSignaledPacket As Byte) As NTSTATUS
+
+
+
 
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtQuerySystemInformation Lib "ntdll" (ByVal SystemInformationClass As SYSTEM_INFORMATION_CLASS, SystemInformation As Any, ByVal SystemInformationLength As Long, ReturnLength As Long) As Long
@@ -19531,6 +19961,74 @@ Public Declare PtrSafe Function NtSetSystemInformation Lib "ntdll" (ByVal System
 Public Declare PtrSafe Function NtQueryInformationProcess Lib "ntdll" (ByVal ProcessHandle As LongPtr, ByVal ProcessInformationClass As PROCESSINFOCLASS, ProcessInformation As Any, ByVal ProcessInformationLength As Long, ReturnLength As Long) As NTSTATUS
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtSetInformationProcess Lib "ntdll" (ByVal ProcessHandle As LongPtr, ByVal ProcessInformationClass As PROCESSINFOCLASS, ProcessInformation As Any, ByVal ProcessInformationLength As Long) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtCreateTransactionManager Lib "ntdll" (ByRef TmHandle As LongPtr, [TypeHint(TransactionManagerRights)] ByVal DesiredAccess As Long, ByRef ObjectAttributes As OBJECT_ATTRIBUTES, ByRef LogFileName As UNICODE_STRING, [TypeHint(TRANSACTION_MANAGER_OPTIONS)] ByVal CreateOptions As Long, ByVal CommitStrength As Long) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtOpenTransactionManager Lib "ntdll" (ByRef TmHandle As LongPtr, [TypeHint(TransactionManagerRights)] ByVal DesiredAccess As Long, ByRef ObjectAttributes As OBJECT_ATTRIBUTES, ByRef LogFileName As UNICODE_STRING, ByRef TmIdentity As UUID, Optional ByVal OpenOptions As Long) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtRenameTransactionManager Lib "ntdll" (ByRef LogFileName As UNICODE_STRING, ByRef ExistingTransactionManagerGuid As UUID) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtRollforwardTransactionManager Lib "ntdll" (ByVal TransactionManagerHandle As LongPtr, ByRef TmVirtualClock As LARGE_INTEGER) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtRecoverTransactionManager Lib "ntdll" (ByVal TransactionManagerHandle As LongPtr) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtQueryInformationTransactionManager Lib "ntdll" (ByVal TransactionManagerHandle As LongPtr, ByVal TransactionManagerInformationClass As TRANSACTIONMANAGER_INFORMATION_CLASS, TransactionManagerInformation As Any, ByVal TransactionManagerInformationLength As Long, ByRef ReturnLength As Long) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtSetInformationTransactionManager Lib "ntdll" (ByVal TmHandle As LongPtr, ByVal TransactionManagerInformationClass As TRANSACTIONMANAGER_INFORMATION_CLASS, TransactionManagerInformation As Any, ByVal TransactionManagerInformationLength As Long) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtEnumerateTransactionObject Lib "ntdll" (ByVal RootObjectHandle As LongPtr, ByVal QueryType As KTMOBJECT_TYPE, ByRef ObjectCursor As KTMOBJECT_CURSOR, ByVal ObjectCursorLength As Long, ByRef ReturnLength As Long) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtCreateTransaction Lib "ntdll" (ByRef TransactionHandle As LongPtr, [TypeHint(TRANSACTION_OBJECT_RIGHTS)] ByVal DesiredAccess As Long, ByRef ObjectAttributes As OBJECT_ATTRIBUTES, ByRef Uow As UUID, ByVal TmHandle As LongPtr, [TypeHint(TRANSACTION_OPTION_FLAGS)] ByVal CreateOptions As Long, ByVal IsolationLevel As Long, ByVal IsolationFlags As Long, ByRef Timeout As LARGE_INTEGER, ByRef Description As UNICODE_STRING) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtOpenTransaction Lib "ntdll" (ByRef TransactionHandle As LongPtr, [TypeHint(TRANSACTION_OBJECT_RIGHTS)] ByVal DesiredAccess As Long, ByRef ObjectAttributes As OBJECT_ATTRIBUTES, ByRef Uow As UUID, Optional ByVal TmHandle As LongPtr) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtQueryInformationTransaction Lib "ntdll" (ByVal TransactionHandle As LongPtr, ByVal TransactionInformationClass As TRANSACTION_INFORMATION_CLASS, TransactionInformation As Any, ByVal TransactionInformationLength As Long, Optional ByRef ReturnLength As Long) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtSetInformationTransaction Lib "ntdll" (ByVal TransactionHandle As LongPtr, ByVal TransactionInformationClass As TRANSACTION_INFORMATION_CLASS, TransactionInformation As Any, ByVal TransactionInformationLength As Long) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtCommitTransaction Lib "ntdll" (ByVal TransactionHandle As LongPtr, ByVal Wait As Byte) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtRollbackTransaction Lib "ntdll" (ByVal TransactionHandle As LongPtr, ByVal Wait As Byte) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtCreateResourceManager Lib "ntdll" (ByRef ResourceManagerHandle As LongPtr, [TypeHint(ResourceManagerObjectRights)] ByVal DesiredAccess As Long, ByVal TmHandle As LongPtr, ByRef RmGuid As UUID, ByRef ObjectAttributes As OBJECT_ATTRIBUTES, [TypeHint(TRANSACTION_MANAGER_RESOURCE_OPTIONS)] ByVal CreateOptions As Long, ByRef Description As UNICODE_STRING) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtOpenResourceManager Lib "ntdll" (ByRef ResourceManagerHandle As LongPtr, [TypeHint(ResourceManagerObjectRights)] ByVal DesiredAccess As Long, ByVal TmHandle As LongPtr, ByRef ResourceManagerGuid As UUID, ByRef ObjectAttributes As OBJECT_ATTRIBUTES) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtRecoverResourceManager Lib "ntdll" (ByVal ResourceManagerHandle As LongPtr) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtGetNotificationResourceManager Lib "ntdll" (ByVal ResourceManagerHandle As LongPtr, ByRef TransactionNotification As TRANSACTION_NOTIFICATION, ByVal NotificationLength As Long, ByRef Timeout As LARGE_INTEGER, ByRef ReturnLength As Long, ByVal Asynchronous As Long, Optional ByVal AsynchronousContext As LongPtr) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtQueryInformationResourceManager Lib "ntdll" (ByVal ResourceManagerHandle As LongPtr, ByVal ResourceManagerInformationClass As RESOURCEMANAGER_INFORMATION_CLASS, ResourceManagerInformation As Any, ByVal ResourceManagerInformationLength As Long, Optional ByRef ReturnLength As Long) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtSetInformationResourceManager Lib "ntdll" (ByVal ResourceManagerHandle As LongPtr, ByVal ResourceManagerInformationClass As RESOURCEMANAGER_INFORMATION_CLASS, ResourceManagerInformation As Any, ByVal ResourceManagerInformationLength As Long) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtCreateEnlistment Lib "ntdll" (EnlistmentHandle As LongPtr, [TypeHint(EnlistmentObjectRights)] ByVal DesiredAccess As Long, ByVal ResourceManagerHandle As LongPtr, ByVal TransactionHandle As LongPtr, ByRef ObjectAttributes As OBJECT_ATTRIBUTES, [TypeHint(TRANSACTION_ENLISTMENT_OPTIONS)] ByVal CreateOptions As Long, ByVal NotificationMask As NOTIFICATION_MASK, Optional ByVal EnlistmentKey As LongPtr) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtOpenEnlistment Lib "ntdll" (ByRef EnlistmentHandle As LongPtr, [TypeHint(EnlistmentObjectRights)] ByVal DesiredAccess As Long, ByVal ResourceManagerHandle As LongPtr, ByRef EnlistmentGuid As UUID, ByRef ObjectAttributes As OBJECT_ATTRIBUTES) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtQueryInformationEnlistment Lib "ntdll" (ByVal EnlistmentHandle As LongPtr, ByVal EnlistmentInformationClass As ENLISTMENT_INFORMATION_CLASS, EnlistmentInformation As Any, ByVal EnlistmentInformationLength As Long, ByRef ReturnLength As Long) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtSetInformationEnlistment Lib "ntdll" (ByVal EnlistmentHandle As LongPtr, ByVal EnlistmentInformationClass As ENLISTMENT_INFORMATION_CLASS, EnlistmentInformation As Any, ByVal EnlistmentInformationLength As Long) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtRecoverEnlistment Lib "ntdll" (ByVal EnlistmentHandle As LongPtr, Optional ByVal EnlistmentKey As LongPtr) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtPrePrepareEnlistment Lib "ntdll" (ByVal EnlistmentHandle As LongPtr, ByRef TmVirtualClock As LARGE_INTEGER) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtPrepareEnlistment Lib "ntdll" (ByVal EnlistmentHandle As LongPtr, ByRef TmVirtualClock As LARGE_INTEGER) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtCommitEnlistment Lib "ntdll" (ByVal EnlistmentHandle As LongPtr, ByRef TmVirtualClock As LARGE_INTEGER) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtRollbackEnlistment Lib "ntdll" (ByVal EnlistmentHandle As LongPtr, ByRef TmVirtualClock As LARGE_INTEGER) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtPrepareComplete Lib "ntdll" (ByVal EnlistmentHandle As LongPtr, ByRef TmVirtualClock As LARGE_INTEGER) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtCommitComplete Lib "ntdll" (ByVal EnlistmentHandle As LongPtr, ByRef TmVirtualClock As LARGE_INTEGER) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtReadOnlyEnlistment Lib "ntdll" (ByVal EnlistmentHandle As LongPtr, ByRef TmVirtualClock As LARGE_INTEGER) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtRollbackComplete Lib "ntdll" (ByVal EnlistmentHandle As LongPtr, ByRef TmVirtualClock As LARGE_INTEGER) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtSinglePhaseReject Lib "ntdll" (ByVal EnlistmentHandle As LongPtr, ByRef TmVirtualClock As LARGE_INTEGER) As NTSTATUS
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtQueryVirtualMemory Lib "ntdll" (ByVal ProcessHandle As LongPtr, ByVal BaseAddress As LongPtr, ByVal MemoryInformationClass As MEMORY_INFORMATION_CLASS, MemoryInformation As Any, ByVal MemoryInformationLength As LongPtr, ReturnLength As LongPtr) As NTSTATUS
 [UseGetLastError(False)]
@@ -19567,6 +20065,12 @@ Public Declare PtrSafe Function NtReadFile Lib "ntdll" (ByVal FileHandle As Long
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtWriteFile Lib "ntdll" (ByVal FileHandle As LongPtr, ByVal hEvent As LongPtr, ByVal ApcRoutine As LongPtr, ByVal ApcContext As LongPtr, ByRef IoStatusBlock As IO_STATUS_BLOCK, Buffer As Any, ByVal Length As Long, ByteOffset As LARGE_INTEGER, Optional Key As Long) As NTSTATUS
 [UseGetLastError(False)]
+Public Declare PtrSafe Function NtReadFileScatter Lib "ntdll" (ByVal FileHandle As LongPtr, ByVal hEvent As LongPtr, ByVal ApcRoutine As LongPtr, ByVal ApcContext As LongPtr, ByRef IoStatusBlock As IO_STATUS_BLOCK, SegmentArray As FILE_SEGMENT_ELEMENT, ByVal Length As Long, ByteOffset As LARGE_INTEGER, Optional Key As Long) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtWriteFileGather Lib "ntdll" (ByVal FileHandle As LongPtr, ByVal hEvent As LongPtr, ByVal ApcRoutine As LongPtr, ByVal ApcContext As LongPtr, ByRef IoStatusBlock As IO_STATUS_BLOCK, SegmentArray As FILE_SEGMENT_ELEMENT, ByVal Length As Long, ByteOffset As LARGE_INTEGER, Optional Key As Long) As NTSTATUS
+
+
+[UseGetLastError(False)]
 Public Declare PtrSafe Function NtLockFile Lib "ntdll" (ByVal FileHandle As LongPtr, ByVal hEvent As LongPtr, ByVal ApcRoutine As LongPtr, ByVal ApcContext As LongPtr, ByRef IoStatusBlock As IO_STATUS_BLOCK, ByteOffset As LARGE_INTEGER, Length As LARGE_INTEGER, ByVal Key As Long, ByVal FailImmediately As Byte, ByVal ExclusiveLock As Byte) As NTSTATUS
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtFsControlFile Lib "ntdll" (ByVal FileHandle As LongPtr, ByVal hEvent As LongPtr, ByVal ApcRoutine As LongPtr, ByVal ApcContext As LongPtr, ByRef IoStatusBlock As IO_STATUS_BLOCK, ByVal FsControlCode As Long, InputBuffer As Any, ByVal InputBufferLength As Long, OutputBuffer As Any, ByVal OutputBufferLength As Long) As NTSTATUS
@@ -19579,6 +20083,10 @@ Public Declare PtrSafe Function NtQueryDirectoryFileEx Lib "ntdll" (ByVal FileHa
 ' Public Declare PtrSafe Function NtReadFile Lib "ntdll" (ByVal FileHandle As LongPtr, ByVal hEvent As LongPtr, ByVal ApcRoutine As IO_APC_ROUTINE, ByVal ApcContext As LongPtr, ByRef IoStatusBlock As IO_STATUS_BLOCK, Buffer As Any, ByVal Length As Long, ByteOffset As LARGE_INTEGER, Optional Key As Long) As NTSTATUS
 ' [UseGetLastError(False)]
 ' Public Declare PtrSafe Function NtWriteFile Lib "ntdll" (ByVal FileHandle As LongPtr, ByVal hEvent As LongPtr, ByVal ApcRoutine As IO_APC_ROUTINE, ByVal ApcContext As LongPtr, ByRef IoStatusBlock As IO_STATUS_BLOCK, Buffer As Any, ByVal Length As Long, ByteOffset As LARGE_INTEGER, Optional Key As Long) As NTSTATUS
+' [UseGetLastError(False)]
+' Public Declare PtrSafe Function NtReadFileScatter Lib "ntdll" (ByVal FileHandle As LongPtr, ByVal hEvent As LongPtr, ByVal ApcRoutine As IO_APC_ROUTINE, ByVal ApcContext As LongPtr, ByRef IoStatusBlock As IO_STATUS_BLOCK, SegmentArray As FILE_SEGMENT_ELEMENT, ByVal Length As Long, ByteOffset As LARGE_INTEGER, Optional Key As Long) As NTSTATUS
+' [UseGetLastError(False)]
+' Public Declare PtrSafe Function NtWriteFileGather Lib "ntdll" (ByVal FileHandle As LongPtr, ByVal hEvent As LongPtr, ByVal ApcRoutine As IO_APC_ROUTINE, ByVal ApcContext As LongPtr, ByRef IoStatusBlock As IO_STATUS_BLOCK, SegmentArray As FILE_SEGMENT_ELEMENT, ByVal Length As Long, ByteOffset As LARGE_INTEGER, Optional Key As Long) As NTSTATUS
 ' [UseGetLastError(False)]
 ' Public Declare PtrSafe Function NtLockFile Lib "ntdll" (ByVal FileHandle As LongPtr, ByVal hEvent As LongPtr, ByVal ApcRoutine As IO_APC_ROUTINE, ByVal ApcContext As LongPtr, ByRef IoStatusBlock As IO_STATUS_BLOCK, ByteOffset As LARGE_INTEGER, Length As LARGE_INTEGER, ByVal Key As Long, ByVal FailImmediately As Byte, ByVal ExclusiveLock As Byte) As NTSTATUS
 ' [UseGetLastError(False)]
@@ -19598,6 +20106,8 @@ Public Declare PtrSafe Function NtQueryInformationFile Lib "ntdll" (ByVal FileHa
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtSetInformationFile Lib "ntdll" (ByVal FileHandle As LongPtr, IoStatusBlock As IO_STATUS_BLOCK, FileInformation As Any, ByVal Length As Long, ByVal FileInformationClass As FILE_INFORMATION_CLASS) As NTSTATUS
 [UseGetLastError(False)]
+Public Declare PtrSafe Function NtQueryEaFile Lib "ntdll" (ByVal FileHandle As LongPtr, IoStatusBlock As IO_STATUS_BLOCK, Buffer As Any, ByVal Length As Long, ByVal ReturnSingleEntry As Byte, EaList As Any, ByVal EaListLength As Long, EaIndex As Long, ByVal RestartScan As Byte) As NTSTATUS
+[UseGetLastError(False)]
 Public Declare PtrSafe Function NtSetEaFile Lib "ntdll" (ByVal FileHandle As LongPtr, IoStatusBlock As IO_STATUS_BLOCK, Buffer As Any, ByVal Length As Long) As NTSTATUS
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtQueryVolumeInformationFile Lib "ntdll" (ByVal FileHandle As LongPtr, IoStatusBlock As IO_STATUS_BLOCK, FsInformation As Any, ByVal Length As Long, ByVal FsInformationClass As FS_INFORMATION_CLASS) As NTSTATUS
@@ -19613,11 +20123,13 @@ Public Declare PtrSafe Function NtQueryQuotaInformationFile Lib "ntdll" (ByVal F
 Public Declare PtrSafe Function NtSetQuotaInformationFile Lib "ntdll" (ByVal FileHandle As LongPtr, IoStatusBlock As IO_STATUS_BLOCK, Buffer As Any, ByVal Length As Long) As NTSTATUS
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtFlushBuffersFile Lib "ntdll" (ByVal FileHandle As LongPtr, IoStatusBlock As IO_STATUS_BLOCK) As NTSTATUS
-
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtFlushBuffersFileEx Lib "ntdll" (ByVal FileHandle As LongPtr, ByVal Flags As NtFlushFileFlags, Parameters As Any, ByVal ParametersSize As Long, IoStatusBlock As IO_STATUS_BLOCK) As NTSTATUS
+
 Public Declare PtrSafe Function NtCancelIoFile Lib "ntdll" (ByVal hFile As LongPtr) As BOOL
 Public Declare PtrSafe Function NtCancelIoFileEx Lib "ntdll" (ByVal hFile As LongPtr, lpOverlapped As OVERLAPPED) As BOOL
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtCancelSynchronousIoFile Lib "ntdll" (ByVal ThreadHandle As LongPtr, IoRequestToCancel As IO_STATUS_BLOCK, IoStatusBlock As IO_STATUS_BLOCK) As NTSTATUS
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtDeleteFile Lib "ntdll" (ObjectAttributes As OBJECT_ATTRIBUTES) As NTSTATUS
 [UseGetLastError(False)]
@@ -19640,7 +20152,10 @@ Public Declare PtrSafe Function NtDeviceIoControlFile Lib "ntdll" (ByVal FileHan
 ' Public Declare PtrSafe Function NtDeviceIoControlFile Lib "ntdll" (ByVal FileHandle As LongPtr, ByVal hEvent As LongPtr, ByVal ApcRoutine As IO_APC_ROUTINE, ByVal ApcContext As LongPtr, ByRef IoStatusBlock As IO_STATUS_BLOCK, ByVal IoControlCode As Long, InputBuffer As Any, ByVal InputBufferLength As Long, OutputBuffer As Any, ByVal OutputBufferLength As Long) As NTSTATUS
 ' #End If
 
-
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtSetSecurityObject Lib "ntdll" (ByVal Handle As LongPtr, ByVal SecurityInformation As SECURITY_INFORMATION, SecurityDescriptor As SECURITY_DESCRIPTOR) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtQuerySecurityObject Lib "ntdll" (ByVal Handle As LongPtr, ByVal SecurityInformation As SECURITY_INFORMATION, SecurityDescriptor As SECURITY_DESCRIPTOR, ByVal Length As Long, LengthNeeded As Long) As NTSTATUS
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtCreateMailslotFile Lib "ntdll" (FileHandle As LongPtr, [TypeHint(GenericRights)] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, IoStatusBlock As IO_STATUS_BLOCK, ByVal CreateOptions As Long, ByVal MailslotQuota As Long, ByVal MaximumMessageSize As Long, ReadTimeout As LARGE_INTEGER) As NTSTATUS
 [UseGetLastError(False)]
@@ -21227,7 +21742,7 @@ Public Type SYSTEM_FEATURE_CONFIGURATION_UPDATE
         ' } Overwrite;
     ' };
     #If Win64 Then
-    __pad as Long
+    __pad As Long
     #End If
     PreviousChangeStamp As LongLong 'RTL_FEATURE_CHANGE_STAMP
     ConfigurationType As RTL_FEATURE_CONFIGURATION_TYPE

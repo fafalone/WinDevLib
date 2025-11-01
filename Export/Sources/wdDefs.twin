@@ -3002,6 +3002,7 @@ Public Const FSCTL_REFS_QUERY_ROLLBACK_PROTECTION_INFO    = &H90494 'CTL_CODE(FI
 Public Const FSCTL_FILE_SOV_CHECK_RANGE                   = &H90498 'CTL_CODE(FILE_DEVICE_FILE_SYSTEM, 294, METHOD_BUFFERED, FILE_ANY_ACCESS)
 Public Const FSCTL_CASCADES_REFS_SET_FILE_REMOTE          = &H9049C 'CTL_CODE(FILE_DEVICE_FILE_SYSTEM, 295, METHOD_BUFFERED, FILE_ANY_ACCESS) 
 
+Public Const DEVICE_NAMED_PIPE = "\Device\NamedPipe\"
 
 Public Const FSCTL_PIPE_ASSIGN_EVENT            = &H110000
 Public Const FSCTL_PIPE_DISCONNECT              = &H110004
@@ -3015,8 +3016,8 @@ Public Const FSCTL_PIPE_SET_CLIENT_PROCESS      = &H110020
 Public Const FSCTL_PIPE_QUERY_CLIENT_PROCESS    = &H110024
 Public Const FSCTL_PIPE_GET_PIPE_ATTRIBUTE      = &H110028
 Public Const FSCTL_PIPE_SET_PIPE_ATTRIBUTE      = &H11002C
-Public Const FSCTL_PIPE_GET_CONNECTION_ATTRIBUTE= &H110030
-Public Const FSCTL_PIPE_SET_CONNECTION_ATTRIBUTE= &H110034
+Public Const FSCTL_PIPE_GET_CONNECTION_ATTRIBUTE = &H110030
+Public Const FSCTL_PIPE_SET_CONNECTION_ATTRIBUTE = &H110034
 Public Const FSCTL_PIPE_GET_HANDLE_ATTRIBUTE    = &H110038
 Public Const FSCTL_PIPE_SET_HANDLE_ATTRIBUTE    = &H11003C
 Public Const FSCTL_PIPE_FLUSH                   = &H118040
@@ -3025,10 +3026,10 @@ Public Const FSCTL_PIPE_SILO_ARRIVAL            = &H118048
 Public Const FSCTL_PIPE_CREATE_SYMLINK          = &H11004C
 Public Const FSCTL_PIPE_DELETE_SYMLINK          = &H110050
 Public Const FSCTL_PIPE_QUERY_CLIENT_PROCESS_V2 = &H110054
-Public Const FSCTL_PIPE_INTERNAL_READ       = &H115FF4
-Public Const FSCTL_PIPE_INTERNAL_WRITE      = &H119FF8
-Public Const FSCTL_PIPE_INTERNAL_TRANSCEIVE = &H11DFFF
-Public Const FSCTL_PIPE_INTERNAL_READ_OVFLOW= &H116000
+Public Const FSCTL_PIPE_INTERNAL_READ           = &H115FF4
+Public Const FSCTL_PIPE_INTERNAL_WRITE          = &H119FF8
+Public Const FSCTL_PIPE_INTERNAL_TRANSCEIVE     = &H11DFFF
+Public Const FSCTL_PIPE_INTERNAL_READ_OVFLOW    = &H116000
 
 Public Const FILE_PIPE_READ_DATA  = &H00000000
 Public Const FILE_PIPE_WRITE_SPACE  = &H00000001
@@ -3150,6 +3151,277 @@ End Type
 Public Const FSCTL_MAILSLOT_PEEK = &HC4003
 
 
+
+Public Type NTFS_VOLUME_DATA_BUFFER
+    VolumeSerialNumber As LARGE_INTEGER
+    NumberSectors As LARGE_INTEGER
+    TotalClusters As LARGE_INTEGER
+    FreeClusters As LARGE_INTEGER
+    TotalReserved As LARGE_INTEGER
+    BytesPerSector As Long
+    BytesPerCluster As Long
+    BytesPerFileRecordSegment As Long
+    ClustersPerFileRecordSegment As Long
+    MftValidDataLength As LARGE_INTEGER
+    MftStartLcn As LARGE_INTEGER
+    Mft2StartLcn As LARGE_INTEGER
+    MftZoneStart As LARGE_INTEGER
+    MftZoneEnd As LARGE_INTEGER
+End Type
+Public Type NTFS_EXTENDED_VOLUME_DATA
+    ByteCount As Long
+    MajorVersion As Integer
+    MinorVersion As Integer
+    BytesPerPhysicalSector As Long
+    LfsMajorVersion As Integer
+    LfsMinorVersion As Integer
+    '#if (_WIN32_WINNT >= _WIN32_WINNT_WINTHRESHOLD)
+    MaxDeviceTrimExtentCount As Long
+    MaxDeviceTrimByteCount As Long
+    MaxVolumeTrimExtentCount As Long
+    MaxVolumeTrimByteCount As Long
+    '#endif
+End Type
+
+
+Public Const VOLUME_IS_DIRTY  = (&H00000001)
+Public Const VOLUME_UPGRADE_SCHEDULED  = (&H00000002)
+Public Const VOLUME_SESSION_OPEN  = (&H00000004)
+
+Public Type FILE_PREFETCH
+    Type As FsctlFilePrefetchFlags
+    Count As Long
+    Prefetch(0 To 0) As LongLong
+End Type
+Public Type FILE_PREFETCH_EX
+    Type As FsctlFilePrefetchFlags
+    Count As Long
+    Context As LongPtr
+    Prefetch(0 To 0) As LongLong
+End Type
+Public Enum FsctlFilePrefetchFlags
+    FILE_PREFETCH_TYPE_FOR_CREATE  = &H1
+    FILE_PREFETCH_TYPE_FOR_DIRENUM  = &H2
+    FILE_PREFETCH_TYPE_FOR_CREATE_EX  = &H3
+    FILE_PREFETCH_TYPE_FOR_DIRENUM_EX  = &H4
+    FILE_PREFETCH_TYPE_MAX  = &H4
+End Enum
+
+Public Type FILE_ZERO_DATA_INFORMATION
+    FileOffset As LARGE_INTEGER
+    BeyondFinalZero As LARGE_INTEGER
+End Type
+Public Type FILE_ZERO_DATA_INFORMATION_EX
+    FileOffset As LARGE_INTEGER
+    BeyondFinalZero As LARGE_INTEGER
+    Flags As FILE_ZERO_DATA_INFORMATION_FLAG
+End Type
+Public Enum FILE_ZERO_DATA_INFORMATION_FLAG
+    FILE_ZERO_DATA_INFORMATION_FLAG_PRESERVE_CACHED_DATA  = (&H00000001) 
+End Enum
+
+Public Type FILE_ALLOCATED_RANGE_BUFFER
+    FileOffset As LARGE_INTEGER
+    Length As LARGE_INTEGER
+End Type
+
+Public Enum ENCRYPTION_BUFFER_OPS
+    FILE_SET_ENCRYPTION  = &H00000001
+    FILE_CLEAR_ENCRYPTION  = &H00000002
+    STREAM_SET_ENCRYPTION  = &H00000003
+    STREAM_CLEAR_ENCRYPTION  = &H00000004
+End Enum
+
+Public Type ENCRYPTION_BUFFER
+    EncryptionOperation As ENCRYPTION_BUFFER_OPS
+    Private(0 To 0) As Byte
+End Type
+
+Public Type DECRYPTION_STATUS_BUFFER
+    NoEncryptedStreams As Byte
+End Type
+
+Public Const ENCRYPTION_FORMAT_DEFAULT  = (&H01)
+
+Public Type REQUEST_RAW_ENCRYPTED_DATA
+    '  Requested file offset and requested length to read.
+    '  The fsctl will round the starting offset down
+    '  to a file system boundary.  It will also
+    '  round the length up to a file system boundary.
+    FileOffset As LONGLONG
+    Length As Long
+End Type
+
+Public Type ENCRYPTED_DATA_INFO
+    '  This is the file offset for the first entry in the
+    '  data block array.  The file system will round
+    '  the requested start offset down to a boundary
+    '  that is consistent with the format of the file.
+    StartingFileOffset As LongLong
+    '  Data offset in output buffer.  The output buffer
+    '  begins with an ENCRYPTED_DATA_INFO structure.
+    '  The file system will then store the raw bytes from
+    '  disk beginning at the following offset within the
+    '  output buffer.
+    OutputBufferOffset As Long
+    '  The number of bytes being returned that are within
+    '  the size of the file.  If this value is less than
+    '  (NumberOfDataBlocks << DataUnitShift), it means the
+    '  end of the file occurs within this transfer.  Any
+    '  data beyond file size is invalid and was never
+    '  passed to the encryption driver.
+    BytesWithinFileSize As Long
+    '  The number of bytes being returned that are below
+    '  valid data length.  If this value is less than
+    '  (NumberOfDataBlocks << DataUnitShift), it means the
+    '  end of the valid data occurs within this transfer.
+    '  After decrypting the data from this transfer, any
+    '  byte(s) beyond valid data length must be zeroed.
+    BytesWithinValidDataLength As Long
+    '  Code for the compression format as defined in
+    '  ntrtl.h.  Note that COMPRESSION_FORMAT_NONE
+    '  and COMPRESSION_FORMAT_DEFAULT are invalid if
+    '  any of the described chunks are compressed.
+    CompressionFormat As Integer
+    '  The DataUnit is the granularity used to access the
+    '  disk.  It will be the same as the compression unit
+    '  size for a compressed file.  For an uncompressed
+    '  file, it will be some cluster-aligned power of 2 that
+    '  the file system deems convenient.  A caller should
+    '  not expect that successive calls will have the
+    '  same data unit shift value as the previous call.
+    '  Since chunks and compression units are expected to be
+    '  powers of 2 in size, we express them log2.  So, for
+    '  example (1 << ChunkShift) == ChunkSizeInBytes.  The
+    '  ClusterShift indicates how much space must be saved
+    '  to successfully compress a compression unit - each
+    '  successfully compressed data unit must occupy
+    '  at least one cluster less in bytes than an uncompressed
+    '  data block unit.
+    DataUnitShift As Byte
+    ChunkShift As Byte
+    ClusterShift As Byte
+    '  The format for the encryption.
+    EncryptionFormat As Byte
+    '  This is the number of entries in the data block size
+    '  array.
+    NumberOfDataBlocks As Integer
+    '  This is an array of sizes in the data block array.  There
+    '  must be one entry in this array for each data block
+    '  read from disk.  The size has a different meaning
+    '  depending on whether the file is compressed.
+    '  A size of zero always indicates that the final data consists entirely
+    '  of zeroes.  There is no decryption or decompression to
+    '  perform.
+    '  If the file is compressed then the data block size indicates
+    '  whether this block is compressed.  A size equal to
+    '  the block size indicates that the corresponding block did
+    '  not compress.  Any other non-zero size indicates the
+    '  size of the compressed data which needs to be
+    '  decrypted/decompressed.
+    '  If the file is not compressed then the data block size
+    '  indicates the amount of data within the block that
+    '  needs to be decrypted.  Any other non-zero size indicates
+    '  that the remaining bytes in the data unit within the file
+    '  consists of zeros.  An example of this is when the
+    '  the read spans the valid data length of the file.  There
+    '  is no data to decrypt past the valid data length.
+    DataBlockSize(0 To 0) As Long
+End Type
+
+Public Enum ENCRYPTED_DATA_INFO_FLAGS
+    ' //
+    ' //  Extended encryption structure for read/write raw encrypted operations.
+    ' //  This was needed so we can explicitly indicate if a file is sparse or not
+    ' //
+    ' //  Flag to indicate the encrypted file is sparse
+    ' //
+    ENCRYPTED_DATA_INFO_SPARSE_FILE = &H00000001
+'   This encrypted file data is from a filesystem which has support
+'   for sparse data ranges (e.g. ReFS) for non-sparse files.
+    ENCRYPTED_DATA_INFO_SPARSE_DATA  = &H00000002
+'   This encrypted file data is for a sparse file from a filesystem
+'   which has a 4k sparse data unit size.  It cannot be restored to
+'   a filesystem with larger sparse unit size.
+    ENCRYPTED_DATA_INFO_4K_SPARSE_UNIT  = &H00000004
+End Enum
+
+Public Type EXTENDED_ENCRYPTED_DATA_INFO
+    '  This is really a 4 byte character array which
+    '  must have the value "EXTD".  We use this
+    '  to determine if we should read the extended data
+    '  or not.
+    ExtendedCode As Long
+    '  The length of the extended data structure
+    Length As Long
+    '  Encrypted data flags
+    Flags As ENCRYPTED_DATA_INFO_FLAGS
+    Reserved As Long
+End Type
+
+Public Type PLEX_READ_DATA_REQUEST
+    '  Requested offset and length to read.
+    '  The offset can be the virtual offset (vbo) in to a file,
+    '  or a volume. In the case of a file offset,
+    '  the fsd will round the starting offset down
+    '  to a file system boundary.  It will also
+    '  round the length up to a file system boundary and
+    '  enforce any other applicable limits.
+    ByteOffset As LARGE_INTEGER
+    ByteLength As Long
+    PlexNumber As Long
+End Type
+
+Public Enum COPYFILE_SIS
+    COPYFILE_SIS_LINK  = &H0001  ' Copy only if source is SIS
+    COPYFILE_SIS_REPLACE  = &H0002  ' Replace destination if it exists, otherwise don't.
+    COPYFILE_SIS_FLAGS  = &H0003
+End Enum
+
+[Description("WARNING: Buffer substituted for variable C-style array.")]
+Public Type SI_COPYFILE
+    SourceFileNameLength As Long
+    DestinationFileNameLength As Long
+    Flags As COPYFILE_SIS
+    FileNameBuffer(0 To 299) As Integer
+End Type
+
+Public Type FILE_MAKE_COMPATIBLE_BUFFER
+    CloseDisc As Byte
+End Type
+
+Public Type FILE_SET_DEFECT_MGMT_BUFFER
+    Disable As Byte
+End Type
+
+Public Type FILE_QUERY_SPARING_BUFFER
+    SparingUnitBytes As Long
+    SoftwareSparing As Byte
+    TotalSpareBlocks As Long
+    FreeSpareBlocks As Long
+End Type
+
+Public Type FILE_QUERY_ON_DISK_VOL_INFO_BUFFER
+    DirectoryCount As LARGE_INTEGER ' -1 = unknown
+    FileCount As LARGE_INTEGER ' -1 = unknown
+    FsFormatMajVersion As Integer ' -1 = unknown or n/a
+    FsFormatMinVersion As Integer ' -1 = unknown or n/a
+    FsFormatName(0 To 11) As Integer
+    FormatTime As LARGE_INTEGER
+    LastUpdateTime As LARGE_INTEGER
+    CopyrightInfo(0 To 33) As Integer
+    AbstractInfo(0 To 33) As Integer
+    FormattingImplementationInfo(0 To 33) As Integer
+    LastModifyingImplementationInfo(0 To 33) As Integer
+End Type
+
+Public Enum FSCTL_SET_REPAIR_FLAGS
+    SET_REPAIR_ENABLED  = (&H00000001)
+    SET_REPAIR_WARN_ABOUT_DATA_LOSS  = (&H00000008)
+    SET_REPAIR_DISABLED_AND_BUGCHECK_ON_CORRUPT  = (&H00000010)
+    SET_REPAIR_VALID_MASK  = (&H00000019)
+End Enum
+
 Public Const FILE_INITIATE_REPAIR_HINT1_FILE_RECORD_NOT_IN_USE As LongLong = (&H0000000000000001)
 Public Const FILE_INITIATE_REPAIR_HINT1_FILE_RECORD_REUSED As LongLong = (&H0000000000000002)
 Public Const FILE_INITIATE_REPAIR_HINT1_FILE_RECORD_NOT_EXIST As LongLong = (&H0000000000000004)
@@ -3219,65 +3491,196 @@ Public Type SHRINK_VOLUME_INFORMATION
     NewNumberOfSectors As LONGLONG
 End Type
 
-Public Type NTFS_VOLUME_DATA_BUFFER
-    VolumeSerialNumber As LARGE_INTEGER
-    NumberSectors As LARGE_INTEGER
-    TotalClusters As LARGE_INTEGER
-    FreeClusters As LARGE_INTEGER
-    TotalReserved As LARGE_INTEGER
-    BytesPerSector As Long
-    BytesPerCluster As Long
-    BytesPerFileRecordSegment As Long
-    ClustersPerFileRecordSegment As Long
-    MftValidDataLength As LARGE_INTEGER
-    MftStartLcn As LARGE_INTEGER
-    Mft2StartLcn As LARGE_INTEGER
-    MftZoneStart As LARGE_INTEGER
-    MftZoneEnd As LARGE_INTEGER
-End Type
-Public Type NTFS_EXTENDED_VOLUME_DATA
-    ByteCount As Long
-    MajorVersion As Integer
-    MinorVersion As Integer
-    BytesPerPhysicalSector As Long
-    LfsMajorVersion As Integer
-    LfsMinorVersion As Integer
-    '#if (_WIN32_WINNT >= _WIN32_WINNT_WINTHRESHOLD)
-    MaxDeviceTrimExtentCount As Long
-    MaxDeviceTrimByteCount As Long
-    MaxVolumeTrimExtentCount As Long
-    MaxVolumeTrimByteCount As Long
-    '#endif
-End Type
 
 
-Public Const VOLUME_IS_DIRTY  = (&H00000001)
-Public Const VOLUME_UPGRADE_SCHEDULED  = (&H00000002)
-Public Const VOLUME_SESSION_OPEN  = (&H00000004)
 
-Public Type FILE_PREFETCH
-    Type As FsctlFilePrefetchFlags
-    Count As Long
-    Prefetch(0 To 0) As LongLong
-End Type
-Public Type FILE_PREFETCH_EX
-    Type As FsctlFilePrefetchFlags
-    Count As Long
-    Context As LongPtr
-    Prefetch(0 To 0) As LongLong
-End Type
-Public Enum FsctlFilePrefetchFlags
-    FILE_PREFETCH_TYPE_FOR_CREATE  = &H1
-    FILE_PREFETCH_TYPE_FOR_DIRENUM  = &H2
-    FILE_PREFETCH_TYPE_FOR_CREATE_EX  = &H3
-    FILE_PREFETCH_TYPE_FOR_DIRENUM_EX  = &H4
-    FILE_PREFETCH_TYPE_MAX  = &H4
+
+
+Public Enum FSCTL_PERSISTENT_VOLUME_STATE_FLAGS
+    PERSISTENT_VOLUME_STATE_SHORT_NAME_CREATION_DISABLED  = (&H00000001)
+' #if (_WIN32_WINNT >= _WIN32_WINNT_WIN8)
+    PERSISTENT_VOLUME_STATE_VOLUME_SCRUB_DISABLED  = (&H00000002)
+' #endif  /* (_WIN32_WINNT >= _WIN32_WINNT_WIN8) */
+' #if (_WIN32_WINNT >= _WIN32_WINNT_WINBLUE)
+'   Persistent volume flags to control the file system's storage tiering
+'   awareness.
+    PERSISTENT_VOLUME_STATE_GLOBAL_METADATA_NO_SEEK_PENALTY  = (&H00000004)
+    PERSISTENT_VOLUME_STATE_LOCAL_METADATA_NO_SEEK_PENALTY  = (&H00000008)
+    PERSISTENT_VOLUME_STATE_NO_HEAT_GATHERING  = (&H00000010)
+' #endif /* (_WIN32_WINNT >= _WIN32_WINNT_WINBLUE) */
+'   These are flags that define a volume's dependency on WimBoot file.
+' #if (_WIN32_WINNT >= _WIN32_WINNT_WIN7)
+'   The volume backs a system critical volume, typically the one that has wimboot
+'   image file serving the system files
+    PERSISTENT_VOLUME_STATE_CONTAINS_BACKING_WIM  = (&H00000020)
+'   The volume is backed by other volume that actually has the system files.
+'   And hence this relies on the other volume being present in order for the system to boot up.
+    PERSISTENT_VOLUME_STATE_BACKED_BY_WIM  = (&H00000040)
+' #endif /* (_WIN32_WINNT >= _WIN32_WINNT_WIN7) */
+' #if (_WIN32_WINNT >= _WIN32_WINNT_WINTHRESHOLD)
+'   Writes dynamic redirection on tiered volumes will be disabled
+    PERSISTENT_VOLUME_STATE_NO_WRITE_AUTO_TIERING  = (&H00000080)
+' #endif // #if (_WIN32_WINNT >= _WIN32_WINNT_WINTHRESHOLD)
+' #if (_WIN32_WINNT >= _WIN32_WINNT_WINTHRESHOLD)
+'   Disable txf on volume
+    PERSISTENT_VOLUME_STATE_TXF_DISABLED  = (&H00000100)
+' #endif // #if (_WIN32_WINNT >= _WIN32_WINNT_WINTHRESHOLD)
+' #if (NTDDI_VERSION >= NTDDI_WIN10_RS5)
+'   Always reallocate data writes
+    PERSISTENT_VOLUME_STATE_REALLOCATE_ALL_DATA_WRITES  = (&H00000200)
+' #endif // #if (NTDDI_VERSION >= NTDDI_WIN10_RS5)
+' #if (NTDDI_VERSION >= NTDDI_WIN10_MN)
+'   This indicates that AutoChk modified this volume and is cleared by AutoChk
+'   after it ensured that the volume is dismounted or the system is rebooted.
+'   This can be set or queried.
+    PERSISTENT_VOLUME_STATE_CHKDSK_RAN_ONCE  = (&H00000400)
+'   This again indicates that AutoChk modified this volume but is cleared by
+'   NTFS on next mount.  So if this flag is set it means that the volume was
+'   modified by AutoChk while it's still mounted and the on-disk state and
+'   the in memory state could be different.  This can only be queried.
+    PERSISTENT_VOLUME_STATE_MODIFIED_BY_CHKDSK  = (&H00000800)
+'   The volume was formatted as DAX.  The volume may not be mounted as DAX
+'   if the storage is not DAX capable.  This can only be queried.
+    PERSISTENT_VOLUME_STATE_DAX_FORMATTED  = (&H00001000)
+' #endif // #if (NTDDI_VERSION >= NTDDI_WIN10_MN)
+' #if (NTDDI_VERSION >= NTDDI_WIN11_ZN)
+'   The volume was formatted as a developer volume.  This can be used by the
+'   file system and other system components to enable optimizations that doe
+'   not require an administrator to trust the volume on a given machine.
+'   This is set at format time and can only be queried.
+    PERSISTENT_VOLUME_STATE_DEV_VOLUME  = (&H00002000)
+'   An adminstrator on a given machine had trust this volume and is willing
+'   to enable optimizations like not having anti-virus filters attach to the
+'   volume.  This information is persisted in the registry on a given machine.
+'   This can be used by the file system and other system components to enable
+'   optimizations that require an administrator to trust the volume on a given
+'   machine.
+'   NOTE: Today only developer volumes can be trusted, i.e. this flag can be
+'   set only when PERSISTENT_VOLUME_STATE_DEV_VOLUME is set.
+'   This can be set and queried.
+    PERSISTENT_VOLUME_STATE_TRUSTED_VOLUME  = (&H00004000)
+' #endif // #if (NTDDI_VERSION >= NTDDI_WIN11_ZN)
 End Enum
 
-Public Type FILE_ZERO_DATA_INFORMATION
-    FileOffset As LARGE_INTEGER
-    BeyondFinalZero As LARGE_INTEGER
+Public Type FILE_FS_PERSISTENT_VOLUME_INFORMATION
+    VolumeFlags As FSCTL_PERSISTENT_VOLUME_STATE_FLAGS
+    FlagMask As FSCTL_PERSISTENT_VOLUME_STATE_FLAGS
+    Version As Long
+    Reserved As Long
 End Type
+
+Public Type FILE_SYSTEM_RECOGNITION_INFORMATION
+    FileSystem(0 To 8) As Byte
+End Type
+
+Public Enum FSCTL_OPLOCK_LEVELS
+    OPLOCK_LEVEL_CACHE_READ  = (&H00000001)
+    OPLOCK_LEVEL_CACHE_HANDLE  = (&H00000002)
+    OPLOCK_LEVEL_CACHE_WRITE  = (&H00000004)
+End Enum
+
+Public Enum FSCTL_OPLOCK_FLAGS
+    REQUEST_OPLOCK_INPUT_FLAG_REQUEST  = (&H00000001)
+    REQUEST_OPLOCK_INPUT_FLAG_ACK  = (&H00000002)
+    REQUEST_OPLOCK_INPUT_FLAG_COMPLETE_ACK_ON_CLOSE  = (&H00000004)
+End Enum
+
+Public Const REQUEST_OPLOCK_CURRENT_VERSION  = 1
+
+Public Type REQUEST_OPLOCK_INPUT_BUFFER
+    '  This should be set to REQUEST_OPLOCK_CURRENT_VERSION.
+    StructureVersion As Integer
+    StructureLength As Integer
+    '  One or more OPLOCK_LEVEL_CACHE_* values to indicate the desired level of the oplock.
+    RequestedOplockLevel As FSCTL_OPLOCK_LEVELS
+    '  REQUEST_OPLOCK_INPUT_FLAG_* flags.
+    Flags As FSCTL_OPLOCK_FLAGS
+End Type
+
+Public Enum FSCTL_OPLOCK_OUTPUT_FLAGS
+    REQUEST_OPLOCK_OUTPUT_FLAG_ACK_REQUIRED  = (&H00000001)
+    REQUEST_OPLOCK_OUTPUT_FLAG_MODES_PROVIDED  = (&H00000002)
+' #if (NTDDI_VERSION >= NTDDI_WIN10_CU)
+'  If the oplock request fails with STATUS_OPLOCK_NOT_GRANTED, this flag indicates that the oplock
+'  could not be granted due to the presence of a writable user-mapped section.
+    REQUEST_OPLOCK_OUTPUT_FLAG_WRITABLE_SECTION_PRESENT  = (&H00000004)
+End Enum
+
+Public Type REQUEST_OPLOCK_OUTPUT_BUFFER
+    '  This should be set to REQUEST_OPLOCK_CURRENT_VERSION.
+    StructureVersion As Integer
+    StructureLength As Integer
+    '  One or more OPLOCK_LEVEL_CACHE_* values indicating the level of the oplock that
+    '  was just broken.
+    OriginalOplockLevel As FSCTL_OPLOCK_LEVELS
+    '  One or more OPLOCK_LEVEL_CACHE_* values indicating the level to which an oplock
+    '  is being broken, or an oplock level that may be available for granting, depending
+    '  on the operation returning this buffer.
+    NewOplockLevel As FSCTL_OPLOCK_LEVELS
+    '  REQUEST_OPLOCK_OUTPUT_FLAG_* flags.
+    Flags As FSCTL_OPLOCK_OUTPUT_FLAGS
+    '  When REQUEST_OPLOCK_OUTPUT_FLAG_MODES_PROVIDED is set, and when the
+    '  OPLOCK_LEVEL_CACHE_HANDLE level is being lost in an oplock break, these fields
+    '  contain the access mode and share mode of the request that is causing the break.
+    AccessMode As Long 'ACCESS_MASK
+    ShareMode As Integer
+End Type
+
+Public Type STORAGE_QUERY_DEPENDENT_VOLUME_REQUEST
+    RequestLevel As Long
+    RequestFlags As Long
+End Type
+
+Public Const QUERY_DEPENDENT_VOLUME_REQUEST_FLAG_HOST_VOLUMES  = &H1
+Public Const QUERY_DEPENDENT_VOLUME_REQUEST_FLAG_GUEST_VOLUMES  = &H2
+
+Public Type STORAGE_QUERY_DEPENDENT_VOLUME_LEV1_ENTRY
+    EntryLength As Long
+    DependencyTypeFlags As Long
+    ProviderSpecificFlags As Long
+    VirtualStorageType As VIRTUAL_STORAGE_TYPE
+End Type
+
+Public Type STORAGE_QUERY_DEPENDENT_VOLUME_LEV2_ENTRY
+    EntryLength As Long
+    DependencyTypeFlags As Long
+    ProviderSpecificFlags As Long
+    VirtualStorageType As VIRTUAL_STORAGE_TYPE
+    AncestorLevel As Long ' Root parent is 0, every child level after that is incremented
+    HostVolumeNameOffset As Long
+    HostVolumeNameSize As Long
+    DependentVolumeNameOffset As Long
+    DependentVolumeNameSize As Long
+    RelativePathOffset As Long
+    RelativePathSize As Long
+    DependentDeviceNameOffset As Long
+    DependentDeviceNameSize As Long
+End Type
+
+Public Type STORAGE_QUERY_DEPENDENT_VOLUME_RESPONSE
+    ResponseLevel As Long
+    NumberEntries As Long
+    'union {
+    '    STORAGE_QUERY_DEPENDENT_VOLUME_LEV1_ENTRY Lev1Depends[];
+    '    STORAGE_QUERY_DEPENDENT_VOLUME_LEV2_ENTRY Lev2Depends[];
+    '} DUMMYUNIONNAME;
+    u As STORAGE_QUERY_DEPENDENT_VOLUME_LEV2_ENTRY
+End Type
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 Public Enum FILESYSTEM_STATS_TYPE
     FILESYSTEM_STATISTICS_TYPE_NTFS = 1
@@ -6043,18 +6446,18 @@ Public Const IOCTL_MOUNTMGR_CHANGE_NOTIFY                = &H6D4020
 Public Const IOCTL_MOUNTMGR_KEEP_LINKS_WHEN_OFFLINE      = &H6DC024
 Public Const IOCTL_MOUNTMGR_CHECK_UNPROCESSED_VOLUMES    = &H6D4028
 Public Const IOCTL_MOUNTMGR_VOLUME_ARRIVAL_NOTIFICATION  = &H6D402C
-Public Const IOCTL_MOUNTDEV_QUERY_DEVICE_NAME    = &H4D0008
+Public Const IOCTL_MOUNTDEV_QUERY_DEVICE_NAME            = &H4D0008
 Public Const IOCTL_MOUNTMGR_QUERY_DOS_VOLUME_PATH        = &H6D0030
 Public Const IOCTL_MOUNTMGR_QUERY_DOS_VOLUME_PATHS       = &H6D0034
 Public Const IOCTL_MOUNTMGR_SCRUB_REGISTRY               = &H6DC038
 Public Const IOCTL_MOUNTMGR_QUERY_AUTO_MOUNT             = &H6D003C
 Public Const IOCTL_MOUNTMGR_SET_AUTO_MOUNT               = &H6DC040
-Public Const IOCTL_MOUNTMGR_BOOT_DL_ASSIGNMENT               = &H6DC044
-Public Const IOCTL_MOUNTMGR_TRACELOG_CACHE                   = &H6D4048
-Public Const IOCTL_MOUNTMGR_PREPARE_VOLUME_DELETE            = &H6DC04C
-Public Const IOCTL_MOUNTMGR_CANCEL_VOLUME_DELETE             = &H6DC050
-Public Const IOCTL_MOUNTMGR_SILO_ARRIVAL                    = &H6DC054
-Public Const IOCTL_MOUNTMGR_VOLUME_REMOVAL_NOTIFICATION     = &H6D4058
+Public Const IOCTL_MOUNTMGR_BOOT_DL_ASSIGNMENT           = &H6DC044
+Public Const IOCTL_MOUNTMGR_TRACELOG_CACHE               = &H6D4048
+Public Const IOCTL_MOUNTMGR_PREPARE_VOLUME_DELETE        = &H6DC04C
+Public Const IOCTL_MOUNTMGR_CANCEL_VOLUME_DELETE         = &H6DC050
+Public Const IOCTL_MOUNTMGR_SILO_ARRIVAL                 = &H6DC054
+Public Const IOCTL_MOUNTMGR_VOLUME_REMOVAL_NOTIFICATION  = &H6D4058
 
 Public Type MOUNTMGR_CREATE_POINT_INPUT
     SymbolicLinkNameOffset As Integer
@@ -6085,6 +6488,7 @@ End Type
 Public Type MOUNTMGR_MOUNT_POINTS_Hdr
     Size As Long
     NumberOfMountPoints As Long 
+    MountPoints(0 To 0) As MOUNTMGR_MOUNT_POINT
 End Type
 [Description("⚠️ **WARNING:** SAFEARRAY substituted for variable C-style array. Cannot be used as-is. Copy first two members then redim and fill third.")]
 Public Type MOUNTMGR_MOUNT_POINTS_Sa
