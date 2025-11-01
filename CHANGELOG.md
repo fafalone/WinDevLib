@@ -1,5 +1,11 @@
-
-
+ 
+**Update (v9.1.614, 01 Nov 2025):**
+- Added D3D Compiler interfaces (dxcapi.h, 100%)
+- Added DsGetDC.h (100%)
+- Additional undocumented shell interfaces and APIs
+- Additional native APIs
+- Additional types/consts for DeviceIoControl commands
+ 
 **Update (v9.1.612, 30 Oct 2025):**
 - Added WebDAV APIs (davclient.h, 100% inc. delegates)
 - Additional native APIs
