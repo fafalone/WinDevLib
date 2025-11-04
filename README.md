@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 9.1.616 (November 4th, 2025)**
+**Current Version: 9.1.618 (November 4th, 2025)**
 
 (c) 2022-2025 Jon Johnson (fafalone)
 
@@ -233,11 +233,13 @@ This project has grown well beyond it's original mission of shell programming. W
 
 ### Updates
 
-**Update (v9.1.616, 04 Nov 2025):**
+**Update (v9.1.618, 04 Nov 2025):**
 - Additional native APIs, inc dozens of missing types for NtQuerySystemInformation- I believe they're now all present
  through the latest phnt header covering through Win11 25H2
+- Numerous arguments made optional for signature compatibility with oleexp.tlb.
 - (Bug fix) Direct3DCreate9 definition incorrect
 - (Bug fix) D3DPERF_ APIs used String without DeclareWide when LPCWSTR was expected
+
 
 **Update (v9.1.614, 01 Nov 2025):**
 - Added D3D Compiler interfaces (dxcapi.h, 100%)
