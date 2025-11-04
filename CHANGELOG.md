@@ -1,4 +1,12 @@
  
+**Update (v9.1.618, 04 Nov 2025):**
+- Additional native APIs, inc dozens of missing types for NtQuerySystemInformation- I believe they're now all present
+ through the latest phnt header covering through Win11 25H2
+- Numerous arguments made optional for signature compatibility with oleexp.tlb.
+- (Bug fix) Direct3DCreate9 definition incorrect
+- (Bug fix) D3DPERF_ APIs used String without DeclareWide when LPCWSTR was expected
+
+
 **Update (v9.1.614, 01 Nov 2025):**
 - Added D3D Compiler interfaces (dxcapi.h, 100%)
 - Added DsGetDC.h (100%)
