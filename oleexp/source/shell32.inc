@@ -618,6 +618,9 @@ module shell32 {
 	[entry("ILRemoveLastID")]
 	int ILRemoveLastID(
 		[in, out] LONG *pidl);
+
+	[entry("ILClone")]
+	LongPtr ILClone([in] LongPtr pidl);
 	
 	[entry("SHAssocEnumHandlers")]
 	int SHAssocEnumHandlers(
@@ -667,7 +670,7 @@ module shell32 {
 	int SHCreateDataObject(
 		[in] LONG pidlFolder,
 		[in] LONG cidl,
-		[in] LONG apidl,
+		[in] LONG* apidl,
 		[in] IDataObject *pdtInner,
 		[in] UUID *riid,
 		[out] LPVOID ppv);
@@ -676,7 +679,7 @@ module shell32 {
 	int SHCreateFileDataObject(
 		[in] LONG pidlFolder,
 		[in] LONG cidl,
-		[in] LONG apidl,
+		[in] LONG* apidl,
 		[in] IDataObject *pdtInner,
 		[in] IDataObject **ppDataObj);
 		
@@ -700,7 +703,7 @@ module shell32 {
 		[in] LONG pidlParent,
 		[in] IShellFolder *psf,
 		[in] LONG cidl,
-		[in] LONG ppidl,
+		[in] LONG* ppidl,
 		[out] IShellItemArray **ppsiItemArray);
 		
 	[entry("SHCreateShellItemArrayFromDataObject")]
@@ -712,7 +715,7 @@ module shell32 {
 	[entry("SHCreateShellItemArrayFromIDLists")]
 	int SHCreateShellItemArrayFromIDLists(
 		[in] LONG cidl,
-		[in] LONG rgpidl,
+		[in] LONG* rgpidl,
 		[out] IShellItemArray **ppsiItemArray);
 		
 	[entry("SHCreateShellItemArrayFromShellItem")]

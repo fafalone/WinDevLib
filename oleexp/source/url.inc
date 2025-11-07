@@ -33,7 +33,7 @@ struct URLINVOKECOMMANDINFO {
     uuid(FBF23B80-E3F0-101B-8488-00AA003E56F8),
     helpstring("IuniformResourceLocator - ANSI version")
 ]
-interface IUniformResourceLocatorA: IUnknown {
+interface IUniformResourceLocatorA: stdole.IUnknown {
 
     [helpstring("Sets an object's URL")]
     HRESULT SetURL(
@@ -54,7 +54,7 @@ interface IUniformResourceLocatorA: IUnknown {
     uuid(CABB0DA0-DA57-11CF-9974-0020AFD79762),
     helpstring("IUniformResourceLocator - Unicode version")
 ]
-interface IUniformResourceLocatorW: IUnknown {
+interface IUniformResourceLocatorW: stdole.IUnknown {
 
     [helpstring("Sets an object's URL")]
     HRESULT SetURL(

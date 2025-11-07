@@ -1321,13 +1321,13 @@ module shlwapi {
     [entry("UrlHashA")]
     HRESULT UrlHashA(
         [in] LPSTR pszUrl,
-        [in] BYTE *pbHash,
+        [in] void *pbHash,
         [in] LONG cbHash);
 
     [entry("UrlHashW")]
     HRESULT UrlHash(
         [in] LPWSTR pszUrl,
-        [in] BYTE *pbHash,
+        [in] void *pbHash,
         [in] LONG cbHash);
 
     [entry("UrlGetPartW")]
@@ -1362,9 +1362,9 @@ module shlwapi {
 
     [entry("HashData")]
     HRESULT HashData(
-        [in] BYTE *pbData,
+        [in] void *pbData,
         [in] LONG cbData,
-        [in] BYTE *pbHash,
+        [in] void *pbHash,
         [in] LONG cbHash);
 
 //

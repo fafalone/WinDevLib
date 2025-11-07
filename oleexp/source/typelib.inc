@@ -331,7 +331,7 @@
       odl,
       uuid(00020400-0000-0000-C000-000000000046),
     ]
-    interface IDispatch : IUnknown {
+    interface IDispatch : stdole.IUnknown {
 
         HRESULT GetTypeInfoCount(
             [out, retval] int* pctinfo);

@@ -738,7 +738,7 @@ interface IShellLinkA : stdole.IUnknown {
     odl,
     uuid(000214F9-0000-0000-C000-000000000046)
 ]
-interface IShellLinkW : IUnknown
+interface IShellLinkW : stdole.IUnknown
 {
     HRESULT GetPath(
 		[in, out] LPWSTR pszFile,
@@ -1481,7 +1481,7 @@ typedef enum DEFAULTPOS {
 	uuid(F490EB00-1240-11D1-9888-006097DEACF9),
 	helpstring("IActiveDesktop interface")
 ]
-interface IActiveDesktop : IUnknown {
+interface IActiveDesktop : stdole.IUnknown {
 
 	// IActiveDesktop methods
 
