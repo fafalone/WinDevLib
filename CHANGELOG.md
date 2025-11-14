@@ -1,4 +1,9 @@
  
+**Update (v9.1.620, 14 Nov 2025):**
+- Added ComDB APIs (msports.h, 100% inc. delegates)
+- Added some missing functions from errhandlingapi.h to bring coverage to 100%
+
+
 **Update (v9.1.618, 04 Nov 2025):**
 - Additional native APIs, inc dozens of missing types for NtQuerySystemInformation- I believe they're now all present
  through the latest phnt header covering through Win11 25H2
