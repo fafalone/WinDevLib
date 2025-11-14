@@ -6668,18 +6668,35 @@ Public Declare PtrSafe Function PowerClearRequest Lib "kernel32" (ByVal PowerReq
 Public Declare PtrSafe Function RequestWakeupLatency Lib "kernel32" (ByVal latency As LATENCY_TIME) As BOOL
 Public Declare PtrSafe Function GetMachineTypeAttributes Lib "kernel32" ([TypeHint(ImageMachineType)] ByVal Machine As Integer, MachineTypeAttributes As MACHINE_ATTRIBUTES) As Long
 
-
-Public Declare PtrSafe Function SetErrorMode Lib "kernel32" (ByVal uMode As ErrorModes) As ErrorModes
+Public Delegate Function TOP_LEVEL_EXCEPTION_FILTER (ExceptionInfo As EXCEPTION_POINTERS) As Long
+Public Delegate Function VECTORED_EXCEPTION_HANDLER (ExceptionInfo As EXCEPTION_POINTERS) As Long
+Public Declare PtrSafe Sub RaiseException Lib "kernel32" ([TypeHint(ExceptionCodes)] ByVal dwExceptionCode As Long, [TypeHint(EXCEPTION_FLAGS)] ByVal dwExceptionFlags As Long, ByVal nNumberOfArguments As Long, Optional lpArguments As LongPtr)
+Public Declare PtrSafe Function UnhandledExceptionFilter Lib "kernel32" (ExceptionInfo As EXCEPTION_POINTERS) As Long
+Public Declare PtrSafe Sub SetUnhandledExceptionFilter Lib "kernel32" (ByVal lpTopLevelExceptionFilter As LongPtr)
+Public Declare PtrSafe Function GetLastError Lib "kernel32" () As Long
+Public Declare PtrSafe Sub SetLastError Lib "kernel32" (ByVal dwErrorCode As Long)
 Public Declare PtrSafe Function GetErrorMode Lib "kernel32" () As ErrorModes
+Public Declare PtrSafe Function SetErrorMode Lib "kernel32" (ByVal uMode As ErrorModes) As ErrorModes
 Public Declare PtrSafe Function SetThreadErrorMode Lib "kernel32" (ByVal dwNewMode As ErrorModes, lpOldMode As ErrorModes) As BOOL
 Public Declare PtrSafe Function GetThreadErrorMode Lib "kernel32" () As ErrorModes
-Public Declare PtrSafe Sub SetLastError Lib "kernel32" (ByVal dwErrorCode As Long)
-Public Declare PtrSafe Function GetLastError Lib "kernel32" () As Long
+' #If WDL_NO_DELEGATES Then
+Public Declare PtrSafe Function AddVectoredExceptionHandler Lib "kernel32" (ByVal First As Long, ByVal Handler As LongPtr) As LongPtr
+Public Declare PtrSafe Function AddVectoredContinueHandler Lib "kernel32" (ByVal First As Long, ByVal Handler As LongPtr) As LongPtr
+' #Else
+' Public Declare PtrSafe Function AddVectoredExceptionHandler Lib "kernel32" (ByVal First As Long, ByVal Handler As VECTORED_EXCEPTION_HANDLER) As LongPtr
+' Public Declare PtrSafe Function AddVectoredContinueHandler Lib "kernel32" (ByVal First As Long, ByVal Handler As VECTORED_EXCEPTION_HANDLER) As LongPtr
+' #End If
+Public Declare PtrSafe Function RemoveVectoredExceptionHandler Lib "kernel32" (ByVal Handle As LongPtr) As Long
+Public Declare PtrSafe Function RemoveVectoredContinueHandler Lib "kernel32" (ByVal Handle As LongPtr) As Long
+Public Declare PtrSafe Sub RestoreLastError Lib "kernel32" (ByVal dwErrCode As Long)
+Public Delegate Sub RESTORE_LAST_ERROR (ByVal dwErrCode As Long)
+Public Const RESTORE_LAST_ERROR_NAME_A  = "RestoreLastError"
+Public Const RESTORE_LAST_ERROR_NAME_W  = "RestoreLastError"
+Public Const RESTORE_LAST_ERROR_NAME  = "RestoreLastError"
+Public DeclareWide PtrSafe Sub RaiseFailFastException Lib "kernel32" (pExceptionRecord As EXCEPTION_RECORD, pContextRecord As Any, ByVal dwFlags As FailFastExceptionFlags)
 Public Declare PtrSafe Sub FatalAppExitA Lib "kernel32" (ByVal uAction As Long, ByVal lpMessageText As String)
 Public Declare PtrSafe Sub FatalAppExitW Lib "kernel32" (ByVal uAction As Long, ByVal lpMessageText As LongPtr)
 Public DeclareWide PtrSafe Sub FatalAppExit Lib "kernel32" Alias "FatalAppExitW" (ByVal uAction As Long, ByVal lpMessageText As String)
-Public Declare PtrSafe Sub SetUnhandledExceptionFilter Lib "kernel32" (ByVal lpTopLevelExceptionFilter As LongPtr)
-Public Declare PtrSafe Function UnhandledExceptionFilter Lib "kernel32" (ExceptionInfo As EXCEPTION_POINTERS) As Long
 Public Declare PtrSafe Sub TerminateProcessOnMemoryExhaustion Lib "kernelbase" (ByVal FailedAllocationSize As LongPtr)
 Public Declare PtrSafe Function SetHandleCount Lib "kernel32" (ByVal uNumber As Long) As BOOL
 Public Declare PtrSafe Function SetThreadExecutionState Lib "kernel32" (ByVal esFlags As EXECUTION_STATE) As EXECUTION_STATE
@@ -10693,7 +10710,6 @@ Public Declare PtrSafe Function QueryProcessAffinityUpdateMode Lib "kernel32" (B
 Public Declare PtrSafe Function GetSystemTimes Lib "kernel32" (lpIdleTime As FILETIME, lpKernelTime As FILETIME, lpUserTime As FILETIME) As BOOL
 Public Declare PtrSafe Function SetProtectedPolicy Lib "kernel32" (PolicyGuid As UUID, ByVal PolicyValue As LongPtr, Optional OldPolicyValue As LongPtr) As BOOL
 Public Declare PtrSafe Function QueryProtectedPolicy Lib "kernel32" (PolicyGuid As UUID, PolicyValue As LongPtr) As BOOL
-Public DeclareWide PtrSafe Sub RaiseFailFastException Lib "kernel32" (pExceptionRecord As EXCEPTION_RECORD, pContextRecord As Any, ByVal dwFlags As FailFastExceptionFlags)
 [Description("**DEPRECATED** Only for 16bit compatibility. Use CreateProcess or ShellExecute.")]
 Public Declare PtrSafe Function WinExec Lib "kernel32" (ByVal lpCmdLine As String, ByVal uCmdShow As SHOWWINDOW) As Long
 Public Declare PtrSafe Function AddSecureMemoryCacheCallback Lib "kernel32" (ByVal pfnCallBack As LongPtr) As BOOL
@@ -16554,7 +16570,7 @@ Public Type SYSTEM_NUMA_INFORMATION
     #If Win64 Then
     u(1023) As Byte
     #Else
-    u(191) as Byte    
+    u(191) As Byte
     #End If
 End Type
 
@@ -17249,6 +17265,38 @@ Public Type SYSTEM_VA_LIST_INFORMATION
     VirtualLimit As LongPtr
     AllocationFailures As LongPtr
 End Type
+
+Public Enum MI_SYSTEM_VA_TYPE
+    MiVaUnused = 0
+    MiVaSessionSpace = 1
+    MiVaProcessSpace = 2
+    MiVaBootLoaded = 3
+    MiVaPfnDatabase = 4
+    MiVaNonPagedPool = 5
+    MiVaPagedPool = 6
+    MiVaSpecialPool = 7
+    MiVaSystemCache = 8
+    MiVaSystemPtes = 9
+    MiVaHal = 10
+    MiVaSessionGlobalSpace = 11
+    MiVaDriverImageSpace = 12
+    MiVaMaximumType = 13
+End Enum
+Public Type MM_SYSTEM_VA_LIST_ENTRY
+    Number As Long
+    Peak As Long
+    Limit As Long
+    Failures As Long
+End Type
+Public Type MM_SYSTEM_VA_LIST
+    AvailableVa As Long
+    AvailableVaLow As Long
+    Reserved As Long
+    TotalFailures As Long
+    Entry(0 To 4) As MM_SYSTEM_VA_LIST_ENTRY
+End Type
+
+
 
 Public Type SYSTEM_PROCESSOR_POWER_INFORMATION
     CurrentFrequency As Byte
@@ -18551,7 +18599,7 @@ End Type
 
 Public Type FILE_VOLUME_NAME_INFORMATION
     DeviceNameLength As Long
-    DeviceName (31) As Integer
+    DeviceName(31) As Integer
 End Type
 Public Type FILE_ID_INFORMATION
     VolumeSerialNumber As LongLong
@@ -18584,13 +18632,13 @@ Public Type FILE_ID_EXTD_DIR_INFORMATION
     EaSize As Long
     ReparsePointTag As Long
     FileId As FILE_ID_128
-    FileName (0 To MAX_PATH) As Integer
+    FileName(0 To MAX_PATH) As Integer
 End Type
 Public Type FILE_LINK_ENTRY_FULL_ID_INFORMATION
     NextEntryOffset As Long
     ParentFileId As FILE_ID_128
     FileNameLength As Long
-    FileName (0 To MAX_PATH) As Integer
+    FileName(0 To MAX_PATH) As Integer
 End Type
 Public Type FILE_LINKS_FULL_ID_INFORMATION
     BytesNeeded As Long
@@ -18612,8 +18660,8 @@ Public Type FILE_ID_EXTD_BOTH_DIR_INFORMATION
     ReparsePointTag As Long
     FileId As FILE_ID_128
     ShortNameLength As Byte
-    ShortName (0 To 11) As Integer
-    FileName (0 To MAX_PATH) As Integer
+    ShortName(0 To 11) As Integer
+    FileName(0 To MAX_PATH) As Integer
 End Type
 Public Enum FILE_DISPOSITION_EX_FLAGS
     FILE_DISPOSITION_FLAG_DO_NOT_DELETE = &H00000000
@@ -18767,7 +18815,9 @@ Public Type FILE_STORAGE_RESERVE_ID_INFORMATION
     StorageReserveId As STORAGE_RESERVE_ID
 End Type
 
-
+Public Type FILE_SET_STORAGE_RESERVE_ID_INFORMATION
+    StorageReserveId As STORAGE_RESERVE_ID
+End Type
 
 Public Enum FILE_CS_FLAGS
     FILE_CS_FLAG_CASE_SENSITIVE_DIR = &H00000001
@@ -18919,116 +18969,108 @@ Public Type IO_STATUS_BLOCK
 End Type
 
 Public Enum FILE_INFORMATION_CLASS
-    FileDirectoryInformation = 1 ' FILE_DIRECTORY_INFORMATION
-    FileFullDirectoryInformation ' FILE_FULL_DIR_INFORMATION
-    FileBothDirectoryInformation ' FILE_BOTH_DIR_INFORMATION
-    FileBasicInformation ' FILE_BASIC_INFORMATION
-    FileStandardInformation ' FILE_STANDARD_INFORMATION
-    FileInternalInformation ' FILE_INTERNAL_INFORMATION
-    FileEaInformation ' FILE_EA_INFORMATION
-    FileAccessInformation ' FILE_ACCESS_INFORMATION
-    FileNameInformation ' FILE_NAME_INFORMATION
-    FileRenameInformation ' FILE_RENAME_INFORMATION // 10
-    FileLinkInformation ' FILE_LINK_INFORMATION
-    FileNamesInformation ' FILE_NAMES_INFORMATION
-    FileDispositionInformation ' FILE_DISPOSITION_INFORMATION
-    FilePositionInformation ' FILE_POSITION_INFORMATION
-    FileFullEaInformation ' FILE_FULL_EA_INFORMATION
-    FileModeInformation ' FILE_MODE_INFORMATION
-    FileAlignmentInformation ' FILE_ALIGNMENT_INFORMATION
-    FileAllInformation ' FILE_ALL_INFORMATION
-    FileAllocationInformation ' FILE_ALLOCATION_INFORMATION
-    FileEndOfFileInformation ' FILE_END_OF_FILE_INFORMATION // 20
-    FileAlternateNameInformation ' FILE_NAME_INFORMATION
-    FileStreamInformation ' FILE_STREAM_INFORMATION
-    FilePipeInformation ' FILE_PIPE_INFORMATION
-    FilePipeLocalInformation ' FILE_PIPE_LOCAL_INFORMATION
-    FilePipeRemoteInformation ' FILE_PIPE_REMOTE_INFORMATION
-    FileMailslotQueryInformation ' FILE_MAILSLOT_QUERY_INFORMATION
-    FileMailslotSetInformation ' FILE_MAILSLOT_SET_INFORMATION
-    FileCompressionInformation ' FILE_COMPRESSION_INFORMATION
-    FileObjectIdInformation ' FILE_OBJECTID_INFORMATION
-    FileCompletionInformation ' FILE_COMPLETION_INFORMATION // 30
-    FileMoveClusterInformation ' FILE_MOVE_CLUSTER_INFORMATION
-    FileQuotaInformation ' FILE_QUOTA_INFORMATION
-    FileReparsePointInformation ' FILE_REPARSE_POINT_INFORMATION
-    FileNetworkOpenInformation ' FILE_NETWORK_OPEN_INFORMATION
-    FileAttributeTagInformation ' FILE_ATTRIBUTE_TAG_INFORMATION
-    FileTrackingInformation ' FILE_TRACKING_INFORMATION
-    FileIdBothDirectoryInformation ' FILE_ID_BOTH_DIR_INFORMATION
-    FileIdFullDirectoryInformation ' FILE_ID_FULL_DIR_INFORMATION
-    FileValidDataLengthInformation ' FILE_VALID_DATA_LENGTH_INFORMATION
-    FileShortNameInformation ' FILE_NAME_INFORMATION // 40
-    FileIoCompletionNotificationInformation ' FILE_IO_COMPLETION_NOTIFICATION_INFORMATION // since VISTA
-    FileIoStatusBlockRangeInformation ' FILE_IOSTATUSBLOCK_RANGE_INFORMATION
-    FileIoPriorityHintInformation ' FILE_IO_PRIORITY_HINT_INFORMATION, FILE_IO_PRIORITY_HINT_INFORMATION_EX
-    FileSfioReserveInformation ' FILE_SFIO_RESERVE_INFORMATION
-    FileSfioVolumeInformation ' FILE_SFIO_VOLUME_INFORMATION
-    FileHardLinkInformation ' FILE_LINKS_INFORMATION
-    FileProcessIdsUsingFileInformation ' FILE_PROCESS_IDS_USING_FILE_INFORMATION
-    FileNormalizedNameInformation ' FILE_NAME_INFORMATION
-    FileNetworkPhysicalNameInformation ' FILE_NETWORK_PHYSICAL_NAME_INFORMATION
-    FileIdGlobalTxDirectoryInformation ' FILE_ID_GLOBAL_TX_DIR_INFORMATION // since WIN7 // 50
-    FileIsRemoteDeviceInformation ' FILE_IS_REMOTE_DEVICE_INFORMATION
+    FileDirectoryInformation = 1                    ' FILE_DIRECTORY_INFORMATION
+    FileFullDirectoryInformation                    ' FILE_FULL_DIR_INFORMATION
+    FileBothDirectoryInformation                    ' FILE_BOTH_DIR_INFORMATION
+    FileBasicInformation                            ' FILE_BASIC_INFORMATION
+    FileStandardInformation                         ' FILE_STANDARD_INFORMATION
+    FileInternalInformation                         ' FILE_INTERNAL_INFORMATION
+    FileEaInformation                               ' FILE_EA_INFORMATION
+    FileAccessInformation                           ' FILE_ACCESS_INFORMATION
+    FileNameInformation                             ' FILE_NAME_INFORMATION
+    FileRenameInformation                           ' FILE_RENAME_INFORMATION // 10
+    FileLinkInformation                             ' FILE_LINK_INFORMATION
+    FileNamesInformation                            ' FILE_NAMES_INFORMATION
+    FileDispositionInformation                      ' FILE_DISPOSITION_INFORMATION
+    FilePositionInformation                         ' FILE_POSITION_INFORMATION
+    FileFullEaInformation                           ' FILE_FULL_EA_INFORMATION
+    FileModeInformation                             ' FILE_MODE_INFORMATION
+    FileAlignmentInformation                        ' FILE_ALIGNMENT_INFORMATION
+    FileAllInformation                              ' FILE_ALL_INFORMATION
+    FileAllocationInformation                       ' FILE_ALLOCATION_INFORMATION
+    FileEndOfFileInformation                        ' FILE_END_OF_FILE_INFORMATION // 20
+    FileAlternateNameInformation                    ' FILE_NAME_INFORMATION
+    FileStreamInformation                           ' FILE_STREAM_INFORMATION
+    FilePipeInformation                             ' FILE_PIPE_INFORMATION
+    FilePipeLocalInformation                        ' FILE_PIPE_LOCAL_INFORMATION
+    FilePipeRemoteInformation                       ' FILE_PIPE_REMOTE_INFORMATION
+    FileMailslotQueryInformation                    ' FILE_MAILSLOT_QUERY_INFORMATION
+    FileMailslotSetInformation                      ' FILE_MAILSLOT_SET_INFORMATION
+    FileCompressionInformation                      ' FILE_COMPRESSION_INFORMATION
+    FileObjectIdInformation                         ' FILE_OBJECTID_INFORMATION
+    FileCompletionInformation                       ' FILE_COMPLETION_INFORMATION // 30
+    FileMoveClusterInformation                      ' FILE_MOVE_CLUSTER_INFORMATION
+    FileQuotaInformation                            ' FILE_QUOTA_INFORMATION
+    FileReparsePointInformation                     ' FILE_REPARSE_POINT_INFORMATION
+    FileNetworkOpenInformation                      ' FILE_NETWORK_OPEN_INFORMATION
+    FileAttributeTagInformation                     ' FILE_ATTRIBUTE_TAG_INFORMATION
+    FileTrackingInformation                         ' FILE_TRACKING_INFORMATION
+    FileIdBothDirectoryInformation                  ' FILE_ID_BOTH_DIR_INFORMATION
+    FileIdFullDirectoryInformation                  ' FILE_ID_FULL_DIR_INFORMATION
+    FileValidDataLengthInformation                  ' FILE_VALID_DATA_LENGTH_INFORMATION
+    FileShortNameInformation                        ' FILE_NAME_INFORMATION // 40
+    FileIoCompletionNotificationInformation         ' FILE_IO_COMPLETION_NOTIFICATION_INFORMATION // since VISTA
+    FileIoStatusBlockRangeInformation               ' FILE_IOSTATUSBLOCK_RANGE_INFORMATION
+    FileIoPriorityHintInformation                   ' FILE_IO_PRIORITY_HINT_INFORMATION, FILE_IO_PRIORITY_HINT_INFORMATION_EX
+    FileSfioReserveInformation                      ' FILE_SFIO_RESERVE_INFORMATION
+    FileSfioVolumeInformation                       ' FILE_SFIO_VOLUME_INFORMATION
+    FileHardLinkInformation                         ' FILE_LINKS_INFORMATION
+    FileProcessIdsUsingFileInformation              ' FILE_PROCESS_IDS_USING_FILE_INFORMATION
+    FileNormalizedNameInformation                   ' FILE_NAME_INFORMATION
+    FileNetworkPhysicalNameInformation              ' FILE_NETWORK_PHYSICAL_NAME_INFORMATION
+    FileIdGlobalTxDirectoryInformation              ' FILE_ID_GLOBAL_TX_DIR_INFORMATION // since WIN7 // 50
+    FileIsRemoteDeviceInformation                   ' FILE_IS_REMOTE_DEVICE_INFORMATION
     FileUnusedInformation
-    FileNumaNodeInformation ' FILE_NUMA_NODE_INFORMATION
-    FileStandardLinkInformation ' FILE_STANDARD_LINK_INFORMATION
-    FileRemoteProtocolInformation ' FILE_REMOTE_PROTOCOL_INFORMATION
-    FileRenameInformationBypassAccessCheck ' (kernel-mode only); FILE_RENAME_INFORMATION // since WIN8
-    FileLinkInformationBypassAccessCheck ' (kernel-mode only); FILE_LINK_INFORMATION
-    FileVolumeNameInformation ' FILE_VOLUME_NAME_INFORMATION
-    FileIdInformation ' FILE_ID_INFORMATION
-    FileIdExtdDirectoryInformation ' FILE_ID_EXTD_DIR_INFORMATION // 60
-    FileReplaceCompletionInformation ' FILE_COMPLETION_INFORMATION // since WINBLUE
-    FileHardLinkFullIdInformation ' FILE_LINK_ENTRY_FULL_ID_INFORMATION
-    FileIdExtdBothDirectoryInformation ' FILE_ID_EXTD_BOTH_DIR_INFORMATION // since THRESHOLD
-    FileDispositionInformationEx ' FILE_DISPOSITION_INFO_EX // since REDSTONE
-    FileRenameInformationEx ' FILE_RENAME_INFORMATION_EX
-    FileRenameInformationExBypassAccessCheck ' (kernel-mode only); FILE_RENAME_INFORMATION_EX
-    FileDesiredStorageClassInformation ' FILE_DESIRED_STORAGE_CLASS_INFORMATION // since REDSTONE2
-    FileStatInformation ' FILE_STAT_INFORMATION
-    FileMemoryPartitionInformation ' FILE_MEMORY_PARTITION_INFORMATION // since REDSTONE3
-    FileStatLxInformation ' FILE_STAT_LX_INFORMATION // since REDSTONE4 // 70
-    FileCaseSensitiveInformation ' FILE_CASE_SENSITIVE_INFORMATION
-    FileLinkInformationEx ' FILE_LINK_INFORMATION_EX // since REDSTONE5
-    FileLinkInformationExBypassAccessCheck ' (kernel-mode only); FILE_LINK_INFORMATION_EX
-    FileStorageReserveIdInformation ' FILE_SET_STORAGE_RESERVE_ID_INFORMATION
-    FileCaseSensitiveInformationForceAccessCheck ' FILE_CASE_SENSITIVE_INFORMATION
-    FileKnownFolderInformation ' FILE_KNOWN_FOLDER_INFORMATION // since WIN11
-    FileStatBasicInformation
-    FileId64ExtdDirectoryInformation
-    FileId64ExtdBothDirectoryInformation
-    FileIdAllExtdDirectoryInformation
-    FileIdAllExtdBothDirectoryInformation
-    FileStreamReservationInformation
-
-        /*
-        //  It is an internal special request.
-        //  This operation should only be issued to the IOManager
-        //  through the Filter Manager. NtSetInformationFile/NtQueryInformationFile
-        //  and a file system should never receive this.
-        */
-
-    FileMupProviderInfo
+    FileNumaNodeInformation                         ' FILE_NUMA_NODE_INFORMATION
+    FileStandardLinkInformation                     ' FILE_STANDARD_LINK_INFORMATION
+    FileRemoteProtocolInformation                   ' FILE_REMOTE_PROTOCOL_INFORMATION
+    FileRenameInformationBypassAccessCheck          ' (kernel-mode only); FILE_RENAME_INFORMATION // since WIN8
+    FileLinkInformationBypassAccessCheck            ' (kernel-mode only); FILE_LINK_INFORMATION
+    FileVolumeNameInformation                       ' FILE_VOLUME_NAME_INFORMATION
+    FileIdInformation                               ' FILE_ID_INFORMATION
+    FileIdExtdDirectoryInformation                  ' FILE_ID_EXTD_DIR_INFORMATION // 60
+    FileReplaceCompletionInformation                ' FILE_COMPLETION_INFORMATION // since WINBLUE
+    FileHardLinkFullIdInformation                   ' FILE_LINK_ENTRY_FULL_ID_INFORMATION
+    FileIdExtdBothDirectoryInformation              ' FILE_ID_EXTD_BOTH_DIR_INFORMATION // since THRESHOLD
+    FileDispositionInformationEx                    ' FILE_DISPOSITION_INFO_EX // since REDSTONE
+    FileRenameInformationEx                         ' FILE_RENAME_INFORMATION_EX
+    FileRenameInformationExBypassAccessCheck        ' (kernel-mode only); FILE_RENAME_INFORMATION_EX
+    FileDesiredStorageClassInformation              ' FILE_DESIRED_STORAGE_CLASS_INFORMATION // since REDSTONE2
+    FileStatInformation                             ' FILE_STAT_INFORMATION
+    FileMemoryPartitionInformation                  ' FILE_MEMORY_PARTITION_INFORMATION // since REDSTONE3
+    FileStatLxInformation                           ' FILE_STAT_LX_INFORMATION // since REDSTONE4 // 70
+    FileCaseSensitiveInformation                    ' FILE_CASE_SENSITIVE_INFORMATION
+    FileLinkInformationEx                           ' FILE_LINK_INFORMATION_EX // since REDSTONE5
+    FileLinkInformationExBypassAccessCheck          ' (kernel-mode only); FILE_LINK_INFORMATION_EX
+    FileStorageReserveIdInformation                 ' FILE_SET_STORAGE_RESERVE_ID_INFORMATION
+    FileCaseSensitiveInformationForceAccessCheck    ' FILE_CASE_SENSITIVE_INFORMATION
+    FileKnownFolderInformation                      ' FILE_KNOWN_FOLDER_INFORMATION // since WIN11
+    FileStatBasicInformation                        ' qs: FILE_STAT_BASIC_INFORMATION ' since 23H2
+    FileId64ExtdDirectoryInformation                ' q: FILE_ID_64_EXTD_DIR_INFORMATION
+    FileId64ExtdBothDirectoryInformation            ' q: FILE_ID_64_EXTD_BOTH_DIR_INFORMATION
+    FileIdAllExtdDirectoryInformation               ' q: FILE_ID_ALL_EXTD_DIR_INFORMATION
+    FileIdAllExtdBothDirectoryInformation           ' q: FILE_ID_ALL_EXTD_BOTH_DIR_INFORMATION
+    FileStreamReservationInformation                ' q: FILE_STREAM_RESERVATION_INFORMATION ' since 24H2
+    FileMupProviderInfo                             ' qs: MUP_PROVIDER_INFORMATION
     FileMaximumInformation
 End Enum
 
 Public Enum FS_INFORMATION_CLASS
-    FileFsVolumeInformation = 1 ' q: FILE_FS_VOLUME_INFORMATION
-    FileFsLabelInformation ' s: FILE_FS_LABEL_INFORMATION // SeManageVolumePrivilege
-    FileFsSizeInformation ' q: FILE_FS_SIZE_INFORMATION
-    FileFsDeviceInformation ' q: FILE_FS_DEVICE_INFORMATION
-    FileFsAttributeInformation ' q: FILE_FS_ATTRIBUTE_INFORMATION
-    FileFsControlInformation ' qs: FILE_FS_CONTROL_INFORMATION // SeManageVolumePrivilege
-    FileFsFullSizeInformation ' q: FILE_FS_FULL_SIZE_INFORMATION
-    FileFsObjectIdInformation ' qs: FILE_FS_OBJECTID_INFORMATION // SeRestorePrivilege
-    FileFsDriverPathInformation ' q: FILE_FS_DRIVER_PATH_INFORMATION
-    FileFsVolumeFlagsInformation ' qs: FILE_FS_VOLUME_FLAGS_INFORMATION // SeManageVolumePrivilege // 10
-    FileFsSectorSizeInformation ' q: FILE_FS_SECTOR_SIZE_INFORMATION // since WIN8
-    FileFsDataCopyInformation ' q: FILE_FS_DATA_COPY_INFORMATION
-    FileFsMetadataSizeInformation ' q: FILE_FS_METADATA_SIZE_INFORMATION // since THRESHOLD
-    FileFsFullSizeInformationEx ' q: FILE_FS_FULL_SIZE_INFORMATION_EX // since REDSTONE5
-    FileFsGuidInformation ' q: FILE_FS_GUID_INFORMATION // since 23H2
+    FileFsVolumeInformation = 1     ' q: FILE_FS_VOLUME_INFORMATION
+    FileFsLabelInformation          ' s: FILE_FS_LABEL_INFORMATION // SeManageVolumePrivilege
+    FileFsSizeInformation           ' q: FILE_FS_SIZE_INFORMATION
+    FileFsDeviceInformation         ' q: FILE_FS_DEVICE_INFORMATION
+    FileFsAttributeInformation      ' q: FILE_FS_ATTRIBUTE_INFORMATION
+    FileFsControlInformation        ' qs: FILE_FS_CONTROL_INFORMATION // SeManageVolumePrivilege
+    FileFsFullSizeInformation       ' q: FILE_FS_FULL_SIZE_INFORMATION
+    FileFsObjectIdInformation       ' qs: FILE_FS_OBJECTID_INFORMATION // SeRestorePrivilege
+    FileFsDriverPathInformation     ' q: FILE_FS_DRIVER_PATH_INFORMATION
+    FileFsVolumeFlagsInformation    ' qs: FILE_FS_VOLUME_FLAGS_INFORMATION // SeManageVolumePrivilege // 10
+    FileFsSectorSizeInformation     ' q: FILE_FS_SECTOR_SIZE_INFORMATION // since WIN8
+    FileFsDataCopyInformation       ' q: FILE_FS_DATA_COPY_INFORMATION
+    FileFsMetadataSizeInformation   ' q: FILE_FS_METADATA_SIZE_INFORMATION // since THRESHOLD
+    FileFsFullSizeInformationEx     ' q: FILE_FS_FULL_SIZE_INFORMATION_EX // since REDSTONE5
+    FileFsGuidInformation           ' q: FILE_FS_GUID_INFORMATION // since 23H2
     FileFsMaximumInformation
 End Enum
 'Alias FSINFOCLASS As FS_INFORMATION_CLASS
@@ -20489,6 +20531,43 @@ Public Type SECURITY_CAPABILITIES
     Reserved As Long
 End Type
 
+
+Public Delegate Sub RTL_VERIFIER_DLL_LOAD_CALLBACK (ByVal DllName As LongPtr, ByVal DllBase As LongPtr, ByVal DllSize As LongPtr, ByVal Reserved As LongPtr)
+Public Delegate Sub RTL_VERIFIER_DLL_UNLOAD_CALLBACK (ByVal DllName As LongPtr, ByVal DllBase As LongPtr, ByVal DllSize As LongPtr, ByVal Reserved As LongPtr)
+Public Delegate Sub RTL_VERIFIER_NTDLLHEAPFREE_CALLBACK (ByVal AllocationBase As LongPtr, ByVal AllocationSize As LongPtr)
+Public Type RTL_VERIFIER_THUNK_DESCRIPTOR
+    ThunkName As LongPtr
+    ThunkOldAddress As LongPtr
+    ThunkNewAddress As LongPtr
+End Type
+Public Type RTL_VERIFIER_DLL_DESCRIPTOR
+    DllName As LongPtr
+    DllFlags As Long
+    DllAddress As LongPtr
+    DllThunks As LongPtr 'PRTL_VERIFIER_THUNK_DESCRIPTOR
+End Type
+Public Type RTL_VERIFIER_PROVIDER_DESCRIPTOR
+    Length As Long
+    ProviderDlls As LongPtr 'PRTL_VERIFIER_DLL_DESCRIPTOR
+    ProviderDllLoadCallback As RTL_VERIFIER_DLL_LOAD_CALLBACK
+    ProviderDllUnloadCallback As RTL_VERIFIER_DLL_UNLOAD_CALLBACK
+    VerifierImage As LongPtr
+    VerifierFlags As Long
+    VerifierDebug As Long
+    RtlpGetStackTraceAddress As LongPtr
+    RtlpDebugPageHeapCreate As LongPtr
+    RtlpDebugPageHeapDestroy As LongPtr
+    ProviderNtdllHeapFreeCallback As RTL_VERIFIER_NTDLLHEAPFREE_CALLBACK
+End Type
+
+
+
+
+
+
+
+
+
 Public Type MEMORY_ENCLAVE_IMAGE_INFORMATION
     ImageInfo As MEMORY_IMAGE_INFORMATION
     UniqueID(0 To 31) As Byte
@@ -21876,6 +21955,11 @@ Public Declare PtrSafe Function NtCreateTimer2 Lib "ntdll" (TimerHandle As LongP
 Public Declare PtrSafe Function NtSetTimer2 Lib "ntdll" (ByVal TimerHandle As LongPtr, DueTime As LARGE_INTEGER, Period As LARGE_INTEGER, Parameters As T2_SET_PARAMETERS) As NTSTATUS
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtCancelTimer2 Lib "ntdll" (ByVal TimerHandle As LongPtr, ByVal Parameters As LongPtr) As NTSTATUS
+
+
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtQueryLicenseValue Lib "ntdll" (ValueName As UNICODE_STRING, Type As Long, Data As Any, ByVal DataSize As Long, ResultDataSize As Long) As NTSTATUS
+
 
 'Alias RTL_ATOM as Integer
 [UseGetLastError(False)]
