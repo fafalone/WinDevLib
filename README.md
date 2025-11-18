@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 9.1.620 (November 14th, 2025)**
+**Current Version: 9.2.622 (November 18th, 2025)**
 
 (c) 2022-2025 Jon Johnson (fafalone)
 
@@ -76,6 +76,9 @@ In addition to coverage of common Windows SDK-defined macros and inlined functio
 
 `Public Function LPWSTRtoStr(lPtr As LongPtr, Optional ByVal fFree As Boolean = True) As String`\
 Converts a pointer to an LPWSTR/LPCWSTR/PWSTR/etc to an instrinsic `String` (BSTR)
+
+`Public Function WCHARtoSTR(aCh() As Integer) As String`\
+Converts an Integer arrat of WCHARs to a tB String (BSTR).
 
 `Public Function UtfToANSI(sIn As String) As String`\
 Converts a Unicode string to ANSI. This function is `[ConstantFoldable]` -- it can be used to create strings resolved at compile time and stored as constants; this technique was developed to use ANSI strings in kernel mode, where the APIs that handle a normal `String` cannot be used.
@@ -194,7 +197,9 @@ Dim lPtr As LongPtr = VarPtr(pSec)
 hFile = CreateFileW(StrPtr("name"), 0, 0, lPtr, ...)
 ```
 
-3) String vs Long(Ptr) in APIs with both ANSI and Unicode versions: Most VB programs are written with ANSI versions of APIs being the default. **This is not the case with WinDevLib**. APIs are Unicode by default-- i.e. they use the W, rather than A, version of APIs e.g. `DeleteFile` maps to `DeleteFileW` rather than `DeleteFileA`. The A and W variants use String/LongPtr, and in almost all cases, the mapped version uses `String` with twinBASIC's `DeclareWide` keyword-- this disables Unicode-ANSI conversion. Since this is automatic, you generally don't need to make any changes; you can still use `String` without `StrPtr` or any manual Unicode <-> ANSI conversion. Note this usually only applies to strings passed as input, you'll need to update any externally allocated strings returned as a pointer, where you previously used e.g. `lstrlenA`, to use `lstrlenW` and Unicode handling in general. 
+3) ByVal UDTs are supported in twinBASIC and are used in all cases in this package.
+
+4) String vs Long(Ptr) in APIs with both ANSI and Unicode versions: Most VB programs are written with ANSI versions of APIs being the default. **This is not the case with WinDevLib**. APIs are Unicode by default-- i.e. they use the W, rather than A, version of APIs e.g. `DeleteFile` maps to `DeleteFileW` rather than `DeleteFileA`. The A and W variants use String/LongPtr, and in almost all cases, the mapped version uses `String` with twinBASIC's `DeclareWide` keyword-- this disables Unicode-ANSI conversion. Since this is automatic, you generally don't need to make any changes; you can still use `String` without `StrPtr` or any manual Unicode <-> ANSI conversion. Note this usually only applies to strings passed as input, you'll need to update any externally allocated strings returned as a pointer, where you previously used e.g. `lstrlenA`, to use `lstrlenW` and Unicode handling in general. 
 
 All APIs are provided, as a minimum, as the explicit W variant, and an untagged version that maps to the W version. Most ANSI variants are also included, but code should use Unicode wherever possible.
 
@@ -204,7 +209,7 @@ If you have any doubts about which API is being called, twinBASIC will show the 
 
 Special thanks to GCUser99 for helping normalize API declaration in this project. 👍
 
-4) Member names in UDTs have in almost all cases use their official SDK names, even where VB6 programmers traditionally used others. If you encounter errors where UDT members are missing, check the definition to see if the name has changed. This may also happen where unions are worked around in different ways.
+5) Member names in UDTs have in almost all cases use their official SDK names, even where VB6 programmers traditionally used others. If you encounter errors where UDT members are missing, check the definition to see if the name has changed. This may also happen where unions are worked around in different ways.
    
 6) **CURRENTLY N/A DUE TO BUGS** Callbacks that were previously LongPtr now expect a delegate function in many cases. A delegate is a typed function pointer defined with the correct prototype for the function it references. For compatibility these function the same way as previously and you need not make any changes, it's merely a better, easier way of defining callbacks that's also much closer to the C/C++ source. tB may show a warning, but it can be turned off.\
 To use these, you can view the definition then make a regular function with that name and those arguments. See the [twinBASIC documentation overview of delegates](https://github.com/twinbasic/documentation/wiki/twinBASIC-Features#delegate-types-for-call-by-pointer) for more details and examples of using this new feature.
@@ -232,6 +237,23 @@ Finally, there's numerous additional API sets from small to large for independen
 This project has grown well beyond it's original mission of shell programming. While that's still the largest single part, it's no longer a majority of the code, and the name change now much better reflects the purpose of providing a general Windows API experience like windows.h. Compiler constants and module names/file names have been updated to reflect the name change. tbShellLibImpl is now WinDevLibImpl. There are also some major chanages associated with this update, please see the full changelog below.
 
 ### Updates
+
+**Update (v9.2.622, 18 Nov 2025):**
+- **MAJOR BREAKING CHANGES** twinBASIC now supports ByVal UDTs and WinDevLib will now also use these in all
+ applicable situations. The initial conversion has been completed for all files. All types >8 bytes were 
+ easy to identify as these had separate 32/64bit defs; 8 byte types should be complete as all uses of
+ LongLong were examined. However for less than 8 bytes, it's possible some were missed if they weren't
+ tagged, so reviewing for these will be ongoing and lengthy. Please notify me of any UDTs that should
+ now be ByVal that were missed.\
+ These changes are version gated, so are only active in tB Beta 896 and newer and the old definitions are
+ still active in Beta 895 and earlier.\
+ Please report any crashes or related bugs.
+- Added custom helper WCHARtoSTR. Converts an Integer arrat of WCHARs to a tB String (BSTR). 
+- Misc additions
+- (Bug fix) IApplicationDesignModeSettings::IsApplicationViewStateSupported last argument should be ByRef.
+- (Bug fix) ID3D12VideoEncoder::GetCodecProfile,GetCodecConfiguration defs incorrect
+- (Bug fix) ID2D1Transform::MapInvalidRect definition incorrect for 32bit
+- (Bug fix) GdipWarpPath definition incorrect for 32bit
 
 **Update (v9.1.620, 14 Nov 2025):**
 - Added ComDB APIs (msports.h, 100% inc. delegates)
