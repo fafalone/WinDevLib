@@ -1,6 +1,7 @@
 Known omissions where a priority update neccessitated not finishing 
 before release, or waiting on feature support:
  
+- Check SymGetSetHomeDirectory SymSrvGetFileIndexInfo
 - d3d8 flag args
 
 - Verify dinput static lib replacements
@@ -189,11 +190,11 @@ Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.
     callobj.h,callobj.idl,WbemCli.h,WbemCli.idl,WMIUtils.h,WMIUtils.idl,dinput.h,icm.h,wcsplugin.h,wcsplugin.idl,jobapi.h,jobapi2.h,mixerocx.h,mixerocx.idl,
     SensAPI.h,Sens.h,SensEvts.idl,OleDlg.h,dplay8.h,dpaddr.h,dplobby8.h,dpnathlp.h,d3d8.h,d3d8types.h,d3d8caps.h,dxcapi.h,
     tlogstg.h,tlogstg.idl,PathCch.h,appmgmt.h,Dimm.h,Dimm.idl,Reconcil.h,objbase.h,objidlbase.h,objidlbase.idl,MSAAText.h,MSAAText.idl,TextStor.h,TextStor.idl,
-    SubAuth.h,davclient.h,DsGetDC.h,errhandlingapi.h,msports.h,
+    SubAuth.h,davclient.h,DsGetDC.h,errhandlingapi.h,msports.h,objsafe.h,objsafe.idl,winternl.h,
       
 Coverage in the 90%+ range  winbase.h, oleidl.h, oaidl.h, ocidl.h, ocidl.idl, ,objidl.h,objidl.idl,presentation.h,ScrnSave.h
 
-Substantial coverage  mmsciapi.h, winnt.h,winternl.h,immdev.h,winioctl.h,mmreg.h,WS2spi.h,winerror.h,WindowsSearchErrors.h,windowsx.h,
+Substantial coverage  mmsciapi.h, winnt.h,immdev.h,winioctl.h,mmreg.h,WS2spi.h,winerror.h,WindowsSearchErrors.h,windowsx.h,
 
 Minimal coverage
     windot11.h,peninputpanel.h,xapobase.h,wmcodecdsp.h,ksmedia.h,d3dkmdt.h,d3dukmdt.h,d3dkmthk.h

@@ -1,4 +1,21 @@
  
+**Update (v9.2.622, 18 Nov 2025):**
+- **MAJOR BREAKING CHANGES** twinBASIC now supports ByVal UDTs and WinDevLib will now also use these in all
+ applicable situations. The initial conversion has been completed for all files. All types >8 bytes were 
+ easy to identify as these had separate 32/64bit defs; 8 byte types should be complete as all uses of
+ LongLong were examined. However for less than 8 bytes, it's possible some were missed if they weren't
+ tagged, so reviewing for these will be ongoing and lengthy. Please notify me of any UDTs that should
+ now be ByVal that were missed.\
+ These changes are version gated, so are only active in tB Beta 896 and newer and the old definitions are
+ still active in Beta 895 and earlier.\
+ Please report any crashes or related bugs.
+- Added custom helper WCHARtoSTR. Converts an Integer arrat of WCHARs to a tB String (BSTR). 
+- Misc additions
+- (Bug fix) IApplicationDesignModeSettings::IsApplicationViewStateSupported last argument should be ByRef.
+- (Bug fix) ID3D12VideoEncoder::GetCodecProfile,GetCodecConfiguration defs incorrect
+- (Bug fix) ID2D1Transform::MapInvalidRect definition incorrect for 32bit
+- (Bug fix) GdipWarpPath definition incorrect for 32bit
+
 **Update (v9.1.620, 14 Nov 2025):**
 - Added ComDB APIs (msports.h, 100% inc. delegates)
 - Added some missing functions from errhandlingapi.h to bring coverage to 100%
