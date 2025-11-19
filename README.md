@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 9.2.622 (November 18th, 2025)**
+**Current Version: 9.2.624 (November 19th, 2025)**
 
 (c) 2022-2025 Jon Johnson (fafalone)
 
@@ -237,6 +237,11 @@ Finally, there's numerous additional API sets from small to large for independen
 This project has grown well beyond it's original mission of shell programming. While that's still the largest single part, it's no longer a majority of the code, and the name change now much better reflects the purpose of providing a general Windows API experience like windows.h. Compiler constants and module names/file names have been updated to reflect the name change. tbShellLibImpl is now WinDevLibImpl. There are also some major chanages associated with this update, please see the full changelog below.
 
 ### Updates
+
+**Update (v9.2.624, 19 Nov 2025):**
+- Added common ETW MOF structs
+- Added helpers DEFINE_GUID, toPOINT[F], toSIZE
+- (Bug fix) Two ByVal UDT APIs not version gated.
 
 **Update (v9.2.622, 18 Nov 2025):**
 - **MAJOR BREAKING CHANGES** twinBASIC now supports ByVal UDTs and WinDevLib will now also use these in all
