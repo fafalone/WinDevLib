@@ -190,14 +190,14 @@ twinBASIC:
 ```vba
 Public Declare PtrSafe Function CreateFileW Lib "kernel32" (ByVal lpFileName As LongPtr, ByVal dwDesiredAccess As Long, ByVal dwShareMode As Long, lpSecurityAttributes As SECURITY_ATTRIBUTES, ByVal dwCreationDisposition As Long, ByVal dwFlagsAndAttributes As Long, ByVal hTemplateFile As LongPtr) As LongPtr
 
-hFile = CreateFileW(StrPtr("name"), 0, 0, vbNullPtr, ...)
+hFile = CreateFileW(StrPtr("name"), 0, 0, ByVal vbNullPtr, ...)
 '---or---
 Dim pSec As SECURITY_ATTRIBUTES
 Dim lPtr As LongPtr = VarPtr(pSec)
-hFile = CreateFileW(StrPtr("name"), 0, 0, lPtr, ...)
+hFile = CreateFileW(StrPtr("name"), 0, 0, ByVal lPtr, ...)
 ```
 
-3) ByVal UDTs are supported in twinBASIC and are used in all cases in this package.
+3) ByVal UDTs are supported in newer twinBASIC versions and are used in all cases in this package if used with tB Beta 896 or newer. So in some cases you may see a 'wrong number of arguments' error where for example a ByVal `POINT` or `SIZE` was split into two ByVal `Long`s. You'd now use the proper type.
 
 4) String vs Long(Ptr) in APIs with both ANSI and Unicode versions: Most VB programs are written with ANSI versions of APIs being the default. **This is not the case with WinDevLib**. APIs are Unicode by default-- i.e. they use the W, rather than A, version of APIs e.g. `DeleteFile` maps to `DeleteFileW` rather than `DeleteFileA`. The A and W variants use String/LongPtr, and in almost all cases, the mapped version uses `String` with twinBASIC's `DeclareWide` keyword-- this disables Unicode-ANSI conversion. Since this is automatic, you generally don't need to make any changes; you can still use `String` without `StrPtr` or any manual Unicode <-> ANSI conversion. Note this usually only applies to strings passed as input, you'll need to update any externally allocated strings returned as a pointer, where you previously used e.g. `lstrlenA`, to use `lstrlenW` and Unicode handling in general. 
 
