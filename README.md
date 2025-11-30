@@ -233,9 +233,6 @@ Finally, there's numerous additional API sets from small to large for independen
 **Future coverage:** In the future I'm planning to expand native APIs, complete legacy DirectX coverage, add SQL APIs, and add OpenGL-- though for these last two I may wait for tB to have `Alias` support since the SQL API has all custom SQL types, as does OpenGL which additionally has existing VB6 codebases which make heavy use of them by way of NeHe's TLB. I welcome contributions of any of these. If you've done the consts->enums conversions already, I'd even take 32bit-only versions. See CONTRIBUTING.MD for more information on that;
 
 
-### ***tbShellLib is now WinDevLib - Windows Development Library for twinBASIC***
-This project has grown well beyond it's original mission of shell programming. While that's still the largest single part, it's no longer a majority of the code, and the name change now much better reflects the purpose of providing a general Windows API experience like windows.h. Compiler constants and module names/file names have been updated to reflect the name change. tbShellLibImpl is now WinDevLibImpl. There are also some major chanages associated with this update, please see the full changelog below.
-
 ### Updates
 
 **Update (v9.2.624, 19 Nov 2025):**
