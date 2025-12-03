@@ -1,4 +1,20 @@
  
+**Update (v9.2.626, 03 Dec 2025):**
+- **BREAKING CHANGES** Work has begun to standardize variable C-style array substitutions and make them able to
+ work with tB's ability to turn off array bounds checking per-procedure. Types that used a buffer for a reasonable
+ guess at the maximum are unchanged. If a 1-member array was omitted, it's now added. If it used a SAFEARRAY, it 
+ will be changed to a single-member array and the SAFEARRAY version will be offered seperately with a `_sa` suffix.\
+ This will be ongoing work due to the volume and lack of consistent labeling.
+- **BREAKING CHANGE** Due to a recurring and current bug with inability to resolve `ShowWindow` (API)
+vs `SHOWWINDOW` (Enum), the latter has been renamed to `eSHOWWINDOW`
+- Large expansion of UDTs etc for queries to D3DKMTQueryAdapterInfo and D3DKMTQueryStatistics
+- Added custom helpers toPOINT[F] and toSIZE to easily convert an x,y to the UDTs
+- Added missing mciapi.h APIs, and macros + delegates
+- Misc additions
+- (Bug fix) mciGetYieldProc return type incorrect
+- (Bug fix) OpenDedicatedMemoryPartition, QueryPartitionInformation are in kernelbase, not kernel32.
+
+
 **Update (v9.2.624, 19 Nov 2025):**
 - Added common ETW MOF structs
 - Added helpers DEFINE_GUID, toPOINT[F], toSIZE
