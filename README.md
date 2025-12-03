@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 9.2.624 (November 19th, 2025)**
+**Current Version: 9.2.626 (December 3rd, 2025)**
 
 (c) 2022-2025 Jon Johnson (fafalone)
 
@@ -110,6 +110,9 @@ This is the common vtable redirection helper function rewritten to support both 
 `Public Function PointSToLong(pt As POINTS) As Long`\
 `Public Function SizeToLongLong(z As SIZE) As LongLong`\
 `Public Function SizeToLongLong(ByVal cx As Long, ByVal cy As Long) As LongLong`\
+`Public Function toPOINT(ByVal x As Long, ByVal y As Long) As POINT`
+`Public Function toPOINTF(ByVal x As Long, ByVal y As Long) As POINTF`
+`Public Function toSIZE(ByVal cx As Long, ByVal cy As Long) As SIZE`\
 Functions for converting POINT and SIZE types or coords to Long or LongLong for methods requiring them to be passed ByVal, which is currently unsupported.
 
 `Public Function CUIntToInt(ByVal Value As Long) As Integer` - Create unsigned Integer from a Long\
@@ -117,7 +120,7 @@ Functions for converting POINT and SIZE types or coords to Long or LongLong for 
 `Public Function CULngToLng(ByVal Value As Double) As Long`\
 `Public Function CULngToLng(ByVal Value As LongLong) As Long`\
 `Public Function CLngToULng(ByVal Value As Long) As LongLong`\
-`Public Sub CLngToULng(ByVal Value As Long, pULng As Double)`
+`Public Sub CLngToULng(ByVal Value As Long, pULng As Double)` 
 
 Math helpers:
 ```
@@ -234,6 +237,21 @@ Finally, there's numerous additional API sets from small to large for independen
 
 
 ### Updates
+
+**Update (v9.2.626, 03 Dec 2025):**
+- **BREAKING CHANGES** Work has begun to standardize variable C-style array substitutions and make them able to
+ work with tB's ability to turn off array bounds checking per-procedure. Types that used a buffer for a reasonable
+ guess at the maximum are unchanged. If a 1-member array was omitted, it's now added. If it used a SAFEARRAY, it 
+ will be changed to a single-member array and the SAFEARRAY version will be offered seperately with a `_sa` suffix.\
+ This will be ongoing work due to the volume and lack of consistent labeling.
+- **BREAKING CHANGE** Due to a recurring and current bug with inability to resolve `ShowWindow` (API)
+vs `SHOWWINDOW` (Enum), the latter has been renamed to `eSHOWWINDOW`
+- Large expansion of UDTs etc for queries to D3DKMTQueryAdapterInfo and D3DKMTQueryStatistics
+- Added custom helpers toPOINT[F] and toSIZE to easily convert an x,y to the UDTs
+- Added missing mciapi.h APIs, and macros + delegates
+- Misc additions
+- (Bug fix) mciGetYieldProc return type incorrect
+- (Bug fix) OpenDedicatedMemoryPartition, QueryPartitionInformation are in kernelbase, not kernel32.
 
 **Update (v9.2.624, 19 Nov 2025):**
 - Added common ETW MOF structs
