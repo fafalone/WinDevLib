@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 9.2.626 (December 3rd, 2025)**
+**Current Version: 9.2.627 (December 4th, 2025)**
 
 (c) 2022-2025 Jon Johnson (fafalone)
 
@@ -237,6 +237,10 @@ Finally, there's numerous additional API sets from small to large for independen
 
 
 ### Updates
+
+**Update (v9.2.627, 04 Dec 2025):**
+- (Bug fix) IDsObjectPicker interface id incorrect, IID_IDsObjectPicker definition incorrect
+- (WinDevLibImpl) Add IMoniker
 
 **Update (v9.2.626, 03 Dec 2025):**
 - **BREAKING CHANGES** Work has begun to standardize variable C-style array substitutions and make them able to
