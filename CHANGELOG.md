@@ -1,4 +1,8 @@
  
+**Update (v9.2.627, 04 Dec 2025):**
+- (Bug fix) IDsObjectPicker interface id incorrect, IID_IDsObjectPicker definition incorrect
+- (WinDevLibImpl) Add IMoniker
+
 **Update (v9.2.626, 03 Dec 2025):**
 - **BREAKING CHANGES** Work has begun to standardize variable C-style array substitutions and make them able to
  work with tB's ability to turn off array bounds checking per-procedure. Types that used a buffer for a reasonable

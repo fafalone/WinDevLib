@@ -60,8 +60,7 @@ IMFMediaEngineNeedKeyNotify,IMFMediaEngineEMENotify,IMFMediaKeySessionNotify2
 - Convert additional static lib stuff to Emit()
 
 - Put   delegates back
-
-- ByVal LUIDs in ICM apis
+ 
 
 - Macros\
 #define D3D_SET_OBJECT_NAME_N_A(pObject, Chars, pName) (pObject)->SetPrivateData(WKPDID_D3DDebugObjectName, Chars, pName)
