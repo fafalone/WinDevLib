@@ -4075,9 +4075,15 @@ Public Enum DirectoryAccessRights
     DIRECTORY_CREATE_SUBDIRECTORY = (&H0008)
     DIRECTORY_ALL_ACCESS = (STANDARD_RIGHTS_REQUIRED Or &HF)
 End Enum
+Public Enum ObjectTypeAccessRights
+    OBJECT_TYPE_CREATE = &H0001
+    OBJECT_TYPE_ALL_ACCESS = (STANDARD_RIGHTS_REQUIRED Or OBJECT_TYPE_CREATE)
+End Enum
 Public Enum SymbolicLinkAccessRights
     SYMBOLIC_LINK_QUERY = (&H0001)
-    SYMBOLIC_LINK_ALL_ACCESS = (STANDARD_RIGHTS_REQUIRED Or &H1)
+    SYMBOLIC_LINK_SET = (&H0002)
+    SYMBOLIC_LINK_ALL_ACCESS = (STANDARD_RIGHTS_REQUIRED Or SYMBOLIC_LINK_QUERY)
+    SYMBOLIC_LINK_ALL_ACCESS_EX = (STANDARD_RIGHTS_REQUIRED Or SPECIFIC_RIGHTS_ALL)
 End Enum
 Public Enum EventAccessRights
     EVENT_QUERY_STATE = &H0001
@@ -11516,7 +11522,7 @@ Public Enum HandleInfoFlags
 End Enum
 'handleapi.h 100% coverage
 Public Declare PtrSafe Function CloseHandle Lib "kernel32" (ByVal hObject As LongPtr) As BOOL
-Public Declare PtrSafe Function DuplicateHandle Lib "kernel32" (ByVal hSourceProcessHandle As LongPtr, ByVal hSourceHandle As LongPtr, ByVal hTargetProcessHandle As LongPtr, lpTargetHandle As LongPtr, [TypeHint(GenericRights, StandardAccessTypes)] Optional ByVal dwDesiredAccess As Long, Optional ByVal bInheritHandle As BOOL, Optional ByVal dwOptions As DuplicateObjectOptions = DUPLICATE_SAME_ACCESS) As Long
+Public Declare PtrSafe Function DuplicateHandle Lib "kernel32" (ByVal hSourceProcessHandle As LongPtr, ByVal hSourceHandle As LongPtr, ByVal hTargetProcessHandle As LongPtr, lpTargetHandle As LongPtr, [TypeHint(GenericRights, StandardAccessTypes)] Optional ByVal dwDesiredAccess As Long, Optional ByVal bInheritHandle As BOOL, Optional ByVal dwOptions As DuplicateObjectOptions = DUPLICATE_SAME_ACCESS) As BOOL
 Public Declare PtrSafe Function CompareObjectHandles Lib "kernelbase" (ByVal hFirstObjectHandle As LongPtr, ByVal hSecondObjectHandle As LongPtr) As BOOL
 Public Declare PtrSafe Function SetHandleInformation Lib "kernel32" (ByVal hObject As LongPtr, ByVal dwMask As HandleInfoFlags, ByVal dwFlags As HandleInfoFlags) As BOOL
 Public Declare PtrSafe Function GetHandleInformation Lib "kernel32" (ByVal hObject As LongPtr, lpdwFlags As HandleInfoFlags) As BOOL
@@ -15178,7 +15184,9 @@ Public Type CLIENT_ID
 End Type
 
 Public Enum ObjectAttributeValues
+    OBJ_PROTECT_CLOSE = &H00000001
     OBJ_INHERIT = &H00000002
+    OBJ_AUDIT_OBJECT_CLOSE = &H00000004
     OBJ_PERMANENT = &H00000010
     OBJ_EXCLUSIVE = &H00000020
     OBJ_CASE_INSENSITIVE = &H00000040
@@ -15202,13 +15210,14 @@ Public Type OBJECT_ATTRIBUTES
 End Type
 
 Public Enum OBJECT_INFORMATION_CLASS
-    ObjectBasicInformation = 0
-    ObjectNameInformation
-    ObjectTypeInformation
-    ObjectTypesInformation
-    ObjectHandleFlagInformation
+    ObjectBasicInformation = 0 ' OBJECT_BASIC_INFORMATION
+    ObjectNameInformation ' OBJECT_NAME_INFORMATION
+    ObjectTypeInformation ' OBJECT_TYPE_INFORMATION
+    ObjectTypesInformation ' OBJECT_TYPES_INFORMATION
+    ObjectHandleFlagInformation ' OBJECT_HANDLE_FLAG_INFORMATION
     ObjectSessionInformation
     ObjectSessionObjectInformation
+    MaxObjectInfoClass
 End Enum
 
 Public Type OBJECT_BASIC_INFORMATION
@@ -21544,6 +21553,8 @@ Public Enum NtWorkerFactoryAccessRights
     WORKER_FACTORY_QUERY_INFORMATION = &H0008
     WORKER_FACTORY_READY_WORKER = &H0010
     WORKER_FACTORY_SHUTDOWN = &H0020
+    WORKER_FACTORY_POST_DIRECT = &H0040
+    WORKER_FACTORY_BIND = &H0080
     WORKER_FACTORY_ALL_ACCESS = (STANDARD_RIGHTS_REQUIRED Or WORKER_FACTORY_RELEASE_WORKER Or WORKER_FACTORY_WAIT Or WORKER_FACTORY_SET_INFORMATION Or WORKER_FACTORY_QUERY_INFORMATION Or WORKER_FACTORY_READY_WORKER Or WORKER_FACTORY_SHUTDOWN)
 End Enum
 
@@ -21566,6 +21577,7 @@ Public Enum WORKERFACTORYINFOCLASS
     WorkerFactoryThreadCpuSets ' since REDSTONE5
     MaxWorkerFactoryInfoClass
 End Enum
+ 
 
 Public Type WORKER_FACTORY_BASIC_INFORMATION
     Timeout As LARGE_INTEGER
@@ -21619,6 +21631,144 @@ Public Declare PtrSafe Function NtWaitForWorkViaWorkerFactory Lib "ntdll" (ByVal
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtWaitForWorkViaWorkerFactory_Win7 Lib "ntdll" Alias "NtWaitForWorkViaWorkerFactory" (ByVal WorkerFactoryHandle As LongPtr, MiniPacket As FILE_IO_COMPLETION_INFORMATION) As NTSTATUS
 
+Public Enum SystemEfiVariables
+' The firmware environment variable is stored in non-volatile memory (e.g. NVRAM).
+    EFI_VARIABLE_NON_VOLATILE = &H00000001
+'  The firmware environment variable can be accessed during boot service.
+    EFI_VARIABLE_BOOTSERVICE_ACCESS = &H00000002
+'  The firmware environment variable can be accessed at runtime.
+    EFI_VARIABLE_RUNTIME_ACCESS = &H00000004
+'  Indicates hardware related errors encountered at runtime.
+    EFI_VARIABLE_HARDWARE_ERROR_RECORD = &H00000008
+'  Indicates an authentication requirement that must be met before writing to this firmware environment variable.
+    EFI_VARIABLE_AUTHENTICATED_WRITE_ACCESS = &H00000010
+'  Indicates authentication and time stamp requirements that must be met before writing to this firmware environment variable.
+'  When this attribute is set, the buffer, represented by Buffer, will begin with an instance of a complete (and serialized) EFI_VARIABLE_AUTHENTICATION_2 descriptor.
+    EFI_VARIABLE_TIME_BASED_AUTHENTICATED_WRITE_ACCESS = &H00000020
+'  Append an existing environment variable with the value of Buffer. If the firmware does not support the operation, the function returns ERROR_INVALID_FUNCTION.
+    EFI_VARIABLE_APPEND_WRITE = &H00000040
+'  The firmware environment variable will return metadata in addition to variable data.
+    EFI_VARIABLE_ENHANCED_AUTHENTICATED_ACCESS = &H00000080
+End Enum
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtQuerySystemEnvironmentValue Lib "ntdll" (VariableName As UNICODE_STRING, ByVal VariableValue As LongPtr, ByVal ValueLength As Integer, Optional ReturnLength As Integer) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtQuerySystemEnvironmentValueEx Lib "ntdll" (VariableName As UNICODE_STRING, VendorGuid As UUID, Buffer As Any, BufferLength As Long, Attributes As SystemEfiVariables) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtSetSystemEnvironmentValue Lib "ntdll" (VariableName As UNICODE_STRING, VariableValue As UNICODE_STRING) As NTSTATUS
+[UseGetLastError(False)]
+[Description("Use BufferLength = 0 to delete variable.")]
+Public Declare PtrSafe Function NtSetSystemEnvironmentValueEx Lib "ntdll" (VariableName As UNICODE_STRING, VendorGuid As UUID, Buffer As Any, ByVal BufferLength As Long, ByVal Attributes As SystemEfiVariables) As NTSTATUS
+Public Enum SYSTEM_ENVIRONMENT_INFORMATION_CLASS
+    SystemEnvironmentNameInformation = 1 ' q: VARIABLE_NAME
+    SystemEnvironmentValueInformation = 2 ' q: VARIABLE_NAME_AND_VALUE
+    MaxSystemEnvironmentInfoClass
+End Enum
+[Description("WARNING: Buffer substituted for variable C-style array.")]
+Public Type VARIABLE_NAME
+    NextEntryOffset As Long
+    VendorGuid As UUID
+    Name(0 To 259) As Integer
+End Type
+[Description("WARNING: Header only. See definition for details.")]
+Public Type VARIABLE_NAME_AND_VALUE
+    NextEntryOffset As Long
+    ValueOffset As Long
+    ValueLength As Long
+    Attributes As Long
+    VendorGuid As UUID
+    Name(0 To (ANYSIZE_ARRAY - 1)) As Integer
+    'BYTE Value[ANYSIZE_ARRAY];
+End Type
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtEnumerateSystemEnvironmentValuesEx Lib "ntdll" (ByVal InformationClass As SYSTEM_ENVIRONMENT_INFORMATION_CLASS, Buffer As Any, BufferLength As Long) As NTSTATUS
+
+[Description("WARNING: Header only. Last member is a variable C-style array.")]
+Public Type BOOT_ENTRY
+    Version As Long
+    Length As Long
+    Id As Long
+    Attributes As Long
+    FriendlyNameOffset As Long
+    BootFilePathOffset As Long
+    OsOptionsLength As Long
+    OsOptions(0 To 0) As Byte
+End Type
+
+Public Type BOOT_ENTRY_LIST
+    NextEntryOffset As Long
+    BootEntry As BOOT_ENTRY
+End Type
+
+[Description("WARNING: Header only. Last member is a variable C-style array.")]
+Public Type BOOT_OPTIONS
+    Version As Long
+    Length As Long
+    Timeout As Long
+    CurrentBootEntryId As Long
+    NextBootEntryId As Long
+    HeadlessRedirection(0 To 0) As Integer
+End Type
+
+[Description("WARNING: Buffer substituted for variable C-style array.")]
+Public Type FILE_PATH
+    Version As Long
+    Length As Long
+    Type As Long
+    FilePath(0 To 519) As Byte
+End Type
+
+Public Type EFI_DRIVER_ENTRY
+    Version As Long
+    Length As Long
+    Id As Long
+    FriendlyNameOffset As Long
+    DriverFilePathOffset As Long
+End Type
+
+Public Type EFI_DRIVER_ENTRY_LIST
+    NextEntryOffset As Long
+    DriverEntry As EFI_DRIVER_ENTRY
+End Type
+
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtAddBootEntry Lib "ntdll" (BootEntry As BOOT_ENTRY, Optional Id As Long) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtDeleteBootEntry Lib "ntdll" (ByVal Id As Long) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtModifyBootEntry Lib "ntdll" (BootEntry As BOOT_ENTRY) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtEnumerateBootEntries Lib "ntdll" (Buffer As Any, BufferLength As Long) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtQueryBootEntryOrder Lib "ntdll" (Ids As Long, Count As Long) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtSetBootEntryOrder Lib "ntdll" (Ids As Long, ByVal Count As Long) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtQueryBootOptions Lib "ntdll" (BootOptions As Any, BootOptionsLength As Long) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtSetBootOptions Lib "ntdll" (BootOptions As Any, ByVal FieldsToChange As Long) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtTranslateFilePath Lib "ntdll" (InputFilePath As Any, ByVal OutputType As Long, OutputFilePath As Any, Optional OutputFilePathLength As Long) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtAddDriverEntry Lib "ntdll" (DriverEntry As Any, Id As Long) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtDeleteDriverEntry Lib "ntdll" (ByVal Id As Long) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtModifyDriverEntry Lib "ntdll" (DriverEntry As Any) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtEnumerateDriverEntries Lib "ntdll" (Buffer As Any, BufferLength As Long) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtQueryDriverEntryOrder Lib "ntdll" (Ids As Long, Count As Long) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtSetDriverEntryOrder Lib "ntdll" (Ids As Long, ByVal Count As Long) As NTSTATUS
+Public Enum FILTER_BOOT_OPTION_OPERATION
+    FilterBootOptionOperationOpenSystemStore
+    FilterBootOptionOperationSetElement
+    FilterBootOptionOperationDeleteElement
+    FilterBootOptionOperationMax
+End Enum
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtFilterBootOption Lib "ntdll" (ByVal FilterOperation As FILTER_BOOT_OPTION_OPERATION, ByVal ObjectType As Long, ByVal ElementType As Long, Data As Any, ByVal DataSize As Long) As NTSTATUS
 
 
 [UseGetLastError(False)]
@@ -21822,6 +21972,238 @@ Public Declare PtrSafe Function NtDeviceIoControlFile Lib "ntdll" (ByVal FileHan
 ' Public Declare PtrSafe Function NtDeviceIoControlFile Lib "ntdll" (ByVal FileHandle As LongPtr, ByVal hEvent As LongPtr, ByVal ApcRoutine As IO_APC_ROUTINE, ByVal ApcContext As LongPtr, ByRef IoStatusBlock As IO_STATUS_BLOCK, ByVal IoControlCode As Long, InputBuffer As Any, ByVal InputBufferLength As Long, OutputBuffer As Any, ByVal OutputBufferLength As Long) As NTSTATUS
 ' #End If
 
+
+
+Public Enum SYSDBG_COMMAND
+    SysDbgQueryModuleInformation
+    SysDbgQueryTraceInformation
+    SysDbgSetTracepoint
+    SysDbgSetSpecialCall ' PVOID
+    SysDbgClearSpecialCalls ' void
+    SysDbgQuerySpecialCalls
+    SysDbgBreakPoint
+    SysDbgQueryVersion ' DBGKD_GET_VERSION64
+    SysDbgReadVirtual ' SYSDBG_VIRTUAL
+    SysDbgWriteVirtual ' SYSDBG_VIRTUAL
+    SysDbgReadPhysical ' SYSDBG_PHYSICAL // 10
+    SysDbgWritePhysical ' SYSDBG_PHYSICAL
+    SysDbgReadControlSpace ' SYSDBG_CONTROL_SPACE
+    SysDbgWriteControlSpace ' SYSDBG_CONTROL_SPACE
+    SysDbgReadIoSpace ' SYSDBG_IO_SPACE
+    SysDbgWriteIoSpace ' SYSDBG_IO_SPACE
+    SysDbgReadMsr ' SYSDBG_MSR
+    SysDbgWriteMsr ' SYSDBG_MSR
+    SysDbgReadBusData ' SYSDBG_BUS_DATA
+    SysDbgWriteBusData ' SYSDBG_BUS_DATA
+    SysDbgCheckLowMemory ' 20
+    SysDbgEnableKernelDebugger
+    SysDbgDisableKernelDebugger
+    SysDbgGetAutoKdEnable
+    SysDbgSetAutoKdEnable
+    SysDbgGetPrintBufferSize
+    SysDbgSetPrintBufferSize
+    SysDbgGetKdUmExceptionEnable
+    SysDbgSetKdUmExceptionEnable
+    SysDbgGetTriageDump ' SYSDBG_TRIAGE_DUMP
+    SysDbgGetKdBlockEnable ' 30
+    SysDbgSetKdBlockEnable
+    SysDbgRegisterForUmBreakInfo
+    SysDbgGetUmBreakPid
+    SysDbgClearUmBreakPid
+    SysDbgGetUmAttachPid
+    SysDbgClearUmAttachPid
+    SysDbgGetLiveKernelDump ' SYSDBG_LIVEDUMP_CONTROL
+    SysDbgKdPullRemoteFile ' SYSDBG_KD_PULL_REMOTE_FILE
+    SysDbgMaxInfoClass
+End Enum
+
+Public Type SYSDBG_VIRTUAL
+    Address As LongPtr
+    Buffer As LongPtr
+    Request As Long
+End Type
+
+'Alias PHYSICAL_ADDRESS As LARGE_INTEGER
+Public Type PHYSICAL_ADDRESS
+    ' union {} 
+    QuadPart As LongLong
+' #Else
+'    lowpart As Long
+'    highpart As Long
+' #End If
+End Type
+Public Type SYSDBG_PHYSICAL
+    Address As PHYSICAL_ADDRESS
+    Buffer As LongPtr
+    Request As Long
+End Type
+
+Public Type SYSDBG_CONTROL_SPACE
+    Address As LongLong
+    Buffer As LongPtr
+    Request As Long
+    Processor As Long
+End Type
+
+Public Enum INTERFACE_TYPE
+    InterfaceTypeUndefined = -1
+    Internal
+    Isa
+    Eisa
+    MicroChannel
+    TurboChannel
+    PCIBus
+    VMEBus
+    NuBus
+    PCMCIABus
+    CBus
+    MPIBus
+    MPSABus
+    ProcessorInternal
+    InternalPowerBus
+    PNPISABus
+    PNPBus
+    Vmcs
+    ACPIBus
+    MaximumInterfaceType
+End Enum
+
+Public Type SYSDBG_IO_SPACE
+    Address As LongLong
+    Buffer As LongPtr
+    Request As Long
+    InterfaceType As INTERFACE_TYPE
+    BusNumber As Long
+    AddressSpace As Long
+End Type
+
+Public Type SYSDBG_MSR
+    Msr As Long
+    Data As LongLong
+End Type
+
+Public Enum BUS_DATA_TYPE
+    ConfigurationSpaceUndefined = -1
+    Cmos
+    EisaConfiguration
+    Pos
+    CbusConfiguration
+    PCIConfiguration
+    VMEConfiguration
+    NuBusConfiguration
+    PCMCIAConfiguration
+    MPIConfiguration
+    MPSAConfiguration
+    PNPISAConfiguration
+    SgiInternalConfiguration
+    MaximumBusDataType
+End Enum
+Public Type SYSDBG_BUS_DATA
+    Address As Long
+    Buffer As LongPtr
+    Request As Long
+    BusDataType As BUS_DATA_TYPE
+    BusNumber As Long
+    SlotNumber As Long
+End Type
+
+Public Type SYSDBG_TRIAGE_DUMP
+    Flags As Long
+    BugCheckCode As Long
+    BugCheckParam1 As LongPtr
+    BugCheckParam2 As LongPtr
+    BugCheckParam3 As LongPtr
+    BugCheckParam4 As LongPtr
+    ProcessHandles As Long
+    ThreadHandles As Long
+    Handles As LongPtr
+End Type
+
+' typedef union _SYSDBG_LIVEDUMP_CONTROL_FLAGS
+' {
+    ' struct
+    ' {
+        ' ULONG UseDumpStorageStack : 1;
+        ' ULONG CompressMemoryPagesData : 1;
+        ' ULONG IncludeUserSpaceMemoryPages : 1;
+        ' ULONG AbortIfMemoryPressure : 1; // REDSTONE4
+        ' ULONG SelectiveDump : 1; // WIN11
+        ' ULONG Reserved : 27;
+    ' };
+    ' ULONG AsUlong;
+' } SYSDBG_LIVEDUMP_CONTROL_FLAGS, *PSYSDBG_LIVEDUMP_CONTROL_FLAGS;
+Public Type SYSDBG_LIVEDUMP_CONTROL_FLAGS
+    AsUlong As Long
+End Type
+
+' typedef union _SYSDBG_LIVEDUMP_CONTROL_ADDPAGES
+' {
+    ' struct
+    ' {
+        ' ULONG HypervisorPages : 1;
+        ' ULONG NonEssentialHypervisorPages : 1; // since WIN11
+        ' ULONG Reserved : 30;
+    ' };
+    ' ULONG AsUlong;
+' } SYSDBG_LIVEDUMP_CONTROL_ADDPAGES, *PSYSDBG_LIVEDUMP_CONTROL_ADDPAGES;
+Public Type SYSDBG_LIVEDUMP_CONTROL_ADDPAGES
+    AsUlong As Long
+End Type
+
+Public Const SYSDBG_LIVEDUMP_SELECTIVE_CONTROL_VERSION  = 1
+Public Type SYSDBG_LIVEDUMP_SELECTIVE_CONTROL
+    Version As Long
+    Size As Long
+    'union
+    '{
+    Flags As LongLong
+    '    struct
+    '    {
+    '        ULONGLONG ThreadKernelStacks : 1;
+    '        ULONGLONG ReservedFlags : 63;
+    '    };
+    '};
+    Reserved(0 To 3) As LongLong
+End Type
+
+Public Const SYSDBG_LIVEDUMP_CONTROL_VERSION_1  = 1
+Public Const SYSDBG_LIVEDUMP_CONTROL_VERSION_2  = 2
+Public Const SYSDBG_LIVEDUMP_CONTROL_VERSION  = SYSDBG_LIVEDUMP_CONTROL_VERSION_2
+Public Type SYSDBG_LIVEDUMP_CONTROL_V1
+    Version As Long
+    BugCheckCode As Long
+    BugCheckParam1 As LongPtr
+    BugCheckParam2 As LongPtr
+    BugCheckParam3 As LongPtr
+    BugCheckParam4 As LongPtr
+    DumpFileHandle As LongPtr
+    CancelEventHandle As LongPtr
+    Flags As SYSDBG_LIVEDUMP_CONTROL_FLAGS
+    AddPagesControl As SYSDBG_LIVEDUMP_CONTROL_ADDPAGES
+End Type
+
+Public Type SYSDBG_LIVEDUMP_CONTROL
+    Version As Long
+    BugCheckCode As Long
+    BugCheckParam1 As LongPtr
+    BugCheckParam2 As LongPtr
+    BugCheckParam3 As LongPtr
+    BugCheckParam4 As LongPtr
+    DumpFileHandle As LongPtr
+    CancelEventHandle As LongPtr
+    Flags As SYSDBG_LIVEDUMP_CONTROL_FLAGS
+    AddPagesControl As SYSDBG_LIVEDUMP_CONTROL_ADDPAGES
+    SelectiveControl As LongPtr 'PSYSDBG_LIVEDUMP_SELECTIVE_CONTROL ' since WIN11
+End Type
+
+Public Type SYSDBG_KD_PULL_REMOTE_FILE
+    ImageFileName As UNICODE_STRING
+End Type
+
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtSystemDebugControl Lib "ntdll" (ByVal Command As SYSDBG_COMMAND, InputBuffer As Any, ByVal InputBufferLength As Long, OutputBuffer As Any, ByVal OutputBufferLength As Long, Optional ReturnLength As Long) As NTSTATUS
+ 
+
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtSetSecurityObject Lib "ntdll" (ByVal Handle As LongPtr, ByVal SecurityInformation As SECURITY_INFORMATION, SecurityDescriptor As SECURITY_DESCRIPTOR) As NTSTATUS
 [UseGetLastError(False)]
@@ -21833,9 +22215,17 @@ Public Declare PtrSafe Function NtImpersonateThread Lib "ntdll" (ByVal hThread A
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtImpersonateAnonymousToken Lib "ntdll" (ByVal ThreadHandle As LongPtr) As NTSTATUS
 [UseGetLastError(False)]
-Public Declare PtrSafe Function NtQueryObject Lib "ntdll" (ByVal Handle As LongPtr, ByVal ObjectInformationClass As OBJECT_INFORMATION_CLASS, ObjectInformation As Any, ByVal ObjectInformationLength As Long, ReturnLength As Long) As Long
+Public Declare PtrSafe Function NtQueryObject Lib "ntdll" (ByVal Handle As LongPtr, ByVal ObjectInformationClass As OBJECT_INFORMATION_CLASS, ObjectInformation As Any, ByVal ObjectInformationLength As Long, Optional ByRef ReturnLength As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtSetInformationObject Lib "ntdll" (ByVal Handle As LongPtr, ByVal ObjectInformationClass As OBJECT_INFORMATION_CLASS, ObjectInformation As Any, ByVal ObjectInformationLength As Long) As Long
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtDuplicateObject Lib "ntdll" (ByVal SourceProcessHandle As LongPtr, ByVal SourceHandle As LongPtr, pTargetHandle As LongPtr, ByVal DesiredAccess As Long, ByVal HandleAttributes As ObjectAttributeValues, ByVal Options As DuplicateObjectOptions) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtMakeTemporaryObject Lib "ntdll" (ByVal Handle As LongPtr) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtMakePermanentObject Lib "ntdll" (ByVal Handle As LongPtr) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtCompareObjects Lib "ntdll" (ByVal FirstObjectHandle As LongPtr, ByVal SecondObjectHandle As LongPtr) As NTSTATUS
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtOpenProcess Lib "ntdll" (ProcessHandle As LongPtr, [TypeHint(ProcessAccessRights, StandardAccessTypes)] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, ClientID As CLIENT_ID) As Long
 [UseGetLastError(False)]
@@ -22019,6 +22409,17 @@ Public Declare PtrSafe Function NtCallEnclave Lib "ntdll" (ByVal Routine As Long
 ' #End If
 
 
+
+
+
+
+
+
+
+
+
+
+
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtCreateProfile Lib "ntdll" (ProfileHandle As LongPtr, ByVal Process As LongPtr, ByVal ProfileBase As LongPtr, ByVal ProfileSize As LongPtr, Buffer As Long, ByVal BufferSize As Long, ByVal ProfileSource As KPROFILE_SOURCE, ByVal Affinity As LongPtr) As NTSTATUS
 [UseGetLastError(False)]
@@ -22052,6 +22453,8 @@ Public Declare PtrSafe Function NtOpenDirectoryObject Lib "ntdll" (DirectoryHand
 Public Declare PtrSafe Function NtQueryDirectoryObject Lib "ntdll" (ByVal DirectoryHandle As LongPtr, Buffer As Any, ByVal Length As Long, ByVal ReturnSingleEntry As Byte, ByVal RestartScan As Byte, Context As Long, Optional ReturnLength As Long) As NTSTATUS
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtCreateDirectoryObject Lib "ntdll" (DirectoryHandle As LongPtr, [TypeHint(GenericRights, DirectoryAccessRights)] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtCreateDirectoryObjectEx Lib "ntdll" (DirectoryHandle As LongPtr, [TypeHint(GenericRights, DirectoryAccessRights)] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, ByVal ShadowDirectoryHandle As LongPtr, ByVal Flags As Long) As NTSTATUS
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtLoadDriver Lib "ntdll" (DriverServiceName As UNICODE_STRING) As NTSTATUS
 [UseGetLastError(False)]
@@ -22133,9 +22536,13 @@ Public Declare PtrSafe Function NtYieldExecution Lib "ntdll" () As NTSTATUS
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtDelayExecution Lib "ntdll" (ByVal Alertable As Byte, DelayInterval As LARGE_INTEGER) As NTSTATUS
 [UseGetLastError(False)]
+Public Declare PtrSafe Function NtSignalAndWaitForSingleObject Lib "ntdll" (ByVal SignalHandle As LongPtr, ByVal WaitHandle As LongPtr, ByVal Alertable As Byte, Timeout As LARGE_INTEGER) As NTSTATUS
+[UseGetLastError(False)]
 Public Declare PtrSafe Function NtWaitForSingleObject Lib "ntdll" (ByVal Handle As LongPtr, ByVal Alertable As Byte, Timeout As LARGE_INTEGER) As NTSTATUS
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtWaitForMultipleObjects Lib "ntdll" (ByVal Count As Long, Handles As LongPtr, ByVal WaitType As WAIT_TYPE, ByVal Alertable As Byte, Timeout As LARGE_INTEGER) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtWaitForMultipleObjects32 Lib "ntdll" (ByVal Count As Long, Handles As Long, ByVal WaitType As WAIT_TYPE, ByVal Alertable As Byte, Timeout As LARGE_INTEGER) As NTSTATUS
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtDisplayString Lib "ntdll" (Strng As UNICODE_STRING) As NTSTATUS
 [UseGetLastError(False)]
@@ -22809,8 +23216,20 @@ Public Type RTL_MEMORY_ZONE
     FirstSegment As LongPtr 'PRTL_MEMORY_ZONE_SEGMENT
 End Type
 
+Public Enum RtlAcquirePrivFlags
+    RTL_ACQUIRE_PRIVILEGE_REVERT = &H00000001
+    RTL_ACQUIRE_PRIVILEGE_PROCESS = &H00000002
+End Enum
 
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlAdjustPrivilege Lib "ntdll" (ByVal Privilege As NTDefinedPrivilegeConsts, ByVal Enable As Byte, ByVal CurrentThread As Byte, Enabled As Byte) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlAcquirePrivilege Lib "ntdll" (Privilege As NTDefinedPrivilegeConsts, ByVal NumPriv As Long, [TypeHint(RtlAcquirePrivFlags)] ByVal Flags As Long, ReturnedState As LongPtr) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Sub RtlReleasePrivilege Lib "ntdll" (ByVal StatePointer As LongPtr)
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlRemovePrivileges Lib "ntdll" (ByVal TokenHandle As LongPtr, PrivilegesToKeep As NTDefinedPrivilegeConsts, ByVal PrivilegeCount As Long) As NTSTATUS
+ 
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlIsUntrustedObject Lib "ntdll" (ByVal Handle As LongPtr, ByVal Object As LongPtr, IsUntrustedObject As Byte) As NTSTATUS
+Public Declare PtrSafe Function RtlQueryValidationRunlevel Lib "ntdll" (ComponentName As UNICODE_STRING) As Long
+
+
 [UseGetLastError(False)] Public Declare PtrSafe Sub RtlFreeUnicodeString Lib "ntdll" (UnicodeString As UNICODE_STRING)
 [UseGetLastError(False)] Public Declare PtrSafe Sub RtlFreeAnsiString Lib "ntdll" (AnsiString As ANSI_STRING)
 [UseGetLastError(False)] Public Declare PtrSafe Sub RtlFreeOemString Lib "ntdll" (OemString As OEM_STRING)
@@ -22851,6 +23270,7 @@ Public Function RtlEqualMemory(ByVal Source1 As LongPtr, ByVal Source2 As LongPt
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlGetCurrentPeb Lib "ntdll" () As LongPtr
 [UseGetLastError(False)] Public Declare PtrSafe Sub RtlAcquirePebLock Lib "ntdll" ()
 [UseGetLastError(False)] Public Declare PtrSafe Sub RtlReleasePebLock Lib "ntdll" ()
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlAreLongPathsEnabled Lib "ntdll" () As Byte
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlNtStatusToDosError Lib "ntdll" (ByVal ntStatus As NTSTATUS) As Long
 [Description("Generates a uniform random number using D.H. Lehmer's 1948 algorithm.")]
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlUniform Lib "ntdll" (Seed As Long) As Long
@@ -22920,6 +23340,7 @@ Public Declare PtrSafe Function RtlGetNtProductType Lib "ntdll" (ByRef NtProduct
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlCreateUserThread Lib "ntdll" (ByVal ProcessHandle As LongPtr, SecurityDescriptor As SECURITY_DESCRIPTOR, ByVal CreateSuspended As Byte, ByVal StackZeroBits As Long, ByVal StackReserve As LongPtr, ByVal StackCommit As LongPtr, ByVal StartAddress As LongPtr, Parameter As Any, ThreadHandle As LongPtr, ClientId As CLIENT_ID) As NTSTATUS
 [UseGetLastError(False)] Public Declare PtrSafe Sub RtlExitUserProcess Lib "ntdll" (ByVal status As NTSTATUS)
 [UseGetLastError(False)] Public Declare PtrSafe Sub RtlExitUserThread Lib "ntdll" (ByVal status As NTSTATUS)
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlIsCurrentThreadAttachExempt Lib "ntdll" () As Byte
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlTimeFieldsToTime Lib "ntdll" (TimeFields As TIME_FIELDS, pTime As LARGE_INTEGER) As Byte
 [UseGetLastError(False)] Public Declare PtrSafe Sub RtlTimeToTimeFields Lib "ntdll" (pTime As LARGE_INTEGER, TimeFields As TIME_FIELDS)
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlInitializeCorrelationVector Lib "ntdll" (CorrelationVector As CORRELATION_VECTOR, ByVal Version As Long, Guid As UUID) As Long
@@ -22962,10 +23383,31 @@ Public Declare PtrSafe Function RtlGetNtProductType Lib "ntdll" (ByRef NtProduct
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlIsElevatedRid Lib "ntdll" (SidAttr As SID_AND_ATTRIBUTES) As Byte
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlSidHashLookup Lib "ntdll" (SidAttrHash As SID_AND_ATTRIBUTES_HASH, ByVal Sid As LongPtr) As LongPtr
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlSidHashInitialize Lib "ntdll" (SidAttr As SID_AND_ATTRIBUTES, ByVal SidCount As Long, SidAttrHash As SID_AND_ATTRIBUTES_HASH) As NTSTATUS
-[UseGetLastError(False)] Public Declare PtrSafe Function RtlDefaultNpAcl Lib "ntdll" (Acl As LongPtr) As NTSTATUS
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlNewSecurityObject Lib "ntdll" (ParentDescriptor As SECURITY_DESCRIPTOR, CreatorDescriptor As SECURITY_DESCRIPTOR, NewDescriptor As LongPtr, ByVal IsDirectoryObject As Byte, ByVal Token As LongPtr, GenericMapping As GENERIC_MAPPING) As NTSTATUS
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlNewSecurityObjectEx Lib "ntdll" (ParentDescriptor As SECURITY_DESCRIPTOR, CreatorDescriptor As SECURITY_DESCRIPTOR, NewDescriptor As LongPtr, ObjectType As UUID, ByVal IsDirectoryObject As Byte, ByVal AutoInheritFlags As SEF_FLAGS, ByVal Token As LongPtr, GenericMapping As GENERIC_MAPPING) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlNewSecurityObjectWithMultipleInheritance Lib "ntdll" (ParentDescriptor As SECURITY_DESCRIPTOR, CreatorDescriptor As SECURITY_DESCRIPTOR, NewDescriptor As LongPtr, ObjectType As LongPtr, ByVal GuidCount As Long, ByVal IsDirectoryObject As Byte, ByVal AutoInheritFlags As SEF_FLAGS, ByVal Token As LongPtr, GenericMapping As GENERIC_MAPPING) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlDeleteSecurityObject Lib "ntdll" (ObjectDescriptor As LongPtr) As NTSTATUS
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlCreateSecurityDescriptor Lib "ntdll" (SecurityDescriptor As SECURITY_DESCRIPTOR, ByVal Revision As Long) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlQuerySecurityObject Lib "ntdll" (ObjectDescriptor As SECURITY_DESCRIPTOR, ByVal SecurityInformation As SECURITY_INFORMATION, ResultantDescriptor As SECURITY_DESCRIPTOR, ByVal DescriptorLength As Long, ReturnLength As Long) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlSetSecurityObject Lib "ntdll" (ByVal SecurityInformation As SECURITY_INFORMATION, ModificationDescriptor As SECURITY_DESCRIPTOR, ObjectsSecurityDescriptor As LongPtr, GenericMapping As GENERIC_MAPPING, Optional ByVal TokenHandle As LongPtr) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlSetSecurityObjectEx Lib "ntdll" (ByVal SecurityInformation As SECURITY_INFORMATION, ModificationDescriptor As SECURITY_DESCRIPTOR, ObjectsSecurityDescriptor As LongPtr, ByVal AutoInheritFlags As SEF_FLAGS, GenericMapping As GENERIC_MAPPING, Optional ByVal TokenHandle As LongPtr) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlConvertToAutoInheritSecurityObject Lib "ntdll" (ParentDescriptor As SECURITY_DESCRIPTOR, CurrentSecurityDescriptor As SECURITY_DESCRIPTOR, NewDescriptor As LongPtr, ObjectType As UUID, ByVal IsDirectoryObject As Byte, GenericMapping As GENERIC_MAPPING) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlNewInstanceSecurityObject Lib "ntdll" (ByVal ParentDescriptorChanged As Byte, ByVal CreatorDescriptorChanged As Byte, OldClientTokenModifiedId As LUID, NewClientTokenModifiedId As LUID, ParentDescriptor As SECURITY_DESCRIPTOR, CreatorDescriptor As SECURITY_DESCRIPTOR, NewDescriptor As LongPtr, ByVal IsDirectoryObject As Byte, ByVal TokenHandle As LongPtr, GenericMapping As GENERIC_MAPPING) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlCopySecurityDescriptor Lib "ntdll" (InputSecurityDescriptor As SECURITY_DESCRIPTOR, OutputSecurityDescriptor As LongPtr) As NTSTATUS
+Public Type RTL_ACE_DATA
+    AceType As Byte
+    InheritFlags As Byte
+    AceFlags As Byte
+    AccessMask As Long 'ACCESS_MASK
+    Sid As LongPtr 'PSID*
+End Type
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlCreateUserSecurityObject Lib "ntdll" (AceData As RTL_ACE_DATA, ByVal AceCount As Long, ByVal OwnerSid As LongPtr, ByVal GroupSid As LongPtr, ByVal IsDirectoryObject As Byte, GenericMapping As GENERIC_MAPPING, NewSecurityDescriptor As LongPtr) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlCreateAndSetSD Lib "ntdll" (AceData As RTL_ACE_DATA, ByVal AceCount As Long, ByVal OwnerSid As LongPtr, ByVal GroupSid As LongPtr, NewSecurityDescriptor As LongPtr) As NTSTATUS
+
+Public Declare PtrSafe Sub RtlRunEncodeUnicodeString Lib "ntdll" (Seed As Byte, pString As UNICODE_STRING)
+Public Declare PtrSafe Sub RtlRunDecodeUnicodeString Lib "ntdll" (ByVal Seed As Byte, pString As UNICODE_STRING)
+
+
 Public Declare PtrSafe Function RtlValidSecurityDescriptor Lib "ntdll" (SecurityDescriptor As SECURITY_DESCRIPTOR) As Byte
 Public Declare PtrSafe Function RtlLengthSecurityDescriptor Lib "ntdll" (SecurityDescriptor As SECURITY_DESCRIPTOR) As Long
 Public Declare PtrSafe Function RtlValidRelativeSecurityDescriptor Lib "ntdll" (SecurityDescriptorInput As SECURITY_DESCRIPTOR, ByVal SecurityDescriptorLength As Long, ByVal RequiredInformation As SECURITY_INFORMATION) As Byte
@@ -22975,7 +23417,71 @@ Public Declare PtrSafe Function RtlValidRelativeSecurityDescriptor Lib "ntdll" (
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlSetSaclSecurityDescriptor Lib "ntdll" (SecurityDescriptor As SECURITY_DESCRIPTOR, ByVal SaclPresent As Byte, ByVal Sacl As LongPtr, ByVal SaclDefaulted As Byte) As NTSTATUS
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlGetDaclSecurityDescriptor Lib "ntdll" (SecurityDescriptor As SECURITY_DESCRIPTOR, DaclPresent As Byte, Dacl As LongPtr, DaclDefaulted As Byte) As NTSTATUS
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlGetSaclSecurityDescriptor Lib "ntdll" (SecurityDescriptor As SECURITY_DESCRIPTOR, SaclPresent As Byte, Sacl As LongPtr, SaclDefaulted As Byte) As NTSTATUS
+Public Declare PtrSafe Function RtlSetOwnerSecurityDescriptor Lib "ntdll" (ByRef SecurityDescriptor As SECURITY_DESCRIPTOR, ByVal Owner As LongPtr, ByVal OwnerDefaulted As Byte) As NTSTATUS
+Public Declare PtrSafe Function RtlGetOwnerSecurityDescriptor Lib "ntdll" (ByRef SecurityDescriptor As SECURITY_DESCRIPTOR, Owner As LongPtr, ByRef OwnerDefaulted As Byte) As NTSTATUS
+Public Declare PtrSafe Function RtlSetGroupSecurityDescriptor Lib "ntdll" (ByRef SecurityDescriptor As SECURITY_DESCRIPTOR, ByVal Group As LongPtr, ByVal GroupDefaulted As Byte) As NTSTATUS
+Public Declare PtrSafe Function RtlGetGroupSecurityDescriptor Lib "ntdll" (ByRef SecurityDescriptor As SECURITY_DESCRIPTOR, Group As LongPtr, ByRef GroupDefaulted As Byte) As NTSTATUS
+Public Declare PtrSafe Function RtlMakeSelfRelativeSD Lib "ntdll" (ByRef SecurityDescriptor As SECURITY_DESCRIPTOR, SelfRelativeSecurityDescriptor As SECURITY_DESCRIPTOR, ByRef BufferLength As Long) As NTSTATUS
+Public Declare PtrSafe Function RtlAbsoluteToSelfRelativeSD Lib "ntdll" (AbsoluteSecurityDescriptor As SECURITY_DESCRIPTOR, SelfRelativeSecurityDescriptor As SECURITY_DESCRIPTOR, ByRef BufferLength As Long) As NTSTATUS
+Public Declare PtrSafe Function RtlSelfRelativeToAbsoluteSD Lib "ntdll" (SelfRelativeSecurityDescriptor As SECURITY_DESCRIPTOR, AbsoluteSecurityDescriptor As SECURITY_DESCRIPTOR, ByRef AbsoluteSecurityDescriptorSize As Long, ByVal Dacl As LongPtr, ByRef DaclSize As Long, ByVal Sacl As LongPtr, ByRef SaclSize As Long, ByVal Owner As LongPtr, ByRef OwnerSize As Long, ByVal PrimaryGroup As LongPtr, ByRef PrimaryGroupSize As Long) As NTSTATUS
+Public Declare PtrSafe Function RtlSelfRelativeToAbsoluteSD2 Lib "ntdll" (ByRef SelfRelativeSecurityDescriptor As SECURITY_DESCRIPTOR, ByRef BufferSize As Long) As NTSTATUS
+Public Declare PtrSafe Function RtlNormalizeSecurityDescriptor Lib "ntdll" (ByRef SecurityDescriptor As LongPtr, ByVal SecurityDescriptorLength As Long, NewSecurityDescriptor As LongPtr, NewSecurityDescriptorLength As Long, ByVal CheckOnly As Byte) As Byte
+Public Declare PtrSafe Function RtlAreAllAccessesGranted Lib "ntdll" (ByVal GrantedAccess As Long, ByVal DesiredAccess As Long) As Byte
+Public Declare PtrSafe Function RtlAreAnyAccessesGranted Lib "ntdll" (ByVal GrantedAccess As Long, ByVal DesiredAccess As Long) As Byte
+Public Declare PtrSafe Sub RtlMapGenericMask Lib "ntdll" (ByRef AccessMask As Long, GenericMapping As GENERIC_MAPPING)
+Public Declare PtrSafe Function RtlCreateAcl Lib "ntdll" (ByVal Acl As LongPtr, ByVal AclLength As Long, ByVal AclRevision As Long) As NTSTATUS
+Public Declare PtrSafe Function RtlValidAcl Lib "ntdll" (ByVal Acl As LongPtr) As Byte
+Public Declare PtrSafe Function RtlQueryInformationAcl Lib "ntdll" (ByVal Acl As LongPtr, AclInformation As Any, ByVal AclInformationLength As Long, ByVal AclInformationClass As ACL_INFORMATION_CLASS) As NTSTATUS
+Public Declare PtrSafe Function RtlSetInformationAcl Lib "ntdll" (ByVal Acl As LongPtr, AclInformation As Any, ByVal AclInformationLength As Long, ByVal AclInformationClass As ACL_INFORMATION_CLASS) As NTSTATUS
+Public Declare PtrSafe Function RtlAddAce Lib "ntdll" (ByVal Acl As LongPtr, ByVal AceRevision As Long, ByVal StartingAceIndex As Long, ByVal AceList As LongPtr, ByVal AceListLength As Long) As NTSTATUS
+Public Declare PtrSafe Function RtlDeleteAce Lib "ntdll" (ByVal Acl As LongPtr, ByVal AceIndex As Long) As NTSTATUS
+Public Declare PtrSafe Function RtlGetAce Lib "ntdll" (ByVal Acl As LongPtr, ByVal AceIndex As Long, Ace As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function RtlGetAcesBufferSize Lib "ntdll" (ByVal Acl As LongPtr, ByRef AcesBufferSize As Long) As NTSTATUS
+Public Declare PtrSafe Function RtlFirstFreeAce Lib "ntdll" (ByVal Acl As LongPtr, FirstFree As LongPtr) As Byte
+Public Declare PtrSafe Function RtlFindAceByType Lib "ntdll" (ByVal Acl As LongPtr, ByVal AceType As Byte, ByRef Index As Long) As LongPtr
+Public Declare PtrSafe Function RtlOwnerAcesPresent Lib "ntdll" (ByVal pAcl As LongPtr) As Byte
+Public Declare PtrSafe Function RtlAddAccessAllowedAce Lib "ntdll" (ByVal Acl As LongPtr, ByVal AceRevision As Long, ByVal AccessMask As Long, ByVal Sid As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function RtlAddAccessAllowedAceEx Lib "ntdll" (ByVal Acl As LongPtr, ByVal AceRevision As Long, [TypeHint(ACE_FLAGS)] ByVal AceFlags As Long, ByVal AccessMask As Long, ByVal Sid As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function RtlAddAccessDeniedAce Lib "ntdll" (ByVal Acl As LongPtr, ByVal AceRevision As Long, ByVal AccessMask As Long, ByVal Sid As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function RtlAddAccessDeniedAceEx Lib "ntdll" (ByVal Acl As LongPtr, ByVal AceRevision As Long, [TypeHint(ACE_FLAGS)] ByVal AceFlags As Long, ByVal AccessMask As Long, ByVal Sid As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function RtlAddAuditAccessAce Lib "ntdll" (ByVal Acl As LongPtr, ByVal AceRevision As Long, ByVal AccessMask As Long, ByVal Sid As LongPtr, ByVal AuditSuccess As Byte, ByVal AuditFailure As Byte) As NTSTATUS
+Public Declare PtrSafe Function RtlAddAuditAccessAceEx Lib "ntdll" (ByVal Acl As LongPtr, ByVal AceRevision As Long, [TypeHint(ACE_FLAGS)] ByVal AceFlags As Long, ByVal AccessMask As Long, ByVal Sid As LongPtr, ByVal AuditSuccess As Byte, ByVal AuditFailure As Byte) As NTSTATUS
+Public Declare PtrSafe Function RtlAddAccessAllowedObjectAce Lib "ntdll" (ByVal Acl As LongPtr, ByVal AceRevision As Long, [TypeHint(ACE_FLAGS)] ByVal AceFlags As Long, ByVal AccessMask As Long, ObjectTypeGuid As UUID, InheritedObjectTypeGuid As UUID, ByVal Sid As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function RtlAddAccessDeniedObjectAce Lib "ntdll" (ByVal Acl As LongPtr, ByVal AceRevision As Long, [TypeHint(ACE_FLAGS)] ByVal AceFlags As Long, ByVal AccessMask As Long, ObjectTypeGuid As UUID, InheritedObjectTypeGuid As UUID, ByVal Sid As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function RtlAddAuditAccessObjectAce Lib "ntdll" (ByVal Acl As LongPtr, ByVal AceRevision As Long, [TypeHint(ACE_FLAGS)] ByVal AceFlags As Long, ByVal AccessMask As Long, ObjectTypeGuid As UUID, InheritedObjectTypeGuid As UUID, ByVal Sid As LongPtr, ByVal AuditSuccess As Byte, ByVal AuditFailure As Byte) As NTSTATUS
+Public Enum NtRtlCompoundAceTypes
+    COMPOUND_ACE_IMPERSONATION = 1
+End Enum
+Public Type COMPOUND_ACCESS_ALLOWED_ACE
+    Header As ACE_HEADER
+    Mask As Long 'ACCESS_MASK
+    CompoundAceType As Integer ' COMPOUND_ACE_*
+    Reserved As Integer
+    SidStart As Long ' Server SID
+    ' Client SID follows
+End Type
+Public Declare PtrSafe Function RtlAddCompoundAce Lib "ntdll" (ByVal Acl As LongPtr, ByVal AceRevision As Long, [TypeHint(NtRtlCompoundAceTypes)] ByVal AceType As Byte, ByVal AccessMask As Long, ByVal ServerSid As LongPtr, ByVal ClientSid As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function RtlAddMandatoryAce Lib "ntdll" (ByVal Acl As LongPtr, ByVal AceRevision As Long, [TypeHint(ACE_FLAGS)] ByVal AceFlags As Long, ByVal Sid As LongPtr, [TypeHint(AceTypes)] ByVal AceType As Byte, ByVal AccessMask As Long) As NTSTATUS
+Public Declare PtrSafe Function RtlAddResourceAttributeAce Lib "ntdll" (ByVal Acl As LongPtr, ByVal AceRevision As Long, [TypeHint(ACE_FLAGS)] ByVal AceFlags As Long, ByVal AccessMask As Long, ByVal Sid As LongPtr, ByRef AttributeInfo As CLAIM_SECURITY_ATTRIBUTES_INFORMATION, ByRef ReturnLength As Long) As NTSTATUS
+Public Declare PtrSafe Function RtlAddScopedPolicyIDAce Lib "ntdll" (ByVal Acl As LongPtr, ByVal AceRevision As Long, [TypeHint(ACE_FLAGS)] ByVal AceFlags As Long, ByVal AccessMask As Long, ByVal Sid As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function RtlAddProcessTrustLabelAce Lib "ntdll" (ByVal Acl As LongPtr, ByVal AceRevision As Long, [TypeHint(ACE_FLAGS)] ByVal AceFlags As Long, ByVal ProcessTrustLabelSid As LongPtr, [TypeHint(AceTypes)] ByVal AceType As Byte, ByVal AccessMask As Long) As NTSTATUS
+Public Declare PtrSafe Function RtlDefaultNpAcl Lib "ntdll" (ByRef Acl As LongPtr) As NTSTATUS
+
+
+
+
+
+
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlSetProcessIsCritical Lib "ntdll" (ByVal bNew As Byte, pbOld As Byte, ByVal bNeedScb As Byte) As NTSTATUS
+Public Declare PtrSafe Function RtlSetThreadIsCritical Lib "ntdll" (ByVal NewValue As Byte, OldValue As Byte, ByVal CheckFlag As Byte) As NTSTATUS
+Public Declare PtrSafe Function RtlSetThreadSubProcessTag Lib "ntdll" (ByVal SubProcessTag As LongPtr) As LongPtr
+Public Declare PtrSafe Function RtlValidProcessProtection Lib "ntdll" (ByVal ProcessProtection As PS_PROTECTION) As Byte
+Public Declare PtrSafe Function RtlTestProtectedAccess Lib "ntdll" (ByVal Source As PS_PROTECTION, ByVal Target As PS_PROTECTION) As Byte
+Public Declare PtrSafe Function RtlIsCurrentProcess Lib "ntdll" (ByVal ProcessHandle As LongPtr) As Byte
+Public Declare PtrSafe Function RtlIsCurrentThread Lib "ntdll" (ByVal ThreadHandle As LongPtr) As Byte
+
+
+
 
 Public Function RtlIsEqualLuid(L1 As LUID, L2 As LUID) As Byte
     Return CByte(If((L1.lowPart = L2.lowPart) And (L1.highPart = L2.highPart), 1, 0))
@@ -23002,8 +23508,17 @@ Public Function RtlConvertLuidToUlonglong(Luid As LUID) As LongLong
     Return DCast(Of LongLong)(sli)
 End Function
 
+Public Enum IMAGE_FILE_NATIVE_MACHINE
+    IMAGE_FILE_NATIVE_MACHINE_I386 = &H1
+    IMAGE_FILE_NATIVE_MACHINE_AMD64 = &H2
+    IMAGE_FILE_NATIVE_MACHINE_ARMNT = &H4
+    IMAGE_FILE_NATIVE_MACHINE_ARM64 = &H8
+End Enum
 
-
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlWow64GetCurrentMachine Lib "ntdll" () As Integer
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlWow64IsWowGuestMachineSupported Lib "ntdll" (ByVal NativeMachine As Integer, IsWowGuestMachineSupported As Byte) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlWow64GetProcessMachines Lib "ntdll" (ByVal ProcessHandle As LongPtr, ProcessMachine As Integer, NativeMachine As Integer) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlGetImageFileMachines Lib "ntdll" (ByVal Filename As LongPtr, FileMachines As Integer) As NTSTATUS
 
 
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlCreateMemoryZone Lib "ntdll" (MemoryZone As LongPtr, ByVal InitializeSize As LongPtr, ByVal Flags As Long) As NTSTATUS
@@ -23985,7 +24500,161 @@ Public Enum NtLoaderUnlockFlags
 End Enum
 
 
-[UseGetLastError(False)] Public Declare PtrSafe Function DbgPrint CDecl Lib "ntdll" (ByVal Format As String, ByRef ParamArray vargs As Any()) As Long
+Public Declare PtrSafe Sub DbgUserBreakPoint Lib "ntdll" ()
+Public Declare PtrSafe Sub DbgBreakPoint Lib "ntdll" ()
+Public Declare PtrSafe Sub DbgBreakPointWithStatus Lib "ntdll" (ByVal Status As Long)
+Public Enum NTDbgStatus
+    DBG_STATUS_CONTROL_C = 1
+    DBG_STATUS_SYSRQ = 2
+    DBG_STATUS_BUGCHECK_FIRST = 3
+    DBG_STATUS_BUGCHECK_SECOND = 4
+    DBG_STATUS_FATAL = 5
+    DBG_STATUS_DEBUG_CONTROL = 6
+    DBG_STATUS_WORKER = 7
+End Enum
+[UseGetLastError(False)] Public Declare PtrSafe Function DbgPrint CDecl Lib "ntdll" (ByVal Format As String, ByVal ParamArray vargs As Any()) As Long
+[UseGetLastError(False)] Public Declare PtrSafe Function DbgPrintEx CDecl Lib "ntdll" (ByVal ComponentId As Long, ByVal Level As Long, ByVal Format As String, ByVal ParamArray vargs As Any()) As Long
+[UseGetLastError(False)] Public Declare PtrSafe Function vDbgPrintEx Lib "ntdll" (ByVal ComponentId As Long, ByVal Level As Long, ByVal Format As String, ByRef ParamArray arglist As Any()) As Long
+[UseGetLastError(False)] Public Declare PtrSafe Function vDbgPrintExWithPrefix Lib "ntdll" (ByVal Prefix As String, ByVal ComponentId As Long, ByVal Level As Long, ByVal Format As String, ByRef ParamArray arglist As Any()) As Long
+[UseGetLastError(False)] Public Declare PtrSafe Function DbgPrintReturnControlC CDecl Lib "ntdll" (ByVal Format As String, ByVal ParamArray vargs As Any()) As Long
+[UseGetLastError(False)] Public Declare PtrSafe Function DbgQueryDebugFilterState Lib "ntdll" (ByVal ComponentId As Long, ByVal Level As Long) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function DbgSetDebugFilterState Lib "ntdll" (ByVal ComponentId As Long, ByVal Level As Long, ByVal State As Byte) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function DbgPrompt Lib "ntdll" (ByVal Prompt As String, ByVal Response As String, ByVal Length As Long) As Long
+
+Public Enum DBG_STATE
+    DbgIdle
+    DbgReplyPending
+    DbgCreateThreadStateChange
+    DbgCreateProcessStateChange
+    DbgExitThreadStateChange
+    DbgExitProcessStateChange
+    DbgExceptionStateChange
+    DbgBreakpointStateChange
+    DbgSingleStepStateChange
+    DbgLoadDllStateChange
+    DbgUnloadDllStateChange
+End Enum
+
+Public Type DBGKM_EXCEPTION
+    ExceptionRecord As EXCEPTION_RECORD
+    FirstChance As Long
+End Type
+
+Public Type DBGKM_CREATE_THREAD
+    SubSystemKey As Long
+    StartAddress As LongPtr
+End Type
+
+Public Type DBGKM_CREATE_PROCESS
+    SubSystemKey As Long
+    FileHandle As LongPtr
+    BaseOfImage As LongPtr
+    DebugInfoFileOffset As Long
+    DebugInfoSize As Long
+    InitialThread As DBGKM_CREATE_THREAD
+End Type
+
+Public Type DBGKM_EXIT_THREAD
+    ExitStatus As NTSTATUS
+End Type
+
+Public Type DBGKM_EXIT_PROCESS
+    ExitStatus As NTSTATUS
+End Type
+
+Public Type DBGKM_LOAD_DLL
+    FileHandle As LongPtr
+    BaseOfDll As LongPtr
+    DebugInfoFileOffset As Long
+    DebugInfoSize As Long
+    NamePointer As LongPtr
+End Type
+
+Public Type DBGKM_UNLOAD_DLL
+    BaseAddress As LongPtr
+End Type
+
+Public Type DBGUI_CREATE_THREAD
+    HandleToThread As LongPtr
+    NewThread As DBGKM_CREATE_THREAD
+End Type
+
+Public Type DBGUI_CREATE_PROCESS
+    HandleToProcess As LongPtr
+    HandleToThread As LongPtr
+    NewProcess As DBGKM_CREATE_PROCESS
+End Type
+
+Public Type DBGUI_WAIT_STATE_CHANGE
+    NewState As DBG_STATE
+    AppClientId As CLIENT_ID
+    ' union
+    ' {
+        ' DBGKM_EXCEPTION Exception;
+        ' DBGUI_CREATE_THREAD CreateThread;
+        ' DBGUI_CREATE_PROCESS CreateProcessInfo;
+        ' DBGKM_EXIT_THREAD ExitThread;
+        ' DBGKM_EXIT_PROCESS ExitProcess;
+        ' DBGKM_LOAD_DLL LoadDll;
+        ' DBGKM_UNLOAD_DLL UnloadDll;
+    ' } StateInfo;
+    #If Win64 Then
+    StateInfo(159) As Byte
+    #Else
+    StateInfo(83) As Byte
+    #End If
+End Type
+
+
+
+
+
+
+
+
+
+
+
+
+Public Enum DebugObjectAccessRights
+    DEBUG_READ_EVENT = &H0001
+    DEBUG_PROCESS_ASSIGN = &H0002
+    DEBUG_SET_INFORMATION = &H0004
+    DEBUG_QUERY_INFORMATION = &H0008
+    DEBUG_ALL_ACCESS = (STANDARD_RIGHTS_REQUIRED Or SYNCHRONIZE Or DEBUG_READ_EVENT Or DEBUG_PROCESS_ASSIGN Or DEBUG_SET_INFORMATION Or DEBUG_QUERY_INFORMATION)
+End Enum
+
+Public Const DEBUG_KILL_ON_CLOSE = &H1
+
+Public Enum DEBUGOBJECTINFOCLASS
+    DebugObjectUnusedInformation
+    DebugObjectKillProcessOnExitInformation ' s: ULONG
+    MaxDebugObjectInfoClass
+End Enum
+
+
+[UseGetLastError(False)] Public Declare PtrSafe Function NtCreateDebugObject Lib "ntdll" (DebugObjectHandle As LongPtr, [TypeHint(DebugObjectAccessRights)] ByVal DesiredAccess As Long, ObjectAttributes As OBJECT_ATTRIBUTES, ByVal dwFlags As Long) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function NtDebugActiveProcess Lib "ntdll" (ByVal ProcessHandle As LongPtr, ByVal DebugObjectHandle As LongPtr) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function NtDebugContinue Lib "ntdll" (ByVal DebugObjectHandle As LongPtr, ClientId As CLIENT_ID, ByVal ContinueStatus As NTSTATUS) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function NtRemoveProcessDebug Lib "ntdll" (ByVal ProcessHandle As LongPtr, ByVal DebugObjectHandle As LongPtr) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function NtSetInformationDebugObject Lib "ntdll" (ByVal DebugObjectHandle As LongPtr, ByVal DebugObjectInformationClass As DEBUGOBJECTINFOCLASS, DebugInformation As Any, ByVal DebugInformationLength As Long, Optional ReturnLength As Long) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function NtWaitForDebugEvent Lib "ntdll" (ByVal DebugObjectHandle As LongPtr, ByVal Alertable As Byte, Timeout As LARGE_INTEGER, WaitStateChange As DBGUI_WAIT_STATE_CHANGE) As NTSTATUS
+
+[UseGetLastError(False)] Public Declare PtrSafe Function DdbgUiConnectToDbg Lib "ntdll" () As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function DbgUiGetThreadDebugObject Lib "ntdll" () As LongPtr
+[UseGetLastError(False)] Public Declare PtrSafe Sub DbgUiSetThreadDebugObject Lib "ntdll" (ByVal DebugObject As LongPtr)
+[UseGetLastError(False)] Public Declare PtrSafe Function DbgUiWaitStateChange Lib "ntdll" (ByRef StateChange As DBGUI_WAIT_STATE_CHANGE, ByVal Timeout As LongPtr) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function DbgUiContinue Lib "ntdll" (ByRef AppClientId As CLIENT_ID, ByVal ContinueStatus As NTSTATUS) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function DbgUiStopDebugging Lib "ntdll" (ByVal Process As LongPtr) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function DbgUiDebugActiveProcess Lib "ntdll" (ByVal Process As LongPtr) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Sub DbgUiRemoteBreakin Lib "ntdll" (ByVal Context As LongPtr)
+[UseGetLastError(False)] Public Declare PtrSafe Function DbgUiIssueRemoteBreakin Lib "ntdll" (ByVal Process As LongPtr) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function DbgUiConvertStateChangeStructure Lib "ntdll" (ByRef StateChange As DBGUI_WAIT_STATE_CHANGE, ByRef DebugEvent As DEBUG_EVENT) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function DbgUiConvertStateChangeStructureEx Lib "ntdll" (ByRef StateChange As DBGUI_WAIT_STATE_CHANGE, ByRef DebugEvent As DEBUG_EVENT) As NTSTATUS
+
+
+
+
 
 
 

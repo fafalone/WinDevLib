@@ -1,4 +1,13 @@
  
+**Update (v9.2.630, 06 Dec 2025):** 
+- Added AppxPackaging.h/.idl, 100%
+- Added XmlDom.idl, 100% -- This covers IXMLDOMDocument used in other headers and related interfaces/coclasses,
+ and also covers the XMLHttpRequest object, but does not cover the full MSXML library (msxml[6].h)
+- Some additional XML interfacesfrom msxml.
+- Misc Native API additions.
+- (Bug fix) For ListView macros, changed numerous improper ByRef 0 SendMessage lParam arguments to ByVal 0. Misc other corrections.
+- (Bug fix) DbgPrint paramarray should be ByVal 
+
 **Update (v9.2.627, 04 Dec 2025):**
 - (Bug fix) IDsObjectPicker interface id incorrect, IID_IDsObjectPicker definition incorrect
 - (WinDevLibImpl) Add IMoniker
