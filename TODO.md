@@ -36,6 +36,9 @@ IMFMediaEngineNeedKeyNotify,IMFMediaEngineEMENotify,IMFMediaKeySessionNotify2
 - Dispinterfaces pending support:
     DWebBrowserEvents[2], DShellNameSpaceEvents 
     _ISpeechRecoContextEvents, _ISpeechVoiceEvents
+dispinterface XMLDOMDocumentEvents 
+
+
 
 - POLID_ guids only partially complete
 
@@ -189,7 +192,7 @@ Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.
     callobj.h,callobj.idl,WbemCli.h,WbemCli.idl,WMIUtils.h,WMIUtils.idl,dinput.h,icm.h,wcsplugin.h,wcsplugin.idl,jobapi.h,jobapi2.h,mixerocx.h,mixerocx.idl,
     SensAPI.h,Sens.h,SensEvts.idl,OleDlg.h,dplay8.h,dpaddr.h,dplobby8.h,dpnathlp.h,d3d8.h,d3d8types.h,d3d8caps.h,dxcapi.h,
     tlogstg.h,tlogstg.idl,PathCch.h,appmgmt.h,Dimm.h,Dimm.idl,Reconcil.h,objbase.h,objidlbase.h,objidlbase.idl,MSAAText.h,MSAAText.idl,TextStor.h,TextStor.idl,
-    SubAuth.h,davclient.h,DsGetDC.h,errhandlingapi.h,msports.h,objsafe.h,objsafe.idl,winternl.h,
+    SubAuth.h,davclient.h,DsGetDC.h,errhandlingapi.h,msports.h,objsafe.h,objsafe.idl,winternl.h,AppxPackaging.h,AppxPackaging.idl,XmlDom.idl,
       
 Coverage in the 90%+ range  winbase.h, oleidl.h, oaidl.h, ocidl.h, ocidl.idl, ,objidl.h,objidl.idl,presentation.h,ScrnSave.h
 
