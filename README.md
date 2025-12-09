@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 9.2.630 (December 6th, 2025)**
+**Current Version: 9.2.632 (December 9th, 2025)**
 
 (c) 2022-2025 Jon Johnson (fafalone)
 
@@ -237,6 +237,14 @@ Finally, there's numerous additional API sets from small to large for independen
 
 
 ### Updates
+
+**Update (v9.2.632, 09 Dec 2025):** 
+- Added a number of missing combaseapi.h APIs to bring coverage to 100%
+- Added Enclave APIs (ntenclv.h, winenclave.h, winenclaveapi.h 100% inc. delegates)
+- Added IORing APIs (ioringapi.h, ntioring_x.h 100%)
+- Added 100% coverage of wofapi.h
+- Added monitor/video IOCTL defs (ntddvdeo.h, 100%)
+- Added additional ntddvol.h IOCTL defs to bring coverage to 100%
 
 **Update (v9.2.630, 06 Dec 2025):** 
 - Added AppxPackaging.h/.idl, 100%
