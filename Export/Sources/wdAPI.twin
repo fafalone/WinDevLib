@@ -3300,7 +3300,16 @@ Public Enum ACTIVATIONTYPE
     ACTIVATIONTYPE_FROM_FILE = &H10
 End Enum
 
+Public Type ServerInformation
+    dwServerPid As Long
+    dwServerTid As Long
+    ui64ServerAddress As LongLong
+End Type
 
+Public Enum AgileReferenceOptions
+    AGILEREFERENCE_DEFAULT = 0
+    AGILEREFERENCE_DELAYEDMARSHAL = 1
+End Enum
 
 ' Public Declare PtrSafe Function CoCreateInstance Lib "ole32" (rclsid As Any, ByVal pUnkOuter As LongPtr, ByVal dwClsContext As CLSCTX, riid As Any, pvarResult As Any) As Long
 Public Declare PtrSafe Function CoCreateInstance Lib "ole32" (ByRef clsid As UUID, ByVal pUnkOuter As stdole.IUnknown, ByVal dwClsContext As CLSCTX, ByRef iid As UUID, ByRef ppv As Any) As Long
@@ -3359,6 +3368,7 @@ Public Declare PtrSafe Function PropVariantCopy Lib "ole32" (ByRef pvarDest As A
 [UseGetLastError(False)]
 Public Declare PtrSafe Function FreePropVariantArray Lib "ole32" (ByVal cVariants As Long, rgvars As Variant) As Long
 Public DeclareWide PtrSafe Function CLSIDFromProgID Lib "ole32" (ByVal lpszProgID As String, ByRef lpclsid As UUID) As Long
+Public Declare PtrSafe Function CLSIDFromProgID Lib "ole32" (ByVal lpszProgID As LongPtr, ByRef lpclsid As UUID) As Long
 Public DeclareWide PtrSafe Function CLSIDFromProgIDEx Lib "ole32" (ByVal lpszProgID As String, ByRef lpclsid As UUID) As Long
 Public Declare PtrSafe Function CLSIDFromProgIDEx Lib "ole32.dll" (ByVal lpszProgID As LongPtr, ByRef lpclsid As UUID) As Long
 Public DeclareWide PtrSafe Function CLSIDFromString Lib "ole32" (ByVal lpsz As String, ByRef lpclsid As UUID) As Long
@@ -3416,6 +3426,13 @@ Public Declare PtrSafe Function CoRegisterMessageFilter Lib "ole32" (ByVal pNewM
 Public Declare PtrSafe Function CoRevokeClassObject Lib "ole32" (ByVal dwRegister As Long) As Long
 Public Declare PtrSafe Function CoResumeClassObjects Lib "ole32" () As Long
 Public Declare PtrSafe Function CoSuspendClassObjects Lib "ole32" () As Long
+Public Declare PtrSafe Function CoAddRefServerProcess Lib "ole32" () As Long
+Public Declare PtrSafe Function CoReleaseServerProcess Lib "ole32" () As Long
+Public Declare PtrSafe Function CoGetPSClsid Lib "ole32" (riid As UUID, pClsid As UUID) As Long
+Public Declare PtrSafe Function CoRegisterPSClsid Lib "ole32" (riid As UUID, rclsid As UUID) As Long
+Public Declare PtrSafe Function CoRegisterSurrogate Lib "ole32" (ByVal pSurrogate As ISurrogate) As Long
+
+
 Public DeclareWide PtrSafe Function CoLoadLibrary Lib "ole32" (ByVal lpszLibName As String, ByVal bAutoFree As BOOL) As LongPtr
 Public Declare PtrSafe Sub CoFreeLibrary Lib "ole32" (ByVal hInst As LongPtr)
 Public Declare PtrSafe Sub CoFreeAllLibraries Lib "ole32" ()
@@ -3427,7 +3444,10 @@ Public Declare PtrSafe Function CoGetInstanceFromIStorage Lib "ole32" (pServerIn
  
 Public Declare PtrSafe Function CoFileTimeNow Lib "ole32" (lpFileTime As FILETIME) As Long
 [PreserveSig(False)]
-Public Declare PtrSafe Function CoFileTimeNow Lib "ole32" () As LongPtr '*FILETIME
+Public Declare PtrSafe Function CoFileTimeNow Lib "ole32" () As FILETIME
+Public DeclareWide PtrSafe Function CoRegisterDeviceCatalog Lib "ole32.dll" (ByVal deviceInstanceId As String, cookie As LongPtr) As Long
+Public Declare PtrSafe Function CoRegisterDeviceCatalog Lib "ole32.dll" (ByVal deviceInstanceId As LongPtr, cookie As LongPtr) As Long
+Public Declare PtrSafe Function CoRevokeDeviceCatalog Lib "ole32.dll" (ByVal cookie As LongPtr) As Long
 Public Declare PtrSafe Function CoAllowSetForegroundWindow Lib "ole32.dll" (ByVal pUnk As IUnknown, ByVal lpvReserved As LongPtr) As Long
 Public Declare PtrSafe Function DcomChannelSetHResult Lib "ole32.dll" (ByVal pvReserved As LongPtr, ByVal pulReserved As LongPtr, ByVal appsHR As Long) As Long
 Public Declare PtrSafe Function CoIsOle1Class Lib "ole32.dll" (ByRef rclsid As UUID) As BOOL
@@ -3467,13 +3487,27 @@ Public Declare PtrSafe Function CoCreateStandardMalloc Lib "ole32" (ByVal MEMCTX
 Public Declare PtrSafe Function CoRegisterInitializeSpy Lib "ole32" (ByVal pSpy As IInitializeSpy, puliCookie As ULARGE_INTEGER) As Long
 Public Declare PtrSafe Function CoRevokeInitializeSpy Lib "ole32" (ByRef uliCookie As ULARGE_INTEGER) As Long
 Public Declare PtrSafe Function CoGetSystemSecurityPermissions Lib "ole32" (ByVal comSDType As COMSD, ppSD As LongPtr /*PSECURITY_DESCRIPTOR*/) As Long
-Public Declare PtrSafe Function CoCreateInstanceEx Lib "ole32" (ByRef clsid As UUID, ByVal pUnkOuter As stdole.IUnknown, ByVal dwClsContext As CLSCTX, pServerInfo As COSERVERINFO, ByVal dwCount As Long, pResults As MULTI_QI) As Long
+Public Declare PtrSafe Function CoCreateInstanceEx Lib "ole32" (ByRef Clsid As UUID, ByVal punkOuter As stdole.IUnknown, ByVal dwClsContext As CLSCTX, pServerInfo As COSERVERINFO, ByVal dwCount As Long, pResults As MULTI_QI) As Long
+Public Declare PtrSafe Function CoCreateInstanceFromApp Lib "ole32" (ByRef Clsid As UUID, ByVal punkOuter As stdole.IUnknown, ByVal dwClsContext As CLSCTX, ByVal reserved As LongPtr, ByVal dwCount As Long, pResults As MULTI_QI) As Long
+Public Declare PtrSafe Function CoRegisterActivationFilter Lib "ole32" (ByVal pActivationFilter As IActivationFilter) As Long
+Public Declare PtrSafe Function CoGetCancelObject Lib "ole32" (ByVal dwThreadId As Long, iid As UUID, ppUnk As Any) As Long
+Public Declare PtrSafe Function CoSetCancelObject Lib "ole32" (ByVal pUnk As IUnknown) As Long
+Public Declare PtrSafe Function CoCancelCall Lib "ole32" (ByVal dwThreadId As Long, ByVal ulTimeout As Long) As Long
+Public Declare PtrSafe Function CoTestCancel Lib "ole32" () As Long
+Public Declare PtrSafe Function CoEnableCallCancellation Lib "ole32" (ByVal pReserved As LongPtr) As Long
+Public Declare PtrSafe Function CoDisableCallCancellation Lib "ole32" (ByVal pReserved As LongPtr) As Long
 Public Declare PtrSafe Function CoGetCurrentProcess Lib "ole32" () As Long
 Public Declare PtrSafe Function CoGetCallerTID Lib "ole32" (lpwdwTID As Long) As Long
 Public Declare PtrSafe Function CoGetCurrentLogicalThreadId Lib "ole32" (ByRef pguid As UUID) As Long
 Public Declare PtrSafe Function CoGetContextToken Lib "ole32" (pToken As LongPtr) As Long
 Public Declare PtrSafe Function CoGetDefaultContext Lib "ole32" (ByVal aptType As APTTYPE, ByRef riid As UUID, ByRef ppv As Any) As Long
 Public Declare PtrSafe Function CoGetApartmentType Lib "ole32" (pAptType As APTTYPE, pAptQualifier As APTTYPEQUALIFIER) As Long
+Public Declare PtrSafe Function CoDecodeProxy Lib "ole32" (ByVal dwClientPid As Long, ByVal ui64ProxyAddress As LongLong, pServerInformation As ServerInformation) As Long
+Public Declare PtrSafe Function CoIncrementMTAUsage Lib "ole32" (pCookie As LongPtr) As Long
+Public Declare PtrSafe Function CoDecrementMTAUsage Lib "ole32" (ByVal Cookie As LongPtr) As Long
+
+Public Declare PtrSafe Function CoGetObjectContext Lib "ole32" (ByRef riid As UUID, ByRef ppv As Any) As Long
+
 Public Declare PtrSafe Function CoGetMarshalSizeMax Lib "ole32" (ByRef pulSize As Long, ByRef riid As UUID, ByVal pUnk As stdole.IUnknown, ByVal dwDestContext As MSHCTX, ByRef pvDestContext As Any, ByVal MSHLFLAGS As MSHLFLAGS) As Long
 Public Declare PtrSafe Function CoMarshalInterface Lib "ole32" (ByVal pStm As IStream, ByRef riid As UUID, ByVal pUnk As stdole.IUnknown, ByVal dwDestContext As MSHCTX, ByRef pvDestContext As Any, ByVal MSHLFLAGS As MSHLFLAGS) As Long
 Public Declare PtrSafe Function CoMarshalInterface Lib "ole32" (ByVal pStm As LongPtr, ByRef riid As UUID, ByVal pUnk As stdole.IUnknown, ByVal dwDestContext As MSHCTX, ByRef pvDestContext As Any, ByVal MSHLFLAGS As MSHLFLAGS) As Long
@@ -3504,6 +3538,7 @@ Public Declare PtrSafe Function CoGetStdMarshalEx Lib "ole32" (ByVal pUnkOuter A
 [PreserveSig(False)]
 Public Declare PtrSafe Function CoGetStdMarshalEx Lib "ole32" (ByVal pUnkOuter As stdole.IUnknown, ByVal smexflags As STDMSHLFLAGS) As stdole.IUnknown
 Public Declare PtrSafe Function CoGetStdMarshalEx Lib "ole32" (ByVal pUnkOuter As LongPtr, ByVal smexflags As STDMSHLFLAGS, ppunkInner As LongPtr) As Long
+Public Declare PtrSafe Function CoIsHandlerConnected Lib "ole32" (ByVal pUnk As stdole.IUnknown) As BOOL
 Public Declare PtrSafe Function CoCreateFreeThreadedMarshaler Lib "ole32" (ByVal pUnkOuter As stdole.IUnknown, ppunkMarshal As stdole.IUnknown) As Long
 [PreserveSig(False)]
 Public Declare PtrSafe Function CoCreateFreeThreadedMarshaler Lib "ole32" (ByVal pUnkOuter As stdole.IUnknown) As stdole.IUnknown
@@ -3524,6 +3559,12 @@ Public Declare PtrSafe Function CoSwitchCallContext Lib "ole32" (ByVal pNewObjec
 Public Declare PtrSafe Function CoSwitchCallContext Lib "ole32" (ByVal pNewObject As LongPtr, ppOldObject As LongPtr) As Long
 Public Declare PtrSafe Function CoWaitForMultipleObjects Lib "ole32" (ByVal dwFlags As CWMO_FLAGS, ByVal dwTimeout As Long, ByVal cHandles As Long, pHandles As LongPtr, lpdwindex As Long) As Long
 Public Declare PtrSafe Function CoWaitForMultipleHandles Lib "ole32" (ByVal dwFlags As COWAIT_FLAGS, ByVal dwTimeout As Long, ByVal cHandles As Long, pHandles As LongPtr, lpdwindex As Long) As Long
+Public Declare PtrSafe Function CoGetTreatAsClass Lib "ole32" (clsidOld As UUID, pClsidNew As UUID) As Long
+Public DeclareWide PtrSafe Function CoInvalidateRemoteMachineBindings Lib "ole32" (ByVal pszMachineName As String) As Long
+
+Public Declare PtrSafe Function RoGetAgileReference Lib "ole32" (ByVal options As AgileReferenceOptions, ByRef riid As UUID, ByVal pUnk As stdole.IUnknown, ppAgileReference As IAgileReference) As Long
+
+
 Public Declare PtrSafe Function CoInitializeSecurity Lib "ole32" (pSecDesc As SECURITY_DESCRIPTOR, ByVal cAuthSvc As Long, asAuthSvc As SOLE_AUTHENTICATION_SERVICE, ByVal pReserved1 As LongPtr, ByVal dwAuthnLevel As RPC_AUTHN_LVL, ByVal dwImpLevel As RPC_IMP_LVL, pAuthList As Any, ByVal dwCapabilities As EOLE_AUTHENTICATION_CAPABILITIES, Optional ByVal dwReserved3 As LongPtr = 0) As Long
 Public DeclareWide PtrSafe Function CoGetModuleType Lib "ole32" (ByVal pwszFile As String, pModuleType As ImageMachineType) As Long
 Public Declare PtrSafe Function CoAllowUnmarshalerCLSID Lib "ole32" (ByRef clsid As UUID) As Long
@@ -9905,6 +9946,7 @@ Public Declare PtrSafe Function GetDisplayAutoRotationPreferences Lib "user32" (
 Public Declare PtrSafe Function SetDisplayAutoRotationPreferences Lib "user32" (ByVal orientation As ORIENTATION_PREFERENCE) As BOOL
 Public Declare PtrSafe Function GetDisplayAutoRotationPreferencesByProcessId Lib "user32" (ByVal dwProcessId As Long, pOrientation As ORIENTATION_PREFERENCE, fRotateScreen As BOOL) As BOOL
 Public Declare PtrSafe Function GetAutoRotationState Lib "user32" (pState As AR_STATE) As BOOL
+Public Declare PtrSafe Function SetAutoRotationState Lib "user32" Alias "#2507" (ByVal bEnabled As BOOL) As BOOL
 Public Declare PtrSafe Function BeginDeferWindowPos Lib "user32" (ByVal nNumWindows As Long) As LongPtr
 Public Declare PtrSafe Function DeferWindowPos Lib "user32" (ByVal hWinPosInfo As LongPtr, ByVal hWnd As LongPtr, [TypeHint(WindowZOrderDefaults)] ByVal hWndInsertAfter As LongPtr, ByVal x As Long, ByVal y As Long, ByVal cx As Long, ByVal cy As Long, ByVal uFlags As SWP_Flags) As LongPtr
 Public Declare PtrSafe Function EndDeferWindowPos Lib "user32" (ByVal hWinPosInfo As LongPtr) As BOOL
@@ -44443,6 +44485,132 @@ Public Declare PtrSafe Function UnsubscribeActivityCoordinatorPolicy Lib "rmclie
 Public Declare PtrSafe Function IsActivityCoordinatorResourceSupported Lib "rmclient.dll" (ByVal resource As ACTIVITY_COORDINATOR_RESOURCE) As BOOL
 
 
+'Wofapi.h
+
+Public Declare PtrSafe Function WofShouldCompressBinaries Lib "Wofutil.dll" (ByVal Volume As LongPtr, ByRef Algorithm As Long) As BOOL
+Public DeclareWide PtrSafe Function WofShouldCompressBinaries Lib "Wofutil.dll" (ByVal Volume As String, ByRef Algorithm As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function WofGetDriverVersion Lib "Wofutil.dll" (ByVal FileOrVolumeHandle As LongPtr, ByVal Provider As WofProviders, ByRef WofVersion As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function WofSetFileDataLocation Lib "Wofutil.dll" (ByVal FileHandle As LongPtr, ByVal Provider As WofProviders, ByVal ExternalFileInfo As LongPtr, ByVal Length As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function WofIsExternalFile Lib "Wofutil.dll" (ByVal FilePath As LongPtr, ByRef IsExternalFile As Long, ByRef Provider As WofProviders, ByVal ExternalFileInfo As LongPtr, ByRef BufferLength As Long) As Long
+
+Public Delegate Function WofEnumEntryProc (ByVal EntryInfo As LongPtr, ByVal UserData As LongPtr) As BOOL
+Public Delegate Function WofEnumFilesProc (ByVal FilePath As LongPtr, ByVal ExternalFileInfo As LongPtr, ByVal UserData As LongPtr) As BOOL
+
+' #If WDL_NO_DELEGATES Then
+[UseGetLastError(False)]
+Public Declare PtrSafe Function WofEnumEntries Lib "Wofutil.dll" (ByVal VolumeName As LongPtr, ByVal Provider As WofProviders, ByVal EnumProc As LongPtr, Optional ByVal UserData As LongPtr) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function WofEnumEntries Lib "Wofutil.dll" (ByVal VolumeName As String, ByVal Provider As WofProviders, ByVal EnumProc As LongPtr, Optional ByVal UserData As LongPtr) As Long
+' #Else
+' [UseGetLastError(False)]
+' Public Declare PtrSafe Function WofEnumEntries Lib "Wofutil.dll" (ByVal VolumeName As LongPtr, ByVal Provider As WofProviders, ByVal EnumProc As WofEnumFilesProc, Optional ByVal UserData As LongPtr) As Long
+' [UseGetLastError(False)]
+' Public DeclareWide PtrSafe Function WofEnumEntries Lib "Wofutil.dll" (ByVal VolumeName As String, ByVal Provider As WofProviders, ByVal EnumProc As WofEnumFilesProc, Optional ByVal UserData As LongPtr) As Long
+' #End if
+
+Public Enum WofProviders
+    WOF_PROVIDER_WIM = (&H00000001)
+    WOF_PROVIDER_FILE = (&H00000002)
+End Enum
+
+Public Const WIM_PROVIDER_HASH_SIZE  = 20
+
+Public Enum WofWimBootType
+    WIM_BOOT_OS_WIM = (&H00000001)
+    WIM_BOOT_NOT_OS_WIM = (&H00000000)
+End Enum
+
+Public Enum WofWimEntryFlags
+    WIM_ENTRY_FLAG_NOT_ACTIVE = (&H00000001)
+    WIM_ENTRY_FLAG_SUSPENDED = (&H00000002)
+End Enum
+
+Public Enum WofWimFileEntryFlags'
+    WIM_EXTERNAL_FILE_INFO_FLAG_NOT_ACTIVE = WIM_ENTRY_FLAG_NOT_ACTIVE
+    WIM_EXTERNAL_FILE_INFO_FLAG_SUSPENDED = WIM_ENTRY_FLAG_SUSPENDED
+End Enum
+
+Public Type WIM_ENTRY_INFO
+    WimEntryInfoSize As Long
+    WimType As WofWimBootType
+    DataSourceId As LARGE_INTEGER
+    WimGuid As UUID
+    WimPath As LongPtr
+    WimIndex As Long
+    Flags As WofWimEntryFlags
+End Type
+
+Public Type WIM_EXTERNAL_FILE_INFO
+    DataSourceId As LARGE_INTEGER
+    ResourceHash(0 To (WIM_PROVIDER_HASH_SIZE - 1)) As Byte
+    Flags As WofWimFileEntryFlags
+End Type
+
+[UseGetLastError(False)]
+Public Declare PtrSafe Function WofWimAddEntry Lib "Wofutil.dll" (ByVal VolumeName As LongPtr, ByVal WimPath As LongPtr, ByVal WimType As WofWimBootType, ByVal WimIndex As Long, ByRef DataSourceId As LARGE_INTEGER) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function WofWimAddEntry Lib "Wofutil.dll" (ByVal VolumeName As String, ByVal WimPath As String, ByVal WimType As WofWimBootType, ByVal WimIndex As Long, ByRef DataSourceId As LARGE_INTEGER) As Long
+' #If WDL_NO_DELEGATES Then
+[UseGetLastError(False)]
+Public Declare PtrSafe Function WofWimEnumFiles Lib "Wofutil.dll" (ByVal VolumeName As LongPtr, ByVal DataSourceId As LARGE_INTEGER, ByVal EnumProc As LongPtr, Optional ByVal UserData As LongPtr) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function WofWimEnumFiles Lib "Wofutil.dll" (ByVal VolumeName As String, ByVal DataSourceId As LARGE_INTEGER, ByVal EnumProc As LongPtr, Optional ByVal UserData As LongPtr) As Long
+' #Else
+' [UseGetLastError(False)]
+' Public Declare PtrSafe Function WofWimEnumFiles Lib "Wofutil.dll" (ByVal VolumeName As LongPtr, ByVal DataSourceId As LARGE_INTEGER, ByVal EnumProc As WofEnumFilesProc, Optional ByVal UserData As LongPtr) As Long
+' [UseGetLastError(False)]
+' Public DeclareWide PtrSafe Function WofWimEnumFiles Lib "Wofutil.dll" (ByVal VolumeName As String, ByVal DataSourceId As LARGE_INTEGER, ByVal EnumProc As WofEnumFilesProc, Optional ByVal UserData As LongPtr) As Long
+' #End If
+[UseGetLastError(False)]
+Public Declare PtrSafe Function WofWimSuspendEntry Lib "Wofutil.dll" (ByVal VolumeName As LongPtr, ByVal DataSourceId As LARGE_INTEGER) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function WofWimSuspendEntry Lib "Wofutil.dll" (ByVal VolumeName As String, ByVal DataSourceId As LARGE_INTEGER) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function WofWimRemoveEntry Lib "Wofutil.dll" (ByVal VolumeName As LongPtr, ByVal DataSourceId As LARGE_INTEGER) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function WofWimRemoveEntry Lib "Wofutil.dll" (ByVal VolumeName As String, ByVal DataSourceId As LARGE_INTEGER) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function WofWimUpdateEntry Lib "Wofutil.dll" (ByVal VolumeName As LongPtr, ByVal DataSourceId As LARGE_INTEGER, ByVal NewWimPath As LongPtr) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function WofWimUpdateEntry Lib "Wofutil.dll" (ByVal VolumeName As String, ByVal DataSourceId As LARGE_INTEGER, ByVal NewWimPath As String) As Long
+
+Public Enum WofWimFileCompressionProviders
+    FILE_PROVIDER_COMPRESSION_XPRESS4K = (&H00000000)
+    FILE_PROVIDER_COMPRESSION_LZX = (&H00000001)
+    FILE_PROVIDER_COMPRESSION_XPRESS8K = (&H00000002)
+    FILE_PROVIDER_COMPRESSION_XPRESS16K = (&H00000003)
+End Enum
+
+Public Type WOF_FILE_COMPRESSION_INFO_V0
+    Algorithm As WofWimFileCompressionProviders
+End Type
+
+Public Type WOF_FILE_COMPRESSION_INFO_V1
+    Algorithm As WofWimFileCompressionProviders
+    Flags As Long
+End Type
+'Alias WOF_FILE_COMPRESSION_INFO_V1 WOF_FILE_COMPRESSION_INFO;
+Public Type WOF_FILE_COMPRESSION_INFO
+    Algorithm As Long
+    Flags As Long
+End Type
+
+' #If WDL_NO_DELEGATES Then
+[UseGetLastError(False)]
+Public Declare PtrSafe Function WofFileEnumFiles Lib "Wofutil.dll" (ByVal VolumeName As LongPtr, ByVal Algorithm As Long, ByVal EnumProc As LongPtr, Optional ByVal UserData As LongPtr) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function WofFileEnumFiles Lib "Wofutil.dll" (ByVal VolumeName As String, ByVal Algorithm As Long, ByVal EnumProc As LongPtr, Optional ByVal UserData As LongPtr) As Long
+' #Else
+' [UseGetLastError(False)]
+' Public Declare PtrSafe Function WofFileEnumFiles Lib "Wofutil.dll" (ByVal VolumeName As LongPtr, ByVal Algorithm As WofWimFileCompressionProviders, ByVal EnumProc As WofEnumFilesProc, Optional ByVal UserData As LongPtr) As Long
+' [UseGetLastError(False)]
+' Public Declare PtrSafe Function WofFileEnumFiles Lib "Wofutil.dll" (ByVal VolumeName As String, ByVal Algorithm As WofWimFileCompressionProviders, ByVal EnumProc As WofEnumFilesProc, Optional ByVal UserData As LongPtr) As Long
+' #End If
+
+
 
 
 
@@ -45907,6 +46075,536 @@ Static iid As UUID
 End Function
 
 ' END UserEnv.h
+
+'ntenclv.h, winenclave.h, winenclaveapi.h
+
+Public Enum ENCLAVE_SEALING_IDENTITY_POLICY
+    ENCLAVE_IDENTITY_POLICY_SEAL_INVALID = 0
+    ENCLAVE_IDENTITY_POLICY_SEAL_EXACT_CODE
+    ENCLAVE_IDENTITY_POLICY_SEAL_SAME_PRIMARY_CODE
+    ENCLAVE_IDENTITY_POLICY_SEAL_SAME_IMAGE
+    ENCLAVE_IDENTITY_POLICY_SEAL_SAME_FAMILY
+    ENCLAVE_IDENTITY_POLICY_SEAL_SAME_AUTHOR
+End Enum
+
+Public Enum EnclaveRuntimePolicy
+    ENCLAVE_RUNTIME_POLICY_ALLOW_FULL_DEBUG = 1
+    ENCLAVE_RUNTIME_POLICY_ALLOW_DYNAMIC_DEBUG = 2
+End Enum
+Public Enum EnclaveUnsealFlags
+    ENCLAVE_UNSEAL_FLAG_STALE_KEY = 1
+End Enum
+
+
+[PackingAlignment(1)]
+Public Type ENCLAVE_IDENTITY
+    OwnerId (0 To (IMAGE_ENCLAVE_LONG_ID_LENGTH - 1)) As Byte
+    UniqueId (0 To (IMAGE_ENCLAVE_LONG_ID_LENGTH - 1)) As Byte
+    AuthorId (0 To (IMAGE_ENCLAVE_LONG_ID_LENGTH - 1)) As Byte
+    FamilyId (0 To (IMAGE_ENCLAVE_SHORT_ID_LENGTH - 1)) As Byte
+    ImageId (0 To (IMAGE_ENCLAVE_SHORT_ID_LENGTH - 1)) As Byte
+    EnclaveSvn As Long
+    SecureKernelSvn As Long
+    PlatformSvn As Long
+    Flags As EnclaveIdentityFlags
+    SigningLevel As Long
+    EnclaveType As Long
+End Type
+
+Public Enum EnclaveIdentityFlags
+    ENCLAVE_FLAG_FULL_DEBUG_ENABLED = &H00000001
+    ENCLAVE_FLAG_DYNAMIC_DEBUG_ENABLED = &H00000002
+    ENCLAVE_FLAG_DYNAMIC_DEBUG_ACTIVE = &H00000004
+End Enum
+
+Public Const VBS_ENCLAVE_REPORT_PKG_HEADER_VERSION_CURRENT  = (1)
+Public Const VBS_ENCLAVE_REPORT_SIGNATURE_SCHEME_SHA256_RSA_PSS_SHA256  = (1)
+
+[PackingAlignment(1)]
+Public Type VBS_ENCLAVE_REPORT_PKG_HEADER
+    PackageSize As Long
+    Version As Long
+    SignatureScheme As Long
+    SignedStatementSize As Long
+    SignatureSize As Long
+    Reserved As Long
+End Type
+
+Public Const VBS_ENCLAVE_REPORT_VERSION_CURRENT  = (1)
+Public Const ENCLAVE_REPORT_DATA_LENGTH  = 64
+
+[PackingAlignment(1)]
+Public Type VBS_ENCLAVE_REPORT
+    ReportSize As Long
+    ReportVersion As Long
+    EnclaveData(0 To (ENCLAVE_REPORT_DATA_LENGTH - 1)) As Byte
+    EnclaveIdentity As ENCLAVE_IDENTITY
+End Type
+
+[PackingAlignment(1)]
+Public Type VBS_ENCLAVE_REPORT_VARDATA_HEADER
+    DataType As EnclaveVardataHdrTypes
+    Size As Long
+End Type
+Public Enum EnclaveVardataHdrTypes
+    VBS_ENCLAVE_VARDATA_INVALID = &H00000000
+    VBS_ENCLAVE_VARDATA_MODULE = &H00000001
+End Enum
+
+[PackingAlignment(1)]
+Public Type VBS_ENCLAVE_REPORT_MODULE
+    Header As VBS_ENCLAVE_REPORT_VARDATA_HEADER
+    UniqueId(0 To (IMAGE_ENCLAVE_LONG_ID_LENGTH - 1)) As Byte
+    AuthorId(0 To (IMAGE_ENCLAVE_LONG_ID_LENGTH - 1)) As Byte
+    FamilyId(0 To (IMAGE_ENCLAVE_SHORT_ID_LENGTH - 1)) As Byte
+    ImageId(0 To (IMAGE_ENCLAVE_SHORT_ID_LENGTH - 1)) As Byte
+    Svn As Long
+    ModuleName(0 To (ANYSIZE_ARRAY - 1)) As Integer
+End Type
+
+Public Type ENCLAVE_INFORMATION
+    EnclaveType As ENCLAVE_TYPE
+    Reserved As Long
+    BaseAddress As LongPtr
+    Size As LongPtr
+    Identity As ENCLAVE_IDENTITY
+End Type
+
+Public Type VBS_BASIC_ENCLAVE_THREAD_DESCRIPTOR32
+    ThreadContext(0 To 3) As Long
+    EntryPoint As Long
+    StackPointer As Long
+    ExceptionEntryPoint As Long
+    ExceptionStack As Long
+    ExceptionActive As Long
+End Type
+
+Public Type VBS_BASIC_ENCLAVE_THREAD_DESCRIPTOR64
+    ThreadContext(0 To 3) As LongLong
+    EntryPoint As LongLong
+    StackPointer As LongLong
+    ExceptionEntryPoint As LongLong
+    ExceptionStack As LongLong
+    ExceptionActive As Long
+End Type
+
+#If Win64 Then
+'Alias VBS_BASIC_ENCLAVE_THREAD_DESCRIPTOR As VBS_BASIC_ENCLAVE_THREAD_DESCRIPTOR64
+Public Type VBS_BASIC_ENCLAVE_THREAD_DESCRIPTOR
+    ThreadContext(0 To 3) As LongLong
+    EntryPoint As LongLong
+    StackPointer As LongLong
+    ExceptionEntryPoint As LongLong
+    ExceptionStack As LongLong
+    ExceptionActive As Long
+End Type
+#Else
+'Alias VBS_BASIC_ENCLAVE_THREAD_DESCRIPTOR As VBS_BASIC_ENCLAVE_THREAD_DESCRIPTOR32
+Public Type VBS_BASIC_ENCLAVE_THREAD_DESCRIPTOR
+    ThreadContext(0 To 3) As Long
+    EntryPoint As Long
+    StackPointer As Long
+    ExceptionEntryPoint As Long
+    ExceptionStack As Long
+    ExceptionActive As Long
+End Type
+#End If
+    
+Public Type VBS_BASIC_ENCLAVE_EXCEPTION_AMD64
+    ExceptionCode As Long
+    NumberParameters As Long
+    ExceptionInformation(0 To 2) As LongPtr
+    ExceptionRAX As LongPtr
+    ExceptionRCX As LongPtr
+    ExceptionRIP As LongPtr
+    ExceptionRFLAGS As LongPtr
+    ExceptionRSP As LongPtr
+End Type
+
+[Description("WARNING: AMD64 ONLY")]
+Public Type VBS_BASIC_ENCLAVE_EXCEPTION
+    ExceptionCode As Long
+    NumberParameters As Long
+    ExceptionInformation(0 To 2) As LongPtr
+    ExceptionRAX As LongPtr
+    ExceptionRCX As LongPtr
+    ExceptionRIP As LongPtr
+    ExceptionRFLAGS As LongPtr
+    ExceptionRSP As LongPtr
+End Type
+
+
+Public Delegate Sub VBS_BASIC_ENCLAVE_BASIC_CALL_RETURN_FROM_ENCLAVE (ByVal ReturnValue As LongPtr)
+
+Public Delegate Function VBS_BASIC_ENCLAVE_BASIC_CALL_RETURN_FROM_EXCEPTION (ByRef ExceptionRecord As VBS_BASIC_ENCLAVE_EXCEPTION) As Long
+
+Public Delegate Function VBS_BASIC_ENCLAVE_BASIC_CALL_TERMINATE_THREAD (ByRef ThreadDescriptor As VBS_BASIC_ENCLAVE_THREAD_DESCRIPTOR) As Long
+
+Public Delegate Function VBS_BASIC_ENCLAVE_BASIC_CALL_INTERRUPT_THREAD (ByRef ThreadDescriptor As VBS_BASIC_ENCLAVE_THREAD_DESCRIPTOR) As Long
+
+Public Delegate Function VBS_BASIC_ENCLAVE_BASIC_CALL_COMMIT_PAGES (ByVal EnclaveAddress As LongPtr, ByVal NumberOfBytes As LongPtr, ByVal SourceAddress As LongPtr, ByVal PageProtection As Long) As Long
+
+Public Delegate Function VBS_BASIC_ENCLAVE_BASIC_CALL_DECOMMIT_PAGES (ByVal EnclaveAddress As LongPtr, ByVal NumberOfBytes As LongPtr) As Long
+
+Public Delegate Function VBS_BASIC_ENCLAVE_BASIC_CALL_PROTECT_PAGES (ByVal EnclaveAddress As LongPtr, ByVal NumberOfBytes As LongPtr, ByVal PageProtection As Long) As Long
+
+Public Delegate Function VBS_BASIC_ENCLAVE_BASIC_CALL_CREATE_THREAD (ByRef ThreadDescriptor As VBS_BASIC_ENCLAVE_THREAD_DESCRIPTOR) As Long
+
+Public Delegate Function VBS_BASIC_ENCLAVE_BASIC_CALL_GET_ENCLAVE_INFORMATION (ByRef EnclaveInfo As ENCLAVE_INFORMATION) As Long
+
+Public Type ENCLAVE_VBS_BASIC_KEY_REQUEST
+    RequestSize As Long
+    Flags As EnclaveKeyRequestFlagss
+    EnclaveSVN As Long
+    SystemKeyID As Long
+    CurrentSystemKeyID As Long
+End Type
+
+Public Enum EnclaveKeyRequestFlagss
+    ENCLAVE_VBS_BASIC_KEY_FLAG_MEASUREMENT = &H00000001
+    ENCLAVE_VBS_BASIC_KEY_FLAG_FAMILY_ID = &H00000002
+    ENCLAVE_VBS_BASIC_KEY_FLAG_IMAGE_ID = &H00000004
+    ENCLAVE_VBS_BASIC_KEY_FLAG_DEBUG_KEY = &H00000008
+End Enum
+
+Public Delegate Function VBS_BASIC_ENCLAVE_BASIC_CALL_GENERATE_KEY (ByRef KeyRequest As ENCLAVE_VBS_BASIC_KEY_REQUEST, ByVal RequestedKeySize As Long, ByVal ReturnedKey As LongPtr) As Long
+
+Public Delegate Function VBS_BASIC_ENCLAVE_BASIC_CALL_GENERATE_REPORT (ByVal EnclaveData As LongPtr, ByVal Report As LongPtr, ByVal BufferSize As Long, ByRef OutputSize As Long) As Long
+
+Public Delegate Function VBS_BASIC_ENCLAVE_BASIC_CALL_VERIFY_REPORT (ByVal Report As LongPtr, ByVal ReportSize As Long) As Long
+
+Public Delegate Function VBS_BASIC_ENCLAVE_BASIC_CALL_GENERATE_RANDOM_DATA (ByVal Buffer As LongPtr, ByVal NumberOfBytes As Long, ByRef Generation As LongLong) As Long
+
+' #If WDL_NO_DELEGATES Then
+Public Type VBS_BASIC_ENCLAVE_SYSCALL_PAGE
+    ReturnFromEnclave As VBS_BASIC_ENCLAVE_BASIC_CALL_RETURN_FROM_ENCLAVE
+    ReturnFromException As VBS_BASIC_ENCLAVE_BASIC_CALL_RETURN_FROM_EXCEPTION
+    TerminateThread As VBS_BASIC_ENCLAVE_BASIC_CALL_TERMINATE_THREAD
+    InterruptThread As LongPtr
+    CommitPages As LongPtr
+    DecommitPages As LongPtr
+    ProtectPages As LongPtr
+    CreateThread As LongPtr
+    GetEnclaveInformation As LongPtr
+    GenerateKey As LongPtr
+    GenerateReport As LongPtr
+    VerifyReport As LongPtr
+    GenerateRandomData As LongPtr
+End Type
+' #Else
+' Public Type VBS_BASIC_ENCLAVE_SYSCALL_PAGE
+    ' ReturnFromEnclave As VBS_BASIC_ENCLAVE_BASIC_CALL_RETURN_FROM_ENCLAVE
+    ' ReturnFromException As VBS_BASIC_ENCLAVE_BASIC_CALL_RETURN_FROM_EXCEPTION
+    ' TerminateThread As VBS_BASIC_ENCLAVE_BASIC_CALL_TERMINATE_THREAD
+    ' InterruptThread As VBS_BASIC_ENCLAVE_BASIC_CALL_INTERRUPT_THREAD
+    ' CommitPages As VBS_BASIC_ENCLAVE_BASIC_CALL_COMMIT_PAGES
+    ' DecommitPages As VBS_BASIC_ENCLAVE_BASIC_CALL_DECOMMIT_PAGES
+    ' ProtectPages As VBS_BASIC_ENCLAVE_BASIC_CALL_PROTECT_PAGES
+    ' CreateThread As VBS_BASIC_ENCLAVE_BASIC_CALL_CREATE_THREAD
+    ' GetEnclaveInformation As VBS_BASIC_ENCLAVE_BASIC_CALL_GET_ENCLAVE_INFORMATION
+    ' GenerateKey As VBS_BASIC_ENCLAVE_BASIC_CALL_GENERATE_KEY
+    ' GenerateReport As VBS_BASIC_ENCLAVE_BASIC_CALL_GENERATE_REPORT
+    ' VerifyReport As VBS_BASIC_ENCLAVE_BASIC_CALL_VERIFY_REPORT
+    ' GenerateRandomData As VBS_BASIC_ENCLAVE_BASIC_CALL_GENERATE_RANDOM_DATA
+' End Type
+' #End If
+
+[UseGetLastError(False)]
+Public Declare PtrSafe Function EnclaveGetAttestationReport Lib "vertdll.dll" (EnclaveData As Any, Report As Any, ByVal BufferSize As Long, ByRef OutputSize As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function EnclaveVerifyAttestationReport Lib "vertdll.dll" (ByVal EnclaveType As ENCLAVE_TYPE, Report As Any, ByVal ReportSize As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function EnclaveSealData Lib "vertdll.dll" (DataToEncrypt As Any, ByVal DataToEncryptSize As Long, ByVal IdentityPolicy As ENCLAVE_SEALING_IDENTITY_POLICY, ByVal RuntimePolicy As EnclaveRuntimePolicy, ProtectedBlob As Any, ByVal BufferSize As Long, ByRef ProtectedBlobSize As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function EnclaveUnsealData Lib "vertdll.dll" (ProtectedBlob As Any, ByVal ProtectedBlobSize As Long, DecryptedData As Any, ByVal BufferSize As Long, ByRef DecryptedDataSize As Long, ByRef SealingIdentity As ENCLAVE_IDENTITY, ByRef UnsealingFlags As EnclaveUnsealFlags) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function EnclaveGetEnclaveInformation Lib "vertdll.dll" (ByVal InformationSize As Long, ByRef EnclaveInformation As ENCLAVE_INFORMATION) As Long
+
+ 
+
+'end winenclave
+
+'ioringapi.h, ntioring_x.h
+
+Public Enum IORING_VERSION
+    IORING_VERSION_INVALID = 0
+    IORING_VERSION_1
+    ' / <summary>Minor update</summary>
+    ' / <remarks>
+    ' / Fixes a bug where user provided completion event may not be signaled
+    ' / even if the completion queue transitions from empty to non-empty because
+    ' / of a race condition. In earlier version please do a timed wait to work
+    ' / around this issue.
+    ' / </remarks>
+    IORING_VERSION_2
+    ' #if defined(NTDDI_WIN10_NI) && (NTDDI_VERSION >= NTDDI_WIN10_NI)
+    ' / <summary>Major update; Adds write, FLUSH and DRAIN support</summary>
+    IORING_VERSION_3 = 300
+    ' #endif
+    ' / <summary>Major update; Adds scatter-gather support</summary>
+    IORING_VERSION_4 = 400
+End Enum
+
+Public Enum IORING_FEATURE_FLAGS
+    ' / <summary>No specific functionality for the implementation</summary>
+    IORING_FEATURE_FLAGS_NONE = 0
+    ' / <summary>
+    ' / IoRing support is emulated in User Mode (not directly supported by KM)
+    ' / </summary>
+    ' / <remarks>
+    ' / When this flag is set there is no underlying kernel support for IoRing.
+    ' / However, a user mode emulation layer is available to provide application
+    ' / compatibility, without the benefit of kernel support.  This provides
+    ' / application compatibility at the expense of performance. Thus, it allows
+    ' / apps to make a choice at run-time.
+    ' / </remarks>
+    IORING_FEATURE_UM_EMULATION = &H00000001
+    ' / <summary>
+    ' / If this flag is present the SetIoRingCompletionEvent API is available
+    ' / and supported
+    ' / </summary>
+    IORING_FEATURE_SET_COMPLETION_EVENT = &H00000002
+End Enum
+
+Public Enum IORING_OP_CODE
+    ' / <summary>Do not perform any I/O</summary>
+    ' / <remarks>
+    ' / Useful for testing overhead performance and draining the queue
+    ' / </remarks>
+    IORING_OP_NOP
+    ' / <summary>Read from a file to a buffer</summary>
+    IORING_OP_READ
+    ' / <summary>Registers an array of file HANDLEs with the IoRing</summary>
+    ' / <remarks>
+    ' / If any existing registration exists, it is completely replaced by the
+    ' / registration for this opcode. Any entries in the array with
+    ' / INVALID_HANDLE_VALUE are sparse entries, and not used. This allows
+    ' / effectively releasing one or more of the previously registered files.
+    ' / Unregistration of all current files is accomplished by providing zero
+    ' / length array.
+    ' /
+    ' / The input array must remain valid until the operation completes. The
+    ' / change impacts all entries in the queue after this completes. (E.g.,
+    ' / this implicitly has "link" semantics in that any subsequent entry will
+    ' / not start until after this is completed)
+    ' / </remarks>
+    IORING_OP_REGISTER_FILES
+    ' / <summary>
+    ' / Registers an array of IORING_BUFFER_INFO with the IoRing
+    ' / </summary>
+    ' / <remarks>
+    ' / If any existing registration exists, it is completely replaced by the
+    ' / registration for this opcode. Any entries in the array with Address=NULL
+    ' / and Length=0 are sparse entries, and not used. This allows effectively
+    ' / releasing one or more of the previously registered buffers.
+    ' / Unregistration of all current buffers is accomplished by providing zero
+    ' / length array.
+    ' /
+    ' / The input array must remain valid until the operation completes. The
+    ' / change impacts all entries in the queue after this completes. E.g. this
+    ' / implicitly has "link" semantics in that any subsequent entry will not
+    ' / start until after this completes.
+    ' / </remarks>
+    IORING_OP_REGISTER_BUFFERS
+    ' / <summary>Requests cancellation of a previously submitted operation</summary>
+    ' / <remarks>
+    ' / This attempts to cancel a previously submitted operation. The UserData for the
+    ' / operation to cancel is used to identify the operation.
+    ' / </remarks>
+    IORING_OP_CANCEL
+    ' #ifdefined(NTDDI_WIN10_NI)&&(NTDDI_VERSION>=NTDDI_WIN10_NI)
+    ' / <summary>Write to a file from a buffer</summary>
+    IORING_OP_WRITE
+    ' / <summary>Flush buffers for a file</summary>
+    IORING_OP_FLUSH
+    ' #endif
+    ' / <summary>Read from a file to buffer segments</summary>
+    IORING_OP_READ_SCATTER
+    ' / <summary>Write to a file from buffer segments</summary>
+    IORING_OP_WRITE_GATHER
+End Enum
+
+Public Type IORING_BUFFER_INFO
+    Address As LongPtr
+    Length As Long
+End Type
+
+Public Type IORING_REGISTERED_BUFFER
+    ' Index of pre-registered buffer
+    BufferIndex As Long
+    ' Offset into the pre-registered buffer
+    Offset As Long
+End Type
+
+Public Const IORING_SUBMIT_WAIT_ALL  = MAXUINT32
+ 
+
+
+Public Enum IORING_SQE_FLAGS
+    IOSQE_FLAGS_NONE = 0
+    ' #ifdef NTDDI_WIN10_NI
+    ' #if (NTDDI_VERSION >= NTDDI_WIN10_NI)
+    IOSQE_FLAGS_DRAIN_PRECEDING_OPS = &H00000001
+    ' #endif
+    ' #endif
+End Enum
+
+Public Enum IORING_CREATE_REQUIRED_FLAGS
+    IORING_CREATE_REQUIRED_FLAGS_NONE = 0
+End Enum
+
+Public Enum IORING_CREATE_ADVISORY_FLAGS
+    IORING_CREATE_ADVISORY_FLAGS_NONE = 0
+    '  Requests the IORING implementation to skip parameter checks in the builder APIs.
+    '  Ordinarily the builder APIs perform checks to catch programming errors as early as possible.
+    '  This flag is used to disable that if the implementation understands it (as an advisory flag
+    '  it has no effect on an implementation that doesn't understand it so it is safe to use on all
+    '  versions). Normally, this is used in RELEASE builds to eliminate the redundant checks. Errors
+    '  from invalid parameters are still checked in the kernel and any errors appear in the completion
+    '  queue entries for the operation.
+    IORING_CREATE_SKIP_BUILDER_PARAM_CHECKS = &H00000001
+End Enum
+
+Public Type IORING_CREATE_FLAGS
+    Required As IORING_CREATE_REQUIRED_FLAGS
+    Advisory As IORING_CREATE_ADVISORY_FLAGS
+End Type
+
+Public Type IORING_INFO
+    IoRingVersion As IORING_VERSION
+    Flags As IORING_CREATE_FLAGS
+    SubmissionQueueSize As Long
+    CompletionQueueSize As Long
+End Type
+
+Public Type IORING_CAPABILITIES
+    MaxVersion As IORING_VERSION
+    MaxSubmissionQueueSize As Long
+    MaxCompletionQueueSize As Long
+    FeatureFlags As IORING_FEATURE_FLAGS
+End Type
+
+Public Enum IORING_REF_KIND
+    IORING_REF_RAW
+    IORING_REF_REGISTERED
+End Enum
+
+Public Type IORING_HANDLE_REF
+    '#ifdef __cplusplus
+    '    explicit IORING_HANDLE_REF(HANDLE h)
+    '        : Kind(IORING_REF_KIND::IORING_REF_RAW)
+    '        , Handle(h)
+    '    {}
+    '    explicit IORING_HANDLE_REF(UINT32 index)
+    '        : Kind(IORING_REF_KIND::IORING_REF_REGISTERED)
+    '        , Handle(index)
+    '    {}
+    '#endif
+    Kind As IORING_REF_KIND
+    '    union HandleUnion
+    '    {
+    '#ifdef __cplusplus
+    '        HandleUnion(HANDLE h)
+    '            : Handle(h)
+    '        {}
+    '        HandleUnion(UINT32 index)
+    '            : Index(index)
+    '        {}
+    '#endif
+    '        // Handle to the file object if Kind == IORING_REF_RAW
+    '        HANDLE Handle;
+    '        // Index of registered file handle if Kind == IORING_REF_REGISTERED
+    '        UINT32 Index;
+    '    } Handle;
+    Handle As LongPtr
+End Type
+
+Public Type IORING_BUFFER_REF
+    '#ifdef __cplusplus
+    '    explicit IORING_BUFFER_REF(void* address)
+    '        : Kind(IORING_REF_KIND::IORING_REF_RAW)
+    '        , Buffer(address)
+    '    {}
+    '    explicit IORING_BUFFER_REF(IORING_REGISTERED_BUFFER registeredBuffer)
+    '        : Kind(IORING_REF_KIND::IORING_REF_REGISTERED)
+    '        , Buffer(registeredBuffer)
+    '    {}
+    '    IORING_BUFFER_REF(UINT32 index, UINT32 offset)
+    '        : IORING_BUFFER_REF(IORING_REGISTERED_BUFFER{index, offset})
+    '    {}
+    '#endif
+    Kind As IORING_REF_KIND
+    '    union BufferUnion
+    '    {
+    '#ifdef __cplusplus
+    '        BufferUnion(void* address)
+    '            : Address(address)
+    '        {}
+    '        BufferUnion(IORING_REGISTERED_BUFFER indexAndOffset)
+    '            : IndexAndOffset(indexAndOffset)
+    '        {}
+    '#endif
+    '        // Address of the buffer if Kind == IORING_REF_RAW
+    '        void* Address;
+    '        // Registered buffer details if Kind == IORING_REF_REGISTERED
+    '        IORING_REGISTERED_BUFFER IndexAndOffset;
+    '    }Buffer;
+    #If Win64 Then
+    __pad As Long
+    u(1) As Long
+    #Else
+    u(1) As Long
+    #End If
+End Type
+
+Public Type IORING_CQE
+    UserData As LongPtr
+    ResultCode As Long
+    Information As LongPtr
+End Type
+
+[UseGetLastError(False)]
+Public Declare PtrSafe Function QueryIoRingCapabilities Lib "kernel32.dll" (ByRef capabilities As IORING_CAPABILITIES) As Long
+
+Public Declare PtrSafe Function IsIoRingOpSupported Lib "kernel32.dll" (ByVal ioRing As LongPtr, ByVal op As IORING_OP_CODE) As BOOL
+[UseGetLastError(False)]
+Public Declare PtrSafe Function CreateIoRing Lib "kernel32.dll" (ByVal ioringVersion As IORING_VERSION, ByVal flags As IORING_CREATE_FLAGS, ByVal submissionQueueSize As Long, ByVal completionQueueSize As Long, ByRef h As LongPtr) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function GetIoRingInfo Lib "kernel32.dll" (ByVal ioRing As LongPtr, ByRef info As IORING_INFO) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SubmitIoRing Lib "kernel32.dll" (ByVal ioRing As LongPtr, ByVal waitOperations As Long, ByVal milliseconds As Long, ByRef submittedEntries As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function CloseIoRing Lib "kernel32.dll" (ByVal ioRing As LongPtr) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function PopIoRingCompletion Lib "kernel32.dll" (ByVal ioRing As LongPtr, ByRef cqe As IORING_CQE) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SetIoRingCompletionEvent Lib "kernel32.dll" (ByVal ioRing As LongPtr, ByVal hEvent As LongPtr) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function BuildIoRingCancelRequest Lib "kernel32.dll" (ByVal ioRing As LongPtr, ByVal file As IORING_HANDLE_REF, ByVal opToCancel As LongPtr, ByVal userData As LongPtr) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function BuildIoRingReadFile Lib "kernel32.dll" (ByVal ioRing As LongPtr, ByVal fileRef As IORING_HANDLE_REF, ByVal dataRef As IORING_BUFFER_REF, ByVal numberOfBytesToRead As Long, ByVal fileOffset As LongLong, ByVal userData As LongPtr, ByVal sqeFlags As IORING_SQE_FLAGS) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function BuildIoRingRegisterFileHandles Lib "kernel32.dll" (ByVal ioRing As LongPtr, ByVal count As Long, handles As LongPtr, ByVal userData As LongPtr) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function BuildIoRingRegisterBuffers Lib "kernel32.dll" (ByVal ioRing As LongPtr, ByVal count As Long, buffers As IORING_BUFFER_INFO, ByVal userData As LongPtr) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function BuildIoRingWriteFile Lib "kernel32.dll" (ByVal ioRing As LongPtr, ByVal fileRef As IORING_HANDLE_REF, ByVal bufferRef As IORING_BUFFER_REF, ByVal numberOfBytesToWrite As Long, ByVal fileOffset As LongLong, ByVal writeFlags As FILE_WRITE_FLAGS, ByVal userData As LongPtr, ByVal sqeFlags As IORING_SQE_FLAGS) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function BuildIoRingFlushFile Lib "kernel32.dll" (ByVal ioRing As LongPtr, ByVal fileRef As IORING_HANDLE_REF, ByVal flushMode As FILE_FLUSH_MODE, ByVal userData As LongPtr, ByVal sqeFlags As IORING_SQE_FLAGS) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function BuildIoRingReadFileScatter Lib "kernel32.dll" (ByVal ioRing As LongPtr, ByVal fileRef As IORING_HANDLE_REF, ByVal segmentCount As Long, ByVal segmentArray As LongPtr, ByVal numberOfBytesToRead As Long, ByVal fileOffset As LongLong, ByVal userData As LongPtr, ByVal sqeFlags As IORING_SQE_FLAGS) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function BuildIoRingWriteFileGather Lib "kernel32.dll" (ByVal ioRing As LongPtr, ByVal fileRef As IORING_HANDLE_REF, ByVal segmentCount As Long, ByVal segmentArray As LongPtr, ByVal numberOfBytesToWrite As Long, ByVal fileOffset As LongLong, ByVal writeFlags As FILE_WRITE_FLAGS, ByVal userData As LongPtr, ByVal sqeFlags As IORING_SQE_FLAGS) As Long
+
+ 
+
+
+
+
+
+
+
+
 
 'msports.h
 

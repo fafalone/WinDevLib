@@ -914,6 +914,12 @@ Public Enum PROCESSINFOCLASS
     ProcessMembershipInformation
     ProcessEffectiveIoPriority
     ProcessEffectivePagePriority
+    ProcessSchedulerSharedData ' SCHEDULER_SHARED_DATA_SLOT_INFORMATION // since 24H2
+    ProcessSlistRollbackInformation
+    ProcessNetworkIoCounters ' q: PROCESS_NETWORK_COUNTERS
+    ProcessFindFirstThreadByTebValue ' PROCESS_TEB_VALUE_INFORMATION
+    ProcessEnclaveAddressSpaceRestriction ' since 25H2
+    ProcessAvailableCpus ' PROCESS_AVAILABLE_CPUS_INFORMATION
     MaxProcessInfoClass
 End Enum
 
@@ -1527,7 +1533,8 @@ End Enum
 Public Enum ProcessPowerThrottlingFlags
     POWER_THROTTLING_PROCESS_EXECUTION_SPEED = &H1
     POWER_THROTTLING_PROCESS_DELAYTIMERS = &H2
-    POWER_THROTTLING_PROCESS_VALID_FLAGS = ((POWER_THROTTLING_PROCESS_EXECUTION_SPEED Or POWER_THROTTLING_PROCESS_DELAYTIMERS))
+    POWER_THROTTLING_PROCESS_IGNORE_TIMER_RESOLUTION = &H4
+    POWER_THROTTLING_PROCESS_VALID_FLAGS = ((POWER_THROTTLING_PROCESS_EXECUTION_SPEED Or POWER_THROTTLING_PROCESS_DELAYTIMERS Or POWER_THROTTLING_PROCESS_IGNORE_TIMER_RESOLUTION))
 End Enum
 Public Type POWER_THROTTLING_PROCESS_STATE
     Version As ProcessPowerThrottlingVersions
@@ -1686,6 +1693,39 @@ Public Type PROCESS_DYNAMIC_ENFORCED_ADDRESS_RANGES_INFORMATION
     Reserved2 As Long
     Ranges As LongPtr 'PPROCESS_DYNAMIC_ENFORCED_ADDRESS_RANGE
 End Type
+
+Public Enum SCHEDULER_SHARED_DATA_SLOT_ACTION
+    SchedulerSharedSlotAssign
+    SchedulerSharedSlotFree
+    SchedulerSharedSlotQuery
+End Enum
+Public Type SCHEDULER_SHARED_DATA_SLOT_INFORMATION
+    Action As SCHEDULER_SHARED_DATA_SLOT_ACTION
+    SchedulerSharedDataHandle As LongPtr
+    Slot As LongPtr
+End Type
+
+Public Type PROCESS_NETWORK_COUNTERS
+    BytesIn As LongLong
+    BytesOut As LongLong
+End Type
+
+Public Type PROCESS_TEB_VALUE_INFORMATION
+    ThreadId As Long
+    TebOffset As Long
+    Value As LongPtr
+End Type
+
+Public Type PROCESS_AVAILABLE_CPUS_INFORMATION
+    ObservedSequenceNumber As LongLong
+    SequenceNumber As LongLong
+    AvailableCpusCount As Long
+    Affinity As LongPtr 'PKAFFINITY_EX
+End Type
+
+
+
+
 
 Public Type RTL_DRIVE_LETTER_CURDIR
     Flags As Integer
@@ -4777,6 +4817,10 @@ Public Type SUPPORTED_OS_INFO
     MinorVersion As Integer
 End Type
 
+Public Type MAXVERSIONTESTED_INFO
+    MaxVersionTested As LongLong
+End Type
+
 Public Const MAILSLOT_NO_MESSAGE = -1
 Public Const MAILSLOT_WAIT_FOREVER = -1
 
@@ -4898,7 +4942,8 @@ Public Enum PROCESS_MITIGATION_POLICY
     ProcessRedirectionTrustPolicy = 16
     ProcessUserPointerAuthPolicy = 17
     ProcessSEHOPPolicy = 18
-    MaxProcessMitigationPolicy = 19
+    ProcessActivationContextTrustPolicy = 19
+    MaxProcessMitigationPolicy = 20
 End Enum
 
 Public Type PROCESS_MITIGATION_POLICY_INFORMATION
@@ -4928,6 +4973,17 @@ Public Enum ProcessMitigationSehopFlags
 End Enum
 Public Type PROCESS_MITIGATION_SEHOP_POLICY
     dwFlags As ProcessMitigationSehopFlags
+End Type
+Public Type PROCESS_MITIGATION_ACTIVATION_CONTEXT_TRUST_POLICY2
+    'union
+    '{
+    Flags As Long
+    '    struct
+    '    {
+    '        ULONG AssemblyManifestRedirectionTrust : 1;
+    '        ULONG ReservedFlags : 31;
+    '    } DUMMYSTRUCTNAME;
+    '} DUMMYUNIONNAME;
 End Type
 Public Enum ProcessMitigationHandleChkFlags
     PMHCF_RaiseExceptionOnInvalidHandleReference = &H1
@@ -5132,6 +5188,7 @@ End Enum
 
 Public Enum PROC_THREAD_ATTRIBUTE_NUM
     ProcThreadAttributeParentProcess = 0
+    ProcThreadAttributeExtendedFlags = 1 ' in ULONG (EXTENDED_PROCESS_CREATION_FLAG_*)
     ProcThreadAttributeHandleList = 2
     ' #if (_WIN32_WINNT >= _WIN32_WINNT_WIN7)
     ProcThreadAttributeGroupAffinity = 3
@@ -5141,12 +5198,15 @@ Public Enum PROC_THREAD_ATTRIBUTE_NUM
     ProcThreadAttributeMitigationPolicy = 7
     ' #endif
     ' #if (_WIN32_WINNT >= _WIN32_WINNT_WIN8)
+    ProcThreadAttributePackageFullName = 8 ' in WCHAR[] // since WIN8
     ProcThreadAttributeSecurityCapabilities = 9
+    ProcThreadAttributeConsoleReference = 10 ' BaseGetConsoleReference (kernelbase.dll)
     ' #endif
     ProcThreadAttributeProtectionLevel = 11
     ' #if (_WIN32_WINNT >= _WIN32_WINNT_WINBLUE)
     ' #endif
     ' #if (_WIN32_WINNT >= _WIN32_WINNT_WINTHRESHOLD)
+    ProcThreadAttributeOsMaxVersionTested = 12 ' in MAXVERSIONTESTED_INFO // since THRESHOLD // (from exe.manifest)
     ProcThreadAttributeJobList = 13
     ProcThreadAttributeChildProcessPolicy = 14
     ProcThreadAttributeAllApplicationPackagesPolicy = 15
@@ -5158,10 +5218,12 @@ Public Enum PROC_THREAD_ATTRIBUTE_NUM
     ' #if (NTDDI_VERSION >= NTDDI_WIN10_RS2)
     ProcThreadAttributeDesktopAppPolicy = 18
     ' #endif
+    ProcThreadAttributeBnoIsolation = 19 ' in PROC_THREAD_BNOISOLATION_ATTRIBUTE
     ' #if (NTDDI_VERSION >= NTDDI_WIN10_RS5)
     ProcThreadAttributePseudoConsole = 22
     ' #endif
     ' #if (NTDDI_VERSION >= NTDDI_WIN10_19H1)
+    ProcThreadAttributeIsolationManifest = 23 ' in ISOLATION_MANIFEST_PROPERTIES // rev (diversenok) // since 19H2+
     ' #endif
     ' #if (NTDDI_VERSION >= NTDDI_WIN10_MN)
     ProcThreadAttributeMitigationAuditPolicy = 24
@@ -5170,6 +5232,7 @@ Public Enum PROC_THREAD_ATTRIBUTE_NUM
     ' #endif
     ' #if (NTDDI_VERSION >= NTDDI_WIN10_FE)
     ProcThreadAttributeEnableOptionalXStateFeatures = 27
+    ProcThreadAttributeCreateStore = 28 ' ULONG // rev (diversenok)
     ' #endif
     ' #if (NTDDI_VERSION >= NTDDI_WIN10_NI)
     ProcThreadAttributeTrustedApp = 29
@@ -5178,6 +5241,37 @@ Public Enum PROC_THREAD_ATTRIBUTE_NUM
     ProcThreadAttributeSveVectorLength = 30
     ' #endif
 End Enum
+
+Public Function ProcThreadAttributeValue(ByVal Number As Long, ByVal Thread As BOOL, ByVal Input As BOOL, ByVal Additive As BOOL) As Long
+    Return (((Number) And PROC_THREAD_ATTRIBUTE_NUMBER) Or _
+     If((Thread <> CFALSE), PROC_THREAD_ATTRIBUTE_THREAD, 0&) Or _
+     If((Input <> CFALSE), PROC_THREAD_ATTRIBUTE_INPUT, 0&) Or _
+     If((Additive <> CFALSE), PROC_THREAD_ATTRIBUTE_ADDITIVE, 0&))
+End Function
+
+Public Enum ProcThreadExtProcCreateFlags
+    EXTENDED_PROCESS_CREATION_FLAG_ELEVATION_HANDLED = &H00000001
+    EXTENDED_PROCESS_CREATION_FLAG_FORCELUA = &H00000002
+    EXTENDED_PROCESS_CREATION_FLAG_FORCE_BREAKAWAY = &H00000004  ' requires SeTcbPrivilege // since WINBLUE
+End Enum
+
+Public Type PROC_THREAD_BNOISOLATION_ATTRIBUTE
+    IsolationEnabled As BOOL
+    IsolationPrefix(0 To (&H88 - 1)) As Integer
+End Type
+
+Public Type ISOLATION_MANIFEST_PROPERTIES
+    InstancePath As UNICODE_STRING
+    FriendlyName As UNICODE_STRING
+    Description As UNICODE_STRING
+    Level As LongPtr
+End Type
+
+Public Type UMS_CREATE_THREAD_ATTRIBUTES
+    UmsVersion As Long
+    UmsContext As LongPtr
+    UmsCompletionList As LongPtr
+End Type
 
 Public Const PROCESS_CREATION_MITIGATION_POLICY_DEP_ENABLE  = &H01
 Public Const PROCESS_CREATION_MITIGATION_POLICY_DEP_ATL_THUNK_ENABLE  = &H02
@@ -9242,7 +9336,7 @@ Public Declare PtrSafe Function GetConsoleCommandHistoryA Lib "kernel32" (ByVal 
 Public Declare PtrSafe Function GetConsoleCommandHistoryW Lib "kernel32" (ByVal Commands As LongPtr, ByVal CommandBufferLength As Long, ByVal ExeName As LongPtr) As Long
 Public DeclareWide PtrSafe Function GetConsoleCommandHistory Lib "kernel32" Alias "GetConsoleCommandHistoryW" (ByVal Commands As String, ByVal CommandBufferLength As Long, ByVal ExeName As String) As Long
 Public Declare PtrSafe Function GetConsoleProcessList Lib "kernel32" (lpdwProcessList As Long, ByVal dwProcessCount As Long) As Long
-
+Public Declare PtrSafe Function BaseGetConsoleReference Lib "kernelbase" () As LongPtr
 
 Public Declare PtrSafe Function LoadResource Lib "kernel32" (ByVal hInstance As LongPtr, ByVal hResInfo As LongPtr) As LongPtr
 Public Declare PtrSafe Function LockResource Lib "kernel32" (ByVal hResData As LongPtr) As LongPtr
@@ -15715,6 +15809,66 @@ Public Type SYSTEM_PROCESS_INFORMATION
     WriteTransferCount As LARGE_INTEGER
     OtherTransferCount As LARGE_INTEGER
 End Type
+
+Public Enum KTHREAD_STATE
+    KTS_Initialized
+    KTS_Ready
+    KTS_Running
+    KTS_Standby
+    KTS_Terminated
+    KTS_Waiting
+    KTS_Transition
+    KTS_DeferredReady
+    KTS_GateWaitObsolete
+    KTS_WaitingForProcessInSwap
+    MaximumThreadState
+End Enum
+Public Enum KWAIT_REASON
+    Executive ' Waiting for an executive event.
+    FreePage ' Waiting for a free page.
+    PageIn ' Waiting for a page to be read in.
+    PoolAllocation ' Waiting for a pool allocation.
+    DelayExecution ' Waiting due to a delay execution.           // NtDelayExecution
+    Suspended ' Waiting because the thread is suspended.    // NtSuspendThread
+    UserRequest ' Waiting due to a user request.              // NtWaitForSingleObject
+    WrExecutive ' Waiting for an executive event.
+    WrFreePage ' Waiting for a free page.
+    WrPageIn ' Waiting for a page to be read in.
+    WrPoolAllocation ' Waiting for a pool allocation.              // 10
+    WrDelayExecution ' Waiting due to a delay execution.
+    WrSuspended ' Waiting because the thread is suspended.
+    WrUserRequest ' Waiting due to a user request.
+    WrEventPair ' Waiting for an event pair.                  // NtCreateEventPair
+    WrQueue ' Waiting for a queue.                        // NtRemoveIoCompletion
+    WrLpcReceive ' Waiting for an LPC receive.                 // NtReplyWaitReceivePort
+    WrLpcReply ' Waiting for an LPC reply.                   // NtRequestWaitReplyPort
+    WrVirtualMemory ' Waiting for virtual memory.
+    WrPageOut ' Waiting for a page to be written out.       // NtFlushVirtualMemory
+    WrRendezvous ' Waiting for a rendezvous.                   // 20
+    WrKeyedEvent ' Waiting for a keyed event.                  // NtCreateKeyedEvent
+    WrTerminated ' Waiting for thread termination.
+    WrProcessInSwap ' Waiting for a process to be swapped in.
+    WrCpuRateControl ' Waiting for CPU rate control.
+    WrCalloutStack ' Waiting for a callout stack.
+    WrKernel ' Waiting for a kernel event.
+    WrResource ' Waiting for a resource.
+    WrPushLock ' Waiting for a push lock.
+    WrMutex ' Waiting for a mutex.
+    WrQuantumEnd ' Waiting for the end of a quantum.           // 30
+    WrDispatchInt ' Waiting for a dispatch interrupt.
+    WrPreempted ' Waiting because the thread was preempted.
+    WrYieldExecution ' Waiting to yield execution.
+    WrFastMutex ' Waiting for a fast mutex.
+    WrGuardedMutex ' Waiting for a guarded mutex.
+    WrRundown ' Waiting for a rundown.
+    WrAlertByThreadId ' Waiting for an alert by thread ID.
+    WrDeferredPreempt ' Waiting for a deferred preemption.
+    WrPhysicalFault ' Waiting for a physical fault.
+    WrIoRing ' Waiting for an I/O ring.                    // 40
+    WrMdlCache ' Waiting for an MDL cache.
+    WrRcu ' Waiting for read-copy-update (RCU) synchronization.
+    MaximumWaitReason
+End Enum
 Public Type SYSTEM_THREAD_INFORMATION
     KernelTime As LARGE_INTEGER
     UserTime As LARGE_INTEGER
@@ -15725,8 +15879,8 @@ Public Type SYSTEM_THREAD_INFORMATION
     Priority As Long
     BasePriority As Long
     ContextSwitches As Long
-    ThreadState As Long
-    WaitReason As Long
+    ThreadState As KTHREAD_STATE
+    WaitReason As KWAIT_REASON
 End Type
 
 Public Type SYSTEM_LOOKASIDE_INFORMATION
@@ -18807,6 +18961,7 @@ Public Enum FILE_DISPOSITION_EX_FLAGS
     FILE_DISPOSITION_FLAG_POSIX_SEMANTICS = &H00000002
     FILE_DISPOSITION_FLAG_FORCE_IMAGE_SECTION_CHECK = &H00000004
     FILE_DISPOSITION_FLAG_ON_CLOSE = &H00000008
+    FILE_DISPOSITION_IGNORE_READONLY_ATTRIBUTE = &H00000010
 End Enum
 Public Type FILE_DISPOSITION_INFO_EX
     Flags As FILE_DISPOSITION_EX_FLAGS
@@ -19715,6 +19870,10 @@ Public Enum FileAccessFlags
     FILE_COPY_STRUCTURED_STORAGE = &H00000041
     FILE_STRUCTURED_STORAGE = &H00000441
 End Enum
+
+
+
+
 
 Public Type PEB_LDR_DATA
     Length As Long
@@ -21058,7 +21217,11 @@ Public Enum THREADINFOCLASS
     ThreadStrongerBadHandleChecks = 53 ' since 22H1
     ThreadEffectiveIoPriority = 54 ' q: IO_PRIORITY_HINT
     ThreadEffectivePagePriority = 55 ' q: ULONG
-    MaxThreadInfoClass = 56
+    ThreadUpdateLockOwnership ' THREAD_LOCK_OWNERSHIP // since 24H2
+    ThreadSchedulerSharedDataSlot ' SCHEDULER_SHARED_DATA_SLOT_INFORMATION
+    ThreadTebInformationAtomic ' q: THREAD_TEB_INFORMATION (requires THREAD_GET_CONTEXT + THREAD_QUERY_INFORMATION)
+    ThreadIndexInformation ' THREAD_INDEX_INFORMATION
+    MaxThreadInfoClass
 End Enum
 
 Public Type THREAD_BASIC_INFORMATION
@@ -21087,8 +21250,89 @@ Public Type THREAD_TEB_INFORMATION
     BytesToRead As Long ' number of bytes to read
 End Type
 
+Public Type WOW64_DESCRIPTOR_TABLE_ENTRY
+    Selector As Long
+    Descriptor As WOW64_LDT_ENTRY
+End Type
+
+Public Const POWER_THROTTLING_THREAD_CURRENT_VERSION  = 1
+Public Const POWER_THROTTLING_THREAD_EXECUTION_SPEED  = &H1
+Public Const POWER_THROTTLING_THREAD_VALID_FLAGS  = (POWER_THROTTLING_THREAD_EXECUTION_SPEED)
+
+Public Type POWER_THROTTLING_THREAD_STATE
+    Version As Long
+    ControlMask As Long
+    StateMask As Long
+End Type
+
 Public Type THREAD_NAME_INFORMATION
     ThreadName As UNICODE_STRING
+End Type
+
+Public Type ALPC_WORK_ON_BEHALF_TICKET
+    ThreadId As Long
+    ThreadCreationTimeLow As Long
+End Type
+
+Public Type RTL_WORK_ON_BEHALF_TICKET_EX
+    Ticket As ALPC_WORK_ON_BEHALF_TICKET
+    'union
+    '{
+    Flags As Long
+    '    struct
+    '    {
+    '        ULONG CurrentThread : 1;
+    '        ULONG Reserved1 : 31;
+    '    };
+    '};
+    Reserved2 As Long
+End Type
+
+Public Type THREAD_INDEX_INFORMATION
+    Index As Long
+    Sequence As Long
+End Type
+
+Public Enum KHETERO_CPU_POLICY
+    KHeteroCpuPolicyAll = 0
+    KHeteroCpuPolicyLarge = 1
+    KHeteroCpuPolicyLargeOrIdle = 2
+    KHeteroCpuPolicySmall = 3
+    KHeteroCpuPolicySmallOrIdle = 4
+    KHeteroCpuPolicyDynamic = 5
+    KHeteroCpuPolicyStaticMax = 5 ' valid
+    KHeteroCpuPolicyBiasedSmall = 6
+    KHeteroCpuPolicyBiasedLarge = 7
+    KHeteroCpuPolicyDefault = 8
+    KHeteroCpuPolicyMax = 9
+End Enum
+
+Public Type RTL_UMS_CONTEXT
+    Link As SINGLE_LIST_ENTRY
+    #If Win64 Then
+    ____pad As LongLong
+    #End If
+    Context As CONTEXT
+    Teb As LongPtr
+    UserContext As LongPtr
+    'volatile ULONG ScheduledThread : 1;
+    'volatile ULONG Suspended : 1;
+    'volatile ULONG VolatileContext : 1;
+    'volatile ULONG Terminated : 1;
+    'volatile ULONG DebugActive : 1;
+    'volatile ULONG RunningOnSelfThread : 1;
+    'volatile ULONG DenyRunningOnSelfThread : 1;
+    Bitfield1 As Long
+    Flags As Long
+    'volatile ULONG64 KernelUpdateLock : 2;
+    'volatile ULONG64 PrimaryClientID : 62;
+    Bitfield2 As LongLong
+    ContextLock As LongLong
+    PrimaryUmsContext As LongPtr 'struct _RTL_UMS_CONTEXT
+    SwitchCount As Long
+    KernelYieldCount As Long
+    MixedYieldCount As Long
+    YieldCount As Long
 End Type
 
 Public Enum THREAD_UMS_INFORMATION_COMMAND
@@ -21103,6 +21347,22 @@ Public Type RTL_UMS_COMPLETION_LIST
     CompletionEvent As LongPtr
     CompletionFlags As Long
     InternalListHead As SINGLE_LIST_ENTRY
+End Type
+
+Public Type THREAD_UMS_INFORMATION
+    Command As THREAD_UMS_INFORMATION_COMMAND
+    CompletionList As LongPtr 'PRTL_UMS_COMPLETION_LIST
+    UmsContext As LongPtr 'PRTL_UMS_CONTEXT
+    'union
+    '{
+    Flags As Long
+    '    struct
+    '    {
+    '        ULONG IsUmsSchedulerThread : 1;
+    '        ULONG IsUmsWorkerThread : 1;
+    '        ULONG SpareBits : 30;
+    '    };
+    '};
 End Type
 
 Public Enum THREAD_WORKLOAD_CLASS
@@ -21781,6 +22041,8 @@ Public Declare PtrSafe Function NtSetSystemInformation Lib "ntdll" (ByVal System
 Public Declare PtrSafe Function NtQueryInformationProcess Lib "ntdll" (ByVal ProcessHandle As LongPtr, ByVal ProcessInformationClass As PROCESSINFOCLASS, ProcessInformation As Any, ByVal ProcessInformationLength As Long, ReturnLength As Long) As NTSTATUS
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtSetInformationProcess Lib "ntdll" (ByVal ProcessHandle As LongPtr, ByVal ProcessInformationClass As PROCESSINFOCLASS, ProcessInformation As Any, ByVal ProcessInformationLength As Long) As NTSTATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function NtQueryPortInformationProcess Lib "ntdll" () As Long
 [UseGetLastError(False)]
 Public Declare PtrSafe Function NtCreateTransactionManager Lib "ntdll" (ByRef TmHandle As LongPtr, [TypeHint(TransactionManagerRights)] ByVal DesiredAccess As Long, ByRef ObjectAttributes As OBJECT_ATTRIBUTES, ByRef LogFileName As UNICODE_STRING, [TypeHint(TRANSACTION_MANAGER_OPTIONS)] ByVal CreateOptions As Long, ByVal CommitStrength As Long) As NTSTATUS
 [UseGetLastError(False)]
