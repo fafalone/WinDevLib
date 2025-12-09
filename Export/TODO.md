@@ -195,7 +195,7 @@ Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.
     SubAuth.h,davclient.h,DsGetDC.h,errhandlingapi.h,msports.h,objsafe.h,objsafe.idl,winternl.h,AppxPackaging.h,AppxPackaging.idl,XmlDom.idl,wofapi.h,ntddvdeo.h,
     ntddvol.h,hidclass.h,hidusage.h,hidpi.h,hidsdi.h,ntenclv.h,winenclave.h,winenclaveapi.h,ioringapi.h,ntioring_x.h
     
-    
+      
 Coverage in the 90%+ range  winbase.h, oleidl.h, oaidl.h, ocidl.h, ocidl.idl, ,objidl.h,objidl.idl,presentation.h,ScrnSave.h
 
 Substantial coverage  mmsciapi.h, winnt.h,immdev.h,winioctl.h,mmreg.h,WS2spi.h,winerror.h,WindowsSearchErrors.h,windowsx.h,

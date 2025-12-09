@@ -1,12 +1,12 @@
  
-**Update (v9.2.632, 09 Dec 2025):** 
+**Update (v9.2.633, 09 Dec 2025):** 
 - Added a number of missing combaseapi.h APIs to bring coverage to 100%
 - Added Enclave APIs (ntenclv.h, winenclave.h, winenclaveapi.h 100% inc. delegates)
 - Added IORing APIs (ioringapi.h, ntioring_x.h 100%)
 - Added 100% coverage of wofapi.h
 - Added monitor/video IOCTL defs (ntddvdeo.h, 100%)
 - Added additional ntddvol.h IOCTL defs to bring coverage to 100%
-   
+ 
 **Update (v9.2.630, 06 Dec 2025):** 
 - Added AppxPackaging.h/.idl, 100%
 - Added XmlDom.idl, 100% -- This covers IXMLDOMDocument used in other headers and related interfaces/coclasses,
