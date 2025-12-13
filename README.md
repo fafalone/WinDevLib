@@ -58,6 +58,8 @@ WinDevLib has some compiler constants you can enable:
 
 `WDL_NO_DELEGATES` - Do not use Delegate functions in place of function pointers.
 
+`WDL_NO_WS_ALIASES` - Do not use `ws_`prefixes for the short name common word Winsock APIs (`send`, `connect`, `bind`, etc)
+
 `WDL_XAUDIO8` - Use XAudio8 DLLs for XAudio2 APIs (Windows 8)
 
 `WDL_NOMATH` - Exclude built in math helper function (see below). Note: XAudio2 inlined helper functions unavailable when math disabled.
