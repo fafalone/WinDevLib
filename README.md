@@ -22,7 +22,7 @@ Please report any bugs via the Issues feature here on GitHub.
 
 ### Requirements
 
-[twinBASIC Beta 814 or newer](https://github.com/twinbasic/twinbasic/releases) is required.
+[twinBASIC Beta 923 or newer](https://github.com/twinbasic/twinbasic/releases) is required.
 
 ### Adding WinDevLib to your project
 You have 2 options for this:
