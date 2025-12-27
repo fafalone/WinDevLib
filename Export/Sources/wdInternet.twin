@@ -372,10 +372,15 @@ End Interface
     [InterfaceId("79EAC9E1-BAF9-11CE-8C82-00AA004BA90B")]
     [OleAutomation(False)]
     Interface IInternetBindInfo Extends stdole.IUnknown
-        Sub GetBindInfo(ByRef grfBINDF As Long, ByRef pbindinfo As BINDINFO)
+        Sub GetBindInfo(ByRef grfBINDF As BINDF, ByRef pbindinfo As BINDINFO)
         Sub GetBindString(ByVal ulStringType As Long, ByRef ppwzStr As LongPtr, ByVal cEl As Long, ByRef pcElFetched As Long)
     End Interface
-
+    [InterfaceId("a3e015b7-a82c-4dcd-a150-569aeeed36ab")]
+    [OleAutomation(False)]
+    Interface IInternetBindInfoEx Extends IInternetBindInfo
+        Sub GetBindInfoEx(ByRef grfBINDF As BINDF, ByRef pbindinfo As BINDINFO, ByRef grfBINDF2 As BINDF2, pdwReserved As Long)
+    End Interface
+        
     [InterfaceId("79EAC9CD-BAF9-11CE-8C82-00AA004BA90B")]
     [OleAutomation(False)]
     Interface IBindProtocol Extends stdole.IUnknown
@@ -1370,6 +1375,11 @@ Public Enum BINDF
     BINDF_BLOCK_REDIRECTS = &H08000000 ' BINDF_RESERVED_6
     BINDF_DO_REDIRECT_CORS_CHECK = &H40000000 ' BINDF_RESERVED_7
     BINDF_ALLOW_STATUS_NO_CONTENT = &H20000000 ' BINDF_RESERVED_8
+    
+    
+    BINDF_DONTUSECACHE = BINDF_GETNEWESTVERSION
+    BINDF_DONTPUTINCACHE = BINDF_NOWRITECACHE
+    BINDF_NOCOPYDATA = BINDF_PULLDATA
 End Enum
 Public Enum BINDF2
     BINDF2_DISABLEBASICOVERHTTP = &H1
@@ -1703,25 +1713,32 @@ Public Enum URLTEMPLATE
 End Enum
 
 Public Enum ZAFLAGS
-    ZAFLAGS_CUSTOM_EDIT = &H00000001&
-    ZAFLAGS_ADD_SITES = &H00000002&
-    ZAFLAGS_REQUIRE_VERIFICATION = &H00000004&
-    ZAFLAGS_INCLUDE_PROXY_OVERRIDE = &H00000008&
-    ZAFLAGS_INCLUDE_INTRANET_SITES = &H00000010&
-    ZAFLAGS_NO_UI = &H00000020&
-    ZAFLAGS_SUPPORTS_VERIFICATION = &H00000040&
-    ZAFLAGS_UNC_AS_INTRANET = &H00000080&
-    ZAFLAGS_DETECT_INTRANET = &H00000100&
-    ZAFLAGS_USE_LOCKED_ZONES = &H00010000&
-    ZAFLAGS_VERIFY_TEMPLATE_SETTINGS = &H00020000&
-    ZAFLAGS_NO_CACHE = &H00040000&
+    ZAFLAGS_CUSTOM_EDIT = &H00000001
+    ZAFLAGS_ADD_SITES = &H00000002
+    ZAFLAGS_REQUIRE_VERIFICATION = &H00000004
+    ZAFLAGS_INCLUDE_PROXY_OVERRIDE = &H00000008 ' Intranet only.
+    ZAFLAGS_INCLUDE_INTRANET_SITES = &H00000010 ' Intranet only.
+    ZAFLAGS_NO_UI = &H00000020 ' Don't display UI (used for local machine)
+    ZAFLAGS_SUPPORTS_VERIFICATION = &H00000040 ' Supports server verification.
+    ZAFLAGS_UNC_AS_INTRANET = &H00000080
+    ZAFLAGS_DETECT_INTRANET = &H00000100 ' Intranet only.
+    '  Locked/Unlocked state specific flags.
+    ZAFLAGS_USE_LOCKED_ZONES = &H00010000
+    '  Used ONLY in GetZoneAttributes to specify that Template Matching should be done to verify
+    '  that zone's Current Level is correct.
+    ZAFLAGS_VERIFY_TEMPLATE_SETTINGS = &H00020000
+    '  Bypass the zonemgr cache for this setting
+    ZAFLAGS_NO_CACHE = &H00040000
 End Enum
+
+Public Const MAX_ZONE_PATH = 260
+Public Const MAX_ZONE_DESCRIPTION= 200
 
 Public Type ZONEATTRIBUTES
 	cbSize As Long
-	szDisplayName(0 To 519) As Byte
-	szDescription(0 To 399) As Byte
-	szIconPath(0 To 519) As Byte
+    szDisplayName(0 To (MAX_ZONE_PATH - 1)) As Integer
+    szDescription(0 To (MAX_ZONE_DESCRIPTION - 1)) As Integer
+    szIconPath(0 To (MAX_ZONE_PATH - 1)) As Integer
 	dwTemplateMinLevel As URLTEMPLATE
 	dwTemplateRecommended As URLTEMPLATE
 	dwTemplateCurrentLevel As URLTEMPLATE
@@ -1808,7 +1825,11 @@ Public Enum PI_FLAGS
 	PI_LOADAPPDIRECT = &H00004000
 	PD_FORCE_SWITCH = &H00010000
 	PI_PREFERDEFAULTHANDLER = &H00020000
+    
+    PI_DOCFILECLSIDLOOKUP = PI_CLSIDLOOKUP
 End Enum
+
+Public Const INVALID_P_ROOT_SECURITY_ID As LongPtr = -1
 
 Public Type PROTOCOLDATA
 	grfFlags As Long
@@ -2019,12 +2040,40 @@ Public Enum QUERYOPTION
 End Enum
     
     
-Public Const FMFD_DEFAULT = &H00000000
-Public Const FMFD_URLASFILENAME = &H00000001
-Public Const URLMON_OPTION_USERAGENT = &H10000001
-Public Const URLMON_OPTION_USERAGENT_REFRESH = &H10000002
-Public Const URLMON_OPTION_URL_ENCODING = &H10000004
-
+Public Enum FMFD_Flags
+    FMFD_DEFAULT = &H00000000
+    FMFD_URLASFILENAME = &H00000001
+' #if (_WIN32_IE >= _WIN32_IE_IE60SP2)
+    FMFD_ENABLEMIMESNIFFING = &H00000002
+    FMFD_IGNOREMIMETEXTPLAIN = &H00000004
+' #endif //(_WIN32_IE >= _WIN32_IE_IE60SP2)
+    FMFD_SERVERMIME = &H00000008
+    FMFD_RESPECTTEXTPLAIN = &H00000010
+    FMFD_RETURNUPDATEDIMGMIMES = &H00000020
+    FMFD_RESERVED_1 = &H00000040
+    FMFD_RESERVED_2 = &H00000080
+    UAS_EXACTLEGACY = &H00001000
+End Enum
+Public Enum URLMON_OPTIONS
+    URLMON_OPTION_USERAGENT = &H10000001
+    URLMON_OPTION_USERAGENT_REFRESH = &H10000002
+    URLMON_OPTION_URL_ENCODING = &H10000004
+' #if (_WIN32_IE >= _WIN32_IE_IE60SP2)
+    URLMON_OPTION_USE_BINDSTRINGCREDS = &H10000008
+' #endif //(_WIN32_IE >= _WIN32_IE_IE60SP2)
+' #if (_WIN32_IE >= _WIN32_IE_IE70)
+    URLMON_OPTION_USE_BROWSERAPPSDOCUMENTS = &H10000010
+End Enum
+Public Enum IEObjectType
+    IE_EPM_OBJECT_EVENT
+    IE_EPM_OBJECT_MUTEX
+    IE_EPM_OBJECT_SEMAPHORE
+    IE_EPM_OBJECT_SHARED_MEMORY
+    IE_EPM_OBJECT_WAITABLE_TIMER
+    IE_EPM_OBJECT_FILE
+    IE_EPM_OBJECT_NAMED_PIPE
+    IE_EPM_OBJECT_REGISTRY
+End Enum
 
 Public Const sCLSID_InternetZoneManager = "new: {7b8a2d95-0ac9-11d1-896c-00c04Fb6bfc4}"
 Public Const sCLSID_InternetSecurityManager = "new: {7b8a2d94-0ac9-11d1-896c-00c04fb6bfc4}"
@@ -2230,12 +2279,46 @@ Public Enum INTERNETFEATURELIST
     FEATURE_ENTRY_COUNT = 28 ' This should be the last item
 End Enum
 
+Public Const SZ_URLCONTEXT  = "URL Context"
+Public Const SZ_ASYNC_CALLEE  = "AsyncCallee"
+
 Public Enum UrlMonikerFlags
     URL_MK_LEGACY = 0
     URL_MK_UNIFORM = 1
     URL_MK_NO_CANONICALIZE = 2
 End Enum
 
+Public Enum COMPAT
+    COMPAT_AGGREGATE = &H00000001
+    COMPAT_NO_OBJECTSAFETY = &H00000002
+    COMPAT_NO_PROPNOTIFYSINK = &H00000004
+    COMPAT_SEND_SHOW = &H00000008
+    COMPAT_SEND_HIDE = &H00000010
+    COMPAT_ALWAYS_INPLACEACTIVATE = &H00000020
+    COMPAT_NO_SETEXTENT = &H00000040
+    COMPAT_NO_UIACTIVATE = &H00000080
+    COMPAT_NO_QUICKACTIVATE = &H00000100
+    COMPAT_NO_BINDF_OFFLINEOPERATION = &H00000200
+    COMPAT_EVIL_DONT_LOAD = &H00000400
+    COMPAT_PROGSINK_UNTIL_ACTIVATED = &H00000800
+    COMPAT_USE_PROPBAG_AND_STREAM = &H00001000
+    COMPAT_DISABLEWINDOWLESS = &H00002000
+    COMPAT_SETWINDOWRGN = &H00004000
+    COMPAT_PRINTPLUGINSITE = &H00008000&
+    COMPAT_INPLACEACTIVATEEVENWHENINVISIBLE = &H00010000
+    COMPAT_NEVERFOCUSSABLE = &H00020000
+    COMPAT_ALWAYSDEFERSETWINDOWRGN = &H00040000
+    COMPAT_INPLACEACTIVATESYNCHRONOUSLY = &H00080000
+    COMPAT_NEEDSZEROBASEDDRAWRECT = &H00100000
+    COMPAT_HWNDPRIVATE = &H00200000
+    COMPAT_SECURITYCHECKONREDIRECT = &H00400000
+    COMPAT_SAFEFOR_LOADING = &H00800000
+End Enum
+Public Enum IEInstallScopeValues
+    INSTALL_SCOPE_INVALID = 0
+    INSTALL_SCOPE_MACHINE = 1
+    INSTALL_SCOPE_USER = 2
+End Enum
 'These APIs are here instead of the API module below because they were part of the original olelib/oleexp.
 Public DeclareWide PtrSafe Function CreateURLMoniker Lib "urlmon" (ByVal pMkCtx As IMoniker, ByVal szURL As String, ppmk As IMoniker) As Long
 [PreserveSig(False)]
@@ -2254,8 +2337,9 @@ Public Declare PtrSafe Function RevokeBindStatusCallback Lib "urlmon" (ByVal pbc
 Public DeclareWide PtrSafe Function GetClassFileOrMime Lib "urlmon" (ByVal pbc As IBindCtx, ByVal szFileName As String, ByRef pBuffer As Any, ByVal cbSize As Long, ByVal szMime As String, ByVal dwReserved As Long, ByRef pclsid As UUID) As Long
 Public DeclareWide PtrSafe Function IsValidURL Lib "urlmon" (ByVal pbc As IBindCtx, ByVal szURL As String, ByVal dwReserved As Long) As Long
 Public DeclareWide PtrSafe Function CoGetClassObjectFromURL Lib "urlmon" (ByRef rCLASSID As UUID, ByVal szCODE As String, ByVal dwFileVersionMS As Long, ByVal dwFileVersionLS As Long, ByVal szTYPE As String, ByVal pBindCtx As IBindCtx, ByVal dwClsContext As Long, ByRef pvReserved As Any, ByRef riid As UUID, ByRef ppv As Any) As Long
+Public Declare PtrSafe Function IEInstallScope Lib "urlmon" (pdwScope As IEInstallScopeValues) As Long
 Public Declare PtrSafe Function FaultInIEFeature Lib "urlmon" (ByVal hwnd As LongPtr, ByRef pClassSpec As uCLSSPEC, ByRef pQuery As QUERYCONTEXT, ByVal dwFlags As FIEF) As Long
-Public Declare PtrSafe Function GetComponentIDFromCLSSPEC Lib "urlmon" (ByRef pClassSpec As uCLSSPEC) As Long
+Public Declare PtrSafe Function GetComponentIDFromCLSSPEC Lib "urlmon" (ByRef pClassSpec As uCLSSPEC, ppszComponentID As LongPtr) As Long
 Public Declare PtrSafe Function IsAsyncMoniker Lib "urlmon" (ByVal pmk As IMoniker) As Long
 Public DeclareWide PtrSafe Function CreateURLBinding Lib "urlmon" (ByVal lpszUrl As String, ByVal pbc As IBindCtx, ppBdg As IBinding) As Long
 [PreserveSig(False)]
@@ -2271,8 +2355,13 @@ Public Declare PtrSafe Function RegisterMediaTypeClass Lib "urlmon" (ByVal pbc A
 Public Declare PtrSafe Function FindMediaTypeClass Lib "urlmon" (ByVal pbc As IBindCtx, ByVal szTYPE As String, ByRef pclsid As UUID, ByVal reserved As Long) As Long
 Public Declare PtrSafe Function UrlMkSetSessionOption Lib "urlmon" (ByVal dwOption As Long, ByRef pBuffer As Any, ByVal dwBufferLength As Long, ByVal dwReserved As Long) As Long
 Public Declare PtrSafe Function UrlMkGetSessionOption Lib "urlmon" (ByVal dwOption As Long, ByRef pBuffer As Any, ByVal dwBufferLength As Long, ByRef pdwBufferLength As Long, ByVal dwReserved As Long) As Long
-Public DeclareWide PtrSafe Function FindMimeFromData Lib "urlmon" (ByVal pbc As IBindCtx, ByVal pwzUrl As String, ByRef pBuffer As Any, ByVal cbSize As Long, ByVal pwzMimeProposed As String, ByVal dwMimeFlags As Long, ByRef ppwzMimeOut As LongPtr, ByVal dwReserved As Long) As Long
+Public DeclareWide PtrSafe Function FindMimeFromData Lib "urlmon" (ByVal pbc As IBindCtx, ByVal pwzUrl As String, ByRef pBuffer As Any, ByVal cbSize As Long, ByVal pwzMimeProposed As String, ByVal dwMimeFlags As FMFD_Flags, ByRef ppwzMimeOut As LongPtr, ByVal dwReserved As Long) As Long
+Public Declare PtrSafe Function FindMimeFromData Lib "urlmon" (ByVal pbc As IBindCtx, ByVal pwzUrl As LongPtr, ByRef pBuffer As Any, ByVal cbSize As Long, ByVal pwzMimeProposed As LongPtr, ByVal dwMimeFlags As FMFD_Flags, ByRef ppwzMimeOut As LongPtr, ByVal dwReserved As Long) As Long
 Public Declare PtrSafe Function ObtainUserAgentString Lib "urlmon" (ByVal dwOption As Long, ByVal pszUAOut As String, ByRef cbSize As Long) As Long
+Public Declare PtrSafe Function CompareSecurityIds Lib "urlmon" (pbSecurityId1 As Any, ByVal dwLen1 As Long, pbSecurityId2 As Any, ByVal dwLen2 As Long, ByVal dwReserved As Long) As Long
+Public Declare PtrSafe Function CompatFlagsFromClsid Lib "urlmon" (clsid As UUID, pdwCompatFlags As COMPAT, pdwMiscStatusFlags As OLEMISC) As Long
+Public Declare PtrSafe Function SetAccessForIEAppContainer Lib "urlmon" (ByVal hObject As LongPtr, ByVal ieObjectType As IEObjectType, ByVal dwAccessMask As Long) As Long
+
 Public DeclareWide PtrSafe Function HlinkSimpleNavigateToString Lib "urlmon" (ByVal szTarget As String, ByVal szLocation As String, ByVal szTargetFrameName As String, ByVal pUnk As stdole.IUnknown, ByVal pbc As IBindCtx, ByVal pbsc As IBindStatusCallback, ByVal grfHLNF As Long, ByVal dwReserved As Long) As Long
 Public DeclareWide PtrSafe Function HlinkSimpleNavigateToMoniker Lib "urlmon" (ByVal pmkTarget As IMoniker, ByVal szLocation As String, ByVal szTargetFrameName As String, ByVal pUnk As stdole.IUnknown, ByVal pbc As IBindCtx, ByVal pbsc As IBindStatusCallback, ByVal grfHLNF As Long, ByVal dwReserved As Long) As Long
 Public Declare PtrSafe Function URLOpenStreamA Lib "urlmon" (ByVal pCaller As stdole.IUnknown, ByVal szURL As String, ByVal dw As Long, ByVal pCallback As IBindStatusCallback) As Long
