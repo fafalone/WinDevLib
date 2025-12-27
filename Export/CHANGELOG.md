@@ -1,4 +1,26 @@
  
+**Update (v9.2.634, 27 Dec 2025):** 
+- Began process of implementing Alias syntax:  
+-- **twinBASIC Beta 923 or newer is now required.** This is impractical to version-gate, therefore support for old tB betas is ending.
+-- `CBoolean` added as alias for `Byte`, all `BOOLEAN` C types will be changed  
+-- oleexp.tlb public aliases added and usages being restored (e.g. REFERENCE_TIME)  
+-- ANSI/Unicode UDTs will use an alias for the non-explicit version  
+-- UDT aliases will be used, e.g. D2D1_POINT_2F for D2D_POINT_2F 
+-- Not all C types will be used; only where they're far removed from their underlying  
+type. Like DWORD wouldn't be used, but D2D1_TAG would be as that's not clearly just an 
+alternate for LongLong. Short wouldn't be used but ATOM would.  
+-- This will be an ongoing process as to not hold up bug fixes and new features.
+- Additional urlmon.h content
+- Add missing DateTime notify type aliases (e.g. NMDATETIMEFORMATQUERY for NMDATETIMEFORMATQUERYW)
+- (Breaking change) ZONEATTRIBUTES now uses proper Integer type for arrays
+- (Bug fix) IMediaSample::GetPointer incorrect for x64
+- (Bug fix) IMediaSample::GetMediaType, IEnumMediaTypes::Next definitions incorrect
+- (Bug fix) COMBOBOXEXITEM improperly used String; renamed to COMBOBOXEXITEMA and alias for W version added.  
+NMCOMBOBOXEX corrected to match. Same bug fixed for NMCBEDRAGBEGIN and NMCBEENDEDIT.
+- (Bug fix) Huge number of ByVals that should be ByRef in DX11/12 interfaces.
+- (Bug fix) GetComponentIDFromCLSSPEC missing argument
+- (Bug fix) SetupComm definition incorrect for x64
+
 **Update (v9.2.633, 09 Dec 2025):** 
 - Added a number of missing combaseapi.h APIs to bring coverage to 100%
 - Added Enclave APIs (ntenclv.h, winenclave.h, winenclaveapi.h 100% inc. delegates)
