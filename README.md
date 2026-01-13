@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 9.2.638 (January 13th, 2026)**
+**Current Version: 9.2.639 (January 13th, 2026)**
 
 (c) 2022-2025 Jon Johnson (fafalone)
 
@@ -239,6 +239,9 @@ Finally, there's numerous additional API sets from small to large for independen
 
 
 ### Updates
+
+**Update (v9.2.639, 13 Jan 2026):** 
+- (Bug fix) glu.h functions are DLL exports from glu32.dll, not loaded by wglGetProcAddress
 
 **Update (v9.2.638, 13 Jan 2026):** 
 - Added initial OpenGL coverage.  
