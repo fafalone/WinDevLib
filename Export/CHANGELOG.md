@@ -1,4 +1,12 @@
  
+**Update (v9.2.638, 13 Jan 2026):** 
+- Added initial OpenGL coverage.  
+-- Included: Windows SDK gl.h, glu.h; OpenGL 1.2-4.6; ARB approved extension; FreeGLUT. Planned but not yet included: EXT functions, vendor-specific functions.  
+-- Note: Most functions are loaded dynamically, and a context must be created first.\
+ WDL will automatically initialize all dynamic functions on the first use of any dynamic function. Thanks to Wayne Phillips for the technique.
+- GdipAddPathStringI is missing #42
+- (Bug fix) GdipPathIterNextMarkerPath, GdipBitmapApplyEffect, GdipBitmapCreateApplyEffect definitions incorrect #43
+ 
 **Update (v9.2.634, 27 Dec 2025):** 
 - Began process of implementing Alias syntax:  
 -- **twinBASIC Beta 923 or newer is now required.** This is impractical to version-gate, therefore support for old tB betas is ending.
