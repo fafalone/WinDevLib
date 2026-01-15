@@ -1,11 +1,20 @@
+
+**Update (v9.2.640, 15 Jan 2026):** 
+- Added OpenGL EXT and MS vendor-specific functions
+- opengl32, glu32, and GDI+ APIs now use `[UseGetLastError(False)]` for performance, since they don't use SetLastError.
+- Added compiler const WDL_NO_GL to disable OpenGL.
+- (Bug fix) BitmapData last member should be LongPtr [#44](https://github.com/fafalone/WinDevLib/issues/44)
  
+**Update (v9.2.639, 13 Jan 2026):** 
+- (Bug fix) glu.h functions are DLL exports from glu32.dll, not loaded by wglGetProcAddress
+
 **Update (v9.2.638, 13 Jan 2026):** 
 - Added initial OpenGL coverage.  
 -- Included: Windows SDK gl.h, glu.h; OpenGL 1.2-4.6; ARB approved extension; FreeGLUT. Planned but not yet included: EXT functions, vendor-specific functions.  
 -- Note: Most functions are loaded dynamically, and a context must be created first.\
  WDL will automatically initialize all dynamic functions on the first use of any dynamic function. Thanks to Wayne Phillips for the technique.
-- GdipAddPathStringI is missing #42
-- (Bug fix) GdipPathIterNextMarkerPath, GdipBitmapApplyEffect, GdipBitmapCreateApplyEffect definitions incorrect #43
+- GdipAddPathStringI is missing [#42](https://github.com/fafalone/WinDevLib/issues/42)
+- (Bug fix) GdipPathIterNextMarkerPath, GdipBitmapApplyEffect, GdipBitmapCreateApplyEffect definitions incorrect [#43](https://github.com/fafalone/WinDevLib/issues/43)
  
 **Update (v9.2.634, 27 Dec 2025):** 
 - Began process of implementing Alias syntax:  
