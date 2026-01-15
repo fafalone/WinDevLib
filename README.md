@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 9.2.639 (January 13th, 2026)**
+**Current Version: 9.2.640 (January 15th, 2026)**
 
 (c) 2022-2025 Jon Johnson (fafalone)
 
@@ -41,7 +41,8 @@ WinDevLib has some compiler constants you can enable:
 
 `WINDEVLIB_LITE` - This flag disables most API declares and misc WinAPI definitions, including everything in wdAPIComCtl, wdAPI, and wdDefs. I used to like doing my APIs separate too, which is why oleexp never had the expansive coverage. But with that coverage now present, I think it's worth using, but this option will still be supported.
 
-`WDL_NO_DIRECTX` - Excludes DirectX, Media Foundation, XAudio, and WinML content. This is useful to substantially cut down on Intellisense entries in non-multimedia apps. Basic 2D graphics remain (GDI, GDI+, WIC).
+`WDL_NO_DIRECTX` - Excludes DirectX, Media Foundation, XAudio, and WinML content. This is useful to substantially cut down on Intellisense entries in non-multimedia apps. Basic 2D graphics remain (GDI, GDI+, WIC).\
+`WDL_NO_GL` - Excludes OpenGL.
 
 `WDL_NO_COMCTL` - You can use this flag if you already have an alternative common controls definition set, e.g. tbComCtlLib; it will disable wdAPIComCtl. (Note: WinDevLib has more complete comctl defs than tbComCtlLib, as that project was deprecated and not updated).
 
@@ -239,6 +240,12 @@ Finally, there's numerous additional API sets from small to large for independen
 
 
 ### Updates
+
+**Update (v9.2.640, 15 Jan 2026):** 
+- Added OpenGL EXT and MS vendor-specific functions
+- opengl32, glu32, and GDI+ APIs now use `[UseGetLastError(False)]` for performance, since they don't use SetLastError.
+- Added compiler const WDL_NO_GL to disable OpenGL.
+- (Bug fix) BitmapData last member should be LongPtr [#44](https://github.com/fafalone/WinDevLib/issues/44)
 
 **Update (v9.2.639, 13 Jan 2026):** 
 - (Bug fix) glu.h functions are DLL exports from glu32.dll, not loaded by wglGetProcAddress
