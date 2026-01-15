@@ -3,7 +3,7 @@
 
 **Current Version: 9.2.640 (January 15th, 2026)**
 
-(c) 2022-2025 Jon Johnson (fafalone)
+(c) 2022-2026 Jon Johnson (fafalone)
 
 > [!IMPORTANT]
 > **Version 9.2.634 and higher now requires twinBASIC Beta 923 or newer.** The project is now using twinBASIC's new `Alias` syntax support, which is impractical to version-gate.
