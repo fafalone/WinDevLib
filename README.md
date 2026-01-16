@@ -158,12 +158,10 @@ WinDevLib presented the best opportunity there would be to ditch some olelib leg
 
 #### oleexp type library issues
 The follow steps apply only if you're converting code that previously relied on my oleexp.tlb project:
+ 
+1) Replace oleexp.IUnknown with IUnknownUnrestricted. WinDevLib keeps this separate due to the major issues with conflicts with the former approach. If your project has IUnknown *without* oleexp. in front of it, **do not** replace those, as it's not referring to oleexp. 
 
-1) Replace public aliases: It's important to do this first. Run a Replace All changing oleexp.LONG_PTR to LongPtr, oleexp.REFERENCE_TIME to LongLong, oleexp.HNSTIME to LongLong, oleexp.KNOWNFOLDERID to UUID, oleexp.EventRegistrationToken to LongLong, oleexp.BINDPTR to LongPtr, and oleexp.LPCRITICAL_SECTION to LongPtr. If you've used them without the oleexp. prefix, you'll also need to replace those, but if you've imported into tB they should be tagged. (These aliases will be restored as soon as tB supports it).
-
-2) Replace oleexp.IUnknown with IUnknownUnrestricted. WinDevLib keeps this separate due to the major issues with conflicts with the former approach. If your project has IUnknown *without* oleexp. in front of it, **do not** replace those, as it's not referring to oleexp. 
-
-3) After you've done those two, you can now go ahead and simply delete all remaining instances of `oleexp.` (including the .). 
+2) After you've done that, you can now go ahead and simply delete all remaining instances of `oleexp.` (including the .). 
 
 ##### Issues specific to oleexpimp.tlb
 
