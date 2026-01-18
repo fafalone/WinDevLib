@@ -1,4 +1,15 @@
 
+**Update (v9.2.642, 18 Jan 2026):** 
+- Add missing interfaces and consts from ShObjIdl_core.h
+- Add missing interfaces and consts from DocObj.h/.idl
+- GLchar/GLcharARB is now LongPtr since String would pass Unicode
+- Misc native API additions
+- (Bug fix) IPrint::Print definition incorrect
+- (Bug fix) RtlSetProcessIsCritical, RtlSetThreadIsCritical missing CDecl 
+- (Bug fix) PFNGLSHADERSOURCEPROC missing argument
+- (Bug fix) Many OpenGL constants were not properly marked as Long
+- NOTE: twinBASIC Beta 954 or newer is required for the OpenGL delegates
+
 **Update (v9.2.640, 15 Jan 2026):** 
 - Added OpenGL EXT and MS vendor-specific functions
 - opengl32, glu32, and GDI+ APIs now use `[UseGetLastError(False)]` for performance, since they don't use SetLastError.

@@ -193,7 +193,7 @@ Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.
     tlogstg.h,tlogstg.idl,PathCch.h,appmgmt.h,Dimm.h,Dimm.idl,Reconcil.h,objbase.h,objidlbase.h,objidlbase.idl,MSAAText.h,MSAAText.idl,TextStor.h,TextStor.idl,
     SubAuth.h,davclient.h,DsGetDC.h,errhandlingapi.h,msports.h,objsafe.h,objsafe.idl,winternl.h,AppxPackaging.h,AppxPackaging.idl,XmlDom.idl,wofapi.h,ntddvdeo.h,
     ntddvol.h,hidclass.h,hidusage.h,hidpi.h,hidsdi.h,ntenclv.h,winenclave.h,winenclaveapi.h,ioringapi.h,ntioring_x.h,urlmon.h,urlmon.idl,
-    gl.h,glu.h
+    gl.h,glu.h,DocObj.h,DocObj.idl
       
 Coverage in the 90%+ range  winbase.h, oleidl.h, oaidl.h, ocidl.h, ocidl.idl, ,objidl.h,objidl.idl,presentation.h,ScrnSave.h
 
