@@ -1,6 +1,6 @@
 '************************************************************************************
 'WinDevLib - Windows Development Library for twinBASIC
-'Version 9.2.640
+'Version 9.2.642
 '(c) 2022-2025 Jon Johnson (fafalone)
 'Project GUID: {1FCDB98D-617D-4995-9736-2ED0E4746A10}
 ' 
@@ -1504,7 +1504,7 @@ Interface IActionProgress Extends stdole.IUnknown
     Sub Begin(ByVal action As SPACTION, ByVal flags As SPBEGINF)
     Sub UpdateProgress(ByVal ulCompleted As LongLong, ByVal ulTotal As LongLong)
     Sub UpdateText(ByVal sptxt As SPTEXT, ByVal pszText As String, ByVal fMayCompare As BOOL)
-    Function QueryCancel() As Long
+    Function QueryCancel() As BOOL
     Sub ResetCancel()
     Sub End()
 End Interface
@@ -2306,7 +2306,12 @@ Interface IEnumShellImageStore Extends stdole.IUnknown
     [PreserveSig] Function Clone(ByRef ppenumr As IEnumShellImageStore) As Long
 End Interface
 
-
+[InterfaceId("67efed0e-e827-4408-b493-78f3982b685c")]
+[OleAutomation(False)]
+Interface IParseAndCreateItem Extends stdole.IUnknown
+    Sub SetItem(ByVal psi As IShellItem)
+    Sub GetItem(ByRef riid As UUID, ByVal ppv As LongPtr)
+End Interface
 
 
 [InterfaceId("2DD81FE3-A83C-4DA9-A330-47249D345BA1")]
@@ -3404,6 +3409,14 @@ End Interface
 Interface IInitializeNetworkFolder Extends stdole.IUnknown
     [PreserveSig]
     Function Initialize(ByVal pidl As LongPtr, ByVal pidlTarget As LongPtr, ByVal uDisplayType As Long, ByVal pszResName As LongPtr, ByVal pszProvider As LongPtr) As Long
+End Interface
+
+[InterfaceId("CEB38218-C971-47BB-A703-F0BC99CCDB81")]
+[OleAutomation(False)]
+Interface INetworkFolderInternal Extends stdole.IUnknown
+    Sub GetResourceDisplayType(ByRef displayType As Long)
+    Sub GetIDList(ByRef idList As LongPtr)
+    Sub GetProvider(ByVal itemIdCount As Long, ByVal itemIds As LongPtr, ByVal providerMaxLength As Long, ByVal provider As LongPtr)
 End Interface
 
 [InterfaceId("3C708557-C99D-4FA3-9231-56518418B4E4")]
@@ -5258,6 +5271,7 @@ End Type
 Public Enum BIND_FLAGS
 	BIND_MAYBOTHERUSER = 1
 	BIND_JUSTTESTEXISTENCE = 2
+    BIND_INTERRUPTABLE = &HFFFFFFF
 End Enum
 Public Type BIND_OPTS
 	cbStruct As Long '  sizeof(BIND_OPTS)
@@ -5525,6 +5539,7 @@ Public Enum BO_Flags
 	SBSP_NOAUTOSELECT = &H04000000
 	SBSP_WRITENOHISTORY = &H08000000
 	SBSP_TRUSTEDFORACTIVEX = &H10000000
+    SBSP_FEEDNAVIGATION = &H20000000
 	SBSP_REDIRECT = &H40000000
 	SBSP_INITIATEDBYHLINKFRAME = &H80000000
 End Enum
@@ -6395,6 +6410,15 @@ Public Enum MessageBoxResults
     MB_TIMEDOUT = 32000 'alias
 End Enum
 
+Public Enum STGOP
+    STGOP_MOVE = 1
+    STGOP_COPY = 2
+    STGOP_SYNC = 3
+    STGOP_REMOVE = 5
+    STGOP_RENAME = 6
+    STGOP_APPLYPROPERTIES = 8 ' (NTDDI_VERSION >= NTDDI_VISTA)
+    STGOP_NEW = 10 ' (NTDDI_VERSION >= NTDDI_VISTA)
+End Enum
 
 Public Enum TRANSFER_SOURCE_FLAGS
 	TSF_NORMAL = 0
@@ -8549,23 +8573,22 @@ Public Enum MP_POPUPFLAGS
 End Enum
 
 Public Enum PROPERTYUI_NAME_FLAGS
-    PUIFNF_DEFAULT = 0                                   ' &H00000000&
-    PUIFNF_MNEMONIC = 1                                  ' &H00000001&
+    PUIFNF_DEFAULT = &H00000000
+    PUIFNF_MNEMONIC = &H00000001 ' include mnemonic in display name
 End Enum
 
 Public Enum PROPERTYUI_FLAGS
-    PUIF_DEFAULT = 0                                     ' &H00000000&
-    PUIF_RIGHTALIGN = 1                                  ' &H00000001&
-    PUIF_NOLABELININFOTIP = 2                            ' &H00000002&
+    PUIF_DEFAULT = &H00000000
+    PUIF_RIGHTALIGN = &H00000001 ' this property should be right aligned
+    PUIF_NOLABELININFOTIP = &H00000002 ' this property should not display a label in the infotip
 End Enum
 
 Public Enum PROPERTYUI_FORMAT_FLAGS
-    PUIFFDF_DEFAULT = 0                                  ' &H00000000&
-    PUIFFDF_RIGHTTOLEFT = 1                              ' &H00000001&
-    PUIFFDF_SHORTFORMAT = 2                              ' &H00000002&
-    PUIFFDF_NOTIME = 4                                   ' &H00000004&
-    PUIFFDF_FRIENDLYDATE = 8                             ' &H00000008&
-    PUIFFDF_NOUNITS = 16                                 ' &H00000010&
+    PUIFFDF_DEFAULT = &H00000000
+    PUIFFDF_RIGHTTOLEFT = &H00000001 ' deprecated - do not use
+    PUIFFDF_SHORTFORMAT = &H00000002 ' short format version of string
+    PUIFFDF_NOTIME = &H00000004 ' truncate time to days, not hours/mins/sec
+    PUIFFDF_FRIENDLYDATE = &H00000008 ' "Today", "Yesterday", etc
 End Enum
     
 
@@ -8854,6 +8877,17 @@ Public Enum TLENUMF
     TLEF_ABSOLUTE = &H00000031
     TLEF_EXCLUDE_SUBFRAME_ENTRIES = &H00000080
     TLEF_EXCLUDE_ABOUT_PAGES = &H00000100
+End Enum
+
+Public Enum AHTYPE
+    AHTYPE_UNDEFINED = &H0000 			' default
+    AHTYPE_USER_APPLICATION = &H0008 	' user created association (e.g. "Find on this PC" via Open With)
+    AHTYPE_ANY_APPLICATION = &H0010 	' applications found under HKCR\Applications
+    AHTYPE_MACHINEDEFAULT = &H0020 		' association found under HKCR\.ext
+    AHTYPE_PROGID = &H0040 				' association with a registered progId
+    AHTYPE_APPLICATION = &H0080 		' application found under HKCR\.ext\OpenWithList
+    AHTYPE_CLASS_APPLICATION = &H0100
+    AHTYPE_ANY_PROGID = &H0200 			' association with a registered progId for any (*) extension (modern apps)
 End Enum
 
 [Description("⚠️ **WARNING:** Buffered array substituted for variable C-style array. LenB is invalid. If cbInner > 4095, rgb is invalid.")]
@@ -13338,5 +13372,5 @@ Public Alias TEXTMETRIC As TEXTMETRICW
 Public Alias SHELLEXECUTEINFO As SHELLEXECUTEINFOW
 Public Alias NOTIFYICONDATA As NOTIFYICONDATAW
 Public Alias SHELLSTATE As SHELLSTATEW
-
+ 
 #End Region
