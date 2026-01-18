@@ -20488,6 +20488,27 @@ Public Enum RTL_UPP_FLAGS
     RTL_USER_PROCESS_PARAMETERS_LOCAL_DLL_PATH = &H2000
     RTL_USER_PROCESS_PARAMETERS_IMAGE_KEY_MISSING = &H4000
     RTL_USER_PROCESS_PARAMETERS_NX = &H20000
+    
+    
+     
+    'phnt na,es
+    RTL_USER_PROC_PARAMS_NORMALIZED = &H00000001
+    RTL_USER_PROC_PROFILE_USER = &H00000002
+    RTL_USER_PROC_PROFILE_KERNEL = &H00000004
+    RTL_USER_PROC_PROFILE_SERVER = &H00000008
+    RTL_USER_PROC_RESERVE_1MB = &H00000020
+    RTL_USER_PROC_RESERVE_16MB = &H00000040
+    RTL_USER_PROC_CASE_SENSITIVE = &H00000080
+    RTL_USER_PROC_DISABLE_HEAP_DECOMMIT = &H00000100
+    RTL_USER_PROC_DLL_REDIRECTION_LOCAL = &H00001000
+    RTL_USER_PROC_APP_MANIFEST_PRESENT = &H00002000
+    RTL_USER_PROC_IMAGE_KEY_MISSING = &H00004000
+    RTL_USER_PROC_DEV_OVERRIDE_ENABLED = &H00008000&
+    RTL_USER_PROC_OPTIN_PROCESS = &H00020000
+    RTL_USER_PROC_SESSION_OWNER = &H00040000
+    RTL_USER_PROC_HANDLE_USER_CALLBACK_EXCEPTIONS = &H00080000
+    RTL_USER_PROC_PROTECTED_PROCESS = &H00400000
+    RTL_USER_PROC_SECURE_PROCESS = &H80000000
 End Enum
 
 Public Type SEP_TOKEN_PRIVILEGES
@@ -24027,6 +24048,25 @@ End Sub
 Public Const LOGONID_CURRENT As Long = -1&
 Public Const SERVERNAME_CURRENT As LongPtr = 0
 
+Public Type RTL_USER_PROCESS_INFORMATION
+    Length As Long
+    ProcessHandle As LongPtr
+    ThreadHandle As LongPtr
+    ClientId As CLIENT_ID
+    ImageInformation As SECTION_IMAGE_INFORMATION
+End Type
+Public Const RTL_USER_PROCESS_EXTENDED_PARAMETERS_VERSION  = 1
+Public Type RTL_USER_PROCESS_EXTENDED_PARAMETERS
+    Version As Integer
+    NodeNumber As Integer
+    ProcessSecurityDescriptor As LongPtr 'PSECURITY_DESCRIPTOR
+    ThreadSecurityDescriptor As LongPtr 'PSECURITY_DESCRIPTOR
+    ParentProcess As LongPtr
+    DebugPort As LongPtr
+    TokenHandle As LongPtr
+    JobHandle As LongPtr
+End Type
+
 [UseGetLastError(False)] Public Declare PtrSafe Function CompareMemory Lib "ntdll" Alias "RtlCompareMemory" (Source1 As Any, Source2 As Any, ByVal Length As LongPtr) As LongPtr
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlCompareMemory Lib "ntdll" (Source1 As Any, Source2 As Any, ByVal Length As LongPtr) As LongPtr
 Public Function EqualMemory(ByVal Source1 As LongPtr, ByVal Source2 As LongPtr, ByVal Length As LongPtr) As Boolean: Return (RtlCompareMemory(ByVal Source1, ByVal Source2, Length) = Length): End Function
@@ -24052,12 +24092,20 @@ Public Function RtlEqualMemory(ByVal Source1 As LongPtr, ByVal Source2 As LongPt
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlCreateHeap Lib "ntdll" (ByVal Flags As HeapFlags, ByVal HeapBase As LongPtr, ByVal ReserveSize As LongPtr, ByVal CommitSize As LongPtr, ByVal Lock As LongPtr, Parameters As RTL_HEAP_PARAMETERS) As LongPtr
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlFreeHeap Lib "ntdll" (ByVal HeapHandle As LongPtr, ByVal Flags As HeapFlags, ByVal BaseAddress As LongPtr) As Long
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlDestroyHeap Lib "ntdll" (ByVal HeapHandle As LongPtr) As LongPtr
-[UseGetLastError(False)] Public Declare PtrSafe Function RtlCreateProcessParametersEx Lib "ntdll" (pProcessParameters As Any, ImagePathName As UNICODE_STRING, DllPath As UNICODE_STRING, CurrentDirectory As UNICODE_STRING, CommandLine As UNICODE_STRING, _
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlCreateProcessParametersEx Lib "ntdll" (pProcessParameters As LongPtr, ImagePathName As UNICODE_STRING, DllPath As UNICODE_STRING, CurrentDirectory As UNICODE_STRING, CommandLine As UNICODE_STRING, _
                                                 Environment As Any, WindowTitle As UNICODE_STRING, DesktopInfo As UNICODE_STRING, ShellInfo As UNICODE_STRING, RuntimeData As UNICODE_STRING, ByVal Flags As RTL_UPP_FLAGS) As NTSTATUS
-[UseGetLastError(False)] Public Declare PtrSafe Function RtlCreateProcessParameters Lib "ntdll" (pProcessParameters As Any, ImagePathName As UNICODE_STRING, DllPath As UNICODE_STRING, CurrentDirectory As UNICODE_STRING, CommandLine As UNICODE_STRING, _
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlCreateProcessParameters Lib "ntdll" (pProcessParameters As LongPtr, ImagePathName As UNICODE_STRING, DllPath As UNICODE_STRING, CurrentDirectory As UNICODE_STRING, CommandLine As UNICODE_STRING, _
                                                 ByVal Environment As LongPtr, WindowTitle As UNICODE_STRING, DesktopInfo As UNICODE_STRING, ShellInfo As UNICODE_STRING, RuntimeData As UNICODE_STRING) As NTSTATUS
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlCreateEnvironment Lib "ntdll" (ByVal bInherit As Byte, Environment As LongPtr) As NTSTATUS
-[UseGetLastError(False)] Public Declare PtrSafe Function RtlDestroyProcessParameters Lib "ntdll" (pProcessParameters As Any) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlDestroyProcessParameters Lib "ntdll" (ProcessParameters As Any) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlNormalizeProcessParams Lib "ntdll" (ProcessParameters As Any) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlDeNormalizeProcessParams Lib "ntdll" (ProcessParameters As Any) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlCreateUserProcess Lib "ntdll" (NtImagePathName As UNICODE_STRING, ByVal ExtendedParameters As Long, ProcessParameters As Any, ProcessSecurityDescriptor As SECURITY_DESCRIPTOR, ThreadSecurityDescriptor As SECURITY_DESCRIPTOR, _
+                                                ByVal ParentProcess As LongPtr, ByVal InheritHandles As CBoolean, ByVal DebugPort As LongPtr, ByVal TokenHandle As LongPtr, ProcessInformation As RTL_USER_PROCESS_INFORMATION) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlCreateUserProcessEx Lib "ntdll" (NtImagePathName As UNICODE_STRING, ProcessParameters As Any, ByVal InheritHandles As CBoolean, ProcessExtendedParameters As RTL_USER_PROCESS_EXTENDED_PARAMETERS, ProcessInformation As RTL_USER_PROCESS_INFORMATION) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlCreateUserThread Lib "ntdll" (ByVal ProcessHandle As LongPtr, SecurityDescriptor As SECURITY_DESCRIPTOR, ByVal CreateSuspended As Byte, ByVal StackZeroBits As Long, ByVal StackReserve As LongPtr, ByVal StackCommit As LongPtr, ByVal StartAddress As LongPtr, Parameter As Any, ThreadHandle As LongPtr, ClientId As CLIENT_ID) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Sub RtlExitUserProcess Lib "ntdll" (ByVal status As NTSTATUS)
+[UseGetLastError(False)] Public Declare PtrSafe Sub RtlExitUserThread Lib "ntdll" (ByVal status As NTSTATUS)
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlQueryModuleInformation Lib "ntdll" (InformationLength As Long, ByVal SizePerModule As Long, InformationBuffer As Any) As NTSTATUS
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlQueryHeapInformation Lib "ntdll" (ByVal HeapHandle As LongPtr, ByVal HeapInformationClass As HEAP_INFORMATION_CLASS, HeapInformation As Any, ByVal HeapInformationLength As LongPtr, Optional ReturnLength As LongPtr) As NTSTATUS
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlSetHeapInformation Lib "ntdll" (ByVal HeapHandle As LongPtr, ByVal HeapInformationClass As HEAP_INFORMATION_CLASS, HeapInformation As Any, ByVal HeapInformationLength As LongPtr) As NTSTATUS
@@ -24106,9 +24154,6 @@ Public Declare PtrSafe Function RtlGetNtProductType Lib "ntdll" (ByRef NtProduct
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlGetCompressionWorkSpaceSize Lib "ntdll" ([TypeHint(NT_COMPRESSION_FORMAT)] ByVal CompressionFormatAndEngine As Integer, CompressBufferWorkSpaceSize As Long, CompressFragmentWorkSpaceSize As Long) As NTSTATUS
 [UseGetLastError(False)] Public Declare PtrSafe Sub RtlGetDeviceFamilyInfoEnum Lib "ntdll" (pullUAPInfo As LongLong, pulDeviceFamily As DEVICEFAMILYINFOENUM, pulDeviceForm As DEVICEFAMILYDEVICEFORM)
 [UseGetLastError(False)] Public DeclareWide PtrSafe Function RtlConvertDeviceFamilyInfoToString Lib "ntdll" (pulDeviceFamilyBufferSize As Long, pulDeviceFormBufferSize As Long, ByVal DeviceFamily As String, ByVal DeviceForm As String) As Long
-[UseGetLastError(False)] Public Declare PtrSafe Function RtlCreateUserThread Lib "ntdll" (ByVal ProcessHandle As LongPtr, SecurityDescriptor As SECURITY_DESCRIPTOR, ByVal CreateSuspended As Byte, ByVal StackZeroBits As Long, ByVal StackReserve As LongPtr, ByVal StackCommit As LongPtr, ByVal StartAddress As LongPtr, Parameter As Any, ThreadHandle As LongPtr, ClientId As CLIENT_ID) As NTSTATUS
-[UseGetLastError(False)] Public Declare PtrSafe Sub RtlExitUserProcess Lib "ntdll" (ByVal status As NTSTATUS)
-[UseGetLastError(False)] Public Declare PtrSafe Sub RtlExitUserThread Lib "ntdll" (ByVal status As NTSTATUS)
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlIsCurrentThreadAttachExempt Lib "ntdll" () As Byte
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlTimeFieldsToTime Lib "ntdll" (TimeFields As TIME_FIELDS, pTime As LARGE_INTEGER) As Byte
 [UseGetLastError(False)] Public Declare PtrSafe Sub RtlTimeToTimeFields Lib "ntdll" (pTime As LARGE_INTEGER, TimeFields As TIME_FIELDS)
@@ -24241,8 +24286,8 @@ Public Declare PtrSafe Function RtlDefaultNpAcl Lib "ntdll" (ByRef Acl As LongPt
 
 
 
-[UseGetLastError(False)] Public Declare PtrSafe Function RtlSetProcessIsCritical Lib "ntdll" (ByVal bNew As Byte, pbOld As Byte, ByVal bNeedScb As Byte) As NTSTATUS
-Public Declare PtrSafe Function RtlSetThreadIsCritical Lib "ntdll" (ByVal NewValue As Byte, OldValue As Byte, ByVal CheckFlag As Byte) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlSetProcessIsCritical CDecl Lib "ntdll" ([TypeHint(BOOL)] ByVal NewValue As CBoolean, [TypeHint(BOOL)] OldValue As CBoolean, [TypeHint(BOOL)] ByVal CheckFlag As CBoolean) As NTSTATUS
+Public Declare PtrSafe Function RtlSetThreadIsCritical CDecl Lib "ntdll" ([TypeHint(BOOL)] ByVal NewValue As CBoolean, [TypeHint(BOOL)] OldValue As CBoolean, [TypeHint(BOOL)] ByVal CheckFlag As CBoolean) As NTSTATUS
 Public Declare PtrSafe Function RtlSetThreadSubProcessTag Lib "ntdll" (ByVal SubProcessTag As LongPtr) As LongPtr
 Public Declare PtrSafe Function RtlValidProcessProtection Lib "ntdll" (ByVal ProcessProtection As PS_PROTECTION) As Byte
 Public Declare PtrSafe Function RtlTestProtectedAccess Lib "ntdll" (ByVal Source As PS_PROTECTION, ByVal Target As PS_PROTECTION) As Byte
