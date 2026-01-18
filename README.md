@@ -1,12 +1,12 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 9.2.640 (January 15th, 2026)**
+**Current Version: 9.2.642 (January 18th, 2026)**
 
 (c) 2022-2026 Jon Johnson (fafalone)
 
 > [!IMPORTANT]
-> **Version 9.2.634 and higher now requires twinBASIC Beta 923 or newer.** The project is now using twinBASIC's new `Alias` syntax support, which is impractical to version-gate.
+> **Version 9.2.634 and higher now requires twinBASIC Beta 923 or newer.** The project is now using twinBASIC's new `Alias` syntax support, which is impractical to version-gate. 954+ is required for OpenGL.
 
 WinDevLib is a project to make all common Windows API COM interfaces, DLL declares, and related Types/Enums/Consts available while programming in twinBASIC.\
 Included are definitions of 3300+ common COM interfaces and 10,000+ APIs from all the common system modules, a level of coverage which makes WDL an entirely different experience than any VBx library, the largest of which offer at most 1/10th as much with huge gaps.\
@@ -238,6 +238,17 @@ Finally, there's numerous additional API sets from small to large for independen
 
 
 ### Updates
+
+**Update (v9.2.642, 18 Jan 2026):** 
+- Add missing interfaces and consts from ShObjIdl_core.h
+- Add missing interfaces and consts from DocObj.h/.idl
+- GLchar/GLcharARB is now LongPtr since String would pass Unicode
+- Misc native API additions
+- (Bug fix) IPrint::Print definition incorrect
+- (Bug fix) RtlSetProcessIsCritical, RtlSetThreadIsCritical missing CDecl 
+- (Bug fix) PFNGLSHADERSOURCEPROC missing argument
+- (Bug fix) Many OpenGL constants were not properly marked as Long
+- NOTE: twinBASIC Beta 954 or newer is required for the OpenGL delegates
 
 **Update (v9.2.640, 15 Jan 2026):** 
 - Added OpenGL EXT and MS vendor-specific functions
