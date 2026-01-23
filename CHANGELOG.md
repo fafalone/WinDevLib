@@ -1,4 +1,12 @@
 
+**Update (v9.2.644, 23 Jan 2026):** 
+- Added AMD and NVIDIA vendor-specific OpenGL functions. OpenGL coverage is now complete.
+- Add Software Licensing APIs (slpublic.h, slerror.h, sliddefs.h 100%)
+- Add some missing DispIds for shell interfaces
+
+**Update (v9.2.643, 22 Jan 2026):** 
+- (Bug fix) bind/ws_bind namelen should be ByVal
+
 **Update (v9.2.642, 18 Jan 2026):** 
 - Add missing interfaces and consts from ShObjIdl_core.h
 - Add missing interfaces and consts from DocObj.h/.idl
