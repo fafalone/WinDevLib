@@ -1,6 +1,14 @@
 
+**Update (v9.2.646, 24 Jan 2026):** 
+- Added Intel vendor-specific and WGL extensions OpenGL functions. 
+- Added WFP ALE Endpoint APIs (fwpstypes.h 100%, fwpsu.h minimal)
+- Misc native API additions
+- Continued implementation of Alias types
+- (Bug fix) PROCESS_MITIGATION_POLICY_INFORMATION union size incorrect
+- (Bug fix) CLSID_SchedulingAgent should be CLSID_CSchedulingAgent
+
 **Update (v9.2.644, 23 Jan 2026):** 
-- Added AMD and NVIDIA vendor-specific OpenGL functions. OpenGL coverage is now complete.
+- Added AMD and NVIDIA vendor-specific OpenGL functions.
 - Add Software Licensing APIs (slpublic.h, slerror.h, sliddefs.h 100%)
 - Add some missing DispIds for shell interfaces
 
