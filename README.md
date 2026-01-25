@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 9.2.646 (January 24th, 2026)**
+**Current Version: 9.2.648 (January 25th, 2026)**
 
 (c) 2022-2026 Jon Johnson (fafalone)
 
@@ -238,6 +238,11 @@ Finally, there's numerous additional API sets from small to large for independen
 
 
 ### Updates
+
+**Update (v9.2.648, 25 Jan 2026):** 
+- (BREAKING CHANGE) For compatibility with existing OpenGL work, void* arguments have been changed from ByVal As LongPtr to ByRef As Any, except in cases where it's explicitly asking for a pointer.
+- Misc native API additions
+- (Bug fix) D2D1_VECTOR_3F Alias/Type duplicate 
 
 **Update (v9.2.646, 24 Jan 2026):** 
 - Added Intel vendor-specific and WGL extensions OpenGL functions. 
