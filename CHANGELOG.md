@@ -1,4 +1,10 @@
 
+**Update (v9.2.648, 25 Jan 2026):** 
+- (BREAKING CHANGE) For compatibility with existing OpenGL work, void* arguments have been changed from 
+ByVal As LongPtr to ByRef As Any, except in cases where it's explicitly asking for a pointer.
+- Misc native API additions
+- (Bug fix) D2D1_VECTOR_3F Alias/Type duplicate 
+
 **Update (v9.2.646, 24 Jan 2026):** 
 - Added Intel vendor-specific and WGL extensions OpenGL functions. 
 - Added WFP ALE Endpoint APIs (fwpstypes.h 100%, fwpsu.h minimal)
