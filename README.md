@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 9.2.650 (January 28th, 2026)**
+**Current Version: 9.2.651 (January 28th, 2026)**
 
 (c) 2022-2026 Jon Johnson (fafalone)
 
@@ -239,7 +239,7 @@ Finally, there's numerous additional API sets from small to large for independen
 
 ### Updates
 
-**Update (v9.2.650, 28 Jan 2026):** 
+**Update (v9.2.651, 28 Jan 2026):** 
 - Add htiface.h/.idl, htiframe.h/.idl 100%
 - Misc native API additions
 - Added constants for backwards compatibility with NeHe's OpenGL typelib
