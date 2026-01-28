@@ -1,4 +1,11 @@
 
+**Update (v9.2.650, 28 Jan 2026):** 
+- Add htiface.h/.idl, htiframe.h/.idl 100%
+- Misc native API additions
+- Added constants for backwards compatibility with NeHe's OpenGL typelib
+- (Bug fix) Corrected a number of constants in the form of Const x = &H8000-FFFF as these would 
+improperly become negative Integer types.
+
 **Update (v9.2.648, 25 Jan 2026):** 
 - (BREAKING CHANGE) For compatibility with existing OpenGL work, void* arguments have been changed from 
 ByVal As LongPtr to ByRef As Any, except in cases where it's explicitly asking for a pointer.
