@@ -15057,8 +15057,8 @@ End Type
 
 Public Const IMAGE_SEPARATE_DEBUG_SIGNATURE  = &H4944
 Public Const NON_PAGED_DEBUG_SIGNATURE  = &H494E
-Public Const IMAGE_SEPARATE_DEBUG_FLAGS_MASK  = &H8000
-Public Const IMAGE_SEPARATE_DEBUG_MISMATCH  = &H8000  ' when DBG was updated, the
+Public Const IMAGE_SEPARATE_DEBUG_FLAGS_MASK  = &H8000&
+Public Const IMAGE_SEPARATE_DEBUG_MISMATCH  = &H8000&  ' when DBG was updated, the
 
 Public Type IMAGE_ARCHITECTURE_HEADER
     ' unsigned int AmaskValue: 1;                 // 1 -> code section depends on mask bit
@@ -24074,6 +24074,68 @@ Public Type RTL_USER_PROCESS_EXTENDED_PARAMETERS
     JobHandle As LongPtr
 End Type
 
+Public Type RTL_HEAP_USAGE_ENTRY
+    Next As LongPtr ' _RTL_HEAP_USAGE_ENTRY*
+    Address As LongPtr
+    Size As LongPtr
+    AllocatorBackTraceIndex As Integer
+    TagIndex As Integer
+End Type
+Public Type RTL_HEAP_USAGE
+    Length As Long
+    BytesAllocated As LongPtr
+    BytesCommitted As LongPtr
+    BytesReserved As LongPtr
+    BytesReservedMaximum As LongPtr
+    Entries As LongPtr 'PRTL_HEAP_USAGE_ENTRY
+    AddedEntries As LongPtr 'PRTL_HEAP_USAGE_ENTRY
+    RemovedEntries As LongPtr 'PRTL_HEAP_USAGE_ENTRY
+    Reserved(0 To 7) As LongPtr
+End Type
+
+Public Type RTL_HEAP_WALK_ENTRY
+    DataAddress As LongPtr
+    DataSize As LongPtr
+    OverheadBytes As Byte
+    SegmentIndex As Byte
+    Flags As Integer
+    'union
+    '{
+    '    struct
+    '    {
+    '        SIZE_T Settable;
+    '        USHORT TagIndex;
+    '        USHORT AllocatorBackTraceIndex;
+    '        ULONG Reserved[2];
+    '    } Block;
+    '    struct
+    '    {
+    '        ULONG CommittedSize;
+    '        ULONG UnCommittedSize;
+    '        PVOID FirstEntry;
+    '        PVOID LastEntry;
+    '    } Segment;
+    '};
+    #If Win64 Then
+    __pad As Long
+    BlockOrSegment(5) As Long
+    #Else
+    BlockOrSegment(3) As Long   
+    #End If
+End Type
+
+Public Type RTL_HEAP_TAG_INFO
+    NumberOfAllocations As Long
+    NumberOfFrees As Long
+    BytesAllocated As LongPtr
+End Type
+Public Function HEAP_MAKE_TAG_FLAGS(ByVal TagBase As Long, ByVal Tag As Long) As Long
+Return (TagBase + (Tag << HEAP_TAG_SHIFT))
+End Function
+Public Function RTL_HEAP_MAKE_TAG(ByVal TagBase As Long, ByVal Tag As Long) As Long
+Return (TagBase + (Tag << HEAP_TAG_SHIFT))
+End Function
+
 [UseGetLastError(False)] Public Declare PtrSafe Function CompareMemory Lib "ntdll" Alias "RtlCompareMemory" (Source1 As Any, Source2 As Any, ByVal Length As LongPtr) As LongPtr
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlCompareMemory Lib "ntdll" (Source1 As Any, Source2 As Any, ByVal Length As LongPtr) As LongPtr
 Public Function EqualMemory(ByVal Source1 As LongPtr, ByVal Source2 As LongPtr, ByVal Length As LongPtr) As Boolean: Return (RtlCompareMemory(ByVal Source1, ByVal Source2, Length) = Length): End Function
@@ -24122,8 +24184,15 @@ Public Function RtlEqualMemory(ByVal Source1 As LongPtr, ByVal Source2 As LongPt
 Public Declare PtrSafe Function RtlLockHeap Lib "ntdll" (ByVal HeapHandle As LongPtr) As CBoolean
 Public Declare PtrSafe Function RtlUnlockHeap Lib "ntdll" (ByVal HeapHandle As LongPtr) As CBoolean
 Public Declare PtrSafe Function RtlReAllocateHeap Lib "ntdll" (ByVal HeapHandle As LongPtr, ByVal Flags As Long, ByVal BaseAddress As LongPtr, ByVal Size As LongPtr) As LongPtr
+Public Declare PtrSafe Function RtlGetUserInfoHeap Lib "ntdll" (ByVal HeapHandle As LongPtr, ByVal Flags As Long, ByVal BaseAddress As LongPtr, UserValue As LongPtr, UserFlags As Long) As CBoolean
+Public Declare PtrSafe Function RtlSetUserValueHeap Lib "ntdll" (ByVal HeapHandle As LongPtr, ByVal Flags As Long, ByVal BaseAddress As LongPtr, ByVal UserValue As LongPtr) As CBoolean
+Public Declare PtrSafe Function RtlSetUserFlagsHeap Lib "ntdll" (ByVal HeapHandle As LongPtr, ByVal Flags As Long, ByVal BaseAddress As LongPtr, ByVal UserFlagsReset As Long, ByVal UserFlagsSet As Long) As CBoolean
+Public Declare PtrSafe Function RtlCreateTagHeap Lib "ntdll" (ByVal HeapHandle As LongPtr, ByVal Flags As Long, ByVal TagPrefix As LongPtr, ByVal TagNames As LongPtr) As Long
+Public Declare PtrSafe Function RtlQueryTagHeap Lib "ntdll" (ByVal HeapHandle As LongPtr, ByVal Flags As Long, ByVal TagIndex As Integer, ByVal ResetCounters As CBoolean, TagInfo As RTL_HEAP_TAG_INFO) As LongPtr
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlExtendHeap Lib "ntdll" (ByVal HeapHandle As LongPtr, ByVal Flags As Long, ByVal Base As LongPtr, ByVal Size As LongPtr) As NTSTATUS
 Public Declare PtrSafe Function RtlCompactHeap Lib "ntdll" (ByVal HeapHandle As LongPtr, ByVal Flags As Long) As LongPtr
+Public Declare PtrSafe Function RtlValidateHeap Lib "ntdll" (ByVal HeapHandle As LongPtr, ByVal Flags As Long, ByVal BaseAddress As LongPtr) As CBoolean
+Public Declare PtrSafe Function RtlValidateProcessHeaps Lib "ntdll" () As CBoolean
 Public Declare PtrSafe Function RtlGetProcessHeaps Lib "ntdll" (ByVal NumberOfHeaps As Long, ProcessHeaps As LongPtr) As Long
 Public Delegate Function RTL_ENUM_HEAPS_ROUTINE (ByVal HeapHandle As LongPtr, ByVal Parameter As LongPtr) As NTSTATUS
 ' #If WDL_NO_DELEGATES Then
@@ -24131,6 +24200,11 @@ Public Delegate Function RTL_ENUM_HEAPS_ROUTINE (ByVal HeapHandle As LongPtr, By
 ' #Else
 ' [UseGetLastError(False)] Public Declare PtrSafe Function RtlEnumProcessHeaps Lib "ntdll" (ByVal EnumRoutine As RTL_ENUM_HEAPS_ROUTINE, ByVal Parameter As LongPtr) As NTSTATUS
 ' #End If
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlUsageHeap Lib "ntdll" (ByVal HeapHandle As LongPtr, ByVal Flags As Long, Usage As RTL_HEAP_USAGE) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlWalkHeap Lib "ntdll" (ByVal HeapHandle As LongPtr, Entry As RTL_HEAP_WALK_ENTRY) As NTSTATUS
+
+
+
 Public Declare PtrSafe Function RtlGetActiveConsoleId Lib "ntdll" () As Long
 Public Declare PtrSafe Function RtlGetConsoleSessionForegroundProcessId Lib "ntdll" () As LongLong
 Public Declare PtrSafe Function RtlGetSuiteMask Lib "ntdll" () As VER_SUITE_VALUES
