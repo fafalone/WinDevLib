@@ -239,6 +239,16 @@ Finally, there's numerous additional API sets from small to large for independen
 
 ### Updates
 
+**Update (v9.2.653, 29 Jan 2026):** 
+- (API Standards, BREAKING CHANGES) Non-ANSI APIs with As Any should be using DeclareWide. This was inconsistently applied. 
+Fixing this will be ongoing. 
+- (API Standards, BREAKING CHANGE) GetFileInformationByHandleEx should use As Any for multiple UDT PVOID.
+- (Bug fix) - (Bug fix) ID3D10Blob::GetBufferPointer definition incorrect
+EnumCalendarInfoExEx, lstrlen used String without DeclareWide when expecting LPWSTR
+- (Bug fix) IMediaObjectInPlace::GetLatency arg should be ByRef
+- (Bug fix) IMFAsyncCallbackLogging definition issues; Implements-compat version added to WinDevLibImpl
+- (WinDevLibImpl, bug fix) Some MF interfaces did not have [PreserveSig] commented out
+
 **Update (v9.2.651, 28 Jan 2026):** 
 - Add htiface.h/.idl, htiframe.h/.idl 100%
 - Misc native API additions
