@@ -1,10 +1,24 @@
 
+**Update (v9.2.656, 25 Feb 2026):** 
+- Add initial coverage of odbc32.dll SQL APIs; sqltypes.h, sql.h, sqlext.h, sqlucode.h 100%  
+Note: Since these have their own complete, unique type set, original types are preserved via aliases
+ rather than mapped to intrinsic types.  
+Note: SQLCHAR/SQLWCHAR are aliased to String as they're exclusively used in this way.  
+Note: OBDC_STD is supported if defined (is not by default).  
+- Add capture and MCI window APIs from vfw.h
+- Add ShellHandwriting.h/.idl (Note: APIs do not appear in any DLL; they may only exist in C .lib files)
+- (Bug fix) BIND_OPTS3 definition incorrect
+- (Bug fix) IRecordInfo::RecordCreate incorrect for x64
+- (Bug fix) IMFProtectedEnvironmentAccess::ReadGRL, IMFSignedLibrary::GetProcedureAddress, IMF2DBuffer2::Lock2DSize,
+IMF2DBuffer::Lock2D,GetScanline0AndPitch ByVal/ByRef
+
+
 **Update (v9.2.653, 29 Jan 2026):** 
 - (API Standards, BREAKING CHANGES) Non-ANSI APIs with As Any should be using DeclareWide. This was inconsistently applied. 
 Fixing this will be ongoing. 
 - (API Standards, BREAKING CHANGE) GetFileInformationByHandleEx should use As Any for multiple UDT PVOID.
-- (Bug fix) - (Bug fix) ID3D10Blob::GetBufferPointer definition incorrect
-EnumCalendarInfoExEx, lstrlen used String without DeclareWide when expecting LPWSTR
+- (Bug fix) ID3D10Blob::GetBufferPointer definition incorrect
+- (Bug fix) EnumCalendarInfoExEx, lstrlen used String without DeclareWide when expecting LPWSTR
 - (Bug fix) IMediaObjectInPlace::GetLatency arg should be ByRef
 - (Bug fix) IMFAsyncCallbackLogging definition issues; Implements-compat version added to WinDevLibImpl
 - (WinDevLibImpl, bug fix) Some MF interfaces did not have [PreserveSig] commented out

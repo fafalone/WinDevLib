@@ -45,7 +45,7 @@ dispinterface XMLDOMDocumentEvents
  
 - vfw.h/vfsmsg/vfwext (AVIFil32 done; other sections under consideration)
   
-- SQL.h/obdc32.dll (needs Alias support)
+- SQLoledb/oledb.h/.idl
 
 - test IsVariantString / IsPropVariantString
 
@@ -142,7 +142,8 @@ Excluded from completed %:
     - Definitions disabled by conditional compilation with version flags for XP and earlier, non-Windows platforms, or kernel mode only.
 Basic Coverage: excludes macros, callbacks->delegates, ANSI APIs (though most are covered), and other headers from #include statements.\
 Anything else missing is a bug and a report should be filed
-Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.0);  winuser.h,UtilApiSet.h,processtopologyapi.h,msdelta.h,handleapi.h,cfgmgr32.h,ole2.h,avrt.h,KnownFolders.h,keycredmgr.h,mcx.h,windef.h,winver.h,dlgs.h,
+Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.0);  
+    winuser.h,UtilApiSet.h,processtopologyapi.h,msdelta.h,handleapi.h,cfgmgr32.h,ole2.h,avrt.h,KnownFolders.h,keycredmgr.h,mcx.h,windef.h,winver.h,dlgs.h,
     realtimeapiset.h,msime.h,msimeapi.h,ws2bth.h,VersionHelpers.h,minwinbase.h,wsman.h,wcmapi.h,nb30.h,GPEdit.h,InputPanelConfiguration.h,commoncontrols.h,
     WinEFS.h,winstring.h,qos2.h,traffic.h,qosobjs.h,qos.h,qossp.h,bluetoothleapis.h,bluetoothapis.h,bthsdpdef.h,fhcfg.h,fhsvcctl.h,fhstatus.h,fherrors.h,
     fwpmu.h,ipsectypes.h,iketypes.h,fdi_fcitypes.h,fdi.h,fci.h,namespaceapi.h,physicalmonitorenumerationapi.h,highlevelmonitorconfigurationapi.h,combaseapi.h,
@@ -184,8 +185,8 @@ Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.
     dxva2api.idl,dxvahd.h,dxvahd.idl,icodecapi.h,wmcontainer.h,medparam.h,medparam.idl,mediaobj.h,mediaobj.idl,dmoreg.h,ksopmapi.h,opmapi.h,opmapi.idl,
     d3dx9core.h,d3d9x.h,d3d9xshader.h,d3d9xtex.h,d3dx9xof.h,d3dx9mesh.h,d3dx9shape.h,d3dx11core.h,d3dx11tex.h,d3dx11async.h,d3d12compatibility.h,d3d12compatibility.idl,
     d3d12shader.h,d3d12video.h,d3d12video.idl,d3d12.h,d3d12.idl,fltUserStructures.h,fltUser.h,SpOrder.h,Filter.h,Filterr.h,NTQuery.h,apiquery2.h,appnotify.h,
-    cpl.h,cplext.h,ddraw.h,ddstream.h,ddstream.idl,vmr9.h,vmr9.idl,vmrender.idl,amvideo.h,Dvp.h,uuids.h,amaudio.h,evcode.h,dyngraph.idl,dvdmedia.h,edevdefs.h,
-    xprtdefs.h,axextend.idl,amparse.h,vidcap.h,vidcap.idl,dmodshow.h,dmodshow.idl,CameraUIControl.h,CameraUIControl.idl,austream.h,austream.idl,qnetwork.h,il21dec.h,
+    cpl.h,cplext.h,ddraw.h,ddstream.h,ddstream.idl,vmr9.h,vmr9.idl,vmrender.idl,amvideo.h,Dvp.h,uuids.h,amaudio.h,evcode.h,dyngraph.idl,dvdmedia.h,edevdefs.h,qnetwork.h,
+    xprtdefs.h,axextend.idl,amparse.h,vidcap.h,vidcap.idl,videoacc.h,videoacc.idl,dmodshow.h,dmodshow.idl,CameraUIControl.h,CameraUIControl.idl,austream.h,austream.idl,il21dec.h,
     iwstdec.h,dvdif.h,strmif.h,strmif.idl,control.h,control.idl,amstream.h,amstream.idl,amva.h,sherrors.h,bcp47mrm.h,regbag.h,regbag.idl,wimgapi.h,lsalookupi.h,
     bdatypes.h,bdaiface_enums.h,bdaiface.h,bdaiface.idl,mpeg2structs.h,Mpeg2Structs.idl,Mpeg2Bits.h,Mpeg2Data.h,Mpeg2Data.idl,Mpeg2PsiParser.idl,AtscPsipParser.h,
     callobj.h,callobj.idl,WbemCli.h,WbemCli.idl,WMIUtils.h,WMIUtils.idl,dinput.h,icm.h,wcsplugin.h,wcsplugin.idl,jobapi.h,jobapi2.h,mixerocx.h,mixerocx.idl,
