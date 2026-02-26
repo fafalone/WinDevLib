@@ -1,7 +1,7 @@
 '************************************************************************************
 'WinDevLib - Windows Development Library for twinBASIC
-'Version 9.2.653
-'(c) 2022-2025 Jon Johnson (fafalone)
+'Version 9.2.656
+'(c) 2022-2026 Jon Johnson (fafalone)
 'Project GUID: {1FCDB98D-617D-4995-9736-2ED0E4746A10}
 ' 
 '(formerly tbShellLib)
@@ -3763,6 +3763,62 @@ Interface ITravelLogStg Extends IUnknown
     [Description("Get entry from the travel log")] Sub GetRelativeEntry(ByVal iOffset As Long, ByRef ptle As ITravelLogEntry)
 End Interface
 
+[InterfaceId("8E676F4B-1951-530C-74D2-0DFDB76F17EB")]
+[OleAutomation(False)]
+Interface ITfDetermineProximateHandwritingTargetArgs Extends stdole.IUnknown
+    Sub GetPointerTargetInfo(ByRef targetWindow As LongPtr, ByRef targetScreenPoint As POINT, ByRef distanceThreshold As SIZE)
+    Sub SetResponse(ByVal response As TfProximateHandwritingTargetResponse)
+End Interface
+
+[InterfaceId("5C4EC0E8-E7EE-51C7-6B7A-1CABBEE700E6")]
+[OleAutomation(False)]
+Interface ITfFocusHandwritingTargetArgs Extends stdole.IUnknown
+    Sub GetPointerTargetInfo(ByRef targetWindow As LongPtr, ByRef targetScreenArea As RECT, ByRef distanceThreshold As SIZE)
+    Sub SetResponse(ByVal response As TfHandwritingFocusTargetResponse)
+End Interface
+
+[InterfaceId("3575A140-A10F-555F-35F9-45C865EB93BE")]
+[OleAutomation(False)]
+Interface ITfHandwritingSink Extends stdole.IUnknown
+    ' This callback requests that the client determine if there is a valid handwriting target within
+    ' distanceThreshold number of pixels away from the target x,y. Valid handwriting targets are any edit
+    ' context that can receive focus and participate in text services (TSF) input.
+    Sub DetermineProximateHandwritingTarget(ByVal determineProximateHandwritingTargetArgs As ITfDetermineProximateHandwritingTargetArgs)
+    
+    ' This callback requests that the client set edit focus on the edit context that most overlaps with
+    ' the targetArea bounds provided plus the additional distanceThreshold provided.
+    ' The buffer is separated from the targetArea to represent an area of preference.
+    ' Edit contexts that overlap with the targetArea are preferred, but if none do
+    ' then the closest edit context within the buffer should be focused.
+    ' The client also can optionally choose the correction experience provided for recognized handwriting text.
+    ' Applications should return S_OK if focus has been set and E_INVALIDARG if no edit context matches the parameters.
+    Sub FocusHandwritingTarget(ByVal focusHandwritingTargetArgs As ITfFocusHandwritingTargetArgs)
+End Interface
+
+[InterfaceId("EE54892A-2FC4-52E7-8765-DE0E8E88081B")]
+[OleAutomation(False)]
+Interface ITfHandwritingRequest Extends stdole.IUnknown
+    Sub SetInputEvaluation(ByVal inputEvaluation As TfInputEvaluation)
+End Interface
+
+[InterfaceId("59714133-8E20-5101-B1AE-D2CD9BAD8CE5")]
+[OleAutomation(False)]
+Interface ITfHandwriting Extends stdole.IUnknown
+    Sub GetHandwritingState(ByRef handwritingState As TfHandwritingState)
+    Sub SetHandwritingState(ByVal handwritingState As TfHandwritingState)
+    Sub RequestHandwritingForPointer(ByVal pointerId As Long, ByVal handwritingStrokeId As LongLong, ByRef requestAccepted As BOOL, ByRef request As ITfHandwritingRequest)
+    Sub GetHandwritingDistanceThreshold(ByRef distanceThresholdPixels As SIZE)
+End Interface
+
+[InterfaceId("E3E84B6E-E625-5F79-C39E-32F1FF2056F6")]
+[OleAutomation(False)]
+Interface IHandwritingInputRoutingCallback Extends stdole.IUnknown
+    ' This callback requests that the client provide the thread Id of the UI thread that is responsible for
+    ' the UI the pointer input is targeting
+    Sub GetThreadIdForInput(ByVal pointerId As Long, ByVal targetScreenPoint As LongPtr, ByVal targetHWnd As LongPtr, ByRef uiThreadId As Long)
+End Interface
+
+
 
 [InterfaceId("6d5140c1-7436-11ce-8034-00aa006009fa")]
 [OleAutomation(False)]
@@ -4690,21 +4746,21 @@ Public Type SLARGE_INTEGER
     ' QuadPart As LongLong
 End Type
 
-
-
 Public Type RECT
 	Left As Long
 	Top As Long
 	Right As Long
 	Bottom As Long
 End Type
-
 Public Type RECTF
     Left As Single
     Top As Single
     Right As Single
     Bottom As Single
 End Type
+
+
+
 Public Enum FontWeight
     FW_DONTCARE = 0
     FW_THIN = 100
@@ -5289,7 +5345,7 @@ Public Type BIND_OPTS2
 	dwTrackFlags As SLR_FLAGS
 	dwClassContext As CLSCTX
 	locale As Long
-	pServerInfo As LongPtr
+	pServerInfo As LongPtr '*COSERVERINFO
 End Type
 Public Type BIND_OPTS3
     cbStruct As Long '  sizeof(BIND_OPTS3)
@@ -5299,7 +5355,7 @@ Public Type BIND_OPTS3
     dwTrackFlags As SLR_FLAGS
     dwClassContext As CLSCTX
     locale As Long
-    pServerInfo As COSERVERINFO
+    pServerInfo As LongPtr '*COSERVERINFO
     hwnd As LongPtr
 End Type
 
@@ -13313,6 +13369,73 @@ Public Type RGBQUAD
     rgbReserved As Byte
 End Type
 
+'ShellHandwriting.h
+Public Const TF_E_TOO_LATE = &h8004050A 'MAKE_HRESULT(SEVERITY_ERROR, FACILITY_ITF, &H050A)
+Public Enum TfHandwritingState
+	'  This value indicates the client will receive the default handwriting behavior
+	'  based on the presence of pen hardware and the handwriting settings.
+	TF_HANDWRITING_AUTO = 0
+	'  This value indicates the client does not want any shell handwriting experience for the context.
+	TF_HANDWRITING_DISABLED = 1
+	'  This value indicates the client wants the shell handwriting experience for the context
+	'  even if the system has quirked the context to not have handwriting by default.
+	TF_HANDWRITING_ENABLED = 2
+	'  By default, shell handwriting buffers all pen input from process delivery
+	'  until the handwriting intent of the user has been determined.
+	'  This value indicates that client wants the input delivered immediately
+	'  and will handle the buffering and intent determination itself and notify
+	'  the shell via the ITfHandwriting::RequestHandwritingForPointer.
+	TF_HANDWRITING_POINTERDELIVERY = 3
+End Enum
+
+Public Enum TfProximateHandwritingTargetResponse
+	'  No valid handwriting target is proximate to the target point.
+	TF_NO_HANDWRITING_TARGET_PROXIMATE = 0
+	'  A valid handwriting target is proximate to the target point.
+	TF_HANDWRITING_TARGET_PROXIMATE = 1
+	'  The client wants the system to take its default action.
+	TF_USE_SYSTEM_TARGETING = 2
+	'  The client wants the system to convert the handwriting handling
+	'  to Pointer Delivery for the remainder of the handwriting session.
+	TF_USE_POINTER_DELIVERY = 3
+End Enum
+
+Public Enum TfHandwritingFocusTargetResponse
+	'  The app found no target for ink stroke and doesn't want the system
+	'  to try and perform its default targeting.
+	TF_NO_HANDWRITING_TARGET
+	'  The app has successfully set focus to a handwriting target.
+	TF_HANDWRITING_TARGET_FOCUSED
+	'  Same as TF_HANDWRITING_TARGET_FOCUSED but with a request to disable
+	'  system-provided corrections experience.
+	TF_HANDWRITING_TARGET_FOCUSED_NO_CORRECTIONS
+	'  The system should perform the default focus handwriting target
+	'  behavior that would have occured if no callback was registered.
+	TF_PERFORM_SYSTEM_TARGETING
+End Enum
+
+Public Enum TfInputEvaluation
+	'  The pen input was not recognized as a pen gesture and handwriting should commence.
+	TF_IE_HANDWRITING = 0
+	'  The pen input was recognized as a tap gesture.  This will result in the handwriting request being cancelled.
+	TF_IE_TAP = 1
+	'  The pen input was recognized as a pen gesture the application wants to use and so the handwriting request should be cancelled.
+	TF_IE_CANCEL_HANDWRITING = 2
+End Enum
+
+[Description("This is a placeholder as it does not appear to be an actual DLL export I can find.")]
+Public Delegate Function RegisterHandwritingInputRoutingCallback (ByVal callback As IHandwritingInputRoutingCallback) As Long
+[Description("This is a placeholder as it does not appear to be an actual DLL export I can find.")]
+Public Delegate Function GetHandwritingStrokeIdForPointer (ByVal pointerId As Long, handwritingStrokeId As LongLong) As Long
+
+
+
+
+
+
+
+
+
 #If WDL_NO_MATH = 0 Then
 Public Const M_E As Double = 2.71828182845904523536#  ' e
 Public Const M_LOG2E As Double = 1.44269504088896340736#  ' log2(e)
@@ -13366,7 +13489,7 @@ Public Function IS_ERROR(ByVal status As Long) As Boolean
     Return ((status >> 31&) = SEVERITY_ERROR)
 End Function
 End Module
-
+ 
 Public Alias LOGFONT As LOGFONTW
 Public Alias DEVMODE As DEVMODEW
 Public Alias POINTAPI As POINT

@@ -17,6 +17,8 @@
 '         it would have taken more time than just adding the definitions as-is.
 
 #If WINDEVLIB_LITE = 0 Then
+Public Alias AVISTREAMINFO As AVISTREAMINFOW
+
 [InterfaceId("00020021-0000-0000-C000-000000000046")]
 [OleAutomation(False)]
 Interface IAVIStream Extends IUnknown
@@ -89,7 +91,7 @@ End CoClass
 #End If
 Module wdVFW
 
-Public Declare PtrSafe Function VideoForWindowsVersion Lib "msvfw32" () As Long
+
 
 'Unknown; dead 16bit stuff. Not exported from msvfw32.dll like VideoForWindowsVersion
 ' Public Declare PtrSafe Function InitVFW Lib "" () As Long
@@ -220,9 +222,72 @@ Public Const ICTYPE_AUDIO = &H63647561 'mmioFOURCC('a', 'u', 'd', 'c')
         dnDevNode As Long ' Devnode for PnP devices
     End Type
     
-    
-    
+    Public Type ICINFO
+        dwSize As Long ' sizeof(ICINFO)
+        fccType As Long ' compressor type     'vidc' 'audc'
+        fccHandler As Long ' compressor sub-type 'rle ' 'jpeg' 'pcm '
+        dwFlags As IcInfoVidsFlags ' flags LOWORD is type specific
+        dwVersion As Long ' version of the driver
+        dwVersionICM As Long ' version of the ICM used
+        ' under Win32, the driver always returns UNICODE strings.
+        szName(0 To 15) As Integer ' short name
+        szDescription(0 To 127) As Integer ' long name
+        szDriver(0 To 127) As Integer ' driver that contains compressor
+    End Type
+    Public Enum IcInfoVidsFlags
+        VIDCF_QUALITY = &H0001  ' supports quality
+        VIDCF_CRUNCH = &H0002  ' supports crunching to a frame size
+        VIDCF_TEMPORAL = &H0004  ' supports inter-frame compress
+        VIDCF_COMPRESSFRAMES = &H0008  ' wants the compress all frames message
+        VIDCF_DRAW = &H0010  ' supports drawing
+        VIDCF_FASTTEMPORALC = &H0020  ' does not need prev frame on compress
+        VIDCF_FASTTEMPORALD = &H0080  ' does not need prev frame on decompress
+        VIDCF_QUALITYTIME = &H0040  ' supports temporal quality
+        VIDCF_FASTTEMPORAL = (VIDCF_FASTTEMPORALC Or VIDCF_FASTTEMPORALD)
+    End Enum
         
+    Public Const ICCOMPRESS_KEYFRAME  = &H00000001
+    
+    Public Type ICCOMPRESS
+        dwFlags As Long ' flags
+        lpbiOutput As LongPtr 'LPBITMAPINFOHEADER ' output format
+        lpOutput As LongPtr ' output data
+        lpbiInput As LongPtr 'LPBITMAPINFOHEADER ' format of frame to compress
+        lpInput As LongPtr ' frame data to compress
+        lpckid As LongPtr ' ckid for data in AVI file
+        lpdwFlags As LongPtr ' flags in the AVI index.
+        lFrameNum As Long ' frame number of seq.
+        dwFrameSize As Long ' reqested size in bytes. (if non zero)
+        dwQuality As Long ' quality
+        ' these are new fields
+        lpbiPrev As LongPtr 'LPBITMAPINFOHEADER ' format of previous frame
+        lpPrev As LongPtr ' previous frame
+    End Type
+    
+    Public Const ICCOMPRESSFRAMES_PADDING  = &H00000001
+    
+    Public Type ICCOMPRESSFRAMES
+        dwFlags As Long ' flags
+        lpbiOutput As LongPtr 'LPBITMAPINFOHEADER ' output format
+        lOutput As LongPtr ' output identifier
+        lpbiInput As LongPtr 'LPBITMAPINFOHEADER ' format of frame to compress
+        lInput As LongPtr ' input identifier
+        lStartFrame As Long ' start frame
+        lFrameCount As Long ' # of frames
+        lQuality As Long ' quality
+        lDataRate As Long ' data rate
+        lKeyRate As Long ' key frame rate
+        dwRate As Long ' frame rate, as always
+        dwScale As Long
+        dwOverheadPerFrame As Long
+        dwReserved2 As Long
+        [Description("LONG (CALLBACK *GetData)(_In_ LPARAM lInput, _In_ LONG lFrame, _Out_writes_bytes_(len) LPVOID lpBits, _In_ LONG len);")]
+        GetData As LongPtr
+        [Description("LONG (CALLBACK *PutData)(_In_ LPARAM lOutput, _In_ LONG lFrame, _In_reads_bytes_(len) LPVOID lpBits, _In_ LONG len);")]
+        PutData As LongPtr
+    End Type
+    
+    
     
     Public Enum VfwCompressorChooseFlags
         ICMF_CHOOSE_KEYFRAME = &H0001  ' show KeyFrame Every box
@@ -376,27 +441,7 @@ Public Const ICTYPE_AUDIO = &H63647561 'mmioFOURCC('a', 'u', 'd', 'c')
         szName(0 To 63) As Byte
     End Type
     
-    'Alias AVISTREAMINFO As AVISTREAMINFOW
-    Public Type AVISTREAMINFO
-        fccType As VfwFourCCStreamTypes
-        fccHandler As Long
-        dwFlags As VfwAvStreamInfoFlags '/* Contains AVITF_* flags */
-        dwCaps As Long
-        wPriority As Integer
-        wLanguage As Integer
-        dwScale As Long
-        dwRate As Long '/* dwRate / dwScale == samples/second */
-        dwStart As Long
-        dwLength As Long '/* In units above... */
-        dwInitialFrames As Long
-        dwSuggestedBufferSize As Long
-        dwQuality As Long
-        dwSampleSize As Long
-        rcFrame As RECT
-        dwEditCount As Long
-        dwFormatChangeCount As Long
-        szName(0 To 63) As Integer
-    End Type
+    'Alias AVISTREAMINFO As AVISTREAMINFOW 
     Public Enum VfwAvStreamInfoFlags
         AVISTREAMINFO_DISABLED = &H00000001
         AVISTREAMINFO_FORMATCHANGES = &H00010000
@@ -732,6 +777,1003 @@ Public Const ICTYPE_AUDIO = &H63647561 'mmioFOURCC('a', 'u', 'd', 'c')
      If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H00020025, CInt(&H0000), CInt(&H0000), &HC0, &H00, &H00, &H00, &H00, &H00, &H00, &H46)
      IID_IAVIPersistFile = iid
     End Function
+    
+    
+    Public Declare PtrSafe Function MCIWndSM Lib "user32" Alias "SendMessageW" (ByVal hWnd As LongPtr, ByVal wMsg As Long, ByVal wParam As LongPtr, ByVal lParam As LongPtr) As LongPtr
+    
+    Public Const MCIWND_WINDOW_CLASS  = "MCIWndClass"
+    
+    Public Declare PtrSafe Function MCIWndCreateA CDecl Lib "msvfw32.dll" (ByVal hwndParent As LongPtr, ByVal hInstance As LongPtr, ByVal dwStyle As MCIWindowFlags, ByVal szFile As String) As LongPtr
+    Public Declare PtrSafe Function MCIWndCreateW CDecl Lib "msvfw32.dll" (ByVal hwndParent As LongPtr, ByVal hInstance As LongPtr, ByVal dwStyle As MCIWindowFlags, ByVal szFile As LongPtr) As LongPtr
+    Public DeclareWide PtrSafe Function MCIWndCreate CDecl Lib "msvfw32.dll" (ByVal hwndParent As LongPtr, ByVal hInstance As LongPtr, ByVal dwStyle As MCIWindowFlags, ByVal szFile As String) As LongPtr
+      
+    Public Declare PtrSafe Function MCIWndRegisterClass CDecl Lib "msvfw32.dll" () As BOOL
+    
+    Public Const MCIWNDOPENF_NEW  = &H0001  ' open a new file
+    
+    Public Enum MCIWindowFlags
+        MCIWNDF_NOAUTOSIZEWINDOW = &H0001  ' when movie size changes
+        MCIWNDF_NOPLAYBAR = &H0002  ' no toolbar
+        MCIWNDF_NOAUTOSIZEMOVIE = &H0004  ' when window size changes
+        MCIWNDF_NOMENU = &H0008  ' no popup menu from RBUTTONDOWN
+        MCIWNDF_SHOWNAME = &H0010  ' show name in caption
+        MCIWNDF_SHOWPOS = &H0020  ' show position in caption
+        MCIWNDF_SHOWMODE = &H0040  ' show mode in caption
+        MCIWNDF_SHOWALL = &H0070  ' show all
+        MCIWNDF_NOTIFYMODE = &H0100  ' tell parent of mode change
+        MCIWNDF_NOTIFYPOS = &H0200  ' tell parent of pos change
+        MCIWNDF_NOTIFYSIZE = &H0400  ' tell parent of size change
+        MCIWNDF_NOTIFYERROR = &H1000  ' tell parent of an error
+        MCIWNDF_NOTIFYALL = &H1F00  ' tell all
+        MCIWNDF_NOTIFYANSI = &H0080
+    '  The MEDIA notification includes a text string.
+    '  To receive notifications in ANSI instead of unicode set the
+    '  MCIWNDF_NOTIFYANSI style bit. The macro below includes this bit
+    '  by default unless you define UNICODE in your application.
+        MCIWNDF_NOTIFYMEDIAA = &H0880  ' tell parent of media change
+        MCIWNDF_NOTIFYMEDIAW = &H0800  ' tell parent of media change
+        MCIWNDF_NOTIFYMEDIA = MCIWNDF_NOTIFYMEDIAW
+        MCIWNDF_RECORD = &H2000  ' Give a record button
+        MCIWNDF_NOERRORDLG = &H4000  ' Show Error Dlgs for MCI cmds?
+        MCIWNDF_NOOPEN = &H8000&  ' Don't allow user to open things
+    End Enum
+    
+    Public Function MCIWndCanPlay(ByVal hwnd As LongPtr) As BOOL
+        Return CType(Of BOOL)(MCIWndSM(hwnd, MCIWNDM_CAN_PLAY, 0, 0))
+    End Function
+
+    Public Function MCIWndCanRecord(ByVal hwnd As LongPtr) As BOOL
+        Return CType(Of BOOL)(MCIWndSM(hwnd, MCIWNDM_CAN_RECORD, 0, 0))
+    End Function
+
+    Public Function MCIWndCanSave(ByVal hwnd As LongPtr) As BOOL
+        Return CType(Of BOOL)(MCIWndSM(hwnd, MCIWNDM_CAN_SAVE, 0, 0))
+    End Function
+
+    Public Function MCIWndCanWindow(ByVal hwnd As LongPtr) As BOOL
+        Return CType(Of BOOL)(MCIWndSM(hwnd, MCIWNDM_CAN_WINDOW, 0, 0))
+    End Function
+
+    Public Function MCIWndCanEject(ByVal hwnd As LongPtr) As BOOL
+        Return CType(Of BOOL)(MCIWndSM(hwnd, MCIWNDM_CAN_EJECT, 0, 0))
+    End Function
+
+    Public Function MCIWndCanConfig(ByVal hwnd As LongPtr) As BOOL
+        Return CType(Of BOOL)(MCIWndSM(hwnd, MCIWNDM_CAN_CONFIG, 0, 0))
+    End Function
+
+    Public Function MCIWndPaletteKick(ByVal hwnd As LongPtr) As BOOL
+        Return CType(Of BOOL)(MCIWndSM(hwnd, MCIWNDM_PALETTEKICK, 0, 0))
+    End Function
+
+    Public Function MCIWndSave(ByVal hwnd As LongPtr, ByVal szFile As LongPtr) As Long
+        Return CLng(MCIWndSM(hwnd, MCI_SAVE, 0, szFile))
+    End Function
+
+    Public Function MCIWndSaveDialog(ByVal hwnd As LongPtr) As Long
+        Return MCIWndSave(hwnd, -1)
+    End Function
+    
+    Public Function MCIWndNew(ByVal hwnd As LongPtr, ByVal lp As LongPtr) As Long
+        Return CLng(MCIWndSM(hwnd, MCIWNDM_NEW, 0, lp))
+    End Function
+
+    Public Function MCIWndRecord(ByVal hwnd As LongPtr) As Long
+        Return CLng(MCIWndSM(hwnd, MCI_RECORD, 0, 0))
+    End Function
+
+    Public Function MCIWndOpen(ByVal hwnd As LongPtr, ByVal sz As LongPtr, ByVal f As Long) As Long
+        Return CLng(MCIWndSM(hwnd, MCIWNDM_OPEN, f, sz))
+    End Function
+
+    Public Function MCIWndOpenDialog(ByVal hwnd As LongPtr) As Long
+        Return MCIWndOpen(hwnd, -1, 0)
+    End Function
+
+    Public Function MCIWndClose(ByVal hwnd As LongPtr) As Long
+        Return CLng(MCIWndSM(hwnd, MCI_CLOSE, 0, 0))
+    End Function
+
+    Public Function MCIWndPlay(ByVal hwnd As LongPtr) As Long
+        Return CLng(MCIWndSM(hwnd, MCI_PLAY, 0, 0))
+    End Function
+
+    Public Function MCIWndStop(ByVal hwnd As LongPtr) As Long
+        Return CLng(MCIWndSM(hwnd, MCI_STOP, 0, 0))
+    End Function
+
+    Public Function MCIWndPause(ByVal hwnd As LongPtr) As Long
+        Return CLng(MCIWndSM(hwnd, MCI_PAUSE, 0, 0))
+    End Function
+
+    Public Function MCIWndResume(ByVal hwnd As LongPtr) As Long
+        Return CLng(MCIWndSM(hwnd, MCI_RESUME, 0, 0))
+    End Function
+
+    Public Function MCIWndSeek(ByVal hwnd As LongPtr, ByVal lPos As Long) As Long
+        Return CLng(MCIWndSM(hwnd, MCI_SEEK, 0, lPos))
+    End Function
+
+    Public Function MCIWndEject(ByVal hwnd As LongPtr) As Long
+        Return CLng(MCIWndSM(hwnd, MCIWNDM_EJECT, 0, 0))
+    End Function
+
+    Public Function MCIWndHome(ByVal hwnd As LongPtr) As Long
+        Return MCIWndSeek(hwnd, MCIWND_START)
+    End Function
+
+    Public Function MCIWndEnd(ByVal hwnd As LongPtr) As Long
+        Return MCIWndSeek(hwnd, MCIWND_END)
+    End Function
+
+    Public Function MCIWndGetSource(ByVal hwnd As LongPtr, prc As RECT) As Long
+        Return CLng(MCIWndSM(hwnd, MCIWNDM_GET_SOURCE, 0, VarPtr(prc)))
+    End Function
+
+    Public Function MCIWndPutSource(ByVal hwnd As LongPtr, prc As RECT) As Long
+        Return CLng(MCIWndSM(hwnd, MCIWNDM_PUT_SOURCE, 0, VarPtr(prc)))
+    End Function
+
+    Public Function MCIWndGetDest(ByVal hwnd As LongPtr, prc As RECT) As Long
+        Return CLng(MCIWndSM(hwnd, MCIWNDM_GET_DEST, 0, VarPtr(prc)))
+    End Function
+
+    Public Function MCIWndPutDest(ByVal hwnd As LongPtr, prc As RECT) As Long
+        Return CLng(MCIWndSM(hwnd, MCIWNDM_PUT_DEST, 0, VarPtr(prc)))
+    End Function
+
+    Public Function MCIWndPlayReverse(ByVal hwnd As LongPtr) As Long
+        Return CLng(MCIWndSM(hwnd, MCIWNDM_PLAYREVERSE, 0, 0))
+    End Function
+
+    Public Function MCIWndPlayFrom(ByVal hwnd As LongPtr, ByVal lPos As Long) As Long
+        Return CLng(MCIWndSM(hwnd, MCIWNDM_PLAYFROM, 0, lPos))
+    End Function
+
+    Public Function MCIWndPlayTo(ByVal hwnd As LongPtr, ByVal lPos As Long) As Long
+        Return CLng(MCIWndSM(hwnd, MCIWNDM_PLAYTO, 0, lPos))
+    End Function
+
+    Public Function MCIWndPlayFromTo(ByVal hwnd As LongPtr, ByVal lStart As Long, ByVal lEnd As Long) As Long
+        MCIWndSeek(hwnd, lStart)
+        Return MCIWndPlayTo(hwnd, lEnd)
+    End Function
+    
+    Public Function MCIWndGetDeviceID(ByVal hwnd As LongPtr) As Long
+        Return CLng(MCIWndSM(hwnd, MCIWNDM_GETDEVICEID, 0, 0))
+    End Function
+
+    Public Function MCIWndGetAlias(ByVal hwnd As LongPtr) As Long
+        Return CLng(MCIWndSM(hwnd, MCIWNDM_GETALIAS, 0, 0))
+    End Function
+
+    Public Function MCIWndGetMode(ByVal hwnd As LongPtr, ByVal lp As LongPtr, ByVal len As Long) As Long
+        Return CLng(MCIWndSM(hwnd, MCIWNDM_GETMODE, len, lp))
+    End Function
+
+    Public Function MCIWndGetPosition(ByVal hwnd As LongPtr) As Long
+        Return CLng(MCIWndSM(hwnd, MCIWNDM_GETPOSITION, 0, 0))
+    End Function
+
+    Public Function MCIWndGetPositionString(ByVal hwnd As LongPtr, ByVal lp As LongPtr, ByVal len As Long) As Long
+        Return CLng(MCIWndSM(hwnd, MCIWNDM_GETPOSITION, len, lp))
+    End Function
+
+    Public Function MCIWndGetStart(ByVal hwnd As LongPtr) As Long
+        Return CLng(MCIWndSM(hwnd, MCIWNDM_GETSTART, 0, 0))
+    End Function
+
+    Public Function MCIWndGetLength(ByVal hwnd As LongPtr) As Long
+        Return CLng(MCIWndSM(hwnd, MCIWNDM_GETLENGTH, 0, 0))
+    End Function
+
+    Public Function MCIWndGetEnd(ByVal hwnd As LongPtr) As Long
+        Return CLng(MCIWndSM(hwnd, MCIWNDM_GETEND, 0, 0))
+    End Function
+
+    Public Function MCIWndStep(ByVal hwnd As LongPtr, ByVal n As Long) As Long
+        Return CLng(MCIWndSM(hwnd, MCI_STEP, 0, n))
+    End Function
+
+    Public Sub MCIWndDestroy(ByVal hwnd As LongPtr)
+        MCIWndSM(hwnd, WM_CLOSE, 0, 0)
+    End Sub
+
+    Public Sub MCIWndSetZoom(ByVal hwnd As LongPtr, ByVal iZoom As Long)
+        MCIWndSM(hwnd, MCIWNDM_SETZOOM, 0, iZoom)
+    End Sub
+
+    Public Function MCIWndGetZoom(ByVal hwnd As LongPtr) As Long
+        Return CLng(MCIWndSM(hwnd, MCIWNDM_GETZOOM, 0, 0))
+    End Function
+
+    Public Function MCIWndSetVolume(ByVal hwnd As LongPtr, ByVal iVol As Long) As Long
+        Return CLng(MCIWndSM(hwnd, MCIWNDM_SETVOLUME, 0, iVol))
+    End Function
+
+    Public Function MCIWndGetVolume(ByVal hwnd As LongPtr) As Long
+        Return CLng(MCIWndSM(hwnd, MCIWNDM_GETVOLUME, 0, 0))
+    End Function
+
+    Public Function MCIWndSetSpeed(ByVal hwnd As LongPtr, ByVal iSpeed As Long) As Long
+        Return CLng(MCIWndSM(hwnd, MCIWNDM_SETSPEED, 0, iSpeed))
+    End Function
+
+    Public Function MCIWndGetSpeed(ByVal hwnd As LongPtr) As Long
+        Return CLng(MCIWndSM(hwnd, MCIWNDM_GETSPEED, 0, 0))
+    End Function
+
+    Public Function MCIWndSetTimeFormat(ByVal hwnd As LongPtr, ByVal lp As LongPtr) As Long
+        Return CLng(MCIWndSM(hwnd, MCIWNDM_SETTIMEFORMAT, 0, lp))
+    End Function
+
+    Public Function MCIWndGetTimeFormat(ByVal hwnd As LongPtr, ByVal lp As LongPtr, ByVal len As Long) As Long
+        Return CLng(MCIWndSM(hwnd, MCIWNDM_GETTIMEFORMAT, len, lp))
+    End Function
+
+    Public Sub MCIWndValidateMedia(ByVal hwnd As LongPtr)
+        MCIWndSM(hwnd, MCIWNDM_VALIDATEMEDIA, 0, 0)
+    End Sub
+
+    Public Sub MCIWndSetRepeat(ByVal hwnd As LongPtr, ByVal f As BOOL)
+        MCIWndSM(hwnd, MCIWNDM_SETREPEAT, 0, f)
+    End Sub
+
+    Public Function MCIWndGetRepeat(ByVal hwnd As LongPtr) As BOOL
+        Return CType(Of BOOL)(MCIWndSM(hwnd, MCIWNDM_GETREPEAT, 0, 0))
+    End Function
+
+    Public Function MCIWndUseFrames(ByVal hwnd As LongPtr) As Long
+        Return CLng(MCIWndSetTimeFormat(hwnd, StrPtr("frames")))
+    End Function
+
+    Public Function MCIWndUseTime(ByVal hwnd As LongPtr) As Long
+        Return CLng(MCIWndSetTimeFormat(hwnd, StrPtr("ms")))
+    End Function
+
+    Public Sub MCIWndSetActiveTimer(ByVal hwnd As LongPtr, ByVal active As Long)
+        MCIWndSM(hwnd, MCIWNDM_SETACTIVETIMER, active, 0)
+    End Sub
+
+    Public Sub MCIWndSetInactiveTimer(ByVal hwnd As LongPtr, ByVal inactive As Long)
+        MCIWndSM(hwnd, MCIWNDM_SETINACTIVETIMER, inactive, 0)
+    End Sub
+
+    Public Sub MCIWndSetTimers(ByVal hwnd As LongPtr, ByVal active As Long, ByVal inactive As Long)
+        MCIWndSM(hwnd, MCIWNDM_SETTIMERS, active, inactive)
+    End Sub
+
+    Public Function MCIWndGetActiveTimer(ByVal hwnd As LongPtr) As Long
+        Return CLng(MCIWndSM(hwnd, MCIWNDM_GETACTIVETIMER, 0, 0))
+    End Function
+
+    Public Function MCIWndGetInactiveTimer(ByVal hwnd As LongPtr) As Long
+        Return CLng(MCIWndSM(hwnd, MCIWNDM_GETINACTIVETIMER, 0, 0))
+    End Function
+
+    Public Function MCIWndRealize(ByVal hwnd As LongPtr, ByVal fBkgnd As BOOL) As Long
+        Return CLng(MCIWndSM(hwnd, MCIWNDM_REALIZE, fBkgnd, 0))
+    End Function
+
+    Public Function MCIWndSendString(ByVal hwnd As LongPtr, ByVal sz As LongPtr) As Long
+        Return CLng(MCIWndSM(hwnd, MCIWNDM_SENDSTRING, 0, sz))
+    End Function
+
+    Public Function MCIWndReturnString(ByVal hwnd As LongPtr, ByVal lp As LongPtr, ByVal len As Long) As Long
+        Return CLng(MCIWndSM(hwnd, MCIWNDM_RETURNSTRING, len, lp))
+    End Function
+
+    Public Function MCIWndGetError(ByVal hwnd As LongPtr, ByVal lp As LongPtr, ByVal len As Long) As Long
+        Return CLng(MCIWndSM(hwnd, MCIWNDM_GETERROR, len, lp))
+    End Function
+
+    Public Function MCIWndGetPalette(ByVal hwnd As LongPtr) As LongPtr
+        Return MCIWndSM(hwnd, MCIWNDM_GETPALETTE, 0, 0)
+    End Function
+
+    Public Function MCIWndSetPalette(ByVal hwnd As LongPtr, ByVal hpal As LongPtr) As Long
+        Return CLng(MCIWndSM(hwnd, MCIWNDM_SETPALETTE, hpal, 0))
+    End Function
+
+    Public Function MCIWndGetFileName(ByVal hwnd As LongPtr, ByVal lp As LongPtr, ByVal len As Long) As Long
+        Return CLng(MCIWndSM(hwnd, MCIWNDM_GETFILENAME, len, lp))
+    End Function
+
+    Public Function MCIWndGetDevice(ByVal hwnd As LongPtr, ByVal lp As LongPtr, ByVal len As Long) As Long
+        Return CLng(MCIWndSM(hwnd, MCIWNDM_GETDEVICE, len, lp))
+    End Function
+
+    Public Function MCIWndGetStyles(ByVal hwnd As LongPtr) As Long
+        Return CLng(MCIWndSM(hwnd, MCIWNDM_GETSTYLES, 0, 0))
+    End Function
+
+    Public Function MCIWndChangeStyles(ByVal hwnd As LongPtr, ByVal mask As Long, ByVal value As Long) As Long
+        Return CLng(MCIWndSM(hwnd, MCIWNDM_CHANGESTYLES, mask, value))
+    End Function
+
+    Public Function MCIWndOpenInterface(ByVal hwnd As LongPtr, ByVal pUnk As IUnknown) As Long
+        Return CLng(MCIWndSM(hwnd, MCIWNDM_OPENINTERFACE, 0, ObjPtr(pUnk)))
+    End Function
+
+    Public Function MCIWndSetOwner(ByVal hwnd As LongPtr, ByVal hwndP As LongPtr) As Long
+        Return CLng(MCIWndSM(hwnd, MCIWNDM_SETOWNER, hwndP, 0))
+    End Function
+    
+    ' // Messages an app will send to MCIWND
+
+    ' // all the text-related messages are defined out of order above (they need
+    ' // to be defined before the MCIWndOpen() macros
+    
+    Public Const MCIWNDM_GETDEVICEID  = (WM_USER + 100)
+    Public Const MCIWNDM_GETSTART  = (WM_USER + 103)
+    Public Const MCIWNDM_GETLENGTH  = (WM_USER + 104)
+    Public Const MCIWNDM_GETEND  = (WM_USER + 105)
+    Public Const MCIWNDM_EJECT  = (WM_USER + 107)
+    Public Const MCIWNDM_SETZOOM  = (WM_USER + 108)
+    Public Const MCIWNDM_GETZOOM  = (WM_USER + 109)
+    Public Const MCIWNDM_SETVOLUME  = (WM_USER + 110)
+    Public Const MCIWNDM_GETVOLUME  = (WM_USER + 111)
+    Public Const MCIWNDM_SETSPEED  = (WM_USER + 112)
+    Public Const MCIWNDM_GETSPEED  = (WM_USER + 113)
+    Public Const MCIWNDM_SETREPEAT  = (WM_USER + 114)
+    Public Const MCIWNDM_GETREPEAT  = (WM_USER + 115)
+    Public Const MCIWNDM_REALIZE  = (WM_USER + 118)
+    Public Const MCIWNDM_VALIDATEMEDIA  = (WM_USER + 121)
+    Public Const MCIWNDM_PLAYFROM  = (WM_USER + 122)
+    Public Const MCIWNDM_PLAYTO  = (WM_USER + 123)
+    Public Const MCIWNDM_GETPALETTE  = (WM_USER + 126)
+    Public Const MCIWNDM_SETPALETTE  = (WM_USER + 127)
+    Public Const MCIWNDM_SETTIMERS  = (WM_USER + 129)
+    Public Const MCIWNDM_SETACTIVETIMER  = (WM_USER + 130)
+    Public Const MCIWNDM_SETINACTIVETIMER  = (WM_USER + 131)
+    Public Const MCIWNDM_GETACTIVETIMER  = (WM_USER + 132)
+    Public Const MCIWNDM_GETINACTIVETIMER  = (WM_USER + 133)
+    Public Const MCIWNDM_CHANGESTYLES  = (WM_USER + 135)
+    Public Const MCIWNDM_GETSTYLES  = (WM_USER + 136)
+    Public Const MCIWNDM_GETALIAS  = (WM_USER + 137)
+    Public Const MCIWNDM_PLAYREVERSE  = (WM_USER + 139)
+    Public Const MCIWNDM_GET_SOURCE  = (WM_USER + 140)
+    Public Const MCIWNDM_PUT_SOURCE  = (WM_USER + 141)
+    Public Const MCIWNDM_GET_DEST  = (WM_USER + 142)
+    Public Const MCIWNDM_PUT_DEST  = (WM_USER + 143)
+    Public Const MCIWNDM_CAN_PLAY  = (WM_USER + 144)
+    Public Const MCIWNDM_CAN_WINDOW  = (WM_USER + 145)
+    Public Const MCIWNDM_CAN_RECORD  = (WM_USER + 146)
+    Public Const MCIWNDM_CAN_SAVE  = (WM_USER + 147)
+    Public Const MCIWNDM_CAN_EJECT  = (WM_USER + 148)
+    Public Const MCIWNDM_CAN_CONFIG  = (WM_USER + 149)
+    Public Const MCIWNDM_PALETTEKICK  = (WM_USER + 150)
+    Public Const MCIWNDM_OPENINTERFACE  = (WM_USER + 151)
+    Public Const MCIWNDM_SETOWNER  = (WM_USER + 152)
+    ' define both A and W messages
+    Public Const MCIWNDM_SENDSTRINGA  = (WM_USER + 101)
+    Public Const MCIWNDM_GETPOSITIONA  = (WM_USER + 102)
+    Public Const MCIWNDM_GETMODEA  = (WM_USER + 106)
+    Public Const MCIWNDM_SETTIMEFORMATA  = (WM_USER + 119)
+    Public Const MCIWNDM_GETTIMEFORMATA  = (WM_USER + 120)
+    Public Const MCIWNDM_GETFILENAMEA  = (WM_USER + 124)
+    Public Const MCIWNDM_GETDEVICEA  = (WM_USER + 125)
+    Public Const MCIWNDM_GETERRORA  = (WM_USER + 128)
+    Public Const MCIWNDM_NEWA  = (WM_USER + 134)
+    Public Const MCIWNDM_RETURNSTRINGA  = (WM_USER + 138)
+    Public Const MCIWNDM_OPENA  = (WM_USER + 153)
+    Public Const MCIWNDM_SENDSTRINGW  = (WM_USER + 201)
+    Public Const MCIWNDM_GETPOSITIONW  = (WM_USER + 202)
+    Public Const MCIWNDM_GETMODEW  = (WM_USER + 206)
+    Public Const MCIWNDM_SETTIMEFORMATW  = (WM_USER + 219)
+    Public Const MCIWNDM_GETTIMEFORMATW  = (WM_USER + 220)
+    Public Const MCIWNDM_GETFILENAMEW  = (WM_USER + 224)
+    Public Const MCIWNDM_GETDEVICEW  = (WM_USER + 225)
+    Public Const MCIWNDM_GETERRORW  = (WM_USER + 228)
+    Public Const MCIWNDM_NEWW  = (WM_USER + 234)
+    Public Const MCIWNDM_RETURNSTRINGW  = (WM_USER + 238)
+    Public Const MCIWNDM_OPENW  = (WM_USER + 252)
+    '  map defaults to A or W depending on app's UNICODE setting
+    Public Const MCIWNDM_SENDSTRING  = MCIWNDM_SENDSTRINGW
+    Public Const MCIWNDM_GETPOSITION  = MCIWNDM_GETPOSITIONW
+    Public Const MCIWNDM_GETMODE  = MCIWNDM_GETMODEW
+    Public Const MCIWNDM_SETTIMEFORMAT  = MCIWNDM_SETTIMEFORMATW
+    Public Const MCIWNDM_GETTIMEFORMAT  = MCIWNDM_GETTIMEFORMATW
+    Public Const MCIWNDM_GETFILENAME  = MCIWNDM_GETFILENAMEW
+    Public Const MCIWNDM_GETDEVICE  = MCIWNDM_GETDEVICEW
+    Public Const MCIWNDM_GETERROR  = MCIWNDM_GETERRORW
+    Public Const MCIWNDM_NEW  = MCIWNDM_NEWW
+    Public Const MCIWNDM_RETURNSTRING  = MCIWNDM_RETURNSTRINGW
+    Public Const MCIWNDM_OPEN  = MCIWNDM_OPENW
+    '  note that the source text for MCIWND will thus contain
+    '  support for eg MCIWNDM_SENDSTRING (both the 16-bit entrypoint and
+    '  in win32 mapped to MCIWNDM_SENDSTRINGW), and MCIWNDM_SENDSTRINGA (the
+    '  win32 ansi thunk).
+    '  Messages MCIWND will send to an app
+    '  !!! Use less messages and use a code instead to indicate the type of notify? /* ;Internal */
+    Public Const MCIWNDM_NOTIFYMODE  = (WM_USER + 200)  ' wp = hwnd, lp = mode
+    Public Const MCIWNDM_NOTIFYPOS  = (WM_USER + 201)  ' wp = hwnd, lp = pos
+    Public Const MCIWNDM_NOTIFYSIZE  = (WM_USER + 202)  ' wp = hwnd
+    Public Const MCIWNDM_NOTIFYMEDIA  = (WM_USER + 203)  ' wp = hwnd, lp = fn
+    Public Const MCIWNDM_NOTIFYERROR  = (WM_USER + 205)  ' wp = hwnd, lp = error
+    '  special seek values for START and END
+    Public Const MCIWND_START  = -1
+    Public Const MCIWND_END  = -2
+    
+    
+    Public Declare PtrSafe Function VideoForWindowsVersion Lib "msvfw32" () As Long
+
+    Public Const DV_ERR_OK  = (0) /* No error */
+    Public Const DV_ERR_BASE  = (1) /* Error Base */
+    Public Const DV_ERR_NONSPECIFIC  = (DV_ERR_BASE)
+    Public Const DV_ERR_BADFORMAT  = (DV_ERR_BASE + 1)
+    /* unsupported video format */
+    Public Const DV_ERR_STILLPLAYING  = (DV_ERR_BASE + 2)
+                    /* still something playing */
+    Public Const DV_ERR_UNPREPARED  = (DV_ERR_BASE + 3)
+                    /* header not prepared */
+    Public Const DV_ERR_SYNC  = (DV_ERR_BASE + 4)
+                    /* device is synchronous */
+    Public Const DV_ERR_TOOMANYCHANNELS  = (DV_ERR_BASE + 5)
+                    /* number of channels exceeded */
+    Public Const DV_ERR_NOTDETECTED  = (DV_ERR_BASE + 6) /* HW not detected */
+    Public Const DV_ERR_BADINSTALL  = (DV_ERR_BASE + 7) /* Can not get Profile */
+    Public Const DV_ERR_CREATEPALETTE  = (DV_ERR_BASE + 8)
+    Public Const DV_ERR_SIZEFIELD  = (DV_ERR_BASE + 9)
+    Public Const DV_ERR_PARAM1  = (DV_ERR_BASE + 10)
+    Public Const DV_ERR_PARAM2  = (DV_ERR_BASE + 11)
+    Public Const DV_ERR_CONFIG1  = (DV_ERR_BASE + 12)
+    Public Const DV_ERR_CONFIG2  = (DV_ERR_BASE + 13)
+    Public Const DV_ERR_FLAGS  = (DV_ERR_BASE + 14)
+    Public Const DV_ERR_13  = (DV_ERR_BASE + 15)
+    Public Const DV_ERR_NOTSUPPORTED  = (DV_ERR_BASE + 16) /* function not suported */
+    Public Const DV_ERR_NOMEM  = (DV_ERR_BASE + 17) /* out of memory */
+    Public Const DV_ERR_ALLOCATED  = (DV_ERR_BASE + 18) /* device is allocated */
+    Public Const DV_ERR_BADDEVICEID  = (DV_ERR_BASE + 19)
+    Public Const DV_ERR_INVALHANDLE  = (DV_ERR_BASE + 20)
+    Public Const DV_ERR_BADERRNUM  = (DV_ERR_BASE + 21)
+    Public Const DV_ERR_NO_BUFFERS  = (DV_ERR_BASE + 22) /* out of buffers */
+    Public Const DV_ERR_MEM_CONFLICT  = (DV_ERR_BASE + 23) /* Mem conflict detected */
+    Public Const DV_ERR_IO_CONFLICT  = (DV_ERR_BASE + 24) /* I/O conflict detected */
+    Public Const DV_ERR_DMA_CONFLICT  = (DV_ERR_BASE + 25) /* DMA conflict detected */
+    Public Const DV_ERR_INT_CONFLICT  = (DV_ERR_BASE + 26) /* Interrupt conflict detected */
+    Public Const DV_ERR_PROTECT_ONLY  = (DV_ERR_BASE + 27) /* Can not run in standard mode */
+    Public Const DV_ERR_LASTERROR  = (DV_ERR_BASE + 27)
+    ' #define DV_IDS_PROFILING        (DV_ERR_BASE + 900)
+    ' #define DV_IDS_LISTBOX          (DV_ERR_BASE + 901)
+    Public Const DV_ERR_USER_MSG  = (DV_ERR_BASE + 1000) /* Hardware specific errors */
+
+    Public Const DV_VM_OPEN  = MM_DRVM_OPEN  ' Obsolete messages
+    Public Const DV_VM_CLOSE  = MM_DRVM_CLOSE
+    Public Const DV_VM_DATA  = MM_DRVM_DATA
+    Public Const DV_VM_ERROR  = MM_DRVM_ERROR
+
+    
+    Public Enum VideoHdrFlags
+        VHDR_DONE = &H00000001  '* Done bit */
+        VHDR_PREPARED = &H00000002  '* Set if this header has been prepared */
+        VHDR_INQUEUE = &H00000004  '* Reserved for driver */
+        VHDR_KEYFRAME = &H00000008  '* Key Frame */
+        VHDR_VALID = &H0000000F  '* valid flags */     /* ;Internal */
+    End Enum
+    Public Type VIDEOHDR
+        lpData As LongPtr '* pointer to locked data buffer */
+        dwBufferLength As Long '* Length of data buffer */
+        dwBytesUsed As Long '* Bytes actually used */
+        dwTimeCaptured As Long '* Milliseconds from start of stream */
+        dwUser As LongPtr '* for client's use */
+        dwFlags As VideoHdrFlags '* assorted flags (see defines) */
+        dwReserved(0 To 3) As LongPtr '* reserved for driver */
+    End Type
+
+    Public Enum ChannelCapsFlags
+        VCAPS_OVERLAY = &H00000001 /* overlay channel */
+        VCAPS_SRC_CAN_CLIP = &H00000002 /* src rect can clip */
+        VCAPS_DST_CAN_CLIP = &H00000004 /* dst rect can clip */
+        VCAPS_CAN_SCALE = &H00000008 /* allows src != dst */
+    End Enum
+    Public Type CHANNEL_CAPS
+        dwFlags As ChannelCapsFlags /* Capability flags*/
+        dwSrcRectXMod As Long '* Granularity of src rect in x */
+        dwSrcRectYMod As Long '* Granularity of src rect in y */
+        dwSrcRectWidthMod As Long '* Granularity of src rect width */
+        dwSrcRectHeightMod As Long '* Granularity of src rect height */
+        dwDstRectXMod As Long '* Granularity of dst rect in x */
+        dwDstRectYMod As Long '* Granularity of dst rect in y */
+        dwDstRectWidthMod As Long '* Granularity of dst rect width */
+        dwDstRectHeightMod As Long '* Granularity of dst rect height */
+    End Type
+
+    Public Const VIDEO_EXTERNALIN  = &H0001
+    Public Const VIDEO_EXTERNALOUT  = &H0002
+    Public Const VIDEO_IN  = &H0004
+    Public Const VIDEO_OUT  = &H0008
+    '  Is a driver dialog available for this channel?
+    Public Const VIDEO_DLG_QUERY  = &H0010
+    '  videoConfigure (both GET and SET)
+    Public Const VIDEO_CONFIGURE_QUERY  = &H8000
+    '  videoConfigure (SET only)
+    Public Const VIDEO_CONFIGURE_SET  = &H1000
+    '  videoConfigure (GET only)
+    Public Const VIDEO_CONFIGURE_GET  = &H2000
+    Public Const VIDEO_CONFIGURE_QUERYSIZE  = &H0001
+    Public Const VIDEO_CONFIGURE_CURRENT  = &H0010
+    Public Const VIDEO_CONFIGURE_NOMINAL  = &H0020
+    Public Const VIDEO_CONFIGURE_MIN  = &H0040
+    Public Const VIDEO_CONFIGURE_MAX  = &H0080
+    /****************************************************************************
+
+    CONFIGURE MESSAGES
+
+    ****************************************************************************/
+    Public Const DVM_USER  = &H4000
+    Public Const DVM_CONFIGURE_START  = &H1000
+    Public Const DVM_CONFIGURE_END  = &H1FFF
+    Public Const DVM_PALETTE  = (DVM_CONFIGURE_START + 1)
+    Public Const DVM_FORMAT  = (DVM_CONFIGURE_START + 2)
+    Public Const DVM_PALETTERGB555  = (DVM_CONFIGURE_START + 3)
+    Public Const DVM_SRC_RECT  = (DVM_CONFIGURE_START + 4)
+    Public Const DVM_DST_RECT  = (DVM_CONFIGURE_START + 5)
+    
+    
+ 
+    Private Const WM_USER = &H400 'Workaround for constent expression evaluation bug. Do not make public.
+    
+    Public Const WM_CAP_START  = WM_USER
+    '  start of unicode messages
+    Public Const WM_CAP_UNICODE_START  = WM_USER + 100
+    Public Const WM_CAP_GET_CAPSTREAMPTR  = (WM_CAP_START + 1)
+    Public Const WM_CAP_SET_CALLBACK_ERRORW  = (WM_CAP_UNICODE_START + 2)
+    Public Const WM_CAP_SET_CALLBACK_STATUSW  = (WM_CAP_UNICODE_START + 3)
+    Public Const WM_CAP_SET_CALLBACK_ERRORA  = (WM_CAP_START + 2)
+    Public Const WM_CAP_SET_CALLBACK_STATUSA  = (WM_CAP_START + 3)
+    Public Const WM_CAP_SET_CALLBACK_ERROR  = WM_CAP_SET_CALLBACK_ERRORW
+    Public Const WM_CAP_SET_CALLBACK_STATUS  = WM_CAP_SET_CALLBACK_STATUSW
+    Public Const WM_CAP_SET_CALLBACK_YIELD  = (WM_CAP_START + 4)
+    Public Const WM_CAP_SET_CALLBACK_FRAME  = (WM_CAP_START + 5)
+    Public Const WM_CAP_SET_CALLBACK_VIDEOSTREAM  = (WM_CAP_START + 6)
+    Public Const WM_CAP_SET_CALLBACK_WAVESTREAM  = (WM_CAP_START + 7)
+    Public Const WM_CAP_GET_USER_DATA  = (WM_CAP_START + 8)
+    Public Const WM_CAP_SET_USER_DATA  = (WM_CAP_START + 9)
+    Public Const WM_CAP_DRIVER_CONNECT  = (WM_CAP_START + 10)
+    Public Const WM_CAP_DRIVER_DISCONNECT  = (WM_CAP_START + 11)
+    Public Const WM_CAP_DRIVER_GET_NAMEA  = (WM_CAP_START + 12)
+    Public Const WM_CAP_DRIVER_GET_VERSIONA  = (WM_CAP_START + 13)
+    Public Const WM_CAP_DRIVER_GET_NAMEW  = (WM_CAP_UNICODE_START + 12)
+    Public Const WM_CAP_DRIVER_GET_VERSIONW  = (WM_CAP_UNICODE_START + 13)
+    Public Const WM_CAP_DRIVER_GET_NAME  = WM_CAP_DRIVER_GET_NAMEW
+    Public Const WM_CAP_DRIVER_GET_VERSION  = WM_CAP_DRIVER_GET_VERSIONW
+    Public Const WM_CAP_DRIVER_GET_CAPS  = (WM_CAP_START + 14)
+    Public Const WM_CAP_FILE_SET_CAPTURE_FILEA  = (WM_CAP_START + 20)
+    Public Const WM_CAP_FILE_GET_CAPTURE_FILEA  = (WM_CAP_START + 21)
+    Public Const WM_CAP_FILE_SAVEASA  = (WM_CAP_START + 23)
+    Public Const WM_CAP_FILE_SAVEDIBA  = (WM_CAP_START + 25)
+    Public Const WM_CAP_FILE_SET_CAPTURE_FILEW  = (WM_CAP_UNICODE_START + 20)
+    Public Const WM_CAP_FILE_GET_CAPTURE_FILEW  = (WM_CAP_UNICODE_START + 21)
+    Public Const WM_CAP_FILE_SAVEASW  = (WM_CAP_UNICODE_START + 23)
+    Public Const WM_CAP_FILE_SAVEDIBW  = (WM_CAP_UNICODE_START + 25)
+    Public Const WM_CAP_FILE_SET_CAPTURE_FILE  = WM_CAP_FILE_SET_CAPTURE_FILEW
+    Public Const WM_CAP_FILE_GET_CAPTURE_FILE  = WM_CAP_FILE_GET_CAPTURE_FILEW
+    Public Const WM_CAP_FILE_SAVEAS  = WM_CAP_FILE_SAVEASW
+    Public Const WM_CAP_FILE_SAVEDIB  = WM_CAP_FILE_SAVEDIBW
+    '  out of order to save on ifdefs
+    Public Const WM_CAP_FILE_ALLOCATE  = (WM_CAP_START + 22)
+    Public Const WM_CAP_FILE_SET_INFOCHUNK  = (WM_CAP_START + 24)
+    Public Const WM_CAP_EDIT_COPY  = (WM_CAP_START + 30)
+    Public Const WM_CAP_SET_AUDIOFORMAT  = (WM_CAP_START + 35)
+    Public Const WM_CAP_GET_AUDIOFORMAT  = (WM_CAP_START + 36)
+    Public Const WM_CAP_DLG_VIDEOFORMAT  = (WM_CAP_START + 41)
+    Public Const WM_CAP_DLG_VIDEOSOURCE  = (WM_CAP_START + 42)
+    Public Const WM_CAP_DLG_VIDEODISPLAY  = (WM_CAP_START + 43)
+    Public Const WM_CAP_GET_VIDEOFORMAT  = (WM_CAP_START + 44)
+    Public Const WM_CAP_SET_VIDEOFORMAT  = (WM_CAP_START + 45)
+    Public Const WM_CAP_DLG_VIDEOCOMPRESSION  = (WM_CAP_START + 46)
+    Public Const WM_CAP_SET_PREVIEW  = (WM_CAP_START + 50)
+    Public Const WM_CAP_SET_OVERLAY  = (WM_CAP_START + 51)
+    Public Const WM_CAP_SET_PREVIEWRATE  = (WM_CAP_START + 52)
+    Public Const WM_CAP_SET_SCALE  = (WM_CAP_START + 53)
+    Public Const WM_CAP_GET_STATUS  = (WM_CAP_START + 54)
+    Public Const WM_CAP_SET_SCROLL  = (WM_CAP_START + 55)
+    Public Const WM_CAP_GRAB_FRAME  = (WM_CAP_START + 60)
+    Public Const WM_CAP_GRAB_FRAME_NOSTOP  = (WM_CAP_START + 61)
+    Public Const WM_CAP_SEQUENCE  = (WM_CAP_START + 62)
+    Public Const WM_CAP_SEQUENCE_NOFILE  = (WM_CAP_START + 63)
+    Public Const WM_CAP_SET_SEQUENCE_SETUP  = (WM_CAP_START + 64)
+    Public Const WM_CAP_GET_SEQUENCE_SETUP  = (WM_CAP_START + 65)
+    Public Const WM_CAP_SET_MCI_DEVICEA  = (WM_CAP_START + 66)
+    Public Const WM_CAP_GET_MCI_DEVICEA  = (WM_CAP_START + 67)
+    Public Const WM_CAP_SET_MCI_DEVICEW  = (WM_CAP_UNICODE_START + 66)
+    Public Const WM_CAP_GET_MCI_DEVICEW  = (WM_CAP_UNICODE_START + 67)
+    Public Const WM_CAP_SET_MCI_DEVICE  = WM_CAP_SET_MCI_DEVICEW
+    Public Const WM_CAP_GET_MCI_DEVICE  = WM_CAP_GET_MCI_DEVICEW
+    Public Const WM_CAP_STOP  = (WM_CAP_START + 68)
+    Public Const WM_CAP_ABORT  = (WM_CAP_START + 69)
+    Public Const WM_CAP_SINGLE_FRAME_OPEN  = (WM_CAP_START + 70)
+    Public Const WM_CAP_SINGLE_FRAME_CLOSE  = (WM_CAP_START + 71)
+    Public Const WM_CAP_SINGLE_FRAME  = (WM_CAP_START + 72)
+    Public Const WM_CAP_PAL_OPENA  = (WM_CAP_START + 80)
+    Public Const WM_CAP_PAL_SAVEA  = (WM_CAP_START + 81)
+    Public Const WM_CAP_PAL_OPENW  = (WM_CAP_UNICODE_START + 80)
+    Public Const WM_CAP_PAL_SAVEW  = (WM_CAP_UNICODE_START + 81)
+    Public Const WM_CAP_PAL_OPEN  = WM_CAP_PAL_OPENW
+    Public Const WM_CAP_PAL_SAVE  = WM_CAP_PAL_SAVEW
+    Public Const WM_CAP_PAL_PASTE  = (WM_CAP_START + 82)
+    Public Const WM_CAP_PAL_AUTOCREATE  = (WM_CAP_START + 83)
+    Public Const WM_CAP_PAL_MANUALCREATE  = (WM_CAP_START + 84)
+    '  Following added post VFW 1.1
+    Public Const WM_CAP_SET_CALLBACK_CAPCONTROL  = (WM_CAP_START + 85)
+    '  Defines end of the message range
+    Public Const WM_CAP_UNICODE_END  = WM_CAP_PAL_SAVEW
+    Public Const WM_CAP_END  = WM_CAP_UNICODE_END
+    
+    Public Function AVICapSM(ByVal hwnd As LongPtr, ByVal m As Long, ByVal w As LongPtr, ByVal l As LongPtr) As LongPtr
+        Return If(IsWindow(hwnd), SendMessage(hwnd, m, w, ByVal l), CLngPtr(0))
+    End Function
+    Public Function capSetCallbackOnError(ByVal hwnd As LongPtr, ByVal fpProc As LongPtr) As BOOL
+        Return CType(Of BOOL)(AVICapSM(hwnd, WM_CAP_SET_CALLBACK_ERROR, 0, fpProc))
+    End Function
+    Public Function capSetCallbackOnStatus(ByVal hwnd As LongPtr, ByVal fpProc As LongPtr) As BOOL
+        Return CType(Of BOOL)(AVICapSM(hwnd, WM_CAP_SET_CALLBACK_STATUS, 0, fpProc))
+    End Function
+    Public Function capSetCallbackOnYield(ByVal hwnd As LongPtr, ByVal fpProc As LongPtr) As BOOL
+        Return CType(Of BOOL)(AVICapSM(hwnd, WM_CAP_SET_CALLBACK_YIELD, 0, fpProc))
+    End Function
+    Public Function capSetCallbackOnFrame(ByVal hwnd As LongPtr, ByVal fpProc As LongPtr) As BOOL
+        Return CType(Of BOOL)(AVICapSM(hwnd, WM_CAP_SET_CALLBACK_FRAME, 0, fpProc))
+    End Function
+    Public Function capSetCallbackOnVideoStream(ByVal hwnd As LongPtr, ByVal fpProc As LongPtr) As BOOL
+        Return CType(Of BOOL)(AVICapSM(hwnd, WM_CAP_SET_CALLBACK_VIDEOSTREAM, 0, fpProc))
+    End Function
+    Public Function capSetCallbackOnWaveStream(ByVal hwnd As LongPtr, ByVal fpProc As LongPtr) As BOOL
+        Return CType(Of BOOL)(AVICapSM(hwnd, WM_CAP_SET_CALLBACK_WAVESTREAM, 0, fpProc))
+    End Function
+    Public Function capSetCallbackOnCapControl(ByVal hwnd As LongPtr, ByVal fpProc As LongPtr) As BOOL
+        Return CType(Of BOOL)(AVICapSM(hwnd, WM_CAP_SET_CALLBACK_CAPCONTROL, 0, fpProc))
+    End Function
+    
+    Public Function capSetUserData(ByVal hwnd As LongPtr, ByVal lUser As LongPtr) As BOOL
+        Return CType(Of BOOL)(AVICapSM(hwnd, WM_CAP_SET_USER_DATA, 0, lUser))
+    End Function
+    Public Function capGetUserData(ByVal hwnd As LongPtr) As LongPtr
+        Return AVICapSM(hwnd, WM_CAP_GET_USER_DATA, 0, 0)
+    End Function
+
+
+    Public Function capDriverConnect(ByVal hwnd As LongPtr, ByVal i As Long) As BOOL
+        Return CType(Of BOOL)(AVICapSM(hwnd, WM_CAP_DRIVER_CONNECT, i, 0))
+    End Function
+    Public Function capDriverDisconnect(ByVal hwnd As LongPtr) As BOOL
+        Return CType(Of BOOL)(AVICapSM(hwnd, WM_CAP_DRIVER_DISCONNECT, 0, 0))
+    End Function
+    Public Function capDriverGetName(ByVal hwnd As LongPtr, ByVal szName As LongPtr, ByVal wSize As Long) As BOOL
+        Return CType(Of BOOL)(AVICapSM(hwnd, WM_CAP_DRIVER_GET_NAME, wSize, szName))
+    End Function
+    Public Function capDriverGetVersion(ByVal hwnd As LongPtr, ByVal szVer As LongPtr, ByVal wSize As Long) As BOOL
+        Return CType(Of BOOL)(AVICapSM(hwnd, WM_CAP_DRIVER_GET_VERSION, wSize, szVer))
+    End Function
+    Public Function capDriverGetCaps(ByVal hwnd As LongPtr, ByVal s As LongPtr, ByVal wSize As Long) As BOOL
+        Return CType(Of BOOL)(AVICapSM(hwnd, WM_CAP_DRIVER_GET_CAPS, wSize, s))
+    End Function
+
+
+    Public Function capFileSetCaptureFile(ByVal hwnd As LongPtr, ByVal szName As LongPtr) As BOOL
+        Return CType(Of BOOL)(AVICapSM(hwnd, WM_CAP_FILE_SET_CAPTURE_FILE, 0, szName))
+    End Function
+    Public Function capFileGetCaptureFile(ByVal hwnd As LongPtr, ByVal szName As LongPtr, ByVal wSize As Long) As BOOL
+        Return CType(Of BOOL)(AVICapSM(hwnd, WM_CAP_FILE_GET_CAPTURE_FILE, wSize, szName))
+    End Function
+    Public Function capFileAlloc(ByVal hwnd As LongPtr, ByVal dwSize As DWORD) As BOOL
+        Return CType(Of BOOL)(AVICapSM(hwnd, WM_CAP_FILE_ALLOCATE, 0, dwSize))
+    End Function
+    Public Function capFileSaveAs(ByVal hwnd As LongPtr, ByVal szName As LongPtr) As BOOL
+        Return CType(Of BOOL)(AVICapSM(hwnd, WM_CAP_FILE_SAVEAS, 0, szName))
+    End Function
+    Public Function capFileSetInfoChunk(ByVal hwnd As LongPtr, ByVal lpInfoChunk As LongPtr) As BOOL
+        Return CType(Of BOOL)(AVICapSM(hwnd, WM_CAP_FILE_SET_INFOCHUNK, 0, lpInfoChunk))
+    End Function
+    Public Function capFileSaveDIB(ByVal hwnd As LongPtr, ByVal szName As LongPtr) As BOOL
+        Return CType(Of BOOL)(AVICapSM(hwnd, WM_CAP_FILE_SAVEDIB, 0, szName))
+    End Function
+
+
+    Public Function capEditCopy(ByVal hwnd As LongPtr) As BOOL
+        Return CType(Of BOOL)(AVICapSM(hwnd, WM_CAP_EDIT_COPY, 0, 0))
+    End Function
+
+
+    Public Function capSetAudioFormat(ByVal hwnd As LongPtr, ByVal s As LongPtr, ByVal wSize As Long) As BOOL
+        Return CType(Of BOOL)(AVICapSM(hwnd, WM_CAP_SET_AUDIOFORMAT, wSize, s))
+    End Function
+    Public Function capGetAudioFormat(ByVal hwnd As LongPtr, ByVal s As LongPtr, ByVal wSize As Long) As Long
+        Return CLng(AVICapSM(hwnd, WM_CAP_GET_AUDIOFORMAT, wSize, s))
+    End Function
+    Public Function capGetAudioFormatSize(ByVal hwnd As LongPtr) As Long
+        Return CLng(AVICapSM(hwnd, WM_CAP_GET_AUDIOFORMAT, 0, 0))
+    End Function
+
+
+    Public Function capDlgVideoFormat(ByVal hwnd As LongPtr) As BOOL
+        Return CType(Of BOOL)(AVICapSM(hwnd, WM_CAP_DLG_VIDEOFORMAT, 0, 0))
+    End Function
+    Public Function capDlgVideoSource(ByVal hwnd As LongPtr) As BOOL
+        Return CType(Of BOOL)(AVICapSM(hwnd, WM_CAP_DLG_VIDEOSOURCE, 0, 0))
+    End Function
+    Public Function capDlgVideoDisplay(ByVal hwnd As LongPtr) As BOOL
+        Return CType(Of BOOL)(AVICapSM(hwnd, WM_CAP_DLG_VIDEODISPLAY, 0, 0))
+    End Function
+    Public Function capDlgVideoCompression(ByVal hwnd As LongPtr) As BOOL
+        Return CType(Of BOOL)(AVICapSM(hwnd, WM_CAP_DLG_VIDEOCOMPRESSION, 0, 0))
+    End Function
+
+
+    Public Function capGetVideoFormat(ByVal hwnd As LongPtr, ByVal s As LongPtr, ByVal wSize As Long) As Long
+        Return CLng(AVICapSM(hwnd, WM_CAP_GET_VIDEOFORMAT, wSize, s))
+    End Function
+    Public Function capGetVideoFormatSize(ByVal hwnd As LongPtr) As Long
+        Return CLng(AVICapSM(hwnd, WM_CAP_GET_VIDEOFORMAT, 0, 0))
+    End Function
+    Public Function capSetVideoFormat(ByVal hwnd As LongPtr, ByVal s As LongPtr, ByVal wSize As Long) As BOOL
+        Return CType(Of BOOL)(AVICapSM(hwnd, WM_CAP_SET_VIDEOFORMAT, wSize, s))
+    End Function
+    
+    Public Function capPreview(ByVal hwnd As LongPtr, ByVal f As BOOL) As BOOL
+        Return CType(Of BOOL)(AVICapSM(hwnd, WM_CAP_SET_PREVIEW, f, 0))
+    End Function
+    Public Function capPreviewRate(ByVal hwnd As LongPtr, ByVal wMS As Long) As BOOL
+        Return CType(Of BOOL)(AVICapSM(hwnd, WM_CAP_SET_PREVIEWRATE, wMS, 0))
+    End Function
+    Public Function capOverlay(ByVal hwnd As LongPtr, ByVal f As BOOL) As BOOL
+        Return CType(Of BOOL)(AVICapSM(hwnd, WM_CAP_SET_OVERLAY, f, 0))
+    End Function
+    Public Function capPreviewScale(ByVal hwnd As LongPtr, ByVal f As BOOL) As BOOL
+        Return CType(Of BOOL)(AVICapSM(hwnd, WM_CAP_SET_SCALE, f, 0))
+    End Function
+    Public Function capGetStatus(ByVal hwnd As LongPtr, ByVal s As LongPtr, ByVal wSize As Long) As BOOL
+        Return CType(Of BOOL)(AVICapSM(hwnd, WM_CAP_GET_STATUS, wSize, s))
+    End Function
+    Public Function capSetScrollPos(ByVal hwnd As LongPtr, ByVal lpP As LongPtr) As BOOL
+        Return CType(Of BOOL)(AVICapSM(hwnd, WM_CAP_SET_SCROLL, 0, lpP))
+    End Function
+
+
+    Public Function capGrabFrame(ByVal hwnd As LongPtr) As BOOL
+        Return CType(Of BOOL)(AVICapSM(hwnd, WM_CAP_GRAB_FRAME, 0, 0))
+    End Function
+    Public Function capGrabFrameNoStop(ByVal hwnd As LongPtr) As BOOL
+        Return CType(Of BOOL)(AVICapSM(hwnd, WM_CAP_GRAB_FRAME_NOSTOP, 0, 0))
+    End Function
+
+
+    Public Function capCaptureSequence(ByVal hwnd As LongPtr) As BOOL
+        Return CType(Of BOOL)(AVICapSM(hwnd, WM_CAP_SEQUENCE, 0, 0))
+    End Function
+    Public Function capCaptureSequenceNoFile(ByVal hwnd As LongPtr) As BOOL
+        Return CType(Of BOOL)(AVICapSM(hwnd, WM_CAP_SEQUENCE_NOFILE, 0, 0))
+    End Function
+    Public Function capCaptureStop(ByVal hwnd As LongPtr) As BOOL
+        Return CType(Of BOOL)(AVICapSM(hwnd, WM_CAP_STOP, 0, 0))
+    End Function
+    Public Function capCaptureAbort(ByVal hwnd As LongPtr) As BOOL
+        Return CType(Of BOOL)(AVICapSM(hwnd, WM_CAP_ABORT, 0, 0))
+    End Function
+
+
+    Public Function capCaptureSingleFrameOpen(ByVal hwnd As LongPtr) As BOOL
+        Return CType(Of BOOL)(AVICapSM(hwnd, WM_CAP_SINGLE_FRAME_OPEN, 0, 0))
+    End Function
+    Public Function capCaptureSingleFrameClose(ByVal hwnd As LongPtr) As BOOL
+        Return CType(Of BOOL)(AVICapSM(hwnd, WM_CAP_SINGLE_FRAME_CLOSE, 0, 0))
+    End Function
+    Public Function capCaptureSingleFrame(ByVal hwnd As LongPtr) As BOOL
+        Return CType(Of BOOL)(AVICapSM(hwnd, WM_CAP_SINGLE_FRAME, 0, 0))
+    End Function
+
+
+    Public Function capCaptureGetSetup(ByVal hwnd As LongPtr, ByVal s As LongPtr, ByVal wSize As Long) As BOOL
+        Return CType(Of BOOL)(AVICapSM(hwnd, WM_CAP_GET_SEQUENCE_SETUP, wSize, s))
+    End Function
+    Public Function capCaptureSetSetup(ByVal hwnd As LongPtr, ByVal s As LongPtr, ByVal wSize As Long) As BOOL
+        Return CType(Of BOOL)(AVICapSM(hwnd, WM_CAP_SET_SEQUENCE_SETUP, wSize, s))
+    End Function
+
+
+    Public Function capSetMCIDeviceName(ByVal hwnd As LongPtr, ByVal szName As LongPtr) As BOOL
+        Return CType(Of BOOL)(AVICapSM(hwnd, WM_CAP_SET_MCI_DEVICE, 0, szName))
+    End Function
+    Public Function capGetMCIDeviceName(ByVal hwnd As LongPtr, ByVal szName As LongPtr, ByVal wSize As Long) As BOOL
+        Return CType(Of BOOL)(AVICapSM(hwnd, WM_CAP_GET_MCI_DEVICE, wSize, szName))
+    End Function
+
+
+    Public Function capPaletteOpen(ByVal hwnd As LongPtr, ByVal szName As LongPtr) As BOOL
+        Return CType(Of BOOL)(AVICapSM(hwnd, WM_CAP_PAL_OPEN, 0, szName))
+    End Function
+    Public Function capPaletteSave(ByVal hwnd As LongPtr, ByVal szName As LongPtr) As BOOL
+        Return CType(Of BOOL)(AVICapSM(hwnd, WM_CAP_PAL_SAVE, 0, szName))
+    End Function
+    Public Function capPalettePaste(ByVal hwnd As LongPtr) As BOOL
+        Return CType(Of BOOL)(AVICapSM(hwnd, WM_CAP_PAL_PASTE, 0, 0))
+    End Function
+    Public Function capPaletteAuto(ByVal hwnd As LongPtr, ByVal iFrames As Long, ByVal iColors As DWORD) As BOOL
+        Return CType(Of BOOL)(AVICapSM(hwnd, WM_CAP_PAL_AUTOCREATE, iFrames, iColors))
+    End Function
+    Public Function capPaletteManual(ByVal hwnd As LongPtr, ByVal fGrab As BOOL, ByVal iColors As DWORD) As BOOL
+        Return CType(Of BOOL)(AVICapSM(hwnd, WM_CAP_PAL_MANUALCREATE, fGrab, iColors))
+    End Function
+    
+    Public Type CAPDRIVERCAPS
+        wDeviceIndex As Long ' Driver index in system.ini
+        fHasOverlay As BOOL ' Can device overlay?
+        fHasDlgVideoSource As BOOL ' Has Video source dlg?
+        fHasDlgVideoFormat As BOOL ' Has Format dlg?
+        fHasDlgVideoDisplay As BOOL ' Has External out dlg?
+        fCaptureInitialized As BOOL ' Driver ready to capture?
+        fDriverSuppliesPalettes As BOOL ' Can driver make palettes?
+        ' following always NULL on Win32.
+        hVideoIn As LongPtr ' Driver In channel
+        hVideoOut As LongPtr ' Driver Out channel
+        hVideoExtIn As LongPtr ' Driver Ext In channel
+        hVideoExtOut As LongPtr ' Driver Ext Out channel
+    End Type
+    
+    Public Type CAPSTATUS
+        uiImageWidth As Long ' Width of the image
+        uiImageHeight As Long ' Height of the image
+        fLiveWindow As BOOL ' Now Previewing video?
+        fOverlayWindow As BOOL ' Now Overlaying video?
+        fScale As BOOL ' Scale image to client?
+        ptScroll As POINT ' Scroll position
+        fUsingDefaultPalette As BOOL ' Using default driver palette?
+        fAudioHardware As BOOL ' Audio hardware present?
+        fCapFileExists As BOOL ' Does capture file exist?
+        dwCurrentVideoFrame As Long ' # of video frames cap'td
+        dwCurrentVideoFramesDropped As Long ' # of video frames dropped
+        dwCurrentWaveSamples As Long ' # of wave samples cap'td
+        dwCurrentTimeElapsedMS As Long ' Elapsed capture duration
+        hPalCurrent As LongPtr 'HPALETTE ' Current palette in use
+        fCapturingNow As BOOL ' Capture in progress?
+        dwReturn As Long ' Error value after any operation
+        wNumVideoAllocated As Long ' Actual number of video buffers
+        wNumAudioAllocated As Long ' Actual number of audio buffers
+    End Type
+    
+    Public Type CAPTUREPARMS
+        dwRequestMicroSecPerFrame As Long ' Requested capture rate
+        fMakeUserHitOKToCapture As BOOL ' Show "Hit OK to cap" dlg?
+        wPercentDropForError As Long ' Give error msg if > (10%)
+        fYield As BOOL ' Capture via background task?
+        dwIndexSize As Long ' Max index size in frames (32K)
+        wChunkGranularity As Long ' Junk chunk granularity (2K)
+        fUsingDOSMemory As BOOL ' Use DOS buffers?
+        wNumVideoRequested As Long ' # video buffers, If 0, autocalc
+        fCaptureAudio As BOOL ' Capture audio?
+        wNumAudioRequested As Long ' # audio buffers, If 0, autocalc
+        vKeyAbort As Long ' Virtual key causing abort
+        fAbortLeftMouse As BOOL ' Abort on left mouse?
+        fAbortRightMouse As BOOL ' Abort on right mouse?
+        fLimitEnabled As BOOL ' Use wTimeLimit?
+        wTimeLimit As Long ' Seconds to capture
+        fMCIControl As BOOL ' Use MCI video source?
+        fStepMCIDevice As BOOL ' Step MCI device?
+        dwMCIStartTime As Long ' Time to start in MS
+        dwMCIStopTime As Long ' Time to stop in MS
+        fStepCaptureAt2x As BOOL ' Perform spatial averaging 2x
+        wStepCaptureAverageFrames As Long ' Temporal average n Frames
+        dwAudioBufferSize As Long ' Size of audio bufs (0 = default)
+        fDisableWriteCache As BOOL ' Attempt to disable write cache
+        AVStreamMaster As Long ' Which stream controls length?
+    End Type
+    
+    Public Const AVSTREAMMASTER_AUDIO       = 0 /* Audio master (VFW 1.0, 1.1) */
+    Public Const AVSTREAMMASTER_NONE        = 1 /* No master */
+    
+    Public Type CAPINFOCHUNK
+        fccInfoID As Long 'FOURCC ' Chunk ID, "ICOP" for copyright
+        lpData As LongPtr ' pointer to data
+        cbData As Long ' size of lpData
+    End Type
+
+    Public Delegate Function CAPYIELDCALLBACK (ByVal hWnd As LongPtr) As LongPtr
+
+    Public Delegate Function CAPSTATUSCALLBACKW (ByVal hWnd As LongPtr, ByVal nID As Long, ByVal lpsz As LongPtr) As LongPtr
+    Public Delegate Function CAPERRORCALLBACKW (ByVal hWnd As LongPtr, ByVal nID As Long, ByVal lpsz As LongPtr) As LongPtr
+
+    Public Delegate Function CAPSTATUSCALLBACKA (ByVal hWnd As LongPtr, ByVal nID As Long, ByVal lpsz As LongPtr) As LongPtr
+    Public Delegate Function CAPERRORCALLBACKA (ByVal hWnd As LongPtr, ByVal nID As Long, ByVal lpsz As LongPtr) As LongPtr
+
+    Public Delegate Function CAPVIDEOCALLBACK (ByVal hWnd As LongPtr, ByRef lpVHdr As VIDEOHDR) As LongPtr
+    Public Delegate Function CAPWAVECALLBACK (ByVal hWnd As LongPtr, ByRef lpWHdr As WAVEHDR) As LongPtr
+
+    Public Delegate Function CAPCONTROLCALLBACK (ByVal hWnd As LongPtr, ByVal nState As Long) As LongPtr
+    
+    Public Delegate Function CAPSTATUSCALLBACK (ByVal hWnd As LongPtr, ByVal nID As Long, ByVal lpsz As LongPtr) As LongPtr
+    Public Delegate Function CAPERRORCALLBACK (ByVal hWnd As LongPtr, ByVal nID As Long, ByVal lpsz As LongPtr) As LongPtr
+    
+    Public Declare PtrSafe Function capCreateCaptureWindowA Lib "avicap32.dll" (ByVal lpszWindowName As String, ByVal dwStyle As Long, ByVal x As Long, ByVal y As Long, ByVal nWidth As Long, ByVal nHeight As Long, ByVal hwndParent As LongPtr, ByVal nID As Long) As LongPtr
+    Public Declare PtrSafe Function capCreateCaptureWindowW Lib "avicap32.dll" (ByVal lpszWindowName As LongPtr, ByVal dwStyle As Long, ByVal x As Long, ByVal y As Long, ByVal nWidth As Long, ByVal nHeight As Long, ByVal hwndParent As LongPtr, ByVal nID As Long) As LongPtr
+    Public DeclareWide PtrSafe Function capCreateCaptureWindow Lib "avicap32.dll" Alias "capCreateCaptureWindowW" (ByVal lpszWindowName As String, ByVal dwStyle As Long, ByVal x As Long, ByVal y As Long, ByVal nWidth As Long, ByVal nHeight As Long, ByVal hwndParent As LongPtr, ByVal nID As Long) As LongPtr
+
+    Public Declare PtrSafe Function capGetDriverDescriptionA Lib "avicap32.dll" (ByVal wDriverIndex As Long, ByVal lpszName As String, ByVal cbName As Long, ByVal lpszVer As String, ByVal cbVer As Long) As BOOL
+    Public Declare PtrSafe Function capGetDriverDescriptionW Lib "avicap32.dll" (ByVal wDriverIndex As Long, ByVal lpszName As LongPtr, ByVal cbName As Long, ByVal lpszVer As LongPtr, ByVal cbVer As Long) As BOOL
+    Public DeclareWide PtrSafe Function capGetDriverDescription Lib "avicap32.dll" Alias "capGetDriverDescriptionW" (ByVal wDriverIndex As Long, ByVal lpszName As String, ByVal cbName As Long, ByVal lpszVer As String, ByVal cbVer As Long) As BOOL
+
+    Public Const infotypeDIGITIZATION_TIME   = &H54494449 ' mmioFOURCC ('I','D','I','T')
+    Public Const infotypeSMPTE_TIME          = &H504d5349 ' mmioFOURCC ('I','S','M','P')
+    ' // ------------------------------------------------------------------
+    ' // String IDs from status and error callbacks
+    ' // ------------------------------------------------------------------
+    
+    Public Const IDS_CAP_BEGIN  = 300 /* "Capture Start" */
+    Public Const IDS_CAP_END  = 301 /* "Capture End" */
+    Public Const IDS_CAP_INFO  = 401 /* "%s" */
+    Public Const IDS_CAP_OUTOFMEM  = 402 /* "Out of memory" */
+    Public Const IDS_CAP_FILEEXISTS  = 403 /* "File '%s' exists -- overwrite it?" */
+    Public Const IDS_CAP_ERRORPALOPEN  = 404 /* "Error opening palette '%s'" */
+    Public Const IDS_CAP_ERRORPALSAVE  = 405 /* "Error saving palette '%s'" */
+    Public Const IDS_CAP_ERRORDIBSAVE  = 406 /* "Error saving frame '%s'" */
+    Public Const IDS_CAP_DEFAVIEXT  = 407 /* "avi" */
+    Public Const IDS_CAP_DEFPALEXT  = 408 /* "pal" */
+    Public Const IDS_CAP_CANTOPEN  = 409 /* "Cannot open '%s'" */
+    Public Const IDS_CAP_SEQ_MSGSTART  = 410 /* "Select OK to start capture\nof video sequence\nto %s." */
+    Public Const IDS_CAP_SEQ_MSGSTOP  = 411 /* "Hit ESCAPE or click to end capture" */
+    Public Const IDS_CAP_VIDEDITERR  = 412 /* "An error occurred while trying to run VidEdit." */
+    Public Const IDS_CAP_READONLYFILE  = 413 /* "The file '%s' is a read-only file." */
+    Public Const IDS_CAP_WRITEERROR  = 414 /* "Unable to write to file '%s'.\nDisk may be full." */
+    Public Const IDS_CAP_NODISKSPACE  = 415 /* "There is no space to create a capture file on the specified device." */
+    Public Const IDS_CAP_SETFILESIZE  = 416 /* "Set File Size" */
+    Public Const IDS_CAP_SAVEASPERCENT  = 417 /* "SaveAs: %2ld%% Hit Escape to abort." */
+    Public Const IDS_CAP_DRIVER_ERROR  = 418 /* Driver specific error message */
+    Public Const IDS_CAP_WAVE_OPEN_ERROR  = 419 /* "Error: Cannot open the wave input device.\nCheck sample size, frequency, and channels." */
+    Public Const IDS_CAP_WAVE_ALLOC_ERROR  = 420 /* "Error: Out of memory for wave buffers." */
+    Public Const IDS_CAP_WAVE_PREPARE_ERROR  = 421 /* "Error: Cannot prepare wave buffers." */
+    Public Const IDS_CAP_WAVE_ADD_ERROR  = 422 /* "Error: Cannot add wave buffers." */
+    Public Const IDS_CAP_WAVE_SIZE_ERROR  = 423 /* "Error: Bad wave size." */
+    Public Const IDS_CAP_VIDEO_OPEN_ERROR  = 424 /* "Error: Cannot open the video input device." */
+    Public Const IDS_CAP_VIDEO_ALLOC_ERROR  = 425 /* "Error: Out of memory for video buffers." */
+    Public Const IDS_CAP_VIDEO_PREPARE_ERROR  = 426 /* "Error: Cannot prepare video buffers." */
+    Public Const IDS_CAP_VIDEO_ADD_ERROR  = 427 /* "Error: Cannot add video buffers." */
+    Public Const IDS_CAP_VIDEO_SIZE_ERROR  = 428 /* "Error: Bad video size." */
+    Public Const IDS_CAP_FILE_OPEN_ERROR  = 429 /* "Error: Cannot open capture file." */
+    Public Const IDS_CAP_FILE_WRITE_ERROR  = 430 /* "Error: Cannot write to capture file. Disk may be full." */
+    Public Const IDS_CAP_RECORDING_ERROR  = 431 /* "Error: Cannot write to capture file. Data rate too high or disk full." */
+    Public Const IDS_CAP_RECORDING_ERROR2  = 432 /* "Error while recording" */
+    Public Const IDS_CAP_AVI_INIT_ERROR  = 433 /* "Error: Unable to initialize for capture." */
+    Public Const IDS_CAP_NO_FRAME_CAP_ERROR  = 434 /* "Warning: No frames captured.\nConfirm that vertical sync interrupts\nare configured and enabled." */
+    Public Const IDS_CAP_NO_PALETTE_WARN  = 435 /* "Warning: Using default palette." */
+    Public Const IDS_CAP_MCI_CONTROL_ERROR  = 436 /* "Error: Unable to access MCI device." */
+    Public Const IDS_CAP_MCI_CANT_STEP_ERROR  = 437 /* "Error: Unable to step MCI device." */
+    Public Const IDS_CAP_NO_AUDIO_CAP_ERROR  = 438 /* "Error: No audio data captured.\nCheck audio card settings." */
+    Public Const IDS_CAP_AVI_DRAWDIB_ERROR  = 439 /* "Error: Unable to draw this data format." */
+    Public Const IDS_CAP_COMPRESSOR_ERROR  = 440 /* "Error: Unable to initialize compressor." */
+    Public Const IDS_CAP_AUDIO_DROP_ERROR  = 441 /* "Error: Audio data was lost during capture, reduce capture rate." */
+    Public Const IDS_CAP_AUDIO_DROP_COMPERROR  = 442 /* "Error: Audio data was lost during capture. Try capturing without compressing." */
+    /* status string IDs */
+    Public Const IDS_CAP_STAT_LIVE_MODE  = 500 /* "Live window" */
+    Public Const IDS_CAP_STAT_OVERLAY_MODE  = 501 /* "Overlay window" */
+    Public Const IDS_CAP_STAT_CAP_INIT  = 502 /* "Setting up for capture - Please wait" */
+    Public Const IDS_CAP_STAT_CAP_FINI  = 503 /* "Finished capture, now writing frame %ld" */
+    Public Const IDS_CAP_STAT_PALETTE_BUILD  = 504 /* "Building palette map" */
+    Public Const IDS_CAP_STAT_OPTPAL_BUILD  = 505 /* "Computing optimal palette" */
+    Public Const IDS_CAP_STAT_I_FRAMES  = 506 /* "%d frames" */
+    Public Const IDS_CAP_STAT_L_FRAMES  = 507 /* "%ld frames" */
+    Public Const IDS_CAP_STAT_CAP_L_FRAMES  = 508 /* "Captured %ld frames" */
+    Public Const IDS_CAP_STAT_CAP_AUDIO  = 509 /* "Capturing audio" */
+    Public Const IDS_CAP_STAT_VIDEOCURRENT  = 510 /* "Captured %ld frames (%ld dropped) %d.%03d sec." */
+    Public Const IDS_CAP_STAT_VIDEOAUDIO  = 511 /* "Captured %d.%03d sec. %ld frames (%ld dropped) (%d.%03d fps). %ld audio bytes (%d,%03d sps)" */
+    Public Const IDS_CAP_STAT_VIDEOONLY  = 512 /* "Captured %d.%03d sec. %ld frames (%ld dropped) (%d.%03d fps)" */
+    Public Const IDS_CAP_STAT_FRAMESDROPPED  = 513 /* "Dropped %ld of %ld frames (%d.%02d%%) during capture." */
+    
+
+    Public Declare PtrSafe Function GetOpenFileNamePreviewA Lib "msvfw32.dll" (lpofn As OPENFILENAMEA) As BOOL
+    Public Declare PtrSafe Function GetOpenFileNamePreviewW Lib "msvfw32.dll" (lpofn As OPENFILENAMEW) As BOOL
+    Public DeclareWide PtrSafe Function GetOpenFileNamePreview Lib "msvfw32.dll" Alias "GetOpenFileNamePreviewW" (lpofn As OPENFILENAME) As BOOL
+    
+    Public Declare PtrSafe Function GetSaveFileNamePreviewA Lib "msvfw32.dll" (lpofn As OPENFILENAMEA) As BOOL
+    Public Declare PtrSafe Function GetSaveFileNamePreviewW Lib "msvfw32.dll" (lpofn As OPENFILENAMEW) As BOOL
+    Public DeclareWide PtrSafe Function GetSaveFileNamePreview Lib "msvfw32.dll" Alias "GetSaveFileNamePreviewW" (lpofn As OPENFILENAME) As BOOL
+    
+    
+    
+    
+    
+    
+    
+    
     
 End Module
 #End If

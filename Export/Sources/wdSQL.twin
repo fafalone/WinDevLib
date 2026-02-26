@@ -1,0 +1,2870 @@
+'*****************************************************************************************
+'This file is a part of WinDevLib - Windows Development Library for twinBASIC
+'https://github.com/fafalone/WinDevLib
+'Code ported by Jon Johnson. 
+'"Windows" is a trademark of the Microsoft Corporation.
+'Certain Description attributes (c) Microsoft, taken from SDK headers and official docs.
+'Licensed under Creative Commons CC0 1.0 Universal
+'*****************************************************************************************
+
+'sqltypes.h - 100%
+'SQL.h - 100%
+'sqlucode.h - 100%
+'sqlext.h - 100%
+
+'Note: The compiler const ODBC_STD is supported.
+
+Public Alias SQLCHAR As String 'Byte
+Public Alias SQLSCHAR As Byte
+Public Alias SQLDATE As Byte
+Public Alias SQLDECIMAL As Byte
+Public Alias SQLDOUBLE As Double
+Public Alias SQLFLOAT As Double
+Public Alias SQLINTEGER As Long
+Public Alias SQLUINTEGER As Long
+#If Win64 Then
+Public Alias SQLLEN As LongLong
+Public Alias SQLULEN As LongLong
+Public Alias SQLSETPOSIROW As LongLong
+#Else
+Public Alias SQLLEN As SQLINTEGER
+Public Alias SQLULEN As SQLUINTEGER
+Public Alias SQLSETPOSIROW As SQLUSMALLINT
+#End If
+
+Public Alias SQLROWCOUNT As SQLULEN
+Public Alias SQLROWSETSIZE As SQLULEN
+Public Alias SQLTRANSID As SQLULEN
+Public Alias SQLROWOFFSET As SQLLEN
+
+Public Alias SQLNUMERIC As Byte
+Public Alias SQLPOINTER As LongPtr
+Public Alias SQLREAL As Single
+Public Alias SQLSMALLINT As Integer
+Public Alias SQLUSMALLINT As Integer
+
+Public Alias SQLTIME As Byte
+Public Alias SQLTIMESTAMP As Byte
+Public Alias SQLVARCHAR As Byte
+
+Public Alias SQLRETURN As SQLSMALLINT
+
+Public Alias SQLHANDLE As LongPtr
+
+Public Alias SQLHENV As SQLHANDLE
+Public Alias SQLHDBC As SQLHANDLE
+Public Alias SQLHSTMT As SQLHANDLE
+Public Alias SQLHDESC As SQLHANDLE
+
+Public Alias SQLHWND As LongPtr
+
+Public Alias SQL_DATE_STRUCT As DATE_STRUCT
+Public Alias SQL_TIME_STRUCT As TIME_STRUCT
+Public Alias SQL_TIMESTAMP_STRUCT As TIMESTAMP_STRUCT
+
+Public Alias ODBCINT64 As LongLong
+Public Alias SQLBIGINT As ODBCINT64
+Public Alias SQLUBIGINT As ODBCINT64
+
+Public Alias SQLGUID As UUID
+
+Public Alias SQLWCHAR As String 'Integer
+Public Alias SQLTCHAR As SQLWCHAR
+
+
+Module wdSQL
+
+Public Const ODBCVER  = &H0380
+    
+Public Type DATE_STRUCT
+    year As SQLSMALLINT
+    month As SQLUSMALLINT
+    day As SQLUSMALLINT
+End Type
+
+Public Type TIME_STRUCT
+    hour As SQLUSMALLINT
+    minute As SQLUSMALLINT
+    second As SQLUSMALLINT
+End Type
+
+Public Type TIMESTAMP_STRUCT
+    year As SQLSMALLINT
+    month As SQLUSMALLINT
+    day As SQLUSMALLINT
+    hour As SQLUSMALLINT
+    minute As SQLUSMALLINT
+    second As SQLUSMALLINT
+    fraction As SQLUINTEGER
+End Type
+
+Public Enum SQLINTERVAL
+    SQL_IS_YEAR = 1
+    SQL_IS_MONTH = 2
+    SQL_IS_DAY = 3
+    SQL_IS_HOUR = 4
+    SQL_IS_MINUTE = 5
+    SQL_IS_SECOND = 6
+    SQL_IS_YEAR_TO_MONTH = 7
+    SQL_IS_DAY_TO_HOUR = 8
+    SQL_IS_DAY_TO_MINUTE = 9
+    SQL_IS_DAY_TO_SECOND = 10
+    SQL_IS_HOUR_TO_MINUTE = 11
+    SQL_IS_HOUR_TO_SECOND = 12
+    SQL_IS_MINUTE_TO_SECOND = 13
+End Enum
+
+Public Type SQL_YEAR_MONTH_STRUCT
+    year As SQLUINTEGER
+    month As SQLUINTEGER
+End Type
+
+Public Type SQL_DAY_SECOND_STRUCT
+    day As SQLUINTEGER
+    hour As SQLUINTEGER
+    minute As SQLUINTEGER
+    second As SQLUINTEGER
+    fraction As SQLUINTEGER
+End Type
+
+[Description("NOTE: intval is a union. For the SQL_YEAR_MONTH_STRUCT arm, the year value is stored in day, and month in hour.")]
+Public Type SQL_INTERVAL_STRUCT
+    interval_type As SQLINTERVAL
+    interval_sign As SQLSMALLINT
+    'union {
+    '    SQL_YEAR_MONTH_STRUCT        year_month;
+    '    SQL_DAY_SECOND_STRUCT        day_second;
+    '} intval;
+    intval As SQL_DAY_SECOND_STRUCT
+End Type
+
+Public Const SQL_MAX_NUMERIC_LEN  = 16
+
+Public Type SQL_NUMERIC_STRUCT
+    precision As SQLCHAR
+    scale As SQLSCHAR
+    sign As SQLCHAR /* 1 if positive, 0 if negative */
+    val(0 To (SQL_MAX_NUMERIC_LEN - 1)) As SQLCHAR
+End Type
+
+#Region "sql.h"
+
+/* special length/indicator values */
+Public Const SQL_NULL_DATA As Long = (-1&)
+Public Const SQL_DATA_AT_EXEC  As Long = (-2)
+/* return values from functions */
+Public Const SQL_SUCCESS  = 0
+Public Const SQL_SUCCESS_WITH_INFO  = 1
+' #if (ODBCVER >= 0x0300)
+Public Const SQL_NO_DATA  = 100
+' #endif
+' #if (ODBCVER >= 0x0380)
+Public Const SQL_PARAM_DATA_AVAILABLE  = 101
+' #endif
+Public Const SQL_ERROR  As Long = (-1)
+Public Const SQL_INVALID_HANDLE  As Long = (-2)
+Public Const SQL_STILL_EXECUTING  = 2
+Public Const SQL_NEED_DATA  = 99
+/* test for SQL_SUCCESS or SQL_SUCCESS_WITH_INFO */
+Public Function SQL_SUCCEEDED(ByVal rc As Long) As Boolean
+Return (((rc) And (Not 1)) = 0)
+End Function
+
+/* flags for null-terminated string */
+Public Const SQL_NTS  As Long = (-3)
+Public Const SQL_NTSL  As Long = (-3)
+/* maximum message length */
+Public Const SQL_MAX_MESSAGE_LENGTH  = 512
+/* date/time length constants */
+' #if (ODBCVER >= 0x0300)
+Public Const SQL_DATE_LEN  = 10
+Public Const SQL_TIME_LEN  = 8 /* add P+1 if precision is nonzero */
+Public Const SQL_TIMESTAMP_LEN  = 19 /* add P+1 if precision is nonzero */
+' #endif
+/* handle type identifiers */
+' #if (ODBCVER >= 0x0300)
+Public Const SQL_HANDLE_ENV  = 1
+Public Const SQL_HANDLE_DBC  = 2
+Public Const SQL_HANDLE_STMT  = 3
+Public Const SQL_HANDLE_DESC  = 4
+' #endif
+/* environment attribute */
+' #if (ODBCVER >= 0x0300)
+Public Const SQL_ATTR_OUTPUT_NTS  = 10001
+' #endif
+' * connection attributes */
+' #if (ODBCVER >= 0x0300)
+Public Const SQL_ATTR_AUTO_IPD  = 10001
+Public Const SQL_ATTR_METADATA_ID  = 10014
+' #endif  /* ODBCVER >= 0x0300 */
+' * statement attributes */
+' #if (ODBCVER >= 0x0300)
+Public Const SQL_ATTR_APP_ROW_DESC  = 10010
+Public Const SQL_ATTR_APP_PARAM_DESC  = 10011
+Public Const SQL_ATTR_IMP_ROW_DESC  = 10012
+Public Const SQL_ATTR_IMP_PARAM_DESC  = 10013
+Public Const SQL_ATTR_CURSOR_SCROLLABLE  = (-1)
+Public Const SQL_ATTR_CURSOR_SENSITIVITY  = (-2)
+' #endif
+' * SQL_ATTR_CURSOR_SCROLLABLE values */
+' #if (ODBCVER >= 0x0300)
+Public Const SQL_NONSCROLLABLE  = 0
+Public Const SQL_SCROLLABLE  = 1
+' #endif  /* ODBCVER >= 0x0300 */
+' * identifiers of fields in the SQL descriptor */
+' #if (ODBCVER >= 0x0300)
+Public Const SQL_DESC_COUNT  = 1001
+Public Const SQL_DESC_TYPE  = 1002
+Public Const SQL_DESC_LENGTH  = 1003
+Public Const SQL_DESC_OCTET_LENGTH_PTR  = 1004
+Public Const SQL_DESC_PRECISION  = 1005
+Public Const SQL_DESC_SCALE  = 1006
+Public Const SQL_DESC_DATETIME_INTERVAL_CODE  = 1007
+Public Const SQL_DESC_NULLABLE  = 1008
+Public Const SQL_DESC_INDICATOR_PTR  = 1009
+Public Const SQL_DESC_DATA_PTR  = 1010
+Public Const SQL_DESC_NAME  = 1011
+Public Const SQL_DESC_UNNAMED  = 1012
+Public Const SQL_DESC_OCTET_LENGTH  = 1013
+Public Const SQL_DESC_ALLOC_TYPE  = 1099
+' #endif
+' /* identifiers of fields in the diagnostics area */
+' #if (ODBCVER >= 0x0300)
+Public Const SQL_DIAG_RETURNCODE  = 1
+Public Const SQL_DIAG_NUMBER  = 2
+Public Const SQL_DIAG_ROW_COUNT  = 3
+Public Const SQL_DIAG_SQLSTATE  = 4
+Public Const SQL_DIAG_NATIVE  = 5
+Public Const SQL_DIAG_MESSAGE_TEXT  = 6
+Public Const SQL_DIAG_DYNAMIC_FUNCTION  = 7
+Public Const SQL_DIAG_CLASS_ORIGIN  = 8
+Public Const SQL_DIAG_SUBCLASS_ORIGIN  = 9
+Public Const SQL_DIAG_CONNECTION_NAME  = 10
+Public Const SQL_DIAG_SERVER_NAME  = 11
+Public Const SQL_DIAG_DYNAMIC_FUNCTION_CODE  = 12
+' #endif
+' * dynamic function codes */
+' #if (ODBCVER >= 0x0300)
+Public Const SQL_DIAG_ALTER_DOMAIN  = 3
+Public Const SQL_DIAG_ALTER_TABLE  = 4
+Public Const SQL_DIAG_CALL  = 7
+Public Const SQL_DIAG_CREATE_ASSERTION  = 6
+Public Const SQL_DIAG_CREATE_CHARACTER_SET  = 8
+Public Const SQL_DIAG_CREATE_COLLATION  = 10
+Public Const SQL_DIAG_CREATE_DOMAIN  = 23
+Public Const SQL_DIAG_CREATE_INDEX  = (-1)
+Public Const SQL_DIAG_CREATE_SCHEMA  = 64
+Public Const SQL_DIAG_CREATE_TABLE  = 77
+Public Const SQL_DIAG_CREATE_TRANSLATION  = 79
+Public Const SQL_DIAG_CREATE_VIEW  = 84
+Public Const SQL_DIAG_DELETE_WHERE  = 19
+Public Const SQL_DIAG_DROP_ASSERTION  = 24
+Public Const SQL_DIAG_DROP_CHARACTER_SET  = 25
+Public Const SQL_DIAG_DROP_COLLATION  = 26
+Public Const SQL_DIAG_DROP_DOMAIN  = 27
+Public Const SQL_DIAG_DROP_INDEX  = (-2)
+Public Const SQL_DIAG_DROP_SCHEMA  = 31
+Public Const SQL_DIAG_DROP_TABLE  = 32
+Public Const SQL_DIAG_DROP_TRANSLATION  = 33
+Public Const SQL_DIAG_DROP_VIEW  = 36
+Public Const SQL_DIAG_DYNAMIC_DELETE_CURSOR  = 38
+Public Const SQL_DIAG_DYNAMIC_UPDATE_CURSOR  = 81
+Public Const SQL_DIAG_GRANT  = 48
+Public Const SQL_DIAG_INSERT  = 50
+Public Const SQL_DIAG_REVOKE  = 59
+Public Const SQL_DIAG_SELECT_CURSOR  = 85
+Public Const SQL_DIAG_UNKNOWN_STATEMENT  = 0
+Public Const SQL_DIAG_UPDATE_WHERE  = 82
+' #endif  /* ODBCVER >= 0x0300 */
+' * SQL data type codes */
+Public Const SQL_UNKNOWN_TYPE  = 0
+Public Const SQL_CHAR  = 1
+Public Const SQL_NUMERIC  = 2
+Public Const SQL_DECIMAL  = 3
+Public Const SQL_INTEGER  = 4
+Public Const SQL_SMALLINT  = 5
+Public Const SQL_FLOAT  = 6
+Public Const SQL_REAL  = 7
+Public Const SQL_DOUBLE  = 8
+' #if (ODBCVER >= 0x0300)
+Public Const SQL_DATETIME  = 9
+' #endif
+Public Const SQL_VARCHAR  = 12
+' * One-parameter shortcuts for date/time data types */
+' #if (ODBCVER >= 0x0300)
+Public Const SQL_TYPE_DATE  = 91
+Public Const SQL_TYPE_TIME  = 92
+Public Const SQL_TYPE_TIMESTAMP  = 93
+' #endif
+' * Statement attribute values for cursor sensitivity */
+' #if (ODBCVER >= 0x0300)
+Public Const SQL_UNSPECIFIED  = 0
+Public Const SQL_INSENSITIVE  = 1
+Public Const SQL_SENSITIVE  = 2
+' #endif
+' * GetTypeInfo() request for all data types */
+' #define SQL_ALL_TYPES       0
+' * Default conversion code for SQLBindCol(), SQLBindParam() and SQLGetData() */
+' #if (ODBCVER >= 0x0300)
+Public Const SQL_DEFAULT  = 99
+' #endif
+' /* SQLSQLLEN GetData() code indicating that the application row descriptor
+'  * specifies the data type
+'  */
+' #if (ODBCVER >= 0x0300)
+Public Const SQL_ARD_TYPE  = (-99)
+' #endif
+' #if (ODBCVER >= 0x0380)
+Public Const SQL_APD_TYPE  = (-100)
+' #endif
+' * SQL date/time type subcodes */
+' #if (ODBCVER >= 0x0300)
+Public Const SQL_CODE_DATE  = 1
+Public Const SQL_CODE_TIME  = 2
+Public Const SQL_CODE_TIMESTAMP  = 3
+' #endif
+' * CLI option values */
+' #if (ODBCVER >= 0x0300)
+Public Const SQL_FALSE  = 0
+Public Const SQL_TRUE  = 1
+' #endif
+' * values of NULLABLE field in descriptor */
+Public Const SQL_NO_NULLS  = 0
+Public Const SQL_NULLABLE  = 1
+' * Value returned by SQLGetTypeInfo() to denote that it is
+'  * not known whether or not a data type supports null values.
+'  */
+Public Const SQL_NULLABLE_UNKNOWN  = 2
+' * Values returned by SQLGetTypeInfo() to show WHERE clause
+'  * supported
+'  */
+' #if (ODBCVER >= 0x0300)
+Public Const SQL_PRED_NONE  = 0
+Public Const SQL_PRED_CHAR  = 1
+Public Const SQL_PRED_BASIC  = 2
+' #endif
+' * values of UNNAMED field in descriptor */
+' #if (ODBCVER >= 0x0300)
+Public Const SQL_NAMED  = 0
+Public Const SQL_UNNAMED  = 1
+' #endif
+' * values of ALLOC_TYPE field in descriptor */
+' #if (ODBCVER >= 0x0300)
+Public Const SQL_DESC_ALLOC_AUTO  = 1
+Public Const SQL_DESC_ALLOC_USER  = 2
+' #endif
+' * FreeStmt() options */
+Public Const SQL_CLOSE  = 0
+Public Const SQL_DROP  = 1
+Public Const SQL_UNBIND  = 2
+Public Const SQL_RESET_PARAMS  = 3
+' * Codes used for FetchOrientation in SQLFetchScroll(),
+'    and in SQLDataSources()
+' */
+Public Const SQL_FETCH_NEXT  = 1
+Public Const SQL_FETCH_FIRST  = 2
+' * Other codes used for FetchOrientation in SQLFetchScroll() */
+Public Const SQL_FETCH_LAST  = 3
+Public Const SQL_FETCH_PRIOR  = 4
+Public Const SQL_FETCH_ABSOLUTE  = 5
+Public Const SQL_FETCH_RELATIVE  = 6
+' * SQLEndTran() options */
+Public Const SQL_COMMIT  = 0
+Public Const SQL_ROLLBACK  = 1
+' * null handles returned by SQLAllocHandle() */
+Public Const SQL_NULL_HENV  = 0
+Public Const SQL_NULL_HDBC  = 0
+Public Const SQL_NULL_HSTMT  = 0
+' #if (ODBCVER >= 0x0300)
+Public Const SQL_NULL_HDESC  = 0
+' #endif
+' * null handle used in place of parent handle when allocating HENV */
+' #if (ODBCVER >= 0x0300)
+Public Const SQL_NULL_HANDLE  = 0
+' #endif
+' * Values that may appear in the result set of SQLSpecialColumns() */
+Public Const SQL_SCOPE_CURROW  = 0
+Public Const SQL_SCOPE_TRANSACTION  = 1
+Public Const SQL_SCOPE_SESSION  = 2
+Public Const SQL_PC_UNKNOWN  = 0
+' #if (ODBCVER >= 0x0300)
+Public Const SQL_PC_NON_PSEUDO  = 1
+' #endif
+Public Const SQL_PC_PSEUDO  = 2
+/* Reserved value for the IdentifierType argument of SQLSpecialColumns() */
+' #if (ODBCVER >= 0x0300)
+Public Const SQL_ROW_IDENTIFIER = 1
+' #endif
+
+/* Reserved values for UNIQUE argument of SQLStatistics() */
+Public Const SQL_INDEX_UNIQUE   = 0
+Public Const SQL_INDEX_ALL       = 1
+
+/* Values that may appear in the result set of SQLStatistics() */
+Public Const SQL_INDEX_CLUSTERED = 1
+Public Const SQL_INDEX_HASHED    = 2
+Public Const SQL_INDEX_OTHER    = 3
+
+/* SQLGetFunctions() values to identify ODBC APIs */
+Public Const SQL_API_SQLALLOCCONNECT      = 1
+Public Const SQL_API_SQLALLOCENV          = 2
+' #if (ODBCVER >= 0x0300)
+Public Const SQL_API_SQLALLOCHANDLE      = 1001
+' #endif
+Public Const SQL_API_SQLALLOCSTMT         = 3
+Public Const SQL_API_SQLBINDCOL            = 4
+' #if (ODBCVER >= 0x0300)
+Public Const SQL_API_SQLBINDPARAM          = 1002
+' #endif
+Public Const SQL_API_SQLCANCEL             = 5
+' #if (ODBCVER >= 0x0300)
+Public Const SQL_API_SQLCLOSECURSOR        = 1003
+Public Const SQL_API_SQLCOLATTRIBUTE       = 6
+' #endif
+Public Const SQL_API_SQLCOLUMNS           = 40
+Public Const SQL_API_SQLCONNECT           = 7
+' #if (ODBCVER >= 0x0300)
+Public Const SQL_API_SQLCOPYDESC           = 1004
+' #endif
+Public Const SQL_API_SQLDATASOURCES        = 57
+Public Const SQL_API_SQLDESCRIBECOL        = 8
+Public Const SQL_API_SQLDISCONNECT         = 9
+' #if (ODBCVER >= 0x0300)
+Public Const SQL_API_SQLENDTRAN            = 1005
+' #endif
+Public Const SQL_API_SQLERROR              = 10
+Public Const SQL_API_SQLEXECDIRECT         = 11
+Public Const SQL_API_SQLEXECUTE            = 12
+Public Const SQL_API_SQLFETCH              = 13
+' #if (ODBCVER >= 0x0300)
+Public Const SQL_API_SQLFETCHSCROLL        = 1021
+' #endif
+Public Const SQL_API_SQLFREECONNECT        = 14
+Public Const SQL_API_SQLFREEENV            = 15
+' #if (ODBCVER >= 0x0300)
+Public Const SQL_API_SQLFREEHANDLE         = 1006
+' #endif
+Public Const SQL_API_SQLFREESTMT            = 16
+' #if (ODBCVER >= 0x0300)
+Public Const SQL_API_SQLGETCONNECTATTR      = 1007
+' #endif
+Public Const SQL_API_SQLGETCONNECTOPTION    = 42
+Public Const SQL_API_SQLGETCURSORNAME       = 17
+Public Const SQL_API_SQLGETDATA             = 43
+' #if (ODBCVER >= 0x0300)
+Public Const SQL_API_SQLGETDESCFIELD        = 1008
+Public Const SQL_API_SQLGETDESCREC          = 1009
+Public Const SQL_API_SQLGETDIAGFIELD        = 1010
+Public Const SQL_API_SQLGETDIAGREC          = 1011
+Public Const SQL_API_SQLGETENVATTR          = 1012
+' #endif
+Public Const SQL_API_SQLGETFUNCTIONS        = 44
+Public Const SQL_API_SQLGETINFO             = 45
+' #if (ODBCVER >= 0x0300)
+Public Const SQL_API_SQLGETSTMTATTR         = 1014
+' #endif
+Public Const SQL_API_SQLGETSTMTOPTION       = 46
+Public Const SQL_API_SQLGETTYPEINFO         = 47
+Public Const SQL_API_SQLNUMRESULTCOLS       = 18
+Public Const SQL_API_SQLPARAMDATA           = 48
+Public Const SQL_API_SQLPREPARE             = 19
+Public Const SQL_API_SQLPUTDATA             = 49
+Public Const SQL_API_SQLROWCOUNT            = 20
+' #if (ODBCVER >= 0x0300)
+Public Const SQL_API_SQLSETCONNECTATTR      = 1016
+' #endif
+Public Const SQL_API_SQLSETCONNECTOPTION    = 50
+Public Const SQL_API_SQLSETCURSORNAME       = 21
+' #if (ODBCVER >= 0x0300)
+Public Const SQL_API_SQLSETDESCFIELD        = 1017
+Public Const SQL_API_SQLSETDESCREC          = 1018
+Public Const SQL_API_SQLSETENVATTR          = 1019
+' #endif
+Public Const SQL_API_SQLSETPARAM            = 22
+' #if (ODBCVER >= 0x0300)
+Public Const SQL_API_SQLSETSTMTATTR        = 1020
+' #endif
+Public Const SQL_API_SQLSETSTMTOPTION       = 51
+Public Const SQL_API_SQLSPECIALCOLUMNS      = 52
+Public Const SQL_API_SQLSTATISTICS          = 53
+Public Const SQL_API_SQLTABLES              = 54
+Public Const SQL_API_SQLTRANSACT            = 23
+' #if (ODBCVER >= 0x0380)
+Public Const SQL_API_SQLCANCELHANDLE        = 1550
+Public Const SQL_API_SQLCOMPLETEASYNC       = 1551
+
+' #endif
+
+/* Information requested by SQLGetInfo() */
+' #if (ODBCVER >= 0x0300)
+Public Const SQL_MAX_DRIVER_CONNECTIONS         = 0
+Public Const SQL_MAXIMUM_DRIVER_CONNECTIONS     = SQL_MAX_DRIVER_CONNECTIONS
+Public Const SQL_MAX_CONCURRENT_ACTIVITIES      = 1
+Public Const SQL_MAXIMUM_CONCURRENT_ACTIVITIES  = SQL_MAX_CONCURRENT_ACTIVITIES
+' #endif
+Public Const SQL_DATA_SOURCE_NAME               = 2
+Public Const SQL_FETCH_DIRECTION                = 8
+Public Const SQL_SERVER_NAME                    = 13
+Public Const SQL_SEARCH_PATTERN_ESCAPE          = 14
+Public Const SQL_DBMS_NAME                      = 17
+Public Const SQL_DBMS_VER                       = 18
+Public Const SQL_ACCESSIBLE_TABLES              = 19
+Public Const SQL_ACCESSIBLE_PROCEDURES          = 20
+Public Const SQL_CURSOR_COMMIT_BEHAVIOR         = 23
+Public Const SQL_DATA_SOURCE_READ_ONLY          = 25
+Public Const SQL_DEFAULT_TXN_ISOLATION          = 26
+Public Const SQL_IDENTIFIER_CASE                = 28
+Public Const SQL_IDENTIFIER_QUOTE_CHAR          = 29
+Public Const SQL_MAX_COLUMN_NAME_LEN            = 30
+Public Const SQL_MAXIMUM_COLUMN_NAME_LENGTH     = SQL_MAX_COLUMN_NAME_LEN
+Public Const SQL_MAX_CURSOR_NAME_LEN            = 31
+Public Const SQL_MAXIMUM_CURSOR_NAME_LENGTH     = SQL_MAX_CURSOR_NAME_LEN
+Public Const SQL_MAX_SCHEMA_NAME_LEN            = 32
+Public Const SQL_MAXIMUM_SCHEMA_NAME_LENGTH     = SQL_MAX_SCHEMA_NAME_LEN
+Public Const SQL_MAX_CATALOG_NAME_LEN           = 34
+Public Const SQL_MAXIMUM_CATALOG_NAME_LENGTH    = SQL_MAX_CATALOG_NAME_LEN
+Public Const SQL_MAX_TABLE_NAME_LEN             = 35
+Public Const SQL_SCROLL_CONCURRENCY             = 43
+Public Const SQL_TXN_CAPABLE                    = 46
+Public Const SQL_TRANSACTION_CAPABLE            = SQL_TXN_CAPABLE
+Public Const SQL_USER_NAME                      = 47
+Public Const SQL_TXN_ISOLATION_OPTION           = 72
+Public Const SQL_TRANSACTION_ISOLATION_OPTION   = SQL_TXN_ISOLATION_OPTION
+Public Const SQL_INTEGRITY                      = 73
+Public Const SQL_GETDATA_EXTENSIONS             = 81
+Public Const SQL_NULL_COLLATION                 = 85
+Public Const SQL_ALTER_TABLE                    = 86
+Public Const SQL_ORDER_BY_COLUMNS_IN_SELECT     = 90
+Public Const SQL_SPECIAL_CHARACTERS             = 94
+Public Const SQL_MAX_COLUMNS_IN_GROUP_BY        = 97
+Public Const SQL_MAXIMUM_COLUMNS_IN_GROUP_BY    = SQL_MAX_COLUMNS_IN_GROUP_BY
+Public Const SQL_MAX_COLUMNS_IN_INDEX           = 98
+Public Const SQL_MAXIMUM_COLUMNS_IN_INDEX       = SQL_MAX_COLUMNS_IN_INDEX
+Public Const SQL_MAX_COLUMNS_IN_ORDER_BY        = 99
+Public Const SQL_MAXIMUM_COLUMNS_IN_ORDER_BY    = SQL_MAX_COLUMNS_IN_ORDER_BY
+Public Const SQL_MAX_COLUMNS_IN_SELECT          = 100
+Public Const SQL_MAXIMUM_COLUMNS_IN_SELECT      = SQL_MAX_COLUMNS_IN_SELECT
+Public Const SQL_MAX_COLUMNS_IN_TABLE           = 101
+Public Const SQL_MAX_INDEX_SIZE                 = 102
+Public Const SQL_MAXIMUM_INDEX_SIZE             = SQL_MAX_INDEX_SIZE
+Public Const SQL_MAX_ROW_SIZE                   = 104
+Public Const SQL_MAXIMUM_ROW_SIZE               = SQL_MAX_ROW_SIZE
+Public Const SQL_MAX_STATEMENT_LEN              = 105
+Public Const SQL_MAXIMUM_STATEMENT_LENGTH       = SQL_MAX_STATEMENT_LEN
+Public Const SQL_MAX_TABLES_IN_SELECT           = 106
+Public Const SQL_MAXIMUM_TABLES_IN_SELECT       = SQL_MAX_TABLES_IN_SELECT
+Public Const SQL_MAX_USER_NAME_LEN              = 107
+Public Const SQL_MAXIMUM_USER_NAME_LENGTH       = SQL_MAX_USER_NAME_LEN
+' #if (ODBCVER >= 0x0300)
+Public Const SQL_OJ_CAPABILITIES                = 115
+Public Const SQL_OUTER_JOIN_CAPABILITIES        = SQL_OJ_CAPABILITIES
+' #endif /* ODBCVER >= 0x0300 */
+
+' #if (ODBCVER >= 0x0300)
+Public Const SQL_XOPEN_CLI_YEAR                 = 10000
+Public Const SQL_CURSOR_SENSITIVITY             = 10001
+Public Const SQL_DESCRIBE_PARAMETER             = 10002
+Public Const SQL_CATALOG_NAME                   = 10003
+Public Const SQL_COLLATION_SEQ                  = 10004
+Public Const SQL_MAX_IDENTIFIER_LEN             = 10005
+Public Const SQL_MAXIMUM_IDENTIFIER_LENGTH      = SQL_MAX_IDENTIFIER_LEN
+' #endif /* ODBCVER >= 0x0300 */
+
+/* SQL_ALTER_TABLE bitmasks */
+' #if (ODBCVER >= 0x0200)
+Public Const SQL_AT_ADD_COLUMN                   = &H00000001
+Public Const SQL_AT_DROP_COLUMN                  = &H00000002
+' #endif /* ODBCVER >= 0x0200 */
+
+' #if (ODBCVER >= 0x0300)
+Public Const SQL_AT_ADD_CONSTRAINT               = &H00000008
+
+/* The following bitmasks are ODBC extensions and defined in sqlext.h
+*Public Const    SQL_AT_COLUMN_SINGLE                    0x00000020L
+*Public Const    SQL_AT_ADD_COLUMN_DEFAULT               0x00000040L
+*Public Const    SQL_AT_ADD_COLUMN_COLLATION             0x00000080L
+*Public Const    SQL_AT_SET_COLUMN_DEFAULT               0x00000100L
+*Public Const    SQL_AT_DROP_COLUMN_DEFAULT              0x00000200L
+*Public Const    SQL_AT_DROP_COLUMN_CASCADE              0x00000400L
+*Public Const    SQL_AT_DROP_COLUMN_RESTRICT             0x00000800L
+*Public Const SQL_AT_ADD_TABLE_CONSTRAINT                0x00001000L
+*Public Const SQL_AT_DROP_TABLE_CONSTRAINT_CASCADE       0x00002000L
+*Public Const SQL_AT_DROP_TABLE_CONSTRAINT_RESTRICT      0x00004000L
+*Public Const SQL_AT_CONSTRAINT_NAME_DEFINITION          0x00008000L
+*Public Const SQL_AT_CONSTRAINT_INITIALLY_DEFERRED       0x00010000L
+*Public Const SQL_AT_CONSTRAINT_INITIALLY_IMMEDIATE      0x00020000L
+*Public Const SQL_AT_CONSTRAINT_DEFERRABLE               0x00040000L
+*Public Const SQL_AT_CONSTRAINT_NON_DEFERRABLE           0x00080000L
+*/
+' #endif  /* ODBCVER >= 0x0300 */
+
+
+/* SQL_ASYNC_MODE values */
+' #if (ODBCVER >= 0x0300)
+Public Const SQL_AM_NONE                        = 0
+Public Const SQL_AM_CONNECTION                  = 1
+Public Const SQL_AM_STATEMENT                   = 2
+' #endif
+
+/* SQL_CURSOR_COMMIT_BEHAVIOR values */
+Public Const SQL_CB_DELETE                      = 0
+Public Const SQL_CB_CLOSE                       = 1
+Public Const SQL_CB_PRESERVE                    = 2
+
+/* SQL_FETCH_DIRECTION bitmasks */
+Public Const SQL_FD_FETCH_NEXT                   = &H00000001
+Public Const SQL_FD_FETCH_FIRST                  = &H00000002
+Public Const SQL_FD_FETCH_LAST                   = &H00000004
+Public Const SQL_FD_FETCH_PRIOR                  = &H00000008
+Public Const SQL_FD_FETCH_ABSOLUTE               = &H00000010
+Public Const SQL_FD_FETCH_RELATIVE               = &H00000020
+
+/* SQL_GETDATA_EXTENSIONS bitmasks */
+Public Const SQL_GD_ANY_COLUMN                   = &H00000001
+Public Const SQL_GD_ANY_ORDER                    = &H00000002
+
+/* SQL_IDENTIFIER_CASE values */
+Public Const SQL_IC_UPPER                       = 1
+Public Const SQL_IC_LOWER                       = 2
+Public Const SQL_IC_SENSITIVE                   = 3
+Public Const SQL_IC_MIXED                       = 4
+
+/* SQL_OJ_CAPABILITIES bitmasks */
+/* NB: this means 'outer join', not what  you may be thinking */
+
+
+' #if (ODBCVER >= 0x0201)
+Public Const SQL_OJ_LEFT                         = &H00000001
+Public Const SQL_OJ_RIGHT                        = &H00000002
+Public Const SQL_OJ_FULL                         = &H00000004
+Public Const SQL_OJ_NESTED                       = &H00000008
+Public Const SQL_OJ_NOT_ORDERED                  = &H00000010
+Public Const SQL_OJ_INNER                        = &H00000020
+Public Const SQL_OJ_ALL_COMPARISON_OPS           = &H00000040
+' #endif
+
+/* SQL_SCROLL_CONCURRENCY bitmasks */
+Public Const SQL_SCCO_READ_ONLY                  = &H00000001
+Public Const SQL_SCCO_LOCK                       = &H00000002
+Public Const SQL_SCCO_OPT_ROWVER                 = &H00000004
+Public Const SQL_SCCO_OPT_VALUES                 = &H00000008
+
+/* SQL_TXN_CAPABLE values */
+Public Const SQL_TC_NONE                        = 0
+Public Const SQL_TC_DML                         = 1
+Public Const SQL_TC_ALL                         = 2
+Public Const SQL_TC_DDL_COMMIT                  = 3
+Public Const SQL_TC_DDL_IGNORE                  = 4
+
+/* SQL_TXN_ISOLATION_OPTION bitmasks */
+Public Const SQL_TXN_READ_UNCOMMITTED            = &H00000001
+Public Const SQL_TRANSACTION_READ_UNCOMMITTED    = SQL_TXN_READ_UNCOMMITTED
+Public Const SQL_TXN_READ_COMMITTED              = &H00000002
+Public Const SQL_TRANSACTION_READ_COMMITTED    = SQL_TXN_READ_COMMITTED
+Public Const SQL_TXN_REPEATABLE_READ             = &H00000004
+Public Const SQL_TRANSACTION_REPEATABLE_READ    = SQL_TXN_REPEATABLE_READ
+Public Const SQL_TXN_SERIALIZABLE                = &H00000008
+Public Const SQL_TRANSACTION_SERIALIZABLE       = SQL_TXN_SERIALIZABLE
+
+/* SQL_NULL_COLLATION values */
+Public Const SQL_NC_HIGH                        = 0
+Public Const SQL_NC_LOW                         = 1
+
+'NOTE: Commented-out APIs superceded by sqlucode.h defs later in this file.
+Public Declare PtrSafe Function SQLAllocConnect Lib "odbc32.dll" (ByVal EnvironmentHandle As SQLHENV, ByRef ConnectionHandle As SQLHDBC) As SQLRETURN
+#If ODBC_STD Then
+Public Declare PtrSafe Function SQLAllocHandle Lib "odbc32.dll" Alias "SQLAllocHandleStd" (ByVal HandleType As SQLSMALLINT, ByVal InputHandle As SQLHANDLE, ByRef OutputHandle As SQLHANDLE) As SQLRETURN
+Public Function SQLAllocEnv(phenv As SQLHENV) As SQLRETURN
+    Return SQLAllocHandleStd(SQL_HANDLE_ENV, SQL_NULL_HANDLE, phenv)
+End Function 
+#Else
+Public Declare PtrSafe Function SQLAllocEnv Lib "odbc32.dll" (ByRef EnvironmentHandle As SQLHENV) As SQLRETURN
+Public Declare PtrSafe Function SQLAllocHandle Lib "odbc32.dll" (ByVal HandleType As SQLSMALLINT, ByVal InputHandle As SQLHANDLE, ByRef OutputHandle As SQLHANDLE) As SQLRETURN
+#End If
+Public Declare PtrSafe Function SQLAllocStmt Lib "odbc32.dll" (ByVal ConnectionHandle As SQLHDBC, ByRef StatementHandle As SQLHSTMT) As SQLRETURN
+Public Declare PtrSafe Function SQLBindCol Lib "odbc32.dll" (ByVal StatementHandle As SQLHSTMT, ByVal ColumnNumber As SQLUSMALLINT, ByVal TargetType As SQLSMALLINT, ByVal TargetValue As SQLPOINTER, ByVal BufferLength As SQLLEN, ByRef StrLen_or_Ind As SQLLEN) As SQLRETURN
+Public Declare PtrSafe Function SQLBindParam Lib "odbc32.dll" (ByVal StatementHandle As SQLHSTMT, ByVal ParameterNumber As SQLUSMALLINT, ByVal ValueType As SQLSMALLINT, ByVal ParameterType As SQLSMALLINT, ByVal LengthPrecision As SQLULEN, ByVal ParameterScale As SQLSMALLINT, ByVal ParameterValue As SQLPOINTER, ByRef StrLen_or_Ind As SQLLEN) As SQLRETURN
+Public Declare PtrSafe Function SQLCancel Lib "odbc32.dll" (ByVal StatementHandle As SQLHSTMT) As SQLRETURN
+Public Declare PtrSafe Function SQLCancelHandle Lib "odbc32.dll" (ByVal HandleType As SQLSMALLINT, ByVal InputHandle As SQLHANDLE) As SQLRETURN
+Public Declare PtrSafe Function SQLCloseCursor Lib "odbc32.dll" (ByVal StatementHandle As SQLHSTMT) As SQLRETURN
+' #If Win64 Then
+' Public Declare PtrSafe Function SQLColAttribute Lib "odbc32.dll" (ByVal StatementHandle As SQLHSTMT, ByVal ColumnNumber As SQLUSMALLINT, ByVal FieldIdentifier As SQLUSMALLINT, ByVal CharacterAttribute As SQLPOINTER, ByVal BufferLength As SQLSMALLINT, ByRef StringLength As SQLSMALLINT, ByRef NumericAttribute As SQLLEN) As SQLRETURN
+' #Else
+' Public Declare PtrSafe Function SQLColAttribute Lib "odbc32.dll" (ByVal StatementHandle As SQLHSTMT, ByVal ColumnNumber As SQLUSMALLINT, ByVal FieldIdentifier As SQLUSMALLINT, ByVal CharacterAttribute As SQLPOINTER, ByVal BufferLength As SQLSMALLINT, ByRef StringLength As SQLSMALLINT, ByRef NumericAttribute As SQLPOINTER) As SQLRETURN
+' #End If
+' Public Declare PtrSafe Function SQLColumns Lib "odbc32.dll" (ByVal StatementHandle As SQLHSTMT, ByVal CatalogName As SQLCHAR, ByVal NameLength1 As SQLSMALLINT, ByVal SchemaName As SQLCHAR, ByVal NameLength2 As SQLSMALLINT, ByVal TableName As SQLCHAR, ByVal NameLength3 As SQLSMALLINT, ByVal ColumnName As SQLCHAR, ByVal NameLength4 As SQLSMALLINT) As SQLRETURN
+Public Declare PtrSafe Function SQLCompleteAsync Lib "odbc32.dll" (ByVal HandleType As SQLSMALLINT, ByVal Handle As SQLHANDLE, ByRef AsyncRetCodePtr As Integer) As SQLRETURN
+' Public Declare PtrSafe Function SQLConnect Lib "odbc32.dll" (ByVal ConnectionHandle As SQLHDBC, ByVal ServerName As SQLCHAR, ByVal NameLength1 As SQLSMALLINT, ByVal UserName As SQLCHAR, ByVal NameLength2 As SQLSMALLINT, ByVal Authentication As SQLCHAR, ByVal NameLength3 As SQLSMALLINT) As SQLRETURN
+Public Declare PtrSafe Function SQLCopyDesc Lib "odbc32.dll" (ByVal SourceDescHandle As SQLHDESC, ByVal TargetDescHandle As SQLHDESC) As SQLRETURN
+' Public Declare PtrSafe Function SQLDataSources Lib "odbc32.dll" (ByVal EnvironmentHandle As SQLHENV, ByVal Direction As SQLUSMALLINT, ByVal ServerName As SQLCHAR, ByVal BufferLength1 As SQLSMALLINT, ByRef NameLength1Ptr As SQLSMALLINT, ByVal Description As SQLCHAR, ByVal BufferLength2 As SQLSMALLINT, ByRef NameLength2Ptr As SQLSMALLINT) As SQLRETURN
+' Public Declare PtrSafe Function SQLDescribeCol Lib "odbc32.dll" (ByVal StatementHandle As SQLHSTMT, ByVal ColumnNumber As SQLUSMALLINT, ByVal ColumnName As SQLCHAR, ByVal BufferLength As SQLSMALLINT, ByRef NameLength As SQLSMALLINT, ByRef DataType As SQLSMALLINT, ByRef ColumnSize As SQLULEN, ByRef DecimalDigits As SQLSMALLINT, ByRef Nullable As SQLSMALLINT) As SQLRETURN
+Public Declare PtrSafe Function SQLDisconnect Lib "odbc32.dll" (ByVal ConnectionHandle As SQLHDBC) As SQLRETURN
+Public Declare PtrSafe Function SQLEndTran Lib "odbc32.dll" (ByVal HandleType As SQLSMALLINT, ByVal Handle As SQLHANDLE, ByVal CompletionType As SQLSMALLINT) As SQLRETURN
+' Public Declare PtrSafe Function SQLError Lib "odbc32.dll" (ByVal EnvironmentHandle As SQLHENV, ByVal ConnectionHandle As SQLHDBC, ByVal StatementHandle As SQLHSTMT, ByVal Sqlstate As SQLCHAR, ByRef NativeError As SQLINTEGER, ByVal MessageText As SQLCHAR, ByVal BufferLength As SQLSMALLINT, ByRef TextLength As SQLSMALLINT) As SQLRETURN
+' Public Declare PtrSafe Function SQLExecDirect Lib "odbc32.dll" (ByVal StatementHandle As SQLHSTMT, ByVal StatementText As SQLCHAR, ByVal TextLength As SQLINTEGER) As SQLRETURN
+Public Declare PtrSafe Function SQLExecute Lib "odbc32.dll" (ByVal StatementHandle As SQLHSTMT) As SQLRETURN
+Public Declare PtrSafe Function SQLFetch Lib "odbc32.dll" (ByVal StatementHandle As SQLHSTMT) As SQLRETURN
+Public Declare PtrSafe Function SQLFetchScroll Lib "odbc32.dll" (ByVal StatementHandle As SQLHSTMT, ByVal FetchOrientation As SQLSMALLINT, ByVal FetchOffset As SQLLEN) As SQLRETURN
+Public Declare PtrSafe Function SQLFreeConnect Lib "odbc32.dll" (ByVal ConnectionHandle As SQLHDBC) As SQLRETURN
+Public Declare PtrSafe Function SQLFreeEnv Lib "odbc32.dll" (ByVal EnvironmentHandle As SQLHENV) As SQLRETURN
+Public Declare PtrSafe Function SQLFreeHandle Lib "odbc32.dll" (ByVal HandleType As SQLSMALLINT, ByVal Handle As SQLHANDLE) As SQLRETURN
+Public Declare PtrSafe Function SQLFreeStmt Lib "odbc32.dll" (ByVal StatementHandle As SQLHSTMT, ByVal Option As SQLUSMALLINT) As SQLRETURN
+' Public Declare PtrSafe Function SQLGetConnectAttr Lib "odbc32.dll" (ByVal ConnectionHandle As SQLHDBC, ByVal Attribute As SQLINTEGER, ByVal Value As SQLPOINTER, ByVal BufferLength As SQLINTEGER, ByRef StringLengthPtr As SQLINTEGER) As SQLRETURN
+' Public Declare PtrSafe Function SQLGetConnectOption Lib "odbc32.dll" (ByVal ConnectionHandle As SQLHDBC, ByVal Option As SQLUSMALLINT, ByVal Value As SQLPOINTER) As SQLRETURN
+' Public Declare PtrSafe Function SQLGetCursorName Lib "odbc32.dll" (ByVal StatementHandle As SQLHSTMT, ByVal CursorName As SQLCHAR, ByVal BufferLength As SQLSMALLINT, ByRef NameLengthPtr As SQLSMALLINT) As SQLRETURN
+Public Declare PtrSafe Function SQLGetData Lib "odbc32.dll" (ByVal StatementHandle As SQLHSTMT, ByVal ColumnNumber As SQLUSMALLINT, ByVal TargetType As SQLSMALLINT, ByVal TargetValue As SQLPOINTER, ByVal BufferLength As SQLLEN, ByRef StrLen_or_IndPtr As SQLLEN) As SQLRETURN
+' Public Declare PtrSafe Function SQLGetDescField Lib "odbc32.dll" (ByVal DescriptorHandle As SQLHDESC, ByVal RecNumber As SQLSMALLINT, ByVal FieldIdentifier As SQLSMALLINT, ByVal Value As SQLPOINTER, ByVal BufferLength As SQLINTEGER, ByRef StringLength As SQLINTEGER) As SQLRETURN
+' Public Declare PtrSafe Function SQLGetDescRec Lib "odbc32.dll" (ByVal DescriptorHandle As SQLHDESC, ByVal RecNumber As SQLSMALLINT, ByVal Name As SQLCHAR, ByVal BufferLength As SQLSMALLINT, ByRef StringLengthPtr As SQLSMALLINT, ByRef TypePtr As SQLSMALLINT, ByRef SubTypePtr As SQLSMALLINT, ByRef LengthPtr As SQLLEN, ByRef PrecisionPtr As SQLSMALLINT, ByRef ScalePtr As SQLSMALLINT, ByRef NullablePtr As SQLSMALLINT) As SQLRETURN
+' Public Declare PtrSafe Function SQLGetDiagField Lib "odbc32.dll" (ByVal HandleType As SQLSMALLINT, ByVal Handle As SQLHANDLE, ByVal RecNumber As SQLSMALLINT, ByVal DiagIdentifier As SQLSMALLINT, ByVal DiagInfo As SQLPOINTER, ByVal BufferLength As SQLSMALLINT, ByRef StringLength As SQLSMALLINT) As SQLRETURN
+' Public Declare PtrSafe Function SQLGetDiagRec Lib "odbc32.dll" (ByVal HandleType As SQLSMALLINT, ByVal Handle As SQLHANDLE, ByVal RecNumber As SQLSMALLINT, ByVal Sqlstate As SQLCHAR, ByRef NativeError As SQLINTEGER, ByVal MessageText As SQLCHAR, ByVal BufferLength As SQLSMALLINT, ByRef TextLength As SQLSMALLINT) As SQLRETURN
+Public Declare PtrSafe Function SQLGetEnvAttr Lib "odbc32.dll" (ByVal EnvironmentHandle As SQLHENV, ByVal Attribute As SQLINTEGER, ByVal Value As SQLPOINTER, ByVal BufferLength As SQLINTEGER, ByRef StringLength As SQLINTEGER) As SQLRETURN
+Public Declare PtrSafe Function SQLGetFunctions Lib "odbc32.dll" (ByVal ConnectionHandle As SQLHDBC, ByVal FunctionId As SQLUSMALLINT, ByRef Supported As SQLUSMALLINT) As SQLRETURN
+' Public Declare PtrSafe Function SQLGetInfo Lib "odbc32.dll" (ByVal ConnectionHandle As SQLHDBC, ByVal InfoType As SQLUSMALLINT, ByVal InfoValue As SQLPOINTER, ByVal BufferLength As SQLSMALLINT, ByRef StringLengthPtr As SQLSMALLINT) As SQLRETURN
+' Public Declare PtrSafe Function SQLGetStmtAttr Lib "odbc32.dll" (ByVal StatementHandle As SQLHSTMT, ByVal Attribute As SQLINTEGER, ByVal Value As SQLPOINTER, ByVal BufferLength As SQLINTEGER, ByRef StringLength As SQLINTEGER) As SQLRETURN
+Public Declare PtrSafe Function SQLGetStmtOption Lib "odbc32.dll" (ByVal StatementHandle As SQLHSTMT, ByVal Option As SQLUSMALLINT, ByVal Value As SQLPOINTER) As SQLRETURN
+' Public Declare PtrSafe Function SQLGetTypeInfo Lib "odbc32.dll" (ByVal StatementHandle As SQLHSTMT, ByVal DataType As SQLSMALLINT) As SQLRETURN
+Public Declare PtrSafe Function SQLNumResultCols Lib "odbc32.dll" (ByVal StatementHandle As SQLHSTMT, ByRef ColumnCount As SQLSMALLINT) As SQLRETURN
+Public Declare PtrSafe Function SQLParamData Lib "odbc32.dll" (ByVal StatementHandle As SQLHSTMT, ByRef Value As SQLPOINTER) As SQLRETURN
+' Public Declare PtrSafe Function SQLPrepare Lib "odbc32.dll" (ByVal StatementHandle As SQLHSTMT, ByVal StatementText As SQLCHAR, ByVal TextLength As SQLINTEGER) As SQLRETURN
+Public Declare PtrSafe Function SQLPutData Lib "odbc32.dll" (ByVal StatementHandle As SQLHSTMT, ByVal Data As SQLPOINTER, ByVal StrLen_or_Ind As SQLLEN) As SQLRETURN
+' Public Declare PtrSafe Function SQLRowCount Lib "odbc32.dll" (ByVal StatementHandle As SQLHSTMT, ByRef RowCount As SQLLEN) As SQLRETURN
+' Public Declare PtrSafe Function SQLSetConnectAttr Lib "odbc32.dll" (ByVal ConnectionHandle As SQLHDBC, ByVal Attribute As SQLINTEGER, ByVal Value As SQLPOINTER, ByVal StringLength As SQLINTEGER) As SQLRETURN
+' Public Declare PtrSafe Function SQLSetConnectOption Lib "odbc32.dll" (ByVal ConnectionHandle As SQLHDBC, ByVal Option As SQLUSMALLINT, ByVal Value As SQLULEN) As SQLRETURN
+' Public Declare PtrSafe Function SQLSetCursorName Lib "odbc32.dll" (ByVal StatementHandle As SQLHSTMT, ByVal CursorName As SQLCHAR, ByVal NameLength As SQLSMALLINT) As SQLRETURN
+' Public Declare PtrSafe Function SQLSetDescField Lib "odbc32.dll" (ByVal DescriptorHandle As SQLHDESC, ByVal RecNumber As SQLSMALLINT, ByVal FieldIdentifier As SQLSMALLINT, ByVal Value As SQLPOINTER, ByVal BufferLength As SQLINTEGER) As SQLRETURN
+Public Declare PtrSafe Function SQLSetDescRec Lib "odbc32.dll" (ByVal DescriptorHandle As SQLHDESC, ByVal RecNumber As SQLSMALLINT, ByVal Type As SQLSMALLINT, ByVal SubType As SQLSMALLINT, ByVal Length As SQLLEN, ByVal Precision As SQLSMALLINT, ByVal Scale As SQLSMALLINT, ByVal Data As SQLPOINTER, ByRef StringLength As SQLLEN, ByRef Indicator As SQLLEN) As SQLRETURN
+Public Declare PtrSafe Function SQLSetEnvAttr Lib "odbc32.dll" (ByVal EnvironmentHandle As SQLHENV, ByVal Attribute As SQLINTEGER, ByVal Value As SQLPOINTER, ByVal StringLength As SQLINTEGER) As SQLRETURN
+Public Declare PtrSafe Function SQLSetParam Lib "odbc32.dll" (ByVal StatementHandle As SQLHSTMT, ByVal ParameterNumber As SQLUSMALLINT, ByVal ValueType As SQLSMALLINT, ByVal ParameterType As SQLSMALLINT, ByVal LengthPrecision As SQLULEN, ByVal ParameterScale As SQLSMALLINT, ByVal ParameterValue As SQLPOINTER, ByRef StrLen_or_Ind As SQLLEN) As SQLRETURN
+' Public Declare PtrSafe Function SQLSetStmtAttr Lib "odbc32.dll" (ByVal StatementHandle As SQLHSTMT, ByVal Attribute As SQLINTEGER, ByVal Value As SQLPOINTER, ByVal StringLength As SQLINTEGER) As SQLRETURN
+Public Declare PtrSafe Function SQLSetStmtOption Lib "odbc32.dll" (ByVal StatementHandle As SQLHSTMT, ByVal Option As SQLUSMALLINT, ByVal Value As SQLULEN) As SQLRETURN
+' Public Declare PtrSafe Function SQLSpecialColumns Lib "odbc32.dll" (ByVal StatementHandle As SQLHSTMT, ByVal IdentifierType As SQLUSMALLINT, ByVal CatalogName As SQLCHAR, ByVal NameLength1 As SQLSMALLINT, ByVal SchemaName As SQLCHAR, ByVal NameLength2 As SQLSMALLINT, ByVal TableName As SQLCHAR, ByVal NameLength3 As SQLSMALLINT, ByVal Scope As SQLUSMALLINT, ByVal Nullable As SQLUSMALLINT) As SQLRETURN
+' Public Declare PtrSafe Function SQLStatistics Lib "odbc32.dll" (ByVal StatementHandle As SQLHSTMT, ByVal CatalogName As SQLCHAR, ByVal NameLength1 As SQLSMALLINT, ByVal SchemaName As SQLCHAR, ByVal NameLength2 As SQLSMALLINT, ByVal TableName As SQLCHAR, ByVal NameLength3 As SQLSMALLINT, ByVal Unique As SQLUSMALLINT, ByVal Reserved As SQLUSMALLINT) As SQLRETURN
+' Public Declare PtrSafe Function SQLTables Lib "odbc32.dll" (ByVal StatementHandle As SQLHSTMT, ByVal CatalogName As SQLCHAR, ByVal NameLength1 As SQLSMALLINT, ByVal SchemaName As SQLCHAR, ByVal NameLength2 As SQLSMALLINT, ByVal TableName As SQLCHAR, ByVal NameLength3 As SQLSMALLINT, ByVal TableType As SQLCHAR, ByVal NameLength4 As SQLSMALLINT) As SQLRETURN
+Public Declare PtrSafe Function SQLTransact Lib "odbc32.dll" (ByVal EnvironmentHandle As SQLHENV, ByVal ConnectionHandle As SQLHDBC, ByVal CompletionType As SQLUSMALLINT) As SQLRETURN
+
+#End Region
+
+#Region "sqlext.h"
+
+' /* generally useful constants */
+Public Const SQL_SPEC_MAJOR   = 3 /* Major version of specification  */
+Public Const SQL_SPEC_MINOR   = 80 /* Minor version of specification  */
+Public Const SQL_SPEC_STRING  = "03.80" /* String constant for version */
+
+Public Const SQL_SQLSTATE_SIZE = 5 /* size of SQLSTATE */
+
+' typedef SQLTCHAR SQLSTATE[SQL_SQLSTATE_SIZE+1];
+
+Public Const SQL_MAX_DSN_LENGTH= 32 /* maximum data source name size */
+
+Public Const SQL_MAX_OPTION_STRING_LENGTH  = 256
+
+' /* return code SQL_NO_DATA_FOUND is the same as SQL_NO_DATA */
+' #if (ODBCVER < 0x0300)
+' Public Const SQL_NO_DATA_FOUND = 100
+' #else
+Public Const SQL_NO_DATA_FOUND  = SQL_NO_DATA
+' #endif
+
+' /* an end handle type */
+' #if (ODBCVER >= &H0300)
+Public Const SQL_HANDLE_SENV   = 5
+' #endif  /* ODBCVER >= &H0300 */
+
+' /* env attribute */
+' #if (ODBCVER >= &H0300)
+Public Const SQL_ATTR_ODBC_VERSION                 = 200
+Public Const SQL_ATTR_CONNECTION_POOLING           = 201
+Public Const SQL_ATTR_CP_MATCH                     = 202
+' // For private driver manager
+Public Const SQL_ATTR_APPLICATION_KEY              = 203
+' #endif  /* ODBCVER >= &H0300 */
+
+' #if (ODBCVER >= &H0300)
+' /* values for SQL_ATTR_CONNECTION_POOLING */
+Public Const SQL_CP_OFF                            = 0
+Public Const SQL_CP_ONE_PER_DRIVER                 = 1
+Public Const SQL_CP_ONE_PER_HENV                   = 2
+Public Const SQL_CP_DRIVER_AWARE                   = 3
+Public Const SQL_CP_DEFAULT                        = SQL_CP_OFF
+
+' /* values for SQL_ATTR_CP_MATCH */
+Public Const SQL_CP_STRICT_MATCH                   = 0
+Public Const SQL_CP_RELAXED_MATCH                  = 1
+Public Const SQL_CP_MATCH_DEFAULT                  = SQL_CP_STRICT_MATCH
+
+' /* values for SQL_ATTR_ODBC_VERSION */
+Public Const SQL_OV_ODBC2                          = 2
+Public Const SQL_OV_ODBC3                          = 3
+' #endif  /* ODBCVER >= &H0300 */
+
+' #if (ODBCVER >= &H0380)
+' // new values for SQL_ATTR_ODBC_VERSION 
+' // From ODBC 3.8 onwards, we should use <major version> * 100 + <minor version>
+Public Const SQL_OV_ODBC3_80                       = 380
+' #endif  /* ODBCVER >= &H0380
+
+' /* connection attributes */
+Public Const SQL_ACCESS_MODE               = 101
+Public Const SQL_AUTOCOMMIT                = 102
+Public Const SQL_LOGIN_TIMEOUT             = 103
+Public Const SQL_OPT_TRACE                 = 104
+Public Const SQL_OPT_TRACEFILE             = 105
+Public Const SQL_TRANSLATE_DLL             = 106
+Public Const SQL_TRANSLATE_OPTION          = 107
+Public Const SQL_TXN_ISOLATION             = 108
+Public Const SQL_CURRENT_QUALIFIER         = 109
+Public Const SQL_ODBC_CURSORS              = 110
+Public Const SQL_QUIET_MODE                = 111
+Public Const SQL_PACKET_SIZE               = 112
+
+' /* connection attributes with new names */
+' #if (ODBCVER >= &H0300)
+Public Const SQL_ATTR_ACCESS_MODE       = SQL_ACCESS_MODE
+Public Const SQL_ATTR_AUTOCOMMIT        = SQL_AUTOCOMMIT
+Public Const SQL_ATTR_CONNECTION_TIMEOUT = 113
+Public Const SQL_ATTR_CURRENT_CATALOG   = SQL_CURRENT_QUALIFIER
+Public Const SQL_ATTR_DISCONNECT_BEHAVIOR  = 114
+Public Const SQL_ATTR_ENLIST_IN_DTC    = 1207
+Public Const SQL_ATTR_ENLIST_IN_XA     = 1208
+Public Const SQL_ATTR_LOGIN_TIMEOUT    = SQL_LOGIN_TIMEOUT
+Public Const SQL_ATTR_ODBC_CURSORS     = SQL_ODBC_CURSORS
+Public Const SQL_ATTR_PACKET_SIZE      = SQL_PACKET_SIZE
+Public Const SQL_ATTR_QUIET_MODE       = SQL_QUIET_MODE
+Public Const SQL_ATTR_TRACE            = SQL_OPT_TRACE
+Public Const SQL_ATTR_TRACEFILE        = SQL_OPT_TRACEFILE
+Public Const SQL_ATTR_TRANSLATE_LIB    = SQL_TRANSLATE_DLL
+Public Const SQL_ATTR_TRANSLATE_OPTION = SQL_TRANSLATE_OPTION
+Public Const SQL_ATTR_TXN_ISOLATION    = SQL_TXN_ISOLATION
+' #endif  /* ODBCVER >= &H0300 */
+
+Public Const SQL_ATTR_CONNECTION_DEAD  = 1209 /* GetConnectAttr only */
+
+' #if (ODBCVER >= &H0351)
+' /*  ODBC Driver Manager sets this connection attribute to a unicode driver
+    ' (which supports SQLConnectW) when the application is an ANSI application
+    ' (which calls SQLConnect, SQLDriverConnect, or SQLBrowseConnect).
+    ' This is SetConnectAttr only and application does not set this attribute
+    ' This attribute was introduced because some unicode driver's some APIs may
+    ' need to behave differently on ANSI or Unicode applications. A unicode
+    ' driver, which  has same behavior for both ANSI or Unicode applications,
+    ' should return SQL_ERROR when the driver manager sets this connection
+    ' attribute. When a unicode driver returns SQL_SUCCESS on this attribute,
+    ' the driver manager treates ANSI and Unicode connections differently in
+    ' connection pooling.
+' */
+Public Const SQL_ATTR_ANSI_APP         = 115
+' #endif
+
+' #if (ODBCVER >= &H0380)
+Public Const SQL_ATTR_RESET_CONNECTION             = 116
+Public Const SQL_ATTR_ASYNC_DBC_FUNCTIONS_ENABLE   = 117
+' #endif
+
+' // Connection attribute 118 is defined in sqlspi.h
+
+' #if (ODBCVER >= &H0380)
+Public Const SQL_ATTR_ASYNC_DBC_EVENT              = 119
+' #endif /* ODBCVER >= &H0380 */
+
+' // Connection attribute 120 and 121 are defined in sqlspi.h
+
+' /* SQL_CONNECT_OPT_DRVR_START is not meaningful for 3.0 driver */
+' #if (ODBCVER < 0x0300)
+Public Const SQL_CONNECT_OPT_DRVR_START    = 1000
+' #endif  /* ODBCVER < 0x0300 */
+
+' #if (ODBCVER < 0x0300)
+Public Const SQL_CONN_OPT_MAX               = SQL_PACKET_SIZE
+Public Const SQL_CONN_OPT_MIN               = SQL_ACCESS_MODE
+' #endif /* ODBCVER < 0x0300 */
+
+' /* SQL_ACCESS_MODE options */
+Public Const SQL_MODE_READ_WRITE           = 0
+Public Const SQL_MODE_READ_ONLY            = 1
+Public Const SQL_MODE_DEFAULT              = SQL_MODE_READ_WRITE
+
+' /* SQL_AUTOCOMMIT options */
+Public Const SQL_AUTOCOMMIT_OFF            = 0
+Public Const SQL_AUTOCOMMIT_ON             = 1
+Public Const SQL_AUTOCOMMIT_DEFAULT        = SQL_AUTOCOMMIT_ON
+
+' /* SQL_LOGIN_TIMEOUT options */
+Public Const SQL_LOGIN_TIMEOUT_DEFAULT     = 15
+
+' /* SQL_OPT_TRACE options */
+Public Const SQL_OPT_TRACE_OFF             = 0
+Public Const SQL_OPT_TRACE_ON              = 1
+Public Const SQL_OPT_TRACE_DEFAULT         = SQL_OPT_TRACE_OFF
+Public Const SQL_OPT_TRACE_FILE_DEFAULT    = "\\SQL.LOG"
+
+' /* SQL_ODBC_CURSORS options */
+' #pragma deprecated(SQL_CUR_USE_IF_NEEDED,SQL_CUR_USE_ODBC)
+' // SQL_CUR_USE_IF_NEEDED and SQL_CUR_USE_ODBC are deprecated.
+' // Please use SQL_CUR_USE_DRIVER for cursor functionalities provided by drivers
+Public Const SQL_CUR_USE_IF_NEEDED         = 0
+Public Const SQL_CUR_USE_ODBC              = 1
+Public Const SQL_CUR_USE_DRIVER            = 2
+Public Const SQL_CUR_DEFAULT               = SQL_CUR_USE_DRIVER
+
+' #if (ODBCVER >= &H0300)
+' /* values for SQL_ATTR_DISCONNECT_BEHAVIOR */
+Public Const SQL_DB_RETURN_TO_POOL         = 0
+Public Const SQL_DB_DISCONNECT             = 1
+Public Const SQL_DB_DEFAULT                = SQL_DB_RETURN_TO_POOL
+
+' /* values for SQL_ATTR_ENLIST_IN_DTC */
+Public Const SQL_DTC_DONE                  = 0
+' #endif  /* ODBCVER >= &H0300 */
+
+' /* values for SQL_ATTR_CONNECTION_DEAD */
+Public Const SQL_CD_TRUE                   = 1 /* Connection is closed/dead */
+Public Const SQL_CD_FALSE                  = 0 /* Connection is open/available */
+
+' /* values for SQL_ATTR_ANSI_APP */
+' #if (ODBCVER >= &H0351)
+Public Const SQL_AA_TRUE                   = 1 /* the application is an ANSI app */
+Public Const SQL_AA_FALSE                  = 0 /* the application is a Unicode app */
+' #endif
+
+' /* values for SQL_ATTR_RESET_CONNECTION */
+' #if (ODBCVER >= &H0380)
+Public Const SQL_RESET_CONNECTION_YES      = 1
+' #endif
+
+' /* values for SQL_ATTR_ASYNC_DBC_FUNCTIONS_ENABLE */
+' #if (ODBCVER >= &H0380)
+Public Const SQL_ASYNC_DBC_ENABLE_ON       = 1
+Public Const SQL_ASYNC_DBC_ENABLE_OFF      = 0
+Public Const SQL_ASYNC_DBC_ENABLE_DEFAULT  = SQL_ASYNC_DBC_ENABLE_OFF
+' #endif // ODBCVER >= &H0380
+
+' /* statement attributes */
+Public Const SQL_QUERY_TIMEOUT     = 0
+Public Const SQL_MAX_ROWS          = 1
+Public Const SQL_NOSCAN            = 2
+Public Const SQL_MAX_LENGTH        = 3
+Public Const SQL_ASYNC_ENABLE      = 4
+Public Const SQL_BIND_TYPE         = 5
+Public Const SQL_CURSOR_TYPE       = 6
+Public Const SQL_CONCURRENCY       = 7
+Public Const SQL_KEYSET_SIZE       = 8
+Public Const SQL_ROWSET_SIZE       = 9
+Public Const SQL_SIMULATE_CURSOR   = 10
+Public Const SQL_RETRIEVE_DATA     = 11
+Public Const SQL_USE_BOOKMARKS     = 12
+Public Const SQL_GET_BOOKMARK      = 13 /*      GetStmtOption Only */
+Public Const SQL_ROW_NUMBER        = 14 /*      GetStmtOption Only */
+
+' /* statement attributes for ODBC 3.0 */
+' #if (ODBCVER >= &H0300)
+Public Const SQL_ATTR_ASYNC_ENABLE             = SQL_ASYNC_ENABLE
+Public Const SQL_ATTR_CONCURRENCY              = SQL_CONCURRENCY
+Public Const SQL_ATTR_CURSOR_TYPE              = SQL_CURSOR_TYPE
+Public Const SQL_ATTR_ENABLE_AUTO_IPD          = 15
+Public Const SQL_ATTR_FETCH_BOOKMARK_PTR       = 16
+Public Const SQL_ATTR_KEYSET_SIZE              = SQL_KEYSET_SIZE
+Public Const SQL_ATTR_MAX_LENGTH               = SQL_MAX_LENGTH
+Public Const SQL_ATTR_MAX_ROWS                 = SQL_MAX_ROWS
+Public Const SQL_ATTR_NOSCAN                   = SQL_NOSCAN
+Public Const SQL_ATTR_PARAM_BIND_OFFSET_PTR    = 17
+Public Const SQL_ATTR_PARAM_BIND_TYPE          = 18
+Public Const SQL_ATTR_PARAM_OPERATION_PTR      = 19
+Public Const SQL_ATTR_PARAM_STATUS_PTR         = 20
+Public Const SQL_ATTR_PARAMS_PROCESSED_PTR     = 21
+Public Const SQL_ATTR_PARAMSET_SIZE            = 22
+Public Const SQL_ATTR_QUERY_TIMEOUT            = SQL_QUERY_TIMEOUT
+Public Const SQL_ATTR_RETRIEVE_DATA            = SQL_RETRIEVE_DATA
+Public Const SQL_ATTR_ROW_BIND_OFFSET_PTR      = 23
+Public Const SQL_ATTR_ROW_BIND_TYPE            = SQL_BIND_TYPE
+Public Const SQL_ATTR_ROW_NUMBER               = SQL_ROW_NUMBER /*GetStmtAttr*/
+Public Const SQL_ATTR_ROW_OPERATION_PTR        = 24
+Public Const SQL_ATTR_ROW_STATUS_PTR           = 25
+Public Const SQL_ATTR_ROWS_FETCHED_PTR         = 26
+Public Const SQL_ATTR_ROW_ARRAY_SIZE           = 27
+Public Const SQL_ATTR_SIMULATE_CURSOR          = SQL_SIMULATE_CURSOR
+Public Const SQL_ATTR_USE_BOOKMARKS            = SQL_USE_BOOKMARKS
+' #endif  /* ODBCVER >= &H0300 */
+
+' #if (ODBCVER >= &H0380)
+Public Const SQL_ATTR_ASYNC_STMT_EVENT         = 29
+' #endif /* ODBCVER >= &H0380 */
+
+' #if (ODBCVER < 0x0300)
+Public Const SQL_STMT_OPT_MAX               = SQL_ROW_NUMBER
+Public Const SQL_STMT_OPT_MIN   = SQL_QUERY_TIMEOUT
+' #endif      /* ODBCVER < 0x0300 */
+
+' /* New defines for SEARCHABLE column in SQLGetTypeInfo */
+
+' #if (ODBCVER >= &H0300)
+Public Const SQL_COL_PRED_CHAR      = SQL_LIKE_ONLY
+Public Const SQL_COL_PRED_BASIC     = SQL_ALL_EXCEPT_LIKE
+' #endif /* ODBCVER >= &H0300 */
+
+
+
+' /* whether an attribute is a pointer or not */
+' #if (ODBCVER >= &H0300)
+Public Const SQL_IS_POINTER                         = (-4)
+Public Const SQL_IS_UINTEGER                        = (-5)
+Public Const SQL_IS_INTEGER                         = (-6)
+Public Const SQL_IS_USMALLINT                       = (-7)
+Public Const SQL_IS_SMALLINT                        = (-8)
+' #endif  /* ODBCVER >= &H0300 */
+
+' /* the value of SQL_ATTR_PARAM_BIND_TYPE */
+' #if (ODBCVER >= &H0300)
+Public Const SQL_PARAM_BIND_BY_COLUMN          = 0
+Public Const SQL_PARAM_BIND_TYPE_DEFAULT       = SQL_PARAM_BIND_BY_COLUMN
+' #endif  /* ODBCVER >= &H0300 */
+
+' /* SQL_QUERY_TIMEOUT options */
+Public Const SQL_QUERY_TIMEOUT_DEFAULT     = 0
+
+' /* SQL_MAX_ROWS options */
+Public Const SQL_MAX_ROWS_DEFAULT          = 0
+
+' /* SQL_NOSCAN options */
+Public Const SQL_NOSCAN_OFF                = 0 /*    = 1.0 FALSE */
+Public Const SQL_NOSCAN_ON                 = 1 /*    = 1.0 TRUE */
+Public Const SQL_NOSCAN_DEFAULT            = SQL_NOSCAN_OFF
+
+' /* SQL_MAX_LENGTH options */
+Public Const SQL_MAX_LENGTH_DEFAULT        = 0
+
+' /* values for SQL_ATTR_ASYNC_ENABLE */
+Public Const SQL_ASYNC_ENABLE_OFF          = 0
+Public Const SQL_ASYNC_ENABLE_ON           = 1
+Public Const SQL_ASYNC_ENABLE_DEFAULT      = SQL_ASYNC_ENABLE_OFF
+
+' /* SQL_BIND_TYPE options */
+Public Const SQL_BIND_BY_COLUMN            = 0
+Public Const SQL_BIND_TYPE_DEFAULT         = SQL_BIND_BY_COLUMN /* Default value */
+
+' /* SQL_CONCURRENCY options */
+Public Const SQL_CONCUR_READ_ONLY          = 1
+Public Const SQL_CONCUR_LOCK               = 2
+Public Const SQL_CONCUR_ROWVER             = 3
+Public Const SQL_CONCUR_VALUES             = 4
+Public Const SQL_CONCUR_DEFAULT            = SQL_CONCUR_READ_ONLY /* Default value */
+
+' /* SQL_CURSOR_TYPE options */
+Public Const SQL_CURSOR_FORWARD_ONLY       = 0
+Public Const SQL_CURSOR_KEYSET_DRIVEN      = 1
+Public Const SQL_CURSOR_DYNAMIC            = 2
+Public Const SQL_CURSOR_STATIC             = 3
+Public Const SQL_CURSOR_TYPE_DEFAULT       = SQL_CURSOR_FORWARD_ONLY /* Default value */
+
+' /* SQL_ROWSET_SIZE options */
+Public Const SQL_ROWSET_SIZE_DEFAULT       = 1
+
+' /* SQL_KEYSET_SIZE options */
+Public Const SQL_KEYSET_SIZE_DEFAULT       = 0
+
+' /* SQL_SIMULATE_CURSOR options */
+Public Const SQL_SC_NON_UNIQUE             = 0
+Public Const SQL_SC_TRY_UNIQUE             = 1
+Public Const SQL_SC_UNIQUE                 = 2
+
+' /* SQL_RETRIEVE_DATA options */
+Public Const SQL_RD_OFF                    = 0
+Public Const SQL_RD_ON                     = 1
+Public Const SQL_RD_DEFAULT                = SQL_RD_ON
+
+' /* SQL_USE_BOOKMARKS options */
+Public Const SQL_UB_OFF                    = 0
+Public Const SQL_UB_ON                     = 01
+Public Const SQL_UB_DEFAULT                = SQL_UB_OFF
+
+' /* New values for SQL_USE_BOOKMARKS attribute */
+' #if (ODBCVER >= &H0300)
+Public Const SQL_UB_FIXED                  = SQL_UB_ON
+Public Const SQL_UB_VARIABLE               = 2
+' #endif  /* ODBCVER >= &H0300 */
+
+' /* extended descriptor field */
+' #if (ODBCVER >= &H0300)
+Public Const SQL_DESC_ARRAY_SIZE                   = 20
+Public Const SQL_DESC_ARRAY_STATUS_PTR             = 21
+Public Const SQL_DESC_AUTO_UNIQUE_VALUE            = SQL_COLUMN_AUTO_INCREMENT
+Public Const SQL_DESC_BASE_COLUMN_NAME             = 22
+Public Const SQL_DESC_BASE_TABLE_NAME              = 23
+Public Const SQL_DESC_BIND_OFFSET_PTR              = 24
+Public Const SQL_DESC_BIND_TYPE                    = 25
+Public Const SQL_DESC_CASE_SENSITIVE               = SQL_COLUMN_CASE_SENSITIVE
+Public Const SQL_DESC_CATALOG_NAME                 = SQL_COLUMN_QUALIFIER_NAME
+Public Const SQL_DESC_CONCISE_TYPE                 = SQL_COLUMN_TYPE
+Public Const SQL_DESC_DATETIME_INTERVAL_PRECISION  = 26
+Public Const SQL_DESC_DISPLAY_SIZE                 = SQL_COLUMN_DISPLAY_SIZE
+Public Const SQL_DESC_FIXED_PREC_SCALE             = SQL_COLUMN_MONEY
+Public Const SQL_DESC_LABEL                        = SQL_COLUMN_LABEL
+Public Const SQL_DESC_LITERAL_PREFIX               = 27
+Public Const SQL_DESC_LITERAL_SUFFIX               = 28
+Public Const SQL_DESC_LOCAL_TYPE_NAME              = 29
+Public Const SQL_DESC_MAXIMUM_SCALE                = 30
+Public Const SQL_DESC_MINIMUM_SCALE                = 31
+Public Const SQL_DESC_NUM_PREC_RADIX               = 32
+Public Const SQL_DESC_PARAMETER_TYPE               = 33
+Public Const SQL_DESC_ROWS_PROCESSED_PTR           = 34
+' #if (ODBCVER >= &H0350)
+Public Const SQL_DESC_ROWVER                       = 35
+' #endif /* ODBCVER >= &H0350 */
+Public Const SQL_DESC_SCHEMA_NAME                  = SQL_COLUMN_OWNER_NAME
+Public Const SQL_DESC_SEARCHABLE                   = SQL_COLUMN_SEARCHABLE
+Public Const SQL_DESC_TYPE_NAME                    = SQL_COLUMN_TYPE_NAME
+Public Const SQL_DESC_TABLE_NAME                   = SQL_COLUMN_TABLE_NAME
+Public Const SQL_DESC_UNSIGNED                     = SQL_COLUMN_UNSIGNED
+Public Const SQL_DESC_UPDATABLE                    = SQL_COLUMN_UPDATABLE
+' #endif /* ODBCVER >= &H0300 */
+
+
+' /* defines for diagnostics fields */
+' #if (ODBCVER >= &H0300)
+Public Const SQL_DIAG_CURSOR_ROW_COUNT          = (-1249)
+Public Const SQL_DIAG_ROW_NUMBER                = (-1248)
+Public Const SQL_DIAG_COLUMN_NUMBER             = (-1247)
+' #endif /* ODBCVER >= &H0300 */
+
+' /* SQL extended datatypes */
+Public Const SQL_DATE                              = 9
+' #if (ODBCVER >= &H0300)
+Public Const SQL_INTERVAL                          = 10
+' #endif  /* ODBCVER >= &H0300 */
+Public Const SQL_TIME                              = 10
+Public Const SQL_TIMESTAMP                         = 11
+Public Const SQL_LONGVARCHAR                       = (-1)
+Public Const SQL_BINARY                            = (-2)
+Public Const SQL_VARBINARY                         = (-3)
+Public Const SQL_LONGVARBINARY                     = (-4)
+Public Const SQL_BIGINT                            = (-5)
+Public Const SQL_TINYINT                           = (-6)
+Public Const SQL_BIT                               = (-7)
+' #if (ODBCVER >= &H0350)
+Public Const SQL_GUID               = (-11)
+' #endif  /* ODBCVER >= &H0350 */
+
+' #if (ODBCVER >= &H0300)
+' /* interval code */
+Public Const SQL_CODE_YEAR             = 1
+Public Const SQL_CODE_MONTH            = 2
+Public Const SQL_CODE_DAY              = 3
+Public Const SQL_CODE_HOUR             = 4
+Public Const SQL_CODE_MINUTE           = 5
+Public Const SQL_CODE_SECOND           = 6
+Public Const SQL_CODE_YEAR_TO_MONTH        = 7
+Public Const SQL_CODE_DAY_TO_HOUR          = 8
+Public Const SQL_CODE_DAY_TO_MINUTE        = 9
+Public Const SQL_CODE_DAY_TO_SECOND        = 10
+Public Const SQL_CODE_HOUR_TO_MINUTE       = 11
+Public Const SQL_CODE_HOUR_TO_SECOND       = 12
+Public Const SQL_CODE_MINUTE_TO_SECOND     = 13
+
+Public Const SQL_INTERVAL_YEAR                  = (100 + SQL_CODE_YEAR)
+Public Const SQL_INTERVAL_MONTH                 = (100 + SQL_CODE_MONTH)
+Public Const SQL_INTERVAL_DAY                   = (100 + SQL_CODE_DAY)
+Public Const SQL_INTERVAL_HOUR                  = (100 + SQL_CODE_HOUR)
+Public Const SQL_INTERVAL_MINUTE                = (100 + SQL_CODE_MINUTE)
+Public Const SQL_INTERVAL_SECOND                = (100 + SQL_CODE_SECOND)
+Public Const SQL_INTERVAL_YEAR_TO_MONTH         = (100 + SQL_CODE_YEAR_TO_MONTH)
+Public Const SQL_INTERVAL_DAY_TO_HOUR           = (100 + SQL_CODE_DAY_TO_HOUR)
+Public Const SQL_INTERVAL_DAY_TO_MINUTE         = (100 + SQL_CODE_DAY_TO_MINUTE)
+Public Const SQL_INTERVAL_DAY_TO_SECOND         = (100 + SQL_CODE_DAY_TO_SECOND)
+Public Const SQL_INTERVAL_HOUR_TO_MINUTE        = (100 + SQL_CODE_HOUR_TO_MINUTE)
+Public Const SQL_INTERVAL_HOUR_TO_SECOND        = (100 + SQL_CODE_HOUR_TO_SECOND)
+Public Const SQL_INTERVAL_MINUTE_TO_SECOND      = (100 + SQL_CODE_MINUTE_TO_SECOND)
+
+' #else
+' Public Const SQL_INTERVAL_YEAR                      = (-80)
+' Public Const SQL_INTERVAL_MONTH                     = (-81)
+' Public Const SQL_INTERVAL_YEAR_TO_MONTH             = (-82)
+' Public Const SQL_INTERVAL_DAY                       = (-83)
+' Public Const SQL_INTERVAL_HOUR                      = (-84)
+' Public Const SQL_INTERVAL_MINUTE                    = (-85)
+' Public Const SQL_INTERVAL_SECOND                    = (-86)
+' Public Const SQL_INTERVAL_DAY_TO_HOUR               = (-87)
+' Public Const SQL_INTERVAL_DAY_TO_MINUTE             = (-88)
+' Public Const SQL_INTERVAL_DAY_TO_SECOND             = (-89)
+' Public Const SQL_INTERVAL_HOUR_TO_MINUTE            = (-90)
+' Public Const SQL_INTERVAL_HOUR_TO_SECOND            = (-91)
+' Public Const SQL_INTERVAL_MINUTE_TO_SECOND          = (-92)
+' #endif  /* ODBCVER >= &H0300 */
+
+
+' #if (ODBCVER <= &H0300)
+' Public Const SQL_UNICODE                            = (-95)
+' Public Const SQL_UNICODE_VARCHAR                    = (-96)
+' Public Const SQL_UNICODE_LONGVARCHAR                = (-97)
+' Public Const SQL_UNICODE_CHAR                       = SQL_UNICODE
+' #else
+' /* The previous definitions for SQL_UNICODE_ are historical and obsolete */
+
+Public Const SQL_UNICODE            = SQL_WCHAR
+
+Public Const SQL_UNICODE_VARCHAR     = SQL_WVARCHAR
+Public Const SQL_UNICODE_LONGVARCHAR = SQL_WLONGVARCHAR
+Public Const SQL_UNICODE_CHAR        = SQL_WCHAR
+' #endif
+
+' #if (ODBCVER < 0x0300)
+' Public Const SQL_TYPE_DRIVER_START                  = SQL_INTERVAL_YEAR
+' Public Const SQL_TYPE_DRIVER_END                    = SQL_UNICODE_LONGVARCHAR
+' #endif  /* ODBCVER < 0x0300 */
+
+' /* C datatype to SQL datatype mapping      SQL types
+                                           ' ------------------- */
+Public Const SQL_C_CHAR   = SQL_CHAR /* CHAR, VARCHAR, DECIMAL, NUMERIC */
+Public Const SQL_C_LONG   = SQL_INTEGER /* INTEGER                      */
+Public Const SQL_C_SHORT  = SQL_SMALLINT /* SMALLINT                     */
+Public Const SQL_C_FLOAT  = SQL_REAL /* REAL                         */
+Public Const SQL_C_DOUBLE = SQL_DOUBLE /* FLOAT, DOUBLE                */
+' #if (ODBCVER >= &H0300)
+Public Const SQL_C_NUMERIC      = SQL_NUMERIC
+' #endif  /* ODBCVER >= &H0300 */
+Public Const SQL_C_DEFAULT = 99
+
+Public Const SQL_SIGNED_OFFSET      = (-20)
+Public Const SQL_UNSIGNED_OFFSET    = (-22)
+
+' /* C datatype to SQL datatype mapping */
+Public Const SQL_C_DATE      = SQL_DATE
+Public Const SQL_C_TIME      = SQL_TIME
+Public Const SQL_C_TIMESTAMP = SQL_TIMESTAMP
+' #if (ODBCVER >= &H0300)
+Public Const SQL_C_TYPE_DATE                = SQL_TYPE_DATE
+Public Const SQL_C_TYPE_TIME                = SQL_TYPE_TIME
+Public Const SQL_C_TYPE_TIMESTAMP           = SQL_TYPE_TIMESTAMP
+Public Const SQL_C_INTERVAL_YEAR            = SQL_INTERVAL_YEAR
+Public Const SQL_C_INTERVAL_MONTH           = SQL_INTERVAL_MONTH
+Public Const SQL_C_INTERVAL_DAY             = SQL_INTERVAL_DAY
+Public Const SQL_C_INTERVAL_HOUR            = SQL_INTERVAL_HOUR
+Public Const SQL_C_INTERVAL_MINUTE          = SQL_INTERVAL_MINUTE
+Public Const SQL_C_INTERVAL_SECOND          = SQL_INTERVAL_SECOND
+Public Const SQL_C_INTERVAL_YEAR_TO_MONTH   = SQL_INTERVAL_YEAR_TO_MONTH
+Public Const SQL_C_INTERVAL_DAY_TO_HOUR     = SQL_INTERVAL_DAY_TO_HOUR
+Public Const SQL_C_INTERVAL_DAY_TO_MINUTE   = SQL_INTERVAL_DAY_TO_MINUTE
+Public Const SQL_C_INTERVAL_DAY_TO_SECOND   = SQL_INTERVAL_DAY_TO_SECOND
+Public Const SQL_C_INTERVAL_HOUR_TO_MINUTE  = SQL_INTERVAL_HOUR_TO_MINUTE
+Public Const SQL_C_INTERVAL_HOUR_TO_SECOND  = SQL_INTERVAL_HOUR_TO_SECOND
+Public Const SQL_C_INTERVAL_MINUTE_TO_SECOND = SQL_INTERVAL_MINUTE_TO_SECOND
+' #endif  /* ODBCVER >= &H0300 */
+Public Const SQL_C_BINARY    = SQL_BINARY
+Public Const SQL_C_BIT       = SQL_BIT
+' #if (ODBCVER >= &H0300)
+Public Const SQL_C_SBIGINT  = (SQL_BIGINT + SQL_SIGNED_OFFSET) /* SIGNED BIGINT */
+Public Const SQL_C_UBIGINT  = (SQL_BIGINT + SQL_UNSIGNED_OFFSET) /* UNSIGNED BIGINT */
+' #endif  /* ODBCVER >= &H0300 */
+Public Const SQL_C_TINYINT   = SQL_TINYINT
+Public Const SQL_C_SLONG     = (SQL_C_LONG + SQL_SIGNED_OFFSET) /* SIGNED INTEGER  */
+Public Const SQL_C_SSHORT    = (SQL_C_SHORT + SQL_SIGNED_OFFSET) /* SIGNED SMALLINT */
+Public Const SQL_C_STINYINT  = (SQL_TINYINT + SQL_SIGNED_OFFSET) /* SIGNED TINYINT  */
+Public Const SQL_C_ULONG     = (SQL_C_LONG + SQL_UNSIGNED_OFFSET) /* UNSIGNED INTEGER*/
+Public Const SQL_C_USHORT    = (SQL_C_SHORT + SQL_UNSIGNED_OFFSET) /* UNSIGNED SMALLINT*/
+Public Const SQL_C_UTINYINT  = (SQL_TINYINT + SQL_UNSIGNED_OFFSET) /* UNSIGNED TINYINT*/
+
+#If Win64 Then
+Public Const SQL_C_BOOKMARK  = SQL_C_UBIGINT /* BOOKMARK        */
+#Else
+Public Const SQL_C_BOOKMARK  = SQL_C_ULONG /* BOOKMARK        */
+#End If
+
+' #if (ODBCVER >= &H0350)
+Public Const SQL_C_GUID = SQL_GUID
+' #endif  /* ODBCVER >= &H0350 */
+
+Public Const SQL_TYPE_NULL                 = 0
+' #if (ODBCVER < 0x0300)
+Public Const SQL_TYPE_MIN                   = SQL_BIT
+Public Const SQL_TYPE_MAX                   = SQL_VARCHAR
+' #endif
+
+' // base value of driver-specific C-Type (max is 0x7fff)
+' // define driver-specific C-Type, named as SQL_DRIVER_C_TYPE_BASE, 
+' // SQL_DRIVER_C_TYPE_BASE+1, SQL_DRIVER_C_TYPE_BASE+2, etc.
+' #if (ODBCVER >= &H380)
+Public Const SQL_DRIVER_C_TYPE_BASE    = &H4000
+' #endif
+
+' // base value of driver-specific fields/attributes (max are 0x7fff [16-bit] or 0x00007fff [32-bit])
+' // define driver-specific SQL-Type, named as SQL_DRIVER_SQL_TYPE_BASE, 
+' // SQL_DRIVER_SQL_TYPE_BASE+1, SQL_DRIVER_SQL_TYPE_BASE+2, etc.
+' // 
+' // Please note that there is no runtime change in this version of DM. 
+' // However, we suggest that driver manufacturers adhere to this range
+' // as future versions of the DM may enforce these constraints
+' #if (ODBCVER >= &H380)
+Public Const SQL_DRIVER_SQL_TYPE_BASE  = &H4000
+Public Const SQL_DRIVER_DESC_FIELD_BASE= &H4000
+Public Const SQL_DRIVER_DIAG_FIELD_BASE= &H4000
+Public Const SQL_DRIVER_INFO_TYPE_BASE = &H4000
+Public Const SQL_DRIVER_CONN_ATTR_BASE = &H00004000 ' 32-bit
+Public Const SQL_DRIVER_STMT_ATTR_BASE = &H00004000 ' 32-bit
+' #endif
+
+' #if (ODBCVER >= &H0300)
+Public Const SQL_C_VARBOOKMARK      = SQL_C_BINARY
+' #endif  /* ODBCVER >= &H0300 */
+
+' /* define for SQL_DIAG_ROW_NUMBER and SQL_DIAG_COLUMN_NUMBER */
+' #if (ODBCVER >= &H0300)
+Public Const SQL_NO_ROW_NUMBER                      = (-1)
+Public Const SQL_NO_COLUMN_NUMBER                   = (-1)
+Public Const SQL_ROW_NUMBER_UNKNOWN                 = (-2)
+Public Const SQL_COLUMN_NUMBER_UNKNOWN              = (-2)
+' #endif
+
+' /* SQLBindParameter extensions */
+Public Const SQL_DEFAULT_PARAM          = (-5)
+Public Const SQL_IGNORE                 = (-6)
+' #if (ODBCVER >= &H0300)
+Public Const SQL_COLUMN_IGNORE          = SQL_IGNORE
+' #endif  /* ODBCVER >= &H0300 */
+Public Const SQL_LEN_DATA_AT_EXEC_OFFSET = (-100)
+Public Function SQL_LEN_DATA_AT_EXEC(ByVal length As Long) As Long: Return (-(length) + SQL_LEN_DATA_AT_EXEC_OFFSET): End Function
+
+' /* binary length for driver specific attributes */
+Public Const SQL_LEN_BINARY_ATTR_OFFSET  = (-100)
+Public Function SQL_LEN_BINARY_ATTR(ByVal length As Long) As Long: Return (-(length) + SQL_LEN_BINARY_ATTR_OFFSET): End Function
+
+' /* Defines used by Driver Manager when mapping SQLSetParam to SQLBindParameter
+' */
+Public Const SQL_PARAM_TYPE_DEFAULT          = SQL_PARAM_INPUT_OUTPUT
+Public Const SQL_SETPARAM_VALUE_MAX          = (-1)
+
+' /* SQLColAttributes defines */
+Public Const SQL_COLUMN_COUNT              = 0
+Public Const SQL_COLUMN_NAME               = 1
+Public Const SQL_COLUMN_TYPE               = 2
+Public Const SQL_COLUMN_LENGTH             = 3
+Public Const SQL_COLUMN_PRECISION          = 4
+Public Const SQL_COLUMN_SCALE              = 5
+Public Const SQL_COLUMN_DISPLAY_SIZE       = 6
+Public Const SQL_COLUMN_NULLABLE           = 7
+Public Const SQL_COLUMN_UNSIGNED           = 8
+Public Const SQL_COLUMN_MONEY              = 9
+Public Const SQL_COLUMN_UPDATABLE          = 10
+Public Const SQL_COLUMN_AUTO_INCREMENT     = 11
+Public Const SQL_COLUMN_CASE_SENSITIVE     = 12
+Public Const SQL_COLUMN_SEARCHABLE         = 13
+Public Const SQL_COLUMN_TYPE_NAME          = 14
+Public Const SQL_COLUMN_TABLE_NAME         = 15
+Public Const SQL_COLUMN_OWNER_NAME         = 16
+Public Const SQL_COLUMN_QUALIFIER_NAME     = 17
+Public Const SQL_COLUMN_LABEL              = 18
+Public Const SQL_COLATT_OPT_MAX            = SQL_COLUMN_LABEL
+' #if (ODBCVER < 0x0300)
+Public Const SQL_COLUMN_DRIVER_START       = 1000
+' #endif  /* ODBCVER < 0x0300 */
+
+Public Const SQL_COLATT_OPT_MIN            = SQL_COLUMN_COUNT
+
+' /* SQLColAttributes subdefines for SQL_COLUMN_UPDATABLE */
+Public Const SQL_ATTR_READONLY             = 0
+Public Const SQL_ATTR_WRITE                = 1
+Public Const SQL_ATTR_READWRITE_UNKNOWN    = 2
+
+' /* SQLColAttributes subdefines for SQL_COLUMN_SEARCHABLE */
+' /* These are also used by SQLGetInfo                     */
+Public Const SQL_UNSEARCHABLE              = 0
+Public Const SQL_LIKE_ONLY                 = 1
+Public Const SQL_ALL_EXCEPT_LIKE           = 2
+Public Const SQL_SEARCHABLE                = 3
+Public Const SQL_PRED_SEARCHABLE           = SQL_SEARCHABLE
+
+
+' /* Special return values for SQLGetData */
+Public Const SQL_NO_TOTAL                  = (-4)
+
+' /********************************************/
+' /* SQLGetFunctions: additional values for   */
+' /* fFunction to represent functions that    */
+' /* are not in the X/Open spec.              */
+' /********************************************/
+
+' #if (ODBCVER >= &H0300)
+Public Const SQL_API_SQLALLOCHANDLESTD = 73
+Public Const SQL_API_SQLBULKOPERATIONS = 24
+' #endif /* ODBCVER >= &H0300 */
+Public Const SQL_API_SQLBINDPARAMETER  = 72
+Public Const SQL_API_SQLBROWSECONNECT  = 55
+Public Const SQL_API_SQLCOLATTRIBUTES  = 6
+Public Const SQL_API_SQLCOLUMNPRIVILEGES = 56
+Public Const SQL_API_SQLDESCRIBEPARAM  = 58
+Public Const SQL_API_SQLDRIVERCONNECT  = 41
+Public Const SQL_API_SQLDRIVERS        = 71
+Public Const SQL_API_SQLPRIVATEDRIVERS = 79
+Public Const SQL_API_SQLEXTENDEDFETCH  = 59
+Public Const SQL_API_SQLFOREIGNKEYS    = 60
+Public Const SQL_API_SQLMORERESULTS    = 61
+Public Const SQL_API_SQLNATIVESQL      = 62
+Public Const SQL_API_SQLNUMPARAMS      = 63
+Public Const SQL_API_SQLPARAMOPTIONS   = 64
+Public Const SQL_API_SQLPRIMARYKEYS    = 65
+Public Const SQL_API_SQLPROCEDURECOLUMNS = 66
+Public Const SQL_API_SQLPROCEDURES     = 67
+Public Const SQL_API_SQLSETPOS         = 68
+Public Const SQL_API_SQLSETSCROLLOPTIONS = 69
+Public Const SQL_API_SQLTABLEPRIVILEGES= 70
+
+' /*-------------------------------------------*/
+' /* SQL_EXT_API_LAST is not useful with ODBC  */
+' /* version 3.0 because some of the values    */
+' /* from X/Open are in the 10000 range.       */
+' /*-------------------------------------------*/
+
+' #if (ODBCVER < 0x0300)
+Public Const SQL_EXT_API_LAST          = SQL_API_SQLBINDPARAMETER
+Public Const SQL_NUM_FUNCTIONS         = 23
+Public Const SQL_EXT_API_START         = 40
+Public Const SQL_NUM_EXTENSIONS = (SQL_EXT_API_LAST - SQL_EXT_API_START + 1)
+' #endif
+
+' /*--------------------------------------------*/
+' /* SQL_API_ALL_FUNCTIONS returns an array     */
+' /* of 'booleans' representing whether a       */
+' /* function is implemented by the driver.     */
+' /*                                            */
+' /* CAUTION: Only functions defined in ODBC    */
+' /* version 2.0 and earlier are returned, the  */
+' /* new high-range function numbers defined by */
+' /* X/Open break this scheme.   See the new    */
+' /* method -- SQL_API_ODBC3_ALL_FUNCTIONS      */
+' /*--------------------------------------------*/
+
+Public Const SQL_API_ALL_FUNCTIONS     = 0 /* See CAUTION above */
+
+' /*----------------------------------------------*/
+' /* 2.X drivers export a dummy function with     */
+' /* ordinal number SQL_API_LOADBYORDINAL to speed*/
+' /* loading under the windows operating system.  */
+' /*                      */
+' /* CAUTION: Loading by ordinal is not supported */
+' /* for 3.0 and above drivers.           */
+' /*----------------------------------------------*/
+
+Public Const SQL_API_LOADBYORDINAL     = 199 /* See CAUTION above */
+
+' /*----------------------------------------------*/
+' /* SQL_API_ODBC3_ALL_FUNCTIONS                  */
+' /* This returns a bitmap, which allows us to    */
+' /* handle the higher-valued function numbers.   */
+' /* Use  SQL_FUNC_EXISTS(bitmap,function_number) */
+' /* to determine if the function exists.         */
+' /*----------------------------------------------*/
+
+
+' #if (ODBCVER >= &H0300)
+Public Const SQL_API_ODBC3_ALL_FUNCTIONS = 999
+Public Const SQL_API_ODBC3_ALL_FUNCTIONS_SIZE  = 250 /* array of 250 words */
+
+ 
+Public Function SQL_FUNC_EXISTS(pfExists As LongPtr, uwAPI As Integer) As Boolean
+    Dim element As Integer
+    Dim addr As LongPtr = pfExists + (uwAPI >> 4) * 2
+    CopyMemory element, ByVal addr, 2
+    Return (element And (1 << (uwAPI And &H000F))) <> 0
+End Function
+' #endif  /* ODBCVER >= &H0300 */
+
+' /************************************************/
+' /* Extended definitions for SQLGetInfo          */
+' /************************************************/
+
+' /*---------------------------------*/
+' /* Values in ODBC 2.0 that are not */
+' /* in the X/Open spec              */
+' /*---------------------------------*/
+
+Public Const SQL_INFO_FIRST                     = 0
+Public Const SQL_ACTIVE_CONNECTIONS             = 0 /* MAX_DRIVER_CONNECTIONS */
+Public Const SQL_ACTIVE_STATEMENTS              = 1 /* MAX_CONCURRENT_ACTIVITIES */
+Public Const SQL_DRIVER_HDBC                    = 3
+Public Const SQL_DRIVER_HENV                    = 4
+Public Const SQL_DRIVER_HSTMT                   = 5
+Public Const SQL_DRIVER_NAME                    = 6
+Public Const SQL_DRIVER_VER                     = 7
+Public Const SQL_ODBC_API_CONFORMANCE           = 9
+Public Const SQL_ODBC_VER                      = 10
+Public Const SQL_ROW_UPDATES                   = 11
+Public Const SQL_ODBC_SAG_CLI_CONFORMANCE      = 12
+Public Const SQL_ODBC_SQL_CONFORMANCE          = 15
+Public Const SQL_PROCEDURES                    = 21
+Public Const SQL_CONCAT_NULL_BEHAVIOR          = 22
+Public Const SQL_CURSOR_ROLLBACK_BEHAVIOR      = 24
+Public Const SQL_EXPRESSIONS_IN_ORDERBY        = 27
+Public Const SQL_MAX_OWNER_NAME_LEN            = 32 /* MAX_SCHEMA_NAME_LEN */
+Public Const SQL_MAX_PROCEDURE_NAME_LEN        = 33
+Public Const SQL_MAX_QUALIFIER_NAME_LEN        = 34 /* MAX_CATALOG_NAME_LEN */
+Public Const SQL_MULT_RESULT_SETS              = 36
+Public Const SQL_MULTIPLE_ACTIVE_TXN           = 37
+Public Const SQL_OUTER_JOINS                   = 38
+Public Const SQL_OWNER_TERM                    = 39
+Public Const SQL_PROCEDURE_TERM                = 40
+Public Const SQL_QUALIFIER_NAME_SEPARATOR      = 41
+Public Const SQL_QUALIFIER_TERM                = 42
+Public Const SQL_SCROLL_OPTIONS                = 44
+Public Const SQL_TABLE_TERM                    = 45
+Public Const SQL_CONVERT_FUNCTIONS             = 48
+Public Const SQL_NUMERIC_FUNCTIONS             = 49
+Public Const SQL_STRING_FUNCTIONS              = 50
+Public Const SQL_SYSTEM_FUNCTIONS              = 51
+Public Const SQL_TIMEDATE_FUNCTIONS            = 52
+Public Const SQL_CONVERT_BIGINT                = 53
+Public Const SQL_CONVERT_BINARY                = 54
+Public Const SQL_CONVERT_BIT                   = 55
+Public Const SQL_CONVERT_CHAR                  = 56
+Public Const SQL_CONVERT_DATE                  = 57
+Public Const SQL_CONVERT_DECIMAL               = 58
+Public Const SQL_CONVERT_DOUBLE                = 59
+Public Const SQL_CONVERT_FLOAT                 = 60
+Public Const SQL_CONVERT_INTEGER               = 61
+Public Const SQL_CONVERT_LONGVARCHAR           = 62
+Public Const SQL_CONVERT_NUMERIC               = 63
+Public Const SQL_CONVERT_REAL                  = 64
+Public Const SQL_CONVERT_SMALLINT              = 65
+Public Const SQL_CONVERT_TIME                  = 66
+Public Const SQL_CONVERT_TIMESTAMP             = 67
+Public Const SQL_CONVERT_TINYINT               = 68
+Public Const SQL_CONVERT_VARBINARY             = 69
+Public Const SQL_CONVERT_VARCHAR               = 70
+Public Const SQL_CONVERT_LONGVARBINARY         = 71
+Public Const SQL_ODBC_SQL_OPT_IEF              = 73 /* SQL_INTEGRITY */
+Public Const SQL_CORRELATION_NAME              = 74
+Public Const SQL_NON_NULLABLE_COLUMNS          = 75
+Public Const SQL_DRIVER_HLIB                   = 76
+Public Const SQL_DRIVER_ODBC_VER               = 77
+Public Const SQL_LOCK_TYPES                    = 78
+Public Const SQL_POS_OPERATIONS                = 79
+Public Const SQL_POSITIONED_STATEMENTS         = 80
+Public Const SQL_BOOKMARK_PERSISTENCE          = 82
+Public Const SQL_STATIC_SENSITIVITY            = 83
+Public Const SQL_FILE_USAGE                    = 84
+Public Const SQL_COLUMN_ALIAS                  = 87
+Public Const SQL_GROUP_BY                      = 88
+Public Const SQL_KEYWORDS                      = 89
+Public Const SQL_OWNER_USAGE                   = 91
+Public Const SQL_QUALIFIER_USAGE               = 92
+Public Const SQL_QUOTED_IDENTIFIER_CASE        = 93
+Public Const SQL_SUBQUERIES                    = 95
+Public Const SQL_UNION                         = 96
+Public Const SQL_MAX_ROW_SIZE_INCLUDES_LONG    = 103
+Public Const SQL_MAX_CHAR_LITERAL_LEN          = 108
+Public Const SQL_TIMEDATE_ADD_INTERVALS        = 109
+Public Const SQL_TIMEDATE_DIFF_INTERVALS       = 110
+Public Const SQL_NEED_LONG_DATA_LEN            = 111
+Public Const SQL_MAX_BINARY_LITERAL_LEN        = 112
+Public Const SQL_LIKE_ESCAPE_CLAUSE            = 113
+Public Const SQL_QUALIFIER_LOCATION            = 114
+
+' #if (ODBCVER >= &H0201 && ODBCVER < 0x0300)
+' Public Const SQL_OJ_CAPABILITIES       = 65003 /* Temp value until ODBC 3.0 */
+' #endif  /* ODBCVER >= &H0201 && ODBCVER < 0x0300 */
+
+' /*----------------------------------------------*/
+' /* SQL_INFO_LAST and SQL_INFO_DRIVER_START are  */
+' /* not useful anymore, because  X/Open has      */
+' /* values in the 10000 range.   You             */
+' /* must contact X/Open directly to get a range  */
+' /* of numbers for driver-specific values.       */
+' /*----------------------------------------------*/
+
+' #if (ODBCVER < 0x0300)
+Public Const SQL_INFO_LAST                     = SQL_QUALIFIER_LOCATION
+Public Const SQL_INFO_DRIVER_START             = 1000
+' #endif /* ODBCVER < 0x0300 */
+
+' /*-----------------------------------------------*/
+' /* ODBC 3.0 SQLGetInfo values that are not part  */
+' /* of the X/Open standard at this time.   X/Open */
+' /* standard values are in sql.h.                 */
+' /*-----------------------------------------------*/
+
+' #if (ODBCVER >= &H0300)
+Public Const SQL_ACTIVE_ENVIRONMENTS               = 116
+Public Const SQL_ALTER_DOMAIN                      = 117
+
+Public Const SQL_SQL_CONFORMANCE                   = 118
+Public Const SQL_DATETIME_LITERALS                 = 119
+
+Public Const SQL_ASYNC_MODE                        = 10021 /* new X/Open spec */
+Public Const SQL_BATCH_ROW_COUNT                   = 120
+Public Const SQL_BATCH_SUPPORT                     = 121
+Public Const SQL_CATALOG_LOCATION                  = SQL_QUALIFIER_LOCATION
+Public Const SQL_CATALOG_NAME_SEPARATOR            = SQL_QUALIFIER_NAME_SEPARATOR
+Public Const SQL_CATALOG_TERM                      = SQL_QUALIFIER_TERM
+Public Const SQL_CATALOG_USAGE                     = SQL_QUALIFIER_USAGE
+Public Const SQL_CONVERT_WCHAR                     = 122
+Public Const SQL_CONVERT_INTERVAL_DAY_TIME         = 123
+Public Const SQL_CONVERT_INTERVAL_YEAR_MONTH       = 124
+Public Const SQL_CONVERT_WLONGVARCHAR              = 125
+Public Const SQL_CONVERT_WVARCHAR                  = 126
+Public Const SQL_CREATE_ASSERTION                  = 127
+Public Const SQL_CREATE_CHARACTER_SET              = 128
+Public Const SQL_CREATE_COLLATION                  = 129
+Public Const SQL_CREATE_DOMAIN                     = 130
+Public Const SQL_CREATE_SCHEMA                     = 131
+Public Const SQL_CREATE_TABLE                      = 132
+Public Const SQL_CREATE_TRANSLATION                = 133
+Public Const SQL_CREATE_VIEW                       = 134
+Public Const SQL_DRIVER_HDESC                      = 135
+Public Const SQL_DROP_ASSERTION                    = 136
+Public Const SQL_DROP_CHARACTER_SET                = 137
+Public Const SQL_DROP_COLLATION                    = 138
+Public Const SQL_DROP_DOMAIN                       = 139
+Public Const SQL_DROP_SCHEMA                       = 140
+Public Const SQL_DROP_TABLE                        = 141
+Public Const SQL_DROP_TRANSLATION                  = 142
+Public Const SQL_DROP_VIEW                         = 143
+Public Const SQL_DYNAMIC_CURSOR_ATTRIBUTES1        = 144
+Public Const SQL_DYNAMIC_CURSOR_ATTRIBUTES2        = 145
+Public Const SQL_FORWARD_ONLY_CURSOR_ATTRIBUTES1   = 146
+Public Const SQL_FORWARD_ONLY_CURSOR_ATTRIBUTES2   = 147
+Public Const SQL_INDEX_KEYWORDS                    = 148
+Public Const SQL_INFO_SCHEMA_VIEWS                 = 149
+Public Const SQL_KEYSET_CURSOR_ATTRIBUTES1         = 150
+Public Const SQL_KEYSET_CURSOR_ATTRIBUTES2         = 151
+Public Const SQL_MAX_ASYNC_CONCURRENT_STATEMENTS   = 10022 /* new X/Open spec */
+Public Const SQL_ODBC_INTERFACE_CONFORMANCE        = 152
+Public Const SQL_PARAM_ARRAY_ROW_COUNTS            = 153
+Public Const SQL_PARAM_ARRAY_SELECTS               = 154
+Public Const SQL_SCHEMA_TERM                       = SQL_OWNER_TERM
+Public Const SQL_SCHEMA_USAGE                      = SQL_OWNER_USAGE
+Public Const SQL_SQL92_DATETIME_FUNCTIONS          = 155
+Public Const SQL_SQL92_FOREIGN_KEY_DELETE_RULE     = 156
+Public Const SQL_SQL92_FOREIGN_KEY_UPDATE_RULE     = 157
+Public Const SQL_SQL92_GRANT                       = 158
+Public Const SQL_SQL92_NUMERIC_VALUE_FUNCTIONS     = 159
+Public Const SQL_SQL92_PREDICATES                  = 160
+Public Const SQL_SQL92_RELATIONAL_JOIN_OPERATORS   = 161
+Public Const SQL_SQL92_REVOKE                      = 162
+Public Const SQL_SQL92_ROW_VALUE_CONSTRUCTOR       = 163
+Public Const SQL_SQL92_STRING_FUNCTIONS            = 164
+Public Const SQL_SQL92_VALUE_EXPRESSIONS           = 165
+Public Const SQL_STANDARD_CLI_CONFORMANCE          = 166
+Public Const SQL_STATIC_CURSOR_ATTRIBUTES1         = 167
+Public Const SQL_STATIC_CURSOR_ATTRIBUTES2         = 168
+
+Public Const SQL_AGGREGATE_FUNCTIONS               = 169
+Public Const SQL_DDL_INDEX                         = 170
+Public Const SQL_DM_VER                            = 171
+Public Const SQL_INSERT_STATEMENT                  = 172
+Public Const SQL_CONVERT_GUID                      = 173
+Public Const SQL_UNION_STATEMENT                   = SQL_UNION
+
+' #if (ODBCVER >= &H0380)
+' // Info Types
+Public Const SQL_ASYNC_DBC_FUNCTIONS               = 10023
+' #endif // ODBCVER >= &H0380
+
+Public Const SQL_DRIVER_AWARE_POOLING_SUPPORTED    = 10024
+
+' #if (ODBCVER >= &H0380)
+Public Const SQL_ASYNC_NOTIFICATION                = 10025
+
+' // Possible values for SQL_ASYNC_NOTIFICATION
+Public Const SQL_ASYNC_NOTIFICATION_NOT_CAPABLE    = &H00000000
+Public Const SQL_ASYNC_NOTIFICATION_CAPABLE        = &H00000001
+' #endif // ODBCVER >= &H0380
+
+' #endif  /* ODBCVER >= &H0300 */
+
+Public Const SQL_DTC_TRANSITION_COST               = 1750
+
+' /* SQL_ALTER_TABLE bitmasks */
+' #if (ODBCVER >= &H0300)
+' /* the following 5 bitmasks are defined in sql.h
+' *#define SQL_AT_ADD_COLUMN                    = &H00000001
+' *#define SQL_AT_DROP_COLUMN                   = &H00000002
+' *#define SQL_AT_ADD_CONSTRAINT                = &H00000008
+' */
+Public Const SQL_AT_ADD_COLUMN_SINGLE              = &H00000020
+Public Const SQL_AT_ADD_COLUMN_DEFAULT             = &H00000040
+Public Const SQL_AT_ADD_COLUMN_COLLATION           = &H00000080
+Public Const SQL_AT_SET_COLUMN_DEFAULT             = &H00000100
+Public Const SQL_AT_DROP_COLUMN_DEFAULT            = &H00000200
+Public Const SQL_AT_DROP_COLUMN_CASCADE            = &H00000400
+Public Const SQL_AT_DROP_COLUMN_RESTRICT           = &H00000800
+Public Const SQL_AT_ADD_TABLE_CONSTRAINT           = &H00001000
+Public Const SQL_AT_DROP_TABLE_CONSTRAINT_CASCADE  = &H00002000
+Public Const SQL_AT_DROP_TABLE_CONSTRAINT_RESTRICT = &H00004000
+Public Const SQL_AT_CONSTRAINT_NAME_DEFINITION     = &H00008000&
+Public Const SQL_AT_CONSTRAINT_INITIALLY_DEFERRED  = &H00010000
+Public Const SQL_AT_CONSTRAINT_INITIALLY_IMMEDIATE = &H00020000
+Public Const SQL_AT_CONSTRAINT_DEFERRABLE          = &H00040000
+Public Const SQL_AT_CONSTRAINT_NON_DEFERRABLE      = &H00080000
+' #endif  /* ODBCVER >= &H0300 */
+
+' /* SQL_CONVERT_*  return value bitmasks */
+
+Public Const SQL_CVT_CHAR                      = &H00000001
+Public Const SQL_CVT_NUMERIC                   = &H00000002
+Public Const SQL_CVT_DECIMAL                   = &H00000004
+Public Const SQL_CVT_INTEGER                   = &H00000008
+Public Const SQL_CVT_SMALLINT                  = &H00000010
+Public Const SQL_CVT_FLOAT                     = &H00000020
+Public Const SQL_CVT_REAL                      = &H00000040
+Public Const SQL_CVT_DOUBLE                    = &H00000080
+Public Const SQL_CVT_VARCHAR                   = &H00000100
+Public Const SQL_CVT_LONGVARCHAR               = &H00000200
+Public Const SQL_CVT_BINARY                    = &H00000400
+Public Const SQL_CVT_VARBINARY                 = &H00000800
+Public Const SQL_CVT_BIT                       = &H00001000
+Public Const SQL_CVT_TINYINT                   = &H00002000
+Public Const SQL_CVT_BIGINT                    = &H00004000
+Public Const SQL_CVT_DATE                      = &H00008000&
+Public Const SQL_CVT_TIME                      = &H00010000
+Public Const SQL_CVT_TIMESTAMP                 = &H00020000
+Public Const SQL_CVT_LONGVARBINARY             = &H00040000
+' #if (ODBCVER >= &H0300)
+Public Const SQL_CVT_INTERVAL_YEAR_MONTH       = &H00080000
+Public Const SQL_CVT_INTERVAL_DAY_TIME         = &H00100000
+Public Const SQL_CVT_WCHAR                     = &H00200000
+Public Const SQL_CVT_WLONGVARCHAR              = &H00400000
+Public Const SQL_CVT_WVARCHAR                  = &H00800000
+Public Const SQL_CVT_GUID                      = &H01000000
+
+' #endif  /* ODBCVER >= &H0300 */
+
+
+' /* SQL_CONVERT_FUNCTIONS functions */
+Public Const SQL_FN_CVT_CONVERT                = &H00000001
+' #if (ODBCVER >= &H0300)
+Public Const SQL_FN_CVT_CAST                   = &H00000002
+' #endif  /* ODBCVER >= &H0300 */
+
+
+' /* SQL_STRING_FUNCTIONS functions */
+
+Public Const SQL_FN_STR_CONCAT                 = &H00000001
+Public Const SQL_FN_STR_INSERT                 = &H00000002
+Public Const SQL_FN_STR_LEFT                   = &H00000004
+Public Const SQL_FN_STR_LTRIM                  = &H00000008
+Public Const SQL_FN_STR_LENGTH                 = &H00000010
+Public Const SQL_FN_STR_LOCATE                 = &H00000020
+Public Const SQL_FN_STR_LCASE                  = &H00000040
+Public Const SQL_FN_STR_REPEAT                 = &H00000080
+Public Const SQL_FN_STR_REPLACE                = &H00000100
+Public Const SQL_FN_STR_RIGHT                  = &H00000200
+Public Const SQL_FN_STR_RTRIM                  = &H00000400
+Public Const SQL_FN_STR_SUBSTRING              = &H00000800
+Public Const SQL_FN_STR_UCASE                  = &H00001000
+Public Const SQL_FN_STR_ASCII                  = &H00002000
+Public Const SQL_FN_STR_CHAR                   = &H00004000
+Public Const SQL_FN_STR_DIFFERENCE             = &H00008000&
+Public Const SQL_FN_STR_LOCATE_2               = &H00010000
+Public Const SQL_FN_STR_SOUNDEX                = &H00020000
+Public Const SQL_FN_STR_SPACE                  = &H00040000
+' #if (ODBCVER >= &H0300)
+Public Const SQL_FN_STR_BIT_LENGTH             = &H00080000
+Public Const SQL_FN_STR_CHAR_LENGTH            = &H00100000
+Public Const SQL_FN_STR_CHARACTER_LENGTH       = &H00200000
+Public Const SQL_FN_STR_OCTET_LENGTH           = &H00400000
+Public Const SQL_FN_STR_POSITION               = &H00800000
+' #endif  /* ODBCVER >= &H0300 */
+
+' /* SQL_SQL92_STRING_FUNCTIONS */
+' #if (ODBCVER >= &H0300)
+Public Const SQL_SSF_CONVERT                   = &H00000001
+Public Const SQL_SSF_LOWER                     = &H00000002
+Public Const SQL_SSF_UPPER                     = &H00000004
+Public Const SQL_SSF_SUBSTRING                 = &H00000008
+Public Const SQL_SSF_TRANSLATE                 = &H00000010
+Public Const SQL_SSF_TRIM_BOTH                 = &H00000020
+Public Const SQL_SSF_TRIM_LEADING              = &H00000040
+Public Const SQL_SSF_TRIM_TRAILING             = &H00000080
+' #endif /* ODBCVER >= &H0300 */
+
+' /* SQL_NUMERIC_FUNCTIONS functions */
+
+Public Const SQL_FN_NUM_ABS                    = &H00000001
+Public Const SQL_FN_NUM_ACOS                   = &H00000002
+Public Const SQL_FN_NUM_ASIN                   = &H00000004
+Public Const SQL_FN_NUM_ATAN                   = &H00000008
+Public Const SQL_FN_NUM_ATAN2                  = &H00000010
+Public Const SQL_FN_NUM_CEILING                = &H00000020
+Public Const SQL_FN_NUM_COS                    = &H00000040
+Public Const SQL_FN_NUM_COT                    = &H00000080
+Public Const SQL_FN_NUM_EXP                    = &H00000100
+Public Const SQL_FN_NUM_FLOOR                  = &H00000200
+Public Const SQL_FN_NUM_LOG                    = &H00000400
+Public Const SQL_FN_NUM_MOD                    = &H00000800
+Public Const SQL_FN_NUM_SIGN                   = &H00001000
+Public Const SQL_FN_NUM_SIN                    = &H00002000
+Public Const SQL_FN_NUM_SQRT                   = &H00004000
+Public Const SQL_FN_NUM_TAN                    = &H00008000&
+Public Const SQL_FN_NUM_PI                     = &H00010000
+Public Const SQL_FN_NUM_RAND                   = &H00020000
+Public Const SQL_FN_NUM_DEGREES                = &H00040000
+Public Const SQL_FN_NUM_LOG10                  = &H00080000
+Public Const SQL_FN_NUM_POWER                  = &H00100000
+Public Const SQL_FN_NUM_RADIANS                = &H00200000
+Public Const SQL_FN_NUM_ROUND                  = &H00400000
+Public Const SQL_FN_NUM_TRUNCATE               = &H00800000
+
+' /* SQL_SQL92_NUMERIC_VALUE_FUNCTIONS */
+' #if (ODBCVER >= &H0300)
+Public Const SQL_SNVF_BIT_LENGTH               = &H00000001
+Public Const SQL_SNVF_CHAR_LENGTH              = &H00000002
+Public Const SQL_SNVF_CHARACTER_LENGTH         = &H00000004
+Public Const SQL_SNVF_EXTRACT                  = &H00000008
+Public Const SQL_SNVF_OCTET_LENGTH             = &H00000010
+Public Const SQL_SNVF_POSITION                 = &H00000020
+' #endif  /* ODBCVER >= &H0300 */
+
+' /* SQL_TIMEDATE_FUNCTIONS functions */
+
+Public Const SQL_FN_TD_NOW                     = &H00000001
+Public Const SQL_FN_TD_CURDATE                 = &H00000002
+Public Const SQL_FN_TD_DAYOFMONTH              = &H00000004
+Public Const SQL_FN_TD_DAYOFWEEK               = &H00000008
+Public Const SQL_FN_TD_DAYOFYEAR               = &H00000010
+Public Const SQL_FN_TD_MONTH                   = &H00000020
+Public Const SQL_FN_TD_QUARTER                 = &H00000040
+Public Const SQL_FN_TD_WEEK                    = &H00000080
+Public Const SQL_FN_TD_YEAR                    = &H00000100
+Public Const SQL_FN_TD_CURTIME                 = &H00000200
+Public Const SQL_FN_TD_HOUR                    = &H00000400
+Public Const SQL_FN_TD_MINUTE                  = &H00000800
+Public Const SQL_FN_TD_SECOND                  = &H00001000
+Public Const SQL_FN_TD_TIMESTAMPADD            = &H00002000
+Public Const SQL_FN_TD_TIMESTAMPDIFF           = &H00004000
+Public Const SQL_FN_TD_DAYNAME                 = &H00008000&
+Public Const SQL_FN_TD_MONTHNAME               = &H00010000
+' #if (ODBCVER >= &H0300)
+Public Const SQL_FN_TD_CURRENT_DATE            = &H00020000
+Public Const SQL_FN_TD_CURRENT_TIME            = &H00040000
+Public Const SQL_FN_TD_CURRENT_TIMESTAMP       = &H00080000
+Public Const SQL_FN_TD_EXTRACT                 = &H00100000
+' #endif  /* ODBCVER >= &H0300 */
+
+' /* SQL_SQL92_DATETIME_FUNCTIONS */
+' #if (ODBCVER >= &H0300)
+Public Const SQL_SDF_CURRENT_DATE              = &H00000001
+Public Const SQL_SDF_CURRENT_TIME              = &H00000002
+Public Const SQL_SDF_CURRENT_TIMESTAMP         = &H00000004
+' #endif /* ODBCVER >= &H0300 */
+
+' /* SQL_SYSTEM_FUNCTIONS functions */
+
+Public Const SQL_FN_SYS_USERNAME               = &H00000001
+Public Const SQL_FN_SYS_DBNAME                 = &H00000002
+Public Const SQL_FN_SYS_IFNULL                 = &H00000004
+
+' /* SQL_TIMEDATE_ADD_INTERVALS and SQL_TIMEDATE_DIFF_INTERVALS functions */
+
+Public Const SQL_FN_TSI_FRAC_SECOND            = &H00000001
+Public Const SQL_FN_TSI_SECOND                 = &H00000002
+Public Const SQL_FN_TSI_MINUTE                 = &H00000004
+Public Const SQL_FN_TSI_HOUR                   = &H00000008
+Public Const SQL_FN_TSI_DAY                    = &H00000010
+Public Const SQL_FN_TSI_WEEK                   = &H00000020
+Public Const SQL_FN_TSI_MONTH                  = &H00000040
+Public Const SQL_FN_TSI_QUARTER                = &H00000080
+Public Const SQL_FN_TSI_YEAR                   = &H00000100
+
+' /* bitmasks for SQL_DYNAMIC_CURSOR_ATTRIBUTES1,
+ ' * SQL_FORWARD_ONLY_CURSOR_ATTRIBUTES1,
+ ' * SQL_KEYSET_CURSOR_ATTRIBUTES1, and SQL_STATIC_CURSOR_ATTRIBUTES1
+ ' */
+' #if (ODBCVER >= &H0300)
+' /* supported SQLFetchScroll FetchOrientation's */
+Public Const SQL_CA1_NEXT                      = &H00000001
+Public Const SQL_CA1_ABSOLUTE                  = &H00000002
+Public Const SQL_CA1_RELATIVE                  = &H00000004
+Public Const SQL_CA1_BOOKMARK                  = &H00000008
+
+' /* supported SQLSetPos LockType's */
+Public Const SQL_CA1_LOCK_NO_CHANGE            = &H00000040
+Public Const SQL_CA1_LOCK_EXCLUSIVE            = &H00000080
+Public Const SQL_CA1_LOCK_UNLOCK               = &H00000100
+
+' /* supported SQLSetPos Operations */
+Public Const SQL_CA1_POS_POSITION              = &H00000200
+Public Const SQL_CA1_POS_UPDATE                = &H00000400
+Public Const SQL_CA1_POS_DELETE                = &H00000800
+Public Const SQL_CA1_POS_REFRESH               = &H00001000
+
+' /* positioned updates and deletes */
+Public Const SQL_CA1_POSITIONED_UPDATE         = &H00002000
+Public Const SQL_CA1_POSITIONED_DELETE         = &H00004000
+Public Const SQL_CA1_SELECT_FOR_UPDATE         = &H00008000&
+
+' /* supported SQLBulkOperations operations */
+Public Const SQL_CA1_BULK_ADD                  = &H00010000
+Public Const SQL_CA1_BULK_UPDATE_BY_BOOKMARK   = &H00020000
+Public Const SQL_CA1_BULK_DELETE_BY_BOOKMARK   = &H00040000
+Public Const SQL_CA1_BULK_FETCH_BY_BOOKMARK    = &H00080000
+' #endif  /* ODBCVER >= &H0300 */
+
+' /* bitmasks for SQL_DYNAMIC_CURSOR_ATTRIBUTES2,
+ ' * SQL_FORWARD_ONLY_CURSOR_ATTRIBUTES2,
+ ' * SQL_KEYSET_CURSOR_ATTRIBUTES2, and SQL_STATIC_CURSOR_ATTRIBUTES2
+ ' */
+' #if (ODBCVER >= &H0300)
+' /* supported values for SQL_ATTR_SCROLL_CONCURRENCY */
+Public Const SQL_CA2_READ_ONLY_CONCURRENCY     = &H00000001
+Public Const SQL_CA2_LOCK_CONCURRENCY          = &H00000002
+Public Const SQL_CA2_OPT_ROWVER_CONCURRENCY    = &H00000004
+Public Const SQL_CA2_OPT_VALUES_CONCURRENCY    = &H00000008
+
+' /* sensitivity of the cursor to its own inserts, deletes, and updates */
+Public Const SQL_CA2_SENSITIVITY_ADDITIONS     = &H00000010
+Public Const SQL_CA2_SENSITIVITY_DELETIONS     = &H00000020
+Public Const SQL_CA2_SENSITIVITY_UPDATES       = &H00000040
+
+' /* semantics of SQL_ATTR_MAX_ROWS */
+Public Const SQL_CA2_MAX_ROWS_SELECT           = &H00000080
+Public Const SQL_CA2_MAX_ROWS_INSERT           = &H00000100
+Public Const SQL_CA2_MAX_ROWS_DELETE           = &H00000200
+Public Const SQL_CA2_MAX_ROWS_UPDATE           = &H00000400
+Public Const SQL_CA2_MAX_ROWS_CATALOG          = &H00000800
+Public Const SQL_CA2_MAX_ROWS_AFFECTS_ALL      = (SQL_CA2_MAX_ROWS_SELECT Or _
+                    SQL_CA2_MAX_ROWS_INSERT Or SQL_CA2_MAX_ROWS_DELETE Or _
+                    SQL_CA2_MAX_ROWS_UPDATE Or SQL_CA2_MAX_ROWS_CATALOG)
+
+' /* semantics of SQL_DIAG_CURSOR_ROW_COUNT */
+Public Const SQL_CA2_CRC_EXACT                 = &H00001000
+Public Const SQL_CA2_CRC_APPROXIMATE           = &H00002000
+
+' /* the kinds of positioned statements that can be simulated */
+Public Const SQL_CA2_SIMULATE_NON_UNIQUE       = &H00004000
+Public Const SQL_CA2_SIMULATE_TRY_UNIQUE       = &H00008000&
+Public Const SQL_CA2_SIMULATE_UNIQUE           = &H00010000
+' #endif  /* ODBCVER >= &H0300 */
+
+' /* SQL_ODBC_API_CONFORMANCE values */
+
+Public Const SQL_OAC_NONE                      = &H0000
+Public Const SQL_OAC_LEVEL1                    = &H0001
+Public Const SQL_OAC_LEVEL2                    = &H0002
+
+' /* SQL_ODBC_SAG_CLI_CONFORMANCE values */
+
+Public Const SQL_OSCC_NOT_COMPLIANT            = &H0000
+Public Const SQL_OSCC_COMPLIANT                = &H0001
+
+' /* SQL_ODBC_SQL_CONFORMANCE values */
+
+Public Const SQL_OSC_MINIMUM                   = &H0000
+Public Const SQL_OSC_CORE                      = &H0001
+Public Const SQL_OSC_EXTENDED                  = &H0002
+
+
+' /* SQL_CONCAT_NULL_BEHAVIOR values */
+
+Public Const SQL_CB_NULL                       = &H0000
+Public Const SQL_CB_NON_NULL                   = &H0001
+
+' /* SQL_SCROLL_OPTIONS masks */
+
+Public Const SQL_SO_FORWARD_ONLY               = &H00000001
+Public Const SQL_SO_KEYSET_DRIVEN              = &H00000002
+Public Const SQL_SO_DYNAMIC                    = &H00000004
+Public Const SQL_SO_MIXED                      = &H00000008
+Public Const SQL_SO_STATIC                     = &H00000010
+
+' /* SQL_FETCH_DIRECTION masks */
+
+' /* SQL_FETCH_RESUME is no longer supported
+Public Const SQL_FD_FETCH_RESUME               = &H00000040
+' */
+Public Const SQL_FD_FETCH_BOOKMARK             = &H00000080
+
+' /* SQL_TXN_ISOLATION_OPTION masks */
+' /* SQL_TXN_VERSIONING is no longer supported
+Public Const SQL_TXN_VERSIONING                = &H00000010
+' */
+
+' /* SQL_CORRELATION_NAME values */
+
+Public Const SQL_CN_NONE                       = &H0000
+Public Const SQL_CN_DIFFERENT                  = &H0001
+Public Const SQL_CN_ANY                        = &H0002
+
+' /* SQL_NON_NULLABLE_COLUMNS values */
+
+Public Const SQL_NNC_NULL                      = &H0000
+Public Const SQL_NNC_NON_NULL                  = &H0001
+
+' /* SQL_NULL_COLLATION values */
+
+Public Const SQL_NC_START                      = &H0002
+Public Const SQL_NC_END                        = &H0004
+
+' /* SQL_FILE_USAGE values */
+
+Public Const SQL_FILE_NOT_SUPPORTED            = &H0000
+Public Const SQL_FILE_TABLE                    = &H0001
+Public Const SQL_FILE_QUALIFIER                = &H0002
+Public Const SQL_FILE_CATALOG                  = SQL_FILE_QUALIFIER  ' ODBC 3.0
+
+
+' /* SQL_GETDATA_EXTENSIONS values */
+
+Public Const SQL_GD_BLOCK                      = &H00000004
+Public Const SQL_GD_BOUND                      = &H00000008
+' #if (ODBCVER >= &H0380)
+    Public Const SQL_GD_OUTPUT_PARAMS          = &H00000010
+' #endif
+
+' /* SQL_POSITIONED_STATEMENTS masks */
+
+Public Const SQL_PS_POSITIONED_DELETE          = &H00000001
+Public Const SQL_PS_POSITIONED_UPDATE          = &H00000002
+Public Const SQL_PS_SELECT_FOR_UPDATE          = &H00000004
+
+' /* SQL_GROUP_BY values */
+
+Public Const SQL_GB_NOT_SUPPORTED              = &H0000
+Public Const SQL_GB_GROUP_BY_EQUALS_SELECT     = &H0001
+Public Const SQL_GB_GROUP_BY_CONTAINS_SELECT   = &H0002
+Public Const SQL_GB_NO_RELATION                = &H0003
+' #if (ODBCVER >= &H0300)
+Public Const SQL_GB_COLLATE                    = &H0004
+
+' #endif  /* ODBCVER >= &H0300 */
+
+' /* SQL_OWNER_USAGE masks */
+
+Public Const SQL_OU_DML_STATEMENTS             = &H00000001
+Public Const SQL_OU_PROCEDURE_INVOCATION       = &H00000002
+Public Const SQL_OU_TABLE_DEFINITION           = &H00000004
+Public Const SQL_OU_INDEX_DEFINITION           = &H00000008
+Public Const SQL_OU_PRIVILEGE_DEFINITION       = &H00000010
+
+' /* SQL_SCHEMA_USAGE masks */
+' #if (ODBCVER >= &H0300)
+Public Const SQL_SU_DML_STATEMENTS          = SQL_OU_DML_STATEMENTS
+Public Const SQL_SU_PROCEDURE_INVOCATION    = SQL_OU_PROCEDURE_INVOCATION
+Public Const SQL_SU_TABLE_DEFINITION        = SQL_OU_TABLE_DEFINITION
+Public Const SQL_SU_INDEX_DEFINITION        = SQL_OU_INDEX_DEFINITION
+Public Const SQL_SU_PRIVILEGE_DEFINITION    = SQL_OU_PRIVILEGE_DEFINITION
+' #endif  /* ODBCVER >= &H0300 */
+
+' /* SQL_QUALIFIER_USAGE masks */
+
+Public Const SQL_QU_DML_STATEMENTS             = &H00000001
+Public Const SQL_QU_PROCEDURE_INVOCATION       = &H00000002
+Public Const SQL_QU_TABLE_DEFINITION           = &H00000004
+Public Const SQL_QU_INDEX_DEFINITION           = &H00000008
+Public Const SQL_QU_PRIVILEGE_DEFINITION       = &H00000010
+
+' #if (ODBCVER >= &H0300)
+' /* SQL_CATALOG_USAGE masks */
+Public Const SQL_CU_DML_STATEMENTS          = SQL_QU_DML_STATEMENTS
+Public Const SQL_CU_PROCEDURE_INVOCATION    = SQL_QU_PROCEDURE_INVOCATION
+Public Const SQL_CU_TABLE_DEFINITION        = SQL_QU_TABLE_DEFINITION
+Public Const SQL_CU_INDEX_DEFINITION        = SQL_QU_INDEX_DEFINITION
+Public Const SQL_CU_PRIVILEGE_DEFINITION    = SQL_QU_PRIVILEGE_DEFINITION
+' #endif  /* ODBCVER >= &H0300 */
+
+' /* SQL_SUBQUERIES masks */
+
+Public Const SQL_SQ_COMPARISON                 = &H00000001
+Public Const SQL_SQ_EXISTS                     = &H00000002
+Public Const SQL_SQ_IN                         = &H00000004
+Public Const SQL_SQ_QUANTIFIED                 = &H00000008
+Public Const SQL_SQ_CORRELATED_SUBQUERIES      = &H00000010
+
+' /* SQL_UNION masks */
+
+Public Const SQL_U_UNION                       = &H00000001
+Public Const SQL_U_UNION_ALL                   = &H00000002
+
+' /* SQL_BOOKMARK_PERSISTENCE values */
+
+Public Const SQL_BP_CLOSE                      = &H00000001
+Public Const SQL_BP_DELETE                     = &H00000002
+Public Const SQL_BP_DROP                       = &H00000004
+Public Const SQL_BP_TRANSACTION                = &H00000008
+Public Const SQL_BP_UPDATE                     = &H00000010
+Public Const SQL_BP_OTHER_HSTMT                = &H00000020
+Public Const SQL_BP_SCROLL                     = &H00000040
+
+' /* SQL_STATIC_SENSITIVITY values */
+
+Public Const SQL_SS_ADDITIONS                  = &H00000001
+Public Const SQL_SS_DELETIONS                  = &H00000002
+Public Const SQL_SS_UPDATES                    = &H00000004
+
+' /* SQL_VIEW values */
+Public Const SQL_CV_CREATE_VIEW                = &H00000001
+Public Const SQL_CV_CHECK_OPTION               = &H00000002
+Public Const SQL_CV_CASCADED                   = &H00000004
+Public Const SQL_CV_LOCAL                      = &H00000008
+
+' /* SQL_LOCK_TYPES masks */
+
+Public Const SQL_LCK_NO_CHANGE                 = &H00000001
+Public Const SQL_LCK_EXCLUSIVE                 = &H00000002
+Public Const SQL_LCK_UNLOCK                    = &H00000004
+
+' /* SQL_POS_OPERATIONS masks */
+
+Public Const SQL_POS_POSITION                  = &H00000001
+Public Const SQL_POS_REFRESH                   = &H00000002
+Public Const SQL_POS_UPDATE                    = &H00000004
+Public Const SQL_POS_DELETE                    = &H00000008
+Public Const SQL_POS_ADD                       = &H00000010
+
+' /* SQL_QUALIFIER_LOCATION values */
+
+Public Const SQL_QL_START                      = &H0001
+Public Const SQL_QL_END                        = &H0002
+
+' /* Here start return values for ODBC 3.0 SQLGetInfo */
+
+' #if (ODBCVER >= &H0300)
+' /* SQL_AGGREGATE_FUNCTIONS bitmasks */
+Public Const SQL_AF_AVG                    = &H00000001
+Public Const SQL_AF_COUNT                  = &H00000002
+Public Const SQL_AF_MAX                    = &H00000004
+Public Const SQL_AF_MIN                    = &H00000008
+Public Const SQL_AF_SUM                    = &H00000010
+Public Const SQL_AF_DISTINCT               = &H00000020
+Public Const SQL_AF_ALL                    = &H00000040
+
+' /* SQL_SQL_CONFORMANCE bit masks */
+Public Const SQL_SC_SQL92_ENTRY            = &H00000001
+Public Const SQL_SC_FIPS127_2_TRANSITIONAL = &H00000002
+Public Const SQL_SC_SQL92_INTERMEDIATE     = &H00000004
+Public Const SQL_SC_SQL92_FULL             = &H00000008
+
+' /* SQL_DATETIME_LITERALS masks */
+Public Const SQL_DL_SQL92_DATE                     = &H00000001
+Public Const SQL_DL_SQL92_TIME                     = &H00000002
+Public Const SQL_DL_SQL92_TIMESTAMP                = &H00000004
+Public Const SQL_DL_SQL92_INTERVAL_YEAR            = &H00000008
+Public Const SQL_DL_SQL92_INTERVAL_MONTH           = &H00000010
+Public Const SQL_DL_SQL92_INTERVAL_DAY             = &H00000020
+Public Const SQL_DL_SQL92_INTERVAL_HOUR            = &H00000040
+Public Const SQL_DL_SQL92_INTERVAL_MINUTE          = &H00000080
+Public Const SQL_DL_SQL92_INTERVAL_SECOND          = &H00000100
+Public Const SQL_DL_SQL92_INTERVAL_YEAR_TO_MONTH   = &H00000200
+Public Const SQL_DL_SQL92_INTERVAL_DAY_TO_HOUR     = &H00000400
+Public Const SQL_DL_SQL92_INTERVAL_DAY_TO_MINUTE   = &H00000800
+Public Const SQL_DL_SQL92_INTERVAL_DAY_TO_SECOND   = &H00001000
+Public Const SQL_DL_SQL92_INTERVAL_HOUR_TO_MINUTE  = &H00002000
+Public Const SQL_DL_SQL92_INTERVAL_HOUR_TO_SECOND  = &H00004000
+Public Const SQL_DL_SQL92_INTERVAL_MINUTE_TO_SECOND= &H00008000&
+
+' /* SQL_CATALOG_LOCATION values */
+Public Const SQL_CL_START                      = SQL_QL_START
+Public Const SQL_CL_END                        = SQL_QL_END
+
+' /* values for SQL_BATCH_ROW_COUNT */
+Public Const SQL_BRC_PROCEDURES        = &H0000001
+Public Const SQL_BRC_EXPLICIT          = &H0000002
+Public Const SQL_BRC_ROLLED_UP         = &H0000004
+
+' /* bitmasks for SQL_BATCH_SUPPORT */
+Public Const SQL_BS_SELECT_EXPLICIT            = &H00000001
+Public Const SQL_BS_ROW_COUNT_EXPLICIT         = &H00000002
+Public Const SQL_BS_SELECT_PROC                = &H00000004
+Public Const SQL_BS_ROW_COUNT_PROC             = &H00000008
+
+' /* Values for SQL_PARAM_ARRAY_ROW_COUNTS getinfo */
+Public Const SQL_PARC_BATCH    = 1
+Public Const SQL_PARC_NO_BATCH = 2
+
+' /* values for SQL_PARAM_ARRAY_SELECTS */
+Public Const SQL_PAS_BATCH             = 1
+Public Const SQL_PAS_NO_BATCH          = 2
+Public Const SQL_PAS_NO_SELECT         = 3
+
+' /* Bitmasks for SQL_INDEX_KEYWORDS */
+Public Const SQL_IK_NONE                       = &H00000000
+Public Const SQL_IK_ASC                        = &H00000001
+Public Const SQL_IK_DESC                       = &H00000002
+Public Const SQL_IK_ALL                        = (SQL_IK_ASC Or SQL_IK_DESC)
+
+' /* Bitmasks for SQL_INFO_SCHEMA_VIEWS */
+
+Public Const SQL_ISV_ASSERTIONS                = &H00000001
+Public Const SQL_ISV_CHARACTER_SETS            = &H00000002
+Public Const SQL_ISV_CHECK_CONSTRAINTS         = &H00000004
+Public Const SQL_ISV_COLLATIONS                = &H00000008
+Public Const SQL_ISV_COLUMN_DOMAIN_USAGE       = &H00000010
+Public Const SQL_ISV_COLUMN_PRIVILEGES         = &H00000020
+Public Const SQL_ISV_COLUMNS                   = &H00000040
+Public Const SQL_ISV_CONSTRAINT_COLUMN_USAGE   = &H00000080
+Public Const SQL_ISV_CONSTRAINT_TABLE_USAGE    = &H00000100
+Public Const SQL_ISV_DOMAIN_CONSTRAINTS        = &H00000200
+Public Const SQL_ISV_DOMAINS                   = &H00000400
+Public Const SQL_ISV_KEY_COLUMN_USAGE          = &H00000800
+Public Const SQL_ISV_REFERENTIAL_CONSTRAINTS   = &H00001000
+Public Const SQL_ISV_SCHEMATA                  = &H00002000
+Public Const SQL_ISV_SQL_LANGUAGES             = &H00004000
+Public Const SQL_ISV_TABLE_CONSTRAINTS         = &H00008000&
+Public Const SQL_ISV_TABLE_PRIVILEGES          = &H00010000
+Public Const SQL_ISV_TABLES                    = &H00020000
+Public Const SQL_ISV_TRANSLATIONS              = &H00040000
+Public Const SQL_ISV_USAGE_PRIVILEGES          = &H00080000
+Public Const SQL_ISV_VIEW_COLUMN_USAGE         = &H00100000
+Public Const SQL_ISV_VIEW_TABLE_USAGE          = &H00200000
+Public Const SQL_ISV_VIEWS                     = &H00400000
+
+' /* Bitmasks for SQL_ASYNC_MODE */
+
+' Public Const SQL_AM_NONE       = 0
+' Public Const SQL_AM_CONNECTION = 1
+' Public Const SQL_AM_STATEMENT  = 2
+
+' /* Bitmasks for SQL_ALTER_DOMAIN */
+Public Const SQL_AD_CONSTRAINT_NAME_DEFINITION         = &H00000001
+Public Const SQL_AD_ADD_DOMAIN_CONSTRAINT              = &H00000002
+Public Const SQL_AD_DROP_DOMAIN_CONSTRAINT             = &H00000004
+Public Const SQL_AD_ADD_DOMAIN_DEFAULT                 = &H00000008
+Public Const SQL_AD_DROP_DOMAIN_DEFAULT                = &H00000010
+Public Const SQL_AD_ADD_CONSTRAINT_INITIALLY_DEFERRED  = &H00000020
+Public Const SQL_AD_ADD_CONSTRAINT_INITIALLY_IMMEDIATE = &H00000040
+Public Const SQL_AD_ADD_CONSTRAINT_DEFERRABLE          = &H00000080
+Public Const SQL_AD_ADD_CONSTRAINT_NON_DEFERRABLE      = &H00000100
+
+
+' /* SQL_CREATE_SCHEMA bitmasks */
+Public Const SQL_CS_CREATE_SCHEMA              = &H00000001
+Public Const SQL_CS_AUTHORIZATION              = &H00000002
+Public Const SQL_CS_DEFAULT_CHARACTER_SET      = &H00000004
+
+' /* SQL_CREATE_TRANSLATION bitmasks */
+Public Const SQL_CTR_CREATE_TRANSLATION        = &H00000001
+
+' /* SQL_CREATE_ASSERTION bitmasks */
+Public Const SQL_CA_CREATE_ASSERTION               = &H00000001
+Public Const SQL_CA_CONSTRAINT_INITIALLY_DEFERRED  = &H00000010
+Public Const SQL_CA_CONSTRAINT_INITIALLY_IMMEDIATE = &H00000020
+Public Const SQL_CA_CONSTRAINT_DEFERRABLE          = &H00000040
+Public Const SQL_CA_CONSTRAINT_NON_DEFERRABLE      = &H00000080
+
+' /* SQL_CREATE_CHARACTER_SET bitmasks */
+Public Const SQL_CCS_CREATE_CHARACTER_SET      = &H00000001
+Public Const SQL_CCS_COLLATE_CLAUSE            = &H00000002
+Public Const SQL_CCS_LIMITED_COLLATION         = &H00000004
+
+' /* SQL_CREATE_COLLATION bitmasks */
+Public Const SQL_CCOL_CREATE_COLLATION         = &H00000001
+
+' /* SQL_CREATE_DOMAIN bitmasks */
+Public Const SQL_CDO_CREATE_DOMAIN                 = &H00000001
+Public Const SQL_CDO_DEFAULT                       = &H00000002
+Public Const SQL_CDO_CONSTRAINT                    = &H00000004
+Public Const SQL_CDO_COLLATION                     = &H00000008
+Public Const SQL_CDO_CONSTRAINT_NAME_DEFINITION    = &H00000010
+Public Const SQL_CDO_CONSTRAINT_INITIALLY_DEFERRED = &H00000020
+Public Const SQL_CDO_CONSTRAINT_INITIALLY_IMMEDIATE= &H00000040
+Public Const SQL_CDO_CONSTRAINT_DEFERRABLE         = &H00000080
+Public Const SQL_CDO_CONSTRAINT_NON_DEFERRABLE     = &H00000100
+
+' /* SQL_CREATE_TABLE bitmasks */
+Public Const SQL_CT_CREATE_TABLE                   = &H00000001
+Public Const SQL_CT_COMMIT_PRESERVE                = &H00000002
+Public Const SQL_CT_COMMIT_DELETE                  = &H00000004
+Public Const SQL_CT_GLOBAL_TEMPORARY               = &H00000008
+Public Const SQL_CT_LOCAL_TEMPORARY                = &H00000010
+Public Const SQL_CT_CONSTRAINT_INITIALLY_DEFERRED  = &H00000020
+Public Const SQL_CT_CONSTRAINT_INITIALLY_IMMEDIATE = &H00000040
+Public Const SQL_CT_CONSTRAINT_DEFERRABLE          = &H00000080
+Public Const SQL_CT_CONSTRAINT_NON_DEFERRABLE      = &H00000100
+Public Const SQL_CT_COLUMN_CONSTRAINT              = &H00000200
+Public Const SQL_CT_COLUMN_DEFAULT                 = &H00000400
+Public Const SQL_CT_COLUMN_COLLATION               = &H00000800
+Public Const SQL_CT_TABLE_CONSTRAINT               = &H00001000
+Public Const SQL_CT_CONSTRAINT_NAME_DEFINITION     = &H00002000
+
+' /* SQL_DDL_INDEX bitmasks */
+Public Const SQL_DI_CREATE_INDEX                   = &H00000001
+Public Const SQL_DI_DROP_INDEX                     = &H00000002
+
+' /* SQL_DROP_COLLATION bitmasks */
+Public Const SQL_DC_DROP_COLLATION                 = &H00000001
+
+' /* SQL_DROP_DOMAIN bitmasks */
+Public Const SQL_DD_DROP_DOMAIN                    = &H00000001
+Public Const SQL_DD_RESTRICT                       = &H00000002
+Public Const SQL_DD_CASCADE                        = &H00000004
+
+' /* SQL_DROP_SCHEMA bitmasks */
+Public Const SQL_DS_DROP_SCHEMA                    = &H00000001
+Public Const SQL_DS_RESTRICT                       = &H00000002
+Public Const SQL_DS_CASCADE                        = &H00000004
+
+' /* SQL_DROP_CHARACTER_SET bitmasks */
+Public Const SQL_DCS_DROP_CHARACTER_SET            = &H00000001
+
+' /* SQL_DROP_ASSERTION bitmasks */
+Public Const SQL_DA_DROP_ASSERTION                 = &H00000001
+
+' /* SQL_DROP_TABLE bitmasks */
+Public Const SQL_DT_DROP_TABLE                     = &H00000001
+Public Const SQL_DT_RESTRICT                       = &H00000002
+Public Const SQL_DT_CASCADE                        = &H00000004
+
+' /* SQL_DROP_TRANSLATION bitmasks */
+Public Const SQL_DTR_DROP_TRANSLATION              = &H00000001
+
+' /* SQL_DROP_VIEW bitmasks */
+Public Const SQL_DV_DROP_VIEW                      = &H00000001
+Public Const SQL_DV_RESTRICT                       = &H00000002
+Public Const SQL_DV_CASCADE                        = &H00000004
+
+' /* SQL_INSERT_STATEMENT bitmasks */
+Public Const SQL_IS_INSERT_LITERALS                = &H00000001
+Public Const SQL_IS_INSERT_SEARCHED                = &H00000002
+Public Const SQL_IS_SELECT_INTO                    = &H00000004
+
+' /* SQL_ODBC_INTERFACE_CONFORMANCE values */
+Public Const SQL_OIC_CORE                          = 1
+Public Const SQL_OIC_LEVEL1                        = 2
+Public Const SQL_OIC_LEVEL2                        = 3
+
+' /* SQL_SQL92_FOREIGN_KEY_DELETE_RULE bitmasks */
+Public Const SQL_SFKD_CASCADE                      = &H00000001
+Public Const SQL_SFKD_NO_ACTION                    = &H00000002
+Public Const SQL_SFKD_SET_DEFAULT                  = &H00000004
+Public Const SQL_SFKD_SET_NULL                     = &H00000008
+
+' /* SQL_SQL92_FOREIGN_KEY_UPDATE_RULE bitmasks */
+Public Const SQL_SFKU_CASCADE                      = &H00000001
+Public Const SQL_SFKU_NO_ACTION                    = &H00000002
+Public Const SQL_SFKU_SET_DEFAULT                  = &H00000004
+Public Const SQL_SFKU_SET_NULL                     = &H00000008
+
+' /* SQL_SQL92_GRANT  bitmasks */
+Public Const SQL_SG_USAGE_ON_DOMAIN                = &H00000001
+Public Const SQL_SG_USAGE_ON_CHARACTER_SET         = &H00000002
+Public Const SQL_SG_USAGE_ON_COLLATION             = &H00000004
+Public Const SQL_SG_USAGE_ON_TRANSLATION           = &H00000008
+Public Const SQL_SG_WITH_GRANT_OPTION              = &H00000010
+Public Const SQL_SG_DELETE_TABLE                   = &H00000020
+Public Const SQL_SG_INSERT_TABLE                   = &H00000040
+Public Const SQL_SG_INSERT_COLUMN                  = &H00000080
+Public Const SQL_SG_REFERENCES_TABLE               = &H00000100
+Public Const SQL_SG_REFERENCES_COLUMN              = &H00000200
+Public Const SQL_SG_SELECT_TABLE                   = &H00000400
+Public Const SQL_SG_UPDATE_TABLE                   = &H00000800
+Public Const SQL_SG_UPDATE_COLUMN                  = &H00001000
+
+' /* SQL_SQL92_PREDICATES bitmasks */
+Public Const SQL_SP_EXISTS                         = &H00000001
+Public Const SQL_SP_ISNOTNULL                      = &H00000002
+Public Const SQL_SP_ISNULL                         = &H00000004
+Public Const SQL_SP_MATCH_FULL                     = &H00000008
+Public Const SQL_SP_MATCH_PARTIAL                  = &H00000010
+Public Const SQL_SP_MATCH_UNIQUE_FULL              = &H00000020
+Public Const SQL_SP_MATCH_UNIQUE_PARTIAL           = &H00000040
+Public Const SQL_SP_OVERLAPS                       = &H00000080
+Public Const SQL_SP_UNIQUE                         = &H00000100
+Public Const SQL_SP_LIKE                           = &H00000200
+Public Const SQL_SP_IN                             = &H00000400
+Public Const SQL_SP_BETWEEN                        = &H00000800
+Public Const SQL_SP_COMPARISON                     = &H00001000
+Public Const SQL_SP_QUANTIFIED_COMPARISON          = &H00002000
+
+' /* SQL_SQL92_RELATIONAL_JOIN_OPERATORS bitmasks */
+Public Const SQL_SRJO_CORRESPONDING_CLAUSE         = &H00000001
+Public Const SQL_SRJO_CROSS_JOIN                   = &H00000002
+Public Const SQL_SRJO_EXCEPT_JOIN                  = &H00000004
+Public Const SQL_SRJO_FULL_OUTER_JOIN              = &H00000008
+Public Const SQL_SRJO_INNER_JOIN                   = &H00000010
+Public Const SQL_SRJO_INTERSECT_JOIN               = &H00000020
+Public Const SQL_SRJO_LEFT_OUTER_JOIN              = &H00000040
+Public Const SQL_SRJO_NATURAL_JOIN                 = &H00000080
+Public Const SQL_SRJO_RIGHT_OUTER_JOIN             = &H00000100
+Public Const SQL_SRJO_UNION_JOIN                   = &H00000200
+
+' /* SQL_SQL92_REVOKE bitmasks */
+Public Const SQL_SR_USAGE_ON_DOMAIN                = &H00000001
+Public Const SQL_SR_USAGE_ON_CHARACTER_SET         = &H00000002
+Public Const SQL_SR_USAGE_ON_COLLATION             = &H00000004
+Public Const SQL_SR_USAGE_ON_TRANSLATION           = &H00000008
+Public Const SQL_SR_GRANT_OPTION_FOR               = &H00000010
+Public Const SQL_SR_CASCADE                        = &H00000020
+Public Const SQL_SR_RESTRICT                       = &H00000040
+Public Const SQL_SR_DELETE_TABLE                   = &H00000080
+Public Const SQL_SR_INSERT_TABLE                   = &H00000100
+Public Const SQL_SR_INSERT_COLUMN                  = &H00000200
+Public Const SQL_SR_REFERENCES_TABLE               = &H00000400
+Public Const SQL_SR_REFERENCES_COLUMN              = &H00000800
+Public Const SQL_SR_SELECT_TABLE                   = &H00001000
+Public Const SQL_SR_UPDATE_TABLE                   = &H00002000
+Public Const SQL_SR_UPDATE_COLUMN                  = &H00004000
+
+' /* SQL_SQL92_ROW_VALUE_CONSTRUCTOR bitmasks */
+Public Const SQL_SRVC_VALUE_EXPRESSION             = &H00000001
+Public Const SQL_SRVC_NULL                         = &H00000002
+Public Const SQL_SRVC_DEFAULT                      = &H00000004
+Public Const SQL_SRVC_ROW_SUBQUERY                 = &H00000008
+
+' /* SQL_SQL92_VALUE_EXPRESSIONS bitmasks */
+Public Const SQL_SVE_CASE                          = &H00000001
+Public Const SQL_SVE_CAST                          = &H00000002
+Public Const SQL_SVE_COALESCE                      = &H00000004
+Public Const SQL_SVE_NULLIF                        = &H00000008
+
+' /* SQL_STANDARD_CLI_CONFORMANCE bitmasks */
+Public Const SQL_SCC_XOPEN_CLI_VERSION1            = &H00000001
+Public Const SQL_SCC_ISO92_CLI                     = &H00000002
+
+' /* SQL_UNION_STATEMENT bitmasks */
+Public Const SQL_US_UNION                          = SQL_U_UNION
+Public Const SQL_US_UNION_ALL                      = SQL_U_UNION_ALL
+
+' /* values for SQL_DRIVER_AWARE_POOLING_SUPPORTED */
+Public Const SQL_DRIVER_AWARE_POOLING_NOT_CAPABLE  = &H00000000
+Public Const SQL_DRIVER_AWARE_POOLING_CAPABLE      = &H00000001
+' #endif  /* ODBCVER >= &H0300 */
+
+' /* SQL_DTC_TRANSITION_COST bitmasks */
+Public Const SQL_DTC_ENLIST_EXPENSIVE              = &H00000001
+Public Const SQL_DTC_UNENLIST_EXPENSIVE            = &H00000002
+
+' #if (ODBCVER >= &H0380)
+' // possible values for SQL_ASYNC_DBC_FUNCTIONS 
+Public Const SQL_ASYNC_DBC_NOT_CAPABLE             = &H00000000
+Public Const SQL_ASYNC_DBC_CAPABLE                 = &H00000001
+' #endif // ODBCVER >= &H0380
+
+' /* additional SQLDataSources fetch directions */
+' #if (ODBCVER >= &H0300)
+Public Const SQL_FETCH_FIRST_USER              = 31
+Public Const SQL_FETCH_FIRST_SYSTEM            = 32
+' #endif  /* ODBCVER >= &H0300 */
+
+
+' /* Defines for SQLSetPos */
+Public Const SQL_ENTIRE_ROWSET          = 0
+
+' /* Operations in SQLSetPos */
+Public Const SQL_POSITION               = 0 /*    = 1.0 FALSE */
+Public Const SQL_REFRESH                = 1 /*    = 1.0 TRUE */
+Public Const SQL_UPDATE                 = 2
+Public Const SQL_DELETE                 = 3
+
+' /* Operations in SQLBulkOperations */
+Public Const SQL_ADD                    = 4
+Public Const SQL_SETPOS_MAX_OPTION_VALUE        = SQL_ADD
+' #if (ODBCVER >= &H0300)
+Public Const SQL_UPDATE_BY_BOOKMARK     = 5
+Public Const SQL_DELETE_BY_BOOKMARK     = 6
+Public Const SQL_FETCH_BY_BOOKMARK      = 7
+
+' #endif /*  ODBCVER >= &H0300 */
+
+' /* Lock options in SQLSetPos */
+Public Const SQL_LOCK_NO_CHANGE         = 0 /*    = 1.0 FALSE */
+Public Const SQL_LOCK_EXCLUSIVE         = 1 /*    = 1.0 TRUE */
+Public Const SQL_LOCK_UNLOCK            = 2
+
+Public Const SQL_SETPOS_MAX_LOCK_VALUE      = SQL_LOCK_UNLOCK
+/* Macros for SQLSetPos */
+Public Function SQL_POSITION_TO(hstmt As SQLHSTMT, irow As SQLUSMALLINT) As SQLRETURN
+    Return SQLSetPos(hstmt, irow, SQL_POSITION, SQL_LOCK_NO_CHANGE)
+End Function
+
+Public Function SQL_LOCK_RECORD(hstmt As SQLHSTMT, irow As SQLUSMALLINT, fLock As SQLUSMALLINT) As SQLRETURN
+    Return SQLSetPos(hstmt, irow, SQL_POSITION, fLock)
+End Function
+
+Public Function SQL_REFRESH_RECORD(hstmt As SQLHSTMT, irow As SQLUSMALLINT, fLock As SQLUSMALLINT) As SQLRETURN
+    Return SQLSetPos(hstmt, irow, SQL_REFRESH, fLock)
+End Function
+
+Public Function SQL_UPDATE_RECORD(hstmt As SQLHSTMT, irow As SQLUSMALLINT) As SQLRETURN
+    Return SQLSetPos(hstmt, irow, SQL_UPDATE, SQL_LOCK_NO_CHANGE)
+End Function
+
+Public Function SQL_DELETE_RECORD(hstmt As SQLHSTMT, irow As SQLUSMALLINT) As SQLRETURN
+    Return SQLSetPos(hstmt, irow, SQL_DELETE, SQL_LOCK_NO_CHANGE)
+End Function
+
+Public Function SQL_ADD_RECORD(hstmt As SQLHSTMT, irow As SQLUSMALLINT) As SQLRETURN
+    Return SQLSetPos(hstmt, irow, SQL_ADD, SQL_LOCK_NO_CHANGE)
+End Function
+
+' /* Column types and scopes in SQLSpecialColumns.  */
+Public Const SQL_BEST_ROWID                = 1
+Public Const SQL_ROWVER                    = 2
+
+' /* Defines for SQLSpecialColumns (returned in the result set)
+   ' SQL_PC_UNKNOWN and SQL_PC_PSEUDO are defined in sql.h */
+Public Const SQL_PC_NOT_PSEUDO             = 1
+
+' /* Defines for SQLStatistics */
+Public Const SQL_QUICK                     = 0
+Public Const SQL_ENSURE                    = 1
+
+' /* Defines for SQLStatistics (returned in the result set)
+   ' SQL_INDEX_CLUSTERED, SQL_INDEX_HASHED, and SQL_INDEX_OTHER are
+   ' defined in sql.h */
+Public Const SQL_TABLE_STAT                = 0
+
+
+' /* Defines for SQLTables */
+' #if (ODBCVER >= &H0300)
+Public Const SQL_ALL_CATALOGS               = "%"
+Public Const SQL_ALL_SCHEMAS                = "%"
+Public Const SQL_ALL_TABLE_TYPES            = "%"
+' #endif  /* ODBCVER >= &H0300 */
+
+' /* Options for SQLDriverConnect */
+Public Const SQL_DRIVER_NOPROMPT           = 0
+Public Const SQL_DRIVER_COMPLETE           = 1
+Public Const SQL_DRIVER_PROMPT             = 2
+Public Const SQL_DRIVER_COMPLETE_REQUIRED  = 3
+
+' /* Level 2 Functions                             */
+
+' /* SQLExtendedFetch "fFetchType" values */
+Public Const SQL_FETCH_BOOKMARK             = 8
+
+' /* SQLExtendedFetch "rgfRowStatus" element values */
+Public Const SQL_ROW_SUCCESS                = 0
+Public Const SQL_ROW_DELETED                = 1
+Public Const SQL_ROW_UPDATED                = 2
+Public Const SQL_ROW_NOROW                  = 3
+Public Const SQL_ROW_ADDED                  = 4
+Public Const SQL_ROW_ERROR                  = 5
+' #if (ODBCVER >= &H0300)
+Public Const SQL_ROW_SUCCESS_WITH_INFO      = 6
+Public Const SQL_ROW_PROCEED                = 0
+Public Const SQL_ROW_IGNORE                 = 1
+' #endif
+
+' /* value for SQL_DESC_ARRAY_STATUS_PTR */
+' #if (ODBCVER >= &H0300)
+Public Const SQL_PARAM_SUCCESS             = 0
+Public Const SQL_PARAM_SUCCESS_WITH_INFO   = 6
+Public Const SQL_PARAM_ERROR               = 5
+Public Const SQL_PARAM_UNUSED              = 7
+Public Const SQL_PARAM_DIAG_UNAVAILABLE    = 1
+
+Public Const SQL_PARAM_PROCEED             = 0
+Public Const SQL_PARAM_IGNORE              = 1
+' #endif  /* ODBCVER >= &H0300 */
+
+' /* Defines for SQLForeignKeys (UPDATE_RULE and DELETE_RULE) */
+Public Const SQL_CASCADE                    = 0
+Public Const SQL_RESTRICT                   = 1
+Public Const SQL_SET_NULL                   = 2
+' #if (ODBCVER >= &H0250)
+Public Const SQL_NO_ACTION          = 3
+Public Const SQL_SET_DEFAULT        = 4
+' #endif  /* ODBCVER >= &H0250 */
+
+' #if (ODBCVER >= &H0300)
+' /* Note that the following are in a different column of SQLForeignKeys than */
+' /* the previous #defines.   These are for DEFERRABILITY.                    */
+
+Public Const SQL_INITIALLY_DEFERRED        = 5
+Public Const SQL_INITIALLY_IMMEDIATE       = 6
+Public Const SQL_NOT_DEFERRABLE        = 7
+
+' #endif  /* ODBCVER >= &H0300 */
+
+' /* Defines for SQLBindParameter and
+                           ' SQLProcedureColumns (returned in the result set) */
+Public Const SQL_PARAM_TYPE_UNKNOWN            = 0
+Public Const SQL_PARAM_INPUT                   = 1
+Public Const SQL_PARAM_INPUT_OUTPUT            = 2
+Public Const SQL_RESULT_COL                    = 3
+Public Const SQL_PARAM_OUTPUT                  = 4
+Public Const SQL_RETURN_VALUE                  = 5
+' #if (ODBCVER >= &H0380)
+    Public Const SQL_PARAM_INPUT_OUTPUT_STREAM = 8
+    Public Const SQL_PARAM_OUTPUT_STREAM       = 16
+' #endif
+
+' /* Defines for SQLProcedures (returned in the result set) */
+Public Const SQL_PT_UNKNOWN                 = 0
+Public Const SQL_PT_PROCEDURE               = 1
+Public Const SQL_PT_FUNCTION                = 2
+
+' #ifndef RC_INVOKED
+
+' /*      This define is too large for RC */
+Public Const SQL_ODBC_KEYWORDS = "ABSOLUTE,ACTION,ADA,ADD,ALL,ALLOCATE,ALTER,AND,ANY,ARE,AS," & _
+    "ASC,ASSERTION,AT,AUTHORIZATION,AVG," & _
+    "BEGIN,BETWEEN,BIT,BIT_LENGTH,BOTH,BY,CASCADE,CASCADED,CASE,CAST,CATALOG," & _
+    "CHAR,CHAR_LENGTH,CHARACTER,CHARACTER_LENGTH,CHECK,CLOSE,COALESCE," & _
+    "COLLATE,COLLATION,COLUMN,COMMIT,CONNECT,CONNECTION,CONSTRAINT," & _
+    "CONSTRAINTS,CONTINUE,CONVERT,CORRESPONDING,COUNT,CREATE,CROSS,CURRENT," & _
+    "CURRENT_DATE,CURRENT_TIME,CURRENT_TIMESTAMP,CURRENT_USER,CURSOR," & _
+    "DATE,DAY,DEALLOCATE,DEC,DECIMAL,DECLARE,DEFAULT,DEFERRABLE," & _
+    "DEFERRED,DELETE,DESC,DESCRIBE,DESCRIPTOR,DIAGNOSTICS,DISCONNECT," & _
+    "DISTINCT,DOMAIN,DOUBLE,DROP," & _
+    "ELSE,END,END-EXEC,ESCAPE,EXCEPT,EXCEPTION,EXEC,EXECUTE," & _
+    "EXISTS,EXTERNAL,EXTRACT," & _
+    "FALSE,FETCH,FIRST,FLOAT,FOR,FOREIGN,FORTRAN,FOUND,FROM,FULL," & _
+    "GET,GLOBAL,GO,GOTO,GRANT,GROUP,HAVING,HOUR," & _
+    "IDENTITY,IMMEDIATE,IN,INCLUDE,INDEX,INDICATOR,INITIALLY,INNER," & _
+    "INPUT,INSENSITIVE,INSERT,INT,INTEGER,INTERSECT,INTERVAL,INTO,IS,ISOLATION," & _
+    "JOIN,KEY,LANGUAGE,LAST,LEADING,LEFT,LEVEL,LIKE,LOCAL,LOWER," & _
+    "MATCH,MAX,MIN,MINUTE,MODULE,MONTH," & _
+    "NAMES,NATIONAL,NATURAL,NCHAR,NEXT,NO,NONE,NOT,NULL,NULLIF,NUMERIC," & _
+    "OCTET_LENGTH,OF,ON,ONLY,OPEN,OPTION,OR,ORDER,OUTER,OUTPUT,OVERLAPS," & _
+    "PAD,PARTIAL,PASCAL,PLI,POSITION,PRECISION,PREPARE,PRESERVE," & _
+    "PRIMARY,PRIOR,PRIVILEGES,PROCEDURE,PUBLIC," & _
+    "READ,REAL,REFERENCES,RELATIVE,RESTRICT,REVOKE,RIGHT,ROLLBACK,ROWS" & _
+    "SCHEMA,SCROLL,SECOND,SECTION,SELECT,SESSION,SESSION_USER,SET,SIZE," & _
+    "SMALLINT,SOME,SPACE,SQL,SQLCA,SQLCODE,SQLERROR,SQLSTATE,SQLWARNING," & _
+    "SUBSTRING,SUM,SYSTEM_USER," & _
+    "TABLE,TEMPORARY,THEN,TIME,TIMESTAMP,TIMEZONE_HOUR,TIMEZONE_MINUTE," & _
+    "TO,TRAILING,TRANSACTION,TRANSLATE,TRANSLATION,TRIM,TRUE," & _
+    "UNION,UNIQUE,UNKNOWN,UPDATE,UPPER,USAGE,USER,USING," & _
+    "VALUE,VALUES,VARCHAR,VARYING,VIEW,WHEN,WHENEVER,WHERE,WITH,WORK,WRITE," & _
+    "YEAR,ZONE"
+
+'NOTE: Commented-out APIs superceded by sqlucode.h defs later in this file
+' Public Declare PtrSafe Function SQLBrowseConnect Lib "odbc32.dll" (ByVal hdbc As SQLHDBC, ByVal szConnStrIn As SQLCHAR, ByVal cchConnStrIn As SQLSMALLINT, ByVal szConnStrOut As SQLCHAR, ByVal cchConnStrOutMax As SQLSMALLINT, ByRef pcchConnStrOut As SQLSMALLINT) As SQLRETURN
+Public Declare PtrSafe Function SQLBulkOperations Lib "odbc32.dll" (ByVal StatementHandle As SQLHSTMT, ByVal Operation As SQLSMALLINT) As SQLRETURN
+' Public Declare PtrSafe Function SQLColAttributes Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal icol As SQLUSMALLINT, ByVal fDescType As SQLUSMALLINT, ByVal rgbDesc As SQLPOINTER, ByVal cbDescMax As SQLSMALLINT, ByRef pcbDesc As SQLSMALLINT, ByRef pfDesc As SQLLEN) As SQLRETURN
+' Public Declare PtrSafe Function SQLColumnPrivileges Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal szCatalogName As SQLCHAR, ByVal cchCatalogName As SQLSMALLINT, ByVal szSchemaName As SQLCHAR, ByVal cchSchemaName As SQLSMALLINT, ByVal szTableName As SQLCHAR, ByVal cchTableName As SQLSMALLINT, ByVal szColumnName As SQLCHAR, ByVal cchColumnName As SQLSMALLINT) As SQLRETURN
+Public Declare PtrSafe Function SQLDescribeParam Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal ipar As SQLUSMALLINT, ByRef pfSqlType As SQLSMALLINT, ByRef pcbParamDef As SQLULEN, ByRef pibScale As SQLSMALLINT, ByRef pfNullable As SQLSMALLINT) As SQLRETURN
+Public Declare PtrSafe Function SQLExtendedFetch Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal fFetchType As SQLUSMALLINT, ByVal irow As SQLLEN, ByRef pcrow As SQLULEN, ByRef rgfRowStatus As SQLUSMALLINT) As SQLRETURN
+' Public Declare PtrSafe Function SQLForeignKeys Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal szPkCatalogName As SQLCHAR, ByVal cchPkCatalogName As SQLSMALLINT, ByVal szPkSchemaName As SQLCHAR, ByVal cchPkSchemaName As SQLSMALLINT, ByVal szPkTableName As SQLCHAR, ByVal cchPkTableName As SQLSMALLINT, ByVal szFkCatalogName As SQLCHAR, ByVal cchFkCatalogName As SQLSMALLINT, ByVal szFkSchemaName As SQLCHAR, ByVal cchFkSchemaName As SQLSMALLINT, ByVal szFkTableName As SQLCHAR, ByVal cchFkTableName As SQLSMALLINT) As SQLRETURN
+Public Declare PtrSafe Function SQLMoreResults Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT) As SQLRETURN
+' Public Declare PtrSafe Function SQLNativeSql Lib "odbc32.dll" (ByVal hdbc As SQLHDBC, ByVal szSqlStrIn As SQLCHAR, ByVal cchSqlStrIn As SQLINTEGER, ByVal szSqlStr As SQLCHAR, ByVal cchSqlStrMax As SQLINTEGER, ByRef pcbSqlStr As SQLINTEGER) As SQLRETURN
+Public Declare PtrSafe Function SQLNumParams Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByRef pcpar As SQLSMALLINT) As SQLRETURN
+Public Declare PtrSafe Function SQLParamOptions Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal crow As SQLULEN, ByRef pirow As SQLULEN) As SQLRETURN
+' Public Declare PtrSafe Function SQLPrimaryKeys Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal szCatalogName As SQLCHAR, ByVal cchCatalogName As SQLSMALLINT, ByVal szSchemaName As SQLCHAR, ByVal cchSchemaName As SQLSMALLINT, ByVal szTableName As SQLCHAR, ByVal cchTableName As SQLSMALLINT) As SQLRETURN
+' Public Declare PtrSafe Function SQLProcedureColumns Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal szCatalogName As SQLCHAR, ByVal cchCatalogName As SQLSMALLINT, ByVal szSchemaName As SQLCHAR, ByVal cchSchemaName As SQLSMALLINT, ByVal szProcName As SQLCHAR, ByVal cchProcName As SQLSMALLINT, ByVal szColumnName As SQLCHAR, ByVal cchColumnName As SQLSMALLINT) As SQLRETURN
+' Public Declare PtrSafe Function SQLProcedures Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal szCatalogName As SQLCHAR, ByVal cchCatalogName As SQLSMALLINT, ByVal szSchemaName As SQLCHAR, ByVal cchSchemaName As SQLSMALLINT, ByVal szProcName As SQLCHAR, ByVal cchProcName As SQLSMALLINT) As SQLRETURN
+Public Declare PtrSafe Function SQLSetPos Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal irow As SQLSETPOSIROW, ByVal fOption As SQLUSMALLINT, ByVal fLock As SQLUSMALLINT) As SQLRETURN
+' Public Declare PtrSafe Function SQLTablePrivileges Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal szCatalogName As SQLCHAR, ByVal cchCatalogName As SQLSMALLINT, ByVal szSchemaName As SQLCHAR, ByVal cchSchemaName As SQLSMALLINT, ByVal szTableName As SQLCHAR, ByVal cchTableName As SQLSMALLINT) As SQLRETURN
+' Public Declare PtrSafe Function SQLDrivers Lib "odbc32.dll" (ByVal henv As SQLHENV, ByVal fDirection As SQLUSMALLINT, ByVal szDriverDesc As SQLCHAR, ByVal cchDriverDescMax As SQLSMALLINT, ByRef pcchDriverDesc As SQLSMALLINT, ByVal szDriverAttributes As SQLCHAR, ByVal cchDrvrAttrMax As SQLSMALLINT, ByRef pcchDrvrAttr As SQLSMALLINT) As SQLRETURN
+Public Declare PtrSafe Function SQLBindParameter Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal ipar As SQLUSMALLINT, ByVal fParamType As SQLSMALLINT, ByVal fCType As SQLSMALLINT, ByVal fSqlType As SQLSMALLINT, ByVal cbColDef As SQLULEN, ByVal ibScale As SQLSMALLINT, ByVal rgbValue As SQLPOINTER, ByVal cbValueMax As SQLLEN, ByRef pcbValue As SQLLEN) As SQLRETURN
+
+'Note: ODBC_STD API redefs are applied in conditional block with their sql.h originals
+Public Declare PtrSafe Function SQLAllocHandleStd Lib "odbc32.dll" (ByVal fHandleType As SQLSMALLINT, ByVal hInput As SQLHANDLE, ByRef phOutput As SQLHANDLE) As SQLRETURN
+#If ODBC_STD Then
+Public Const SQL_YEAR  = SQL_CODE_YEAR
+Public Const SQL_MONTH  = SQL_CODE_MONTH
+Public Const SQL_DAY  = SQL_CODE_DAY
+Public Const SQL_HOUR  = SQL_CODE_HOUR
+Public Const SQL_MINUTE  = SQL_CODE_MINUTE
+Public Const SQL_SECOND  = SQL_CODE_SECOND
+Public Const SQL_YEAR_TO_MONTH  = SQL_CODE_YEAR_TO_MONTH
+Public Const SQL_DAY_TO_HOUR  = SQL_CODE_DAY_TO_HOUR
+Public Const SQL_DAY_TO_MINUTE  = SQL_CODE_DAY_TO_MINUTE
+Public Const SQL_DAY_TO_SECOND  = SQL_CODE_DAY_TO_SECOND
+Public Const SQL_HOUR_TO_MINUTE  = SQL_CODE_HOUR_TO_MINUTE
+Public Const SQL_HOUR_TO_SECOND  = SQL_CODE_HOUR_TO_SECOND
+Public Const SQL_MINUTE_TO_SECOND  = SQL_CODE_MINUTE_TO_SECOND
+#End If
+
+/*      Deprecated defines from prior versions of ODBC */
+Public Const SQL_DATABASE_NAME  = 16 /* Use SQLGetConnectOption/SQL_CURRENT_QUALIFIER */
+Public Const SQL_FD_FETCH_PREV  = SQL_FD_FETCH_PRIOR
+Public Const SQL_FETCH_PREV  = SQL_FETCH_PRIOR
+Public Const SQL_CONCUR_TIMESTAMP  = SQL_CONCUR_ROWVER
+Public Const SQL_SCCO_OPT_TIMESTAMP  = SQL_SCCO_OPT_ROWVER
+Public Const SQL_CC_DELETE  = SQL_CB_DELETE
+Public Const SQL_CR_DELETE  = SQL_CB_DELETE
+Public Const SQL_CC_CLOSE  = SQL_CB_CLOSE
+Public Const SQL_CR_CLOSE  = SQL_CB_CLOSE
+Public Const SQL_CC_PRESERVE  = SQL_CB_PRESERVE
+Public Const SQL_CR_PRESERVE  = SQL_CB_PRESERVE
+/* SQL_FETCH_RESUME is not supported by 2.0+ drivers
+#define SQL_FETCH_RESUME                7
+*/
+Public Const SQL_SCROLL_FORWARD_ONLY  = 0 /*-SQL_CURSOR_FORWARD_ONLY */
+Public Const SQL_SCROLL_KEYSET_DRIVEN  = (-1) /*-SQL_CURSOR_KEYSET_DRIVEN */
+Public Const SQL_SCROLL_DYNAMIC  = (-2) /*-SQL_CURSOR_DYNAMIC */
+Public Const SQL_SCROLL_STATIC  = (-3) /*-SQL_CURSOR_STATIC */
+
+[Description("Deprecated. Use SQLSetStmtOptions")]
+Public Declare PtrSafe Function SQLSetScrollOptions Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal fConcurrency As SQLUSMALLINT, ByVal crowKeyset As SQLLEN, ByVal crowRowset As SQLUSMALLINT) As SQLRETURN
+
+ 
+Public Const TRACE_ON          As Long = &H00000001
+Public Const TRACE_VS_EVENT_ON As Long = &H00000002
+
+Public DeclareWide PtrSafe Function TraceOpenLogFile Lib "odbctrac.dll" (ByVal szFileName As String, ByVal lpwszOutputMsg As String, ByVal cbOutputMsg As Long) As Integer
+Public Declare PtrSafe Function TraceCloseLogFile Lib "odbctrac.dll" () As Integer
+Public Declare PtrSafe Sub TraceReturn Lib "odbctrac.dll" (ByVal RetCode1 As Integer, ByVal RetCode2 As Integer)
+Public Declare PtrSafe Function TraceVersion Lib "odbctrac.dll" () As Long
+Public Declare PtrSafe Function TraceVSControl Lib "odbctrac.dll" (ByVal dwFlag As Long) As Integer
+/* Functions for setting the connection pooling failure detection code */
+/* The "TryWait" value is the time (in seconds) that the DM will wait  */
+/* between detecting that a connection is dead (using                  */
+/* SQL_ATTR_CONNECTION_DEAD) and retrying the connection.  During that */
+/* interval, connection requests will get "The server appears to be    */
+/* dead" error returns.                                                */
+
+
+Public Declare PtrSafe Function ODBCSetTryWaitValue Lib "odbc32.dll" (ByVal dwValue As Long) As BOOL
+Public Declare PtrSafe Function ODBCGetTryWaitValue Lib "odbc32.dll" () As Long
+
+Public Const ODBC_VS_FLAG_UNICODE_ARG  = &H00000001 /* the argument is unicode */
+Public Const ODBC_VS_FLAG_UNICODE_COR  = &H00000002 /* the correlation is unicode */
+Public Const ODBC_VS_FLAG_RETCODE  = &H00000004 /* RetCode field is set */
+Public Const ODBC_VS_FLAG_STOP  = &H00000008 /* Stop firing visual studio analyzer events */
+
+Public Type ODBC_VS_ARGS
+    pguidEvent As LongPtr 'const GUID* '* the GUID for event */
+    dwFlags As Long '* flags for the call */
+    'union {
+    '    WCHAR   *wszArg;
+    '    CHAR    *szArg;
+    '};
+    wszArg As LongPtr
+    'union {
+    '    WCHAR   *wszCorrelation;
+    '    CHAR    *szCorrelation;
+    '};
+    wszCorrelation As LongPtr
+    RetCode As Integer
+End Type
+
+[Description("Unknown DLL. Provided as delegate to load yourself.")]
+Public Delegate Sub FireVSDebugEvent (ByRef pova As ODBC_VS_ARGS)
+
+
+#End Region
+
+#Region "sqlucode.h"
+Public Const SQL_WCHAR  = (-8)
+Public Const SQL_WVARCHAR  = (-9)
+Public Const SQL_WLONGVARCHAR  = (-10)
+Public Const SQL_C_WCHAR  = SQL_WCHAR
+
+Public Const SQL_C_TCHAR  = SQL_C_WCHAR
+Public Const SQL_SQLSTATE_SIZEW  = 10 /* size of SQLSTATE for unicode */
+
+#If Win64 Then
+Public DeclareWide PtrSafe Function SQLColAttributeW Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal iCol As SQLUSMALLINT, ByVal iField As SQLUSMALLINT, ByVal pCharAttr As SQLPOINTER, ByVal cbDescMax As SQLSMALLINT, ByRef pcbCharAttr As SQLSMALLINT, ByRef pNumAttr As SQLLEN) As SQLRETURN
+#Else
+Public DeclareWide PtrSafe Function SQLColAttributeW Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal iCol As SQLUSMALLINT, ByVal iField As SQLUSMALLINT, ByVal pCharAttr As SQLPOINTER, ByVal cbDescMax As SQLSMALLINT, ByRef pcbCharAttr As SQLSMALLINT, ByVal pNumAttr As SQLPOINTER) As SQLRETURN
+#End If
+Public DeclareWide PtrSafe Function SQLColAttributesW Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal icol As SQLUSMALLINT, ByVal fDescType As SQLUSMALLINT, ByVal rgbDesc As SQLPOINTER, ByVal cbDescMax As SQLSMALLINT, ByRef pcbDesc As SQLSMALLINT, ByRef pfDesc As SQLLEN) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLConnectW Lib "odbc32.dll" (ByVal hdbc As SQLHDBC, ByVal szDSN As LongPtr, ByVal cchDSN As SQLSMALLINT, ByVal szUID As LongPtr, ByVal cchUID As SQLSMALLINT, ByVal szAuthStr As LongPtr, ByVal cchAuthStr As SQLSMALLINT) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLDescribeColW Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal icol As SQLUSMALLINT, ByVal szColName As LongPtr, ByVal cchColNameMax As SQLSMALLINT, ByRef pcchColName As SQLSMALLINT, ByRef pfSqlType As SQLSMALLINT, ByRef pcbColDef As SQLULEN, ByRef pibScale As SQLSMALLINT, ByRef pfNullable As SQLSMALLINT) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLErrorW Lib "odbc32.dll" (ByVal henv As SQLHENV, ByVal hdbc As SQLHDBC, ByVal hstmt As SQLHSTMT, ByVal wszSqlState As LongPtr, ByRef pfNativeError As SQLINTEGER, ByVal wszErrorMsg As LongPtr, ByVal cchErrorMsgMax As SQLSMALLINT, ByRef pcchErrorMsg As SQLSMALLINT) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLExecDirectW Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal szSqlStr As LongPtr, ByVal TextLength As SQLINTEGER) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLGetConnectAttrW Lib "odbc32.dll" (ByVal hdbc As SQLHDBC, ByVal fAttribute As SQLINTEGER, ByVal rgbValue As SQLPOINTER, ByVal cbValueMax As SQLINTEGER, ByRef pcbValue As SQLINTEGER) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLGetCursorNameW Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal szCursor As LongPtr, ByVal cchCursorMax As SQLSMALLINT, ByRef pcchCursor As SQLSMALLINT) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLSetDescFieldW Lib "odbc32.dll" (ByVal DescriptorHandle As SQLHDESC, ByVal RecNumber As SQLSMALLINT, ByVal FieldIdentifier As SQLSMALLINT, ByVal Value As SQLPOINTER, ByVal BufferLength As SQLINTEGER) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLGetDescFieldW Lib "odbc32.dll" (ByVal hdesc As SQLHDESC, ByVal iRecord As SQLSMALLINT, ByVal iField As SQLSMALLINT, ByVal rgbValue As SQLPOINTER, ByVal cbBufferLength As SQLINTEGER, ByRef StringLength As SQLINTEGER) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLGetDescRecW Lib "odbc32.dll" (ByVal hdesc As SQLHDESC, ByVal iRecord As SQLSMALLINT, ByVal szName As LongPtr, ByVal cchNameMax As SQLSMALLINT, ByRef pcchName As SQLSMALLINT, ByRef pfType As SQLSMALLINT, ByRef pfSubType As SQLSMALLINT, ByRef pLength As SQLLEN, ByRef pPrecision As SQLSMALLINT, ByRef pScale As SQLSMALLINT, ByRef pNullable As SQLSMALLINT) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLGetDiagFieldW Lib "odbc32.dll" (ByVal fHandleType As SQLSMALLINT, ByVal handle As SQLHANDLE, ByVal iRecord As SQLSMALLINT, ByVal fDiagField As SQLSMALLINT, ByVal rgbDiagInfo As SQLPOINTER, ByVal cbBufferLength As SQLSMALLINT, ByRef pcbStringLength As SQLSMALLINT) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLGetDiagRecW Lib "odbc32.dll" (ByVal fHandleType As SQLSMALLINT, ByVal handle As SQLHANDLE, ByVal iRecord As SQLSMALLINT, ByVal szSqlState As LongPtr, ByRef pfNativeError As SQLINTEGER, ByVal szErrorMsg As LongPtr, ByVal cchErrorMsgMax As SQLSMALLINT, ByRef pcchErrorMsg As SQLSMALLINT) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLPrepareW Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal szSqlStr As LongPtr, ByVal cchSqlStr As SQLINTEGER) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLSetConnectAttrW Lib "odbc32.dll" (ByVal hdbc As SQLHDBC, ByVal fAttribute As SQLINTEGER, ByVal rgbValue As SQLPOINTER, ByVal cbValue As SQLINTEGER) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLSetCursorNameW Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal szCursor As LongPtr, ByVal cchCursor As SQLSMALLINT) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLColumnsW Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal szCatalogName As LongPtr, ByVal cchCatalogName As SQLSMALLINT, ByVal szSchemaName As LongPtr, ByVal cchSchemaName As SQLSMALLINT, ByVal szTableName As LongPtr, ByVal cchTableName As SQLSMALLINT, ByVal szColumnName As LongPtr, ByVal cchColumnName As SQLSMALLINT) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLGetConnectOptionW Lib "odbc32.dll" (ByVal hdbc As SQLHDBC, ByVal fOption As SQLUSMALLINT, ByVal pvParam As SQLPOINTER) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLGetInfoW Lib "odbc32.dll" (ByVal hdbc As SQLHDBC, ByVal fInfoType As SQLUSMALLINT, ByVal rgbInfoValue As SQLPOINTER, ByVal cbInfoValueMax As SQLSMALLINT, ByRef pcbInfoValue As SQLSMALLINT) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLGetTypeInfoW Lib "odbc32.dll" (ByVal StatementHandle As SQLHSTMT, ByVal DataType As SQLSMALLINT) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLSetConnectOptionW Lib "odbc32.dll" (ByVal hdbc As SQLHDBC, ByVal fOption As SQLUSMALLINT, ByVal vParam As SQLULEN) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLSpecialColumnsW Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal fColType As SQLUSMALLINT, ByVal szCatalogName As LongPtr, ByVal cchCatalogName As SQLSMALLINT, ByVal szSchemaName As LongPtr, ByVal cchSchemaName As SQLSMALLINT, ByVal szTableName As LongPtr, ByVal cchTableName As SQLSMALLINT, ByVal fScope As SQLUSMALLINT, ByVal fNullable As SQLUSMALLINT) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLStatisticsW Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal szCatalogName As LongPtr, ByVal cchCatalogName As SQLSMALLINT, ByVal szSchemaName As LongPtr, ByVal cchSchemaName As SQLSMALLINT, ByVal szTableName As LongPtr, ByVal cchTableName As SQLSMALLINT, ByVal fUnique As SQLUSMALLINT, ByVal fAccuracy As SQLUSMALLINT) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLTablesW Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal szCatalogName As LongPtr, ByVal cchCatalogName As SQLSMALLINT, ByVal szSchemaName As LongPtr, ByVal cchSchemaName As SQLSMALLINT, ByVal szTableName As LongPtr, ByVal cchTableName As SQLSMALLINT, ByVal szTableType As LongPtr, ByVal cchTableType As SQLSMALLINT) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLDataSourcesW Lib "odbc32.dll" (ByVal henv As SQLHENV, ByVal fDirection As SQLUSMALLINT, ByVal szDSN As LongPtr, ByVal cchDSNMax As SQLSMALLINT, ByRef pcchDSN As SQLSMALLINT, ByVal wszDescription As LongPtr, ByVal cchDescriptionMax As SQLSMALLINT, ByRef pcchDescription As SQLSMALLINT) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLDriverConnectW Lib "odbc32.dll" (ByVal hdbc As SQLHDBC, ByVal hwnd As SQLHWND, ByVal szConnStrIn As LongPtr, ByVal cchConnStrIn As SQLSMALLINT, ByVal szConnStrOut As LongPtr, ByVal cchConnStrOutMax As SQLSMALLINT, ByRef pcchConnStrOut As SQLSMALLINT, ByVal fDriverCompletion As SQLUSMALLINT) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLBrowseConnectW Lib "odbc32.dll" (ByVal hdbc As SQLHDBC, ByVal szConnStrIn As LongPtr, ByVal cchConnStrIn As SQLSMALLINT, ByVal szConnStrOut As LongPtr, ByVal cchConnStrOutMax As SQLSMALLINT, ByRef pcchConnStrOut As SQLSMALLINT) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLColumnPrivilegesW Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal szCatalogName As LongPtr, ByVal cchCatalogName As SQLSMALLINT, ByVal szSchemaName As LongPtr, ByVal cchSchemaName As SQLSMALLINT, ByVal szTableName As LongPtr, ByVal cchTableName As SQLSMALLINT, ByVal szColumnName As LongPtr, ByVal cchColumnName As SQLSMALLINT) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLGetStmtAttrW Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal fAttribute As SQLINTEGER, ByVal rgbValue As SQLPOINTER, ByVal cbValueMax As SQLINTEGER, ByRef pcbValue As SQLINTEGER) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLSetStmtAttrW Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal fAttribute As SQLINTEGER, ByVal rgbValue As SQLPOINTER, ByVal cbValueMax As SQLINTEGER) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLForeignKeysW Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal szPkCatalogName As LongPtr, ByVal cchPkCatalogName As SQLSMALLINT, ByVal szPkSchemaName As LongPtr, ByVal cchPkSchemaName As SQLSMALLINT, ByVal szPkTableName As LongPtr, ByVal cchPkTableName As SQLSMALLINT, ByVal szFkCatalogName As LongPtr, ByVal cchFkCatalogName As SQLSMALLINT, ByVal szFkSchemaName As LongPtr, ByVal cchFkSchemaName As SQLSMALLINT, ByVal szFkTableName As LongPtr, ByVal cchFkTableName As SQLSMALLINT) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLNativeSqlW Lib "odbc32.dll" (ByVal hdbc As SQLHDBC, ByVal szSqlStrIn As LongPtr, ByVal cchSqlStrIn As SQLINTEGER, ByVal szSqlStr As LongPtr, ByVal cchSqlStrMax As SQLINTEGER, ByRef pcchSqlStr As SQLINTEGER) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLPrimaryKeysW Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal szCatalogName As LongPtr, ByVal cchCatalogName As SQLSMALLINT, ByVal szSchemaName As LongPtr, ByVal cchSchemaName As SQLSMALLINT, ByVal szTableName As LongPtr, ByVal cchTableName As SQLSMALLINT) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLProcedureColumnsW Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal szCatalogName As LongPtr, ByVal cchCatalogName As SQLSMALLINT, ByVal szSchemaName As LongPtr, ByVal cchSchemaName As SQLSMALLINT, ByVal szProcName As LongPtr, ByVal cchProcName As SQLSMALLINT, ByVal szColumnName As LongPtr, ByVal cchColumnName As SQLSMALLINT) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLProceduresW Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal szCatalogName As LongPtr, ByVal cchCatalogName As SQLSMALLINT, ByVal szSchemaName As LongPtr, ByVal cchSchemaName As SQLSMALLINT, ByVal szProcName As LongPtr, ByVal cchProcName As SQLSMALLINT) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLTablePrivilegesW Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal szCatalogName As LongPtr, ByVal cchCatalogName As SQLSMALLINT, ByVal szSchemaName As LongPtr, ByVal cchSchemaName As SQLSMALLINT, ByVal szTableName As LongPtr, ByVal cchTableName As SQLSMALLINT) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLDriversW Lib "odbc32.dll" (ByVal henv As SQLHENV, ByVal fDirection As SQLUSMALLINT, ByVal szDriverDesc As LongPtr, ByVal cchDriverDescMax As SQLSMALLINT, ByRef pcchDriverDesc As SQLSMALLINT, ByVal szDriverAttributes As LongPtr, ByVal cchDrvrAttrMax As SQLSMALLINT, ByRef pcchDrvrAttr As SQLSMALLINT) As SQLRETURN
+
+#If Win64 Then
+Public Declare PtrSafe Function SQLColAttributeA Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal iCol As SQLSMALLINT, ByVal iField As SQLSMALLINT, ByVal pCharAttr As SQLPOINTER, ByVal cbCharAttrMax As SQLSMALLINT, ByRef pcbCharAttr As SQLSMALLINT, ByRef pNumAttr As SQLLEN) As SQLRETURN
+#Else
+Public Declare PtrSafe Function SQLColAttributeA Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal iCol As SQLSMALLINT, ByVal iField As SQLSMALLINT, ByVal pCharAttr As SQLPOINTER, ByVal cbCharAttrMax As SQLSMALLINT, ByRef pcbCharAttr As SQLSMALLINT, ByVal pNumAttr As SQLPOINTER) As SQLRETURN
+#End If
+Public Declare PtrSafe Function SQLColAttributesA Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal icol As SQLUSMALLINT, ByVal fDescType As SQLUSMALLINT, ByVal rgbDesc As SQLPOINTER, ByVal cbDescMax As SQLSMALLINT, ByRef pcbDesc As SQLSMALLINT, ByRef pfDesc As SQLLEN) As SQLRETURN
+Public Declare PtrSafe Function SQLConnectA Lib "odbc32.dll" (ByVal hdbc As SQLHDBC, ByVal szDSN As SQLCHAR, ByVal cbDSN As SQLSMALLINT, ByVal szUID As SQLCHAR, ByVal cbUID As SQLSMALLINT, ByVal szAuthStr As SQLCHAR, ByVal cbAuthStr As SQLSMALLINT) As SQLRETURN
+Public Declare PtrSafe Function SQLDescribeColA Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal icol As SQLUSMALLINT, ByVal szColName As SQLCHAR, ByVal cbColNameMax As SQLSMALLINT, ByRef pcbColName As SQLSMALLINT, ByRef pfSqlType As SQLSMALLINT, ByRef pcbColDef As SQLULEN, ByRef pibScale As SQLSMALLINT, ByRef pfNullable As SQLSMALLINT) As SQLRETURN
+Public Declare PtrSafe Function SQLErrorA Lib "odbc32.dll" (ByVal henv As SQLHENV, ByVal hdbc As SQLHDBC, ByVal hstmt As SQLHSTMT, ByVal szSqlState As SQLCHAR, ByRef pfNativeError As SQLINTEGER, ByVal szErrorMsg As SQLCHAR, ByVal cbErrorMsgMax As SQLSMALLINT, ByRef pcbErrorMsg As SQLSMALLINT) As SQLRETURN
+Public Declare PtrSafe Function SQLExecDirectA Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal szSqlStr As SQLCHAR, ByVal cbSqlStr As SQLINTEGER) As SQLRETURN
+Public Declare PtrSafe Function SQLGetConnectAttrA Lib "odbc32.dll" (ByVal hdbc As SQLHDBC, ByVal fAttribute As SQLINTEGER, ByVal rgbValue As SQLPOINTER, ByVal cbValueMax As SQLINTEGER, ByRef pcbValue As SQLINTEGER) As SQLRETURN
+Public Declare PtrSafe Function SQLGetCursorNameA Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal szCursor As SQLCHAR, ByVal cbCursorMax As SQLSMALLINT, ByRef pcbCursor As SQLSMALLINT) As SQLRETURN
+Public Declare PtrSafe Function SQLGetDescFieldA Lib "odbc32.dll" (ByVal hdesc As SQLHDESC, ByVal iRecord As SQLSMALLINT, ByVal iField As SQLSMALLINT, ByVal rgbValue As SQLPOINTER, ByVal cbBufferLength As SQLINTEGER, ByRef StringLength As SQLINTEGER) As SQLRETURN
+Public Declare PtrSafe Function SQLGetDescRecA Lib "odbc32.dll" (ByVal hdesc As SQLHDESC, ByVal iRecord As SQLSMALLINT, ByVal szName As SQLCHAR, ByVal cbNameMax As SQLSMALLINT, ByRef pcbName As SQLSMALLINT, ByRef pfType As SQLSMALLINT, ByRef pfSubType As SQLSMALLINT, ByRef pLength As SQLLEN, ByRef pPrecision As SQLSMALLINT, ByRef pScale As SQLSMALLINT, ByRef pNullable As SQLSMALLINT) As SQLRETURN
+Public Declare PtrSafe Function SQLGetDiagFieldA Lib "odbc32.dll" (ByVal fHandleType As SQLSMALLINT, ByVal handle As SQLHANDLE, ByVal iRecord As SQLSMALLINT, ByVal fDiagField As SQLSMALLINT, ByVal rgbDiagInfo As SQLPOINTER, ByVal cbDiagInfoMax As SQLSMALLINT, ByRef pcbDiagInfo As SQLSMALLINT) As SQLRETURN
+Public Declare PtrSafe Function SQLGetDiagRecA Lib "odbc32.dll" (ByVal fHandleType As SQLSMALLINT, ByVal handle As SQLHANDLE, ByVal iRecord As SQLSMALLINT, ByVal szSqlState As SQLCHAR, ByRef pfNativeError As SQLINTEGER, ByVal szErrorMsg As SQLCHAR, ByVal cbErrorMsgMax As SQLSMALLINT, ByRef pcbErrorMsg As SQLSMALLINT) As SQLRETURN
+Public Declare PtrSafe Function SQLGetStmtAttrA Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal fAttribute As SQLINTEGER, ByVal rgbValue As SQLPOINTER, ByVal cbValueMax As SQLINTEGER, ByRef pcbValue As SQLINTEGER) As SQLRETURN
+Public Declare PtrSafe Function SQLGetTypeInfoA Lib "odbc32.dll" (ByVal StatementHandle As SQLHSTMT, ByVal DataType As SQLSMALLINT) As SQLRETURN
+Public Declare PtrSafe Function SQLPrepareA Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal szSqlStr As SQLCHAR, ByVal cbSqlStr As SQLINTEGER) As SQLRETURN
+Public Declare PtrSafe Function SQLSetConnectAttrA Lib "odbc32.dll" (ByVal hdbc As SQLHDBC, ByVal fAttribute As SQLINTEGER, ByVal rgbValue As SQLPOINTER, ByVal cbValue As SQLINTEGER) As SQLRETURN
+Public Declare PtrSafe Function SQLSetCursorNameA Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal szCursor As SQLCHAR, ByVal cbCursor As SQLSMALLINT) As SQLRETURN
+Public Declare PtrSafe Function SQLColumnsA Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal szCatalogName As SQLCHAR, ByVal cbCatalogName As SQLSMALLINT, ByVal szSchemaName As SQLCHAR, ByVal cbSchemaName As SQLSMALLINT, ByVal szTableName As SQLCHAR, ByVal cbTableName As SQLSMALLINT, ByVal szColumnName As SQLCHAR, ByVal cbColumnName As SQLSMALLINT) As SQLRETURN
+Public Declare PtrSafe Function SQLGetConnectOptionA Lib "odbc32.dll" (ByVal hdbc As SQLHDBC, ByVal fOption As SQLUSMALLINT, ByVal pvParam As SQLPOINTER) As SQLRETURN
+Public Declare PtrSafe Function SQLGetInfoA Lib "odbc32.dll" (ByVal hdbc As SQLHDBC, ByVal fInfoType As SQLUSMALLINT, ByVal rgbInfoValue As SQLPOINTER, ByVal cbInfoValueMax As SQLSMALLINT, ByRef pcbInfoValue As SQLSMALLINT) As SQLRETURN
+Public Declare PtrSafe Function SQLGetStmtOptionA Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal fOption As SQLUSMALLINT, ByVal pvParam As SQLPOINTER) As SQLRETURN
+Public Declare PtrSafe Function SQLSetConnectOptionA Lib "odbc32.dll" (ByVal hdbc As SQLHDBC, ByVal fOption As SQLUSMALLINT, ByVal vParam As SQLULEN) As SQLRETURN
+Public Declare PtrSafe Function SQLSetStmtOptionA Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal fOption As SQLUSMALLINT, ByVal vParam As SQLULEN) As SQLRETURN
+Public Declare PtrSafe Function SQLSpecialColumnsA Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal fColType As SQLUSMALLINT, ByVal szCatalogName As SQLCHAR, ByVal cbCatalogName As SQLSMALLINT, ByVal szSchemaName As SQLCHAR, ByVal cbSchemaName As SQLSMALLINT, ByVal szTableName As SQLCHAR, ByVal cbTableName As SQLSMALLINT, ByVal fScope As SQLUSMALLINT, ByVal fNullable As SQLUSMALLINT) As SQLRETURN
+Public Declare PtrSafe Function SQLStatisticsA Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal szCatalogName As SQLCHAR, ByVal cbCatalogName As SQLSMALLINT, ByVal szSchemaName As SQLCHAR, ByVal cbSchemaName As SQLSMALLINT, ByVal szTableName As SQLCHAR, ByVal cbTableName As SQLSMALLINT, ByVal fUnique As SQLUSMALLINT, ByVal fAccuracy As SQLUSMALLINT) As SQLRETURN
+Public Declare PtrSafe Function SQLTablesA Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal szCatalogName As SQLCHAR, ByVal cbCatalogName As SQLSMALLINT, ByVal szSchemaName As SQLCHAR, ByVal cbSchemaName As SQLSMALLINT, ByVal szTableName As SQLCHAR, ByVal cbTableName As SQLSMALLINT, ByVal szTableType As SQLCHAR, ByVal cbTableType As SQLSMALLINT) As SQLRETURN
+Public Declare PtrSafe Function SQLDataSourcesA Lib "odbc32.dll" (ByVal henv As SQLHENV, ByVal fDirection As SQLUSMALLINT, ByVal szDSN As SQLCHAR, ByVal cbDSNMax As SQLSMALLINT, ByRef pcbDSN As SQLSMALLINT, ByVal szDescription As SQLCHAR, ByVal cbDescriptionMax As SQLSMALLINT, ByRef pcbDescription As SQLSMALLINT) As SQLRETURN
+Public Declare PtrSafe Function SQLDriverConnectA Lib "odbc32.dll" (ByVal hdbc As SQLHDBC, ByVal hwnd As SQLHWND, ByVal szConnStrIn As SQLCHAR, ByVal cbConnStrIn As SQLSMALLINT, ByVal szConnStrOut As SQLCHAR, ByVal cbConnStrOutMax As SQLSMALLINT, ByRef pcbConnStrOut As SQLSMALLINT, ByVal fDriverCompletion As SQLUSMALLINT) As SQLRETURN
+Public Declare PtrSafe Function SQLBrowseConnectA Lib "odbc32.dll" (ByVal hdbc As SQLHDBC, ByVal szConnStrIn As SQLCHAR, ByVal cbConnStrIn As SQLSMALLINT, ByVal szConnStrOut As SQLCHAR, ByVal cbConnStrOutMax As SQLSMALLINT, ByRef pcbConnStrOut As SQLSMALLINT) As SQLRETURN
+Public Declare PtrSafe Function SQLColumnPrivilegesA Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal szCatalogName As SQLCHAR, ByVal cbCatalogName As SQLSMALLINT, ByVal szSchemaName As SQLCHAR, ByVal cbSchemaName As SQLSMALLINT, ByVal szTableName As SQLCHAR, ByVal cbTableName As SQLSMALLINT, ByVal szColumnName As SQLCHAR, ByVal cbColumnName As SQLSMALLINT) As SQLRETURN
+Public Declare PtrSafe Function SQLDescribeParamA Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal ipar As SQLUSMALLINT, ByRef pfSqlType As SQLSMALLINT, ByRef pcbParamDef As SQLUINTEGER, ByRef pibScale As SQLSMALLINT, ByRef pfNullable As SQLSMALLINT) As SQLRETURN
+Public Declare PtrSafe Function SQLForeignKeysA Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal szPkCatalogName As SQLCHAR, ByVal cbPkCatalogName As SQLSMALLINT, ByVal szPkSchemaName As SQLCHAR, ByVal cbPkSchemaName As SQLSMALLINT, ByVal szPkTableName As SQLCHAR, ByVal cbPkTableName As SQLSMALLINT, ByVal szFkCatalogName As SQLCHAR, ByVal cbFkCatalogName As SQLSMALLINT, ByVal szFkSchemaName As SQLCHAR, ByVal cbFkSchemaName As SQLSMALLINT, ByVal szFkTableName As SQLCHAR, ByVal cbFkTableName As SQLSMALLINT) As SQLRETURN
+Public Declare PtrSafe Function SQLNativeSqlA Lib "odbc32.dll" (ByVal hdbc As SQLHDBC, ByVal szSqlStrIn As SQLCHAR, ByVal cbSqlStrIn As SQLINTEGER, ByVal szSqlStr As SQLCHAR, ByVal cbSqlStrMax As SQLINTEGER, ByRef pcbSqlStr As SQLINTEGER) As SQLRETURN
+Public Declare PtrSafe Function SQLPrimaryKeysA Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal szCatalogName As SQLCHAR, ByVal cbCatalogName As SQLSMALLINT, ByVal szSchemaName As SQLCHAR, ByVal cbSchemaName As SQLSMALLINT, ByVal szTableName As SQLCHAR, ByVal cbTableName As SQLSMALLINT) As SQLRETURN
+Public Declare PtrSafe Function SQLProcedureColumnsA Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal szCatalogName As SQLCHAR, ByVal cbCatalogName As SQLSMALLINT, ByVal szSchemaName As SQLCHAR, ByVal cbSchemaName As SQLSMALLINT, ByVal szProcName As SQLCHAR, ByVal cbProcName As SQLSMALLINT, ByVal szColumnName As SQLCHAR, ByVal cbColumnName As SQLSMALLINT) As SQLRETURN
+Public Declare PtrSafe Function SQLProceduresA Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal szCatalogName As SQLCHAR, ByVal cbCatalogName As SQLSMALLINT, ByVal szSchemaName As SQLCHAR, ByVal cbSchemaName As SQLSMALLINT, ByVal szProcName As SQLCHAR, ByVal cbProcName As SQLSMALLINT) As SQLRETURN
+Public Declare PtrSafe Function SQLTablePrivilegesA Lib "odbc32.dll" (ByVal hstmt As SQLHSTMT, ByVal szCatalogName As SQLCHAR, ByVal cbCatalogName As SQLSMALLINT, ByVal szSchemaName As SQLCHAR, ByVal cbSchemaName As SQLSMALLINT, ByVal szTableName As SQLCHAR, ByVal cbTableName As SQLSMALLINT) As SQLRETURN
+Public Declare PtrSafe Function SQLDriversA Lib "odbc32.dll" (ByVal henv As SQLHENV, ByVal fDirection As SQLUSMALLINT, ByVal szDriverDesc As SQLCHAR, ByVal cbDriverDescMax As SQLSMALLINT, ByRef pcbDriverDesc As SQLSMALLINT, ByVal szDriverAttributes As SQLCHAR, ByVal cbDrvrAttrMax As SQLSMALLINT, ByRef pcbDrvrAttr As SQLSMALLINT) As SQLRETURN
+
+#If Win64 Then
+Public DeclareWide PtrSafe Function SQLColAttribute Lib "odbc32.dll" Alias "SQLColAttributeW" (ByVal hstmt As SQLHSTMT, ByVal iCol As SQLUSMALLINT, ByVal iField As SQLUSMALLINT, ByVal pCharAttr As SQLPOINTER, ByVal cbDescMax As SQLSMALLINT, ByRef pcbCharAttr As SQLSMALLINT, ByRef pNumAttr As SQLLEN) As SQLRETURN
+#Else
+Public DeclareWide PtrSafe Function SQLColAttribute Lib "odbc32.dll" Alias "SQLColAttributeW" (ByVal hstmt As SQLHSTMT, ByVal iCol As SQLUSMALLINT, ByVal iField As SQLUSMALLINT, ByVal pCharAttr As SQLPOINTER, ByVal cbDescMax As SQLSMALLINT, ByRef pcbCharAttr As SQLSMALLINT, ByVal pNumAttr As SQLPOINTER) As SQLRETURN
+#End If
+Public DeclareWide PtrSafe Function SQLColAttributes Lib "odbc32.dll" Alias "SQLColAttributesW" (ByVal hstmt As SQLHSTMT, ByVal icol As SQLUSMALLINT, ByVal fDescType As SQLUSMALLINT, ByVal rgbDesc As SQLPOINTER, ByVal cbDescMax As SQLSMALLINT, ByRef pcbDesc As SQLSMALLINT, ByRef pfDesc As SQLLEN) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLConnect Lib "odbc32.dll" Alias "SQLConnectW" (ByVal hdbc As SQLHDBC, ByVal szDSN As SQLWCHAR, ByVal cchDSN As SQLSMALLINT, ByVal szUID As SQLWCHAR, ByVal cchUID As SQLSMALLINT, ByVal szAuthStr As SQLWCHAR, ByVal cchAuthStr As SQLSMALLINT) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLDescribeCol Lib "odbc32.dll" Alias "SQLDescribeColW" (ByVal hstmt As SQLHSTMT, ByVal icol As SQLUSMALLINT, ByVal szColName As SQLWCHAR, ByVal cchColNameMax As SQLSMALLINT, ByRef pcchColName As SQLSMALLINT, ByRef pfSqlType As SQLSMALLINT, ByRef pcbColDef As SQLULEN, ByRef pibScale As SQLSMALLINT, ByRef pfNullable As SQLSMALLINT) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLError Lib "odbc32.dll" Alias "SQLErrorW" (ByVal henv As SQLHENV, ByVal hdbc As SQLHDBC, ByVal hstmt As SQLHSTMT, ByVal wszSqlState As SQLWCHAR, ByRef pfNativeError As SQLINTEGER, ByVal wszErrorMsg As SQLWCHAR, ByVal cchErrorMsgMax As SQLSMALLINT, ByRef pcchErrorMsg As SQLSMALLINT) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLExecDirect Lib "odbc32.dll" Alias "SQLExecDirectW" (ByVal hstmt As SQLHSTMT, ByVal szSqlStr As SQLWCHAR, ByVal TextLength As SQLINTEGER) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLGetConnectAttr Lib "odbc32.dll" Alias "SQLGetConnectAttrW" (ByVal hdbc As SQLHDBC, ByVal fAttribute As SQLINTEGER, ByVal rgbValue As SQLPOINTER, ByVal cbValueMax As SQLINTEGER, ByRef pcbValue As SQLINTEGER) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLGetCursorName Lib "odbc32.dll" Alias "SQLGetCursorNameW" (ByVal hstmt As SQLHSTMT, ByVal szCursor As SQLWCHAR, ByVal cchCursorMax As SQLSMALLINT, ByRef pcchCursor As SQLSMALLINT) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLSetDescField Lib "odbc32.dll" Alias "SQLSetDescFieldW" (ByVal DescriptorHandle As SQLHDESC, ByVal RecNumber As SQLSMALLINT, ByVal FieldIdentifier As SQLSMALLINT, ByVal Value As SQLPOINTER, ByVal BufferLength As SQLINTEGER) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLGetDescField Lib "odbc32.dll" Alias "SQLGetDescFieldW" (ByVal hdesc As SQLHDESC, ByVal iRecord As SQLSMALLINT, ByVal iField As SQLSMALLINT, ByVal rgbValue As SQLPOINTER, ByVal cbBufferLength As SQLINTEGER, ByRef StringLength As SQLINTEGER) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLGetDescRec Lib "odbc32.dll" Alias "SQLGetDescRecW" (ByVal hdesc As SQLHDESC, ByVal iRecord As SQLSMALLINT, ByVal szName As SQLWCHAR, ByVal cchNameMax As SQLSMALLINT, ByRef pcchName As SQLSMALLINT, ByRef pfType As SQLSMALLINT, ByRef pfSubType As SQLSMALLINT, ByRef pLength As SQLLEN, ByRef pPrecision As SQLSMALLINT, ByRef pScale As SQLSMALLINT, ByRef pNullable As SQLSMALLINT) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLGetDiagField Lib "odbc32.dll" Alias "SQLGetDiagFieldW" (ByVal fHandleType As SQLSMALLINT, ByVal handle As SQLHANDLE, ByVal iRecord As SQLSMALLINT, ByVal fDiagField As SQLSMALLINT, ByVal rgbDiagInfo As SQLPOINTER, ByVal cbBufferLength As SQLSMALLINT, ByRef pcbStringLength As SQLSMALLINT) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLGetDiagRec Lib "odbc32.dll" Alias "SQLGetDiagRecW" (ByVal fHandleType As SQLSMALLINT, ByVal handle As SQLHANDLE, ByVal iRecord As SQLSMALLINT, ByVal szSqlState As SQLWCHAR, ByRef pfNativeError As SQLINTEGER, ByVal szErrorMsg As SQLWCHAR, ByVal cchErrorMsgMax As SQLSMALLINT, ByRef pcchErrorMsg As SQLSMALLINT) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLPrepare Lib "odbc32.dll" Alias "SQLPrepareW" (ByVal hstmt As SQLHSTMT, ByVal szSqlStr As SQLWCHAR, ByVal cchSqlStr As SQLINTEGER) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLSetConnectAttr Lib "odbc32.dll" Alias "SQLSetConnectAttrW" (ByVal hdbc As SQLHDBC, ByVal fAttribute As SQLINTEGER, ByVal rgbValue As SQLPOINTER, ByVal cbValue As SQLINTEGER) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLSetCursorName Lib "odbc32.dll" Alias "SQLSetCursorNameW" (ByVal hstmt As SQLHSTMT, ByVal szCursor As SQLWCHAR, ByVal cchCursor As SQLSMALLINT) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLColumns Lib "odbc32.dll" Alias "SQLColumnsW" (ByVal hstmt As SQLHSTMT, ByVal szCatalogName As SQLWCHAR, ByVal cchCatalogName As SQLSMALLINT, ByVal szSchemaName As SQLWCHAR, ByVal cchSchemaName As SQLSMALLINT, ByVal szTableName As SQLWCHAR, ByVal cchTableName As SQLSMALLINT, ByVal szColumnName As SQLWCHAR, ByVal cchColumnName As SQLSMALLINT) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLGetConnectOption Lib "odbc32.dll" Alias "SQLGetConnectOptionW" (ByVal hdbc As SQLHDBC, ByVal fOption As SQLUSMALLINT, ByVal pvParam As SQLPOINTER) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLGetInfo Lib "odbc32.dll" Alias "SQLGetInfoW" (ByVal hdbc As SQLHDBC, ByVal fInfoType As SQLUSMALLINT, ByVal rgbInfoValue As SQLPOINTER, ByVal cbInfoValueMax As SQLSMALLINT, ByRef pcbInfoValue As SQLSMALLINT) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLGetTypeInfo Lib "odbc32.dll" Alias "SQLGetTypeInfoW" (ByVal StatementHandle As SQLHSTMT, ByVal DataType As SQLSMALLINT) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLSetConnectOption Lib "odbc32.dll" Alias "SQLSetConnectOptionW" (ByVal hdbc As SQLHDBC, ByVal fOption As SQLUSMALLINT, ByVal vParam As SQLULEN) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLSpecialColumns Lib "odbc32.dll" Alias "SQLSpecialColumnsW" (ByVal hstmt As SQLHSTMT, ByVal fColType As SQLUSMALLINT, ByVal szCatalogName As SQLWCHAR, ByVal cchCatalogName As SQLSMALLINT, ByVal szSchemaName As SQLWCHAR, ByVal cchSchemaName As SQLSMALLINT, ByVal szTableName As SQLWCHAR, ByVal cchTableName As SQLSMALLINT, ByVal fScope As SQLUSMALLINT, ByVal fNullable As SQLUSMALLINT) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLStatistics Lib "odbc32.dll" Alias "SQLStatisticsW" (ByVal hstmt As SQLHSTMT, ByVal szCatalogName As SQLWCHAR, ByVal cchCatalogName As SQLSMALLINT, ByVal szSchemaName As SQLWCHAR, ByVal cchSchemaName As SQLSMALLINT, ByVal szTableName As SQLWCHAR, ByVal cchTableName As SQLSMALLINT, ByVal fUnique As SQLUSMALLINT, ByVal fAccuracy As SQLUSMALLINT) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLTables Lib "odbc32.dll" Alias "SQLTablesW" (ByVal hstmt As SQLHSTMT, ByVal szCatalogName As SQLWCHAR, ByVal cchCatalogName As SQLSMALLINT, ByVal szSchemaName As SQLWCHAR, ByVal cchSchemaName As SQLSMALLINT, ByVal szTableName As SQLWCHAR, ByVal cchTableName As SQLSMALLINT, ByVal szTableType As SQLWCHAR, ByVal cchTableType As SQLSMALLINT) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLDataSources Lib "odbc32.dll" Alias "SQLDataSourcesW" (ByVal henv As SQLHENV, ByVal fDirection As SQLUSMALLINT, ByVal szDSN As SQLWCHAR, ByVal cchDSNMax As SQLSMALLINT, ByRef pcchDSN As SQLSMALLINT, ByVal wszDescription As SQLWCHAR, ByVal cchDescriptionMax As SQLSMALLINT, ByRef pcchDescription As SQLSMALLINT) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLDriverConnect Lib "odbc32.dll" Alias "SQLDriverConnectW" (ByVal hdbc As SQLHDBC, ByVal hwnd As SQLHWND, ByVal szConnStrIn As SQLWCHAR, ByVal cchConnStrIn As SQLSMALLINT, ByVal szConnStrOut As SQLWCHAR, ByVal cchConnStrOutMax As SQLSMALLINT, ByRef pcchConnStrOut As SQLSMALLINT, ByVal fDriverCompletion As SQLUSMALLINT) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLBrowseConnect Lib "odbc32.dll" Alias "SQLBrowseConnectW" (ByVal hdbc As SQLHDBC, ByVal szConnStrIn As SQLWCHAR, ByVal cchConnStrIn As SQLSMALLINT, ByVal szConnStrOut As SQLWCHAR, ByVal cchConnStrOutMax As SQLSMALLINT, ByRef pcchConnStrOut As SQLSMALLINT) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLColumnPrivileges Lib "odbc32.dll" Alias "SQLColumnPrivilegesW" (ByVal hstmt As SQLHSTMT, ByVal szCatalogName As SQLWCHAR, ByVal cchCatalogName As SQLSMALLINT, ByVal szSchemaName As SQLWCHAR, ByVal cchSchemaName As SQLSMALLINT, ByVal szTableName As SQLWCHAR, ByVal cchTableName As SQLSMALLINT, ByVal szColumnName As SQLWCHAR, ByVal cchColumnName As SQLSMALLINT) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLGetStmtAttr Lib "odbc32.dll" Alias "SQLGetStmtAttrW" (ByVal hstmt As SQLHSTMT, ByVal fAttribute As SQLINTEGER, ByVal rgbValue As SQLPOINTER, ByVal cbValueMax As SQLINTEGER, ByRef pcbValue As SQLINTEGER) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLSetStmtAttr Lib "odbc32.dll" Alias "SQLSetStmtAttrW" (ByVal hstmt As SQLHSTMT, ByVal fAttribute As SQLINTEGER, ByVal rgbValue As SQLPOINTER, ByVal cbValueMax As SQLINTEGER) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLForeignKeys Lib "odbc32.dll" Alias "SQLForeignKeysW" (ByVal hstmt As SQLHSTMT, ByVal szPkCatalogName As SQLWCHAR, ByVal cchPkCatalogName As SQLSMALLINT, ByVal szPkSchemaName As SQLWCHAR, ByVal cchPkSchemaName As SQLSMALLINT, ByVal szPkTableName As SQLWCHAR, ByVal cchPkTableName As SQLSMALLINT, ByVal szFkCatalogName As SQLWCHAR, ByVal cchFkCatalogName As SQLSMALLINT, ByVal szFkSchemaName As SQLWCHAR, ByVal cchFkSchemaName As SQLSMALLINT, ByVal szFkTableName As SQLWCHAR, ByVal cchFkTableName As SQLSMALLINT) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLNativeSql Lib "odbc32.dll" Alias "SQLNativeSqlW" (ByVal hdbc As SQLHDBC, ByVal szSqlStrIn As SQLWCHAR, ByVal cchSqlStrIn As SQLINTEGER, ByVal szSqlStr As SQLWCHAR, ByVal cchSqlStrMax As SQLINTEGER, ByRef pcchSqlStr As SQLINTEGER) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLPrimaryKeys Lib "odbc32.dll" Alias "SQLPrimaryKeysW" (ByVal hstmt As SQLHSTMT, ByVal szCatalogName As SQLWCHAR, ByVal cchCatalogName As SQLSMALLINT, ByVal szSchemaName As SQLWCHAR, ByVal cchSchemaName As SQLSMALLINT, ByVal szTableName As SQLWCHAR, ByVal cchTableName As SQLSMALLINT) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLProcedureColumns Lib "odbc32.dll" Alias "SQLProcedureColumnsW" (ByVal hstmt As SQLHSTMT, ByVal szCatalogName As SQLWCHAR, ByVal cchCatalogName As SQLSMALLINT, ByVal szSchemaName As SQLWCHAR, ByVal cchSchemaName As SQLSMALLINT, ByVal szProcName As SQLWCHAR, ByVal cchProcName As SQLSMALLINT, ByVal szColumnName As SQLWCHAR, ByVal cchColumnName As SQLSMALLINT) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLProcedures Lib "odbc32.dll" Alias "SQLProceduresW" (ByVal hstmt As SQLHSTMT, ByVal szCatalogName As SQLWCHAR, ByVal cchCatalogName As SQLSMALLINT, ByVal szSchemaName As SQLWCHAR, ByVal cchSchemaName As SQLSMALLINT, ByVal szProcName As SQLWCHAR, ByVal cchProcName As SQLSMALLINT) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLTablePrivileges Lib "odbc32.dll" Alias "SQLTablePrivilegesW" (ByVal hstmt As SQLHSTMT, ByVal szCatalogName As SQLWCHAR, ByVal cchCatalogName As SQLSMALLINT, ByVal szSchemaName As SQLWCHAR, ByVal cchSchemaName As SQLSMALLINT, ByVal szTableName As SQLWCHAR, ByVal cchTableName As SQLSMALLINT) As SQLRETURN
+Public DeclareWide PtrSafe Function SQLDrivers Lib "odbc32.dll" Alias "SQLDriversW" (ByVal henv As SQLHENV, ByVal fDirection As SQLUSMALLINT, ByVal szDriverDesc As SQLWCHAR, ByVal cchDriverDescMax As SQLSMALLINT, ByRef pcchDriverDesc As SQLSMALLINT, ByVal szDriverAttributes As SQLWCHAR, ByVal cchDrvrAttrMax As SQLSMALLINT, ByRef pcchDrvrAttr As SQLSMALLINT) As SQLRETURN
+
+
+
+
+
+
+#End Region
+
+
+End Module
