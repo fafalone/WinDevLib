@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 9.2.656 (February 25th, 2026)**
+**Current Version: 9.2.658 (February 28th, 2026)**
 
 (c) 2022-2026 Jon Johnson (fafalone)
 
@@ -238,6 +238,13 @@ Finally, there's numerous additional API sets from small to large for independen
 
 
 ### Updates
+
+**Update (v9.2.658, 28 Feb 2026):** 
+- Add additional SQL APIs from odbcinst.h (100%)  
+   Includes custom ANSI versions; the entry points for them are the unmarked versions remapped to Unicode,
+   so custom versions with -A suffixes are aliased to them instead.
+- (Bug fix) SECURITY_TRUSTED_INSTALLER_RID2/5 were specified as decimal literals but were above the signed
+ long limit, so would overflow when assigned to a Long as done in typical usage. Changed to hex literals.
 
 **Update (v9.2.656, 25 Feb 2026):** 
 - Add initial coverage of odbc32.dll SQL APIs; sqltypes.h, sql.h, sqlext.h, sqlucode.h 100%  
