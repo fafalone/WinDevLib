@@ -1,5 +1,7 @@
 
-**Update (v9.2.659, 28 Feb 2026):** 
+**Update (v9.2.660, 01 Mar 2026):** 
+- Misc Native API additions
+- Additional error constants
 - (Bug fix) IMediaEvent::GetEvent lParams should be ByRef
 
 **Update (v9.2.658, 28 Feb 2026):** 
