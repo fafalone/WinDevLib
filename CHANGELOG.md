@@ -1,4 +1,7 @@
-  
+
+**Update (v9.2.659, 28 Feb 2026):** 
+- (Bug fix) IMediaEvent::GetEvent lParams should be ByRef
+
 **Update (v9.2.658, 28 Feb 2026):** 
 - Add additional SQL APIs from odbcinst.h (100%)  
    Includes custom ANSI versions; the entry points for them are the unmarked versions remapped to Unicode,
