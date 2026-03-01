@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 9.2.658 (February 28th, 2026)**
+**Current Version: 9.2.659 (March 1st, 2026)**
 
 (c) 2022-2026 Jon Johnson (fafalone)
 
@@ -238,6 +238,9 @@ Finally, there's numerous additional API sets from small to large for independen
 
 
 ### Updates
+
+**Update (v9.2.659, 01 Mar 2026):** 
+- (Bug fix) IMediaEvent::GetEvent lParams should be ByRef
 
 **Update (v9.2.658, 28 Feb 2026):** 
 - Add additional SQL APIs from odbcinst.h (100%)  
