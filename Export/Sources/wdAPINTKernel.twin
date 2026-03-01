@@ -1730,11 +1730,31 @@ Public Type SLIST_ENTRY
     Next As LongLong
     pad As LongLong
 End Type
+' typedef union DECLSPEC_ALIGN(16) _SLIST_HEADER {
+' struct {  // original struct
+    ' ULONGLONG Alignment;
+    ' ULONGLONG Region;
+' } DUMMYSTRUCTNAME;
+' struct {  // x64 16-byte header
+    ' ULONGLONG Depth:16;
+    ' ULONGLONG Sequence:48;
+    ' ULONGLONG Reserved:4;
+    ' ULONGLONG NextEntry:60; // last 4 bits are always 0's
+' } HeaderX64;
+' } SLIST_HEADER, *PSLIST_HEADER;
 Public Type SLIST_HEADER
     HeaderX64 As LongLong
     Alignment As LongLong
 End Type
 #Else
+' typedef union _SLIST_HEADER {
+' ULONGLONG Alignment;
+' struct {
+    ' SLIST_ENTRY Next;
+    ' WORD   Depth;
+    ' WORD   CpuId;
+' } DUMMYSTRUCTNAME;
+' } SLIST_HEADER, *PSLIST_HEADER;    
 Public Type SLIST_ENTRY
     Next As Long
 End Type
@@ -24120,7 +24140,7 @@ Public Type RTL_HEAP_WALK_ENTRY
     __pad As Long
     BlockOrSegment(5) As Long
     #Else
-    BlockOrSegment(3) As Long   
+    BlockOrSegment(3) As Long
     #End If
 End Type
 
@@ -24339,6 +24359,7 @@ Public DeclareWide PtrSafe Function RtlFlushNonVolatileMemoryRanges Lib "ntdll" 
 [UseGetLastError(False)] Public DeclareWide PtrSafe Function RtlSidDominatesForTrust Lib "ntdll" (ByVal Sid1 As LongPtr, ByVal Sid2 As LongPtr, DominatesTrust As CBoolean) As NTSTATUS
 [UseGetLastError(False)] Public DeclareWide PtrSafe Function RtlSidEqualLevel Lib "ntdll" (ByVal Sid1 As LongPtr, ByVal Sid2 As LongPtr, EqualLevel As CBoolean) As NTSTATUS
 [UseGetLastError(False)] Public DeclareWide PtrSafe Function RtlSidIsHigherLevel Lib "ntdll" (ByVal Sid1 As LongPtr, ByVal Sid2 As LongPtr, HigherLevel As CBoolean) As NTSTATUS
+[UseGetLastError(False)] Public DeclareWide PtrSafe Function RtlIsCapabilitySid Lib "ntdll" (ByVal Sid As LongPtr) As CBoolean
 [UseGetLastError(False)] Public DeclareWide PtrSafe Function RtlImpersonateSelf Lib "ntdll" (ByVal ImpersonationLevel As SECURITY_IMPERSONATION_LEVEL) As NTSTATUS
 [UseGetLastError(False)] Public DeclareWide PtrSafe Function RtlImpersonateSelfEx Lib "ntdll" (ByVal ImpersonationLevel As SECURITY_IMPERSONATION_LEVEL, ByVal AdditionalAccess As TokenAccessRights, Optional ThreadToken As LongPtr) As NTSTATUS
 [UseGetLastError(False)] Public DeclareWide PtrSafe Function RtlDeriveCapabilitySidsFromName Lib "ntdll" (UnicodeString As UNICODE_STRING, ByVal CapabilityGroupSid As LongPtr, ByVal CapabilitySid As LongPtr) As NTSTATUS
@@ -24365,6 +24386,147 @@ Public Type RTL_ACE_DATA
 End Type
 [UseGetLastError(False)] Public DeclareWide PtrSafe Function RtlCreateUserSecurityObject Lib "ntdll" (AceData As RTL_ACE_DATA, ByVal AceCount As Long, ByVal OwnerSid As LongPtr, ByVal GroupSid As LongPtr, ByVal IsDirectoryObject As Byte, GenericMapping As GENERIC_MAPPING, NewSecurityDescriptor As LongPtr) As NTSTATUS
 [UseGetLastError(False)] Public DeclareWide PtrSafe Function RtlCreateAndSetSD Lib "ntdll" (AceData As RTL_ACE_DATA, ByVal AceCount As Long, ByVal OwnerSid As LongPtr, ByVal GroupSid As LongPtr, NewSecurityDescriptor As LongPtr) As NTSTATUS
+
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlCheckTokenMembership Lib "ntdll" (ByVal TokenHandle As LongPtr, ByVal SidToCheck As LongPtr, IsMember As CBoolean) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlCheckTokenMembershipEx Lib "ntdll" (ByVal TokenHandle As LongPtr, ByVal SidToCheck As LongPtr, ByVal Flags As CheckTokenMembershipExFlags, IsMember As CBoolean) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlCapabilityCheck Lib "ntdll" (ByVal TokenHandle As LongPtr, CapabilityName As UNICODE_STRING, HasCapability As CBoolean) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlCheckTokenCapability Lib "ntdll" (ByVal TokenHandle As LongPtr, ByVal CapabilitySidToCheck As LongPtr, HasCapability As CBoolean) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlQueryTokenHostIdAsUlong64 Lib "ntdll" (ByVal TokenHandle As LongPtr, HostId As LongLong) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlGetTokenNamedObjectPath Lib "ntdll" (ByVal TokenHandle As LongPtr, ByVal Sid As LongPtr, ObjectPath As UNICODE_STRING) As NTSTATUS
+
+
+Public Enum IMAGE_MITIGATION_POLICY
+    ImageDepPolicy ' RTL_IMAGE_MITIGATION_DEP_POLICY
+    ImageAslrPolicy ' RTL_IMAGE_MITIGATION_ASLR_POLICY
+    ImageDynamicCodePolicy ' RTL_IMAGE_MITIGATION_DYNAMIC_CODE_POLICY
+    ImageStrictHandleCheckPolicy ' RTL_IMAGE_MITIGATION_STRICT_HANDLE_CHECK_POLICY
+    ImageSystemCallDisablePolicy ' RTL_IMAGE_MITIGATION_SYSTEM_CALL_DISABLE_POLICY
+    ImageMitigationOptionsMask
+    ImageExtensionPointDisablePolicy ' RTL_IMAGE_MITIGATION_EXTENSION_POINT_DISABLE_POLICY
+    ImageControlFlowGuardPolicy ' RTL_IMAGE_MITIGATION_CONTROL_FLOW_GUARD_POLICY
+    ImageSignaturePolicy ' RTL_IMAGE_MITIGATION_BINARY_SIGNATURE_POLICY
+    ImageFontDisablePolicy ' RTL_IMAGE_MITIGATION_FONT_DISABLE_POLICY
+    ImageImageLoadPolicy ' RTL_IMAGE_MITIGATION_IMAGE_LOAD_POLICY
+    ImagePayloadRestrictionPolicy ' RTL_IMAGE_MITIGATION_PAYLOAD_RESTRICTION_POLICY
+    ImageChildProcessPolicy ' RTL_IMAGE_MITIGATION_CHILD_PROCESS_POLICY
+    ImageSehopPolicy ' RTL_IMAGE_MITIGATION_SEHOP_POLICY
+    ImageHeapPolicy ' RTL_IMAGE_MITIGATION_HEAP_POLICY
+    ImageUserShadowStackPolicy ' RTL_IMAGE_MITIGATION_USER_SHADOW_STACK_POLICY
+    ImageRedirectionTrustPolicy ' RTL_IMAGE_MITIGATION_REDIRECTION_TRUST_POLICY
+    ImageUserPointerAuthPolicy ' RTL_IMAGE_MITIGATION_USER_POINTER_AUTH_POLICY
+    MaxImageMitigationPolicy
+End Enum
+
+' typedef union _RTL_IMAGE_MITIGATION_POLICY
+' {
+    ' struct
+    ' {
+        ' ULONG64 AuditState : 2;
+        ' ULONG64 AuditFlag : 1;
+        ' ULONG64 EnableAdditionalAuditingOption : 1;
+        ' ULONG64 Reserved : 60;
+    ' };
+    ' struct
+    ' {
+        ' ULONG64 PolicyState : 2;
+        ' ULONG64 AlwaysInherit : 1;
+        ' ULONG64 EnableAdditionalPolicyOption : 1;
+        ' ULONG64 AuditReserved : 60;
+    ' };
+' } RTL_IMAGE_MITIGATION_POLICY, *PRTL_IMAGE_MITIGATION_POLICY;
+Public Type RTL_IMAGE_MITIGATION_POLICY
+    Bitfield As LongLong
+End Type
+
+Public Type RTL_IMAGE_MITIGATION_DEP_POLICY
+    Dep As RTL_IMAGE_MITIGATION_POLICY
+End Type
+Public Type RTL_IMAGE_MITIGATION_ASLR_POLICY
+    ForceRelocateImages As RTL_IMAGE_MITIGATION_POLICY
+    BottomUpRandomization As RTL_IMAGE_MITIGATION_POLICY
+    HighEntropyRandomization As RTL_IMAGE_MITIGATION_POLICY
+End Type
+Public Type RTL_IMAGE_MITIGATION_DYNAMIC_CODE_POLICY
+    BlockDynamicCode As RTL_IMAGE_MITIGATION_POLICY
+End Type
+Public Type RTL_IMAGE_MITIGATION_STRICT_HANDLE_CHECK_POLICY
+    StrictHandleChecks As RTL_IMAGE_MITIGATION_POLICY
+End Type
+Public Type RTL_IMAGE_MITIGATION_SYSTEM_CALL_DISABLE_POLICY
+    BlockWin32kSystemCalls As RTL_IMAGE_MITIGATION_POLICY
+End Type
+Public Type RTL_IMAGE_MITIGATION_EXTENSION_POINT_DISABLE_POLICY
+    DisableExtensionPoints As RTL_IMAGE_MITIGATION_POLICY
+End Type
+Public Type RTL_IMAGE_MITIGATION_CONTROL_FLOW_GUARD_POLICY
+    ControlFlowGuard As RTL_IMAGE_MITIGATION_POLICY
+    StrictControlFlowGuard As RTL_IMAGE_MITIGATION_POLICY
+End Type
+Public Type RTL_IMAGE_MITIGATION_BINARY_SIGNATURE_POLICY
+    BlockNonMicrosoftSignedBinaries As RTL_IMAGE_MITIGATION_POLICY
+    EnforceSigningOnModuleDependencies As RTL_IMAGE_MITIGATION_POLICY
+End Type
+Public Type RTL_IMAGE_MITIGATION_FONT_DISABLE_POLICY
+    DisableNonSystemFonts As RTL_IMAGE_MITIGATION_POLICY
+End Type
+Public Type RTL_IMAGE_MITIGATION_IMAGE_LOAD_POLICY
+    BlockRemoteImageLoads As RTL_IMAGE_MITIGATION_POLICY
+    BlockLowLabelImageLoads As RTL_IMAGE_MITIGATION_POLICY
+    PreferSystem32 As RTL_IMAGE_MITIGATION_POLICY
+End Type
+Public Type RTL_IMAGE_MITIGATION_PAYLOAD_RESTRICTION_POLICY
+    EnableExportAddressFilter As RTL_IMAGE_MITIGATION_POLICY
+    EnableExportAddressFilterPlus As RTL_IMAGE_MITIGATION_POLICY
+    EnableImportAddressFilter As RTL_IMAGE_MITIGATION_POLICY
+    EnableRopStackPivot As RTL_IMAGE_MITIGATION_POLICY
+    EnableRopCallerCheck As RTL_IMAGE_MITIGATION_POLICY
+    EnableRopSimExec As RTL_IMAGE_MITIGATION_POLICY
+    EafPlusModuleList(0 To 511) As Integer ' 19H1
+End Type
+Public Type RTL_IMAGE_MITIGATION_CHILD_PROCESS_POLICY
+    DisallowChildProcessCreation As RTL_IMAGE_MITIGATION_POLICY
+End Type
+Public Type RTL_IMAGE_MITIGATION_SEHOP_POLICY
+    Sehop As RTL_IMAGE_MITIGATION_POLICY
+End Type
+Public Type RTL_IMAGE_MITIGATION_HEAP_POLICY
+    TerminateOnHeapErrors As RTL_IMAGE_MITIGATION_POLICY
+End Type
+Public Type RTL_IMAGE_MITIGATION_USER_SHADOW_STACK_POLICY
+    UserShadowStack As RTL_IMAGE_MITIGATION_POLICY
+    SetContextIpValidation As RTL_IMAGE_MITIGATION_POLICY
+    BlockNonCetBinaries As RTL_IMAGE_MITIGATION_POLICY
+End Type
+Public Type RTL_IMAGE_MITIGATION_REDIRECTION_TRUST_POLICY
+    BlockUntrustedRedirections As RTL_IMAGE_MITIGATION_POLICY
+End Type
+Public Type RTL_IMAGE_MITIGATION_USER_POINTER_AUTH_POLICY
+    PointerAuthUserIp As RTL_IMAGE_MITIGATION_POLICY
+End Type
+Public Enum RTL_IMAGE_MITIGATION_OPTION_STATE
+    RtlMitigationOptionStateNotConfigured
+    RtlMitigationOptionStateOn
+    RtlMitigationOptionStateOff
+    RtlMitigationOptionStateForce
+    RtlMitigationOptionStateOption
+End Enum
+
+Public Const RTL_IMAGE_MITIGATION_OPTION_STATEMASK  = 3
+Public Const RTL_IMAGE_MITIGATION_OPTION_FORCEMASK  = 4
+Public Const RTL_IMAGE_MITIGATION_OPTION_OPTIONMASK  = 8
+
+Public Enum RtlImgMitigationFlags
+    RTL_IMAGE_MITIGATION_FLAG_RESET = &H1
+    RTL_IMAGE_MITIGATION_FLAG_REMOVE = &H2
+    RTL_IMAGE_MITIGATION_FLAG_OSDEFAULT = &H4
+    RTL_IMAGE_MITIGATION_FLAG_AUDIT = &H8
+End Enum
+
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlQueryImageMitigationPolicy Lib "ntdll" (ByVal ImagePath As LongPtr, ByVal Policy As IMAGE_MITIGATION_POLICY, ByVal Flags As RtlImgMitigationFlags, Buffer As Any, ByVal BufferSize As Long) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlSetImageMitigationPolicy Lib "ntdll" (ByVal ImagePath As LongPtr, ByVal Policy As IMAGE_MITIGATION_POLICY, ByVal Flags As RtlImgMitigationFlags, Buffer As Any, ByVal BufferSize As Long) As NTSTATUS
+
+
+Public Declare PtrSafe Function RtlGetCurrentServiceSessionId Lib "ntdll" () As Long
 
 Public DeclareWide PtrSafe Sub RtlRunEncodeUnicodeString Lib "ntdll" (Seed As Byte, pString As UNICODE_STRING)
 Public DeclareWide PtrSafe Sub RtlRunDecodeUnicodeString Lib "ntdll" (ByVal Seed As Byte, pString As UNICODE_STRING)
@@ -25013,6 +25175,12 @@ Public DeclareWide PtrSafe Function RtlQueryFeatureConfigurationChangeStamp Lib 
 [UseGetLastError(False)] Public DeclareWide PtrSafe Function RtlOverwriteFeatureConfigurationBuffer Lib "ntdll" (PreviousChangeStamp As LongLong, ByVal ConfigurationType As RTL_FEATURE_CONFIGURATION_TYPE, ConfigurationBuffer As Any, ByVal ConfigurationBufferSize As Long) As NTSTATUS
 [UseGetLastError(False)] Public DeclareWide PtrSafe Function RtlNotifyFeatureToggleUsage Lib "ntdll" (FeatureUsageReport As RTL_FEATURE_USAGE_REPORT, ByVal FeatureId As Long, ByVal Flags As Long) As NTSTATUS
 Public DeclareWide PtrSafe Function RtlGetFeatureTogglesChangeToken Lib "ntdll" () As Long
+
+Public Enum OS_DEPLOYEMENT_STATE_VALUES
+OS_DEPLOYMENT_STANDARD = 1
+OS_DEPLOYMENT_COMPACT
+End Enum
+Public Declare PtrSafe Function RtlOsDeploymentState Lib "ntdll" (ByVal Flags As Long) As OS_DEPLOYEMENT_STATE_VALUES
 
 Public DeclareWide PtrSafe Function RtlCreateQueryDebugBuffer Lib "ntdll" (ByVal MaximumCommit As Long, ByVal UseEventPair As CBoolean) As LongPtr 'PRTL_DEBUG_INFORMATION
 [UseGetLastError(False)] Public DeclareWide PtrSafe Function RtlDestroyQueryDebugBuffer Lib "ntdll" (ByVal Buffer As LongPtr) As NTSTATUS
