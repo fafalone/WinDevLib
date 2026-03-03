@@ -234,7 +234,7 @@ I've included the definitions, associated types, and associated constants, for e
 Limited coverage (or full coverage of very small sets) is provided for ntdll.dll, version.dll, msimg32.dll, fwpuclnt.dll, sxs.dll, secur32.dll, msacm32.dll, url.dll, htmlhelp.dll, avifil32.dll, and ws2_32.dll. If you feel any missing ones from these should be included, or would like to contribute more, let me know.\
 Finally, there's numerous additional API sets from small to large for independent Windows features. These include small sets like restartmgr.dll through very large sets like the various Media Foundation and DirectX DLLs. In the future I'll better organize coverage lists, but the bottom line is let me know if any common APIs or built in API sets for components should be added. TODO.md in the WDL project files contains ones planned but not yet done.
 
-**Future coverage:** In the future I'm planning to expand native APIs, complete legacy DirectX coverage, and more. I welcome contributions of any of these. If you've done the consts->enums conversions already, I'd even take 32bit-only versions. See CONTRIBUTING.MD for more information on that;
+**Future coverage:** In the future I'm planning to expand native APIs, complete legacy DirectX coverage, and more. I welcome contributions of any of these. See CONTRIBUTING.MD for more information on that;
 
 
 ### Updates
