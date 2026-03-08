@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 9.2.660 (March 1st, 2026)**
+**Current Version: 9.2.662 (March 8th, 2026)**
 
 (c) 2022-2026 Jon Johnson (fafalone)
 
@@ -238,6 +238,19 @@ Finally, there's numerous additional API sets from small to large for independen
 
 
 ### Updates
+
+**Update (v9.2.662, 08 Mar 2026):** 
+- Add minidumpapiset.h (100% inc delegates, inlines, and aliases)
+- (Breaking change) WinHttpCrackUrl/WinHttpCreateUrl now use an alternate UDT, WINHTTP_URL_COMPONENTS, since
+ it uses alternate values for the nScheme member. The SDK has these two definitions in direct conflict.
+- (Breaking change) The WCHARtoSTR helper function now has two Optional arguments:  
+bStopOnNull - Ends the string if a null character is encountered. This is True by default, where previously the
+string would be continued and null characters simply ignored.  
+bFilterNull - Sets whether to include null characters in the destination string. This is False by default, where previously
+null characters would be ignored. This optional only applies if bStopOnNull is False.
+- Misc API additions
+- (Bug fix) INSTALLDATA missing union substitution padding on x64.
+- (Bug fix) SetCurrentProcessExplicitAppUserModelID String overload missing DeclareWide.
 
 **Update (v9.2.660, 01 Mar 2026):** 
 - Misc Native API additions
