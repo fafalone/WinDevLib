@@ -5995,6 +5995,38 @@ Public Type PSAPI_WORKING_SET_BLOCK
 '     };
 '   } PSAPI_WORKING_SET_BLOCK, *PPSAPI_WORKING_SET_BLOCK;
 End Type
+
+' typedef union _PSAPI_WORKING_SET_EX_BLOCK {
+' ULONG_PTR Flags;
+' union {
+    ' struct {
+        ' ULONG_PTR Valid : 1;
+        ' ULONG_PTR ShareCount : 3;
+        ' ULONG_PTR Win32Protection : 11;
+        ' ULONG_PTR Shared : 1;
+        ' ULONG_PTR Node : 6;
+        ' ULONG_PTR Locked : 1;
+        ' ULONG_PTR LargePage : 1;
+        ' ULONG_PTR Reserved : 7;
+        ' ULONG_PTR Bad : 1;
+
+' #if defined(_WIN64)
+        ' ULONG_PTR ReservedUlong : 32;
+' #endif
+    ' };
+    ' struct {
+        ' ULONG_PTR Valid : 1;            // Valid = 0 in this format.
+        ' ULONG_PTR Reserved0 : 14;
+        ' ULONG_PTR Shared : 1;
+        ' ULONG_PTR Reserved1 : 15;
+        ' ULONG_PTR Bad : 1;
+
+' #if defined(_WIN64)
+        ' ULONG_PTR ReservedUlong : 32;
+' #endif
+    ' } Invalid;
+' };
+' } PSAPI_WORKING_SET_EX_BLOCK, *PPSAPI_WORKING_SET_EX_BLOCK;
 Public Type PSAPI_WORKING_SET_EX_BLOCK
     Flags As LongPtr
 End Type
@@ -8022,6 +8054,7 @@ Public Declare PtrSafe Function VerifyVersionInfoW Lib "kernel32" (lpVersionInfo
 Public DeclareWide PtrSafe Function VerifyVersionInfo Lib "kernel32" Alias "VerifyVersionInfoW" (lpVersionInformation As OSVERSIONINFOEX, ByVal TypeMask As VersionTypeMask, ByVal dwlConditionMask As LongLong) As BOOL
 Public Declare PtrSafe Function GetProcessorSystemCycleTime Lib "kernel32" (ByVal Group As Integer, Buffer As SYSTEM_PROCESSOR_CYCLE_TIME_INFORMATION) As BOOL
 Public Declare PtrSafe Function GetPerformanceInfo Lib "psapi.dll" (pPerformanceInformation As PERFORMANCE_INFORMATION, ByVal cb As Long) As BOOL
+Public Declare PtrSafe Function K32GetPerformanceInfo Lib "kernel32" (pPerformanceInformation As PERFORMANCE_INFORMATION, ByVal cb As Long) As BOOL
 Public Declare PtrSafe Function GetIntegratedDisplaySize Lib "kernelbase" (sizeInInches As Double) As Long
 Public Declare PtrSafe Function GetOsManufacturingMode Lib "kernelbase" (pbEnabled As BOOL) As BOOL
 Public Declare PtrSafe Function GetSystemWindowsDirectoryA Lib "kernel32" (ByVal lpBuffer As String, ByVal uSize As Long) As Long
@@ -9002,8 +9035,13 @@ Public DeclareWide PtrSafe Function GetProcessMemoryInfo Lib "psapi" (ByVal hPro
 Public Declare PtrSafe Function InitializeProcessForWsWatch Lib "psapi" (ByVal hProcess As LongPtr) As BOOL
 Public Declare PtrSafe Function GetWsChanges Lib "psapi" (ByVal hProcess As LongPtr, lpWatchInfo As PSAPI_WS_WATCH_INFORMATION, ByVal cb As Long) As BOOL
 Public Declare PtrSafe Function GetWsChangesEx Lib "psapi" (ByVal hProcess As LongPtr, lpWatchInfo As PSAPI_WS_WATCH_INFORMATION_EX, cb As Long) As BOOL
+Public Declare PtrSafe Function K32InitializeProcessForWsWatch Lib "kernel32" (ByVal hProcess As LongPtr) As BOOL
+Public Declare PtrSafe Function K32GetWsChanges Lib "kernel32" (ByVal hProcess As LongPtr, lpWatchInfo As PSAPI_WS_WATCH_INFORMATION, ByVal cb As Long) As BOOL
+Public Declare PtrSafe Function K32GetWsChangesEx Lib "kernel32" (ByVal hProcess As LongPtr, lpWatchInfo As PSAPI_WS_WATCH_INFORMATION_EX, cb As Long) As BOOL
 Public DeclareWide PtrSafe Function QueryWorkingSet Lib "psapi" (ByVal hProcess As LongPtr, pv As Any, ByVal cb As Long) As BOOL
 Public DeclareWide PtrSafe Function QueryWorkingSetEx Lib "psapi" (ByVal hProcess As LongPtr, pv As Any, ByVal cb As Long) As BOOL
+Public DeclareWide PtrSafe Function K32QueryWorkingSet Lib "kernel32" (ByVal hProcess As LongPtr, pv As Any, ByVal cb As Long) As BOOL
+Public DeclareWide PtrSafe Function K32QueryWorkingSetEx Lib "kernel32" (ByVal hProcess As LongPtr, pv As Any, ByVal cb As Long) As BOOL
 Public Declare PtrSafe Function GetLargePageMinimum Lib "kernel32" () As LongPtr
 Public Declare PtrSafe Function GetProcessWorkingSetSize Lib "kernel32" (ByVal hProcess As LongPtr, lpMinimumWorkingSetSize As LongPtr, lpMaximumWorkingSetSize As LongPtr) As BOOL
 Public Declare PtrSafe Function GetProcessWorkingSetSizeEx Lib "kernel32" (ByVal hProcess As LongPtr, lpMinimumWorkingSetSize As LongPtr, lpMaximumWorkingSetSize As LongPtr, Flags As QUOTA_LIMITS_FLAGS) As BOOL
@@ -9210,26 +9248,69 @@ Public DeclareWide PtrSafe Function GetModuleFileName Lib "kernel32" Alias "GetM
 Public Declare PtrSafe Function GetModuleFileNameExA Lib "psapi" (ByVal hProcess As LongPtr, ByVal hModule As LongPtr, ByVal lpFileName As String, ByVal nSize As Long) As Long
 Public Declare PtrSafe Function GetModuleFileNameExW Lib "psapi" (ByVal hProcess As LongPtr, ByVal hModule As LongPtr, ByVal lpFileName As LongPtr, ByVal nSize As Long) As Long
 Public DeclareWide PtrSafe Function GetModuleFileNameEx Lib "psapi" Alias "GetModuleFileNameExW" (ByVal hProcess As LongPtr, ByVal hModule As LongPtr, ByVal lpFileName As String, ByVal nSize As Long) As Long
+Public Declare PtrSafe Function K32GetModuleFileNameExA Lib "kernel32" (ByVal hProcess As LongPtr, ByVal hModule As LongPtr, ByVal lpFileName As String, ByVal nSize As Long) As Long
+Public Declare PtrSafe Function K32GetModuleFileNameExW Lib "kernel32" (ByVal hProcess As LongPtr, ByVal hModule As LongPtr, ByVal lpFileName As LongPtr, ByVal nSize As Long) As Long
+Public DeclareWide PtrSafe Function K32GetModuleFileNameEx Lib "kernel32" Alias "K32GetModuleFileNameExW" (ByVal hProcess As LongPtr, ByVal hModule As LongPtr, ByVal lpFileName As String, ByVal nSize As Long) As Long
 Public Declare PtrSafe Function GetProcessImageFileNameA Lib "psapi" (ByVal hProcess As LongPtr, ByVal lpImageFileName As String, ByVal nSize As Long) As Long
 Public Declare PtrSafe Function GetProcessImageFileNameW Lib "psapi" (ByVal hProcess As LongPtr, ByVal lpImageFileName As LongPtr, ByVal nSize As Long) As Long
 Public DeclareWide PtrSafe Function GetProcessImageFileName Lib "psapi" Alias "GetProcessImageFileNameW" (ByVal hProcess As LongPtr, ByVal lpImageFileName As String, ByVal nSize As Long) As Long
+Public Declare PtrSafe Function K32GetProcessImageFileNameA Lib "kernel32" (ByVal hProcess As LongPtr, ByVal lpImageFileName As String, ByVal nSize As Long) As Long
+Public Declare PtrSafe Function K32GetProcessImageFileNameW Lib "kernel32" (ByVal hProcess As LongPtr, ByVal lpImageFileName As LongPtr, ByVal nSize As Long) As Long
+Public DeclareWide PtrSafe Function K32GetProcessImageFileName Lib "kernel32" Alias "K32GetProcessImageFileNameW" (ByVal hProcess As LongPtr, ByVal lpImageFileName As String, ByVal nSize As Long) As Long
 Public Declare PtrSafe Function EnumProcesses Lib "psapi" (lpidProcess As Long, ByVal cb As Long, lpcbNeeded As Long) As BOOL
+Public Declare PtrSafe Function K32EnumProcesses Lib "kernel32" (lpidProcess As Long, ByVal cb As Long, lpcbNeeded As Long) As BOOL
 Public Declare PtrSafe Function EnumProcessModules Lib "psapi" (ByVal hProcess As LongPtr, lphModule As LongPtr, ByVal cb As Long, lpcbNeeded As Long) As BOOL
 Public Declare PtrSafe Function EnumProcessModulesEx Lib "psapi" (ByVal hProcess As LongPtr, lphModule As LongPtr, ByVal cb As Long, lpcbNeeded As Long, ByVal dwFilterFlag As EnumModulesFlags) As BOOL
+Public Declare PtrSafe Function K32EnumProcessModules Lib "kernel32" (ByVal hProcess As LongPtr, lphModule As LongPtr, ByVal cb As Long, lpcbNeeded As Long) As BOOL
+Public Declare PtrSafe Function K32EnumProcessModulesEx Lib "kernel32" (ByVal hProcess As LongPtr, lphModule As LongPtr, ByVal cb As Long, lpcbNeeded As Long, ByVal dwFilterFlag As EnumModulesFlags) As BOOL
+Public Delegate Function ENUM_PAGE_FILE_CALLBACKA (ByVal pContext As LongPtr, pPageFileInfo As ENUM_PAGE_FILE_INFORMATION, ByVal lpFilename As LongPtr) As BOOL
+Public Delegate Function ENUM_PAGE_FILE_CALLBACKW (ByVal pContext As LongPtr, pPageFileInfo As ENUM_PAGE_FILE_INFORMATION, ByVal lpFilename As LongPtr) As BOOL
+Public Delegate Function ENUM_PAGE_FILE_CALLBACK (ByVal pContext As LongPtr, pPageFileInfo As ENUM_PAGE_FILE_INFORMATION, ByVal lpFilename As LongPtr) As BOOL
+' #If WDL_NO_DELEGATES Then
 Public Declare PtrSafe Function EnumPageFilesA Lib "psapi" (ByVal pCallbackRoutine As LongPtr, pContext As Any) As BOOL
 Public DeclareWide PtrSafe Function EnumPageFilesW Lib "psapi" (ByVal pCallbackRoutine As LongPtr, pContext As Any) As BOOL
 Public DeclareWide PtrSafe Function EnumPageFiles Lib "psapi" Alias "EnumPageFilesW" (ByVal pCallbackRoutine As LongPtr, pContext As Any) As BOOL
+Public Declare PtrSafe Function K32EnumPageFilesA Lib "kernel32" (ByVal pCallbackRoutine As LongPtr, pContext As Any) As BOOL
+Public DeclareWide PtrSafe Function K32EnumPageFilesW Lib "kernel32" (ByVal pCallbackRoutine As LongPtr, pContext As Any) As BOOL
+Public DeclareWide PtrSafe Function K32EnumPageFiles Lib "kernel32" Alias "K32EnumPageFilesW" (ByVal pCallbackRoutine As LongPtr, pContext As Any) As BOOL
+' #Else
+' Public Declare PtrSafe Function EnumPageFilesA Lib "psapi" (ByVal pCallbackRoutine As ENUM_PAGE_FILE_CALLBACKA, pContext As Any) As BOOL
+' Public DeclareWide PtrSafe Function EnumPageFilesW Lib "psapi" (ByVal pCallbackRoutine As ENUM_PAGE_FILE_CALLBACKW, pContext As Any) As BOOL
+' Public DeclareWide PtrSafe Function EnumPageFiles Lib "psapi" Alias "EnumPageFilesW" (ByVal pCallbackRoutine As ENUM_PAGE_FILE_CALLBACK, pContext As Any) As BOOL
+' Public Declare PtrSafe Function K32EnumPageFilesA Lib "kernel32" (ByVal pCallbackRoutine As ENUM_PAGE_FILE_CALLBACKA, pContext As Any) As BOOL
+' Public DeclareWide PtrSafe Function K32EnumPageFilesW Lib "kernel32" (ByVal pCallbackRoutine As ENUM_PAGE_FILE_CALLBACKW, pContext As Any) As BOOL
+' Public DeclareWide PtrSafe Function K32EnumPageFiles Lib "kernel32" Alias "K32EnumPageFilesW" (ByVal pCallbackRoutine As ENUM_PAGE_FILE_CALLBACK, pContext As Any) As BOOL
+' #End If
 Public Declare PtrSafe Function EnumDeviceDrivers Lib "psapi" (lpImageBase As LongPtr, ByVal cb As Long, lpcbNeeded As Long) As BOOL
+Public Declare PtrSafe Function K32EnumDeviceDrivers Lib "kernel32" (lpImageBase As LongPtr, ByVal cb As Long, lpcbNeeded As Long) As BOOL
 Public Declare PtrSafe Function GetDeviceDriverBaseNameA Lib "psapi" (ByVal ImageBase As LongPtr, ByVal lpBaseName As String, ByVal nSize As Long) As Long
 Public Declare PtrSafe Function GetDeviceDriverBaseNameW Lib "psapi" (ByVal ImageBase As LongPtr, ByVal lpBaseName As LongPtr, ByVal nSize As Long) As Long
 Public DeclareWide PtrSafe Function GetDeviceDriverBaseName Lib "psapi" Alias "GetDeviceDriverBaseNameW" (ByVal ImageBase As LongPtr, ByVal lpBaseName As String, ByVal nSize As Long) As Long
+Public Declare PtrSafe Function GetDeviceDriverFileNameA Lib "psapi" (ByVal ImageBase As LongPtr, ByVal lpFilename As String, ByVal nSize As Long) As Long
+Public Declare PtrSafe Function GetDeviceDriverFileNameW Lib "psapi" (ByVal ImageBase As LongPtr, ByVal lpFilename As LongPtr, ByVal nSize As Long) As Long
+Public DeclareWide PtrSafe Function GetDeviceDriverFileName Lib "psapi" Alias "GetDeviceDriverFileNameW" (ByVal ImageBase As LongPtr, ByVal lpFilename As String, ByVal nSize As Long) As Long
+Public Declare PtrSafe Function K32GetDeviceDriverBaseNameA Lib "kernel32" (ByVal ImageBase As LongPtr, ByVal lpBaseName As String, ByVal nSize As Long) As Long
+Public Declare PtrSafe Function K32GetDeviceDriverBaseNameW Lib "kernel32" (ByVal ImageBase As LongPtr, ByVal lpBaseName As LongPtr, ByVal nSize As Long) As Long
+Public DeclareWide PtrSafe Function K32GetDeviceDriverBaseName Lib "kernel32" Alias "K32GetDeviceDriverBaseNameW" (ByVal ImageBase As LongPtr, ByVal lpBaseName As String, ByVal nSize As Long) As Long
+Public Declare PtrSafe Function K32GetDeviceDriverFileNameA Lib "kernel32" (ByVal ImageBase As LongPtr, ByVal lpFilename As String, ByVal nSize As Long) As Long
+Public Declare PtrSafe Function K32GetDeviceDriverFileNameW Lib "kernel32" (ByVal ImageBase As LongPtr, ByVal lpFilename As LongPtr, ByVal nSize As Long) As Long
+Public DeclareWide PtrSafe Function K32GetDeviceDriverFileName Lib "kernel32" Alias "K32GetDeviceDriverFileNameW" (ByVal ImageBase As LongPtr, ByVal lpFilename As String, ByVal nSize As Long) As Long
 Public Declare PtrSafe Function GetMappedFileNameA Lib "psapi" (ByVal hProcess As LongPtr, ByVal lpv As LongPtr, ByVal lpFilename As String, ByVal nSize As Long) As Long
 Public Declare PtrSafe Function GetMappedFileNameW Lib "psapi" (ByVal hProcess As LongPtr, ByVal lpv As LongPtr, ByVal lpFilename As LongPtr, ByVal nSize As Long) As Long
 Public DeclareWide PtrSafe Function GetMappedFileName Lib "psapi" Alias "GetMappedFileNameW" (ByVal hProcess As LongPtr, ByVal lpv As LongPtr, ByVal lpFilename As String, ByVal nSize As Long) As Long
+Public Declare PtrSafe Function K32GetMappedFileNameA Lib "kernel32" (ByVal hProcess As LongPtr, ByVal lpv As LongPtr, ByVal lpFilename As String, ByVal nSize As Long) As Long
+Public Declare PtrSafe Function K32GetMappedFileNameW Lib "kernel32" (ByVal hProcess As LongPtr, ByVal lpv As LongPtr, ByVal lpFilename As LongPtr, ByVal nSize As Long) As Long
+Public DeclareWide PtrSafe Function K32GetMappedFileName Lib "kernel32" Alias "K32GetMappedFileNameW" (ByVal hProcess As LongPtr, ByVal lpv As LongPtr, ByVal lpFilename As String, ByVal nSize As Long) As Long
 Public Declare PtrSafe Function GetModuleBaseNameA Lib "psapi" (ByVal hProcess As LongPtr, ByVal hModule As LongPtr, ByVal lpBaseName As String, ByVal nSize As Long) As Long
 Public Declare PtrSafe Function GetModuleBaseNameW Lib "psapi" (ByVal hProcess As LongPtr, ByVal hModule As LongPtr, ByVal lpBaseName As LongPtr, ByVal nSize As Long) As Long
 Public DeclareWide PtrSafe Function GetModuleBaseName Lib "psapi" Alias "GetModuleBaseNameW" (ByVal hProcess As LongPtr, ByVal hModule As LongPtr, ByVal lpBaseName As String, ByVal nSize As Long) As Long
+Public Declare PtrSafe Function K32GetModuleBaseNameA Lib "kernel32" (ByVal hProcess As LongPtr, ByVal hModule As LongPtr, ByVal lpBaseName As String, ByVal nSize As Long) As Long
+Public Declare PtrSafe Function K32GetModuleBaseNameW Lib "kernel32" (ByVal hProcess As LongPtr, ByVal hModule As LongPtr, ByVal lpBaseName As LongPtr, ByVal nSize As Long) As Long
+Public DeclareWide PtrSafe Function K32GetModuleBaseName Lib "kernel32" Alias "K32GetModuleBaseNameW" (ByVal hProcess As LongPtr, ByVal hModule As LongPtr, ByVal lpBaseName As String, ByVal nSize As Long) As Long
 Public Declare PtrSafe Function GetModuleInformation Lib "psapi" (ByVal hProcess As LongPtr, ByVal hModule As LongPtr, lpmodinfo As MODULEINFO, ByVal cb As Long) As BOOL
+Public Declare PtrSafe Function K32GetModuleInformation Lib "kernel32" (ByVal hProcess As LongPtr, ByVal hModule As LongPtr, lpmodinfo As MODULEINFO, ByVal cb As Long) As BOOL
+Public Declare PtrSafe Function EmptyWorkingSet Lib "psapi" (ByVal hProcess As LongPtr) As BOOL
+Public Declare PtrSafe Function K32EmptyWorkingSet Lib "kernel32" (ByVal hProcess As LongPtr) As BOOL
 Public Declare PtrSafe Function DisableThreadLibraryCalls Lib "kernel32" (ByVal hLibModule As LongPtr) As BOOL
 
 'libloaderapi2.h

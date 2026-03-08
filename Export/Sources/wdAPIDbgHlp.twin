@@ -2105,5 +2105,1199 @@ End Enum
     Public Declare PtrSafe Function RangeMapRead Lib "dbghelp" (ByVal RmapHandle As LongPtr, ByVal Offset As LongLong, Buffer As Any, ByVal RequestBytes As Long, ByVal Flags As Long, Optional DoneBytes As Long) As BOOL
     Public Declare PtrSafe Function RangeMapWrite Lib "dbghelp" (ByVal RmapHandle As LongPtr, ByVal Offset As LongLong, Buffer As Any, ByVal RequestBytes As Long, ByVal Flags As Long, Optional DoneBytes As Long) As BOOL
     
+    
+    
+    'minidumpapiset.h
+    
+    Public Const MINIDUMP_SIGNATURE = &H504d444d ' ('PMDM')
+    Public Const MINIDUMP_VERSION  = (42899)
+    
+    Public Type MINIDUMP_LOCATION_DESCRIPTOR
+        DataSize As Long
+        Rva As Long
+    End Type
+    
+    Public Type MINIDUMP_LOCATION_DESCRIPTOR64
+    DataSize As LongLong
+    Rva As LongLong
+End Type
+    
+Public Type MINIDUMP_MEMORY_DESCRIPTOR
+StartOfMemoryRange As LongLong
+Memory As MINIDUMP_LOCATION_DESCRIPTOR
+End Type
+
+Public Type MINIDUMP_MEMORY_DESCRIPTOR64
+StartOfMemoryRange As LongLong
+DataSize As LongLong
+End Type
+    
+Public Type MINIDUMP_HEADER
+Signature As Long
+Version As Long
+NumberOfStreams As Long
+StreamDirectoryRva As Long
+CheckSum As Long
+'union {
+'    ULONG32 Reserved;
+TimeDateStamp As Long
+'};
+Flags As LongLong
+End Type
+    
+Public Type MINIDUMP_DIRECTORY
+StreamType As Long
+Location As MINIDUMP_LOCATION_DESCRIPTOR
+End Type
+
+[PackingAlignment(4)]
+Public Type MINIDUMP_STRING
+Length As Long ' Length in bytes of the string
+Buffer(0 To 0) As Integer ' Variable size buffer
+End Type
+    
+Public Enum MINIDUMP_STREAM_TYPE
+UnusedStream = 0
+ReservedStream0 = 1
+ReservedStream1 = 2
+ThreadListStream = 3
+ModuleListStream = 4
+MemoryListStream = 5
+ExceptionStream = 6
+SystemInfoStream = 7
+ThreadExListStream = 8
+Memory64ListStream = 9
+CommentStreamA = 10
+CommentStreamW = 11
+HandleDataStream = 12
+FunctionTableStream = 13
+UnloadedModuleListStream = 14
+MiscInfoStream = 15
+MemoryInfoListStream = 16
+ThreadInfoListStream = 17
+HandleOperationListStream = 18
+TokenStream = 19
+JavaScriptDataStream = 20
+SystemMemoryInfoStream = 21
+ProcessVmCountersStream = 22
+IptTraceStream = 23
+ThreadNamesStream = 24
+ceStreamNull = &H8000&
+ceStreamSystemInfo = &H8001&
+ceStreamException = &H8002&
+ceStreamModuleList = &H8003&
+ceStreamProcessList = &H8004&
+ceStreamThreadList = &H8005&
+ceStreamThreadContextList = &H8006&
+ceStreamThreadCallStackList = &H8007&
+ceStreamMemoryVirtualList = &H8008&
+ceStreamMemoryPhysicalList = &H8009&
+ceStreamBucketParameters = &H800A&
+ceStreamProcessModuleMap = &H800B&
+ceStreamDiagnosisList = &H800C&
+LastReservedStream = &Hffff&
+End Enum
+    
+' typedef union _CPU_INFORMATION {
+
+' //
+' // X86 platforms use CPUID function to obtain processor information.
+' //
+
+' struct {
+
+    ' //
+    ' // CPUID Subfunction 0, register EAX (VendorId [0]),
+    ' // EBX (VendorId [1]) and ECX (VendorId [2]).
+    ' //
+
+    ' ULONG32 VendorId [ 3 ];
+
+    ' //
+    ' // CPUID Subfunction 1, register EAX
+    ' //
+
+    ' ULONG32 VersionInformation;
+
+    ' //
+    ' // CPUID Subfunction 1, register EDX
+    ' //
+
+    ' ULONG32 FeatureInformation;
+
+    ' //
+    ' // CPUID, Subfunction 80000001, register EBX. This will only
+    ' // be obtained if the vendor id is "AuthenticAMD".
+    ' //
+
+    ' ULONG32 AMDExtendedCpuFeatures;
+
+' } X86CpuInfo;
+
+' //
+' // Non-x86 platforms use processor feature flags.
+' //
+
+' struct {
+
+    ' ULONG64 ProcessorFeatures [ 2 ];
+
+' } OtherCpuInfo;
+
+' } CPU_INFORMATION, *PCPU_INFORMATION;  
+
+[Description("OtherCpuInformation union arm available as CPU_INFORMATION_Other")]
+Public Type CPU_INFORMATION
+' X86 platforms use CPUID function to obtain processor information.
+'struct {
+' CPUID Subfunction 0, register EAX (VendorId [0]),
+' EBX (VendorId [1]) and ECX (VendorId [2]).
+VendorId(0 To 2) As Long
+' CPUID Subfunction 1, register EAX
+VersionInformation As Long
+' CPUID Subfunction 1, register EDX
+FeatureInformation As Long
+' CPUID, Subfunction 80000001, register EBX. This will only
+' be obtained if the vendor id is "AuthenticAMD".
+AMDExtendedCpuFeatures As Long
+'} X86CpuInfo;
+' Non-x86 platforms use processor feature flags.
+'struct {
+'    ULONG64 ProcessorFeatures [ 2 ];
+'} OtherCpuInfo;
+End Type
+    
+Public Type CPU_INFORMATION_Other
+    ProcessorFeatures(1) As LongLong
+    __pad As LongLong
+End Type
+    
+[Description("Version with CPU_INFORMATION OtherCpuInformation union arm available as MINIDUMP_SYSTEM_INFO_OtherCpu")]
+Public Type MINIDUMP_SYSTEM_INFO
+' ProcessorArchitecture, ProcessorLevel and ProcessorRevision are all
+' taken from the SYSTEM_INFO structure obtained by GetSystemInfo( ).
+ProcessorArchitecture As Integer
+ProcessorLevel As Integer
+ProcessorRevision As Integer
+'union {
+'    USHORT Reserved0;
+'    struct {
+NumberOfProcessors As Byte
+ProductType As Byte
+'    };
+'};
+' MajorVersion, MinorVersion, BuildNumber, PlatformId and
+' CSDVersion are all taken from the OSVERSIONINFO structure
+' returned by GetVersionEx( ).
+MajorVersion As Long
+MinorVersion As Long
+BuildNumber As Long
+PlatformId As Long
+' RVA to a CSDVersion string in the string table.
+CSDVersionRva As Long
+'union {
+'    ULONG32 Reserved1;
+'    struct {
+SuiteMask As Integer
+Reserved2 As Integer
+'    };
+'};
+Cpu As CPU_INFORMATION
+End Type
+[PackingAlignment(4)]
+Public Type MINIDUMP_SYSTEM_INFO_OtherCpu
+' ProcessorArchitecture, ProcessorLevel and ProcessorRevision are all
+' taken from the SYSTEM_INFO structure obtained by GetSystemInfo( ).
+ProcessorArchitecture As Integer
+ProcessorLevel As Integer
+ProcessorRevision As Integer
+'union {
+'    USHORT Reserved0;
+'    struct {
+NumberOfProcessors As Byte
+ProductType As Byte
+'    };
+'};
+' MajorVersion, MinorVersion, BuildNumber, PlatformId and
+' CSDVersion are all taken from the OSVERSIONINFO structure
+' returned by GetVersionEx( ).
+MajorVersion As Long
+MinorVersion As Long
+BuildNumber As Long
+PlatformId As Long
+' RVA to a CSDVersion string in the string table.
+CSDVersionRva As Long
+'union {
+'    ULONG32 Reserved1;
+'    struct {
+SuiteMask As Integer
+Reserved2 As Integer
+'    };
+'};
+Cpu As CPU_INFORMATION_Other
+End Type
+    
+[PackingAlignment(4)]
+Public Type MINIDUMP_THREAD
+ThreadId As Long
+SuspendCount As Long
+PriorityClass As Long
+Priority As Long
+Teb As LongLong
+Stack As MINIDUMP_MEMORY_DESCRIPTOR
+ThreadContext As MINIDUMP_LOCATION_DESCRIPTOR
+End Type
+    
+[PackingAlignment(4)]
+Public Type MINIDUMP_THREAD_LIST
+NumberOfThreads As Long
+Threads(0 To 0) As MINIDUMP_THREAD
+End Type
+    
+[PackingAlignment(4)]
+Public Type MINIDUMP_THREAD_EX
+ThreadId As Long
+SuspendCount As Long
+PriorityClass As Long
+Priority As Long
+Teb As LongLong
+Stack As MINIDUMP_MEMORY_DESCRIPTOR
+ThreadContext As MINIDUMP_LOCATION_DESCRIPTOR
+BackingStore As MINIDUMP_MEMORY_DESCRIPTOR
+End Type
+    
+[PackingAlignment(4)]
+Public Type MINIDUMP_THREAD_EX_LIST
+NumberOfThreads As Long
+Threads(0 To 0) As MINIDUMP_THREAD_EX
+End Type
+    
+[PackingAlignment(4)]
+Public Type MINIDUMP_EXCEPTION
+ExceptionCode As Long
+ExceptionFlags As Long
+ExceptionRecord As LongLong
+ExceptionAddress As LongLong
+NumberParameters As Long
+__unusedAlignment As Long
+ExceptionInformation(0 To (EXCEPTION_MAXIMUM_PARAMETERS - 1)) As LongLong
+End Type
+    
+[PackingAlignment(4)]
+Public Type MINIDUMP_EXCEPTION_STREAM
+ThreadId As Long
+__alignment As Long
+ExceptionRecord As MINIDUMP_EXCEPTION
+ThreadContext As MINIDUMP_LOCATION_DESCRIPTOR
+End Type
+    
+[PackingAlignment(4)]
+Public Type MINIDUMP_MODULE
+BaseOfImage As LongLong
+SizeOfImage As Long
+CheckSum As Long
+TimeDateStamp As Long
+ModuleNameRva As Long
+VersionInfo As VS_FIXEDFILEINFO
+CvRecord As MINIDUMP_LOCATION_DESCRIPTOR
+MiscRecord As MINIDUMP_LOCATION_DESCRIPTOR
+Reserved0 As LongLong ' Reserved for future use.
+Reserved1 As LongLong ' Reserved for future use.
+End Type
+    
+[PackingAlignment(4)]
+Public Type MINIDUMP_MODULE_LIST
+NumberOfModules As Long
+Modules(0 To 0) As MINIDUMP_MODULE
+End Type
+    
+[PackingAlignment(4)]
+Public Type MINIDUMP_MEMORY_LIST
+NumberOfMemoryRanges As Long
+MemoryRanges(0 To 0) As MINIDUMP_MEMORY_DESCRIPTOR
+End Type
+    
+[PackingAlignment(4)]
+Public Type MINIDUMP_MEMORY64_LIST
+NumberOfMemoryRanges As LongLong
+BaseRva As LongLong
+MemoryRanges(0 To 0) As MINIDUMP_MEMORY_DESCRIPTOR64
+End Type
+    
+[PackingAlignment(4)]
+Public Type MINIDUMP_EXCEPTION_INFORMATION
+ThreadId As Long
+ExceptionPointers As LongPtr 'PEXCEPTION_POINTERS
+ClientPointers As BOOL
+End Type
+    
+Public Enum MINIDUMP_HANDLE_OBJECT_INFORMATION_TYPE
+MiniHandleObjectInformationNone
+MiniThreadInformation1
+MiniMutantInformation1
+MiniMutantInformation2
+MiniProcessInformation1
+MiniProcessInformation2
+MiniEventInformation1
+MiniSectionInformation1
+MiniSemaphoreInformation1
+MiniHandleObjectInformationTypeMax
+End Enum
+    
+[PackingAlignment(4)]
+Public Type MINIDUMP_HANDLE_OBJECT_INFORMATION
+NextInfoRva As Long
+InfoType As Long
+SizeOfInfo As Long
+' Raw information follows.
+End Type
+    
+[PackingAlignment(4)]
+Public Type MINIDUMP_HANDLE_DESCRIPTOR
+Handle As LongLong
+TypeNameRva As Long
+ObjectNameRva As Long
+Attributes As Long
+GrantedAccess As Long
+HandleCount As Long
+PointerCount As Long
+End Type
+    
+[PackingAlignment(4)]
+Public Type MINIDUMP_HANDLE_DESCRIPTOR_2
+Handle As LongLong
+TypeNameRva As Long
+ObjectNameRva As Long
+Attributes As Long
+GrantedAccess As Long
+HandleCount As Long
+PointerCount As Long
+ObjectInfoRva As Long
+Reserved0 As Long
+End Type
+
+ ' Alias MINIDUMP_HANDLE_DESCRIPTOR_N As MINIDUMP_HANDLE_DESCRIPTOR_2
+
+[PackingAlignment(4)]
+Public Type MINIDUMP_HANDLE_DATA_STREAM
+SizeOfHeader As Long
+SizeOfDescriptor As Long
+NumberOfDescriptors As Long
+Reserved As Long
+End Type
+
+[PackingAlignment(4)]
+Public Type MINIDUMP_HANDLE_OPERATION_LIST
+SizeOfHeader As Long
+SizeOfEntry As Long
+NumberOfEntries As Long
+Reserved As Long
+End Type
+
+[PackingAlignment(4)]
+Public Type MINIDUMP_FUNCTION_TABLE_DESCRIPTOR
+MinimumAddress As LongLong
+MaximumAddress As LongLong
+BaseAddress As LongLong
+EntryCount As Long
+SizeOfAlignPad As Long
+End Type
+
+[PackingAlignment(4)]
+Public Type MINIDUMP_FUNCTION_TABLE_STREAM
+SizeOfHeader As Long
+SizeOfDescriptor As Long
+SizeOfNativeDescriptor As Long
+SizeOfFunctionEntry As Long
+NumberOfDescriptors As Long
+SizeOfAlignPad As Long
+End Type
+
+[PackingAlignment(4)]
+Public Type MINIDUMP_UNLOADED_MODULE
+BaseOfImage As LongLong
+SizeOfImage As Long
+CheckSum As Long
+TimeDateStamp As Long
+ModuleNameRva As Long
+End Type
+
+[PackingAlignment(4)]
+Public Type MINIDUMP_UNLOADED_MODULE_LIST
+SizeOfHeader As Long
+SizeOfEntry As Long
+NumberOfEntries As Long
+End Type
+
+[PackingAlignment(4)]
+Public Type XSTATE_CONFIG_FEATURE_MSC_INFO
+SizeOfInfo As Long
+ContextSize As Long
+EnabledFeatures As LongLong
+Features(0 To (MAXIMUM_XSTATE_FEATURES - 1)) As XSTATE_FEATURE
+End Type
+
+Public Enum MinidumpMiscFlags
+MINIDUMP_MISC1_PROCESS_ID = &H00000001
+MINIDUMP_MISC1_PROCESS_TIMES = &H00000002
+MINIDUMP_MISC1_PROCESSOR_POWER_INFO = &H00000004
+MINIDUMP_MISC3_PROCESS_INTEGRITY = &H00000010
+MINIDUMP_MISC3_PROCESS_EXECUTE_FLAGS = &H00000020
+MINIDUMP_MISC3_TIMEZONE = &H00000040
+MINIDUMP_MISC3_PROTECTED_PROCESS = &H00000080
+MINIDUMP_MISC4_BUILDSTRING = &H00000100
+MINIDUMP_MISC5_PROCESS_COOKIE = &H00000200
+End Enum
+
+[PackingAlignment(4)]
+Public Type MINIDUMP_MISC_INFO
+SizeOfInfo As Long
+Flags1 As MinidumpMiscFlags
+ProcessId As Long
+ProcessCreateTime As Long
+ProcessUserTime As Long
+ProcessKernelTime As Long
+End Type
+
+[PackingAlignment(4)]
+Public Type MINIDUMP_MISC_INFO_2
+SizeOfInfo As Long
+Flags1 As MinidumpMiscFlags
+ProcessId As Long
+ProcessCreateTime As Long
+ProcessUserTime As Long
+ProcessKernelTime As Long
+ProcessorMaxMhz As Long
+ProcessorCurrentMhz As Long
+ProcessorMhzLimit As Long
+ProcessorMaxIdleState As Long
+ProcessorCurrentIdleState As Long
+End Type
+
+[PackingAlignment(4)]
+Public Type MINIDUMP_MISC_INFO_3
+SizeOfInfo As Long
+Flags1 As MinidumpMiscFlags
+ProcessId As Long
+ProcessCreateTime As Long
+ProcessUserTime As Long
+ProcessKernelTime As Long
+ProcessorMaxMhz As Long
+ProcessorCurrentMhz As Long
+ProcessorMhzLimit As Long
+ProcessorMaxIdleState As Long
+ProcessorCurrentIdleState As Long
+ProcessIntegrityLevel As Long
+ProcessExecuteFlags As Long
+ProtectedProcess As Long
+TimeZoneId As Long
+TimeZone As TIME_ZONE_INFORMATION
+End Type
+
+[PackingAlignment(4)]
+Public Type MINIDUMP_MISC_INFO_4
+SizeOfInfo As Long
+Flags1 As MinidumpMiscFlags
+ProcessId As Long
+ProcessCreateTime As Long
+ProcessUserTime As Long
+ProcessKernelTime As Long
+ProcessorMaxMhz As Long
+ProcessorCurrentMhz As Long
+ProcessorMhzLimit As Long
+ProcessorMaxIdleState As Long
+ProcessorCurrentIdleState As Long
+ProcessIntegrityLevel As Long
+ProcessExecuteFlags As Long
+ProtectedProcess As Long
+TimeZoneId As Long
+TimeZone As TIME_ZONE_INFORMATION
+BuildString(0 To (MAX_PATH - 1)) As Integer
+DbgBldStr(0 To 39) As Integer
+End Type
+
+[PackingAlignment(4)]
+Public Type MINIDUMP_MISC_INFO_5
+SizeOfInfo As Long
+Flags1 As MinidumpMiscFlags
+ProcessId As Long
+ProcessCreateTime As Long
+ProcessUserTime As Long
+ProcessKernelTime As Long
+ProcessorMaxMhz As Long
+ProcessorCurrentMhz As Long
+ProcessorMhzLimit As Long
+ProcessorMaxIdleState As Long
+ProcessorCurrentIdleState As Long
+ProcessIntegrityLevel As Long
+ProcessExecuteFlags As Long
+ProtectedProcess As Long
+TimeZoneId As Long
+TimeZone As TIME_ZONE_INFORMATION
+BuildString(0 To (MAX_PATH - 1)) As Integer
+DbgBldStr(0 To 39) As Integer
+XStateData As XSTATE_CONFIG_FEATURE_MSC_INFO
+ProcessCookie As Long
+End Type
+
+' Alias MINIDUMP_MISC_INFO_N As MINIDUMP_MISC_INFO_5
+
+[PackingAlignment(4)]
+Public Type MINIDUMP_MEMORY_INFO
+BaseAddress As LongLong
+AllocationBase As LongLong
+AllocationProtect As Long
+__alignment1 As Long
+RegionSize As LongLong
+State As Long
+Protect As Long
+Type As Long
+__alignment2 As Long
+End Type
+
+[PackingAlignment(4)]
+Public Type MINIDUMP_MEMORY_INFO_LIST
+SizeOfHeader As Long
+SizeOfEntry As Long
+NumberOfEntries As LongLong
+End Type
+
+[PackingAlignment(4)]
+Public Type MINIDUMP_THREAD_NAME
+ThreadId As Long
+RvaOfThreadName As LongLong
+End Type
+
+[PackingAlignment(4)]
+Public Type MINIDUMP_THREAD_NAME_LIST
+NumberOfThreadNames As Long
+ThreadNames(0 To 0) As MINIDUMP_THREAD_NAME ' Variable size buffer
+End Type
+
+Public Enum MinidumpThreadWriterStatusFlags
+MINIDUMP_THREAD_INFO_ERROR_THREAD = &H00000001
+MINIDUMP_THREAD_INFO_WRITING_THREAD = &H00000002
+MINIDUMP_THREAD_INFO_EXITED_THREAD = &H00000004
+MINIDUMP_THREAD_INFO_INVALID_INFO = &H00000008
+MINIDUMP_THREAD_INFO_INVALID_CONTEXT = &H00000010
+MINIDUMP_THREAD_INFO_INVALID_TEB = &H00000020
+End Enum
+[PackingAlignment(4)]
+Public Type MINIDUMP_THREAD_INFO
+ThreadId As Long
+DumpFlags As MinidumpThreadWriterStatusFlags
+DumpError As Long
+ExitStatus As Long
+CreateTime As LongLong
+ExitTime As LongLong
+KernelTime As LongLong
+UserTime As LongLong
+StartAddress As LongLong
+Affinity As LongLong
+End Type
+
+[PackingAlignment(4)]
+Public Type MINIDUMP_THREAD_INFO_LIST
+SizeOfHeader As Long
+SizeOfEntry As Long
+NumberOfEntries As Long
+End Type
+
+[PackingAlignment(4)]
+Public Type MINIDUMP_TOKEN_INFO_HEADER
+TokenSize As Long ' The size of the token structure.
+TokenId As Long ' The PID in NtOpenProcessToken() call or TID in NtOpenThreadToken() call.
+TokenHandle As LongLong ' The handle value returned.
+End Type
+
+[PackingAlignment(4)]
+Public Type MINIDUMP_TOKEN_INFO_LIST
+TokenListSize As Long
+TokenListEntries As Long
+ListHeaderSize As Long
+ElementHeaderSize As Long
+End Type
+
+[PackingAlignment(4)]
+Public Type MINIDUMP_SYSTEM_BASIC_INFORMATION
+TimerResolution As Long
+PageSize As Long
+NumberOfPhysicalPages As Long
+LowestPhysicalPageNumber As Long
+HighestPhysicalPageNumber As Long
+AllocationGranularity As Long
+MinimumUserModeAddress As LongLong
+MaximumUserModeAddress As LongLong
+ActiveProcessorsAffinityMask As LongLong
+NumberOfProcessors As Long
+End Type
+
+[PackingAlignment(4)]
+Public Type MINIDUMP_SYSTEM_FILECACHE_INFORMATION
+CurrentSize As LongLong
+PeakSize As LongLong
+PageFaultCount As Long
+MinimumWorkingSet As LongLong
+MaximumWorkingSet As LongLong
+CurrentSizeIncludingTransitionInPages As LongLong
+PeakSizeIncludingTransitionInPages As LongLong
+TransitionRePurposeCount As Long
+Flags As Long
+End Type
+
+[PackingAlignment(4)]
+Public Type MINIDUMP_SYSTEM_BASIC_PERFORMANCE_INFORMATION
+AvailablePages As LongLong
+CommittedPages As LongLong
+CommitLimit As LongLong
+PeakCommitment As LongLong
+End Type
+
+[PackingAlignment(4)]
+Public Type MINIDUMP_SYSTEM_PERFORMANCE_INFORMATION
+IdleProcessTime As LongLong
+IoReadTransferCount As LongLong
+IoWriteTransferCount As LongLong
+IoOtherTransferCount As LongLong
+IoReadOperationCount As Long
+IoWriteOperationCount As Long
+IoOtherOperationCount As Long
+AvailablePages As Long
+CommittedPages As Long
+CommitLimit As Long
+PeakCommitment As Long
+PageFaultCount As Long
+CopyOnWriteCount As Long
+TransitionCount As Long
+CacheTransitionCount As Long
+DemandZeroCount As Long
+PageReadCount As Long
+PageReadIoCount As Long
+CacheReadCount As Long
+CacheIoCount As Long
+DirtyPagesWriteCount As Long
+DirtyWriteIoCount As Long
+MappedPagesWriteCount As Long
+MappedWriteIoCount As Long
+PagedPoolPages As Long
+NonPagedPoolPages As Long
+PagedPoolAllocs As Long
+PagedPoolFrees As Long
+NonPagedPoolAllocs As Long
+NonPagedPoolFrees As Long
+FreeSystemPtes As Long
+ResidentSystemCodePage As Long
+TotalSystemDriverPages As Long
+TotalSystemCodePages As Long
+NonPagedPoolLookasideHits As Long
+PagedPoolLookasideHits As Long
+AvailablePagedPoolPages As Long
+ResidentSystemCachePage As Long
+ResidentPagedPoolPage As Long
+ResidentSystemDriverPage As Long
+CcFastReadNoWait As Long
+CcFastReadWait As Long
+CcFastReadResourceMiss As Long
+CcFastReadNotPossible As Long
+CcFastMdlReadNoWait As Long
+CcFastMdlReadWait As Long
+CcFastMdlReadResourceMiss As Long
+CcFastMdlReadNotPossible As Long
+CcMapDataNoWait As Long
+CcMapDataWait As Long
+CcMapDataNoWaitMiss As Long
+CcMapDataWaitMiss As Long
+CcPinMappedDataCount As Long
+CcPinReadNoWait As Long
+CcPinReadWait As Long
+CcPinReadNoWaitMiss As Long
+CcPinReadWaitMiss As Long
+CcCopyReadNoWait As Long
+CcCopyReadWait As Long
+CcCopyReadNoWaitMiss As Long
+CcCopyReadWaitMiss As Long
+CcMdlReadNoWait As Long
+CcMdlReadWait As Long
+CcMdlReadNoWaitMiss As Long
+CcMdlReadWaitMiss As Long
+CcReadAheadIos As Long
+CcLazyWriteIos As Long
+CcLazyWritePages As Long
+CcDataFlushes As Long
+CcDataPages As Long
+ContextSwitches As Long
+FirstLevelTbFills As Long
+SecondLevelTbFills As Long
+SystemCalls As Long
+CcTotalDirtyPages As LongLong
+CcDirtyPageThreshold As LongLong
+ResidentAvailablePages As LongLong
+SharedCommittedPages As LongLong
+End Type
+
+[PackingAlignment(4)]
+Public Type MINIDUMP_SYSTEM_PERFORMANCE_INFORMATION_2
+IdleProcessTime As LongLong
+IoReadTransferCount As LongLong
+IoWriteTransferCount As LongLong
+IoOtherTransferCount As LongLong
+IoReadOperationCount As Long
+IoWriteOperationCount As Long
+IoOtherOperationCount As Long
+AvailablePages As Long
+CommittedPages As Long
+CommitLimit As Long
+PeakCommitment As Long
+PageFaultCount As Long
+CopyOnWriteCount As Long
+TransitionCount As Long
+CacheTransitionCount As Long
+DemandZeroCount As Long
+PageReadCount As Long
+PageReadIoCount As Long
+CacheReadCount As Long
+CacheIoCount As Long
+DirtyPagesWriteCount As Long
+DirtyWriteIoCount As Long
+MappedPagesWriteCount As Long
+MappedWriteIoCount As Long
+PagedPoolPages As Long
+NonPagedPoolPages As Long
+PagedPoolAllocs As Long
+PagedPoolFrees As Long
+NonPagedPoolAllocs As Long
+NonPagedPoolFrees As Long
+FreeSystemPtes As Long
+ResidentSystemCodePage As Long
+TotalSystemDriverPages As Long
+TotalSystemCodePages As Long
+NonPagedPoolLookasideHits As Long
+PagedPoolLookasideHits As Long
+AvailablePagedPoolPages As Long
+ResidentSystemCachePage As Long
+ResidentPagedPoolPage As Long
+ResidentSystemDriverPage As Long
+CcFastReadNoWait As Long
+CcFastReadWait As Long
+CcFastReadResourceMiss As Long
+CcFastReadNotPossible As Long
+CcFastMdlReadNoWait As Long
+CcFastMdlReadWait As Long
+CcFastMdlReadResourceMiss As Long
+CcFastMdlReadNotPossible As Long
+CcMapDataNoWait As Long
+CcMapDataWait As Long
+CcMapDataNoWaitMiss As Long
+CcMapDataWaitMiss As Long
+CcPinMappedDataCount As Long
+CcPinReadNoWait As Long
+CcPinReadWait As Long
+CcPinReadNoWaitMiss As Long
+CcPinReadWaitMiss As Long
+CcCopyReadNoWait As Long
+CcCopyReadWait As Long
+CcCopyReadNoWaitMiss As Long
+CcCopyReadWaitMiss As Long
+CcMdlReadNoWait As Long
+CcMdlReadWait As Long
+CcMdlReadNoWaitMiss As Long
+CcMdlReadWaitMiss As Long
+CcReadAheadIos As Long
+CcLazyWriteIos As Long
+CcLazyWritePages As Long
+CcDataFlushes As Long
+CcDataPages As Long
+ContextSwitches As Long
+FirstLevelTbFills As Long
+SecondLevelTbFills As Long
+SystemCalls As Long
+CcTotalDirtyPages As LongLong
+CcDirtyPageThreshold As LongLong
+ResidentAvailablePages As LongLong
+SharedCommittedPages As LongLong
+MdlPagesAllocated As LongLong
+PfnDatabaseCommittedPages As LongLong
+SystemPageTableCommittedPages As LongLong
+ContiguousPagesAllocated As LongLong
+End Type
+
+Public Enum MinidumpSysInfo1Flags
+MINIDUMP_SYSMEMINFO1_FILECACHE_TRANSITIONREPURPOSECOUNT_FLAGS = &H0001
+MINIDUMP_SYSMEMINFO1_BASICPERF = &H0002
+MINIDUMP_SYSMEMINFO1_PERF_CCTOTALDIRTYPAGES_CCDIRTYPAGETHRESHOLD = &H0004
+MINIDUMP_SYSMEMINFO1_PERF_RESIDENTAVAILABLEPAGES_SHAREDCOMMITPAGES = &H0008
+MINIDUMP_SYSMEMINFO1_PERF_MDLPAGESALLOCATED_PFNDATABASECOMMITTEDPAGES = &H0010
+MINIDUMP_SYSMEMINFO1_PERF_SYSTEMPAGETABLECOMMITTEDPAGES_CONTIGUOUSPAGESALLOCATED = &H0020
+End Enum
+
+[PackingAlignment(4)]
+Public Type MINIDUMP_SYSTEM_MEMORY_INFO_1
+Revision As Integer
+/* [TypeHint(MinidumpSysInfo1Flags)] */ Flags As Integer
+BasicInfo As MINIDUMP_SYSTEM_BASIC_INFORMATION
+FileCacheInfo As MINIDUMP_SYSTEM_FILECACHE_INFORMATION
+BasicPerfInfo As MINIDUMP_SYSTEM_BASIC_PERFORMANCE_INFORMATION
+PerfInfo As MINIDUMP_SYSTEM_PERFORMANCE_INFORMATION
+End Type
+
+[PackingAlignment(4)]
+Public Type MINIDUMP_SYSTEM_MEMORY_INFO_2
+Revision As Integer
+/* [TypeHint(MinidumpSysInfo1Flags)] */ Flags As Integer
+BasicInfo As MINIDUMP_SYSTEM_BASIC_INFORMATION
+FileCacheInfo As MINIDUMP_SYSTEM_FILECACHE_INFORMATION
+BasicPerfInfo As MINIDUMP_SYSTEM_BASIC_PERFORMANCE_INFORMATION
+PerfInfo As MINIDUMP_SYSTEM_PERFORMANCE_INFORMATION_2
+End Type
+
+' Alias MINIDUMP_SYSTEM_MEMORY_INFO_N As MINIDUMP_SYSTEM_MEMORY_INFO_2
+
+[PackingAlignment(4)]
+Public Type MINIDUMP_PROCESS_VM_COUNTERS_1
+Revision As Integer
+PageFaultCount As Long
+PeakWorkingSetSize As LongLong
+WorkingSetSize As LongLong
+QuotaPeakPagedPoolUsage As LongLong
+QuotaPagedPoolUsage As LongLong
+QuotaPeakNonPagedPoolUsage As LongLong
+QuotaNonPagedPoolUsage As LongLong
+PagefileUsage As LongLong
+PeakPagefileUsage As LongLong
+PrivateUsage As LongLong
+End Type
+
+Public Enum MinidumpProcVMCountersFlags
+MINIDUMP_PROCESS_VM_COUNTERS = &H0001
+MINIDUMP_PROCESS_VM_COUNTERS_VIRTUALSIZE = &H0002
+MINIDUMP_PROCESS_VM_COUNTERS_EX = &H0004
+MINIDUMP_PROCESS_VM_COUNTERS_EX2 = &H0008
+MINIDUMP_PROCESS_VM_COUNTERS_JOB = &H0010
+End Enum
+
+[PackingAlignment(4)]
+Public Type MINIDUMP_PROCESS_VM_COUNTERS_2
+Revision As Integer
+/* [TypeHint(MinidumpProcVMCountersFlags)] */ Flags As Integer
+PageFaultCount As Long
+PeakWorkingSetSize As LongLong
+WorkingSetSize As LongLong
+QuotaPeakPagedPoolUsage As LongLong
+QuotaPagedPoolUsage As LongLong
+QuotaPeakNonPagedPoolUsage As LongLong
+QuotaNonPagedPoolUsage As LongLong
+PagefileUsage As LongLong
+PeakPagefileUsage As LongLong
+PeakVirtualSize As LongLong ' VIRTUALSIZE
+VirtualSize As LongLong ' VIRTUALSIZE
+PrivateUsage As LongLong ' EX+
+PrivateWorkingSetSize As LongLong ' EX2+
+SharedCommitUsage As LongLong ' EX2+
+JobSharedCommitUsage As LongLong ' JOB+
+JobPrivateCommitUsage As LongLong ' JOB+
+JobPeakPrivateCommitUsage As LongLong ' JOB+
+JobPrivateCommitLimit As LongLong ' JOB+
+JobTotalCommitLimit As LongLong ' JOB+
+End Type
+
+' Alias MINIDUMP_PROCESS_VM_COUNTERS_N As MINIDUMP_PROCESS_VM_COUNTERS_2
+
+[PackingAlignment(4)]
+Public Type MINIDUMP_USER_RECORD
+Type As Long
+Memory As MINIDUMP_LOCATION_DESCRIPTOR
+End Type
+
+[PackingAlignment(4)]
+Public Type MINIDUMP_USER_STREAM
+Type As Long
+BufferSize As Long
+Buffer As LongPtr
+End Type
+
+[PackingAlignment(4)]
+Public Type MINIDUMP_USER_STREAM_INFORMATION
+UserStreamCount As Long
+UserStreamArray As LongPtr 'PMINIDUMP_USER_STREAM
+End Type
+
+Public Enum MINIDUMP_CALLBACK_TYPE
+ModuleCallback
+ThreadCallback
+ThreadExCallback
+IncludeThreadCallback
+IncludeModuleCallback
+MemoryCallback
+CancelCallback
+WriteKernelMinidumpCallback
+KernelMinidumpStatusCallback
+RemoveMemoryCallback
+IncludeVmRegionCallback
+IoStartCallback
+IoWriteAllCallback
+IoFinishCallback
+ReadMemoryFailureCallback
+SecondaryFlagsCallback
+IsProcessSnapshotCallback
+VmStartCallback
+VmQueryCallback
+VmPreReadCallback
+VmPostReadCallback
+End Enum
+
+[PackingAlignment(4)]
+Public Type MINIDUMP_THREAD_CALLBACK
+ThreadId As Long
+ThreadHandle As LongPtr
+'#if defined(_ARM64_)
+'    ULONG Pad;
+'#endif
+Context As CONTEXT
+SizeOfContext As Long
+StackBase As LongLong
+StackEnd As LongLong
+End Type
+ 
+[PackingAlignment(4)]
+Public Type MINIDUMP_THREAD_EX_CALLBACK
+ThreadId As Long
+ThreadHandle As LongPtr
+'#if defined(_ARM64_)
+'    ULONG Pad;
+'#endif
+#If Win64 Then
+'CONTEXT->M128A is DECLSPEC_ALIGN(16) on x64
+____pad As Long
+#End If
+Context As CONTEXT
+SizeOfContext As Long
+StackBase As LongLong
+StackEnd As LongLong
+BackingStoreBase As LongLong
+BackingStoreEnd As LongLong
+#If Win64 Then
+'CONTEXT->M128A is DECLSPEC_ALIGN(16) on x64
+____pad2(2) As Long
+#End If
+End Type
+
+[PackingAlignment(4)]
+Public Type MINIDUMP_INCLUDE_THREAD_CALLBACK
+ThreadId As Long
+End Type
+
+Public Enum THREAD_WRITE_FLAGS
+ThreadWriteThread = &H0001
+ThreadWriteStack = &H0002
+ThreadWriteContext = &H0004
+ThreadWriteBackingStore = &H0008
+ThreadWriteInstructionWindow = &H0010
+ThreadWriteThreadData = &H0020
+ThreadWriteThreadInfo = &H0040
+End Enum
+ 
+[PackingAlignment(4)]
+Public Type MINIDUMP_MODULE_CALLBACK
+FullPath As LongPtr
+BaseOfImage As LongLong
+SizeOfImage As Long
+CheckSum As Long
+TimeDateStamp As Long
+VersionInfo As VS_FIXEDFILEINFO
+CvRecord As LongPtr
+SizeOfCvRecord As Long
+MiscRecord As LongPtr
+SizeOfMiscRecord As Long
+End Type
+
+[PackingAlignment(4)]
+Public Type MINIDUMP_INCLUDE_MODULE_CALLBACK
+BaseOfImage As LongLong
+End Type
+
+Public Enum MODULE_WRITE_FLAGS
+ModuleWriteModule = &H0001
+ModuleWriteDataSeg = &H0002
+ModuleWriteMiscRecord = &H0004
+ModuleWriteCvRecord = &H0008
+ModuleReferencedByMemory = &H0010
+ModuleWriteTlsData = &H0020
+ModuleWriteCodeSegs = &H0040
+End Enum
+
+[PackingAlignment(4)]
+Public Type MINIDUMP_IO_CALLBACK
+Handle As LongPtr
+Offset As LongLong
+Buffer As LongPtr
+BufferBytes As Long
+End Type
+
+[PackingAlignment(4)]
+Public Type MINIDUMP_READ_MEMORY_FAILURE_CALLBACK
+Offset As LongLong
+Bytes As Long
+FailureStatus As Long
+End Type
+
+[PackingAlignment(4)]
+Public Type MINIDUMP_VM_QUERY_CALLBACK
+Offset As LongLong
+End Type
+
+[PackingAlignment(4)]
+Public Type MINIDUMP_VM_PRE_READ_CALLBACK
+Offset As LongLong
+Buffer As LongPtr
+Size As Long
+End Type
+
+[PackingAlignment(4)]
+Public Type MINIDUMP_VM_POST_READ_CALLBACK
+Offset As LongLong
+Buffer As LongPtr
+Size As Long
+Completed As Long
+Status As Long
+End Type
+ 
+[PackingAlignment(4)]
+Public Type MINIDUMP_CALLBACK_INPUT
+ProcessId As Long
+ProcessHandle As LongPtr
+CallbackType As Long
+'union {
+'    HRESULT Status;
+'    MINIDUMP_THREAD_CALLBACK Thread;
+'    MINIDUMP_THREAD_EX_CALLBACK ThreadEx;
+'    MINIDUMP_MODULE_CALLBACK Module;
+'    MINIDUMP_INCLUDE_THREAD_CALLBACK IncludeThread;
+'    MINIDUMP_INCLUDE_MODULE_CALLBACK IncludeModule;
+'    MINIDUMP_IO_CALLBACK Io;
+'    MINIDUMP_READ_MEMORY_FAILURE_CALLBACK ReadMemoryFailure;
+'    ULONG SecondaryFlags;
+'    MINIDUMP_VM_QUERY_CALLBACK VmQuery;
+'    MINIDUMP_VM_PRE_READ_CALLBACK VmPreRead;
+'    MINIDUMP_VM_POST_READ_CALLBACK VmPostRead;
+'};
+#If Win64 Then
+u(1295) As Byte
+#Else
+u(759) As Byte
+#End If
+End Type
+
+' typedef struct _MINIDUMP_CALLBACK_OUTPUT {
+' union {
+    ' ULONG ModuleWriteFlags;
+    ' ULONG ThreadWriteFlags;
+    ' ULONG SecondaryFlags;
+    ' struct {
+        ' ULONG64 MemoryBase;
+        ' ULONG MemorySize;
+    ' };
+    ' struct {
+        ' BOOL CheckCancel;
+        ' BOOL Cancel;
+    ' };
+    ' HANDLE Handle;
+    ' struct {
+        ' MINIDUMP_MEMORY_INFO VmRegion;
+        ' BOOL Continue;
+    ' };
+    ' struct {
+        ' HRESULT VmQueryStatus;
+        ' MINIDUMP_MEMORY_INFO VmQueryResult;
+    ' };
+    ' struct {
+        ' HRESULT VmReadStatus;
+        ' ULONG VmReadBytesCompleted;
+    ' };
+    ' HRESULT Status;
+' };
+' } MINIDUMP_CALLBACK_OUTPUT,
+Public Type MINIDUMP_CALLBACK_OUTPUT
+    u(51) As Byte
+End Type
+
+Public Enum MINIDUMP_TYPE
+MiniDumpNormal = &H00000000
+MiniDumpWithDataSegs = &H00000001
+MiniDumpWithFullMemory = &H00000002
+MiniDumpWithHandleData = &H00000004
+MiniDumpFilterMemory = &H00000008
+MiniDumpScanMemory = &H00000010
+MiniDumpWithUnloadedModules = &H00000020
+MiniDumpWithIndirectlyReferencedMemory = &H00000040
+MiniDumpFilterModulePaths = &H00000080
+MiniDumpWithProcessThreadData = &H00000100
+MiniDumpWithPrivateReadWriteMemory = &H00000200
+MiniDumpWithoutOptionalData = &H00000400
+MiniDumpWithFullMemoryInfo = &H00000800
+MiniDumpWithThreadInfo = &H00001000
+MiniDumpWithCodeSegs = &H00002000
+MiniDumpWithoutAuxiliaryState = &H00004000
+MiniDumpWithFullAuxiliaryState = &H00008000&
+MiniDumpWithPrivateWriteCopyMemory = &H00010000
+MiniDumpIgnoreInaccessibleMemory = &H00020000
+MiniDumpWithTokenInformation = &H00040000
+MiniDumpWithModuleHeaders = &H00080000
+MiniDumpFilterTriage = &H00100000
+MiniDumpWithAvxXStateContext = &H00200000
+MiniDumpWithIptTrace = &H00400000
+MiniDumpScanInaccessiblePartialPages = &H00800000
+MiniDumpFilterWriteCombinedMemory = &H01000000
+MiniDumpValidTypeFlags = &H01ffffff
+End Enum
+
+Public Enum MINIDUMP_SECONDARY_FLAGS
+MiniSecondaryWithoutPowerInfo = &H00000001
+MiniSecondaryValidFlags = &H00000001
+End Enum
+
+Public Delegate Function MINIDUMP_CALLBACK_ROUTINE (ByVal CallbackParam As LongPtr, CallbackInput As MINIDUMP_CALLBACK_INPUT, CallbackOutput As MINIDUMP_CALLBACK_OUTPUT) As BOOL
+
+' #If WDL_NO_DELEGATES Then
+[PackingAlignment(4)]
+Public Type MINIDUMP_CALLBACK_INFORMATION
+CallbackRoutine As LongPtr
+CallbackParam As LongPtr
+End Type
+' #Else
+' [PackingAlignment(4)]
+' Public Type MINIDUMP_CALLBACK_INFORMATION
+' CallbackRoutine As MINIDUMP_CALLBACK_ROUTINE
+' CallbackParam As LongPtr
+' End Type
+' #End If
+
+Public Function RVA_TO_ADDR(ByVal Mapping As LongPtr, ByVal Rva As Long) As LongPtr
+    #If Win64 Then
+    Return PointerAdd(Mapping, CLngToULng(Rva))
+    #Else
+    Return PointerAdd(Mapping, Rva) 
+    #End If
+End Function
+
+Public Declare PtrSafe Function MiniDumpWriteDump Lib "dbghelp" (ByVal hProcess As LongPtr, _
+                                    ByVal ProcessId As Long, _
+                                    ByVal hFile As LongPtr, _
+                                    ByVal DumpType As MINIDUMP_TYPE, _
+                                    ExceptionParam As MINIDUMP_EXCEPTION_INFORMATION, _
+                                    UserStreamParam As MINIDUMP_USER_STREAM_INFORMATION, _
+                                    CallbackParam As MINIDUMP_CALLBACK_INFORMATION) As BOOL
+
+Public Declare PtrSafe Function MiniDumpReadDumpStream Lib "dbghelp" (ByVal BaseOfDump As LongPtr, _
+                                    ByVal StreamNumber As Long, _
+                                    ByRef Dir As LongPtr /* PMINIDUMP_DIRECTORY* */, _
+                                    ByRef StreamPointer As LongPtr /* PVOID** */, _
+                                    Optional ByRef StreamSize As Long) As BOOL
+ 
+    
 End Module
+
+Public Alias MINIDUMP_HANDLE_DESCRIPTOR_N As MINIDUMP_HANDLE_DESCRIPTOR_2
+Public Alias MINIDUMP_MISC_INFO_N As MINIDUMP_MISC_INFO_5
+Public Alias MINIDUMP_SYSTEM_MEMORY_INFO_N As MINIDUMP_SYSTEM_MEMORY_INFO_2
+Public Alias MINIDUMP_PROCESS_VM_COUNTERS_N As MINIDUMP_PROCESS_VM_COUNTERS_2
 #End If

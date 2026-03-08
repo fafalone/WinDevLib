@@ -1015,7 +1015,8 @@ End Function
     End Function
     
     
-    [Description("Converts a UUID (GUID) to 4 Longs to prepare for passing it to API/COM methods expecting it ByVal.")]
+    [Description("Converts a UUID (GUID) to 4 Longs to prepare for passing it to API/COM methods expecting it ByVal.\" & vbCrLf & _
+                "**NOTE:** tB now supports ByVal UDTs. It's recommended you update your definitions to use them instead.")]
     Public Sub UUIDtoLong(pGuid As UUID, pl1 As Long, pl2 As Long, pl3 As Long, pl4 As Long)
         Dim t(3) As Long
         CopyMemory t(0), pGuid, LenB(Of UUID)
@@ -1024,13 +1025,14 @@ End Function
         pl3 = t(2)
         pl4 = t(3)
     End Sub
-    [Description("Converts a UUID (GUID) to 4 Longs to prepare for passing it to API/COM methods expecting it ByVal.")]
+    [Description("Converts a UUID (GUID) to 4 Longs to prepare for passing it to API/COM methods expecting it ByVal.\" & vbCrLf & _
+                    "**NOTE:** tB now supports ByVal UDTs. It's recommended you update your definitions to use them instead.")]
     Public Sub UUIDtoLong(pGuid As UUID, pls() As Long)
         ReDim pls(3)
         CopyMemory pls(0), pGuid, LenB(Of UUID)
     End Sub
 
-    [Description("A 32 and 64bit compatible implementation of the classic helper function.")]
+    [Description("Replaces the function pointer for a COM object method with an alternative.")]
     Public Function SwapVtableEntry(ByVal pObj As LongPtr, ByVal EntryNumber As Integer, ByVal lpFN As LongPtr) As LongPtr
 
         Dim lOldAddr As LongPtr
@@ -1110,7 +1112,8 @@ End Function
        CTL_CODE = ((DeviceType) << 16&) Or ((Access) << 14&) Or ((lFunction) << 2) Or (Method)
     End Function
 
-    [Description("A 32 and 64bit compatible implementation of the classic helper function.")]
+    [Description("Converts a LPWSTR to a native tB String (BSTR).\" & vbCrLf & _
+                "*fFree* - Frees the LPWSTR with `CoTaskMemFree`. Consult the documentation for the API that returned the pointer to ensure it is your job to free it, if not, crashes may result.")]
     Public Function LPWSTRtoStr(lPtr As LongPtr, Optional ByVal fFree As Boolean = True) As String
     SysReAllocStringW VarPtr(LPWSTRtoStr), lPtr
     If fFree Then
@@ -1119,23 +1122,25 @@ End Function
     End If
     End Function
     
-    [Description("Converts an Integer arrat of WCHARs to a tB String (BSTR).")]
-    Public Function WCHARtoSTR(aCh() As Integer) As String
-    Dim i As Long
+    [Description("Converts an Integer array of WCHARs to a tB String (BSTR).\" & vbCrLf & _
+                 "*bStopOnNull* - End the string when a null character is encountered.\" & vbCrLf & _
+                 "*bFilterNull* - If bStopOnNull is False, do not include null characters in the destination string.")]
+    Public Function WCHARtoSTR(aCh() As Integer, Optional ByVal bStopOnNull As Boolean = True, Optional ByVal bFilterNull As Boolean = False) As String
     Dim sz As String
-    For i = LBound(aCh) To UBound(aCh)
-        If aCh(i) <> 0 Then
-            sz = sz & ChrW$(CLng(aCh(i)))
-        End If
+    For i As Long = LBound(aCh) To UBound(aCh)
+        If (aCh(i) = 0) And (bStopOnNull = True) Then Return sz
+        If (aCh(i) = 0) And (bFilterNull = True) Then Continue For
+        sz = sz & ChrW$(CLng(aCh(i)))
     Next
-    WCHARtoSTR = sz
+    Return sz
     End Function
 
     [Description("Retrieves a tB-style String from a VT_LPWSTR Variant. Returns False if not VT_LPWSTR or PropVariantToStringAlloc returns a nullptr.")]
     Public Function VariantLPWSTRtoSTR(pVar As Variant, pOut As String) As Boolean
         Dim vt As Integer
         If VarPtr(pVar) <> 0 Then
-            CopyMemory vt, ByVal VarPtr(pVar), 2
+            ' CopyMemory vt, ByVal VarPtr(pVar), 2
+            vt = CType(Of PROPVARIANT)(VarPtr(pVar)).vt
             If (vt = VT_LPWSTR) Then
                 Dim lp As LongPtr
                 PropVariantToStringAlloc pVar, lp
@@ -1176,8 +1181,8 @@ End Function
     [Description("Returns the true VarType without filtering VT_BYREF etc")]
     Public Function VarTypeEx(pvar As Variant) As VARENUM
         If VarPtr(pvar) = 0 Then Return 0
-        CopyMemory VarTypeEx, ByVal VarPtr(pvar), 2
-        ' Return CType(Of VARENUM)(CType(Of PROPVARIANT)(VarPtr(pvar)).vt)
+        ' CopyMemory VarTypeEx, ByVal VarPtr(pvar), 2
+        Return CType(Of VARENUM)(CType(Of PROPVARIANT)(VarPtr(pvar)).vt)
     End Function
 
     [Description("Sets a Variant to the specified type without any alteration to the data. vtOnlyIf raises an error if the original type is other than specified.  " & vbCrLf & "⚠️ WARNING: Many data formats are incompatible, use VariantChangeType absent specific need." & vbCrLf & "Use VariantSetTypePtr to set the type by pointer to Variant/PROPVARIANT.")]
@@ -1188,7 +1193,10 @@ End Function
                 Return False
             End If
         End If
-        CopyMemory pvar, vt, 2
+        ' CopyMemory pvar, vt, 2
+        With CType(Of PROPVARIANT)(VarPtr(pvar))
+            .vt = vt
+        End With
         Return True
     End Function
     [Description("Sets a Variant to the specified type without any alteration to the data. vtOnlyIf raises an error if the original type is other than specified.  " & vbCrLf & "⚠️ WARNING: Many data formats are incompatible, use VariantChangeType absent specific need." & vbCrLf & "Use VariantSetTypePtr to set the type by pointer to Variant/PROPVARIANT.")]
@@ -1199,7 +1207,10 @@ End Function
                 Return False
             End If
         End If
-        CopyMemory ByVal pvar, vt, 2
+        ' CopyMemory ByVal pvar, vt, 2
+        With CType(Of PROPVARIANT)(pvar)
+            .vt = vt
+        End With
         Return True
     End Function
     [Description("Performs an unsigned add on a LongPtr (Long or LongLong)")]
@@ -1208,6 +1219,20 @@ End Function
         Return ((Start Xor &H8000000000000000) + Incr) Xor &H8000000000000000
         #Else
         Return ((Start Xor &H80000000) + Incr) Xor &H80000000
+        #End If
+    End Function
+    Public Function PointerAddB Naked(ByVal Start As LongPtr, ByVal Incr As LongPtr) As LongPtr
+        #If Win64 Then
+        Emit(&H48, &H89, &HC8)               ' mov  rax, rcx      ; move first  uint64 arg into rax
+        Emit(&H48, &H01, &HD0)               ' add  rax, rdx      ; add  second uint64 arg to rax
+                                              '                     ; result is already in rax, per x64 convention
+        Emit(&HC3)                            ' ret                 ; return to caller (x64 convention, no stack cleanup)
+        #Else
+        Emit(&H8B, &H44, &H24, &H04)         ' mov  eax, [esp+4]  ; copy the first  uint32 value from stack to register EAX
+        Emit(&H8B, &H4C, &H24, &H08)         ' mov  ecx, [esp+8]  ; copy the second uint32 value from stack to register ECX
+        Emit(&H01, &HC8)                      ' add  eax,  ecx     ; add the value in ECX to the value in register EAX
+                                              '                     ; the return value of a function in VB must be in register EAX
+        Emit(&HC2, &H08, &H00)               ' ret 8               ; return to caller, remove 8 bytes from stack (->stdcall)
         #End If
     End Function
     [Description("Performs an unsigned subtraction on a LongPtr (Long or LongLong)")]
