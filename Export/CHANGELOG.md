@@ -1,4 +1,10 @@
 
+**Update (v9.2.664, 08 Mar 2026):** 
+- Add additional DirectComposition interfaces/APIs from newer SDK/for newer Win10/11
+- (Breaking change) IDCompositionAnimation::SetAbsoluteBeginTime now uses proper LARGE_INTEGER type.
+- (Breaking change) NMLVLINK now uses proper member names from SDK to conform to WDL API Standards.
+- (Bug fix) L_MAX_URL_LENGTH value incorrect, subsequently breaking NMLVLINK, NMLVEMPTYMARKUP etc
+ 
 **Update (v9.2.662, 08 Mar 2026):** 
 - Add minidumpapiset.h (100% inc delegates, inlines, and aliases)
 - (Breaking change) WinHttpCrackUrl/WinHttpCreateUrl now use an alternate UDT, WINHTTP_URL_COMPONENTS, since
