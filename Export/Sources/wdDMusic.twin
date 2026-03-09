@@ -1,0 +1,1302 @@
+'*****************************************************************************************
+'This file is a part of WinDevLib - Windows Development Library for twinBASIC
+'https://github.com/fafalone/WinDevLib
+'Code ported by Jon Johnson. 
+'"Windows" is a trademark of the Microsoft Corporation.
+'Certain Description attributes (c) Microsoft, taken from SDK headers and official docs.
+'Licensed under Creative Commons CC0 1.0 Universal
+'*****************************************************************************************
+
+'WinDevLib - DirectMusic
+
+'dls1.h
+' dmerror.h
+'dmdls.h
+'dmusbuff.h
+
+
+
+
+
+
+
+
+
+Module wdDMusic
+'dls1.h
+
+Public Const FOURCC_DLS = &H20534c44& ' mmioFOURCC('D','L','S',' ')
+Public Const FOURCC_DLID = &H64696c64& ' mmioFOURCC('d','l','i','d')
+Public Const FOURCC_COLH = &H686c6f63& ' mmioFOURCC('c','o','l','h')
+Public Const FOURCC_WVPL = &H6c707677& ' mmioFOURCC('w','v','p','l')
+Public Const FOURCC_PTBL = &H6c627470& ' mmioFOURCC('p','t','b','l')
+Public Const FOURCC_PATH = &H68746170& ' mmioFOURCC('p','a','t','h')
+Public Const FOURCC_wave = &H65766177& ' mmioFOURCC('w','a','v','e')
+Public Const FOURCC_LINS = &H736e696c& ' mmioFOURCC('l','i','n','s')
+Public Const FOURCC_INS = &H20736e69& ' mmioFOURCC('i','n','s',' ')
+Public Const FOURCC_INSH = &H68736e69& ' mmioFOURCC('i','n','s','h')
+Public Const FOURCC_LRGN = &H6e67726c& ' mmioFOURCC('l','r','g','n')
+Public Const FOURCC_RGN = &H206e6772& ' mmioFOURCC('r','g','n',' ')
+Public Const FOURCC_RGNH = &H686e6772& ' mmioFOURCC('r','g','n','h')
+Public Const FOURCC_LART = &H7472616c& ' mmioFOURCC('l','a','r','t')
+Public Const FOURCC_ART1 = &H31747261& ' mmioFOURCC('a','r','t','1')
+Public Const FOURCC_WLNK = &H6b6e6c77& ' mmioFOURCC('w','l','n','k')
+Public Const FOURCC_WSMP = &H706d7377& ' mmioFOURCC('w','s','m','p')
+Public Const FOURCC_VERS = &H73726576& ' mmioFOURCC('v','e','r','s')
+
+/* Generic Sources */
+Public Const CONN_SRC_NONE              = &H0000
+Public Const CONN_SRC_LFO               = &H0001
+Public Const CONN_SRC_KEYONVELOCITY     = &H0002
+Public Const CONN_SRC_KEYNUMBER         = &H0003
+Public Const CONN_SRC_EG1               = &H0004
+Public Const CONN_SRC_EG2               = &H0005
+Public Const CONN_SRC_PITCHWHEEL        = &H0006
+
+/* Midi Controllers 0-127 */
+Public Const CONN_SRC_CC1               = &H0081
+Public Const CONN_SRC_CC7               = &H0087
+Public Const CONN_SRC_CC10              = &H008a
+Public Const CONN_SRC_CC11              = &H008b
+
+/* Generic Destinations */
+Public Const CONN_DST_NONE              = &H0000
+Public Const CONN_DST_ATTENUATION       = &H0001
+Public Const CONN_DST_PITCH             = &H0003
+Public Const CONN_DST_PAN               = &H0004
+
+/* LFO Destinations */
+Public Const CONN_DST_LFO_FREQUENCY     = &H0104
+Public Const CONN_DST_LFO_STARTDELAY    = &H0105
+
+/* EG1 Destinations */
+Public Const CONN_DST_EG1_ATTACKTIME    = &H0206
+Public Const CONN_DST_EG1_DECAYTIME     = &H0207
+Public Const CONN_DST_EG1_RELEASETIME   = &H0209
+Public Const CONN_DST_EG1_SUSTAINLEVEL  = &H020a
+
+/* EG2 Destinations */
+Public Const CONN_DST_EG2_ATTACKTIME    = &H030a
+Public Const CONN_DST_EG2_DECAYTIME     = &H030b
+Public Const CONN_DST_EG2_RELEASETIME   = &H030d
+Public Const CONN_DST_EG2_SUSTAINLEVEL  = &H030e
+
+Public Const CONN_TRN_NONE              = &H0000
+Public Const CONN_TRN_CONCAVE           = &H0001
+
+Public Type DLSID
+	ulData1 As Long
+	usData2 As Integer
+	usData3 As Integer
+	abData4(0 To 7) As Byte
+End Type
+
+Public Type DLSVERSION
+	dwVersionMS As Long
+	dwVersionLS As Long
+End Type
+
+Public Type CONNECTION
+	usSource As Integer
+	usControl As Integer
+	usDestination As Integer
+	usTransform As Integer
+	lScale As Long
+End Type
+
+Public Type CONNECTIONLIST
+	cbSize As Long '* size of the connection list structure */
+	cConnections As Long '* count of connections in the list */
+End Type
+
+Public Type RGNRANGE
+	usLow As Integer
+	usHigh As Integer
+End Type
+
+Public Const F_INSTRUMENT_DRUMS  = &H80000000
+
+Public Type MIDILOCALE
+	ulBank As Long
+	ulInstrument As Long
+End Type
+
+Public Const F_RGN_OPTION_SELFNONEXCLUSIVE  = &H0001
+
+Public Type RGNHEADER
+	RangeKey As RGNRANGE '* Key range  */
+	RangeVelocity As RGNRANGE '* Velocity Range  */
+	fusOptions As Integer '* Synthesis options for this range */
+	usKeyGroup As Integer '* Key grouping for non simultaneous play */
+	'* 0 = no group, 1 up is group */
+	'* for Level 1 only groups 1-15 are allowed */
+End Type
+
+Public Type INSTHEADER
+	cRegions As Long '* Count of regions in this instrument */
+	Locale As MIDILOCALE '* Intended MIDI locale of this instrument */
+End Type
+
+Public Type DLSHEADER
+	cInstruments As Long      ' Count of instruments in the collection
+End Type
+
+Public Const WAVELINK_CHANNEL_LEFT  = &H0001
+Public Const WAVELINK_CHANNEL_RIGHT  = &H0002
+Public Const F_WAVELINK_PHASE_MASTER  = &H0001
+
+Public Type WAVELINK
+	fusOptions As Integer '* options flags for this wave */
+	usPhaseGroup As Integer '* Phase grouping for locking channels */
+	ulChannel As Long '* channel placement */
+	ulTableIndex As Long '* index into the wave pool table, 0 based */
+End Type
+
+Public Const POOL_CUE_NULL  = &Hffffffff
+
+Public Type POOLCUE
+	ulOffset As Long ' Offset to the entry in the list */
+End Type
+
+Public Type POOLTABLE
+	cbSize As Long '* size of the pool table structure */
+	cCues As Long '* count of cues in the list */
+End Type
+
+Public Const F_WSMP_NO_TRUNCATION  = &H0001
+Public Const F_WSMP_NO_COMPRESSION  = &H0002
+
+Public Type WSMPL
+	cbSize As Long
+	usUnityNote As Integer '* MIDI Unity Playback Note */
+	sFineTune As Integer '* Fine Tune in log tuning */
+	lAttenuation As Long ' Overall Attenuation to be applied to data */
+	fulOptions As Long ' Flag options  */
+	cSampleLoops As Long '/ Count of Sample loops, 0 loops is one shot */
+End Type
+
+Public Const WLOOP_TYPE_FORWARD  = 0
+
+Public Type WLOOP
+	cbSize As Long
+	ulType As Long '* Loop Type */
+	ulStart As Long '* Start of loop in samples */
+	ulLength As Long '* Length of loop in samples */
+End Type
+
+'dmerror.h
+
+Public Const DMUS_ERRBASE  = &H1000 /* Make error codes human readable in hex */
+
+Public Function MAKE_DMHRESULTSUCCESS(ByVal code As Long) As Long
+    MAKE_DMHRESULTSUCCESS = MAKE_HRESULT(0, FACILITY_DIRECTMUSIC, DMUS_ERRBASE + code)
+End Function
+
+Public Function MAKE_DMHRESULTERROR(ByVal code As Long) As Long
+    MAKE_DMHRESULTERROR = MAKE_HRESULT(1, FACILITY_DIRECTMUSIC, DMUS_ERRBASE + code)
+End Function
+
+/* DMUS_S_PARTIALLOAD
+*
+* The object could only load partially. This can happen if some components are
+* not registered properly, such as embedded tracks and tools. This can also happen
+* if some content is missing. For example, if a segment uses a DLS collection that
+* is not in the loader's current search directory.
+*/
+Public Const DMUS_S_PARTIALLOAD  = &H8781091 'MAKE_DMHRESULTSUCCESS(&H091)
+/* DMUS_S_PARTIALDOWNLOAD
+ *
+ * Return value from IDirectMusicBand::Download() which indicates that
+ * some of the instruments safely downloaded, but others failed. This usually
+ * occurs when some instruments are on PChannels not supported by the performance
+ * or port.
+ */
+Public Const DMUS_S_PARTIALDOWNLOAD          = &H8781092 'MAKE_DMHRESULTSUCCESS(0x092)
+
+/* DMUS_S_REQUEUE
+ *
+ * Return value from IDirectMusicTool::ProcessPMsg() which indicates to the
+ * performance that it should cue the PMsg again automatically.
+ */
+Public Const DMUS_S_REQUEUE                  = &H8781200 'MAKE_DMHRESULTSUCCESS(0x200)
+
+/* DMUS_S_FREE
+ *
+ * Return value from IDirectMusicTool::ProcessPMsg() which indicates to the
+ * performance that it should free the PMsg automatically.
+ */
+Public Const DMUS_S_FREE                     = &H8781201 'MAKE_DMHRESULTSUCCESS(0x201)
+
+/* DMUS_S_END
+ *
+ * Return value from IDirectMusicTrack::Play() which indicates to the
+ * segment that the track has no more data after mtEnd.
+ */
+Public Const DMUS_S_END                      = &H8781202 'MAKE_DMHRESULTSUCCESS(0x202)
+
+/* DMUS_S_STRING_TRUNCATED
+ *
+ * Returned string has been truncated to fit the buffer size.
+ */
+Public Const DMUS_S_STRING_TRUNCATED         = &H8781210 'MAKE_DMHRESULTSUCCESS(0x210)
+
+/* DMUS_S_LAST_TOOL
+ *
+ * Returned from IDirectMusicGraph::StampPMsg(), this indicates that the PMsg
+ * is already stamped with the last tool in the graph. The returned PMsg's
+ * tool pointer is now NULL.
+ */
+Public Const DMUS_S_LAST_TOOL                = &H8781211 'MAKE_DMHRESULTSUCCESS(0x211)
+
+/* DMUS_S_OVER_CHORD
+ *
+ * Returned from IDirectMusicPerformance::MusicToMIDI(), this indicates 
+ * that no note has been calculated because the music value has the note 
+ * at a position higher than the top note of the chord. This applies only
+ * to DMUS_PLAYMODE_NORMALCHORD play mode. This success code indicates
+ * that the caller should not do anything with the note. It is not meant
+ * to be played against this chord.
+ */
+Public Const DMUS_S_OVER_CHORD               = &H8781212 'MAKE_DMHRESULTSUCCESS(0x212)
+
+/* DMUS_S_UP_OCTAVE
+ *
+ * Returned from IDirectMusicPerformance::MIDIToMusic(),  and
+ * IDirectMusicPerformance::MusicToMIDI(), this indicates 
+ * that the note conversion generated a note value that is below 0, 
+ * so it has been bumped up one or more octaves to be in the proper
+ * MIDI range of 0 through 127. 
+ * Note that this is valid for MIDIToMusic() when using play modes
+ * DMUS_PLAYMODE_FIXEDTOCHORD and DMUS_PLAYMODE_FIXEDTOKEY, both of
+ * which store MIDI values in wMusicValue. With MusicToMIDI(), it is
+ * valid for all play modes.
+ * Ofcourse, DMUS_PLAYMODE_FIXED will never return this success code.
+ */
+Public Const DMUS_S_UP_OCTAVE                = &H8781213 'MAKE_DMHRESULTSUCCESS(0x213)
+
+/* DMUS_S_DOWN_OCTAVE
+ *
+ * Returned from IDirectMusicPerformance::MIDIToMusic(),  and
+ * IDirectMusicPerformance::MusicToMIDI(), this indicates 
+ * that the note conversion generated a note value that is above 127, 
+ * so it has been bumped down one or more octaves to be in the proper
+ * MIDI range of 0 through 127. 
+ * Note that this is valid for MIDIToMusic() when using play modes
+ * DMUS_PLAYMODE_FIXEDTOCHORD and DMUS_PLAYMODE_FIXEDTOKEY, both of
+ * which store MIDI values in wMusicValue. With MusicToMIDI(), it is
+ * valid for all play modes.
+ * Ofcourse, DMUS_PLAYMODE_FIXED will never return this success code.
+ */
+Public Const DMUS_S_DOWN_OCTAVE              = &H8781214 'MAKE_DMHRESULTSUCCESS(0x214)
+
+/* DMUS_S_NOBUFFERCONTROL
+ *
+ * Although the audio output from the port will be routed to the
+ * same device as the given DirectSound buffer, buffer controls
+ * such as pan and volume will not affect the output.
+ *
+ */
+Public Const DMUS_S_NOBUFFERCONTROL          = &H8781215 'MAKE_DMHRESULTSUCCESS(0x215)
+
+/* DMUS_S_GARBAGE_COLLECTED
+ *
+ * The requested operation was not performed because during CollectGarbage
+ * the loader determined that the object had been released.
+ */
+Public Const DMUS_S_GARBAGE_COLLECTED        = &H8781216 'MAKE_DMHRESULTSUCCESS(0x216)
+/* DMUS_E_DRIVER_FAILED
+*
+* An unexpected error was returned from a device driver, indicating
+* possible failure of the driver or hardware.
+*/
+Public Const DMUS_E_DRIVER_FAILED            = &H88781101 'MAKE_DMHRESULTERROR(0x0101)
+/* DMUS_E_PORTS_OPEN
+*
+* The requested operation cannot be performed while there are 
+* instantiated ports in any process in the system.
+*/
+Public Const DMUS_E_PORTS_OPEN               = &H88781102 'MAKE_DMHRESULTERROR(0x0102)
+
+/* DMUS_E_DEVICE_IN_USE
+*
+* The requested device is already in use (possibly by a non-DirectMusic
+* client) and cannot be opened again.
+*/
+Public Const DMUS_E_DEVICE_IN_USE            = &H88781103 'MAKE_DMHRESULTERROR(0x0103)
+
+/* DMUS_E_INSUFFICIENTBUFFER
+*
+* Buffer is not large enough for requested operation.
+*/
+Public Const DMUS_E_INSUFFICIENTBUFFER       = &H88781104 'MAKE_DMHRESULTERROR(0x0104)
+
+/* DMUS_E_BUFFERNOTSET
+*
+* No buffer was prepared for the download data.
+*/
+Public Const DMUS_E_BUFFERNOTSET             = &H88781105'MAKE_DMHRESULTERROR(0x0105)
+
+/* DMUS_E_BUFFERNOTAVAILABLE
+*
+* Download failed due to inability to access or create download buffer.
+*/
+Public Const DMUS_E_BUFFERNOTAVAILABLE       = &H88781106 'MAKE_DMHRESULTERROR(0x0106)
+
+/* DMUS_E_NOTADLSCOL
+*
+* Error parsing DLS collection. File is corrupt.
+*/
+Public Const DMUS_E_NOTADLSCOL               = &H88781108 'MAKE_DMHRESULTERROR(0x0108)
+
+/* DMUS_E_INVALIDOFFSET
+*
+* Wave chunks in DLS collection file are at incorrect offsets.
+*/
+Public Const DMUS_E_INVALIDOFFSET            = &H88781109 'MAKE_DMHRESULTERROR(0x0109)
+
+/* DMUS_E_ALREADY_LOADED
+*
+* Second attempt to load a DLS collection that is currently open. 
+*/
+Public Const DMUS_E_ALREADY_LOADED           = &H88781111 'MAKE_DMHRESULTERROR(0x0111)
+
+/* DMUS_E_INVALIDPOS
+*
+* Error reading wave data from DLS collection. Indicates bad file.
+*/
+Public Const DMUS_E_INVALIDPOS               = &H88781113 'MAKE_DMHRESULTERROR(0x0113)
+
+/* DMUS_E_INVALIDPATCH
+*
+* There is no instrument in the collection that matches patch number.
+*/
+Public Const DMUS_E_INVALIDPATCH             = &H88781114 'MAKE_DMHRESULTERROR(0x0114)
+
+/* DMUS_E_CANNOTSEEK
+*
+* The IStream* doesn't support Seek().
+*/
+Public Const DMUS_E_CANNOTSEEK               = &H88781115 'MAKE_DMHRESULTERROR(0x0115)
+
+/* DMUS_E_CANNOTWRITE
+*
+* The IStream* doesn't support Write().
+*/
+Public Const DMUS_E_CANNOTWRITE              = &H88781116 'MAKE_DMHRESULTERROR(0x0116)
+
+/* DMUS_E_CHUNKNOTFOUND
+*
+* The RIFF parser doesn't contain a required chunk while parsing file.
+*/
+Public Const DMUS_E_CHUNKNOTFOUND            = &H88781117 'MAKE_DMHRESULTERROR(0x0117)
+
+/* DMUS_E_INVALID_DOWNLOADID
+*
+* Invalid download id was used in the process of creating a download buffer.
+*/
+Public Const DMUS_E_INVALID_DOWNLOADID       = &H88781119 'MAKE_DMHRESULTERROR(0x0119)
+
+/* DMUS_E_NOT_DOWNLOADED_TO_PORT
+*
+* Tried to unload an object that was not downloaded or previously unloaded.
+*/
+Public Const DMUS_E_NOT_DOWNLOADED_TO_PORT   = &H88781120 'MAKE_DMHRESULTERROR(0x0120)
+
+/* DMUS_E_ALREADY_DOWNLOADED
+*
+* Buffer was already downloaded to synth.
+*/
+Public Const DMUS_E_ALREADY_DOWNLOADED       = &H88781121 'MAKE_DMHRESULTERROR(0x0121)
+
+/* DMUS_E_UNKNOWN_PROPERTY
+*
+* The specified property item was not recognized by the target object.
+*/
+Public Const DMUS_E_UNKNOWN_PROPERTY         = &H88781122 'MAKE_DMHRESULTERROR(0x0122)
+
+/* DMUS_E_SET_UNSUPPORTED
+*
+* The specified property item may not be set on the target object.
+*/
+Public Const DMUS_E_SET_UNSUPPORTED          = &H88781123 'MAKE_DMHRESULTERROR(0x0123)
+
+/* DMUS_E_GET_UNSUPPORTED
+*
+* The specified property item may not be retrieved from the target object.
+*/
+Public Const DMUS_E_GET_UNSUPPORTED          = &H88781124 'MAKE_DMHRESULTERROR(0x0124)
+
+/* DMUS_E_NOTMONO
+*
+* Wave chunk has more than one interleaved channel. DLS format requires MONO.
+*/
+Public Const DMUS_E_NOTMONO                  = &H88781125 'MAKE_DMHRESULTERROR(0x0125)
+
+/* DMUS_E_BADARTICULATION
+*
+* Invalid articulation chunk in DLS collection.
+*/
+Public Const DMUS_E_BADARTICULATION          = &H88781126 'MAKE_DMHRESULTERROR(0x0126)
+
+/* DMUS_E_BADINSTRUMENT
+*
+* Invalid instrument chunk in DLS collection.
+*/
+Public Const DMUS_E_BADINSTRUMENT            = &H88781127 'MAKE_DMHRESULTERROR(0x0127)
+
+/* DMUS_E_BADWAVELINK
+*
+* Wavelink chunk in DLS collection points to invalid wave.
+*/
+Public Const DMUS_E_BADWAVELINK              = &H88781128 'MAKE_DMHRESULTERROR(0x0128)
+
+/* DMUS_E_NOARTICULATION
+*
+* Articulation missing from instrument in DLS collection.
+*/
+Public Const DMUS_E_NOARTICULATION           = &H88781129 'MAKE_DMHRESULTERROR(0x0129)
+
+/* DMUS_E_NOTPCM
+*
+* Downoaded DLS wave is not in PCM format. 
+*/
+Public Const DMUS_E_NOTPCM                   = &H8878112a 'MAKE_DMHRESULTERROR(0x012A)
+
+/* DMUS_E_BADWAVE
+*
+* Bad wave chunk in DLS collection
+*/
+Public Const DMUS_E_BADWAVE                  = &H8878112b 'MAKE_DMHRESULTERROR(0x012B)
+
+/* DMUS_E_BADOFFSETTABLE
+*
+* Offset Table for download buffer has errors. 
+*/
+Public Const DMUS_E_BADOFFSETTABLE           = &H8878112c 'MAKE_DMHRESULTERROR(0x012C)
+
+/* DMUS_E_UNKNOWNDOWNLOAD
+*
+* Attempted to download unknown data type.
+*/
+Public Const DMUS_E_UNKNOWNDOWNLOAD          = &H8878112d 'MAKE_DMHRESULTERROR(0x012D)
+
+/* DMUS_E_NOSYNTHSINK
+*
+* The operation could not be completed because no sink was connected to
+* the synthesizer.
+*/
+Public Const DMUS_E_NOSYNTHSINK              = &H8878112e 'MAKE_DMHRESULTERROR(0x012E)
+
+/* DMUS_E_ALREADYOPEN
+*
+* An attempt was made to open the software synthesizer while it was already 
+* open.
+* ASSERT?
+*/
+Public Const DMUS_E_ALREADYOPEN              = &H8878112f 'MAKE_DMHRESULTERROR(0x012F)
+
+/* DMUS_E_ALREADYCLOSE
+*
+* An attempt was made to close the software synthesizer while it was already 
+* open.
+* ASSERT?
+*/
+Public Const DMUS_E_ALREADYCLOSED            = &H88781130 'MAKE_DMHRESULTERROR(0x0130)
+
+/* DMUS_E_SYNTHNOTCONFIGURED
+*
+* The operation could not be completed because the software synth has not 
+* yet been fully configured.
+* ASSERT?
+*/
+Public Const DMUS_E_SYNTHNOTCONFIGURED       = &H88781131 'MAKE_DMHRESULTERROR(0x0131)
+
+/* DMUS_E_SYNTHACTIVE
+*
+* The operation cannot be carried out while the synthesizer is active.
+*/
+Public Const DMUS_E_SYNTHACTIVE              = &H88781132 'MAKE_DMHRESULTERROR(0x0132)
+
+/* DMUS_E_CANNOTREAD
+*
+* An error occurred while attempting to read from the IStream* object.
+*/
+Public Const DMUS_E_CANNOTREAD               = &H88781133 'MAKE_DMHRESULTERROR(0x0133)
+
+/* DMUS_E_DMUSIC_RELEASED
+*
+* The operation cannot be performed because the final instance of the
+* DirectMusic object was released. Ports cannot be used after final 
+* release of the DirectMusic object.
+*/
+Public Const DMUS_E_DMUSIC_RELEASED          = &H88781134 'MAKE_DMHRESULTERROR(0x0134)
+
+/* DMUS_E_BUFFER_EMPTY
+*
+* There was no data in the referenced buffer.
+*/
+Public Const DMUS_E_BUFFER_EMPTY             = &H88781135 'MAKE_DMHRESULTERROR(0x0135)
+
+/* DMUS_E_BUFFER_FULL
+*
+* There is insufficient space to insert the given event into the buffer.
+*/
+Public Const DMUS_E_BUFFER_FULL              = &H88781136 'MAKE_DMHRESULTERROR(0x0136)
+
+/* DMUS_E_PORT_NOT_CAPTURE
+*
+* The given operation could not be carried out because the port is a
+* capture port.
+*/
+Public Const DMUS_E_PORT_NOT_CAPTURE         = &H88781137 'MAKE_DMHRESULTERROR(0x0137)
+
+/* DMUS_E_PORT_NOT_RENDER
+*
+* The given operation could not be carried out because the port is a
+* render port.
+*/
+Public Const DMUS_E_PORT_NOT_RENDER          = &H88781138 'MAKE_DMHRESULTERROR(0x0138)
+
+/* DMUS_E_DSOUND_NOT_SET
+*
+* The port could not be created because no DirectSound has been specified.
+* Specify a DirectSound interface via the IDirectMusic::SetDirectSound
+* method; pass NULL to have DirectMusic manage usage of DirectSound.
+*/
+Public Const DMUS_E_DSOUND_NOT_SET           = &H88781139 'MAKE_DMHRESULTERROR(0x0139)
+
+/* DMUS_E_ALREADY_ACTIVATED
+*
+* The operation cannot be carried out while the port is active.
+*/
+Public Const DMUS_E_ALREADY_ACTIVATED        = &H8878113a 'MAKE_DMHRESULTERROR(0x013A)
+
+/* DMUS_E_INVALIDBUFFER
+*
+* Invalid DirectSound buffer was handed to port. 
+*/
+Public Const DMUS_E_INVALIDBUFFER            = &H8878113b 'MAKE_DMHRESULTERROR(0x013B)
+
+/* DMUS_E_WAVEFORMATNOTSUPPORTED
+*
+* Invalid buffer format was handed to the synth sink.
+*/
+Public Const DMUS_E_WAVEFORMATNOTSUPPORTED   = &H8878113c 'MAKE_DMHRESULTERROR(0x013C)
+
+/* DMUS_E_SYNTHINACTIVE
+*
+* The operation cannot be carried out while the synthesizer is inactive.
+*/
+Public Const DMUS_E_SYNTHINACTIVE            = &H8878113d 'MAKE_DMHRESULTERROR(0x013D)
+
+/* DMUS_E_DSOUND_ALREADY_SET
+*
+* IDirectMusic::SetDirectSound has already been called. It may not be
+* changed while in use.
+*/
+Public Const DMUS_E_DSOUND_ALREADY_SET       = &H8878113e 'MAKE_DMHRESULTERROR(0x013E)
+
+/* DMUS_E_INVALID_EVENT
+*
+* The given event is invalid (either it is not a valid MIDI message
+* or it makes use of running status). The event cannot be packed
+* into the buffer.
+*/
+Public Const DMUS_E_INVALID_EVENT            = &H8878113f 'MAKE_DMHRESULTERROR(0x013F)
+
+/* DMUS_E_UNSUPPORTED_STREAM
+*
+* The IStream* object does not contain data supported by the loading object.
+*/
+Public Const DMUS_E_UNSUPPORTED_STREAM       = &H88781150 'MAKE_DMHRESULTERROR(0x0150)
+
+/* DMUS_E_ALREADY_INITED
+*
+* The object has already been initialized.
+*/
+Public Const DMUS_E_ALREADY_INITED           = &H88781151 'MAKE_DMHRESULTERROR(0x0151)
+
+/* DMUS_E_INVALID_BAND
+*
+* The file does not contain a valid band.
+*/
+Public Const DMUS_E_INVALID_BAND             = &H88781152 'MAKE_DMHRESULTERROR(0x0152)
+
+/* DMUS_E_TRACK_HDR_NOT_FIRST_CK
+*
+* The IStream* object's data does not have a track header as the first chunk,
+* and therefore can not be read by the segment object.
+*/
+Public Const DMUS_E_TRACK_HDR_NOT_FIRST_CK   = &H88781155 'MAKE_DMHRESULTERROR(0x0155)
+
+/* DMUS_E_TOOL_HDR_NOT_FIRST_CK
+*
+* The IStream* object's data does not have a tool header as the first chunk,
+* and therefore can not be read by the graph object.
+*/
+Public Const DMUS_E_TOOL_HDR_NOT_FIRST_CK    = &H88781156 'MAKE_DMHRESULTERROR(0x0156)
+
+/* DMUS_E_INVALID_TRACK_HDR
+*
+* The IStream* object's data contains an invalid track header (ckid is 0 and
+* fccType is NULL,) and therefore can not be read by the segment object.
+*/
+Public Const DMUS_E_INVALID_TRACK_HDR        = &H88781157 'MAKE_DMHRESULTERROR(0x0157)
+
+/* DMUS_E_INVALID_TOOL_HDR
+*
+* The IStream* object's data contains an invalid tool header (ckid is 0 and
+* fccType is NULL,) and therefore can not be read by the graph object.
+*/
+Public Const DMUS_E_INVALID_TOOL_HDR         = &H88781158 'MAKE_DMHRESULTERROR(0x0158)
+
+/* DMUS_E_ALL_TOOLS_FAILED
+*
+* The graph object was unable to load all tools from the IStream* object data.
+* This may be due to errors in the stream, or the tools being incorrectly
+* registered on the client.
+*/
+Public Const DMUS_E_ALL_TOOLS_FAILED         = &H88781159 'MAKE_DMHRESULTERROR(0x0159)
+
+/* DMUS_E_ALL_TRACKS_FAILED
+*
+* The segment object was unable to load all tracks from the IStream* object data.
+* This may be due to errors in the stream, or the tracks being incorrectly
+* registered on the client.
+*/
+Public Const DMUS_E_ALL_TRACKS_FAILED        = &H88781160 'MAKE_DMHRESULTERROR(0x0160)
+
+/* DMUS_E_NOT_FOUND
+*
+* The requested item was not contained by the object.
+*/
+Public Const DMUS_E_NOT_FOUND                = &H88781161 'MAKE_DMHRESULTERROR(0x0161)
+
+/* DMUS_E_NOT_INIT
+*
+* A required object is not initialized or failed to initialize.
+*/
+Public Const DMUS_E_NOT_INIT                 = &H88781162 'MAKE_DMHRESULTERROR(0x0162)
+
+/* DMUS_E_TYPE_DISABLED
+*
+* The requested parameter type is currently disabled. Parameter types may
+* be enabled and disabled by certain calls to SetParam().
+*/
+Public Const DMUS_E_TYPE_DISABLED            = &H88781163 'MAKE_DMHRESULTERROR(0x0163)
+
+/* DMUS_E_TYPE_UNSUPPORTED
+*
+* The requested parameter type is not supported on the object.
+*/
+Public Const DMUS_E_TYPE_UNSUPPORTED         = &H88781164 'MAKE_DMHRESULTERROR(0x0164)
+
+/* DMUS_E_TIME_PAST
+*
+* The time is in the past, and the operation can not succeed.
+*/
+Public Const DMUS_E_TIME_PAST                = &H88781165 'MAKE_DMHRESULTERROR(0x0165)
+
+/* DMUS_E_TRACK_NOT_FOUND
+*
+* The requested track is not contained by the segment.
+*/
+Public Const DMUS_E_TRACK_NOT_FOUND            = &H88781166 'MAKE_DMHRESULTERROR(0x0166)
+
+/* DMUS_E_TRACK_NO_CLOCKTIME_SUPPORT
+*
+* The track does not support clock time playback or getparam.
+*/
+Public Const DMUS_E_TRACK_NO_CLOCKTIME_SUPPORT   = &H88781167 'MAKE_DMHRESULTERROR(0x0167)
+ 
+/* DMUS_E_NO_MASTER_CLOCK
+*
+* There is no master clock in the performance. Be sure to call
+* IDirectMusicPerformance::Init().
+*/
+Public Const DMUS_E_NO_MASTER_CLOCK          = &H88781170 'MAKE_DMHRESULTERROR(0x0170)
+
+/* DMUS_E_LOADER_NOCLASSID
+*
+* The class id field is required and missing in the DMUS_OBJECTDESC.
+*/
+Public Const DMUS_E_LOADER_NOCLASSID         = &H88781180 'MAKE_DMHRESULTERROR(0x0180)
+
+/* DMUS_E_LOADER_BADPATH
+*
+* The requested file path is invalid.
+*/
+Public Const DMUS_E_LOADER_BADPATH           = &H88781181 'MAKE_DMHRESULTERROR(0x0181)
+
+/* DMUS_E_LOADER_FAILEDOPEN
+*
+* File open failed - either file doesn't exist or is locked.
+*/
+Public Const DMUS_E_LOADER_FAILEDOPEN        = &H88781182 'MAKE_DMHRESULTERROR(0x0182)
+
+/* DMUS_E_LOADER_FORMATNOTSUPPORTED
+*
+* Search data type is not supported.
+*/
+Public Const DMUS_E_LOADER_FORMATNOTSUPPORTED    = &H88781183 'MAKE_DMHRESULTERROR(0x0183)
+
+/* DMUS_E_LOADER_FAILEDCREATE
+*
+* Unable to find or create object.
+*/
+Public Const DMUS_E_LOADER_FAILEDCREATE      = &H88781184 'MAKE_DMHRESULTERROR(0x0184)
+
+/* DMUS_E_LOADER_OBJECTNOTFOUND
+*
+* Object was not found.
+*/
+Public Const DMUS_E_LOADER_OBJECTNOTFOUND    = &H88781185 'MAKE_DMHRESULTERROR(0x0185)
+
+/* DMUS_E_LOADER_NOFILENAME
+*
+* The file name is missing from the DMUS_OBJECTDESC.
+*/
+Public Const DMUS_E_LOADER_NOFILENAME        = &H88781186 'MAKE_DMHRESULTERROR(0x0186)
+
+/* DMUS_E_INVALIDFILE
+*
+* The file requested is not a valid file.
+*/
+Public Const DMUS_E_INVALIDFILE              = &H88781200 'MAKE_DMHRESULTERROR(0x0200)
+
+/* DMUS_E_ALREADY_EXISTS
+*
+* The tool is already contained in the graph. Create a new instance.
+*/
+Public Const DMUS_E_ALREADY_EXISTS           = &H88781201 'MAKE_DMHRESULTERROR(0x0201)
+
+/* DMUS_E_OUT_OF_RANGE
+*
+* Value is out of range, for instance the requested length is longer than
+* the segment.
+*/
+Public Const DMUS_E_OUT_OF_RANGE             = &H88781202 'MAKE_DMHRESULTERROR(0x0202)
+
+/* DMUS_E_SEGMENT_INIT_FAILED
+*
+* Segment initialization failed, most likely due to a critical memory situation.
+*/
+Public Const DMUS_E_SEGMENT_INIT_FAILED      = &H88781203 'MAKE_DMHRESULTERROR(0x0203)
+
+/* DMUS_E_ALREADY_SENT
+*
+* The DMUS_PMSG has already been sent to the performance object via
+* IDirectMusicPerformance::SendPMsg().
+*/
+Public Const DMUS_E_ALREADY_SENT             = &H88781204 'MAKE_DMHRESULTERROR(0x0204)
+
+/* DMUS_E_CANNOT_FREE
+*
+* The DMUS_PMSG was either not allocated by the performance via
+* IDirectMusicPerformance::AllocPMsg(), or it was already freed via
+* IDirectMusicPerformance::FreePMsg().
+*/
+Public Const DMUS_E_CANNOT_FREE              = &H88781205 'MAKE_DMHRESULTERROR(0x0205)
+
+/* DMUS_E_CANNOT_OPEN_PORT
+*
+* The default system port could not be opened.
+*/
+Public Const DMUS_E_CANNOT_OPEN_PORT         = &H88781206 'MAKE_DMHRESULTERROR(0x0206)
+
+/* DMUS_E_CANNOT_CONVERT
+*
+* A call to MIDIToMusic() or MusicToMIDI() resulted in an error because
+* the requested conversion could not happen. This usually occurs when the
+* provided DMUS_CHORD_KEY structure has an invalid chord or scale pattern.
+*/
+Public Const DMUS_E_CANNOT_CONVERT           = &H88781207 'MAKE_DMHRESULTERROR(0x0207)
+/* misspelling in previous versions of DirectX preserved for backward compatibility */
+Public Const DMUS_E_CONNOT_CONVERT           = DMUS_E_CANNOT_CONVERT
+
+/* DMUS_E_DESCEND_CHUNK_FAIL
+* 
+* DMUS_E_DESCEND_CHUNK_FAIL is returned when the end of the file 
+* was reached before the desired chunk was found.
+*/
+Public Const DMUS_E_DESCEND_CHUNK_FAIL       = &H88781210 'MAKE_DMHRESULTERROR(0x0210)
+
+/* DMUS_E_NOT_LOADED
+*
+* An attempt to use this object failed because it first needs to
+* be loaded.
+*/
+Public Const DMUS_E_NOT_LOADED               = &H88781211 'MAKE_DMHRESULTERROR(0x0211)
+
+/* DMUS_E_SCRIPT_LANGUAGE_INCOMPATIBLE
+*
+* The activeX scripting engine for the script's language is not compatible with
+* DirectMusic.
+*
+*/
+Public Const DMUS_E_SCRIPT_LANGUAGE_INCOMPATIBLE  = &H88781213 'MAKE_DMHRESULTERROR(0x0213)
+
+/* DMUS_E_SCRIPT_UNSUPPORTED_VARTYPE
+*
+* A varient was used that had a type that is not supported by DirectMusic.
+*
+*/
+Public Const DMUS_E_SCRIPT_UNSUPPORTED_VARTYPE    = &H88781214 'MAKE_DMHRESULTERROR(0x0214)
+
+/* DMUS_E_SCRIPT_ERROR_IN_SCRIPT
+*
+* An error was encountered while parsing or executing the script.
+* The pErrorInfo parameter (if supplied) was filled with information about the error.
+*/
+Public Const DMUS_E_SCRIPT_ERROR_IN_SCRIPT        = &H88781215 'MAKE_DMHRESULTERROR(0x0215)
+
+/* DMUS_E_SCRIPT_CANTLOAD_OLEAUT32
+*
+* Loading of oleaut32.dll failed.  VBScript and other activeX scripting languages
+* require use of oleaut32.dll.  On platforms where oleaut32.dll is not present, only
+* the DirectMusicScript language, which doesn't require oleaut32.dll can be used.
+*/
+Public Const DMUS_E_SCRIPT_CANTLOAD_OLEAUT32      = &H88781216 'MAKE_DMHRESULTERROR(0x0216)
+
+/* DMUS_E_SCRIPT_LOADSCRIPT_ERROR
+*
+* An error occured while parsing a script loaded using LoadScript.  The script that
+* was loaded contains an error.
+*/
+Public Const DMUS_E_SCRIPT_LOADSCRIPT_ERROR       = &H88781217 'MAKE_DMHRESULTERROR(0x0217)
+
+/* DMUS_E_SCRIPT_INVALID_FILE
+*
+* The script file is invalid.
+*/
+Public Const DMUS_E_SCRIPT_INVALID_FILE           = &H88781218 'MAKE_DMHRESULTERROR(0x0218)
+
+/* DMUS_E_INVALID_SCRIPTTRACK
+*
+* The file contains an invalid script track.
+*/
+Public Const DMUS_E_INVALID_SCRIPTTRACK           = &H88781219 'MAKE_DMHRESULTERROR(0x0219)
+
+/* DMUS_E_SCRIPT_VARIABLE_NOT_FOUND
+*
+* The script does not contain a variable with the specified name.
+*/
+Public Const DMUS_E_SCRIPT_VARIABLE_NOT_FOUND     = &H8878121a 'MAKE_DMHRESULTERROR(0x021A)
+
+/* DMUS_E_SCRIPT_ROUTINE_NOT_FOUND
+*
+* The script does not contain a routine with the specified name.
+*/
+Public Const DMUS_E_SCRIPT_ROUTINE_NOT_FOUND      = &H8878121b 'MAKE_DMHRESULTERROR(0x021B)
+
+/* DMUS_E_SCRIPT_CONTENT_READONLY
+*
+* Scripts variables for content referenced or embedded in a script cannot be set.
+*/
+Public Const DMUS_E_SCRIPT_CONTENT_READONLY       = &H8878121c 'MAKE_DMHRESULTERROR(0x021C)
+
+/* DMUS_E_SCRIPT_NOT_A_REFERENCE
+*
+* Attempt was made to set a script's variable by reference to a value that was
+* not an object type.
+*/
+Public Const DMUS_E_SCRIPT_NOT_A_REFERENCE        = &H8878121d 'MAKE_DMHRESULTERROR(0x021D)
+
+/* DMUS_E_SCRIPT_VALUE_NOT_SUPPORTED
+*
+* Attempt was made to set a script's variable by value to an object that does
+* not support a default value property.
+*/
+Public Const DMUS_E_SCRIPT_VALUE_NOT_SUPPORTED    = &H8878121e 'MAKE_DMHRESULTERROR(0x021E)
+
+/* DMUS_E_INVALID_SEGMENTTRIGGERTRACK
+*
+* The file contains an invalid segment trigger track.
+*/
+Public Const DMUS_E_INVALID_SEGMENTTRIGGERTRACK   = &H88781220 'MAKE_DMHRESULTERROR(0x0220)
+
+/* DMUS_E_INVALID_LYRICSTRACK
+*
+* The file contains an invalid lyrics track.
+*/
+Public Const DMUS_E_INVALID_LYRICSTRACK           = &H88781221 'MAKE_DMHRESULTERROR(0x0221)
+
+/* DMUS_E_INVALID_PARAMCONTROLTRACK
+*
+* The file contains an invalid parameter control track.
+*/
+Public Const DMUS_E_INVALID_PARAMCONTROLTRACK     = &H88781222 'MAKE_DMHRESULTERROR(0x0222)
+
+/* DMUS_E_AUDIOVBSCRIPT_SYNTAXERROR
+*
+* A script written in AudioVBScript could not be read because it contained a statement that
+* is not allowed by the AudioVBScript language.
+*/
+Public Const DMUS_E_AUDIOVBSCRIPT_SYNTAXERROR     = &H88781223 'MAKE_DMHRESULTERROR(0x0223)
+
+/* DMUS_E_AUDIOVBSCRIPT_RUNTIMEERROR
+*
+* A script routine written in AudioVBScript failed because an invalid operation occurred.  For example,
+* adding the number 3 to a segment object would produce this error.  So would attempting to call a routine
+* that doesn't exist.
+*/
+Public Const DMUS_E_AUDIOVBSCRIPT_RUNTIMEERROR     = &H88781224 'MAKE_DMHRESULTERROR(0x0224)
+
+/* DMUS_E_AUDIOVBSCRIPT_OPERATIONFAILURE
+*
+* A script routine written in AudioVBScript failed because a function outside of a script failed to complete.
+* For example, a call to PlaySegment that fails to play because of low memory would return this error.
+*/
+Public Const DMUS_E_AUDIOVBSCRIPT_OPERATIONFAILURE     = &H88781225 'MAKE_DMHRESULTERROR(0x0225)
+
+/* DMUS_E_AUDIOPATHS_NOT_VALID
+*
+* The Performance has set up some PChannels using the AssignPChannel command, which 
+* makes it not capable of supporting audio paths.
+*/
+Public Const DMUS_E_AUDIOPATHS_NOT_VALID     = &H88781226 'MAKE_DMHRESULTERROR(0x0226)
+
+/* DMUS_E_AUDIOPATHS_IN_USE
+*
+* This is the inverse of the previous error. 
+* The Performance has set up some audio paths, which makes is incompatible
+* with the calls to allocate pchannels, etc. 
+*/
+Public Const DMUS_E_AUDIOPATHS_IN_USE     = &H88781227 'MAKE_DMHRESULTERROR(0x0227)
+
+/* DMUS_E_NO_AUDIOPATH_CONFIG
+*
+* A segment was asked for its embedded audio path configuration,
+* but there isn't any. 
+*/
+Public Const DMUS_E_NO_AUDIOPATH_CONFIG     = &H88781228 'MAKE_DMHRESULTERROR(0x0228)
+
+/* DMUS_E_AUDIOPATH_INACTIVE
+*
+* An audiopath is inactive, perhaps because closedown was called.
+*/
+Public Const DMUS_E_AUDIOPATH_INACTIVE     = &H88781229 'MAKE_DMHRESULTERROR(0x0229)
+
+/* DMUS_E_AUDIOPATH_NOBUFFER
+*
+* An audiopath failed to create because a requested buffer could not be created.
+*/
+Public Const DMUS_E_AUDIOPATH_NOBUFFER     = &H8878122a 'MAKE_DMHRESULTERROR(0x022A)
+
+/* DMUS_E_AUDIOPATH_NOPORT
+*
+* An audiopath could not be used for playback because it lacked port assignments.
+*/
+Public Const DMUS_E_AUDIOPATH_NOPORT     = &H8878122b 'MAKE_DMHRESULTERROR(0x022B)
+
+/* DMUS_E_NO_AUDIOPATH
+*
+* Attempt was made to play segment in audiopath mode and there was no audiopath.
+*/
+Public Const DMUS_E_NO_AUDIOPATH     = &H8878122c 'MAKE_DMHRESULTERROR(0x022C)
+
+/* DMUS_E_INVALIDCHUNK
+*
+* Invalid data was found in a RIFF file chunk.
+*/
+Public Const DMUS_E_INVALIDCHUNK     = &H8878122d 'MAKE_DMHRESULTERROR(0x022D)
+
+/* DMUS_E_AUDIOPATH_NOGLOBALFXBUFFER
+*
+* Attempt was made to create an audiopath that sends to a global effects buffer which did not exist.
+*/
+Public Const DMUS_E_AUDIOPATH_NOGLOBALFXBUFFER     = &H8878122e 'MAKE_DMHRESULTERROR(0x022E)
+
+/* DMUS_E_INVALID_CONTAINER_OBJECT
+*
+* The file does not contain a valid container object.
+*/
+Public Const DMUS_E_INVALID_CONTAINER_OBJECT    = &H8878122f 'MAKE_DMHRESULTERROR(0x022F)
+
+    
+    
+'dmdls.h
+
+Public Type DMUS_DOWNLOADINFO
+	dwDLType As Long '* Instrument or Wave */
+	dwDLId As Long '* Unique identifier to tag this download. */
+	dwNumOffsetTableEntries As Long '* Number of index in the offset address table. */
+	cbSize As Long '* Total size of this memory chunk. */
+End Type
+
+Public Const DMUS_DOWNLOADINFO_INSTRUMENT  = 1
+Public Const DMUS_DOWNLOADINFO_WAVE  = 2
+Public Const DMUS_DOWNLOADINFO_INSTRUMENT2  = 3 /* New version for better DLS2 support. */
+' /* Support for oneshot and streaming wave data
+'  */
+Public Const DMUS_DOWNLOADINFO_WAVEARTICULATION  = 4 /* Wave articulation data */
+Public Const DMUS_DOWNLOADINFO_STREAMINGWAVE  = 5 /* One chunk of a streaming */
+Public Const DMUS_DOWNLOADINFO_ONESHOTWAVE  = 6
+Public Const DMUS_DEFAULT_SIZE_OFFSETTABLE  = 1
+/* Flags for DMUS_INSTRUMENT's ulFlags member */
+Public Const DMUS_INSTRUMENT_GM_INSTRUMENT  = (1 << 0)
+
+Public Type DMUS_OFFSETTABLE
+	ulOffsetTable(0 To (DMUS_DEFAULT_SIZE_OFFSETTABLE - 1)) As Long
+End Type
+
+Public Type DMUS_INSTRUMENT
+	ulPatch As Long
+	ulFirstRegionIdx As Long
+	ulGlobalArtIdx As Long '* If zero the instrument does not have an articulation */
+	ulFirstExtCkIdx As Long '* If zero no 3rd party entenstion chunks associated with the instrument */
+	ulCopyrightIdx As Long '* If zero no Copyright information associated with the instrument */
+	ulFlags As Long
+End Type
+
+Public Type DMUS_REGION
+	RangeKey As RGNRANGE
+	RangeVelocity As RGNRANGE
+	fusOptions As Integer
+	usKeyGroup As Integer
+	ulRegionArtIdx As Long '* If zero the region does not have an articulation */
+	ulNextRegionIdx As Long '* If zero no more regions */
+	ulFirstExtCkIdx As Long '* If zero no 3rd party entenstion chunks associated with the region */
+	WaveLink As WAVELINK
+	WSMP As WSMPL '/*  If WSMP.cSampleLoops > 1 then a WLOOP is included */
+	WLOOP(0 To 0) As WLOOP
+End Type
+
+Public Type DMUS_LFOPARAMS
+	pcFrequency As Long 'PCENT
+	tcDelay As Long 'TCENT
+	gcVolumeScale As Long 'GCENT
+	pcPitchScale As Long 'PCENT
+	gcMWToVolume As Long 'GCENT
+	pcMWToPitch As Long 'PCENT
+End Type
+
+Public Type DMUS_VEGPARAMS
+	tcAttack As Long 'TCENT
+	tcDecay As Long 'TCENT
+	ptSustain As Long 'PERCENT
+	tcRelease As Long 'TCENT
+	tcVel2Attack As Long 'TCENT
+	tcKey2Decay As Long 'TCENT
+End Type
+
+Public Type DMUS_PEGPARAMS
+	tcAttack As Long 'TCENT
+	tcDecay As Long 'TCENT
+	ptSustain As Long 'PERCENT
+	tcRelease As Long 'TCENT
+	tcVel2Attack As Long 'TCENT
+	tcKey2Decay As Long 'TCENT
+	pcRange As Long 'PCENT
+End Type
+
+Public Type DMUS_MSCPARAMS
+	ptDefaultPan As Long 'PERCENT
+End Type
+
+Public Type DMUS_ARTICPARAMS
+	LFO As DMUS_LFOPARAMS
+	VolEG As DMUS_VEGPARAMS
+	PitchEG As DMUS_PEGPARAMS
+	Misc As DMUS_MSCPARAMS
+End Type
+
+Public Type DMUS_ARTICULATION
+	ulArt1Idx As Long '* DLS Level 1 articulation chunk */
+	ulFirstExtCkIdx As Long '* 3rd party extenstion chunks associated with the articulation */
+End Type
+
+Public Type DMUS_ARTICULATION2
+	ulArtIdx As Long '* DLS Level 1/2 articulation chunk */
+	ulFirstExtCkIdx As Long '* 3rd party extenstion chunks associated with the articulation */
+	ulNextArtIdx As Long '* Additional articulation chunks */
+End Type
+
+Public Const DMUS_MIN_DATA_SIZE  = 4
+
+Public Type DMUS_EXTENSIONCHUNK
+	cbSize As Long '*  Size of extension chunk  */
+	ulNextExtCkIdx As Long '*  If zero no more 3rd party entenstion chunks */
+	ExtCkID As Long 'FOURCC
+	byExtCk(0 To (DMUS_MIN_DATA_SIZE - 1)) As Byte '*  The actual number that follows is determined by cbSize */
+End Type
+
+Public Type DMUS_COPYRIGHT
+	cbSize As Long '*  Size of copyright information */
+	byCopyright(0 To (DMUS_MIN_DATA_SIZE - 1)) As Byte '*  The actual number that follows is determined by cbSize */
+End Type
+
+Public Type DMUS_WAVEDATA
+	cbSize As Long
+	byData(0 To (DMUS_MIN_DATA_SIZE - 1)) As Byte
+End Type
+
+Public Type DMUS_WAVE
+	ulFirstExtCkIdx As Long '* If zero no 3rd party entenstion chunks associated with the wave */
+	ulCopyrightIdx As Long '* If zero no Copyright information associated with the wave */
+	ulWaveDataIdx As Long '* Location of actual wave data. */
+	WaveformatEx As WAVEFORMATEX
+End Type
+
+Public Type DMUS_NOTERANGE
+	dwLowNote As Long '* Sets the low note for the range of MIDI note events to which the instrument responds.*/
+	dwHighNote As Long '* Sets the high note for the range of MIDI note events to which the instrument responds.*/
+End Type
+
+Public Type DMUS_WAVEARTDL
+	ulDownloadIdIdx As Long '* Download ID's of each buffer */
+	ulBus As Long '* Playback bus */
+	ulBuffers As Long '* Buffers */
+	ulMasterDLId As Long '* Download ID of master voice of slave group */
+	usOptions As Integer '* Same as DLS2 region options */
+End Type
+
+Public Type DMUS_WAVEDL
+	cbWaveData As Long '* Bytes of wave data */
+End Type
+
+
+
+'dmusbuff.h
+
+[PackingAlignment(4)]
+Public Type DMUS_EVENTHEADER
+	cbEvent As Long '* Unrounded bytes in event */
+	dwChannelGroup As Long '* Channel group of event */
+	rtDelta As REFERENCE_TIME '* Delta from start time of entire buffer */
+	dwFlags As Long '* Flags DMUS_EVENT_xxx */
+End Type
+
+Public Const DMUS_EVENT_STRUCTURED  = &H00000001 /* Unstructured data (SysEx, etc.) */
+
+Private Function QWORD_ALIGN(ByVal x As Long) As Long
+    QWORD_ALIGN = (x + 7) And Not 7
+End Function
+
+Public Function DMUS_EVENT_SIZE(ByVal cb As Long) As Long
+    Return QWORD_ALIGN(LenB(Of DMUS_EVENTHEADER) + cb)
+End Function
+
+
+
+'dmusicc.h
+
+Public Const DMUS_MAX_DESCRIPTION  = 128
+Public Const DMUS_MAX_DRIVER  = 128
+
+Public Enum DMusicEffectsFlags
+	DMUS_EFFECT_NONE = &H00000000
+	DMUS_EFFECT_REVERB = &H00000001
+	DMUS_EFFECT_CHORUS = &H00000002
+	DMUS_EFFECT_DELAY = &H00000004
+End Enum
+
+Public Enum DMusicPortCapsClass
+	DMUS_PC_INPUTCLASS = (0)
+	DMUS_PC_OUTPUTCLASS = (1)
+End Enum
+
+Public Enum DMusicPortCapsFlags
+	DMUS_PC_DLS = (&H00000001)  		  	' Supports DLS downloading and DLS level 1.
+	DMUS_PC_EXTERNAL = (&H00000002)		  	' External MIDI module.
+	DMUS_PC_SOFTWARESYNTH = (&H00000004)  	' Software synthesizer.
+	DMUS_PC_MEMORYSIZEFIXED = (&H00000008)  ' Memory size is fixed.
+	DMUS_PC_GMINHARDWARE = (&H00000010)  	' GM sound set is built in, no need to download.
+	DMUS_PC_GSINHARDWARE = (&H00000020)  	' GS sound set is built in.
+	DMUS_PC_XGINHARDWARE = (&H00000040)  	' XG sound set is built in.
+	DMUS_PC_DIRECTSOUND = (&H00000080)  	' Connects to DirectSound via a DSound buffer.
+	DMUS_PC_SHAREABLE = (&H00000100)  		' Synth can be actively shared by multiple apps at once.
+	DMUS_PC_DLS2 = (&H00000200)  			' Supports DLS2 instruments.
+	DMUS_PC_AUDIOPATH = (&H00000400)  		' Multiple outputs can be connected to DirectSound for audiopaths.
+	DMUS_PC_WAVE = (&H00000800)  			' Supports streaming and one shot waves.
+	DMUS_PC_SYSTEMMEMORY = (&H7FFFFFFF)  	' Sample memory is system memory.
+End Enum
+
+Public Type DMUS_PORTCAPS
+	dwSize As Long
+	dwFlags As DMusicPortCapsFlags
+	guidPort As UUID
+	dwClass As DMusicPortCapsClass
+	dwType As DMusicPortCapsType
+	dwMemorySize As Long
+	dwMaxChannelGroups As Long
+	dwMaxVoices As Long
+	dwMaxAudioChannels As Long
+	dwEffectFlags As DMusicEffectsFlags
+	wszDescription(0 To (DMUS_MAX_DESCRIPTION - 1)) As Integer
+End Type
+
+Public Enum DMusicPortCapsType
+	DMUS_PORT_WINMM_DRIVER = (0)
+	DMUS_PORT_USER_MODE_SYNTH = (1)
+	DMUS_PORT_KERNEL_MODE = (2)
+End Enum
+
+Public Enum DMusicPortParamsValid
+	DMUS_PORTPARAMS_VOICES = &H00000001
+	DMUS_PORTPARAMS_CHANNELGROUPS = &H00000002
+	DMUS_PORTPARAMS_AUDIOCHANNELS = &H00000004
+	DMUS_PORTPARAMS_SAMPLERATE = &H00000008
+	DMUS_PORTPARAMS_EFFECTS = &H00000020
+	DMUS_PORTPARAMS_SHARE = &H00000040
+	DMUS_PORTPARAMS_FEATURES = &H00000080 /* DirectX 8.0 and above */
+End Enum
+
+Public Type DMUS_PORTPARAMS7
+	dwSize As Long
+	dwValidParams As DMusicPortParamsValid
+	dwVoices As Long
+	dwChannelGroups As Long
+	dwAudioChannels As Long
+	dwSampleRate As Long
+	dwEffectFlags As DMusicEffectsFlags
+	fShare As BOOL
+End Type
+
+Public Type DMUS_PORTPARAMS8
+	dwSize As Long
+	dwValidParams As DMusicPortParamsValid
+	dwVoices As Long
+	dwChannelGroups As Long
+	dwAudioChannels As Long
+	dwSampleRate As Long
+	dwEffectFlags As DMusicEffectsFlags
+	fShare As BOOL
+	dwFeatures As DMusicPortParamsFeats
+End Type
+
+Public Enum DMusicPortParamsFeats
+	DMUS_PORT_FEATURE_AUDIOPATH = &H00000001 /* Supports audiopath connection to DSound buffers. */
+	DMUS_PORT_FEATURE_STREAMING = &H00000002 /* Supports streaming waves through the synth. */
+End Enum
+
+' Alias DMUS_PORTPARAMS As DMUS_PORTPARAMS8
+
+
+'break line 145
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+End Module
+
+Public Alias SAMPLE_TIME As LongLong
+Public Alias SAMPLE_POSITION As LongLong
+
+Public Alias DMUS_PORTPARAMS As DMUS_PORTPARAMS8
