@@ -1,4 +1,12 @@
 
+**Update (v9.2.668, 10 Mar 2026):** 
+- Add DirectMusic for legacy compatibility
+- Add missing DirectShow header dmort.h (100%)
+- Misc Native API additions
+- Continued Alias implementation
+- (Bug fix) Some D3D_BLOB_TEST_* values incorrect.
+- (Bug fix) RtlCompareUnicodeString return type incorrect
+
 **Update (v9.2.664, 08 Mar 2026):** 
 - Add additional DirectComposition interfaces/APIs from newer SDK/for newer Win10/11
 - (Breaking change) IDCompositionAnimation::SetAbsoluteBeginTime now uses proper LARGE_INTEGER type.
