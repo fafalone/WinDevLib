@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 9.3.670 (March 11th, 2026)**
+**Current Version: 9.3.672 (March 11th, 2026)**
 
 (c) 2022-2026 Jon Johnson (fafalone)
 
@@ -238,6 +238,10 @@ Finally, there's numerous additional API sets from small to large for independen
 
 
 ### Updates
+
+**Update (v9.3.672, 11 Mar 2026):** 
+- (Bug fix) IDataObject::DAdvise missing argument
+- (WinDevLibImpl, bug fix) IDataObject::DAdvise missing argument
 
 **Update (v9.3.670, 11 Mar 2026):** 
 - Since WDL nows requires a higher minimum tB build for Alias support, the version gate
