@@ -1,4 +1,19 @@
 
+**Update (v9.3.670, 11 Mar 2026):** 
+- Since WDL nows requires a higher minimum tB build for Alias support, the version gate
+around ByVal UDTs has now been changed to an optional new compiler constant:  
+WDL_NO_BYVAL_UDT is now available to use VBx-compatible definitions without ByVal UDTs.
+- Updated WebView2 defs to latest stable release 1.0.3800.47
+- GetTextExtentExPointI, IDvdInfo2::GetDVDDirectory now use more convenient LongPtr/String instead of ByRef Integer for a string input
+- (API Standards, breaking change) IOleInPlaceSite::GetWindowContext, IOleInPlaceObject::SetObjectRects
+now use proper ByRef types 
+- (Bug fix) IDropSource::QueryContinueDrag missing argument
+- (Bug fix) IEnumOLEVERB::Next, ICategorizer::GetDescription, ICategoryProvider::GetCategoryName, IBandSite::QueryBand, 
+IOpenControlPanel::GetPath, IPropertySystem::FormatForDisplay, ICDBurn::GetRecordedDriveLetter, UrlGetPartW, 
+UrlApplySchemeW, CryptSetAsyncParam, CryptGetAsyncParam, PathCompactPathExW, PathRelativePathToW, IImageList2::GetOriginalSize, 
+IAdviseSink::OnViewChange, NotifyServiceStatusChange[A,W] definitions incorrect 
+
+
 **Update (v9.2.668, 10 Mar 2026):** 
 - Add DirectMusic for legacy compatibility
 - Add missing DirectShow header dmort.h (100%)

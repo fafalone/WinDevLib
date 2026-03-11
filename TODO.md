@@ -144,7 +144,7 @@ Basic Coverage: excludes macros, callbacks->delegates, ANSI APIs (though most ar
 Anything else missing is a bug and a report should be filed
 Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.0);  
     winuser.h,UtilApiSet.h,processtopologyapi.h,msdelta.h,handleapi.h,cfgmgr32.h,ole2.h,avrt.h,KnownFolders.h,keycredmgr.h,mcx.h,windef.h,winver.h,dlgs.h,
-    realtimeapiset.h,msime.h,msimeapi.h,ws2bth.h,VersionHelpers.h,minwinbase.h,wsman.h,wcmapi.h,nb30.h,GPEdit.h,InputPanelConfiguration.h,commoncontrols.h,
+    realtimeapiset.h,msime.h,msimeapi.h,ws2bth.h,VersionHelpers.h,minwinbase.h,wsman.h,wcmapi.h,nb30.h,GPEdit.h,InputPanelConfiguration.h,commoncontrols.h,commoncontrols.idl,
     WinEFS.h,winstring.h,qos2.h,traffic.h,qosobjs.h,qos.h,qossp.h,bluetoothleapis.h,bluetoothapis.h,bthsdpdef.h,fhcfg.h,fhsvcctl.h,fhstatus.h,fherrors.h,
     fwpmu.h,ipsectypes.h,iketypes.h,fdi_fcitypes.h,fdi.h,fci.h,namespaceapi.h,physicalmonitorenumerationapi.h,highlevelmonitorconfigurationapi.h,combaseapi.h,
     lowlevelmonitorconfigurationapi.h,wmistr.h,evntcons.h,wincodec.h,wincodec.idl,wincodecsdk.h,wincodecsdk.idl,WinML.h,sysinfoapi.h,cderr.h,commctrl.h,
