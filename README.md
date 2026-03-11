@@ -252,6 +252,7 @@ now use proper ByRef types
 IOpenControlPanel::GetPath, IPropertySystem::FormatForDisplay, ICDBurn::GetRecordedDriveLetter, UrlGetPartW, 
 UrlApplySchemeW, CryptSetAsyncParam, CryptGetAsyncParam, PathCompactPathExW, PathRelativePathToW, IImageList2::GetOriginalSize, 
 IAdviseSink::OnViewChange, NotifyServiceStatusChange[A,W] definitions incorrect 
+- (WinDevLibImpl, bug fix) IEnumOLEVERB::Next definition incorrect 
 
 **Update (v9.2.668, 10 Mar 2026):** 
 - Add DirectMusic for legacy compatibility
