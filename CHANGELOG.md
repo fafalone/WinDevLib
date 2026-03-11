@@ -1,4 +1,8 @@
 
+**Update (v9.3.672, 11 Mar 2026):** 
+- (Bug fix) IDataObject::DAdvise missing argument
+- (WinDevLibImpl, bug fix) IDataObject::DAdvise missing argument
+
 **Update (v9.3.670, 11 Mar 2026):** 
 - Since WDL nows requires a higher minimum tB build for Alias support, the version gate
 around ByVal UDTs has now been changed to an optional new compiler constant:  
@@ -12,7 +16,7 @@ now use proper ByRef types
 IOpenControlPanel::GetPath, IPropertySystem::FormatForDisplay, ICDBurn::GetRecordedDriveLetter, UrlGetPartW, 
 UrlApplySchemeW, CryptSetAsyncParam, CryptGetAsyncParam, PathCompactPathExW, PathRelativePathToW, IImageList2::GetOriginalSize, 
 IAdviseSink::OnViewChange, NotifyServiceStatusChange[A,W] definitions incorrect 
-
+- (WinDevLibImpl, bug fix) IEnumOLEVERB::Next definition incorrect
 
 **Update (v9.2.668, 10 Mar 2026):** 
 - Add DirectMusic for legacy compatibility
