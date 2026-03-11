@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 9.3.672 (March 11th, 2026)**
+**Current Version: 9.3.674 (March 11th, 2026)**
 
 (c) 2022-2026 Jon Johnson (fafalone)
 
@@ -238,6 +238,15 @@ Finally, there's numerous additional API sets from small to large for independen
 
 
 ### Updates
+
+**Update (v9.3.674, 11 Mar 2026):** 
+- Add some missing comctl constants and types
+- (Bug fix) ImageList_CoCreateInstance definition incorrect for x64
+- (Bug fix) NMTOOLBAR missing member. Also missing explicit A/W types.
+- (Bug fix) TTOOLINFO[A,W] should be named TTTOOLINFO[A,W]. The old incorrect names have been left in as aliases to not break existing code.
+- (Bug fix) TRACKBAR_CLASS definition incorrect
+- (Bug fix) TVGETITEMPARTRECTINFO definition incorrect
+- (Bug fix) NMTCKEYDOWN definition incorrect
 
 **Update (v9.3.672, 11 Mar 2026):** 
 - (Bug fix) IDataObject::DAdvise missing argument
