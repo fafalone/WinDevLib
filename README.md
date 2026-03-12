@@ -44,6 +44,8 @@ WinDevLib has some compiler constants you can enable:
 `WDL_NO_DIRECTX` - Excludes DirectX, Media Foundation, XAudio, and WinML content. This is useful to substantially cut down on Intellisense entries in non-multimedia apps. Basic 2D graphics remain (GDI, GDI+, WIC).\
 `WDL_NO_GL` - Excludes OpenGL.
 
+`WDL_NO_BYVAL_UDT` - Do not use ByVal UDT arguments in interfaces/APIs. Reverts to the previous workarounds from VBx like `LongLong` for `POINT` and separate 32/64 bit defs for GUIDs. Useful for VBx code compatibility.
+
 `WDL_NO_COMCTL` - You can use this flag if you already have an alternative common controls definition set, e.g. tbComCtlLib; it will disable wdAPIComCtl. (Note: WinDevLib has more complete comctl defs than tbComCtlLib, as that project was deprecated and not updated).
 
 `WDL_DLGSH` - This enabled constants from dlg.h. These are extremely uncommon to use, and have very short, generic names likely to cause conflicts, so they're opt-in.
