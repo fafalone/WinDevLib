@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 9.3.674 (March 11th, 2026)**
+**Current Version: 9.3.676 (March 17th, 2026)**
 
 (c) 2022-2026 Jon Johnson (fafalone)
 
@@ -240,6 +240,20 @@ Finally, there's numerous additional API sets from small to large for independen
 
 
 ### Updates
+
+**Update (v9.3.676, 17 Mar 2026):** 
+- Continued work to add [UseGetLastError(False)] for performance where appropriate.
+- Add some missing SAFEARRAY APIs and now all are marked as [UseGetLastError(False)] for performance (they do not use it anyway)
+- Direct3D 12 now implements ByVal UDTs
+- IBindCtx, CoGetObject should take As Any to accommodate BINDOPTS2/3
+- (API Standards, breaking change) IMoniker::IsRunning, GetDisplayName not consistent in taking IMoniker/IBindCtx
+- (Breaking change) FormatMessage[A,W] now uses ByRef ParamArray for va_list instead of ByRef LongPtr.  
+This will not break most uses that simply pass 0 or ByVal 0, but would impact uses that passed a pointer to a valid va_list memory structure.
+- (Breaking change) TraceMessageVa now uses ByRef ParamArray for va_list instead of Any
+- (Bug fix) TraceMessage no longer marked Unimplemented with missing vararg param 
+- (Bug fix) ICatInformation::GetCategoryDesc incorrect for x64
+- (Bug fix) Improper use of SAFEARRAY for C-type `FLOAT f[4]` etc defs  in ID3D12GraphicsCommandList
+- (Bug fix) ID3D12Device8::CreateSamplerFeedbackUnorderedAccessView definition incorrect for 32bit
 
 **Update (v9.3.674, 11 Mar 2026):** 
 - Add some missing comctl constants and types
