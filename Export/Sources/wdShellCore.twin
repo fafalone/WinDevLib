@@ -1,6 +1,6 @@
 '************************************************************************************
 'WinDevLib - Windows Development Library for twinBASIC
-'Version 9.3.674
+'Version 9.3.676
 '(c) 2022-2026 Jon Johnson (fafalone)
 'Project GUID: {1FCDB98D-617D-4995-9736-2ED0E4746A10}
 ' 
@@ -3356,9 +3356,9 @@ End Interface
 [InterfaceId("FE0B6665-E0CA-49B9-A178-2B5CB48D92A5")]
 [OleAutomation(False)]
 Interface IStreamAsync Extends IStream
-    Sub ReadAsync(ByRef pv As Any, ByVal cb As Long, ByRef pcbRead As Long, ByVal lpOverlapped As LongPtr)
-    Sub WriteAsync(ByRef lpBuffer As Any, ByVal cb As Long, ByRef pcbWritten As Long, ByVal lpOverlapped As LongPtr)
-    Sub OverlappedResult(ByVal lpOverlapped As LongPtr, ByRef lpNumberOfBytesTransferred As Long, ByVal bWait As Long)
+    Sub ReadAsync(ByRef pv As Any, ByVal cb As Long, ByRef pcbRead As Long, lpOverlapped As OVERLAPPED)
+    Sub WriteAsync(ByRef lpBuffer As Any, ByVal cb As Long, ByRef pcbWritten As Long, lpOverlapped As OVERLAPPED)
+    Sub OverlappedResult(lpOverlapped As OVERLAPPED, ByRef lpNumberOfBytesTransferred As Long, ByVal bWait As BOOL)
     Sub CancelIo()
 End Interface
 
@@ -3418,7 +3418,7 @@ End Interface
 Interface INetworkFolderInternal Extends stdole.IUnknown
     Sub GetResourceDisplayType(ByRef displayType As Long)
     Sub GetIDList(ByRef idList As LongPtr)
-    Sub GetProvider(ByVal itemIdCount As Long, ByVal itemIds As LongPtr, ByVal providerMaxLength As Long, ByVal provider As LongPtr)
+    Sub GetProvider(ByVal itemIdCount As Long, itemIds As LongPtr, ByVal providerMaxLength As Long, ByVal provider As LongPtr)
 End Interface
 
 [InterfaceId("3C708557-C99D-4FA3-9231-56518418B4E4")]
@@ -3612,7 +3612,7 @@ End Interface
 [OleAutomation(False)]
 Interface ICatInformation Extends stdole.IUnknown
     Function EnumCategories(ByVal lcid As Long) As IEnumCATEGORYINFO
-    Function GetCategoryDesc(ByRef rcatid As UUID, ByVal lcid As Long) As Long
+    Function GetCategoryDesc(ByRef rcatid As UUID, ByVal lcid As Long) As LongPtr
     Function EnumClassesOfCategories(ByVal cImplemented As Long, ByRef rgcatidImpl As UUID, ByVal cRequired As Long, ByRef rgcatidReq As UUID) As IEnumGUID
     Sub IsClassOfCategories(ByRef rclsid As UUID, ByVal cImplemented As Long, ByRef rgcatidImpl As UUID, ByVal cRequired As Long, ByRef rgcatidReq As UUID)
     Function EnumImplCategoriesOfClass(ByRef rclsid As UUID) As IEnumGUID
@@ -3832,8 +3832,8 @@ Interface IBindCtx Extends stdole.IUnknown
     Sub RegisterBoundObject(ByVal punk As stdole.IUnknown)
     Sub RevokeBoundObject(ByVal punk As stdole.IUnknown)
     Sub ReleaseBoundObjects()
-    Sub SetBindOptions(pbindopts As BIND_OPTS)
-    Sub GetBindOptions(pbindopts As BIND_OPTS)
+    Sub SetBindOptions(pbindopts As Any)
+    Sub GetBindOptions(pbindopts As Any)
     Function GetRunningObjectTable() As IRunningObjectTable
     Sub RegisterObjectParam(ByVal pszKey As LongPtr, ByVal pUnk As stdole.IUnknown)
     Function GetObjectParam(ByVal pszKey As LongPtr) As stdole.IUnknown
@@ -3851,14 +3851,14 @@ Interface IMoniker Extends IPersistStream
     Function Enum(ByVal fForward As BOOL) As IEnumMoniker
     [PreserveSig] Function IsEqual(ByVal pmkOtherMoniker As IMoniker) As Long
     Function Hash() As Long
-    [PreserveSig] Function IsRunning(ByVal pbc As LongPtr, ByVal pmkToLeft As LongPtr, ByVal pmkNewlyRunning As LongPtr) As Long
+    [PreserveSig] Function IsRunning(ByVal pbc As IBindCtx, ByVal pmkToLeft As IMoniker, ByVal pmkNewlyRunning As IMoniker) As Long
     Function GetTimeOfLastChange(ByVal pbc As IBindCtx, ByVal pmkToLeft As IMoniker) As LongLong
     Function Inverse() As IMoniker
     Function CommonPrefixWith(ByVal pmkOther As IMoniker) As IMoniker
     Function RelativePathTo(ByVal pmkOther As IMoniker) As IMoniker
-    [PreserveSig] Function GetDisplayName(ByVal pbc As LongPtr, ByVal pmkToLeft As LongPtr, ppszDisplayName As LongPtr) As Long
+    [PreserveSig] Function GetDisplayName(ByVal pbc As IBindCtx, ByVal pmkToLeft As IMoniker, ppszDisplayName As LongPtr) As Long
     Function ParseDisplayName(ByVal pbc As IBindCtx, ByVal pmkToLeft As IMoniker, ByVal pszDisplayName As LongPtr, Optional pchEaten As Long) As IMoniker
-    Function IsSystemMoniker() As Long
+    Function IsSystemMoniker() As MKSYS
 End Interface
 
 [InterfaceId("00000126-0000-0000-C000-000000000046")]
@@ -10567,13 +10567,46 @@ End Type
 #If WINDEVLIB_LITE = 0 Then
 Public Declare PtrSafe Function ShowWindow Lib "user32" (ByVal hWnd As LongPtr, ByVal nCmdShow As eSHOWWINDOW) As BOOL
 #End If
+[UseGetLastError(False)]
 Public Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As Long)
+[UseGetLastError(False)]
 Public Declare PtrSafe Function SleepEx Lib "kernel32" (ByVal dwMilliseconds As Long, ByVal bAlertable As BOOL) As Long
+[UseGetLastError(False)]
 Public Declare PtrSafe Sub CopyMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As LongPtr)
+[UseGetLastError(False)]
 Public Declare PtrSafe Sub MoveMemory Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As LongPtr)
+[UseGetLastError(False)]
 Public Declare PtrSafe Sub memcpy Lib "kernel32" Alias "RtlMoveMemory" (Destination As Any, Source As Any, ByVal Length As LongPtr)
+[UseGetLastError(False)]
 Public Declare PtrSafe Sub ZeroMemory Lib "kernel32" Alias "RtlZeroMemory" (Destination As Any, ByVal Length As LongPtr)
+[UseGetLastError(False)]
 Public Declare PtrSafe Sub FillMemory Lib "kernel32" Alias "RtlFillMemory" (Destination As Any, ByVal Length As LongPtr, ByVal Fill As Long)
+ 
+Public Function memset CDecl Naked(ByVal Destination As LongPtr, ByVal Fill As Long, ByVal Length As LongPtr) As LongPtr
+    #If Win64 Then
+    Emit(&H57)                   'push    rdi              ; save rdi
+    Emit(&H51)                   'push    rcx              ; save Destination for return value
+    Emit(&H48, &H89, &HCF)       'mov     rdi, rcx         ; rdi = Destination
+    Emit(&H8A, &HC2)             'mov     al, dl           ; al = Fill (low byte of rdx)
+    Emit(&H4C, &H89, &HC1)       'mov     rcx, r8          ; rcx = Length
+    Emit(&HF3, &HAA)             'rep     stosb            ; do the fill
+    Emit(&H58)                   'pop     rax              ; return original Destination
+    Emit(&H5F)                   'pop     rdi              ; restore rdi
+    Emit(&HC3)                   'ret
+    #Else
+    Emit(&H57) 						'push    edi             ; proc uses edi, so save it.
+
+    Emit(&H8B, &H4C, &H24, &H10) 	'mov     ecx, [esp+16]   ; size_t num
+    Emit(&H8A, &H44, &H24, &H0C) 	'mov     al, [esp+12]    ; int value 
+    Emit(&H8B, &H7C, &H24, &H08) 	'mov     edi, [esp+8]    ; void * ptr
+    Emit(&HF3, &HAA) 				'rep     stosb 
+
+    Emit(&H8B, &H44, &H24, &H08) 	'mov     eax, [esp+8]    ; return pointer
+    Emit(&H5F) 						'pop     edi             ; restore edi
+    Emit(&HC3) 						'ret                     ; let caller adjust stack 
+    #End If
+End Function
+
 
 Public Enum PSPCALLBACKMESSAGES
     PSPCB_ADDREF = 0
@@ -10612,6 +10645,8 @@ Public Const REGDB_E_IIDNOTREG As Long = &H80040155
 [Description("Uninitialized object")]
 Public Const OLE_E_BLANK                      = &H80040007
 Public Const MK_S_ASYNCHRONOUS  = &H000401E8
+
+[Description("Note: Most HRESULT values are individual Consts, not members of this enum.")]
 Public Enum HRESULT
     S_OK = 0
     S_FALSE = 1
