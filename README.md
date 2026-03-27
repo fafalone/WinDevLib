@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 9.3.676 (March 17th, 2026)**
+**Current Version: 9.3.678 (March 27th, 2026)**
 
 (c) 2022-2026 Jon Johnson (fafalone)
 
@@ -240,6 +240,17 @@ Finally, there's numerous additional API sets from small to large for independen
 
 
 ### Updates
+
+**Update (v9.3.678, 27 Mar 2026):** 
+- Updated D3D12 to match latest d3d12.h, d3d12compatibility.h, d3d12sdklayers.h, and d3d12video.h. Add d3d12compiler.h/.idl. (D3D12_SDK_VERSION = 619)
+- netioapi.h now complete
+- Continued work to add [UseGetLastError(False)] for performance where appropriate.
+- Misc Native API additions
+- (API Standards) IHttpSecurity now extends its base instead of duplicating the methods.
+- (API Standards, breaking change) DS3DALG_* values are now proper UUIDs instead of Strings.
+- (Bug fix) XInputGetBatteryInformation used wrong enum in TypeHint.
+- (Bug fix) IDirectSound::CreateSoundBuffer last arg incorrect
+- (Bug fix) IDirectSoundBuffer::Unlock definition incorrect
 
 **Update (v9.3.676, 17 Mar 2026):** 
 - Continued work to add [UseGetLastError(False)] for performance where appropriate.
