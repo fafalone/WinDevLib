@@ -196,7 +196,7 @@ Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.
     ntddvol.h,hidclass.h,hidusage.h,hidpi.h,hidsdi.h,ntenclv.h,winenclave.h,winenclaveapi.h,ioringapi.h,ntioring_x.h,urlmon.h,urlmon.idl,
     gl.h,glu.h,DocObj.h,DocObj.idl,slpublic.h,slerror.h,sliddefs.h,fwpstypes.h,htiface.h,htiface.idl,htiframe.h,htiframe.idl,dmort.h,
     odbcinst.h,sqltypes.h,sql.h,sqlext.h,sqlucode.h,minidumpapiset.h,coguid.h,  
-    dls1.h,dls2.h,dmerror.h,dmdls.h,dmusbuff.h,dmusicc.h,dmusicf.h,dmplugin.h,dmusici.h,dmksctrl.h,dmusics.h
+    dls1.h,dls2.h,dmerror.h,dmdls.h,dmusbuff.h,dmusicc.h,dmusicf.h,dmplugin.h,dmusici.h,dmksctrl.h,dmusics.h,d3d12compiler.h/d3d12compiler.idl
     
 Coverage in the 90%+ range  winbase.h, oleidl.h, oaidl.h, ocidl.h, ocidl.idl, ,objidl.h,objidl.idl,presentation.h,ScrnSave.h
 
