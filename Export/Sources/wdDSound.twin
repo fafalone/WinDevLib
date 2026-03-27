@@ -121,7 +121,7 @@ End Interface
 [InterfaceId("279AFA83-4981-11CE-A521-0020AF0BE560")]
 [OleAutomation(False)]
 Interface IDirectSound Extends stdole.IUnknown
-    Sub CreateSoundBuffer(ByRef lpcDSBufferDesc As DSBUFFERDESC, ByRef lplpDirectSoundBuffer As IDirectSoundBuffer, ByRef pUnkOuter As Any)
+    Sub CreateSoundBuffer(ByRef lpcDSBufferDesc As DSBUFFERDESC, ByRef lplpDirectSoundBuffer As IDirectSoundBuffer, ByVal pUnkOuter As IUnknown)
     Sub GetCaps(ByRef pDSCaps As DSCAPS)
     Function DuplicateSoundBuffer(ByVal pDSBufferOriginal As IDirectSoundBuffer) As IDirectSoundBuffer
     Sub SetCooperativeLevel(ByVal hwnd As LongPtr, ByVal dwLevel As DSSCL_CONST)
@@ -137,13 +137,13 @@ End Interface
 Interface IDirectSoundBuffer Extends stdole.IUnknown
     Sub GetCaps(ByRef pDSBufferCaps As DSBCAPS)
     Sub GetCurrentPosition(ByRef pdwCurrentPlayCursor As Long, ByRef pdwCurrentWriteCursor As Long)
-    Sub GetFormat(ByRef pwfxFormat As Any, ByVal dwSizeAllocated As Long, ByRef pdwSizeWritten As Long)
+    Sub GetFormat(ByRef pwfxFormat As Any, ByVal dwSizeAllocated As Long, Optional ByRef pdwSizeWritten As Long)
     Function GetVolume() As Long
     Function GetPan() As Long
     Function GetFrequency() As Long
     Function GetStatus() As DSBSTATUS_CONST
     Sub Initialize(ByVal DirectSound As IDirectSound, ByRef BufferDesc As DSBUFFERDESC)
-    Sub Lock(ByVal dwOffset As Long, ByVal dwBytes As Long, ByRef ppvAudioPtr1 As Any, ByRef pdwAudioBytes1 As Long, ByRef ppvAudioPtr2 As Any, ByRef pdwAudioBytes2 As Long, ByVal dwFlags As DSBLOCK_CONST)
+    Sub Lock(ByVal dwOffset As Long, ByVal dwBytes As Long, ByRef ppvAudioPtr1 As LongPtr, ByRef pdwAudioBytes1 As Long, ByRef ppvAudioPtr2 As LongPtr, ByRef pdwAudioBytes2 As Long, ByVal dwFlags As DSBLOCK_CONST)
     Sub Play(ByVal dwReserved1 As Long, ByVal dwPriority As Long, ByVal dwFlags As DSBPLAY_CONST)
     Sub SetCurrentPosition(ByVal dwNewPosition As Long)
     Sub SetFormat(ByRef pcfxFormat As WAVEFORMATEX)
@@ -151,7 +151,7 @@ Interface IDirectSoundBuffer Extends stdole.IUnknown
     Sub SetPan(ByVal lPan As Long)
     Sub SetFrequency(ByVal dwFrequency As Long)
     Sub Stop()
-    Sub Unlock(ByVal pvAudioPtr1 As Long, ByVal dwAudioBytes1 As Long, ByVal pvAudioPtr2 As Long, ByVal dwAudioBytes2 As Long)
+    Sub Unlock(ByVal pvAudioPtr1 As LongPtr, ByVal dwAudioBytes1 As Long, ByVal pvAudioPtr2 As LongPtr, ByVal dwAudioBytes2 As Long)
     Sub Restore()
 End Interface
 
@@ -245,14 +245,6 @@ End Interface
 [OleAutomation(False)]
 Interface IDirectSoundNotify Extends stdole.IUnknown
     Sub SetNotificationPositions(ByVal dwPositionNotifies As Long, ByRef pcPositionNotifies As DSBPOSITIONNOTIFY)
-End Interface
-
-[InterfaceId("31EFAC30-515C-11D0-A9AA-00AA0061BE93")]
-[OleAutomation(False)]
-Interface IKsPropertySet Extends stdole.IUnknown
-    Sub Get(rguidPropSet As UUID, ByVal ulId As Long, pInstanceData As any, ByVal ulInstanceLength As Long, pPropertyData As any, ByVal ulDataLength As Long, Optional pulBytesReturned As Long)
-    Sub Set(rguidPropSet As UUID, ByVal ulId As Long, pInstanceData As any, ByVal ulInstanceLength As Long, pPropertyData As any, ByVal ulDataLength As Long)
-    Sub QuerySupport(rguidPropSet As UUID, ByVal ulId As Long, pulTypeSupport As KsPropertyTypeSupport)
 End Interface
 
 [CoClassId("47D4D946-62E8-11CF-93BC-444553540000")]
@@ -841,11 +833,8 @@ Module wdDSound
 		fHighFreqRTRatio As Single
 	End Type
 
-    ' Public Const DS3DALG_DEFAULT As String = "{00000000-0000-0000-0000-000000000000}"
-    ' Public Const DS3DALG_NO_VIRTUALIZATION As String = "{C241333F-1C1B-11d2-94F5-00C04FC28ACA}"
-    ' Public Const DS3DALG_HRTF_FULL As String = "{C2413340-1C1B-11d2-94F5-00C04FC28ACA}"
-    ' Public Const DS3DALG_HRTF_LIGHT As String = "{C2413342-1C1B-11d2-94F5-00C04FC28ACA}"
-
+ 
+    
     Public Const CLSID_DSFX_STANDARD_GARGLE As String = "{DAFD8210-5711-4B91-9FE3-F75B7AE279BF}"
     Public Const CLSID_DSFX_STANDARD_CHORUS As String = "{EFE6629C-81F7-4281-BD91-C9D604A95AF6}"
     Public Const CLSID_DSFX_STANDARD_FLANGER As String = "{EFCA3D92-DFD8-4672-A603-7420894BAD98}"
@@ -928,16 +917,24 @@ Module wdDSound
     Public Delegate Function DSENUMCALLBACKA (lpGuid As UUID, ByVal lpcstrDescription As LongPtr, ByVal lpcstrModule As LongPtr, ByVal lpContext As LongPtr) As BOOL
     Public Delegate Function DSENUMCALLBACKW (lpGuid As UUID, ByVal lpcstrDescription As LongPtr, ByVal lpcstrModule As LongPtr, ByVal lpContext As LongPtr) As BOOL
     Public Delegate Function DSENUMCALLBACK (lpGuid As UUID, ByVal lpcstrDescription As LongPtr, ByVal lpcstrModule As LongPtr, ByVal lpContext As LongPtr) As BOOL
-       
+    
+    [UseGetLastError(False)]
     Public Declare PtrSafe Function DirectSoundCreate Lib "dsound" (pcGuidDevice As UUID, ppDS8 As IDirectSound, ByVal pUnkOuter As IUnknown) As DS_ERR
-   Public Declare PtrSafe Function DirectSoundCaptureCreate Lib "dsound" (pcGuidDevice As UUID, ppDS8 As IDirectSoundCapture, ByVal pUnkOuter As IUnknown) As DS_ERR
+    [UseGetLastError(False)]
+    Public Declare PtrSafe Function DirectSoundCaptureCreate Lib "dsound" (pcGuidDevice As UUID, ppDS8 As IDirectSoundCapture, ByVal pUnkOuter As IUnknown) As DS_ERR
     ' #If WDL_NO_DELEGATES Then
+    [UseGetLastError(False)]
     Public Declare PtrSafe Function DirectSoundEnumerateA Lib "dsound" (ByVal pDSEnumCallback As LongPtr, pContext As Any) As DS_ERR
-    Public DeclareWide PtrSafe Function DirectSoundEnumerateW Lib "dsound" (ByVal pDSEnumCallback As LongPtr, pContext As Any) As DS_ERR
-    Public DeclareWide PtrSafe Function DirectSoundEnumerate Lib "dsound" Alias "DirectSoundEnumerateW" (ByVal pDSEnumCallback As LongPtr, pContext As Any) As DS_ERR
-    Public Declare PtrSafe Function DirectSoundCaptureEnumerateA Lib "dsound" (ByVal pDSEnumCallback As LongPtr, pContext As Any) As DS_ERR
-    Public DeclareWide PtrSafe Function DirectSoundCaptureEnumerateW Lib "dsound" (ByVal pDSEnumCallback As LongPtr, pContext As Any) As DS_ERR
-    Public DeclareWide PtrSafe Function DirectSoundCaptureEnumerate Lib "dsound" Alias "DirectSoundCaptureEnumerateW" (ByVal pDSEnumCallback As LongPtr, pContext As Any) As DS_ERR
+    [UseGetLastError(False)]
+     Public DeclareWide PtrSafe Function DirectSoundEnumerateW Lib "dsound" (ByVal pDSEnumCallback As LongPtr, pContext As Any) As DS_ERR
+     [UseGetLastError(False)]
+     Public DeclareWide PtrSafe Function DirectSoundEnumerate Lib "dsound" Alias "DirectSoundEnumerateW" (ByVal pDSEnumCallback As LongPtr, pContext As Any) As DS_ERR
+     [UseGetLastError(False)]
+     Public Declare PtrSafe Function DirectSoundCaptureEnumerateA Lib "dsound" (ByVal pDSEnumCallback As LongPtr, pContext As Any) As DS_ERR
+     [UseGetLastError(False)]
+     Public DeclareWide PtrSafe Function DirectSoundCaptureEnumerateW Lib "dsound" (ByVal pDSEnumCallback As LongPtr, pContext As Any) As DS_ERR
+     [UseGetLastError(False)]
+     Public DeclareWide PtrSafe Function DirectSoundCaptureEnumerate Lib "dsound" Alias "DirectSoundCaptureEnumerateW" (ByVal pDSEnumCallback As LongPtr, pContext As Any) As DS_ERR
     ' #Else
     ' Public Declare PtrSafe Function DirectSoundEnumerateA Lib "dsound" (ByVal pDSEnumCallback As DSENUMCALLBACKA, pContext As Any) As DS_ERR
     ' Public DeclareWide PtrSafe Function DirectSoundEnumerateW Lib "dsound" (ByVal pDSEnumCallback As DSENUMCALLBACKW, pContext As Any) As DS_ERR
@@ -946,11 +943,40 @@ Module wdDSound
     ' Public DeclareWide PtrSafe Function DirectSoundCaptureEnumerateW Lib "dsound" (ByVal pDSEnumCallback As DSENUMCALLBACKW, pContext As Any) As DS_ERR
     ' Public DeclareWide PtrSafe Function DirectSoundCaptureEnumerate Lib "dsound" Alias "DirectSoundCaptureEnumerateW" (ByVal pDSEnumCallback As DSENUMCALLBACK, pContext As Any) As DS_ERR
     ' #End If
-	Public Declare PtrSafe Function DirectSoundCreate8 Lib "dsound" (pcGuidDevice As UUID, ppDS8 As IDirectSound8, ByVal pUnkOuter As IUnknown) As DS_ERR
+    [UseGetLastError(False)]
+    Public Declare PtrSafe Function DirectSoundCreate8 Lib "dsound" (pcGuidDevice As UUID, ppDS8 As IDirectSound8, ByVal pUnkOuter As IUnknown) As DS_ERR
+    [UseGetLastError(False)]
     Public Declare PtrSafe Function DirectSoundCaptureCreate8 Lib "dsound" (pcGuidDevice As UUID, ppDS8 As IDirectSoundCapture, ByVal pUnkOuter As IUnknown) As DS_ERR
-    
+    [UseGetLastError(False)]
+    Public Declare PtrSafe Function DirectSoundFullDuplexCreate Lib "dsound.dll" ( _
+                                                ByRef pcGuidCaptureDevice As UUID, _
+                                                ByRef pcGuidRenderDevice As UUID, _
+                                                ByRef pcDSCBufferDesc As DSCBUFFERDESC, _
+                                                ByRef pcDSBufferDesc As DSBUFFERDESC, _
+                                                ByVal hWnd As LongPtr, _
+                                                ByVal dwLevel As Long, _
+                                                ByRef ppDSFD As IDirectSoundFullDuplex, _
+                                                ByRef ppDSCBuffer8 As IDirectSoundCaptureBuffer8, _
+                                                ByRef ppDSBuffer8 As IDirectSoundBuffer8, _
+                                                ByVal pUnkOuter As IUnknown _
+                                            ) As Long
+    [UseGetLastError(False)]
+    Public Declare PtrSafe Function DirectSoundFullDuplexCreate8 Lib "dsound.dll" Alias "DirectSoundFullDuplexCreate" ( _
+                                                ByRef pcGuidCaptureDevice As UUID, _
+                                                ByRef pcGuidRenderDevice As UUID, _
+                                                ByRef pcDSCBufferDesc As DSCBUFFERDESC, _
+                                                ByRef pcDSBufferDesc As DSBUFFERDESC, _
+                                                ByVal hWnd As LongPtr, _
+                                                ByVal dwLevel As Long, _
+                                                ByRef ppDSFD As IDirectSoundFullDuplex, _
+                                                ByRef ppDSCBuffer8 As IDirectSoundCaptureBuffer8, _
+                                                ByRef ppDSBuffer8 As IDirectSoundBuffer8, _
+                                                ByVal pUnkOuter As IUnknown _
+                                            ) As Long
+
+    [UseGetLastError(False)]
     Public Declare PtrSafe Function DirectSoundGetDeviceId Lib "dsound" Alias "GetDeviceId" (pGuidSrc As UUID, pGuidDest As UUID) As Long
-	
+
 
 
 
@@ -1029,13 +1055,10 @@ Module wdDSound
      If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hedcb4c7a, &Hdaab, &H4216, &Ha4, &H2e, &H6c, &H50, &H59, &H6d, &Hdc, &H1d)
     IID_IDirectSoundFullDuplex = iid
     End Function
-    Public Function IID_IKsPropertySet() As UUID
-    Static iid As UUID
-     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H31efac30, &H515c, &H11d0, &Ha9, &Haa, &H00, &Haa, &H00, &H61, &Hbe, &H93)
-    IID_IKsPropertySet = iid
-    End Function
+ 
     
-    
+    Public Function DS3DALG_DEFAULT() As UUID: Return GUID_NULL: End Function
+
     Public Function DS3DALG_NO_VIRTUALIZATION() As UUID
     Static iid As UUID
      If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hc241333f, &H1c1b, &H11d2, &H94, &Hf5, &H0, &Hc0, &H4f, &Hc2, &H8a, &Hca)
