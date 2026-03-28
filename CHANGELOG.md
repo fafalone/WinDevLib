@@ -1,4 +1,15 @@
 
+**Update (v9.3.680, 28 Mar 2026):** 
+- Added IMsoComponent/IMsoComponentManager for .NET interop use
+- Added new MSVC compiler instrinsics implementations: _byteswap_ulong and _byteswap_ushort
+- Misc Native API additions
+- Continued work to add [UseGetLastError(False)] for performance where appropriate.
+- (API Standards, breaking change) CreateThread, CreateRemoteThread[Ex] now specify proper lpThreadAttributes type. Change to ByVal vbNullPtr if 0 was used.
+- (API Standards, breaking change) IEnumSpellingError should use PreserveSig  [#47](https://github.com/fafalone/WinDevLib/issues/47)
+- (Bug fix) LdrOpenImageFileOptionsKey duplicate entry
+- (Bug fix) RtlIsAnyDebuggerPresent used wrong offset for KUSER_SHARED_DATA
+- (Bug fix) NoVersionLie custom option for IsWindowsVersionOrGreater was still subject to version lie.
+
 **Update (v9.3.678, 27 Mar 2026):** 
 - Updated D3D12 to match latest d3d12.h, d3d12compatibility.h, d3d12sdklayers.h, and d3d12video.h. Add d3d12compiler.h/.idl. (D3D12_SDK_VERSION = 619)
 - netioapi.h now complete
