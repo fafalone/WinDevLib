@@ -151,20 +151,25 @@ End Module
 #If WINDEVLIB_LITE = 0 Then
 Module VersionHelpers
 
+[Description("IMPORTANT: NoVersionLie is a custom addition. If you use it, Build Number is used in place of ServicePackMajor")]
 Public Function IsWindowsVersionOrGreater(wMajorVersion As Integer, wMinorVersion As Integer, wServicePackMajor As Integer, Optional ByVal NoVersionLie As Boolean = False) As Boolean
-    Dim osvi As OSVERSIONINFOEXW
-    osvi.dwOSVersionInfoSize = LenB(osvi)
     If NoVersionLie Then
-        RtlGetVersion osvi
-        If osvi.dwMajorVersion >= wMajorVersion Then
-            If osvi.dwMinorVersion >= wMinorVersion Then
-                If osvi.wServicePackMajor >= wServicePackMajor Then
+        Dim dwMJ As Long = CType(Of KUSER_SHARED_DATA)(CLngPtr(&H7ffe0000)).NtMajorVersion
+        Dim dwMN As Long = CType(Of KUSER_SHARED_DATA)(CLngPtr(&H7ffe0000)).NtMinorVersion
+        Dim dwBL As Long = CType(Of KUSER_SHARED_DATA)(CLngPtr(&H7ffe0000)).NtBuildNumber
+        If dwMJ > wMajorVersion Then Return True
+        If dwMJ = wMajorVersion Then
+            If dwMN > wMinorVersion Then Return True
+            If dwMN = wMinorVersion Then
+                If dwBL >= CIntToUInt(wServicePackMajor) Then
                     Return True
                 End If
             End If
         End If
         Return False
     Else
+        Dim osvi As OSVERSIONINFOEXW
+        osvi.dwOSVersionInfoSize = LenB(osvi)
         Dim dwlConditionMask As LongLong = VerSetConditionMask( _
             VerSetConditionMask( _
             VerSetConditionMask( _
