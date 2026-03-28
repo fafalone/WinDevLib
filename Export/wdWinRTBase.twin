@@ -1,0 +1,177 @@
+'*****************************************************************************************
+'This file is a part of WinDevLib - Windows Development Library for twinBASIC
+'https://github.com/fafalone/WinDevLib
+'Code ported by Jon Johnson. 
+'"Windows" is a trademark of the Microsoft Corporation.
+'Certain Description attributes (c) Microsoft, taken from SDK headers and official docs.
+'Licensed under Creative Commons CC0 1.0 Universal
+'*****************************************************************************************
+
+'Basic Windows Runtime (WinRT) definitions
+'For WinRT it's recommended you use the "WinRT Interfaces and XAML Islands DevKit" (WinRT) package
+'from VanGoghGaming. WinDevLib will not be expanding its own WinRT coverage.
+
+[InterfaceId("AF86E2E0-B12D-4c6a-9C5A-D7AA65101E90")]
+[OleAutomation(False)]
+Interface IInspectable Extends IUnknown
+    Sub GetIids(iidCount As Long, iids As LongPtr)
+    Sub GetRuntimeClassName(className As LongPtr)
+    Sub GetTrustLevel(trustLevel As WinRT_TrustLevel)
+End Interface
+
+[InterfaceId("2f2d6c29-5473-5f3e-92e7-96572bb990e2")]
+[OleAutomation(False)]
+Interface IReference_Double Extends IInspectable
+    Property Get Value() As Double
+End Interface
+
+[InterfaceId("00000036-0000-0000-C000-000000000046")]
+[OleAutomation(False)]
+Interface IAsyncInfo Extends IInspectable
+    Property Get Id() As Long
+    Property Get Status() As WinRT_AsyncStatus
+    Property Get ErrorCode() As Long 'HRESULT
+    Sub Cancel()
+    Sub Close()
+End Interface
+
+[InterfaceId("2f13c006-a03a-5f69-b090-75a43e33423e")]
+[Description("This is a custom IVectorView implementation for an HSTRING collection.")]
+[OleAutomation(False)]
+Interface IVectorViewHSTRING Extends IInspectable
+    Sub GetAt(ByVal iIndex As Long, ppString As LongPtr)
+    Property Get Size() As Long
+        '...
+End Interface
+
+[InterfaceId("e2fcc7c1-3bfc-5a0b-b2b0-72e769d1cb7e")]
+[OleAutomation(False)]
+Interface IIterableHSTRING Extends IInspectable
+    Sub First(first As IIteratorHSTRING)
+End Interface
+
+[InterfaceId("8c304ebb-6615-50a4-8829-879ecd443236")]
+[OleAutomation(False)]
+Interface IIteratorHSTRING Extends IInspectable
+    Property Get Current() As LongPtr 'HSTRING
+    Property Get HasCurrent() As Byte 'boolean
+    Sub MoveNext(hasCurrent As Byte)
+    [Unimplemented]
+    Sub GetMany(/*UNIMPLEMENTED*/)
+End Interface
+
+[InterfaceId("a4ed5c81-76c9-40bd-8be6-b1d90fb20ae7")]
+[OleAutomation(False)]
+Interface IAsyncActionCompletedHandler Extends IUnknown
+    Sub Invoke(ByVal asyncInfo As IAsyncAction, ByVal asyncStatus As WinRT_AsyncStatus)
+End Interface
+
+[InterfaceId("5a648006-843a-4da9-865b-9d26e5dfad7b")]
+[OleAutomation(False)]
+Interface IAsyncAction Extends IInspectable
+    Property Let Completed(ByVal handler As IAsyncActionCompletedHandler)
+    Property Get Completed() As IAsyncActionCompletedHandler
+    Sub GetResults()
+End Interface
+
+
+#If WDL_QUALIFY Then
+[MustBeQualified]
+#End If
+Module wdWinRTBase
+'Windows RT Main API calls
+
+Public Declare PtrSafe Function RoInitialize Lib "combase.dll" (ByVal initType As RO_INIT_TYPE) As Long
+Public Declare PtrSafe Sub RoUninitialize Lib "combase.dll" ()
+Public Declare PtrSafe Function RoActivateInstance Lib "combase.dll" (ByVal activatableClassId As LongPtr, instance As IInspectable) As Long
+Public DeclareWide PtrSafe Function RoGetActivationFactory Lib "combase.dll" (ByVal activatableClassId As LongPtr, iid As UUID, factory As Any) As Long
+
+#Region "winstring.h"
+'winstring.h - 100% coverage
+Public DeclareWide PtrSafe Function WindowsCreateString Lib "combase.dll" (ByVal sourceString As String, ByVal length As Long, hstring As LongPtr) As Long
+Public DeclareWide PtrSafe Function WindowsCreateStringReference Lib "combase.dll" (ByVal sourceString As String, ByVal length As Long, hstringHeader As HSTRING_HEADER, hstring As LongPtr) As Long
+Public Declare PtrSafe Function WindowsDeleteString Lib "combase.dll" (ByVal hstring As LongPtr) As Long
+Public Declare PtrSafe Function WindowsDuplicateString Lib "combase.dll" (ByVal hstring As LongPtr, newString As LongPtr) As Long
+Public Declare PtrSafe Function WindowsGetStringLen Lib "combase.dll" (ByVal hstring As LongPtr) As Long
+Public Declare PtrSafe Function WindowsGetStringRawBuffer Lib "combase.dll" (ByVal hstring As LongPtr, length As Long) As LongPtr
+Public Declare PtrSafe Function WindowsIsStringEmpty Lib "combase.dll" (ByVal hstring As LongPtr) As BOOL
+Public Declare PtrSafe Function WindowsStringHasEmbeddedNull Lib "combase.dll" (ByVal hstring As LongPtr, hasEmbedNull As BOOL) As Long
+Public Declare PtrSafe Function WindowsCompareStringOrdinal Lib "combase.dll" (ByVal hstring1 As LongPtr, ByVal hstring2 As LongPtr, result As Long) As Long
+Public Declare PtrSafe Function WindowsSubstring Lib "combase.dll" (ByVal hstring As LongPtr, ByVal startIndex As Long, newString As LongPtr) As Long
+Public Declare PtrSafe Function WindowsSubstringWithSpecifiedLength Lib "combase.dll" (ByVal hstring As LongPtr, ByVal startIndex As Long, ByVal length As Long, newString As LongPtr) As Long
+Public Declare PtrSafe Function WindowsConcatString Lib "combase.dll" (ByVal hstring1 As LongPtr, ByVal hstring2 As LongPtr, newString As LongPtr) As Long
+Public Declare PtrSafe Function WindowsReplaceString Lib "combase.dll" (ByVal hstring As LongPtr, ByVal stringReplaced As LongPtr, ByVal stringReplacedWith As LongPtr, newString As LongPtr) As Long
+Public Declare PtrSafe Function WindowsTrimStringStart Lib "combase.dll" (ByVal hstring As LongPtr, ByVal trimString As LongPtr, newString As LongPtr) As Long
+Public Declare PtrSafe Function WindowsTrimStringEnd Lib "combase.dll" (ByVal hstring As LongPtr, ByVal trimString As LongPtr, newString As LongPtr) As Long
+Public Declare PtrSafe Function WindowsPreallocateStringBuffer Lib "combase.dll" (ByVal length As Long, charBuffer As LongPtr, bufferHandle As LongPtr) As Long
+Public Declare PtrSafe Function WindowsPromoteStringBuffer Lib "combase.dll" (ByVal bufferHandle As LongPtr) As Long
+Public Declare PtrSafe Function WindowsDeleteStringBuffer Lib "combase.dll" (ByVal bufferHandle As LongPtr) As Long
+
+Public Declare PtrSafe Function HSTRING_UserSize Lib "combase.dll" (pFlags As Long, ByVal StartingSize As Long, ppidl As LongPtr) As Long
+Public Declare PtrSafe Function HSTRING_UserMarshal Lib "combase.dll" (pFlags As Long, pBuffer As Any, ppidl As LongPtr) As LongPtr
+Public Declare PtrSafe Function HSTRING_UserUnmarshal Lib "combase.dll" (pFlags As Long, pBuffer As Any, ppidl As LongPtr) As LongPtr
+Public Declare PtrSafe Sub HSTRING_UserFree Lib "combase.dll" (pFlags As Long, pBuffer As Any, ppidl As LongPtr)
+
+'typedef HRESULT (WINAPI *PINSPECT_HSTRING_CALLBACK)(_In_ void* context, UINT_PTR readAddress, UINT32 length, _Out_writes_(length) BYTE* buffer);
+Public Delegate Function InspectHSTRINGCallback (ByVal context As LongPtr, ByVal readAddress As LongPtr, ByVal length As Long, ByVal buffer As LongPtr)
+' Public Declare PtrSafe Function WindowsInspectString Lib "combase.dll" (ByVal targetHString As LongPtr, ByVal machine As Integer, ByVal callback As InspectHSTRINGCallback, ByVal context As LongPtr, length As Long, targetStringAddress As LongPtr) As Long
+Public Declare PtrSafe Function WindowsInspectString Lib "combase.dll" (ByVal targetHString As LongPtr, ByVal machine As Integer, ByVal callback As LongPtr, ByVal context As LongPtr, length As Long, targetStringAddress As LongPtr) As Long
+'typedef HRESULT (WINAPI *PINSPECT_HSTRING_CALLBACK2)(_In_ void* context, UINT64 readAddress, UINT32 length, _Out_writes_(length) BYTE* buffer);
+Public Delegate Function InspectHSTRINGCallback2 (ByVal context As LongPtr, ByVal readAddress As LongLong, ByVal length As Long, ByVal buffer As LongPtr)
+' Public Declare PtrSafe Function WindowsInspectString2 Lib "combase.dll" (ByVal targetHString As LongLong, ByVal machine As Integer, ByVal callback As InspectHSTRINGCallback2, ByVal context As LongPtr, length As Long, targetStringAddress As LongLong) As Long
+Public Declare PtrSafe Function WindowsInspectString2 Lib "combase.dll" (ByVal targetHString As LongLong, ByVal machine As Integer, ByVal callback As LongPtr, ByVal context As LongPtr, length As Long, targetStringAddress As LongLong) As Long
+#End Region
+
+
+Public DeclareWide PtrSafe Function PropVariantToWinRTPropertyValue Lib "propsys" (propvar As Variant, riid As UUID, ppv As Any) As Long
+Public Declare PtrSafe Function WinRTPropertyValueToPropVariant Lib "propsys" (ByVal punkPropertyValue As IUnknown, ppropvar As Variant) As Long
+
+Public Enum RO_INIT_TYPE
+    RO_INIT_SINGLETHREADED = 0 '// Single-threaded application
+    RO_INIT_MULTITHREADED = 1  '// COM calls objects on any thread.
+End Enum
+
+Public Enum WinRT_TrustLevel
+    BaseTrust = 0
+    PartialTrust = (BaseTrust + 1)
+    FullTrust = (PartialTrust + 1)
+End Enum
+Public Enum WinRT_AsyncStatus
+  WinRT_Started = 0
+  WinRT_Completed
+  WinRT_Canceled
+  WinRT_Error
+End Enum
+
+
+Public Type HSTRING_HEADER
+    #If Win64 Then
+        reserved2(23) As Byte
+    #Else
+        reserved2(19) As Byte
+    #End If
+End Type
+
+Public Type WinRT_DateTime
+    UniversalTime As LongLong
+End Type
+
+Public Type  __x_ABI_CWindows_CFoundation_CRect
+    X As Single
+    Y As Single
+    Width As Single
+    Height As Single
+End Type
+
+Public Const InterfaceName_Windows_Foundation_IAsyncAction = "Windows.Foundation.IAsyncAction"
+Public Const InterfaceName_Windows_Foundation_IAsyncActionCompletedHandler = "Windows.Foundation.IAsyncActionCompletedHandler"
+
+Public Function CLSID_ImmersiveShell() As UUID
+'{c2f03a33-21f5-47fa-b4bb-156362a2f239}
+Static iid As UUID
+    If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hc2f03a33, CInt(&H21f5), CInt(&H47fa), &Hb4, &Hbb, &H15, &H63, &H62, &Ha2, &Hf2, &H39)
+    CLSID_ImmersiveShell = iid
+End Function
+    
+    
+End Module
