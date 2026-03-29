@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 9.3.680 (March 28th, 2026)**
+**Current Version: 9.3.682 (March 29th, 2026)**
 
 (c) 2022-2026 Jon Johnson (fafalone)
 
@@ -240,6 +240,12 @@ Finally, there's numerous additional API sets from small to large for independen
 
 
 ### Updates
+
+**Update (v9.3.682, 29 Mar 2026):** 
+- Added XACT3 audio definitions (xact3.h, xact3wb.h, xma2defs.h 100%)  
+Notably, these include not only the large inlined functions, but the full C++ type implementations 
+with Subs within the UDTs. Additionally, these too have an extensive custom type set that has 
+been preserved through Aliases.
 
 **Update (v9.3.680, 28 Mar 2026):** 
 - Added IMsoComponent/IMsoComponentManager for .NET interop use
