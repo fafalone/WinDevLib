@@ -1,0 +1,348 @@
+'*****************************************************************************************
+'This file is a part of WinDevLib - Windows Development Library for twinBASIC
+'https://github.com/fafalone/WinDevLib
+'Code ported by Jon Johnson. 
+'"Windows" is a trademark of the Microsoft Corporation.
+'Certain Description attributes (c) Microsoft, taken from SDK headers and official docs.
+'Licensed under Creative Commons CC0 1.0 Universal
+'*****************************************************************************************
+
+'wdUIRibbon - UI Ribbon interfaces
+'UIRibbon.idl / oleexp exp_ribbon.odl
+
+[InterfaceId("c205bb48-5b1c-4219-a106-15bd0a5f24e2")]
+[OleAutomation(False)]
+Interface IUISimplePropertySet Extends stdole.IUnknown
+    Sub GetValue(key As PROPERTYKEY, value As Variant)
+End Interface
+
+[InterfaceId("ec3e1034-dbf4-41a1-95d5-03e0f1026e05")]
+[OleAutomation(False)]
+Interface IUIEventLogger Extends stdole.IUnknown
+    '[ PreserveSig ] WHEN SUPPORTED FOR IMPLEMENTS
+    Sub OnUIEvent(pEventParams As UI_EVENTPARAMS)
+End Interface
+
+[InterfaceId("3BE6EA7F-9A9B-4198-9368-9B0F923BD534")]
+[OleAutomation(False)]
+Interface IUIEventingManager Extends stdole.IUnknown
+    Sub SetEventLogger(ByVal eventLogger As IUIEventLogger)
+End Interface
+
+[InterfaceId("803982ab-370a-4f7e-a9e7-8784036a6e26")]
+[OleAutomation(False)]
+Interface IUIRibbon Extends stdole.IUnknown
+    Sub GetHeight(cy As Long)
+    Sub LoadSettingsFromStream(ByVal pStream As IStream)
+    Sub SaveSettingsToStream(ByVal pStream As IStream)
+End Interface
+
+[InterfaceId("F4F0385D-6872-43a8-AD09-4C339CB3F5C5")]
+[OleAutomation(False)]
+Interface IUIFramework Extends stdole.IUnknown
+    Sub Initialize(ByVal frameWnd As LongPtr, ByVal application As IUIApplication)
+    Sub Destroy()
+    Sub LoadUI(ByVal instance As LongPtr, ByVal resourceName As LongPtr)
+    Sub GetView(ByVal viewId As Long, riid As UUID, ppv As Any)
+    Sub GetUICommandProperty(ByVal commandId As Long, key As PROPERTYKEY, value As Variant)
+    Sub SetUICommandProperty(ByVal commandId As Long, key As PROPERTYKEY, value As Variant)
+    Sub InvalidateUICommand(ByVal commandId As Long, ByVal flags As UI_INVALIDATIONS, key As PROPERTYKEY)
+    Sub FlushPendingInvalidations()
+    Sub SetModes(ByVal iModes As Long)
+End Interface
+
+[InterfaceId("EEA11F37-7C46-437c-8E55-B52122B29293")]
+[OleAutomation(False)]
+Interface IUIContextualUI Extends stdole.IUnknown
+    Sub ShowAtLocation(ByVal x As Long, ByVal y As Long)
+End Interface
+
+[InterfaceId("DF4F45BF-6F9D-4dd7-9D68-D8F9CD18C4DB")]
+[OleAutomation(False)]
+Interface IUICollection Extends stdole.IUnknown
+    Sub GetCount(count As Long)
+    Sub GetItem(ByVal index As Long, item As IUnknown)
+    Sub Add(ByVal item As IUnknown)
+    Sub Insert(ByVal index As Long, ByVal item As IUnknown)
+    Sub RemoveAt(ByVal index As Long)
+    Sub Replace(ByVal indexReplaced As Long, ByVal itemReplaceWith As IUnknown)
+    Sub Clear()
+End Interface
+
+[InterfaceId("6502AE91-A14D-44b5-BBD0-62AACC581D52")]
+[OleAutomation(False)]
+Interface IUICollectionChangedEvent Extends stdole.IUnknown
+    Sub OnChanged(ByVal action As UI_COLLECTIONCHANGE, ByVal oldIndex As Long, ByVal oldItem As IUnknown, ByVal newIndex As Long, ByVal newItem As IUnknown)
+End Interface
+
+[InterfaceId("75ae0a2d-dc03-4c9f-8883-069660d0beb6")]
+[OleAutomation(False)]
+Interface IUICommandHandler Extends stdole.IUnknown
+    Sub Execute(ByVal commandId As Long, ByVal verb As UI_EXECUTIONVERB, key As PROPERTYKEY, currentValue As Variant, ByVal commandExecutionProperties As IUISimplePropertySet)
+    Sub UpdateProperty(ByVal commandId As Long, key As PROPERTYKEY, currentValue As Variant, newValue As Variant)
+End Interface
+
+[InterfaceId("D428903C-729A-491d-910D-682A08FF2522")]
+[OleAutomation(False)]
+Interface IUIApplication Extends stdole.IUnknown
+    Sub OnViewChanged(ByVal viewId As Long, ByVal typeID As UI_VIEWTYPE, ByVal view As IUnknown, ByVal verb As UI_VIEWVERB, ByVal uReasonCode As Long)
+    Sub OnCreateUICommand(ByVal commandId As Long, ByVal typeID As UI_COMMANDTYPE, commandHandler As IUICommandHandler)
+    Sub OnDestroyUICommand(ByVal commandId As Long, ByVal typeID As UI_COMMANDTYPE, ByVal commandHandler As IUICommandHandler)
+End Interface
+
+[InterfaceId("23c8c838-4de6-436b-ab01-5554bb7c30dd")]
+[OleAutomation(False)]
+Interface IUIImage Extends stdole.IUnknown
+    Sub GetBitmap(bitmap As LongPtr)
+End Interface
+
+[InterfaceId("18aba7f3-4c1c-4ba2-bf6c-f5c3326fa816")]
+[OleAutomation(False)]
+Interface IUIImageFromBitmap Extends stdole.IUnknown
+    Sub CreateImage(ByVal bitmap As LongPtr, ByVal options As UI_OWNERSHIP, image As IUIImage)
+End Interface
+
+
+[CoClassId("926749fa-2615-4987-8845-c33e65f2b957")]
+CoClass UIRibbonFramework
+    [Default] Interface IUIFramework
+End CoClass
+
+[CoClassId("0F7434B6-59B6-4250-999E-D168D6AE4293")]
+CoClass UIRibbonImageFromBitmapFactory
+    [Default] Interface IUIImageFromBitmap
+End CoClass
+
+
+
+#If WDL_QUALIFY Then
+[MustBeQualified]
+#End If
+Module wdUIRibbon
+
+Public Enum UI_CONTEXTAVAILABILITY
+	UI_CONTEXTAVAILABILITY_NOTAVAILABLE = 0
+	UI_CONTEXTAVAILABILITY_AVAILABLE = 1
+	UI_CONTEXTAVAILABILITY_ACTIVE = 2
+End Enum
+
+Public Enum UI_FONTPROPERTIES
+	UI_FONTPROPERTIES_NOTAVAILABLE = 0
+	UI_FONTPROPERTIES_NOTSET = 1
+	UI_FONTPROPERTIES_SET = 2
+End Enum
+
+Public Enum UI_FONTVERTICALPOSITION
+	UI_FONTVERTICALPOSITION_NOTAVAILABLE = 0
+	UI_FONTVERTICALPOSITION_NOTSET = 1
+	UI_FONTVERTICALPOSITION_SUPERSCRIPT = 2
+	UI_FONTVERTICALPOSITION_SUBSCRIPT = 3
+End Enum
+
+Public Enum UI_FONTUNDERLINE
+	UI_FONTUNDERLINE_NOTAVAILABLE = 0
+	UI_FONTUNDERLINE_NOTSET = 1
+	UI_FONTUNDERLINE_SET = 2
+End Enum
+
+Public Enum UI_FONTDELTASIZE
+	UI_FONTDELTASIZE_GROW = 0
+	UI_FONTDELTASIZE_SHRINK = 1
+End Enum
+
+Public Enum UI_CONTROLDOCK
+	UI_CONTROLDOCK_TOP = 1
+	UI_CONTROLDOCK_BOTTOM = 3
+End Enum
+
+Public Enum UI_SWATCHCOLORTYPE
+	UI_SWATCHCOLORTYPE_NOCOLOR = 0 ' Inactive swatch
+	UI_SWATCHCOLORTYPE_AUTOMATIC = 1 ' Automatic swatch
+	UI_SWATCHCOLORTYPE_RGB = 2 ' Solid color swatch
+End Enum
+
+Public Enum UI_SWATCHCOLORMODE
+	UI_SWATCHCOLORMODE_NORMAL = 0
+	UI_SWATCHCOLORMODE_MONOCHROME = 1
+End Enum
+
+Public Const UI_ALL_COMMANDS  = (0)
+
+Public Enum UI_INVALIDATIONS
+	UI_INVALIDATIONS_STATE = &H00000001 ' UI_PKEY_Enabled
+	UI_INVALIDATIONS_VALUE = &H00000002 ' Value property
+	UI_INVALIDATIONS_PROPERTY = &H00000004 ' Any property
+	UI_INVALIDATIONS_ALLPROPERTIES = &H00000008 ' All properties
+End Enum
+
+Public Enum UI_COLLECTIONCHANGE
+	UI_COLLECTIONCHANGE_INSERT = 0
+	UI_COLLECTIONCHANGE_REMOVE = 1
+	UI_COLLECTIONCHANGE_REPLACE = 2
+	UI_COLLECTIONCHANGE_RESET = 3
+End Enum
+
+Public Const UI_COLLECTION_INVALIDINDEX = &Hffffffff
+
+Public Enum UI_EXECUTIONVERB
+	UI_EXECUTIONVERB_EXECUTE = 0
+	UI_EXECUTIONVERB_PREVIEW = 1
+	UI_EXECUTIONVERB_CANCELPREVIEW = 2
+End Enum
+
+Public Enum UI_COMMANDTYPE
+	UI_COMMANDTYPE_UNKNOWN = 0
+	UI_COMMANDTYPE_GROUP = 1
+	UI_COMMANDTYPE_ACTION = 2
+	UI_COMMANDTYPE_ANCHOR = 3
+	UI_COMMANDTYPE_CONTEXT = 4
+	UI_COMMANDTYPE_COLLECTION = 5
+	UI_COMMANDTYPE_COMMANDCOLLECTION = 6
+	UI_COMMANDTYPE_DECIMAL = 7
+	UI_COMMANDTYPE_BOOLEAN = 8
+	UI_COMMANDTYPE_FONT = 9
+	UI_COMMANDTYPE_RECENTITEMS = 10
+	UI_COMMANDTYPE_COLORANCHOR = 11
+	UI_COMMANDTYPE_COLORCOLLECTION = 12
+End Enum
+
+Public Enum UI_VIEWTYPE
+	UI_VIEWTYPE_RIBBON = 1
+End Enum
+
+Public Enum UI_EVENTTYPE
+	UI_EVENTTYPE_ApplicationMenuOpened = 0
+	UI_EVENTTYPE_RibbonMinimized = 1
+	UI_EVENTTYPE_RibbonExpanded = 2
+	UI_EVENTTYPE_ApplicationModeSwitched = 3
+	UI_EVENTTYPE_TabActivated = 4
+	UI_EVENTTYPE_MenuOpened = 5
+	UI_EVENTTYPE_CommandExecuted = 6
+	UI_EVENTTYPE_TooltipShown = 7
+End Enum
+
+Public Enum UI_EVENTLOCATION
+	UI_EVENTLOCATION_Ribbon = 0
+	UI_EVENTLOCATION_QAT = 1
+	UI_EVENTLOCATION_ApplicationMenu = 2
+	UI_EVENTLOCATION_ContextPopup = 3
+End Enum
+
+Public Type UI_EVENTPARAMS_COMMAND
+	CommandID As Long
+	CommandName As LongPtr
+	ParentCommandID As Long
+	ParentCommandName As LongPtr
+	SelectionIndex As Long
+	Location As UI_EVENTLOCATION
+End Type
+
+[Description("Params represents a union; if you're looking for Modes, it would be filled into Params.CommandID")]
+Public Type UI_EVENTPARAMS
+	EventType As UI_EVENTTYPE
+	Params As UI_EVENTPARAMS_COMMAND
+	'union {
+	'    INT32 Modes;
+	'    UI_EVENTPARAMS_COMMAND Params;
+	'};
+End Type
+
+Public Enum UI_VIEWVERB
+	UI_VIEWVERB_CREATE = 0
+	UI_VIEWVERB_DESTROY = 1
+	UI_VIEWVERB_SIZE = 2
+	UI_VIEWVERB_ERROR = 3
+End Enum
+
+Public Enum UI_OWNERSHIP
+	UI_OWNERSHIP_TRANSFER = 0 ' IUIImage now owns HBITMAP.
+	UI_OWNERSHIP_COPY = 1 ' IUIImage creates a copy of HBITMAP. Caller still owns HBITMAP.
+End Enum
+
+Public Function UI_MAKEAPPMODE(ByVal x As Long) As Long
+	Return (1 << (x))
+End Function
+
+Public Function UI_HSB(ByVal hue As Byte, ByVal saturation As Byte, ByVal brightness As Byte) As Long
+    Return CLng(hue) Or (CLng(saturation) << 8&) Or (CLng(brightness) << 16&)
+End Function
+ 
+#If WINDEVLIB_LITE = 0 Then
+Public Function UIInitPropertyFromBoolean(propertyKey As PROPERTYKEY, ByVal fVal As BOOL, pPropVar As Variant) As Long
+    If propertyKey.pid <> VT_BOOL Then Return E_INVALIDARG
+    Return InitPropVariantFromBoolean(fVal, pPropVar)
+End Function
+Public Function UIInitPropertyFromUInt32(propertyKey As PROPERTYKEY, ByVal ulVal As Long, pPropVar As Variant) As Long
+    If propertyKey.pid <> VT_UI4 Then Return E_INVALIDARG
+    Return InitPropVariantFromUInt32(ulVal, pPropVar)
+End Function
+Public Function UIInitPropertyFromString(propertyKey As PROPERTYKEY, ByVal psz As String, pPropVar As Variant) As Long
+    If propertyKey.pid <> VT_LPWSTR Then Return E_INVALIDARG
+    Return InitPropVariantFromString(psz, pPropVar)
+End Function
+Public Function UIInitPropertyFromDecimal(propertyKey As PROPERTYKEY, ByVal decValue As Decimal, pPropVar As Variant) As Long
+    If propertyKey.pid <> VT_DECIMAL Then Return E_INVALIDARG
+    pPropVar = decValue
+End Function
+[IgnoreWarnings(TB0018)]
+Public Function UIInitPropertyFromInterface(propertyKey As PROPERTYKEY, ByVal pUnk As IUnknown, pPropVar As Variant) As Long
+    If propertyKey.pid <> VT_UNKNOWN Then Return E_INVALIDARG
+    Set pPropVar = pUnk
+    VariantSetType pPropVar, VT_UNKNOWN
+End Function
+Public Function UIInitPropertyFromImage(propertyKey As PROPERTYKEY, ByVal pImage As IUIImage, pPropVar As Variant) As Long
+    Return UIInitPropertyFromInterface(propertyKey, pImage, pPropVar)
+End Function
+[IgnoreWarnings(TB0018)]
+Public Function UIInitPropertyFromIUnknownArray(propertyKey As PROPERTYKEY, ByVal psa As LongPtr, pPropVar As Variant) As Long
+    If propertyKey.pid <> (VT_ARRAY Or VT_UNKNOWN) Then Return E_INVALIDARG
+    If CType(Of SAFEARRAY1D)(psa).fFeatures And FADF_UNKNOWN Then
+        Dim hr As Long = SafeArrayCopy(psa, ByVal PointerAdd(VarPtr(pPropVar), 8))
+        If (SUCCEEDED(hr)) Then
+        	VariantSetType pPropVar, VT_ARRAY Or VT_UNKNOWN
+        End If
+        Return hr
+    End If
+    Return E_INVALIDARG
+End Function
+ 
+Public Function UIPropertyToBoolean(propertyKey As PROPERTYKEY, propvarIn As Variant, pfRet As BOOL) As Long
+    If propertyKey.pid <> VT_BOOL Then Return E_INVALIDARG
+    Return PropVariantToBoolean(propvarIn, pfRet)
+End Function
+Public Function UIPropertyToUInt32(propertyKey As PROPERTYKEY, propvarIn As Variant, pulVal As Long) As Long
+    If propertyKey.pid <> VT_UI4 Then Return E_INVALIDARG
+    Return PropVariantToUInt32(propvarIn, pulVal)
+End Function
+Public Function UIPropertyToStringAlloc(propertyKey As PROPERTYKEY, propvarIn As Variant, ppszOut As LongPtr) As Long
+    If propertyKey.pid <> VT_LPWSTR Then Return E_INVALIDARG
+    Return PropVariantToStringAlloc(propvarIn, ppszOut)
+End Function
+Public Function UIPropertyToDecimal(propertyKey As PROPERTYKEY, propvarIn As Variant, pDecValue As Decimal) As Long
+    If propertyKey.pid <> VT_DECIMAL Then Return E_INVALIDARG
+	If VarType(propvarIn) = VT_DECIMAL Then
+    	pDecValue = CDec(propvarIn)
+        Return S_OK
+    End If
+    Return E_INVALIDARG
+End Function
+Public Function UIPropertyToInterface(propertyKey As PROPERTYKEY, propvarIn As Variant, ppObj As IUnknown) As Long
+    If propertyKey.pid <> VT_UNKNOWN Then Return E_INVALIDARG
+    If VarType(propvarIn) = VT_UNKNOWN Then
+        Set ppObj = propvarIn
+        Return S_OK
+    End If
+    Return E_INVALIDARG
+End Function
+Public Function UIPropertyToImage(propertyKey As PROPERTYKEY, propvarIn As Variant, ppImage As IUIImage) As Long
+    Return UIPropertyToInterface(propertyKey, propvarIn, ppImage)
+End Function
+Public Function UIPropertyToIUnknownArrayAlloc(propertyKey As PROPERTYKEY, propvarIn As Variant, ppsa As LongPtr) As Long
+    If propertyKey.pid <> (VT_ARRAY Or VT_UNKNOWN) Then Return E_INVALIDARG
+    If VarTypeEx(propvarIn) = VT_UNKNOWN Or VT_ARRAY Then
+        Return SafeArrayCopy(ByVal PointerAdd(VarPtr(propvarIn), 8), ppsa)
+    End If
+    Return E_INVALIDARG
+End Function
+#End If
+End Module

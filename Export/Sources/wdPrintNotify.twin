@@ -1,0 +1,121 @@
+'*****************************************************************************************
+'This file is a part of WinDevLib - Windows Development Library for twinBASIC
+'https://github.com/fafalone/WinDevLib
+'Code ported by Jon Johnson. 
+'"Windows" is a trademark of the Microsoft Corporation.
+'Certain Description attributes (c) Microsoft, taken from SDK headers and official docs.
+'Licensed under Creative Commons CC0 1.0 Universal
+'*****************************************************************************************
+
+'prnasnot.h
+'Note: MSDN incorrectly lists APIs in spoolss.dll, but they are verified as only exported from winspool.drv.
+
+[InterfaceId("77CF513E-5D49-4789-9F30-D0822B335C0D")]
+[OleAutomation(False)]
+Interface IPrintAsyncNotifyDataObject Extends IUnknown
+    Sub AcquireData(ppNotificationData As LongPtr, pSize As Long, ppSchema As LongPtr)
+    Sub ReleaseData()
+End Interface
+
+[InterfaceId("4A5031B1-1F3F-4DB0-A462-4530ED8B0451")]
+[OleAutomation(False)]
+Interface IPrintAsyncNotifyChannel Extends IUnknown
+    Sub SendNotification(ByVal pData As IPrintAsyncNotifyDataObject)
+	Sub CloseChannel(ByVal pData As IPrintAsyncNotifyDataObject)
+End Interface
+
+[InterfaceId("7DEF34C1-9D92-4C99-B3B3-DB94A9D4191B")]
+[OleAutomation(False)]
+Interface IPrintAsyncNotifyCallback Extends IUnknown
+    Sub OnEventNotify(ByVal pChannel As IPrintAsyncNotifyChannel, ByVal pData As IPrintAsyncNotifyDataObject)
+	Sub ChannelClosed(ByVal pChannel As IPrintAsyncNotifyChannel, ByVal pData As IPrintAsyncNotifyDataObject)
+End Interface
+    
+
+
+#If WDL_QUALIFY Then
+[MustBeQualified]
+#End If
+Module wdPrintNotify
+
+Public Enum PrintAsyncNotifyUserFilter
+    kPerUser
+    kAllUsers
+End Enum
+
+Public Enum PrintAsyncNotifyConversationStyle
+    kBiDirectional
+    kUniDirectional
+End Enum
+
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function RegisterForPrintAsyncNotifications Lib "winspool.drv" (ByVal pszName As String, pNotificationType As UUID, ByVal eUserFilter As PrintAsyncNotifyUserFilter, ByVal eConversationStyle As PrintAsyncNotifyConversationStyle, ByVal pCallback As IPrintAsyncNotifyCallback, phNotify As LongPtr) As PrintAsyncNotifyError
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function RegisterForPrintAsyncNotifications Lib "winspool.drv" (ByVal pszName As LongPtr, pNotificationType As UUID, ByVal eUserFilter As PrintAsyncNotifyUserFilter, ByVal eConversationStyle As PrintAsyncNotifyConversationStyle, ByVal pCallback As IPrintAsyncNotifyCallback, phNotify As LongPtr) As PrintAsyncNotifyError
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function UnRegisterForPrintAsyncNotifications Lib "winspool.drv" (ByVal Handle As LongPtr) As PrintAsyncNotifyError
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function CreatePrintAsyncNotifyChannel Lib "winspool.drv" (ByVal pszName As String, pNotificationType As UUID, ByVal eUserFilter As PrintAsyncNotifyUserFilter, ByVal eConversationStyle As PrintAsyncNotifyConversationStyle, ByVal pCallback As IPrintAsyncNotifyCallback, ppIAsynchNotification As IPrintAsyncNotifyChannel) As PrintAsyncNotifyError
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function CreatePrintAsyncNotifyChannel Lib "winspool.drv" (ByVal pszName As LongPtr, pNotificationType As UUID, ByVal eUserFilter As PrintAsyncNotifyUserFilter, ByVal eConversationStyle As PrintAsyncNotifyConversationStyle, ByVal pCallback As IPrintAsyncNotifyCallback, ppIAsynchNotification As IPrintAsyncNotifyChannel) As PrintAsyncNotifyError
+
+Public Enum PrintAsyncNotifyError
+    CHANNEL_CLOSED_BY_SERVER = &H01
+    CHANNEL_CLOSED_BY_ANOTHER_LISTENER = &H02
+    CHANNEL_CLOSED_BY_SAME_LISTENER = &H03
+    CHANNEL_RELEASED_BY_LISTENER = &H04
+    UNIRECTIONAL_NOTIFICATION_LOST = &H05
+    ASYNC_NOTIFICATION_FAILURE = &H06
+    NO_LISTENERS = &H07
+    CHANNEL_ALREADY_CLOSED = &H08
+    CHANNEL_ALREADY_OPENED = &H09
+    CHANNEL_WAITING_FOR_CLIENT_NOTIFICATION = &H0a
+    CHANNEL_NOT_OPENED = &H0b
+    ASYNC_CALL_ALREADY_PARKED = &H0c
+    NOT_REGISTERED = &H0d
+    ALREADY_UNREGISTERED = &H0e
+    ALREADY_REGISTERED = &H0f
+    CHANNEL_ACQUIRED = &H10
+    ASYNC_CALL_IN_PROGRESS = &H11
+    MAX_NOTIFICATION_SIZE_EXCEEDED = &H12
+    INTERNAL_NOTIFICATION_QUEUE_IS_FULL = &H13
+    INVALID_NOTIFICATION_TYPE = &H14
+    MAX_REGISTRATION_COUNT_EXCEEDED = &H15
+    MAX_CHANNEL_COUNT_EXCEEDED = &H16
+    LOCAL_ONLY_REGISTRATION = &H17
+    REMOTE_ONLY_REGISTRATION = &H18
+End Enum
+
+Public Function IID_IPrintAsyncNotifyChannel() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H4a5031b1, &H1f3f, &H4db0, &Ha4, &H62, &H45, &H30, &Hed, &H8b, &H04, &H51)
+IID_IPrintAsyncNotifyChannel = iid
+End Function
+Public Function IID_IPrintAsyncNotifyCallback() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H7def34c1, &H9d92, &H4c99, &Hb3, &Hb3, &Hdb, &H94, &Ha9, &Hd4, &H19, &H1b)
+IID_IPrintAsyncNotifyCallback = iid
+End Function
+Public Function IID_IPrintAsyncNotifyDataObject() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H77cf513e, &H5d49, &H4789, &H9f, &H30, &Hd0, &H82, &H2b, &H33, &H5c, &H0d)
+IID_IPrintAsyncNotifyDataObject = iid
+End Function
+Public Function NOTIFICATION_RELEASE() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hba9a5027, &Ha70e, &H4ae7, &H9b, &H7d, &Heb, &H3e, &H06, &Had, &H41, &H57)
+NOTIFICATION_RELEASE = iid
+End Function
+Public Function PRINT_APP_BIDI_NOTIFY_CHANNEL() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H2ABAD223, &HB994, &H4aca, &H82, &HFC, &H45, &H71, &HB1, &HB5, &H85, &HAC)
+PRINT_APP_BIDI_NOTIFY_CHANNEL = iid
+End Function
+Public Function PRINT_PORT_MONITOR_NOTIFY_CHANNEL() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H25df3b0e, &H74a9, &H47f5, &H80, &Hce, &H79, &Hb4, &Hb1, &Heb, &H5c, &H58)
+PRINT_PORT_MONITOR_NOTIFY_CHANNEL = iid
+End Function
+
+
+End Module

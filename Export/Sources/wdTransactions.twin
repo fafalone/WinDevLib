@@ -1,0 +1,198 @@
+'*****************************************************************************************
+'This file is a part of WinDevLib - Windows Development Library for twinBASIC
+'https://github.com/fafalone/WinDevLib
+'Code ported by Jon Johnson. 
+'"Windows" is a trademark of the Microsoft Corporation.
+'Certain Description attributes (c) Microsoft, taken from SDK headers and official docs.
+'Licensed under Creative Commons CC0 1.0 Universal
+'*****************************************************************************************
+
+'DTC interfaces
+
+
+    
+[InterfaceId("0FB15084-AF41-11CE-BD2B-204C4F4F5020")]
+[OleAutomation(False)]
+Interface ITransaction Extends stdole.IUnknown
+    Sub Commit(ByVal fRetaining As BOOL, ByVal grfTC As XACTTC, ByVal grfRM As XACTRM)
+    Sub Abort(ByRef pboidReason As BOID, ByVal fRetaining As BOOL, ByVal fAsync As BOOL)
+    Sub GetTransactionInfo(ByRef pInfo As XACTTRANSINFO)
+End Interface
+
+[InterfaceId("02656950-2152-11D0-944C-00A0C905416E")]
+[OleAutomation(False)]
+Interface ITransactionCloner Extends ITransaction
+    Sub CloneWithCommitDisabled(ByRef ppITransaction As ITransaction)
+End Interface
+
+[InterfaceId("34021548-0065-11D3-BAC1-00C04F797BE2")]
+[OleAutomation(False)]
+Interface ITransaction2 Extends ITransactionCloner
+    Sub GetTransactionInfo2(ByRef pInfo As XACTTRANSINFO)
+End Interface
+
+[InterfaceId("3A6AD9E1-23B9-11CF-AD60-00AA00A74CCD")]
+[OleAutomation(False)]
+Interface ITransactionDispenser Extends stdole.IUnknown
+    Sub GetOptionsObject(ByRef ppOptions As ITransactionOptions)
+    Sub BeginTransaction(ByVal pUnkOuter As IUnknown, ByVal isoLevel As ISOLATIONLEVEL, ByVal isoFlags As ISOFLAG, ByVal pOptions As ITransactionOptions, ByRef ppTransaction As ITransaction)
+End Interface
+
+[InterfaceId("3A6AD9E0-23B9-11CF-AD60-00AA00A74CCD")]
+[OleAutomation(False)]
+Interface ITransactionOptions Extends stdole.IUnknown
+    Sub SetOptions(ByRef pOptions As XACTOPT)
+    Sub GetOptions(ByRef pOptions As XACTOPT)
+End Interface
+
+[InterfaceId("3A6AD9E2-23B9-11CF-AD60-00AA00A74CCD")]
+[OleAutomation(False)]
+Interface ITransactionOutcomeEvents Extends stdole.IUnknown
+    Sub Committed(ByVal fRetaining As BOOL, ByRef pNewUOW As BOID, ByVal hr As Long /* HRESULT */)
+    Sub Aborted(ByRef pboidReason As BOID, ByVal fRetaining As BOOL, ByRef pNewUOW As BOID, ByVal hr As Long /* HRESULT */)
+    Sub HeuristicDecision(ByVal dwDecision As Long, ByRef pboidReason As BOID, ByVal hr As Long /* HRESULT */)
+    Sub Indoubt()
+End Interface
+
+[InterfaceId("30274F88-6EE4-474E-9B95-7807BC9EF8CF")]
+[OleAutomation(False)]
+Interface ITmNodeName Extends stdole.IUnknown
+    Sub GetNodeNameSize(ByRef pcbNodeNameSize As Long)
+    Sub GetNodeName(ByVal cbNodeNameBufferSize As Long, ByVal pNodeNameBuffer As LongPtr)
+End Interface
+
+[InterfaceId("79427A2B-F895-40E0-BE79-B57DC82ED231")]
+[OleAutomation(False)]
+Interface IKernelTransaction Extends stdole.IUnknown
+    Sub GetHandle(ByRef pHandle As LongPtr)
+End Interface
+
+[CoClassId("5B18AB61-091D-11D1-97DF-00C04FB9618A")]
+[COMCreatable]
+CoClass MSDtcTransactionManager
+    [Default] Interface ITransactionDispenser
+End CoClass
+
+[CoClassId("39F8D76B-0928-11D1-97DF-00C04FB9618A")]
+[COMCreatable]
+CoClass MSDtcTransaction
+    [Default] Interface ITransaction
+End CoClass
+
+
+#If WDL_QUALIFY Then
+[MustBeQualified]
+#End If
+Module wdTransactions
+
+    Public Type BOID
+        rgb(0 To 15) As Byte
+    End Type
+
+    Public Const MAX_TRAN_DESC                   = 40
+    
+    Public Enum ISOLATIONLEVEL
+        ISOLATIONLEVEL_UNSPECIFIED = &HFFFFFFFF '
+        ISOLATIONLEVEL_CHAOS = &H00000010 '
+        ISOLATIONLEVEL_READUNCOMMITTED = &H00000100 '
+        ISOLATIONLEVEL_BROWSE = &H00000100 ' Synonym for _READUNCOMITTED
+        ISOLATIONLEVEL_CURSORSTABILITY = &H00001000 '
+        ISOLATIONLEVEL_READCOMMITTED = &H00001000 ' Synonym for _CURSORSTABILITY
+        ISOLATIONLEVEL_REPEATABLEREAD = &H00010000 '
+        ISOLATIONLEVEL_SERIALIZABLE = &H00100000 '
+        ISOLATIONLEVEL_ISOLATED = &H00100000 ' Synonym for _SERIALIZABLE
+    End Enum
+    
+    Public Enum ISOFLAG
+        ISOFLAG_RETAIN_COMMIT_DC = 1 ' Use just one of ISOFLAG_RETAIN_COMMIT values
+        ISOFLAG_RETAIN_COMMIT = 2 '
+        ISOFLAG_RETAIN_COMMIT_NO = 3 '
+        ISOFLAG_RETAIN_ABORT_DC = 4 ' Use just one of ISOFLAG_RETAIN_ABORT values
+        ISOFLAG_RETAIN_ABORT = 8 '
+        ISOFLAG_RETAIN_ABORT_NO = 12 '
+        ISOFLAG_RETAIN_DONTCARE = ISOFLAG_RETAIN_COMMIT_DC Or ISOFLAG_RETAIN_ABORT_DC '
+        ISOFLAG_RETAIN_BOTH = ISOFLAG_RETAIN_COMMIT Or ISOFLAG_RETAIN_ABORT '
+        ISOFLAG_RETAIN_NONE = ISOFLAG_RETAIN_COMMIT_NO Or ISOFLAG_RETAIN_ABORT_NO '
+        ISOFLAG_OPTIMISTIC = 16 '
+        ISOFLAG_READONLY = 32 '
+    End Enum
+    
+    Public Enum XACTTC
+        XACTTC_NONE = 0 ' use Provider's default.
+        XACTTC_SYNC_PHASEONE = 1
+        XACTTC_SYNC_PHASETWO = 2
+        XACTTC_SYNC = 2 ' nb alias for XACTTC_SYNC_PHASETWO
+        XACTTC_ASYNC_PHASEONE = 4
+        XACTTC_ASYNC = 4 ' nb alias for XACTTC_ASYNC_PHASEONE
+    End Enum
+    
+    Public Enum XACTRM
+        XACTRM_OPTIMISTICLASTWINS = 1 '
+        XACTRM_NOREADONLYPREPARES = 2 '
+    End Enum
+    
+    Public Type XACTTRANSINFO
+        uow As BOID ' The current unit of work
+        isoLevel As ISOLATIONLEVEL ' The isolation level for the current UOW
+        isoFlags As ISOFLAG ' Values from ISOFLAG enumeration
+        grfTCSupported As XACTTC ' Flags indicating capabilities
+        grfRMSupported As XACTRM '       ... of this transaction wrt
+        grfTCSupportedRetaining As Long '       ... parameters to Commit
+        grfRMSupportedRetaining As Long '       ...
+    End Type
+
+    Public Type XACTSTATS
+        cOpen As Long ' The number of currently extant transactions.
+        cCommitting As Long ' The number of transactions which are proceding towards committing.
+        cCommitted As Long ' The number of transactions that are have been committed.
+        cAborting As Long ' The number of transactions which are in the process of aborting.
+        cAborted As Long ' The number of transactions that are have been aborted.
+        cInDoubt As Long ' The number of transactions which are presently in doubt.
+        cHeuristicDecision As Long ' The number of transactions that have completed by heuristic decision.
+        timeTransactionsUp As FILETIME ' The amount of time that this transaction service has been up.
+    End Type
+    
+    Public Enum XACTCONST
+        XACTCONST_TIMEOUTINFINITE = 0 '
+    End Enum
+    
+    Public Enum XACTHEURISTIC
+        XACTHEURISTIC_ABORT = 1
+        XACTHEURISTIC_COMMIT = 2
+        XACTHEURISTIC_DAMAGE = 3
+        XACTHEURISTIC_DANGER = 4
+    End Enum
+    
+    Public Enum XACTSTAT
+        XACTSTAT_NONE = &H00000000
+        XACTSTAT_OPENNORMAL = &H00000001
+        XACTSTAT_OPENREFUSED = &H00000002
+        XACTSTAT_PREPARING = &H00000004
+        XACTSTAT_PREPARED = &H00000008
+        XACTSTAT_PREPARERETAINING = &H00000010
+        XACTSTAT_PREPARERETAINED = &H00000020
+        XACTSTAT_COMMITTING = &H00000040
+        XACTSTAT_COMMITRETAINING = &H00000080
+        XACTSTAT_ABORTING = &H00000100
+        XACTSTAT_ABORTED = &H00000200
+        XACTSTAT_COMMITTED = &H00000400
+        XACTSTAT_HEURISTIC_ABORT = &H00000800
+        XACTSTAT_HEURISTIC_COMMIT = &H00001000
+        XACTSTAT_HEURISTIC_DAMAGE = &H00002000
+        XACTSTAT_HEURISTIC_DANGER = &H00004000
+        XACTSTAT_FORCED_ABORT = &H00008000&
+        XACTSTAT_FORCED_COMMIT = &H00010000
+        XACTSTAT_INDOUBT = &H00020000
+        XACTSTAT_CLOSED = &H00040000
+        XACTSTAT_OPEN = &H00000003
+        XACTSTAT_NOTPREPARED = &H0007FFC3
+        XACTSTAT_ALL = &H0007FFFF
+    End Enum
+    
+    Public Type XACTOPT ' Transaction configuration options
+        ulTimeout As Long ' timeout in milliseconds
+        szDescription(0 To (MAX_TRAN_DESC - 1)) As Byte ' description string for admin tools
+    End Type
+  
+
+End Module
