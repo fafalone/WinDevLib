@@ -1,0 +1,222 @@
+'*****************************************************************************************
+'This file is a part of WinDevLib - Windows Development Library for twinBASIC
+'https://github.com/fafalone/WinDevLib
+'Code ported by Jon Johnson. 
+'"Windows" is a trademark of the Microsoft Corporation.
+'Certain Description attributes (c) Microsoft, taken from SDK headers and official docs.
+'Licensed under Creative Commons CC0 1.0 Universal
+'*****************************************************************************************
+
+'Group Policy
+'gpedit.h
+
+[InterfaceId("8FC0B735-A0E1-11d1-A7D3-0000F87571E3")]
+[OleAutomation(False)]
+Interface IGPEInformation Extends IUnknown
+    Sub GetName(ByVal pszName As LongPtr, ByVal cchMaxLength As Long)
+    Sub GetDisplayName(ByVal pszName As LongPtr, ByVal cchMaxLength As Long)
+    Sub GetRegistryKey(ByVal dwSection As GpObjectSectionFlags, hKey As LongPtr)
+    Sub GetDSPath(ByVal dwSection As GpObjectSectionFlags, ByVal pszPath As LongPtr, ByVal cchMaxPath As Long)
+    Sub GetFileSysPath(ByVal dwSection As GpObjectSectionFlags, ByVal pszPath As LongPtr, ByVal cchMaxPath As Long)
+    Sub GetOptions(dwOptions As Long)
+    Sub GetType(gpoType As GROUP_POLICY_OBJECT_TYPE)
+    Sub GetHint(gpoHint As GROUP_POLICY_HINT_TYPE)
+    Sub PolicyChanged(ByVal bMachine As BOOL, ByVal bAdd As BOOL, pGuidExtension As UUID, pGuidSnapin As UUID)
+End Interface
+
+[InterfaceId("EA502723-A23D-11d1-A7D3-0000F87571E3")]
+[OleAutomation(False)]
+Interface IGroupPolicyObject Extends IUnknown
+    Sub New(ByVal pszDomainName As LongPtr, ByVal pszDisplayName As LongPtr, ByVal dwFlags As GpObjectOpenFlags)
+    Sub OpenDSGPO(ByVal pszPath As LongPtr, ByVal dwFlags As GpObjectOpenFlags)
+    Sub OpenLocalMachineGPO(ByVal dwFlags As GpObjectOpenFlags)
+    Sub OpenRemoteMachineGPO(ByVal pszComputerName As LongPtr, ByVal dwFlags As GpObjectOpenFlags)
+    Sub Save(ByVal bMachine As BOOL, ByVal bAdd As BOOL, pGuidExtension As UUID, pGuid As UUID)
+    Sub Delete()
+    Sub GetName(ByVal pszName As LongPtr, ByVal cchMaxLength As Long)
+    Sub GetDisplayName(ByVal pszName As LongPtr, ByVal cchMaxLength As Long)
+    Sub SetDisplayName(ByVal pszName As LongPtr)
+    Sub GetPath(ByVal pszPath As LongPtr, ByVal cchMaxLength As Long)
+    Sub GetDSPath(ByVal dwSection As GpObjectSectionFlags, ByVal pszPath As LongPtr, ByVal cchMaxPath As Long)
+    Sub GetFileSysPath(ByVal dwSection As GpObjectSectionFlags, ByVal pszPath As LongPtr, ByVal cchMaxPath As Long)
+    Sub GetRegistryKey(ByVal dwSection As GpObjectSectionFlags, hKey As LongPtr)
+    Sub GetOptions(dwOptions As Long)
+    Sub SetOptions(ByVal dwOptions As Long, ByVal dwMask As Long)
+    Sub GetType(gpoType As GROUP_POLICY_OBJECT_TYPE)
+    Sub GetMachineName(ByVal pszName As LongPtr, ByVal cchMaxLength As Long)
+    Sub GetPropertySheetPages(hhPages As LongPtr, uPageCount As Long)
+End Interface
+
+[InterfaceId("9A5A81B5-D9C7-49EF-9D11-DDF50968C48D")]
+[OleAutomation(False)]
+Interface IRSOPInformation Extends IUnknown
+    Sub GetNamespace(ByVal dwSection As GpObjectSectionFlags, ByVal pszName As LongPtr, ByVal cchMaxLength As Long)
+    Sub GetFlags(pdwFlags As GpRsopInfoFlags)
+    Sub GetEventLogEntryText(ByVal pszEventSource As LongPtr, ByVal pszEventLogName As LongPtr, ByVal pszEventTime As LongPtr, ByVal dwEventID As Long, ppszText As LongPtr)
+End Interface
+
+
+
+
+#If WDL_QUALIFY Then
+[MustBeQualified]
+#End If
+Module wdGP
+    Public Enum GpObjectSectionFlags
+        GPO_SECTION_ROOT = 0  ' Root
+        GPO_SECTION_USER = 1  ' User
+        GPO_SECTION_MACHINE = 2  ' Machine
+    End Enum
+    
+    Public Enum GROUP_POLICY_OBJECT_TYPE
+        GPOTypeLocal = 0 ' Default GPO on the local machine
+        GPOTypeRemote  ' GPO on a remote machine
+        GPOTypeDS   ' GPO in the Active Directory
+        GPOTypeLocalUser   ' User-specific GPO on the local machine
+        GPOTypeLocalGroup   ' Group-specific GPO on the local machine
+    End Enum
+    
+    Public Enum GROUP_POLICY_HINT_TYPE
+        GPHintUnknown = 0 ' No link information available
+        GPHintMachine   ' GPO linked to a machine (local or remote)
+        GPHintSite   ' GPO linked to a site
+        GPHintDomain   ' GPO linked to a domain
+        GPHintOrganizationalUnit   ' GPO linked to a organizational unit
+    End Enum
+    
+    Public Enum GpObjectOpenFlags
+        GPO_OPEN_LOAD_REGISTRY = &H00000001  ' Load the registry files
+        GPO_OPEN_READ_ONLY = &H00000002  ' Open the GPO as read only
+    End Enum
+    
+    Public Enum GpObjectOptionFlags
+        GPO_OPTION_DISABLE_USER = &H00000001  ' The user portion of this GPO is disabled
+        GPO_OPTION_DISABLE_MACHINE = &H00000002  ' The machine portion of this GPO is disabled
+    End Enum
+    
+    Public Enum GpRsopInfoFlags
+        RSOP_INFO_FLAG_DIAGNOSTIC_MODE = &H00000001
+    End Enum
+    
+    Public DeclareWide PtrSafe Function CreateGPOLink Lib "gpedit.dll" (ByVal lpGPO As String, ByVal lpContainer As String, ByVal fHighPriority As BOOL) As Long
+    Public Declare PtrSafe Function CreateGPOLink Lib "gpedit.dll" (ByVal lpGPO As LongPtr, ByVal lpContainer As LongPtr, ByVal fHighPriority As BOOL) As Long
+    Public DeclareWide PtrSafe Function DeleteGPOLink Lib "gpedit.dll" (ByVal lpGPO As String, ByVal lpContainer As String) As Long
+    Public Declare PtrSafe Function DeleteGPOLink Lib "gpedit.dll" (ByVal lpGPO As LongPtr, ByVal lpContainer As LongPtr) As Long
+    Public DeclareWide PtrSafe Function DeleteAllGPOLinks Lib "gpedit.dll" (ByVal lpContainer As String) As Long
+    Public Declare PtrSafe Function DeleteAllGPOLinks Lib "gpedit.dll" (ByVal lpContainer As LongPtr) As Long
+    
+    Public Enum GpoBrowseFlags
+        GPO_BROWSE_DISABLENEW = &H00000001  ' Disables the New GPO functionality on all pages except "All"
+        GPO_BROWSE_NOCOMPUTERS = &H00000002  ' Removes the Computers tab
+        GPO_BROWSE_NODSGPOS = &H00000004  ' Removes the Domain/OU and Sites tabs
+        GPO_BROWSE_OPENBUTTON = &H00000008  ' Change the Ok button to say Open
+        GPO_BROWSE_INITTOALL = &H00000010  ' Initialize the dialog focused on the All pane
+        GPO_BROWSE_NOUSERGPOS = &H00000020  ' Removes the Users tab
+        GPO_BROWSE_SENDAPPLYONEDIT = &H00000040  ' Send the apply event if edit menu is selected
+    End Enum
+    Public Type GPOBROWSEINFO
+        dwSize As Long ' [in] Initialized to the size of this structure
+        dwFlags As GpoBrowseFlags ' [in] Flags defined above
+        hwndOwner As LongPtr ' [in] Parent window handle (can be NULL)
+        lpTitle As LongPtr 'LPOLESTR ' [in] Title bar text.  If NULL, "Browse for a Group Policy Object" will be the default text
+        lpInitialOU As LongPtr 'LPOLESTR ' [in] Initial Domain/Organizational Unit to open focus on
+        lpDSPath As LongPtr 'LPOLESTR ' [in/out] Pointer to the buffer that receives the Active Directory GPO path
+        dwDSPathSize As Long ' [in] Size in characters of buffer given in lpDSPath
+        lpName As LongPtr 'LPOLESTR ' [in/out] Pointer to a buffer that receives either the computer name or
+        '      the friendly name of the GPO (can be NULL)
+        dwNameSize As Long ' [in] Size in characters of buffer given in lpName
+        gpoType As GROUP_POLICY_OBJECT_TYPE ' [out] Specifies the type of GPO
+        gpoHint As GROUP_POLICY_HINT_TYPE ' [out] Specifies a hint of the GPO association
+    End Type
+    Public Declare PtrSafe Function BrowseForGPO Lib "gpedit.dll" (lpBrowseInfo As GPOBROWSEINFO) As Long
+    Public DeclareWide PtrSafe Function ImportRSoPData Lib "gpedit.dll" (ByVal lpNameSpace As String, ByVal lpFileName As String) As Long
+    Public Declare PtrSafe Function ImportRSoPData Lib "gpedit.dll" (ByVal lpNameSpace As LongPtr, ByVal lpFileName As LongPtr) As Long
+    Public DeclareWide PtrSafe Function ExportRSoPData Lib "gpedit.dll" (ByVal lpNameSpace As String, ByVal lpFileName As String) As Long
+    Public Declare PtrSafe Function ExportRSoPData Lib "gpedit.dll" (ByVal lpNameSpace As LongPtr, ByVal lpFileName As LongPtr) As Long
+ 
+    
+    Public Function CLSID_GPESnapIn() As UUID
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H8fc0b734, &Ha0e1, &H11d1, &Ha7, &Hd3, &H0, &H0, &Hf8, &H75, &H71, &He3)
+    CLSID_GPESnapIn = iid
+    End Function
+    Public Function NODEID_Machine() As UUID
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H8fc0b737, &Ha0e1, &H11d1, &Ha7, &Hd3, &H0, &H0, &Hf8, &H75, &H71, &He3)
+    NODEID_Machine = iid
+    End Function
+    Public Function NODEID_MachineSWSettings() As UUID
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H8fc0b73a, &Ha0e1, &H11d1, &Ha7, &Hd3, &H0, &H0, &Hf8, &H75, &H71, &He3)
+    NODEID_MachineSWSettings = iid
+    End Function
+    Public Function NODEID_User() As UUID
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H8fc0b738, &Ha0e1, &H11d1, &Ha7, &Hd3, &H0, &H0, &Hf8, &H75, &H71, &He3)
+    NODEID_User = iid
+    End Function
+    Public Function NODEID_UserSWSettings() As UUID
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H8fc0b73c, &Ha0e1, &H11d1, &Ha7, &Hd3, &H0, &H0, &Hf8, &H75, &H71, &He3)
+    NODEID_UserSWSettings = iid
+    End Function
+    Public Function IID_IGPEInformation() As UUID
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H8fc0b735, &Ha0e1, &H11d1, &Ha7, &Hd3, &H0, &H0, &Hf8, &H75, &H71, &He3)
+    IID_IGPEInformation = iid
+    End Function
+    Public Function CLSID_GroupPolicyObject() As UUID
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hea502722, &Ha23d, &H11d1, &Ha7, &Hd3, &H0, &H0, &Hf8, &H75, &H71, &He3)
+    CLSID_GroupPolicyObject = iid
+    End Function
+    Public Function IID_IGroupPolicyObject() As UUID
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hea502723, &Ha23d, &H11d1, &Ha7, &Hd3, &H0, &H0, &Hf8, &H75, &H71, &He3)
+    IID_IGroupPolicyObject = iid
+    End Function
+    Public Function CLSID_RSOPSnapIn() As UUID
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H6dc3804b, &H7212, &H458d, &Had, &Hb0, &H9a, &H07, &He2, &Hae, &H1f, &Ha2)
+    CLSID_RSOPSnapIn = iid
+    End Function
+    Public Function NODEID_RSOPMachine() As UUID
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hbd4c1a2e, &H0b7a, &H4a62, &Ha6, &Hb0, &Hc0, &H57, &H75, &H39, &Hc9, &H7e)
+    NODEID_RSOPMachine = iid
+    End Function
+    Public Function NODEID_RSOPMachineSWSettings() As UUID
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H6a76273e, &Heb8e, &H45db, &H94, &Hc5, &H25, &H66, &H3a, &H5f, &H2c, &H1a)
+    NODEID_RSOPMachineSWSettings = iid
+    End Function
+    Public Function NODEID_RSOPUser() As UUID
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hab87364f, &H0cec, &H4cd8, &H9b, &Hf8, &H89, &H8f, &H34, &H62, &H8f, &Hb8)
+    NODEID_RSOPUser = iid
+    End Function
+    Public Function NODEID_RSOPUserSWSettings() As UUID
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &He52c5ce3, &Hfd27, &H4402, &H84, &Hde, &Hd9, &Ha5, &Hf2, &H85, &H89, &H10)
+    NODEID_RSOPUserSWSettings = iid
+    End Function
+    Public Function IID_IRSOPInformation() As UUID
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H9a5a81b5, &Hd9c7, &H49ef, &H9d, &H11, &Hdd, &Hf5, &H09, &H68, &Hc4, &H8d)
+    IID_IRSOPInformation = iid
+    End Function
+    Public Function REGISTRY_EXTENSION_GUID() As UUID
+    '{35378EAC-683F-11D2-A89A-00C04FBBCFA2}
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H35378EAC, CInt(&H683F), CInt(&H11D2), &HA8, &H9A, &H00, &HC0, &H4F, &HBB, &HCF, &HA2)
+     REGISTRY_EXTENSION_GUID = iid
+    End Function
+    Public Function ADMXCOMMENTS_EXTENSION_GUID() As UUID
+    '{6C5A2A86-9EB3-42b9-AA83-A7371BA011B9}
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H6C5A2A86, CInt(&H9EB3), CInt(&H42b9), &HAA, &H83, &HA7, &H37, &H1B, &HA0, &H11, &HB9)
+     ADMXCOMMENTS_EXTENSION_GUID = iid
+    End Function
+    
+
+End Module

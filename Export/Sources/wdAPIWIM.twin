@@ -1,0 +1,335 @@
+'*****************************************************************************************
+'This file is a part of WinDevLib - Windows Development Library for twinBASIC
+'https://github.com/fafalone/WinDevLib
+'Code ported by Jon Johnson. 
+'"Windows" is a trademark of the Microsoft Corporation.
+'Certain Description attributes (c) Microsoft, taken from SDK headers and official docs.
+'Licensed under Creative Commons CC0 1.0 Universal
+'*****************************************************************************************
+
+'wimgapi.h
+
+#If WINDEVLIB_LITE = 0 Then
+
+#If WDL_QUALIFY Then
+[MustBeQualified]
+#End If
+Module wdAPIWIM
+
+Public Enum WimAccessRights
+	WIM_GENERIC_READ = GENERIC_READ
+	WIM_GENERIC_WRITE = GENERIC_WRITE
+' #if (NTDDI_VERSION >= NTDDI_WIN7) || defined(WIMGAPI_LATEST)
+	WIM_GENERIC_MOUNT = GENERIC_EXECUTE
+' #endif // (NTDDI_VERSION >= NTDDI_WIN7) || defined(WIMGAPI_LATEST)
+End Enum
+Public Enum WimCreateDisposition
+	WIM_CREATE_NEW = CREATE_NEW
+	WIM_CREATE_ALWAYS = CREATE_ALWAYS
+	WIM_OPEN_EXISTING = OPEN_EXISTING
+	WIM_OPEN_ALWAYS = OPEN_ALWAYS
+End Enum
+    
+Public Enum WimCompressionModes
+    WIM_COMPRESS_NONE = 0
+    WIM_COMPRESS_XPRESS = 1
+    WIM_COMPRESS_LZX = 2
+    ' #if (NTDDI_VERSION >= NTDDI_WIN8) || defined(WIMGAPI_LATEST)
+    WIM_COMPRESS_LZMS = 3
+    ' #endif // (NTDDI_VERSION >= NTDDI_WIN8) || defined(WIMGAPI_LATEST)
+End Enum
+
+Public Enum WimCreateResult
+    WIM_CREATED_NEW = 0
+    WIM_OPENED_EXISTING = 1
+End Enum
+
+Public Enum WimImageFlags
+    WIM_FLAG_RESERVED = &H00000001
+    WIM_FLAG_VERIFY = &H00000002
+    WIM_FLAG_INDEX = &H00000004
+    WIM_FLAG_NO_APPLY = &H00000008
+    WIM_FLAG_NO_DIRACL = &H00000010
+    WIM_FLAG_NO_FILEACL = &H00000020
+    WIM_FLAG_SHARE_WRITE = &H00000040
+    WIM_FLAG_FILEINFO = &H00000080
+    WIM_FLAG_NO_RP_FIX = &H00000100
+' #if (NTDDI_VERSION >= NTDDI_WIN7) || defined(WIMGAPI_LATEST)
+    WIM_FLAG_MOUNT_READONLY = &H00000200
+' #endif // (NTDDI_VERSION >= NTDDI_WIN7) || defined(WIMGAPI_LATEST)
+' #if (NTDDI_VERSION >= NTDDI_WIN8) || defined(WIMGAPI_LATEST)
+    WIM_FLAG_MOUNT_FAST = &H00000400
+    WIM_FLAG_MOUNT_LEGACY = &H00000800
+' #endif // (NTDDI_VERSION >= NTDDI_WIN8) || defined(WIMGAPI_LATEST)
+' #if (NTDDI_VERSION >= NTDDI_WINBLUE) || defined(WIMGAPI_LATEST)
+    WIM_FLAG_APPLY_CI_EA = &H00001000
+    WIM_FLAG_WIM_BOOT = &H00002000
+' #endif // (NTDDI_VERSION >= NTDDI_WINBLUE) || defined(WIMGAPI_LATEST)
+' #if (NTDDI_VERSION >= NTDDI_WIN10) || defined(WIMGAPI_LATEST)
+    WIM_FLAG_APPLY_COMPACT = &H00004000
+' #endif // (NTDDI_VERSION >= NTDDI_WIN10) || defined(WIMGAPI_LATEST)
+' #if (NTDDI_VERSION >= NTDDI_WIN10_RS1) || defined(WIMGAPI_LATEST)
+    WIM_FLAG_SUPPORT_EA = &H00008000&  ' It can be used in mount also.
+' #endif // (NTDDI_VERSION >= NTDDI_WIN10_RS1) || defined(WIMGAPI_LATEST)
+End Enum
+
+Public Enum WimMountFlags
+    WIM_MOUNT_FLAG_MOUNTED = &H00000001
+    WIM_MOUNT_FLAG_MOUNTING = &H00000002
+    WIM_MOUNT_FLAG_REMOUNTABLE = &H00000004
+    WIM_MOUNT_FLAG_INVALID = &H00000008
+    WIM_MOUNT_FLAG_NO_WIM = &H00000010
+    WIM_MOUNT_FLAG_NO_MOUNTDIR = &H00000020
+    WIM_MOUNT_FLAG_MOUNTDIR_REPLACED = &H00000040
+    WIM_MOUNT_FLAG_READWRITE = &H00000100
+End Enum
+
+Public Enum WimCommitFlags
+    WIM_COMMIT_FLAG_APPEND = &H00000001
+End Enum
+
+Public Enum WimReferenceFlags
+    WIM_REFERENCE_APPEND = &H00010000
+    WIM_REFERENCE_REPLACE = &H00020000
+End Enum
+
+Public Enum WimExportFlags
+    WIM_EXPORT_ALLOW_DUPLICATES = &H00000001
+    WIM_EXPORT_ONLY_RESOURCES = &H00000002
+    WIM_EXPORT_ONLY_METADATA = &H00000004
+' #if (NTDDI_VERSION >= NTDDI_WIN8) || defined(WIMGAPI_LATEST)
+    WIM_EXPORT_VERIFY_SOURCE = &H00000008
+    WIM_EXPORT_VERIFY_DESTINATION = &H00000010
+End Enum
+
+Public Const INVALID_CALLBACK_VALUE = &HFFFFFFFF
+
+Public Enum WimCopyFileFlags
+	WIM_COPY_FILE_RETRY = &H01000000
+End Enum
+
+Public Enum WimDeleteImgMountFlags
+	WIM_DELETE_MOUNTS_ALL = &H00000001
+End Enum
+
+Public Enum WimRegisterLogFlags
+    WIM_LOGFILE_UTF8 = &H00000001
+End Enum
+
+Private Const WM_APP = &H8000&
+Public Enum WimNotificationCodes
+    WIM_MSG = WM_APP + &H1476
+    WIM_MSG_TEXT = 0
+    WIM_MSG_PROGRESS = 1
+    WIM_MSG_PROCESS = 2
+    WIM_MSG_SCANNING = 3
+    WIM_MSG_SETRANGE = 4
+    WIM_MSG_SETPOS = 5
+    WIM_MSG_STEPIT = 6
+    WIM_MSG_COMPRESS = 7
+    WIM_MSG_ERROR = 8
+    WIM_MSG_ALIGNMENT = 9
+    WIM_MSG_RETRY = 10
+    WIM_MSG_SPLIT = 11
+    WIM_MSG_FILEINFO = 12
+    WIM_MSG_INFO = 13
+    WIM_MSG_WARNING = 14
+    WIM_MSG_CHK_PROCESS = 15
+    ' #if (NTDDI_VERSION >= NTDDI_WIN7) || defined(WIMGAPI_LATEST)
+    WIM_MSG_WARNING_OBJECTID = 16
+    WIM_MSG_STALE_MOUNT_DIR = 17
+    WIM_MSG_STALE_MOUNT_FILE = 18
+    WIM_MSG_MOUNT_CLEANUP_PROGRESS = 19
+    WIM_MSG_CLEANUP_SCANNING_DRIVE = 20
+    WIM_MSG_IMAGE_ALREADY_MOUNTED = 21
+    WIM_MSG_CLEANUP_UNMOUNTING_IMAGE = 22
+    WIM_MSG_QUERY_ABORT = 23
+    ' #endif // (NTDDI_VERSION >= NTDDI_WIN7) || defined(WIMGAPI_LATEST)
+    ' #if (NTDDI_VERSION >= NTDDI_WIN8) || defined(WIMGAPI_LATEST)
+    WIM_MSG_IO_RANGE_START_REQUEST_LOOP = 24
+    WIM_MSG_IO_RANGE_END_REQUEST_LOOP = 25
+    WIM_MSG_IO_RANGE_REQUEST = 26
+    WIM_MSG_IO_RANGE_RELEASE = 27
+    WIM_MSG_VERIFY_PROGRESS = 28
+    WIM_MSG_COPY_BUFFER = 29
+    WIM_MSG_METADATA_EXCLUDE = 30
+    WIM_MSG_GET_APPLY_ROOT = 31
+    WIM_MSG_MDPAD = 32
+    WIM_MSG_STEPNAME = 33
+    ' #endif // (NTDDI_VERSION >= NTDDI_WIN8) || defined(WIMGAPI_LATEST)
+    ' #if (NTDDI_VERSION >= NTDDI_WINBLUE) || defined(WIMGAPI_LATEST)
+    WIM_MSG_PERFILE_COMPRESS = 34
+    WIM_MSG_CHECK_CI_EA_PREREQUISITE_NOT_MET = 35
+    WIM_MSG_JOURNALING_ENABLED = 36
+    ' #endif // (NTDDI_VERSION >= NTDDI_WINBLUE) || defined(WIMGAPI_LATEST)
+End Enum
+ 
+Public Enum WimMessageProcReturnCodes
+	WIM_MSG_SUCCESS = ERROR_SUCCESS
+	WIM_MSG_DONE = &HFFFFFFF0
+	WIM_MSG_SKIP_ERROR = &HFFFFFFFE
+	WIM_MSG_ABORT_IMAGE = &HFFFFFFFF
+End Enum
+
+Public Enum WimInfoFlags
+	WIM_ATTRIBUTE_NORMAL = &H00000000
+	WIM_ATTRIBUTE_RESOURCE_ONLY = &H00000001
+	WIM_ATTRIBUTE_METADATA_ONLY = &H00000002
+	WIM_ATTRIBUTE_VERIFY_DATA = &H00000004
+	WIM_ATTRIBUTE_RP_FIX = &H00000008
+	WIM_ATTRIBUTE_SPANNED = &H00000010
+	WIM_ATTRIBUTE_READONLY = &H00000020
+End Enum
+
+Public Type WIM_INFO
+    WimPath(0 To (MAX_PATH - 1)) As Integer
+    Guid As UUID
+    ImageCount As Long
+    CompressionType As Long
+    PartNumber As Integer
+    TotalParts As Integer
+    BootIndex As Long
+    WimAttributes As WimImageFlags
+    WimFlagsAndAttr As WimCreateDisposition
+End Type
+
+Public Type WIM_MOUNT_LIST
+    WimPath(0 To (MAX_PATH - 1)) As Integer
+    MountPath(0 To (MAX_PATH - 1)) As Integer
+    ImageIndex As Long
+    MountedForRW As BOOL
+End Type
+'Alias WIM_MOUNT_INFO_LEVEL0 As WIM_MOUNT_LIST 
+
+Public Type WIM_MOUNT_INFO_LEVEL1
+    WimPath(0 To (MAX_PATH - 1)) As Integer
+    MountPath(0 To (MAX_PATH - 1)) As Integer
+    ImageIndex As Long
+    MountFlags As Long
+End Type
+'Alias WIM_MOUNT_INFO_LATEST As WIM_MOUNT_INFO_LEVEL1 
+
+Public Enum MOUNTED_IMAGE_INFO_LEVELS
+    MountedImageInfoLevel0
+    MountedImageInfoLevel1
+    MountedImageInfoLevelInvalid
+End Enum
+
+Public Type WIM_IO_RANGE_CALLBACK
+    ' The callback session that corresponds to the file that is being queried.
+    pSession As LongPtr 'PFILEIOCALLBACK_SESSION
+    ' Filled in by WIMGAPI for both messages:
+    Offset As LARGE_INTEGER
+    Size As LARGE_INTEGER
+    ' Filled in by the callback for WIM_MSG_IO_RANGE_REQUEST (set to TRUE to
+    ' indicate data in the specified range is available, and FALSE to indicate
+    ' it is not yet available):
+    Available As BOOL
+End Type
+
+Public Type WIM_FIND_DATA
+    wfd As WIN32_FIND_DATAW
+ 
+    bHash(0 To 19) As Byte
+    pSecurityDescriptor As LongPtr 'PSECURITY_DESCRIPTOR
+    ppszAlternateStreamNames As LongPtr ' Double-null-terminated; cast to PZZWSTR
+    pbReparseData As LongPtr
+    cbReparseData As Long
+    '#if (NTDDI_VERSION >= NTDDI_WIN10) || defined(WIMGAPI_LATEST)
+    uliResourceSize As ULARGE_INTEGER
+    '#endif // (NTDDI_VERSION >= NTDDI_WIN10) || defined(WIMGAPI_LATEST)
+End Type
+
+Public Declare PtrSafe Function WIMCreateFile Lib "wimgapi.dll" (ByVal pszWimPath As LongPtr, ByVal dwDesiredAccess As WimAccessRights, ByVal dwCreationDisposition As WimCreateDisposition, ByVal dwFlagsAndAttributes As WimImageFlags, ByVal dwCompressionType As WimCompressionModes, Optional pdwCreationResult As WimCreateResult) As LongPtr
+Public DeclareWide PtrSafe Function WIMCreateFile Lib "wimgapi.dll" (ByVal pszWimPath As String, ByVal dwDesiredAccess As WimAccessRights, ByVal dwCreationDisposition As WimCreateDisposition, ByVal dwFlagsAndAttributes As WimImageFlags, ByVal dwCompressionType As WimCompressionModes, Optional pdwCreationResult As WimCreateResult) As LongPtr
+Public Declare PtrSafe Function WIMCloseHandle Lib "wimgapi.dll" (ByVal hObject As LongPtr) As BOOL
+Public Declare PtrSafe Function WIMSetTemporaryPath Lib "wimgapi.dll" (ByVal hWim As LongPtr, ByVal pszPath As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function WIMSetTemporaryPath Lib "wimgapi.dll" (ByVal hWim As LongPtr, ByVal pszPath As String) As BOOL
+Public Declare PtrSafe Function WIMSetReferenceFile Lib "wimgapi.dll" (ByVal hWim As LongPtr, ByVal pszPath As LongPtr, ByVal dwFlags As WimReferenceFlags) As BOOL
+Public DeclareWide PtrSafe Function WIMSetReferenceFile Lib "wimgapi.dll" (ByVal hWim As LongPtr, ByVal pszPath As String, ByVal dwFlags As WimReferenceFlags) As BOOL
+Public Declare PtrSafe Function WIMSplitFile Lib "wimgapi.dll" (ByVal hWim As LongPtr, ByVal pszPartPath As LongPtr, pliPartSize As LARGE_INTEGER, ByVal dwFlags As Long) As BOOL
+Public DeclareWide PtrSafe Function WIMSplitFile Lib "wimgapi.dll" (ByVal hWim As LongPtr, ByVal pszPartPath As String, pliPartSize As LARGE_INTEGER, ByVal dwFlags As Long) As BOOL
+Public Declare PtrSafe Function WIMExportImage Lib "wimgapi.dll" (ByVal hImage As LongPtr, ByVal hWim As LongPtr, ByVal dwFlags As WimExportFlags) As BOOL
+Public Declare PtrSafe Function WIMDeleteImage Lib "wimgapi.dll" (ByVal hWim As LongPtr, ByVal dwImageIndex As Long) As BOOL
+Public Declare PtrSafe Function WIMGetImageCount Lib "wimgapi.dll" (ByVal hWim As LongPtr) As Long
+Public Declare PtrSafe Function WIMGetAttributes Lib "wimgapi.dll" (ByVal hWim As LongPtr, pWimInfo As WIM_INFO, ByVal cbWimInfo As Long) As BOOL
+Public Declare PtrSafe Function WIMSetBootImage Lib "wimgapi.dll" (ByVal hWim As LongPtr, ByVal dwImageIndex As Long) As BOOL
+Public Declare PtrSafe Function WIMCaptureImage Lib "wimgapi.dll" (ByVal hWim As LongPtr, ByVal pszPath As LongPtr, ByVal dwCaptureFlags As WimImageFlags) As LongPtr
+Public DeclareWide PtrSafe Function WIMCaptureImage Lib "wimgapi.dll" (ByVal hWim As LongPtr, ByVal pszPath As String, ByVal dwCaptureFlags As WimImageFlags) As LongPtr
+Public Declare PtrSafe Function WIMLoadImage Lib "wimgapi.dll" (ByVal hWim As LongPtr, ByVal dwImageIndex As Long) As LongPtr
+Public Declare PtrSafe Function WIMApplyImage Lib "wimgapi.dll" (ByVal hImage As LongPtr, ByVal pszPath As LongPtr, ByVal dwFlags As WimImageFlags) As BOOL
+Public DeclareWide PtrSafe Function WIMApplyImage Lib "wimgapi.dll" (ByVal hImage As LongPtr, ByVal pszPath As String, ByVal dwFlags As WimImageFlags) As BOOL
+Public Declare PtrSafe Function WIMGetImageInformation Lib "wimgapi.dll" (ByVal hImage As LongPtr, ppvImageInfo As LongPtr, pcbImageInfo As Long) As BOOL
+Public Declare PtrSafe Function WIMSetImageInformation Lib "wimgapi.dll" (ByVal hImage As LongPtr, pvImageInfo As Any, ByVal cbImageInfo As Long) As BOOL
+Public Declare PtrSafe Function WIMGetMessageCallbackCount Lib "wimgapi.dll" (ByVal hWim As LongPtr) As Long
+
+Public Delegate Function WIMMessageCallback (ByVal dwMessageId As WimNotificationCodes, ByVal wParam As LongPtr, ByVal lParam As LongPtr, ByVal pvUserData As LongPtr) As WimMessageProcReturnCodes
+' #If WDL_NO_DELEGATES Then
+Public Declare PtrSafe Function WIMRegisterMessageCallback Lib "wimgapi.dll" (ByVal hWim As LongPtr, ByVal fpMessageProc As LongPtr, Optional ByVal pvUserData As LongPtr) As Long
+Public Declare PtrSafe Function WIMUnregisterMessageCallback Lib "wimgapi.dll" (ByVal hWim As LongPtr, ByVal fpMessageProc As LongPtr) As Long
+Public Declare PtrSafe Function WIMCopyFile Lib "wimgapi.dll" (ByVal pszExistingFileName As LongPtr, ByVal pszNewFileName As LongPtr, ByVal pProgressRoutine As LongPtr, pvData As Any, Optional pbCancel As BOOL, Optional ByVal dwCopyFlags As WimCopyFileFlags) As BOOL
+' #Else
+' Public Declare PtrSafe Function WIMRegisterMessageCallback Lib "wimgapi.dll" (ByVal hWim As LongPtr, ByVal fpMessageProc As WIMMessageCallback, Optional ByVal pvUserData As LongPtr) As Long
+' Public Declare PtrSafe Function WIMUnregisterMessageCallback Lib "wimgapi.dll" (ByVal hWim As LongPtr, ByVal fpMessageProc As WIMMessageCallback) As Long
+' Public Declare PtrSafe Function WIMCopyFile Lib "wimgapi.dll" (ByVal pszExistingFileName As LongPtr, ByVal pszNewFileName As LongPtr, ByVal pProgressRoutine As PROGRESS_ROUTINE, pvData As Any, Optional pbCancel As BOOL, Optional ByVal dwCopyFlags As WimCopyFileFlags) As BOOL
+' #End 
+Public Declare PtrSafe Function WIMMountImage Lib "wimgapi.dll" (ByVal pszMountPath As LongPtr, ByVal pszWimFileName As LongPtr, ByVal dwImageIndex As Long, Optional ByVal pszTempPath As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function WIMMountImage Lib "wimgapi.dll" (ByVal pszMountPath As String, ByVal pszWimFileName As String, ByVal dwImageIndex As Long, Optional ByVal pszTempPath As String) As BOOL
+Public Declare PtrSafe Function WIMUnmountImage Lib "wimgapi.dll" (ByVal pszMountPath As LongPtr, ByVal pszWimFileName As LongPtr, ByVal dwImageIndex As Long, ByVal bCommitChanges As BOOL) As BOOL
+Public DeclareWide PtrSafe Function WIMUnmountImage Lib "wimgapi.dll" (ByVal pszMountPath As String, ByVal pszWimFileName As String, ByVal dwImageIndex As Long, ByVal bCommitChanges As BOOL) As BOOL
+Public Declare PtrSafe Function WIMGetMountedImages Lib "wimgapi.dll" (pMountList As WIM_MOUNT_LIST, pcbMountListLength As Long) As BOOL
+Public Declare PtrSafe Function WIMInitFileIOCallbacks Lib "wimgapi.dll" (ByVal pCallbacks As LongPtr) As BOOL
+Public Declare PtrSafe Function WIMSetFileIOCallbackTemporaryPath Lib "wimgapi.dll" (ByVal pszPath As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function WIMSetFileIOCallbackTemporaryPath Lib "wimgapi.dll" (ByVal pszPath As String) As BOOL
+
+Public Delegate Function FileIOCallbackOpenFile (ByVal pszFileName As LongPtr) As LongPtr
+Public Delegate Function FileIOCallbackCloseFile (ByVal hFile As LongPtr) As BOOL
+Public Delegate Function FileIOCallbackReadFile (ByVal hFile As LongPtr, ByVal pBuffer As LongPtr, ByVal nNumberOfBytesToRead As Long, pNumberOfBytesRead As Long, pOverlapped As OVERLAPPED) As BOOL
+Public Delegate Function FileIOCallbackSetFilePointer (ByVal hFile As LongPtr, ByVal liDistanceToMove As LongLong, pNewFilePointer As LongLong, ByVal dwMoveMethod As Long) As BOOL
+Public Delegate Function FileIOCallbackGetFileSize (ByVal hFile As LongPtr, pFileSize As LongLong) As BOOL
+Public Type SFileIOCallbackInfo
+	pfnOpenFile As FileIOCallbackOpenFile
+	pfnCloseFile As FileIOCallbackCloseFile
+	pfnReadFile As FileIOCallbackReadFile
+	pfnSetFilePointer As FileIOCallbackSetFilePointer
+	pfnGetFileSize As FileIOCallbackGetFileSize
+End Type
+
+Public Declare PtrSafe Function WIMMountImageHandle Lib "wimgapi.dll" (ByVal hImage As LongPtr, ByVal pszMountPath As LongPtr, ByVal dwFlags As WimMountFlags) As BOOL
+Public DeclareWide PtrSafe Function WIMMountImageHandle Lib "wimgapi.dll" (ByVal hImage As LongPtr, ByVal pszMountPath As String, ByVal dwFlags As WimMountFlags) As BOOL
+Public Declare PtrSafe Function WIMRemountImage Lib "wimgapi.dll" (ByVal pszMountPath As LongPtr, ByVal dwFlags As Long) As BOOL
+Public DeclareWide PtrSafe Function WIMRemountImage Lib "wimgapi.dll" (ByVal pszMountPath As String, ByVal dwFlags As Long) As BOOL
+Public Declare PtrSafe Function WIMCommitImageHandle Lib "wimgapi.dll" (ByVal hImage As LongPtr, [TypeHint(WimCommitFlags, WimImageFlags)] ByVal dwCommitFlags As Long, Optional phNewImageHandle As LongPtr) As BOOL
+Public Declare PtrSafe Function WIMUnmountImageHandle Lib "wimgapi.dll" (ByVal hImage As LongPtr, ByVal dwFlags As Long) As BOOL
+Public Declare PtrSafe Function WIMGetMountedImageInfo Lib "wimgapi.dll" (ByVal fInfoLevelId As MOUNTED_IMAGE_INFO_LEVELS, pdwImageCount As Long, pMountInfo As Any, ByVal cbMountInfoLength As Long, pcbReturnLength As Long) As BOOL
+Public Declare PtrSafe Function WIMGetMountedImageInfoFromHandle Lib "wimgapi.dll" (ByVal hImage As LongPtr, ByVal fInfoLevelId As MOUNTED_IMAGE_INFO_LEVELS, pMountInfo As Any, ByVal cbMountInfoLength As Long, pcbReturnLength As Long) As BOOL
+Public Declare PtrSafe Function WIMGetMountedImageHandle Lib "wimgapi.dll" (ByVal pszMountPath As LongPtr, ByVal dwFlags As WimImageFlags, phWimHandle As LongPtr, phImageHandle As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function WIMGetMountedImageHandle Lib "wimgapi.dll" (ByVal pszMountPath As String, ByVal dwFlags As WimImageFlags, phWimHandle As LongPtr, phImageHandle As LongPtr) As BOOL
+Public Declare PtrSafe Function WIMDeleteImageMounts Lib "wimgapi.dll" (ByVal dwDeleteFlags As WimDeleteImgMountFlags) As BOOL
+Public Declare PtrSafe Function WIMRegisterLogFile Lib "wimgapi.dll" (ByVal pszLogFile As LongPtr, ByVal dwFlags As WimRegisterLogFlags) As BOOL
+Public DeclareWide PtrSafe Function WIMRegisterLogFile Lib "wimgapi.dll" (ByVal pszLogFile As String, ByVal dwFlags As WimRegisterLogFlags) As BOOL
+Public Declare PtrSafe Function WIMUnregisterLogFile Lib "wimgapi.dll" (ByVal pszLogFile As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function WIMUnregisterLogFile Lib "wimgapi.dll" (ByVal pszLogFile As String) As BOOL
+Public Declare PtrSafe Function WIMExtractImagePath Lib "wimgapi.dll" (ByVal hImage As LongPtr, ByVal pszImagePath As LongPtr, ByVal pszDestinationPath As LongPtr, ByVal dwExtractFlags As Long) As BOOL
+Public DeclareWide PtrSafe Function WIMExtractImagePath Lib "wimgapi.dll" (ByVal hImage As LongPtr, ByVal pszImagePath As String, ByVal pszDestinationPath As String, ByVal dwExtractFlags As Long) As BOOL
+Public Declare PtrSafe Function WIMFindFirstImageFile Lib "wimgapi.dll" (ByVal hImage As LongPtr, ByVal pwszFilePath As LongPtr, pFindFileData As WIM_FIND_DATA) As LongPtr
+Public DeclareWide PtrSafe Function WIMFindFirstImageFile Lib "wimgapi.dll" (ByVal hImage As LongPtr, ByVal pwszFilePath As String, pFindFileData As WIM_FIND_DATA) As LongPtr
+Public Declare PtrSafe Function WIMFindNextImageFile Lib "wimgapi.dll" (ByVal hFindFile As LongPtr, pFindFileData As WIM_FIND_DATA) As BOOL
+
+Public Delegate Function WIMEnumImageFilesCallback (pFindFileData As WIM_FIND_DATA, ByVal pEnumFile As LongPtr, ByVal pEnumContext As LongPtr) As Long
+' #If WDL_NO_DELEGATES Then
+Public Declare PtrSafe Function WIMEnumImageFiles Lib "wimgapi.dll" (ByVal hImage As LongPtr, ByVal pEnumFile As LongPtr, ByVal fpEnumImageCallback As LongPtr, Optional ByVal pEnumContext As LongPtr) As BOOL
+' #Else
+' Public Declare PtrSafe Function WIMEnumImageFiles Lib "wimgapi.dll" (ByVal hImage As LongPtr, ByVal pEnumFile As LongPtr, ByVal fpEnumImageCallback As WIMEnumImageFilesCallback, Optional ByVal pEnumContext As LongPtr) As BOOL
+' #End If
+
+Public Declare PtrSafe Function WIMCreateImageFile Lib "wimgapi.dll" (ByVal hImage As LongPtr, ByVal pwszFilePath As LongPtr, ByVal dwDesiredAccess As WimAccessRights, ByVal dwCreationDisposition As WimCreateDisposition, ByVal dwFlagsAndAttributes As WimImageFlags) As LongPtr
+Public Declare PtrSafe Function WIMReadImageFile Lib "wimgapi.dll" (ByVal hImgFile As LongPtr, pbBuffer As Any, ByVal dwBytesToRead As Long, pdwBytesRead As Long, lpOverlapped As OVERLAPPED) As BOOL
+
+
+End Module
+
+Public Alias WIM_MOUNT_INFO_LEVEL0 As WIM_MOUNT_LIST
+Public Alias WIM_MOUNT_INFO_LATEST As WIM_MOUNT_INFO_LEVEL1
+
+#End If
