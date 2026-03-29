@@ -1,4 +1,10 @@
 
+**Update (v9.3.682, 29 Mar 2026):** 
+- Added XACT3 audio definitions (xact3.h, xact3wb.h, xma2defs.h 100%)  
+Notably, these include not only the large inlined functions, but the full C++ type implementations 
+with Subs within the UDTs. Additionally, these too have an extensive custom type set that has 
+been preserved through Aliases.
+    
 **Update (v9.3.680, 28 Mar 2026):** 
 - Added IMsoComponent/IMsoComponentManager for .NET interop use
 - Added new MSVC compiler instrinsics implementations: _byteswap_ulong and _byteswap_ushort
