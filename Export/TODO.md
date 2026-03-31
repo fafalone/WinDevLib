@@ -174,7 +174,7 @@ Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.
     propidl.h,propidl.idl,propidlbase.h,propidlbase.idl,propsys.idl,propsys.h,propvarutil.h,Xinput.h,winperf.h,perlib.h,spapidef.h,devpropdef.h,devpkey.h,
     devguid.h,setupapi.h,prnasnot.h,winspool.h,libloaderapi.h,libloaderapi2.h,ioapiset.h,wingdi.h,coml2api.h,evr9.h,dxgi_1.h,dxgi_1.idl,dxgi_2.h,dxgi_2.idl,
     dxgi_3.h,dxgi_3.idl,dxgi_4.h,dxgi_4.idl,dxgi_5.h,dxgi_5.idl,dxgi_6.h,dxgi_6.idl,DXGI_Messages.h,dxgitype.h,dxgitype.idl,dxgicommon.h,dxgicommon.idl,dxgidebug.h,
-    ntlsa.h,vsstyle.h,vssym32.h,usp10.h,xapo.h,xaudio2.h,xaudio2fx.h,x3daudio.h,hrtfapoapi.h,WpdShellExtension.h,WpdMtpExtensions.h,evr.h,evr.idl,d3d11.h,d3d11.idl,
+    ntlsa.h,vsstyle.h,vssym32.h,usp10.h,xapo.h,xapofx.h,xaudio2.h,xaudio2fx.h,x3daudio.h,hrtfapoapi.h,WpdShellExtension.h,WpdMtpExtensions.h,evr.h,evr.idl,d3d11.h,d3d11.idl,
     d3d11_2.h,d3d11_2.idl,d3d11_3.h,d3d11_3.idl,d3d11_4.h,d3d11_4.idl,d3d11on12.h,d3d11on12.idl,d2d1.h,d2d1_1.h,d2d1_2.h,d2d1_3.h,d2d1effectauthor.h,d2d1effects.h,
     d2d1effects_1.h,d2d1effects_2.h,d2d1EffectauIEVRTrustedVideoPluginthor.h,d3dcommon.h,d3dcommon.idl,d3d10.h,d3d10.idl,d3d10misc.h,d3d10shader.h,d3d10effects.h,
     d3d10sdklayers.h,d3d10sdklayers.idl,d3d10_1shader.h,d3d10_1.h,d3d10_1.idl,d3dcsx.h,presentation.idl,presentationtypes.h,presentationtypes.idl,wldp.h,webauthn.h,
@@ -197,7 +197,8 @@ Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.
     gl.h,glu.h,DocObj.h,DocObj.idl,slpublic.h,slerror.h,sliddefs.h,fwpstypes.h,htiface.h,htiface.idl,htiframe.h,htiframe.idl,dmort.h,
     odbcinst.h,sqltypes.h,sql.h,sqlext.h,sqlucode.h,minidumpapiset.h,coguid.h,  
     dls1.h,dls2.h,dmerror.h,dmdls.h,dmusbuff.h,dmusicc.h,dmusicf.h,dmplugin.h,dmusici.h,dmksctrl.h,dmusics.h,d3d12compiler.h/d3d12compiler.idl
-    xact3.h,xact3wb.h,xma2defs.h,audiodefs.h,
+    xact3.h,xact3wb.h,xma2defs.h,audiodefs.h,xact3d3.h,dxfile.h,
+    
     
 Coverage in the 90%+ range  winbase.h, oleidl.h, oaidl.h, ocidl.h, ocidl.idl, ,objidl.h,objidl.idl,presentation.h,ScrnSave.h
 
