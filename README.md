@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 9.3.682 (March 29th, 2026)**
+**Current Version: 9.3.684 (March 31st, 2026)**
 
 (c) 2022-2026 Jon Johnson (fafalone)
 
@@ -72,12 +72,14 @@ WinDevLib has some compiler constants you can enable:
 >[!IMPORTANT]
 >Currently flags are not inherited from the main project, so the only way to use these is to set them in the compiler flags for WinDevLib.twinproj then build a custom twinpack.
 
-#### Custom Helper Functions
-In addition to coverage of common Windows SDK-defined macros and inlined functions, a small number of custom helper functions are provided to deal with Windows data types and similar not properly supported by the language. These are:
+#### Custom Helpers
+In addition to coverage of common Windows SDK-defined macros and inlined functions, a small number of custom helpers are provided to deal with Windows data types and similar not properly supported by the language. These are:
 
 `Public Function GetMem(Of T)(ByVal ptr As LongPtr) As T` - A generic to dereference a pointer into any type. The native `CType(Of )` allows dereferencing to UDTs, but this helper allows instrinsic types in addition to UDTs, and is used the same way.
 
 `Public Function DCast(Of T, T2)(v As T2) As T` - Direct Cast: Copies the data of v into any type, without modification, so no overflows, and possible to e.g. go from `LongLong` to `POINT`, with `Dim pt As POINT = DCast(Of POINT)(SomeLongLong)`
+
+`Public Type CTypeHelper(Of T)` / `Public Type TType(Of T)` - These are helpers for the `CType(Of )` operator, intended to allow a pointer to refer to any type, not just a UDT. For example, if you have only a pointer to an array of Single, you could pass it to a ByRef As Single argument with `CType(Of TType(Of Single))(ptr).x` and the API would still be able to access all members just like f(0).
 
 `Public Function LPWSTRtoStr(lPtr As LongPtr, Optional ByVal fFree As Boolean = True) As String`\
 Converts a pointer to an LPWSTR/LPCWSTR/PWSTR/etc to an instrinsic `String` (BSTR)
@@ -240,6 +242,23 @@ Finally, there's numerous additional API sets from small to large for independen
 
 
 ### Updates
+
+**Update (v9.3.684, 29 Mar 2026):** 
+- Added generic type CTypeHelper(Of T). This is designed to allow `CType(Of T)(pointer)` to work 
+with basic types as it would with UDTs. The scenario that led to this was if you have e.g. a 
+ByRef f As Single argument and you want to pass a pointer. ByVal LongPtr wouldn't work, but with 
+this new helper, you can use `CType(Of CTypeHelper(Of Single))(ptr).x`. This works with arrays-- 
+where the API is expecting a pointer to the first member of an array, this will still allow the 
+API to read all of the members, not just the first one.\
+For brevity this helper is also available as `TType(Of T)`
+- Add X3DAudio for XACT3 (xact3d3.h, 100%)
+- Add XAudio FX APIs from xapofx.h (100%)
+- XACT3 now uses v3.7 GUIDs instead of 3.6.
+- Add DX9 file handling interfaces (dxfile.h, 100%)
+- (Bug fix) X3DAudioInitialize/X3DAudioCalculate should be CDecl. The former should also be a Sub. 
+The X3DAUDIO_HANDLE arguments in both should take the type ByRef, not a Byte.
+- (Bug fix) XAudio2 direct DLL exports are in xaudio2_9.dll, not _9d
+- (Bug fix) ILRemoveLastID pidl should be ByVal
 
 **Update (v9.3.682, 29 Mar 2026):** 
 - Added XACT3 audio definitions (xact3.h, xact3wb.h, xma2defs.h 100%)  
