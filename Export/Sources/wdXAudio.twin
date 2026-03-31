@@ -570,7 +570,7 @@ End Function
 #If WDL_XAUDIO8 Then
 Public Declare PtrSafe Function XAudio2CreateWithVersionInfo Lib "xaudio2_8.dll" (ppXAudio2 As IXAudio2, Optional ByVal Flags As XAudio2Flags = 0, Optional ByVal XAudio2Processor As XAUDIO2_PROCESSOR = XAUDIO2_DEFAULT_PROCESSOR, Optional ByVal ntddiVersion As Long = NTDDI_WIN10) As Long
 #Else
-Public Declare PtrSafe Function XAudio2CreateWithVersionInfo Lib "xaudio2_9d.dll" (ppXAudio2 As IXAudio2, Optional ByVal Flags As XAudio2Flags = 0, Optional ByVal XAudio2Processor As XAUDIO2_PROCESSOR = XAUDIO2_DEFAULT_PROCESSOR, Optional ByVal ntddiVersion As Long = NTDDI_WIN10) As Long
+Public Declare PtrSafe Function XAudio2CreateWithVersionInfo Lib "xaudio2_9.dll" (ppXAudio2 As IXAudio2, Optional ByVal Flags As XAudio2Flags = 0, Optional ByVal XAudio2Processor As XAUDIO2_PROCESSOR = XAUDIO2_DEFAULT_PROCESSOR, Optional ByVal ntddiVersion As Long = NTDDI_WIN10) As Long
 #End If
 
 Private Delegate Function XAudio2CreateWithVersionInfoFunc (ppXAudio2 As IXAudio2, ByVal Flags As XAudio2Flags, ByVal XAudio2Processor As XAUDIO2_PROCESSOR, ByVal ntddiVersion As Long) As Long
@@ -613,8 +613,8 @@ End Function
 Public Declare PtrSafe Function CreateAudioVolumeMeter Lib "xaudio2_8.dll" (ppApo As IUnknown) as Long
 Public Declare PtrSafe Function CreateAudioReverb Lib "xaudio2_8.dll" (ppApo As IUnknown) as Long
 #Else
-Public Declare PtrSafe Function CreateAudioVolumeMeter Lib "xaudio2_9d.dll" (ppApo As IUnknown) As Long
-Public Declare PtrSafe Function CreateAudioReverb Lib "xaudio2_9d.dll" (ppApo As IUnknown) As Long
+Public Declare PtrSafe Function CreateAudioVolumeMeter Lib "xaudio2_9.dll" (ppApo As IUnknown) As Long
+Public Declare PtrSafe Function CreateAudioReverb Lib "xaudio2_9.dll" (ppApo As IUnknown) As Long
 #End If
 
 Public Function XAudio2CreateVolumeMeter(ppApo As IUnknown, ByVal Flags As Long) As Long
@@ -982,6 +982,10 @@ Public Enum X3DAudioControlFlags
     X3DAUDIO_CALCULATE_REDIRECT_TO_LFE = &H00020000  ' apply equal mix of all source channels to LFE destination channel, valid only for matrix calculations with sources that have no LFE channel and final mix formats that have an LFE channel
 End Enum
 
+Public Type X3DAUDIO_HANDLE
+    b(0 To (X3DAUDIO_HANDLE_BYTESIZE - 1)) As Byte
+End Type
+
 Public Type XMFLOAT3
     x As Single
     y As Single
@@ -1075,13 +1079,16 @@ Public Type X3DAUDIO_DSP_SETTINGS
     ListenerVelocityComponent As Single ' [out] component of listener velocity vector projected onto emitter->listener vector in user-defined world units/second, calculated only for doppler
 End Type
 
-[UseGetLastError(False)]
 #If WDL_XAUDIO8 Then
-Public Declare PtrSafe Function X3DAudioInitialize Lib "xaudio2_8.dll" (ByVal SpeakerChannelMask As Long, ByVal SpeedOfSound As Single, Instance As Byte) as Long
-Public Declare PtrSafe Sub X3DAudioCalculate Lib "xaudio2_8.dlll" (Instance As Byte, pListener As X3DAUDIO_LISTENER, pEmitter As X3DAUDIO_EMITTER, [TypeHint(X3DAudioControlFlags)] ByVal Flags As Long, pDSPSettings As X3DAUDIO_DSP_SETTINGS)
+[UseGetLastError(False)]
+Public Declare PtrSafe Sub X3DAudioInitialize CDecl Lib "xaudio2_8.dll" (ByVal SpeakerChannelMask As Long, ByVal SpeedOfSound As Single, Instance As X3DAUDIO_HANDLE)  
+[UseGetLastError(False)]
+Public Declare PtrSafe Sub X3DAudioCalculate CDecl Lib "xaudio2_8.dlll" (Instance As X3DAUDIO_HANDLE, pListener As X3DAUDIO_LISTENER, pEmitter As X3DAUDIO_EMITTER, [TypeHint(X3DAudioControlFlags)] ByVal Flags As Long, pDSPSettings As X3DAUDIO_DSP_SETTINGS)
 #Else
-Public Declare PtrSafe Function X3DAudioInitialize Lib "xaudio2_9d.dll" (ByVal SpeakerChannelMask As Long, ByVal SpeedOfSound As Single, Instance As Byte) As Long
-Public Declare PtrSafe Sub X3DAudioCalculate Lib "xaudio2_9d.dll" (Instance As Byte, pListener As X3DAUDIO_LISTENER, pEmitter As X3DAUDIO_EMITTER, [TypeHint(X3DAudioControlFlags)] ByVal Flags As Long, pDSPSettings As X3DAUDIO_DSP_SETTINGS)
+[UseGetLastError(False)]
+Public Declare PtrSafe Sub X3DAudioInitialize CDecl Lib "xaudio2_9.dll" (ByVal SpeakerChannelMask As Long, ByVal SpeedOfSound As Single, Instance As X3DAUDIO_HANDLE)
+[UseGetLastError(False)]
+Public Declare PtrSafe Sub X3DAudioCalculate CDecl Lib "xaudio2_9.dll" (Instance As X3DAUDIO_HANDLE, pListener As X3DAUDIO_LISTENER, pEmitter As X3DAUDIO_EMITTER, [TypeHint(X3DAudioControlFlags)] ByVal Flags As Long, pDSPSettings As X3DAUDIO_DSP_SETTINGS)
 #End If
   
 'hrtfapoapi.h
@@ -1230,6 +1237,125 @@ Static iid As UUID
  If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HC2633B16, &H471B, &H4498, &HB8, &HC5, &H4F, &H09, &H59, &HE2, &HEC, &H09)
 CLSID_AudioReverb = iid
 End Function
+
+
+'xapoeffects.h
+
+Public Function CLSID_FXEQ() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HF5E01117, &HD6C4, &H485A, &HA3, &HF5, &H69, &H51, &H96, &HF3, &HDB, &HFA)
+CLSID_FXEQ = iid
+End Function
+Public Function CLSID_FXMasteringLimiter() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HC4137916, &H2BE1, &H46FD, &H85, &H99, &H44, &H15, &H36, &HF4, &H98, &H56)
+CLSID_FXMasteringLimiter = iid
+End Function
+Public Function CLSID_FXReverb() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H7D9ACA56, &HCB68, &H4807, &HB6, &H32, &HB1, &H37, &H35, &H2E, &H85, &H96)
+CLSID_FXReverb = iid
+End Function
+Public Function CLSID_FXEcho() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H5039D740, &HF736, &H449A, &H84, &HD3, &HA5, &H62, &H02, &H55, &H7B, &H87)
+CLSID_FXEcho = iid
+End Function
+
+
+' EQ parameter bounds (inclusive), used with FXEQ:
+Public Const FXEQ_MIN_FRAMERATE  = 22000
+Public Const FXEQ_MAX_FRAMERATE  = 48000
+Public Const FXEQ_MIN_FREQUENCY_CENTER As Single = 20.0!
+Public Const FXEQ_MAX_FREQUENCY_CENTER As Single = 20000.0!
+Public Const FXEQ_DEFAULT_FREQUENCY_CENTER_0 As Single = 100.0!  ' band 0
+Public Const FXEQ_DEFAULT_FREQUENCY_CENTER_1 As Single = 800.0!  ' band 1
+Public Const FXEQ_DEFAULT_FREQUENCY_CENTER_2 As Single = 2000.0!  ' band 2
+Public Const FXEQ_DEFAULT_FREQUENCY_CENTER_3 As Single = 10000.0!  ' band 3
+Public Const FXEQ_MIN_GAIN As Single = 0.126!  ' -18dB
+Public Const FXEQ_MAX_GAIN As Single = 7.94!  ' +18dB
+Public Const FXEQ_DEFAULT_GAIN As Single = 1.0!  ' 0dB change, all bands
+Public Const FXEQ_MIN_BANDWIDTH  As Single = 0.1!
+Public Const FXEQ_MAX_BANDWIDTH  As Single = 2.0!
+Public Const FXEQ_DEFAULT_BANDWIDTH  As Single = 1.0!  ' all bands
+'  Mastering limiter parameter bounds (inclusive), used with FXMasteringLimiter:
+Public Const FXMASTERINGLIMITER_MIN_RELEASE  = 1
+Public Const FXMASTERINGLIMITER_MAX_RELEASE  = 20
+Public Const FXMASTERINGLIMITER_DEFAULT_RELEASE  = 6
+Public Const FXMASTERINGLIMITER_MIN_LOUDNESS  = 1
+Public Const FXMASTERINGLIMITER_MAX_LOUDNESS  = 1800
+Public Const FXMASTERINGLIMITER_DEFAULT_LOUDNESS  = 1000
+'  Reverb parameter bounds (inclusive), used with FXReverb:
+Public Const FXREVERB_MIN_DIFFUSION As Single = 0.0!
+Public Const FXREVERB_MAX_DIFFUSION As Single = 1.0!
+Public Const FXREVERB_DEFAULT_DIFFUSION As Single = 0.9!
+Public Const FXREVERB_MIN_ROOMSIZE As Single = 0.0001!
+Public Const FXREVERB_MAX_ROOMSIZE As Single = 1.0!
+Public Const FXREVERB_DEFAULT_ROOMSIZE As Single = 0.6!
+'  Loudness defaults used with FXLoudness:
+Public Const FXLOUDNESS_DEFAULT_MOMENTARY_MS  = 400
+Public Const FXLOUDNESS_DEFAULT_SHORTTERM_MS  = 3000
+'  Echo initialization data/parameter bounds (inclusive), used with FXEcho:
+Public Const FXECHO_MIN_WETDRYMIX As Single = 0.0!
+Public Const FXECHO_MAX_WETDRYMIX As Single = 1.0!
+Public Const FXECHO_DEFAULT_WETDRYMIX As Single = 0.5!
+Public Const FXECHO_MIN_FEEDBACK As Single = 0.0!
+Public Const FXECHO_MAX_FEEDBACK As Single = 1.0!
+Public Const FXECHO_DEFAULT_FEEDBACK As Single = 0.5!
+Public Const FXECHO_MIN_DELAY As Single = 1.0!
+Public Const FXECHO_MAX_DELAY As Single = 2000.0!
+Public Const FXECHO_DEFAULT_DELAY As Single = 500.0!
+
+[PackingAlignment(1)]
+Public Type FXEQ_PARAMETERS
+    FrequencyCenter0 As Single ' center frequency in Hz, band 0
+    Gain0 As Single ' boost/cut
+    Bandwidth0 As Single ' bandwidth, region of EQ is center frequency +/- bandwidth/2
+    FrequencyCenter1 As Single ' band 1
+    Gain1 As Single
+    Bandwidth1 As Single
+    FrequencyCenter2 As Single ' band 2
+    Gain2 As Single
+    Bandwidth2 As Single
+    FrequencyCenter3 As Single ' band 3
+    Gain3 As Single
+    Bandwidth3 As Single
+End Type
+
+[PackingAlignment(1)]
+Public Type FXMASTERINGLIMITER_PARAMETERS
+    Release As Long ' release time (tuning factor with no specific units)
+    Loudness As Long ' loudness target (threshold)
+End Type
+
+[PackingAlignment(1)]
+Public Type FXREVERB_PARAMETERS
+    Diffusion As Single ' diffusion
+    RoomSize As Single ' room size
+End Type
+
+[PackingAlignment(1)]
+Public Type FXECHO_INITDATA
+    MaxDelay As Single ' maximum delay (all channels) in milliseconds, must be within [FXECHO_MIN_DELAY, FXECHO_MAX_DELAY]
+End Type
+
+[PackingAlignment(1)]
+Public Type FXECHO_PARAMETERS
+    WetDryMix As Single ' ratio of wet (processed) signal to dry (original) signal
+    Feedback As Single ' amount of output fed back into input
+    Delay As Single ' delay (all channels) in milliseconds, must be within [FXECHO_MIN_DELAY, FXECHO_PARAMETERS.MaxDelay]
+End Type
+
+
+#If WDL_XAUDIO8 Then
+[UseGetLastError(False)]
+Public Declare PtrSafe Function CreateFX CDecl Lib "xaudio2_8.dll" (clsid as UUID, pEffect As IUnknown, optional ByVal pInitDat As LongPtr, Optional ByVal InitDataByteSize As Long) as Long
+#Else
+[UseGetLastError(False)]
+Public Declare PtrSafe Function CreateFX CDecl Lib "xaudio2_9.dll" (clsid As UUID, pEffect As IUnknown, Optional ByVal pInitDat As LongPtr, Optional ByVal InitDataByteSize As Long) As Long
+#End If
+
+
 
 End Module
 
