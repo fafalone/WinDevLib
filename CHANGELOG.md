@@ -1,4 +1,21 @@
 
+**Update (v9.3.684, 29 Mar 2026):** 
+- Added generic type CTypeHelper(Of T). This is designed to allow `CType(Of T)(pointer)` to work 
+with basic types as it would with UDTs. The scenario that led to this was if you have e.g. a 
+ByRef f As Single argument and you want to pass a pointer. ByVal LongPtr wouldn't work, but with 
+this new helper, you can use `CType(Of CTypeHelper(Of Single))(ptr).x`. This works with arrays-- 
+where the API is expecting a pointer to the first member of an array, this will still allow the 
+API to read all of the members, not just the first one.\
+For brevity this helper is also available as `TType(Of T)`
+- Add X3DAudio for XACT3 (xact3d3.h, 100%)
+- Add XAudio FX APIs from xapofx.h (100%)
+- XACT3 now uses v3.7 GUIDs instead of 3.6.
+- Add DX9 file handling interfaces (dxfile.h, 100%)
+- (Bug fix) X3DAudioInitialize/X3DAudioCalculate should be CDecl. The former should also be a Sub. 
+The X3DAUDIO_HANDLE arguments in both should take the type ByRef, not a Byte.
+- (Bug fix) XAudio2 direct DLL exports are in xaudio2_9.dll, not _9d
+- (Bug fix) ILRemoveLastID pidl should be ByVal
+
 **Update (v9.3.682, 29 Mar 2026):** 
 - Added XACT3 audio definitions (xact3.h, xact3wb.h, xma2defs.h 100%)  
 Notably, these include not only the large inlined functions, but the full C++ type implementations 
