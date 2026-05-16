@@ -10029,9 +10029,14 @@ Module wdAPICrypto
     Public Declare PtrSafe Function BCryptUnregisterConfigChangeNotify Lib "bcrypt" (ByVal hEvent As LongPtr) As NTSTATUS
     #End If
     Public DeclareWide PtrSafe Function BCryptResolveProviders Lib "bcrypt" (ByVal pszContext As String, [TypeHint(BCRYPT_CNG_INTERFACES, NCRYPT_CNG_INTERFACES)] ByVal dwInterface As Long, ByVal pszFunction As String, ByVal pszProvider As String, ByVal dwMode As BCryptProviderModeFlags, ByVal dwFlags As BCryptResolutionFlags, pcbBuffer As Long, ppBuffer As LongPtr) As NTSTATUS
-    Public Declare PtrSafe Function BCryptGetFipsAlgorithmMode Lib "bcrypt" (pfEnabled As Byte) As NTSTATUS
-    Public Declare PtrSafe Function CngGetFipsAlgorithmMode Lib "bcrypt" () As Byte
+    Public Declare PtrSafe Function BCryptGetFipsAlgorithmMode Lib "bcrypt" (pfEnabled As CBoolean) As NTSTATUS
+    Public Declare PtrSafe Function CngGetFipsAlgorithmMode Lib "bcrypt" () As CBoolean
 
+
+    'Documented but not in SDK:
+    
+    Public Declare PtrSafe Function ProcessPrng Lib "bcryptprimitives.dll" (pbData As Any, ByVal cbData As Long) As BOOL
+    
 
     #End Region
 
@@ -10919,41 +10924,51 @@ Module wdAPICrypto
     End Enum
 
     Public DeclareWide PtrSafe Function NCryptUnprotectSecret Lib "ncrypt" (ByVal hDescriptor As LongPtr, [TypeHint(NCryptUnprotectFlags, NCryptStorageProvFlags)] ByVal dwFlags As Long, pbProtectedBlob As Any, ByVal cbProtectedBlob As Long, pMemPara As NCRYPT_ALLOC_PARA, ByVal hwnd As LongPtr, ppbData As LongPtr, pcbData As Long) As SECURITY_STATUS
-
-    ' typedef 
-    ' SECURITY_STATUS
-    ' (WINAPI *PFNCryptStreamOutputCallback)(
-        ' _In_            void                                *pvCallbackCtxt,
-        ' _In_reads_bytes_(cbData)
-                        ' const BYTE                          *pbData,
-                        ' SIZE_T                              cbData,
-                        ' BOOL                                fFinal
-        ' );
-    
+ 
+    Public Delegate Function PFNCryptStreamOutputCallback ( _
+                                    ByVal pvCallbackCtxt As LongPtr, _
+                                    ByVal pbData As LongPtr, _
+                                    ByVal cbData As LongPtr, _
+                                    ByVal fFinal As BOOL _
+                                ) As SECURITY_STATUS
+        
+    ' #If WDL_NO_DELEGATES Then
     Public Type NCRYPT_PROTECT_STREAM_INFO
         pfnStreamOutput As LongPtr 'PFNCryptStreamOutputCallback
         pvCallbackCtxt As LongPtr 'void*
     End Type
-
+    ' #Else
+    ' Public Type NCRYPT_PROTECT_STREAM_INFO
+        ' pfnStreamOutput As PFNCryptStreamOutputCallback
+        ' pvCallbackCtxt As LongPtr 'void*
+    ' End Type
+    ' #End If
+    
     Public Declare PtrSafe Function NCryptStreamOpenToProtect Lib "ncrypt" (ByVal hDescriptor As LongPtr, [TypeHint(NCryptStorageProvFlags)] ByVal dwFlags As Long, ByVal hWnd As LongPtr, pStreamInfo As NCRYPT_PROTECT_STREAM_INFO, phStream As LongPtr) As SECURITY_STATUS
     Public Declare PtrSafe Function NCryptStreamOpenToUnprotect Lib "ncrypt" (pStreamInfo As NCRYPT_PROTECT_STREAM_INFO, [TypeHint(NCryptStorageProvFlags)] ByVal dwFlags As Long, ByVal hWnd As LongPtr, phStream As LongPtr) As SECURITY_STATUS
 
-    ' typedef
-    ' SECURITY_STATUS
-    ' (WINAPI *PFNCryptStreamOutputCallbackEx)(
-        ' _In_            void                                *pvCallbackCtxt,
-        ' _In_reads_bytes_opt_(cbData)
-                        ' const BYTE                          *pbData,
-                        ' SIZE_T                              cbData,
-        ' _In_            NCRYPT_DESCRIPTOR_HANDLE            hDescriptor,
-                        ' BOOL                                fFinal
-    ' );
-
+ 
+    Public Delegate Function PFNCryptStreamOutputCallbackEx ( _
+                                ByVal pvCallbackCtxt As LongPtr, _
+                                ByVal pbData As LongPtr, _
+                                ByVal cbData As LongPtr, _
+                                ByVal hDescriptor As LongPtr, _
+                                ByVal fFinal As BOOL _
+                            ) As SECURITY_STATUS
+    
+    ' #If WDL_NO_DELEGATES Then
     Public Type NCRYPT_PROTECT_STREAM_INFO_EX
         pfnStreamOutput As LongPtr 'PFNCryptStreamOutputCallbackEx
         pvCallbackCtxt As LongPtr 'void*
     End Type
-
+    ' #Else
+    ' Public Type NCRYPT_PROTECT_STREAM_INFO_EX
+        ' pfnStreamOutput As PFNCryptStreamOutputCallbackEx
+        ' pvCallbackCtxt As LongPtr 'void*
+    ' End Type
+    ' #End If
+    
+    
     Public Declare PtrSafe Function NCryptStreamOpenToUnprotectEx Lib "ncrypt" (pStreamInfo As NCRYPT_PROTECT_STREAM_INFO_EX, [TypeHint(NCryptStorageProvFlags)] ByVal dwFlags As Long, ByVal hWnd As LongPtr, phStream As LongPtr) As SECURITY_STATUS
     Public DeclareWide PtrSafe Function NCryptStreamUpdate Lib "ncrypt" (ByVal hStream As LongPtr, pbData As Any, ByVal cbData As LongPtr, ByVal fFinal As BOOL) As SECURITY_STATUS
     Public Declare PtrSafe Function NCryptStreamClose Lib "ncrypt" (ByVal hStream As LongPtr) As SECURITY_STATUS
