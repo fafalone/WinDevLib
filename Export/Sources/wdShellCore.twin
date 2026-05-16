@@ -1,11 +1,15 @@
 '************************************************************************************
 'WinDevLib - Windows Development Library for twinBASIC
-'Version 9.3.684
+'Version 9.3.686
 '(c) 2022-2026 Jon Johnson (fafalone)
 'Project GUID: {1FCDB98D-617D-4995-9736-2ED0E4746A10}
 ' 
-'(formerly tbShellLib)
+'(formerly tbShellLib; this header was formerly the readme, see README.md in the 
+' PROJECT EXPLORER panel for the new version)
 ' 
+'This module:
+'wdShellCore - Core shell interface set 
+'
 'This project is a twinBASIC replacement for oleexp.tlb that is x64
 'compatible, due to the many problems using midl to create a 64bit tlb.
 '
@@ -14,8 +18,6 @@
 'Addititionally, this project covers all commonly used Windows APIs and an 
 'increasingly large selection of specialized feature APIs.
 '
-'This module:
-'wdShellCore - Core shell interface set
 '************************************************************************************
   
  
@@ -1073,7 +1075,7 @@ End Interface
 [InterfaceId("e35b4b2e-00da-4bc1-9f13-38bc11f5d417")]
 [OleAutomation(False)]
 Interface IThumbnailHandlerFactory Extends stdole.IUnknown
-    Sub GetThumbnailHandler(ByVal pidlChild As LongPtr, ByVal pbc As LongPtr, riid As UUID, ppv As Any)
+    Sub GetThumbnailHandler(ByVal pidlChild As LongPtr, ByVal pbc As IBindCtx, riid As UUID, ppv As Any)
 End Interface
 
 [InterfaceId("091162a4-bc96-411f-aae8-c5122cd03363")]
@@ -1253,7 +1255,7 @@ End Interface
 [OleAutomation(False)]
 Interface IShellLinkDataList Extends stdole.IUnknown
     [PreserveSig] Function AddDataBlock(pDataBlock As Any) As Long
-    [PreserveSig] Function CopyDataBlock(ByVal dwSig As SHELL_LINK_DATABLOCK_SIG, ppDataBlock As Any) As Long
+    [PreserveSig] Function CopyDataBlock(ByVal dwSig As SHELL_LINK_DATABLOCK_SIG, ppDataBlock As LongPtr) As Long
     [PreserveSig] Function RemoveDataBlock(ByVal dwSig As SHELL_LINK_DATABLOCK_SIG) As Long
     [PreserveSig] Function GetFlags(pdwFlags As SHELL_LINK_DATA_FLAGS) As Long
     [PreserveSig] Function SetFlags(ByVal dwFlags As SHELL_LINK_DATA_FLAGS) As Long
@@ -1605,8 +1607,8 @@ Interface IFileDialogCustomize Extends stdole.IUnknown
     Sub SetControlState(ByVal dwIDCtl As Long, ByVal dwState As CDCONTROLSTATEF)
     Sub GetEditBoxText(ByVal dwIDCtl As Long, ppszText As LongPtr)
     Sub SetEditBoxText(ByVal dwIDCtl As Long, ByVal pszText As String)
-    Sub GetCheckButtonState(ByVal dwIDCtl As Long, pbChecked As Long)
-    Sub SetCheckButtonState(ByVal dwIDCtl As Long, ByVal bChecked As Long)
+    Sub GetCheckButtonState(ByVal dwIDCtl As Long, pbChecked As BOOL)
+    Sub SetCheckButtonState(ByVal dwIDCtl As Long, ByVal bChecked As BOOL)
     Sub AddControlItem(ByVal dwIDCtl As Long, ByVal dwIDItem As Long, ByVal pszLabel As String)
     Sub RemoveControlItem(ByVal dwIDCtl As Long, ByVal dwIDItem As Long)
     Sub RemoveAllControlItems()
@@ -2028,7 +2030,7 @@ End Interface
 Interface IAdviseSink Extends stdole.IUnknown
 	Sub OnDataChange(pFormatEtc As FORMATETC, pStgMed As STGMEDIUM)
     Sub OnViewChange(ByVal dwAspect As DVASPECT, ByVal lindex As Long)
-    Sub OnRename(ByVal pmk As LongPtr) 'As IMoniker
+    Sub OnRename(ByVal pmk As IMoniker)
     Sub OnSave()
     Sub OnClose()
 End Interface
@@ -3311,11 +3313,9 @@ End Interface
 Interface IDataObjectAsyncCapability Extends stdole.IUnknown
     Sub SetAsyncMode(ByVal fDoOpAsync As BOOL)
     Sub GetAsyncMode(ByRef pfIsOpAsync As BOOL)
-    [Description("Optional IBindContext pbcReserved replaced with LONG; use ObjPtr")]
-    Sub StartOperation(ByVal pbcReserved As LongPtr)
+    Sub StartOperation(ByVal pbcReserved As IBindCtx)
     Sub InOperation(ByRef pfInAsyncOp As BOOL)
-    [Description("Optional IBindContext pbcReserved replaced with LONG; use ObjPtr")]
-    Sub EndOperation(ByVal hresult As Long, ByVal pbcReserved As LongPtr, ByVal dwEffects As Long)
+    Sub EndOperation(ByVal hresult As Long, ByVal pbcReserved As IBindCtx, ByVal dwEffects As Long)
 End Interface
 
 [InterfaceId("0c733a30-2a1c-11ce-ade5-00aa0044773d")]
@@ -7544,6 +7544,7 @@ Public Type EXP_SZ_LINK
 	szTarget(0 To 259) As Byte ' ANSI target name w/EXP_SZ in it
 	swzTarget(0 To 259) As Integer ' UNICODE target name w/EXP_SZ in it
 End Type
+[Description("WARNING: Buffer substituted for variable C-style array.")]
 Public Type EXP_PROPERTYSTORAGE
 	cbSize As Long ' Size of this extra data block
 	dwSignature As SHELL_LINK_DATABLOCK_SIG ' signature of this extra data block
@@ -8381,38 +8382,38 @@ Public Enum CURSORID
 End Enum
 
 Public Enum BROWSERFRAMEOPTIONS
-	BFO_NONE = &H00000000 ' Do nothing.
-	BFO_BROWSER_PERSIST_SETTINGS = &H00000001 ' Does this item want the browser stream? (Same window position as IE browser windows?)
-	BFO_RENAME_FOLDER_OPTIONS_TOINTERNET = &H00000002 ' Rename "Folder Options" to "Internet Options" in the Tools or View menu?
-	BFO_BOTH_OPTIONS = &H00000004 ' Keep both "Folder Options" and "Internet Options" in the Tools or View menu?
-	BIF_PREFER_INTERNET_SHORTCUT = &H00000008 ' NSE would prefer a .url shortcut over a .lnk shortcut
-	BFO_BROWSE_NO_IN_NEW_PROCESS = &H00000010 ' Specify this flag if you don't want the "Browse in New Process" via invoking a shortcut.
-	BFO_ENABLE_HYPERLINK_TRACKING = &H00000020 ' Does this NSE want it's display name tracked to determine when hyperlinks should be tagged as previously used?
-	BFO_USE_IE_OFFLINE_SUPPORT = &H00000040 ' Use "Internet Explorer"'s offline support?
-	BFO_SUBSTITUE_INTERNET_START_PAGE = &H00000080 ' Does this NSE want to use the Start Page support?
-	BFO_USE_IE_LOGOBANDING = &H00000100 ' Use the Brand block in the Toolbar.  (Spinning globe or whatever it is this year)
-	BFO_ADD_IE_TOCAPTIONBAR = &H00000200 ' Should " - Internet Explorer" be appended to display name in the Captionbar
-	BFO_USE_DIALUP_REF = &H00000400 ' Should the DialUp ref count get a ref while the browse is navigated to this location?  This will also enable the ICW and Software update.
-	BFO_USE_IE_TOOLBAR = &H00000800 ' Should the IE toolbar be used?
-	BFO_NO_PARENT_FOLDER_SUPPORT = &H00001000 ' Can you NOT navigate to a parent folder?  Used for Backspace button to parent folder or the View.GoTo.ParentFolder feature.
-	BFO_NO_REOPEN_NEXT_RESTART = &H00002000 ' Browser windows are NOT reopened the next time the shell boots if the windows were left open on the previous logoff.  Does this NSE want the same feature?
-	BFO_GO_HOME_PAGE = &H00004000 ' Add "Home Page" to menu (Go).
-	BFO_PREFER_IEPROCESS = &H00008000& ' prefers to use IEXPLORE.EXE over EXPLORER.EXE
-	BFO_SHOW_NAVIGATION_CANCELLED = &H00010000 ' If navigation is aborted, show the "Action Cancelled" HTML page.
-	BFO_USE_IE_STATUSBAR = &H00020000 ' Use the persisted IE status bar settings
+	BFO_NONE = &H00000000                               ' Do nothing.
+	BFO_BROWSER_PERSIST_SETTINGS = &H00000001           ' Does this item want the browser stream? (Same window position as IE browser windows?)
+	BFO_RENAME_FOLDER_OPTIONS_TOINTERNET = &H00000002   ' Rename "Folder Options" to "Internet Options" in the Tools or View menu?
+	BFO_BOTH_OPTIONS = &H00000004                       ' Keep both "Folder Options" and "Internet Options" in the Tools or View menu?
+	BIF_PREFER_INTERNET_SHORTCUT = &H00000008           ' NSE would prefer a .url shortcut over a .lnk shortcut
+    BFO_BROWSE_NO_IN_NEW_PROCESS = &H00000010           ' Specify this flag if you don't want the "Browse in New Process" via invoking a shortcut.
+	BFO_ENABLE_HYPERLINK_TRACKING = &H00000020          ' Does this NSE want it's display name tracked to determine when hyperlinks should be tagged as previously used?
+	BFO_USE_IE_OFFLINE_SUPPORT = &H00000040             ' Use "Internet Explorer"'s offline support?
+	BFO_SUBSTITUE_INTERNET_START_PAGE = &H00000080      ' Does this NSE want to use the Start Page support?
+	BFO_USE_IE_LOGOBANDING = &H00000100                 ' Use the Brand block in the Toolbar.  (Spinning globe or whatever it is this year)
+	BFO_ADD_IE_TOCAPTIONBAR = &H00000200                ' Should " - Internet Explorer" be appended to display name in the Captionbar
+	BFO_USE_DIALUP_REF = &H00000400                     ' Should the DialUp ref count get a ref while the browse is navigated to this location?  This will also enable the ICW and Software update.
+	BFO_USE_IE_TOOLBAR = &H00000800                     ' Should the IE toolbar be used?
+	BFO_NO_PARENT_FOLDER_SUPPORT = &H00001000           ' Can you NOT navigate to a parent folder?  Used for Backspace button to parent folder or the View.GoTo.ParentFolder feature.
+	BFO_NO_REOPEN_NEXT_RESTART = &H00002000             ' Browser windows are NOT reopened the next time the shell boots if the windows were left open on the previous logoff.  Does this NSE want the same feature?
+	BFO_GO_HOME_PAGE = &H00004000                       ' Add "Home Page" to menu (Go).
+	BFO_PREFER_IEPROCESS = &H00008000&                  ' prefers to use IEXPLORE.EXE over EXPLORER.EXE
+	BFO_SHOW_NAVIGATION_CANCELLED = &H00010000          ' If navigation is aborted, show the "Action Cancelled" HTML page.
+	BFO_USE_IE_STATUSBAR = &H00020000                   ' Use the persisted IE status bar settings
 End Enum
 
 Public Enum CBDOSC_FLAGS
-    CDBOSC_SETFOCUS = 0                                  ' &H00000000&
-    CDBOSC_KILLFOCUS = 1                                 ' &H00000001&
-    CDBOSC_SELCHANGE = 2                                 ' &H00000002&
-    CDBOSC_RENAME = 3                                    ' &H00000003&
-    CDBOSC_STATECHANGE = 4                               ' &H00000004&
+    CDBOSC_SETFOCUS = &H00000000&
+    CDBOSC_KILLFOCUS = &H00000001&
+    CDBOSC_SELCHANGE = &H00000002&
+    CDBOSC_RENAME = &H00000003&
+    CDBOSC_STATECHANGE = &H00000004&
 End Enum
 
 Public Enum CB2DN_TYPES
-    CDB2N_CONTEXTMENU_DONE = 1                           ' &H00000001&
-    CDB2N_CONTEXTMENU_START = 2                          ' &H00000002&
+    CDB2N_CONTEXTMENU_DONE = &H00000001&
+    CDB2N_CONTEXTMENU_START = &H00000002&
 End Enum
     
 Public Enum CDB2GVF_FLAGS
@@ -8469,31 +8470,31 @@ Public Enum CALLTYPE
 End Enum
 
 Public Enum NMCII_FLAGS
-    NMCII_NONE = 0                                       ' &H00000000&
-    NMCII_ITEMS = 1                                      ' &H00000001&
-    NMCII_FOLDERS = 2                                    ' &H00000002&
+    NMCII_NONE = &H00000000&
+    NMCII_ITEMS = &H00000001&
+    NMCII_FOLDERS = &H00000002&
 End Enum
 
 Public Enum NMCSAEI_FLAGS
-    NMCSAEI_SELECT = 0                                   ' &H00000000&
-    NMCSAEI_EDIT = 1                                     ' &H00000001&
+    NMCSAEI_SELECT = &H00000000&
+    NMCSAEI_EDIT = &H00000001&
 End Enum
-
+ 
 Public Enum NWMF
-	NWMF_UNLOADING = &H00000001 ' The query is occuring during onBeforeUnload or onUnload
-	NWMF_USERINITED = &H00000002 ' The query is occuring in the context of what trident considers to be a user initiated action
-	NWMF_FIRST = &H00000004 ' This is the first query since the begining of the last user initiated action
-	NWMF_OVERRIDEKEY = &H00000008 ' The override key was pressed at the time the query was made
-	NWMF_SHOWHELP = &H00000010 ' New window is an HTML help window
-	NWMF_HTMLDIALOG = &H00000020 ' New window is an HTML dialog
-	NWMF_FROMDIALOGCHILD = &H00000040 ' Called from an HTML dialog - do not show UI in parent window
-	NWMF_USERREQUESTED = &H00000080 ' There is no doubt the user requested this window (from RClick->Open in New Window, or Shift+Clicked a link)
-	NWMF_USERALLOWED = &H00000100 ' This popup is the result of the user requesting a replay that resulted in a refresh
-	NWMF_FORCEWINDOW = &H00010000 ' This popup should be forced to open in a new window
-	NWMF_FORCETAB = &H00020000 ' This popup should be forced to open in a new tab
-	NWMF_SUGGESTWINDOW = &H00040000 ' This popup should open in a new window unless user forced pop-ups to a tab
-	NWMF_SUGGESTTAB = &H00080000 ' This popup should open in a new tab unless user forced pop-ups to a window
-	NWMF_INACTIVETAB = &H00100000 ' This popup came from an inactive tab
+    NWMF_UNLOADING = &H00000001         ' The query is occuring during onBeforeUnload or onUnload
+    NWMF_USERINITED = &H00000002        ' The query is occuring in the context of what trident considers to be a user initiated action
+    NWMF_FIRST = &H00000004             ' This is the first query since the begining of the last user initiated action
+    NWMF_OVERRIDEKEY = &H00000008       ' The override key was pressed at the time the query was made
+    NWMF_SHOWHELP = &H00000010          ' New window is an HTML help window
+    NWMF_HTMLDIALOG = &H00000020        ' New window is an HTML dialog
+    NWMF_FROMDIALOGCHILD = &H00000040   ' Called from an HTML dialog - do not show UI in parent window
+    NWMF_USERREQUESTED = &H00000080     ' There is no doubt the user requested this window (from RClick->Open in New Window, or Shift+Clicked a link)
+    NWMF_USERALLOWED = &H00000100       ' This popup is the result of the user requesting a replay that resulted in a refresh
+    NWMF_FORCEWINDOW = &H00010000       ' This popup should be forced to open in a new window
+    NWMF_FORCETAB = &H00020000          ' This popup should be forced to open in a new tab
+    NWMF_SUGGESTWINDOW = &H00040000     ' This popup should open in a new window unless user forced pop-ups to a tab
+    NWMF_SUGGESTTAB = &H00080000        ' This popup should open in a new tab unless user forced pop-ups to a window
+    NWMF_INACTIVETAB = &H00100000       ' This popup came from an inactive tab
 End Enum
 
 Public Enum ShellMenuDataMask
@@ -8516,15 +8517,15 @@ Public Type SMDATA
     pvUserData As LongPtr
 End Type
 Public Enum SMSET_Flags
-	SMSET_MERGE = &H00000002
-	SMSET_NOEMPTY = &H00000004  ' Dont show (Empty) on shell folder")
-	SMSET_USEBKICONEXTRACTION = &H00000008  ' Use the background icon extractor")
-	SMSET_HASEXPANDABLEFOLDERS = &H00000010  ' Need to call SHIsExpandableFolder")
-	SMSET_DONTREGISTERCHANGENOTIFY = &H00000020  ' ShellFolder is a discontiguous child of a parent shell folder")
-	SMSET_COLLAPSEONEMPTY = &H00000040  ' When Empty, causes a menus to collapse")
-	SMSET_USEPAGER = &H00000080  'Enable pagers in static menus")
-	SMSET_NOPREFIX = &H00000100  'Enable ampersand in static menus")
-	SMSET_SEPARATEMERGEFOLDER = &H00000200  'Insert separator when MergedFolder host changes")
+    SMSET_MERGE = &H00000002
+    SMSET_NOEMPTY = &H00000004                  ' Dont show (Empty) on shell folder")
+    SMSET_USEBKICONEXTRACTION = &H00000008      ' Use the background icon extractor")
+    SMSET_HASEXPANDABLEFOLDERS = &H00000010     ' Need to call SHIsExpandableFolder")
+    SMSET_DONTREGISTERCHANGENOTIFY = &H00000020 ' ShellFolder is a discontiguous child of a parent shell folder")
+    SMSET_COLLAPSEONEMPTY = &H00000040          ' When Empty, causes a menus to collapse")
+    SMSET_USEPAGER = &H00000080                 'Enable pagers in static menus")
+    SMSET_NOPREFIX = &H00000100                 'Enable ampersand in static menus")
+    SMSET_SEPARATEMERGEFOLDER = &H00000200      'Insert separator when MergedFolder host changes")
 End Enum
 Public Enum ShellMenuInitFlags
     SMINIT_DEFAULT = &H00000000
@@ -8631,12 +8632,12 @@ Public Enum ATTACHMENT_ACTION
 End Enum
 
 Public Enum MENUPOPUPSELECT
-    MPOS_EXECUTE = 0 ' Execute the selected menu item
-    MPOS_FULLCANCEL = 1 ' Cancel the entire menu
-    MPOS_CANCELLEVEL = 2 ' Cancel the current cascaded menu
-    MPOS_SELECTLEFT = 3 ' select one to the left of the cur selection
-    MPOS_SELECTRIGHT = 4 ' select one to the right of the cur selection
-    MPOS_CHILDTRACKING = 5 ' the child got a tracking select (mouse moved over)
+    MPOS_EXECUTE = 0        ' Execute the selected menu item
+    MPOS_FULLCANCEL = 1     ' Cancel the entire menu
+    MPOS_CANCELLEVEL = 2    ' Cancel the current cascaded menu
+    MPOS_SELECTLEFT = 3     ' select one to the left of the cur selection
+    MPOS_SELECTRIGHT = 4    ' select one to the right of the cur selection
+    MPOS_CHILDTRACKING = 5  ' the child got a tracking select (mouse moved over)
 End Enum
 Public Enum MP_POPUPFLAGS
 	MPPF_SETFOCUS = &H00000001    ' Menu can take the focus
@@ -8662,16 +8663,16 @@ End Enum
 
 Public Enum PROPERTYUI_FLAGS
     PUIF_DEFAULT = &H00000000
-    PUIF_RIGHTALIGN = &H00000001 ' this property should be right aligned
-    PUIF_NOLABELININFOTIP = &H00000002 ' this property should not display a label in the infotip
+    PUIF_RIGHTALIGN = &H00000001        ' this property should be right aligned
+    PUIF_NOLABELININFOTIP = &H00000002  ' this property should not display a label in the infotip
 End Enum
 
 Public Enum PROPERTYUI_FORMAT_FLAGS
     PUIFFDF_DEFAULT = &H00000000
-    PUIFFDF_RIGHTTOLEFT = &H00000001 ' deprecated - do not use
-    PUIFFDF_SHORTFORMAT = &H00000002 ' short format version of string
-    PUIFFDF_NOTIME = &H00000004 ' truncate time to days, not hours/mins/sec
-    PUIFFDF_FRIENDLYDATE = &H00000008 ' "Today", "Yesterday", etc
+    PUIFFDF_RIGHTTOLEFT = &H00000001    ' deprecated - do not use
+    PUIFFDF_SHORTFORMAT = &H00000002    ' short format version of string
+    PUIFFDF_NOTIME = &H00000004         ' truncate time to days, not hours/mins/sec
+    PUIFFDF_FRIENDLYDATE = &H00000008   ' "Today", "Yesterday", etc
 End Enum
     
 
@@ -8791,21 +8792,20 @@ Public Enum DESKTOP_SLIDESHOW_STATE
 	DSS_DISABLED_BY_REMOTE_SESSION = &H04 ' A remote session has temporarily disabled the slideshow
 End Enum
 Public Enum DESKTOP_SLIDESHOW_DIRECTION
-	DSD_FORWARD = 0 ' Advance slideshow forward.
+	DSD_FORWARD = 0  ' Advance slideshow forward.
 	DSD_BACKWARD = 1 ' Advance slideshow backward.
 End Enum
 Public Enum DESKTOP_WALLPAPER_POSITION
-	DWPOS_CENTER = 0 ' Center the image, do not stretch (WPSTYLE_CENTER in IActiveDesktop).
-	DWPOS_TILE = 1 ' Tile the image across all monitors (WPSTYLE_TILE in IActiveDesktop).
-	DWPOS_STRETCH = 2 ' Stretch the image to exactly fit on the monitor (WPSTYLE_STRETCH in IActiveDesktop).
-	DWPOS_FIT = 3 ' Stretch the image to exactly the height or width of the monitor without
-	'  changing its aspect ratio or cropping (WPSTYLE_KEEPASPECT in IActiveDesktop).
-	'  This often results in letterbox bars on the sides or top/bottom of the image.
-	DWPOS_FILL = 4 ' Like DWPOS_FIT, but stretches the image until it completely fills the screen, allowing
-	'  cropping to avoid letterbox bars (WPSTYLE_CROPTOFIT in IActiveDesktop).
-	DWPOS_SPAN = 5 ' Spans a single image across all monitors (new, no IActiveDesktop equivalent).
+    DWPOS_CENTER = 0    ' Center the image, do not stretch (WPSTYLE_CENTER in IActiveDesktop).
+    DWPOS_TILE = 1      ' Tile the image across all monitors (WPSTYLE_TILE in IActiveDesktop).
+    DWPOS_STRETCH = 2   ' Stretch the image to exactly fit on the monitor (WPSTYLE_STRETCH in IActiveDesktop).
+    DWPOS_FIT = 3       ' Stretch the image to exactly the height or width of the monitor without
+                        '  changing its aspect ratio or cropping (WPSTYLE_KEEPASPECT in IActiveDesktop).
+                        '  This often results in letterbox bars on the sides or top/bottom of the image.
+    DWPOS_FILL = 4      ' Like DWPOS_FIT, but stretches the image until it completely fills the screen, allowing
+                        '  cropping to avoid letterbox bars (WPSTYLE_CROPTOFIT in IActiveDesktop).
+    DWPOS_SPAN = 5      ' Spans a single image across all monitors (new, no IActiveDesktop equivalent).
 End Enum
-
 Public Enum PLMC
 	PLMC_EXPLORER = 4
 End Enum
@@ -9436,7 +9436,7 @@ End Type
 
 
 Public Type BANDSITEINFO
-	dwMask As BandSiteMask ' BSIM_* flags
+	dwMask As BandSiteMask   ' BSIM_* flags
 	dwState As BandSiteState ' BSSF_* flags
 	dwStyle As BandSiteStyle ' BSIS_* flags
 End Type
@@ -9543,12 +9543,12 @@ Public Enum MENUBANDHANDLERCID
 End Enum
 
 Public Enum SFB_Mask
-	ISFB_MASK_STATE = &H00000001 ' TRUE if dwStateMask and dwState is valid
-	ISFB_MASK_BKCOLOR = &H00000002 ' TRUE if crBkgnd field is valid
-	ISFB_MASK_VIEWMODE = &H00000004 ' TRUE if wViewMode field is valid
+	ISFB_MASK_STATE = &H00000001        ' TRUE if dwStateMask and dwState is valid
+	ISFB_MASK_BKCOLOR = &H00000002      ' TRUE if crBkgnd field is valid
+	ISFB_MASK_VIEWMODE = &H00000004     ' TRUE if wViewMode field is valid
 	ISFB_MASK_SHELLFOLDER = &H00000008
 	ISFB_MASK_IDLIST = &H00000010
-	ISFB_MASK_COLORS = &H00000020 ' TRUE if crXXXX fields are valid (except bkgnd)
+	ISFB_MASK_COLORS = &H00000020       ' TRUE if crXXXX fields are valid (except bkgnd)
 End Enum
 Public Enum SFB_State
 	ISFB_STATE_DEFAULT = &H00000000
@@ -9557,24 +9557,23 @@ Public Enum SFB_State
 	ISFB_STATE_NOSHOWTEXT = &H00000004 ' TRUE if _fNoShowText
 	ISFB_STATE_CHANNELBAR = &H00000010 ' TRUE if we want NavigateTarget support
 	ISFB_STATE_QLINKSMODE = &H00000020 ' TRUE if we want to turn off drag & drop onto content items
-	ISFB_STATE_FULLOPEN = &H00000040 ' TRUE if band should maximize when opened
+	ISFB_STATE_FULLOPEN = &H00000040   ' TRUE if band should maximize when opened
 	ISFB_STATE_NONAMESORT = &H00000080 ' TRUE if band should _not_ sort icons by name
 	ISFB_STATE_BTNMINSIZE = &H00000100 ' TRUE if band should report min thickness of button
 End Enum
-
+ 
 Public Type BANDINFOSFB
-	dwMask As SFB_Mask ' [in] ISFB_MASK mask of valid fields from crBkgnd on
-	dwStateMask As SFB_State ' [in] ISFB_STATE mask of dwState bits being set/queried
-	dwState As SFB_State ' [in/out] ISFB_STATE bits
-	crBkgnd As Long ' [in/out]
-	crBtnLt As Long ' [in/out]
-	crBtnDk As Long ' [in/out]
-	wViewMode As Integer ' [in/out]
-	wAlign As Integer ' not used (yet)
-	psf As IShellFolder ' [out]
-	pidl As LongPtr ' [out]
+    dwMask As SFB_Mask          ' [in] ISFB_MASK mask of valid fields from crBkgnd on
+    dwStateMask As SFB_State    ' [in] ISFB_STATE mask of dwState bits being set/queried
+    dwState As SFB_State        ' [in/out] ISFB_STATE bits
+    crBkgnd As Long             ' [in/out]
+    crBtnLt As Long             ' [in/out]
+    crBtnDk As Long             ' [in/out]
+    wViewMode As Integer        ' [in/out]
+    wAlign As Integer           ' not used (yet)
+    psf As IShellFolder         ' [out]
+    pidl As LongPtr             ' [out]
 End Type
-
 Public Enum SFB_ViewMode
 	ISFBVIEWMODE_SMALLICONS = &H0001
 	ISFBVIEWMODE_LARGEICONS = &H0002
@@ -9584,31 +9583,32 @@ End Enum
 Public Enum SFB_CmdTgtIds
 	SFBID_PIDLCHANGED = 0
 End Enum
+ 
 
 Public Enum DBC_Msgs
-	DBC_GS_IDEAL = 0 ' get the ideal size
-	DBC_GS_SIZEDOWN = 1 ' clip the height of a rect to a multiple of the rebar's integral size
-	DBC_HIDE = 0 ' Band is hidden (being destroyed)
-	DBC_SHOW = 1 ' Band is visible
-	DBC_SHOWOBSCURE = 2 ' Band is completely obscured
+    DBC_GS_IDEAL = 0        ' get the ideal size
+    DBC_GS_SIZEDOWN = 1     ' clip the height of a rect to a multiple of the rebar's integral size
+    DBC_HIDE = 0            ' Band is hidden (being destroyed)
+    DBC_SHOW = 1            ' Band is visible
+    DBC_SHOWOBSCURE = 2     ' Band is completely obscured
 End Enum
 
 Public Enum DBC_IDs
-	DBCID_EMPTY = 0 ' bandsite is empty
-	DBCID_ONDRAG = 1 ' (down)DragMoveEnter/Leave vaIn:I4:eDrag
-	DBCID_CLSIDOFBAR = 2 ' clsid of bar inside
-	DBCID_RESIZE = 3 ' resize from keyboard accelerator
-	DBCID_GETBAR = 4 ' returns vaOut:VT_UNKNOWN of hosting dockbar (IDeskBar)
-	DBCID_UPDATESIZE = 5 ' resize from non-user source (search activation failure)
+    DBCID_EMPTY = 0         ' bandsite is empty
+    DBCID_ONDRAG = 1        ' (down)DragMoveEnter/Leave vaIn:I4:eDrag
+    DBCID_CLSIDOFBAR = 2    ' clsid of bar inside
+    DBCID_RESIZE = 3        ' resize from keyboard accelerator
+    DBCID_GETBAR = 4        ' returns vaOut:VT_UNKNOWN of hosting dockbar (IDeskBar)
+    DBCID_UPDATESIZE = 5    ' resize from non-user source (search activation failure)
 End Enum
 
 Public Enum BANNER_NOTIFICATION_EVENT
-	BNE_Rendered = 0
-	BNE_Hovered = 1
-	BNE_Closed = 2 ' Implicit close due to navigation
-	BNE_Dismissed = 3 ' Explicit close by user using dismiss button
-	BNE_Button1Clicked = 4
-	BNE_Button2Clicked = 5
+    BNE_Rendered = 0
+    BNE_Hovered = 1
+    BNE_Closed = 2          ' Implicit close due to navigation
+    BNE_Dismissed = 3       ' Explicit close by user using dismiss button
+    BNE_Button1Clicked = 4
+    BNE_Button2Clicked = 5
 End Enum
 Public Type BANNER_NOTIFICATION
 	event As BANNER_NOTIFICATION_EVENT
@@ -9631,7 +9631,7 @@ End Enum
 Public Enum QualityMode
 	QualityModeInvalid = -1
 	QualityModeDefault = 0
-	QualityModeLow = 1 ' Best performance
+	QualityModeLow = 1  ' Best performance
 	QualityModeHigh = 2 ' Best rendering quality
 End Enum
 
@@ -9780,22 +9780,22 @@ Public Enum VirtualKeyCodes
 	VK_F22 = &H85
 	VK_F23 = &H86
 	VK_F24 = &H87
-    VK_NAVIGATION_VIEW = &H88  ' reserved
-    VK_NAVIGATION_MENU = &H89  ' reserved
-    VK_NAVIGATION_UP = &H8A  ' reserved
-    VK_NAVIGATION_DOWN = &H8B  ' reserved
-    VK_NAVIGATION_LEFT = &H8C  ' reserved
+    VK_NAVIGATION_VIEW = &H88   ' reserved
+    VK_NAVIGATION_MENU = &H89   ' reserved
+    VK_NAVIGATION_UP = &H8A     ' reserved
+    VK_NAVIGATION_DOWN = &H8B   ' reserved
+    VK_NAVIGATION_LEFT = &H8C   ' reserved
     VK_NAVIGATION_RIGHT = &H8D  ' reserved
-    VK_NAVIGATION_ACCEPT = &H8E  ' reserved
-    VK_NAVIGATION_CANCEL = &H8F  ' reserved
+    VK_NAVIGATION_ACCEPT = &H8E ' reserved
+    VK_NAVIGATION_CANCEL = &H8F ' reserved
 	VK_NUMLOCK = &H90
 	VK_OEM_SCROLL = &H91
     VK_OEM_NEC_EQUAL = &H92
-    VK_OEM_FJ_JISHO = &H92  ' 'Dictionary' key
-    VK_OEM_FJ_MASSHOU = &H93  ' 'Unregister word' key
-    VK_OEM_FJ_TOUROKU = &H94  ' 'Register word' key
-    VK_OEM_FJ_LOYA = &H95  ' 'Left OYAYUBI' key
-    VK_OEM_FJ_ROYA = &H96  ' 'Right OYAYUBI' key
+    VK_OEM_FJ_JISHO = &H92      ' 'Dictionary' key
+    VK_OEM_FJ_MASSHOU = &H93    ' 'Unregister word' key
+    VK_OEM_FJ_TOUROKU = &H94    ' 'Register word' key
+    VK_OEM_FJ_LOYA = &H95       ' 'Left OYAYUBI' key
+    VK_OEM_FJ_ROYA = &H96       ' 'Right OYAYUBI' key
 	'0x97-0x9f - unassigned
     VK_LSHIFT = &HA0
     VK_RSHIFT = &HA1
@@ -9978,9 +9978,9 @@ End Enum
 
 Public Enum ObjectSafetyFlags
     INTERFACESAFE_FOR_UNTRUSTED_CALLER = &H00000001  ' Caller of interface may be untrusted 
-    INTERFACESAFE_FOR_UNTRUSTED_DATA = &H00000002  ' Data passed into interface may be untrusted 
-    INTERFACE_USES_DISPEX = &H00000004  ' Object knows to use IDispatchEx 
-    INTERFACE_USES_SECURITY_MANAGER = &H00000008  ' Object knows to use IInternetHostSecurityManager 
+    INTERFACESAFE_FOR_UNTRUSTED_DATA = &H00000002    ' Data passed into interface may be untrusted 
+    INTERFACE_USES_DISPEX = &H00000004               ' Object knows to use IDispatchEx 
+    INTERFACE_USES_SECURITY_MANAGER = &H00000008     ' Object knows to use IInternetHostSecurityManager 
 End Enum
 
 Public Enum ShellDetailsPIDs
@@ -10025,27 +10025,27 @@ Public Enum ShellDetailsDrmPIDs
     PIDDRSI_PLAYEXPIRES = 6
 End Enum
 Public Enum ShellDetailsVideoPIDs
-    PIDVSI_STREAM_NAME = &H00000002  ' "System.Video.StreamName"   (old name "StreamName")
-    PIDVSI_FRAME_WIDTH = &H00000003  ' "System.Video.FrameWidth"   (old name "FrameWidth")
-    PIDVSI_FRAME_HEIGHT = &H00000004  ' "System.Video.FrameHeight"  (old name "FrameHeight")
-    PIDVSI_TIMELENGTH = &H00000007  '                             (old name "TimeLength")
-    PIDVSI_FRAME_COUNT = &H00000005  ' "System.Media.FrameCount"   (old name "FrameCount")
-    PIDVSI_FRAME_RATE = &H00000006  ' "System.Video.FrameRate"    (old name "FrameRate")
-    PIDVSI_DATA_RATE = &H00000008  ' "System.Video.DataRate"     (old name "DataRate")
-    PIDVSI_SAMPLE_SIZE = &H00000009  ' "System.Video.SampleSize"   (old name "SampleSize")
-    PIDVSI_COMPRESSION = &H0000000A  ' "System.Video.Compression"  (old name "Compression")
-    PIDVSI_STREAM_NUMBER = &H0000000B  ' "System.Video.StreamNumber" (old name "StreamNumber")
+    PIDVSI_STREAM_NAME = &H00000002     ' "System.Video.StreamName"   (old name "StreamName")
+    PIDVSI_FRAME_WIDTH = &H00000003     ' "System.Video.FrameWidth"   (old name "FrameWidth")
+    PIDVSI_FRAME_HEIGHT = &H00000004    ' "System.Video.FrameHeight"  (old name "FrameHeight")
+    PIDVSI_TIMELENGTH = &H00000007      '                             (old name "TimeLength")
+    PIDVSI_FRAME_COUNT = &H00000005     ' "System.Media.FrameCount"   (old name "FrameCount")
+    PIDVSI_FRAME_RATE = &H00000006      ' "System.Video.FrameRate"    (old name "FrameRate")
+    PIDVSI_DATA_RATE = &H00000008       ' "System.Video.DataRate"     (old name "DataRate")
+    PIDVSI_SAMPLE_SIZE = &H00000009     ' "System.Video.SampleSize"   (old name "SampleSize")
+    PIDVSI_COMPRESSION = &H0000000A     ' "System.Video.Compression"  (old name "Compression")
+    PIDVSI_STREAM_NUMBER = &H0000000B   ' "System.Video.StreamNumber" (old name "StreamNumber")
 End Enum
 Public Enum ShellDetailsAudioPIDs
-    PIDASI_FORMAT = &H00000002  ' VT_BSTR
-    PIDASI_TIMELENGTH = &H00000003  ' VT_UI4, milliseconds
-    PIDASI_AVG_DATA_RATE = &H00000004  ' VT_UI4,  Hz
-    PIDASI_SAMPLE_RATE = &H00000005  ' VT_UI4,  bits
-    PIDASI_SAMPLE_SIZE = &H00000006  ' VT_UI4,  bits
-    PIDASI_CHANNEL_COUNT = &H00000007  ' VT_UI4
-    PIDASI_STREAM_NUMBER = &H00000008  ' VT_UI2
-    PIDASI_STREAM_NAME = &H00000009  ' VT_LPWSTR
-    PIDASI_COMPRESSION = &H0000000A  ' VT_LPWSTR
+    PIDASI_FORMAT = &H00000002          ' VT_BSTR
+    PIDASI_TIMELENGTH = &H00000003      ' VT_UI4, milliseconds
+    PIDASI_AVG_DATA_RATE = &H00000004   ' VT_UI4,  Hz
+    PIDASI_SAMPLE_RATE = &H00000005     ' VT_UI4,  bits
+    PIDASI_SAMPLE_SIZE = &H00000006     ' VT_UI4,  bits
+    PIDASI_CHANNEL_COUNT = &H00000007   ' VT_UI4
+    PIDASI_STREAM_NUMBER = &H00000008   ' VT_UI2
+    PIDASI_STREAM_NAME = &H00000009     ' VT_LPWSTR
+    PIDASI_COMPRESSION = &H0000000A     ' VT_LPWSTR
 End Enum
 Public Const PID_CONTROLPANEL_CATEGORY = 2
 Public Enum ShellDetailsVolumePIDs
@@ -10090,41 +10090,41 @@ Public Enum WAVECAPS_FMT_FLAGS
 End Enum
 
 Public Enum DEVPROPTYPE
-    DEVPROP_TYPE_EMPTY = &H00000000 ' nothing, no property data
-    DEVPROP_TYPE_NULL = &H00000001 ' null property data
-    DEVPROP_TYPE_SBYTE = &H00000002 ' 8-bit signed int (SBYTE)
-    DEVPROP_TYPE_BYTE = &H00000003 ' 8-bit unsigned int (BYTE)
-    DEVPROP_TYPE_INT16 = &H00000004 ' 16-bit signed int (SHORT)
-    DEVPROP_TYPE_UINT16 = &H00000005 ' 16-bit unsigned int (USHORT)
-    DEVPROP_TYPE_INT32 = &H00000006 ' 32-bit signed int (LONG)
-    DEVPROP_TYPE_UINT32 = &H00000007 ' 32-bit unsigned int (ULONG)
-    DEVPROP_TYPE_INT64 = &H00000008 ' 64-bit signed int (LONG64)
-    DEVPROP_TYPE_UINT64 = &H00000009 ' 64-bit unsigned int (ULONG64)
-    DEVPROP_TYPE_FLOAT = &H0000000A ' 32-bit floating-point (FLOAT)
-    DEVPROP_TYPE_DOUBLE = &H0000000B ' 64-bit floating-point (DOUBLE)
-    DEVPROP_TYPE_DECIMAL = &H0000000C ' 128-bit data (DECIMAL)
-    DEVPROP_TYPE_GUID = &H0000000D ' 128-bit unique identifier (GUID)
-    DEVPROP_TYPE_LongLong = &H0000000E ' 64 bit signed int LongLong value (LongLong)
-    DEVPROP_TYPE_DATE = &H0000000F ' date (DATE)
-    DEVPROP_TYPE_FILETIME = &H00000010 ' file time (FILETIME)
-    DEVPROP_TYPE_BOOLEAN = &H00000011 ' 8-bit boolean (DEVPROP_BOOLEAN)
-    DEVPROP_TYPE_STRING = &H00000012 ' null-terminated string
-    DEVPROP_TYPE_STRING_LIST = &H00002012 '(DEVPROP_TYPE_STRING|DEVPROP_TYPEMOD_LIST), // multi-sz string list
+    DEVPROP_TYPE_EMPTY = &H00000000     ' nothing, no property data
+    DEVPROP_TYPE_NULL = &H00000001      ' null property data
+    DEVPROP_TYPE_SBYTE = &H00000002     ' 8-bit signed int (SBYTE)
+    DEVPROP_TYPE_BYTE = &H00000003      ' 8-bit unsigned int (BYTE)
+    DEVPROP_TYPE_INT16 = &H00000004     ' 16-bit signed int (SHORT)
+    DEVPROP_TYPE_UINT16 = &H00000005    ' 16-bit unsigned int (USHORT)
+    DEVPROP_TYPE_INT32 = &H00000006     ' 32-bit signed int (LONG)
+    DEVPROP_TYPE_UINT32 = &H00000007    ' 32-bit unsigned int (ULONG)
+    DEVPROP_TYPE_INT64 = &H00000008     ' 64-bit signed int (LONG64)
+    DEVPROP_TYPE_UINT64 = &H00000009    ' 64-bit unsigned int (ULONG64)
+    DEVPROP_TYPE_FLOAT = &H0000000A     ' 32-bit floating-point (FLOAT)
+    DEVPROP_TYPE_DOUBLE = &H0000000B    ' 64-bit floating-point (DOUBLE)
+    DEVPROP_TYPE_DECIMAL = &H0000000C   ' 128-bit data (DECIMAL)
+    DEVPROP_TYPE_GUID = &H0000000D      ' 128-bit unique identifier (GUID)
+    DEVPROP_TYPE_LongLong = &H0000000E  ' 64 bit signed int LongLong value (LongLong)
+    DEVPROP_TYPE_DATE = &H0000000F      ' date (DATE)
+    DEVPROP_TYPE_FILETIME = &H00000010  ' file time (FILETIME)
+    DEVPROP_TYPE_BOOLEAN = &H00000011   ' 8-bit boolean (DEVPROP_BOOLEAN)
+    DEVPROP_TYPE_STRING = &H00000012    ' null-terminated string
+    DEVPROP_TYPE_STRING_LIST = (DEVPROP_TYPE_STRING Or DEVPROP_TYPEMOD_LIST) ' multi-sz string list
     DEVPROP_TYPE_SECURITY_DESCRIPTOR = &H00000013 ' self-relative binary SECURITY_DESCRIPTOR
     DEVPROP_TYPE_SECURITY_DESCRIPTOR_STRING = &H00000014 ' security descriptor string (SDDL format)
-    DEVPROP_TYPE_DEVPROPKEY = &H00000015 ' device property key (DEVPROPKEY)
-    DEVPROP_TYPE_DEVPROPTYPE = &H00000016 ' device property type (DEVPROPTYPE)
-    DEVPROP_TYPE_BINARY = &H000010016 ' (DEVPROP_TYPE_BYTE|DEVPROP_TYPEMOD_ARRAY), // custom binary data
-    DEVPROP_TYPE_ERROR = &H00000017 ' 32-bit Win32 system error code
-    DEVPROP_TYPE_NTSTATUS = &H00000018 ' 32-bit NTSTATUS code
+    DEVPROP_TYPE_DEVPROPKEY = &H00000015    ' device property key (DEVPROPKEY)
+    DEVPROP_TYPE_DEVPROPTYPE = &H00000016   ' device property type (DEVPROPTYPE)
+    DEVPROP_TYPE_BINARY = (DEVPROP_TYPE_BYTE Or DEVPROP_TYPEMOD_ARRAY) ' custom binary data
+    DEVPROP_TYPE_ERROR = &H00000017         ' 32-bit Win32 system error code
+    DEVPROP_TYPE_NTSTATUS = &H00000018      ' 32-bit NTSTATUS code
     DEVPROP_TYPE_STRING_INDIRECT = &H00000019 ' string resource (@[path\]<dllname>,-<strId>)
-    DEVPROP_TYPEMOD_ARRAY = &H00001000 ' array of fixed-sized data elements
-    DEVPROP_TYPEMOD_LIST = &H00002000 ' list of variable-sized data elements
-    MAX_DEVPROP_TYPE = &H00000019  ' max valid DEVPROP_TYPE_ value
-    MAX_DEVPROP_TYPEMOD = &H00002000  ' max valid DEVPROP_TYPEMOD_ value
+    DEVPROP_TYPEMOD_ARRAY = &H00001000      ' array of fixed-sized data elements
+    DEVPROP_TYPEMOD_LIST = &H00002000       ' list of variable-sized data elements
+    MAX_DEVPROP_TYPE = &H00000019           ' max valid DEVPROP_TYPE_ value
+    MAX_DEVPROP_TYPEMOD = &H00002000        ' max valid DEVPROP_TYPEMOD_ value
 '  Bitmasks for extracting DEVPROP_TYPE_ and DEVPROP_TYPEMOD_ values.
-    DEVPROP_MASK_TYPE = &H00000FFF  ' range for base DEVPROP_TYPE_ values
-    DEVPROP_MASK_TYPEMOD = &H0000F000&  ' mask for DEVPROP_TYPEMOD_ type modifiers
+    DEVPROP_MASK_TYPE = &H00000FFF          ' range for base DEVPROP_TYPE_ values
+    DEVPROP_MASK_TYPEMOD = &H0000F000&      ' mask for DEVPROP_TYPEMOD_ type modifiers
 End Enum
 
 Public Enum FileInUseCapabilities
