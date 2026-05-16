@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 9.3.684 (March 31st, 2026)**
+**Current Version: 9.3.686 (May 16th, 2026)**
 
 (c) 2022-2026 Jon Johnson (fafalone)
 
@@ -242,6 +242,23 @@ Finally, there's numerous additional API sets from small to large for independen
 
 
 ### Updates
+
+**Update (v9.3.686, 16 May 2026):** 
+- Initial coverage of D3DX10 (d3dx10.h, d3dx10core.h, d3dx10tex.h, d3dx10async.h, d3dx10mesh.h 100%)
+- Add d3d9on12.h, 100%
+- Add DeleteBrowsingHistory.h, 100%
+- Continued work to add [UseGetLastError(False)] for performance where appropriate.
+- IDispError was missed in implementing ByVal UDTs
+- Add common alias SendMessageLong (lParam=ByVal LongPtr)
+- (API Standards, breaking change) IAdviseSink::OnRename now uses proper IMoniker type instead of LongPtr
+- (API Standards, breaking change) STARTUPINFO size member is named cb, not cbSize
+- (API Standards, breaking change) IDataObjectAsyncCapability, IThumbnailHandlerFactory now uses proper IBindCtx types.
+- (API Standards, breaking change) NotifyServiceStatusChange[A] used -W UDT in argument.
+- (API Standards, breaking change) PICTDESC hPalette should be named hpal.
+- (API Standards) Some OLE functions now use As Any to be more correct than e.g. stdole.IPictureDisp. Not a breaking change.
+- (Bug fix) D3D_SHADER_FEATURE_EXTENDED_COMMAND_INFO definition incorrect.
+- (Bug fix) IXACT3Engine::PrepareStreamingWave no-byval-udt 32bit argument split missing end padding bytes.
+- (Internal) Moved comdlg defs to comctl module.
 
 **Update (v9.3.684, 29 Mar 2026):** 
 - Added generic type CTypeHelper(Of T). This is designed to allow `CType(Of T)(pointer)` to work 
