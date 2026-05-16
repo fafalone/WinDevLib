@@ -1,4 +1,21 @@
 
+**Update (v9.3.686, 16 May 2026):** 
+- Initial coverage of D3DX10 (d3dx10.h, d3dx10core.h, d3dx10tex.h, d3dx10async.h, d3dx10mesh.h 100%)
+- Add d3d9on12.h, 100%
+- Add DeleteBrowsingHistory.h, 100%
+- Continued work to add [UseGetLastError(False)] for performance where appropriate.
+- IDispError was missed in implementing ByVal UDTs
+- Add common alias SendMessageLong (lParam=ByVal LongPtr)
+- (API Standards, breaking change) IAdviseSink::OnRename now uses proper IMoniker type instead of LongPtr
+- (API Standards, breaking change) STARTUPINFO size member is named cb, not cbSize
+- (API Standards, breaking change) IDataObjectAsyncCapability, IThumbnailHandlerFactory now uses proper IBindCtx types.
+- (API Standards, breaking change) NotifyServiceStatusChange[A] used -W UDT in argument.
+- (API Standards, breaking change) PICTDESC hPalette should be named hpal.
+- (API Standards) Some OLE functions now use As Any to be more correct than e.g. stdole.IPictureDisp. Not a breaking change.
+- (Bug fix) D3D_SHADER_FEATURE_EXTENDED_COMMAND_INFO definition incorrect.
+- (Bug fix) IXACT3Engine::PrepareStreamingWave no-byval-udt 32bit argument split missing end padding bytes.
+- (Internal) Moved comdlg defs to comctl module.
+
 **Update (v9.3.684, 29 Mar 2026):** 
 - Added generic type CTypeHelper(Of T). This is designed to allow `CType(Of T)(pointer)` to work 
 with basic types as it would with UDTs. The scenario that led to this was if you have e.g. a 
@@ -6,7 +23,7 @@ ByRef f As Single argument and you want to pass a pointer. ByVal LongPtr wouldn'
 this new helper, you can use `CType(Of CTypeHelper(Of Single))(ptr).x`. This works with arrays-- 
 where the API is expecting a pointer to the first member of an array, this will still allow the 
 API to read all of the members, not just the first one.\
-For brevity this helper is also available as `TType(Of T)`
+For brevity this helper is also available as `TType(Of T)` (e.g. `CType(Of TType(Of Single))(ptr).x`)
 - Add X3DAudio for XACT3 (xact3d3.h, 100%)
 - Add XAudio FX APIs from xapofx.h (100%)
 - XACT3 now uses v3.7 GUIDs instead of 3.6.

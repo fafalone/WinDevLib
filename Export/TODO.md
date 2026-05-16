@@ -1,6 +1,8 @@
 Known omissions where a priority update neccessitated not finishing 
 before release, or waiting on feature support:
- 
+
+- Non-inlined d3dx math APIs
+
 - Check SymGetSetHomeDirectory SymSrvGetFileIndexInfo
 - d3d8 flag args
 
@@ -65,10 +67,6 @@ dispinterface XMLDOMDocumentEvents
  
 
 - Macros\
-#define D3D_SET_OBJECT_NAME_N_A(pObject, Chars, pName) (pObject)->SetPrivateData(WKPDID_D3DDebugObjectName, Chars, pName)
-#define D3D_SET_OBJECT_NAME_A(pObject, pName) D3D_SET_OBJECT_NAME_N_A(pObject, lstrlenA(pName), pName)
-#define D3D_SET_OBJECT_NAME_N_W(pObject, Chars, pName) (pObject)->SetPrivateData(WKPDID_D3DDebugObjectNameW, Chars*2, pName)
-#define D3D_SET_OBJECT_NAME_W(pObject, pName) D3D_SET_OBJECT_NAME_N_W(pObject, wcslen(pName), pName)
  
 - advpub.h
 
@@ -78,6 +76,9 @@ dispinterface XMLDOMDocumentEvents
  ID3D12GraphicsCommandList::::ClearUnorderedAccessViewUint, ID3D12GraphicsCommandList::::ClearUnorderedAccessViewFloat
    et al adjust when tB has syntax support for [in] type t[x] syntax.
 
+- d3d compiler functions that mix ansi and unicode will need per-argument attributes when they become available   
+   
+   
 - (COMPLETED) CLSIDs for coclasses\
 keep file list for other tasks\
 wdAccessible,\
@@ -184,7 +185,8 @@ Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.
     ipexport.h,iptypes.h,iphlpapi.h,winsmcrd.h,SCardErr.h,winscard.h,schannel.h,axcore.idl,devenum.idl,axextendedenums.h,mediaerr.h,dxva.h,dxva9typ.h,dxva2api.h,
     dxva2api.idl,dxvahd.h,dxvahd.idl,icodecapi.h,wmcontainer.h,medparam.h,medparam.idl,mediaobj.h,mediaobj.idl,dmoreg.h,ksopmapi.h,opmapi.h,opmapi.idl,
     d3dx9core.h,d3d9x.h,d3d9xshader.h,d3d9xtex.h,d3dx9xof.h,d3dx9mesh.h,d3dx9shape.h,d3dx11core.h,d3dx11tex.h,d3dx11async.h,d3d12compatibility.h,d3d12compatibility.idl,
-    d3d12shader.h,d3d12video.h,d3d12video.idl,d3d12.h,d3d12.idl,fltUserStructures.h,fltUser.h,SpOrder.h,Filter.h,Filterr.h,NTQuery.h,apiquery2.h,appnotify.h,
+    d3d12shader.h,d3d12video.h,d3d12video.idl,d3d12.h,d3d12.idl,D3D12MarkerApiEnums.idl,d3d12compiler.h,d3d12compiler.idl,
+    fltUserStructures.h,fltUser.h,SpOrder.h,Filter.h,Filterr.h,NTQuery.h,apiquery2.h,appnotify.h,DeleteBrowsingHistory.h,DeleteBrowsingHistory.idl,
     cpl.h,cplext.h,ddraw.h,ddstream.h,ddstream.idl,vmr9.h,vmr9.idl,vmrender.idl,amvideo.h,Dvp.h,uuids.h,amaudio.h,evcode.h,dyngraph.idl,dvdmedia.h,edevdefs.h,qnetwork.h,
     xprtdefs.h,axextend.idl,amparse.h,vidcap.h,vidcap.idl,videoacc.h,videoacc.idl,dmodshow.h,dmodshow.idl,CameraUIControl.h,CameraUIControl.idl,austream.h,austream.idl,il21dec.h,
     iwstdec.h,dvdif.h,strmif.h,strmif.idl,control.h,control.idl,amstream.h,amstream.idl,amva.h,sherrors.h,bcp47mrm.h,regbag.h,regbag.idl,wimgapi.h,lsalookupi.h,
@@ -198,7 +200,7 @@ Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.
     odbcinst.h,sqltypes.h,sql.h,sqlext.h,sqlucode.h,minidumpapiset.h,coguid.h,  
     dls1.h,dls2.h,dmerror.h,dmdls.h,dmusbuff.h,dmusicc.h,dmusicf.h,dmplugin.h,dmusici.h,dmksctrl.h,dmusics.h,d3d12compiler.h/d3d12compiler.idl
     xact3.h,xact3wb.h,xma2defs.h,audiodefs.h,xact3d3.h,dxfile.h,
-    
+    d3dx10.h,d3dx10core.h,d3dx10tex.h,d3dx10async.h,d3dx10mesh.h,d3d9on12.h,
     
 Coverage in the 90%+ range  winbase.h, oleidl.h, oaidl.h, ocidl.h, ocidl.idl, ,objidl.h,objidl.idl,presentation.h,ScrnSave.h
 
