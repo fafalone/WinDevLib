@@ -145,7 +145,7 @@ Math helpers:
    Sinh, Sinhf     - Hyperbolic sine
    Cosh, Coshf     - Hyperbolic cosine
    Tanh, Tanhf     - Hyperbolic tangent
-   Sech, Sech      - Hyperbolic secant
+   Sech, Sechf      - Hyperbolic secant
    Cosech, Cosechf - Hyperbolic cosecant
    Cotanh, Cotanhf - Hyperbolic cotangent
    Asinh, Asinhf   - Hyperbolic arcsine
@@ -153,7 +153,7 @@ Math helpers:
    Atanh, Atanhf   - Hyperbolic arccotangent
    Asech, Asechf   - Hyperbolic arcsecant
    Acosech, Acosechf - Hyperbolic arccosecant
-   Acotanh, Acotanh - Hyperbolic arccotangent
+   Acotanh, Acotanhf - Hyperbolic arccotangent
 ```
 
 ### Guide to switching existing code to WinDevLib
@@ -184,7 +184,7 @@ This section applies both to API calls from oleexp.tlb and general `Declare` sta
 
 1) Convert `Currency` to `LongLong` for interfaces and APIs: It's no longer neccessary to worry about multiplying and dividing by 10,000 since tB supports a true 64bit integer type in both 32bit and 64bit mode. So this change is ultimately for the better, but existing codebases will have had to have used `Currency` for all interfaces and oleexp APIs expecting a 64bit integer.
 
-2) Optional UDTs no longer use `As Any`. If you see errors like `Validation of call to 'CreateFile' failed.  Argument for 'lpSecurityAttributes': cannot coerce type 'Long' to 'SECURITY_ATTRIBUTES'`, this is an example of the issue. twinBASIC supports substituing `vbNullPtr` for a UDT (do not include `ByVal`), so WinDevLib can use the proper type while still permitting you to pass the equivalent of `ByVal 0`. 
+2) Optional UDTs no longer use `As Any`. If you see errors like `Validation of call to 'CreateFile' failed.  Argument for 'lpSecurityAttributes': cannot coerce type 'Long' to 'SECURITY_ATTRIBUTES'`, this is an example of the issue. twinBASIC supports substituing `ByVal vbNullPtr` or any `LongPtr` for a UDT (the `ByVal` is now required), so WinDevLib can use the proper type while still permitting you to pass the equivalent of `ByVal 0`. 
 
 Example:
 
