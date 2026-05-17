@@ -785,4 +785,3 @@ vs `SHOWWINDOW` (Enum), the latter has been renamed to `eSHOWWINDOW`
 
 For earlier version history, see CHANGELOG.md
 
-For more information and a list of available interfaces, visit the [VB Forums thread](https://www.vbforums.com/showthread.php?897883-twinBASIC-tbShellLib-Shell-Interface-Library-(x64-compatible-successor-to-oleexp)) for this project.
