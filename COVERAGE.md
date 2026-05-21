@@ -11,7 +11,7 @@ This is a partial list of the current API coverage of WinDevLib.
 - Common Controls APIs and Common Dialog APIs; UI Ribbon; UI Animation
 - DirectX technologies, from 8-12, including most extended features only from the DirectX SDK
 - OpenGL, including full coverage beyond the Windows SDK through v4.6 with ARB, EXT, and vendor-specific functions.
-- Additional multimedia APIs including VFW, winmm, CoreAudio, Media Foundation, GDI Plus, Windows Imaging Component, XAudio2, and XACT3.
+- Additional multimedia APIs including VFW, winmm, CoreAudio, Media Foundation, GDI Plus, Windows Imaging Component, XAudio2, XACT3, and XInput.
 - Image Color Management / Windows Color System API
 - Windows cryptography and certificate APIs, including both older APIs like crypt32.dll and CNG APIs bcrypt and ncrypt.
 - Security-related APIs like LSA and Authz
