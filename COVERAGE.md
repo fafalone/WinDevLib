@@ -4,13 +4,14 @@ This is a partial list of the current API coverage of WinDevLib.
 
 ### Broad overview of feature coverage 
 
-- Shell interfaces and APIs including shell automation
+- Shell interfaces and APIs including shell automation and Property System
 - COM and OLE foundations including type library interfaces
-- General purpose APIs from common system DLLs like user32, kernel32, gdi32, etc.
+- General purpose APIs from common system DLLs like user32, kernel32, gdi32, ole32, oleaut32, etc.
+- General purpose Native APIs from ntdll.
 - Common Controls APIs and Common Dialog APIs; UI Ribbon; UI Animation
 - DirectX technologies, from 8-12, including most extended features only from the DirectX SDK
 - OpenGL, including full coverage beyond the Windows SDK through v4.6 with ARB, EXT, and vendor-specific functions.
-- Additional multimedia APIs including VFW, winmm, CoreAudio, Media Foundation, Windows Imaging Component, XAudio2, and XACT3.
+- Additional multimedia APIs including VFW, winmm, CoreAudio, Media Foundation, GDI Plus, Windows Imaging Component, XAudio2, and XACT3.
 - Image Color Management / Windows Color System API
 - Windows cryptography and certificate APIs, including both older APIs like crypt32.dll and CNG APIs bcrypt and ncrypt.
 - Security-related APIs like LSA and Authz
@@ -19,8 +20,10 @@ This is a partial list of the current API coverage of WinDevLib.
 - Radio Manager, Sensor and Location APIs, Bluetooth APIs, Portable Devices API
 - Windows Filtering Platform 
 - WebView2
-- Internet APIs including Winsock, WinInet, WinHttp, WinDNS, HTTP server, IPHLPAPI, traffic management, WLAN, and various system COM interfaces.
+- Internet APIs including Winsock, WinInet, WinHttp, WinDNS, WNet, HTTP server, IPHLPAPI, websocket, urlmon, hlink, traffic management, WLAN, and various system COM interfaces.
+- Local network APIs (netapi32)
 - Human Interface Device APIs (HID)
+- Winspool
 - Debug APIs (dbphlp, imagehlp)
 - Background Intelligent Transfer Service (BITS)
 - Virtual Disk Service (VDS)
@@ -29,6 +32,7 @@ This is a partial list of the current API coverage of WinDevLib.
 - Low-level WMI
 - ActiveScript; Uniscribe
 - Windows Biometric Framework
+- SmartCard APIs
 - Event Tracing for Windows (ETW)
 - Group Policy
 - Filter Manager
