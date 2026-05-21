@@ -9,12 +9,12 @@
 > **Version 9.2.634 and higher now requires twinBASIC Beta 923 or newer.** The project is now using twinBASIC's new `Alias` syntax support, which is impractical to version-gate. 954+ is required for OpenGL.
 
 WinDevLib is a project to make all common Windows API COM interfaces, DLL declares, and related Types/Enums/Consts available while programming in twinBASIC.\
-Included are definitions of 3300+ common COM interfaces and 10,000+ APIs from all the common system modules, a level of coverage which makes WDL an entirely different experience than any VBx library, the largest of which offer at most 1/10th as much with huge gaps.\
+Included are definitions of 3800+ common COM interfaces and 15,000+ APIs from all the common system modules, a level of coverage which makes WDL an entirely different experience than any VBx library, the largest of which offer at most 1/10th as much with huge gaps.\
 This makes working with WDL similar to working in C++ with `#include <Windows.h>` and a number of other headers for commonly used features. These have all been redone by hand from the original headers, in order to restore 64bit type info lost in VB6 versions, avoid the errors of automated conversion tools (e.g. Win32API_PtrSafe.txt is riddled with errors), and make them friendlier by converting groups of constants associated with a variable into an Enum so it comes up in Intellisense. This takes advantage of tB's ability to provide Intellisense for types besides Long in API defs (hopefully UDTs soon, this project has provisioning for that). 
 
 Creating this involves not only writing the definitions, but using tB compatible types-- so in some cases, even though there may be an existing way to import references to interfaces, they may be unusable due to e.g. the use of unsigned types, C-style arrays, double pointers, etc. In most cases these definitions are also compatible with VBA7, and with minor adjustments VB6; where they're not it's usually minor syntax adjustments, so this is also a great resource for APIs for those, covering vastly more than other other similar project.
 
-This project is implemented purely in tB native code, as unlike VB6 there's language support for defining interfaces and coclasses. As a twinPACKAGE, regular code is supported in addition to the definitions, so some content normally found in regular addin modules have been built in (like you'd find in oleexp's mIID.bas, mPKEY.bas, etc, and helper functions). Does it still make sense to use a project like this when interfaces can be defined in-language? I'd say yes, because for a large number of interfaces, there's deep dependency chains with other interfaces and the types they rely on. It makes more sense to drop this in and be done with it than constantly have to define the interfaces you want and then stubs for their dependencies, especially when you might need those later on. This project is even more useful now with the API coverage; it should cover about 99% of your needs for core system DLLs. 
+This project is implemented purely in tB native code, as unlike VB6 there's language support for defining interfaces and coclasses. As a twinPACKAGE, regular code is supported in addition to the definitions, so some content normally found in regular modules have been built in (like you'd find in oleexp.tlb's mIID.bas, mPKEY.bas, etc, and helper functions). Does it still make sense to use a project like this when interfaces can be defined in-language? I'd say yes, because for a large number of interfaces, there's deep dependency chains with other interfaces and the types they rely on. It makes more sense to drop this in and be done with it than constantly have to define the interfaces you want and then stubs for their dependencies, especially when you might need those later on. This project is even more useful now with the API coverage; it should cover about 99% of your needs for core system DLLs. 
 
 This project also serves a comprehensive twinBASIC replacement for [oleexp.tlb](http://www.vbforums.com/showthread.php?786079-VB6-Modern-Shell-Interface-Type-Library-oleexp-tlb), my Modern Shell Interfaces Type Library project for VB6. 100% of the content is covered with little to no change (just String arguments in some places due to differences between how they're handled in typelibs). 
 
@@ -158,29 +158,8 @@ Math helpers:
 
 ### Guide to switching existing code to WinDevLib
 
-WinDevLib presented the best opportunity there would be to ditch some olelib legacy baggage. It's fairly simple to move your VB6 projects to WinDevLib, just follow these steps:
-
-#### oleexp type library issues
-The follow steps apply only if you're converting code that previously relied on my oleexp.tlb project:
- 
-1) Replace oleexp.IUnknown with IUnknownUnrestricted. WinDevLib keeps this separate due to the major issues with conflicts with the former approach. If your project has IUnknown *without* oleexp. in front of it, **do not** replace those, as it's not referring to oleexp. 
-
-2) After you've done that, you can now go ahead and simply delete all remaining instances of `oleexp.` (including the .). 
-
-##### Issues specific to oleexpimp.tlb
-
-There's 'WinDevLib for Implements' (WinDevLibImpl.twinpack/.twinproj) as well, but you'll note it has substantially fewer interfaces than oleexpimp.tlb. This is because there's two reasons for an interface to have an alternate version: It uses `[ Preservesig ]` on one or more methods, or it uses `As Any`. twinBASIC allows using `Implements` with `As Any` by replacing it with `As LongPtr` (which is what the alternate versions do). So many interfaces were in oleexpimp.tlb for this latter reason, and subsequently are *not* included in WinDevLibImpl as it's not neccessary.
-
-If you find an oleexpimp.tlb interface is not in WinDevLibImpl, you will be able to use the one from WinDevLib, simply make sure `As Any` is changed to `As LongPtr`. 
-
-tB has announced plans to support `[ PreserveSig ]` in implemented interfaces in the future; when that happens WinDevLibImpl will be deprecated.
-
->[!IMPORTANT]
->There currently seems to be an issue with using WinDevLib and WinDevLibImpl together if WinDevLibImpl does not use the current WinDevLib as a reference (it would usually use an old one as it's updated much less frequently). I've updated the reference on this repo and the package server, just note that you'll need to refresh both every time you update one if they're used together
->
->
 #### API definition differences
-This section applies both to API calls from oleexp.tlb and general `Declare` statements.
+This section applies both to API calls and type library interface methods.
 
 1) Convert `Currency` to `LongLong` for interfaces and APIs: It's no longer neccessary to worry about multiplying and dividing by 10,000 since tB supports a true 64bit integer type in both 32bit and 64bit mode. So this change is ultimately for the better, but existing codebases will have had to have used `Currency` for all interfaces and oleexp APIs expecting a 64bit integer.
 
@@ -230,17 +209,35 @@ To use these, you can view the definition then make a regular function with that
 >  This is just for using WinDevLib-- you'll likely have a lot more changes to make if you want to make your project x64 compatible. 
 
 
+#### oleexp type library issues
+
+WinDevLib started as a project to replace my VB6 COM interface type library, oleexp.tlb. This is still probably the most common use case. WinDevLib presented the best opportunity there would be to ditch some olelib legacy baggage. It's fairly simple to move your VB6 projects to WinDevLib, just follow these steps:
+
+The follow steps apply only if you're converting code that previously relied on my oleexp.tlb project:
+ 
+1) Replace oleexp.IUnknown with IUnknownUnrestricted. WinDevLib keeps this separate due to the major issues with conflicts with the former approach. If your project has IUnknown *without* oleexp. in front of it, **do not** replace those, as it's not referring to oleexp. 
+
+2) After you've done that, you can now go ahead and simply delete all remaining instances of `oleexp.` (including the .). 
+
+##### Issues specific to oleexpimp.tlb
+
+There's 'WinDevLib for Implements' (WinDevLibImpl.twinpack/.twinproj) as well, but you'll note it has substantially fewer interfaces than oleexpimp.tlb. This is because there's two reasons for an interface to have an alternate version: It uses `[ Preservesig ]` on one or more methods, or it uses `As Any`. twinBASIC allows using `Implements` with `As Any` by replacing it with `As LongPtr` (which is what the alternate versions do). So many interfaces were in oleexpimp.tlb for this latter reason, and subsequently are *not* included in WinDevLibImpl as it's not neccessary.
+
+If you find an oleexpimp.tlb interface is not in WinDevLibImpl, you will be able to use the one from WinDevLib, simply make sure `As Any` is changed to `As LongPtr`. 
+
+tB has announced plans to support `[ PreserveSig ]` in implemented interfaces in the future; when that happens WinDevLibImpl will be deprecated.
+
+>[!IMPORTANT]
+>There currently seems to be an issue with using WinDevLib and WinDevLibImpl together if WinDevLibImpl does not use the current WinDevLib as a reference (it would usually use an old one as it's updated much less frequently). I've updated the reference on this repo and the package server, just note that you'll need to refresh both every time you update one if they're used together
+>
+>
+
 #### Scope of coverage
 
-The goal of the API coverage in WinDevLib is to provide the kind of programming experience you'd get in C/C++ by including windows.h and many of the more common feature sets like DirectX and GDIPlus. Even the 10,000+ APIs are just scratching the surface of the total Windows API set, and due to the low quality of automated conversion, even by Microsoft themselves (see: Win32API_PtrSafe.txt), I'm not interested in simply feeding headers through a conversion utility or using a database, so instead WinDevLib will be focused on the most commonly used features in the major system DLLs-- everything 99%+ of apps need; though less common ones can be added by request or as time goes on and the existing DLLs are completed.
+The goal of the API coverage in WinDevLib is to provide the kind of programming experience you'd get in C/C++ by including windows.h and many of the more common feature sets like DirectX and GDIPlus. Even the 15,000+ APIs are just scratching the surface of the total Windows API set, and due to the low quality of automated conversion, even by Microsoft themselves (see: Win32API_PtrSafe.txt), I'm not interested in simply feeding headers or metadata through a conversion utility or using a database, so instead WinDevLib is focused on the most commonly used features in the major system DLLs-- everything 99%+ of apps need; though less common ones can be added by request or as time goes on and coverage is expanded.
 
-I've included the definitions, associated types, and associated constants, for extensive portions of the following modules: shell32.dll, shlwapi.dll, kernel32.dll, ktmw32.dll, user32.dll, advapi32.dll, tdh.dll, authz.dll, crypt32.dll, wintrust.dll, bcrypt.dll, ncrypt.dll, cryptui.dll, ole32.dll, oleaut32.dll, propsys.dll, gdi32.dll, gdiplus.dll, virtdisk.dll, userenv.dll, dbghelp.dll, mpr.dll, iphlpapi.dll, urlmon.dll, hlink.dll, winmm.dll, cfgmgr32.dll, setupapi.dll, comctl32.dll, dwm.dll/uxtheme.dll, comdlg32.dll, winbio.dll, winspool.drv, imm32.dll, hid.dll, cldapi.dll, pdh.dll, powrprof.dll, wtsapi32.dll, and netapi32.dll. Please let me know any I've missed from these.\
-Limited coverage (or full coverage of very small sets) is provided for ntdll.dll, version.dll, msimg32.dll, fwpuclnt.dll, sxs.dll, secur32.dll, msacm32.dll, url.dll, htmlhelp.dll, avifil32.dll, and ws2_32.dll. If you feel any missing ones from these should be included, or would like to contribute more, let me know.\
-Finally, there's numerous additional API sets from small to large for independent Windows features. These include small sets like restartmgr.dll through very large sets like the various Media Foundation and DirectX DLLs. In the future I'll better organize coverage lists, but the bottom line is let me know if any common APIs or built in API sets for components should be added. TODO.md in the WDL project files contains ones planned but not yet done.
-
-**Future coverage:** In the future I'm planning to expand native APIs, complete legacy DirectX coverage, and more. I welcome contributions of any of these. See CONTRIBUTING.MD for more information on that;
-
-
+Current coverage is already quite extensive, covering hundreds of Windows SDK header files. For details, see [COVERAGE.md](COVERAGE.md).
+ 
 ### Updates
 
 **Update (v9.3.686, 16 May 2026):** 
