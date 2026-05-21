@@ -11,20 +11,27 @@ This is a partial list of the current API coverage of WinDevLib.
 - Common Controls APIs and Common Dialog APIs; UI Ribbon; UI Animation
 - DirectX technologies, from 8-12, including most extended features only from the DirectX SDK
 - OpenGL, including full coverage beyond the Windows SDK through v4.6 with ARB, EXT, and vendor-specific functions.
-- Additional multimedia APIs including VFW, winmm, CoreAudio, Media Foundation, GDI Plus, Windows Imaging Component, XAudio2, XACT3, and XInput.
+- Windows Media Foundation
+- CoreAudio/WASAPI, XAudio2, XACT3
+- XInput
+- Windows Imaging Component (WIC), GDIPlus
+- WINMM.dll multimedia, timer, and joystick APIs
+- Microsoft Speech API
 - Image Color Management / Windows Color System API
 - Windows cryptography and certificate APIs, including both older APIs like crypt32.dll and CNG APIs bcrypt and ncrypt.
 - Security-related APIs like LSA and Authz
 - Accessibility, UI Automation, and IME
-- Configuration Manager and SetupAPI; WIM; Software Licensing 
+- Configuration Manager and SetupAPI; WIM; Software Licensing; Package Manager (OPC)
 - Radio Manager, Sensor and Location APIs, Bluetooth APIs, Portable Devices API
+- Windows Media Device Manager 
 - Windows Filtering Platform 
 - WebView2
 - Internet APIs including Winsock, WinInet, WinHttp, WinDNS, WNet, HTTP server, IPHLPAPI, websocket, urlmon, hlink, traffic management, WLAN, and various system COM interfaces.
 - Local network APIs (netapi32)
+- Active Directory 
 - Human Interface Device APIs (HID)
 - Winspool
-- Debug APIs (dbphlp, imagehlp)
+- Debug APIs (dbghlp, imagehlp)
 - Background Intelligent Transfer Service (BITS)
 - Virtual Disk Service (VDS)
 - Low-level SQL APIs
@@ -38,6 +45,7 @@ This is a partial list of the current API coverage of WinDevLib.
 - Filter Manager
 - Cloud filter APIs
 - UPNP Automation
+- Windows Remote Management (WSMAN) low-level API
 
 This is not a complete list and numerous minor features are covered or part of what I just listed as 'general purposes'.
 
