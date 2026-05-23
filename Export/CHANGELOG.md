@@ -1,4 +1,11 @@
 
+**Update (v9.3.688, 23 May 2026):** 
+- Add d2d1effectauthor_1.h
+- Add d3dx9anim.h
+- Add DirectPlay Voice (dvoice.h, 100%; same differences vs dxvb dll as others) 
+- (Bug fix) IID_IMarshalOptions function name typo
+
+
 **Update (v9.3.686, 16 May 2026):** 
 - Initial coverage of D3DX10 (d3dx10.h, d3dx10core.h, d3dx10tex.h, d3dx10async.h, d3dx10mesh.h 100%)
 - Add d3d9on12.h, 100%
