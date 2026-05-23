@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 9.3.686 (May 16th, 2026)**
+**Current Version: 9.3.688 (May 23rd, 2026)**
 
 (c) 2022-2026 Jon Johnson (fafalone)
 
@@ -239,6 +239,12 @@ The goal of the API coverage in WinDevLib is to provide the kind of programming 
 Current coverage is already quite extensive, covering hundreds of Windows SDK header files. For details, see [COVERAGE.md](COVERAGE.md).
  
 ### Updates
+
+**Update (v9.3.688, 23 May 2026):** 
+- Add d2d1effectauthor_1.h
+- Add d3dx9anim.h
+- Add DirectPlay Voice (dvoice.h, 100%; same differences vs dxvb dll as others) 
+- (Bug fix) IID_IMarshalOptions function name typo
 
 **Update (v9.3.686, 16 May 2026):** 
 - Initial coverage of D3DX10 (d3dx10.h, d3dx10core.h, d3dx10tex.h, d3dx10async.h, d3dx10mesh.h 100%)
