@@ -201,6 +201,7 @@ Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.
     dls1.h,dls2.h,dmerror.h,dmdls.h,dmusbuff.h,dmusicc.h,dmusicf.h,dmplugin.h,dmusici.h,dmksctrl.h,dmusics.h,d3d12compiler.h/d3d12compiler.idl
     xact3.h,xact3wb.h,xma2defs.h,audiodefs.h,xact3d3.h,dxfile.h,
     d3dx10.h,d3dx10core.h,d3dx10tex.h,d3dx10async.h,d3dx10mesh.h,d3d9on12.h,
+    enclaveium.h,
     
 Coverage in the 90%+ range  winbase.h, oleidl.h, oaidl.h, ocidl.h, ocidl.idl, ,objidl.h,objidl.idl,presentation.h,ScrnSave.h
 

@@ -1,4 +1,14 @@
 
+
+
+**Update (v9.3.692, 12 Jun 2026):** 
+- Misc additions from Windows SDKs from after 26000.100 through 28000.1839
+- Minor custom d3d9 definitions added for compatibility with The trick's typelib.
+- (Breaking change) For X64 CONTEXT struct I switched the active union arm as IMO the floating point registers are more common to need. CONTEXT_XMMSAVE is available with the old def.
+- (Bug fix) IAttachmentExecute::SetClientGuid name typo
+- (Bug fix) IID_ID3DXConstantTable duplicate definition
+
+
 **Update (v9.3.688, 23 May 2026):** 
 - Add d2d1effectauthor_1.h
 - Add d3dx9anim.h
