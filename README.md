@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 9.3.688 (May 23rd, 2026)**
+**Current Version: 9.3.692 (June 12th, 2026)**
 
 (c) 2022-2026 Jon Johnson (fafalone)
 
@@ -239,6 +239,13 @@ The goal of the API coverage in WinDevLib is to provide the kind of programming 
 Current coverage is already quite extensive, covering hundreds of Windows SDK header files. For details, see [COVERAGE.md](COVERAGE.md).
  
 ### Updates
+
+**Update (v9.3.692, 12 Jun 2026):** 
+- Misc additions from Windows SDKs from after 26000.100 through 28000.1839
+- Minor custom d3d9 definitions added for compatibility with The trick's typelib.
+- (Breaking change) For X64 CONTEXT struct I switched the active union arm as IMO the floating point registers are more common to need. CONTEXT_XMMSAVE is available with the old def.
+- (Bug fix) IAttachmentExecute::SetClientGuid name typo
+- (Bug fix) IID_ID3DXConstantTable duplicate definition
 
 **Update (v9.3.688, 23 May 2026):** 
 - Add d2d1effectauthor_1.h
