@@ -6,23 +6,23 @@
 (c) 2022-2026 Jon Johnson (fafalone)
 
 > [!IMPORTANT]
-> **Version 9.2.634 and higher now requires twinBASIC Beta 923 or newer.** The project is now using twinBASIC's new `Alias` syntax support, which is impractical to version-gate. 954+ is required for OpenGL.
+> **Version 9.2.634 and higher now requires twinBASIC Beta 954 or newer.** The project is now using twinBASIC's new `Alias` syntax support, which is impractical to version-gate. 
 
 WinDevLib is a project to make all common Windows API COM interfaces, DLL declares, and related Types/Enums/Consts available while programming in twinBASIC.\
 Included are definitions of 3800+ common COM interfaces and 15,000+ APIs from all the common system modules, a level of coverage which makes WDL an entirely different experience than any VBx library, the largest of which offer at most 1/10th as much with huge gaps.\
-This makes working with WDL similar to working in C++ with `#include <Windows.h>` and a number of other headers for commonly used features. These have all been redone by hand from the original headers, in order to restore 64bit type info lost in VB6 versions, avoid the errors of automated conversion tools (e.g. Win32API_PtrSafe.txt is riddled with errors), and make them friendlier by converting groups of constants associated with a variable into an Enum so it comes up in Intellisense. This takes advantage of tB's ability to provide Intellisense for types besides Long in API defs (hopefully UDTs soon, this project has provisioning for that). 
+This makes working with WDL similar to working in C++ with `#include <Windows.h>` and a number of other headers for commonly used features. These have all been redone by hand from the original headers, in order to restore 64bit type info lost in VB6 versions, avoid the errors of automated conversion tools (e.g. Win32API_PtrSafe.txt is riddled with errors), and make them friendlier by converting groups of constants associated with a variable into an Enum so it comes up in Intellisense. 
 
-Creating this involves not only writing the definitions, but using tB compatible types-- so in some cases, even though there may be an existing way to import references to interfaces, they may be unusable due to e.g. the use of unsigned types, C-style arrays, double pointers, etc. In most cases these definitions are also compatible with VBA7, and with minor adjustments VB6; where they're not it's usually minor syntax adjustments, so this is also a great resource for APIs for those, covering vastly more than other other similar project.
+Creating this involves not only writing the definitions, but using tB compatible types-- so in some cases, even though there may be an existing way to import references to interfaces, they may be unusable due to e.g. the use of unsigned types, C-style arrays, double pointers, etc. In most cases these definitions are also compatible with VBA7, and with minor adjustments VB6; where they're not it's usually minor syntax adjustments, so this is also a great resource for APIs for those as well, covering vastly more than other other similar project.
 
-This project is implemented purely in tB native code, as unlike VB6 there's language support for defining interfaces and coclasses. As a twinPACKAGE, regular code is supported in addition to the definitions, so some content normally found in regular modules have been built in (like you'd find in oleexp.tlb's mIID.bas, mPKEY.bas, etc, and helper functions). Does it still make sense to use a project like this when interfaces can be defined in-language? I'd say yes, because for a large number of interfaces, there's deep dependency chains with other interfaces and the types they rely on. It makes more sense to drop this in and be done with it than constantly have to define the interfaces you want and then stubs for their dependencies, especially when you might need those later on. This project is even more useful now with the API coverage; it should cover about 99% of your needs for core system DLLs. 
+This project is implemented purely in tB native code, as unlike VB6 there's language support for defining interfaces and coclasses. As a twinPACK, regular code is supported in addition to what would be allowed in a type library, so some content normally found in regular modules have been built in (like you'd find in oleexp.tlb's mIID.bas, mPKEY.bas, etc, and helper functions).
 
-This project also serves a comprehensive twinBASIC replacement for [oleexp.tlb](http://www.vbforums.com/showthread.php?786079-VB6-Modern-Shell-Interface-Type-Library-oleexp-tlb), my Modern Shell Interfaces Type Library project for VB6. 100% of the content is covered with little to no change (just String arguments in some places due to differences between how they're handled in typelibs). 
+WinDevLib also serves a comprehensive twinBASIC replacement for [oleexp.tlb](http://www.vbforums.com/showthread.php?786079-VB6-Modern-Shell-Interface-Type-Library-oleexp-tlb), my Modern Shell Interfaces Type Library project for VB6. 100% of the content is covered with little to no change (just String arguments in some places due to differences between how they're handled in typelibs). 
 
 Please report any bugs via the Issues feature here on GitHub.
 
 ### Requirements
 
-[twinBASIC Beta 923 or newer](https://github.com/twinbasic/twinbasic/releases) is required.
+[twinBASIC Beta 954 or newer](https://github.com/twinbasic/twinbasic/releases) is required.
 
 ### Adding WinDevLib to your project
 You have 2 options for this:
@@ -85,7 +85,7 @@ In addition to coverage of common Windows SDK-defined macros and inlined functio
 Converts a pointer to an LPWSTR/LPCWSTR/PWSTR/etc to an instrinsic `String` (BSTR)
 
 `Public Function WCHARtoSTR(aCh() As Integer) As String`\
-Converts an Integer arrat of WCHARs to a tB String (BSTR).
+Converts an Integer array of WCHARs to a tB String (BSTR).
 
 `Public Function UtfToANSI(sIn As String) As String`\
 Converts a Unicode string to ANSI. This function is `[ConstantFoldable]` -- it can be used to create strings resolved at compile time and stored as constants; this technique was developed to use ANSI strings in kernel mode, where the APIs that handle a normal `String` cannot be used.
