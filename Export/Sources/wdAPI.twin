@@ -513,6 +513,7 @@ Public Enum SHAppBarEdge
     ABE_RIGHT = 2
     ABE_BOTTOM = 3
 End Enum
+Public Const ABC_OVERLAYDESKTOPICONS = &H00000001
 Public Type APPBARDATA
     cbSize As Long
     hWnd As LongPtr
@@ -14374,6 +14375,7 @@ Public Enum SE_PRIVILEGE_ATTR
 	SE_PRIVILEGE_ENABLED = (&H00000002)
 	SE_PRIVILEGE_REMOVED = (&H00000004)
 	SE_PRIVILEGE_USED_FOR_ACCESS = (&H80000000)
+    SE_PRIVILEGE_VALID_ATTRIBUTES = (SE_PRIVILEGE_ENABLED_BY_DEFAULT Or SE_PRIVILEGE_ENABLED Or SE_PRIVILEGE_REMOVED Or SE_PRIVILEGE_USED_FOR_ACCESS)
 End Enum
 
 Public Type LUID_AND_ATTRIBUTES
@@ -14458,6 +14460,11 @@ Public Type SID_AND_ATTRIBUTES_HASH
     SidCount As Long
     SidAttr As LongPtr
     Hash(0 To (SID_HASH_SIZE - 1)) As LongPtr
+End Type
+
+Public Type ATTRIBUTES_AND_SID
+    Attributes As Long
+    SidStart As Long
 End Type
 
 Public Enum SystemShutdownFlags
@@ -17321,6 +17328,23 @@ Public Enum POLICY_AUDIT_EVENT_TYPE
     AuditCategoryAccountLogon
 End Enum
 
+Public Function SECURITY_APP_PACKAGE_AUTHORITY() As SID_IDENTIFIER_AUTHORITY
+SECURITY_APP_PACKAGE_AUTHORITY.Value(5) = 15
+End Function
+
+Public Const SECURITY_APP_PACKAGE_BASE_RID  = (&H00000002)
+Public Const SECURITY_BUILTIN_APP_PACKAGE_RID_COUNT  = (2)
+Public Const SECURITY_APP_PACKAGE_RID_COUNT  = (8)
+Public Const SECURITY_CAPABILITY_BASE_RID  = (&H00000003)
+Public Const SECURITY_CAPABILITY_APP_RID  = (&H00000400)
+Public Const SECURITY_CAPABILITY_APP_SILO_RID  = (&H00010000)
+Public Const SECURITY_BUILTIN_CAPABILITY_RID_COUNT  = (2)
+Public Const SECURITY_CAPABILITY_RID_COUNT  = (5)
+Public Const SECURITY_PARENT_PACKAGE_RID_COUNT  = (SECURITY_APP_PACKAGE_RID_COUNT)
+Public Const SECURITY_CHILD_PACKAGE_RID_COUNT  = (12)
+
+Public Const SECURITY_BUILTIN_PACKAGE_ANY_PACKAGE  = (&H00000001)
+Public Const SECURITY_BUILTIN_PACKAGE_ANY_RESTRICTED_PACKAGE  = (&H00000002)
 
 Public Enum SecurityCapabilityConstants
     SECURITY_CAPABILITY_INTERNET_CLIENT = (&H00000001)
@@ -17338,8 +17362,12 @@ Public Enum SecurityCapabilityConstants
     SECURITY_CAPABILITY_INTERNET_EXPLORER = (&H00001000)
 End Enum
 
-[Description("Note: Assign to SID_IDENTIFIER_AUTHORITY.Value(5) - Full static UDT defs not supported.")]
-Public Const SECURITY_MANDATORY_LABEL_AUTHORITY = 16
+' [Description("Note: Assign to SID_IDENTIFIER_AUTHORITY.Value(5) - Full static UDT defs not supported.")]
+' Public Const SECURITY_MANDATORY_LABEL_AUTHORITY = 16
+Public Function SECURITY_MANDATORY_LABEL_AUTHORITY() As SID_IDENTIFIER_AUTHORITY
+SECURITY_AUTHENTICATION_AUTHORITY.Value(5) = 16
+End Function
+
 Public Enum SecurityMandatoryLabelAuthority
     SECURITY_MANDATORY_UNTRUSTED_RID = (&H00000000)
     SECURITY_MANDATORY_LOW_RID = (&H00001000)
@@ -17348,9 +17376,20 @@ Public Enum SecurityMandatoryLabelAuthority
     SECURITY_MANDATORY_HIGH_RID = (&H00003000)
     SECURITY_MANDATORY_SYSTEM_RID = (&H00004000)
     SECURITY_MANDATORY_PROTECTED_PROCESS_RID = (&H00005000)
+    SECURITY_MANDATORY_MEDIUM_PLUS_CREDUI_RID = (SECURITY_MANDATORY_MEDIUM_RID + &HA)
     SECURITY_MANDATORY_MAXIMUM_USER_RID = SECURITY_MANDATORY_SYSTEM_RID
 End Enum
 
+Public Function MANDATORY_LEVEL_TO_MANDATORY_RID(ByVal IL As Long) As Long: Return (IL * &H1000): End Function
+    
+Public Function SECURITY_SCOPED_POLICY_ID_AUTHORITY() As SID_IDENTIFIER_AUTHORITY
+SECURITY_SCOPED_POLICY_ID_AUTHORITY.Value(5) = 17
+End Function
+
+Public Function SECURITY_AUTHENTICATION_AUTHORITY() As SID_IDENTIFIER_AUTHORITY
+SECURITY_AUTHENTICATION_AUTHORITY.Value(5) = 18
+End Function
+    
 Public Enum SecurityAuthenticationAuthority
     SECURITY_AUTHENTICATION_AUTHORITY_RID_COUNT = (1)
     SECURITY_AUTHENTICATION_AUTHORITY_ASSERTED_RID = (&H00000001)
@@ -18896,6 +18935,35 @@ Public Declare PtrSafe Function LsaClearAuditLog Lib "advapi32" (ByVal PolicyHan
 Public Declare PtrSafe Function SeciIsProtectedUser Lib "sspicli.dll" (ProtectedUser As Byte) As NTSTATUS
 
 
+Public Type LSA_AGENT_LOGON_CREDENTIAL
+    Size As Long
+    Credential As LongPtr
+End Type
+
+Public Type LSA_AGENT_ACCOUNT_INFO
+    AgentSid As LongPtr 'PSID
+    OwningAppPackage As UNICODE_STRING
+    AgentName As UNICODE_STRING
+    UserName As UNICODE_STRING
+End Type
+
+Public Type LSA_AGENT_ACCOUNT_LIST
+    Count As Long
+    Agents As LongPtr 'LSA_AGENT_ACCOUNT_INFO*
+End Type
+
+Public Declare PtrSafe Function LsaCreateAgentAccount Lib "advapi32.dll" (ByVal OwningUser As LongPtr, ByRef OwningAppPackage As UNICODE_STRING, ByRef AgentName As UNICODE_STRING) As NTSTATUS
+Public Declare PtrSafe Function LsaRetrieveAgentLogonCredential Lib "advapi32.dll" (ByVal OwningUser As LongPtr, ByRef OwningAppPackage As UNICODE_STRING, ByRef AgentName As UNICODE_STRING, ByRef Credential As LSA_AGENT_LOGON_CREDENTIAL) As NTSTATUS
+Public Declare PtrSafe Function LsaEnumerateAgentAccounts Lib "advapi32.dll" (ByVal OwningUser As LongPtr, ByRef AgentList As LSA_AGENT_ACCOUNT_LIST) As NTSTATUS
+Public Declare PtrSafe Function LsaDeleteAgentAccount Lib "advapi32.dll" (ByVal OwningUser As LongPtr, ByRef OwningAppPackage As UNICODE_STRING, ByRef AgentName As UNICODE_STRING) As NTSTATUS
+Public Declare PtrSafe Function LsaGetAgentOwner Lib "advapi32.dll" (ByVal AgentSid As LongPtr, ByRef OwnerSid As LongPtr) As NTSTATUS
+
+
+
+
+
+
+
 Public Enum LSA_CREDENTIAL_KEY_SOURCE_TYPE
     eFromPrecomputed = 1 ' used by Kerberos
     eFromClearPassword
@@ -19082,6 +19150,33 @@ Public Type CLAIM_SECURITY_ATTRIBUTE_V1
     ' pOctetString As PCLAIM_SECURITY_ATTRIBUTE_OCTET_STRING_VALUE
     ' } Values;
 End Type
+Public Type CLAIM_SECURITY_ATTRIBUTE_RELATIVE_V1
+    '  Name of the attribute.
+    '  Offset from beginning of structure.
+    Name As Long
+    '  Data type of attribute.
+    ValueType As Integer
+    '  Pass 0 in a set operation and check for 0 in
+    '  a get operation.
+    Reserved As Integer
+    ' Attribute Flags
+    Flags As Long
+    '  Number of values.
+    ValueCount As Long
+    '  The actual value itself.
+    'union {
+    '    DWORD pInt64[ANYSIZE_ARRAY];
+    '    DWORD pUint64[ANYSIZE_ARRAY];
+    '    DWORD ppString[ANYSIZE_ARRAY];
+    '    DWORD pFqbn[ANYSIZE_ARRAY];
+    '    DWORD pOctetString[ANYSIZE_ARRAY];
+    '} Values;
+    Values(0 To 0) As Long
+End Type
+
+Public Const CLAIM_SECURITY_ATTRIBUTES_INFORMATION_VERSION_V1  = 1
+Public Const CLAIM_SECURITY_ATTRIBUTES_INFORMATION_VERSION  = CLAIM_SECURITY_ATTRIBUTES_INFORMATION_VERSION_V1
+
 Public Type CLAIM_SECURITY_ATTRIBUTES_INFORMATION
     '  MUST BE first.
     Version As Integer
@@ -19093,12 +19188,28 @@ Public Type CLAIM_SECURITY_ATTRIBUTES_INFORMATION
     '} Attribute;
 End Type
 
+Public Type SE_IMPERSONATION_STATE
+    Token As LongPtr 'PACCESS_TOKEN
+    CopyOnOpen As CBoolean
+    EffectiveOnly As CBoolean
+    Level As SECURITY_IMPERSONATION_LEVEL
+End Type
+
+
+
 Public Enum AceMandatoryPolicy
     SYSTEM_MANDATORY_LABEL_NO_WRITE_UP = &H1
     SYSTEM_MANDATORY_LABEL_NO_READ_UP = &H2
     SYSTEM_MANDATORY_LABEL_NO_EXECUTE_UP = &H4
     SYSTEM_MANDATORY_LABEL_VALID_MASK = (SYSTEM_MANDATORY_LABEL_NO_WRITE_UP Or SYSTEM_MANDATORY_LABEL_NO_READ_UP Or SYSTEM_MANDATORY_LABEL_NO_EXECUTE_UP)
 End Enum
+
+Public Const SYSTEM_PROCESS_TRUST_LABEL_VALID_MASK  = &H00ffffff
+Public Const SYSTEM_PROCESS_TRUST_NOCONSTRAINT_MASK  = &Hffffffff
+Public Const SYSTEM_ACCESS_FILTER_VALID_MASK  = &H00ffffff
+Public Const SYSTEM_ACCESS_FILTER_NOCONSTRAINT_MASK  = &Hffffffff
+
+
 
 Public Type ACCESS_ALLOWED_ACE
     Header As ACE_HEADER
@@ -19256,20 +19367,41 @@ Public Type SYSTEM_ACCESS_FILTER_ACE
     SidStart As Long
 End Type
 
-[Description("Note: This should be assigned to SID_IDENTIFIER_AUTHORITY.Value(5) -- **5, not 0**")]
-Public Const SECURITY_NULL_SID_AUTHORITY = 0
-[Description("Note: This should be assigned to SID_IDENTIFIER_AUTHORITY.Value(5) -- **5, not 0**")]
-Public Const SECURITY_WORLD_SID_AUTHORITY = 1
-[Description("Note: This should be assigned to SID_IDENTIFIER_AUTHORITY.Value(5) -- **5, not 0**")]
-Public Const SECURITY_LOCAL_SID_AUTHORITY = 2
-[Description("Note: This should be assigned to SID_IDENTIFIER_AUTHORITY.Value(5) -- **5, not 0**")]
-Public Const SECURITY_CREATOR_SID_AUTHORITY = 3
-[Description("Note: This should be assigned to SID_IDENTIFIER_AUTHORITY.Value(5) -- **5, not 0**")]
-Public Const SECURITY_NON_UNIQUE_AUTHORITY = 4
-[Description("Note: This should be assigned to SID_IDENTIFIER_AUTHORITY.Value(5) -- **5, not 0**")]
-Public Const SECURITY_NT_AUTHORITY = 5
-[Description("Note: This should be assigned to SID_IDENTIFIER_AUTHORITY.Value(5) -- **5, not 0**")]
-Public Const SECURITY_RESOURCE_MANAGER_AUTHORITY = 9
+' [Description("Note: This should be assigned to SID_IDENTIFIER_AUTHORITY.Value(5) -- **5, not 0**")]
+' Public Const SECURITY_NULL_SID_AUTHORITY = 0
+Public Function SECURITY_NULL_SID_AUTHORITY() As SID_IDENTIFIER_AUTHORITY
+End Function
+' [Description("Note: This should be assigned to SID_IDENTIFIER_AUTHORITY.Value(5) -- **5, not 0**")]
+' Public Const SECURITY_WORLD_SID_AUTHORITY = 1
+Public Function SECURITY_WORLD_SID_AUTHORITY() As SID_IDENTIFIER_AUTHORITY
+SECURITY_WORLD_SID_AUTHORITY.Value(5) = 1
+End Function
+' [Description("Note: This should be assigned to SID_IDENTIFIER_AUTHORITY.Value(5) -- **5, not 0**")]
+' Public Const SECURITY_LOCAL_SID_AUTHORITY = 2
+Public Function SECURITY_LOCAL_SID_AUTHORITY() As SID_IDENTIFIER_AUTHORITY
+SECURITY_LOCAL_SID_AUTHORITY.Value(5) = 2
+End Function
+' [Description("Note: This should be assigned to SID_IDENTIFIER_AUTHORITY.Value(5) -- **5, not 0**")]
+' Public Const SECURITY_CREATOR_SID_AUTHORITY = 3
+Public Function SECURITY_CREATOR_SID_AUTHORITY() As SID_IDENTIFIER_AUTHORITY
+SECURITY_CREATOR_SID_AUTHORITY.Value(5) = 3
+End Function
+' [Description("Note: This should be assigned to SID_IDENTIFIER_AUTHORITY.Value(5) -- **5, not 0**")]
+' Public Const SECURITY_NON_UNIQUE_AUTHORITY = 4
+Public Function SECURITY_NON_UNIQUE_AUTHORITY() As SID_IDENTIFIER_AUTHORITY
+SECURITY_NON_UNIQUE_AUTHORITY.Value(5) = 4
+End Function
+' [Description("Note: This should be assigned to SID_IDENTIFIER_AUTHORITY.Value(5) -- **5, not 0**")]
+' Public Const SECURITY_NT_AUTHORITY = 5
+Public Function SECURITY_NT_AUTHORITY() As SID_IDENTIFIER_AUTHORITY
+SECURITY_NT_AUTHORITY.Value(5) = 5
+End Function
+' [Description("Note: This should be assigned to SID_IDENTIFIER_AUTHORITY.Value(5) -- **5, not 0**")]
+' Public Const SECURITY_RESOURCE_MANAGER_AUTHORITY = 9
+Public Function SECURITY_RESOURCE_MANAGER_AUTHORITY() As SID_IDENTIFIER_AUTHORITY
+SECURITY_RESOURCE_MANAGER_AUTHORITY.Value(5) = 9
+End Function
+
 
 Public Enum SECURITY_RIDS
     
@@ -19344,12 +19476,31 @@ Public Enum SECURITY_RIDS
     SECURITY_CCG_ID_BASE_RID = (&H0000005F)
     SECURITY_UMFD_BASE_RID = (&H00000060)
     SECURITY_VIRTUALACCOUNT_ID_RID_COUNT = (6)
+    SECURITY_EDGE_CLOUD_INFRASTRUCTURE_SERVICE_ID_BASE_RID = (&H00000062)
+    SECURITY_RESTRICTED_SERVICES_BASE_RID = (&H00000063)
+    SECURITY_RESTRICTED_SERVICES_RID_COUNT = (6)
+    SECURITY_SHADOWADMINACCOUNT_RID = (&H00000064)
 '  Virtual account logon is not limited to inbox callers.  Reserve base RID 0x6F for application usage.
     SECURITY_MAX_BASE_RID = (&H0000006F)
     SECURITY_MAX_ALWAYS_FILTERED = (&H000003E7)
     SECURITY_MIN_NEVER_FILTERED = (&H000003E8)
     SECURITY_OTHER_ORGANIZATION_RID = (&H000003E8)
 End Enum
+ 
+' Service SID type RIDs are in the range 0x50- 0x6F.  Therefore, we are giving  the next available RID to Windows Mobile team.
+Public Const SECURITY_WINDOWSMOBILE_ID_BASE_RID  = (&H00000070)
+'  Installer Capability Group Sid related. Currently Base RID is same as LOCAL DOMAIN.
+Public Const SECURITY_INSTALLER_GROUP_CAPABILITY_BASE  = (&H20)
+Public Const SECURITY_INSTALLER_GROUP_CAPABILITY_RID_COUNT  = (9)
+'  Note: This is because the App Capability Rid is S-1-15-3-1024-...
+'        whereas the service group rid is          S-1-5-32-...
+'   The number of RIDs from hash (8) are the same for both
+Public Const SECURITY_INSTALLER_CAPABILITY_RID_COUNT  = (10)
+
+
+Public Const SECURITY_LOCAL_ACCOUNT_RID  = (&H00000071)
+Public Const SECURITY_LOCAL_ACCOUNT_AND_ADMIN_RID  = (&H00000072)
+
 Public Enum SECURITY_DOMAIN_RIDS
     DOMAIN_GROUP_RID_AUTHORIZATION_DATA_IS_COMPOUNDED = (&H000001F0)
     DOMAIN_GROUP_RID_AUTHORIZATION_DATA_CONTAINS_CLAIMS = (&H000001F1)
@@ -19378,6 +19529,8 @@ Public Enum SECURITY_DOMAIN_RIDS
     DOMAIN_GROUP_RID_PROTECTED_USERS = (&H0000020D)
     DOMAIN_GROUP_RID_KEY_ADMINS = (&H0000020E)
     DOMAIN_GROUP_RID_ENTERPRISE_KEY_ADMINS = (&H0000020F)
+    DOMAIN_GROUP_RID_FOREST_TRUSTS = (&H00000210)
+    DOMAIN_GROUP_RID_EXTERNAL_TRUSTS = (&H00000211)
 '  well-known aliases ...
     DOMAIN_ALIAS_RID_ADMINS = (&H00000220)
     DOMAIN_ALIAS_RID_USERS = (&H00000221)
@@ -19413,7 +19566,13 @@ Public Enum SECURITY_DOMAIN_RIDS
     DOMAIN_ALIAS_RID_DEFAULT_ACCOUNT = (&H00000245)
     DOMAIN_ALIAS_RID_STORAGE_REPLICA_ADMINS = (&H00000246)
     DOMAIN_ALIAS_RID_DEVICE_OWNERS = (&H00000247)
+    DOMAIN_ALIAS_RID_USER_MODE_HARDWARE_OPERATORS = (&H00000248)
+    DOMAIN_ALIAS_RID_OPENSSH_USERS = (&H00000249)
+    DOMAIN_ALIAS_RID_CUA_USERS = (&H0000024A)
 End Enum
+Public Function SECURITY_PROCESS_TRUST_AUTHORITY() As SID_IDENTIFIER_AUTHORITY
+SECURITY_PROCESS_TRUST_AUTHORITY.Value(5) = 19
+End Function
 Public Enum SECURITY_PROCESS_TRUST_RIDS
     SECURITY_PROCESS_TRUST_AUTHORITY_RID_COUNT = (2)
     SECURITY_PROCESS_PROTECTION_TYPE_FULL_RID = (&H00000400)
@@ -19604,9 +19763,11 @@ End Type
 
 Public Enum AclRevision
     ACL_REVISION1 = (1)
+    MIN_ACL_REVISION = ACL_REVISION2
     ACL_REVISION2 = (2)
     ACL_REVISION3 = (3)
     ACL_REVISION4 = (4)
+    MAX_ACL_REVISION = ACL_REVISION4
     ACL_REVISION = (2)
     ACL_REVISION_DS = (4)
 End Enum
@@ -19831,7 +19992,32 @@ Public Enum WELL_KNOWN_SID_TYPE
 	WinBuiltinDeviceOwnersSid = 119
     WinBuiltinUserModeHardwareOperatorsSid = 120
     WinBuiltinOpenSSHUsersSid = 121
+    WinBuiltinCUAUsersSid = 122
 End Enum
+
+Public Function SYSTEM_LUID() As LUID
+    SYSTEM_LUID.lowPart = &H3e7
+End Function
+Public Function ANONYMOUS_LOGON_LUID() As LUID
+    ANONYMOUS_LOGON_LUID.lowPart = &H3e6
+End Function
+Public Function LOCALSERVICE_LUID() As LUID
+    LOCALSERVICE_LUID.lowPart = &H3e5
+End Function
+Public Function NETWORKSERVICE_LUID() As LUID
+    NETWORKSERVICE_LUID.lowPart = &H3e4
+End Function
+Public Function IUSER_LUID() As LUID
+    IUSER_LUID.lowPart = &H3e3
+End Function
+Public Function PROTECTED_TO_SYSTEM_LUID() As LUID
+    PROTECTED_TO_SYSTEM_LUID.lowPart = &H3e2
+End Function
+
+
+
+
+
 
 Public Declare PtrSafe Function OpenEventLogA Lib "advapi32" (ByVal lpUNCServerName As String, ByVal lpSourceName As String) As LongPtr
 Public Declare PtrSafe Function OpenEventLogW Lib "advapi32" (ByVal lpUNCServerName As LongPtr, ByVal lpSourceName As LongPtr) As LongPtr
@@ -39163,6 +39349,28 @@ Public Type NOTIFY_USER_POWER_SETTING
     Guid As UUID
 End Type
 
+Public Enum HIBERFILE_BUCKET_SIZE
+    HiberFileBucket1GB = 0
+    HiberFileBucket2GB
+    HiberFileBucket4GB
+    HiberFileBucket8GB
+    HiberFileBucket16GB
+    HiberFileBucket32GB
+    HiberFileBucketUnlimited
+    HiberFileBucketMax
+End Enum
+
+Public Const HIBERFILE_TYPE_NONE  = &H00
+Public Const HIBERFILE_TYPE_REDUCED  = &H01
+Public Const HIBERFILE_TYPE_FULL  = &H02
+Public Const HIBERFILE_TYPE_MAX  = &H03
+
+Public Type HIBERFILE_BUCKET
+    MaxPhysicalMemory As LongLong
+    PhysicalMemoryPercent(0 To (HIBERFILE_TYPE_MAX - 1)) As Long
+End Type
+
+
 Public Type SYSTEM_POWER_LEVEL
     Enable As Byte
     Spare(0 To 2) As Byte
@@ -39173,46 +39381,46 @@ End Type
 
 Public Type SYSTEM_POWER_CAPABILITIES
     ' Misc supported system features
-    PowerButtonPresent As Byte
-    SleepButtonPresent As Byte
-    LidPresent As Byte
-    SystemS1 As Byte
-    SystemS2 As Byte
-    SystemS3 As Byte
-    SystemS4 As Byte ' hibernate
-    SystemS5 As Byte ' off
-    HiberFilePresent As Byte
-    FullWake As Byte
-    VideoDimPresent As Byte
-    ApmPresent As Byte
-    UpsPresent As Byte
+    PowerButtonPresent As CBoolean
+    SleepButtonPresent As CBoolean
+    LidPresent As CBoolean
+    SystemS1 As CBoolean
+    SystemS2 As CBoolean
+    SystemS3 As CBoolean
+    SystemS4 As CBoolean ' hibernate
+    SystemS5 As CBoolean ' off
+    HiberFilePresent As CBoolean
+    FullWake As CBoolean
+    VideoDimPresent As CBoolean
+    ApmPresent As CBoolean
+    UpsPresent As CBoolean
     ' Processors
-    ThermalControl As Byte
-    ProcessorThrottle As Byte
+    ThermalControl As CBoolean
+    ProcessorThrottle As CBoolean
     ProcessorMinThrottle As Byte
     '#if (NTDDI_VERSION < NTDDI_WINXP)
     '    BYTE                ProcessorThrottleScale;
     '    BYTE                spare2[4];
     '#else
     ProcessorMaxThrottle As Byte
-    FastSystemS4 As Byte
-    Hiberboot As Byte
-    WakeAlarmPresent As Byte
-    AoAc As Byte
+    FastSystemS4 As CBoolean
+    Hiberboot As CBoolean
+    WakeAlarmPresent As CBoolean
+    AoAc As CBoolean
     '#endif // (NTDDI_VERSION < NTDDI_WINXP)
     ' Disk
-    DiskSpinDown As Byte
+    DiskSpinDown As CBoolean
     '#if (NTDDI_VERSION < NTDDI_WINTHRESHOLD)
     '    BYTE                spare3[8];
     '# else
     ' HiberFile
     HiberFileType As Byte
-    AoAcConnectivitySupported As Byte
+    AoAcConnectivitySupported As CBoolean
     spare3(0 To 5) As Byte
     '#endif // (NTDDI_VERSION < NTDDI_WINTHRESHOLD)
     ' System Battery
-    SystemBatteriesPresent As Byte
-    BatteriesAreShortTerm As Byte
+    SystemBatteriesPresent As CBoolean
+    BatteriesAreShortTerm As CBoolean
     BatteryScale(0 To 2) As BATTERY_REPORTING_SCALE
     ' Wake
     AcOnLineWake As SYSTEM_POWER_STATE
@@ -39223,11 +39431,11 @@ Public Type SYSTEM_POWER_CAPABILITIES
 End Type
 
 Public Type SYSTEM_BATTERY_STATE
-    AcOnLine As Byte
-    BatteryPresent As Byte
-    Charging As Byte
-    Discharging As Byte
-    Spare1(0 To 2) As Byte
+    AcOnLine As CBoolean
+    BatteryPresent As CBoolean
+    Charging As CBoolean
+    Discharging As CBoolean
+    Spare1(0 To 2) As CBoolean
     Tag As Byte
     MaxCapacity As Long
     RemainingCapacity As Long
@@ -39235,6 +39443,18 @@ Public Type SYSTEM_BATTERY_STATE
     EstimatedTime As Long
     DefaultAlert1 As Long
     DefaultAlert2 As Long
+End Type
+Public Type SYSTEM_POWER_SOURCE_STATE
+    BatteryState As SYSTEM_BATTERY_STATE
+    InstantaneousPeakPower As Long
+    InstantaneousPeakPeriod As Long
+    SustainablePeakPower As Long
+    SustainablePeakPeriod As Long
+    PeakPower As Long
+    MaxOutputPower As Long
+    MaxInputPower As Long
+    BatteryRateInCurrent As Long
+    BatteryVoltage As Long
 End Type
 
 Public Const NUM_DISCHARGE_POLICIES = 4
@@ -39443,6 +39663,31 @@ End Type
 Public Type POWER_POLICY
     user As USER_POWER_POLICY
     mach As MACHINE_POWER_POLICY
+End Type
+
+Public Type PROCESSOR_PERFSTATE_POLICY
+    Revision As Long
+    MaxThrottle As Byte
+    MinThrottle As Byte
+    BusyAdjThreshold As Byte
+    'union {
+    '    BYTE  Spare;
+    '    union {
+    '        BYTE  AsBYTE ;
+    '        struct {
+    '            BYTE  NoDomainAccounting : 1;
+    '            BYTE  IncreasePolicy: 2;
+    '            BYTE  DecreasePolicy: 2;
+    '            BYTE  Reserved : 3;
+    '        } DUMMYSTRUCTNAME;
+    '    } Flags;
+    '} DUMMYUNIONNAME;
+    Flags As Byte
+    TimeCheck As Long
+    IncreaseTime As Long
+    DecreaseTime As Long
+    IncreasePercent As Long
+    DecreasePercent As Long
 End Type
 
 Public Type ADMINISTRATOR_POWER_POLICY
@@ -39936,7 +40181,27 @@ Public Enum WebauthnVersions
 '           - WEBAUTHN_AUTHENTICATOR_GET_ASSERTION_OPTIONS      :   7
 '           - WEBAUTHN_CREDENTIAL_ATTESTATION                   :   6
 '           - WEBAUTHN_ASSERTION                                :   5
-    WEBAUTHN_API_CURRENT_VERSION = WEBAUTHN_API_VERSION_7
+    WEBAUTHN_API_VERSION_8 = 8
+    '  WEBAUTHN_API_VERSION_8 : Delta From WEBAUTHN_API_VERSION_7
+    '       Data Structures and their sub versions:
+    '           - WEBAUTHN_AUTHENTICATOR_MAKE_CREDENTIAL_OPTIONS    :   8
+    '           - WEBAUTHN_CREDENTIAL_DETAILS                       :   3
+    '           - WEBAUTHN_CREDENTIAL_ATTESTATION                   :   7
+    '           - WEBAUTHN_AUTHENTICATOR_GET_ASSERTION_OPTIONS      :   8
+    WEBAUTHN_API_VERSION_9 = 9
+    '  WEBAUTHN_API_VERSION_9 : Delta From WEBAUTHN_API_VERSION_8
+    '       Data Structures and their sub versions:
+    '           - WEBAUTHN_AUTHENTICATOR_MAKE_CREDENTIAL_OPTIONS    :   9
+    '           - WEBAUTHN_AUTHENTICATOR_GET_ASSERTION_OPTIONS      :   9
+    '           - WEBAUTHN_ASSERTION                                :   6
+    '           - WEBAUTHN_CREDENTIAL_DETAILS                       :   4
+    '           - WEBAUTHN_CREDENTIAL_ATTESTATION                   :   8
+    '           - WEBAUTHN_AUTHENTICATOR_DETAILS                    :   1
+    '           - WEBAUTHN_AUTHENTICATOR_DETAILS_LIST               :   Not Applicable
+    '       APIs:
+    '           - WebAuthNGetAuthenticatorList
+    '           - WebAuthNFreeAuthenticatorList
+    WEBAUTHN_API_CURRENT_VERSION = WEBAUTHN_API_VERSION_9
 ' +------------------------------------------------------------------------------------------
 '  Information about an RP Entity
 ' -------------------------------------------------------------------------------------------
@@ -39957,6 +40222,8 @@ Public Type WEBAUTHN_RP_ENTITY_INFORMATION
 End Type
 
 Public Const WEBAUTHN_MAX_USER_ID_LENGTH  = 64
+
+Public Const WEBAUTHN_USER_ENTITY_INFORMATION_VERSION_1 = 1
 Public Const WEBAUTHN_USER_ENTITY_INFORMATION_CURRENT_VERSION  = 1
 
 Public Type WEBAUTHN_USER_ENTITY_INFORMATION
@@ -40055,6 +40322,13 @@ Public Enum WebauthnCTAPTransportFlags
     WEBAUTHN_CTAP_TRANSPORT_FLAGS_MASK = &H0000003F
 End Enum
 
+Public Const WEBAUTHN_CTAP_TRANSPORT_USB_STRING  = "usb"
+Public Const WEBAUTHN_CTAP_TRANSPORT_NFC_STRING  = "nfc"
+Public Const WEBAUTHN_CTAP_TRANSPORT_BLE_STRING  = "ble"
+Public Const WEBAUTHN_CTAP_TRANSPORT_SMART_CARD_STRING  = "smart-card"
+Public Const WEBAUTHN_CTAP_TRANSPORT_HYBRID_STRING  = "hybrid"
+Public Const WEBAUTHN_CTAP_TRANSPORT_INTERNAL_STRING  = "internal"
+
 Public Enum WebauthnCredExVersions
     WEBAUTHN_CREDENTIAL_EX_CURRENT_VERSION = 1
 End Enum
@@ -40100,14 +40374,50 @@ Public Type CTAPCBOR_HYBRID_STORAGE_LINKED_DATA
     wEncodedTunnelServerDomain As Integer
 End Type
 
+Public Const WEBAUTHN_AUTHENTICATOR_DETAILS_OPTIONS_VERSION_1  = 1
+Public Const WEBAUTHN_AUTHENTICATOR_DETAILS_OPTIONS_CURRENT_VERSION  = WEBAUTHN_AUTHENTICATOR_DETAILS_OPTIONS_VERSION_1
+
+Public Type WEBAUTHN_AUTHENTICATOR_DETAILS_OPTIONS
+    ' Version of this structure, to allow for modifications in the future.
+    dwVersion As Long
+End Type
+
+Public Const WEBAUTHN_AUTHENTICATOR_DETAILS_VERSION_1  = 1
+Public Const WEBAUTHN_AUTHENTICATOR_DETAILS_CURRENT_VERSION  = WEBAUTHN_AUTHENTICATOR_DETAILS_VERSION_1
+
+Public Type WEBAUTHN_AUTHENTICATOR_DETAILS
+    ' Version of this structure, to allow for modifications in the future.
+    dwVersion As Long
+    ' Authenticator ID
+    cbAuthenticatorId As Long
+    pbAuthenticatorId As LongPtr
+    ' Authenticator Name
+    pwszAuthenticatorName As LongPtr
+    ' Authenticator logo (expected to be in SVG format)
+    cbAuthenticatorLogo As Long
+    pbAuthenticatorLogo As LongPtr
+    ' Is the authenticator currently locked? When locked, this authenticator's credentials
+    ' might not be present or updated in WebAuthNGetPlatformCredentialList.
+    bLocked As BOOL
+End Type
+
+Public Type WEBAUTHN_AUTHENTICATOR_DETAILS_LIST
+    ' Authenticator Details
+    cAuthenticatorDetails As Long
+    ppAuthenticatorDetails As LongPtr 'PWEBAUTHN_AUTHENTICATOR_DETAILS *
+End Type
+ 
+
 Public Enum WebauthnCredDetailsVersions
     WEBAUTHN_CREDENTIAL_DETAILS_VERSION_1 = 1
     WEBAUTHN_CREDENTIAL_DETAILS_VERSION_2 = 2
-    WEBAUTHN_CREDENTIAL_DETAILS_CURRENT_VERSION = WEBAUTHN_CREDENTIAL_DETAILS_VERSION_2
+    WEBAUTHN_CREDENTIAL_DETAILS_VERSION_3 = 3
+    WEBAUTHN_CREDENTIAL_DETAILS_VERSION_4 = 4
+    WEBAUTHN_CREDENTIAL_DETAILS_CURRENT_VERSION = WEBAUTHN_CREDENTIAL_DETAILS_VERSION_4
 End Enum
 Public Type WEBAUTHN_CREDENTIAL_DETAILS
     ' Version of this structure, to allow for modifications in the future.
-    dwVersion As WebauthnCredDetailsVersions
+    dwVersion As Long
     ' Size of pbCredentialID.
     cbCredentialID As Long
     pbCredentialID As LongPtr
@@ -40120,6 +40430,16 @@ Public Type WEBAUTHN_CREDENTIAL_DETAILS
     ' The following fields have been added in WEBAUTHN_CREDENTIAL_DETAILS_VERSION_2
     ' Backed Up or not.
     bBackedUp As BOOL
+    ' The following fields have been added in WEBAUTHN_CREDENTIAL_DETAILS_VERSION_3
+    pwszAuthenticatorName As LongPtr
+    ' The logo is expected to be in the svg format
+    cbAuthenticatorLogo As Long
+    pbAuthenticatorLogo As LongPtr
+    ' ThirdPartyPayment Credential or not.
+    bThirdPartyPayment As BOOL
+    ' The following fields have been added in WEBAUTHN_CREDENTIAL_DETAILS_VERSION_4
+    ' Applicable Transports
+    dwTransports As Long
 End Type
 Public Type WEBAUTHN_CREDENTIAL_DETAILS_LIST
     cCredentialDetails As Long
@@ -40533,6 +40853,12 @@ Public Declare PtrSafe Function WebAuthNGetPlatformCredentialList Lib "webauthn.
 Public Declare PtrSafe Sub WebAuthNFreePlatformCredentialList Lib "webauthn.dll" (ByVal pCredentialDetailsList As LongPtr)
 [UseGetLastError(False)]
 Public Declare PtrSafe Function WebAuthNDeletePlatformCredential Lib "webauthn.dll" (ByVal cbCredentialId As Long, pbCredentialId As Any) As Long
+
+[UseGetLastError(False)]
+Public Declare PtrSafe Function WebAuthNGetAuthenticatorList Lib "webauthn.dll" (pWebAuthNGetAuthenticatorListOptions As WEBAUTHN_AUTHENTICATOR_DETAILS_OPTIONS, ppAuthenticatorDetailsList As LongPtr) As Long
+Public Declare PtrSafe Sub WebAuthNFreeAuthenticatorList Lib "webauthn.dll" (ByVal pAuthenticatorDetailsList As LongPtr)
+
+
 Public Declare PtrSafe Function WebAuthNGetErrorName Lib "webauthn.dll" (ByVal hr As Long) As LongPtr
 [UseGetLastError(False)]
 Public Declare PtrSafe Function WebAuthNGetW3CExceptionDOMError Lib "webauthn.dll" (ByVal hr As Long) As Long
