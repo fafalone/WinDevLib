@@ -159,12 +159,12 @@ Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.
     WebEvnts.idl,WebEvnts.h,propkey.h,propkeydef.h,winsafer.h,powerbase.h,powersetting.h,powrprof.h,synchapi.h,dpa_dsa.h,DocumentTarget.idl,DocumentTarget.h,
     propsys.h,SrRestorePtApi.h,compressapi.h,wincrypt.h,dpapi.h,mssip.h,memoryapi.h,wintrust.h,bcrypt.h,ncrypt.h,ncryptprotect.h,mobsync.h,ProcessSnapshot.h,
     wincred.h,winhttp.h,websocket.h,photoacquire.h,oleacc.h,sddl.h,securitybaseapi.h,dssec.h,oleauto.h,olectl.h,newdev.h,processthreadsapi.h,virtdisk.h,
-    cryptuiapi.h,limits.h,evntrace.h,evntprov.h,relogger.h,relogger.idl,WinNls.h,WinNls32.h,ktmw32.h,fileapi.h,AccCtrl.h,AclAPI.h,dbt.h,TlHelp32.h,winnetwk.h,
+    cryptuiapi.h,limits.h,evntrace.h,evntprov.h,relogger.h,relogger.idl,WinNls.h,WinNls32.h,ktmtypes.h,ktmw32.h,fileapi.h,AccCtrl.h,AclAPI.h,dbt.h,TlHelp32.h,winnetwk.h,
     enclaveapi.h,wincon.h,wincontypes.h,consoleapi.h,consoleapi2.h,consoleapi3.h,winreg.h,lsalookup.h,adtgen.h,authz.h,cfg.h,sfc.h,secext.h,AudioAPOTypes.h,
     audioclient.h,audioclient.idl,audioclientactivationparams.h,audioendpoints.h,audioendpoints.idl,audioenginebaseapo.h,audioenginebaseapo.idl,
     audioengineendpoint.h,audioengineendpoint.idl,audiomediatype.h,audiomediatype.idl,audiostatemonitorapi.h,audiopolicy.h,audiopolicy.idl,audiosessiontypes.h,
     devicetopology.h,devicetopology.idl,endpointvolume.h,mmdeviceapi.h,spatialaudioclient.h,spatialaudiohrtf.h,spatialaudiometadata.h,l2cnm.h,wlantypes.h,
-    ndis\ObjectHeader.h,eaptypes.h,gdiplusflat.h,imapi.h,manipulations.h,manipulations.idl,propsys.h,propsys.idl,spellcheck.h,spellcheck.idl,spellcheckprovider.h,
+    ndis\ObjectHeader.h,eaptypes.h,gdiplusflat.h,GdiplusImaging.h,imapi.h,manipulations.h,manipulations.idl,propsys.h,propsys.idl,spellcheck.h,spellcheck.idl,spellcheckprovider.h,
     spellcheckprovider.idl,structuredquerycondition.h,structuredquerycondition.idl,threadpoollegacyapiset.h,thumbcache.h,thumbcache.idl,thumbnailstreamcache.h,
     thumbnailstreamcache.idl,timezoneapi.h,TOM.h,tdh.h,winres.h,UIRibbon.h,UIRibbon.idl,UIRibbonKeydef.h,UIRibbonPropertyHelpers.h,UIAutomationClient.h,
     UIAutomationClient.idl,UIAutomationCore.h,UIAutomationCore.idl,UIAnimation.h,UIAnimation.idl,shtypes.h,shtypes.idl,TextServ.h,servprov.h,ServProv.Idl,
@@ -200,8 +200,8 @@ Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.
     odbcinst.h,sqltypes.h,sql.h,sqlext.h,sqlucode.h,minidumpapiset.h,coguid.h,  
     dls1.h,dls2.h,dmerror.h,dmdls.h,dmusbuff.h,dmusicc.h,dmusicf.h,dmplugin.h,dmusici.h,dmksctrl.h,dmusics.h,d3d12compiler.h/d3d12compiler.idl
     xact3.h,xact3wb.h,xma2defs.h,audiodefs.h,xact3d3.h,dxfile.h,
-    d3dx10.h,d3dx10core.h,d3dx10tex.h,d3dx10async.h,d3dx10mesh.h,d3d9on12.h,
-    enclaveium.h,
+    d3dx10.h,d3dx10core.h,d3dx10tex.h,d3dx10async.h,d3dx10mesh.h,d3d9on12.h,codecapi.h,
+    enclaveium.h,bthioctl.h,bthledef.h,bthdef.h,muiload.h,
     
 Coverage in the 90%+ range  winbase.h, oleidl.h, oaidl.h, ocidl.h, ocidl.idl, ,objidl.h,objidl.idl,presentation.h,ScrnSave.h
 
