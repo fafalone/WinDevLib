@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 9.3.692 (June 12th, 2026)**
+**Current Version: 9.3.694 (June 17th, 2026)**
 
 (c) 2022-2026 Jon Johnson (fafalone)
 
@@ -239,6 +239,18 @@ The goal of the API coverage in WinDevLib is to provide the kind of programming 
 Current coverage is already quite extensive, covering hundreds of Windows SDK header files. For details, see [COVERAGE.md](COVERAGE.md).
  
 ### Updates
+
+**Update (v9.3.694, 17 Jun 2026):** 
+- Wrapper DLLs will now be provided for APIs that are only exported by static libraries and not yet supported by tB's static library feature.\
+These DLLs can be obtained from the StaticWrappers folder in the project GitHub repo.\
+First wrapper: muiload.h/muiload.lib. See wdStaticWrappers.twin for more information.
+- Add debug constants from MS DIA docs/WINE's cvinfo.h 
+- Add Bluetooth IOCTLs (bthioctl.h, 100%)
+- Add codecapi.h
+- Misc additions from Windows SDKs from after 26000.100 through 28000.1839 
+- Add additional security and power consts/types from winnt.h
+- (BREAKING CHANGE) SID_IDENTIFIER_AUTHORITY static UDT defs now use functions returning the full type, rather than a constant that must be placed in .Value(5) of a local variable. This impacts:\
+SECURITY_NULL_SID_AUTHORITY, SECURITY_WORLD_SID_AUTHORITY, SECURITY_LOCAL_SID_AUTHORITY, SECURITY_CREATOR_SID_AUTHORITY, SECURITY_NON_UNIQUE_AUTHORITY, SECURITY_NT_AUTHORITY, SECURITY_RESOURCE_MANAGER_AUTHORITY, SECURITY_APP_PACKAGE_AUTHORITY, SECURITY_MANDATORY_LABEL_AUTHORITY, SECURITY_SCOPED_POLICY_ID_AUTHORITY, SECURITY_AUTHENTICATION_AUTHORITY, SECURITY_PROCESS_TRUST_AUTHORITY
 
 **Update (v9.3.692, 12 Jun 2026):** 
 - Misc additions from Windows SDKs from after 26000.100 through 28000.1839
