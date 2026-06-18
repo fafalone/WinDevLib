@@ -1,4 +1,12 @@
 
+**Update (v9.3.696, 18 Jun 2026):** 
+- Add missing coclasses from ShObjIdl_core.idl
+- Add some missing Media Foundation GUIDs
+- (Bug fix) IShellIconOverlayIdentifier::GetOverlayInfo cchMax should be ByVal
+- (Bug fix) IAppActivationUIInfo missing GetShowUI method
+- (Bug fix) IFrameworkInputPane::Unadvise name typo
+
+
 **Update (v9.3.694, 17 Jun 2026):** 
 - Wrapper DLLs will now be provided for APIs that are only exported by static libraries and not yet supported by tB's static library feature.\
 These DLLs can be obtained from the StaticWrappers folder in the project GitHub repo.\
