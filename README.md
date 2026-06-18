@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 9.3.694 (June 17th, 2026)**
+**Current Version: 9.3.696 (June 18th, 2026)**
 
 (c) 2022-2026 Jon Johnson (fafalone)
 
@@ -239,6 +239,13 @@ The goal of the API coverage in WinDevLib is to provide the kind of programming 
 Current coverage is already quite extensive, covering hundreds of Windows SDK header files. For details, see [COVERAGE.md](COVERAGE.md).
  
 ### Updates
+
+**Update (v9.3.696, 18 Jun 2026):** 
+- Add missing coclasses from ShObjIdl_core.idl
+- Add some missing Media Foundation GUIDs
+- (Bug fix) IShellIconOverlayIdentifier::GetOverlayInfo cchMax should be ByVal
+- (Bug fix) IAppActivationUIInfo missing GetShowUI method
+- (Bug fix) IFrameworkInputPane::Unadvise name typo
 
 **Update (v9.3.694, 17 Jun 2026):** 
 - Wrapper DLLs will now be provided for APIs that are only exported by static libraries and not yet supported by tB's static library feature.\
