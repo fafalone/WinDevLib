@@ -1,4 +1,15 @@
 
+**Update (v9.3.698, 20 Jun 2026):** 
+- Interface IShellDetails inexplicably missing
+- Misc additions from Windows SDKs from after 26000.100 through 28000.1839
+- (API Standards, breaking change) IActiveDesktop now uses proper types instead of As Any
+- (Bug fix) IActiveDesktop GetDesktopItemByID dwID should be LongPtr
+- (Bug fix) IActiveDesktopP2 appears to actually be named IADesktopP2. Unknown where other name originated.
+- (Bug fix) SHFOLDERCUSTOMSETTINGS pclsid definition incorrect
+- (Bug fix) CoClass DesktopGadget name typo
+- (Bug fix) ICurrentWorkingDirectory::GetDirectory missing ByVal
+
+
 **Update (v9.3.696, 18 Jun 2026):** 
 - Add missing coclasses from ShObjIdl_core.idl
 - Add some missing Media Foundation GUIDs

@@ -1,6 +1,8 @@
 Known omissions where a priority update neccessitated not finishing 
 before release, or waiting on feature support:
 
+- Change SHCOLUMN* wsz arguments to Integer when Integer()<->String is fixed.
+
 - Non-inlined d3dx math APIs
 
 - Check SymGetSetHomeDirectory SymSrvGetFileIndexInfo
