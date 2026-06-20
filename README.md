@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 9.3.696 (June 18th, 2026)**
+**Current Version: 9.3.698 (June 20th, 2026)**
 
 (c) 2022-2026 Jon Johnson (fafalone)
 
@@ -239,6 +239,16 @@ The goal of the API coverage in WinDevLib is to provide the kind of programming 
 Current coverage is already quite extensive, covering hundreds of Windows SDK header files. For details, see [COVERAGE.md](COVERAGE.md).
  
 ### Updates
+
+**Update (v9.3.698, 20 Jun 2026):** 
+- Interface IShellDetails inexplicably missing
+- Misc additions from Windows SDKs from after 26000.100 through 28000.1839
+- (API Standards, breaking change) IActiveDesktop now uses proper types instead of As Any
+- (Bug fix) IActiveDesktop GetDesktopItemByID dwID should be LongPtr
+- (Bug fix) IActiveDesktopP2 appears to actually be named IADesktopP2. Unknown where other name originated.
+- (Bug fix) SHFOLDERCUSTOMSETTINGS pclsid definition incorrect
+- (Bug fix) CoClass DesktopGadget name typo
+- (Bug fix) ICurrentWorkingDirectory::GetDirectory missing ByVal
 
 **Update (v9.3.696, 18 Jun 2026):** 
 - Add missing coclasses from ShObjIdl_core.idl
