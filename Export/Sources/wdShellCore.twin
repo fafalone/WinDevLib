@@ -1,6 +1,6 @@
 '************************************************************************************
 'WinDevLib - Windows Development Library for twinBASIC
-'Version 9.3.696
+'Version 9.3.698
 '(c) 2022-2026 Jon Johnson (fafalone)
 'Project GUID: {1FCDB98D-617D-4995-9736-2ED0E4746A10}
 ' 
@@ -2001,6 +2001,7 @@ End Interface
 Interface ICopyHookW Extends stdole.IUnknown
     Sub CopyCallback(ByVal hwnd As LongPtr, ByVal wFunc As FILEOP, ByVal wFlags As FILEOP_FLAGS, ByVal pszSourceFile As LongPtr, ByVal dwSrcAttribs As Long, ByVal pszDestFile As LongPtr, ByVal dwDestAttribs As Long)
 End Interface
+Public Alias ICopyHook As ICopyHookW
 
 
 [InterfaceId("00bb2762-6a77-11d0-a535-00c04fd7d062")]
@@ -3046,7 +3047,7 @@ End Interface
 [InterfaceId("91956D21-9276-11d1-921A-006097DF5BD4")]
 [OleAutomation(False)]
 Interface ICurrentWorkingDirectory Extends IUnknown
-    Sub GetDirectory(pwzPath As LongPtr, ByVal cchSize As Long)
+    Sub GetDirectory(ByVal pwzPath As LongPtr, ByVal cchSize As Long)
     Sub SetDirectory(ByVal pwzPath As LongPtr)
 End Interface
 
@@ -3087,6 +3088,14 @@ End Interface
 Interface IMultiQI Extends stdole.IUnknown
     [PreserveSig] Function QueryMultipleInterfaces(ByVal cMQIs As Long, ByVal pMQIs As LongPtr) As Long
 End Interface
+
+[InterfaceId("000214EC-0000-0000-c000-000000000046")]
+[OleAutomation(False)]
+Interface IShellDetails Extends stdole.IUnknown
+    Sub GetDetailsOf(ByVal pidl As LongPtr, ByVal iColumn As Long, pDetails As SHELLDETAILS)
+    Sub ColumnClick(ByVal iColumn As Long)
+End Interface
+
 
 [InterfaceId("00BB2761-6A77-11D0-A535-00C04FD7D062")]
 [OleAutomation(False)]
@@ -3962,10 +3971,10 @@ CoClass InputPanelConfiguration
      Interface IInputPanelInvocationConfiguration
 End CoClass
 
-
+[Description("CLSID_DesktopGadget")]
 [CoClassId("924ccc1b-6562-4c85-8657-d177925222b6")]
 [COMCreatable]
-CoClass DesktopGaget
+CoClass DesktopGadget
     [Default] Interface IDesktopGadget
 End CoClass
 
@@ -6775,7 +6784,7 @@ End Type
 [PackingAlignment(1)]
 Public Type SHChangeNotifyEntry
 	pidl As LongPtr
-	fRecursive As Long
+	fRecursive As BOOL
 End Type
 
 Public Enum SHCNRF
@@ -10288,6 +10297,38 @@ Public Enum SHSVMMessages
     SFVM_SETCLIPBOARD = &H00000010
     SFVM_SETPOINTS = &H00000017
 End Enum
+Public Function ShellFolderView_ReArrange(ByVal _hwnd As LongPtr, ByVal _lParam As LongPtr) As BOOL
+    Return CLng(SHShellFolderView_Message(_hwnd, SFVM_REARRANGE, ByVal _lParam))
+End Function
+Public Function ShellFolderView_AddObject(ByVal _hwnd As LongPtr, ByVal _pidl As LongPtr) As LongPtr
+    Return SHShellFolderView_Message(_hwnd, SFVM_ADDOBJECT, ByVal _pidl)
+End Function
+Public Function ShellFolderView_RemoveObject(ByVal _hwnd As LongPtr, ByVal _pidl As LongPtr) As LongPtr
+    Return SHShellFolderView_Message(_hwnd, SFVM_REMOVEOBJECT, ByVal _pidl)
+End Function
+Public Function ShellFolderView_UpdateObject(ByVal _hwnd As LongPtr, ByVal _ppidl As LongPtr) As LongPtr
+    Return SHShellFolderView_Message(_hwnd, SFVM_UPDATEOBJECT, ByVal _ppidl)
+End Function
+Public Function ShellFolderView_GetSelectedObjects(ByVal _hwnd As LongPtr, ByVal ppidl As LongPtr) As LongPtr
+    Return SHShellFolderView_Message(_hwnd, SFVM_GETSELECTEDOBJECTS, ByVal ppidl)
+End Function
+Public Type SFV_SETITEMPOS
+	pidl As LongPtr
+	pt As POINT
+End Type
+Public Function ShellFolderView_SetItemPos(ByVal _hwnd As LongPtr, ByVal _pidl As LongPtr, ByVal _x As Long, ByVal _y As Long) As LongPtr
+    Dim sip As SFV_SETITEMPOS
+    sip.pidl = _pidl
+    sip.pt.x = _x
+    sip.pt.y = _y
+    Return SHShellFolderView_Message(_hwnd, SFVM_SETITEMPOS, sip)
+End Function
+Public Sub ShellFolderView_SetClipboard(ByVal _hwnd As LongPtr, ByVal _dwEffect As LongPtr)
+	 SHShellFolderView_Message(_hwnd, SFVM_SETCLIPBOARD, ByVal _dwEffect )
+End Sub
+Public Sub ShellFolderView_SetPoints(ByVal _hwnd As LongPtr, ByVal _pdtobj As IDataObject)
+     SHShellFolderView_Message(_hwnd, SFVM_SETPOINTS, ByVal _pdtobj )
+End Sub
 
 [Description("⚠️ **WARNING:** Buffered array substituted for variable length C-style array. LenB is invalid.")]
 Public Type AAMENUFILENAME
@@ -10624,7 +10665,7 @@ End Enum
 
 Public Type SAFEARRAYBOUND
     cElements As Long
-    lLbound   As Long
+    lLbound As Long
 End Type
 Public Enum ADVFEATUREFLAGS
     FADF_AUTO = (&H1)
@@ -10645,12 +10686,12 @@ Public Enum SafeArrayTypes
     [_]
 End Enum
 Public Type SAFEARRAY1D
-    cDims      As Integer
-    fFeatures  As Integer
+    cDims As Integer
+    fFeatures As Integer
     cbElements As Long
-    cLocks     As Long
-    pvData     As LongPtr
-    Bounds     As SAFEARRAYBOUND
+    cLocks As Long
+    pvData As LongPtr
+    Bounds As SAFEARRAYBOUND
 End Type
 
 #If WINDEVLIB_LITE = 0 Then

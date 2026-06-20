@@ -16,7 +16,7 @@
     Interface IActiveDesktop Extends IUnknown
         Sub ApplyChanges(ByVal dwFlags As ADAPPLY)
         [PreserveSig]
-        Function GetWallpaper(ByVal pwszWallpaper As String, ByVal cchWallpaper As Long, Optional ByVal dwReserved As Long = 0) As Long
+        Function GetWallpaper(ByVal pwszWallpaper As String, ByVal cchWallpaper As Long, Optional ByVal dwFlags As ADGetWallpaperFlags = 0) As Long
         [PreserveSig]
         Function SetWallpaper(ByVal pwszWallpaper As String, Optional ByVal dwReserved As Long = 0) As Long
         [PreserveSig]
@@ -28,29 +28,29 @@
         [PreserveSig]
         Function SetPattern(ByVal pwszPattern As String, Optional ByVal dwReserved As Long = 0) As Long
         [PreserveSig]
-        Function GetDesktopItemOptions(ByRef pco As Any, Optional ByVal dwReserved As Long = 0) As Long
+        Function GetDesktopItemOptions(ByRef pco As COMPONENTSOPT, Optional ByVal dwReserved As Long = 0) As Long
         [PreserveSig]
-        Function SetDesktopItemOptions(ByRef pco As Any, Optional ByVal dwReserved As Long = 0) As Long
+        Function SetDesktopItemOptions(ByRef pco As COMPONENTSOPT, Optional ByVal dwReserved As Long = 0) As Long
         [PreserveSig]
-        Function AddDesktopItem(ByRef pcomp As Any, Optional ByVal dwReserved As Long = 0) As Long
+        Function AddDesktopItem(ByRef pcomp As COMPONENT, Optional ByVal dwReserved As Long = 0) As Long
         [PreserveSig]
-        Function AddDesktopItemWithUI(ByVal hwnd As LongPtr, ByRef pcomp As Any, Optional ByVal dwReserved As Long = 0) As Long
+        Function AddDesktopItemWithUI(ByVal hwnd As LongPtr, ByRef pcomp As COMPONENT, Optional ByVal dwReserved As Long = 0) As Long
         [PreserveSig]
-        Function ModifyDesktopItem(ByRef pcomp As Any, ByVal dwFlags As COMP_ELEM) As Long
+        Function ModifyDesktopItem(ByRef pcomp As COMPONENT, ByVal dwFlags As COMP_ELEM) As Long
         [PreserveSig]
-        Function RemoveDesktopItem(ByRef pcomp As Any, Optional ByVal dwReserved As Long = 0) As Long
+        Function RemoveDesktopItem(ByRef pcomp As COMPONENT, Optional ByVal dwReserved As Long = 0) As Long
         [PreserveSig]
-        Function GetDesktopItemCount(ByRef lpiCount As Long, Optional ByVal dwReserved As Long = 0) As Long
+        Function GetDesktopItemCount(ByRef pcItems As Long, Optional ByVal dwReserved As Long = 0) As Long
         [PreserveSig]
-        Function GetDesktopItem(ByVal nComponent As Long, ByRef pcomp As Any, Optional ByVal dwReserved As Long = 0) As Long
+        Function GetDesktopItem(ByVal nComponent As Long, ByRef pcomp As COMPONENT, Optional ByVal dwReserved As Long = 0) As Long
         [PreserveSig]
-        Function GetDesktopItemByID(ByVal dwID As Long, ByRef pcomp As Any, Optional ByVal dwReserved As Long = 0) As Long
+        Function GetDesktopItemByID(ByVal dwID As LongPtr, ByRef pcomp As COMPONENT, Optional ByVal dwReserved As Long = 0) As Long
         [PreserveSig]
-        Function GenerateDesktopItemHtml(ByVal pwszFileName As String, ByRef pcomp As Any, Optional ByVal dwReserved As Long = 0) As Long
+        Function GenerateDesktopItemHtml(ByVal pwszFileName As String, ByRef pcomp As COMPONENT, Optional ByVal dwReserved As Long = 0) As Long
         [PreserveSig]
-        Function ADDURL(ByVal hwnd As LongPtr, ByVal pszSource As String, ByRef pcomp As Any, Optional ByVal dwFlags As Long = 0) As Long
+        Function AddURL(ByVal hwnd As LongPtr, ByVal pszSource As String, ByRef pcomp As COMPONENT, Optional ByVal dwFlags As ADDURL = 0) As Long
         [PreserveSig]
-        Function GetDesktopItemBySource(ByVal pwszSource As String, ByRef pcomp As Any, Optional ByVal dwReserved As Long = 0) As Long
+        Function GetDesktopItemBySource(ByVal pwszSource As String, ByRef pcomp As COMPONENT, Optional ByVal dwReserved As Long = 0) As Long
     End Interface
     
     [InterfaceId("F490EB00-1240-11D1-9888-006097DEACF9")]
@@ -66,7 +66,7 @@
     [InterfaceId("B22754E2-4574-11d1-9888-006097DEACF9")]
     [OleAutomation(False)]
     [Description("IActiveDesktopP2 interface")]
-    Interface IActiveDesktopP2 Extends IUnknown
+    Interface IADesktopP2 Extends IUnknown
         Sub ReReadWallpaper()
         Sub GetADObjectFlags(pdwFlags As IADP2ObjectFlags, ByVal dwMask As IADP2ObjectFlags)
         Sub UpdateAllDesktopSubscriptions()
@@ -972,17 +972,17 @@ Public Type COMPONENTSOPT
 End Type
 
 Public Type COMPPOS
-    dwSize As Long
-    iLeft As Long
-    iTop As Long
-    dwWidth As Long
-    dwHeight As Long
-    izIndex As Long
-    fCanResize As BOOL
-    fCanResizeX As BOOL
-    fCanResizeY As BOOL
-    iPreferredLeftPercent As Long
-    iPreferredTopPercent As Long
+    dwSize As Long                 'Size of this structure
+    iLeft As Long                  'Left of top-left corner in screen co-ordinates.
+    iTop As Long                   'Top of top-left corner in screen co-ordinates.
+    dwWidth As Long                ' Width in pixels.
+    dwHeight As Long               ' Height in pixels.
+    izIndex As Long                ' Indicates the Z-order of the component.
+    fCanResize As BOOL             ' Is the component resizeable?
+    fCanResizeX As BOOL            ' Resizeable in X-direction?
+    fCanResizeY As BOOL            ' Resizeable in Y-direction?
+    iPreferredLeftPercent As Long  'Left of top-left corner as percent of screen width
+    iPreferredTopPercent As Long   'Top of top-left corner as percent of screen height
 End Type
 
 Public Type COMPSTATEINFO
@@ -1015,62 +1015,69 @@ Public Type IE4COMPONENT
     fDirty As BOOL
     fNoScroll As BOOL
     cpPos As COMPPOS
-    wszFriendlyName(0 To 519) As Byte
-    wszSource(0 To 4167) As Byte
-    wszSubscribedURL(0 To 4167) As Byte
+    wszFriendlyName(0 To (MAX_PATH - 1)) As Integer
+    wszSource(0 To (INTERNET_MAX_URL_LENGTH - 1)) As Integer
+    wszSubscribedURL(0 To (INTERNET_MAX_URL_LENGTH - 1)) As Integer
 End Type
 
 Public Enum ITEMSTATE
-    IS_NORMAL = 1
-    IS_FULLSCREEN = 2
-    IS_SPLIT = 4
-    IS_VALIDSIZESTATEBITS = 7
-    IS_VALIDSTATEBITS = -1073741817
+    IS_NORMAL = &H00000001
+    IS_FULLSCREEN = &H00000002
+    IS_SPLIT = &H00000004
+    IS_VALIDSIZESTATEBITS = (IS_NORMAL Or IS_SPLIT Or IS_FULLSCREEN)  ' The set of IS_* state bits which define the "size" of the component - these bits are mutually exclusive.
+    IS_VALIDSTATEBITS = (IS_NORMAL Or IS_SPLIT Or IS_FULLSCREEN Or &H80000000 Or &H40000000)  ' All of the currently defined IS_* bits.
 End Enum
 
 Public Type COMPONENT
-    dwSize As Long
-    dwID As Long
-    iComponentType As COMP_TYPE
-    fChecked As BOOL
-    fDirty As BOOL
-    fNoScroll As BOOL
-    cpPos As COMPPOS
-    wszFriendlyName(0 To 519) As Byte
-    wszSource(0 To 4167) As Byte
-    wszSubscribedURL(0 To 4167) As Byte
-    dwCurItemState As ITEMSTATE
-    csiOriginal As COMPSTATEINFO
-    csiRestored As COMPSTATEINFO
+    dwSize As Long                                                     'Size of this structure
+    dwID As Long                                                       'Reserved: Set it always to zero.
+    iComponentType As Long                                             'One of COMP_TYPE_*
+    fChecked As BOOL                                                   ' Is this component enabled?
+    fDirty As BOOL                                                     ' Had the component been modified and not yet saved to disk?
+    fNoScroll As BOOL                                                  ' Is the component scrollable?
+    cpPos As COMPPOS                                                   ' Width, height etc.,
+    wszFriendlyName(0 To (MAX_PATH - 1)) As Integer                    ' Friendly name of component.
+    wszSource(0 To (INTERNET_MAX_URL_LENGTH - 1)) As Integer           'URL of the component.
+    wszSubscribedURL(0 To (INTERNET_MAX_URL_LENGTH - 1)) As Integer    'Subscrined URL
+                                                                    'New fields are added below. Everything above here must exactly match the IE4COMPONENT Structure.
+    dwCurItemState As Long                                             ' Current state of the Component.
+    csiOriginal As COMPSTATEINFO                                       ' Original state of the component when it was first added.
+    csiRestored As COMPSTATEINFO                                       ' Restored state of the component.
 End Type
 
 Public Enum ADAPPLY
-    AD_APPLY_SAVE = 1
-    AD_APPLY_HTMLGEN = 2
-    AD_APPLY_REFRESH = 4
-    AD_APPLY_ALL = 7
-    AD_APPLY_FORCE = 8
-    AD_APPLY_BUFFERED_REFRESH = 16
-    AD_APPLY_DYNAMICREFRESH = 32
+    AD_APPLY_SAVE = &H00000001
+    AD_APPLY_HTMLGEN = &H00000002
+    AD_APPLY_REFRESH = &H00000004
+    AD_APPLY_ALL = (AD_APPLY_SAVE Or AD_APPLY_HTMLGEN Or AD_APPLY_REFRESH)
+    AD_APPLY_FORCE = &H00000008
+    AD_APPLY_BUFFERED_REFRESH = &H00000010
+    AD_APPLY_DYNAMICREFRESH = &H00000020
+End Enum
+
+Public Enum ADGetWallpaperFlags
+    AD_GETWP_BMP = &H00000000
+    AD_GETWP_IMAGE = &H00000001
+    AD_GETWP_LAST_APPLIED = &H00000002
 End Enum
 
 Public Enum COMP_ELEM
-    COMP_ELEM_TYPE = 1
-    COMP_ELEM_CHECKED = 2
-    COMP_ELEM_DIRTY = 4
-    COMP_ELEM_NOSCROLL = 8
-    COMP_ELEM_POS_LEFT = 16
-    COMP_ELEM_POS_TOP = 32
-    COMP_ELEM_SIZE_WIDTH = 64
-    COMP_ELEM_SIZE_HEIGHT = 128
-    COMP_ELEM_POS_ZINDEX = 256
-    COMP_ELEM_SOURCE = 512
-    COMP_ELEM_FRIENDLYNAME = 1024
-    COMP_ELEM_SUBSCRIBEDURL = 2048
-    COMP_ELEM_ORIGINAL_CSI = 4096
-    COMP_ELEM_RESTORED_CSI = 8192
-    COMP_ELEM_CURITEMSTATE = 16384
-    COMP_ELEM_ALL = 32767
+    COMP_ELEM_TYPE = &H00000001
+    COMP_ELEM_CHECKED = &H00000002
+    COMP_ELEM_DIRTY = &H00000004
+    COMP_ELEM_NOSCROLL = &H00000008
+    COMP_ELEM_POS_LEFT = &H00000010
+    COMP_ELEM_POS_TOP = &H00000020
+    COMP_ELEM_SIZE_WIDTH = &H00000040
+    COMP_ELEM_SIZE_HEIGHT = &H00000080
+    COMP_ELEM_POS_ZINDEX = &H00000100
+    COMP_ELEM_SOURCE = &H00000200
+    COMP_ELEM_FRIENDLYNAME = &H00000400
+    COMP_ELEM_SUBSCRIBEDURL = &H00000800
+    COMP_ELEM_ORIGINAL_CSI = &H00001000
+    COMP_ELEM_RESTORED_CSI = &H00002000
+    COMP_ELEM_CURITEMSTATE = &H00004000
+    COMP_ELEM_ALL = (COMP_ELEM_TYPE Or COMP_ELEM_CHECKED Or COMP_ELEM_DIRTY Or COMP_ELEM_NOSCROLL Or COMP_ELEM_POS_LEFT Or COMP_ELEM_SIZE_WIDTH Or COMP_ELEM_SIZE_HEIGHT Or COMP_ELEM_POS_ZINDEX Or COMP_ELEM_SOURCE Or COMP_ELEM_FRIENDLYNAME Or COMP_ELEM_POS_TOP Or COMP_ELEM_SUBSCRIBEDURL Or COMP_ELEM_ORIGINAL_CSI Or COMP_ELEM_RESTORED_CSI Or COMP_ELEM_CURITEMSTATE)
 End Enum
 
 Public Enum DTI_ADTIWUI
