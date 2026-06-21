@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 9.3.698 (June 20th, 2026)**
+**Current Version: 9.3.700 (June 21st, 2026)**
 
 (c) 2022-2026 Jon Johnson (fafalone)
 
@@ -239,6 +239,20 @@ The goal of the API coverage in WinDevLib is to provide the kind of programming 
 Current coverage is already quite extensive, covering hundreds of Windows SDK header files. For details, see [COVERAGE.md](COVERAGE.md).
  
 ### Updates
+
+**Update (v9.3.700, 21 Jun 2026):** 
+- Add dxgi1_7.h/.idl
+- (Breaking change) DxgiUsageFlags enum renamed DXGI_USAGE to match SDK
+- Add dxva2trace.h, dxva2swdev.h (NOTE: In the latter, DXVA2_VIDEOSAMPLE is renamed DXVA2_VIDEOSAMPLE_SW due to a name collision with DXVA2_VideoSample from dxva2api.h).\
+Note: The DXVA2Trace_PostProcessing compiler constant is applied if present (you must still build a custom twinpack until these are inherited).
+- Add dxdiag.h, dxmini.h
+- Add d3d11shadertracing.h
+- Add ExDispid.h
+- Add webauthnplugin.h
+- (Bug fix) wdAD APIs used GUID instead of UUID.
+- (Bug fix) ID3D11On12Device2 missing method
+- (Bug fix) D3D11_REGKEY_PATH escaping issue
+- (Bug fix) D3D11_SHADER_TRACE_DESC union size incorrect
 
 **Update (v9.3.698, 20 Jun 2026):** 
 - Interface IShellDetails inexplicably missing
