@@ -213,7 +213,7 @@ To use these, you can view the definition then make a regular function with that
 
 WinDevLib started as a project to replace my VB6 COM interface type library, oleexp.tlb. This is still probably the most common use case. WinDevLib presented the best opportunity there would be to ditch some olelib legacy baggage. It's fairly simple to move your VB6 projects to WinDevLib, just follow these steps:
 
-The follow steps apply only if you're converting code that previously relied on my oleexp.tlb project:
+The following steps apply only if you're converting code that previously relied on my oleexp.tlb project:
  
 1) Replace oleexp.IUnknown with IUnknownUnrestricted. WinDevLib keeps this separate due to the major issues with conflicts with the former approach. If your project has IUnknown *without* oleexp. in front of it, **do not** replace those, as it's not referring to oleexp. 
 
@@ -221,11 +221,11 @@ The follow steps apply only if you're converting code that previously relied on 
 
 ##### Issues specific to oleexpimp.tlb
 
-There's 'WinDevLib for Implements' (WinDevLibImpl.twinpack/.twinproj) as well, but you'll note it has substantially fewer interfaces than oleexpimp.tlb. This is because there's two reasons for an interface to have an alternate version: It uses `[ Preservesig ]` on one or more methods, or it uses `As Any`. twinBASIC allows using `Implements` with `As Any` by replacing it with `As LongPtr` (which is what the alternate versions do). So many interfaces were in oleexpimp.tlb for this latter reason, and subsequently are *not* included in WinDevLibImpl as it's not neccessary.
+There's 'WinDevLib for Implements' (WinDevLibImpl.twinpack/.twinproj) as well, but you'll note it has substantially fewer interfaces than oleexpimp.tlb. This is because there's two reasons for an interface to have an alternate version: It uses `[Preservesig]` on one or more methods, or it uses `As Any`. twinBASIC allows using `Implements` with `As Any` by replacing it with `As LongPtr` (which is what the alternate versions do). So many interfaces were in oleexpimp.tlb for this latter reason, and subsequently are *not* included in WinDevLibImpl as it's not neccessary.
 
 If you find an oleexpimp.tlb interface is not in WinDevLibImpl, you will be able to use the one from WinDevLib, simply make sure `As Any` is changed to `As LongPtr`. 
 
-tB has announced plans to support `[ PreserveSig ]` in implemented interfaces in the future; when that happens WinDevLibImpl will be deprecated.
+tB has announced plans to support `[PreserveSig]` in implemented interfaces in the future; when that happens WinDevLibImpl will be deprecated.
 
 >[!IMPORTANT]
 >There currently seems to be an issue with using WinDevLib and WinDevLibImpl together if WinDevLibImpl does not use the current WinDevLib as a reference (it would usually use an old one as it's updated much less frequently). I've updated the reference on this repo and the package server, just note that you'll need to refresh both every time you update one if they're used together
@@ -234,7 +234,7 @@ tB has announced plans to support `[ PreserveSig ]` in implemented interfaces in
 
 #### Scope of coverage
 
-The goal of the API coverage in WinDevLib is to provide the kind of programming experience you'd get in C/C++ by including windows.h and many of the more common feature sets like DirectX and GDIPlus. Even the 15,000+ APIs are just scratching the surface of the total Windows API set, and due to the low quality of automated conversion, even by Microsoft themselves (see: Win32API_PtrSafe.txt), I'm not interested in simply feeding headers or metadata through a conversion utility or using a database, so instead WinDevLib is focused on the most commonly used features in the major system DLLs-- everything 99%+ of apps need; though less common ones can be added by request or as time goes on and coverage is expanded.
+The goal of the API coverage in WinDevLib is to provide the kind of programming experience you'd get in C/C++ by including windows.h and many of the more common feature sets like DirectX and GDIPlus. Even the 15,000+ APIs are just scratching the surface of the total Windows API set, and due to the low quality of automated conversion, even by Microsoft themselves (see: Win32API_PtrSafe.txt), I'm not interested in simply feeding headers or metadata through a conversion utility or using a database, so instead WinDevLib is focused on the most commonly used features in the major system DLLs-- everything 99%+ of apps need; less common ones can be added by request or as time goes on and coverage is expanded.
 
 Current coverage is already quite extensive, covering hundreds of Windows SDK header files. For details, see [COVERAGE.md](COVERAGE.md).
  
