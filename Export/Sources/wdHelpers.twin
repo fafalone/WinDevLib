@@ -305,8 +305,6 @@ End Function
     Public Function SHLoadLibraryFromParsingName(ByVal pszParsingName As String, ByVal grfMode As STGM, riid As UUID, ppv As IUnknown) As Long
         Set ppv = Nothing
         Dim psiLibrary As IShellItem
-        Dim s As String = "abddef"
-        Debug.Print IsValidLocaleName(StrPtr(s))
         Dim hr As Long = SHCreateItemFromParsingName(StrPtr(pszParsingName), Nothing, IID_IShellItem, psiLibrary)
         If SUCCEEDED(hr) Then
             hr = SHLoadLibraryFromItem(psiLibrary, grfMode, riid, ppv)
@@ -321,7 +319,7 @@ End Function
             On Error Resume Next
             plib.AddFolder psiFolder
             hr = Err.LastHresult
-             On Error GoTo 0
+            On Error GoTo 0
        End If
         Return hr
     End Function
@@ -409,11 +407,11 @@ End Function
     End Function
     ' #define GID_ROTATE_ANGLE_TO_ARGUMENT(_arg_)     ((USHORT)((((_arg_) + 2.0 * 3.14159265) / (4.0 * 3.14159265)) * 65535.0))
     Public Function GID_ROTATE_ANGLE_TO_ARGUMENT(ByVal arg As Double) As Integer
-        Return CUIntToInt(CLng(((((arg) + 2.0 * 3.14159265) / (4.0 * 3.14159265)) * 65535.0)))
+        Return CUIntToInt(CLng(((((arg) + 2.0# * 3.14159265#) / (4.0# * 3.14159265#)) * 65535.0#)))
     End Function
     ' #define GID_ROTATE_ANGLE_FROM_ARGUMENT(_arg_)   ((((double)(_arg_) / 65535.0) * 4.0 * 3.14159265) - 2.0 * 3.14159265)
     Public Function GID_ROTATE_ANGLE_FROM_ARGUMENT(ByVal arg As Integer) As Double
-        Return ((((arg) / 65535.0) * 4.0 * 3.14159265) - 2.0 * 3.14159265)
+        Return ((((arg) / 65535.0#) * 4.0# * 3.14159265#) - 2.0# * 3.14159265#)
     End Function
 
     Public Function IS_HIGH_SURROGATE(ByVal wch As Integer) As Boolean
@@ -743,6 +741,11 @@ End Function
         #Else
             Return h
         #End If
+    End Function
+    
+    ' #define RTL_BITS_OF(sizeOfArg) (sizeof(sizeOfArg) * 8)
+    Public Function RTL_BITS_OF(Of T)(sizeOfArg As T) As Long
+        Return LenB(sizeOfArg) * 8
     End Function
     
     #If WDL_NO_MATH = 0 Then
@@ -1162,6 +1165,32 @@ End Function
         Call CoTaskMemFree(lPtr)
         lPtr = 0
     End If
+    End Function
+    [Description("Converts a ANSI (CP_ACP) LPSTR to a native tB String (BSTR).\" & vbCrLf & _
+                "*fFree* - Frees the LPSTR with `CoTaskMemFree`. Consult the documentation for the API that returned the pointer to ensure it is your job to free it, if not, crashes may result.")]
+    Public Function LPSTRtoStr(lPtr As LongPtr, Optional ByVal fFree As Boolean = True) As String
+        Dim cch As Long = MultiByteToWideChar(CP_ACP, 0, lPtr, -1, 0, 0)
+        If cch > 0 Then
+            LPSTRtoStr = Space$(cch - 1)
+            MultiByteToWideChar CP_ACP, 0, lPtr, -1, StrPtr(LPSTRtoStr), cch
+        End If
+        If fFree Then
+            CoTaskMemFree lPtr
+            lPtr = 0
+        End If
+    End Function
+    [Description("Converts a UTF-8 string to a native tB String (BSTR).\" & vbCrLf & _
+                "*fFree* - Frees the pointer with `CoTaskMemFree`. Consult the documentation for the API that returned the pointer to ensure it is your job to free it, if not, crashes may result.")]
+    Public Function LPUTF8StrToStr(lPtr As LongPtr, Optional ByVal fFree As Boolean = True) As String
+        Dim cch As Long = MultiByteToWideChar(CP_UTF8, 0, lPtr, -1, 0, 0)
+        If cch > 0 Then
+            LPUTF8StrToStr = Space$(cch - 1)
+            MultiByteToWideChar CP_UTF8, 0, lPtr, -1, StrPtr(LPUTF8StrToStr), cch
+        End If
+        If fFree Then
+            CoTaskMemFree lPtr
+            lPtr = 0
+        End If
     End Function
     
     [Description("Converts an Integer array of WCHARs to a tB String (BSTR).\" & vbCrLf & _
