@@ -1,4 +1,16 @@
 
+**Update (v9.3.704, 28 Jun 2026):**
+- Add ws2atm.h, ws2ipdef.h, mstcipip.h, ws2tcpip.h (100% besides some inlined functions)
+- Misc additions from Windows SDKs from after 26000.100 through 28000.1839
+- Added custom helper functions LPSTRtoStr, an ANSI (CP_ACP) equivalent to the existing Unicode LPWSTRtoStr, and LPUTF8StrToStr, a UTF-8 equivalent.
+- Added SAFEARRAY versions of variable C-style array types from tdh.h
+- Continued Alias implementation
+- Misc additions
+- (Breaking change) The IP OPTIONS for getsockopt/setsockopt defined in winsock.h are for winsock 1.x; there's naming conflicts with the values
+for the current values defined in ws2ipdef.h. Previously WDL only had the 1.x defs; the `WS_IP_OPTIONS` enum has been renamed `WS1_IP_OPTIONS` 
+and all values prefixed with `WS1_`. The new version of the `WS_IP_OPTIONS` enum uses the current values for ws2_32 APIs from ws2ipdef.h.
+- (Bug fix) WTS_PRODUCT_INFO[A,W] should just be PRODUCT_INFO[A,W]. The public symbol for typedef struct A {...} B; is B when they differ.
+
 **Update (v9.3.700, 21 Jun 2026):** 
 - Add dxgi1_7.h/.idl
 - (Breaking change) DxgiUsageFlags enum renamed DXGI_USAGE to match SDK
@@ -697,7 +709,7 @@ vs `SHOWWINDOW` (Enum), the latter has been renamed to `eSHOWWINDOW`
    Note: This was done assuming "LIFTED_SDK" was not defined. There's some deleted vtable entries, additional
          interfaces, additional coclasses, and entirely different GUIDs for everything if that is defined; the
          meaning is entirely undocumented. Will look into it in the future.
-- D2D1 PredeclaredId class from The trick's bas for e.g. D2D1::RectF. Disabled by default, to enable, set WINDEVLIB_DXHELPERS
+- D2D1 PredeclaredId class from The trick's bas for e.g. D2D1::RectF. Disabled by default, to enable, set WDL_DXHELPERS
    Note: __F functions will be converted to overloads pending a tB bug fix concerning them.
 - Added some missing content from lmaccess.h and lmwksta.h to bring coverage to 100%; added LMalert.h, LMaudit.h,
      LMErrlog.h, LMRemUtl.h, LMSvc.h, LMDFS.h 100%, 
