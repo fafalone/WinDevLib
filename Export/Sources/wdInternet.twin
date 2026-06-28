@@ -12,6 +12,7 @@
 Public Alias QOS_FLOWID As Long
 Public Alias WSAOVERLAPPED As OVERLAPPED
 Public Alias IUniformResourceLocator As IUniformResourceLocatorW
+Public Alias ADDRESS_FAMILY As Integer
 
 #Region "NetInterfaces"
 [InterfaceId("79eac9ed-baf9-11ce-8c82-00aa004ba90b")]
@@ -8240,7 +8241,7 @@ Module wdAPIInternet
     
     Public Type MIB_IPINTERFACE_ROW
         ' Key Structure;
-        /* [TypeHint(ADDRESS_FAMILIES)] */ Family As Integer 'ADDRESS_FAMILY
+        /* [TypeHint(ADDRESS_FAMILIES)] */ Family As ADDRESS_FAMILY
         InterfaceLuid As NET_LUID
         InterfaceIndex As Long 'NET_IFINDEX
         ' Read-Write fields.
@@ -8353,15 +8354,7 @@ Module wdAPIInternet
     [UseGetLastError(False)]
     Public Declare PtrSafe Function GetIpNetworkConnectionBandwidthEstimates Lib "Iphlpapi" (ByVal InterfaceIndex As Long, [TypeHint(ADDRESS_FAMILIES)] ByVal AddressFamily As Integer, BandwidthEstimates As MIB_IP_NETWORK_CONNECTION_BANDWIDTH_ESTIMATES) As Long
     
-    ' typedef union _SOCKADDR_INET {
-    ' SOCKADDR_IN Ipv4;
-    ' SOCKADDR_IN6 Ipv6;
-    ' ADDRESS_FAMILY si_family;
-' } SOCKADDR_INET, *PSOCKADDR_INET;
-    Public Type SOCKADDR_INET
-        u(27) As Byte
-    End Type
-    
+
     Public Type MIB_UNICASTIPADDRESS_ROW
         ' Key Structure.
         Address As SOCKADDR_INET
@@ -8921,7 +8914,7 @@ Module wdAPIInternet
 
     Public Type MIB_FL_VIRTUAL_INTERFACE_ROW
         ' Key fields.
-        Family As Integer 'ADDRESS_FAMILY
+        /* [TypeHint(ADDRESS_FAMILIES)] */ Family As ADDRESS_FAMILY
         IfLuid As IF_LUID
         VirtualIfId As Long
         ' Mandatory fields for create, read-only for existing entries.
@@ -9622,6 +9615,12 @@ Module wdAPIInternet
         SD_BOTH = &H02
     End Enum
 
+    Public Type SOCKADDR_DL
+        /* [TypeHint(ADDRESS_FAMILIES)] */ sdl_family As ADDRESS_FAMILY
+        sdl_data(0 To 7) As Byte
+        sdl_zero(0 To 3) As Byte
+    End Type
+
     Public Const SOMAXCONN       = &H7fffffff
     Public Const IOCPARM_MASK    = &H7f /* parameters must be < 128 bytes */
     Public Enum WS_IOCTL_FLAGS
@@ -9732,6 +9731,10 @@ Module wdAPIInternet
                                     '  of a redirected connection.
         IP6T_SO_ORIGINAL_DST = SO_ORIGINAL_DST
         
+        SO_RECEIVED_HOPLIMIT = &H3010
+        SO_RECEIVED_PROCESSOR = &H3011  ' Receive the processor number packets
+                                        '  have been processed by
+    
         WSK_SO_BASE = &H4000
         
         
@@ -9772,6 +9775,9 @@ Module wdAPIInternet
         IPX_RECEIVE_BROADCAST = &H400F
         IPX_IMMEDIATESPXACK = &H4010
         
+        
+        SO_TIMESTAMP = &H300A
+        SO_TIMESTAMP_ID = &H300B
     End Enum
 
     Public Type sockproto
@@ -9818,19 +9824,20 @@ Module wdAPIInternet
         SuppressedPacket As Integer
     End Type
 
-    Public Enum WS_IP_OPTIONS
-        IP_OPTIONS = 1 /* set/get IP per-packet options */
-        IP_MULTICAST_IF = 2 /* set/get IP multicast interface */
-        IP_MULTICAST_TTL = 3 /* set/get IP multicast timetolive */
-        IP_MULTICAST_LOOP = 4 /* set/get IP multicast loopback */
-        IP_ADD_MEMBERSHIP = 5 /* add an IP group membership */
-        IP_DROP_MEMBERSHIP = 6 /* drop an IP group membership */
-        IP_TTL = 7 /* set/get IP Time To Live */
-        IP_TOS = 8 /* set/get IP Type Of Service */
-        IP_DONTFRAGMENT = 9 /* set/get IP Don't Fragment flag */
-        IP_DEFAULT_MULTICAST_TTL = 1 /* normally limit m'casts to 1 hop */
-        IP_DEFAULT_MULTICAST_LOOP = 1 /* normally hear sends if a member */
-        IP_MAX_MEMBERSHIPS = 20 /* per socket; must fit in one mbuf */
+    [Description("WARNING: These values are from winsock.h for old winsock versions and the `WS1_` prefix has been added by WDL to not conflict with the proper values from ws2ipdef.h. Use the `WS_IP_OPTIONS` enum.")]
+    Public Enum WS1_IP_OPTIONS
+        WS1_IP_OPTIONS = 1 /* set/get IP per-packet options */
+        WS1_IP_MULTICAST_IF = 2 /* set/get IP multicast interface */
+        WS1_IP_MULTICAST_TTL = 3 /* set/get IP multicast timetolive */
+        WS1_IP_MULTICAST_LOOP = 4 /* set/get IP multicast loopback */
+        WS1_IP_ADD_MEMBERSHIP = 5 /* add an IP group membership */
+        WS1_IP_DROP_MEMBERSHIP = 6 /* drop an IP group membership */
+        WS1_IP_TTL = 7 /* set/get IP Time To Live */
+        WS1_IP_TOS = 8 /* set/get IP Type Of Service */
+        WS1_IP_DONTFRAGMENT = 9 /* set/get IP Don't Fragment flag */
+        WS1_IP_DEFAULT_MULTICAST_TTL = 1 /* normally limit m'casts to 1 hop */
+        WS1_IP_DEFAULT_MULTICAST_LOOP = 1 /* normally hear sends if a member */
+        WS1_IP_MAX_MEMBERSHIPS = 20 /* per socket; must fit in one mbuf */
     End Enum
 
     Public Type CSADDR_INFO
@@ -9846,7 +9853,7 @@ Module wdAPIInternet
     Public Const _SS_PAD2SIZE  = (_SS_MAXSIZE - (2 + _SS_PAD1SIZE + _SS_ALIGNSIZE))
     
     Public Type SOCKADDR_STORAGE_LH
-        ss_family As Integer 'ADDRESS_FAMILY ' address family
+        ss_family As ADDRESS_FAMILY ' address family
         __ss_pad1(0 To (_SS_PAD1SIZE - 1)) As Byte ' 6 byte pad, this is to make
         '   implementation specific pad up to
         '   alignment field that follows explicit
@@ -10076,12 +10083,13 @@ Module wdAPIInternet
     ' #if (NTDDI_VERSION >= NTDDI_WIN10_VB)
     '  Socket IOCTL for port sharing per processor sockets.
     Public Const SIO_CPU_AFFINITY  = &H18000000 Or &H80000000 Or 21& '_WSAIOW(IOC_VENDOR, 21)
-    
+    Public Const SIO_TIMESTAMPING = (IOC_IN Or (IOC_VENDOR) Or (235))
     
     Public Const SIO_UDP_CONNRESET = (IOC_IN Or (IOC_VENDOR) Or (12))
     Public Const SIO_SOCKET_CLOSE_NOTIFY = (IOC_IN Or (IOC_VENDOR) Or (13))
     Public Const SIO_UDP_NETRESET = (IOC_IN Or (IOC_VENDOR) Or (14))
- 
+    
+    Public Const SIO_GET_TX_TIMESTAMP = (IOC_IN Or (IOC_VENDOR) Or (234))
     'Public Alias WSAOVERLAPPED As OVERLAPPED
  
     ' typedef
@@ -10900,6 +10908,9 @@ Module wdAPIInternet
     
     #Region "ws2tcpip.h"
     
+    Public Const UDP_NOCHECKSUM  = 1
+    Public Const UDP_CHECKSUM_COVERAGE  = 20 /* Set/get UDP-Lite checksum coverage */
+    
     Public Enum WSGetAddrErrorCodes
         EAI_AGAIN = WSATRY_AGAIN
         EAI_BADFLAGS = WSAEINVAL
@@ -10921,7 +10932,7 @@ Module wdAPIInternet
         EAI_NODATA = EAI_NONAME
     End Enum
     
-    
+ 
     Public Enum WSAddressInfoFlags
         AI_PASSIVE = &H00000001  ' Socket address will be used in bind() call
         AI_CANONNAME = &H00000002  ' Return canonical name in first ai_canonname
@@ -10984,6 +10995,7 @@ Module wdAPIInternet
         ADDRINFOEX_VERSION_4 = 4
         ADDRINFOEX_VERSION_5 = 5
         ADDRINFOEX_VERSION_6 = 6
+        ADDRINFOEX_VERSION_7 = 7
     End Enum
     
     Public Type ADDRINFOEX2A
@@ -11076,6 +11088,7 @@ Module wdAPIInternet
     Public Enum WsAiDnsSvrTypes
         AI_DNS_SERVER_TYPE_UDP = &H1
         AI_DNS_SERVER_TYPE_DOH = &H2
+        AI_DNS_SERVER_TYPE_DOT = &H3
     End Enum
     Public Enum WsAiDnsSvrFlags
         AI_DNS_SERVER_UDP_FALLBACK = 1
@@ -11117,6 +11130,31 @@ Module wdAPIInternet
         /* [TypeHint(WsAiDnsResponsoFlags)] */ ai_responseflags As LongLong
     End Type
     
+    Public Const AI_EXTRA_DNSSEC_REQUIRED As LongLong = &h0000000000000001 ' Set DO and AD bits in request, returns IP address info IF DNSSEC authenticated, NOTE: only the IP address will be returned not the DNSSEC specific records
+    
+    Public Type ADDRINFOEX7
+        ai_flags As WSAddressInfoFlags ' AI_PASSIVE, AI_CANONNAME, AI_NUMERICHOST
+        ai_family As WS_PROTO_FAMILY ' PF_xxx
+        ai_socktype As WS_SOCKET_TYPES ' SOCK_xxx
+        ai_protocol As IPPROTO ' 0 or IPPROTO_xxx for IPv4 and IPv6
+        ai_addrlen As LongPtr ' Length of ai_addr
+        ai_canonname As LongPtr ' Canonical name for nodename
+        ai_addr As LongPtr 'struct SOCKADDR* ' Binary address
+        ai_blob As LongPtr
+        ai_bloblen As LongPtr
+        ai_provider As LongPtr 'LPUUID
+        ai_next As LongPtr 'struct ADDRINFOEX7* ' Next structure in linked list
+        ai_version As Long
+        ai_fqdn As LongPtr
+        ai_interfaceindex As Long
+        ai_resolutionhandle As LongPtr
+        ai_ttl As Long ' Number of seconds for which this DNS record is valid
+        ai_numservers As Long
+        ai_servers As LongPtr 'ADDRINFO_DNS_SERVER  *
+        /* [TypeHint(WsAiDnsResponsoFlags)] */ ai_responseflags As LongLong
+        ai_extraflags As LongLong ' additional dns options
+    End Type
+    
     Public Enum WsNameInfoFlags
         NI_NOFQDN = &H01 /* Only return nodename portion for local hosts */
         NI_NUMERICHOST = &H02 /* Return numeric form of the host's address */
@@ -11130,8 +11168,8 @@ Module wdAPIInternet
     
     
     Public Declare PtrSafe Function GetNameInfoA Lib "ws2_32" Alias "getnameinfo" (pSockaddr As SOCKADDR, ByVal SockaddrLength As Long, ByVal pNodeBuffer As String, ByVal NodeBufferSize As Long, ByVal pServiceBuffer As String, ByVal ServiceBufferSize As Long, ByVal flags As WsNameInfoFlags) As WS_ERRORS
-    Public Declare PtrSafe Function GetNameInfoW Lib "ws2_32" Alias "getnameinfo" (pSockaddr As SOCKADDR, ByVal SockaddrLength As Long, ByVal pNodeBuffer As LongPtr, ByVal NodeBufferSize As Long, ByVal pServiceBuffer As LongPtr, ByVal ServiceBufferSize As Long, ByVal flags As WsNameInfoFlags) As WS_ERRORS
-    Public DeclareWide PtrSafe Function GetNameInfo Lib "ws2_32" Alias "getnameinfo" (pSockaddr As SOCKADDR, ByVal SockaddrLength As Long, ByVal pNodeBuffer As String, ByVal NodeBufferSize As Long, ByVal pServiceBuffer As String, ByVal ServiceBufferSize As Long, ByVal flags As WsNameInfoFlags) As WS_ERRORS
+    Public Declare PtrSafe Function GetNameInfoW Lib "ws2_32" (pSockaddr As SOCKADDR, ByVal SockaddrLength As Long, ByVal pNodeBuffer As LongPtr, ByVal NodeBufferSize As Long, ByVal pServiceBuffer As LongPtr, ByVal ServiceBufferSize As Long, ByVal flags As WsNameInfoFlags) As WS_ERRORS
+    Public DeclareWide PtrSafe Function GetNameInfo Lib "ws2_32" Alias "GetNameInfoW" (pSockaddr As SOCKADDR, ByVal SockaddrLength As Long, ByVal pNodeBuffer As String, ByVal NodeBufferSize As Long, ByVal pServiceBuffer As String, ByVal ServiceBufferSize As Long, ByVal flags As WsNameInfoFlags) As WS_ERRORS
     Public Declare PtrSafe Function ws_getnameinfo Lib "ws2_32" Alias "getnameinfo" (pSockaddr As SOCKADDR, ByVal SockaddrLength As Long, ByVal pNodeBuffer As String, ByVal NodeBufferSize As Long, ByVal pServiceBuffer As String, ByVal ServiceBufferSize As Long, ByVal flags As WsNameInfoFlags) As WS_ERRORS
             
     Public Declare PtrSafe Function GetAddrInfoA Lib "ws2_32" Alias "getaddrinfo" (ByVal pNodeName As String, ByVal pServiceName As String, pHints As ADDRINFOA, ppResult As LongPtr) As Long
@@ -11149,19 +11187,1574 @@ Module wdAPIInternet
     Public DeclareWide PtrSafe Function GetAddrInfoEx Lib "ws2_32" Alias "GetAddrInfoExW" (ByVal pName As String, ByVal pServiceName As String, ByVal dwNameSpace As WinsockNamespaces, lpNspId As UUID, hints As Any, ppResult As LongPtr, timeout As timeval, lpOverlapped As OVERLAPPED, ByVal lpCompletionRoutine As LongPtr, lpNameHandle As LongPtr) As Long
     Public Declare PtrSafe Function GetAddrInfoExCancel Lib "ws2_32" (lpHandle As LongPtr) As Long
     Public Declare PtrSafe Function GetAddrInfoExOverlappedResult Lib "ws2_32" (lpOverlapped As OVERLAPPED) As Long
+    Public Declare PtrSafe Function SetAddrInfoExA Lib "ws2_32" (ByVal pName As String, ByVal pServiceName As String, pAddresses As SOCKET_ADDRESS, ByVal dwAddressCount As Long, lpBlob As Any, ByVal dwFlags As Long, ByVal dwNameSpace As WinsockNamespaces, lpNspId As UUID, timeout As timeval, lpOverlapped As OVERLAPPED, ByVal lpCompletionRoutine As LongPtr, Optional lpNameHandle As LongPtr) As Long
+    Public Declare PtrSafe Function SetAddrInfoExW Lib "ws2_32" (ByVal pName As LongPtr, ByVal pServiceName As LongPtr, pAddresses As SOCKET_ADDRESS, ByVal dwAddressCount As Long, lpBlob As Any, ByVal dwFlags As Long, ByVal dwNameSpace As WinsockNamespaces, lpNspId As UUID, timeout As timeval, lpOverlapped As OVERLAPPED, ByVal lpCompletionRoutine As LongPtr, Optional lpNameHandle As LongPtr) As Long
+    Public DeclareWide PtrSafe Function SetAddrInfoEx Lib "ws2_32" Alias "SetAddrInfoExW" (ByVal pName As String, ByVal pServiceName As String, pAddresses As SOCKET_ADDRESS, ByVal dwAddressCount As Long, lpBlob As Any, ByVal dwFlags As Long, ByVal dwNameSpace As WinsockNamespaces, lpNspId As UUID, timeout As timeval, lpOverlapped As OVERLAPPED, ByVal lpCompletionRoutine As LongPtr, Optional lpNameHandle As LongPtr) As Long
+    ' Public Declare PtrSafe Function SetAddrInfoExA Lib "ws2_32" (ByVal pName As String, ByVal pServiceName As String, pAddresses As SOCKET_ADDRESS, ByVal dwAddressCount As Long, lpBlob As Any, ByVal dwFlags As Long, ByVal dwNameSpace As WinsockNamespaces, lpNspId As UUID, timeout As timeval, lpOverlapped As OVERLAPPED, ByVal lpCompletionRoutine As LOOKUPSERVICE_COMPLETION_ROUTINE, Optional lpNameHandle As LongPtr) As Long
+    ' Public Declare PtrSafe Function SetAddrInfoExW Lib "ws2_32" (ByVal pName As LongPtr, ByVal pServiceName As LongPtr, pAddresses As SOCKET_ADDRESS, ByVal dwAddressCount As Long, lpBlob As Any, ByVal dwFlags As Long, ByVal dwNameSpace As WinsockNamespaces, lpNspId As UUID, timeout As timeval, lpOverlapped As OVERLAPPED, ByVal lpCompletionRoutine As LOOKUPSERVICE_COMPLETION_ROUTINE, Optional lpNameHandle As LongPtr) As Long
+    ' Public DeclareWide PtrSafe Function SetAddrInfoEx Lib "ws2_32" Alias "SetAddrInfoExW" (ByVal pName As String, ByVal pServiceName As String, pAddresses As SOCKET_ADDRESS, ByVal dwAddressCount As Long, lpBlob As Any, ByVal dwFlags As Long, ByVal dwNameSpace As WinsockNamespaces, lpNspId As UUID, timeout As timeval, lpOverlapped As OVERLAPPED, ByVal lpCompletionRoutine As LOOKUPSERVICE_COMPLETION_ROUTINE, Optional lpNameHandle As LongPtr) As Long
     Public Declare PtrSafe Sub FreeAddrInfoA Lib "ws2_32" Alias "freeaddrinfo" (pAddrInfo As ADDRINFOA)
     Public Declare PtrSafe Sub FreeAddrInfoW Lib "ws2_32" (pAddrInfo As ADDRINFOW)
     Public DeclareWide PtrSafe Sub FreeAddrInfo Lib "ws2_32" Alias "FreeAddrInfoW" (pAddrInfo As ADDRINFO)
     Public Declare PtrSafe Sub FreeAddrInfoExA Lib "ws2_32" Alias "FreeAddrInfoEx" (pAddrInfoEx As Any)
     Public Declare PtrSafe Sub FreeAddrInfoExW Lib "ws2_32" (pAddrInfoEx As Any)
     Public Declare PtrSafe Sub FreeAddrInfoEx Lib "ws2_32" Alias "FreeAddrInfoExW" (pAddrInfoEx As Any)
-       
-       
+ 
+    Public Declare PtrSafe Function inet_pton Lib "ws2_32" (ByVal Family As Long, ByVal pszAddrString As String, pAddrBuf As Any) As Long
+    Public Declare PtrSafe Function InetPtonA Lib "ws2_32" Alias "inet_pton" (ByVal Family As Long, ByVal pszAddrString As String, pAddrBuf As Any) As Long
+    Public Declare PtrSafe Function InetPtonW Lib "ws2_32" (ByVal Family As Long, ByVal pszAddrString As LongPtr, pAddrBuf As Any) As Long
+    Public DeclareWide PtrSafe Function InetPton Lib "ws2_32" Alias "InetPtonW" (ByVal Family As Long, ByVal pszAddrString As String, pAddrBuf As Any) As Long
+    Public Declare PtrSafe Function inet_ntop Lib "ws2_32" (ByVal Family As Long, pAddr As Any, ByVal pStringBuf As String, ByVal StringBufSize As LongPtr) As LongPtr
+    Public Declare PtrSafe Function InetNtopA Lib "ws2_32" Alias "inet_ntop" (ByVal Family As Long, pAddr As Any, ByVal pStringBuf As String, ByVal StringBufSize As LongPtr) As LongPtr
+    Public Declare PtrSafe Function InetNtopW Lib "ws2_32" (ByVal Family As Long, pAddr As Any, ByVal pStringBuf As LongPtr, ByVal StringBufSize As LongPtr) As LongPtr
+    Public DeclareWide PtrSafe Function InetNtop Lib "ws2_32" Alias "InetNtopW" (ByVal Family As Long, pAddr As Any, ByVal pStringBuf As String, ByVal StringBufSize As LongPtr) As LongPtr
+    
+    Public Const GAI_STRERROR_BUFFER_SIZE = 1024
+    Public Function gai_strerrorA(ByVal ecode As Long) As String
+        gai_strerrorA = String$(GAI_STRERROR_BUFFER_SIZE + 1, 0)
+        
+        Dim ret As Long = FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM Or _
+                                      FORMAT_MESSAGE_IGNORE_INSERTS Or _
+                                      FORMAT_MESSAGE_MAX_WIDTH_MASK, _
+                                      ByVal vbNullPtr, _
+                                      ecode, _
+                                      MAKELANGID(CInt(LANG_NEUTRAL), SUBLANG_DEFAULT), _
+                                      gai_strerrorA, _
+                                      GAI_STRERROR_BUFFER_SIZE)
+        If ret Then
+            gai_strerrorA = Left$(gai_strerrorA, ret)
+        End If
+        
+    End Function
+    Public Function gai_strerrorW(ByVal ecode As Long) As String
+        gai_strerrorW = String$(GAI_STRERROR_BUFFER_SIZE + 1, 0)
+        
+        Dim ret As Long = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM Or _
+                                      FORMAT_MESSAGE_IGNORE_INSERTS Or _
+                                      FORMAT_MESSAGE_MAX_WIDTH_MASK, _
+                                      ByVal vbNullPtr, _
+                                      ecode, _
+                                      MAKELANGID(CInt(LANG_NEUTRAL), SUBLANG_DEFAULT), _
+                                      gai_strerrorW, _
+                                      GAI_STRERROR_BUFFER_SIZE)
+        If ret Then
+            gai_strerrorW = Left$(gai_strerrorW, ret)
+        End If
+        
+    End Function
+    Public Function gai_strerror(ByVal ecode As Long) As String
+        gai_strerror = String$(GAI_STRERROR_BUFFER_SIZE + 1, 0)
+        
+        Dim ret As Long = FormatMessage(FORMAT_MESSAGE_FROM_SYSTEM Or _
+                                      FORMAT_MESSAGE_IGNORE_INSERTS Or _
+                                      FORMAT_MESSAGE_MAX_WIDTH_MASK, _
+                                      ByVal vbNullPtr, _
+                                      ecode, _
+                                      MAKELANGID(CInt(LANG_NEUTRAL), SUBLANG_DEFAULT), _
+                                      gai_strerror, _
+                                      GAI_STRERROR_BUFFER_SIZE)
+        If ret Then
+            gai_strerror = Left$(gai_strerror, ret)
+        End If
+    End Function
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    ' #If WDL_NO_DELEGATES Then
+    Public Declare PtrSafe Function WSASetSocketSecurity Lib "FWPUCLNT.DLL" (ByVal Socket As LongPtr, SecuritySettings As SOCKET_SECURITY_SETTINGS, ByVal SecuritySettingsLen As Long, Overlapped As WSAOVERLAPPED, Optional ByVal CompletionRoutine As LongPtr) As Long
+    Public Declare PtrSafe Function WSAQuerySocketSecurity Lib "FWPUCLNT.DLL" (ByVal Socket As LongPtr, SecurityQueryTemplate As SOCKET_SECURITY_QUERY_TEMPLATE, ByVal SecurityQueryTemplateLen As Long, SecurityQueryInfo As Any, SecurityQueryInfoLen As Long, Overlapped As WSAOVERLAPPED, Optional ByVal CompletionRoutine As LongPtr) As Long
+    Public Declare PtrSafe Function WSASetSocketPeerTargetName Lib "FWPUCLNT.DLL" (ByVal Socket As LongPtr, PeerTargetName As Any, ByVal PeerTargetNameLen As Long, Overlapped As WSAOVERLAPPED, Optional ByVal CompletionRoutine As LongPtr) As Long
+    Public Declare PtrSafe Function WSADeleteSocketPeerTargetName Lib "FWPUCLNT.DLL" (ByVal Socket As LongPtr, PeerAddr As SOCKADDR, ByVal PeerAddrLen As Long, Overlapped As WSAOVERLAPPED, Optional ByVal CompletionRoutine As LongPtr) As Long
+    ' #Else
+    ' Public Declare PtrSafe Function WSASetSocketSecurity Lib "FWPUCLNT.DLL" (ByVal Socket As LongPtr, SecuritySettings As SOCKET_SECURITY_SETTINGS, ByVal SecuritySettingsLen As Long, Overlapped As WSAOVERLAPPED, Optional ByVal CompletionRoutine As WsaOverlappedCompletionRoutine) As Long
+    ' Public Declare PtrSafe Function WSAQuerySocketSecurity Lib "FWPUCLNT.DLL" (ByVal Socket As LongPtr, SecurityQueryTemplate As SOCKET_SECURITY_QUERY_TEMPLATE, ByVal SecurityQueryTemplateLen As Long, SecurityQueryInfo As Any, SecurityQueryInfoLen as Long, Overlapped As WSAOVERLAPPED, Optional ByVal CompletionRoutine As WsaOverlappedCompletionRoutine) As Long
+    ' Public Declare PtrSafe Function WSASetSocketPeerTargetName Lib "FWPUCLNT.DLL" (ByVal Socket As LongPtr, PeerTargetName As Any, byval PeerTargetNameLen As Long, Overlapped As WSAOVERLAPPED, Optional ByVal CompletionRoutine As WsaOverlappedCompletionRoutine) As Long
+    ' Public Declare PtrSafe Function WSADeleteSocketPeerTargetName Lib "FWPUCLNT.DLL" (ByVal Socket As LongPtr, PeerAddr As SOCKADDR, ByVal PeerAddrLen As Long, Overlapped As WSAOVERLAPPED, Optional ByVal CompletionRoutine As WsaOverlappedCompletionRoutine) As Long
+    ' #End If    
+    Public Declare PtrSafe Function WSAImpersonateSocketPeer Lib "FWPUCLNT.DLL" (ByVal Socket As LongPtr, PeerAddr As SOCKADDR, ByVal PeerAddrLen As Long) As Long
+    Public Declare PtrSafe Function WSARevertImpersonation Lib "FWPUCLNT.DLL" () As Long
+    
+    #End Region
+    
+    
+    #Region "ws2ipdef"
+    
+    'ws2ipdef.h
+    
+    Public Type sockaddr_in6_old
+        sin6_family As Integer ' AF_INET6.
+        sin6_port As Integer ' Transport level port number.
+        sin6_flowinfo As Long ' IPv6 flow information.
+        sin6_addr As IN6_ADDR ' IPv6 address.
+    End Type
+    
+    ' typedef union sockaddr_gen {
+    ' struct sockaddr Address;
+    ' struct sockaddr_in AddressIn;
+    ' struct sockaddr_in6_old AddressIn6;
+' } sockaddr_gen;
+    Public Type sockaddr_gen
+        Address(23) As Byte
+    End Type
+    
+    Public Type INTERFACE_INFO
+        iiFlags As Ws2InterfaceInfoFlags ' Interface flags.
+        iiAddress As sockaddr_gen ' Interface address.
+        iiBroadcastAddress As sockaddr_gen ' Broadcast address.
+        iiNetmask As sockaddr_gen ' Network mask.
+    End Type
+    
+    Public Type INTERFACE_INFO_EX
+        iiFlags As Ws2InterfaceInfoFlags ' Interface flags.
+        iiAddress As SOCKET_ADDRESS ' Interface address.
+        iiBroadcastAddress As SOCKET_ADDRESS ' Broadcast address.
+        iiNetmask As SOCKET_ADDRESS ' Network mask.
+    End Type
+    
+    Public Enum Ws2InterfaceInfoFlags
+        IFF_UP = &H00000001  ' Interface is up.
+        IFF_BROADCAST = &H00000002  ' Broadcast is  supported.
+        IFF_LOOPBACK = &H00000004  ' This is loopback interface.
+        IFF_POINTTOPOINT = &H00000008  ' This is point-to-point interface.
+        IFF_MULTICAST = &H00000010  ' Multicast is supported.
+    End Enum
+    
+    Public Enum PMTUD_STATE
+        IP_PMTUDISC_NOT_SET
+        IP_PMTUDISC_DO
+        IP_PMTUDISC_DONT
+        IP_PMTUDISC_PROBE
+        IP_PMTUDISC_MAX
+    End Enum
+    
+    
+    Public Enum WS_IP_OPTIONS
+        IP_OPTIONS = 1  ' Set/get IP options.
+        IP_HDRINCL = 2  ' Header is included with data.
+        IP_TOS = 3  ' IP type of service.
+        IP_TTL = 4  ' IP TTL (hop limit).
+        IP_MULTICAST_IF = 9  ' IP multicast interface.
+        IP_MULTICAST_TTL = 10  ' IP multicast TTL (hop limit).
+        IP_MULTICAST_LOOP = 11  ' IP multicast loopback.
+        IP_ADD_MEMBERSHIP = 12  ' Add an IP group membership.
+        IP_DROP_MEMBERSHIP = 13  ' Drop an IP group membership.
+        IP_DONTFRAGMENT = 14  ' Don't fragment IP datagrams.
+        IP_ADD_SOURCE_MEMBERSHIP = 15  ' Join IP group/source.
+        IP_DROP_SOURCE_MEMBERSHIP = 16  ' Leave IP group/source.
+        IP_BLOCK_SOURCE = 17  ' Block IP group/source.
+        IP_UNBLOCK_SOURCE = 18  ' Unblock IP group/source.
+        IP_PKTINFO = 19  ' Receive packet information.
+        IP_HOPLIMIT = 21  ' Receive packet hop limit.
+        IP_RECVTTL = 21  ' Receive packet Time To Live (TTL).
+        IP_RECEIVE_BROADCAST = 22  ' Allow/block broadcast reception.
+        IP_RECVIF = 24  ' Receive arrival interface.
+        IP_RECVDSTADDR = 25  ' Receive destination address.
+        IP_IFLIST = 28  ' Enable/Disable an interface list.
+        IP_ADD_IFLIST = 29  ' Add an interface list entry.
+        IP_DEL_IFLIST = 30  ' Delete an interface list entry.
+        IP_UNICAST_IF = 31  ' IP unicast interface.
+        IP_RTHDR = 32  ' Set/get IPv6 routing header.
+        IP_GET_IFLIST = 33  ' Get an interface list.
+        IP_RECVRTHDR = 38  ' Receive the routing header.
+        IP_TCLASS = 39  ' Packet traffic class.
+        IP_RECVTCLASS = 40  ' Receive packet traffic class.
+        IP_RECVTOS = 40  ' Receive packet Type Of Service (TOS).
+        IP_ORIGINAL_ARRIVAL_IF = 47  ' Original Arrival Interface Index.
+        IP_ECN = 50  ' IP ECN codepoint.
+        IP_RECVECN = 50  ' Receive ECN codepoints in the IP header.
+        IP_PKTINFO_EX = 51  ' Receive extended packet information.
+        IP_WFP_REDIRECT_RECORDS = 60  ' WFP's Connection Redirect Records.
+        IP_WFP_REDIRECT_CONTEXT = 70  ' WFP's Connection Redirect Context.
+        IP_MTU_DISCOVER = 71  ' Set/get path MTU discover state.
+        IP_MTU = 73  ' Get path MTU.
+        IP_NRT_INTERFACE = 74  ' Set NRT interface constraint (outbound).
+        IP_RECVERR = 75  ' Receive ICMP errors.
+        IP_USER_MTU = 76  ' Set/get app defined upper bound IP layer MTU.
+        IP_UNSPECIFIED_TYPE_OF_SERVICE = -1
+        IP_UNSPECIFIED_USER_MTU = MAXULONG
+    End Enum
+    
+    Public Function IPV6_ADDRESS_BITS() As Long
+        Return RTL_BITS_OF(Of IN6_ADDR)(DCast(Of IN6_ADDR)(0))
+    End Function
+    
+    Public Type SOCKADDR_IN6_LH
+        sin6_family As ADDRESS_FAMILY ' AF_INET6.
+        sin6_port As Integer ' Transport level port number.
+        sin6_flowinfo As Long ' IPv6 flow information.
+        sin6_addr As IN6_ADDR ' IPv6 address.
+        'union {
+        sin6_scope_id As Long ' Set of interfaces for a scope.
+        '    SCOPE_ID sin6_scope_struct;
+        '};
+    End Type
+    
+    Public Type SOCKADDR_IN6_W2KSP1
+        sin6_family As Integer /* AF_INET6 */
+        sin6_port As Integer   /* Transport level port number */
+        sin6_flowinfo As Long  /* IPv6 flow information */
+        sin6_addr As IN6_ADDR  /* IPv6 address */
+        sin6_scope_id As Long  /* set of interfaces for a scope */
+    End Type
+    
+    ' typedef union _SOCKADDR_INET {
+    ' SOCKADDR_IN Ipv4;
+    ' SOCKADDR_IN6 Ipv6;
+    ' ADDRESS_FAMILY si_family;
+' } SOCKADDR_INET, *PSOCKADDR_INET;
+    Public Type SOCKADDR_INET
+        u(27) As Byte
+    End Type
+    
+    Public Type SOCKADDR_IN6_PAIR
+        SourceAddress As LongPtr 'PSOCKADDR_IN6
+        DestinationAddress As LongPtr 'PSOCKADDR_IN6
+    End Type
+    
+    Public Function SS_PORT(ByVal ssp As LongPtr) As Integer
+        Return CType(Of SOCKADDR_IN)(ssp).sin_port
+    End Function
+    
+    Public Function IN6ADDR_ANY_INIT() As IN6_ADDR
+        ' all zeros, default
+    End Function
+
+    Public Function IN6ADDR_LOOPBACK_INIT() As IN6_ADDR
+        IN6ADDR_LOOPBACK_INIT.u(7) = &H0100
+    End Function
+    
+    Public Function IN6ADDR_ALLNODESONNODE_INIT() As IN6_ADDR
+        ' bytes: ff,01, 00,00, 00,00, 00,00, 00,00, 00,00, 00,00, 00,01
+        IN6ADDR_ALLNODESONNODE_INIT.u(0) = &H01FF
+        IN6ADDR_ALLNODESONNODE_INIT.u(7) = &H0100
+    End Function
+
+    Public Function IN6ADDR_ALLNODESONLINK_INIT() As IN6_ADDR
+        ' bytes: ff,02, 00,00, 00,00, 00,00, 00,00, 00,00, 00,00, 00,01
+        IN6ADDR_ALLNODESONLINK_INIT.u(0) = &H02FF
+        IN6ADDR_ALLNODESONLINK_INIT.u(7) = &H0100
+    End Function
+
+    Public Function IN6ADDR_ALLROUTERSONLINK_INIT() As IN6_ADDR
+        ' bytes: ff,02, 00,00, 00,00, 00,00, 00,00, 00,00, 00,00, 00,02
+        IN6ADDR_ALLROUTERSONLINK_INIT.u(0) = &H02FF
+        IN6ADDR_ALLROUTERSONLINK_INIT.u(7) = &H0200
+    End Function
+
+    Public Function IN6ADDR_ALLMLDV2ROUTERSONLINK_INIT() As IN6_ADDR
+        ' bytes: ff,02, 00,00, 00,00, 00,00, 00,00, 00,00, 00,00, 00,16
+        IN6ADDR_ALLMLDV2ROUTERSONLINK_INIT.u(0) = &H02FF
+        IN6ADDR_ALLMLDV2ROUTERSONLINK_INIT.u(7) = &H1600
+    End Function
+
+    Public Function IN6ADDR_TEREDOINITIALLINKLOCALADDRESS_INIT() As IN6_ADDR
+        ' bytes: fe,80, 00,00, 00,00, 00,00, 00,00, ff,ff, ff,ff, ff,fe
+        IN6ADDR_TEREDOINITIALLINKLOCALADDRESS_INIT.u(0) = &H80FE
+        IN6ADDR_TEREDOINITIALLINKLOCALADDRESS_INIT.u(5) = &HFFFF
+        IN6ADDR_TEREDOINITIALLINKLOCALADDRESS_INIT.u(6) = &HFFFF
+        IN6ADDR_TEREDOINITIALLINKLOCALADDRESS_INIT.u(7) = &HFEFF
+    End Function
+
+    Public Function IN6ADDR_TEREDOOLDLINKLOCALADDRESSXP_INIT() As IN6_ADDR
+        ' bytes: fe,80, 00,00, 00,00, 00,00, 00,00, 'T','E', 'R','E', 'D','O'
+        ' 'T'=&H54, 'E'=&H45, 'R'=&H52, 'E'=&H45, 'D'=&H44, 'O'=&H4F
+        IN6ADDR_TEREDOOLDLINKLOCALADDRESSXP_INIT.u(0) = &H80FE
+        IN6ADDR_TEREDOOLDLINKLOCALADDRESSXP_INIT.u(5) = &H4554  ' 'T','E'
+        IN6ADDR_TEREDOOLDLINKLOCALADDRESSXP_INIT.u(6) = &H4552  ' 'R','E'
+        IN6ADDR_TEREDOOLDLINKLOCALADDRESSXP_INIT.u(7) = &H4F44  ' 'D','O'
+    End Function
+    
+    Public Function IN6ADDR_TEREDOOLDLINKLOCALADDRESSVISTA_INIT() As IN6_ADDR
+        ' bytes: fe,80, 00,00, 00,00, 00,00, 00,00, ff,ff, ff,ff, ff,ff
+        IN6ADDR_TEREDOOLDLINKLOCALADDRESSVISTA_INIT.u(0) = &H80FE
+        IN6ADDR_TEREDOOLDLINKLOCALADDRESSVISTA_INIT.u(5) = &HFFFF
+        IN6ADDR_TEREDOOLDLINKLOCALADDRESSVISTA_INIT.u(6) = &HFFFF
+        IN6ADDR_TEREDOOLDLINKLOCALADDRESSVISTA_INIT.u(7) = &HFFFF
+    End Function
+
+    Public Function IN6ADDR_LINKLOCALPREFIX_INIT() As IN6_ADDR
+        ' bytes: fe,80, ...
+        IN6ADDR_LINKLOCALPREFIX_INIT.u(0) = &H80FE
+    End Function
+
+    Public Function IN6ADDR_MULTICASTPREFIX_INIT() As IN6_ADDR
+        ' bytes: ff,00, ...
+        IN6ADDR_MULTICASTPREFIX_INIT.u(0) = &H00FF
+    End Function
+
+    Public Function IN6ADDR_SOLICITEDNODEMULTICASTPREFIX_INIT() As IN6_ADDR
+        ' bytes: ff,02, 00,00, 00,00, 00,00, 00,00, 00,01, ff,00, ...
+        IN6ADDR_SOLICITEDNODEMULTICASTPREFIX_INIT.u(0) = &H02FF
+        IN6ADDR_SOLICITEDNODEMULTICASTPREFIX_INIT.u(5) = &H0100
+        IN6ADDR_SOLICITEDNODEMULTICASTPREFIX_INIT.u(6) = &H00FF
+    End Function
+
+    Public Function IN6ADDR_V4MAPPEDPREFIX_INIT() As IN6_ADDR
+        ' bytes: 00,00, 00,00, 00,00, 00,00, 00,00, ff,ff, ...
+        IN6ADDR_V4MAPPEDPREFIX_INIT.u(5) = &HFFFF
+    End Function
+
+    Public Function IN6ADDR_6TO4PREFIX_INIT() As IN6_ADDR
+        ' bytes: 20,02, ...
+        IN6ADDR_6TO4PREFIX_INIT.u(0) = &H0220
+    End Function
+
+    Public Function IN6ADDR_TEREDOPREFIX_INIT() As IN6_ADDR
+        ' bytes: 20,01, 00,00, ...
+        IN6ADDR_TEREDOPREFIX_INIT.u(0) = &H0120
+    End Function
+
+    Public Function IN6ADDR_TEREDOPREFIX_INIT_OLD() As IN6_ADDR
+        ' bytes: 3f,fe, 83,1f, ...
+        IN6ADDR_TEREDOPREFIX_INIT_OLD.u(0) = &HFE3F
+        IN6ADDR_TEREDOPREFIX_INIT_OLD.u(1) = &H1F83
+    End Function
+
+    Public Function IN6ADDR_ULAPREFIX_INIT() As IN6_ADDR
+        ' bytes: fc, ...  (single byte, low byte of u(0) only)
+        IN6ADDR_ULAPREFIX_INIT.u(0) = &H00FC
+    End Function
+
+    Public Function IN6ADDR_SITELOCALPREFIX_INIT() As IN6_ADDR
+        ' bytes: fe,c0, ...
+        IN6ADDR_SITELOCALPREFIX_INIT.u(0) = &HC0FE
+    End Function
+
+    Public Function IN6ADDR_6BONETESTPREFIX_INIT() As IN6_ADDR
+        ' bytes: 3f,fe, ...
+        IN6ADDR_6BONETESTPREFIX_INIT.u(0) = &HFE3F
+    End Function
+
+    Public Const IN6ADDR_LINKLOCALPREFIX_LENGTH        As Long = 64
+    Public Const IN6ADDR_MULTICASTPREFIX_LENGTH        As Long = 8
+    Public Const IN6ADDR_SOLICITEDNODEMULTICASTPREFIX_LENGTH As Long = 104
+    Public Const IN6ADDR_V4MAPPEDPREFIX_LENGTH         As Long = 96
+    Public Const IN6ADDR_6TO4PREFIX_LENGTH             As Long = 16
+    Public Const IN6ADDR_TEREDOPREFIX_LENGTH           As Long = 32
+    
+    Public Function IN6_ADDR_EQUAL(x As IN6_ADDR, y As IN6_ADDR) As Boolean
+        Return CompareMemory(x, y, LenB(Of IN6_ADDR)) = LenB(Of IN6_ADDR)
+    End Function
+    
+    'TODO: inlined functions
+    
+    
+    
+    Public Const SIO_GET_INTERFACE_LIST = &H4004747f
+    Public Const SIO_GET_INTERFACE_LIST_EX = &H4004747e
+    Public Const SIO_SET_MULTICAST_FILTER = &H8004747d
+    Public Const SIO_GET_MULTICAST_FILTER = &H8004747c
+    
+    Public Const SIOCSIPMSFILTER  = SIO_SET_MULTICAST_FILTER
+    Public Const SIOCGIPMSFILTER  = SIO_GET_MULTICAST_FILTER
+    
+    Public Const SIOCSMSFILTER = &H8004747e
+    Public Const SIOCGMSFILTER = &H8004747f
+    Public Const SIO_IDEAL_SEND_BACKLOG_QUERY = &H4004747b
+    Public Const SIO_IDEAL_SEND_BACKLOG_CHANGE = &H2000747a
+    
+    Public Const MCAST_JOIN_GROUP  = 41  ' Join all sources for a group.
+    Public Const MCAST_LEAVE_GROUP  = 42  ' Drop all sources for a group.
+    Public Const MCAST_BLOCK_SOURCE  = 43  ' Block IP group/source.
+    Public Const MCAST_UNBLOCK_SOURCE  = 44  ' Unblock IP group/source.
+    Public Const MCAST_JOIN_SOURCE_GROUP  = 45  ' Join IP group/source.
+    Public Const MCAST_LEAVE_SOURCE_GROUP  = 46  ' Leave IP group/source.
+    
+    Public Enum MULTICAST_MODE_TYPE
+        MCAST_INCLUDE = 0
+        MCAST_EXCLUDE
+    End Enum
+    
+    Public Type IP_MREQ
+        imr_multiaddr As IN_ADDR ' IP multicast address of group.
+        imr_interface As IN_ADDR ' Local IP address of interface.
+    End Type
+    
+    Public Type IP_MREQ_SOURCE
+        imr_multiaddr As IN_ADDR ' IP multicast address of group.
+        imr_sourceaddr As IN_ADDR ' IP address of source.
+        imr_interface As IN_ADDR ' Local IP address of interface.
+    End Type
+    
+    Public Type IP_MSFILTER
+        imsf_multiaddr As IN_ADDR ' IP multicast address of group.
+        imsf_interface As IN_ADDR ' Local IP address of interface.
+        imsf_fmode As MULTICAST_MODE_TYPE ' Filter mode.
+        imsf_numsrc As Long ' Number of sources in src_list.
+        imsf_slist(0 To 0) As IN_ADDR ' Start of source list.
+    End Type
+    
+    Public Function IP_MSFILTER_SIZE(ByVal NumSources As Long) As Long
+        IP_MSFILTER_SIZE = LenB(Of IP_MSFILTER) - LenB(Of IN_ADDR) + NumSources * LenB(Of IN_ADDR)
+    End Function
+    
+    Public Enum WS_IPV6_OPTIONS
+        IPV6_HOPOPTS = 1  ' Set/get IPv6 hop-by-hop options.
+        IPV6_HDRINCL = 2  ' Header is included with data.
+        IPV6_UNICAST_HOPS = 4  ' IP unicast hop limit.
+        IPV6_MULTICAST_IF = 9  ' IP multicast interface.
+        IPV6_MULTICAST_HOPS = 10  ' IP multicast hop limit.
+        IPV6_MULTICAST_LOOP = 11  ' IP multicast loopback.
+        IPV6_ADD_MEMBERSHIP = 12  ' Add an IP group membership.
+        IPV6_JOIN_GROUP = IPV6_ADD_MEMBERSHIP
+        IPV6_DROP_MEMBERSHIP = 13  ' Drop an IP group membership.
+        IPV6_LEAVE_GROUP = IPV6_DROP_MEMBERSHIP
+        IPV6_DONTFRAG = 14  ' Don't fragment IP datagrams.
+        IPV6_PKTINFO = 19  ' Receive packet information.
+        IPV6_HOPLIMIT = 21  ' Receive packet hop limit.
+        IPV6_PROTECTION_LEVEL = 23  ' Set/get IPv6 protection level.
+        IPV6_RECVIF = 24  ' Receive arrival interface.
+        IPV6_RECVDSTADDR = 25  ' Receive destination address.
+        IPV6_CHECKSUM = 26  ' Offset to checksum for raw IP socket send.
+        IPV6_V6ONLY = 27  ' Treat wildcard bind as AF_INET6-only.
+        IPV6_IFLIST = 28  ' Enable/Disable an interface list.
+        IPV6_ADD_IFLIST = 29  ' Add an interface list entry.
+        IPV6_DEL_IFLIST = 30  ' Delete an interface list entry.
+        IPV6_UNICAST_IF = 31  ' IP unicast interface.
+        IPV6_RTHDR = 32  ' Set/get IPv6 routing header.
+        IPV6_GET_IFLIST = 33  ' Get an interface list.
+        IPV6_RECVRTHDR = 38  ' Receive the routing header.
+        IPV6_TCLASS = 39  ' Packet traffic class.
+        IPV6_RECVTCLASS = 40  ' Receive packet traffic class.
+        IPV6_ECN = 50  ' IPv6 ECN codepoint.
+        IPV6_RECVECN = 50  ' Receive ECN codepoints in the IPv6 header.
+        IPV6_PKTINFO_EX = 51  ' Receive extended packet information.
+        IPV6_WFP_REDIRECT_RECORDS = 60  ' WFP's Connection Redirect Records
+        IPV6_WFP_REDIRECT_CONTEXT = 70  ' WFP's Connection Redirect Context
+        IPV6_MTU_DISCOVER = 71  ' Set/get path MTU discover state.
+        IPV6_MTU = 72  ' Get path MTU.
+        IPV6_NRT_INTERFACE = 74  ' Set NRT interface constraint (outbound).
+        IPV6_RECVERR = 75  ' Receive ICMPv6 errors.
+        IPV6_USER_MTU = 76  ' Set/get app defined upper bound IP layer MTU.
+    End Enum
+    
+    Public Const IP_UNSPECIFIED_HOP_LIMIT  = -1
+    Public Const IP_PROTECTION_LEVEL  = IPV6_PROTECTION_LEVEL
+    
+    Public Const PROTECTION_LEVEL_UNRESTRICTED  = 10  ' For peer-to-peer apps.
+    Public Const PROTECTION_LEVEL_EDGERESTRICTED  = 20  ' Same as unrestricted. Except for
+    '  Teredo.
+    Public Const PROTECTION_LEVEL_RESTRICTED  = 30  ' For Intranet apps.
+    Public Const PROTECTION_LEVEL_DEFAULT As Long = (-1&)
+    
+    Public Type IPV6_MREQ
+        ipv6mr_multiaddr As IN6_ADDR ' IPv6 multicast address.
+        ipv6mr_interface As Long ' Interface index.
+    End Type
+    
+    Public Type GROUP_REQ
+        gr_interface As Long ' Interface index.
+        gr_group As SOCKADDR_STORAGE ' Multicast address.
+    End Type
+    
+    Public Type GROUP_SOURCE_REQ
+        gsr_interface As Long ' Interface index.
+        gsr_group As SOCKADDR_STORAGE ' Group address.
+        gsr_source As SOCKADDR_STORAGE ' Source address.
+    End Type
+    
+    Public Type GROUP_FILTER
+        gf_interface As Long ' Interface index.
+        gf_group As SOCKADDR_STORAGE ' Multicast address.
+        gf_fmode As MULTICAST_MODE_TYPE ' Filter mode.
+        gf_numsrc As Long ' Number of sources.
+        gf_slist(0 To 0) As SOCKADDR_STORAGE ' Source address.
+    End Type
+    
+    Public Function GROUP_FILTER_SIZE(ByVal numsrc As Long) As Long
+        GROUP_FILTER_SIZE = LenB(Of GROUP_FILTER) - LenB(Of SOCKADDR_STORAGE) + numsrc * LenB(Of SOCKADDR_STORAGE)
+    End Function
+    
+    Public Type IN_PKTINFO
+        ipi_addr As IN_ADDR ' Source/destination IPv4 address.
+        ipi_ifindex As Long ' Send/receive interface index.
+    End Type
+    
+    Public Type IN6_PKTINFO
+        ipi6_addr As IN6_ADDR ' Source/destination IPv6 address.
+        ipi6_ifindex As Long ' Send/receive interface index.
+    End Type
+    
+    Public Type IN_PKTINFO_EX
+        pkt_info As IN_PKTINFO
+        scope_id As SCOPE_ID
+    End Type
+    
+    Public Type IN6_PKTINFO_EX
+        pkt_info As IN6_PKTINFO
+        scope_id As SCOPE_ID
+    End Type
+    
+    Public Type IN_RECVERR
+        protocol As IPPROTO ' IPPROTO_ICMP or IPPROTO_ICMPV6.
+        info As Long ' MTU if frag needed or pkt too big message.
+        type As Byte
+        code As Byte
+    End Type
+    
+    Public Const INET_ADDRSTRLEN  = 22
+    Public Const INET6_ADDRSTRLEN  = 65
+    '  Options to use with [gs]etsockopt at the IPPROTO_TCP level.
+    '  TCP_NODELAY is defined in ws2def.h for historical reasons.
+    '  Offload preferences supported.
+    Public Const TCP_OFFLOAD_NO_PREFERENCE  = 0
+    Public Const TCP_OFFLOAD_NOT_PREFERRED  = 1
+    Public Const TCP_OFFLOAD_PREFERRED  = 2
+    
+    Public Const TCP_EXPEDITED_1122  = &H0002
+    Public Const TCP_KEEPALIVE  = 3
+    Public Const TCP_MAXSEG  = 4
+    Public Const TCP_MAXRT  = 5
+    Public Const TCP_STDURG  = 6
+    Public Const TCP_NOURG  = 7
+    Public Const TCP_ATMARK  = 8
+    Public Const TCP_NOSYNRETRIES  = 9
+    Public Const TCP_TIMESTAMPS  = 10
+    Public Const TCP_OFFLOAD_PREFERENCE  = 11
+    Public Const TCP_CONGESTION_ALGORITHM  = 12
+    Public Const TCP_DELAY_FIN_ACK  = 13
+    Public Const TCP_MAXRTMS  = 14
+    Public Const TCP_FASTOPEN  = 15
+    Public Const TCP_KEEPCNT  = 16
+    Public Const TCP_KEEPIDLE  = TCP_KEEPALIVE
+    Public Const TCP_KEEPINTVL  = 17
+    Public Const TCP_FAIL_CONNECT_ON_ICMP_ERROR  = 18
+    Public Const TCP_ICMP_ERROR_INFO  = 19
+    
+    Public Type ICMP_ERROR_INFO
+        srcaddress As SOCKADDR_INET
+        protocol As IPPROTO
+        type As Byte
+        code As Byte
+    End Type
+    
+    '       UDP_NOCHECKSUM              1
+    Public Const UDP_SEND_MSG_SIZE  = 2
+    Public Const UDP_RECV_MAX_COALESCED_SIZE  = 3
+    '       UDP_CHECKSUM_COVERAGE       20
+    
+    Public Const UDP_COALESCED_INFO = 3
+    
+    
+    #End Region
+    
+    #Region "ws2atm.h"
+    Public Const ATMPROTO_AALUSER           = &H00   /* User-defined AAL */
+    Public Const ATMPROTO_AAL1              = &H01   /* AAL 1 */
+    Public Const ATMPROTO_AAL2              = &H02   /* AAL 2 */
+    Public Const ATMPROTO_AAL34             = &H03   /* AAL 3/4 */
+    Public Const ATMPROTO_AAL5              = &H05   /* AAL 5 */
+
+    Public Const SAP_FIELD_ABSENT           = &HFFFFFFFE
+    Public Const SAP_FIELD_ANY              = &HFFFFFFFF
+    Public Const SAP_FIELD_ANY_AESA_SEL     = &HFFFFFFFA
+    Public Const SAP_FIELD_ANY_AESA_REST    = &HFFFFFFFB
+
+    /*
+     *  values used for AddressType in struct ATM_ADDRESS
+     */
+    Public Const ATM_E164               = &H01   /* E.164 addressing scheme */
+    Public Const ATM_NSAP               = &H02   /* NSAP-style ATM Endsystem Address scheme */
+    Public Const ATM_AESA               = &H02   /* NSAP-style ATM Endsystem Address scheme */
+
+    Public Const ATM_ADDR_SIZE          = 20
+    Public Type ATM_ADDRESS
+        AddressType As Long '* E.164 or NSAP-style ATM Endsystem Address */
+        NumofDigits As Long '* number of digits; */
+        Addr(0 To (ATM_ADDR_SIZE - 1)) As Byte '* IA5 digits for E164, BCD encoding for NSAP */
+        '* format as defined in the ATM Forum UNI 3.1 */
+    End Type
+    
+    /*
+    *  values used for Layer2Protocol in B-LLI
+    */
+   Public Const BLLI_L2_ISO_1745           = &H01   /* Basic mode ISO 1745                      */
+   Public Const BLLI_L2_Q921               = &H02   /* CCITT Rec. Q.921                         */
+   Public Const BLLI_L2_X25L               = &H06   /* CCITT Rec. X.25, link layer              */
+   Public Const BLLI_L2_X25M               = &H07   /* CCITT Rec. X.25, multilink               */
+   Public Const BLLI_L2_ELAPB              = &H08   /* Extended LAPB; for half duplex operation */
+   Public Const BLLI_L2_HDLC_ARM           = &H09   /* HDLC ARM (ISO 4335)                      */
+   Public Const BLLI_L2_HDLC_NRM           = &H0A   /* HDLC NRM (ISO 4335)                      */
+   Public Const BLLI_L2_HDLC_ABM           = &H0B   /* HDLC ABM (ISO 4335)                      */
+   Public Const BLLI_L2_LLC                = &H0C   /* LAN logical link control (ISO 8802/2)    */
+   Public Const BLLI_L2_X75                = &H0D   /* CCITT Rec. X.75, single link procedure   */
+   Public Const BLLI_L2_Q922               = &H0E   /* CCITT Rec. Q.922                         */
+   Public Const BLLI_L2_USER_SPECIFIED     = &H10   /* User Specified                           */
+   Public Const BLLI_L2_ISO_7776           = &H11   /* ISO 7776 DTE-DTE operation               */
+
+   /*
+    *  values used for Layer3Protocol in B-LLI
+    */
+   Public Const BLLI_L3_X25                = &H06   /* CCITT Rec. X.25, packet layer            */
+   Public Const BLLI_L3_ISO_8208           = &H07   /* ISO/IEC 8208 (X.25 packet layer for DTE  */
+   Public Const BLLI_L3_X223               = &H08   /* X.223/ISO 8878                           */
+   Public Const BLLI_L3_SIO_8473           = &H09   /* ISO/IEC 8473 (OSI connectionless)        */
+   Public Const BLLI_L3_T70                = &H0A   /* CCITT Rec. T.70 min. network layer       */
+   Public Const BLLI_L3_ISO_TR9577         = &H0B   /* ISO/IEC TR 9577 Network Layer Protocol ID*/
+   Public Const BLLI_L3_USER_SPECIFIED     = &H10   /* User Specified                           */
+
+   /*
+    *  values used for Layer3IPI in B-LLI
+    */
+   Public Const BLLI_L3_IPI_SNAP           = &H80   /* IEEE 802.1 SNAP identifier               */
+   Public Const BLLI_L3_IPI_IP             = &HCC   /* Internet Protocol (IP) identifier        */
+    
+    Public Type ATM_BLLI
+        Layer2Protocol As Long '* User information layer 2 protocol           */
+        Layer2UserSpecifiedProtocol As Long '* User specified layer 2 protocol information */
+        Layer3Protocol As Long '* User information layer 3 protocol           */
+        Layer3UserSpecifiedProtocol As Long '* User specified layer 3 protocol information */
+        Layer3IPI As Long '* ISO/IEC TR 9577 Initial Protocol Identifier */
+        SnapID(0 To 4) As Byte '* SNAP ID consisting of OUI and PID           */
+    End Type
+    
+    /*
+    *  values used for the HighLayerInfoType field in ATM_BHLI
+    */
+   Public Const BHLI_ISO                   = &H00   /* ISO                                 */
+   Public Const BHLI_UserSpecific          = &H01   /* User Specific                       */
+   Public Const BHLI_HighLayerProfile      = &H02   /* High layer profile (only in UNI3.0) */
+   Public Const BHLI_VendorSpecificAppId   = &H03   /* Vendor-Specific Application ID      */
+    
+   Public Type ATM_BHLI
+    HighLayerInfoType As Long '* High Layer Information Type      */
+    HighLayerInfoLength As Long '* number of bytes in HighLayerInfo */
+    HighLayerInfo(0 To 7) As Byte '* the value dependent on the       */
+    '*   HighLayerInfoType field        */
+    End Type
+    
+   Public Type SOCKADDR_ATM
+        satm_family As Integer '* address family should be AF_ATM  */
+        satm_number As ATM_ADDRESS '* ATM address                      */
+        satm_blli As ATM_BLLI '* B-LLI                            */
+        satm_bhli As ATM_BHLI '* B-HLI                            */
+    End Type
+    
+    Public Enum Q2931_IE_TYPE
+        IE_AALParameters
+        IE_TrafficDescriptor
+        IE_BroadbandBearerCapability
+        IE_BHLI
+        IE_BLLI
+        IE_CalledPartyNumber
+        IE_CalledPartySubaddress
+        IE_CallingPartyNumber
+        IE_CallingPartySubaddress
+        IE_Cause
+        IE_QOSClass
+        IE_TransitNetworkSelection
+    End Enum
+    
+    Public Type Q2931_IE
+        IEType As Q2931_IE_TYPE
+        IELength As Long
+        IE(0 To 0) As Byte
+    End Type
+    
+    /*
+    *  manifest constants for the AALType field in struct AAL_PARAMETERS_IE
+    */
+    Public Enum AAL_TYPE
+        AALTYPE_5 = 5 ' AAL 5 */
+        AALTYPE_USER = 16 ' user-defined AAL */
+    End Enum
+    
+    /*
+    *  values used for the Mode field in struct AAL5_PARAMETERS
+    */
+   Public Const AAL5_MODE_MESSAGE           = &H01
+   Public Const AAL5_MODE_STREAMING         = &H02
+
+   /*
+    *  values used for the SSCSType field in struct AAL5_PARAMETERS
+    */
+   Public Const AAL5_SSCS_NULL              = &H00
+   Public Const AAL5_SSCS_SSCOP_ASSURED     = &H01
+   Public Const AAL5_SSCS_SSCOP_NON_ASSURED = &H02
+   Public Const AAL5_SSCS_FRAME_RELAY       = &H04
+    
+   Public Type AAL5_PARAMETERS
+        ForwardMaxCPCSSDUSize As Long
+        BackwardMaxCPCSSDUSize As Long
+        Mode As Byte '* only available in UNI 3.0 */
+        SSCSType As Byte
+    End Type
+    
+    Public Type AALUSER_PARAMETERS
+        UserDefined As Long
+    End Type
+    
+    Public Type AAL_PARAMETERS_IE
+        AALType As AAL_TYPE
+        'union {
+        '    AAL5_PARAMETERS     AAL5Parameters;
+        '    AALUSER_PARAMETERS  AALUserParameters;
+        '} AALSpecificParameters;
+        AALSpecificParameters(11) As Byte
+    End Type
+    
+    Public Type ATM_TD
+        PeakCellRate_CLP0 As Long
+        PeakCellRate_CLP01 As Long
+        SustainableCellRate_CLP0 As Long
+        SustainableCellRate_CLP01 As Long
+        MaxBurstSize_CLP0 As Long
+        MaxBurstSize_CLP01 As Long
+        Tagging As BOOL
+    End Type
+    
+    Public Type ATM_TRAFFIC_DESCRIPTOR_IE
+        Forward As ATM_TD
+        Backward As ATM_TD
+        BestEffort As BOOL
+    End Type
+    
+    /*
+    *  values used for the BearerClass field in struct ATM_BROADBAND_BEARER_CAPABILITY_IE
+    */
+   Public Const BCOB_A                   = &H01   /* Bearer class A                      */
+   Public Const BCOB_C                   = &H03   /* Bearer class C                      */
+   Public Const BCOB_X                   = &H10   /* Bearer class X                      */
+
+   /*
+    *  values used for the TrafficType field in struct ATM_BROADBAND_BEARER_CAPABILITY_IE
+    */
+   Public Const TT_NOIND                 = &H00   /* No indication of traffic type       */
+   Public Const TT_CBR                   = &H04   /* Constant bit rate                   */
+   Public Const TT_VBR                   = &H08   /* Variable bit rate                   */
+
+   /*
+    *  values used for the TimingRequirements field in struct ATM_BROADBAND_BEARER_CAPABILITY_IE
+    */
+   Public Const TR_NOIND                 = &H00   /* No timing requirement indication    */
+   Public Const TR_END_TO_END            = &H01   /* End-to-end timing required          */
+   Public Const TR_NO_END_TO_END         = &H02   /* End-to-end timing not required      */
+
+   /*
+    *  values used for the ClippingSusceptability field in struct ATM_BROADBAND_BEARER_CAPABILITY_IE
+    */
+   Public Const CLIP_NOT                 = &H00   /* Not susceptible to clipping         */
+   Public Const CLIP_SUS                 = &H20   /* Susceptible to clipping             */
+
+   /*
+    *  values used for the UserPlaneConnectionConfig field in
+    *  struct ATM_BROADBAND_BEARER_CAPABILITY_IE
+    */
+   Public Const UP_P2P                   = &H00   /* Point-to-point connection           */
+   Public Const UP_P2MP                  = &H01   /* Point-to-multipoint connection      */
+    
+   Public Type ATM_BROADBAND_BEARER_CAPABILITY_IE
+        BearerClass As Byte
+        TrafficType As Byte
+        TimingRequirements As Byte
+        ClippingSusceptability As Byte
+        UserPlaneConnectionConfig As Byte
+    End Type
+    
+    ' Public Alias ATM_BHLI_IE As ATM_BHLI
+    
+    /*
+    *  values used for the Layer2Mode field in struct ATM_BLLI_IE
+    */
+   Public Const BLLI_L2_MODE_NORMAL         = &H40
+   Public Const BLLI_L2_MODE_EXT            = &H80
+
+   /*
+    *  values used for the Layer3Mode field in struct ATM_BLLI_IE
+    */
+   Public Const BLLI_L3_MODE_NORMAL         = &H40
+   Public Const BLLI_L3_MODE_EXT            = &H80
+
+   /*
+    *  values used for the Layer3DefaultPacketSize field in struct ATM_BLLI_IE
+    */
+   Public Const BLLI_L3_PACKET_16           = &H04
+   Public Const BLLI_L3_PACKET_32           = &H05
+   Public Const BLLI_L3_PACKET_64           = &H06
+   Public Const BLLI_L3_PACKET_128          = &H07
+   Public Const BLLI_L3_PACKET_256          = &H08
+   Public Const BLLI_L3_PACKET_512          = &H09
+   Public Const BLLI_L3_PACKET_1024         = &H0A
+   Public Const BLLI_L3_PACKET_2048         = &H0B
+   Public Const BLLI_L3_PACKET_4096         = &H0C
+    
+   Public Type ATM_BLLI_IE
+        Layer2Protocol As Long '* User information layer 2 protocol           */
+        Layer2Mode As Byte
+        Layer2WindowSize As Byte
+        Layer2UserSpecifiedProtocol As Long '* User specified layer 2 protocol information */
+        Layer3Protocol As Long '* User information layer 3 protocol           */
+        Layer3Mode As Byte
+        Layer3DefaultPacketSize As Byte
+        Layer3PacketWindowSize As Byte
+        Layer3UserSpecifiedProtocol As Long '* User specified layer 3 protocol information */
+        Layer3IPI As Long '* ISO/IEC TR 9577 Initial Protocol Identifier */
+        SnapID(0 To 4) As Byte '* SNAP ID consisting of OUI and PID           */
+    End Type
+    
+    ' Public Alias ATM_CALLED_PARTY_NUMBER_IE as ATM_ADDRESS   
+    ' Public Alias ATM_CALLED_PARTY_SUBADDRESS_IE As ATM_ADDRESS
+    
+    /*
+    *  values used for the Presentation_Indication field in
+    *  struct ATM_CALLING_PARTY_NUMBER_IE
+    */
+   Public Const PI_ALLOWED                  = &H00
+   Public Const PI_RESTRICTED               = &H40
+   Public Const PI_NUMBER_NOT_AVAILABLE     = &H80
+
+   /*
+    *  values used for the Screening_Indicator field in
+    *  struct ATM_CALLING_PARTY_NUMBER_IE
+    */
+   Public Const SI_USER_NOT_SCREENED        = &H00
+   Public Const SI_USER_PASSED              = &H01
+   Public Const SI_USER_FAILED              = &H02
+   Public Const SI_NETWORK                  = &H03
+    
+    
+   Public Type ATM_CALLING_PARTY_NUMBER_IE
+        ATM_Number As ATM_ADDRESS
+        Presentation_Indication As Byte
+        Screening_Indicator As Byte
+    End Type
+    
+    ' Public Alias ATM_CALLING_PARTY_SUBADDRESS_IE as ATM_ADDRESS
+    
+    /*
+    *  values used for the Location field in struct ATM_CAUSE_IE
+    */
+   Public Const CAUSE_LOC_USER                      = &H00
+   Public Const CAUSE_LOC_PRIVATE_LOCAL             = &H01
+   Public Const CAUSE_LOC_PUBLIC_LOCAL              = &H02
+   Public Const CAUSE_LOC_TRANSIT_NETWORK           = &H03
+   Public Const CAUSE_LOC_PUBLIC_REMOTE             = &H04
+   Public Const CAUSE_LOC_PRIVATE_REMOTE            = &H05
+   Public Const CAUSE_LOC_INTERNATIONAL_NETWORK     = &H07
+   Public Const CAUSE_LOC_BEYOND_INTERWORKING       = &H0A
+
+   /*
+    *  values used for the Cause field in struct ATM_CAUSE_IE
+    */
+   Public Const CAUSE_UNALLOCATED_NUMBER                = &H01
+   Public Const CAUSE_NO_ROUTE_TO_TRANSIT_NETWORK       = &H02
+   Public Const CAUSE_NO_ROUTE_TO_DESTINATION           = &H03
+   Public Const CAUSE_VPI_VCI_UNACCEPTABLE              = &H0A
+   Public Const CAUSE_NORMAL_CALL_CLEARING              = &H10
+   Public Const CAUSE_USER_BUSY                         = &H11
+   Public Const CAUSE_NO_USER_RESPONDING                = &H12
+   Public Const CAUSE_CALL_REJECTED                     = &H15
+   Public Const CAUSE_NUMBER_CHANGED                    = &H16
+   Public Const CAUSE_USER_REJECTS_CLIR                 = &H17
+   Public Const CAUSE_DESTINATION_OUT_OF_ORDER          = &H1B
+   Public Const CAUSE_INVALID_NUMBER_FORMAT             = &H1C
+   Public Const CAUSE_STATUS_ENQUIRY_RESPONSE           = &H1E
+   Public Const CAUSE_NORMAL_UNSPECIFIED                = &H1F
+   Public Const CAUSE_VPI_VCI_UNAVAILABLE               = &H23
+   Public Const CAUSE_NETWORK_OUT_OF_ORDER              = &H26
+   Public Const CAUSE_TEMPORARY_FAILURE                 = &H29
+   Public Const CAUSE_ACCESS_INFORMAION_DISCARDED       = &H2B
+   Public Const CAUSE_NO_VPI_VCI_AVAILABLE              = &H2D
+   Public Const CAUSE_RESOURCE_UNAVAILABLE              = &H2F
+   Public Const CAUSE_QOS_UNAVAILABLE                   = &H31
+   Public Const CAUSE_USER_CELL_RATE_UNAVAILABLE        = &H33
+   Public Const CAUSE_BEARER_CAPABILITY_UNAUTHORIZED    = &H39
+   Public Const CAUSE_BEARER_CAPABILITY_UNAVAILABLE     = &H3A
+   Public Const CAUSE_OPTION_UNAVAILABLE                = &H3F
+   Public Const CAUSE_BEARER_CAPABILITY_UNIMPLEMENTED   = &H41
+   Public Const CAUSE_UNSUPPORTED_TRAFFIC_PARAMETERS    = &H49
+   Public Const CAUSE_INVALID_CALL_REFERENCE            = &H51
+   Public Const CAUSE_CHANNEL_NONEXISTENT               = &H52
+   Public Const CAUSE_INCOMPATIBLE_DESTINATION          = &H58
+   Public Const CAUSE_INVALID_ENDPOINT_REFERENCE        = &H59
+   Public Const CAUSE_INVALID_TRANSIT_NETWORK_SELECTION = &H5B
+   Public Const CAUSE_TOO_MANY_PENDING_ADD_PARTY        = &H5C
+   Public Const CAUSE_AAL_PARAMETERS_UNSUPPORTED        = &H5D
+   Public Const CAUSE_MANDATORY_IE_MISSING              = &H60
+   Public Const CAUSE_UNIMPLEMENTED_MESSAGE_TYPE        = &H61
+   Public Const CAUSE_UNIMPLEMENTED_IE                  = &H63
+   Public Const CAUSE_INVALID_IE_CONTENTS               = &H64
+   Public Const CAUSE_INVALID_STATE_FOR_MESSAGE         = &H65
+   Public Const CAUSE_RECOVERY_ON_TIMEOUT               = &H66
+   Public Const CAUSE_INCORRECT_MESSAGE_LENGTH          = &H68
+   Public Const CAUSE_PROTOCOL_ERROR                    = &H6F
+
+   /*
+    *  values used for the Condition portion of the Diagnostics field
+    *  in struct ATM_CAUSE_IE, for certain Cause values
+    */
+   Public Const CAUSE_COND_UNKNOWN                  = &H00
+   Public Const CAUSE_COND_PERMANENT                = &H01
+   Public Const CAUSE_COND_TRANSIENT                = &H02
+
+   /*
+    *  values used for the Rejection Reason portion of the Diagnostics field
+    *  in struct ATM_CAUSE_IE, for certain Cause values
+    */
+   Public Const CAUSE_REASON_USER                   = &H00
+   Public Const CAUSE_REASON_IE_MISSING             = &H04
+   Public Const CAUSE_REASON_IE_INSUFFICIENT        = &H08
+
+   /*
+    *  values used for the P-U flag of the Diagnostics field
+    *  in struct ATM_CAUSE_IE, for certain Cause values
+    */
+   Public Const CAUSE_PU_PROVIDER                   = &H00
+   Public Const CAUSE_PU_USER                       = &H08
+
+   /*
+    *  values used for the N-A flag of the Diagnostics field
+    *  in struct ATM_CAUSE_IE, for certain Cause values
+    */
+   Public Const CAUSE_NA_NORMAL                     = &H00
+   Public Const CAUSE_NA_ABNORMAL                   = &H04
+    
+   Public Type ATM_CAUSE_IE
+        Location As Byte
+        Cause As Byte
+        DiagnosticsLength As Byte
+        Diagnostics(0 To 3) As Byte
+    End Type
+    
+    /*
+    *  values used for the QOSClassForward and QOSClassBackward
+    *  field in struct ATM_QOS_CLASS_IE
+    */
+   Public Const QOS_CLASS0                  = &H00
+   Public Const QOS_CLASS1                  = &H01
+   Public Const QOS_CLASS2                  = &H02
+   Public Const QOS_CLASS3                  = &H03
+   Public Const QOS_CLASS4                  = &H04
+    
+   Public Type ATM_QOS_CLASS_IE
+        QOSClassForward As Byte
+        QOSClassBackward As Byte
+    End Type
+    
+    /*
+    *  values used for the TypeOfNetworkId field in struct ATM_TRANSIT_NETWORK_SELECTION_IE
+    */
+   Public Const TNS_TYPE_NATIONAL           = &H40
+
+   /*
+    *  values used for the NetworkIdPlan field in struct ATM_TRANSIT_NETWORK_SELECTION_IE
+    */
+   Public Const TNS_PLAN_CARRIER_ID_CODE    = &H01
+    
+    Public Type ATM_TRANSIT_NETWORK_SELECTION_IE
+        TypeOfNetworkId As Byte
+        NetworkIdPlan As Byte
+        NetworkIdLength As Byte
+        NetworkId(0 To 0) As Byte
+    End Type
+    
+    /*
+    *  ATM specific Ioctl codes
+    */
+   Public Const SIO_GET_NUMBER_OF_ATM_DEVICES   = &H50160001
+   Public Const SIO_GET_ATM_ADDRESS             = &Hd0160002
+   Public Const SIO_ASSOCIATE_PVC               = &H90160003
+   Public Const SIO_GET_ATM_CONNECTION_ID       = &H50160004
+
+    /* ATM Connection Identifier */
+    Public Type ATM_CONNECTION_ID
+        DeviceNumber As Long
+        VPI As Long
+        VCI As Long
+    End Type
+    
+    /*
+    * Input buffer format for SIO_ASSOCIATE_PVC
+    */
+    [PackingAlignment(4)]
+    Public Type ATM_PVC_PARAMS
+        PvcConnectionId As ATM_CONNECTION_ID
+        PvcQos As QOS
+    End Type
+    
+    
+    
     
     
     #End Region
     #End Region
+
+#Region "mstcpip.h"
     
+Public Function SOCKET_DEFAULT2_QM_POLICY() As UUID
+'{aec2ef9c-3a4d-4d3e-8842-239942e39a47}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Haec2ef9c, CInt(&H3a4d), CInt(&H4d3e), &H88, &H42, &H23, &H99, &H42, &He3, &H9a, &H47)
+ SOCKET_DEFAULT2_QM_POLICY = iid
+End Function
+Public Function REAL_TIME_NOTIFICATION_CAPABILITY() As UUID
+'{6b59819a-5cae-492d-a901-2a3c2c50164f}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H6b59819a, CInt(&H5cae), CInt(&H492d), &Ha9, &H01, &H2a, &H3c, &H2c, &H50, &H16, &H4f)
+ REAL_TIME_NOTIFICATION_CAPABILITY = iid
+End Function
+Public Function REAL_TIME_NOTIFICATION_CAPABILITY_EX() As UUID
+'{6843da03-154a-4616-a508-44371295f96b}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H6843da03, CInt(&H154a), CInt(&H4616), &Ha5, &H08, &H44, &H37, &H12, &H95, &Hf9, &H6b)
+ REAL_TIME_NOTIFICATION_CAPABILITY_EX = iid
+End Function
+Public Function ASSOCIATE_NAMERES_CONTEXT() As UUID
+'{59A38B67-D4FE-46E1-BA3C-87EA74CA3049}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H59A38B67, CInt(&HD4FE), CInt(&H46E1), &HBA, &H3C, &H87, &HEA, &H74, &HCA, &H30, &H49)
+ ASSOCIATE_NAMERES_CONTEXT = iid
+End Function
+
+Public Enum TCPSTATE
+    TCPSTATE_CLOSED
+    TCPSTATE_LISTEN
+    TCPSTATE_SYN_SENT
+    TCPSTATE_SYN_RCVD
+    TCPSTATE_ESTABLISHED
+    TCPSTATE_FIN_WAIT_1
+    TCPSTATE_FIN_WAIT_2
+    TCPSTATE_CLOSE_WAIT
+    TCPSTATE_CLOSING
+    TCPSTATE_LAST_ACK
+    TCPSTATE_TIME_WAIT
+    TCPSTATE_MAX
+End Enum
+
+[Description("This structure represents the key used in query and apply transport setting APIs.")]
+Public Type TRANSPORT_SETTING_ID
+    Guid As UUID
+End Type
+
+Public Type tcp_keepalive
+    onoff As Long
+    keepalivetime As Long
+    keepaliveinterval As Long
+End Type
+
+Public Enum CONTROL_CHANNEL_TRIGGER_STATUS
+    CONTROL_CHANNEL_TRIGGER_STATUS_INVALID = 0
+    CONTROL_CHANNEL_TRIGGER_STATUS_SOFTWARE_SLOT_ALLOCATED = 1
+    CONTROL_CHANNEL_TRIGGER_STATUS_HARDWARE_SLOT_ALLOCATED = 2
+    CONTROL_CHANNEL_TRIGGER_STATUS_POLICY_ERROR = 3
+    CONTROL_CHANNEL_TRIGGER_STATUS_SYSTEM_ERROR = 4
+    CONTROL_CHANNEL_TRIGGER_STATUS_TRANSPORT_DISCONNECTED = 5
+    CONTROL_CHANNEL_TRIGGER_STATUS_SERVICE_UNAVAILABLE = 6
+End Enum
+
+Public Const CONTROL_CHANNEL_TRIGGER_STATUS_MAX = CONTROL_CHANNEL_TRIGGER_STATUS_SYSTEM_ERROR
+
+Public Type REAL_TIME_NOTIFICATION_SETTING_INPUT
+    TransportSettingId As TRANSPORT_SETTING_ID
+    BrokerEventGuid As UUID
+End Type
+
+Public Type REAL_TIME_NOTIFICATION_SETTING_INPUT_EX
+    TransportSettingId As TRANSPORT_SETTING_ID
+    BrokerEventGuid As UUID
+    Unmark As CBoolean
+End Type
+
+Public Type REAL_TIME_NOTIFICATION_SETTING_OUTPUT
+    ChannelStatus As CONTROL_CHANNEL_TRIGGER_STATUS
+End Type
+
+Public Type ASSOCIATE_NAMERES_CONTEXT_INPUT
+    TransportSettingId As TRANSPORT_SETTING_ID
+    ' Stores Handle as UINT64 to keep size consistent accross 32-bit and
+    ' 64-bit processes.
+    Handle As LongLong
+End Type
+
+Public Type TIMESTAMPING_CONFIG
+    Flags As Ws2TimestampCfgFlags
+    TxTimestampsBuffered As Integer
+End Type
+
+Public Enum Ws2TimestampCfgFlags
+    TIMESTAMPING_FLAG_RX = &H1
+    TIMESTAMPING_FLAG_TX = &H2
+End Enum
+
+Public Enum SOCKET_PRIORITY_HINT
+    SocketPriorityHintVeryLow = 0
+    SocketPriorityHintLow
+    SocketPriorityHintNormal
+    SocketMaximumPriorityHintType
+End Enum
+
+Public Type PRIORITY_STATUS
+    Sender As SOCKET_PRIORITY_HINT
+    Receiver As SOCKET_PRIORITY_HINT
+End Type
+
+Public Enum RCVALL_VALUE
+    RCVALL_OFF = 0
+    RCVALL_ON = 1
+    RCVALL_SOCKETLEVELONLY = 2
+    RCVALL_IPLEVEL = 3
+    RCVALL_MAX = RCVALL_IPLEVEL
+End Enum
+
+Public Type RCVALL_IF
+    Mode As RCVALL_VALUE
+    Interface As Long
+End Type
+
+Public Const TCP_INITIAL_RTO_UNSPECIFIED_RTT As Integer = -1
+Public Const TCP_INITIAL_RTO_UNSPECIFIED_MAX_SYN_RETRANSMISSIONS As Byte = &HFF ' ((UCHAR) -1)
+
+Public Const TCP_INITIAL_RTO_DEFAULT_RTT  = (0)
+Public Const TCP_INITIAL_RTO_DEFAULT_MAX_SYN_RETRANSMISSIONS  = (0)
+Public Const TCP_INITIAL_RTO_NO_SYN_RETRANSMISSIONS As Byte = &HFE ' ((UCHAR) - 2)
+
+Public Type TCP_INITIAL_RTO_PARAMETERS
+    Rtt As Integer
+    MaxSynRetransmissions As Byte
+End Type
+
+Public Enum TCP_ICW_LEVEL
+    TCP_ICW_LEVEL_DEFAULT = 0
+    TCP_ICW_LEVEL_HIGH = 1
+    TCP_ICW_LEVEL_VERY_HIGH = 2
+    TCP_ICW_LEVEL_AGGRESSIVE = 3
+    TCP_ICW_LEVEL_EXPERIMENTAL = 4
+    TCP_ICW_LEVEL_COMPAT = 254
+    TCP_ICW_LEVEL_MAX = 255
+End Enum
+
+Public Type TCP_ICW_PARAMETERS
+    ' Supplies the level for choosing ICW.
+    Level As TCP_ICW_LEVEL
+End Type
+
+Public Type TCP_ACK_FREQUENCY_PARAMETERS
+    ' Supplies the Ack frequency.
+    TcpDelayedAckFrequency As Byte
+End Type
+
+Public Type TCP_INFO_v0
+    State As TCPSTATE
+    Mss As Long
+    ConnectionTimeMs As LongLong
+    TimestampsEnabled As CBoolean
+    RttUs As Long
+    MinRttUs As Long
+    BytesInFlight As Long
+    Cwnd As Long
+    SndWnd As Long
+    RcvWnd As Long
+    RcvBuf As Long
+    BytesOut As LongLong
+    BytesIn As LongLong
+    BytesReordered As Long
+    BytesRetrans As Long
+    FastRetrans As Long
+    DupAcksIn As Long
+    TimeoutEpisodes As Long
+    SynRetrans As Byte
+End Type
+
+Public Type TCP_INFO_v1
+    State As TCPSTATE
+    Mss As Long
+    ConnectionTimeMs As LongLong
+    TimestampsEnabled As CBoolean
+    RttUs As Long
+    MinRttUs As Long
+    BytesInFlight As Long
+    Cwnd As Long
+    SndWnd As Long
+    RcvWnd As Long
+    RcvBuf As Long
+    BytesOut As LongLong
+    BytesIn As LongLong
+    BytesReordered As Long
+    BytesRetrans As Long
+    FastRetrans As Long
+    DupAcksIn As Long
+    TimeoutEpisodes As Long
+    SynRetrans As Byte
+    ' Info about the limiting factor in send throughput.
+    ' States:
+    ' -Rwin: peer's receive window.
+    ' -Cwnd: congestion window.
+    ' -Snd: app not writing enough data to its socket.
+    ' Per-state statistics:
+    ' -Trans: number of transitions into the state.
+    ' -Time: time spent in the state in milliseconds.
+    ' -Bytes: number of bytes sent while in the state.
+    ' These fields match those in TCP_ESTATS_SND_CONG_ROD.
+    SndLimTransRwin As Long
+    SndLimTimeRwin As Long
+    SndLimBytesRwin As LongLong
+    SndLimTransCwnd As Long
+    SndLimTimeCwnd As Long
+    SndLimBytesCwnd As LongLong
+    SndLimTransSnd As Long
+    SndLimTimeSnd As Long
+    SndLimBytesSnd As LongLong
+End Type
+
+Public Type TCP_INFO_v2
+    State As TCPSTATE
+    Mss As Long
+    ConnectionTimeMs As LongLong
+    TimestampsEnabled As CBoolean
+    RttUs As Long
+    MinRttUs As Long
+    BytesInFlight As Long
+    Cwnd As Long
+    SndWnd As Long
+    RcvWnd As Long
+    RcvBuf As Long
+    BytesOut As LongLong
+    BytesIn As LongLong
+    ' The number of bytes that are considered reordered from the sender side.
+    BytesReordered As Long
+    BytesRetrans As Long
+    FastRetrans As Long
+    DupAcksIn As Long
+    TimeoutEpisodes As Long
+    SynRetrans As Byte
+    ' Info about the limiting factor in send throughput.
+    ' States:
+    ' -Rwin: peer's receive window.
+    ' -Cwnd: congestion window.
+    ' -Snd: app not writing enough data to its socket.
+    ' Per-state statistics:
+    ' -Trans: number of transitions into the state.
+    ' -Time: time spent in the state in milliseconds.
+    ' -Bytes: number of bytes sent while in the state.
+    ' These fields match those in TCP_ESTATS_SND_CONG_ROD.
+    SndLimTransRwin As Long
+    SndLimTimeRwin As Long
+    SndLimBytesRwin As LongLong
+    SndLimTransCwnd As Long
+    SndLimTimeCwnd As Long
+    SndLimBytesCwnd As LongLong
+    SndLimTransSnd As Long
+    SndLimTimeSnd As Long
+    SndLimBytesSnd As LongLong
+    ' The number of out of order data packets received.
+    OutOfOrderPktsIn As Long
+    EcnNegotiated As CBoolean
+    EceAcksIn As Long
+    PtoEpisodes As Long
+End Type
+
+Public Const SIO_ACQUIRE_PORT_RESERVATION  = (IOC_IN Or IOC_VENDOR Or 100) '_WSAIOW(IOC_VENDOR, 100)
+Public Const SIO_RELEASE_PORT_RESERVATION  = (IOC_IN Or IOC_VENDOR Or 101) '_WSAIOW(IOC_VENDOR, 101)
+Public Const SIO_ASSOCIATE_PORT_RESERVATION  = (IOC_IN Or IOC_VENDOR Or 102) '_WSAIOW(IOC_VENDOR, 102)
+
+Public Type INET_PORT_RANGE
+    StartPort As Integer
+    NumberOfPorts As Integer
+End Type
+
+Public Type INET_PORT_RESERVATION
+    StartPort As Integer
+    NumberOfPorts As Integer
+End Type
+
+Public Type INET_PORT_RESERVATION_TOKEN
+    Token As LongLong
+End Type
+
+Public Const INVALID_PORT_RESERVATION_TOKEN As LongLong = 0
+
+Public Type INET_PORT_RESERVATION_INSTANCE
+    '#ifdef __cplusplus
+    Reservation As INET_PORT_RESERVATION
+    Token As INET_PORT_RESERVATION_TOKEN
+    '#else
+    '    INET_PORT_RESERVATION;
+    '    INET_PORT_RESERVATION_TOKEN;
+    '#endif
+End Type
+
+Public Type INET_PORT_RESERVATION_INFORMATION
+    OwningPid As Long
+End Type
+
+Public Const SIO_SET_SECURITY = (IOC_IN Or IOC_VENDOR Or 200)
+Public Const SIO_QUERY_SECURITY = (IOC_INOUT Or IOC_VENDOR Or 201)
+Public Const SIO_SET_PEER_TARGET_NAME = (IOC_IN Or IOC_VENDOR Or 202)
+Public Const SIO_DELETE_PEER_TARGET_NAME = (IOC_IN Or IOC_VENDOR Or 203)
+
+Public Const SIO_QUERY_WFP_CONNECTION_REDIRECT_RECORDS  = (IOC_IN Or IOC_VENDOR Or 220) '_WSAIOW(IOC_VENDOR, 220)
+Public Const SIO_QUERY_WFP_CONNECTION_REDIRECT_CONTEXT  = (IOC_IN Or IOC_VENDOR Or 221) '_WSAIOW(IOC_VENDOR, 221)
+Public Const SIO_SET_WFP_CONNECTION_REDIRECT_RECORDS  = (IOC_IN Or IOC_VENDOR Or 222) '_WSAIOW(IOC_VENDOR, 222)
+
+Public Const SIO_SOCKET_USAGE_NOTIFICATION  = (IOC_IN Or IOC_VENDOR Or 204) '_WSAIOW(IOC_VENDOR, 204)
+
+Public Enum SOCKET_USAGE_TYPE
+    SYSTEM_CRITICAL_SOCKET = 1
+End Enum
+
+Public Enum SOCKET_SECURITY_PROTOCOL
+    SOCKET_SECURITY_PROTOCOL_DEFAULT
+    SOCKET_SECURITY_PROTOCOL_IPSEC
+    ' #if (NTDDI_VERSION >= NTDDI_WIN7)
+    SOCKET_SECURITY_PROTOCOL_IPSEC2 'version 2 of secure socket apis
+    ' #endif // (NTDDI_VERSION >= NTDDI_WIN7)
+    SOCKET_SECURITY_PROTOCOL_INVALID
+End Enum
+
+Public Enum MstcpipSecFlags
+    SOCKET_SETTINGS_GUARANTEE_ENCRYPTION = &H1
+    SOCKET_SETTINGS_ALLOW_INSECURE = &H2
+End Enum
+Public Type SOCKET_SECURITY_SETTINGS
+    SecurityProtocol As SOCKET_SECURITY_PROTOCOL
+    SecurityFlags As MstcpipSecFlags
+End Type
+
+Public Enum MstcpipSecIpsecFlags
+    SOCKET_SETTINGS_IPSEC_SKIP_FILTER_INSTANTIATION = &H1
+    ' #if (NTDDI_VERSION >= NTDDI_WIN7)
+    SOCKET_SETTINGS_IPSEC_OPTIONAL_PEER_NAME_VERIFICATION = &H2
+    SOCKET_SETTINGS_IPSEC_ALLOW_FIRST_INBOUND_PKT_UNENCRYPTED = &H4
+    SOCKET_SETTINGS_IPSEC_PEER_NAME_IS_RAW_FORMAT = &H8
+    ' #endif // (NTDDI_VERSION >= NTDDI_WIN7)
+End Enum
+
+[Description("A SAFEARRAY version is available as SOCKET_SECURITY_SETTINGS_IPSEC_sa")]
+Public Type SOCKET_SECURITY_SETTINGS_IPSEC
+    SecurityProtocol As SOCKET_SECURITY_PROTOCOL
+    SecurityFlags As Long
+    IpsecFlags As Long
+    AuthipMMPolicyKey As UUID
+    AuthipQMPolicyKey As UUID
+    Reserved As UUID
+    Reserved2 As LongLong
+    UserNameStringLen As Long
+    DomainNameStringLen As Long
+    PasswordStringLen As Long
+    AllStrings(0 To 0) As Integer
+End Type
+Public Type SOCKET_SECURITY_SETTINGS_IPSEC_sa
+    SecurityProtocol As SOCKET_SECURITY_PROTOCOL
+    SecurityFlags As Long
+    IpsecFlags As Long
+    AuthipMMPolicyKey As UUID
+    AuthipQMPolicyKey As UUID
+    Reserved As UUID
+    Reserved2 As LongLong
+    UserNameStringLen As Long
+    DomainNameStringLen As Long
+    PasswordStringLen As Long
+    AllStrings() As Integer
+End Type
+
+[Description("A SAFEARRAY version is available as SOCKET_PEER_TARGET_NAME_sa")]
+Public Type SOCKET_PEER_TARGET_NAME
+    SecurityProtocol As SOCKET_SECURITY_PROTOCOL
+    PeerAddress As SOCKADDR_STORAGE
+    PeerTargetNameStringLen As Long
+    AllStrings(0 To 0) As Integer
+End Type
+Public Type SOCKET_PEER_TARGET_NAME_sa
+    SecurityProtocol As SOCKET_SECURITY_PROTOCOL
+    PeerAddress As SOCKADDR_STORAGE
+    PeerTargetNameStringLen As Long
+    AllStrings() As Integer
+End Type
+
+Public Type SOCKET_SECURITY_QUERY_TEMPLATE
+    SecurityProtocol As SOCKET_SECURITY_PROTOCOL
+    PeerAddress As SOCKADDR_STORAGE
+    PeerTokenAccessMask As Long
+End Type
+
+Public Const SOCKET_QUERY_IPSEC2_ABORT_CONNECTION_ON_FIELD_CHANGE  = &H1
+
+Public Const SOCKET_QUERY_IPSEC2_FIELD_MASK_MM_SA_ID  = &H1
+Public Const SOCKET_QUERY_IPSEC2_FIELD_MASK_QM_SA_ID  = &H2
+
+Public Type SOCKET_SECURITY_QUERY_TEMPLATE_IPSEC2
+    SecurityProtocol As SOCKET_SECURITY_PROTOCOL
+    PeerAddress As SOCKADDR_STORAGE
+    PeerTokenAccessMask As Long
+    Flags As Long
+    FieldMask As Long
+End Type
+
+Public Const SOCKET_INFO_CONNECTION_SECURED  = &H1
+Public Const SOCKET_INFO_CONNECTION_ENCRYPTED  = &H2
+Public Const SOCKET_INFO_CONNECTION_IMPERSONATED  = &H4
+
+Public Type SOCKET_SECURITY_QUERY_INFO
+    SecurityProtocol As SOCKET_SECURITY_PROTOCOL
+    Flags As Long
+    PeerApplicationAccessTokenHandle As LongLong
+    PeerMachineAccessTokenHandle As LongLong
+End Type
+
+Public Type SOCKET_SECURITY_QUERY_INFO_IPSEC2
+    SecurityProtocol As SOCKET_SECURITY_PROTOCOL
+    Flags As Long
+    PeerApplicationAccessTokenHandle As LongLong
+    PeerMachineAccessTokenHandle As LongLong
+    MmSaId As LongLong
+    QmSaId As LongLong
+    NegotiationWinerr As Long
+    SaLookupContext As UUID
+End Type
+
+Public Const SIO_QUERY_WFP_ALE_ENDPOINT_HANDLE  = (IOC_OUT Or IOC_VENDOR Or 205) '_WSAIOR(IOC_VENDOR, 205)
+ 
+Public Const SIO_QUERY_RSS_SCALABILITY_INFO  = (IOC_OUT Or IOC_VENDOR Or 210) '_WSAIOR(IOC_VENDOR, 210)
+
+Public Type RSS_SCALABILITY_INFO
+    RssEnabled As CBoolean
+End Type
+
+Public Function IN4_CLASSA(ByVal i As Long) As Boolean
+    IN4_CLASSA = (i And &H80) = 0
+End Function
+
+Public Function IN4_CLASSB(ByVal i As Long) As Boolean
+    IN4_CLASSB = (i And &HC0) = &H80
+End Function
+
+Public Function IN4_CLASSC(ByVal i As Long) As Boolean
+    IN4_CLASSC = (i And &HE0) = &HC0
+End Function
+
+Public Function IN4_CLASSD(ByVal i As Long) As Boolean
+    IN4_CLASSD = (i And &HF0) = &HE0
+End Function
+
+Public Function IN4_MULTICAST(ByVal i As Long) As Boolean
+    IN4_MULTICAST = IN4_CLASSD(i)
+End Function
+
+Public Function IN4ADDR_ANY() As IN_ADDR
+    IN4ADDR_ANY.s_addr = INADDR_ANY
+End Function
+
+Public Function IN4ADDR_LOOPBACK() As IN_ADDR
+    IN4ADDR_LOOPBACK.s_addr = &H0100007F
+End Function
+
+Public Function IN4ADDR_BROADCAST() As IN_ADDR
+    IN4ADDR_BROADCAST.s_addr = INADDR_BROADCAST
+End Function
+
+Public Function IN4ADDR_NONE() As IN_ADDR
+    IN4ADDR_NONE.s_addr = INADDR_NONE
+End Function
+
+Public Function IN4ADDR_ANY_INIT() As IN_ADDR
+    ' s_addr = 0, default
+End Function
+
+Public Function IN4ADDR_LOOPBACK_INIT() As IN_ADDR
+    ' bytes: 7f,00,00,01
+    IN4ADDR_LOOPBACK_INIT.s_addr = &H0100007F
+End Function
+
+Public Function IN4ADDR_BROADCAST_INIT() As IN_ADDR
+    ' bytes: ff,ff,ff,ff
+    IN4ADDR_BROADCAST_INIT.s_addr = &HFFFFFFFF
+End Function
+
+Public Function IN4ADDR_ALLNODESONLINK_INIT() As IN_ADDR
+    ' bytes: e0,00,00,01
+    IN4ADDR_ALLNODESONLINK_INIT.s_addr = &H010000E0
+End Function
+
+Public Function IN4ADDR_ALLROUTERSONLINK_INIT() As IN_ADDR
+    ' bytes: e0,00,00,02
+    IN4ADDR_ALLROUTERSONLINK_INIT.s_addr = &H020000E0
+End Function
+
+Public Function IN4ADDR_ALLIGMPV3ROUTERSONLINK_INIT() As IN_ADDR
+    ' bytes: e0,00,00,16
+    IN4ADDR_ALLIGMPV3ROUTERSONLINK_INIT.s_addr = &H160000E0
+End Function
+
+Public Function IN4ADDR_ALLTEREDONODESONLINK_INIT() As IN_ADDR
+    ' bytes: e0,00,00,fd
+    IN4ADDR_ALLTEREDONODESONLINK_INIT.s_addr = &HFD0000E0
+End Function
+
+Public Function IN4ADDR_LINKLOCALPREFIX_INIT() As IN_ADDR
+    ' bytes: a9,fe,00,00
+    IN4ADDR_LINKLOCALPREFIX_INIT.s_addr = &H0000FEA9&
+End Function
+
+Public Function IN4ADDR_MULTICASTPREFIX_INIT() As IN_ADDR
+    ' bytes: e0,00,00,00
+    IN4ADDR_MULTICASTPREFIX_INIT.s_addr = &H000000E0
+End Function
+
+Public Const IN4ADDR_LOOPBACKPREFIX_LENGTH  As Long = 8
+Public Const IN4ADDR_LINKLOCALPREFIX_LENGTH As Long = 16
+Public Const IN4ADDR_MULTICASTPREFIX_LENGTH As Long = 4
+
+Public Function IN4_ADDR_EQUAL(a As IN_ADDR, b As IN_ADDR) As Boolean
+    Return a.s_addr = b.s_addr
+End Function
+
+
+'BREAK LINE 745
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Public Declare PtrSafe Function RtlEthernetAddressToStringA Lib "ntdll" (Addr As DL_EUI48, ByVal S As String) As LongPtr
+Public Declare PtrSafe Function RtlEthernetAddressToStringW Lib "ntdll" (Addr As DL_EUI48, ByVal S As LongPtr) As LongPtr
+Public DeclareWide PtrSafe Function RtlEthernetAddressToString Lib "ntdll" Alias "RtlEthernetAddressToStringW" (Addr As DL_EUI48, ByVal S As String) As LongPtr
+Public Declare PtrSafe Function RtlEthernetStringToAddressA Lib "ntdll" (ByVal S As String, Terminator As LongPtr, Addr As DL_EUI48) As Long
+Public Declare PtrSafe Function RtlEthernetStringToAddressW Lib "ntdll" (ByVal S As LongPtr, Terminator As LongPtr, Addr As DL_EUI48) As Long
+Public DeclareWide PtrSafe Function RtlEthernetStringToAddress Lib "ntdll" Alias "RtlEthernetStringToAddressW" (ByVal S As String, Terminator As LongPtr, Addr As DL_EUI48) As Long
+
+
+#End Region
+
+#Region "netiodef.h"
+
+' union _DL_EUI48 {
+' UINT8 Byte[6];
+' struct {
+    ' DL_OUI Oui;
+    ' DL_EI48 Ei48;
+' };
+' };
+Public Type DL_EUI48
+    u(5) As Byte
+End Type
+
+#End Region
+
+
 #Region "dns"
 'WinDNS.h
 
@@ -16142,5 +17735,11 @@ Public Alias HTTP_URL_CONTEXT As LongLong
 Public Alias HTTP_REQUEST As HTTP_REQUEST_V2
 Public Alias HTTP_RESPONSE As HTTP_RESPONSE_V2
 Public Alias HTTP_SERVICE_CONFIG_CACHE_PARAM As Long
+
+
+Public Alias ATM_BHLI_IE As ATM_BHLI
+Public Alias ATM_CALLED_PARTY_NUMBER_IE As ATM_ADDRESS
+Public Alias ATM_CALLED_PARTY_SUBADDRESS_IE As ATM_ADDRESS
+Public Alias ATM_CALLING_PARTY_SUBADDRESS_IE As ATM_ADDRESS
 
 #End If
