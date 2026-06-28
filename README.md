@@ -1,7 +1,7 @@
 # WinDevLib 
 ## Windows Development Library for twinBASIC
 
-**Current Version: 9.3.700 (June 21st, 2026)**
+**Current Version: 9.3.702 (June 28th, 2026)**
 
 (c) 2022-2026 Jon Johnson (fafalone)
 
@@ -82,7 +82,11 @@ In addition to coverage of common Windows SDK-defined macros and inlined functio
 `Public Type CTypeHelper(Of T)` / `Public Type TType(Of T)` - These are helpers for the `CType(Of )` operator, intended to allow a pointer to refer to any type, not just a UDT. For example, if you have only a pointer to an array of Single, you could pass it to a ByRef As Single argument with `CType(Of TType(Of Single))(ptr).x` and the API would still be able to access all members just like f(0).
 
 `Public Function LPWSTRtoStr(lPtr As LongPtr, Optional ByVal fFree As Boolean = True) As String`\
-Converts a pointer to an LPWSTR/LPCWSTR/PWSTR/etc to an instrinsic `String` (BSTR)
+Converts a pointer to an LPWSTR/LPCWSTR/PWSTR/etc to an instrinsic `String` (BSTR)\
+`Public Function LPSTRtoStr(lPtr As LongPtr, Optional ByVal fFree As Boolean = True) As String`\
+Converts a pointer to an ANSI (CP_ACP) LPSTR/LPCSTR/PSTR/etc to an instrinsic `String` (BSTR)\
+`Public Function LPUTF8StrToStr(lPtr As LongPtr, Optional ByVal fFree As Boolean = True) As String`\
+Converts a pointer to a UTF-8 string to an instrinsic `String` (BSTR)
 
 `Public Function WCHARtoSTR(aCh() As Integer) As String`\
 Converts an Integer array of WCHARs to a tB String (BSTR).
@@ -239,6 +243,18 @@ The goal of the API coverage in WinDevLib is to provide the kind of programming 
 Current coverage is already quite extensive, covering hundreds of Windows SDK header files. For details, see [COVERAGE.md](COVERAGE.md).
  
 ### Updates
+
+**Update (v9.3.704, 28 Jun 2026):**
+- Add ws2atm.h, ws2ipdef.h, mstcipip.h, ws2tcpip.h (100% besides some inlined functions)
+- Misc additions from Windows SDKs from after 26000.100 through 28000.1839
+- Added custom helper functions LPSTRtoStr, an ANSI (CP_ACP) equivalent to the existing Unicode LPWSTRtoStr, and LPUTF8StrToStr, a UTF-8 equivalent.
+- Added SAFEARRAY versions of variable C-style array types from tdh.h
+- Continued Alias implementation
+- Misc additions
+- (Breaking change) The IP OPTIONS for getsockopt/setsockopt defined in winsock.h are for winsock 1.x; there's naming conflicts with the values
+for the current values defined in ws2ipdef.h. Previously WDL only had the 1.x defs; the `WS_IP_OPTIONS` enum has been renamed `WS1_IP_OPTIONS` 
+and all values prefixed with `WS1_`. The new version of the `WS_IP_OPTIONS` enum uses the current values for ws2_32 APIs from ws2ipdef.h.
+- (Bug fix) WTS_PRODUCT_INFO[A,W] should just be PRODUCT_INFO[A,W]. The public symbol for typedef struct A {...} B; is B when they differ.
 
 **Update (v9.3.700, 21 Jun 2026):** 
 - Add dxgi1_7.h/.idl
