@@ -1,5 +1,5 @@
-# WinDevLib 
-## Windows Development Library for twinBASIC
+# Windows Development Library for twinBASIC
+## WinDevLib 
 
 **Current Version: 9.3.704 (June 28th, 2026)**
 
@@ -12,7 +12,7 @@ WinDevLib is a project to make all common Windows API COM interfaces, DLL declar
 Included are definitions of 3800+ common COM interfaces and 15,000+ APIs from all the common system modules, a level of coverage which makes WDL an entirely different experience than any VBx library, the largest of which offer at most 1/10th as much with huge gaps.\
 This makes working with WDL similar to working in C++ with `#include <Windows.h>` and a number of other headers for commonly used features. These have all been redone by hand from the original headers, in order to restore 64bit type info lost in VB6 versions, avoid the errors of automated conversion tools (e.g. Win32API_PtrSafe.txt is riddled with errors), and make them friendlier by converting groups of constants associated with a variable into an Enum so it comes up in Intellisense. 
 
-Creating this involves not only writing the definitions, but using tB compatible types-- so in some cases, even though there may be an existing way to import references to interfaces, they may be unusable due to e.g. the use of unsigned types, C-style arrays, double pointers, etc. In most cases these definitions are also compatible with VBA7, and with minor adjustments VB6; where they're not it's usually minor syntax adjustments, so this is also a great resource for APIs for those as well, covering vastly more than other other similar project.
+This involves not only writing the definitions, but using tB compatible types-- so in some cases, even though there may be an existing way to import references to interfaces, they may be unusable due to e.g. the use of unsigned types, C-style arrays, double pointers, etc. In most cases WDL definitions are also compatible with VBA7, and with minor adjustments VB6; where they're not it's usually minor syntax adjustments, so this is also a great resource for APIs for those as well, covering vastly more than other other similar project.
 
 This project is implemented purely in tB native code, as unlike VB6 there's language support for defining interfaces and coclasses. As a twinPACK, regular code is supported in addition to what would be allowed in a type library, so some content normally found in regular modules have been built in (like you'd find in oleexp.tlb's mIID.bas, mPKEY.bas, etc, and helper functions).
 
@@ -28,7 +28,7 @@ Please report any bugs via the Issues feature here on GitHub.
 You have 2 options for this:
 
 #### Via the Package Server
-twinBASIC has an online package server and WinDevLib is published on it. Open your project settings and scroll to the **Library References**, then click **Available Packages**. Add "Windows Development Library for twinBASIC v7.0.272" (or whatever the newest version is). The other similar entry, "WinDevLib for Implements" contains `Implements` compatible versions of a small number of common interfaces not defined in a compatible way in the main project; you normally don't need this. For more details, including illustrations, [see this post](https://github.com/fafalone/WinDevLib/issues/9#issuecomment-1416767019).
+twinBASIC has an online package server and WinDevLib is published on it. Open your project settings and scroll to the **Library References** section, then click **Available Packages**. Add "Windows Development Library for twinBASIC v9.3.704" (or whatever the newest version is). For more details, including illustrations, [see this post](https://github.com/fafalone/WinDevLib/issues/9#issuecomment-1416767019). The other similar entry, "WinDevLib for Implements" contains `Implements` compatible versions of a small number of common interfaces not defined in a compatible way in the main project; you normally don't need this.
 
 #### From a local file
 You can download the project from this repository and use the WinDevLib.twinpack file. Navigate to the same area as above, and click on the "Import from file" button. WinDevLib.twinproj is the source for the package, if you want to edit it.
@@ -167,38 +167,38 @@ This section applies both to API calls and type library interface methods.
 
 1) Convert `Currency` to `LongLong` for interfaces and APIs: It's no longer neccessary to worry about multiplying and dividing by 10,000 since tB supports a true 64bit integer type in both 32bit and 64bit mode. So this change is ultimately for the better, but existing codebases will have had to have used `Currency` for all interfaces and oleexp APIs expecting a 64bit integer.
 
-2) Optional UDTs no longer use `As Any`. If you see errors like `Validation of call to 'CreateFile' failed.  Argument for 'lpSecurityAttributes': cannot coerce type 'Long' to 'SECURITY_ATTRIBUTES'`, this is an example of the issue. twinBASIC supports substituing `ByVal vbNullPtr` or any `LongPtr` for a UDT (the `ByVal` is now required), so WinDevLib can use the proper type while still permitting you to pass the equivalent of `ByVal 0`. 
+2) Optional UDTs no longer use `As Any`. If you see errors like `Validation of call to 'CreateFile' failed.  Argument for 'lpSecurityAttributes': cannot coerce type 'Long' to 'SECURITY_ATTRIBUTES'`, this is an example of the issue. twinBASIC supports substituing `ByVal vbNullPtr` or any `LongPtr` for a UDT (the `ByVal` is now required), so WinDevLib can use the proper type while still permitting you to pass the equivalent of `ByVal 0`.   
+  
+   Example:  
+  
+   VB6:  
+   ```vba
+   Public Declare Function CreateFileW Lib "kernel32" (ByVal lpFileName As Long, ByVal dwDesiredAccess As Long, ByVal dwShareMode As Long, lpSecurityAttributes As Any, ByVal dwCreationDisposition As Long, ByVal dwFlagsAndAttributes As Long, ByVal hTemplateFile As Long) As Long
 
-Example:
+   hFile = CreateFileW(StrPtr("name"), 0, 0, ByVal 0, ...)
+   ```
+   twinBASIC:
+   ```vba
+   Public Declare PtrSafe Function CreateFileW Lib "kernel32" (ByVal lpFileName As LongPtr, ByVal dwDesiredAccess As Long, ByVal dwShareMode As Long, lpSecurityAttributes As SECURITY_ATTRIBUTES, ByVal    dwCreationDisposition As Long, ByVal dwFlagsAndAttributes As Long, ByVal hTemplateFile As LongPtr) As LongPtr
 
-VB6:
-```vba
-Public Declare Function CreateFileW Lib "kernel32" (ByVal lpFileName As Long, ByVal dwDesiredAccess As Long, ByVal dwShareMode As Long, lpSecurityAttributes As Any, ByVal dwCreationDisposition As Long, ByVal dwFlagsAndAttributes As Long, ByVal hTemplateFile As Long) As Long
-
-hFile = CreateFileW(StrPtr("name"), 0, 0, ByVal 0, ...)
-```
-twinBASIC:
-```vba
-Public Declare PtrSafe Function CreateFileW Lib "kernel32" (ByVal lpFileName As LongPtr, ByVal dwDesiredAccess As Long, ByVal dwShareMode As Long, lpSecurityAttributes As SECURITY_ATTRIBUTES, ByVal dwCreationDisposition As Long, ByVal dwFlagsAndAttributes As Long, ByVal hTemplateFile As LongPtr) As LongPtr
-
-hFile = CreateFileW(StrPtr("name"), 0, 0, ByVal vbNullPtr, ...)
-'---or---
-Dim pSec As SECURITY_ATTRIBUTES
-Dim lPtr As LongPtr = VarPtr(pSec)
-hFile = CreateFileW(StrPtr("name"), 0, 0, ByVal lPtr, ...)
-```
+   hFile = CreateFileW(StrPtr("name"), 0, 0, ByVal vbNullPtr, ...)
+   '---or---
+   Dim pSec As SECURITY_ATTRIBUTES
+   Dim lPtr As LongPtr = VarPtr(pSec)
+   hFile = CreateFileW(StrPtr("name"), 0, 0, ByVal lPtr, ...)
+   ```
 
 3) ByVal UDTs are supported in newer twinBASIC versions and are used in all cases in this package if used with tB Beta 896 or newer. So in some cases you may see a 'wrong number of arguments' error where for example a ByVal `POINT` or `SIZE` was split into two ByVal `Long`s. You'd now use the proper type.
 
 4) String vs Long(Ptr) in APIs with both ANSI and Unicode versions: Most VB programs are written with ANSI versions of APIs being the default. **This is not the case with WinDevLib**. APIs are Unicode by default-- i.e. they use the W, rather than A, version of APIs e.g. `DeleteFile` maps to `DeleteFileW` rather than `DeleteFileA`. The A and W variants use String/LongPtr, and in almost all cases, the mapped version uses `String` with twinBASIC's `DeclareWide` keyword-- this disables Unicode-ANSI conversion. Since this is automatic, you generally don't need to make any changes; you can still use `String` without `StrPtr` or any manual Unicode <-> ANSI conversion. Note this usually only applies to strings passed as input, you'll need to update any externally allocated strings returned as a pointer, where you previously used e.g. `lstrlenA`, to use `lstrlenW` and Unicode handling in general. 
 
-All APIs are provided, as a minimum, as the explicit W variant, and an untagged version that maps to the W version. Most ANSI variants are also included, but code should use Unicode wherever possible.
+   All APIs are provided, as a minimum, as the explicit W variant, and an untagged version that maps to the W version. Most ANSI variants are also included, but code should use Unicode wherever possible.
 
-UDTs used by these calls are also supplied in the same manner, the W variant, an untagged variant that's the same as the W version, and in some cases, an A version. UDTs always use `LongPtr` for strings, even the untagged versions for `DeclareWide`. 
+   UDTs used by these calls are also supplied in the same manner, the W variant, an untagged variant that's the same as the W version, and in some cases, an A version. UDTs always use `LongPtr` for strings, even the untagged versions for `DeclareWide`. 
 
-If you have any doubts about which API is being called, twinBASIC will show the full declaration when you hover your cursor over the API in your code.
+   If you have any doubts about which API is being called, twinBASIC will show the full declaration when you hover your cursor over the API in your code.
 
-Special thanks to GCUser99 for helping normalize API declaration in this project. 👍
+   Special thanks to GCUser99 for helping normalize API declaration in this project. 👍
 
 5) Member names in UDTs have in almost all cases use their official SDK names, even where VB6 programmers traditionally used others. If you encounter errors where UDT members are missing, check the definition to see if the name has changed. This may also happen where unions are worked around in different ways.
    
@@ -232,15 +232,14 @@ If you find an oleexpimp.tlb interface is not in WinDevLibImpl, you will be able
 tB has announced plans to support `[PreserveSig]` in implemented interfaces in the future; when that happens WinDevLibImpl will be deprecated.
 
 >[!IMPORTANT]
->There currently seems to be an issue with using WinDevLib and WinDevLibImpl together if WinDevLibImpl does not use the current WinDevLib as a reference (it would usually use an old one as it's updated much less frequently). I've updated the reference on this repo and the package server, just note that you'll need to refresh both every time you update one if they're used together
->
->
+>There currently seems to be an issue with using WinDevLib and WinDevLibImpl together if the versions differ. If you're using WinDevLibImpl, ensure you update it every time WinDevLib is updated.
 
 #### Scope of coverage
 
-The goal of the API coverage in WinDevLib is to provide the kind of programming experience you'd get in C/C++ by including windows.h and many of the more common feature sets like DirectX and GDIPlus. Even the 15,000+ APIs are just scratching the surface of the total Windows API set, and due to the low quality of automated conversion, even by Microsoft themselves (see: Win32API_PtrSafe.txt), I'm not interested in simply feeding headers or metadata through a conversion utility or using a database, so instead WinDevLib is focused on the most commonly used features in the major system DLLs-- everything 99%+ of apps need; less common ones can be added by request or as time goes on and coverage is expanded.
+The goal of the API coverage in WinDevLib is to provide the kind of programming experience you'd get in C/C++ by including windows.h and many of the more common feature sets like DirectX and GDIPlus. However even the 15,000+ APIs are just scratching the surface of the total Windows API set, and due to the low quality of automated conversion, even by Microsoft themselves (see: Win32API_PtrSafe.txt), I'm not interested in simply feeding headers or metadata through a conversion utility or using a database, so instead WinDevLib is focused on the most commonly used features in the major system DLLs. This should cover about 99.99% of the Win32 APIs/interfaces an app is likely to use.
 
-Current coverage is already quite extensive, covering hundreds of Windows SDK header files. For details, see [COVERAGE.md](COVERAGE.md).
+Current coverage is already quite extensive, spanning hundreds of Windows SDK header files. Anything not currently included can be added by request or as time goes on and coverage is expanded. For details, see [COVERAGE.md](COVERAGE.md). Contributions are also welcome. They must be within the scope described above and conform to WinDevLib standards. For more information see [CONTRIBUTING.md](CONTRIBUTING.md)
+
  
 ### Updates
 
