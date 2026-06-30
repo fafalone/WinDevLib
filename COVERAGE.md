@@ -75,4 +75,8 @@ mmsciapi.h,  winnt.h, immdev.h, winioctl.h, mmreg.h, WS2spi.h, winerror.h, Windo
 - Minimal coverage\
 windot11.h, peninputpanel.h, xapobase.h, wmcodecdsp.h, ksmedia.h, d3dkmdt.h, d3dukmdt.h, d3dkmthk.h, fwpsu.h
 
-  
+## Future Coverage and Coverage Requests
+
+WinDevLib will continue to be expanded, this is in no way a final list. If there's specific APIs/interfaces you'd like to see added, you can request it by creating an issue in the project repository, and they'll be added on a priority basis. Requested APIs must be from the Windows SDK or another Microsoft SDK that refers to built in features or commonly added official features. Windows Runtime (WinRT) APIs/interfaces will not be added to WinDevLib- VBForums/tB Discord user VanGoghGaming publishes a WinRT package, you should use that and direct WinRT requests to him. 
+
+Contributions are also welcome. They must be within the scope described above and conform to WinDevLib standards. For more information see [CONTRIBUTING.md](CONTRIBUTING.md)
