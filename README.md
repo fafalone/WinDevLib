@@ -1,7 +1,7 @@
 # Windows Development Library for twinBASIC
 ## WinDevLib 
 
-**Current Version: 9.3.704 (June 28th, 2026)**
+**Current Version: 9.3.706 (July 10th, 2026)**
 
 (c) 2022-2026 Jon Johnson (fafalone)
 
@@ -242,6 +242,17 @@ Current coverage is already quite extensive, spanning hundreds of Windows SDK he
 
  
 ### Updates
+
+**Update (v9.3.706, 10 Jul 2026):**
+- Added contents of mimelib.tlb, which was included with oleexp, for completeness. Numerous bugs have been fixed, and content updated to match current headers-- mimeole.idl, msoeapi.idl, and imnact.idl. Also added MimeInfo.h/.idl and mimedisp.h.\
+Note that some constants and type/enum names have had prefixes added due to short, generic names likely to cause conflicts.
+- Added colordlg.h 
+- Misc additions from Windows SDKs from after 26000.100 through 28000.1839
+- (API Standards, BREAKING CHANGE) `ProcessTrace` now uses correct ByRef LongLong syntax for `HandleArray`; remove VarPtr from callsites.
+- (Breaking change) IDXGIAdapter now uses [PreserveSig] for compatibility with wqweto's d3d11 typelib.
+- (Breaking change) Almost all existing code uses As `IPicture` with `OleCreatePictureIndirect` in scenarios where it will crash (later on so difficult to track down the cause)
+ with the technically correct 'As Any' signature. So for compatibility purposes As `IPicture` is used now. `OleCreatePictureIndirectAny` has been added for the old signature with `As Any`
+- (Bug fix) `FVIRTKEY` was defined as VBx/tB `True` (-1) instead of `CTRUE` (1).
 
 **Update (v9.3.704, 28 Jun 2026):**
 - Add ws2atm.h, ws2ipdef.h, mstcipip.h, ws2tcpip.h (100% besides some inlined functions)
