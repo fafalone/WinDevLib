@@ -1,7 +1,7 @@
 # Windows Development Library for twinBASIC
 ## WinDevLib 
 
-**Current Version: 9.3.706 (July 10th, 2026)**
+**Current Version: 9.3.707 (July 11th, 2026)**
 
 (c) 2022-2026 Jon Johnson (fafalone)
 
@@ -242,6 +242,9 @@ Current coverage is already quite extensive, spanning hundreds of Windows SDK he
 
  
 ### Updates
+
+**Update (v9.3.707, 11 Jul 2026):**
+- (Bug fix) Numerous duplicate constants
 
 **Update (v9.3.706, 10 Jul 2026):**
 - Added contents of mimelib.tlb, which was included with oleexp, for completeness. Numerous bugs have been fixed, and content updated to match current headers-- mimeole.idl, msoeapi.idl, and imnact.idl. Also added MimeInfo.h/.idl and mimedisp.h.\
