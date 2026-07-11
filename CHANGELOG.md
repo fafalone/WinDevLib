@@ -1,4 +1,7 @@
 
+**Update (v9.3.707, 11 Jul 2026):**
+- (Bug fix) Numerous duplicate constants
+
 **Update (v9.3.706, 10 Jul 2026):**
 - Added contents of mimelib.tlb, which was included with oleexp, for completeness. Numerous bugs have been fixed, and content updated to match current headers-- mimeole.idl, msoeapi.idl, and imnact.idl. Also added MimeInfo.h/.idl and mimedisp.h.\
 Note that some constants and type/enum names have had prefixes added due to short, generic names likely to cause conflicts.
