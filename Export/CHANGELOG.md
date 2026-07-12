@@ -1,4 +1,9 @@
 
+**Update (v9.3.708, 11 Jul 2026):**
+- (BREAKING CHANGE) StgOpenStorageEx argument `ByVal reserved2 As LongPtr` should be `pSecurityDescriptor As SECURITY_DESCRIPTOR`
+- (API Standards, BREAKING CHANGE) StgCreateStorageEx arguments for `STGOPTIONS` and `SECURITY_DESCRIPTOR` should be ByRef type instead of ByVal LongPtr.
+- (Bug fix) BG_AUTH_CREDENTIALS missing Credentials member
+
 **Update (v9.3.707, 11 Jul 2026):**
 - (Bug fix) Numerous duplicate constants
 
