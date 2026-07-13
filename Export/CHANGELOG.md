@@ -1,4 +1,11 @@
 
+**Update (v9.3.710, 11 Jul 2026):**
+- Add custom helpers toRECT to convert 4 Longs to a RECT, and for a LongLong to[U]LargInt for [U]LARGE_INTEGER
+- (Bug fix) ICoreWebView2EnvironmentOptions4::GetCustomSchemeRegistrations is a triple pointer that should be expressed as ByRef LongPtr
+
+**Update (v9.3.709, 11 Jul 2026):**
+- (API Standards, breaking change) BITS enum interfaces, SyncMgr enum interfaces, IEnumSpObjectTokens, IEnumExtraSearch, IEnumGUID, IEnumOleUndoUnits, IEnumSearchRoots, IEnumSearchScopeRules, IEnumContextProps, and IEnumTravelLogEntry now use `[PreserveSig] Function Next(...) As Long` instead of a `Sub`.
+
 **Update (v9.3.708, 11 Jul 2026):**
 - (BREAKING CHANGE) StgOpenStorageEx argument `ByVal reserved2 As LongPtr` should be `pSecurityDescriptor As SECURITY_DESCRIPTOR`
 - (API Standards, BREAKING CHANGE) StgCreateStorageEx arguments for `STGOPTIONS` and `SECURITY_DESCRIPTOR` should be ByRef type instead of ByVal LongPtr.
