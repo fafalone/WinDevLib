@@ -1,7 +1,7 @@
 # Windows Development Library for twinBASIC
 ## WinDevLib 
 
-**Current Version: 9.3.709 (July 11th, 2026)**
+**Current Version: 9.3.710 (July 12th, 2026)**
 
 (c) 2022-2026 Jon Johnson (fafalone)
 
@@ -242,6 +242,10 @@ Current coverage is already quite extensive, spanning hundreds of Windows SDK he
 
  
 ### Updates
+
+**Update (v9.3.710, 11 Jul 2026):**
+- Add custom helpers toRECT to convert 4 Longs to a RECT, and for a LongLong to[U]LargInt for [U]LARGE_INTEGER
+- (Bug fix) ICoreWebView2EnvironmentOptions4::GetCustomSchemeRegistrations is a triple pointer that should be expressed as ByRef LongPtr
 
 **Update (v9.3.709, 11 Jul 2026):**
 - (API Standards, breaking change) BITS enum interfaces, SyncMgr enum interfaces, IEnumSpObjectTokens, IEnumExtraSearch, IEnumGUID, IEnumOleUndoUnits, IEnumSearchRoots, IEnumSearchScopeRules, IEnumContextProps, and IEnumTravelLogEntry now use `[PreserveSig] Function Next(...) As Long` instead of a `Sub`.
