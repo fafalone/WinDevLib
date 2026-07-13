@@ -1,7 +1,7 @@
 # Windows Development Library for twinBASIC
 ## WinDevLib 
 
-**Current Version: 9.3.710 (July 12th, 2026)**
+**Current Version: 9.3.712 (July 12th, 2026)**
 
 (c) 2022-2026 Jon Johnson (fafalone)
 
@@ -243,7 +243,8 @@ Current coverage is already quite extensive, spanning hundreds of Windows SDK he
  
 ### Updates
 
-**Update (v9.3.710, 11 Jul 2026):**
+**Update (v9.3.712, 12 Jul 2026):**
+- WebView2 updated to match current stable release 1.0.4078.44
 - Add custom helpers toRECT to convert 4 Longs to a RECT, and for a LongLong to[U]LargInt for [U]LARGE_INTEGER
 - (Bug fix) ICoreWebView2EnvironmentOptions4::GetCustomSchemeRegistrations is a triple pointer that should be expressed as ByRef LongPtr
 
