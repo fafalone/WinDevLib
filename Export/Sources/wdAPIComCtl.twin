@@ -2128,6 +2128,11 @@ Public Declare PtrSafe Sub InitCommonControls Lib "comctl32" ()
 
 Public Declare PtrSafe Function InitCommonControlsEx Lib "comctl32" (picce As INITCOMMONCONTROLSEX) As BOOL
 
+Public Type COLORSCHEME
+    dwSize As Long
+    clrBtnHighlight As Long ' highlight color
+    clrBtnShadow As Long ' shadow color
+End Type
 
 Public Const CCM_FIRST = &H2000
 Public Const CCM_SETBKCOLOR = (CCM_FIRST + 1)   ' lParam is bkColor
@@ -2164,6 +2169,8 @@ Public Enum ODT
     ODT_LISTVIEW = 102
 End Enum
 
+Public Const INFOTIPSIZE = 1024
+
 Public Const NM_FIRST                As Long = 0
 Public Const NM_OUTOFMEMORY          As Long = (NM_FIRST - 1)
 Public Const NM_CLICK                As Long = (NM_FIRST - 2) 'uses NMCLICK struct
@@ -2194,6 +2201,12 @@ Public Const NM_TVSTATEIMAGECHANGING As Long = (NM_FIRST - 24)
 '   code  As Long          ' Specifies the notification code
 ' End Type
 
+
+Public Type NMTOOLTIPSCREATED
+    hdr As NMHDR
+    hwndToolTips As LongPtr
+End Type
+
 Public Type NMMOUSE
     hdr As NMHDR
     dwItemSpec As LongPtr
@@ -2201,6 +2214,8 @@ Public Type NMMOUSE
     pt As POINT
     dwHitInfo As LongPtr
 End Type
+
+' Alias NMCLICK As NMMOUSE
 
 Public Type NMOBJECTNOTIFY
     hdr As NMHDR
@@ -2238,7 +2253,7 @@ End Type
 Public Type NMCUSTOMDRAW
     hdr As NMHDR
     dwDrawStage As NotifyCustomDrawStates
-    hDC As LongPtr
+    hdc As LongPtr
     rc As RECT
     dwItemSpec As LongPtr
     uItemState As CustomDrawItemStates
@@ -3012,7 +3027,7 @@ End Type
 
 Public Type COMBOBOXINFO
     cbSize As Long
-    RCItem As RECT
+    rcItem As RECT
     rcButton As RECT
     stateButton As Long
     hWndCombo As LongPtr
@@ -3391,9 +3406,9 @@ Public Type DATETIMEPICKERINFO
 End Type
 
 Public Type NMDATETIMECHANGE
-    NMHDR                       As NMHDR
-    Flags                       As GetDateTimeFlags
-    ST                          As SYSTEMTIME
+    nmhdr                       As NMHDR
+    dwFlags                     As GetDateTimeFlags
+    st                          As SYSTEMTIME
 End Type
 
 Public Type NMDATETIMESTRINGW
@@ -4158,9 +4173,9 @@ Public Type LVTILEVIEWINFO
     cbSize As Long
     dwMask As LVTVI_Mask ';     //LVTVIM_*
     dwFlags As LVTVI_Flags ';    //LVTVIF_*
-    SizeTile As SIZE ' ;
+    sizeTile As SIZE ' ;
     cLines As Long
-    RCLabelMargin As RECT
+    rcLabelMargin As RECT
 End Type
 
 Public Type LVTILEINFO
@@ -4255,7 +4270,7 @@ End Enum
 
 ' LVM_GET/SETITEM lParam 
 Public Type LVITEMW 'LVITEMW
-  Mask As LVITEM_mask
+  mask As LVITEM_mask
   iItem As Long
   iSubItem As Long
   State As LVITEM_state
@@ -4278,7 +4293,7 @@ Public Type LVITEMW 'LVITEMW
 '#End If
 End Type
 Public Type LVITEMA   ' LVITEM with pszText as string
-  Mask As LVITEM_mask
+  mask As LVITEM_mask
   iItem As Long
   iSubItem As Long
   State As LVITEM_state
@@ -4347,19 +4362,19 @@ End Enum
  
 Public Type LVBKIMAGEW
   ulFlags As LVBKIMAGE_Flags
-  hBm As LongPtr
+  hbm As LongPtr
   pszImage As LongPtr  ' if String, must be pre-allocated
   cchImageMax As Long
-  XOffsetPercent As Long
-  YOffsetPercent As Long
+  xOffsetPercent As Long
+  yOffsetPercent As Long
 End Type
 Public Type LVBKIMAGEA
   ulFlags As LVBKIMAGE_Flags
-  hBm As LongPtr
+  hbm As LongPtr
   pszImage As String  ' if String, must be pre-allocated
   cchImageMax As Long
-  XOffsetPercent As Long
-  YOffsetPercent As Long
+  xOffsetPercent As Long
+  yOffsetPercent As Long
 End Type
 Public Enum LVBKIMAGE_Flags
     LVBKIF_SOURCE_NONE = &H0
@@ -4411,8 +4426,8 @@ End Enum
 
 ' LVM_HITTEST lParam
 Public Type LVHITTESTINFO   ' was LV_HITTESTINFO
-  PT As POINT
-  Flags As LVHT_Flags
+  pt As POINT
+  flags As LVHT_Flags
   iItem As Long
 '#If (WIN32_IE >= &H300) Then
   iSubItem As Long    ' this is was NOT in win95.  valid only for LVM_SUBITEMHITTEST
@@ -4455,15 +4470,15 @@ Public Type LVFINDINFOA   ' was LV_FINDINFO
   Flags As LVFINDINFO_flags
   psz As String  ' if String, must be pre-allocated
   lParam As LongPtr
-  PT As POINT
-  VKDirection As Long
+  pt As POINT
+  vkDirection As Long
 End Type
 Public Type LVFINDINFOW   ' was LV_FINDINFO
   Flags As LVFINDINFO_flags
   psz As LongPtr  ' if String, must be pre-allocated
   lParam As LongPtr
-  PT As POINT
-  VKDirection As Long
+  pt As POINT
+  vkDirection As Long
 End Type
 'Alias LVFINDINFO As LVFINDINFOW 
 
@@ -4561,7 +4576,7 @@ End Enum
 Public Type LVCOLUMNW   ' was LV_COLUMN
   Mask As LVCOLUMN_mask
   fmt As LVCOLUMN_fmt
-  CX As Long
+  cx As Long
   pszText As LongPtr  ' if String, must be pre-allocated
   cchTextMax As Long
   iSubItem As Long
@@ -4662,7 +4677,7 @@ End Enum
 
 Public Type LVGROUP
     cbSize                  As Long
-    Mask                    As LVGROUPMASK
+    mask                    As LVGROUPMASK
     pszHeader               As LongPtr
     cchHeader               As Long
     
@@ -4671,8 +4686,8 @@ Public Type LVGROUP
     
     iGroupId                As Long
     
-    StateMask               As LVGROUPSTATE
-    State                   As LVGROUPSTATE
+    stateMask               As LVGROUPSTATE
+    state                   As LVGROUPSTATE
     uAlign                  As LVGROUPALIGN
 ' SO >= WinVista
     pszSubtitle            As LongPtr
@@ -4693,12 +4708,12 @@ End Type
 Public Type LVINSERTGROUPSORTED
     pfnGroupCompare As LongPtr
     pvData As LongPtr
-    LVG As LVGROUP
+    lvGroup As LVGROUP
 End Type
 
 Public Type LVGROUPMETRICS
     cbSize      As Long
-    Mask        As LVGROUPMETRICFLAGS
+    mask        As LVGROUPMETRICFLAGS
     Left        As Long
     Top         As Long
     Right       As Long
@@ -4715,13 +4730,13 @@ Public Type NMHEADERA
      hdr As NMHDR
      iItem As Long
      iButton As Long
-     lPtrHDItem As LongPtr ' HDITEM FAR* pItem
+     pitem As LongPtr ' HDITEM FAR* pItem
 End Type
 Public Type NMHEADERW
      hdr As NMHDR
      iItem As Long
      iButton As Long
-     lPtrHDItem As LongPtr ' HDITEM FAR* pItem
+     pitem As LongPtr ' HDITEM FAR* pItem
 End Type
 Public Type NMLISTVIEW   ' was NM_LISTVIEW
   hdr As NMHDR
@@ -4730,7 +4745,7 @@ Public Type NMLISTVIEW   ' was NM_LISTVIEW
   uNewState As LVITEM_state
   uOldState As LVITEM_state
   uChanged As LVITEM_mask
-  PTAction As POINT
+  ptAction As POINT
   lParam As LongPtr
 End Type
 Public Enum LVCD_ItemType
@@ -4742,18 +4757,18 @@ Public Const LVCDRF_NOSELECT = &H10000
 Public Const LVCDRF_NOGROUPFRAME = &H20000
 
 Public Type NMLVCUSTOMDRAW
-  NMCD As NMCUSTOMDRAW
-  ClrText As Long
-  ClrTextBk As Long
+  nmcd As NMCUSTOMDRAW
+  clrText As Long
+  clrTextBk As Long
   ' if IE >= 4.0 this member of the struct can be used
-  iSubItem As Integer
+  iSubItem As Long
   '>=5.01
   dwItemType As LVCD_ItemType
   clrFace As Long
-  iIconEffect As Integer
-  iIconPhase As Integer
-  iPartId As Integer
-  iStateId As Integer
+  iIconEffect As Long
+  iIconPhase As Long
+  iPartId As Long
+  iStateId As Long
   rcText As RECT
   uAlign As LVGROUPALIGN
 End Type
@@ -4761,15 +4776,15 @@ End Type
 Public Type NMLVKEYDOWN   ' was LV_KEYDOWN
    hdr As NMHDR
    wVKey As Integer   ' can't be KeyCodeConstants, enums are Longs!
-   Flags As Long   ' Always zero.
+   flags As Long   ' Always zero.
 End Type
 Public Type NMLVDISPINFOA   ' was LV_DISPINFO
   hdr As NMHDR
-  Item As LVITEMA
+  item As LVITEMA
 End Type
 Public Type NMLVDISPINFOW   ' was LV_DISPINFO
   hdr As NMHDR
-  Item As LVITEMW
+  item As LVITEMW
 End Type
 
 Public Type NMLVLINK
@@ -4795,8 +4810,8 @@ End Type
 
 Public Type NMLVSCROLL
     hdr As NMHDR
-    DX As Long
-    DY As Long
+    dx As Long
+    dy As Long
 End Type
 
 Public Type NMLVGROUP
@@ -4839,12 +4854,12 @@ End Type
 Public Type NMLVFINDITEMA
     hdr As NMHDR
     iStart As Long
-    LVFI As LVFINDINFOA
+    lvfi As LVFINDINFOA
 End Type
 Public Type NMLVFINDITEMW
     hdr As NMHDR
     iStart As Long
-    LVFI As LVFINDINFOW
+    lvfi As LVFINDINFOW
 End Type
 
 Public Type NMLVCACHEHINT
@@ -4868,7 +4883,7 @@ Public Type NMITEMACTIVATE
     uNewState As LVITEM_state
     uOldState As LVITEM_state
     uChanged As Long
-    PTAction As POINT
+    ptAction As POINT
     lParam As LongPtr
     uKeyFlags As NMIA_KeyFlags
 End Type
@@ -4952,7 +4967,7 @@ Public Enum HeaderHitTestFlags
     HHT_ONOVERFLOW = &H4000
 End Enum
 Public Type HDHITTESTINFO
-    PT As POINT
+    pt As POINT
     Flags As HeaderHitTestFlags
     iItem As Long
 End Type
@@ -4962,14 +4977,6 @@ Public Enum HeaderImageListFlags
 End Enum
 
 Public Const HDN_FIRST As Long = -300&
-Public Const HDN_ITEMCLICK = (HDN_FIRST - 2)
-Public Const HDN_DIVIDERDBLCLICK = (HDN_FIRST - 5)
-Public Const HDN_BEGINTRACK = (HDN_FIRST - 6)
-Public Const HDN_ENDTRACK = (HDN_FIRST - 7)
-Public Const HDN_TRACK = (HDN_FIRST - 8)
-Public Const HDN_GETDISPINFO = (HDN_FIRST - 9)
-Public Const HDN_ITEMCHANGING As Long = (HDN_FIRST - 0)
-Public Const HDN_ITEMDBLCLICK As Long = (HDN_FIRST - 3)
 Public Const HDN_ITEMCHANGINGA = (HDN_FIRST - 0)
 Public Const HDN_ITEMCHANGINGW = (HDN_FIRST - 20)
 Public Const HDN_ITEMCHANGEDA = (HDN_FIRST - 1)
@@ -5000,6 +5007,20 @@ Public Const HDN_ITEMKEYDOWN = (HDN_FIRST - 17)
 Public Const HDN_DROPDOWN = (HDN_FIRST - 18)
 Public Const HDN_OVERFLOWCLICK = (HDN_FIRST - 19)
 '#End If
+
+Public Const HDN_ITEMCHANGING  = HDN_ITEMCHANGINGW
+Public Const HDN_ITEMCHANGED  = HDN_ITEMCHANGEDW
+Public Const HDN_ITEMCLICK  = HDN_ITEMCLICKW
+Public Const HDN_ITEMDBLCLICK  = HDN_ITEMDBLCLICKW
+Public Const HDN_DIVIDERDBLCLICK  = HDN_DIVIDERDBLCLICKW
+Public Const HDN_BEGINTRACK  = HDN_BEGINTRACKW
+Public Const HDN_ENDTRACK  = HDN_ENDTRACKW
+Public Const HDN_TRACK  = HDN_TRACKW
+Public Const HDN_GETDISPINFO  = HDN_GETDISPINFOW
+
+
+
+
 
 Public Const HDM_FIRST As Long = &H1200
 Public Const HDM_GETITEMCOUNT = (HDM_FIRST + 0)
@@ -5084,7 +5105,7 @@ Public Type HDITEMA
     mask As HDMASK
     cxy As Long
     pszText As String
-    hBm As LongPtr
+    hbm As LongPtr
     cchTextMax As Long
     fmt As HDITEM_FMT
     lParam As LongPtr
@@ -5096,6 +5117,17 @@ Public Type HDITEMA
 '#If (WIN32_IE >= &H600) then
     state As Long
 End Type
+
+#If Win64 Then
+    Public Const HDITEMA_V1_SIZE = &H28
+    Public Const HDITEMW_V1_SIZE = &H28
+    Public Const HDITEM_V1_SIZE = &H28
+#Else
+    Public Const HDITEMA_V1_SIZE = &H1C
+    Public Const HDITEMW_V1_SIZE = &H1C
+    Public Const HDITEM_V1_SIZE = &H1C
+#End If
+
 Public Type HDITEMW
     mask As HDMASK
     cxy As Long
@@ -5127,8 +5159,8 @@ End Type
 ' Alias HDTEXTFILTER As HD_TEXTFILTER 
  
 Public Type HDLAYOUT
-    prc As RECT
-    pwpos As WINDOWPOS
+    prc As LongPtr 'RECT
+    pwpos As LongPtr 'WINDOWPOS
 End Type
 
  
@@ -5140,7 +5172,7 @@ End Type
 Public Type NMHDDISPINFOW
     hdr As NMHDR
     iItem As Long
-    Mask As Long
+    mask As Long
     pszText As LongPtr
     cchTextMax As Long
     iImage As Long
@@ -5149,7 +5181,7 @@ End Type
 Public Type NMHDDISPINFOA
     hdr As NMHDR
     iItem As Long
-    Mask As Long
+    mask As Long
     pszText As String
     cchTextMax As Long
     iImage As Long
@@ -5252,7 +5284,7 @@ Public Enum MonthCalView
     MCMV_YEAR = 1
     MCMV_DECADE = 2
     MCMV_CENTURY = 3
-    MCMV_MAX = 3
+    MCMV_MAX = MCMV_CENTURY
 End Enum
 
 Public Enum MonthCalGridInfoPart
@@ -6478,7 +6510,7 @@ Public Type NMREBARAUTOBREAK
     lParam As LongPtr
     uMsg As Long
     fStyleCurrent As RBAB
-    fAutoBreak As Long
+    fAutoBreak As BOOL
 End Type
 
 Public Enum ReBar_HitTestFlags
@@ -9369,7 +9401,7 @@ Public Enum TabExStyles
 End Enum
  
 Public Type TCITEMW
-    Mask        As TabItemFlags
+    mask        As TabItemFlags
     dwState     As TabItemState
     dwStateMask As TabItemState
     pszText     As LongPtr
@@ -9378,7 +9410,7 @@ Public Type TCITEMW
     lParam      As LongPtr
 End Type
 Public Type TCITEMA
-    Mask        As TabItemFlags
+    mask        As TabItemFlags
     dwState     As TabItemState
     dwStateMask As TabItemState
     pszText     As String
@@ -9855,6 +9887,8 @@ Public Const TBN_WRAPACCELERATOR  = (TBN_FIRST - 26)
 Public Const TBN_DRAGOVER  = (TBN_FIRST - 27)
 Public Const TBN_MAPACCELERATOR  = (TBN_FIRST - 28)
 
+Public Const TBN_GETDISPINFO  = TBN_GETDISPINFOW
+
 
 Public Enum Toolbar_ButtonStates
     TBSTATE_CHECKED = &H01
@@ -9868,6 +9902,15 @@ Public Enum Toolbar_ButtonStates
 End Enum
 
 Public Enum ToolbarStyles
+    TBSTYLE_BUTTON = &H0000
+    TBSTYLE_SEP = &H0001  ' obsolete; use BTNS_SEP instead
+    TBSTYLE_CHECK = &H0002  ' obsolete; use BTNS_CHECK instead
+    TBSTYLE_GROUP = &H0004  ' obsolete; use BTNS_GROUP instead
+    TBSTYLE_CHECKGROUP = (TBSTYLE_GROUP Or TBSTYLE_CHECK)  ' obsolete; use BTNS_CHECKGROUP instead
+    TBSTYLE_DROPDOWN = &H0008  ' obsolete; use BTNS_DROPDOWN instead
+    TBSTYLE_AUTOSIZE = &H0010  ' obsolete; use BTNS_AUTOSIZE instead
+    TBSTYLE_NOPREFIX = &H0020  ' obsolete; use BTNS_NOPREFIX instead
+
     TBSTYLE_TOOLTIPS = &H0100
     TBSTYLE_WRAPABLE = &H0200
     TBSTYLE_ALTDRAG = &H0400
@@ -9889,16 +9932,16 @@ Public Enum ToolbarStyles
 End Enum
 
 Public Enum ToolbarButtonStyles
-    BTNS_BUTTON = &H0000
-    BTNS_SEP = &H0001
-    BTNS_CHECK = &H0002
-    BTNS_GROUP = &H0004
-    BTNS_CHECKGROUP = (BTNS_GROUP Or BTNS_CHECK)
-    BTNS_DROPDOWN = &H0008
-    BTNS_AUTOSIZE = &H0010 ' automatically calculate the cx of the button
-    BTNS_NOPREFIX = &H0020 ' this button should not have accel prefix
-    BTNS_SHOWTEXT = &H0040 ' ignored unless TBSTYLE_EX_MIXEDBUTTONS is set
-    BTNS_WHOLEDROPDOWN = &H0080 ' draw drop-down arrow, but without split arrow section
+    BTNS_BUTTON = TBSTYLE_BUTTON          ' 0x0000
+    BTNS_SEP = TBSTYLE_SEP                ' 0x0001
+    BTNS_CHECK = TBSTYLE_CHECK            ' 0x0002
+    BTNS_GROUP = TBSTYLE_GROUP            ' 0x0004
+    BTNS_CHECKGROUP = TBSTYLE_CHECKGROUP  ' (TBSTYLE_GROUP | TBSTYLE_CHECK)
+    BTNS_DROPDOWN = TBSTYLE_DROPDOWN      ' 0x0008
+    BTNS_AUTOSIZE = TBSTYLE_AUTOSIZE      ' 0x0010; automatically calculate the cx of the button
+    BTNS_NOPREFIX = TBSTYLE_NOPREFIX      ' 0x0020; this button should not have accel prefix
+    BTNS_SHOWTEXT = &H0040                ' ignored unless TBSTYLE_EX_MIXEDBUTTONS is set
+    BTNS_WHOLEDROPDOWN = &H0080           ' draw drop-down arrow, but without split arrow section
 End Enum
 
 Public Enum ToolbarCustomDrawReturnFlags
@@ -10797,6 +10840,16 @@ Public Type TVINSERTSTRUCTEXW
     [Description("**NOTE:** Use TVINSERTSTRUCTEXW for TVITEMEXW")]
     Item As TVITEMEXW
 End Type
+' typedef struct tagTVINSERTSTRUCTW {
+' HTREEITEM hParent;
+' HTREEITEM hInsertAfter;
+' union
+' {
+    ' TVITEMEXW itemex;
+    ' TV_ITEMW  item;
+' } DUMMYUNIONNAME;
+' } TVINSERTSTRUCTW
+
 
 Public Enum TVITEMPART
     TVGIPR_BUTTON = &H1
@@ -11043,7 +11096,7 @@ Public Type NMTVITEMCHANGE
 End Type
 Public Type NMTVASYNCDRAW
     hdr As NMHDR
-    pimldp As IMAGELISTDRAWPARAMS
+    pimldp As LongPtr 'IMAGELISTDRAWPARAMS*
     hr As Long
     hItem As LongPtr
     lParam As LongPtr
@@ -14213,7 +14266,7 @@ End Function
 
 Public Function GetLVItemlParam(hwndLV As LongPtr, iItem As Long) As LongPtr
   Dim lvi As LVITEM
-  lvi.Mask = LVIF_PARAM
+  lvi.mask = LVIF_PARAM
   lvi.iItem = iItem
   If SendMessage(hwndLV, LVM_GETITEM, 0, lvi) Then
     GetLVItemlParam = lvi.lParam
@@ -15755,7 +15808,7 @@ Public Function ListView_SelectNone(hwndLV As LongPtr) As Boolean
   Dim lv As LVITEM
    
    With lv
-      .Mask = LVIF_STATE
+      .mask = LVIF_STATE
       .State = 0
       .StateMask = LVIS_SELECTED
    End With
@@ -15899,7 +15952,7 @@ Public Function ListView_GetGroupRect(hWnd As LongPtr, iGroup As Long, Item As L
 End Function
 Public Function ListView_GetGroupCount(hWnd As LongPtr, iGroup As Long) As LongPtr
 Dim LVG As LVGROUP
-    LVG.Mask = LVGF_ITEMS
+    LVG.mask = LVGF_ITEMS
     LVG.cbSize = LenB(LVG)
     Call SendMessage(hWnd, LVM_GETGROUPINFO, iGroup, LVG)
 ListView_GetGroupCount = LVG.cItems
@@ -15918,9 +15971,9 @@ End Function
 Public Function ListView_SetGroupState(hWnd As LongPtr, dwGroupId As Long, dwMask As LVGROUPSTATE, dwState As LVGROUPSTATE) As LongPtr
 Dim LVG As LVGROUP
 LVG.cbSize = LenB(LVG)
-LVG.Mask = LVGF_STATE
-LVG.StateMask = dwMask
-LVG.State = dwState
+LVG.mask = LVGF_STATE
+LVG.stateMask = dwMask
+LVG.state = dwState
 ListView_SetGroupState = SendMessage(hWnd, LVM_SETGROUPINFO, dwGroupId, LVG)
 End Function
 Public Function ListView_GetInsertMark(hWnd As LongPtr, LVIM As LVINSERTMARK) As LongPtr
@@ -17763,6 +17816,8 @@ Public DeclareWide PtrSafe Function PageSetupDlg Lib "comdlg32" Alias "PageSetup
 
 
 End Module
+
+Public Alias NMCLICK As NMMOUSE
 
 Public Alias NMDATETIMESTRING As NMDATETIMESTRINGW
 Public Alias NMDATETIMEWMKEYDOWN As NMDATETIMEWMKEYDOWNW
