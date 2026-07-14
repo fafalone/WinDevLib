@@ -1,7 +1,7 @@
 # Windows Development Library for twinBASIC
 ## WinDevLib 
 
-**Current Version: 9.3.712 (July 12th, 2026)**
+**Current Version: 9.3.713 (July 14th, 2026)**
 
 (c) 2022-2026 Jon Johnson (fafalone)
 
@@ -242,6 +242,13 @@ Current coverage is already quite extensive, spanning hundreds of Windows SDK he
 
  
 ### Updates
+
+**Update (v9.3.713, 14 Jul 2026):**
+- (API Standards, breaking changes) Some comctl types had their member names changed to match SDK.
+- (Bug fix) NMLVCUSTOMDRAW many members had wrong type.
+- (Bug fix) HDLAYOUT both members should be LongPtr
+- (Bug fix) HDN_ notification codes with ANSI/Unicode versions had their undifferentiated versions improperly aliased to ANSI.
+- (Bug fix) NMTVASYNCDRAW.pimldp should be LongPtr
 
 **Update (v9.3.712, 12 Jul 2026):**
 - WebView2 updated to match current stable release 1.0.4078.44
