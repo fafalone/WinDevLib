@@ -1,0 +1,965 @@
+'*****************************************************************************************
+'This file is a part of WinDevLib - Windows Development Library for twinBASIC
+'https://github.com/fafalone/WinDevLib
+'Code ported by Jon Johnson. 
+'"Windows" is a trademark of the Microsoft Corporation.
+'Certain Description attributes (c) Microsoft, taken from SDK headers and official docs.
+'Licensed under Creative Commons CC0 1.0 Universal
+'*****************************************************************************************
+
+'DirectStorage - dstorage.h, dstorageerr.h - 100% coverage
+
+#If WDL_NO_DIRECTX = 0 Then
+
+    
+[InterfaceId("5DE95E7B-955A-4868-A73C-243B29F4B8DA")]
+[OleAutomation(False)]
+Interface IDStorageFile Extends IUnknown
+    ' Closes the file, regardless of the reference count on this object.
+    '
+    ' After an IDStorageFile object is closed, it can no longer be used in
+    ' DirectStorage requests. This does not modify the reference count on this
+    ' object; Release() must be called as usual.
+    [PreserveSig] Sub Close()
+
+    ' Retrieves file information for an opened file.
+    '
+    ' @info - Receives the file information.
+    ' @return - Standard HRESULT error code.
+    [PreserveSig] Function GetFileInformation(ByRef info As BY_HANDLE_FILE_INFORMATION) As Long
+End Interface
+
+[InterfaceId("97179B2F-2C21-49CA-8291-4E1BF4A160DF")]
+[OleAutomation(False)]
+Interface IDStorageCustomDecompressionQueue Extends IUnknown
+    ' Obtains an event to wait on. This event is set when there are pending
+    ' decompression requests.
+    [PreserveSig] Function GetEvent() As LongPtr ' HANDLE is typically a pointer type
+
+    ' Populates the given array of request structs with new pending requests.
+    ' Your application must arrange to fulfill all these requests, and then
+    ' call SetRequestResults to indicate completion.
+    [PreserveSig] Function GetRequests(ByVal maxRequests As Long, ByRef requests As DSTORAGE_CUSTOM_DECOMPRESSION_REQUEST, ByRef numRequests As Long) As Long ' HRESULT
+
+    ' Your application calls this to indicate that requests have been completed.
+    ' @numResults - The number of results in `results`.
+    ' @results - An array of results, the size is specified by `numResults.`
+    ' @return - Standard HRESULT error code.
+    [PreserveSig] Function SetRequestResults(ByVal numResults As Long, ByRef results As DSTORAGE_CUSTOM_DECOMPRESSION_RESULT) As Long ' HRESULT
+End Interface
+
+[InterfaceId("0D47C6C9-E61A-4706-93B4-68BFE3F4AA4A")]
+[OleAutomation(False)]
+Interface IDStorageCustomDecompressionQueue1 Extends IDStorageCustomDecompressionQueue
+    ' Populates the given array of request structs with new pending requests
+    ' based on the specified custom decompression request type.
+    ' The application must arrange to fulfill all these requests, and then
+    ' call SetRequestResults to indicate completion.
+    [PreserveSig] Function GetRequests1(ByVal flags As DSTORAGE_GET_REQUEST_FLAGS, ByVal maxRequests As Long, ByRef requests As DSTORAGE_CUSTOM_DECOMPRESSION_REQUEST, ByRef numRequests As Long) As Long ' HRESULT
+End Interface
+
+[InterfaceId("6924EA0C-C3CD-4826-B10A-F64F4ED927C1")]
+[OleAutomation(False)]
+Interface IDStorageFactory Extends IUnknown
+    ' Creates a DirectStorage queue object.
+    [PreserveSig] Function CreateQueue(ByRef desc As DSTORAGE_QUEUE_DESC, ByRef riid As UUID, ByRef ppv As Any) As Long ' HRESULT
+
+    ' Opens a file for DirectStorage access.
+    [PreserveSig] Function OpenFile(ByVal path As LongPtr, ByRef riid As UUID, ByRef ppv As Any) As Long ' HRESULT
+
+    ' Creates a DirectStorage status array object.
+    [PreserveSig] Function CreateStatusArray(ByVal capacity As Long, ByVal name As LongPtr, ByRef riid As UUID, ByRef ppv As Any) As Long ' HRESULT
+
+    ' Sets flags used to control the debug layer.
+    [PreserveSig] Sub SetDebugFlags(ByVal flags As Long)
+
+    ' Sets the size of staging buffer(s) used to temporarily store content loaded from the storage device.
+    [PreserveSig] Function SetStagingBufferSize(ByVal size As Long) As Long ' HRESULT
+End Interface
+
+[InterfaceId("82397587-7CD5-453B-A02E-31379BD64656")]
+[OleAutomation(False)]
+Interface IDStorageStatusArray Extends IUnknown
+    ' Returns a Boolean value indicating that all requests enqueued prior to the specified status entry have completed.
+    [PreserveSig] Function IsComplete(ByVal index As Long) As Byte
+
+    ' Returns the HRESULT code of all requests between the specified status entry and the status entry enqueued before it.
+    [PreserveSig] Function GetHResult(ByVal index As Long) As Long ' HRESULT
+End Interface
+
+[InterfaceId("CFDBD83F-9E06-4FDA-8EA5-69042137F49B")]
+[OleAutomation(False)]
+Interface IDStorageQueue Extends IUnknown
+    ' Enqueues a read request to the queue.
+    [PreserveSig] Sub EnqueueRequest(ByRef request As DSTORAGE_REQUEST)
+
+    ' Enqueues a status write.
+    [PreserveSig] Sub EnqueueStatus(ByVal statusArray As IDStorageStatusArray, ByVal index As Long)
+
+    ' Enqueues a fence write.
+    [PreserveSig] Sub EnqueueSignal(ByVal fence As ID3D12Fence, ByVal value As LongLong) ' UINT64
+
+    ' Submits all requests enqueued so far.
+    [PreserveSig] Sub Submit()
+
+    ' Attempts to cancel a group of previously enqueued read requests.
+    [PreserveSig] Sub CancelRequestsWithTag(ByVal mask As LongLong, ByVal value As LongLong) ' UINT64
+
+    ' Closes the DirectStorage queue.
+    [PreserveSig] Sub Close()
+
+    ' Obtains an event to wait on for errors.
+    [PreserveSig] Function GetErrorEvent() As LongPtr ' HANDLE
+
+    ' Retrieves a DSTORAGE_ERROR_RECORD when the error event is signaled.
+    [PreserveSig] Sub RetrieveErrorRecord(ByRef record As DSTORAGE_ERROR_RECORD)
+
+    ' Obtains information about the queue.
+    [PreserveSig] Sub Query(ByRef info As DSTORAGE_QUEUE_INFO)
+End Interface
+
+[InterfaceId("DD2F482C-5EFF-41E8-9C9E-D2374B278128")]
+[OleAutomation(False)]
+Interface IDStorageQueue1 Extends IDStorageQueue
+    ' Enqueues an operation to set the specified event object to a signaled state.
+    [PreserveSig] Sub EnqueueSetEvent(ByVal handle As LongPtr) ' HANDLE
+End Interface
+
+[InterfaceId("B1C9D643-3A49-44A2-B46F-653649470D18")]
+[OleAutomation(False)]
+Interface IDStorageQueue2 Extends IDStorageQueue1
+    ' Obtains support information about the queue for a specified compression format.
+    [PreserveSig] Function GetCompressionSupport(ByVal format As DSTORAGE_COMPRESSION_FORMAT) As DSTORAGE_COMPRESSION_SUPPORT
+End Interface
+
+[InterfaceId("84EF5121-9B43-4D03-B5C1-CC34606B262D")]
+[OleAutomation(False)]
+Interface IDStorageCompressionCodec Extends IUnknown
+    ' Compresses a buffer of data using a known compression format.
+    [PreserveSig] Function CompressBuffer(uncompressedData As Any, ByVal uncompressedDataSize As LongPtr, ByVal compressionSetting As DSTORAGE_COMPRESSION, compressedBuffer As Any, ByVal compressedBufferSize As LongPtr, ByRef compressedDataSize As LongPtr) As Long
+
+    ' Decompresses data previously compressed using CompressBuffer.
+    [PreserveSig] Function DecompressBuffer(compressedData As Any, ByVal compressedDataSize As LongPtr, uncompressedBuffer As Any, ByVal uncompressedBufferSize As LongPtr, ByRef uncompressedDataSize As LongPtr) As Long
+
+    ' Returns an upper bound estimated size in bytes required to compress the specified data size.
+    [PreserveSig] Function CompressBufferBound(ByVal uncompressedDataSize As LongPtr) As LongPtr
+End Interface
+
+#If WDL_QUALIFY Then
+[MustBeQualified]
+#End If
+Module wdDStorage
+    
+#If WINDEVLIB_LITE Then
+Public Type BY_HANDLE_FILE_INFORMATION
+    dwFileAttributes As Long
+    ftCreationTime As FILETIME
+    ftLastAccessTime As FILETIME
+    ftLastWriteTime As FILETIME
+    dwVolumeSerialNumber As Long
+    nFileSizeHigh As Long
+    nFileSizeLow As Long
+    nNumberOfLinks As Long
+    nFileIndexHigh As Long
+    nFileIndexLow As Long
+End Type
+#End If
+
+Public Const DSTORAGE_SDK_VERSION = 203
+
+Public Enum DSTORAGE_PRIORITY
+    DSTORAGE_PRIORITY_LOW = -1
+    DSTORAGE_PRIORITY_NORMAL = 0
+    DSTORAGE_PRIORITY_HIGH = 1
+    DSTORAGE_PRIORITY_REALTIME = 2
+    ' / <summary>
+    ' / The following values can be used for iterating over all priority levels.
+    ' / </summary>
+    DSTORAGE_PRIORITY_FIRST = DSTORAGE_PRIORITY_LOW
+    DSTORAGE_PRIORITY_LAST = DSTORAGE_PRIORITY_REALTIME
+    DSTORAGE_PRIORITY_COUNT = 4
+End Enum
+    
+Public Enum DStgQueueCapacityDefaults
+    DSTORAGE_MIN_QUEUE_CAPACITY = &H80
+    ' / <summary>
+    ' / The maximum valid queue capacity.
+    ' / </summary>
+    DSTORAGE_MAX_QUEUE_CAPACITY = &H2000
+End Enum
+    
+Public Enum DSTORAGE_REQUEST_SOURCE_TYPE
+    ' / <summary>
+    ' / The source of the DirectStorage request is a file.
+    ' / </summary>
+    DSTORAGE_REQUEST_SOURCE_FILE = 0
+    ' / <summary>
+    ' / The source of the DirectStorage request is a block of memory.
+    ' / </summary>
+    DSTORAGE_REQUEST_SOURCE_MEMORY = 1
+End Enum
+    
+Public Enum DSTORAGE_REQUEST_DESTINATION_TYPE
+    ' / <summary>
+    ' / The destination of the DirectStorage request is a block of memory.
+    ' / </summary>
+    DSTORAGE_REQUEST_DESTINATION_MEMORY = 0
+    ' / <summary>
+    ' / The destination of the DirectStorage request is an ID3D12Resource
+    ' / that is a buffer.
+    ' / </summary>
+    DSTORAGE_REQUEST_DESTINATION_BUFFER = 1
+    ' / <summary>
+    ' / The destination of the DirectStorage request is an ID3D12Resource
+    ' / that is a texture.
+    ' / </summary>
+    DSTORAGE_REQUEST_DESTINATION_TEXTURE_REGION = 2
+    ' / <summary>
+    ' / The destination of the DirectStorage request is an ID3D12Resource
+    ' / that is a texture that will receive all subresources in a
+    ' / single request.
+    ' / </summary>
+    DSTORAGE_REQUEST_DESTINATION_MULTIPLE_SUBRESOURCES = 3
+    ' / <summary>
+    ' / The destination of the DirectStorage request is an ID3D12Resource
+    ' / that is tiled.
+    ' / </summary>
+    DSTORAGE_REQUEST_DESTINATION_TILES = 4
+End Enum
+
+Public Type DSTORAGE_QUEUE_DESC
+    '/ <summary>
+    '/ The source type of requests that this DirectStorage queue can accept.
+    '/ </summary>
+    /* [TypeHint(DSTORAGE_REQUEST_SOURCE_TYPE)] */ SourceType As LongLong
+    '/ <summary>
+    '/ The maximum number of requests that the queue can hold.
+    '/ </summary>
+    Capacity As Integer
+    '/ <summary>
+    '/ The priority of the requests in this queue.
+    '/ </summary>
+    /* [TypeHint(DSTORAGE_PRIORITY)] */ Priority As Byte
+    '/ <summary>
+    '/ Optional name of the queue. Used for debugging.
+    '/ </summary>
+    Name As LongPtr 'const CHAR *
+    '/ <summary>
+    '/ Optional device to use for writing to destination resources and
+    '/ performing GPU decompression. The destination resource's device
+    '/ must match this device.
+    '/
+    '/ This member may be null. If you specify a null device, then the
+    '/ destination type must be DSTORAGE_REQUEST_DESTINATION_MEMORY.
+    '/ </summary>
+    Device As ID3D12Device
+End Type
+
+Public Type DSTORAGE_QUEUE_INFO
+    '/ <summary>
+    '/ The DSTORAGE_QUEUE_DESC structure used for the queue's creation.
+    '/ </summary>
+    Desc As DSTORAGE_QUEUE_DESC
+    '/ <summary>
+    '/ The number of available empty slots. If a queue is empty, then the number
+    '/ of empty slots equals capacity - 1. The reserved slot is used to
+    '/ distinguish between empty and full cases.
+    '/ </summary>
+    EmptySlotCount As Integer
+    '/ <summary>
+    '/ The number of entries that would need to be enqueued in order to trigger
+    '/ automatic submission.
+    '/ </summary>
+    RequestCountUntilAutoSubmit As Integer
+End Type
+
+Public Enum DSTORAGE_COMPRESSION_FORMAT
+    ' / <summary>
+    ' / The data is uncompressed.
+    ' / </summary>
+    DSTORAGE_COMPRESSION_FORMAT_NONE = 0
+    ' / <summary>
+    ' / The data is compressed using the built-in GDEFLATE format.
+    ' / </summary>
+    DSTORAGE_COMPRESSION_FORMAT_GDEFLATE = 1
+    ' / <summary>
+    ' / The data is stored in an application-defined custom format. The
+    ' / application must use IDStorageCustomDecompressionQueue to implement
+    ' / custom decompression.  Additional custom compression formats can be
+    ' / used, for example `(DSTORAGE_CUSTOM_COMPRESSION_0 + 1)`.
+    DSTORAGE_CUSTOM_COMPRESSION_0 = &H80
+End Enum
+    
+Public Type DSTORAGE_REQUEST_OPTIONS
+    '/ <summary>
+    '/ DSTORAGE_COMPRESSION_FORMAT indicating how the data is compressed.
+    '/ </summary>
+    'DSTORAGE_COMPRESSION_FORMAT CompressionFormat : 8;
+    CompressionFormat As Byte 'DSTORAGE_COMPRESSION_FORMAT
+    '/ <summary>
+    '/ Reserved fields. Must be 0.
+    '/ </summary>
+    Reserved1(0 To 6) As Byte
+    ' pad(4) As Byte
+    '/ <summary>
+    '/ DSTORAGE_REQUEST_SOURCE_TYPE enum value indicating whether the
+    '/ source of the request is a file or a block of memory.
+    '/ </summary>
+    ' SourceType As DSTORAGE_REQUEST_SOURCE_TYPE 'LongLong 'DSTORAGE_REQUEST_SOURCE_TYPE:
+    ' '/ <summary>
+    ' '/ DSTORAGE_REQUEST_DESTINATION_TYPE enum value indicating the
+    ' '/ destination of the request. Block of memory, resource.
+    ' '/ </summary>
+    ' DestinationType As DSTORAGE_REQUEST_DESTINATION_TYPE 'LongLong 'DSTORAGE_REQUEST_DESTINATION_TYPE:
+    TypeBitfield As Byte
+    '/ <summary>
+    '/ Reserved fields. Must be 0.
+    '/ </summary>
+    ' Reserved As LongLong:
+    Reserved(5) As Byte
+    pad As Byte
+End Type
+    
+Public Enum DSTORAGE_DEBUG
+    ' / <summary>
+    ' / DirectStorage debug layer is disabled.
+    ' / </summary>
+    DSTORAGE_DEBUG_NONE = &H00
+    ' / <summary>
+    ' / Print error information to a debugger.
+    ' / </summary>
+    DSTORAGE_DEBUG_SHOW_ERRORS = &H01
+    ' / <summary>
+    ' / Trigger a debug break each time an error is detected.
+    ' / </summary>
+    DSTORAGE_DEBUG_BREAK_ON_ERROR = &H02
+    ' / <summary>
+    ' / Include object names in ETW events.
+    ' / </summary>
+    DSTORAGE_DEBUG_RECORD_OBJECT_NAMES = &H04
+End Enum
+
+Public Type DSTORAGE_SOURCE_FILE
+    '/ <summary>
+    '/ The file to perform this read request from.
+    '/ </summary>
+    Source As IDStorageFile
+    '/ <summary>
+    '/ The offset, in bytes, in the file to start the read request at.
+    '/ </summary>
+    Offset As LongLong
+    '/ <summary>
+    '/ Number of bytes to read from the file.
+    '/ </summary>
+    Size As Long
+End Type
+
+Public Type DSTORAGE_SOURCE_MEMORY
+    '/ <summary>
+    '/ Address of the source buffer to be read from.
+    '/ </summary>
+    Source As LongPtr 'void const*
+    '/ <summary>
+    '/ Number of bytes to read from the source buffer.
+    '/ </summary>
+    Size As Long
+End Type
+    
+Public Type DSTORAGE_DESTINATION_MEMORY
+    '/ <summary>
+    '/ Address of the buffer to receive the final result of this request.
+    '/ </summary>
+    Buffer As LongPtr 'void*
+    '/ <summary>
+    '/ Number of bytes to write to the destination buffer.
+    '/ </summary>
+    Size As Long
+End Type
+
+Public Type DSTORAGE_DESTINATION_BUFFER
+    '/ <summary>
+    '/ Address of the resource to receive the final result of this request.
+    '/ </summary>
+    Resource As ID3D12Resource
+    '/ <summary>
+    '/ The offset, in bytes, in the buffer resource to write into.
+    '/ </summary>
+    Offset As LongLong
+    '/ <summary>
+    '/ Number of bytes to write to the destination buffer.
+    '/ </summary>
+    Size As Long
+End Type
+
+Public Type DSTORAGE_DESTINATION_TEXTURE_REGION
+    '/ <summary>
+    '/ Address of the resource to receive the final result of this request.
+    '/ </summary>
+    Resource As ID3D12Resource
+    '/ <summary>
+    '/ Describes the destination texture copy location. The subresource
+    '/ referred to must be in the D3D12_RESOURCE_STATE_COMMON state.
+    '/ </summary>
+    SubresourceIndex As Long
+    '/ <summary>
+    '/ Coordinates and size of the destination region to copy, in pixels.
+    '/ </summary>
+    Region As D3D12_BOX
+End Type
+
+Public Type DSTORAGE_DESTINATION_MULTIPLE_SUBRESOURCES
+    '/ <summary>
+    '/ Address of the resource to receive the final result of this request. The
+    '/ source is expected to contain full data for all subresources, starting
+    '/ from FirstSubresource.
+    '/ </summary>
+    Resource As ID3D12Resource
+    '/ <summary>
+    '/ Describes the first subresource of the destination texture copy
+    '/ location. The subresource referred to must be in the
+    '/ D3D12_RESOURCE_STATE_COMMON state.
+    '/ </summary>
+    FirstSubresource As Long
+End Type
+
+Public Type DSTORAGE_DESTINATION_TILES
+    '/ <summary>
+    '/ Address of the resource to receive the final result of this request. The
+    '/ source buffer is expected to contain data arranged as if it were the
+    '/ source to a CopyTiles call with these parameters.
+    '/ </summary>
+    Resource As ID3D12Resource
+    '/ <summary>
+    '/ The starting coordinates of the tiled region.
+    '/ </summary>
+    TiledRegionStartCoordinate As D3D12_TILED_RESOURCE_COORDINATE
+    '/ <summary>
+    '/ The size of the tiled region.
+    '/ </summary>
+    TileRegionSize As D3D12_TILE_REGION_SIZE
+End Type
+
+' union DSTORAGE_SOURCE {
+' DSTORAGE_SOURCE Memory;
+' DSTORAGE_SOURCE_FILE File;
+' };
+Public Type DSTORAGE_SOURCE
+    u(23) As Byte
+End Type
+    
+' union DSTORAGE_DESTINATION {
+' DSTORAGE_DESTINATION_MEMORY Memory;
+' DSTORAGE_DESTINATION_BUFFER Buffer;
+' DSTORAGE_DESTINATION_TEXTURE_REGION Texture;
+' DSTORAGE_DESTINATION_MULTIPLE_SUBRESOURCES MultipleSubresources;
+' DSTORAGE_DESTINATION_TILES Tiles;
+' };
+Public Type DSTORAGE_DESTINATION
+    #If Win64 Then
+    u(39) As Byte
+    #Else
+    u(23) As Byte
+    #End If
+End Type
+
+Public Type DSTORAGE_REQUEST
+    '/ <summary>
+    '/ Combination of decompression and other options for this request.
+    '/ </summary>
+    Options As DSTORAGE_REQUEST_OPTIONS
+    '/ <summary>
+    '/ The source for this request.
+    '/ </summary>
+    Source As DSTORAGE_SOURCE
+    '/ <summary>
+    '/ The destination for this request.
+    '/ </summary>
+    Destination As DSTORAGE_DESTINATION
+    '/ <summary>
+    '/ The uncompressed size in bytes for the destination for this request.
+    '/ If the request is not compressed, then this can be left as 0.
+    '/
+    '/ For compressed data, if the destination is memory, then the uncompressed size must
+    '/ exactly equal the destination size. For other destination types, the uncompressed
+    '/ size may be greater than the destination size.
+    '/
+    '/ If the destination is to memory or buffer, then the destination size should
+    '/ be specified in the corresponding struct (for example, DSTORAGE_DESTINATION_MEMORY).
+    '/ For textures, it's the value of pTotalBytes returned by GetCopyableFootprints.
+    '/ For tiles, it's 64k * number of tiles.
+    '/ </summary>
+    UncompressedSize As Long
+    '/ <summary>
+    '/ An arbitrary UINT64 number used for cancellation matching.
+    '/ </summary>
+    CancellationTag As LongLong
+    '/ <summary>
+    '/ Optional name of the request. Used for debugging. If specified, the
+    '/ string should be accessible until the request completes.
+    '/ </summary>
+    Name As LongPtr
+End Type
+
+Public Const DSTORAGE_REQUEST_MAX_NAME = 64
+
+Public Enum DSTORAGE_COMMAND_TYPE
+    DSTORAGE_COMMAND_TYPE_NONE = -1
+    DSTORAGE_COMMAND_TYPE_REQUEST = 0
+    DSTORAGE_COMMAND_TYPE_STATUS = 1
+    DSTORAGE_COMMAND_TYPE_SIGNAL = 2
+    DSTORAGE_COMMAND_TYPE_EVENT = 3
+End Enum
+
+Public Type DSTORAGE_ERROR_PARAMETERS_REQUEST
+    '/ <summary>
+    '/ For a file source request, the name of the file the request was
+    '/ targeted to.
+    '/ </summary>
+    Filename(0 To (MAX_PATH - 1)) As Integer
+    '/ <summary>
+    '/ The name of the request if one was specified.
+    '/ </summary>
+    RequestName(0 To (DSTORAGE_REQUEST_MAX_NAME - 1)) As Byte
+    '/ <summary>
+    '/ The parameters passed to the EnqueueRequest call.
+    '/ </summary>
+    Request As DSTORAGE_REQUEST
+End Type
+
+Public Type DSTORAGE_ERROR_PARAMETERS_STATUS
+    StatusArray As IDStorageStatusArray
+    Index As Long
+End Type
+
+Public Type DSTORAGE_ERROR_PARAMETERS_SIGNAL
+    Fence As ID3D12Fence
+    Value As LongLong
+End Type
+
+Public Type DSTORAGE_ERROR_PARAMETERS_EVENT
+    Handle As LongPtr
+End Type
+
+Public Type DSTORAGE_ERROR_FIRST_FAILURE
+    '/ <summary>
+    '/ The HRESULT code of the failure.
+    '/ </summary>
+    HResult As Long
+    '/ <summary>
+    '/ Type of the Enqueue command that caused the failure.
+    '/ </summary>
+    CommandType As DSTORAGE_COMMAND_TYPE
+    '/ <summary>
+    '/ The parameters passed to the Enqueue call.
+    '/ </summary>
+    'union
+    '{
+    '    DSTORAGE_ERROR_PARAMETERS_REQUEST Request;
+    '    DSTORAGE_ERROR_PARAMETERS_STATUS Status;
+    '    DSTORAGE_ERROR_PARAMETERS_SIGNAL Signal;
+    '    DSTORAGE_ERROR_PARAMETERS_EVENT Event;
+    '};
+    #If Win64 Then
+        u(687) As Byte
+    #Else
+        u(671) As Byte
+    #End If
+End Type
+
+Public Type DSTORAGE_ERROR_RECORD
+    '/ <summary>
+    '/ The number of failed requests in the queue since the last
+    '/ RetrieveErrorRecord call.
+    '/ </summary>
+    FailureCount As Long
+    '/ <summary>
+    '/ Detailed record about the first failed command in the enqueue order.
+    '/ </summary>
+    FirstFailure As DSTORAGE_ERROR_FIRST_FAILURE
+End Type
+
+Public Enum DSTORAGE_STAGING_BUFFER_SIZE
+    ' / <summary>
+    ' / There is no staging buffer.  Use this value to force DirectStorage to
+    ' / deallocate any memory it has allocated for staging buffers.
+    ' / <summary>
+    DSTORAGE_STAGING_BUFFER_SIZE_0 = 0
+    ' / <summary>
+    ' / The default staging buffer size of 32MB.
+    ' / </summary>
+    DSTORAGE_STAGING_BUFFER_SIZE_32MB = 321048576
+End Enum
+
+Public Enum DSTORAGE_GET_REQUEST_FLAGS
+    ' / <summary>
+    ' / Request entries that use custom decompression formats
+    ' / >= DSTORAGE_CUSTOM_COMPRESSION_0.
+    ' / </summary>
+    DSTORAGE_GET_REQUEST_FLAG_SELECT_CUSTOM = &H01
+    ' / <summary>
+    ' / Request entries that use built in compression formats
+    ' / that DirectStorage understands.
+    ' / </summary>
+    DSTORAGE_GET_REQUEST_FLAG_SELECT_BUILTIN = &H02
+    ' / <summary>
+    ' / Request all entries. This includes custom decompression and
+    ' / built-in compressed formats.
+    ' / </summary>
+    DSTORAGE_GET_REQUEST_FLAG_SELECT_ALL = (DSTORAGE_GET_REQUEST_FLAG_SELECT_CUSTOM Or DSTORAGE_GET_REQUEST_FLAG_SELECT_BUILTIN)
+End Enum
+
+Public Enum DSTORAGE_CUSTOM_DECOMPRESSION_FLAGS
+    ' / <summary>
+    ' / No additional information.
+    ' / </summary>
+    DSTORAGE_CUSTOM_DECOMPRESSION_FLAG_NONE = &H00
+    ' / <summary>
+    ' / The uncompressed destination buffer is located in an
+    ' / upload heap, and is marked as WRITE_COMBINED.
+    ' / </summary>
+    DSTORAGE_CUSTOM_DECOMPRESSION_FLAG_DEST_IN_UPLOAD_HEAP = &H01
+End Enum
+
+Public Type DSTORAGE_CUSTOM_DECOMPRESSION_REQUEST
+    '/ <summary>
+    '/ An identifier provided by DirectStorage. This should be used to
+    '/ identify the request in DSTORAGE_CUSTOM_DECOMPRESSION_RESULT. This
+    '/ identifier is unique among uncompleted requests, but may be reused after
+    '/ a request has completed.
+    '/ </summary>
+    Id As LongLong
+    '/ <summary>
+    '/ The compression format.  This will be >= DSTORAGE_CUSTOM_COMPRESSION_0
+    '/ if DSTORAGE_CUSTOM_DECOMPRESSION_CUSTOMONLY is used to retrieve requests.
+    '/ </summary>
+    CompressionFormat As DSTORAGE_COMPRESSION_FORMAT
+    '/ <summary>
+    '/ Reserved for future use.
+    '/ </summary>
+    Reserved(0 To 2) As Byte
+    '/ <summary>
+    '/ Flags containing additional details about the decompression request.
+    '/ </summary>
+    Flags As DSTORAGE_CUSTOM_DECOMPRESSION_FLAGS
+    '/ <summary>
+    '/ The size of SrcBuffer in bytes.
+    '/ </summary>
+    SrcSize As LongLong
+    '/ <summary>
+    '/ The compressed source buffer.
+    '/ </summary>
+    SrcBuffer As LongPtr
+    '/ <summary>
+    '/ The size of DstBuffer in bytes.
+    '/ </summary>
+    DstSize As LongLong
+    '/ <summary>
+    '/ The uncompressed destination buffer. SrcBuffer should be decompressed to
+    '/ DstBuffer.
+    '/ </summary>
+    DstBuffer As LongPtr
+End Type
+
+Public Type DSTORAGE_CUSTOM_DECOMPRESSION_RESULT
+    '/ <summary>
+    '/ The identifier for the request, from DSTORAGE_CUSTOM_DECOMPRESSION_REQUEST.
+    '/ </summary>
+    Id As LongLong
+    '/ <summary>
+    '/ The result of this decompression. S_OK indicates success.
+    '/ </summary>
+    Result As Long
+End Type
+
+Public Enum DSTORAGE_COMPRESSION_SUPPORT
+    ' / <summary>
+    ' / None
+    ' / </summary>
+    DSTORAGE_COMPRESSION_SUPPORT_NONE = &H0
+    ' / <summary>
+    ' / Optimized driver support for GPU decompression will be used.
+    ' / </summary>
+    DSTORAGE_COMPRESSION_SUPPORT_GPU_OPTIMIZED = &H01
+    ' / <summary>
+    ' / Built-in GPU decompression fallback shader will be used.  This can occur if
+    ' / optimized driver support is not available and the D3D12 device used for this
+    ' / DirectStorage queue supports the required capabilities.
+    ' / </summary>
+    DSTORAGE_COMPRESSION_SUPPORT_GPU_FALLBACK = &H02
+    ' / <summary>
+    ' / CPU fallback implementation will be used.
+    ' / This can occur if:
+    ' / * Optimized driver support and built-in GPU decompression is not available.
+    ' / * GPU decompression support has been explicitly disabled using
+    ' /   DSTORAGE_CONFIGURATION.
+    ' / * DirectStorage runtime encounters a failure during initialization of its
+    ' /   GPU decompression system.
+    ' / </summary>
+    DSTORAGE_COMPRESSION_SUPPORT_CPU_FALLBACK = &H04
+    ' / <summary>
+    ' / Executes work on a compute queue.
+    ' / </summary>
+    DSTORAGE_COMPRESSION_SUPPORT_USES_COMPUTE_QUEUE = &H08
+    ' / <summary>
+    ' / Executes work on a copy queue.
+    ' / </summary>
+    DSTORAGE_COMPRESSION_SUPPORT_USES_COPY_QUEUE = &H010
+End Enum
+
+Public Const DSTORAGE_DISABLE_BUILTIN_CPU_DECOMPRESSION = -1
+
+    Public Type DSTORAGE_CONFIGURATION
+        '/ <summary>
+        '/ Sets the number of threads to use for submitting IO operations.
+        '/ Specifying 0 means use the system's best guess at a good value.
+        '/ Default == 0.
+        '/ </summary>
+        NumSubmitThreads As Long
+        '/ <summary>
+        '/ Sets the number of threads to be used by the DirectStorage runtime to
+        '/ decompress data using the CPU for built-in compressed formats
+        '/ that cannot be decompressed using the GPU.
+        '/
+        '/ Specifying 0 means to use the system's best guess at a good value.
+        '/
+        '/ Specifying DSTORAGE_DISABLE_BUILTIN_CPU_DECOMPRESSION means no decompression
+        '/ threads will be created and the title is fully responsible for checking
+        '/ the custom decompression queue and pulling off ALL entries to decompress.
+        '/
+        '/ Default == 0.
+        '/ </summary>
+        NumBuiltInCpuDecompressionThreads As Long
+        '/ <summary>
+        '/ Forces the use of the IO mapping layer, even when running on an
+        '/ operation system that doesn't require it.  This may be useful during
+        '/ development, but should be set to the FALSE for release. Default=FALSE.
+        '/ </summary>
+        ForceMappingLayer As BOOL
+        '/ <summary>
+        '/ Disables the use of the bypass IO optimization, even if it is available.
+        '/ This might be useful during development, but should be set to FALSE
+        '/ for release unless ForceFileBuffering is set to TRUE.
+        '/ Default == FALSE.
+        '/ </summary>
+        DisableBypassIO As BOOL
+        '/ <summary>
+        '/ Disables the reporting of telemetry data when set to TRUE.
+        '/ Telemetry data is enabled by default in the DirectStorage runtime.
+        '/ Default == FALSE.
+        '/ </summary>
+        DisableTelemetry As BOOL
+        '/ <summary>
+        '/ Disables the use of a decompression metacommand, even if one
+        '/ is available. This will force the runtime to use the built-in GPU decompression
+        '/ fallback shader.
+        '/ This may be useful during development, but should be set to the FALSE
+        '/ for release. Default == FALSE.
+        '/ </summary>
+        DisableGpuDecompressionMetacommand As BOOL
+        '/ <summary>
+        '/ Disables the use of GPU based decompression, even if it is available.
+        '/ This will force the runtime to use the CPU. Default=FALSE.
+        '/ </summary>
+        DisableGpuDecompression As BOOL
+    End Type
+
+    Public Type DSTORAGE_CONFIGURATION1
+        '/ <summary>
+        '/ Sets the number of threads to use for submitting IO operations.
+        '/ Specifying 0 means use the system's best guess at a good value.
+        '/ Default == 0.
+        '/ </summary>
+        NumSubmitThreads As Long
+        '/ <summary>
+        '/ Sets the number of threads to be used by the DirectStorage runtime to
+        '/ decompress data using the CPU for built-in compressed formats
+        '/ that cannot be decompressed using the GPU.
+        '/
+        '/ Specifying 0 means to use the system's best guess at a good value.
+        '/
+        '/ Specifying DSTORAGE_DISABLE_BUILTIN_CPU_DECOMPRESSION means no decompression
+        '/ threads will be created and the title is fully responsible for checking
+        '/ the custom decompression queue and pulling off ALL entries to decompress.
+        '/
+        '/ Default == 0.
+        '/ </summary>
+        NumBuiltInCpuDecompressionThreads As Long
+        '/ <summary>
+        '/ Forces the use of the IO mapping layer, even when running on an
+        '/ operation system that doesn't require it.  This may be useful during
+        '/ development, but should be set to the FALSE for release. Default=FALSE.
+        '/ </summary>
+        ForceMappingLayer As BOOL
+        '/ <summary>
+        '/ Disables the use of the bypass IO optimization, even if it is available.
+        '/ This might be useful during development, but should be set to FALSE
+        '/ for release unless ForceFileBuffering is set to TRUE.
+        '/ Default == FALSE.
+        '/ </summary>
+        DisableBypassIO As BOOL
+        '/ <summary>
+        '/ Disables the reporting of telemetry data when set to TRUE.
+        '/ Telemetry data is enabled by default in the DirectStorage runtime.
+        '/ Default == FALSE.
+        '/ </summary>
+        DisableTelemetry As BOOL
+        '/ <summary>
+        '/ Disables the use of a decompression metacommand, even if one
+        '/ is available. This will force the runtime to use the built-in GPU decompression
+        '/ fallback shader.
+        '/ This may be useful during development, but should be set to the FALSE
+        '/ for release. Default == FALSE.
+        '/ </summary>
+        DisableGpuDecompressionMetacommand As BOOL
+        '/ <summary>
+        '/ Disables the use of GPU based decompression, even if it is available.
+        '/ This will force the runtime to use the CPU. Default=FALSE.
+        '/ </summary>
+        DisableGpuDecompression As BOOL
+        '/ <summary>
+        '/ Forces the use of the built-in file caching behaviors supported
+        '/ within the Windows operating system by not setting
+        '/ FILE_FLAG_NO_BUFFERING when opening files.
+        '/
+        '/ DisableBypassIO must be set to TRUE when using this option or
+        '/ E_DSTORAGE_FILEBUFFERING_REQUIRES_DISABLED_BYPASSIO will be returned.
+        '/
+        '/ It is the title's responsibility to know when to use this setting.
+        '/ This feature should ONLY be enabled for slower HDD drives that will
+        '/ benefit from the OS file buffering features.
+        '/
+        '/ WARNING: Enabling file buffering on high speed drives may reduce
+        '/ overall performance when reading from that drive because BypassIO
+        '/ is also disabled. Default=FALSE.
+        '/ </summary>
+        ForceFileBuffering As BOOL
+    End Type
+    
+    Public Enum DSTORAGE_COMPRESSION
+        ' / <summary>
+        ' / Compress data at a fast rate which may not yield the best
+        ' / compression ratio.
+        ' / </summary>
+        DSTORAGE_COMPRESSION_FASTEST = -1
+        ' / <summary>
+        ' / Compress data at an average rate with a good compression ratio.
+        ' / </summary>
+        DSTORAGE_COMPRESSION_DEFAULT = 0
+        ' / <summary>
+        ' / Compress data at slow rate with the best compression ratio.
+        ' / </summary>
+        DSTORAGE_COMPRESSION_BEST_RATIO = 1
+    End Enum
+    
+    Public Declare PtrSafe Function DStorageSetConfiguration Lib "dstorage.dll" (configuration As DSTORAGE_CONFIGURATION) As Long
+    Public Declare PtrSafe Function DStorageSetConfiguration1 Lib "dstorage.dll" (configuration As DSTORAGE_CONFIGURATION1) As Long
+    Public Declare PtrSafe Function DStorageGetFactory Lib "dstorage.dll" (riid As UUID, ppv As Any) As Long
+    Public Declare PtrSafe Function DStorageCreateCompressionCodec Lib "dstorage.dll" (ByVal format As DSTORAGE_COMPRESSION_FORMAT, ByVal numThreads As Long, riid As UUID, ppv As Any) As Long
+    
+    
+    'dstorageerr.h 100%
+    [Description("DStorage is already running exclusively.")] Public Const E_DSTORAGE_ALREADY_RUNNING       = &H89240001
+    [Description("DStorage is not running.")] Public Const E_DSTORAGE_NOT_RUNNING           = &H89240002
+    [Description("Invalid queue capacity parameter.")] Public Const E_DSTORAGE_INVALID_QUEUE_CAPACITY = &H89240003
+    [Description("This error only applies to Xbox.")] Public Const E_DSTORAGE_XVD_DEVICE_NOT_SUPPORTED = &H89240004
+    [Description("This error only applies to Xbox.")] Public Const E_DSTORAGE_UNSUPPORTED_VOLUME    = &H89240005
+    [Description("The specified offset and length exceeds the size of the file.")] Public Const E_DSTORAGE_END_OF_FILE           = &H89240007
+    [Description("The IO request is too large.")] Public Const E_DSTORAGE_REQUEST_TOO_LARGE     = &H89240008
+    [Description("The destination buffer for the DStorage request is not accessible.")] Public Const E_DSTORAGE_ACCESS_VIOLATION      = &H89240009
+    [Description("This error only applies to Xbox.")] Public Const E_DSTORAGE_UNSUPPORTED_FILE      = &H8924000A
+    [Description("The file is not open.")] Public Const E_DSTORAGE_FILE_NOT_OPEN         = &H8924000B
+    [Description("A reserved field is not set to 0.")] Public Const E_DSTORAGE_RESERVED_FIELDS       = &H8924000C
+    [Description("This error only applies to Xbox.")] Public Const E_DSTORAGE_INVALID_BCPACK_MODE   = &H8924000D
+    [Description("This error only applies to Xbox.")] Public Const E_DSTORAGE_INVALID_SWIZZLE_MODE  = &H8924000E
+    [Description("than the request's length.")] Public Const E_DSTORAGE_INVALID_DESTINATION_SIZE = &H8924000F
+    [Description("The request targets a queue that is closed.")] Public Const E_DSTORAGE_QUEUE_CLOSED          = &H89240010
+    [Description("This error only applies to Xbox.")] Public Const E_DSTORAGE_INVALID_CLUSTER_SIZE  = &H89240011
+    [Description("The number of queues has reached the maximum limit.")] Public Const E_DSTORAGE_TOO_MANY_QUEUES       = &H89240012
+    [Description("Invalid priority is specified for the queue.")] Public Const E_DSTORAGE_INVALID_QUEUE_PRIORITY = &H89240013
+    [Description("The number of files has reached the maximum limit.")] Public Const E_DSTORAGE_TOO_MANY_FILES        = &H89240014
+    [Description("The index parameter is out of bound.")] Public Const E_DSTORAGE_INDEX_BOUND           = &H89240015
+    [Description("The IO operation has timed out.")] Public Const E_DSTORAGE_IO_TIMEOUT            = &H89240016
+    [Description("The specified file has not been opened.")] Public Const E_DSTORAGE_INVALID_FILE_HANDLE   = &H89240017
+    [Description("This error only applies to Xbox.")] Public Const E_DSTORAGE_DEPRECATED_PREVIEW_GDK = &H89240018
+    [Description("This error only applies to Xbox.")] Public Const E_DSTORAGE_XVD_NOT_REGISTERED    = &H89240019
+    [Description("The request has invalid file offset for the specified decompression mode.")] Public Const E_DSTORAGE_INVALID_FILE_OFFSET   = &H8924001A
+    [Description("request was enqueued into a memory source queue.")] Public Const E_DSTORAGE_INVALID_SOURCE_TYPE   = &H8924001B
+    [Description("This error only applies to Xbox.")] Public Const E_DSTORAGE_INVALID_INTERMEDIATE_SIZE = &H8924001C
+    [Description("This error only applies to Xbox.")] Public Const E_DSTORAGE_SYSTEM_NOT_SUPPORTED  = &H8924001D
+    [Description("open.")] Public Const E_DSTORAGE_STAGING_BUFFER_LOCKED = &H8924001F
+    [Description("The specified staging buffer size is not valid.")] Public Const E_DSTORAGE_INVALID_STAGING_BUFFER_SIZE = &H89240020
+    [Description("The staging buffer isn't large enough to perform this operation.")] Public Const E_DSTORAGE_STAGING_BUFFER_TOO_SMALL = &H89240021
+    [Description("The fence is not valid or has been released.")] Public Const E_DSTORAGE_INVALID_FENCE         = &H89240022
+    [Description("The status array is not valid or has been released.")] Public Const E_DSTORAGE_INVALID_STATUS_ARRAY  = &H89240023
+    [Description("is a valid priority for a memory queue.")] Public Const E_DSTORAGE_INVALID_MEMORY_QUEUE_PRIORITY = &H89240024
+    [Description("A generic error has happened during decompression.")] Public Const E_DSTORAGE_DECOMPRESSION_ERROR   = &H89240030
+    [Description("This error only applies to Xbox.")] Public Const E_DSTORAGE_ZLIB_BAD_HEADER       = &H89240031
+    [Description("This error only applies to Xbox.")] Public Const E_DSTORAGE_ZLIB_BAD_DATA         = &H89240032
+    [Description("This error only applies to Xbox.")] Public Const E_DSTORAGE_ZLIB_PARITY_FAIL      = &H89240033
+    [Description("This error only applies to Xbox.")] Public Const E_DSTORAGE_BCPACK_BAD_HEADER     = &H89240034
+    [Description("This error only applies to Xbox.")] Public Const E_DSTORAGE_BCPACK_BAD_DATA       = &H89240035
+    [Description("This error only applies to Xbox.")] Public Const E_DSTORAGE_DECRYPTION_ERROR      = &H89240036
+    [Description("This error only applies to Xbox.")] Public Const E_DSTORAGE_PASSTHROUGH_ERROR     = &H89240037
+    [Description("This error only applies to Xbox.")] Public Const E_DSTORAGE_FILE_TOO_FRAGMENTED   = &H89240038
+    [Description("DirectStorage to decompress successfully on the GPU.")] Public Const E_DSTORAGE_COMPRESSED_DATA_TOO_LARGE = &H89240039
+    [Description("unknown.")] Public Const E_DSTORAGE_INVALID_DESTINATION_TYPE = &H89240040
+    [Description("ForceFileBuffering was enabled without disabling BypassIO.")] Public Const E_DSTORAGE_FILEBUFFERING_REQUIRES_DISABLED_BYPASSIO = &H89240041
+    
+    'IIDs
+    Public Function IID_IDStorageCompressionCodec() As UUID
+    '{84EF5121-9B43-4D03-B5C1-CC34606B262D}
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H84EF5121, CInt(&H9B43), CInt(&H4D03), &HB5, &HC1, &HCC, &H34, &H60, &H6B, &H26, &H2D)
+     IID_IDStorageCompressionCodec = iid
+    End Function
+    Public Function IID_IDStorageQueue2() As UUID
+    '{B1C9D643-3A49-44A2-B46F-653649470D18}
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HB1C9D643, CInt(&H3A49), CInt(&H44A2), &HB4, &H6F, &H65, &H36, &H49, &H47, &H0D, &H18)
+     IID_IDStorageQueue2 = iid
+    End Function
+    Public Function IID_IDStorageQueue1() As UUID
+    '{DD2F482C-5EFF-41E8-9C9E-D2374B278128}
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HDD2F482C, CInt(&H5EFF), CInt(&H41E8), &H9C, &H9E, &HD2, &H37, &H4B, &H27, &H81, &H28)
+     IID_IDStorageQueue1 = iid
+    End Function
+    Public Function IID_IDStorageQueue() As UUID
+    '{CFDBD83F-9E06-4FDA-8EA5-69042137F49B}
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &HCFDBD83F, CInt(&H9E06), CInt(&H4FDA), &H8E, &HA5, &H69, &H04, &H21, &H37, &HF4, &H9B)
+     IID_IDStorageQueue = iid
+    End Function
+    Public Function IID_IDStorageStatusArray() As UUID
+    '{82397587-7CD5-453B-A02E-31379BD64656}
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H82397587, CInt(&H7CD5), CInt(&H453B), &HA0, &H2E, &H31, &H37, &H9B, &HD6, &H46, &H56)
+     IID_IDStorageStatusArray = iid
+    End Function
+    Public Function IID_IDStorageFactory() As UUID
+    '{6924EA0C-C3CD-4826-B10A-F64F4ED927C1}
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H6924EA0C, CInt(&HC3CD), CInt(&H4826), &HB1, &H0A, &HF6, &H4F, &H4E, &HD9, &H27, &HC1)
+     IID_IDStorageFactory = iid
+    End Function
+    Public Function IID_IDStorageCustomDecompressionQueue1() As UUID
+    '{0D47C6C9-E61A-4706-93B4-68BFE3F4AA4A}
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H0D47C6C9, CInt(&HE61A), CInt(&H4706), &H93, &HB4, &H68, &HBF, &HE3, &HF4, &HAA, &H4A)
+     IID_IDStorageCustomDecompressionQueue1 = iid
+    End Function
+    Public Function IID_IDStorageCustomDecompressionQueue() As UUID
+    '{97179B2F-2C21-49CA-8291-4E1BF4A160DF}
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H97179B2F, CInt(&H2C21), CInt(&H49CA), &H82, &H91, &H4E, &H1B, &HF4, &HA1, &H60, &HDF)
+     IID_IDStorageCustomDecompressionQueue = iid
+    End Function
+    Public Function IID_IDStorageFile() As UUID
+    '{5DE95E7B-955A-4868-A73C-243B29F4B8DA}
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H5DE95E7B, CInt(&H955A), CInt(&H4868), &HA7, &H3C, &H24, &H3B, &H29, &HF4, &HB8, &HDA)
+     IID_IDStorageFile = iid
+    End Function
+End Module
+
+#End If

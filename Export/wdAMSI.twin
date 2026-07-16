@@ -1,0 +1,278 @@
+'*****************************************************************************************
+'This file is a part of WinDevLib - Windows Development Library for twinBASIC
+'https://github.com/fafalone/WinDevLib
+'Code ported by Jon Johnson. 
+'"Windows" is a trademark of the Microsoft Corporation.
+'Certain Description attributes (c) Microsoft, taken from SDK headers and official docs.
+'Licensed under Creative Commons CC0 1.0 Universal
+'*****************************************************************************************
+
+'Windows Antimalware Scan Interface
+'amsi.h, 100%
+
+[InterfaceId("3e47f2e5-81d4-4d3b-897f-545096770373")]
+[OleAutomation(False)]
+Interface IAmsiStream Extends IUnknown
+    Sub GetAttribute(ByVal attribute As AMSI_ATTRIBUTE, ByVal dataSize As Long, data As Any, retData As Long)
+    Sub Read(ByVal position As LongLong, ByVal size As Long, buffer As Any, readSize As Long)
+End Interface
+
+[InterfaceId("b2cabfe3-fe04-42b1-a5df-08d483d4d125")]
+[OleAutomation(False)]
+Interface IAntimalwareProvider Extends IUnknown
+	Sub Scan(ByVal stream As IAmsiStream, result As AMSI_RESULT)
+    [PreserveSig] Sub CloseSession(ByVal session As LongLong)
+    Sub DisplayName(displayName As LongPtr) ' LPWSTR*
+End Interface
+
+[InterfaceId("b2cabfe4-fe04-42b1-a5df-08d483d4d125")]
+[OleAutomation(False)]
+Interface IAntimalwareUacProvider Extends IUnknown
+	Sub UacScan(context As AMSI_UAC_REQUEST_CONTEXT, result As AMSI_RESULT)
+    Sub DisplayName(displayName As LongPtr) ' LPWSTR*
+End Interface
+
+[InterfaceId("7c1e6570-3f73-4e0f-8ad4-98b94cd3290f")]
+[OleAutomation(False)]
+Interface IAntimalwareProvider2 Extends IAntimalwareProvider
+	Sub Notify(buffer As Any, ByVal length As Long, ByVal contentName As LongPtr, ByVal appName As LongPtr, pResult As AMSI_RESULT)
+End Interface
+
+[InterfaceId("82d29c2e-f062-44e6-b5c9-3d9a2f24a2df")]
+[OleAutomation(False)]
+Interface IAntimalware Extends IUnknown
+    Sub Scan(ByVal stream As IAmsiStream, result As AMSI_RESULT, provider As IAntimalwareProvider)
+    [PreserveSig] Sub CloseSession(ByVal session As LongLong)
+End Interface
+
+[InterfaceId("301035b5-2d42-4f56-8c65-2dcaa7fb3cdc")]
+[OleAutomation(False)]
+Interface IAntimalware2 Extends IAntimalware
+    Sub Notify(buffer As Any, ByVal length As Long, ByVal contentName As LongPtr, ByVal appName As LongPtr, pResult As AMSI_RESULT)
+End Interface
+
+'CLSID_Antimalware
+[CoClassId("fdb00e52-a214-4aa1-8fba-4357bb0072ec")]
+CoClass CAntimalware
+    [Default] Interface IAntimalware
+    Interface IAntimalware2
+End CoClass
+
+#If WDL_QUALIFY Then
+[MustBeQualified]
+#End If
+Module wdAMSI
+
+    Public Enum AMSI_RESULT
+        '  No detection found. Result likely not going to change after future definition update.
+        '  a.k.a. known good
+        AMSI_RESULT_CLEAN = 0
+        '  No detection found. Result might change after future definition update.
+        AMSI_RESULT_NOT_DETECTED = 1
+        '  Certain policy set by administrator blocked this content on this machine.
+        AMSI_RESULT_BLOCKED_BY_ADMIN_START = &H4000
+        AMSI_RESULT_BLOCKED_BY_ADMIN_END = &H4fff
+        '  Detection found. It is recommended to abort executing the content if it is executable, e.g. a script.
+        '  Return result of 1 - 32767 is estimated risk level that an antimalware provider might indicate.
+        '  The large the result, the riskier to continue.
+        '  Any return result equal to or larger than 32768 is consider malware and should be blocked.
+        '  These values are provider specific, and may indicate malware family or ID.
+        '  An application should use AmsiResultIsMalware() to determine whether the content should be blocked.
+        AMSI_RESULT_DETECTED = 32768
+    End Enum
+    
+    Public Function AmsiResultIsMalware(ByVal r As AMSI_RESULT) As Boolean: Return (r >= AMSI_RESULT_DETECTED): End Function
+    Public Function AmsiResultIsBlockedByAdmin(ByVal r As AMSI_RESULT) As Boolean: Return ((r) >= AMSI_RESULT_BLOCKED_BY_ADMIN_START) And ((r) <= AMSI_RESULT_BLOCKED_BY_ADMIN_END): End Function
+               
+	Public Enum AMSI_ATTRIBUTE
+		'  Name/version/GUID string of the calling application.
+		AMSI_ATTRIBUTE_APP_NAME = 0
+		'  LPWSTR, filename, URL, script unique id etc.
+		AMSI_ATTRIBUTE_CONTENT_NAME = 1
+		'  ULONGLONG, size of the input. Mandatory.
+		AMSI_ATTRIBUTE_CONTENT_SIZE = 2
+		'  PVOID, memory address if content is fully loaded in memory. Mandatory unless
+		'  Read() is implemented instead to support on-demand content retrieval.
+		AMSI_ATTRIBUTE_CONTENT_ADDRESS = 3
+		'  PVOID, session is used to associate different scan calls, e.g. if the contents
+		'  to be scanned belong to the sample original script. Return nullptr if content
+		'  is self-contained. Mandatory.
+		AMSI_ATTRIBUTE_SESSION = 4
+		'  ULONGLONG, size of the Microsoft Edge redirect chain. Optional.
+		AMSI_ATTRIBUTE_REDIRECT_CHAIN_SIZE = 5
+		'  PVOID, memory address of the Microsoft Edge redirect chain. Optional.
+		AMSI_ATTRIBUTE_REDIRECT_CHAIN_ADDRESS = 6
+		'  "All Attribute" buffer is provided by Microsoft Edge to pass future attributes without
+		'  requiring adding new attributes to the amsi interface. It is a multi-string with the following
+		'  format:
+		'    L"Attribute1\0Value1\0Attribute2\0Value2\0...AttributeN\0ValueN\0\0"
+		'  ULONGLONG, size of the "All Attribute" Microsoft Edge buffer. Optional.
+		AMSI_ATTRIBUTE_ALL_SIZE = 7
+		'  PVOID, memory address of the "All Attribute" Microsoft Edge buffer. Optional.
+		AMSI_ATTRIBUTE_ALL_ADDRESS = 8
+		'  ULONG
+		AMSI_ATTRIBUTE_QUIET = 9 ' deprecated, do not use
+	End Enum
+        
+    Public Enum AMSI_UAC_REQUEST_TYPE
+        '  Request to launch an EXE elevated.
+        AMSI_UAC_REQUEST_TYPE_EXE = 0
+        '  Request to launch an COM server Outofproc elevated.
+        AMSI_UAC_REQUEST_TYPE_COM = 1
+        '  Request to launch an MSI elevated.
+        AMSI_UAC_REQUEST_TYPE_MSI = 2
+        '  Request to launch an ActiveX installation elevated.
+        AMSI_UAC_REQUEST_TYPE_AX = 3
+        '  Request to launch a Packaged App elevated.
+        AMSI_UAC_REQUEST_TYPE_PACKAGED_APP = 4
+        AMSI_UAC_REQUEST_TYPE_MAX = 5
+    End Enum
+    
+    Public Enum AMSI_UAC_TRUST_STATE
+        '  UAC determined the binary to be from a trusted publisher.
+        AMSI_UAC_TRUST_STATE_TRUSTED = 0
+        '  UAC determined the binary to be from a untrusted publisher.
+        AMSI_UAC_TRUST_STATE_UNTRUSTED = 1
+        '  UAC determined the binary to be from a publisher blacklisted by the admin.
+        AMSI_UAC_TRUST_STATE_BLOCKED = 2
+        AMSI_UAC_TRUST_STATE_MAX = 3
+    End Enum
+    
+    Public Enum AMSI_UAC_MSI_ACTION
+        '  MSI actions that can be elevated.
+        AMSI_UAC_MSI_ACTION_INSTALL = 0
+        AMSI_UAC_MSI_ACTION_UNINSTALL = 1
+        AMSI_UAC_MSI_ACTION_UPDATE = 2
+        AMSI_UAC_MSI_ACTION_MAINTENANCE = 3
+        AMSI_UAC_MSI_ACTION_MAX = 4
+    End Enum
+    
+    Public Type AMSI_UAC_REQUEST_EXE_INFO
+        ulLength As Long
+        lpwszApplicationName As LongPtr
+        lpwszCommandLine As LongPtr
+        ' Points to an extension dll to be loaded by the EXE (for eg. mmc.exe), which requires
+        ' a separate reputation check.
+        lpwszDLLParameter As LongPtr
+    End Type
+    
+    Public Type AMSI_UAC_REQUEST_COM_INFO
+        ulLength As Long
+        lpwszServerBinary As LongPtr
+        lpwszRequestor As LongPtr
+        Clsid As UUID
+    End Type
+    
+    Public Type AMSI_UAC_REQUEST_MSI_INFO
+        ulLength As Long
+        MsiAction As AMSI_UAC_MSI_ACTION
+        lpwszProductName As LongPtr
+        lpwszVersion As LongPtr
+        lpwszLanguage As LongPtr
+        lpwszManufacturer As LongPtr
+        lpwszPackagePath As LongPtr
+        lpwszPackageSource As LongPtr
+        ulUpdates As Long
+        ppwszUpdates As LongPtr 'LPWSTR*
+        ppwszUpdateSources As LongPtr 'LPWSTR*
+    End Type
+    
+    Public Type AMSI_UAC_REQUEST_AX_INFO
+        ulLength As Long
+        lpwszLocalInstallPath As LongPtr
+        lpwszSourceURL As LongPtr
+    End Type
+    
+    Public Type AMSI_UAC_REQUEST_PACKAGED_APP_INFO
+        ulLength As Long
+        lpwszApplicationName As LongPtr
+        lpwszCommandLine As LongPtr
+        lpPackageFamilyName As LongPtr
+        lpApplicationId As LongPtr
+    End Type
+    
+    Public Type AMSI_UAC_REQUEST_CONTEXT
+        ulLength As Long
+        ' Contains a ProcessID for AMSI_UAC_REQUEST_TYPE_EXE and
+        ' AMSI_UAC_REQUEST_TYPE_PACKAGED_APP elevation requests, contains 0 otherwise.
+        ulRequestorProcessId As Long
+        UACTrustState As AMSI_UAC_TRUST_STATE
+        Type As AMSI_UAC_REQUEST_TYPE
+        ' [switch_is(Type)]
+            ' union {
+                ' [case(AMSI_UAC_REQUEST_TYPE_EXE)] AMSI_UAC_REQUEST_EXE_INFO                      ExeInfo;
+                ' [case(AMSI_UAC_REQUEST_TYPE_COM)] AMSI_UAC_REQUEST_COM_INFO                      ComInfo;
+                ' [case(AMSI_UAC_REQUEST_TYPE_MSI)] AMSI_UAC_REQUEST_MSI_INFO                      MsiInfo;
+                ' [case(AMSI_UAC_REQUEST_TYPE_AX)]  AMSI_UAC_REQUEST_AX_INFO                       ActiveXInfo;
+                ' [case(AMSI_UAC_REQUEST_TYPE_PACKAGED_APP)]  AMSI_UAC_REQUEST_PACKAGED_APP_INFO   PackagedAppInfo;
+            ' }RequestType;  
+        #If Win64 Then
+        RequestType(79) As Byte
+        #Else
+        RequestType(43) As Byte
+        #End If
+        bAutoElevateRequest As BOOL
+        #If Win64 Then
+        pad As Long
+        #End If
+    End Type
+    
+    
+    Public DeclareWide PtrSafe Function AmsiInitialize Lib "amsi.dll" (ByVal appName As String, amsiContext As LongPtr) As Long
+    Public DeclareWide PtrSafe Function AmsiInitialize Lib "amsi.dll" (ByVal appName As LongPtr, amsiContext As LongPtr) As Long
+    Public Declare PtrSafe Sub AmsiUninitialize Lib "amsi.dll" (ByVal amsiContext As LongPtr)
+    Public Declare PtrSafe Function AmsiOpenSession Lib "amsi.dll" (ByVal amsiContext As LongPtr, amsiSession As LongPtr) As Long
+    Public Declare PtrSafe Sub AmsiCloseSession Lib "amsi.dll" (ByVal amsiContext As LongPtr, ByVal amsiSession As LongPtr)
+    Public DeclareWide PtrSafe Function AmsiScanBuffer Lib "amsi.dll" (ByVal amsiContext As LongPtr, buffer As Any, ByVal length As Long, ByVal contentName As String, result As AMSI_RESULT) As Long
+    Public DeclareWide PtrSafe Function AmsiScanBuffer Lib "amsi.dll" (ByVal amsiContext As LongPtr, buffer As Any, ByVal length As Long, ByVal contentName As LongPtr, result As AMSI_RESULT) As Long
+    Public DeclareWide PtrSafe Function AmsiNotifyOperation Lib "amsi.dll" (ByVal amsiContext As LongPtr, buffer As Any, ByVal length As Long, ByVal contentName As String, result As AMSI_RESULT) As Long
+    Public DeclareWide PtrSafe Function AmsiNotifyOperation Lib "amsi.dll" (ByVal amsiContext As LongPtr, buffer As Any, ByVal length As Long, ByVal contentName As LongPtr, result As AMSI_RESULT) As Long
+    Public DeclareWide PtrSafe Function AmsiScanString Lib "amsi.dll" (ByVal amsiContext As LongPtr, ByVal str As String, ByVal contentName As String, result As AMSI_RESULT) As Long
+    Public DeclareWide PtrSafe Function AmsiScanString Lib "amsi.dll" (ByVal amsiContext As LongPtr, ByVal str As LongPtr, ByVal length As Long, ByVal contentName As LongPtr, result As AMSI_RESULT) As Long
+           
+        
+    Public Function CLSID_Antimalware() As UUID
+    '{fdb00e52-a214-4aa1-8fba-4357bb0072ec}
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hfdb00e52, CInt(&Ha214), CInt(&H4aa1), &H8f, &Hba, &H43, &H57, &Hbb, &H00, &H72, &Hec)
+     CLSID_Antimalware = iid
+    End Function
+    Public Function IID_IAmsiStream() As UUID
+    '{3e47f2e5-81d4-4d3b-897f-545096770373}
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H3e47f2e5, CInt(&H81d4), CInt(&H4d3b), &H89, &H7f, &H54, &H50, &H96, &H77, &H03, &H73)
+     IID_IAmsiStream = iid
+    End Function
+    Public Function IID_IAntimalwareProvider() As UUID
+    '{b2cabfe3-fe04-42b1-a5df-08d483d4d125}
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hb2cabfe3, CInt(&Hfe04), CInt(&H42b1), &Ha5, &Hdf, &H08, &Hd4, &H83, &Hd4, &Hd1, &H25)
+     IID_IAntimalwareProvider = iid
+    End Function
+    Public Function IID_IAntimalwareUacProvider() As UUID
+    '{b2cabfe4-fe04-42b1-a5df-08d483d4d125}
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hb2cabfe4, CInt(&Hfe04), CInt(&H42b1), &Ha5, &Hdf, &H08, &Hd4, &H83, &Hd4, &Hd1, &H25)
+     IID_IAntimalwareUacProvider = iid
+    End Function
+    Public Function IID_IAntimalwareProvider2() As UUID
+    '{7c1e6570-3f73-4e0f-8ad4-98b94cd3290f}
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H7c1e6570, CInt(&H3f73), CInt(&H4e0f), &H8a, &Hd4, &H98, &Hb9, &H4c, &Hd3, &H29, &H0f)
+     IID_IAntimalwareProvider2 = iid
+    End Function
+    Public Function IID_IAntimalware() As UUID
+    '{82d29c2e-f062-44e6-b5c9-3d9a2f24a2df}
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H82d29c2e, CInt(&Hf062), CInt(&H44e6), &Hb5, &Hc9, &H3d, &H9a, &H2f, &H24, &Ha2, &Hdf)
+     IID_IAntimalware = iid
+    End Function
+    Public Function IID_IAntimalware2() As UUID
+    '{301035b5-2d42-4f56-8c65-2dcaa7fb3cdc}
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H301035b5, CInt(&H2d42), CInt(&H4f56), &H8c, &H65, &H2d, &Hca, &Ha7, &Hfb, &H3c, &Hdc)
+     IID_IAntimalware2 = iid
+    End Function
+    
+    
+End Module
