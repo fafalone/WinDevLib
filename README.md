@@ -1,7 +1,7 @@
 # Windows Development Library for twinBASIC
 ## WinDevLib 
 
-**Current Version: 9.3.713 (July 14th, 2026)**
+**Current Version: 9.3.714 (July 16th, 2026)**
 
 (c) 2022-2026 Jon Johnson (fafalone)
 
@@ -243,6 +243,16 @@ Current coverage is already quite extensive, spanning hundreds of Windows SDK he
  
 ### Updates
 
+**Update (v9.3.714, 16 Jul 2026):**
+- Added flags for many undocumented ListView interface arguments from new sysinformer header.
+- Add IPropertyValue additional methods from sysinformer header.
+- Add IDrawPropertyControlWin10.
+- (API Standards, breaking change) IListView::SetBackgroundImage, InsertItem now use proper type instead of ByVal LongPtr.
+- (Bug fix) IListViewFooter::GetButtonLParam missing argument.
+- (Bug fix) IListView[Vista]::GetNextItem extra argument.
+- (Bug fix) IListViewFooterCallback lParam args should be LongPtr.
+- (Bug fix) IListView GetItemIndex should be GetTopIndex.
+ 
 **Update (v9.3.713, 14 Jul 2026):**
 - (API Standards, breaking changes) Some comctl types had their member names changed to match SDK.
 - (Bug fix) NMLVCUSTOMDRAW many members had wrong type.
