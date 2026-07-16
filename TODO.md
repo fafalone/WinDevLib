@@ -1,6 +1,8 @@
 Known omissions where a priority update neccessitated not finishing 
 before release, or waiting on feature support:
 
+-investigate IListView GetColumnOrderArray
+
 -   ws2tcpip mstcipip.h inlined funcs;
 
 - IN6_IS_ADDR_ inlined funcs in ws2ipdef.h
