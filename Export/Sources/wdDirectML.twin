@@ -1,0 +1,2016 @@
+'*****************************************************************************************
+'This file is a part of WinDevLib - Windows Development Library for twinBASIC
+'https://github.com/fafalone/WinDevLib
+'Code ported by Jon Johnson. 
+'"Windows" is a trademark of the Microsoft Corporation.
+'Certain Description attributes (c) Microsoft, taken from SDK headers and official docs.
+'Licensed under Creative Commons CC0 1.0 Universal
+'*****************************************************************************************
+
+'WinDevLib - wdDirectML :: DirectML
+
+' directml.h, 100% coverage
+
+#If WDL_NO_DIRECTX = 0 Then
+
+[InterfaceId("C8263AAC-9E0C-4A2D-9B8E-007521A3317C")]
+ [OleAutomation(False)]
+ Interface IDMLObject Extends stdole.IUnknown
+     Sub GetPrivateData(ByRef guid As UUID, ByRef dataSize As Long, ByRef data As Any)
+     Sub SetPrivateData(ByRef guid As UUID, ByVal dataSize As Long, ByRef data As Any)
+     Sub SetPrivateDataInterface(ByRef guid As UUID, ByVal data As IUnknown)
+     Sub SetName(ByVal Name As LongPtr)
+ End Interface
+
+ [InterfaceId("6DBD6437-96FD-423F-A98C-AE5E7C2A573F")]
+ [OleAutomation(False)]
+ Interface IDMLDevice Extends IDMLObject
+     Sub CheckFeatureSupport(ByVal Feature As DML_FEATURE, ByVal featureQueryDataSize As Long, ByRef featureQueryData As Any, ByVal FeatureSupportDataSize As Long, ByRef featureSupportData As Any)
+     Sub CreateOperator(ByRef Desc As DML_OPERATOR_DESC, ByRef riid As UUID, ByRef ppv As Any)
+     Sub CompileOperator(ByVal op As IDMLOperator, ByVal flags As DML_EXECUTION_FLAGS, ByRef riid As UUID, ByRef ppv As Any)
+     Sub CreateOperatorInitializer(ByVal operatorCount As Long, ByRef operators As IDMLCompiledOperator, ByRef riid As UUID, ByRef ppv As Any)
+     Sub CreateCommandRecorder(ByRef riid As UUID, ByRef ppv As Any)
+     Sub CreateBindingTable(ByRef Desc As DML_BINDING_TABLE_DESC, ByRef riid As UUID, ByRef ppv As Any)
+     Sub Evict(ByVal Count As Long, ByRef ppObjects As IDMLPageable)
+     Sub MakeResident(ByVal Count As Long, ByRef ppObjects As IDMLPageable)
+     Sub GetDeviceRemovedReason()
+     Sub GetParentDevice(ByRef riid As UUID, ByRef ppv As Any)
+ End Interface
+
+ [InterfaceId("27E83142-8165-49E3-974E-2FD66E4CB69D")]
+ [OleAutomation(False)]
+ Interface IDMLDeviceChild Extends IDMLObject
+     Sub GetDevice(ByRef riid As UUID, ByRef ppv As Any)
+ End Interface
+
+ [InterfaceId("B1AB0825-4542-4A4B-8617-6DDE6E8F6201")]
+ [OleAutomation(False)]
+ Interface IDMLPageable Extends IDMLDeviceChild
+ End Interface
+
+ [InterfaceId("26CAAE7A-3081-4633-9581-226FBE57695D")]
+ [OleAutomation(False)]
+ Interface IDMLOperator Extends IDMLDeviceChild
+ End Interface
+
+ [InterfaceId("DCB821A8-1039-441E-9F1C-B1759C2F3CEC")]
+ [OleAutomation(False)]
+ Interface IDMLDispatchable Extends IDMLPageable
+     [PreserveSig]
+     Function GetBindingProperties() As DML_BINDING_PROPERTIES
+ End Interface
+
+ [InterfaceId("6B15E56A-BF5C-4902-92D8-DA3A650AFEA4")]
+ [OleAutomation(False)]
+ Interface IDMLCompiledOperator Extends IDMLDispatchable
+ End Interface
+
+ [InterfaceId("427C1113-435C-469C-8676-4D5DD072F813")]
+ [OleAutomation(False)]
+ Interface IDMLOperatorInitializer Extends IDMLDispatchable
+     Sub Reset(ByVal operatorCount As Long, ByRef operators As IDMLCompiledOperator)
+ End Interface
+
+ [InterfaceId("29C687DC-DE74-4E3B-AB00-1168F2FC3CFC")]
+ [OleAutomation(False)]
+ Interface IDMLBindingTable Extends IDMLDeviceChild
+     [PreserveSig]
+     Sub BindInputs(ByVal BindingCount As Long, ByRef bindings As DML_BINDING_DESC)
+     [PreserveSig]
+     Sub BindOutputs(ByVal BindingCount As Long, ByRef bindings As DML_BINDING_DESC)
+     [PreserveSig]
+     Sub BindTemporaryResource(ByRef binding As DML_BINDING_DESC)
+     [PreserveSig]
+     Sub BindPersistentResource(ByRef binding As DML_BINDING_DESC)
+     Sub Reset(ByRef Desc As DML_BINDING_TABLE_DESC)
+ End Interface
+
+ [InterfaceId("E6857A76-2E3E-4FDD-BFF4-5D2BA10FB453")]
+ [OleAutomation(False)]
+ Interface IDMLCommandRecorder Extends IDMLDeviceChild
+     [PreserveSig]
+     Sub RecordDispatch(ByVal commandList As ID3D12CommandList, ByVal Dispatchable As IDMLDispatchable, ByVal bindings As IDMLBindingTable)
+ End Interface
+
+ [InterfaceId("7D6F3AC9-394A-4AC3-92A7-390CC57A8217")]
+ [OleAutomation(False)]
+ Interface IDMLDebugDevice Extends stdole.IUnknown
+     [PreserveSig]
+     Sub SetMuteDebugOutput(ByVal mute As BOOL)
+ End Interface
+ 
+ [InterfaceId("A0884F9A-D2BE-4355-AA5D-5901281AD1D2")]
+ [OleAutomation(False)]
+ Interface IDMLDevice1 Extends IDMLDevice
+     Sub CompileGraph(ByRef Desc As DML_GRAPH_DESC, ByVal flags As DML_EXECUTION_FLAGS, ByRef riid As UUID, ByRef ppv As Any)
+ End Interface
+ 
+ #If WDL_QUALIFY Then
+ [MustBeQualified]
+ #End If
+ Module wdDirectML
+    
+    
+Public Enum DML_TENSOR_DATA_TYPE
+    DML_TENSOR_DATA_TYPE_UNKNOWN
+    DML_TENSOR_DATA_TYPE_FLOAT32
+    DML_TENSOR_DATA_TYPE_FLOAT16
+    DML_TENSOR_DATA_TYPE_UINT32
+    DML_TENSOR_DATA_TYPE_UINT16
+    DML_TENSOR_DATA_TYPE_UINT8
+    DML_TENSOR_DATA_TYPE_INT32
+    DML_TENSOR_DATA_TYPE_INT16
+    DML_TENSOR_DATA_TYPE_INT8
+    DML_TENSOR_DATA_TYPE_FLOAT64
+    DML_TENSOR_DATA_TYPE_UINT64
+    DML_TENSOR_DATA_TYPE_INT64
+End Enum
+
+Public Enum DML_TENSOR_TYPE
+    DML_TENSOR_TYPE_INVALID
+    DML_TENSOR_TYPE_BUFFER
+End Enum
+
+Public Enum DML_TENSOR_FLAGS
+    DML_TENSOR_FLAG_NONE = &H0
+    DML_TENSOR_FLAG_OWNED_BY_DML = &H1
+End Enum
+
+Public Type DML_BUFFER_TENSOR_DESC
+    DataType As DML_TENSOR_DATA_TYPE
+    Flags As DML_TENSOR_FLAGS
+    DimensionCount As Long
+    Sizes As LongPtr
+    Strides As LongPtr
+    TotalTensorSizeInBytes As LongLong
+    GuaranteedBaseOffsetAlignment As Long
+End Type
+
+Public Type DML_TENSOR_DESC
+    Type As DML_TENSOR_TYPE
+    '_Field_size_(_Inexpressible_("Dependent on tensor type")) const void* Desc;
+    Desc As LongPtr
+End Type
+
+Public Enum DML_OPERATOR_TYPE
+    DML_OPERATOR_INVALID
+
+    DML_OPERATOR_ELEMENT_WISE_IDENTITY
+    DML_OPERATOR_ELEMENT_WISE_ABS
+    DML_OPERATOR_ELEMENT_WISE_ACOS
+    DML_OPERATOR_ELEMENT_WISE_ADD
+    DML_OPERATOR_ELEMENT_WISE_ASIN
+    DML_OPERATOR_ELEMENT_WISE_ATAN
+    DML_OPERATOR_ELEMENT_WISE_CEIL
+    DML_OPERATOR_ELEMENT_WISE_CLIP
+    DML_OPERATOR_ELEMENT_WISE_COS
+    DML_OPERATOR_ELEMENT_WISE_DIVIDE
+    DML_OPERATOR_ELEMENT_WISE_EXP
+    DML_OPERATOR_ELEMENT_WISE_FLOOR
+    DML_OPERATOR_ELEMENT_WISE_LOG
+    DML_OPERATOR_ELEMENT_WISE_LOGICAL_AND
+    DML_OPERATOR_ELEMENT_WISE_LOGICAL_EQUALS
+    DML_OPERATOR_ELEMENT_WISE_LOGICAL_GREATER_THAN
+    DML_OPERATOR_ELEMENT_WISE_LOGICAL_LESS_THAN
+    DML_OPERATOR_ELEMENT_WISE_LOGICAL_NOT
+    DML_OPERATOR_ELEMENT_WISE_LOGICAL_OR
+    DML_OPERATOR_ELEMENT_WISE_LOGICAL_XOR
+    DML_OPERATOR_ELEMENT_WISE_MAX
+    DML_OPERATOR_ELEMENT_WISE_MEAN
+    DML_OPERATOR_ELEMENT_WISE_MIN
+    DML_OPERATOR_ELEMENT_WISE_MULTIPLY
+    DML_OPERATOR_ELEMENT_WISE_POW
+    DML_OPERATOR_ELEMENT_WISE_CONSTANT_POW
+    DML_OPERATOR_ELEMENT_WISE_RECIP
+    DML_OPERATOR_ELEMENT_WISE_SIN
+    DML_OPERATOR_ELEMENT_WISE_SQRT
+    DML_OPERATOR_ELEMENT_WISE_SUBTRACT
+    DML_OPERATOR_ELEMENT_WISE_TAN
+    DML_OPERATOR_ELEMENT_WISE_THRESHOLD
+    DML_OPERATOR_ELEMENT_WISE_QUANTIZE_LINEAR
+    DML_OPERATOR_ELEMENT_WISE_DEQUANTIZE_LINEAR
+    DML_OPERATOR_ACTIVATION_ELU
+    DML_OPERATOR_ACTIVATION_HARDMAX
+    DML_OPERATOR_ACTIVATION_HARD_SIGMOID
+    DML_OPERATOR_ACTIVATION_IDENTITY
+    DML_OPERATOR_ACTIVATION_LEAKY_RELU
+    DML_OPERATOR_ACTIVATION_LINEAR
+    DML_OPERATOR_ACTIVATION_LOG_SOFTMAX
+    DML_OPERATOR_ACTIVATION_PARAMETERIZED_RELU
+    DML_OPERATOR_ACTIVATION_PARAMETRIC_SOFTPLUS
+    DML_OPERATOR_ACTIVATION_RELU
+    DML_OPERATOR_ACTIVATION_SCALED_ELU
+    DML_OPERATOR_ACTIVATION_SCALED_TANH
+    DML_OPERATOR_ACTIVATION_SIGMOID
+    DML_OPERATOR_ACTIVATION_SOFTMAX
+    DML_OPERATOR_ACTIVATION_SOFTPLUS
+    DML_OPERATOR_ACTIVATION_SOFTSIGN
+    DML_OPERATOR_ACTIVATION_TANH
+    DML_OPERATOR_ACTIVATION_THRESHOLDED_RELU
+    DML_OPERATOR_CONVOLUTION
+    DML_OPERATOR_GEMM
+    DML_OPERATOR_REDUCE
+    DML_OPERATOR_AVERAGE_POOLING
+    DML_OPERATOR_LP_POOLING
+    DML_OPERATOR_MAX_POOLING
+    DML_OPERATOR_ROI_POOLING
+    DML_OPERATOR_SLICE
+    DML_OPERATOR_CAST
+    DML_OPERATOR_SPLIT
+    DML_OPERATOR_JOIN
+    DML_OPERATOR_PADDING
+    DML_OPERATOR_VALUE_SCALE_2D
+    DML_OPERATOR_UPSAMPLE_2D
+    DML_OPERATOR_GATHER
+    DML_OPERATOR_SPACE_TO_DEPTH
+    DML_OPERATOR_DEPTH_TO_SPACE
+    DML_OPERATOR_TILE
+    DML_OPERATOR_TOP_K
+    DML_OPERATOR_BATCH_NORMALIZATION
+    DML_OPERATOR_MEAN_VARIANCE_NORMALIZATION
+    DML_OPERATOR_LOCAL_RESPONSE_NORMALIZATION
+    DML_OPERATOR_LP_NORMALIZATION
+    DML_OPERATOR_RNN
+    DML_OPERATOR_LSTM
+    DML_OPERATOR_GRU
+
+'if DML_TARGET_VERSION >= 0x2000
+    DML_OPERATOR_ELEMENT_WISE_SIGN
+    DML_OPERATOR_ELEMENT_WISE_IS_NAN
+    DML_OPERATOR_ELEMENT_WISE_ERF
+    DML_OPERATOR_ELEMENT_WISE_SINH
+    DML_OPERATOR_ELEMENT_WISE_COSH
+    DML_OPERATOR_ELEMENT_WISE_TANH
+    DML_OPERATOR_ELEMENT_WISE_ASINH
+    DML_OPERATOR_ELEMENT_WISE_ACOSH
+    DML_OPERATOR_ELEMENT_WISE_ATANH
+    DML_OPERATOR_ELEMENT_WISE_IF
+    DML_OPERATOR_ELEMENT_WISE_ADD1
+    DML_OPERATOR_ACTIVATION_SHRINK
+    DML_OPERATOR_MAX_POOLING1
+    DML_OPERATOR_MAX_UNPOOLING
+    DML_OPERATOR_DIAGONAL_MATRIX
+    DML_OPERATOR_SCATTER_ELEMENTS
+    DML_OPERATOR_SCATTER = DML_OPERATOR_SCATTER_ELEMENTS ' Alias name for backwards compatibility.
+    DML_OPERATOR_ONE_HOT
+    DML_OPERATOR_RESAMPLE
+'endif // DML_TARGET_VERSION >= 0x2000
+'//
+'if DML_TARGET_VERSION >= 0x2100
+    DML_OPERATOR_ELEMENT_WISE_BIT_SHIFT_LEFT
+    DML_OPERATOR_ELEMENT_WISE_BIT_SHIFT_RIGHT
+    DML_OPERATOR_ELEMENT_WISE_ROUND
+    DML_OPERATOR_ELEMENT_WISE_IS_INFINITY
+    DML_OPERATOR_ELEMENT_WISE_MODULUS_TRUNCATE
+    DML_OPERATOR_ELEMENT_WISE_MODULUS_FLOOR
+    DML_OPERATOR_FILL_VALUE_CONSTANT
+    DML_OPERATOR_FILL_VALUE_SEQUENCE
+    DML_OPERATOR_CUMULATIVE_SUMMATION
+    DML_OPERATOR_REVERSE_SUBSEQUENCES
+    DML_OPERATOR_GATHER_ELEMENTS
+    DML_OPERATOR_GATHER_ND
+    DML_OPERATOR_SCATTER_ND
+    DML_OPERATOR_MAX_POOLING2
+    DML_OPERATOR_SLICE1
+    DML_OPERATOR_TOP_K1
+    DML_OPERATOR_DEPTH_TO_SPACE1
+    DML_OPERATOR_SPACE_TO_DEPTH1
+    DML_OPERATOR_MEAN_VARIANCE_NORMALIZATION1
+    DML_OPERATOR_RESAMPLE1
+    DML_OPERATOR_MATRIX_MULTIPLY_INTEGER
+    DML_OPERATOR_QUANTIZED_LINEAR_MATRIX_MULTIPLY
+    DML_OPERATOR_CONVOLUTION_INTEGER
+    DML_OPERATOR_QUANTIZED_LINEAR_CONVOLUTION
+'endif // DML_TARGET_VERSION >= 0x2100
+'
+'if DML_TARGET_VERSION >= 0x3000
+    DML_OPERATOR_ELEMENT_WISE_BIT_AND
+    DML_OPERATOR_ELEMENT_WISE_BIT_OR
+    DML_OPERATOR_ELEMENT_WISE_BIT_XOR
+    DML_OPERATOR_ELEMENT_WISE_BIT_NOT
+    DML_OPERATOR_ELEMENT_WISE_BIT_COUNT
+    DML_OPERATOR_ELEMENT_WISE_LOGICAL_GREATER_THAN_OR_EQUAL
+    DML_OPERATOR_ELEMENT_WISE_LOGICAL_LESS_THAN_OR_EQUAL
+    DML_OPERATOR_ACTIVATION_CELU
+    DML_OPERATOR_ACTIVATION_RELU_GRAD
+    DML_OPERATOR_AVERAGE_POOLING_GRAD
+    DML_OPERATOR_MAX_POOLING_GRAD
+    DML_OPERATOR_RANDOM_GENERATOR
+    DML_OPERATOR_NONZERO_COORDINATES
+    DML_OPERATOR_RESAMPLE_GRAD
+    DML_OPERATOR_SLICE_GRAD
+    DML_OPERATOR_ADAM_OPTIMIZER
+    DML_OPERATOR_ARGMIN
+    DML_OPERATOR_ARGMAX
+    DML_OPERATOR_ROI_ALIGN
+    DML_OPERATOR_GATHER_ND1
+'endif // DML_TARGET_VERSION >= 0x3000
+'
+'if DML_TARGET_VERSION >= 0x3100
+    DML_OPERATOR_ELEMENT_WISE_ATAN_YX
+    DML_OPERATOR_ELEMENT_WISE_CLIP_GRAD
+    DML_OPERATOR_ELEMENT_WISE_DIFFERENCE_SQUARE
+    DML_OPERATOR_LOCAL_RESPONSE_NORMALIZATION_GRAD
+    DML_OPERATOR_CUMULATIVE_PRODUCT
+    DML_OPERATOR_BATCH_NORMALIZATION_GRAD
+'endif // DML_TARGET_VERSION >= 0x3100
+'
+'if DML_TARGET_VERSION >= 0x4000
+    DML_OPERATOR_ELEMENT_WISE_QUANTIZED_LINEAR_ADD
+    DML_OPERATOR_DYNAMIC_QUANTIZE_LINEAR
+    DML_OPERATOR_ROI_ALIGN1
+'endif // DML_TARGET_VERSION >= 0x4000
+'
+'if DML_TARGET_VERSION >= 0x4100
+    DML_OPERATOR_ROI_ALIGN_GRAD
+    DML_OPERATOR_BATCH_NORMALIZATION_TRAINING
+    DML_OPERATOR_BATCH_NORMALIZATION_TRAINING_GRAD
+'endif // DML_TARGET_VERSION >= 0x4100
+'
+'if DML_TARGET_VERSION >= 0x5000
+    DML_OPERATOR_ELEMENT_WISE_CLIP1
+    DML_OPERATOR_ELEMENT_WISE_CLIP_GRAD1
+    DML_OPERATOR_PADDING1
+    DML_OPERATOR_ELEMENT_WISE_NEGATE
+'endif // DML_TARGET_VERSION >= 0x5000
+'
+'if DML_TARGET_VERSION >= 0x5100
+    DML_OPERATOR_ACTIVATION_GELU
+    DML_OPERATOR_ACTIVATION_SOFTMAX1
+    DML_OPERATOR_ACTIVATION_LOG_SOFTMAX1
+    DML_OPERATOR_ACTIVATION_HARDMAX1
+    DML_OPERATOR_RESAMPLE2
+    DML_OPERATOR_RESAMPLE_GRAD1
+    DML_OPERATOR_DIAGONAL_MATRIX1
+'endif // DML_TARGET_VERSION >= 0x5100
+
+' #if DML_TARGET_VERSION >= 0x6100
+    DML_OPERATOR_MULTIHEAD_ATTENTION
+' #endif // DML_TARGET_VERSION >= 0x6100
+
+' #if DML_TARGET_VERSION >= 0x6200
+    DML_OPERATOR_LP_POOLING1
+    DML_OPERATOR_AVERAGE_POOLING1
+    DML_OPERATOR_ACTIVATION_SWISH
+    DML_OPERATOR_ACTIVATION_HARD_SWISH
+    DML_OPERATOR_QUANTIZED_LINEAR_AVERAGE_POOLING
+    DML_OPERATOR_MATRIX_MULTIPLY_INTEGER_TO_FLOAT
+' #endif // DML_TARGET_VERSION >= 0x6200
+End Enum
+
+Public Enum DML_REDUCE_FUNCTION
+    DML_REDUCE_FUNCTION_ARGMAX
+    DML_REDUCE_FUNCTION_ARGMIN
+    DML_REDUCE_FUNCTION_AVERAGE
+    DML_REDUCE_FUNCTION_L1
+    DML_REDUCE_FUNCTION_L2
+    DML_REDUCE_FUNCTION_LOG_SUM
+    DML_REDUCE_FUNCTION_LOG_SUM_EXP
+    DML_REDUCE_FUNCTION_MAX
+    DML_REDUCE_FUNCTION_MIN
+    DML_REDUCE_FUNCTION_MULTIPLY
+    DML_REDUCE_FUNCTION_SUM
+    DML_REDUCE_FUNCTION_SUM_SQUARE
+End Enum
+
+Public Enum DML_MATRIX_TRANSFORM
+    DML_MATRIX_TRANSFORM_NONE
+    DML_MATRIX_TRANSFORM_TRANSPOSE
+End Enum
+
+Public Enum DML_CONVOLUTION_MODE
+    DML_CONVOLUTION_MODE_CONVOLUTION
+    DML_CONVOLUTION_MODE_CROSS_CORRELATION
+End Enum
+
+Public Enum DML_CONVOLUTION_DIRECTION
+    DML_CONVOLUTION_DIRECTION_FORWARD
+    DML_CONVOLUTION_DIRECTION_BACKWARD
+End Enum
+
+Public Enum DML_PADDING_MODE
+    DML_PADDING_MODE_CONSTANT
+    DML_PADDING_MODE_EDGE
+    DML_PADDING_MODE_REFLECTION
+    DML_PADDING_MODE_SYMMETRIC
+End Enum
+
+Public Enum DML_INTERPOLATION_MODE
+    DML_INTERPOLATION_MODE_NEAREST_NEIGHBOR
+    DML_INTERPOLATION_MODE_LINEAR
+End Enum
+
+Public Type DML_SCALE_BIAS
+    scale As Single
+    bias As Single
+End Type
+
+Public Type DML_SIZE_2D
+        width As Long
+        Height As Long
+    End Type
+
+Public Enum DML_RECURRENT_NETWORK_DIRECTION
+    DML_RECURRENT_NETWORK_DIRECTION_FORWARD
+    DML_RECURRENT_NETWORK_DIRECTION_BACKWARD
+    DML_RECURRENT_NETWORK_DIRECTION_BIDIRECTIONAL
+End Enum
+
+Public Enum DML_ROUNDING_MODE
+    DML_ROUNDING_MODE_HALVES_TO_NEAREST_EVEN
+    DML_ROUNDING_MODE_TOWARD_ZERO
+    DML_ROUNDING_MODE_TOWARD_INFINITY
+End Enum
+
+Public Enum DML_IS_INFINITY_MODE
+    DML_IS_INFINITY_MODE_EITHER = 0
+    DML_IS_INFINITY_MODE_POSITIVE = 1
+    DML_IS_INFINITY_MODE_NEGATIVE = 2
+End Enum
+
+Public Enum DML_AXIS_DIRECTION
+    DML_AXIS_DIRECTION_INCREASING = 0
+    DML_AXIS_DIRECTION_DECREASING = 1
+End Enum
+
+Public Enum DML_DEPTH_SPACE_ORDER
+    DML_DEPTH_SPACE_ORDER_DEPTH_COLUMN_ROW
+    DML_DEPTH_SPACE_ORDER_COLUMN_ROW_DEPTH
+End Enum
+    
+Public /* Union */ Type DML_SCALAR_UNION
+    'BYTE   Bytes[8];
+    'INT8   Int8;
+    'UINT8  UInt8;
+    'INT16  Int16;
+    'UINT16 UInt16;
+    'INT32  Int32;
+    'UINT32 UInt32;
+    'INT64  Int64;
+    UInt64 As LongLong
+    'FLOAT  Float32;
+    'DOUBLE Float64;
+End Type
+
+Public Enum DML_RANDOM_GENERATOR_TYPE
+    DML_RANDOM_GENERATOR_TYPE_PHILOX_4X32_10
+End Enum
+
+Public Enum DML_MULTIHEAD_ATTENTION_MASK_TYPE
+    DML_MULTIHEAD_ATTENTION_MASK_TYPE_NONE
+    DML_MULTIHEAD_ATTENTION_MASK_TYPE_KEY_SEQUENCE_LENGTH
+    DML_MULTIHEAD_ATTENTION_MASK_TYPE_KEY_SEQUENCE_END_START
+    DML_MULTIHEAD_ATTENTION_MASK_TYPE_KEY_QUERY_SEQUENCE_LENGTH_START_END
+    DML_MULTIHEAD_ATTENTION_MASK_TYPE_BOOLEAN
+End Enum
+
+Public Type DML_OPERATOR_DESC
+    Type As DML_OPERATOR_TYPE
+    '_Field_size_(_Inexpressible_("Dependent on operator type")) const void* Desc;
+    Desc As LongPtr
+End Type
+
+Public Type DML_ELEMENT_WISE_IDENTITY_OPERATOR_DESC
+    'LongPtr InputTensor; //DML_TENSOR_DESC*
+    'LongPtr OutputTensor; //DML_TENSOR_DESC*
+    'LongPtr ScaleBias; //DDML_SCALE_BIAS*
+    InputTensor As LongPtr
+    OutputTensor As LongPtr
+    ScaleBias As LongPtr
+End Type
+
+Public Type DML_ELEMENT_WISE_ABS_OPERATOR_DESC
+    'LongPtr InputTensor; //DML_TENSOR_DESC*
+    'LongPtr OutputTensor; //DML_TENSOR_DESC*
+    'LongPtr ScaleBias; //DDML_SCALE_BIAS*
+    InputTensor As LongPtr
+    OutputTensor As LongPtr
+    ScaleBias As LongPtr
+End Type
+
+Public Type DML_ELEMENT_WISE_ACOS_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    ScaleBias As LongPtr 'DDML_SCALE_BIAS*
+End Type
+
+Public Type DML_ELEMENT_WISE_ADD_OPERATOR_DESC
+    ATensor As LongPtr 'DML_TENSOR_DESC*
+    BTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+End Type
+
+Public Type DML_ELEMENT_WISE_ADD1_OPERATOR_DESC
+    ATensor As LongPtr 'DML_TENSOR_DESC*
+    BTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    FusedActivation As LongPtr 'DML_OPERATOR_DESC* 
+End Type
+
+Public Type DML_ELEMENT_WISE_ASIN_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    ScaleBias As LongPtr 'DDML_SCALE_BIAS*
+End Type
+
+Public Type DML_ELEMENT_WISE_ATAN_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    ScaleBias As LongPtr 'DDML_SCALE_BIAS*
+End Type
+
+Public Type DML_ELEMENT_WISE_CEIL_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    ScaleBias As LongPtr 'DDML_SCALE_BIAS*
+End Type
+
+Public Type DML_ELEMENT_WISE_CLIP_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    ScaleBias As LongPtr 'DDML_SCALE_BIAS*
+    Min As Single
+    Max As Single
+End Type
+
+Public Type DML_ELEMENT_WISE_COS_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    ScaleBias As LongPtr 'DDML_SCALE_BIAS*
+End Type
+
+Public Type DML_ELEMENT_WISE_DIVIDE_OPERATOR_DESC
+    ATensor As LongPtr 'DML_TENSOR_DESC*
+    BTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+End Type
+
+Public Type DML_ELEMENT_WISE_EXP_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    ScaleBias As LongPtr 'DDML_SCALE_BIAS*
+End Type
+
+Public Type DML_ELEMENT_WISE_FLOOR_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    ScaleBias As LongPtr 'DDML_SCALE_BIAS*
+End Type
+
+Public Type DML_ELEMENT_WISE_LOG_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    ScaleBias As LongPtr 'DDML_SCALE_BIAS*
+End Type
+
+Public Type DML_ELEMENT_WISE_LOGICAL_AND_OPERATOR_DESC
+    ATensor As LongPtr 'DML_TENSOR_DESC*
+    BTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+End Type
+
+Public Type DML_ELEMENT_WISE_LOGICAL_EQUALS_OPERATOR_DESC
+    ATensor As LongPtr 'DML_TENSOR_DESC*
+    BTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+End Type
+
+Public Type DML_ELEMENT_WISE_LOGICAL_GREATER_THAN_OPERATOR_DESC
+    ATensor As LongPtr 'DML_TENSOR_DESC*
+    BTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+End Type
+
+Public Type DML_ELEMENT_WISE_LOGICAL_LESS_THAN_OPERATOR_DESC
+    ATensor As LongPtr 'DML_TENSOR_DESC*
+    BTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+End Type
+
+Public Type DML_ELEMENT_WISE_LOGICAL_NOT_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+End Type
+
+Public Type DML_ELEMENT_WISE_LOGICAL_OR_OPERATOR_DESC
+    ATensor As LongPtr 'DML_TENSOR_DESC*
+    BTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+End Type
+
+Public Type DML_ELEMENT_WISE_LOGICAL_XOR_OPERATOR_DESC
+    ATensor As LongPtr 'DML_TENSOR_DESC*
+    BTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+End Type
+
+Public Type DML_ELEMENT_WISE_MAX_OPERATOR_DESC
+    ATensor As LongPtr 'DML_TENSOR_DESC*
+    BTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+End Type
+
+Public Type DML_ELEMENT_WISE_MEAN_OPERATOR_DESC
+    ATensor As LongPtr 'DML_TENSOR_DESC*
+    BTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+End Type
+
+Public Type DML_ELEMENT_WISE_MIN_OPERATOR_DESC
+    ATensor As LongPtr 'DML_TENSOR_DESC*
+    BTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+End Type
+
+Public Type DML_ELEMENT_WISE_MULTIPLY_OPERATOR_DESC
+    ATensor As LongPtr 'DML_TENSOR_DESC*
+    BTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+End Type
+
+Public Type DML_ELEMENT_WISE_POW_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    ExponentTensor As LongPtr 'DML_TENSOR_DESC* 
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    ScaleBias As LongPtr 'DDML_SCALE_BIAS*
+End Type
+
+Public Type DML_ELEMENT_WISE_CONSTANT_POW_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    ScaleBias As LongPtr 'DDML_SCALE_BIAS*
+    Exponent As Single
+End Type
+
+Public Type DML_ELEMENT_WISE_RECIP_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    ScaleBias As LongPtr 'DDML_SCALE_BIAS*
+End Type
+
+Public Type DML_ELEMENT_WISE_SIN_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    ScaleBias As LongPtr 'DDML_SCALE_BIAS*
+End Type
+
+Public Type DML_ELEMENT_WISE_SQRT_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    ScaleBias As LongPtr 'DDML_SCALE_BIAS*
+End Type
+
+Public Type DML_ELEMENT_WISE_SUBTRACT_OPERATOR_DESC
+    ATensor As LongPtr 'DML_TENSOR_DESC*
+    BTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+End Type
+
+Public Type DML_ELEMENT_WISE_TAN_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    ScaleBias As LongPtr 'DDML_SCALE_BIAS*
+End Type
+
+Public Type DML_ELEMENT_WISE_THRESHOLD_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    ScaleBias As LongPtr 'DDML_SCALE_BIAS*
+    Min As Single
+End Type
+
+Public Type DML_ELEMENT_WISE_QUANTIZE_LINEAR_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    ScaleTensor As LongPtr 'DM_TENSOR_DESC*
+    ZeroPointTensor As LongPtr 'DM_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+End Type
+
+Public Type DML_ELEMENT_WISE_DEQUANTIZE_LINEAR_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    ScaleTensor As LongPtr 'DML_TENSOR_DESC*
+    ZeroPointTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+End Type
+
+Public Type DML_ACTIVATION_ELU_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    Alpha As Single
+End Type
+
+Public Type DML_ACTIVATION_HARDMAX_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+End Type
+
+Public Type DML_ACTIVATION_HARD_SIGMOID_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    Alpha As Single
+    Beta As Single
+End Type
+
+Public Type DML_ACTIVATION_IDENTITY_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+End Type
+
+Public Type DML_ACTIVATION_LEAKY_RELU_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    Alpha As Single
+End Type
+
+Public Type DML_ACTIVATION_LINEAR_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    Alpha As Single
+    Beta As Single
+End Type
+
+Public Type DML_ACTIVATION_LOG_SOFTMAX_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+End Type
+
+Public Type DML_ACTIVATION_PARAMETERIZED_RELU_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    SlopeTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+End Type
+
+Public Type DML_ACTIVATION_PARAMETRIC_SOFTPLUS_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    Alpha As Single
+    Beta As Single
+End Type
+
+Public Type DML_ACTIVATION_RELU_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+End Type
+
+Public Type DML_ACTIVATION_SCALED_ELU_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    Alpha As Single
+    Gamma As Single
+End Type
+
+Public Type DML_ACTIVATION_SCALED_TANH_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    Alpha As Single
+    Beta As Single
+End Type
+
+Public Type DML_ACTIVATION_SIGMOID_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+End Type
+
+Public Type DML_ACTIVATION_SOFTMAX_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+End Type
+
+Public Type DML_ACTIVATION_SOFTPLUS_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    Steepness As Single
+End Type
+
+Public Type DML_ACTIVATION_SOFTSIGN_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+End Type
+
+Public Type DML_ACTIVATION_TANH_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+End Type
+
+Public Type DML_ACTIVATION_THRESHOLDED_RELU_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    Alpha As Single
+End Type
+
+Public Type DML_CONVOLUTION_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    FilterTensor As LongPtr 'DML_TENSOR_DESC*
+    BiasTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    Mode As DML_CONVOLUTION_MODE
+    Direction As DML_CONVOLUTION_DIRECTION
+    DimensionCount As Long
+    Strides As LongPtr '_Field_size_(DimensionCount) const UINT* 
+    Dilations As LongPtr '_Field_size_(DimensionCount) const UINT* 
+    StartPadding As LongPtr '_Field_size_(DimensionCount) const UINT* 
+    EndPadding As LongPtr '_Field_size_(DimensionCount) const UINT* 
+    OutputPadding As LongPtr '_Field_size_(DimensionCount) const UINT* 
+    GroupCount As Long
+    FusedActivation As LongPtr 'DML_OPERATOR_DESC* 
+End Type
+
+Public Type DML_GEMM_OPERATOR_DESC
+    ATensor As LongPtr 'DML_TENSOR_DESC*
+    BTensor As LongPtr 'DML_TENSOR_DESC*
+    CTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    TransA As DML_MATRIX_TRANSFORM
+    TransB As DML_MATRIX_TRANSFORM
+    Alpha As Single
+    Beta As Single
+    FusedActivation As LongPtr 'DML_OPERATOR_DESC* 
+End Type
+
+Public Type DML_REDUCE_OPERATOR_DESC
+    Function As DML_REDUCE_FUNCTION
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    AxisCount As Long
+    'LongPtr Axes; //_Field_size_(AxisCount) const UINT*
+    Axes As LongPtr
+End Type
+
+Public Type DML_AVERAGE_POOLING_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    DimensionCount As Long
+    Strides As LongPtr '_Field_size_(DimensionCount) const UINT* 
+    WindowSize As LongPtr '_Field_size_(DimensionCount) const UINT* 
+    StartPadding As LongPtr '_Field_size_(DimensionCount) const UINT* 
+    EndPadding As LongPtr '_Field_size_(DimensionCount) const UINT* 
+    IncludePadding As BOOL
+End Type
+
+Public Type DML_LP_POOLING_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    DimensionCount As Long
+    Strides As LongPtr '_Field_size_(DimensionCount) const UINT* 
+    WindowSize As LongPtr '_Field_size_(DimensionCount) const UINT* 
+    StartPadding As LongPtr '_Field_size_(DimensionCount) const UINT* 
+    EndPadding As LongPtr '_Field_size_(DimensionCount) const UINT* 
+    P As Long
+End Type
+
+Public Type DML_MAX_POOLING_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    DimensionCount As Long
+    Strides As LongPtr '_Field_size_(DimensionCount) const UINT* 
+    WindowSize As LongPtr '_Field_size_(DimensionCount) const UINT* 
+    StartPadding As LongPtr '_Field_size_(DimensionCount) const UINT* 
+    EndPadding As LongPtr '_Field_size_(DimensionCount) const UINT* 
+End Type
+
+Public Type DML_ROI_POOLING_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    ROITensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    SpatialScale As Single
+    PooledSize As DML_SIZE_2D
+End Type
+
+Public Type DML_SLICE_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    DimensionCount As Long
+    Offsets As LongPtr '_Field_size_(DimensionCount) const UINT* 
+    Sizes As LongPtr '_Field_size_(DimensionCount) const UINT* 
+    Strides As LongPtr '_Field_size_(DimensionCount) const UINT* 
+End Type
+
+Public Type DML_CAST_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+End Type
+
+Public Type DML_SPLIT_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputCount As Long
+    OutputTensors As LongPtr 'DML_TENSOR_DESC*
+    Axis As Long
+End Type
+
+Public Type DML_JOIN_OPERATOR_DESC
+    InputCount As Long
+    InputTensors As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    Axis As Long
+End Type
+
+Public Type DML_PADDING_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    PaddingMode As DML_PADDING_MODE
+    PaddingValue As Single
+    DimensionCount As Long
+    StartPadding As LongPtr '_Field_size_(DimensionCount) const UINT* 
+    EndPadding As LongPtr '_Field_size_(DimensionCount) const UINT* 
+End Type
+
+Public Type DML_VALUE_SCALE_2D_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    Scale As Single
+    ChannelCount As Long
+    Bias As LongPtr '_Field_size_(ChannelCount) const FLOAT*
+End Type
+
+Public Type DML_UPSAMPLE_2D_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    ScaleSize As DML_SIZE_2D
+    InterpolationMode As DML_INTERPOLATION_MODE
+End Type
+
+Public Type DML_GATHER_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    IndicesTensor As LongPtr 'DM_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    Axis As Long
+    IndexDimensions As Long
+End Type
+
+Public Type DML_SPACE_TO_DEPTH_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    BlockSize As Long
+End Type
+
+Public Type DML_DEPTH_TO_SPACE_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    BlockSize As Long
+End Type
+
+Public Type DML_TILE_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    RepeatsCount As Long
+    Repeats As LongPtr '_Field_size_(RepeatsCount) const UINT* 
+End Type
+
+Public Type DML_TOP_K_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputValueTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputIndexTensor As LongPtr 'DML_TENSOR_DESC*
+    Axis As Long
+    K As Long
+End Type
+
+Public Type DML_BATCH_NORMALIZATION_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    MeanTensor As LongPtr 'DM_TENSOR_DESC*
+    VarianceTensor As LongPtr 'DM_TENSOR_DESC*
+    ScaleTensor As LongPtr 'DM_TENSOR_DESC*
+    BiasTensor As LongPtr 'DM_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    Spatial As BOOL
+    Epsilon As Single
+    FusedActivation As LongPtr 'DML_OPERATOR_DESC*
+End Type
+
+Public Type DML_MEAN_VARIANCE_NORMALIZATION_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    ScaleTensor As LongPtr 'DM_TENSOR_DESC*
+    BiasTensor As LongPtr 'DM_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    CrossChannel As BOOL
+    NormalizeVariance As BOOL
+    Epsilon As Single
+    FusedActivation As LongPtr 'DML_OPERATOR_DESC*
+End Type
+
+Public Type DML_LOCAL_RESPONSE_NORMALIZATION_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    CrossChannel As BOOL
+    LocalSize As Long
+    Alpha As Single
+    Beta As Single
+    Bias As Single
+End Type
+
+Public Type DML_LP_NORMALIZATION_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    Axis As Long
+    Epsilon As Single
+    P As Long
+End Type
+
+Public Type DML_RNN_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    WeightTensor As LongPtr 'DM_TENSOR_DESC*
+    ReurrenceTensor As LongPtr 'DM_TENSOR_DESC*
+    BiasTensor As LongPtr 'DM_TENSOR_DESC*
+    HiddenInitTensor As LongPtr 'DM_TENSOR_DESC*
+    SequenceLengthsTensor As LongPtr 'DM_TENSOR_DESC*
+    OutputSequenceTensor As LongPtr 'DM_TENSOR_DESC*
+    OutputSingleTensor As LongPtr 'DM_TENSOR_DESC*
+    ActivationDescCount As Long
+    ActivationDescs As LongPtr 'DML_OPERATOR_DESC*
+    Direction As DML_RECURRENT_NETWORK_DIRECTION
+End Type
+
+Public Type DML_LSTM_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    WeightTensor As LongPtr 'DM_TENSOR_DESC*
+    ReurrenceTensor As LongPtr 'DM_TENSOR_DESC*
+    BiasTensor As LongPtr 'DM_TENSOR_DESC*
+    HiddenInitTensor As LongPtr 'DM_TENSOR_DESC*
+    CellMemInitTensor As LongPtr 'DM_TENSOR_DESC*
+    SequenceLengthsTensor As LongPtr 'DM_TENSOR_DESC*
+    PeepholeTensor As LongPtr
+    OutputSequenceTensor As LongPtr 'DM_TENSOR_DESC*
+    OutputSingleTensor As LongPtr 'DM_TENSOR_DESC*
+    OutputCellSingleTensor As LongPtr 'DM_TENSOR_DESC*
+    ActivationDescCount As Long
+    ActivationDescs As LongPtr 'DML_OPERATOR_DESC*
+    Direction As DML_RECURRENT_NETWORK_DIRECTION
+    ClipThreshold As Single
+    UseClipThreshold As BOOL
+    CoupleInputForget As BOOL
+End Type
+
+Public Type DML_GRU_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    WeightTensor As LongPtr 'DM_TENSOR_DESC*
+    ReurrenceTensor As LongPtr 'DM_TENSOR_DESC*
+    BiasTensor As LongPtr 'DM_TENSOR_DESC*
+    HiddenInitTensor As LongPtr 'DM_TENSOR_DESC*
+    SequenceLengthsTensor As LongPtr 'DM_TENSOR_DESC*
+    OutputSequenceTensor As LongPtr 'DM_TENSOR_DESC*
+    OutputSingleTensor As LongPtr 'DM_TENSOR_DESC*
+    ActivationDescCount As Long
+    ActivationDescs As LongPtr 'DML_OPERATOR_DESC*
+    Direction As DML_RECURRENT_NETWORK_DIRECTION
+    LinearBeforeReset As BOOL
+End Type
+
+Public Type DML_ELEMENT_WISE_SIGN_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+End Type
+
+Public Type DML_ELEMENT_WISE_IS_NAN_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+End Type
+
+Public Type DML_ELEMENT_WISE_ERF_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    ScaleBias As LongPtr
+End Type
+
+Public Type DML_ELEMENT_WISE_SINH_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    ScaleBias As LongPtr
+End Type
+
+Public Type DML_ELEMENT_WISE_COSH_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    ScaleBias As LongPtr
+End Type
+
+Public Type DML_ELEMENT_WISE_TANH_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    ScaleBias As LongPtr
+End Type
+
+Public Type DML_ELEMENT_WISE_ASINH_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    ScaleBias As LongPtr
+End Type
+
+Public Type DML_ELEMENT_WISE_ACOSH_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    ScaleBias As LongPtr
+End Type
+
+Public Type DML_ELEMENT_WISE_ATANH_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    ScaleBias As LongPtr
+End Type
+
+Public Type DML_ELEMENT_WISE_IF_OPERATOR_DESC
+    ConditionTensor As LongPtr 'DML_TENSOR_DESC*
+    ATensor As LongPtr 'DML_TENSOR_DESC*
+    BTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+End Type
+
+Public Type DML_ACTIVATION_SHRINK_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    bias As Single
+    Threshold As Single
+End Type
+
+Public Type DML_MAX_POOLING1_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputIndicesTensor As LongPtr 'DML_TENSOR_DESC*
+    DimensionCount As Long
+    Strides As LongPtr '_Field_size_(DimensionCount) const UINT* 
+    WindowSize As LongPtr '_Field_size_(DimensionCount) const UINT* 
+    StartPadding As LongPtr '_Field_size_(DimensionCount) const UINT* 
+    EndPadding As LongPtr '_Field_size_(DimensionCount) const UINT* 
+End Type
+
+Public Type DML_MAX_UNPOOLING_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    IndicesTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+End Type
+
+Public Type DML_DIAGONAL_MATRIX_OPERATOR_DESC
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    Offset As Long
+    Value As Single
+End Type
+
+Public Type DML_SCATTER_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    IndicesTensor As LongPtr 'DML_TENSOR_DESC*
+    UpdatesTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    Axis As Long
+End Type
+
+Public Type DML_ONE_HOT_OPERATOR_DESC
+    IndicesTensor As LongPtr 'DML_TENSOR_DESC*
+    ValuesTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    Axis As Long
+End Type
+
+Public Type DML_RESAMPLE_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    InterpolationMode As DML_INTERPOLATION_MODE
+    ScaleCount As Long
+    Scales As LongPtr
+End Type
+
+Public Type DML_ELEMENT_WISE_BIT_SHIFT_LEFT_OPERATOR_DESC
+    ATensor As LongPtr 'DML_TENSOR_DESC*
+    BTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+End Type
+
+Public Type DML_ELEMENT_WISE_BIT_SHIFT_RIGHT_OPERATOR_DESC
+    ATensor As LongPtr 'DML_TENSOR_DESC*
+    BTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+End Type
+
+Public Type DML_ELEMENT_WISE_ROUND_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    RoundingMode As DML_ROUNDING_MODE
+End Type
+
+Public Type DML_ELEMENT_WISE_IS_INFINITY_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    InfinityMode As DML_IS_INFINITY_MODE
+End Type
+
+Public Type DML_ELEMENT_WISE_MODULUS_TRUNCATE_OPERATOR_DESC
+    ATensor As LongPtr 'DML_TENSOR_DESC*
+    BTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+End Type
+
+Public Type DML_ELEMENT_WISE_MODULUS_FLOOR_OPERATOR_DESC
+    ATensor As LongPtr 'DML_TENSOR_DESC*
+    BTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+End Type
+
+Public Type DML_FILL_VALUE_CONSTANT_OPERATOR_DESC
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    ValueDataType As DML_TENSOR_DATA_TYPE
+    Value As DML_SCALAR_UNION
+End Type
+
+Public Type DML_FILL_VALUE_SEQUENCE_OPERATOR_DESC
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    ValueDataType As DML_TENSOR_DATA_TYPE
+    ValueStart As DML_SCALAR_UNION
+    ValueDelta As DML_SCALAR_UNION
+End Type
+
+Public Type DML_CUMULATIVE_SUMMATION_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    Axis As Long
+    AxisDirection As DML_AXIS_DIRECTION
+    HasExclusiveSum As BOOL
+End Type
+
+Public Type DML_REVERSE_SUBSEQUENCES_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    SequenceLengthsTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    Axis As Long
+End Type
+
+Public Type DML_GATHER_ELEMENTS_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    IndicesTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    Axis As Long
+End Type
+
+Public Type DML_GATHER_ND_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    IndicesTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    InputDimensionCount As Long
+    IndicesDimensionCount As Long
+End Type
+
+Public Type DML_SCATTER_ND_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    IndicesTensor As LongPtr 'DML_TENSOR_DESC*
+    UpdatesTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    InputDimensionCount As Long
+    IndicesDimensionCount As Long
+End Type
+
+Public Type DML_MAX_POOLING2_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputIndicesTensor As LongPtr 'DML_TENSOR_DESC*
+    DimensionCount As Long
+    strides As LongPtr
+    WindowSize As LongPtr
+    StartPadding As LongPtr
+    EndPadding As LongPtr
+    Dilations As LongPtr
+End Type
+
+Public Type DML_SLICE1_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    DimensionCount As Long
+    InputWindowOffsets As LongPtr
+    InputWindowSizes As LongPtr
+    InputWindowStrides As LongPtr
+End Type
+
+Public Type DML_TOP_K1_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputValueTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputIndexTensor As LongPtr 'DML_TENSOR_DESC*
+    Axis As Long
+    K As Long
+    AxisDirection As DML_AXIS_DIRECTION
+End Type
+
+Public Type DML_DEPTH_TO_SPACE1_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    BlockSize As Long
+    Order As DML_DEPTH_SPACE_ORDER
+End Type
+
+Public Type DML_SPACE_TO_DEPTH1_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    BlockSize As Long
+    Order As DML_DEPTH_SPACE_ORDER
+End Type
+
+Public Type DML_MEAN_VARIANCE_NORMALIZATION1_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    ScaleTensor As LongPtr 'DML_TENSOR_DESC*
+    BiasTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    AxisCount As Long
+    Axes As LongPtr
+    NormalizeVariance As BOOL
+    Epsilon As Single
+    FusedActivation As LongPtr
+End Type
+
+Public Type DML_RESAMPLE1_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    InterpolationMode As DML_INTERPOLATION_MODE
+    DimensionCount As Long
+    Scales As LongPtr
+    InputPixelOffsets As LongPtr
+    OutputPixelOffsets As LongPtr
+End Type
+
+Public Type DML_MATRIX_MULTIPLY_INTEGER_OPERATOR_DESC
+    ATensor As LongPtr 'DML_TENSOR_DESC*
+    AZeroPointTensor As LongPtr 'DML_TENSOR_DESC*
+    BTensor As LongPtr 'DML_TENSOR_DESC*
+    BZeroPointTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+End Type
+
+Public Type DML_QUANTIZED_LINEAR_MATRIX_MULTIPLY_OPERATOR_DESC
+    ATensor As LongPtr 'DML_TENSOR_DESC*
+    AScaleTensor As LongPtr 'DML_TENSOR_DESC*
+    AZeroPointTensor As LongPtr 'DML_TENSOR_DESC*
+    BTensor As LongPtr 'DML_TENSOR_DESC*
+    BScaleTensor As LongPtr 'DML_TENSOR_DESC*
+    BZeroPointTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputScaleTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputZeroPointTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+End Type
+
+Public Type DML_CONVOLUTION_INTEGER_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    InputZeroPointTensor As LongPtr 'DML_TENSOR_DESC*
+    FilterTensor As LongPtr 'DML_TENSOR_DESC*
+    FilterZeroPointTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    DimensionCount As Long
+    strides As LongPtr
+    Dilations As LongPtr
+    StartPadding As LongPtr
+    EndPadding As LongPtr
+    GroupCount As Long
+End Type
+
+Public Type DML_QUANTIZED_LINEAR_CONVOLUTION_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    InputScaleTensor As LongPtr 'DML_TENSOR_DESC*
+    InputZeroPointTensor As LongPtr 'DML_TENSOR_DESC*
+    FilterTensor As LongPtr 'DML_TENSOR_DESC*
+    FilterScaleTensor As LongPtr 'DML_TENSOR_DESC*
+    FilterZeroPointTensor As LongPtr 'DML_TENSOR_DESC*
+    BiasTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputScaleTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputZeroPointTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    DimensionCount As Long
+    strides As LongPtr
+    Dilations As LongPtr
+    StartPadding As LongPtr
+    EndPadding As LongPtr
+    GroupCount As Long
+End Type
+
+Public Type DML_ELEMENT_WISE_BIT_AND_OPERATOR_DESC
+    ATensor As LongPtr 'DML_TENSOR_DESC*
+    BTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+End Type
+
+Public Type DML_ELEMENT_WISE_BIT_OR_OPERATOR_DESC
+    ATensor As LongPtr 'DML_TENSOR_DESC*
+    BTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+End Type
+
+Public Type DML_ELEMENT_WISE_BIT_XOR_OPERATOR_DESC
+    ATensor As LongPtr 'DML_TENSOR_DESC*
+    BTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+End Type
+
+Public Type DML_ELEMENT_WISE_BIT_NOT_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+End Type
+
+Public Type DML_ELEMENT_WISE_BIT_COUNT_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+End Type
+
+Public Type DML_ELEMENT_WISE_LOGICAL_GREATER_THAN_OR_EQUAL_OPERATOR_DESC
+    ATensor As LongPtr 'DML_TENSOR_DESC*
+    BTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+End Type
+
+Public Type DML_ELEMENT_WISE_LOGICAL_LESS_THAN_OR_EQUAL_OPERATOR_DESC
+    ATensor As LongPtr 'DML_TENSOR_DESC*
+    BTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+End Type
+
+Public Type DML_ACTIVATION_CELU_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    Alpha As Single
+End Type
+
+Public Type DML_ACTIVATION_RELU_GRAD_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    InputGradientTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputGradientTensor As LongPtr 'DML_TENSOR_DESC*
+End Type
+
+Public Type DML_AVERAGE_POOLING_GRAD_OPERATOR_DESC
+    InputGradientTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputGradientTensor As LongPtr 'DML_TENSOR_DESC*
+    DimensionCount As Long
+    strides As LongPtr
+    WindowSize As LongPtr
+    StartPadding As LongPtr
+    EndPadding As LongPtr
+    IncludePadding As BOOL
+End Type
+
+Public Type DML_MAX_POOLING_GRAD_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    InputGradientTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputGradientTensor As LongPtr 'DML_TENSOR_DESC*
+    DimensionCount As Long
+    strides As LongPtr
+    WindowSize As LongPtr
+    StartPadding As LongPtr
+    EndPadding As LongPtr
+    Dilations As LongPtr
+End Type
+
+Public Type DML_RANDOM_GENERATOR_OPERATOR_DESC
+    InputStateTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputStateTensor As LongPtr 'DML_TENSOR_DESC*
+    type As DML_RANDOM_GENERATOR_TYPE
+End Type
+
+Public Type DML_NONZERO_COORDINATES_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputCountTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputCoordinatesTensor As LongPtr 'DML_TENSOR_DESC*
+End Type
+
+Public Type DML_RESAMPLE_GRAD_OPERATOR_DESC
+    InputGradientTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputGradientTensor As LongPtr 'DML_TENSOR_DESC*
+    InterpolationMode As DML_INTERPOLATION_MODE
+    DimensionCount As Long
+    Scales As LongPtr
+    InputPixelOffsets As LongPtr
+    OutputPixelOffsets As LongPtr
+End Type
+
+Public Type DML_SLICE_GRAD_OPERATOR_DESC
+    InputGradientTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputGradientTensor As LongPtr 'DML_TENSOR_DESC*
+    DimensionCount As Long
+    InputWindowOffsets As LongPtr
+    InputWindowSizes As LongPtr
+    InputWindowStrides As LongPtr
+End Type
+
+Public Type DML_ADAM_OPTIMIZER_OPERATOR_DESC
+    InputParametersTensor As LongPtr 'DML_TENSOR_DESC*
+    InputFirstMomentTensor As LongPtr 'DML_TENSOR_DESC*
+    InputSecondMomentTensor As LongPtr 'DML_TENSOR_DESC*
+    GradientTensor As LongPtr 'DML_TENSOR_DESC*
+    TrainingStepTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputParametersTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputFirstMomentTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputSecondMomentTensor As LongPtr 'DML_TENSOR_DESC*
+    LearningRate As Single
+    Beta1 As Single
+    Beta2 As Single
+    Epsilon As Single
+End Type
+
+Public Type DML_ARGMIN_OPERATOR_DESC
+    InputTensor As LongPtr
+    OutputTensor As LongPtr
+    AxisCount As Long
+    Axes As LongPtr
+    AxisDirection As DML_AXIS_DIRECTION
+End Type
+
+Public Type DML_ARGMAX_OPERATOR_DESC
+    InputTensor As LongPtr
+    OutputTensor As LongPtr
+    AxisCount As Long
+    Axes As LongPtr
+    AxisDirection As DML_AXIS_DIRECTION
+End Type
+
+Public Type DML_ROI_ALIGN_OPERATOR_DESC
+    InputTensor As LongPtr
+    ROITensor As LongPtr
+    BatchIndicesTensor As LongPtr
+    OutputTensor As LongPtr
+    ReductionFunction As DML_REDUCE_FUNCTION
+    InterpolationMode As DML_INTERPOLATION_MODE
+    SpatialScaleX As Single
+    SpatialScaleY As Single
+    OutOfBoundsInputValue As Single
+    MinimumSamplesPerOutput As Long
+    MaximumSamplesPerOutput As Long
+End Type
+
+Public Type DML_GATHER_ND1_OPERATOR_DESC
+    InputTensor As LongPtr
+    IndicesTensor As LongPtr
+    OutputTensor As LongPtr
+    InputDimensionCount As Long
+    IndicesDimensionCount As Long
+    BatchDimensionCount As Long
+End Type
+
+Public Type DML_ELEMENT_WISE_ATAN_YX_OPERATOR_DESC
+    ATensor As LongPtr
+    BTensor As LongPtr
+    OutputTensor As LongPtr
+End Type
+
+Public Type DML_ELEMENT_WISE_CLIP_GRAD_OPERATOR_DESC
+    InputTensor As LongPtr
+    InputGradientTensor As LongPtr
+    OutputGradientTensor As LongPtr
+    Min As Single
+    Max As Single
+End Type
+
+Public Type DML_ELEMENT_WISE_DIFFERENCE_SQUARE_OPERATOR_DESC
+    ATensor As LongPtr
+    BTensor As LongPtr
+    OutputTensor As LongPtr
+End Type
+
+Public Type DML_LOCAL_RESPONSE_NORMALIZATION_GRAD_OPERATOR_DESC
+    InputTensor As LongPtr
+    InputGradientTensor As LongPtr
+    OutputGradientTensor As LongPtr
+    CrossChannel As BOOL
+    LocalSize As Long
+    Alpha As Single
+    Beta As Single
+    bias As Single
+End Type
+
+Public Type DML_CUMULATIVE_PRODUCT_OPERATOR_DESC
+    InputTensor As LongPtr
+    OutputTensor As LongPtr
+    Axis As Long
+    AxisDirection As DML_AXIS_DIRECTION
+    HasExclusiveProduct As BOOL
+End Type
+
+Public Type DML_BATCH_NORMALIZATION_GRAD_OPERATOR_DESC
+    InputTensor As LongPtr
+    InputGradientTensor As LongPtr
+    MeanTensor As LongPtr
+    VarianceTensor As LongPtr
+    ScaleTensor As LongPtr
+    OutputGradientTensor As LongPtr
+    OutputScaleGradientTensor As LongPtr
+    OutputBiasGradientTensor As LongPtr
+    Epsilon As Single
+End Type
+
+Public Type DML_ELEMENT_WISE_QUANTIZED_LINEAR_ADD_OPERATOR_DESC
+    ATensor As LongPtr
+    AScaleTensor As LongPtr
+    AZeroPointTensor As LongPtr
+    BTensor As LongPtr
+    BScaleTensor As LongPtr
+    BZeroPointTensor As LongPtr
+    OutputScaleTensor As LongPtr
+    OutputZeroPointTensor As LongPtr
+    OutputTensor As LongPtr
+End Type
+
+Public Type DML_DYNAMIC_QUANTIZE_LINEAR_OPERATOR_DESC
+    InputTensor As LongPtr
+    OutputTensor As LongPtr
+    OutputScaleTensor As LongPtr
+    OutputZeroPointTensor As LongPtr
+End Type
+
+Public Type DML_ROI_ALIGN1_OPERATOR_DESC
+    InputTensor As LongPtr
+    ROITensor As LongPtr
+    BatchIndicesTensor As LongPtr
+    OutputTensor As LongPtr
+    ReductionFunction As DML_REDUCE_FUNCTION
+    InterpolationMode As DML_INTERPOLATION_MODE
+    SpatialScaleX As Single
+    SpatialScaleY As Single
+    InputPixelOffset As Single
+    OutputPixelOffset As Single
+    OutOfBoundsInputValue As Single
+    MinimumSamplesPerOutput As Long
+    MaximumSamplesPerOutput As Long
+    AlignRegionsToCorners As BOOL
+End Type
+
+Public Type DML_ROI_ALIGN_GRAD_OPERATOR_DESC
+    InputTensor As LongPtr
+    InputGradientTensor As LongPtr
+    ROITensor As LongPtr
+    BatchIndicesTensor As LongPtr
+    OutputGradientTensor As LongPtr
+    OutputROIGradientTensor As LongPtr
+    ReductionFunction As DML_REDUCE_FUNCTION
+    InterpolationMode As DML_INTERPOLATION_MODE
+    SpatialScaleX As Single
+    SpatialScaleY As Single
+    InputPixelOffset As Single
+    OutputPixelOffset As Single
+    MinimumSamplesPerOutput As Long
+    MaximumSamplesPerOutput As Long
+    AlignRegionsToCorners As BOOL
+End Type
+
+Public Type DML_BATCH_NORMALIZATION_TRAINING_OPERATOR_DESC
+    InputTensor As LongPtr
+    ScaleTensor As LongPtr
+    BiasTensor As LongPtr
+    FusedAddTensor As LongPtr
+    OutputTensor As LongPtr
+    OutputMeanTensor As LongPtr
+    OutputVarianceTensor As LongPtr
+    Epsilon As Single
+    FusedActivation As LongPtr
+End Type
+
+Public Type DML_BATCH_NORMALIZATION_TRAINING_GRAD_OPERATOR_DESC
+    InputTensor As LongPtr
+    InputGradientTensor As LongPtr
+    MeanTensor As LongPtr
+    VarianceTensor As LongPtr
+    ScaleTensor As LongPtr
+    OutputGradientTensor As LongPtr
+    OutputScaleGradientTensor As LongPtr
+    OutputBiasGradientTensor As LongPtr
+    Epsilon As Single
+End Type
+
+Public Type DML_ELEMENT_WISE_CLIP1_OPERATOR_DESC
+    InputTensor As LongPtr
+    OutputTensor As LongPtr
+    ScaleBias As LongPtr
+    MinMaxDataType As DML_TENSOR_DATA_TYPE
+    Min As DML_SCALAR_UNION
+    Max As DML_SCALAR_UNION
+End Type
+
+Public Type DML_ELEMENT_WISE_CLIP_GRAD1_OPERATOR_DESC
+    InputTensor As LongPtr
+    InputGradientTensor As LongPtr
+    OutputGradientTensor As LongPtr
+    MinMaxDataType As DML_TENSOR_DATA_TYPE
+    Min As DML_SCALAR_UNION
+    Max As DML_SCALAR_UNION
+End Type
+
+Public Type DML_PADDING1_OPERATOR_DESC
+    InputTensor As LongPtr
+    OutputTensor As LongPtr
+    PaddingMode As DML_PADDING_MODE
+    PaddingValueDataType As DML_TENSOR_DATA_TYPE
+    PaddingValue As DML_SCALAR_UNION
+    DimensionCount As Long
+    StartPadding As LongPtr
+    EndPadding As LongPtr
+End Type
+
+Public Type DML_ELEMENT_WISE_NEGATE_OPERATOR_DESC
+    InputTensor As LongPtr
+    OutputTensor As LongPtr
+End Type
+
+Public Type DML_ACTIVATION_GELU_OPERATOR_DESC
+    InputTensor As LongPtr
+    OutputTensor As LongPtr
+End Type
+
+Public Type DML_ACTIVATION_SOFTMAX1_OPERATOR_DESC
+    InputTensor As LongPtr
+    OutputTensor As LongPtr
+    AxisCount As Long
+    Axes As LongPtr
+End Type
+
+Public Type DML_ACTIVATION_LOG_SOFTMAX1_OPERATOR_DESC
+    InputTensor As LongPtr
+    OutputTensor As LongPtr
+    AxisCount As Long
+    Axes As LongPtr
+End Type
+
+Public Type DML_ACTIVATION_HARDMAX1_OPERATOR_DESC
+    InputTensor As LongPtr
+    OutputTensor As LongPtr
+    AxisCount As Long
+    Axes As LongPtr
+End Type
+
+Public Type DML_RESAMPLE2_OPERATOR_DESC
+    InputTensor As LongPtr
+    OutputTensor As LongPtr
+    InterpolationMode As DML_INTERPOLATION_MODE
+    RoundingDirection As DML_AXIS_DIRECTION
+    DimensionCount As Long
+    Scales As LongPtr
+    InputPixelOffsets As LongPtr
+    OutputPixelOffsets As LongPtr
+End Type
+
+Public Type DML_RESAMPLE_GRAD1_OPERATOR_DESC
+    InputGradientTensor As LongPtr
+    OutputGradientTensor As LongPtr
+    InterpolationMode As DML_INTERPOLATION_MODE
+    RoundingDirection As DML_AXIS_DIRECTION
+    DimensionCount As Long
+    Scales As LongPtr
+    InputPixelOffsets As LongPtr
+    OutputPixelOffsets As LongPtr
+End Type
+
+Public Type DML_DIAGONAL_MATRIX1_OPERATOR_DESC
+    InputTensor As LongPtr
+    OutputTensor As LongPtr
+    ValueDataType As DML_TENSOR_DATA_TYPE
+    Value As DML_SCALAR_UNION
+    DiagonalFillBegin As Long
+    DiagonalFillEnd As Long
+End Type
+
+Public Type DML_MULTIHEAD_ATTENTION_OPERATOR_DESC
+    QueryTensor As LongPtr 'DML_TENSOR_DESC*
+    KeyTensor As LongPtr 'DML_TENSOR_DESC*
+    ValueTensor As LongPtr 'DML_TENSOR_DESC*
+    StackedQueryKeyTensor As LongPtr 'DML_TENSOR_DESC*
+    StackedKeyValueTensor As LongPtr 'DML_TENSOR_DESC*
+    StackedQueryKeyValueTensor As LongPtr 'DML_TENSOR_DESC*
+    BiasTensor As LongPtr 'DML_TENSOR_DESC*
+    MaskTensor As LongPtr 'DML_TENSOR_DESC*
+    RelativePositionBiasTensor As LongPtr 'DML_TENSOR_DESC*
+    PastKeyTensor As LongPtr 'DML_TENSOR_DESC*
+    PastValueTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputPresentKeyTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputPresentValueTensor As LongPtr 'DML_TENSOR_DESC*
+    Scale As Single
+    MaskFilterValue As Single
+    HeadCount As Long
+    MaskType As DML_MULTIHEAD_ATTENTION_MASK_TYPE
+End Type
+
+Public Type DML_LP_POOLING1_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    DimensionCount As Long
+    Strides As LongPtr 'UINT*
+    WindowSize As LongPtr 'UINT*
+    StartPadding As LongPtr 'UINT*
+    EndPadding As LongPtr 'UINT*
+    Dilations As LongPtr 'UINT*
+    P As Long
+End Type
+
+Public Type DML_AVERAGE_POOLING1_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    DimensionCount As Long
+    Strides As LongPtr 'UINT*
+    WindowSize As LongPtr 'UINT*
+    StartPadding As LongPtr 'UINT*
+    EndPadding As LongPtr 'UINT*
+    Dilations As LongPtr 'UINT*
+    IncludePadding As BOOL
+End Type
+
+Public Type DML_ACTIVATION_SWISH_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    SigmoidInputScale As Single
+End Type
+
+Public Type DML_ACTIVATION_HARD_SWISH_OPERATOR_DESC
+    InputTensor As DML_TENSOR_DESC
+    OutputTensor As DML_TENSOR_DESC
+    Alpha As Single
+    Beta As Single
+End Type
+
+Public Type DML_QUANTIZED_LINEAR_AVERAGE_POOLING_OPERATOR_DESC
+    InputTensor As LongPtr 'DML_TENSOR_DESC*
+    InputScaleTensor As LongPtr 'DML_TENSOR_DESC*
+    InputZeroPointTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputScaleTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputZeroPointTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+    DimensionCount As Long
+    Strides As LongPtr 'UINT*
+    WindowSize As LongPtr 'UINT*
+    StartPadding As LongPtr 'UINT*
+    EndPadding As LongPtr 'UINT*
+    Dilations As LongPtr 'UINT*
+    IncludePadding As BOOL
+End Type
+
+Public Type DML_MATRIX_MULTIPLY_INTEGER_TO_FLOAT_OPERATOR_DESC
+    ATensor As LongPtr 'DML_TENSOR_DESC*
+    AScaleTensor As LongPtr 'DML_TENSOR_DESC*
+    AZeroPointTensor As LongPtr 'DML_TENSOR_DESC*
+    BTensor As LongPtr 'DML_TENSOR_DESC*
+    BScaleTensor As LongPtr 'DML_TENSOR_DESC*
+    BZeroPointTensor As LongPtr 'DML_TENSOR_DESC*
+    BiasTensor As LongPtr 'DML_TENSOR_DESC*
+    OutputTensor As LongPtr 'DML_TENSOR_DESC*
+End Type
+
+
+
+
+
+Public Enum DML_FEATURE_LEVEL
+    DML_FEATURE_LEVEL_1_0 = &H1000
+    DML_FEATURE_LEVEL_2_0 = &H2000
+    DML_FEATURE_LEVEL_2_1 = &H2100
+    DML_FEATURE_LEVEL_3_0 = &H3000
+    DML_FEATURE_LEVEL_3_1 = &H3100
+    DML_FEATURE_LEVEL_4_0 = &H4000
+    DML_FEATURE_LEVEL_4_1 = &H4100
+    DML_FEATURE_LEVEL_5_0 = &H5000
+    DML_FEATURE_LEVEL_5_1 = &H5100
+    DML_FEATURE_LEVEL_5_2 = &H5200
+    DML_FEATURE_LEVEL_5_3 = &H5300
+    DML_FEATURE_LEVEL_6_0 = &H6000
+    DML_FEATURE_LEVEL_6_1 = &H6100
+    DML_FEATURE_LEVEL_6_2 = &H6200
+End Enum
+
+Public Enum DML_FEATURE
+    DML_FEATURE_TENSOR_DATA_TYPE_SUPPORT
+    ' #if DML_TARGET_VERSION >= 0x2000
+    DML_FEATURE_FEATURE_LEVELS
+    ' #endif // DML_TARGET_VERSION >= 0x2000
+End Enum
+
+Public Type DML_FEATURE_QUERY_TENSOR_DATA_TYPE_SUPPORT
+    DataType As DML_TENSOR_DATA_TYPE
+End Type
+
+Public Type DML_FEATURE_DATA_TENSOR_DATA_TYPE_SUPPORT
+    IsSupported As BOOL
+End Type
+
+Public Type DML_FEATURE_QUERY_FEATURE_LEVELS
+    RequestedFeatureLevelCount As Long
+    RequestedFeatureLevels As LongPtr '_Field_size_(RequestedFeatureLevelCount) DML_FEATURE_LEVEL* 
+End Type
+
+Public Type DML_FEATURE_DATA_FEATURE_LEVELS
+    MaxSupportedFeatureLevel As DML_FEATURE_LEVEL
+End Type
+
+Public Type DML_BINDING_TABLE_DESC
+    Dispatchable As IDMLDispatchable
+    CPUDescriptorHandle As LongPtr
+    GPUDescriptorHandle As LongLong
+    SizeInDescriptors As Long
+End Type
+
+Public Enum DML_EXECUTION_FLAGS
+    DML_EXECUTION_FLAG_NONE = 0
+    DML_EXECUTION_FLAG_ALLOW_HALF_PRECISION_COMPUTATION = &H1
+    DML_EXECUTION_FLAG_DISABLE_META_COMMANDS = &H2
+    DML_EXECUTION_FLAG_DESCRIPTORS_VOLATILE = &H4
+End Enum
+
+Public Enum DML_CREATE_DEVICE_FLAGS
+    DML_CREATE_DEVICE_FLAG_NONE = 0
+    DML_CREATE_DEVICE_FLAG_DEBUG = &H1
+End Enum
+
+Public Type DML_BINDING_PROPERTIES
+    RequiredDescriptorCount As Long
+    TemporaryResourceSize As LongLong
+    PersistentResourceSize As LongLong
+End Type
+        
+Public Enum DML_BINDING_TYPE
+    DML_BINDING_TYPE_NONE
+    DML_BINDING_TYPE_BUFFER
+    DML_BINDING_TYPE_BUFFER_ARRAY
+End Enum
+
+Public Type DML_BINDING_DESC
+    Type As DML_BINDING_TYPE
+    Desc As LongPtr 'const void* 
+End Type
+
+Public Type DML_BUFFER_BINDING
+    Buffer As ID3D12Resource
+    Offset As LongLong
+    SizeInBytes As LongLong
+End Type
+
+Public Type DML_BUFFER_ARRAY_BINDING
+    BindingCount As Long
+    Bindings As LongPtr 'DML_BUFFER_BINDING* 
+End Type
+
+Public Enum DML_GRAPH_EDGE_TYPE
+    DML_GRAPH_EDGE_TYPE_INVALID
+    DML_GRAPH_EDGE_TYPE_INPUT
+    DML_GRAPH_EDGE_TYPE_OUTPUT
+    DML_GRAPH_EDGE_TYPE_INTERMEDIATE
+End Enum
+
+Public Type DML_GRAPH_EDGE_DESC
+    Type As DML_GRAPH_EDGE_TYPE
+    Desc As LongPtr ' const void*
+End Type
+
+Public Type DML_INPUT_GRAPH_EDGE_DESC
+    GraphInputIndex As Long
+    ToNodeIndex As Long
+    ToNodeInputIndex As Long
+    Name As LongPtr
+End Type
+
+Public Type DML_OUTPUT_GRAPH_EDGE_DESC
+    FromNodeIndex As Long
+    FromNodeOutputIndex As Long
+    GraphOutputIndex As Long
+    Name As LongPtr
+End Type
+
+Public Type DML_INTERMEDIATE_GRAPH_EDGE_DESC
+    FromNodeIndex As Long
+    FromNodeOutputIndex As Long
+    ToNodeIndex As Long
+    toNodeInputIndex As Long
+    Name As LongPtr
+End Type
+
+Public Enum DML_GRAPH_NODE_TYPE
+    DML_GRAPH_NODE_TYPE_INVALID = 0
+    DML_GRAPH_NODE_TYPE_OPERATOR = 1
+End Enum
+
+Public Type DML_GRAPH_NODE_DESC
+    type As DML_GRAPH_NODE_TYPE
+    Desc As LongPtr
+End Type
+
+Public Type DML_OPERATOR_GRAPH_NODE_DESC
+    Operator As IDMLOperator
+    Name As LongPtr
+End Type
+
+Public Type DML_GRAPH_DESC
+    InputCount As Long
+    OutputCount As Long
+    NodeCount As Long
+    Nodes As LongPtr '_Field_size_(NodeCount) DML_GRAPH_NODE_DESC* 
+    InputEdgeCount As Long
+    InputEdges As LongPtr '_Field_size_opt_(InputEdgeCount) DML_GRAPH_EDGE_DESC* 
+    OutputEdgeCount As Long
+    OutputEdges As LongPtr '_Field_size_(OutputEdgeCount) DML_GRAPH_EDGE_DESC* 
+    IntermediateEdgeCount As Long
+    IntermediateEdges As LongPtr '_Field_size_opt_(IntermediateEdgeCount) DML_GRAPH_EDGE_DESC* 
+End Type
+
+
+
+Public Const DML_TENSOR_DIMENSION_COUNT_MAX As Long = 5
+Public Const DML_TEMPORARY_BUFFER_ALIGNMENT As Long = 256
+Public Const DML_PERSISTENT_BUFFER_ALIGNMENT As Long = 256
+Public Const DML_MINIMUM_BUFFER_TENSOR_ALIGNMENT As Long = 16
+
+Public Declare PtrSafe Function DMLCreateDevice Lib "DirectML.dll" (ByVal d3d12Device As ID3D12Device, ByVal flags As DML_CREATE_DEVICE_FLAGS, ByRef riid As UUID, ByRef ppv As Any) As Long
+Public Declare PtrSafe Function DMLCreateDevice1 Lib "DirectML.dll" (ByVal d3d12Device As ID3D12Device, ByVal flags As DML_CREATE_DEVICE_FLAGS, ByVal MinimumFeatureLevel As DML_FEATURE_LEVEL, ByRef riid As UUID, ByRef ppv As Any) As Long
+
+
+
+
+
+
+
+
+
+End Module
+
+#End If
