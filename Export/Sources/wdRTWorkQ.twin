@@ -1,0 +1,127 @@
+'*****************************************************************************************
+'This file is a part of WinDevLib - Windows Development Library for twinBASIC
+'https://github.com/fafalone/WinDevLib
+'Code ported by Jon Johnson. 
+'"Windows" is a trademark of the Microsoft Corporation.
+'Certain Description attributes (c) Microsoft, taken from SDK headers and official docs.
+'Licensed under Creative Commons CC0 1.0 Universal
+'*****************************************************************************************
+
+
+'Real-time Work Queue (RTWorkQ.h)
+
+#If WINDEVLIB_LITE = 0 Then
+[InterfaceId("ac6b7889-0740-4d51-8619-905994a55cc6")]
+[OleAutomation(False)]
+Interface IRtwqAsyncResult Extends IUnknown
+    Sub GetState(ppunkState As IUnknown)
+    Sub GetStatus()
+    Sub GetObject(ppObject As IUnknown)
+    [PreserveSig] Function GetStateNoAddRef() As IUnknown
+End Interface
+
+[InterfaceId("a27003cf-2354-4f2a-8d6a-ab7cff15437e")]
+[OleAutomation(False)]
+Interface IRtwqAsyncCallback Extends IUnknown
+    Sub GetParameters(pdwFlags As Long, pdwQueue As Long)
+    Sub Invoke(ByVal pAsyncResult As IRtwqAsyncResult)
+End Interface
+
+[InterfaceId("63d9255a-7ff1-4b61-8faf-ed6460dacf2b")]
+[OleAutomation(False)]
+Interface IRtwqPlatformEvents Extends IUnknown
+    Sub InitializationComplete()
+    Sub ShutdownStart()
+    Sub ShutdownComplete()
+End Interface
+
+
+#If WDL_QUALIFY Then
+[MustBeQualified]
+#End If
+Module wdRTWorkQ
+
+Public Const RTWQ_E_BUFFERTOOSMALL  = (&Hc00d0000 + 14001)
+Public Const RTWQ_E_NOT_INITIALIZED  = (&Hc00d0000 + 14006)
+Public Const RTWQ_E_UNEXPECTED  = (&Hc00d0000 + 14011)
+Public Const RTWQ_E_NOT_FOUND  = (&Hc00d0000 + 14037)
+Public Const RTWQ_E_OPERATION_CANCELLED  = (&Hc00d0000 + 14061)
+Public Const RTWQ_E_INVALID_WORKQUEUE  = (&Hc00d0000 + 14079)
+Public Const RTWQ_E_SHUTDOWN  = (&Hc00d0000 + 16005)
+
+Public Enum RTWQ_WORKQUEUE_TYPE
+    RTWQ_STANDARD_WORKQUEUE = 0 ' single threaded MTA
+    RTWQ_WINDOW_WORKQUEUE = 1 ' Message loop that calls PeekMessage() / DispatchMessage()..
+    RTWQ_MULTITHREADED_WORKQUEUE = 2 ' multithreaded MTA
+End Enum
+
+' typedef struct tagRTWQASYNCRESULT : public IRtwqAsyncResult
+' {
+    ' OVERLAPPED overlapped;
+    ' IRtwqAsyncCallback * pCallback;
+    ' HRESULT hrStatusResult;
+    ' DWORD dwBytesTransferred;
+    ' HANDLE hEvent;
+' }   RTWQASYNCRESULT;
+Public Type RTWQASYNCRESULT
+    overlapped As OVERLAPPED
+    pCallback As IRtwqAsyncCallback
+    hrStatusResult As Long
+    dwBytesTransferred As Long
+    hEvent As LongPtr
+End Type
+
+
+Public Declare PtrSafe Function RtwqStartup Lib "RTWorkQ.dll" () As Long
+Public Declare PtrSafe Function RtwqShutdown Lib "RTWorkQ.dll" () As Long
+
+Public Declare PtrSafe Function RtwqLockWorkQueue Lib "RTWorkQ.dll" (ByVal workQueueId As Long) As Long
+Public Declare PtrSafe Function RtwqUnlockWorkQueue Lib "RTWorkQ.dll" (ByVal workQueueId As Long) As Long
+Public Declare PtrSafe Function RtwqLockSharedWorkQueue Lib "RTWorkQ.dll" (ByVal usageClass As LongPtr, ByVal basePriority As Long, taskId As Long, id As Long) As Long
+
+Public Declare PtrSafe Function RtwqJoinWorkQueue Lib "RTWorkQ.dll" (ByVal workQueueId As Long, ByVal hFile As LongPtr, out As LongPtr) As Long
+Public Declare PtrSafe Function RtwqUnjoinWorkQueue Lib "RTWorkQ.dll" (ByVal workQueueId As Long, ByVal hFile As LongPtr) As Long
+
+Public Declare PtrSafe Function RtwqCreateAsyncResult Lib "RTWorkQ.dll" (ByVal appObject As Any, ByVal callback As IRtwqAsyncCallback, ByVal appState As Any, asyncResult As IRtwqAsyncResult) As Long
+Public Declare PtrSafe Function RtwqInvokeCallback Lib "RTWorkQ.dll" (ByVal result As IRtwqAsyncResult) As Long
+
+Public Declare PtrSafe Function RtwqLockPlatform Lib "RTWorkQ.dll" () As Long
+Public Declare PtrSafe Function RtwqUnlockPlatform Lib "RTWorkQ.dll" () As Long
+
+Public Declare PtrSafe Function RtwqRegisterPlatformWithMMCSS Lib "RTWorkQ.dll" (ByVal usageClass As LongPtr, taskId As Long, ByVal lPriority As Long) As Long
+Public Declare PtrSafe Function RtwqUnregisterPlatformFromMMCSS Lib "RTWorkQ.dll" () As Long
+
+Public Declare PtrSafe Function RtwqPutWorkItem Lib "RTWorkQ.dll" (ByVal dwQueue As Long, ByVal lPriority As Long, ByVal result As IRtwqAsyncResult) As Long
+
+Public Declare PtrSafe Function RtwqPutWaitingWorkItem Lib "RTWorkQ.dll" (ByVal hEvent As LongPtr, ByVal lPriority As Long, ByVal result As IRtwqAsyncResult, key As LongLong) As Long
+Public Declare PtrSafe Function RtwqAllocateSerialWorkQueue Lib "RTWorkQ.dll" (ByVal workQueueIdIn As Long, workQueueIdOut As Long) As Long
+
+Public Declare PtrSafe Function RtwqScheduleWorkItem Lib "RTWorkQ.dll" (ByVal result As IRtwqAsyncResult, ByVal Timeout As LongLong, key As LongLong) As Long
+
+Public Declare PtrSafe Function RtwqAddPeriodicCallback Lib "RTWorkQ.dll" (ByVal Callback As LongPtr, ByVal context As IUnknown, key As Long) As Long
+Public Declare PtrSafe Function RtwqRemovePeriodicCallback Lib "RTWorkQ.dll" (ByVal dwKey As Long) As Long
+
+Public Declare PtrSafe Function RtwqCancelWorkItem Lib "RTWorkQ.dll" (ByVal key As LongLong) As Long
+
+Public Declare PtrSafe Function RtwqAllocateWorkQueue Lib "RTWorkQ.dll" (ByVal WorkQueueType As RTWQ_WORKQUEUE_TYPE, workQueueId As Long) As Long
+
+Public Declare PtrSafe Function RtwqBeginRegisterWorkQueueWithMMCSS Lib "RTWorkQ.dll" (ByVal workQueueId As Long, ByVal usageClass As LongPtr, ByVal dwTaskId As Long, ByVal lPriority As Long, ByVal doneCallback As IRtwqAsyncCallback, ByVal doneState As Any) As Long
+Public Declare PtrSafe Function RtwqBeginUnregisterWorkQueueWithMMCSS Lib "RTWorkQ.dll" (ByVal workQueueId As Long, ByVal doneCallback As IRtwqAsyncCallback, ByVal doneState As Any) As Long
+Public Declare PtrSafe Function RtwqEndRegisterWorkQueueWithMMCSS Lib "RTWorkQ.dll" (ByVal result As IRtwqAsyncResult, taskId As Long) As Long
+
+Public Declare PtrSafe Function RtwqGetWorkQueueMMCSSClass Lib "RTWorkQ.dll" (ByVal workQueueId As Long, ByVal usageClass As LongPtr, usageClassLength As Long) As Long
+Public Declare PtrSafe Function RtwqGetWorkQueueMMCSSTaskId Lib "RTWorkQ.dll" (ByVal workQueueId As Long, taskId As Long) As Long
+Public Declare PtrSafe Function RtwqGetWorkQueueMMCSSPriority Lib "RTWorkQ.dll" (ByVal workQueueId As Long, lPriority As Long) As Long
+
+Public Declare PtrSafe Function RtwqRegisterPlatformEvents Lib "RTWorkQ.dll" (ByVal platformEvents As IRtwqPlatformEvents) As Long
+Public Declare PtrSafe Function RtwqUnregisterPlatformEvents Lib "RTWorkQ.dll" (ByVal platformEvents As IRtwqPlatformEvents) As Long
+
+Public Declare PtrSafe Function RtwqSetLongRunning Lib "RTWorkQ.dll" (ByVal workQueueId As Long, ByVal enable As BOOL) As Long
+
+Public Declare PtrSafe Function RtwqSetDeadline Lib "RTWorkQ.dll" (ByVal workQueueId As Long, ByVal deadlineInHNS As LongLong, pRequest As LongPtr) As Long
+Public Declare PtrSafe Function RtwqSetDeadline2 Lib "RTWorkQ.dll" (ByVal workQueueId As Long, ByVal deadlineInHNS As LongLong, ByVal preDeadlineInHNS As LongLong, pRequest As LongPtr) As Long
+Public Declare PtrSafe Function RtwqCancelDeadline Lib "RTWorkQ.dll" (ByVal pRequest As LongPtr) As Long
+
+
+End Module
+#End If

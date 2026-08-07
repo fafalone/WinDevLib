@@ -1,0 +1,183 @@
+'*****************************************************************************************
+'This file is a part of WinDevLib - Windows Development Library for twinBASIC
+'https://github.com/fafalone/WinDevLib
+'Code ported by Jon Johnson. 
+'"Windows" is a trademark of the Microsoft Corporation.
+'Certain Description attributes (c) Microsoft, taken from SDK headers and official docs.
+'Licensed under Creative Commons CC0 1.0 Universal
+'*****************************************************************************************
+
+'WinDevLib - wdIMAPI :: Image Mastering API
+'Note: I was considering implementing IMAPI2 for DVD/HDDVD/BD, but it appears it's already VB-compatible and an available reference,
+'      "Microsoft IMAPI2 Base Functionality" and "Microsoft IMAPI2 File System Image Creator"... if incompatibilities arise let me
+'      know and I'll take another look at adding them.
+
+
+    [InterfaceId("85AC9776-CA88-4CF2-894E-09598C078A41")]
+    [OleAutomation(False)]
+    Interface IDiscRecorder Extends stdole.IUnknown
+        Sub Init(ByRef pbyUniqueID As Byte, ByVal nulIDSize As Long, ByVal nulDriveNumber As Long)
+        Function GetRecorderGUID(ByRef pbyUniqueID As Byte, ByVal ulBufferSize As Long) As Long
+        Function GetRecorderType() As RECORDER_TYPES
+        Sub GetDisplayNames(ByRef pbstrVendorID As String, ByRef pbstrProductID As String, ByRef pbstrRevision As String)
+        Function GetBasePnPID() As String
+        Function GetPath() As String
+        Function GetRecorderProperties() As IPropertyStorage
+        Sub SetRecorderProperties(ByVal pPropStg As IPropertyStorage)
+        Function GetRecorderState() As RECORDER_STATE
+        Sub OpenExclusive()
+        Sub QueryMediaType(ByRef fMediaType As MEDIA_TYPES, ByRef fMediaFlags As MEDIA_FLAGS)
+        Sub QueryMediaInfo(ByRef pbSessions As Byte, ByRef pbLastTrack As Byte, ByRef ulStartAddress As Long, ByRef ulNextWritable As Long, ByRef ulFreeBlocks As Long)
+        Sub Eject()
+        Sub Erase(ByVal bFullErase As Byte)
+        Sub Close()
+    End Interface
+
+    [InterfaceId("9B1921E1-54AC-11D3-9144-00104BA11C5E")]
+    [OleAutomation(False)]
+    Interface IEnumDiscRecorders Extends stdole.IUnknown
+        [PreserveSig]
+        Function Next(ByVal cRecorders As Long, ByRef ppRecorder As IDiscRecorder, Optional ByRef pcFetched As Long) As Long
+        Sub Skip(ByVal cRecorders As Long)
+        Sub Reset()
+        Function Clone() As IEnumDiscRecorders
+    End Interface
+
+    [InterfaceId("DDF445E1-54BA-11D3-9144-00104BA11C5E")]
+    [OleAutomation(False)]
+    Interface IEnumDiscMasterFormats Extends stdole.IUnknown
+        [PreserveSig]
+        Function Next(ByVal cFormats As Long, ByRef lpiidFormatID As UUID, Optional ByRef pcFetched As Long) As Long
+        Sub Skip(ByVal cFormats As Long)
+        Sub Reset()
+        Function Clone() As IEnumDiscMasterFormats
+    End Interface
+
+    [InterfaceId("E3BC42CD-4E5C-11D3-9144-00104BA11C5E")]
+    [OleAutomation(False)]
+    Interface IRedbookDiscMaster Extends stdole.IUnknown
+        Function GetTotalAudioTracks() As Long
+        Function GetTotalAudioBlocks() As Long
+        Function GetUsedAudioBlocks() As Long
+        Function GetAvailableAudioTrackBlocks() As Long
+        Function GetAudioBlockSize() As Long
+        Sub CreateAudioTrack(ByVal nBlocks As Long)
+        Sub AddAudioTrackBlocks(ByRef pby As Byte, ByVal cb As Long)
+        Sub CloseAudioTrack()
+    End Interface
+
+    [InterfaceId("E3BC42CE-4E5C-11D3-9144-00104BA11C5E")]
+    [OleAutomation(False)]
+    Interface IJolietDiscMaster Extends stdole.IUnknown
+        Function GetTotalDataBlocks() As Long
+        Function GetUsedDataBlocks() As Long
+        Function GetDataBlockSize() As Long
+        Sub AddData(ByVal pStorage As IStorage, ByVal lFileOverwrite As Long)
+        Function GetJolietProperties() As IPropertyStorage
+        Sub SetJolietProperties(ByVal pPropStg As IPropertyStorage)
+    End Interface
+
+    [InterfaceId("EC9E51C1-4E5D-11D3-9144-00104BA11C5E")]
+    [OleAutomation(False)]
+    Interface IDiscMasterProgressEvents Extends stdole.IUnknown
+        Function QueryCancel() As Byte
+        Sub NotifyPnPActivity()
+        Sub NotifyAddProgress(ByVal nCompletedSteps As Long, ByVal nTotalSteps As Long)
+        Sub NotifyBlockProgress(ByVal nCompleted As Long, ByVal nTotal As Long)
+        Sub NotifyTrackProgress(ByVal nCurrentTrack As Long, ByVal nTotalTracks As Long)
+        Sub NotifyPreparingBurn(ByVal nEstimatedSeconds As Long)
+        Sub NotifyClosingDisc(ByVal nEstimatedSeconds As Long)
+        Sub NotifyBurnComplete(ByVal Status As Long)
+        Sub NotifyEraseComplete(ByVal Status As Long)
+    End Interface
+
+    [InterfaceId("520CCA62-51A5-11D3-9144-00104BA11C5E")]
+    [OleAutomation(False)]
+    Interface IDiscMaster Extends stdole.IUnknown
+        Sub Open()
+        Function EnumDiscMasterFormats() As IEnumDiscMasterFormats
+        Sub GetActiveDiscMasterFormat(ByRef lpiid As UUID)
+        Function SetActiveDiscMasterFormat(ByRef riid As UUID) As stdole.IUnknown
+        Function EnumDiscRecorders() As IEnumDiscRecorders
+        Function GetActiveDiscRecorder() As IDiscRecorder
+        Sub SetActiveDiscRecorder(ByVal pRecorder As IDiscRecorder)
+        Sub ClearFormatContent()
+        Function ProgressAdvise(ByVal pEvents As IDiscMasterProgressEvents) As LongPtr
+        Sub ProgressUnadvise(ByVal vCookie As LongPtr)
+        Sub RecordDisc(ByVal bSimulate As Byte, ByVal bEjectAfterBurn As Byte)
+        Sub Close()
+    End Interface
+
+    'CLSID_MSDiscRecorderObj 
+    [CoClassId("520CCA61-51A5-11D3-9144-00104BA11C5E")]
+    CoClass MSDiscRecorderObj
+        [Default] Interface IDiscRecorder
+    End CoClass
+    'CLSID_MSDiscMasterObj 
+    [CoClassId("520CCA63-51A5-11D3-9144-00104BA11C5E")]
+    CoClass MSDiscMasterObj
+        [Default] Interface IDiscMaster
+    End CoClass
+    'CLSID_MSEnumDiscRecordersObj 
+    [CoClassId("8A03567A-63CB-4BA8-BAF6-52119816D1EF")]
+    CoClass MSEnumDiscRecordersObj
+        [Default] Interface IEnumDiscRecorders
+    End CoClass
+    
+    
+#If WDL_QUALIFY Then
+[MustBeQualified]
+#End If
+Module wdIMAPI
+
+Public Enum MEDIA_TYPES
+	MEDIA_CDDA_CDROM = 1
+	MEDIA_CD_ROM_XA = 2
+	MEDIA_CD_I = 3
+	MEDIA_CD_EXTRA = 4
+	MEDIA_CD_OTHER = 5
+	MEDIA_SPECIAL = 6
+End Enum
+
+Public Enum MEDIA_FLAGS
+	MEDIA_BLANK = &H1
+	MEDIA_RW = &H2
+	MEDIA_WRITABLE = &H4
+	MEDIA_FORMAT_UNUSABLE_BY_IMAPI = &H8
+End Enum
+
+Public Enum RECORDER_TYPES
+	RECORDER_CDR = &H1
+	RECORDER_CDRW = &H2
+End Enum
+
+Public Enum RECORDER_STATE
+	RECORDER_DOING_NOTHING = 0
+	RECORDER_OPENED = 1
+	RECORDER_BURNING = 2
+End Enum
+
+
+Public Const sCLSID_MSDiscRecorderObj = "new: {520CCA61-51A5-11D3-9144-00104BA11C5E}"
+Public Const sCLSID_MSDiscMasterObj = "new: {520CCA63-51A5-11D3-9144-00104BA11C5E}"
+Public Const sCLSID_MSEnumDiscRecordersObj = "new: {8A03567A-63CB-4BA8-BAF6-52119816D1EF}"
+
+Public Function CLSID_MSDiscRecorderObj() As UUID
+'{520CCA61-51A5-11D3-9144-00104BA11C5E}
+Static iid As UUID
+    If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H520CCA61, CInt(&H51A5), CInt(&H11D3), &H91, &H44, &H00, &H10, &H4B, &HA1, &H1C, &H5E)
+    CLSID_MSDiscRecorderObj = iid
+End Function
+Public Function CLSID_MSDiscMasterObj() As UUID
+'{520CCA63-51A5-11D3-9144-00104BA11C5E}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H520CCA63, CInt(&H51A5), CInt(&H11D3), &H91, &H44, &H00, &H10, &H4B, &HA1, &H1C, &H5E)
+ CLSID_MSDiscMasterObj = iid
+End Function
+Public Function CLSID_MSEnumDiscRecordersObj() As UUID
+'{8A03567A-63CB-4BA8-BAF6-52119816D1EF}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H8A03567A, CInt(&H63CB), CInt(&H4BA8), &HBA, &HF6, &H52, &H11, &H98, &H16, &HD1, &HEF)
+ CLSID_MSEnumDiscRecordersObj = iid
+End Function
+End Module

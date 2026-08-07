@@ -1,0 +1,907 @@
+'*****************************************************************************************
+'This file is a part of WinDevLib - Windows Development Library for twinBASIC
+'https://github.com/fafalone/WinDevLib
+'Code ported by Jon Johnson. 
+'"Windows" is a trademark of the Microsoft Corporation.
+'Certain Description attributes (c) Microsoft, taken from SDK headers and official docs.
+'Licensed under Creative Commons CC0 1.0 Universal
+'*****************************************************************************************
+
+'msime.h 100%
+'msimeapi.h 100%
+
+[OleAutomation(False)]
+Interface IFEClassFactory Extends IClassFactory
+    'No additional methods or identifiable IID
+    ' DECLARE_INTERFACE_(IFEClassFactory, IClassFactory)
+    ' {
+        ' // IUnknown members
+        ' STDMETHOD(QueryInterface)   (THIS_ REFIID refiid, VOID **ppv) PURE;
+        ' STDMETHOD_(ULONG,AddRef)    (THIS) PURE;
+        ' STDMETHOD_(ULONG,Release)   (THIS) PURE;
+
+        ' // IFEClassFactory members
+        ' STDMETHOD(CreateInstance)   (THIS_ LPUNKNOWN, REFIID, void **) PURE;
+        ' STDMETHOD(LockServer)       (THIS_ BOOL) PURE;
+    ' };
+    
+End Interface
+
+[InterfaceId("019F7151-E6DB-11d0-83C3-00C04FDDB82E")]
+[OleAutomation(False)]
+Interface IFECommon Extends IUnknown
+    Sub IsDefaultIME(ByVal szName As LongPtr, ByVal cszName As Long)
+    Sub SetDefaultIME()
+    Sub InvokeWordRegDialog(pimedlg As IMEDLG)
+    Sub InvokeDictToolDialog(pimedlg As IMEDLG)
+End Interface
+
+[InterfaceId("019F7152-E6DB-11d0-83C3-00C04FDDB82E")]
+[OleAutomation(False)]
+Interface IFELanguage Extends IUnknown
+    Sub Open()
+    Sub Close()
+    Sub GetJMorphResult(ByVal dwRequest As FELangConvReqFlags, ByVal dwCMode As FELANG_CMODE, ByVal cwchInput As Long, ByVal pwchInput As LongPtr, ByRef pfCInfo As Long, ByRef ppResult As LongPtr)
+    Sub GetConversionModeCaps(pdwCaps As FELANG_CMODE)
+    Sub GetPhonetic(ByVal string As String, ByVal start As Long, ByVal length As Long, phonetic As String)
+    Sub GetConversion(ByVal string As String, ByVal start As Long, ByVal length As Long, result As String)
+End Interface
+
+[InterfaceId("019F7153-E6DB-11d0-83C3-00C04FDDB82E")]
+[OleAutomation(False)]
+Interface IFEDictionary Extends IUnknown
+    Sub Open(ByVal pchDictPath As LongPtr, pshf As IMESHF)
+    Sub Close()
+	Sub GetHeader(ByVal pchDictPath As LongPtr, pshf As IMESHF, pjfmt As IMEFMT, pulType As FELangDictionaryType)
+    Sub DisplayProperty(ByVal hwnd As LongPtr)
+    Sub GetPosTable(prgPosTbl As LongPtr, pcPosTbl As Long)
+    Sub GetWords(ByVal pwchFirst As LongPtr, ByVal pwchLast As LongPtr, ByVal pwchDisplay As LongPtr, ByVal ulPos As Long, ByVal ulSelect As Long, ByVal ulWordSrc As Long, ByVal pchBuffer As LongPtr, ByVal cbBuffer As Long, pcWrd As Long)
+    Sub NextWords(ByVal pchBuffer As LongPtr, ByVal cbBuffer As Long, pcWrd As Long)
+	Sub Create(ByVal pchDictPath As LongPtr, pshf As IMESHF)
+    Sub SetHeader(pshf As IMESHF)
+    Sub ExistWord(pwrd As IMEWRD)
+    Sub ExistDependency(pdp As IMEDP)
+    Sub RegisterWord(ByVal reg As IMEREG, pwrd As IMEWRD)
+    Sub RegisterDependency(ByVal reg As IMEREG, pdp As IMEDP)
+    Sub GetDependencies(ByVal pwchKakariReading As LongPtr, ByVal pwchKakariDisplay As LongPtr, ByVal ulKakariPos As Long, ByVal pwchUkeReading As LongPtr, ByVal pwchUkeDisplay As LongPtr, ByVal ulUkePos As Long, ByVal jrel As IMEREL, ByVal ulWordSrc As Long, ByVal pchBuffer As LongPtr, ByVal cbBuffer As Long, pcdp As Long)
+    Sub NextDependencies(ByVal pchBuffer As LongPtr, ByVal cbBuffer As Long, pcDp As Long)
+    ' Sub ConvertFromOldMSIME(ByVal pchDic As LongPtr, ByVal pfnLog As PFNLOG, ByVal reg As IMEREG)
+    Sub ConvertFromOldMSIME(ByVal pchDic As LongPtr, ByVal pfnLog As LongPtr, ByVal reg As IMEREG)
+    Sub ConvertFromUserToSys()
+End Interface
+
+    
+
+[InterfaceId("98752974-b0a6-489b-8f6f-bff3769c8eeb")]
+[OleAutomation(False)]
+Interface IImePlugInDictDictionaryList Extends IUnknown
+    Sub GetDictionariesInUse(prgDictionaryGUID() As String, prgDateCreated() As Date, prgfEncrypted() As BOOL)
+    Sub DeleteDictionary(ByVal bstrDictionaryGUID As String)
+End Interface
+    
+    
+    
+#If WDL_QUALIFY Then
+[MustBeQualified]
+#End If
+Module wdMSIME
+
+    Public Const szImeJapan  = "MSIME.Japan"
+    Public Const szImeKorea  = "MSIME.Korea"
+    Public Const szImeChina  = "MSIME.China"
+    Public Const szImeTaiwan  = "MSIME.Taiwan"
+
+	Public Function CLSID_VERSION_DEPENDENT_MSIME_JAPANESE() As UUID
+	Static iid As UUID
+		If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H6a91029e, &Haa49, &H471b, &Hae, &He7, &H7d, &H33, &H27, &H85, &H66, &H0d)
+	CLSID_VERSION_DEPENDENT_MSIME_JAPANESE = iid
+	End Function
+	Public Function IID_IFECommon() As UUID
+	Static iid As UUID
+		If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H19f7151, &He6db, &H11d0, &H83, &Hc3, &H0, &Hc0, &H4f, &Hdd, &Hb8, &H2e)
+	IID_IFECommon = iid
+	End Function
+	Public Function IID_IFELanguage() As UUID
+	Static iid As UUID
+		If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H19f7152, &He6db, &H11d0, &H83, &Hc3, &H0, &Hc0, &H4f, &Hdd, &Hb8, &H2e)
+	IID_IFELanguage = iid
+	End Function
+	Public Function IID_IFELanguage2() As UUID
+	Static iid As UUID
+		If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H21164102, &Hc24a, &H11d1, &H85, &H1a, &H0, &Hc0, &H4f, &Hcc, &H6b, &H14)
+	IID_IFELanguage2 = iid
+	End Function
+	Public Function IID_IFEDictionary() As UUID
+	Static iid As UUID
+		If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H19f7153, &He6db, &H11d0, &H83, &Hc3, &H0, &Hc0, &H4f, &Hdd, &Hb8, &H2e)
+	IID_IFEDictionary = iid
+	End Function
+        
+    Public Const IFEC_S_ALREADY_DEFAULT = &H47400 'MAKE_HRESULT(SEVERITY_SUCCESS, FACILITY_ITF, 0x7400)
+    
+    [PackingAlignment(1)]
+	Public Type IMEDLG
+		cbIMEDLG As Long 'size of this structure
+		hwnd As LongPtr 'parent window handle
+		lpwstrWord As LongPtr 'optional string
+		nTabId As Long 'specifies a tab in dialog
+	End Type
+    
+    [PackingAlignment(1)]
+    Public Type WDD
+        wDispPos As Integer ' Offset of Output string
+        ' union {
+            ' WORD    wReadPos;   // Offset of Reading string
+            ' WORD    wCompPos;
+        ' };
+        wReadCompPos As Integer ' Offset of Reading string
+        cchDisp As Integer 'number of ptchDisp
+        ' union {
+            ' WORD    cchRead;    //number of ptchRead
+            ' WORD    cchComp;
+        ' };
+        cchReadComp As Integer 'number of ptchRead
+        WDD_nReserve1 As Long 'reserved
+        nPos As Integer 'part of speech
+        ' implementation-defined
+        '    WORD        fPhrase : 1;//start of phrase
+        '    WORD        fAutoCorrect : 1;//auto-corrected
+        '    WORD        fNumericPrefix : 1;//kansu-shi expansion(JPN)
+        '    WORD        fUserRegistered : 1;//from user dictionary
+        '    WORD        fUnknown : 1;//unknown word (duplicated information with nPos.)
+        '    WORD        fRecentUsed : 1; //used recently flag
+        'WORD:10;        //
+        fFlags As Integer
+        pReserved As LongPtr 'points directly to WORDITEM
+    End Type
+    
+    [PackingAlignment(1), Description("⚠️ **WARNING:** Header only. Followed by multiple variable C-style arrays. Go to definition for details.")]
+    Public Type MORRSLT 'IFELanguage ???
+        dwSize As Long ' total size of this block.
+        pwchOutput As LongPtr 'WCHAR*  ' conversion result string.
+        cchOutput As Integer ' lengh of result string.
+        ' union {
+            ' WCHAR   *pwchRead;          // reading string
+            ' WCHAR   *pwchComp;
+        ' };
+        ' union {
+            ' WORD    cchRead;            // length of reading string.
+            ' WORD    cchComp;
+        ' };
+        pwchReadComp As LongPtr 'WCHAR* ' reading string
+        cchReadComp As Integer ' length of reading string.
+        pchInputPos As LongPtr 'WORD* ' index array of reading to input character.
+        pchOutputIdxWDD As LongPtr 'WORD* ' index array of output character to WDD
+        ' union {
+            ' WORD    *pchReadIdxWDD;     // index array of reading character to WDD
+            ' WORD    *pchCompIdxWDD;
+        ' };
+        pchReadCompIdxWDD As LongPtr 'WORD* ' index array of reading character to WDD
+        paMonoRubyPos As LongPtr 'WORD* ' array of position of monoruby
+        pWDD As LongPtr 'WDD* ' pointer to array of WDD
+        cWDD As Long '  number of WDD
+        pPrivate As LongPtr ' pointer of private data area
+        'WCHAR       BLKBuff[];          // area for stored above members.   
+        '  WCHAR   wchOutput[cchOutput];
+        '  WCHAR   wchRead[cchRead];
+        '  CHAR    chInputIdx[cwchInput];
+        '  CHAR    chOutputIdx[cchOutput];
+        '  CHAR    chReadIndx[cchRead];
+        '  ????    Private
+        '  WDD     WDDBlk[cWDD];
+    End Type
+    
+    Public Enum FELangConvReqFlags
+        FELANG_REQ_CONV = &H00010000
+        FELANG_REQ_RECONV = &H00020000
+        FELANG_REQ_REV = &H00030000
+    End Enum
+    
+    Public Enum FELANG_CMODE
+        FELANG_CMODE_MONORUBY = &H00000002  'mono-ruby
+        FELANG_CMODE_NOPRUNING = &H00000004  'no pruning
+        FELANG_CMODE_KATAKANAOUT = &H00000008  'katakana output
+        FELANG_CMODE_HIRAGANAOUT = &H00000000  'default output
+        FELANG_CMODE_HALFWIDTHOUT = &H00000010  'half-width output
+        FELANG_CMODE_FULLWIDTHOUT = &H00000020  'full-width output
+        FELANG_CMODE_BOPOMOFO = &H00000040  '
+        FELANG_CMODE_HANGUL = &H00000080  '
+        FELANG_CMODE_PINYIN = &H00000100  '
+        FELANG_CMODE_PRECONV = &H00000200  'do conversion as follows:
+											'  - roma-ji to kana
+											'  - autocorrect before conversion
+											'  - periods, comma, and brackets
+        FELANG_CMODE_RADICAL = &H00000400  '
+        FELANG_CMODE_UNKNOWNREADING = &H00000800  '
+        FELANG_CMODE_MERGECAND = &H00001000  ' merge display with same candidate
+        FELANG_CMODE_ROMAN = &H00002000  '
+        FELANG_CMODE_BESTFIRST = &H00004000  ' only make 1st best
+        FELANG_CMODE_USENOREVWORDS = &H00008000&  ' use invalid revword on REV/RECONV.
+        FELANG_CMODE_NONE = &H01000000  ' IME_SMODE_NONE
+        FELANG_CMODE_PLAURALCLAUSE = &H02000000  ' IME_SMODE_PLAURALCLAUSE
+        FELANG_CMODE_SINGLECONVERT = &H04000000  ' IME_SMODE_SINGLECONVERT
+        FELANG_CMODE_AUTOMATIC = &H08000000  ' IME_SMODE_AUTOMATIC
+        FELANG_CMODE_PHRASEPREDICT = &H10000000  ' IME_SMODE_PHRASEPREDICT
+        FELANG_CMODE_CONVERSATION = &H20000000  ' IME_SMODE_CONVERSATION
+        FELANG_CMODE_NAME = FELANG_CMODE_PHRASEPREDICT  ' Name mode (MSKKIME)
+        FELANG_CMODE_NOINVISIBLECHAR = &H40000000  ' remove invisible chars (e.g. tone mark)
+    End Enum
+    
+    Public Enum FELangErrors
+        E_NOCAND = &H30  'not enough candidates
+        E_NOTENOUGH_BUFFER = &H31  'out of string buffer
+        E_NOTENOUGH_WDD = &H32  'out of WDD buffer
+        E_LARGEINPUT = &H33  'large input string
+    End Enum
+    
+    Public Enum FELangMorphologyFlags
+        FELANG_CLMN_WBREAK = &H01
+        FELANG_CLMN_NOWBREAK = &H02
+        FELANG_CLMN_PBREAK = &H04
+        FELANG_CLMN_NOPBREAK = &H08
+        FELANG_CLMN_FIXR = &H10
+        FELANG_CLMN_FIXD = &H20  ' fix display of word
+        FELANG_INVALD_PO = &HFFFF&  ' unmatched position for input string
+    End Enum
+    
+    Public Enum FELangPartOfSpeech
+        IFED_POS_NONE = &H00000000
+        IFED_POS_NOUN = &H00000001
+        IFED_POS_VERB = &H00000002
+        IFED_POS_ADJECTIVE = &H00000004
+        IFED_POS_ADJECTIVE_VERB = &H00000008
+        IFED_POS_ADVERB = &H00000010
+        IFED_POS_ADNOUN = &H00000020
+        IFED_POS_CONJUNCTION = &H00000040
+        IFED_POS_INTERJECTION = &H00000080
+        IFED_POS_INDEPENDENT = &H000000ff
+        IFED_POS_INFLECTIONALSUFFIX = &H00000100
+        IFED_POS_PREFIX = &H00000200
+        IFED_POS_SUFFIX = &H00000400
+        IFED_POS_AFFIX = &H00000600
+        IFED_POS_TANKANJI = &H00000800
+        IFED_POS_IDIOMS = &H00001000
+        IFED_POS_SYMBOLS = &H00002000
+        IFED_POS_PARTICLE = &H00004000
+        IFED_POS_AUXILIARY_VERB = &H00008000&
+        IFED_POS_SUB_VERB = &H00010000
+        IFED_POS_DEPENDENT = &H0001c000
+        IFED_POS_ALL = &H0001ffff
+    End Enum
+    
+    Public Enum FELangWordSelectionType
+        IFED_SELECT_NONE = &H00000000
+        IFED_SELECT_READING = &H00000001
+        IFED_SELECT_DISPLAY = &H00000002
+        IFED_SELECT_POS = &H00000004
+        IFED_SELECT_COMMENT = &H00000008
+        IFED_SELECT_ALL = &H0000000f
+    End Enum
+    
+    Public Enum FELangRegisteredWordType
+        IFED_REG_NONE = &H00000000
+        IFED_REG_USER = &H00000001
+        IFED_REG_AUTO = &H00000002
+        IFED_REG_GRAMMAR = &H00000004
+        IFED_REG_ALL = &H00000007
+    End Enum
+    
+    Public Enum FELangDictionaryType
+        IFED_TYPE_NONE = &H00000000
+        IFED_TYPE_GENERAL = &H00000001
+        IFED_TYPE_NAMEPLACE = &H00000002
+        IFED_TYPE_SPEECH = &H00000004
+        IFED_TYPE_REVERSE = &H00000008
+        IFED_TYPE_ENGLISH = &H00000010
+        IFED_TYPE_ALL = &H0000001f
+    End Enum
+    
+    [Description("no more entries in the dictionary")]
+    Public Const IFED_S_MORE_ENTRIES  = &H47200 'MAKE_HRESULT(SEVERITY_SUCCESS, FACILITY_ITF, &H7200)
+    [Description("dictionary is empty, no header information is returned")]
+    Public Const IFED_S_EMPTY_DICTIONARY  = &H47201 'MAKE_HRESULT(SEVERITY_SUCCESS, FACILITY_ITF, &H7201)
+    [Description("word already exists in dictionary")]
+    Public Const IFED_S_WORD_EXISTS  = &H47202 'MAKE_HRESULT(SEVERITY_SUCCESS, FACILITY_ITF, &H7202)
+    [Description("word already exists in dictionary but only comment data is updated")]
+    Public Const IFED_S_COMMENT_CHANGED  = &H47203 'MAKE_HRESULT(SEVERITY_SUCCESS, FACILITY_ITF, &H7203)
+    
+	[Description("dictionary is not found")]
+	Public Const IFED_E_NOT_FOUND  = &H80047300 'MAKE_HRESULT(SEVERITY_ERROR, FACILITY_ITF, &H7300)
+	[Description("invalid dictionary format")]
+	Public Const IFED_E_INVALID_FORMAT  = &H80047301 'MAKE_HRESULT(SEVERITY_ERROR, FACILITY_ITF, &H7301)
+	[Description("failed to open file")]
+	Public Const IFED_E_OPEN_FAILED  = &H80047302 'MAKE_HRESULT(SEVERITY_ERROR, FACILITY_ITF, &H7302)
+	[Description("failed to write to file")]
+	Public Const IFED_E_WRITE_FAILED  = &H80047303 'MAKE_HRESULT(SEVERITY_ERROR, FACILITY_ITF, &H7303)
+	[Description("no entry found in dictionary")]
+	Public Const IFED_E_NO_ENTRY  = &H80047304 'MAKE_HRESULT(SEVERITY_ERROR, FACILITY_ITF, &H7304)
+	[Description("this routines doesn't support the current dictionary")]
+	Public Const IFED_E_REGISTER_FAILED  = &H80047305 'MAKE_HRESULT(SEVERITY_ERROR, FACILITY_ITF, &H7305)
+	[Description("not a user dictionary")]
+	Public Const IFED_E_NOT_USER_DIC  = &H80047306 'MAKE_HRESULT(SEVERITY_ERROR, FACILITY_ITF, &H7306)
+	[Description("not supported")]
+	Public Const IFED_E_NOT_SUPPORTED  = &H80047307 'MAKE_HRESULT(SEVERITY_ERROR, FACILITY_ITF, &H7307)
+	[Description("failed to insert user comment")]
+	Public Const IFED_E_USER_COMMENT  = &H80047308 'MAKE_HRESULT(SEVERITY_ERROR, FACILITY_ITF, &H7308)
+	[Description("improper POS is to be registered")]
+	Public Const IFED_E_REGISTER_ILLEGAL_POS  = &H80047309 'MAKE_HRESULT(SEVERITY_ERROR, FACILITY_ITF, &H7309)
+	[Description("improper word is to be registered")]
+	Public Const IFED_E_REGISTER_IMPROPER_WORD  = &H8004730a 'MAKE_HRESULT(SEVERITY_ERROR, FACILITY_ITF, &H730a)
+	[Description("dictionary is disconnected")]
+	Public Const IFED_E_REGISTER_DISCONNECTED  = &H8004730b 'MAKE_HRESULT(SEVERITY_ERROR, FACILITY_ITF, &H730b)
+	
+	Public Const cbCommentMax  = 256
+	' Private Unicode Character
+	Public Const wchPrivate1  = &HE000
+            
+	Public Enum IMEREG
+		IFED_REG_HEAD
+		IFED_REG_TAIL
+		IFED_REG_DEL
+	End Enum
+    
+    Public Enum IMEFMT
+        IFED_UNKNOWN
+        IFED_MSIME2_BIN_SYSTEM
+        IFED_MSIME2_BIN_USER
+        IFED_MSIME2_TEXT_USER
+        IFED_MSIME95_BIN_SYSTEM
+        IFED_MSIME95_BIN_USER
+        IFED_MSIME95_TEXT_USER
+        IFED_MSIME97_BIN_SYSTEM
+        IFED_MSIME97_BIN_USER
+        IFED_MSIME97_TEXT_USER
+        IFED_MSIME98_BIN_SYSTEM
+        IFED_MSIME98_BIN_USER
+        IFED_MSIME98_TEXT_USER
+        IFED_ACTIVE_DICT
+        IFED_ATOK9
+        IFED_ATOK10
+        IFED_NEC_AI_
+        IFED_WX_II
+        IFED_WX_III
+        IFED_VJE_20
+        IFED_MSIME98_SYSTEM_CE
+        IFED_MSIME_BIN_SYSTEM
+        IFED_MSIME_BIN_USER
+        IFED_MSIME_TEXT_USER
+        IFED_PIME2_BIN_USER
+        IFED_PIME2_BIN_SYSTEM
+        IFED_PIME2_BIN_STANDARD_SYSTEM
+    End Enum
+    
+    Public Enum IMEUCT
+        IFED_UCT_NONE
+        IFED_UCT_STRING_SJIS
+        IFED_UCT_STRING_UNICODE
+        IFED_UCT_USER_DEFINED
+        IFED_UCT_MAX
+    End Enum
+    
+    [PackingAlignment(1)]
+    Public Type IMEWRD
+        pwchReading As LongPtr 'WCHAR*
+        pwchDisplay As LongPtr 'WCHAR*
+        'union {
+        '    ULONG ulPos;
+        '    struct {
+        '        WORD        nPos1;      //hinshi
+        '        WORD        nPos2;      //extended hinshi
+        '    } ;
+        '};
+        ulPos As Long
+        rgulAttrs(0 To 1) As Long 'attributes
+        cbComment As Long 'size of user comment
+        uct As IMEUCT 'type of user comment
+        pvComment As LongPtr 'PVOID 'user comment
+    End Type
+    
+    
+    Public Type IMESHF
+        cbShf As Integer 'size of this struct
+        verDic As Integer 'dictionary version
+        szTitle(0 To 47) As Byte 'dictionary title
+        szDescription(0 To 255) As Byte 'dictionary description
+        szCopyright(0 To 127) As Byte 'dictionary copyright info
+    End Type
+    
+    Public Enum FELangJPOS
+        POS_UNDEFINED = 0
+        JPOS_UNDEFINED = POS_UNDEFINED
+        JPOS_MEISHI_FUTSU = 100
+        JPOS_MEISHI_SAHEN = 101
+        JPOS_MEISHI_ZAHEN = 102
+        JPOS_MEISHI_KEIYOUDOUSHI = 103
+        JPOS_HUKUSIMEISHI = 104
+        JPOS_MEISA_KEIDOU = 105
+        JPOS_JINMEI = 106
+        JPOS_JINMEI_SEI = 107
+        JPOS_JINMEI_MEI = 108
+        JPOS_CHIMEI = 109
+        JPOS_CHIMEI_KUNI = 110
+        JPOS_CHIMEI_KEN = 111
+        JPOS_CHIMEI_GUN = 112
+        JPOS_CHIMEI_KU = 113
+        JPOS_CHIMEI_SHI = 114
+        JPOS_CHIMEI_MACHI = 115
+        JPOS_CHIMEI_MURA = 116
+        JPOS_CHIMEI_EKI = 117
+        JPOS_SONOTA = 118
+        JPOS_SHAMEI = 119
+        JPOS_SOSHIKI = 120
+        JPOS_KENCHIKU = 121
+        JPOS_BUPPIN = 122
+        JPOS_DAIMEISHI = 123
+        JPOS_DAIMEISHI_NINSHOU = 124
+        JPOS_DAIMEISHI_SHIJI = 125
+        JPOS_KAZU = 126
+        JPOS_KAZU_SURYOU = 127
+        JPOS_KAZU_SUSHI = 128
+        JPOS_5DAN_AWA = 200
+        JPOS_5DAN_KA = 201
+        JPOS_5DAN_GA = 202
+        JPOS_5DAN_SA = 203
+        JPOS_5DAN_TA = 204
+        JPOS_5DAN_NA = 205
+        JPOS_5DAN_BA = 206
+        JPOS_5DAN_MA = 207
+        JPOS_5DAN_RA = 208
+        JPOS_5DAN_AWAUON = 209
+        JPOS_5DAN_KASOKUON = 210
+        JPOS_5DAN_RAHEN = 211
+        JPOS_4DAN_HA = 212
+        JPOS_1DAN = 213
+        JPOS_TOKUSHU_KAHEN = 214
+        JPOS_TOKUSHU_SAHENSURU = 215
+        JPOS_TOKUSHU_SAHEN = 216
+        JPOS_TOKUSHU_ZAHEN = 217
+        JPOS_TOKUSHU_NAHEN = 218
+        JPOS_KURU_KI = 219
+        JPOS_KURU_KITA = 220
+        JPOS_KURU_KITARA = 221
+        JPOS_KURU_KITARI = 222
+        JPOS_KURU_KITAROU = 223
+        JPOS_KURU_KITE = 224
+        JPOS_KURU_KUREBA = 225
+        JPOS_KURU_KO = 226
+        JPOS_KURU_KOI = 227
+        JPOS_KURU_KOYOU = 228
+        JPOS_SURU_SA = 229
+        JPOS_SURU_SI = 230
+        JPOS_SURU_SITA = 231
+        JPOS_SURU_SITARA = 232
+        JPOS_SURU_SIATRI = 233
+        JPOS_SURU_SITAROU = 234
+        JPOS_SURU_SITE = 235
+        JPOS_SURU_SIYOU = 236
+        JPOS_SURU_SUREBA = 237
+        JPOS_SURU_SE = 238
+        JPOS_SURU_SEYO = 239
+        JPOS_KEIYOU = 300
+        JPOS_KEIYOU_GARU = 301
+        JPOS_KEIYOU_GE = 302
+        JPOS_KEIYOU_ME = 303
+        JPOS_KEIYOU_YUU = 304
+        JPOS_KEIYOU_U = 305
+        JPOS_KEIDOU = 400
+        JPOS_KEIDOU_NO = 401
+        JPOS_KEIDOU_TARU = 402
+        JPOS_KEIDOU_GARU = 403
+        JPOS_FUKUSHI = 500
+        JPOS_FUKUSHI_SAHEN = 501
+        JPOS_FUKUSHI_NI = 502
+        JPOS_FUKUSHI_NANO = 503
+        JPOS_FUKUSHI_DA = 504
+        JPOS_FUKUSHI_TO = 505
+        JPOS_FUKUSHI_TOSURU = 506
+        JPOS_RENTAISHI = 600
+        JPOS_RENTAISHI_SHIJI = 601
+        JPOS_SETSUZOKUSHI = 650
+        JPOS_KANDOUSHI = 670
+        JPOS_SETTOU = 700
+        JPOS_SETTOU_KAKU = 701
+        JPOS_SETTOU_SAI = 702
+        JPOS_SETTOU_FUKU = 703
+        JPOS_SETTOU_MI = 704
+        JPOS_SETTOU_DAISHOU = 705
+        JPOS_SETTOU_KOUTEI = 706
+        JPOS_SETTOU_CHOUTAN = 707
+        JPOS_SETTOU_SHINKYU = 708
+        JPOS_SETTOU_JINMEI = 709
+        JPOS_SETTOU_CHIMEI = 710
+        JPOS_SETTOU_SONOTA = 711
+        JPOS_SETTOU_JOSUSHI = 712
+        JPOS_SETTOU_TEINEI_O = 713
+        JPOS_SETTOU_TEINEI_GO = 714
+        JPOS_SETTOU_TEINEI_ON = 715
+        JPOS_SETSUBI = 800
+        JPOS_SETSUBI_TEKI = 801
+        JPOS_SETSUBI_SEI = 802
+        JPOS_SETSUBI_KA = 803
+        JPOS_SETSUBI_CHU = 804
+        JPOS_SETSUBI_FU = 805
+        JPOS_SETSUBI_RYU = 806
+        JPOS_SETSUBI_YOU = 807
+        JPOS_SETSUBI_KATA = 808
+        JPOS_SETSUBI_MEISHIRENDAKU = 809
+        JPOS_SETSUBI_JINMEI = 810
+        JPOS_SETSUBI_CHIMEI = 811
+        JPOS_SETSUBI_KUNI = 812
+        JPOS_SETSUBI_KEN = 813
+        JPOS_SETSUBI_GUN = 814
+        JPOS_SETSUBI_KU = 815
+        JPOS_SETSUBI_SHI = 816
+        JPOS_SETSUBI_MACHI = 817
+        JPOS_SETSUBI_CHOU = 818
+        JPOS_SETSUBI_MURA = 819
+        JPOS_SETSUBI_SON = 820
+        JPOS_SETSUBI_EKI = 821
+        JPOS_SETSUBI_SONOTA = 822
+        JPOS_SETSUBI_SHAMEI = 823
+        JPOS_SETSUBI_SOSHIKI = 824
+        JPOS_SETSUBI_KENCHIKU = 825
+        JPOS_RENYOU_SETSUBI = 826
+        JPOS_SETSUBI_JOSUSHI = 827
+        JPOS_SETSUBI_JOSUSHIPLUS = 828
+        JPOS_SETSUBI_JIKAN = 829
+        JPOS_SETSUBI_JIKANPLUS = 830
+        JPOS_SETSUBI_TEINEI = 831
+        JPOS_SETSUBI_SAN = 832
+        JPOS_SETSUBI_KUN = 833
+        JPOS_SETSUBI_SAMA = 834
+        JPOS_SETSUBI_DONO = 835
+        JPOS_SETSUBI_FUKUSU = 836
+        JPOS_SETSUBI_TACHI = 837
+        JPOS_SETSUBI_RA = 838
+        JPOS_TANKANJI = 900
+        JPOS_TANKANJI_KAO = 901
+        JPOS_KANYOUKU = 902
+        JPOS_DOKURITSUGO = 903
+        JPOS_FUTEIGO = 904
+        JPOS_KIGOU = 905
+        JPOS_EIJI = 906
+        JPOS_KUTEN = 907
+        JPOS_TOUTEN = 908
+        JPOS_KANJI = 909
+        JPOS_OPENBRACE = 910
+        JPOS_CLOSEBRACE = 911
+        JPOS_YOKUSEI = 912
+        JPOS_TANSHUKU = 913  'Short Cut Word
+    End Enum
+    
+    [PackingAlignment(1)]
+    Public Type POSTBL
+        nPos As Integer 'pos number
+        szName As LongPtr 'BYTE* 'name of pos
+    End Type
+    
+    Public Enum IMEREL
+		IFED_REL_NONE
+		IFED_REL_NO
+		IFED_REL_GA
+		IFED_REL_WO
+		IFED_REL_NI
+		IFED_REL_DE
+		IFED_REL_YORI
+		IFED_REL_KARA
+		IFED_REL_MADE
+		IFED_REL_HE
+		IFED_REL_TO
+		IFED_REL_IDEOM
+		IFED_REL_FUKU_YOUGEN 'p2_1
+		IFED_REL_KEIYOU_YOUGEN 'p2_2
+		IFED_REL_KEIDOU1_YOUGEN 'p2_3
+		IFED_REL_KEIDOU2_YOUGEN 'p2_4
+		IFED_REL_TAIGEN 'p2_5
+		IFED_REL_YOUGEN 'p2_6
+		IFED_REL_RENTAI_MEI 'p3_1
+		IFED_REL_RENSOU 'p3_2
+		IFED_REL_KEIYOU_TO_YOUGEN 'p3_3
+		IFED_REL_KEIYOU_TARU_YOUGEN 'p3_4
+		IFED_REL_UNKNOWN1 'p3_5
+		IFED_REL_UNKNOWN2 'p3_6
+		IFED_REL_ALL 'any type
+    End Enum
+    
+    [PackingAlignment(1)]
+    Public Type IMEDP
+        wrdModifier As IMEWRD 'kakari-go
+        wrdModifiee As IMEWRD 'uke-go
+        relID As IMEREL
+    End Type
+    
+    Public Delegate Function PFNLOG (dp As IMEDP, ByVal HRESULT As Long) As BOOL
+    
+    Public Enum FELangIMEVersions
+        VERSION_ID_JAPANESE = &H01000000
+        VERSION_ID_KOREAN = &H02000000
+        VERSION_ID_CHINESE_TRADITIONAL = &H04000000
+        VERSION_ID_CHINESE_SIMPLIFIED = &H08000000
+        VERSION_ID_IMEJP98 = (VERSION_ID_JAPANESE Or &H980)
+        VERSION_ID_IMEJP2000 = (VERSION_ID_JAPANESE Or &H98a)
+    End Enum
+    
+    Public Const RWM_SERVICE  = "MSIMEService"
+    ' getting version number (wParam)
+    Public Const FID_MSIME_VERSION  = 0
+    /***********************************************************************
+    Msg:    WM_MSIME_UIREADY
+    Desc:   service functions
+    Dir:    IME to Apps
+    wParam: Version ID
+    lParam: reserved
+    ***********************************************************************/
+
+	' Label for RegisterWindowMessage
+    Public Const RWM_UIREADY  = "MSIMEUIReady"
+    /***********************************************************************
+    Msg:    WM_MSIME_MOUSE
+    Desc:   mouse operation definition
+    Dir:    Apps to IME
+ ***********************************************************************/
+
+	' Label for RegisterWindowMessage
+    Public Const RWM_MOUSE  = "MSIMEMouseOperation"
+    '  Mouse Operation Version (return value of IMEMOUSE_VERSION)
+    Public Const VERSION_MOUSE_OPERATION  = 1
+    '  Mouse operation result
+    Public Const IMEMOUSERET_NOTHANDLED  = (-1)
+    
+    Public Enum FELangIMEMouse
+        IMEMOUSE_VERSION = &Hff  ' mouse supported?
+        IMEMOUSE_NONE = &H00  ' no mouse button was pushed
+        IMEMOUSE_LDOWN = &H01
+        IMEMOUSE_RDOWN = &H02
+        IMEMOUSE_MDOWN = &H04
+        IMEMOUSE_WUP = &H10  ' wheel up
+        IMEMOUSE_WDOWN = &H20  ' wheel down
+    End Enum
+    
+    Public Const RWM_RECONVERT  = "MSIMEReconvert"
+    /***********************************************************************
+    Msg:    WM_MSIME_RECONVERTREQUEST
+    Desc:   reconversion
+    Dir:    Apps to IME
+ ***********************************************************************/
+
+'  wParam of WM_MSIME_RECONVERTREQUEST
+    Public Const FID_RECONVERT_VERSION  = &H10000000
+    '  Private reconversion Version
+    Public Const VERSION_RECONVERSION  = 1
+    '  Label for RegisterWindowMessage
+    Public Const RWM_RECONVERTREQUEST  = "MSIMEReconvertRequest"
+    /***********************************************************************
+        Msg:    WM_MSIME_DOCUMENTFEED
+        Desc:   Document feeding
+        Dir:    IME to Apps
+        Usage:  SendMessage( hwndApp, WM_MSIME_DOCUMENTFEED, VERSION_DOCUMENTFEED,
+                    (RECONVERTSTRING*)pReconv );
+        wParam: VERSION_DOCUMENTFEED
+        lParam: Pointer of RECONVERTSTRING structure
+        return: size of RECONVERTSTRING structure
+     ***********************************************************************/
+
+    ' wParam of WM_MSIME_DOCUMENTFEED (set current docfeed version)
+    Public Const VERSION_DOCUMENTFEED  = 1
+    '  lParam is pointer of RECONVERTSTRING structure
+    '  Label for RegisterWindowMessage
+    Public Const RWM_DOCUMENTFEED  = "MSIMEDocumentFeed"
+    /***********************************************************************
+    Msg:    WM_MSIME_QUERYPOSITION
+    Desc:   composition UI
+    Dir:    IME to Apps
+    Usage:  SendMessage( hwndApp, WM_MSIME_QUERYPOSITION, VERSION_QUERYPOSITION, (IMEPOSITION*)pPs );
+    wParam: reserved. must be 0.
+    lParam: pointer of IMEPOSITION structure
+    return: Non-zero = success. Zero = error.
+ ***********************************************************************/
+
+' wParam of WM_MSIME_QUERYPOSITION
+    Public Const VERSION_QUERYPOSITION  = 1
+    '  Label for RegisterWindowMessage
+    Public Const RWM_QUERYPOSITION  = "MSIMEQueryPosition"
+    /***********************************************************************
+    Msg:    WM_MSIME_MODEBIAS
+    Desc:   input mode bias
+    Dir:    Apps to IME
+    Usage:  SendMessage( hwndDefUI, WM_MSIME_MODEBIAS, MODEBIAS_xxxx, MODEBIASMODE_xxxx );
+    wParam: operation of bias
+    lParam: bias mode
+    return: If wParam is MODEBIAS_GETVERSION,returns version number of interface.
+            If wParam is MODEBIAS_SETVALUE : return non-zero value if succeeded. Returns 0 if fail.
+            If wParam is MODEBIAS_GETVALUE : returns current bias mode.
+ ***********************************************************************/
+
+' Label for RegisterWindowMessage
+    Public Const RWM_MODEBIAS  = "MSIMEModeBias"
+    
+    Public Const VERSION_MODEBIAS   = 1
+    
+    Public Enum FELangIMEModeBiasWPARAM
+        MODEBIAS_GETVERSION = 0
+        MODEBIAS_SETVALUE = 1
+        MODEBIAS_GETVALUE = 2
+    End Enum
+    Public Enum FELangIMEModeBiasLPARAM
+        MODEBIASMODE_DEFAULT = &H00000000  ' reset all of bias setting
+        MODEBIASMODE_FILENAME = &H00000001  ' filename
+        MODEBIASMODE_READING = &H00000002  ' reading recommended
+        MODEBIASMODE_DIGIT = &H00000004  ' ANSI-Digit Recommended Mode
+    End Enum
+    
+    /***********************************************************************
+    Msg:    WM_MSIME_SHOWIMEPAD
+    Desc:   show ImePad
+    Usage: SendMessage( hwndDefUI, WM_MSIME_SHOWIMEPAD, wParam, lParam );
+    wParam: Applet selection option
+    lParam: Applet selection parameter
+            (Category defined in imepad.h or a pointer to GUID for Applet)
+    return: Non-zero = accepted. Zero = not accepted.
+ ***********************************************************************/
+
+' Label for RegisterWindowMessage
+	Public Const RWM_SHOWIMEPAD = "MSIMEShowImePad"
+    
+    Public Enum FELangIMEAppletSelection
+        SHOWIMEPAD_DEFAULT = &H00000000  ' default applet
+        SHOWIMEPAD_CATEGORY = &H00000001  ' selection by applet category
+        SHOWIMEPAD_GUID = &H00000002  ' selection by applet GUID
+    End Enum
+    
+    /***********************************************************************
+    Msg:    WM_MSIME_KEYMAP
+    Desc:   key map sharing with apps
+    ***********************************************************************/
+
+' Label for RegisterWindowMessage
+    Public Const RWM_KEYMAP  = "MSIMEKeyMap"
+    Public Const RWM_CHGKEYMAP  = "MSIMEChangeKeyMap"
+    Public Const RWM_NTFYKEYMAP  = "MSIMENotifyKeyMap"
+    
+    Public Enum FELangIMEFIDKMS
+        FID_MSIME_KMS_VERSION = 1
+        FID_MSIME_KMS_INIT = 2
+        FID_MSIME_KMS_TERM = 3
+        FID_MSIME_KMS_DEL_KEYLIST = 4
+        FID_MSIME_KMS_NOTIFY = 5
+        FID_MSIME_KMS_GETMAP = 6
+        FID_MSIME_KMS_INVOKE = 7
+        FID_MSIME_KMS_SETMAP = 8
+        FID_MSIME_KMS_FUNCDESC = 9
+        FID_MSIME_KMS_GETMAPSEAMLESS = 10
+        FID_MSIME_KMS_GETMAPFAST = 11
+    End Enum
+    
+    Public Enum FELangIMEKMS
+        IMEKMS_NOCOMPOSITION = 0
+        IMEKMS_COMPOSITION = 1
+        IMEKMS_SELECTION = 2
+        IMEKMS_IMEOFF = 3
+        IMEKMS_2NDLEVEL = 4  ' Reserved
+        IMEKMS_INPTGL = 5  ' Reserved
+        IMEKMS_CANDIDATE = 6  ' Reserved
+        IMEKMS_TYPECAND = 7  'Reserved
+    End Enum
+    
+    
+    [PackingAlignment(1)]
+    Public Type IMEKMSINIT
+        cbSize As Long
+        hWnd As LongPtr ' Window which receives notification from IME.
+						' If hWnd is NULL, no notification is posted
+						' to Input context.
+    End Type
+    
+    [PackingAlignment(1)]
+    Public Type IMEKMSKEY
+        dwStatus As HotKeyModifiers 'Shift-Control combination status.
+									'Any combination of constants below
+									'(defined in IMM.H)
+									' 0x0000 (default)
+									' MOD_CONTROL     0x0002
+									' MOD_SHIFT       0x0004
+									' Alt key and Win key is not processed by IME.
+        dwCompStatus As FELangIMEKMS 'Composition string status
+									'One of the constants below
+									' IMEKMS_NOCOMPOSITION  No composition string
+									' IMEKMS_COMPOSITION    Some composition string
+									' IMEKMS_SELECTION      Selection exists in apps
+									' IMEKMS_IMEOFF         IME Off state
+        dwVKEY As Long ' VKEY code defined in IMM.H
+        'union {
+        '    DWORD dwControl;// IME Functionality ID
+        '    DWORD dwNotUsed;
+        '};
+        dwControl As Long
+        'union {
+        '    WCHAR pwszDscr[31];// The pointer to string of description of this functionalify
+        '    WCHAR pwszNoUse[31];
+        '};
+        pwszDscr(30) As Integer
+    End Type
+    
+    [PackingAlignment(1)]
+    Public Type IMEKMS
+        cbSize As Long
+        hIMC As LongPtr 'HIMC
+        cKeyList As Long
+        pKeyList As IMEKMSKEY
+    End Type
+    
+    [PackingAlignment(1)]
+    Public Type IMEKMSNTFY
+        cbSize As Long
+        hIMC As LongPtr 'HIMC
+        fSelect As BOOL
+    End Type
+    
+    [PackingAlignment(1)]
+    Public Type IMEKMSKMP
+        cbSize As Long '[in] size of this structure
+        hIMC As LongPtr 'HIMC '[in] Input context
+        idLang As Integer 'LANGID '[in] Language ID
+        wVKStart As Integer '[in] VKEY start
+        wVKEnd As Integer '[in] VKEY end
+        cKeyList As Long '[out] number of IMEKMSKEY
+        pKeyList As LongPtr 'IMEKMSKEY* '[out] retrieve buffer of IMEKMSKEY
+      					  '      Must be GlobalMemFree by clients
+    End Type
+    
+    [PackingAlignment(1)]
+    Public Type IMEKMSINVK
+        cbSize As Long
+        hIMC As LongPtr 'HIMC
+        dwControl As Long
+    End Type
+    
+    [PackingAlignment(1)]
+    Public Type IMEKMSFUNCDESC
+        cbSize As Long '[in] size of this structure
+        idLang As Integer 'LANGID '[in] Language ID
+        dwControl As Long '[in] IME Functionality ID
+        pwszDescription(0 To 127) As Integer '[out] Description of the functionality
+    End Type
+    
+    
+    /***********************************************************************
+    Msg:    WM_MSIME_RECONVERTOPTIONS
+    Desc:   Set reconversion options
+    Usage: SendMessage( hwndDefUI, WM_MSIME_RECONVERTOPTIONS, dwOpt, (LPARAM)(HIMC)hIMC );
+    wParam: options
+    lParam: Input context handle
+    return: Non-zero = accepted. Zero = not accepted.
+    ***********************************************************************/
+
+ ' Label for RegisterWindowMessage
+ Public Const RWM_RECONVERTOPTIONS = "MSIMEReconvertOptions"
+
+'WParam definition for WM_IME_RECONVERTOPTIONS.
+Public Const RECONVOPT_NONE              = &H00000000 ' default
+Public Const RECONVOPT_USECANCELNOTIFY   = &H00000001 ' cancel notify
+
+' parameter of ImmGetCompositionString
+Public Const GCSEX_CANCELRECONVERT       = &H10000000
+
+Public Delegate Function CreateIFECommonInstance (ppvObj As Any) As Long
+Public Delegate Function CreateIFELanguageInstance (clsid As UUID, ppvObj As Any) As Long
+Public Delegate Function CreateIFEDictionaryInstance (ppvObj As Any) As Long
+        
+
+Public Function CLSID_ImePlugInDictDictionaryList_CHS() As UUID
+Static iid As UUID
+	If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H7bf0129b, &H5bef, &H4de4, &H9b, &H0b, &H5e, &Hdb, &H66, &Hac, &H2f, &Ha6)
+CLSID_ImePlugInDictDictionaryList_CHS = iid
+End Function
+Public Function CLSID_ImePlugInDictDictionaryList_JPN() As UUID
+Static iid As UUID
+	If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H4fe2776b, &Hb0f9, &H4396, &Hb5, &Hfc, &He9, &Hd4, &Hcf, &H1e, &Hc1, &H95)
+CLSID_ImePlugInDictDictionaryList_JPN = iid
+End Function
+    
+Public Const VIPROGID_ImePlugInDictDictionaryList_CHS  = "ImePlugInDictDictionaryList2052"
+Public Const VDPROGID_ImePlugInDictDictionaryList_CHS  = "ImePlugInDictDictionaryList2052.15"
+'  {4FE2776B-B0F9-4396-B5FC-E9D4CF1EC195}
+Public Const VIPROGID_ImePlugInDictDictionaryList_JPN  = "ImePlugInDictDictionaryList1041"
+Public Const VDPROGID_ImePlugInDictDictionaryList_JPN  = "ImePlugInDictDictionaryList1041.15"
+
+End Module

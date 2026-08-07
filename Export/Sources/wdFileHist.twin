@@ -1,0 +1,228 @@
+'*****************************************************************************************
+'This file is a part of WinDevLib - Windows Development Library for twinBASIC
+'https://github.com/fafalone/WinDevLib
+'Code ported by Jon Johnson. 
+'"Windows" is a trademark of the Microsoft Corporation.
+'Certain Description attributes (c) Microsoft, taken from SDK headers and official docs.
+'Licensed under Creative Commons CC0 1.0 Universal
+'*****************************************************************************************
+
+
+'File History interfaces and APIs
+
+'fhcfg.h - 100%
+'FhStatus.h - 100%
+'FhErrors.h - 100%
+'FhSvcCtl.h - 100%
+
+[InterfaceId("D87965FD-2BAD-4657-BD3B-9567EB300CED")]
+[OleAutomation(False)]
+Interface IFhTarget Extends IUnknown
+    Sub GetStringProperty(ByVal PropertyType As FH_TARGET_PROPERTY_TYPE, PropertyValue As String)
+	Sub GetNumericalProperty(ByVal PropertyType As FH_TARGET_PROPERTY_TYPE, PropertyValue As LongLong)
+End Interface
+
+[InterfaceId("3197ABCE-532A-44C6-8615-F3666566A720")]
+[OleAutomation(False)]
+Interface IFhScopeIterator Extends IUnknown
+    Sub MoveToNextItem()
+    Sub GetItem(Item As String)
+End Interface
+    
+[InterfaceId("6A5FEA5B-BF8F-4EE5-B8C3-44D8A0D7331C")]
+[OleAutomation(False)]
+Interface IFhConfigMgr Extends IUnknown
+    Sub LoadConfiguration()
+    Sub CreateDefaultConfiguration(ByVal OverwriteIfExists As BOOL)
+    Sub SaveConfiguration()
+    Sub AddRemoveExcludeRule(ByVal Add As BOOL, ByVal Category As FH_PROTECTED_ITEM_CATEGORY, ByVal Item As String)
+    Sub GetIncludeExcludeRules(ByVal Include As BOOL, ByVal Category As FH_PROTECTED_ITEM_CATEGORY, Iterator As IFhScopeIterator)
+    Sub GetLocalPolicy(ByVal LocalPolicyType As FH_LOCAL_POLICY_TYPE, PolicyValue As LongLong)
+	Sub SetLocalPolicy(ByVal LocalPolicyType As FH_LOCAL_POLICY_TYPE, ByVal PolicyValue As LongLong)
+    Sub GetBackupStatus(BackupStatus As FH_BACKUP_STATUS)
+	Sub SetBackupStatus(ByVal BackupStatus As FH_BACKUP_STATUS)
+    Sub GetDefaultTarget(DefaultTarget As IFhTarget)
+    Sub ValidateTarget(ByVal TargetUrl As String, ValidationResult As FH_DEVICE_VALIDATION_RESULT)
+    Sub ProvisionAndSetNewTarget(ByVal TargetUrl As String, ByVal TargetName As String)
+    Sub ChangeDefaultTargetRecommendation(ByVal Recommend As BOOL)
+    Sub QueryProtectionStatus(ProtectionState As FileHistoryStates, ProtectedUntilTime As String)
+End Interface
+
+[InterfaceId("6544A28A-F68D-47ac-91EF-16B2B36AA3EE")]
+[OleAutomation(False)]
+Interface IFhReassociation Extends IUnknown
+    Sub ValidateTarget(ByVal TargetUrl As String, ValidationResult As FH_DEVICE_VALIDATION_RESULT)
+    Sub ScanTargetForConfigurations(ByVal TargetUrl As String)
+    Sub GetConfigurationDetails(ByVal Index As Long, UserName As String, PcName As String, BackupTime As FILETIME)
+    Sub SelectConfiguration(ByVal Index As Long)
+    Sub PerformReassociation(ByVal OverwriteIfExists As BOOL)
+End Interface
+
+[CoClassId("ED43BB3C-09E9-498a-9DF6-2177244C6DB4")]
+[Description("CLSID_FhConfigMgr")]
+CoClass FhConfigMgr
+    [Default] Interface IFhConfigMgr
+End CoClass
+[CoClassId("4D728E35-16FA-4320-9E8B-BFD7100A8846")]
+[Description("CLSID_FhReassociation")]
+CoClass FhReassociation
+    [Default] Interface IFhReassociation
+End CoClass
+
+#If WDL_QUALIFY Then
+[MustBeQualified]
+#End If
+Module wdFileHist
+
+Public Enum FH_TARGET_PROPERTY_TYPE
+	FH_TARGET_NAME
+	FH_TARGET_URL
+	FH_TARGET_DRIVE_TYPE
+	MAX_TARGET_PROPERTY
+End Enum
+Public Enum FH_TARGET_DRIVE_TYPES
+    FH_DRIVE_UNKNOWN = 0
+    FH_DRIVE_REMOVABLE = 2
+    FH_DRIVE_FIXED = 3
+    FH_DRIVE_REMOTE = 4
+End Enum
+
+Public Enum FH_PROTECTED_ITEM_CATEGORY
+    FH_FOLDER
+    FH_LIBRARY
+    MAX_PROTECTED_ITEM_CATEGORY
+End Enum
+
+Public Enum FH_LOCAL_POLICY_TYPE
+    FH_FREQUENCY
+    FH_RETENTION_TYPE
+    FH_RETENTION_AGE
+    MAX_LOCAL_POLICY
+End Enum
+
+Public Enum FH_RETENTION_TYPES
+    FH_RETENTION_DISABLED
+    FH_RETENTION_UNLIMITED
+    FH_RETENTION_AGE_BASED
+    MAX_RETENTION_TYPE
+End Enum
+
+Public Enum FH_BACKUP_STATUS
+    FH_STATUS_DISABLED
+    FH_STATUS_DISABLED_BY_GP
+    FH_STATUS_ENABLED
+    FH_STATUS_REHYDRATING
+    MAX_BACKUP_STATUS
+End Enum
+
+Public Enum FH_DEVICE_VALIDATION_RESULT
+    FH_ACCESS_DENIED
+    FH_INVALID_DRIVE_TYPE
+    FH_READ_ONLY_PERMISSION
+    FH_CURRENT_DEFAULT
+    FH_NAMESPACE_EXISTS
+    FH_TARGET_PART_OF_LIBRARY
+    FH_VALID_TARGET
+    MAX_VALIDATION_RESULT
+End Enum
+
+'FhStatus.h
+Public Enum FileHistoryStates
+    FH_STATE_NOT_TRACKED = &H00
+    FH_STATE_OFF = &H01
+    FH_STATE_DISABLED_BY_GP = &H02
+    FH_STATE_FATAL_CONFIG_ERROR = &H03
+    FH_STATE_MIGRATING = &H04
+    FH_STATE_REHYDRATING = &H05
+    FH_STATE_TARGET_FS_LIMITATION = &H0D
+    FH_STATE_TARGET_ACCESS_DENIED = &H0E
+    FH_STATE_TARGET_VOLUME_DIRTY = &H0F
+    FH_STATE_TARGET_FULL_RETENTION_MAX = &H10
+    FH_STATE_TARGET_FULL = &H11
+    FH_STATE_STAGING_FULL = &H12
+    FH_STATE_TARGET_LOW_SPACE_RETENTION_MAX = &H13
+    FH_STATE_TARGET_LOW_SPACE = &H14
+    FH_STATE_TARGET_ABSENT = &H15
+    FH_STATE_TOO_MUCH_BEHIND = &HF0
+    FH_STATE_NO_ERROR = &HFF
+'  Indicates that File History is in a depreciated state
+'  where backup is not supported. This is only applicable
+'  if the user has an existing backup configured.
+    FH_STATE_BACKUP_NOT_SUPPORTED = &H810
+    FH_STATE_RUNNING = &H100
+End Enum
+
+'FhErrors.h
+Public Const FHCFG_E_CORRUPT_CONFIG_FILE = &H80040300
+Public Const FHCFG_E_CONFIG_FILE_NOT_FOUND = &H80040301
+Public Const FHCFG_E_CONFIG_ALREADY_EXISTS = &H80040302
+Public Const FHCFG_E_NO_VALID_CONFIGURATION_LOADED = &H80040303
+Public Const FHCFG_E_TARGET_NOT_CONNECTED = &H80040304
+Public Const FHCFG_E_CONFIGURATION_PREVIOUSLY_LOADED = &H80040305
+Public Const FHCFG_E_TARGET_VERIFICATION_FAILED = &H80040306
+Public Const FHCFG_E_TARGET_NOT_CONFIGURED = &H80040307
+Public Const FHCFG_E_TARGET_NOT_ENOUGH_FREE_SPACE = &H80040308
+Public Const FHCFG_E_TARGET_CANNOT_BE_USED       = &H800400309
+Public Const FHCFG_E_INVALID_REHYDRATION_STATE               = &H8004030A
+
+' //
+' // Changing target recommendation is not allowed
+' //
+
+Public Const FHCFG_E_RECOMMENDATION_CHANGE_NOT_ALLOWED       = &H800400310
+
+' //
+' // The target was rehydrated on another PC.
+' //
+
+Public Const FHCFG_E_TARGET_REHYDRATED_ELSEWHERE             = &H800400311
+
+' //
+' // The legacy backup target was not supported by FileHistory
+' //
+
+Public Const FHCFG_E_LEGACY_TARGET_UNSUPPORTED               = &H800400312
+
+' //
+' // The validation result of the legacy backup target was not supported
+' //
+
+Public Const FHCFG_E_LEGACY_TARGET_VALIDATION_UNSUPPORTED    = &H800400313
+
+' //
+' // The legacy backup user was fully excluded from backups
+' //
+
+Public Const FHCFG_E_LEGACY_BACKUP_USER_EXCLUDED             = &H800400314
+
+' //
+' // The legacy backup was not found
+' //
+
+Public Const FHCFG_E_LEGACY_BACKUP_NOT_FOUND                 = &H800400315
+
+
+'fhsvcctl.h
+
+Public Enum FhBackupStopReason
+    BackupInvalidStopReason = 0
+    BackupLimitUserBusyMachineOnAC = 1 ' Backup quota reached for user busy and machine on AC condition (100 MB)
+    BackupLimitUserIdleMachineOnDC = 2 ' Backup quota reached for user idle and machine on DC condition (75 MB)
+    BackupLimitUserBusyMachineOnDC = 3 ' Backup quota reached for user busy and machine on DC condition (50 MB)
+    BackupCancelled = 4 ' Backup cancelled by the user initiated action
+End Enum
+
+Public Declare PtrSafe Function FhServiceOpenPipe Lib "fhsvcctl.dll" (ByVal StartServiceIfStopped As BOOL, Pipe As LongPtr) As Long
+Public Declare PtrSafe Function FhServiceClosePipe Lib "fhsvcctl.dll" (ByVal Pipe As LongPtr) As Long
+Public Declare PtrSafe Function FhServiceStartBackup Lib "fhsvcctl.dll" (ByVal Pipe As LongPtr, ByVal LowPriorityIo As BOOL) As Long
+Public Declare PtrSafe Function FhServiceStopBackup Lib "fhsvcctl.dll" (ByVal Pipe As LongPtr, ByVal StopTracking As BOOL) As Long
+Public Declare PtrSafe Function FhServiceReloadConfiguration Lib "fhsvcctl.dll" (ByVal Pipe As LongPtr) As Long
+Public Declare PtrSafe Function FhServiceBlockBackup Lib "fhsvcctl.dll" (ByVal Pipe As LongPtr) As Long
+Public Declare PtrSafe Function FhServiceUnblockBackup Lib "fhsvcctl.dll" (ByVal Pipe As LongPtr) As Long
+
+
+
+
+
+
+End Module

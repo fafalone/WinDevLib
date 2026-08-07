@@ -1,0 +1,242 @@
+'*****************************************************************************************
+'This file is a part of WinDevLib - Windows Development Library for twinBASIC
+'https://github.com/fafalone/WinDevLib
+'Code ported by Jon Johnson. 
+'"Windows" is a trademark of the Microsoft Corporation.
+'Certain Description attributes (c) Microsoft, taken from SDK headers and official docs.
+'Licensed under Creative Commons CC0 1.0 Universal
+'*****************************************************************************************
+
+'winml.h
+
+#If WDL_NO_DIRECTX = 0 Then
+[InterfaceId("e2eeb6a9-f31f-4055-a521-e30b5b33664a")]
+[OleAutomation(False)]
+Interface IWinMLModel Extends IUnknown
+    Sub GetDescription(ppDescription As LongPtr)
+    Sub EnumerateMetadata(ByVal Index As Long, pKey As LongPtr, pValue As LongPtr)
+    Sub EnumerateModelInputs(ByVal Index As Long, ppInputDescriptor As LongPtr)
+    Sub EnumerateModelOutputs(ByVal Index As Long, ppOutputDescriptor As LongPtr)
+End Interface
+
+[InterfaceId("95848f9e-583d-4054-af12-916387cd8426")]
+[OleAutomation(False)]
+Interface IWinMLEvaluationContext Extends IUnknown
+    Sub BindValue(pDescriptor As WINML_BINDING_DESC)
+    Sub GetValueByName(ByVal name As LongPtr, pDescriptor As LongPtr)
+    Sub Clear()
+End Interface
+
+[InterfaceId("a0425329-40ae-48d9-bce3-829ef7b8a41a")]
+[OleAutomation(False)]
+Interface IWinMLRuntime Extends IUnknown
+    Sub LoadModel(ByVal Path As LongPtr, ppModel As IWinMLModel)
+    Sub CreateEvaluationContext(ByVal device As ID3D12Device, ppContext As IWinMLEvaluationContext)
+    Sub EvaluateModel(ByVal pContext As IWinMLEvaluationContext)
+End Interface
+
+[InterfaceId("a807b84d-4ae5-4bc0-a76a-941aa246bd41")]
+[OleAutomation(False)]
+Interface IWinMLRuntimeFactory Extends IUnknown
+    Sub CreateRuntime(ByVal RuntimeType As WINML_RUNTIME_TYPE, ppRuntime As IWinMLRuntime)
+End Interface
+
+#If WDL_QUALIFY Then
+[MustBeQualified]
+#End If
+Module wdWinML
+    Public Const WINML_TENSOR_DIMENSION_COUNT_MAX = 4
+    
+    Public Declare PtrSafe Function WinMLCreateRuntime Lib "winml.dll" (runtime As IWinMLRuntime) As Long
+    
+    
+    Public Enum WINML_RUNTIME_TYPE
+        WINML_RUNTIME_CNTK = 0
+    End Enum
+    
+    Public Enum WINML_TENSOR_DATA_TYPE
+        WINML_TENSOR_UNDEFINED = 0
+        WINML_TENSOR_FLOAT = 1 'WINML_TENSOR_UNDEFINED + 1),
+        WINML_TENSOR_UINT8 = 2 'WINML_TENSOR_FLOAT + 1),
+        WINML_TENSOR_INT8 = 3 'WINML_TENSOR_UINT8 + 1),
+        WINML_TENSOR_UINT16 = 4 'WINML_TENSOR_INT8 + 1),
+        WINML_TENSOR_INT16 = 5 'WINML_TENSOR_UINT16 + 1),
+        WINML_TENSOR_INT32 = 6 'WINML_TENSOR_INT16 + 1),
+        WINML_TENSOR_INT64 = 7 'WINML_TENSOR_INT32 + 1),
+        WINML_TENSOR_STRING = 8 'WINML_TENSOR_INT64 + 1),
+        WINML_TENSOR_BOOLEAN = 9 'WINML_TENSOR_STRING + 1),
+        WINML_TENSOR_FLOAT16 = 10 'WINML_TENSOR_BOOLEAN + 1),
+        WINML_TENSOR_DOUBLE = 11 'WINML_TENSOR_FLOAT16 + 1),
+        WINML_TENSOR_UINT32 = 12 'WINML_TENSOR_DOUBLE + 1),
+        WINML_TENSOR_UINT64 = 13 'WINML_TENSOR_UINT32 + 1),
+        WINML_TENSOR_COMPLEX64 = 14 'WINML_TENSOR_UINT64 + 1),
+        WINML_TENSOR_COMPLEX128 = 15 'WINML_TENSOR_COMPLEX64 + 1)
+    End Enum
+    
+    Public Enum WINML_FEATURE_TYPE
+        WINML_FEATURE_UNDEFINED = 0
+        WINML_FEATURE_TENSOR = 1 'WINML_FEATURE_UNDEFINED + 1),
+        WINML_FEATURE_SEQUENCE = 2 'WINML_FEATURE_TENSOR + 1),
+        WINML_FEATURE_MAP = 3 'WINML_FEATURE_SEQUENCE + 1),
+        WINML_FEATURE_IMAGE = 4 'WINML_FEATURE_MAP + 1)
+    End Enum
+    
+    Public Enum WINML_BINDING_TYPE
+        WINML_BINDING_UNDEFINED = 0
+        WINML_BINDING_TENSOR = 1 'WINML_BINDING_UNDEFINED + 1),
+        WINML_BINDING_SEQUENCE = 2 'WINML_BINDING_TENSOR + 1),
+        WINML_BINDING_MAP = 3 'WINML_BINDING_SEQUENCE + 1),
+        WINML_BINDING_IMAGE = 4 'WINML_BINDING_MAP + 1),
+        WINML_BINDING_RESOURCE = 5 'WINML_BINDING_IMAGE + 1)
+    End Enum
+    
+    Public Type WINML_TENSOR_BINDING_DESC
+        DataType As WINML_TENSOR_DATA_TYPE
+        ' /* [annotation]_In_range_(1, WINML_TENSOR_DIMENSION_COUNT_MAX)   */
+        NumDimensions As Long
+        '  /* [annotation] _Field_size_full_(NumDimensions) INT64* */
+        pShape As LongPtr
+        DataSize As Long
+        '   /* [annotation] _Field_size_bytes_full_(DataSize)  void**/
+        pData As LongPtr
+    End Type
+    
+    Public Type WINML_SEQUENCE_BINDING_DESC
+        ElementCount As Long
+        ElementType As WINML_TENSOR_DATA_TYPE
+        'union
+        '{
+        '    /* [annotation] */
+        '    _Field_size_full_(ElementCount)  LPWSTR* pStrings;
+        '    /* [annotation] */
+        '    _Field_size_full_(ElementCount)  INT64* pInts;
+        '    /* [annotation] */
+        '    _Field_size_full_(ElementCount)  FLOAT* pFloats;
+        '    /* [annotation] */
+        '    _Field_size_full_(ElementCount)  DOUBLE* pDoubles;
+        '};
+        pElement As LongPtr
+    End Type
+    
+    Public Type WINML_MAP_BINDING_DESC
+        ElementCount As Long
+        KeyType As WINML_TENSOR_DATA_TYPE
+        'union
+        '{
+        '    /* [annotation] */
+        '    _Field_size_full_(ElementCount)  LPWSTR* pStringKeys;
+        '    /* [annotation] */
+        '    _Field_size_full_(ElementCount)  INT64* pIntKeys;
+        '};
+        pStringOrIntKeys As LongPtr
+        Fields As WINML_TENSOR_DATA_TYPE
+        'union
+        '{
+        '    /* [annotation] */
+        '    _Field_size_full_(ElementCount)  LPWSTR* pStringFields;
+        '    /* [annotation] */
+        '    _Field_size_full_(ElementCount)  INT64* pIntFields;
+        '    /* [annotation] */
+        '    _Field_size_full_(ElementCount)  FLOAT* pFloatFields;
+        '    /* [annotation] */
+        '    _Field_size_full_(ElementCount)  DOUBLE* pDoubleFields;
+        '};
+        pFields As LongPtr
+    End Type
+    
+    Public Type WINML_IMAGE_BINDING_DESC
+        ElementType As WINML_TENSOR_DATA_TYPE
+        '   /* [annotation] _In_range_(1, WINML_TENSOR_DIMENSION_COUNT_MAX)  */
+        NumDimensions As Long
+        '   /* [annotation]_Field_size_full_(NumDimensions)  INT64* */
+        pShape As LongPtr
+        DataSize As Long
+        '    /* [annotation]_Field_size_bytes_full_(DataSize)  void*  */
+        pData As LongPtr
+    End Type
+    
+    Public Type WINML_RESOURCE_BINDING_DESC
+        ElementType As WINML_TENSOR_DATA_TYPE
+        '   /* [annotation]_In_range_(1, WINML_TENSOR_DIMENSION_COUNT_MAX)   */
+        NumDimensions As Long
+        '   /* [annotation] _Field_size_full_(NumDimensions)  INT64*  */
+        pShape As LongPtr
+        '  /* [annotation] [in]  */
+        pResource As ID3D12Resource
+    End Type
+    
+    Public Type WINML_BINDING_DESC
+        Name As LongPtr
+        BindType As WINML_BINDING_TYPE
+        'union
+        '{
+        '    WINML_TENSOR_BINDING_DESC Tensor;
+        '    WINML_SEQUENCE_BINDING_DESC Sequence;
+        '    WINML_MAP_BINDING_DESC Map;
+        '    WINML_IMAGE_BINDING_DESC Image;
+        '    WINML_RESOURCE_BINDING_DESC Resource;
+        '};
+        #If Win64 Then
+        pad As Long
+        u(0 To 31) As Byte
+        #Else
+        u(0 To 23) As Byte
+        #End If
+    End Type
+    
+    Public Type WINML_TENSOR_VARIABLE_DESC
+        ElementType As WINML_TENSOR_DATA_TYPE
+        '   /* [annotation]_In_range_(1, WINML_TENSOR_DIMENSION_COUNT_MAX)   */
+        NumDimensions As Long
+        '    /* [annotation]_Field_size_full_(NumDimensions)  INT64*  */
+        pShape As LongPtr
+    End Type
+    
+    Public Type WINML_SEQUENCE_VARIABLE_DESC
+        ElementType As WINML_TENSOR_DATA_TYPE
+    End Type
+    
+    Public Type WINML_MAP_VARIABLE_DESC
+        KeyType As WINML_TENSOR_DATA_TYPE
+        Fields As WINML_TENSOR_DATA_TYPE
+    End Type
+    
+    Public Type WINML_IMAGE_VARIABLE_DESC
+        ElementType As WINML_TENSOR_DATA_TYPE
+        NumDimensions As Long
+        '    /* [annotation]_Field_size_full_(NumDimensions)  INT64*  */
+        pShape As LongPtr
+    End Type
+    
+    Public Type WINML_VARIABLE_DESC
+        Name As LongPtr
+        Description As LongPtr
+        FeatureType As WINML_FEATURE_TYPE
+        Required As BOOL
+        'union
+        '{
+        '    WINML_TENSOR_VARIABLE_DESC Tensor;
+        '    WINML_SEQUENCE_VARIABLE_DESC Sequence;
+        '    WINML_MAP_VARIABLE_DESC Map;
+        '    WINML_IMAGE_VARIABLE_DESC Image;
+        '};
+        #If Win64 Then
+        pad As Long
+        u(0 To 15) As Byte
+        #Else
+        u(0 To 11) As Byte
+        #End If
+    End Type
+    
+    Public Type WINML_MODEL_DESC
+        Author As LongPtr
+        Name As LongPtr
+        Domain As LongPtr
+        Description As LongPtr
+        Version As LongPtr
+    End Type
+ 
+
+End Module
+
+#End If
