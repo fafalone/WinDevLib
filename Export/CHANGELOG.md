@@ -1,4 +1,25 @@
 
+**Update (v9.4.716, 07 Aug 2026):**
+- (BREAKING CHANGES) Union support can now be simulated with tB's recently added ability to have functions in types. These
+ can, in most cases, become syntax-identical to real union support. Where this can be supported (no nested Types), the change
+ is being made starting now. In cases where it's possible, the old "u" or 'ThingOrOtherThing' will be removed, and this is 
+ where a breaking change will occur. For example in STGMEDIUM, "data" is removed and now you would simply use any real option
+ you want, .pstg, .hglobal, etc. 
+ In types where one arm was chosen over the other, you can now start using the other options. For example with LARGE_INTEGER,
+ you can now use .lowpart and .highpart in addition to .QuadPart. These cases are not breaking changes.
+ This is a complex subsitution so will be implemented continuously over many months.
+ Types that use named unions will not be changed.
+- Add Windows Parental Controls (wpc.h, wpcapi.h, wpcevent.h 100%)
+- Add ICollectionUnrestricted with both the members of the Collection interface and IDispatch exposed, for some VB6 collection hacks.
+- Add gamingtcui.h, gameux.h
+- Misc Native API additions
+- (API Standards, breaking change) SV2CVW2_PARAMS two fields renamed to proper SDK definitions
+- (API Standards, breaking change) IMultiQ::QueryMultipleInterfaces 2nd arg should use ByRef type instead of ByVal LongPtr.
+- (API Standards, breaking change) HeapFree and HeapAlloc should take ByVal LongPtr for memory pointers. This won't break most uses 
+as it would just make the ByVal keyword redundant, but there may be some edge cases.
+- (Bug fix) ISystemInformation::RebootRequired should return Boolean, not Long.
+- (Bug fix) NtOpenMutant, NtOpenSemaphore, NtOpenEvent, NtOpenEventPair, NtOpenPartition all had ByVal handles that should be ByRef
+
 **Update (v9.3.714, 16 Jul 2026):**
 - Added flags for many undocumented ListView interface arguments from new sysinformer header.
 - Add IPropertyValue additional methods from sysinformer header.

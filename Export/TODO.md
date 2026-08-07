@@ -1,7 +1,6 @@
 Known omissions where a priority update neccessitated not finishing 
 before release, or waiting on feature support:
 
--investigate IListView GetColumnOrderArray
 
 -   ws2tcpip mstcipip.h inlined funcs;
 
@@ -210,7 +209,8 @@ Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.
     xact3.h,xact3wb.h,xma2defs.h,audiodefs.h,xact3d3.h,dxfile.h,dxdiag.h,dxmini.h,
     d3dx10.h,d3dx10core.h,d3dx10tex.h,d3dx10async.h,d3dx10mesh.h,d3d9on12.h,codecapi.h,
     enclaveium.h,bthioctl.h,bthledef.h,bthdef.h,muiload.h,StorageProvider.h,StorageProvider.idl,ExDisp.h,ExDisp.idl,ExDispid.h,
-    mstcipip.h, mimeole.idl, MimeInfo.h,MimeInfo.idl and mimedisp.h, msoeapi.idl, imnact.idl, colordlg.h
+    mstcipip.h, mimeole.idl, MimeInfo.h,MimeInfo.idl and mimedisp.h, msoeapi.idl, imnact.idl, colordlg.h,gamingtcui.h, gameux.h,
+    emptyvc.h,emptyvc.idl,wpc.h, wpcapi.h, wpcevent.h
     
 Coverage in the 90%+ range  winbase.h, oleidl.h, oaidl.h, ocidl.h, ocidl.idl, ,objidl.h,objidl.idl,presentation.h,ScrnSave.h
 
