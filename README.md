@@ -124,7 +124,7 @@ This is the common vtable redirection helper function rewritten to support both 
 `Public Function toPOINT(ByVal x As Long, ByVal y As Long) As POINT`
 `Public Function toPOINTF(ByVal x As Long, ByVal y As Long) As POINTF`
 `Public Function toSIZE(ByVal cx As Long, ByVal cy As Long) As SIZE`\
-Functions for converting POINT and SIZE types or coords to Long or LongLong for methods requiring them to be passed ByVal, which is currently unsupported.
+Functions for converting POINT and SIZE types or coords to Long or LongLong for methods requiring them to be  passed ByVal (though WDL itself now uses ByVal UDTs where approprite as tB now supports them).
 
 `Public Function CUIntToInt(ByVal Value As Long) As Integer` - Create unsigned Integer from a Long\
 `Public Function CIntToUInt(ByVal Value As Integer) As Long` - Convert an Integer to Long as if it were unsigned (&HFFFF = 65536 instead of -1)\
