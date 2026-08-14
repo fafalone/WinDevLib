@@ -1,7 +1,7 @@
 # Windows Development Library for twinBASIC
 ## WinDevLib 
 
-**Current Version: 9.4.716 (August 7th, 2026)**
+**Current Version: 9.4.717 (August 14th, 2026)**
 
 (c) 2022-2026 Jon Johnson (fafalone)
 
@@ -242,6 +242,11 @@ Current coverage is already quite extensive, spanning hundreds of Windows SDK he
 
  
 ### Updates
+
+**Update (v9.4.717, 14 Aug 2026):**
+- (API Standards, breaking change) EMR* types omitted array substitutes instead of any of the valid ones; they now use (0 To 0)
+- (Bug fix) DdeInitialize[A,W] last arg should be ByVal
+- (Bug fix) CP_WINANSI value incorrect
 
 **Update (v9.4.716, 07 Aug 2026):**
 - (BREAKING CHANGES) Union support can now be simulated with tB's recently added ability to have functions in types. These
