@@ -1,4 +1,9 @@
 
+**Update (v9.4.717, 14 Aug 2026):**
+- (API Standards, breaking change) EMR* types omitted array substitutes instead of any of the valid ones; they now use (0 To 0)
+- (Bug fix) DdeInitialize[A,W] last arg should be ByVal
+- (Bug fix) CP_WINANSI value incorrect
+
 **Update (v9.4.716, 07 Aug 2026):**
 - (BREAKING CHANGES) Union support can now be simulated with tB's recently added ability to have functions in types. These
  can, in most cases, become syntax-identical to real union support. Where this can be supported (no nested Types), the change
