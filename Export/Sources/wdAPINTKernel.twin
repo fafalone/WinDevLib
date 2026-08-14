@@ -1175,8 +1175,15 @@ Public Type THREAD_TLS_INFORMATION
     '    PVOID* TlsVector;
     '    PVOID TlsModulePointer;
     '};
-    VectorOrModulePointer As LongPtr
+    TlsModulePointer As LongPtr
     ThreadId As LongPtr
+    ' EUS
+    Property Get TlsVector() As LongPtr
+    Return Me.TlsModulePointer
+    End Property
+    Property Let TlsVector(ByVal value As LongPtr)
+    Me.TlsModulePointer = value
+    End Property
 End Type
 Public Enum PROCESS_TLS_INFORMATION_TYPE
     ProcessTlsReplaceIndex = 0
@@ -12267,7 +12274,26 @@ Public Type JOBOBJECT_CPU_RATE_CONTROL_INFORMATION
     '        WORD   MaxRate;
     '    } DUMMYSTRUCTNAME;
     '} DUMMYUNIONNAME;
-    RateOrWeight As Long
+    CpuRate As Long
+    ' EUS
+    Property Get Weight() As Long
+    Return Me.CpuRate
+    End Property
+    Property Let Weight(ByVal value As Long)
+    Me.CpuRate = value
+    End Property
+    Property Get MinRate() As Integer
+    CopyMemory MinRate, Me.CpuRate, 2
+    End Property
+    Property Let MinRate(ByVal value As Integer)
+    CopyMemory Me.CpuRate, value, 2
+    End Property
+    Property Get MaxRate() As Integer
+    CopyMemory MaxRate, Me.CpuRate, 2
+    End Property
+    Property Let MaxRate(ByVal value As Integer)
+    CopyMemory Me.CpuRate, value, 2
+    End Property
 End Type
 
 Public Enum JOB_OBJECT_NET_RATE_CONTROL_FLAGS
@@ -14101,8 +14127,9 @@ Public Type IMAGE_IMPORT_DESCRIPTOR
     '   DWORD   Characteristics;            // 0 for terminating null import descriptor
     '     DWORD   OriginalFirstThunk;         // RVA to original unbound IAT (PIMAGE_THUNK_DATA)
     ' } DUMMYUNIONNAME;
-    [Description("Union of Characteristics and OriginalFirstThunk")]
-    ChrctrsOrOrigThunk As Long
+    ' [Description("Union of Characteristics and OriginalFirstThunk")]
+    ' ChrctrsOrOrigThunk As Long
+    Characteristics As Long
     TimeDateStamp As Long ' 0 if not bound,
     ' -1 if bound, and real date\time stamp
     '     in IMAGE_DIRECTORY_ENTRY_BOUND_IMPORT (new BIND)
@@ -14110,6 +14137,13 @@ Public Type IMAGE_IMPORT_DESCRIPTOR
     ForwarderChain As Long ' -1 if no forwarders
     Name As Long
     FirstThunk As Long ' RVA to IAT (if bound this IAT has actual addresses)
+    ' EUS
+    Property Get OriginalFirstThunk() As Long
+    Return Me.Characteristics
+    End Property
+    Property Let OriginalFirstThunk(ByVal value As Long)
+    Me.Characteristics = value
+    End Property
 End Type
 Public Type IMAGE_BOUND_IMPORT_DESCRIPTOR
     TimeDateStamp As Long
@@ -15156,18 +15190,37 @@ Public Type IMAGE_RELOCATION
         ' DWORD   VirtualAddress;
         ' DWORD   RelocCount;             // Set to the real count when IMAGE_SCN_LNK_NRELOC_OVFL is set
     ' } DUMMYUNIONNAME;
-    VirtAddrOrRelocCt As Long
+    ' ' VirtAddrOrRelocCt As Long
+    VirtualAddress As Long
     SymbolTableIndex As Long
     nType As Integer
+    ' EUS
+    Property Get RelocCount() As Long
+    Return Me.VirtualAddress
+    End Property
+    Property Let RelocCount(ByVal value As Long)
+    Me.VirtualAddress = value
+    End Property
 End Type
 
+Private Type _TypeUnion
+    VirtualAddress As Long
+    ' EUS
+    Property Get SymbolTableIndex() As Long
+    Return Me.VirtualAddress
+    End Property
+    Property Let SymbolTableIndex(ByVal value As Long)
+    Me.VirtualAddress = value
+    End Property
+End Type
 [PackingAlignment(2)]
 Public Type IMAGE_LINENUMBER
     '    union {
     '        DWORD   SymbolTableIndex;               // Symbol table index of function name if Linenumber is 0.
     '        DWORD   VirtualAddress;                 // Virtual address of line number.
     '   } Type;
-    nType As Long
+    ' EUS 
+    Type As _TypeUnion
     Linenumber As Integer ' Line number.
 End Type
 
@@ -15651,7 +15704,15 @@ Public Type IMAGE_FUNCTION_ENTRY64
         ' ULONGLONG   EndOfPrologue;
         ' ULONGLONG   UnwindInfoAddress;
     ' } DUMMYUNIONNAME;
-    EndOfPrologueOrUnwindInfoAddress  As LongLong
+    ' EndOfPrologueOrUnwindInfoAddress  As LongLong
+    EndOfPrologue As LongLong
+    ' EUS
+    Property Get UnwindInfoAddress() As LongLong
+    Return Me.EndOfPrologue
+    End Property
+    Property Let UnwindInfoAddress(ByVal value As LongLong)
+    Me.EndOfPrologue = value
+    End Property
 End Type
 
 Public Type IMAGE_SEPARATE_DEBUG_HEADER
@@ -15712,11 +15773,19 @@ Public Type IMPORT_OBJECT_HEADER
         ' WORD    Ordinal;                // if grf & IMPORT_OBJECT_ORDINAL
         ' WORD    Hint;
     ' } DUMMYUNIONNAME;
-    OrdinalOrHint As Integer
+    ' OrdinalOrHint As Integer
+    Ordinal As Integer
     ' WORD    Type : 2;                   // IMPORT_TYPE
     ' WORD    NameType : 3;               // IMPORT_NAME_TYPE
     ' WORD    Reserved : 11;              // Reserved. Must be zero.
     Bitfield As Integer
+    ' EUS
+    Property Get Hint() As Integer
+    Return Me.Ordinal
+    End Property
+    Property Let Hint(ByVal value As Integer)
+    Me.Ordinal = value
+    End Property
 End Type
 
 Public Enum IMPORT_OBJECT_TYPE
@@ -17063,7 +17132,7 @@ Public Type RTL_PROCESS_MODULE_INFORMATION_EX
             ' UCHAR FullPathName[256];
         ' };
     ' };
-    BaseInfo As RTL_PROCESS_MODULE_INFORMATION
+    BaseInfo As RTL_PROCESS_MODULE_INFORMATION 'NOTE: Union struct members identical to BaseInfo fields
     ImageChecksum As Long
     TimeDateStamp As Long
     DefaultBase As LongPtr
@@ -18483,9 +18552,23 @@ Public Type SYSTEM_BIGPOOL_ENTRY
         ' UCHAR Tag[4];
         ' ULONG TagUlong;
     ' };
-    VirtualAddressOrNonPaged As LongPtr
+    ' VirtualAddressOrNonPaged As LongPtr
+    VirtualAddress As LongPtr
     SizeInBytes As LongPtr
-    Tag As Long
+    Tag(0 To 3) As Byte
+    ' EUS
+    Property Get NonPaged() As LongPtr
+    Return Me.VirtualAddress
+    End Property
+    Property Let NonPaged(ByVal value As LongPtr)
+    Me.VirtualAddress = value
+    End Property
+    Property Get TagUlong() As Long
+    CopyMemory TagUlong, Me.Tag(0), 4
+    End Property
+    Property Let TagUlong(ByVal value As Long)
+    CopyMemory Me.Tag(0), value, 4
+    End Property
 End Type
 
 Public Type SYSTEM_POOL_ENTRY
@@ -18493,12 +18576,29 @@ Public Type SYSTEM_POOL_ENTRY
     Spare0 As CBoolean
     AllocatorBackTraceIndex As Integer
     Size As Long
-    'union
-    '{
-    '    UCHAR Tag[4];
-    '    ULONG TagUlong;
-    ProcessChargedQuotaOrTag As LongPtr
-    '};
+    ' union
+    ' {
+        ' UCHAR Tag[4];
+        ' ULONG TagUlong;
+        ' PVOID ProcessChargedQuota;
+    ' };
+    ProcessChargedQuota As LongPtr
+    ' EUS
+    Property Get TagUlong() As Long
+    CopyMemory TagUlong, Me.ProcessChargedQuota, 4
+    End Property
+    Property Let TagUlong(ByVal value As Long)
+    CopyMemory Me.ProcessChargedQuota, value, 4
+    End Property
+    Property Get Tag() As Byte()
+    Dim tmpTag() As Byte
+    ReDim tmpTag(3)
+    CopyMemory tmpTag(0), Me.ProcessChargedQuota, 4
+    Return tmpTag
+    End Property
+    Property Let Tag(value As Byte())
+    CopyMemory Me.ProcessChargedQuota, value(0), 4
+    End Property
 End Type
 [Description("⚠️ **WARNING:** Header only. Last member is a variable C-style array. For a SAFEARRAY version, use SYSTEM_POOL_INFORMATION_sa")]
 Public Type SYSTEM_POOL_INFORMATION
@@ -19538,7 +19638,36 @@ Public Type FILE_OBJECTID_INFORMATION
     '     };
     '    UCHAR ExtendedInfo[48];
     '};
-    IdOrInfo(47) As Byte
+    ' IdOrInfo(47) As Byte
+    ExtendedInfo(47) As Byte
+    ' EUS
+    Property Get BirthVolumeId() As Byte()
+    Dim tmpTag() As Byte
+    ReDim tmpTag(15)
+    CopyMemory tmpTag(0), Me.ExtendedInfo(0), 16
+    Return tmpTag
+    End Property
+    Property Let BirthVolumeId(value As Byte())
+    CopyMemory Me.ExtendedInfo(0), value(0), 16
+    End Property
+    Property Get BirthObjectId() As Byte()
+    Dim tmpTag() As Byte
+    ReDim tmpTag(15)
+    CopyMemory tmpTag(0), Me.ExtendedInfo(0), 16
+    Return tmpTag
+    End Property
+    Property Let BirthObjectId(value As Byte())
+    CopyMemory Me.ExtendedInfo(0), value(0), 16
+    End Property
+    Property Get DomainId() As Byte()
+    Dim tmpTag() As Byte
+    ReDim tmpTag(15)
+    CopyMemory tmpTag(0), Me.ExtendedInfo(0), 16
+    Return tmpTag
+    End Property
+    Property Let DomainId(value As Byte())
+    CopyMemory Me.ExtendedInfo(0), value(0), 16
+    End Property
 End Type
 Public Type FILE_COMPLETION_INFORMATION
     Port As LongPtr
@@ -21060,39 +21189,39 @@ Public Type PS_CREATE_INFO_SUCCESS_U
     ManifestSiz As Long
 End Type
 Public Enum PS_ATTRIBUTE_NUM
-    PsAttributeParentProcess ' in HANDLE
-    PsAttributeDebugPort ' in HANDLE
-    PsAttributeToken ' in HANDLE
-    PsAttributeClientId ' out PCLIENT_ID
-    PsAttributeTebAddress ' out PTEB *
-    PsAttributeImageName ' in PWSTR
-    PsAttributeImageInfo ' out PSECTION_IMAGE_INFORMATION
-    PsAttributeMemoryReserve ' in PPS_MEMORY_RESERVE
-    PsAttributePriorityClass ' in UCHAR
-    PsAttributeErrorMode ' in ULONG
-    PsAttributeStdHandleInfo ' 10, in PPS_STD_HANDLE_INFO
-    PsAttributeHandleList ' in PHANDLE
-    PsAttributeGroupAffinity ' in PGROUP_AFFINITY
-    PsAttributePreferredNode ' in PUSHORT
-    PsAttributeIdealProcessor ' in PPROCESSOR_NUMBER
-    PsAttributeUmsThread ' ? in PUMS_CREATE_THREAD_ATTRIBUTES
-    PsAttributeMitigationOptions ' in UCHAR
-    PsAttributeProtectionLevel ' in ULONG
-    PsAttributeSecureProcess ' since THRESHOLD
-    PsAttributeJobList
-    PsAttributeChildProcessPolicy ' since THRESHOLD2
-    PsAttributeAllApplicationPackagesPolicy ' since REDSTONE
-    PsAttributeWin32kFilter
-    PsAttributeSafeOpenPromptOriginClaim
-    PsAttributeBnoIsolation ' PS_BNO_ISOLATION_PARAMETERS
-    PsAttributeDesktopAppPolicy ' in ULONG
-    PsAttributeChpe ' since REDSTONE3
-    PsAttributeMitigationAuditOptions ' since 21H1
-    PsAttributeMachineType ' since WIN11
-    PsAttributeComponentFilter
-    PsAttributeEnableOptionalXStateFeatures
-    PsAttributeSupportedMachines ' in ULONG // since 24H2
-    PsAttributeSveVectorLength ' PPS_PROCESS_CREATION_SVE_VECTOR_LENGTH
+    PsAttributeParentProcess                   ' in HANDLE
+    PsAttributeDebugObject                     ' in HANDLE
+    PsAttributeToken                           ' in HANDLE
+    PsAttributeClientId                        ' out PCLIENT_ID
+    PsAttributeTebAddress                      ' out PTEB*
+    PsAttributeImageName                       ' in PWSTR
+    PsAttributeImageInfo                       ' out PSECTION_IMAGE_INFORMATION
+    PsAttributeMemoryReserve                   ' in PPS_MEMORY_RESERVE
+    PsAttributePriorityClass                   ' in UCHAR
+    PsAttributeErrorMode                       ' in ULONG
+    PsAttributeStdHandleInfo                   ' in PPS_STD_HANDLE_INFO // 10
+    PsAttributeHandleList                      ' in HANDLE[]
+    PsAttributeGroupAffinity                   ' in PGROUP_AFFINITY
+    PsAttributePreferredNode                   ' in PUSHORT
+    PsAttributeIdealProcessor                  ' in PPROCESSOR_NUMBER
+    PsAttributeUmsThread                       ' in PUMS_CREATE_THREAD_ATTRIBUTES
+    PsAttributeMitigationOptions               ' in PPS_MITIGATION_OPTIONS_MAP (PROCESS_CREATION_MITIGATION_POLICY_*) // since WIN8
+    PsAttributeProtectionLevel                 ' in PS_PROTECTION // since WINBLUE
+    PsAttributeSecureProcess                   ' in PPS_TRUSTLET_CREATE_ATTRIBUTES // since THRESHOLD
+    PsAttributeJobList                         ' in HANDLE[]
+    PsAttributeChildProcessPolicy              ' in PULONG (PROCESS_CREATION_CHILD_PROCESS_*) // since THRESHOLD2 // 20
+    PsAttributeAllApplicationPackagesPolicy    ' in PULONG (PROCESS_CREATION_ALL_APPLICATION_PACKAGES_*) // since REDSTONE
+    PsAttributeWin32kFilter                    ' in PWIN32K_SYSCALL_FILTER
+    PsAttributeSafeOpenPromptOriginClaim       ' in SE_SAFE_OPEN_PROMPT_RESULTS
+    PsAttributeBnoIsolation                    ' in PPS_BNO_ISOLATION_PARAMETERS // since REDSTONE2
+    PsAttributeDesktopAppPolicy                ' in PULONG (PROCESS_CREATION_DESKTOP_APP_*)
+    PsAttributeChpe                            ' in BOOLEAN // since REDSTONE3
+    PsAttributeMitigationAuditOptions          ' in PPS_MITIGATION_AUDIT_OPTIONS_MAP (PROCESS_CREATION_MITIGATION_AUDIT_POLICY_*) // since 21H1
+    PsAttributeMachineType                     ' in USHORT // since 21H2
+    PsAttributeComponentFilter                 ' in COMPONENT_FILTER
+    PsAttributeEnableOptionalXStateFeatures    ' in ULONG64 // since WIN11 // 30
+    PsAttributeSupportedMachines               ' in ULONG (bits 0..2 only) // since 24H2
+    PsAttributeSveVectorLength                 ' in PPS_PROCESS_CREATION_SVE_VECTOR_LENGTH
     PsAttributeMax
 End Enum
 Public Const PS_ATTRIBUTE_NUMBER_MASK  = &H0000ffff&
@@ -21131,12 +21260,16 @@ End Enum
 Public Type PS_ATTRIBUTE
     Attribute As LongPtr
     Size As LongPtr
-    'union
+    ' union
     ' {
-    '    ULONG_PTR Value;
-    ValuePtrOrValue As LongPtr
-    '};
+        ' ULONG_PTR Value;
+        ' PVOID ValuePtr;
+    ' };
+    Value As LongPtr
     ReturnLength As LongPtr 'PSIZE_T
+    ' EUS
+    Property Get ValuePtr() As LongPtr: Return Me.Value: End Property
+    Property Let ValuePtr(ByVal value As LongPtr): Me.Value = value: End Property
 End Type
 [Description("IMPORTANT: Set length only to length *actually used*-- this is buffered to the maximum possible, but they can't be uninitialized/unused.")]
 Public Type PS_ATTRIBUTE_LIST
@@ -21365,6 +21498,15 @@ Public Enum PortAccessRights
 End Enum
 
 Public Type PORT_MESSAGE
+' union
+    ' {
+   ' struct
+   ' {
+       ' CSHORT DataLength;
+       ' CSHORT TotalLength;
+   ' } s1;
+   ' ULONG Length;
+    ' } u1;
     Length As Long
     [Description("union {" & vbCrLf & _
                     "  struct{" & vbCrLf & _
@@ -21373,10 +21515,22 @@ Public Type PORT_MESSAGE
                     "  } s2;" & vbCrLf & _
                     "  ULONG ZeroInit;" & vbCrLf & _
                     "}")]
-    u2 As Long
+    ZeroInit As Long
     ClientId As CLIENT_ID
     MessageId As Long
-    ClientViewSizeOrCallbackId As LongPtr
+    ' union
+    ' {
+        ' SIZE_T ClientViewSize; // only valid for LPC_CONNECTION_REQUEST messages
+        ' ULONG CallbackId; // only valid for LPC_REQUEST messages
+    ' };
+    ClientViewSize As LongPtr
+    ' EUS
+    Property Get CallbackId() As Long
+    CopyMemory CallbackId, Me.ClientViewSize, 4
+    End Property
+    Property Let CallbackId(ByVal value As Long)
+    CopyMemory Me.ClientViewSize, value, 4
+    End Property
 End Type
 Public Type PORT_DATA_ENTRY
     Base As LongPtr

@@ -10676,9 +10676,9 @@ Public Type CONVINFO
     hszItem As LongPtr 'HSZ '* transaction item name or NULL if quiescent  */
     wFmt As Long '* transaction format or NULL if quiescent  */
     wType As DdeTransactionTypes '* XTYP_ for current transaction  */
-    wStatus As DdeStatusFlags '* ST_ constant for current conversation  */
+    wStatus As DdeConversionStatus '* ST_ constant for current conversation  */
     wConvst As DdeConversionStates '* XST_ constant for current transaction  */
-    wLastError As Long '* last transaction error.  */
+    wLastError As DdeErrors '* last transaction error.  */
     hConvList As LongPtr 'HCONVLIST '* parent hConvList if this conversation is in a list */
     ConvCtxt As CONVCONTEXT '* conversation context */
     hwnd As LongPtr '* window handle for this conversation */
@@ -10786,7 +10786,9 @@ Public Const SZDDE_ITEM_ITEMLIST  = "TopicItemList"
 ' HSZ hsz1, HSZ hsz2, HDDEDATA hData, ULONG_PTR dwData1, ULONG_PTR dwData2);
 ' typedef HDDEDATA (CALLBACK *PFNCALLBACK)(UINT wType, UINT wFmt, HCONV hConv,
 ' HSZ hsz1, HSZ hsz2, HDDEDATA hData, ULONG_PTR dwData1, ULONG_PTR dwData2);
-
+Public Delegate Function DdeCallback (ByVal wType As DdeTransactionTypes, ByVal wFmt As Long, ByVal hConv As LongPtr, _
+        ByVal hsz1 As LongPtr, ByVal hsz2 As LongPtr, ByVal hData As LongPtr, ByVal dwData1 As LongPtr, _
+        ByVal dwData2 As LongPtr) As LongPtr
 Public Const CBR_BLOCK = -1
 
 Public Enum DdeAfCmds
@@ -10866,10 +10868,15 @@ Public Enum DdeErrors
     DMLERR_LAST = &H4011
 End Enum
 
-
-Public Declare PtrSafe Function DdeInitializeA Lib "user32" (pidInst As Long, ByVal pfnCallback As LongPtr, [TypeHint(DdeAfCmds, DdeMaskFlags)] ByVal afCmd As Long, ulRes As Long) As Long
-Public Declare PtrSafe Function DdeInitializeW Lib "user32" (pidInst As Long, ByVal pfnCallback As LongPtr, [TypeHint(DdeAfCmds, DdeMaskFlags)] ByVal afCmd As Long, ulRes As Long) As Long
-Public DeclareWide PtrSafe Function DdeInitialize Lib "user32" Alias "DdeInitializeW" (pidInst As Long, ByVal pfnCallback As LongPtr, [TypeHint(DdeAfCmds, DdeMaskFlags)] ByVal afCmd As Long, ulRes As Long) As Long
+' #If WDL_NO_DELEGATES Then
+Public Declare PtrSafe Function DdeInitializeA Lib "user32" (pidInst As Long, ByVal pfnCallback As LongPtr, [TypeHint(DdeAfCmds, DdeMaskFlags)] ByVal afCmd As Long, ByVal ulRes As Long) As Long
+Public Declare PtrSafe Function DdeInitializeW Lib "user32" (pidInst As Long, ByVal pfnCallback As LongPtr, [TypeHint(DdeAfCmds, DdeMaskFlags)] ByVal afCmd As Long, ByVal ulRes As Long) As Long
+Public DeclareWide PtrSafe Function DdeInitialize Lib "user32" Alias "DdeInitializeW" (pidInst As Long, ByVal pfnCallback As LongPtr, [TypeHint(DdeAfCmds, DdeMaskFlags)] ByVal afCmd As Long, ByVal ulRes As Long) As Long
+' #Else
+' Public Declare PtrSafe Function DdeInitializeA Lib "user32" (pidInst As Long, ByVal pfnCallback As DdeCallback, [TypeHint(DdeAfCmds, DdeMaskFlags)] ByVal afCmd As Long, ByVal ulRes As Long) As Long
+' Public Declare PtrSafe Function DdeInitializeW Lib "user32" (pidInst As Long, ByVal pfnCallback As DdeCallback, [TypeHint(DdeAfCmds, DdeMaskFlags)] ByVal afCmd As Long, ByVal ulRes As Long) As Long
+' Public DeclareWide PtrSafe Function DdeInitialize Lib "user32" Alias "DdeInitializeW" (pidInst As Long, ByVal pfnCallback As DdeCallback, [TypeHint(DdeAfCmds, DdeMaskFlags)] ByVal afCmd As Long, ByVal ulRes As Long) As Long
+' #End If
 Public Declare PtrSafe Function DdeUninitialize Lib "user32" (ByVal idInst As Long) As BOOL
 Public Declare PtrSafe Function DdeConnectList Lib "user32" (ByVal idInst As Long, ByVal hszService As LongPtr, ByVal hszTopic As LongPtr, ByVal hConvList As LongPtr, pCC As CONVCONTEXT) As LongPtr
 Public Declare PtrSafe Function DdeQueryNextServer Lib "user32" (ByVal hConvList As LongPtr, ByVal hConvPrev As LongPtr) As LongPtr
@@ -44888,8 +44895,6 @@ pdh.h
 
 Public Type PDH_FMT_COUNTERVALUE
 	CStatus As PDH_STATUS
-    pad As Long
-    data(7) As Byte
     ' union {
         ' LONG        longValue;
         ' double      doubleValue;
@@ -44897,6 +44902,32 @@ Public Type PDH_FMT_COUNTERVALUE
         ' LPCSTR      AnsiStringValue;
         ' LPCWSTR     WideStringValue;
     ' };
+    largeValue As LongLong
+    ' EUS
+    Property Get longValue() As Long
+    CopyMemory longValue, Me.largeValue, 4
+    End Property
+    Property Let longValue(ByVal value As Long)
+    CopyMemory Me.largeValue, value, 4
+    End Property
+    Property Get doubleValue() As Double
+    CopyMemory doubleValue, Me.largeValue, 8
+    End Property
+    Property Let doubleValue(ByVal value As Double)
+    CopyMemory Me.largeValue, value, 8
+    End Property
+    Property Get AnsiStringValue() As LongPtr
+    CopyMemory AnsiStringValue, Me.largeValue, PTR_SIZE
+    End Property
+    Property Let AnsiStringValue(ByVal value As LongPtr)
+    CopyMemory Me.largeValue, value, PTR_SIZE
+    End Property
+    Property Get WideStringValue() As LongPtr
+    CopyMemory WideStringValue, Me.largeValue, PTR_SIZE
+    End Property
+    Property Let WideStringValue(ByVal value As LongPtr)
+    CopyMemory Me.largeValue, value, PTR_SIZE
+    End Property
 End Type
 
 Public Enum PDH_STATUS
