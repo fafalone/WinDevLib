@@ -1,7 +1,7 @@
 # Windows Development Library for twinBASIC
 ## WinDevLib 
 
-**Current Version: 9.4.718 (August 18th, 2026)**
+**Current Version: 9.4.720 (August 18th, 2026)**
 
 (c) 2022-2026 Jon Johnson (fafalone)
 
@@ -243,8 +243,9 @@ Current coverage is already quite extensive, spanning hundreds of Windows SDK he
  
 ### Updates
 
-**Update (v9.4.718, 18 Aug 2026):**
+**Update (v9.4.720, 18 Aug 2026):**
 - Add DhcpCSdk.h, dhcpv6csdk.h (100%)
+- Misc Native API additions
 - (Breaking change) IMFSourceReader::ReadSample signature was incompatible with usage requiring null argument at end in some cases.
 - (Breaking change) IMFSourceReader::ReadSample pllTimestamp changed from As LongLong to As Any pending other option for passing a null pointer.
 
