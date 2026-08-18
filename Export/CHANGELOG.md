@@ -1,4 +1,10 @@
 
+**Update (v9.4.720, 18 Aug 2026):**
+- Add DhcpCSdk.h, dhcpv6csdk.h (100%)
+- Misc Native API additions
+- (Breaking change) IMFSourceReader::ReadSample signature was incompatible with usage requiring null argument at end in some cases.
+- (Breaking change) IMFSourceReader::ReadSample pllTimestamp changed from As LongLong to As Any pending other option for passing a null pointer.
+
 **Update (v9.4.717, 14 Aug 2026):**
 - (API Standards, breaking change) EMR* types omitted array substitutes instead of any of the valid ones; they now use (0 To 0)
 - (Bug fix) DdeInitialize[A,W] last arg should be ByVal
