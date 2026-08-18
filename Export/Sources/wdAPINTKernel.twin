@@ -781,6 +781,8 @@ Public Type UNICODE_STRING32
     MaximumLength As Integer
     Buffer As Long
 End Type
+Public Const ANSI_NULL = 0
+Public Const UNICODE_NULL = 0
 Public Const UNICODE_STRING_MAX_BYTES As Long = 65534
 Public Const UNICODE_STRING_MAX_CHARS As Integer = 32767
 Public Type ANSI_STRING
@@ -804,7 +806,10 @@ Public Type NT_STRING
     Buffer As LongPtr
 End Type
 
-
+Public Type OBJECTID
+    Lineage As UUID
+    Uniquifier As Long
+End Type
 
 
 Public Enum PROCESSINFOCLASS
@@ -5066,9 +5071,10 @@ Public Enum WaitForObjOutcomes
     WAIT_IO_COMPLETION = STATUS_USER_APC
 End Enum
 
+Public Const POWER_REQUEST_CONTEXT_VERSION = DIAGNOSTIC_REASON_VERSION
 Public Enum ReasonCtxFlags
-    POWER_REQUEST_CONTEXT_SIMPLE_STRING = &H00000001
-    POWER_REQUEST_CONTEXT_DETAILED_STRING = &H00000002
+    POWER_REQUEST_CONTEXT_SIMPLE_STRING = DIAGNOSTIC_REASON_SIMPLE_STRING
+    POWER_REQUEST_CONTEXT_DETAILED_STRING = DIAGNOSTIC_REASON_DETAILED_STRING
 End Enum
 Public Type REASON_CONTEXT_DETAILED
     LocalizedReasonModule As LongPtr
@@ -5494,6 +5500,13 @@ Public Enum ProcessMitigationExtPtFlags
     PMEPF_DisableExtensionPoints = &H1
 End Enum
 Public Type PROCESS_MITIGATION_EXTENSION_POINT_DISABLE_POLICY
+' union {
+    ' DWORD Flags;
+    ' struct {
+        ' DWORD DisableExtensionPoints : 1;
+        ' DWORD ReservedFlags : 31;
+    ' } DUMMYSTRUCTNAME;
+' } DUMMYUNIONNAME;
     dwFlags As ProcessMitigationExtPtFlags
 End Type
 Public Enum ProcessMitigationDynCodeFlags
@@ -7027,9 +7040,9 @@ Public Enum MONITOR_DISPLAY_STATE
 End Enum
 Public Enum USER_ACTIVITY_PRESENCE
     PowerUserPresent = 0
-    PowerUserNotPresent = 1
-    PowerUserInactive = 2
-    PowerUserMaximum = 3
+    PowerUserNotPresent
+    PowerUserInactive
+    PowerUserMaximum
     PowerUserInvalid = PowerUserMaximum
 End Enum
 Public Enum ENERGY_SAVER_STATUS
@@ -7188,6 +7201,15 @@ Public Enum LATENCY_TIME
     LT_DONT_CARE = 0
     LT_LOWEST_LATENCY = 1
 End Enum
+
+Public Const DIAGNOSTIC_REASON_VERSION = 0
+
+Public Const DIAGNOSTIC_REASON_SIMPLE_STRING  = &H00000001
+Public Const DIAGNOSTIC_REASON_DETAILED_STRING  = &H00000002
+Public Const DIAGNOSTIC_REASON_NOT_SPECIFIED  = &H80000000
+Public Const DIAGNOSTIC_REASON_INVALID_FLAGS  = (Not &H80000007)
+
+
 
 Public Type SYSTEM_ROOT_SILO_INFORMATION
     NumberOfSilos As Long
@@ -20772,8 +20794,20 @@ Public Type GROUP_AFFINITY
 End Type
 
 Public Type POWER_PLATFORM_INFORMATION
-    AoAc As Byte
+    AoAc As CBoolean
 End Type
+
+Public Enum POWER_SETTING_ALTITUDE
+    ALTITUDE_GROUP_POLICY
+    ALTITUDE_USER
+    ALTITUDE_RUNTIME_OVERRIDE
+    ALTITUDE_PROVISIONING
+    ALTITUDE_OEM_CUSTOMIZATION
+    ALTITUDE_INTERNAL_OVERRIDE
+    ALTITUDE_OS_DEFAULT
+End Enum
+
+
 Public Type PROCESSOR_POWER_INFORMATION
     Number As Long
     MaxMhz As Long
@@ -21705,7 +21739,10 @@ Public Enum DEVICEFAMILYDEVICEFORM
     DEVICEFAMILYDEVICEFORM_XBOX_RESERVED_07 = &H0000002B
     DEVICEFAMILYDEVICEFORM_XBOX_RESERVED_08 = &H0000002C
     DEVICEFAMILYDEVICEFORM_XBOX_RESERVED_09 = &H0000002D
-    DEVICEFAMILYDEVICEFORM_MAX = &H0000002D
+    DEVICEFAMILYDEVICEFORM_GAMING_HANDHELD = &H0000002E
+    DEVICEFAMILYDEVICEFORM_GAMING_CONSOLE = &H0000002F
+    
+    DEVICEFAMILYDEVICEFORM_MAX = &H0000002F
 End Enum
 
 Public Enum MEMORY_INFORMATION_CLASS
@@ -23371,6 +23408,24 @@ Public Enum NtIoCompletionAccessRights
     IO_COMPLETION_MODIFY_STATE = &H0002
     IO_COMPLETION_ALL_ACCESS = (IO_COMPLETION_QUERY_STATE Or IO_COMPLETION_MODIFY_STATE Or STANDARD_RIGHTS_REQUIRED Or SYNCHRONIZE)
 End Enum
+
+Public Const IO_QOS_MAX_RESERVATION As LongLong = 1000000000^
+
+Public Const SMB_CCF_APP_INSTANCE_EA_NAME  = "ClusteredApplicationInstance"
+
+Public Enum NetAppCsvFlags
+    NETWORK_APP_INSTANCE_CSV_FLAGS_VALID_ONLY_IF_CSV_COORDINATOR = &H00000001
+End Enum
+Public Type NETWORK_APP_INSTANCE_EA
+    '  The caller places a GUID that should always be unique for a single instance of
+    '  the application.
+    AppInstanceID As UUID
+    '  Combination of the NETWORK_APP_INSTANCE_CSV_FLAGS_* flags
+    CsvFlags As NetAppCsvFlags
+End Type
+
+
+
 
 Public Enum IO_COMPLETION_INFORMATION_CLASS
     IoCompletionBasicInformation
@@ -25976,6 +26031,79 @@ Public Enum RtlFillNVMemFlags
     FILL_NV_MEMORY_FLAG_NO_DRAIN = (&H00000100)
 End Enum
 
+Public Type IMAGE_FILE_MACHINES
+' union {
+    ' DWORD Value;
+' #if !defined(MIDL_PASS) && !defined(SORTPP_PASS) && !defined(RC_INVOKED)
+    ' struct {
+        ' DWORD MachineX86 : 1;
+        ' DWORD MachineAmd64 : 1;
+        ' DWORD MachineArm : 1;
+        ' DWORD MachineArm64 : 1;
+        ' DWORD MachineArm64EC : 1;
+    ' } DUMMYSTRUCTNAME;
+' #endif
+' } DUMMYUNIONNAME;
+    Value As Long
+
+    ' EUS 
+    Property Get MachineX86() As Boolean
+        Return (Me.Value And &H1) <> 0
+    End Property
+    Property Let MachineX86(ByVal RHS As Boolean)
+        If RHS Then
+            Me.Value = Me.Value Or &H1
+        Else
+            Me.Value = Me.Value And Not &H1
+        End If
+    End Property
+
+    Property Get MachineAmd64() As Boolean
+        Return (Me.Value And &H2) <> 0
+    End Property
+    Property Let MachineAmd64(ByVal RHS As Boolean)
+        If RHS Then
+            Me.Value = Me.Value Or &H2
+        Else
+            Me.Value = Me.Value And Not &H2
+        End If
+    End Property
+
+    Property Get MachineArm() As Boolean
+        Return (Me.Value And &H4) <> 0
+    End Property
+    Property Let MachineArm(ByVal RHS As Boolean)
+        If RHS Then
+            Me.Value = Me.Value Or &H4
+        Else
+            Me.Value = Me.Value And Not &H4
+        End If
+    End Property
+
+    Property Get MachineArm64() As Boolean
+        Return (Me.Value And &H8) <> 0
+    End Property
+    Property Let MachineArm64(ByVal RHS As Boolean)
+        If RHS Then
+            Me.Value = Me.Value Or &H8
+        Else
+            Me.Value = Me.Value And Not &H8
+        End If
+    End Property
+
+    Property Get MachineArm64EC() As Boolean
+        Return (Me.Value And &H10) <> 0
+    End Property
+    Property Let MachineArm64EC(ByVal RHS As Boolean)
+        If RHS Then
+            Me.Value = Me.Value Or &H10
+        Else
+            Me.Value = Me.Value And Not &H10
+        End If
+    End Property
+End Type
+
+ 
 
 #If Win64 Then
 [UseGetLastError(False)]
@@ -26020,6 +26148,9 @@ Public DeclareWide PtrSafe Function RtlFlushNonVolatileMemoryRanges Lib "ntdll" 
 [UseGetLastError(False)] Public DeclareWide PtrSafe Function RtlGetCompressionWorkSpaceSize Lib "ntdll" ([TypeHint(NT_COMPRESSION_FORMAT)] ByVal CompressionFormatAndEngine As Integer, CompressBufferWorkSpaceSize As Long, CompressFragmentWorkSpaceSize As Long) As NTSTATUS
 [UseGetLastError(False)] Public DeclareWide PtrSafe Sub RtlGetDeviceFamilyInfoEnum Lib "ntdll" (pullUAPInfo As LongLong, pulDeviceFamily As DEVICEFAMILYINFOENUM, pulDeviceForm As DEVICEFAMILYDEVICEFORM)
 [UseGetLastError(False)] Public DeclareWide PtrSafe Function RtlConvertDeviceFamilyInfoToString Lib "ntdll" (pulDeviceFamilyBufferSize As Long, pulDeviceFormBufferSize As Long, ByVal DeviceFamily As String, ByVal DeviceForm As String) As Long
+[UseGetLastError(False)] Public DeclareWide PtrSafe Function RtlSwitchedVVI Lib "ntdll" (VersionInfo As RTL_OSVERSIONINFOEXW, ByVal TypeMask As Long, ByVal ConditionMask As LongLong) As Long
+[UseGetLastError(False)] Public DeclareWide PtrSafe Function RtlGetImageFileMachines Lib "ntdll" (ByVal DosFileName As LongPtr, MachineTypeFlags As IMAGE_FILE_MACHINES) As Long
+
 [UseGetLastError(False)] Public DeclareWide PtrSafe Function RtlIsCurrentThreadAttachExempt Lib "ntdll" () As CBoolean
 [UseGetLastError(False)] Public DeclareWide PtrSafe Function RtlCreateUserStack Lib "ntdll" (ByVal CommittedStackSize As LongPtr, ByVal MaximumStackSize As LongPtr, ByVal ZeroBits As LongPtr, ByVal PageSize As LongPtr, ByVal ReserveAlignment As LongPtr, InitialTeb As INITIAL_TEB) As NTSTATUS
 [UseGetLastError(False)] Public DeclareWide PtrSafe Function RtlFreeUserStack Lib "ntdll" (ByVal AllocationBase As LongPtr) As NTSTATUS
