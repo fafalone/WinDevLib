@@ -1,7 +1,7 @@
 # Windows Development Library for twinBASIC
 ## WinDevLib 
 
-**Current Version: 9.4.720 (August 18th, 2026)**
+**Current Version: 9.4.721 (August 23rd, 2026)**
 
 (c) 2022-2026 Jon Johnson (fafalone)
 
@@ -242,6 +242,11 @@ Current coverage is already quite extensive, spanning hundreds of Windows SDK he
 
  
 ### Updates
+
+**Update (v9.4.721, 23 Aug 2026):**
+- (Breaking change) ID2D1RenderTarget::EndDraw now uses ByVal LongPtr instead of As Any, to accomodate the most common usages/overload. 99% of cases won't need to make any change; ByVal 0 or ByVal vbNullPtr will continue to work.
+- (Bug fix) NhpAllocateAndGetInterfaceInfoFromStack definition incorrect
+- (Bug fix) Numerous errors with bitshift operators; MakeARGB, USER_SHADOW_ACCOUNT, VTBIT_*, FILE_RESTORE_VERSION_*, TCOMP macros, DMUS_SEGF_*, MF_VERSION, XSTATE_MASK_*, RTL_QUERY_REGISTRY_TYPECHECK_MASK, Uri_HAS_*, MAKEFOURCC(4x string), D3DSI_TEXLD_*, D3DSHADER_COMPARISON_MASK, D3DSHADER_INSTRUCTION_PREDICATED, D3DVSD_*, D3D8SPR_*, D3D10_TX_VERSION, D3DX10_NORMALMAP_*, D3DX11_NORMALMAP_*, D3DCOMPILE_OPTIMIZATION_LEVEL2,  
 
 **Update (v9.4.720, 18 Aug 2026):**
 - Add DhcpCSdk.h, dhcpv6csdk.h (100%)
