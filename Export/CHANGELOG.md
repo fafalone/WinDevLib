@@ -1,4 +1,16 @@
 
+**Update (v9.4.722, 29 Aug 2026):**
+- Add pdh.h, pshmsg.h (previously only minimal coverage, now 100%); add loadperf.h (100%)
+- Add msacm.h, msacmdlg.h (previously only minimal coverage, now 100%)
+- Add legacy telephone APIs, tapi.h and WinFax.h (100%)
+- Add tcpioctl.h, madcapcl.h
+- Add mq.h: Only exported by .lib so a new static wrapper dll has been created, mqrt_wrapper.dll. Source and binary in repo.
+- Continued work to add [UseGetLastError(False)] for performance where appropriate.
+- Reworked winmm error consts; they're all in a new enum MMRESULT, that matches the SDK return type, since most functions can return either a MMSYSERR_ value or a category-specific error. The old enums are kept as empty enums so this won't break existing code, just an empty intellisense list if you used them independently.
+- (API Standards, breaking change) LookupPrivilegeName[A] used LongPtr for LPSTR.
+- (Bug fix) JOY_POVCENTERED value incorrect
+- (Bug fix) ACMSTREAMHEADER definition incorrect for x64
+
 **Update (v9.4.721, 23 Aug 2026):**
 - (Breaking change) ID2D1RenderTarget::EndDraw now uses ByVal LongPtr instead of As Any, to accomodate the most common usages/overload. 99% of cases won't need to make any change; ByVal 0 or ByVal vbNullPtr will continue to work.
 - (Bug fix) NhpAllocateAndGetInterfaceInfoFromStack definition incorrect

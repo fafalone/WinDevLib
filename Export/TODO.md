@@ -2,6 +2,25 @@ Known omissions where a priority update neccessitated not finishing
 before release, or waiting on feature support:
 
 
+- Fix pTimeBase optional byref longlong when passing nullptr allowed
+ 
+ 
+- finish telephony apis tapi.h
+
+- rtmv2.h
+
+- mgm.h
+
+- dsparse.h, ntdsapi.h, dsrole.h, dsquery.h
+
+- mq.h
+
+- mprapi.h
+
+- dhcpsapi.h
+
+- msi.h
+
 -   ws2tcpip mstcipip.h inlined funcs;
 
 - IN6_IS_ADDR_ inlined funcs in ws2ipdef.h
@@ -179,7 +198,7 @@ Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.
     mmeapi.h,timeapi.h,joystickapi.h,commdlg.h,cderr.h,prsht.h,prsht.idl,comctrl.h,ShlObj_core.h,ShObjidl_core.h,ShObjidl_core.idl,credentialprovider.h,
     credentialprovider.idl,aclui.h,RadioMgr.h,RadioMgr.idl,PortableDevice.h,PortableDeviceAPI.h,PortableDeviceAPI.idl,portabledeviceclassextension.h,
     portabledeviceclassextension.idl,portabledevicetypes.h,portabledevicetypes.idl,dsound.h,WinDNS.h,dstorage.h,dstorageerr.h,wininet.h,propapi.h,psapi.h,
-    propidl.h,propidl.idl,propidlbase.h,propidlbase.idl,propsys.idl,propsys.h,propvarutil.h,Xinput.h,winperf.h,perlib.h,spapidef.h,devpropdef.h,devpkey.h,
+    propidl.h,propidl.idl,propidlbase.h,propidlbase.idl,propsys.idl,propsys.h,propvarutil.h,Xinput.h,winperf.h,perflib.h,spapidef.h,devpropdef.h,devpkey.h,
     devguid.h,setupapi.h,prnasnot.h,winspool.h,libloaderapi.h,libloaderapi2.h,ioapiset.h,wingdi.h,coml2api.h,evr9.h,dxgi.h,dxgi.idl,dxgi1_2.h,dxgi1_2.idl,
     dxgi1_3.h,dxgi1_3.idl,dxgi1_4.h,dxgi1_4.idl,dxgi1_5.h,dxgi1_5.idl,dxgi1_6.h,dxgi1_6.idl,dxgi1_7.h,dxgi1_7.idl,DXGI_Messages.h,dxgitype.h,dxgitype.idl,dxgicommon.h,dxgicommon.idl,dxgidebug.h,
     ntlsa.h,vsstyle.h,vssym32.h,usp10.h,xapo.h,xapofx.h,xaudio2.h,xaudio2fx.h,x3daudio.h,hrtfapoapi.h,WpdShellExtension.h,WpdMtpExtensions.h,evr.h,evr.idl,d3d11.h,d3d11.idl,
@@ -210,7 +229,8 @@ Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.
     d3dx10.h,d3dx10core.h,d3dx10tex.h,d3dx10async.h,d3dx10mesh.h,d3d9on12.h,codecapi.h,
     enclaveium.h,bthioctl.h,bthledef.h,bthdef.h,muiload.h,StorageProvider.h,StorageProvider.idl,ExDisp.h,ExDisp.idl,ExDispid.h,
     mstcipip.h, mimeole.idl, MimeInfo.h,MimeInfo.idl and mimedisp.h, msoeapi.idl, imnact.idl, colordlg.h,gamingtcui.h, gameux.h,
-    emptyvc.h,emptyvc.idl,wpc.h, wpcapi.h, wpcevent.h, DhcpCSdk.h, Dhcpv6cSdk.h
+    emptyvc.h,emptyvc.idl,wpc.h, wpcapi.h, wpcevent.h, DhcpCSdk.h, Dhcpv6cSdk.h, tcpioctl.h,madcapcl.h,msacm.h,msacmdlg.h,pdh.h, pdhmsg.h, loadperf.h,
+    WinFax.h,tapi.h,mq.h,
     
 Coverage in the 90%+ range  winbase.h, oleidl.h, oaidl.h, ocidl.h, ocidl.idl, ,objidl.h,objidl.idl,presentation.h,ScrnSave.h
 
