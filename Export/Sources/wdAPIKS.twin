@@ -23,6 +23,58 @@ End Interface
 #End If
 Module wdAPIKS
     
+
+Public Const IOCTL_KS_PROPERTY               = &H2F0003 'CTL_CODE(FILE_DEVICE_KS, 0x000, METHOD_NEITHER, FILE_ANY_ACCESS)
+Public Const IOCTL_KS_ENABLE_EVENT           = &H2F0007 'CTL_CODE(FILE_DEVICE_KS, 0x001, METHOD_NEITHER, FILE_ANY_ACCESS)
+Public Const IOCTL_KS_DISABLE_EVENT          = &H2F000B 'CTL_CODE(FILE_DEVICE_KS, 0x002, METHOD_NEITHER, FILE_ANY_ACCESS)
+Public Const IOCTL_KS_METHOD                 = &H2F000F 'CTL_CODE(FILE_DEVICE_KS, 0x003, METHOD_NEITHER, FILE_ANY_ACCESS)
+Public Const IOCTL_KS_WRITE_STREAM           = &H2F8013 'CTL_CODE(FILE_DEVICE_KS, 0x004, METHOD_NEITHER, FILE_WRITE_ACCESS)
+Public Const IOCTL_KS_READ_STREAM            = &H2F4017 'CTL_CODE(FILE_DEVICE_KS, 0x005, METHOD_NEITHER, FILE_READ_ACCESS)
+Public Const IOCTL_KS_RESET_STATE            = &H2F001B 'CTL_CODE(FILE_DEVICE_KS, 0x006, METHOD_NEITHER, FILE_ANY_ACCESS)
+
+Public Enum KSRESET
+    KSRESET_BEGIN
+    KSRESET_END
+End Enum
+
+Public Enum KSSTATE
+    KSSTATE_STOP
+    KSSTATE_ACQUIRE
+    KSSTATE_PAUSE
+    KSSTATE_RUN
+End Enum
+
+Public Enum KsPriorityClasses
+    KSPRIORITY_LOW = &H00000001
+    KSPRIORITY_NORMAL = &H40000000
+    KSPRIORITY_HIGH = &H80000000
+    KSPRIORITY_EXCLUSIVE = &HFFFFFFFF
+End Enum
+Public Type KSPRIORITY
+    PriorityClass As KsPriorityClasses
+    PrioritySubClass As Long
+End Type
+
+Public Type KSIDENTIFIER
+' typedef struct {
+'   union {
+'     struct {
+'       GUID  Set;
+'       ULONG Id;
+'       ULONG Flags;
+'     } _IDENTIFIER;
+'     struct {
+'       GUID  Set;
+'       ULONG Id;
+'       ULONG Flags;
+'     };
+'     LONGLONG Alignment;
+'   };
+' } KSIDENTIFIER, *PKSIDENTIFIER;
+    unsupported_union(23) As Byte
+End Type
+'Alias KSPROPERTY As KSIDENTIFIER 
+
 Public Enum KsMethodTypes
     KSMETHOD_TYPE_NONE = &H00000000
     KSMETHOD_TYPE_READ = &H00000001
@@ -35,6 +87,7 @@ Public Enum KsMethodTypes2
     KSMETHOD_TYPE_SEND = &H00000001
     KSMETHOD_TYPE_SETSUPPORT = &H00000100
     KSMETHOD_TYPE_BASICSUPPORT = &H00000200
+    KSMETHOD_TYPE_TOPOLOGY = &H10000000
 End Enum
 
 Public Enum KsPropertyTypes
@@ -50,18 +103,17 @@ Public Enum KsPropertyTypes
     KSPROPERTY_TYPE_SERIALIZESIZE = &H00008000&
     KSPROPERTY_TYPE_DEFAULTVALUES = &H00010000
     KSPROPERTY_TYPE_TOPOLOGY = &H10000000
+    KSPROPERTY_TYPE_HIGHPRIORITY = &H08000000
+    KSPROPERTY_TYPE_FSFILTERSCOPE = &H40000000
+    KSPROPERTY_TYPE_COPYPAYLOAD = &H80000000
 End Enum
 
-
+Public Type KSP_NODE
+    Property As KSPROPERTY
+    NodeId As Long
+    Reserved As Long
+End Type
  
-Public Const IOCTL_KS_PROPERTY               = &H2F0003 'CTL_CODE(FILE_DEVICE_KS, 0x000, METHOD_NEITHER, FILE_ANY_ACCESS)
-Public Const IOCTL_KS_ENABLE_EVENT           = &H2F0007 'CTL_CODE(FILE_DEVICE_KS, 0x001, METHOD_NEITHER, FILE_ANY_ACCESS)
-Public Const IOCTL_KS_DISABLE_EVENT          = &H2F000B 'CTL_CODE(FILE_DEVICE_KS, 0x002, METHOD_NEITHER, FILE_ANY_ACCESS)
-Public Const IOCTL_KS_METHOD                 = &H2F000F 'CTL_CODE(FILE_DEVICE_KS, 0x003, METHOD_NEITHER, FILE_ANY_ACCESS)
-Public Const IOCTL_KS_WRITE_STREAM           = &H2F8013 'CTL_CODE(FILE_DEVICE_KS, 0x004, METHOD_NEITHER, FILE_WRITE_ACCESS)
-Public Const IOCTL_KS_READ_STREAM            = &H2F4017 'CTL_CODE(FILE_DEVICE_KS, 0x005, METHOD_NEITHER, FILE_READ_ACCESS)
-Public Const IOCTL_KS_RESET_STATE            = &H2F001B 'CTL_CODE(FILE_DEVICE_KS, 0x006, METHOD_NEITHER, FILE_ANY_ACCESS)
-
 Public Type KSCLOCK_CREATE
     CreateFlags As KSPROPERTY_CLOCK
 End Type
@@ -77,9 +129,122 @@ Public Enum KSPROPERTY_CLOCK
     KSPROPERTY_CLOCK_FUNCTIONTABLE
     #End If ' defined(_NTDDK_)
 End Enum
-Public Declare PtrSafe Function KsCreateClock Lib "KSUSER" (ByVal ConnectionHandle As LongPtr, ByRef ClockCreate As KSCLOCK_CREATE, ByRef ClockHandle As LongPtr) As Long
+
+Public Type KSTOPOLOGY
+    CategoriesCount As Long
+    '_Field_size_(CategoriesCount)
+    Categories As LongPtr 'const UUID*
+    TopologyNodesCount As Long
+    '_Field_size_(TopologyNodesCount)
+    TopologyNodes As LongPtr 'const UUID*
+    TopologyConnectionsCount As Long
+    '_Field_size_(TopologyConnectionsCount)
+    TopologyConnections As LongPtr 'const KSTOPOLOGY_CONNECTION*
+    '_Field_size_(TopologyNodesCount)
+    TopologyNodesNames As LongPtr 'const UUID*
+    Reserved As Long
+End Type
+
+Public Const KSFILTER_NODE  = (-1&)
+Public Const KSALL_NODES  = (-1&)
+
+Public Type KSNODE_CREATE
+    CreateFlags As Long
+    Node As Long
+End Type
+
+Public Enum KsAllocReqFlags
+    KSALLOCATOR_REQUIREMENTF_INPLACE_MODIFIER = &H00000001
+    KSALLOCATOR_REQUIREMENTF_SYSTEM_MEMORY = &H00000002
+    KSALLOCATOR_REQUIREMENTF_FRAME_INTEGRITY = &H00000004
+    KSALLOCATOR_REQUIREMENTF_MUST_ALLOCATE = &H00000008
+    KSALLOCATOR_REQUIREMENTF_SYSTEM_MEMORY_CUSTOM_ALLOCATION = &H00000010
+    KSALLOCATOR_REQUIREMENTF_PREFERENCES_ONLY = &H80000000
+End Enum
+Public Enum KsAllocFlags
+    KSALLOCATOR_OPTIONF_COMPATIBLE = &H00000001
+    KSALLOCATOR_OPTIONF_SYSTEM_MEMORY = &H00000002
+    KSALLOCATOR_OPTIONF_VALID = &H00000003
+    '  pins extended framing flags
+    KSALLOCATOR_FLAG_PARTIAL_READ_SUPPORT = &H00000010
+    KSALLOCATOR_FLAG_DEVICE_SPECIFIC = &H00000020
+    KSALLOCATOR_FLAG_CAN_ALLOCATE = &H00000040
+    KSALLOCATOR_FLAG_INSIST_ON_FRAMESIZE_RATIO = &H00000080
+    '  allocator pipes flags
+    '  there is at least one data modification in a pipe
+    KSALLOCATOR_FLAG_NO_FRAME_INTEGRITY = &H00000100
+    KSALLOCATOR_FLAG_MULTIPLE_OUTPUT = &H00000200
+    KSALLOCATOR_FLAG_CYCLE = &H00000400
+    KSALLOCATOR_FLAG_ALLOCATOR_EXISTS = &H00000800
+    '  there is no framing dependency between neighbouring pipes.
+    KSALLOCATOR_FLAG_INDEPENDENT_RANGES = &H00001000
+    KSALLOCATOR_FLAG_ATTENTION_STEPPING = &H00002000
+    KSALLOCATOR_FLAG_ENABLE_CACHED_MDL = &H00004000
+    KSALLOCATOR_FLAG_2D_BUFFER_REQUIRED = &H00008000&
+End Enum
+
+Public Type KSALLOCATOR_FRAMING
+    '    union {
+    '        ULONG       OptionsFlags;       // allocator options (create)
+    '        ULONG       RequirementsFlags;  // allocation requirements (query)
+    '    };
+    OptionsFlags As KsAllocFlags
+    '#if defined(_NTDDK_)
+    '    POOL_TYPE   PoolType;
+    '#else // !_NTDDK_
+    PoolType As POOL_TYPE
+    '#endif // !_NTDDK_
+    Frames As Long ' total number of allowable outstanding frames
+    FrameSize As Long ' total size of frame
+    'union {
+    '    ULONG       FileAlignment;
+    '    LONG        FramePitch; // When KSALLOCATOR_FLAG_2D_BUFFER_REQUIRED is set this field specifies the required 2d pitch for the buffer i.e. the width + stride
+    '};
+    FileAlignment As FileAlignmentConstants
+    Reserved As Long
     
+    'EUS
+    Property Get RequirementsFlags() As KsAllocReqFlags: Return CType(Of KsAllocReqFlags)(Me.OptionsFlags): End Property
+    Property Let RequirementsFlags(ByVal value As KsAllocReqFlags): Me.OptionsFlags = CType(Of KsAllocFlags)(value): End Property
+End Type
+
+Public Enum KSPIN_COMMUNICATION
+    KSPIN_COMMUNICATION_NONE
+    KSPIN_COMMUNICATION_SINK
+    KSPIN_COMMUNICATION_SOURCE
+    KSPIN_COMMUNICATION_BOTH
+    KSPIN_COMMUNICATION_BRIDGE
+End Enum
+
+Public Type KSPIN_CONNECT
+    Interface As KSPIN_INTERFACE
+    Medium As KSPIN_MEDIUM
+    PinId As Long
+    PinToHandle As LongPtr
+    Priority As KSPRIORITY
+End Type
+
+Public Declare PtrSafe Function KsCreatePin Lib "ksuser.dll" (ByVal FilterHandle As LongPtr, ByRef Connect As KSPIN_CONNECT, [TypeHint(GenericRights)] ByVal DesiredAccess As Long, ConnectionHandle As LongPtr) As Long
+Public Declare PtrSafe Function KsCreatePin2 Lib "ksuser.dll" (ByVal FilterHandle As LongPtr, ByRef Connect As KSPIN_CONNECT, [TypeHint(GenericRights)] ByVal DesiredAccess As Long, ConnectionHandle As LongPtr) As Long
+
+Public Declare PtrSafe Function KsCreateAllocator Lib "ksuser.dll" (ByVal ConnectionHandle As LongPtr, ByRef AllocatorFraming As KSALLOCATOR_FRAMING, AllocatorHandle As LongPtr) As Long
+Public Declare PtrSafe Function KsCreateAllocator2 Lib "ksuser.dll" (ByVal ConnectionHandle As LongPtr, ByRef AllocatorFraming As KSALLOCATOR_FRAMING, AllocatorHandle As LongPtr) As Long
+
+Public Declare PtrSafe Function KsCreateClock Lib "ksuser.dll" (ByVal ConnectionHandle As LongPtr, ByRef ClockCreate As KSCLOCK_CREATE, ByRef ClockHandle As LongPtr) As Long
+Public Declare PtrSafe Function KsCreateClock2 Lib "ksuser.dll" (ByVal ConnectionHandle As LongPtr, ByRef ClockCreate As KSCLOCK_CREATE, ByRef ClockHandle As LongPtr) As Long
+
+Public Declare PtrSafe Function KsCreateTopologyNode Lib "ksuser.dll" (ByVal ConnectionHandle As LongPtr, NodeCreate As KSNODE_CREATE, [TypeHint(GenericRights)] ByVal DesiredAccess As Long, NodeHandle As LongPtr) As Long
+Public Declare PtrSafe Function KsCreateTopologyNode2 Lib "ksuser.dll" (ByVal ParentHandle As LongPtr, NodeCreate As KSNODE_CREATE, [TypeHint(GenericRights)] ByVal DesiredAccess As Long, NodeHandle As LongPtr) As Long
+
 End Module
+
+Public Alias KSPROPERTY As KSIDENTIFIER
+Public Alias KSPIN_MEDIUM As KSIDENTIFIER
+Public Alias KSPIN_INTERFACE As KSIDENTIFIER
+
+
+
+
 
 Module wdAPIKSMedia
     #Region "ksmedia.h"
