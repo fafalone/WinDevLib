@@ -17892,10 +17892,179 @@ Public DeclareWide PtrSafe Function Dhcpv6ReleasePrefix Lib "dhcpcsvc6.dll" (ByV
 
 #End Region
 
+' tcpioctl.h
+
+Public Const FSCTL_TCP_BASE        = FILE_DEVICE_NETWORK
+
+Public Const IOCTL_TCP_QUERY_INFORMATION_EX = 120003 '_TCP_CTL_CODE(0, METHOD_NEITHER, FILE_ANY_ACCESS) 
+
+Public Const DD_TCP_DEVICE_NAME  = "\Device\Tcp"
+Public Const IF_MIB_STATS_ID  = 1
+Public Const IP_MIB_STATS_ID  = 1
+Public Const IP_MIB_ADDRTABLE_ENTRY_ID  = &H102
+Public Const IP_INTFC_INFO_ID  = &H103
+Public Const MAX_PHYSADDR_SIZE  = 8
+
+Public Type IFEntry
+    if_index As Long
+    if_type As Long
+    if_mtu As Long
+    if_speed As Long
+    if_physaddrlen As Long
+    if_physaddr(0 To (MAX_PHYSADDR_SIZE - 1)) As Byte
+    if_adminstatus As Long
+    if_operstatus As Long
+    if_lastchange As Long
+    if_inoctets As Long
+    if_inucastpkts As Long
+    if_innucastpkts As Long
+    if_indiscards As Long
+    if_inerrors As Long
+    if_inunknownprotos As Long
+    if_outoctets As Long
+    if_outucastpkts As Long
+    if_outnucastpkts As Long
+    if_outdiscards As Long
+    if_outerrors As Long
+    if_outqlen As Long
+    if_descrlen As Long
+    if_descr(0 To 0) As Byte
+End Type
+
+Public Type IPSNMPInfo
+    ipsi_forwarding As Long
+    ipsi_defaultttl As Long
+    ipsi_inreceives As Long
+    ipsi_inhdrerrors As Long
+    ipsi_inaddrerrors As Long
+    ipsi_forwdatagrams As Long
+    ipsi_inunknownprotos As Long
+    ipsi_indiscards As Long
+    ipsi_indelivers As Long
+    ipsi_outrequests As Long
+    ipsi_routingdiscards As Long
+    ipsi_outdiscards As Long
+    ipsi_outnoroutes As Long
+    ipsi_reasmtimeout As Long
+    ipsi_reasmreqds As Long
+    ipsi_reasmoks As Long
+    ipsi_reasmfails As Long
+    ipsi_fragoks As Long
+    ipsi_fragfails As Long
+    ipsi_fragcreates As Long
+    ipsi_numif As Long
+    ipsi_numaddr As Long
+    ipsi_numroutes As Long
+End Type
+
+Public Type IPAddrEntry
+    iae_addr As Long
+    iae_index As Long
+    iae_mask As Long
+    iae_bcastaddr As Long
+    iae_reasmsize As Long
+    iae_context As Integer
+    iae_pad As Integer
+End Type
+
+Public Type IPInterfaceInfo
+    iii_flags As Long
+    iii_mtu As Long
+    iii_speed As Long
+    iii_addrlength As Long
+    iii_addr(0 To 0) As Byte
+End Type
+
+
+'madcapcl.h
+Public Const MCAST_CLIENT_ID_LEN  = 17
+
+Public Enum MCastAPIVersion
+    MCAST_API_VERSION_0 = 0
+    MCAST_API_VERSION_1
+End Enum
+
+' typedef union _IPNG_ADDRESS {
+' DWORD   IpAddrV4;
+' BYTE    IpAddrV6[16];
+' } IPNG_ADDRESS, *PIPNG_ADDRESS;
+Public Type IPNG_ADDRESS
+    u(3) As Long
+    
+    'EUS
+    Public Property Get IpAddrV6() As Byte()
+        Dim tmp() As Byte
+        ReDim tmp(15)
+        CopyMemory tmp(0), Me.u(0), 16
+        Return tmp
+    End Property
+    Public Property Let IpAddrV6(value() As Byte)
+        CopyMemory Me.u(0), value(0), 16
+    End Property
+    Public Property Get IpAddrV4() As Long
+        Return Me.u(0)
+    End Property
+    Public Property Let IpAddrV4(ByVal value As Long)
+        Me.u(0) = value
+    End Property
+End Type
+
+Public Type MCAST_CLIENT_UID
+    ClientUID As LongPtr
+    ClientUIDLength As Long
+End Type
+
+Public Type MCAST_SCOPE_CTX
+    ScopeID As IPNG_ADDRESS
+    Interface As IPNG_ADDRESS
+    ServerID As IPNG_ADDRESS
+End Type
+
+Public Type MCAST_SCOPE_ENTRY
+    ScopeCtx As MCAST_SCOPE_CTX
+    LastAddr As IPNG_ADDRESS
+    TTL As Long
+    ScopeDesc As UNICODE_STRING
+End Type
+
+Public Type MCAST_LEASE_REQUEST
+    LeaseStartTime As Long
+    MaxLeaseStartTime As Long
+    LeaseDuration As Long
+    MinLeaseDuration As Long
+    ServerAddress As IPNG_ADDRESS
+    MinAddrCount As Integer
+    AddrCount As Integer
+    pAddrBuf As LongPtr
+End Type
+
+Public Type MCAST_LEASE_RESPONSE
+    LeaseStartTime As Long
+    LeaseEndTime As Long
+    ServerAddress As IPNG_ADDRESS
+    AddrCount As Integer
+    pAddrBuf As LongPtr
+End Type
+
+[UseGetLastError(False)]
+Public Declare PtrSafe Function McastApiStartup Lib "dhcpcsvc.dll" (ByRef Version As MCastAPIVersion) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Sub McastApiCleanup Lib "dhcpcsvc.dll" ()
+[UseGetLastError(False)]
+Public Declare PtrSafe Function McastGenUID Lib "dhcpcsvc.dll" (ByRef pRequestID As MCAST_CLIENT_UID) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function McastEnumerateScopes Lib "dhcpcsvc.dll" ([TypeHint(ADDRESS_FAMILIES)] ByVal AddrFamily As IP_ADDR_FAMILY, ByVal ReQuery As BOOL, ByRef pScopeList As MCAST_SCOPE_ENTRY, ByRef pScopeLen As Long, ByRef pScopeCount As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function McastRequestAddress Lib "dhcpcsvc.dll" ([TypeHint(ADDRESS_FAMILIES)] ByVal AddrFamily As IP_ADDR_FAMILY, ByRef pRequestID As MCAST_CLIENT_UID, ByRef pScopeCtx As MCAST_SCOPE_CTX, ByRef pAddrRequest As MCAST_LEASE_REQUEST, ByRef pAddrResponse As MCAST_LEASE_RESPONSE) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function McastRenewAddress Lib "dhcpcsvc.dll" ([TypeHint(ADDRESS_FAMILIES)] ByVal AddrFamily As IP_ADDR_FAMILY, ByRef pRequestID As MCAST_CLIENT_UID, ByRef pRenewRequest As MCAST_LEASE_REQUEST, ByRef pRenewResponse As MCAST_LEASE_RESPONSE) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function McastReleaseAddress Lib "dhcpcsvc.dll" ([TypeHint(ADDRESS_FAMILIES)] ByVal AddrFamily As IP_ADDR_FAMILY, ByRef pRequestID As MCAST_CLIENT_UID, ByRef pReleaseRequest As MCAST_LEASE_REQUEST) As Long
 
 
 
 End Module
+Public Alias IP_ADDR_FAMILY As Integer
 
 Public Alias INTERNET_PER_CONN_OPTION As INTERNET_PER_CONN_OPTIONW
 Public Alias INTERNET_PER_CONN_OPTION_LIST As INTERNET_PER_CONN_OPTION_LISTW
