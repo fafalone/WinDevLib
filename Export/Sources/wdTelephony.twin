@@ -11,7 +11,7 @@
 ' Telephony APIs, Fax APIs
 ' Note: TAPI 3.0 has a VB/tB compatible system typelib, so is not duplicated here
 
-
+#If WINDEVLIB_LITE = 0 Then
 
 Module wdTelephony
 
@@ -2765,7 +2765,7 @@ Public DeclareWide PtrSafe Function tapiRequestMediaCall Lib "tapi32.dll" Alias 
 Public Function TAPIERROR_FORMATMESSAGE(ByVal ErrCode As Long) As Long
     Dim uErrCode As LongLong
     uErrCode = ErrCode
-    uErrCode = uErrCode And &HFFFFFFFF^  
+    uErrCode = uErrCode And &HFFFFFFFF^
 
     Dim uResult As LongLong
     If uErrCode > &HFFFF0000^ Then
@@ -3285,12 +3285,12 @@ End Type
 Public Type FAX_CONTEXT_INFOA
 	SizeOfStruct As Long                                        ' Size of this structure
 	hDC As LongPtr                                              ' Device Context
-	ServerName(0 To (MAX_COMPUTERNAME_LENGTH + 1 - 1)) As Byte  ' Server name
+	ServerName(0 To (MAX_COMPUTERNAME_LENGTH)) As Byte  ' Server name
 End Type
 Public Type FAX_CONTEXT_INFOW
 	SizeOfStruct As Long                                           ' Size of this structure
 	hDC As LongPtr                                                 ' Device Context
-	ServerName(0 To (MAX_COMPUTERNAME_LENGTH + 1 - 1)) As Integer    ' Server name
+	ServerName(0 To (MAX_COMPUTERNAME_LENGTH)) As Integer    ' Server name
 End Type
 
 Public Declare PtrSafe Function FaxConnectFaxServerA Lib "WinFax.dll" (ByVal MachineName As String, FaxHandle As LongPtr) As BOOL
@@ -3423,6 +3423,4435 @@ End Enum
 
 #End Region
 
+
+#Region "naptypes.h"
+
+Public Const maxSoHAttributeCount  As Integer = (100)
+Public Const maxSoHAttributeSize  As Integer = (4000)
+Public Const minNetworkSoHSize  As Integer = (12)
+Public Const maxNetworkSoHSize  As Integer = (4000)
+Public Const maxDwordCountPerSoHAttribute  As Integer = ((maxSoHAttributeSize / 4))
+Public Const maxIpv4CountPerSoHAttribute  As Integer = ((maxSoHAttributeSize / 4))
+Public Const maxIpv6CountPerSoHAttribute  As Integer = ((maxSoHAttributeSize / 16))
+Public Const maxStringLength  As Integer = (1024)
+Public Const maxStringLengthInBytes  As Integer = ((((maxStringLength + 1)) * 2))
+Public Const maxSystemHealthEntityCount  As Integer = (20)
+Public Const maxEnforcerCount  As Integer = (20)
+Public Const maxPrivateDataSize  As Integer = (200)
+Public Const maxConnectionCountPerEnforcer  As Integer = (20)
+Public Const maxCachedSoHCount  As Integer = (((maxSystemHealthEntityCount * maxEnforcerCount) * maxConnectionCountPerEnforcer))
+Public Const freshSoHRequest  As Integer = (&H1)
+Public Const shaFixup  As Integer = (&H1)
+
+Public Enum IsolationState
+	isolationStateNotRestricted = 1
+	isolationStateInProbation = 2
+	isolationStateRestrictedAccess = 3
+End Enum
+
+Public Enum ExtendedIsolationState
+	extendedIsolationStateNoData = &H00
+	extendedIsolationStateTransition = &H01
+	extendedIsolationStateInfected = &H02
+	extendedIsolationStateUnknown = &H03
+End Enum
+
+Public Enum NapTracingLevel
+	tracingLevelUndefined = 0
+	tracingLevelBasic = 1
+	tracingLevelAdvanced = 2
+	tracingLevelDebug = 3
+End Enum
+
+Public Type CountedString
+	length As Integer
+	string As LongPtr 'WCHAR*
+End Type
+
+Public Type IsolationInfo
+	isolationState As IsolationState
+	probEndTime As ProbationTime
+	failureUrl As CountedString
+End Type
+
+Public Type IsolationInfoEx
+	isolationState As IsolationState
+	extendedIsolationState As ExtendedIsolationState
+	probEndTime As ProbationTime
+	failureUrl As CountedString
+End Type
+
+Public Const failureCategoryCount As Integer = 5
+
+Public Enum FailureCategory
+	failureCategoryNone = 0
+	failureCategoryOther = 1
+	failureCategoryClientComponent = 2
+	failureCategoryClientCommunication = 3
+	failureCategoryServerComponent = 4
+	failureCategoryServerCommunication = 5
+End Enum
+
+Public Type FailureCategoryMapping
+	mappingCompliance(0 To (failureCategoryCount - 1)) As BOOL
+End Type
+
+Public Const ComponentTypeEnforcementClientSoH As Long = &H1
+Public Const ComponentTypeEnforcementClientRp As Long = &H2
+
+Public Type CorrelationId
+	connId As UUID
+	timeStamp As FILETIME
+End Type
+
+Public Const percentageNotSupported As Byte = 101
+
+Public Type ResultCodes
+	count As Integer
+	results As LongPtr 'HRESULT *
+End Type
+
+Public Type Ipv4Address
+	addr(0 To 3) As Byte
+End Type
+
+Public Type Ipv6Address
+	addr(0 To 15) As Byte
+End Type
+
+Public Enum FixupState
+	fixupStateSuccess = 0
+	fixupStateInProgress = 1
+	fixupStateCouldNotUpdate = 2
+End Enum
+
+Public Type FixupInfo
+	state As FixupState
+	percentage As Byte 'Percentage
+	resultCodes As ResultCodes
+	fixupMsgId As UUID 'MessageId
+End Type
+
+Public Enum NapNotifyType
+	napNotifyTypeUnknown = 0
+	napNotifyTypeServiceState = 1
+	napNotifyTypeQuarState = 2
+End Enum
+
+Public Type SystemHealthAgentState
+	id As Long 'SystemHealthEntityId
+	shaResultCodes As ResultCodes
+	failureCategory As FailureCategory
+	fixupInfo As FixupInfo
+End Type
+
+Public Type SoHAttribute
+	type As Integer
+	size As Integer
+	value As LongPtr
+End Type
+
+Public Type SoH
+	count As Integer
+	attributes As LongPtr 'SoHAttribute*
+End Type
+
+Public Type NetworkSoH
+	size As Integer
+	data As LongPtr
+End Type
+
+Public Type PrivateData
+	size As Integer
+	data As LongPtr
+End Type
+
+Public Type NapComponentRegistrationInfo
+	id As Long 'NapComponentId
+	friendlyName As CountedString
+	description As CountedString
+	version As CountedString
+	vendorName As CountedString
+	infoClsid As UUID
+	configClsid As UUID
+	registrationDate As FILETIME
+	componentType As Long
+End Type
+
+Public Enum RemoteConfigurationType
+	remoteConfigTypeMachine = 1
+	remoteConfigTypeConfigBlob
+End Enum
+#End Region
+
+
+
+
+#Region "ras.h"
+
+Public Const RASNAP_ProbationTime  = &H00000001
+
+Public Type RASNAPSTATE
+	dwSize As Long
+	dwFlags As Long
+	isolationState As IsolationState
+	probationTime As ProbationTime
+End Type
+
+Public Enum RASAPIVERSION
+	RASAPIVERSION
+	RASAPIVERSION_500 = 1
+	RASAPIVERSION_501
+	RASAPIVERSION_600
+	RASAPIVERSION_601
+End Enum
+
+Public Const RASAPIVERSION_CURRENT = RASAPIVERSION_601
+
+Public Type RASIPADDR
+	a As Byte
+	b As Byte
+	c As Byte
+	d As Byte
+End Type
+
+Public Enum RasTunnelEndpointTypes
+	RASTUNNELENDPOINT_UNKNOWN = 0
+	RASTUNNELENDPOINT_IPv4 = 1
+	RASTUNNELENDPOINT_IPv6 = 2
+End Enum
+
+[Description("For the ipv6 union arm, use custom type RASTUNNELENDPOINT6")]
+Public Type RASTUNNELENDPOINT
+	dwTType As RasTunnelEndpointTypes
+    ' union {
+        ' RASIPV4ADDR ipv4;
+        ' RASIPV6ADDR ipv6;
+    ' };
+    ipv4 As RASIPV4ADDR
+    _pad(11) As Byte
+End Type
+Public Type RASTUNNELENDPOINT8
+    dwTType As RasTunnelEndpointTypes
+    ' union {
+        ' RASIPV4ADDR ipv4;
+        ' RASIPV6ADDR ipv6;
+    ' };
+    ipv6 As RASIPV6ADDR
+End Type
+
+Public Const RAS_MaxDeviceType  = 16
+Public Const RAS_MaxPhoneNumber  = 128
+Public Const RAS_MaxIpAddress  = 15
+Public Const RAS_MaxIpxAddress  = 21
+' #if (WINVER >= 0x400)
+Public Const RAS_MaxEntryName  = 256
+Public Const RAS_MaxDeviceName  = 128
+Public Const RAS_MaxCallbackNumber  = RAS_MaxPhoneNumber
+' #else
+' #define RAS_MaxEntryName      20
+' #define RAS_MaxDeviceName     32
+' #define RAS_MaxCallbackNumber 48
+' #endif
+Public Const RAS_MaxAreaCode  = 10
+Public Const RAS_MaxPadType  = 32
+Public Const RAS_MaxX25Address  = 200
+Public Const RAS_MaxFacilities  = 200
+Public Const RAS_MaxUserData  = 200
+Public Const RAS_MaxReplyMessage  = 1024
+Public Const RAS_MaxDnsSuffix  = 256
+
+Public Enum RasOwnerFlags
+	RASCF_AllUsers = &H00000001
+	RASCF_GlobalCreds = &H00000002
+	RASCF_OwnerKnown = &H00000004
+	RASCF_OwnerMatch = &H00000008
+End Enum
+
+Public Function RASCF_IsOwner(ByVal rascFlags As RasOwnerFlags) As Boolean
+    Return ((rascFlags And (RASCF_OwnerKnown Or RASCF_OwnerMatch)) = (RASCF_OwnerKnown Or RASCF_OwnerMatch))
+End Function
+
+Public Function RASCF_IsNotOwner(ByVal rascFlags As RasOwnerFlags) As Boolean
+    Return ((rascFlags And (RASCF_OwnerKnown Or RASCF_OwnerMatch)) = RASCF_OwnerKnown)
+End Function
+
+Public Const RAS_MaxIDSize  = 256
+
+[PackingAlignment(4)]
+Public Type RASCONNW
+	dwSize As Long
+	hrasconn As LongPtr
+	szEntryName(0 To RAS_MaxEntryName) As Integer
+	szDeviceType(0 To RAS_MaxDeviceType) As Integer
+	szDeviceName(0 To RAS_MaxDeviceName) As Integer
+	szPhonebook(0 To (MAX_PATH - 1)) As Integer
+	dwSubEntry As Long
+	guidEntry As UUID
+	dwFlags As RasOwnerFlags
+	luid As LUID
+	guidCorrelationId As UUID
+End Type
+[PackingAlignment(4)]
+Public Type RASCONNA
+    dwSize As Long
+    hrasconn As LongPtr
+    szEntryName(0 To RAS_MaxEntryName) As Byte
+    szDeviceType(0 To RAS_MaxDeviceType) As Byte
+    szDeviceName(0 To RAS_MaxDeviceName) As Byte
+    szPhonebook(0 To (MAX_PATH - 1)) As Byte
+    dwSubEntry As Long
+    guidEntry As UUID
+    dwFlags As RasOwnerFlags
+    luid As LUID
+    guidCorrelationId As UUID
+End Type
+
+Public Enum RasConnectionStates
+	RASCS_PAUSED = &H1000
+	RASCS_DONE = &H2000
+End Enum
+Public Enum RASCONNSTATE
+	RASCS_OpenPort = 0
+	RASCS_PortOpened
+	RASCS_ConnectDevice
+	RASCS_DeviceConnected
+	RASCS_AllDevicesConnected
+	RASCS_Authenticate
+	RASCS_AuthNotify
+	RASCS_AuthRetry
+	RASCS_AuthCallback
+	RASCS_AuthChangePassword
+	RASCS_AuthProject
+	RASCS_AuthLinkSpeed
+	RASCS_AuthAck
+	RASCS_ReAuthenticate
+	RASCS_Authenticated
+	RASCS_PrepareForCallback
+	RASCS_WaitForModemReset
+	RASCS_WaitForCallback
+	RASCS_Projected
+	' #if (WINVER >= 0x400)
+	RASCS_StartAuthentication
+	RASCS_CallbackComplete
+	RASCS_LogonNetwork
+	' #endif
+	RASCS_SubEntryConnected
+	RASCS_SubEntryDisconnected
+	' #if (WINVER >= 0x601)
+	RASCS_ApplySettings
+	' #endif
+	RASCS_Interactive = RASCS_PAUSED
+	RASCS_RetryAuthentication
+	RASCS_CallbackSetByCaller
+	RASCS_PasswordExpired
+	' #if (WINVER >= 0x500)
+	RASCS_InvokeEapUI
+	' #endif
+	RASCS_Connected = RASCS_DONE
+	RASCS_Disconnected
+End Enum
+
+Public Enum RasConnectionSubStates
+	RASCSS_DONE = &H2000
+End Enum
+Public Enum RASCONNSUBSTATE
+	RASCSS_None = 0
+	RASCSS_Dormant
+	RASCSS_Reconnecting
+	RASCSS_Reconnected = RASCSS_DONE
+End Enum
+
+Public Type RASCONNSTATUSW
+	dwSize As Long
+	rasconnstate As RASCONNSTATE
+	dwError As Long
+	szDeviceType(0 To RAS_MaxDeviceType) As Integer
+	szDeviceName(0 To RAS_MaxDeviceName) As Integer
+	'#if (WINVER >= 0x401)
+	szPhoneNumber(0 To RAS_MaxPhoneNumber) As Integer
+	'#endif
+	'#if (WINVER >= 0x601)
+	localEndPoint As RASTUNNELENDPOINT
+	remoteEndPoint As RASTUNNELENDPOINT
+	rasconnsubstate As RASCONNSUBSTATE
+	'#endif
+End Type
+Public Type RASCONNSTATUSA
+    dwSize As Long
+    rasconnstate As RASCONNSTATE
+    dwError As Long
+    szDeviceType(0 To RAS_MaxDeviceType) As Integer
+    szDeviceName(0 To RAS_MaxDeviceName) As Integer
+    '#if (WINVER >= 0x401)
+    szPhoneNumber(0 To RAS_MaxPhoneNumber) As Integer
+    '#endif
+    '#if (WINVER >= 0x601)
+    localEndPoint As RASTUNNELENDPOINT
+    remoteEndPoint As RASTUNNELENDPOINT
+    rasconnsubstate As RASCONNSUBSTATE
+    '#endif
+End Type
+
+[PackingAlignment(4)]
+Public Type RASDIALPARAMSW
+	dwSize As Long
+	szEntryName(0 To RAS_MaxEntryName) As Integer
+	szPhoneNumber(0 To RAS_MaxPhoneNumber) As Integer
+	szCallbackNumber(0 To RAS_MaxCallbackNumber) As Integer
+	szUserName(0 To UNLEN) As Integer
+	szPassword(0 To PWLEN) As Integer
+	szDomain(0 To DNLEN) As Integer
+	'#if (WINVER >= 0x401)
+	dwSubEntry As Long
+	dwCallbackId As LongPtr
+	'#endif
+	'#if (WINVER >= 0x601)
+	dwIfIndex As Long
+	'#endif
+	'#if (WINVER >= 0x602)
+	szEncPassword As LongPtr
+	'#endif
+End Type
+[PackingAlignment(4)]
+Public Type RASDIALPARAMSA
+    dwSize As Long
+    szEntryName(0 To RAS_MaxEntryName) As Byte
+    szPhoneNumber(0 To RAS_MaxPhoneNumber) As Byte
+    szCallbackNumber(0 To RAS_MaxCallbackNumber) As Byte
+    szUserName(0 To UNLEN) As Byte
+    szPassword(0 To PWLEN) As Byte
+    szDomain(0 To DNLEN) As Byte
+    '#if (WINVER >= 0x401)
+    dwSubEntry As Long
+    dwCallbackId As LongPtr
+    '#endif
+    '#if (WINVER >= 0x601)
+    dwIfIndex As Long
+    '#endif
+    '#if (WINVER >= 0x602)
+    szEncPassword As LongPtr
+    '#endif
+End Type
+
+[PackingAlignment(4)]
+Public Type RASEAPINFO
+	dwSizeofEapInfo As Long
+	pbEapInfo As LongPtr 'BYTE  *
+End Type
+
+[PackingAlignment(4)]
+Public Type RASDEVSPECIFICINFO
+	dwSize As Long
+	pbDevSpecificInfo As LongPtr 'BYTE  *
+End Type
+
+[PackingAlignment(4)]
+Public Type RASDIALEXTENSIONS
+	dwSize As Long
+	dwfOptions As RasDialExtOptions
+	hwndParent As LongPtr
+	reserved As LongPtr
+	'#if (WINVER >= 0x500)
+	reserved1 As LongPtr
+	RasEapInfo As RASEAPINFO
+	'#endif
+	'#if (WINVER >= 0x601)
+	fSkipPppAuth As BOOL
+	RasDevSpecificInfo As RASDEVSPECIFICINFO
+	'#endif
+End Type
+
+Public Enum RasDialExtOptions
+	RDEOPT_UsePrefixSuffix = &H00000001
+	RDEOPT_PausedStates = &H00000002
+	RDEOPT_IgnoreModemSpeaker = &H00000004
+	RDEOPT_SetModemSpeaker = &H00000008
+	RDEOPT_IgnoreSoftwareCompression = &H00000010
+	RDEOPT_SetSoftwareCompression = &H00000020
+	RDEOPT_DisableConnectedUI = &H00000040
+	RDEOPT_DisableReconnectUI = &H00000080
+	RDEOPT_DisableReconnect = &H00000100
+	RDEOPT_NoUser = &H00000200
+	RDEOPT_PauseOnScript = &H00000400
+	RDEOPT_Router = &H00000800
+	' #if (WINVER >= 0x500)
+	RDEOPT_CustomDial = &H00001000
+	' #endif
+	' #if (WINVER >= 0x501)
+	RDEOPT_UseCustomScripting = &H00002000
+	' #endif
+	' #if (WINVER >= 0x603)
+	RDEOPT_InvokeAutoTriggerCredentialUI = &H00004000
+	RDEOPT_EapInfoCryptInCapable = &H00008000&
+End Enum
+
+Public Enum RasEntryNameFlags
+	REN_User = &H00000000
+	REN_AllUsers = &H00000001
+End Enum
+
+Public Type RASENTRYNAMEW
+	dwSize As Long
+	szEntryName(0 To RAS_MaxEntryName) As Integer
+	'#if (WINVER >= 0x500)
+	' If this flag is REN_AllUsers then its a
+	' system phonebook.
+	dwFlags As RasEntryNameFlags
+	szPhonebookPath(0 To MAX_PATH) As Integer
+	'#endif
+End Type
+Public Type RASENTRYNAMEA
+    dwSize As Long
+    szEntryName(0 To RAS_MaxEntryName) As Byte
+    '#if (WINVER >= 0x500)
+    ' If this flag is REN_AllUsers then its a
+    ' system phonebook.
+    dwFlags As RasEntryNameFlags
+    szPhonebookPath(0 To MAX_PATH) As Byte
+    '#endif
+End Type
+
+Public Enum RASPROJECTION
+	RASP_Amb = &H10000
+	RASP_PppNbf = &H803F&
+	RASP_PppIpx = &H802B&
+	RASP_PppIp = &H8021&
+	' #if (WINVER >= 0x500)
+	RASP_PppCcp = &H80FD&
+	' #endif
+	RASP_PppLcp = &HC021&
+	' #if (WINVER >= 0x600)
+	RASP_PppIpv6 = &H8057& ' To get Ipv6 projection information
+	' #endif
+	' #if (WINVER < 0x600) // SLIP
+	RASP_Slip = &H20000
+	' #endif // (WINVER < 0x600) // SLIP
+End Enum
+
+Public Type RASAMBW
+	dwSize As Long
+	dwError As Long
+	szNetBiosError(0 To NETBIOS_NAME_LEN) As Integer
+	bLana As Byte
+End Type
+Public Type RASAMBA
+    dwSize As Long
+    dwError As Long
+    szNetBiosError(0 To NETBIOS_NAME_LEN) As Byte
+    bLana As Byte
+End Type
+
+Public Type RASPPPNBFW
+	dwSize As Long
+	dwError As Long
+	dwNetBiosError As Long
+	szNetBiosError(0 To NETBIOS_NAME_LEN) As Integer
+	szWorkstationName(0 To NETBIOS_NAME_LEN) As Integer
+	bLana As Byte
+End Type
+Public Type RASPPPNBFA
+    dwSize As Long
+    dwError As Long
+    dwNetBiosError As Long
+    szNetBiosError(0 To NETBIOS_NAME_LEN) As Byte
+    szWorkstationName(0 To NETBIOS_NAME_LEN) As Byte
+    bLana As Byte
+End Type
+
+Public Type RASPPPIPXW
+	dwSize As Long
+	dwError As Long
+	szIpxAddress(0 To RAS_MaxIpxAddress) As Integer
+End Type
+Public Type RASPPPIPXA
+    dwSize As Long
+    dwError As Long
+    szIpxAddress(0 To RAS_MaxIpxAddress) As Byte
+End Type
+
+Public Enum RasPPPOptions
+	RASIPO_VJ = &H00000001
+End Enum
+
+Public Type RASPPPIPW
+	dwSize As Long
+	dwError As Long
+	szIpAddress(0 To RAS_MaxIpAddress) As Integer
+	'#ifndef WINNT35COMPATIBLE
+		/* This field was added between Windows NT 3.51 beta and Windows NT 3.51
+		** final, and between Windows 95 M8 beta and Windows 95 final.  If you do
+		** not require the server address and wish to retrieve PPP IP information
+		** from Windows NT 3.5 or early Windows NT 3.51 betas, or on early Windows
+		** 95 betas, define WINNT35COMPATIBLE.
+		**
+		** The server IP address is not provided by all PPP implementations,
+		** though Windows NT server's do provide it.
+		*/
+	'#endif
+	'#if (WINVER >= 0x500)
+	dwOptions As RasPPPOptions
+	dwServerOptions As RasPPPOptions
+	'#endif
+End Type
+Public Type RASPPPIPA
+    dwSize As Long
+    dwError As Long
+    szIpAddress(0 To RAS_MaxIpAddress) As Byte
+    '#ifndef WINNT35COMPATIBLE
+        /* This field was added between Windows NT 3.51 beta and Windows NT 3.51
+        ** final, and between Windows 95 M8 beta and Windows 95 final.  If you do
+        ** not require the server address and wish to retrieve PPP IP information
+        ** from Windows NT 3.5 or early Windows NT 3.51 betas, or on early Windows
+        ** 95 betas, define WINNT35COMPATIBLE.
+        **
+        ** The server IP address is not provided by all PPP implementations,
+        ** though Windows NT server's do provide it.
+        */
+    '#endif
+    '#if (WINVER >= 0x500)
+    dwOptions As RasPPPOptions
+    dwServerOptions As RasPPPOptions
+    '#endif
+End Type
+
+Public Type RASPPPIPV6
+	dwSize As Long
+	dwError As Long
+	bLocalInterfaceIdentifier(0 To 7) As Byte
+	bPeerInterfaceIdentifier(0 To 7) As Byte
+	bLocalCompressionProtocol(0 To 1) As Byte
+	bPeerCompressionProtocol(0 To 1) As Byte
+End Type
+
+Public Enum RasAuthProtocolValues
+	RASLCPAP_PAP = &HC023&
+	RASLCPAP_SPAP = &HC027&
+	RASLCPAP_CHAP = &HC223&
+	RASLCPAP_EAP = &HC227&
+End Enum
+
+Public Enum RasAuthDataValues
+	RASLCPAD_CHAP_MD5 = &H05
+	RASLCPAD_CHAP_MS = &H80
+	RASLCPAD_CHAP_MSV2 = &H81
+End Enum
+
+Public Enum RasPPPLCPOptions
+	RASLCPO_PFC = &H00000001
+	RASLCPO_ACFC = &H00000002
+	RASLCPO_SSHF = &H00000004
+	RASLCPO_DES_56 = &H00000008
+	RASLCPO_3_DES = &H00000010
+	' #if (WINVER >= 0x600)
+	RASLCPO_AES_128 = &H00000020
+	RASLCPO_AES_256 = &H00000040
+	' #endif /* WINVER >= 0x0600 */
+	' #if (WINVER >= 0x603)
+	RASLCPO_AES_192 = &H00000080
+	RASLCPO_GCM_AES_128 = &H00000100
+	RASLCPO_GCM_AES_192 = &H00000200
+	RASLCPO_GCM_AES_256 = &H00000400
+End Enum
+
+Public Type RASPPPLCPW
+	dwSize As Long
+	fBundled As BOOL
+	'#if (WINVER >= 0x500)
+	dwError As Long
+	dwAuthenticationProtocol As RasAuthProtocolValues
+	dwAuthenticationData As RasAuthDataValues
+	dwEapTypeId As Long
+	dwServerAuthenticationProtocol As RasAuthProtocolValues
+	dwServerAuthenticationData As RasAuthDataValues
+	dwServerEapTypeId As Long
+	fMultilink As BOOL
+	dwTerminateReason As Long
+	dwServerTerminateReason As Long
+	szReplyMessage(0 To (RAS_MaxReplyMessage - 1)) As Integer
+	dwOptions As RasPPPLCPOptions
+	dwServerOptions As RasPPPLCPOptions
+	'#endif
+End Type
+Public Type RASPPPLCPA
+    dwSize As Long
+    fBundled As BOOL
+    '#if (WINVER >= 0x500)
+    dwError As Long
+    dwAuthenticationProtocol As RasAuthProtocolValues
+    dwAuthenticationData As RasAuthDataValues
+    dwEapTypeId As Long
+    dwServerAuthenticationProtocol As RasAuthProtocolValues
+    dwServerAuthenticationData As RasAuthDataValues
+    dwServerEapTypeId As Long
+    fMultilink As BOOL
+    dwTerminateReason As Long
+    dwServerTerminateReason As Long
+    szReplyMessage(0 To (RAS_MaxReplyMessage - 1)) As Byte
+    dwOptions As RasPPPLCPOptions
+    dwServerOptions As RasPPPLCPOptions
+    '#endif
+End Type
+ 
+Public Type RASSLIPW
+    dwSize As Long
+    dwError As Long
+    szIpAddress(0 To RAS_MaxIpAddress) As Integer
+End Type
+Public Type RASSLIPA
+    dwSize As Long
+    dwError As Long
+    szIpAddress(0 To RAS_MaxIpAddress) As Byte
+End Type
+
+Public Enum RasCCPCA_Algorithms
+    RASCCPCA_MPPC = &H00000006
+    RASCCPCA_STAC = &H00000005
+End Enum
+
+Public Enum RasCCPCA_Options
+    RASCCPO_Compression = &H00000001
+    RASCCPO_HistoryLess = &H00000002
+    RASCCPO_Encryption56bit = &H00000010
+    RASCCPO_Encryption40bit = &H00000020
+    RASCCPO_Encryption128bit = &H00000040
+End Enum
+
+Public Type RASPPPCCP
+    dwSize As Long
+    dwError As Long
+    dwCompressionAlgorithm As RasCCPCA_Options
+    dwOptions As RasCCPCA_Options
+    dwServerCompressionAlgorithm As RasCCPCA_Options
+    dwServerOptions As RasCCPCA_Options
+End Type
+
+Public Type RASPPP_PROJECTION_INFO
+    ' IPv4 Projection Parameters
+    dwIPv4NegotiationError As Long
+    ipv4Address As RASIPV4ADDR
+    ipv4ServerAddress As RASIPV4ADDR
+    dwIPv4Options As RasPPPOptions
+    dwIPv4ServerOptions As RasPPPOptions
+    ' IPv6 Projection Parameters
+    dwIPv6NegotiationError As Long
+    bInterfaceIdentifier(0 To 7) As Byte
+    bServerInterfaceIdentifier(0 To 7) As Byte
+    ' LCP Options
+    fBundled As BOOL
+    fMultilink As BOOL
+    dwAuthenticationProtocol As RasAuthProtocolValues
+    dwAuthenticationData As RasAuthDataValues
+    dwServerAuthenticationProtocol As RasAuthProtocolValues
+    dwServerAuthenticationData As RasAuthDataValues
+    dwEapTypeId As Long
+    dwServerEapTypeId As Long
+    dwLcpOptions As RasPPPLCPOptions
+    dwLcpServerOptions As RasPPPLCPOptions
+    ' CCP options
+    dwCcpError As Long
+    dwCcpCompressionAlgorithm As RasCCPCA_Algorithms
+    dwCcpServerCompressionAlgorithm As RasCCPCA_Algorithms
+    dwCcpOptions As RasCCPCA_Options
+    dwCcpServerOptions As RasCCPCA_Options
+End Type
+
+Public Enum RasIKEv2Flags
+    RASIKEv2_FLAGS_MOBIKESUPPORTED = &H00000001
+    RASIKEv2_FLAGS_BEHIND_NAT = &H00000002
+    RASIKEv2_FLAGS_SERVERBEHIND_NAT = &H00000004
+End Enum
+
+Public Enum RasIKEv2AuthProtocols
+    RASIKEv2_AUTH_MACHINECERTIFICATES = 1
+    RASIKEv2_AUTH_EAP = 2
+    RASIKEv2_AUTH_PSK = 3
+End Enum
+
+[PackingAlignment(4)]
+Public Type RASIKEV2_PROJECTION_INFO
+    ' IPv4 Projection Parameters
+    dwIPv4NegotiationError As Long
+    ipv4Address As RASIPV4ADDR
+    ipv4ServerAddress As RASIPV4ADDR
+    ' IPv6 Projection Parameters
+    dwIPv6NegotiationError As Long
+    ipv6Address As RASIPV6ADDR
+    ipv6ServerAddress As RASIPV6ADDR
+    dwPrefixLength As Long
+    ' AUTH
+    dwAuthenticationProtocol As RasIKEv2AuthProtocols
+    dwEapTypeId As Long
+    dwFlags As RasIKEv2Flags
+    dwEncryptionMethod As IPSEC_CIPHER_TYPE
+    numIPv4ServerAddresses As Long
+    ipv4ServerAddresses As LongPtr 'RASIPV4ADDR *
+    numIPv6ServerAddresses As Long
+    ipv6ServerAddresses As LongPtr 'RASIPV6ADDR *
+End Type
+
+Public Enum RASPROJECTION_INFO_TYPE
+	PROJECTION_INFO_TYPE_PPP = 1
+	PROJECTION_INFO_TYPE_IKEv2
+End Enum
+
+Public Enum IKEV2_ID_PAYLOAD_TYPE
+	IKEV2_ID_PAYLOAD_TYPE_INVALID = 0
+	IKEV2_ID_PAYLOAD_TYPE_IPV4_ADDR = 1      ' A single four (4) octet IPv4 address
+	IKEV2_ID_PAYLOAD_TYPE_FQDN = 2           ' A fully-qualified domain name string, e.g., "example.com"
+	IKEV2_ID_PAYLOAD_TYPE_RFC822_ADDR = 3    ' A fully-qualified RFC 822 email address string, e.g., "jsmith@example.com".
+	IKEV2_ID_PAYLOAD_TYPE_RESERVED1 = 4      ' Reserved-Not used
+	IKEV2_ID_PAYLOAD_TYPE_ID_IPV6_ADDR = 5   ' A single sixteen (16) octet IPv6 address.
+	IKEV2_ID_PAYLOAD_TYPE_RESERVED2 = 6      ' Reserved-Not used
+	IKEV2_ID_PAYLOAD_TYPE_RESERVED3 = 7      ' Reserved-Not used
+	IKEV2_ID_PAYLOAD_TYPE_RESERVED4 = 8      ' Reserved-Not used
+	IKEV2_ID_PAYLOAD_TYPE_DER_ASN1_DN = 9    ' The binary Distinguished Encoding Rules (DER) encoding of an ASN.1 X.500 Distinguished Name [PKIX].
+	IKEV2_ID_PAYLOAD_TYPE_DER_ASN1_GN = 10   ' The binary DER encoding of an ASN.1 X.509 GeneralName [PKIX
+	IKEV2_ID_PAYLOAD_TYPE_KEY_ID = 11        ' Reserved-Not used
+	IKEV2_ID_PAYLOAD_TYPE_MAX
+End Enum
+
+Public Type RAS_PROJECTION_INFO
+	version As RASAPIVERSION
+	type As RASPROJECTION_INFO_TYPE
+	' Based on the connectionFlags, it should use appropriate projection info
+	'union {
+	'    RASPPP_PROJECTION_INFO     ppp;
+	'    RASIKEV2_PROJECTION_INFO   ikev2;
+	'};
+    u(99) As Byte
+End Type
+
+Public Const RASDIALEVENT  = "RasDialEvent"
+' Public Const WM_RASDIALEVENT  = &HCCCD
+
+Public Delegate Sub RASDIALFUNC (ByVal unMsg As Long, ByVal state As RASCONNSTATE, ByVal dwError As Long)
+Public Delegate Sub RASDIALFUNC1 (ByVal hrasconn As LongPtr, ByVal unMsg As Long, ByVal state As RASCONNSTATE, ByVal dwError As Long, ByVal dwExtendedError As Long)
+Public Delegate Function RASDIALFUNC2 (ByVal dwCallbackId As LongPtr, ByVal dwSubEntry As Long, ByVal hrasconn As LongPtr, ByVal unMsg As Long, ByVal state As RASCONNSTATE, ByVal dwError As Long, ByVal dwExtendedError As Long) As Long
+
+Public Type RASDEVINFOW
+	dwSize As Long
+	szDeviceType(0 To RAS_MaxDeviceType) As Integer
+	szDeviceName(0 To RAS_MaxDeviceName) As Integer
+End Type
+Public Type RASDEVINFOA
+    dwSize As Long
+    szDeviceType(0 To RAS_MaxDeviceType) As Byte
+    szDeviceName(0 To RAS_MaxDeviceName) As Byte
+End Type
+
+Public Type RASCTRYINFO
+	dwSize As Long
+	dwCountryID As Long
+	dwNextCountryID As Long
+	dwCountryCode As Long
+	dwCountryNameOffset As Long
+End Type
+
+Public Enum RasEncryptionLevels
+	ET_None = 0  		' No encryption
+	ET_Require = 1  	' Require Encryption
+	ET_RequireMax = 2  	' Require max encryption
+	ET_Optional = 3  	' Do encryption if possible. None Ok.
+End Enum
+
+Public Enum RasVSOptions
+	VS_Default = 0        ' default (PPTP for now)
+	VS_PptpOnly = 1       ' Only PPTP is attempted.
+	VS_PptpFirst = 2      ' PPTP is tried first.
+	VS_L2tpOnly = 3       ' Only L2TP is attempted.
+	VS_L2tpFirst = 4      ' L2TP is tried first.
+	' #if (WINVER >= 0x600)
+	VS_SstpOnly = 5       ' Only SSTP is attempted
+	VS_SstpFirst = 6      ' SSTP is attempted first
+	' #endif
+	' #if (WINVER >= 0x601)
+	VS_Ikev2Only = 7      ' Only VPN Ikev2 is attempted
+	VS_Ikev2First = 8     ' VPN Ikev2 is attempted first
+	' #endif
+	' #if (WINVER >= 0x603)
+	VS_GREOnly = 9
+	' #endif
+	' #if (WINVER >= 0x601)
+	VS_PptpSstp = 12      ' PPTP is attempted followed only by SSTP
+	VS_L2tpSstp = 13      ' L2TP is attempted followed only by SSTP
+	VS_Ikev2Sstp = 14     ' IKEv2 is attempted followed only by SSTP
+	' #endif
+	' #if (WINVER >= 0xA00)
+	VS_ProtocolList = 15  ' Use ProtocolList to determine protocols to connect
+	' #endif
+End Enum
+
+[Description("IMPORTANT: This is the most recent at time of writing version, for Windows 10. For earlier versions, make sure you set dwSize to the total of only the members on that OS.")]
+Public Type RASENTRYA
+	dwSize As Long
+	dwfOptions As RasEntryOptions
+	' Location/phone number.
+	dwCountryID As Long
+	dwCountryCode As Long
+	szAreaCode(0 To RAS_MaxAreaCode) As Byte
+	szLocalPhoneNumber(0 To RAS_MaxPhoneNumber) As Byte
+	dwAlternateOffset As Long
+	' PPP/Ip
+	ipaddr As RASIPADDR
+	ipaddrDns As RASIPADDR
+	ipaddrDnsAlt As RASIPADDR
+	ipaddrWins As RASIPADDR
+	ipaddrWinsAlt As RASIPADDR
+	' Framing
+	dwFrameSize As Long
+	dwfNetProtocols As RasNetworkProtocols
+	dwFramingProtocol As RasFramingProtocols
+	' Scripting
+	szScript(0 To (MAX_PATH - 1)) As Byte
+	' AutoDial
+	szAutodialDll(0 To (MAX_PATH - 1)) As Byte
+	szAutodialFunc(0 To (MAX_PATH - 1)) As Byte
+	' Device
+	szDeviceType(0 To RAS_MaxDeviceType) As Byte
+	szDeviceName(0 To RAS_MaxDeviceName) As Byte
+	' X.25
+	szX25PadType(0 To RAS_MaxPadType) As Byte
+	szX25Address(0 To RAS_MaxX25Address) As Byte
+	szX25Facilities(0 To RAS_MaxFacilities) As Byte
+	szX25UserData(0 To RAS_MaxUserData) As Byte
+	dwChannels As Long
+	' Reserved
+	dwReserved1 As Long
+	dwReserved2 As Long
+	'#if (WINVER >= 0x401)
+	' Multilink
+	dwSubEntries As Long
+	dwDialMode As RasDialModes
+	dwDialExtraPercent As Long
+	dwDialExtraSampleSeconds As Long
+	dwHangUpExtraPercent As Long
+	dwHangUpExtraSampleSeconds As Long
+	' Idle timeout
+	dwIdleDisconnectSeconds As RasIdleDisconnectDefaults
+	'#endif
+	'#if (WINVER >= 0x500)
+	' Entry Type
+	dwType As RasPhonebookEntryTypes
+	' Encryption type
+	dwEncryptionType As RasEncryptionLevels
+	' CustomAuthKey to be used for EAP
+	dwCustomAuthKey As Long
+	' Guid of the connection
+	guidId As UUID
+	' Custom Dial Dll
+	szCustomDialDll(0 To (MAX_PATH - 1)) As Byte
+	' DwVpnStrategy
+	dwVpnStrategy As RasVSOptions
+	'#endif
+	'#if (WINVER >= 0x501)
+	' More RASEO_* options
+	dwfOptions2 As RasEntryOptions2
+	' For future use
+	dwfOptions3 As Long
+	szDnsSuffix(0 To (RAS_MaxDnsSuffix - 1)) As Byte
+	dwTcpWindowSize As Long
+	szPrerequisitePbk(0 To (MAX_PATH - 1)) As Byte
+	szPrerequisiteEntry(0 To RAS_MaxEntryName) As Byte
+	dwRedialCount As Long
+	dwRedialPause As Long
+	'#endif
+	'#if (WINVER >= 0x600)
+	' PPP/IPv6
+	ipv6addrDns As RASIPV6ADDR
+	ipv6addrDnsAlt As RASIPV6ADDR
+	dwIPv4InterfaceMetric As Long
+	dwIPv6InterfaceMetric As Long
+	'#endif
+	'#if (WINVER >= 0x601)
+	' Fields required for supporting static IPv6 address
+	' configuration for a vpn interface by the user
+	ipv6addr As RASIPV6ADDR
+	dwIPv6PrefixLength As Long
+	' IKEv2 related
+	dwNetworkOutageTime As Long
+	'#endif
+	'#if (WINVER >= 0xA00)
+	szIDi(0 To RAS_MaxIDSize) As Byte
+	szIDr(0 To RAS_MaxIDSize) As Byte
+	fIsImsConfig As BOOL
+	IdiType As IKEV2_ID_PAYLOAD_TYPE
+	IdrType As IKEV2_ID_PAYLOAD_TYPE
+	fDisableIKEv2Fragmentation As BOOL
+	'#endif
+End Type
+[Description("IMPORTANT: This is the most recent at time of writing version, for Windows 10. For earlier versions, make sure you set dwSize to the total of only the members on that OS.")]
+Public Type RASENTRYW
+    dwSize As Long
+    dwfOptions As RasEntryOptions
+    ' Location/phone number.
+    dwCountryID As Long
+    dwCountryCode As Long
+    szAreaCode(0 To RAS_MaxAreaCode) As Integer
+    szLocalPhoneNumber(0 To RAS_MaxPhoneNumber) As Integer
+    dwAlternateOffset As Long
+    ' PPP/Ip
+    ipaddr As RASIPADDR
+    ipaddrDns As RASIPADDR
+    ipaddrDnsAlt As RASIPADDR
+    ipaddrWins As RASIPADDR
+    ipaddrWinsAlt As RASIPADDR
+    ' Framing
+    dwFrameSize As Long
+    dwfNetProtocols As RasNetworkProtocols
+    dwFramingProtocol As RasFramingProtocols
+    ' Scripting
+    szScript(0 To (MAX_PATH - 1)) As Integer
+    ' AutoDial
+    szAutodialDll(0 To (MAX_PATH - 1)) As Integer
+    szAutodialFunc(0 To (MAX_PATH - 1)) As Integer
+    ' Device
+    szDeviceType(0 To RAS_MaxDeviceType) As Integer
+    szDeviceName(0 To RAS_MaxDeviceName) As Integer
+    ' X.25
+    szX25PadType(0 To RAS_MaxPadType) As Integer
+    szX25Address(0 To RAS_MaxX25Address) As Integer
+    szX25Facilities(0 To RAS_MaxFacilities) As Integer
+    szX25UserData(0 To RAS_MaxUserData) As Integer
+    dwChannels As Long
+    ' Reserved
+    dwReserved1 As Long
+    dwReserved2 As Long
+    '#if (WINVER >= 0x401)
+    ' Multilink
+    dwSubEntries As Long
+    dwDialMode As RasDialModes
+    dwDialExtraPercent As Long
+    dwDialExtraSampleSeconds As Long
+    dwHangUpExtraPercent As Long
+    dwHangUpExtraSampleSeconds As Long
+    ' Idle timeout
+    dwIdleDisconnectSeconds As RasIdleDisconnectDefaults
+    '#endif
+    '#if (WINVER >= 0x500)
+    ' Entry Type
+    dwType As RasPhonebookEntryTypes
+    ' Encryption type
+    dwEncryptionType As RasEncryptionLevels
+    ' CustomAuthKey to be used for EAP
+    dwCustomAuthKey As Long
+    ' Guid of the connection
+    guidId As UUID
+    ' Custom Dial Dll
+    szCustomDialDll(0 To (MAX_PATH - 1)) As Integer
+    ' DwVpnStrategy
+    dwVpnStrategy As RasVSOptions
+    '#endif
+    '#if (WINVER >= 0x501)
+    ' More RASEO_* options
+    dwfOptions2 As RasEntryOptions2
+    ' For future use
+    dwfOptions3 As Long
+    szDnsSuffix(0 To (RAS_MaxDnsSuffix - 1)) As Integer
+    dwTcpWindowSize As Long
+    szPrerequisitePbk(0 To (MAX_PATH - 1)) As Integer
+    szPrerequisiteEntry(0 To RAS_MaxEntryName) As Integer
+    dwRedialCount As Long
+    dwRedialPause As Long
+    '#endif
+    '#if (WINVER >= 0x600)
+    ' PPP/IPv6
+    ipv6addrDns As RASIPV6ADDR
+    ipv6addrDnsAlt As RASIPV6ADDR
+    dwIPv4InterfaceMetric As Long
+    dwIPv6InterfaceMetric As Long
+    '#endif
+    '#if (WINVER >= 0x601)
+    ' Fields required for supporting static IPv6 address
+    ' configuration for a vpn interface by the user
+    ipv6addr As RASIPV6ADDR
+    dwIPv6PrefixLength As Long
+    ' IKEv2 related
+    dwNetworkOutageTime As Long
+    '#endif
+    '#if (WINVER >= 0xA00)
+    szIDi(0 To RAS_MaxIDSize) As Integer
+    szIDr(0 To RAS_MaxIDSize) As Integer
+    fIsImsConfig As BOOL
+    IdiType As IKEV2_ID_PAYLOAD_TYPE
+    IdrType As IKEV2_ID_PAYLOAD_TYPE
+    fDisableIKEv2Fragmentation As BOOL
+    '#endif
+End Type
+
+Public Enum RasEntryOptions
+	RASEO_UseCountryAndAreaCodes = &H00000001
+	RASEO_SpecificIpAddr = &H00000002
+	RASEO_SpecificNameServers = &H00000004
+	RASEO_IpHeaderCompression = &H00000008
+	RASEO_RemoteDefaultGateway = &H00000010
+	RASEO_DisableLcpExtensions = &H00000020
+	RASEO_TerminalBeforeDial = &H00000040
+	RASEO_TerminalAfterDial = &H00000080
+	RASEO_ModemLights = &H00000100
+	RASEO_SwCompression = &H00000200
+	RASEO_RequireEncryptedPw = &H00000400
+	RASEO_RequireMsEncryptedPw = &H00000800
+	RASEO_RequireDataEncryption = &H00001000
+	RASEO_NetworkLogon = &H00002000
+	RASEO_UseLogonCredentials = &H00004000
+	RASEO_PromoteAlternates = &H00008000&
+	' #if (WINVER >= 0x401)
+	RASEO_SecureLocalFiles = &H00010000
+	' #endif
+	' #if (WINVER >= 0x500)
+	RASEO_RequireEAP = &H00020000
+	RASEO_RequirePAP = &H00040000
+	RASEO_RequireSPAP = &H00080000
+	RASEO_Custom = &H00100000
+	RASEO_PreviewPhoneNumber = &H00200000
+	RASEO_SharedPhoneNumbers = &H00800000
+	RASEO_PreviewUserPw = &H01000000
+	RASEO_PreviewDomain = &H02000000
+	RASEO_ShowDialingProgress = &H04000000
+	RASEO_RequireCHAP = &H08000000
+	RASEO_RequireMsCHAP = &H10000000
+	RASEO_RequireMsCHAP2 = &H20000000
+	RASEO_RequireW95MSCHAP = &H40000000
+	RASEO_CustomScript = &H80000000
+End Enum
+
+Public Enum RasEntryOptions2
+	RASEO2_SecureFileAndPrint = &H00000001
+	RASEO2_SecureClientForMSNet = &H00000002
+	RASEO2_DontNegotiateMultilink = &H00000004
+	RASEO2_DontUseRasCredentials = &H00000008
+	RASEO2_UsePreSharedKey = &H00000010
+	RASEO2_Internet = &H00000020
+	RASEO2_DisableNbtOverIP = &H00000040
+	RASEO2_UseGlobalDeviceSettings = &H00000080
+	RASEO2_ReconnectIfDropped = &H00000100
+	RASEO2_SharePhoneNumbers = &H00000200
+	' #endif
+	' #if (WINVER >= 0x600)
+	RASEO2_SecureRoutingCompartment = &H00000400
+	RASEO2_UseTypicalSettings = &H00000800
+	RASEO2_IPv6SpecificNameServers = &H00001000
+	RASEO2_IPv6RemoteDefaultGateway = &H00002000
+	RASEO2_RegisterIpWithDNS = &H00004000
+	RASEO2_UseDNSSuffixForRegistration = &H00008000&
+	RASEO2_IPv4ExplicitMetric = &H00010000
+	RASEO2_IPv6ExplicitMetric = &H00020000
+	RASEO2_DisableIKENameEkuCheck = &H00040000
+	' #endif
+	' #if (WINVER >= 0x601)
+	RASEO2_DisableClassBasedStaticRoute = &H00080000
+	RASEO2_SpecificIPv6Addr = &H00100000
+	RASEO2_DisableMobility = &H00200000
+	RASEO2_RequireMachineCertificates = &H00400000
+	' #endif
+	' #if (WINVER >= 0x602)
+	RASEO2_UsePreSharedKeyForIkev2Initiator = &H00800000
+	RASEO2_UsePreSharedKeyForIkev2Responder = &H01000000
+	RASEO2_CacheCredentials = &H02000000
+	' #endif
+	' #if (WINVER >= 0x603)
+	RASEO2_AutoTriggerCapable = &H04000000
+	RASEO2_IsThirdPartyProfile = &H08000000
+	RASEO2_AuthTypeIsOtp = &H10000000
+	' #endif
+	' #if (WINVER >= 0x604)
+	RASEO2_IsAlwaysOn = &H20000000
+	RASEO2_IsPrivateNetwork = &H40000000
+	' #endif
+	' #if (WINVER >= 0xA00)
+	RASEO2_PlumbIKEv2TSAsRoutes = &H80000000
+End Enum
+
+Public Enum RasNetworkProtocols
+	RASNP_NetBEUI = &H00000001
+	RASNP_Ipx = &H00000002
+	RASNP_Ip = &H00000004
+	' #if (WINVER >= 0x600)
+	RASNP_Ipv6 = &H00000008
+End Enum
+
+Public Enum RasFramingProtocols
+	RASFP_Ppp = &H00000001
+	RASFP_Slip = &H00000002
+	RASFP_Ras = &H00000004
+End Enum
+
+Public Const RASDT_Modem  = "modem"
+Public Const RASDT_Isdn  = "isdn"
+Public Const RASDT_X25  = "x25"
+Public Const RASDT_Vpn  = "vpn"
+Public Const RASDT_Pad  = "pad"
+Public Const RASDT_Generic  = "GENERIC"
+Public Const RASDT_Serial  = "SERIAL"
+Public Const RASDT_FrameRelay  = "FRAMERELAY"
+Public Const RASDT_Atm  = "ATM"
+Public Const RASDT_Sonet  = "SONET"
+Public Const RASDT_SW56  = "SW56"
+Public Const RASDT_Irda  = "IRDA"
+Public Const RASDT_Parallel  = "PARALLEL"
+' #if (WINVER >= 0x501)
+Public Const RASDT_PPPoE  = "PPPoE"
+
+Public Enum RasPhonebookEntryTypes
+	RASET_Phone = 1       ' Phone lines: modem, ISDN, X.25, etc
+	RASET_Vpn = 2         ' Virtual private network
+	' #if (WINVER < 0x600)
+	RASET_Direct = 3      ' Direct connect: serial, parallel
+	' #endif // (WINVER < 0x600)
+	RASET_Internet = 4    ' BaseCamp internet
+	' #if (WINVER >= 0x501)
+	RASET_Broadband = 5   ' Broadband
+End Enum
+
+Public Delegate Function ORASADFUNC (ByVal hwnd As LongPtr, ByVal sz As LongPtr, ByVal dw As Long, pdw As Long) As BOOL
+
+Public Enum RasConnectionNotifications
+	RASCN_Connection = &H00000001
+	RASCN_Disconnection = &H00000002
+	RASCN_BandwidthAdded = &H00000004
+	RASCN_BandwidthRemoved = &H00000008
+	RASCN_Dormant = &H00000010
+	RASCN_ReConnection = &H00000020
+	RASCN_EPDGPacketArrival = &H00000040
+End Enum
+
+Public Enum RasDialModes
+	RASEDM_DialAll = 1
+	RASEDM_DialAsNeeded = 2
+End Enum
+
+Public Enum RasIdleDisconnectDefaults
+	RASIDS_Disabled = &Hffffffff
+	RASIDS_UseGlobalValue = 0
+End Enum
+
+[PackingAlignment(4)]
+Public Type RASADPARAMS
+	dwSize As Long
+	hwndOwner As LongPtr
+	dwFlags As RasADDlgFlags
+	xDlg As Long
+	yDlg As Long
+End Type
+
+Public Enum RasADDlgFlags
+	RASADFLG_PositionDlg = &H00000001
+End Enum
+
+Public Delegate Function RASADFUNCA (ByVal lpszPhonebook As LongPtr, ByVal lpszEntry As LongPtr, lpAutoDialParams As RASADPARAMS, lpdwRetCode As Long) As BOOL
+Public Delegate Function RASADFUNCW (ByVal lpszPhonebook As LongPtr, ByVal lpszEntry As LongPtr, lpAutoDialParams As RASADPARAMS, lpdwRetCode As Long) As BOOL
+Public Delegate Function RASADFUNC (ByVal lpszPhonebook As LongPtr, ByVal lpszEntry As LongPtr, lpAutoDialParams As RASADPARAMS, lpdwRetCode As Long) As BOOL
+
+Public Type RASSUBENTRYA
+	dwSize As Long
+	dwfFlags As Long
+	' Device
+	szDeviceType(0 To RAS_MaxDeviceType) As Byte
+	szDeviceName(0 To RAS_MaxDeviceName) As Byte
+	' Phone numbers
+	szLocalPhoneNumber(0 To RAS_MaxPhoneNumber) As Byte
+	dwAlternateOffset As Long
+End Type
+Public Type RASSUBENTRYW
+    dwSize As Long
+    dwfFlags As Long
+    ' Device
+    szDeviceType(0 To RAS_MaxDeviceType) As Integer
+    szDeviceName(0 To RAS_MaxDeviceName) As Integer
+    ' Phone numbers
+    szLocalPhoneNumber(0 To RAS_MaxPhoneNumber) As Integer
+    dwAlternateOffset As Long
+End Type
+
+Public Type RASCREDENTIALSA
+	dwSize As Long
+	dwMask As RasCredentialsMask
+	szUserName(0 To (UNLEN + 1 - 1)) As Byte
+	szPassword(0 To (PWLEN + 1 - 1)) As Byte
+	szDomain(0 To (DNLEN + 1 - 1)) As Byte
+End Type
+Public Type RASCREDENTIALSW
+    dwSize As Long
+    dwMask As RasCredentialsMask
+    szUserName(0 To (UNLEN + 1 - 1)) As Integer
+    szPassword(0 To (PWLEN + 1 - 1)) As Integer
+    szDomain(0 To (DNLEN + 1 - 1)) As Integer
+End Type
+
+Public Enum RasCredentialsMask
+	RASCM_UserName = &H00000001
+	RASCM_Password = &H00000002
+	RASCM_Domain = &H00000004
+	' #if (WINVER >= 501)
+	RASCM_DefaultCreds = &H00000008
+	RASCM_PreSharedKey = &H00000010
+	RASCM_ServerPreSharedKey = &H00000020
+	RASCM_DDMPreSharedKey = &H00000040
+End Enum
+
+Public Type RASAUTODIALENTRYA
+	dwSize As Long
+	dwFlags As Long
+	dwDialingLocation As Long
+	szEntry(0 To RAS_MaxEntryName) As Byte
+End Type
+Public Type RASAUTODIALENTRYW
+    dwSize As Long
+    dwFlags As Long
+    dwDialingLocation As Long
+    szEntry(0 To RAS_MaxEntryName) As Integer
+End Type
+
+Public Enum RasADCtrlParams
+	RASADP_DisableConnectionQuery = 0
+	RASADP_LoginSessionDisable = 1
+	RASADP_SavedAddressesLimit = 2
+	RASADP_FailedConnectionTimeout = 3
+	RASADP_ConnectionQueryTimeout = 4
+End Enum
+
+Public Enum RasEapfFlags
+	RASEAPF_NonInteractive = &H00000002
+	RASEAPF_Logon = &H00000004
+	RASEAPF_Preview = &H00000008
+End Enum
+
+Public Type RASEAPUSERIDENTITYA
+	szUserName(0 To UNLEN) As Byte
+	dwSizeofEapInfo As Long
+	pbEapInfo(0 To 0) As Byte
+End Type
+Public Type RASEAPUSERIDENTITYW
+    szUserName(0 To UNLEN) As Integer
+    dwSizeofEapInfo As Long
+    pbEapInfo(0 To 0) As Byte
+End Type
+
+Public Delegate Function FNRASGETBUFFER (ByRef ppBuffer As LongPtr, ByRef pdwSize As Long) As Long
+
+Public Delegate Function FNRASFREEBUFFER (ByVal pBufer As LongPtr) As Long
+
+Public Delegate Function FNRASSENDBUFFER (ByVal hPort As LongPtr, ByVal pBuffer As LongPtr, ByVal dwSize As Long) As Long
+
+Public Delegate Function FNRASRECEIVEBUFFER (ByVal hPort As LongPtr, ByVal pBuffer As LongPtr, ByRef pdwSize As Long, ByVal dwTimeOut As Long, ByVal hEvent As LongPtr) As Long
+
+Public Delegate Function FNRASRETRIEVEBUFFER (ByVal hPort As LongPtr, ByVal pBuffer As LongPtr, ByRef pdwSize As Long) As Long
+' #If WDL_NO_DELEGATES Then
+Public Delegate Function RasCustomScriptExecuteFn (ByVal hPort As LongPtr, ByVal lpszPhonebook As LongPtr, ByVal lpszEntryName As LongPtr, ByVal pfnRasGetBuffer As LongPtr, ByVal pfnRasFreeBuffer As LongPtr, ByVal pfnRasSendBuffer As LongPtr, ByVal pfnRasReceiveBuffer As LongPtr, ByVal pfnRasRetrieveBuffer As LongPtr, ByVal hWnd As LongPtr, ByRef pRasDialParams As RASDIALPARAMS, ByVal pvReserved As LongPtr) As Long
+' #Else
+' Public Delegate Function RasCustomScriptExecuteFn (ByVal hPort As LongPtr, ByVal lpszPhonebook As LongPtr, ByVal lpszEntryName As LongPtr, ByVal pfnRasGetBuffer As FNRASGETBUFFER, ByVal pfnRasFreeBuffer As FNRASFREEBUFFER, ByVal pfnRasSendBuffer As FNRASSENDBUFFER, ByVal pfnRasReceiveBuffer As FNRASRECEIVEBUFFER, ByVal pfnRasRetrieveBuffer As FNRASRETRIEVEBUFFER, ByVal hWnd As LongPtr, ByRef pRasDialParams As RASDIALPARAMS, ByVal pvReserved As LongPtr) As Long
+' #End If
+Public Delegate Function PFNRASSETCOMMSETTINGS (ByRef pRasCommSettings As RASCOMMSETTINGS, ByVal pvReserved As LongPtr) As Long
+
+Public Type RASCOMMSETTINGS
+	dwSize As Long
+	bParity As Byte
+	bStop As Byte
+	bByteSize As Byte
+	bAlign As Byte
+End Type
+
+[PackingAlignment(4)]
+Public Type RASCUSTOMSCRIPTEXTENSIONS
+	dwSize As Long
+	pfnRasSetCommSettings As LongPtr
+End Type
+
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasDialA Lib "rasapi32.dll" (ByRef lpRasDialExtensions As RASDIALEXTENSIONS, ByVal lpszPhonebook As String, ByRef lpRasDialParams As RASDIALPARAMSA, ByVal dwNotifierType As Long, ByVal lpvNotifier As LongPtr, ByRef lphRasConn As LongPtr) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasDialW Lib "rasapi32.dll" (ByRef lpRasDialExtensions As RASDIALEXTENSIONS, ByVal lpszPhonebook As LongPtr, ByRef lpRasDialParams As RASDIALPARAMSW, ByVal dwNotifierType As Long, ByVal lpvNotifier As LongPtr, ByRef lphRasConn As LongPtr) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function RasDial Lib "rasapi32.dll" Alias "RasDialW" (ByRef lpRasDialExtensions As RASDIALEXTENSIONS, ByVal lpszPhonebook As String, ByRef lpRasDialParams As RASDIALPARAMS, ByVal dwNotifierType As Long, ByVal lpvNotifier As LongPtr, ByRef lphRasConn As LongPtr) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasEnumConnectionsA Lib "rasapi32.dll" (ByRef lprasconn As RASCONNA, ByRef lpcb As Long, ByRef lpcConnections As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasEnumConnectionsW Lib "rasapi32.dll" (ByRef lprasconn As RASCONNW, ByRef lpcb As Long, ByRef lpcConnections As Long) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function RasEnumConnections Lib "rasapi32.dll" Alias "RasEnumConnectionsW" (ByRef lprasconn As RASCONN, ByRef lpcb As Long, ByRef lpcConnections As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasEnumEntriesA Lib "rasapi32.dll" (ByVal reserved As LongPtr, ByVal lpszPhonebook As String, ByRef lprasentryname As RASENTRYNAMEA, ByRef lpcb As Long, ByRef lpcEntries As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasEnumEntriesW Lib "rasapi32.dll" (ByVal reserved As LongPtr, ByVal lpszPhonebook As LongPtr, ByRef lprasentryname As RASENTRYNAMEW, ByRef lpcb As Long, ByRef lpcEntries As Long) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function RasEnumEntries Lib "rasapi32.dll" Alias "RasEnumEntriesW" (ByVal reserved As LongPtr, ByVal lpszPhonebook As String, ByRef lprasentryname As RASENTRYNAME, ByRef lpcb As Long, ByRef lpcEntries As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasGetConnectStatusA Lib "rasapi32.dll" (ByVal hRasConn As LongPtr, ByRef lpRasConnStatus As RASCONNSTATUSA) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasGetConnectStatusW Lib "rasapi32.dll" (ByVal hRasConn As LongPtr, ByRef lpRasConnStatus As RASCONNSTATUSW) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function RasGetConnectStatus Lib "rasapi32.dll" Alias "RasGetConnectStatusW" (ByVal hRasConn As LongPtr, ByRef lpRasConnStatus As RASCONNSTATUS) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasGetErrorStringA Lib "rasapi32.dll" (ByVal ResourceId As Long, ByVal lpszString As String, ByVal InBufSize As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasGetErrorStringW Lib "rasapi32.dll" (ByVal ResourceId As Long, ByVal lpszString As LongPtr, ByVal InBufSize As Long) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function RasGetErrorString Lib "rasapi32.dll" Alias "RasGetErrorStringW" (ByVal ResourceId As Long, ByVal lpszString As String, ByVal InBufSize As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasHangUpA Lib "rasapi32.dll" (ByVal hRasConn As LongPtr) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasHangUpW Lib "rasapi32.dll" (ByVal hRasConn As LongPtr) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function RasHangUp Lib "rasapi32.dll" Alias "RasHangUpW" (ByVal hRasConn As LongPtr) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasGetProjectionInfoA Lib "rasapi32.dll" (ByVal hRasConn As LongPtr, ByVal rasProjection As RASPROJECTION, ByRef lpProjection As Any, ByRef lpcb As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasGetProjectionInfoW Lib "rasapi32.dll" (ByVal hRasConn As LongPtr, ByVal rasProjection As RASPROJECTION, ByRef lpProjection As Any, ByRef lpcb As Long) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function RasGetProjectionInfo Lib "rasapi32.dll" Alias "RasGetProjectionInfoW" (ByVal hRasConn As LongPtr, ByVal rasProjection As RASPROJECTION, ByRef lpProjection As Any, ByRef lpcb As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasCreatePhonebookEntryA Lib "rasapi32.dll" (ByVal hwndOwner As LongPtr, ByVal lpszPhonebook As String) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasCreatePhonebookEntryW Lib "rasapi32.dll" (ByVal hwndOwner As LongPtr, ByVal lpszPhonebook As LongPtr) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function RasCreatePhonebookEntry Lib "rasapi32.dll" Alias "RasCreatePhonebookEntryW" (ByVal hwndOwner As LongPtr, ByVal lpszPhonebook As String) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasEditPhonebookEntryA Lib "rasapi32.dll" (ByVal hwndOwner As LongPtr, ByVal lpszPhonebook As String, ByVal lpszEntry As String) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasEditPhonebookEntryW Lib "rasapi32.dll" (ByVal hwndOwner As LongPtr, ByVal lpszPhonebook As LongPtr, ByVal lpszEntry As LongPtr) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function RasEditPhonebookEntry Lib "rasapi32.dll" Alias "RasEditPhonebookEntryW" (ByVal hwndOwner As LongPtr, ByVal lpszPhonebook As String, ByVal lpszEntry As String) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasSetEntryDialParamsA Lib "rasapi32.dll" (ByVal lpszPhonebook As String, ByRef lpRasDialParams As RASDIALPARAMSA, ByVal fRemovePassword As BOOL) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasSetEntryDialParamsW Lib "rasapi32.dll" (ByVal lpszPhonebook As LongPtr, ByRef lpRasDialParams As RASDIALPARAMSW, ByVal fRemovePassword As BOOL) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function RasSetEntryDialParams Lib "rasapi32.dll" Alias "RasSetEntryDialParamsW" (ByVal lpszPhonebook As String, ByRef lpRasDialParams As RASDIALPARAMS, ByVal fRemovePassword As BOOL) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasGetEntryDialParamsA Lib "rasapi32.dll" (ByVal lpszPhonebook As String, ByRef lpRasDialParams As RASDIALPARAMSA, ByRef lpfPassword As BOOL) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasGetEntryDialParamsW Lib "rasapi32.dll" (ByVal lpszPhonebook As LongPtr, ByRef lpRasDialParams As RASDIALPARAMSW, ByRef lpfPassword As BOOL) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function RasGetEntryDialParams Lib "rasapi32.dll" Alias "RasGetEntryDialParamsW" (ByVal lpszPhonebook As String, ByRef lpRasDialParams As RASDIALPARAMS, ByRef lpfPassword As BOOL) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasEnumDevicesA Lib "rasapi32.dll" (ByRef lpRasDevInfo As RASDEVINFOA, ByRef lpcb As Long, ByRef lpcDevices As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasEnumDevicesW Lib "rasapi32.dll" (ByRef lpRasDevInfo As RASDEVINFOW, ByRef lpcb As Long, ByRef lpcDevices As Long) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function RasEnumDevices Lib "rasapi32.dll" Alias "RasEnumDevicesW" (ByRef lpRasDevInfo As RASDEVINFO, ByRef lpcb As Long, ByRef lpcDevices As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasGetCountryInfoA Lib "rasapi32.dll" (ByRef lpRasCtryInfo As RASCTRYINFOA, ByRef lpdwSize As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasGetCountryInfoW Lib "rasapi32.dll" (ByRef lpRasCtryInfo As RASCTRYINFOW, ByRef lpdwSize As Long) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function RasGetCountryInfo Lib "rasapi32.dll" Alias "RasGetCountryInfoW" (ByRef lpRasCtryInfo As RASCTRYINFO, ByRef lpdwSize As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasGetEntryPropertiesA Lib "rasapi32.dll" (ByVal lpszPhonebook As String, ByVal lpszEntry As String, ByRef lpRasEntry As RASENTRYA, ByRef lpdwEntryInfoSize As Long, Optional ByVal lpbDeviceInfo As LongPtr, Optional ByRef lpdwDeviceInfoSize As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasGetEntryPropertiesW Lib "rasapi32.dll" (ByVal lpszPhonebook As LongPtr, ByVal lpszEntry As LongPtr, ByRef lpRasEntry As RASENTRYW, ByRef lpdwEntryInfoSize As Long, Optional ByVal lpbDeviceInfo As LongPtr, Optional ByRef lpdwDeviceInfoSize As Long) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function RasGetEntryProperties Lib "rasapi32.dll" Alias "RasGetEntryPropertiesW" (ByVal lpszPhonebook As String, ByVal lpszEntry As String, ByRef lpRasEntry As RASENTRY, ByRef lpdwEntryInfoSize As Long, Optional ByVal lpbDeviceInfo As LongPtr, Optional ByRef lpdwDeviceInfoSize As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasSetEntryPropertiesA Lib "rasapi32.dll" (ByVal lpszPhonebook As String, ByVal lpszEntry As String, ByRef lpRasEntry As RASENTRYA, ByVal dwEntryInfoSize As Long, Optional ByVal lpbDeviceInfo As LongPtr, Optional ByVal dwDeviceInfoSize As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasSetEntryPropertiesW Lib "rasapi32.dll" (ByVal lpszPhonebook As LongPtr, ByVal lpszEntry As LongPtr, ByRef lpRasEntry As RASENTRYW, ByVal dwEntryInfoSize As Long, Optional ByVal lpbDeviceInfo As LongPtr, Optional ByVal dwDeviceInfoSize As Long) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function RasSetEntryProperties Lib "rasapi32.dll" Alias "RasSetEntryPropertiesW" (ByVal lpszPhonebook As String, ByVal lpszEntry As String, ByRef lpRasEntry As RASENTRY, ByVal dwEntryInfoSize As Long, Optional ByVal lpbDeviceInfo As LongPtr, Optional ByVal dwDeviceInfoSize As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasRenameEntryA Lib "rasapi32.dll" (ByVal lpszPhonebook As String, ByVal lpszOldEntry As String, ByVal lpszNewEntry As String) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasRenameEntryW Lib "rasapi32.dll" (ByVal lpszPhonebook As LongPtr, ByVal lpszOldEntry As LongPtr, ByVal lpszNewEntry As LongPtr) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function RasRenameEntry Lib "rasapi32.dll" Alias "RasRenameEntryW" (ByVal lpszPhonebook As String, ByVal lpszOldEntry As String, ByVal lpszNewEntry As String) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasDeleteEntryA Lib "rasapi32.dll" (ByVal lpszPhonebook As String, ByVal lpszEntry As String) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasDeleteEntryW Lib "rasapi32.dll" (ByVal lpszPhonebook As LongPtr, ByVal lpszEntry As LongPtr) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function RasDeleteEntry Lib "rasapi32.dll" Alias "RasDeleteEntryW" (ByVal lpszPhonebook As String, ByVal lpszEntry As String) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasValidateEntryNameA Lib "rasapi32.dll" (ByVal lpszPhonebook As String, ByVal lpszEntry As String) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasValidateEntryNameW Lib "rasapi32.dll" (ByVal lpszPhonebook As LongPtr, ByVal lpszEntry As LongPtr) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function RasValidateEntryName Lib "rasapi32.dll" Alias "RasValidateEntryNameW" (ByVal lpszPhonebook As String, ByVal lpszEntry As String) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasConnectionNotificationA Lib "rasapi32.dll" (ByVal hRasConn As LongPtr, ByVal hEvent As LongPtr, ByVal dwFlags As RasConnectionNotifications) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasConnectionNotificationW Lib "rasapi32.dll" (ByVal hRasConn As LongPtr, ByVal hEvent As LongPtr, ByVal dwFlags As RasConnectionNotifications) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function RasConnectionNotification Lib "rasapi32.dll" Alias "RasConnectionNotificationW" (ByVal hRasConn As LongPtr, ByVal hEvent As LongPtr, ByVal dwFlags As RasConnectionNotifications) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasGetSubEntryHandleA Lib "rasapi32.dll" (ByVal hRasConn As LongPtr, ByVal dwSubEntry As Long, ByRef lphRasConn As LongPtr) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasGetSubEntryHandleW Lib "rasapi32.dll" (ByVal hRasConn As LongPtr, ByVal dwSubEntry As Long, ByRef lphRasConn As LongPtr) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function RasGetSubEntryHandle Lib "rasapi32.dll" Alias "RasGetSubEntryHandleW" (ByVal hRasConn As LongPtr, ByVal dwSubEntry As Long, ByRef lphRasConn As LongPtr) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasGetCredentialsA Lib "rasapi32.dll" (ByVal lpszPhonebook As String, ByVal lpszEntry As String, ByRef lpCredentials As RASCREDENTIALSA) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasGetCredentialsW Lib "rasapi32.dll" (ByVal lpszPhonebook As LongPtr, ByVal lpszEntry As LongPtr, ByRef lpCredentials As RASCREDENTIALSW) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function RasGetCredentials Lib "rasapi32.dll" Alias "RasGetCredentialsW" (ByVal lpszPhonebook As String, ByVal lpszEntry As String, ByRef lpCredentials As RASCREDENTIALS) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasSetCredentialsA Lib "rasapi32.dll" (ByVal lpszPhonebook As String, ByVal lpszEntry As String, ByRef lpCredentials As RASCREDENTIALSA, ByVal fClearCredentials As BOOL) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasSetCredentialsW Lib "rasapi32.dll" (ByVal lpszPhonebook As LongPtr, ByVal lpszEntry As LongPtr, ByRef lpCredentials As RASCREDENTIALSW, ByVal fClearCredentials As BOOL) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function RasSetCredentials Lib "rasapi32.dll" Alias "RasSetCredentialsW" (ByVal lpszPhonebook As String, ByVal lpszEntry As String, ByRef lpCredentials As RASCREDENTIALS, ByVal fClearCredentials As BOOL) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasGetSubEntryPropertiesA Lib "rasapi32.dll" (ByVal lpszPhonebook As String, ByVal lpszEntry As String, ByVal dwSubEntryId As Long, ByRef lpRasSubEntry As RASSUBENTRYA, ByRef lpdwcb As Long, Optional ByVal lpbDeviceInfo As LongPtr, Optional ByRef lpdwDeviceInfoSize As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasGetSubEntryPropertiesW Lib "rasapi32.dll" (ByVal lpszPhonebook As LongPtr, ByVal lpszEntry As LongPtr, ByVal dwSubEntryId As Long, ByRef lpRasSubEntry As RASSUBENTRYW, ByRef lpdwcb As Long, Optional ByVal lpbDeviceInfo As LongPtr, Optional ByRef lpdwDeviceInfoSize As Long) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function RasGetSubEntryProperties Lib "rasapi32.dll" Alias "RasGetSubEntryPropertiesW" (ByVal lpszPhonebook As String, ByVal lpszEntry As String, ByVal dwSubEntryId As Long, ByRef lpRasSubEntry As RASSUBENTRY, ByRef lpdwcb As Long, Optional ByVal lpbDeviceInfo As LongPtr, Optional ByRef lpdwDeviceInfoSize As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasSetSubEntryPropertiesA Lib "rasapi32.dll" (ByVal lpszPhonebook As String, ByVal lpszEntry As String, ByVal dwSubEntryId As Long, ByRef lpRasSubEntry As RASSUBENTRYA, ByVal dwcbRasSubEntry As Long, Optional ByVal lpbDeviceInfo As LongPtr, Optional ByVal dwDeviceInfoSize As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasSetSubEntryPropertiesW Lib "rasapi32.dll" (ByVal lpszPhonebook As LongPtr, ByVal lpszEntry As LongPtr, ByVal dwSubEntryId As Long, ByRef lpRasSubEntry As RASSUBENTRYW, ByVal dwcbRasSubEntry As Long, Optional ByVal lpbDeviceInfo As LongPtr, Optional ByVal dwDeviceInfoSize As Long) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function RasSetSubEntryProperties Lib "rasapi32.dll" Alias "RasSetSubEntryPropertiesW" (ByVal lpszPhonebook As String, ByVal lpszEntry As String, ByVal dwSubEntryId As Long, ByRef lpRasSubEntry As RASSUBENTRY, ByVal dwcbRasSubEntry As Long, Optional ByVal lpbDeviceInfo As LongPtr, Optional ByVal dwDeviceInfoSize As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasGetAutodialAddressA Lib "rasapi32.dll" (ByVal lpszAddress As String, ByRef lpdwReserved As Long, ByRef lpAutoDialEntries As RASAUTODIALENTRYA, ByRef lpdwcbEntries As Long, ByRef lpdwcEntries As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasGetAutodialAddressW Lib "rasapi32.dll" (ByVal lpszAddress As LongPtr, ByRef lpdwReserved As Long, ByRef lpAutoDialEntries As RASAUTODIALENTRYW, ByRef lpdwcbEntries As Long, ByRef lpdwcEntries As Long) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function RasGetAutodialAddress Lib "rasapi32.dll" Alias "RasGetAutodialAddressW" (ByVal lpszAddress As String, ByRef lpdwReserved As Long, ByRef lpAutoDialEntries As RASAUTODIALENTRY, ByRef lpdwcbEntries As Long, ByRef lpdwcEntries As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasSetAutodialAddressA Lib "rasapi32.dll" (ByVal lpszAddress As String, ByVal dwReserved As Long, ByRef lpRasAutodialEntry As RASAUTODIALENTRYA, ByVal dwcbEntry As Long, ByVal dwcEntries As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasSetAutodialAddressW Lib "rasapi32.dll" (ByVal lpszAddress As LongPtr, ByVal dwReserved As Long, ByRef lpRasAutodialEntry As RASAUTODIALENTRYW, ByVal dwcbEntry As Long, ByVal dwcEntries As Long) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function RasSetAutodialAddress Lib "rasapi32.dll" Alias "RasSetAutodialAddressW" (ByVal lpszAddress As String, ByVal dwReserved As Long, ByRef lpRasAutodialEntry As RASAUTODIALENTRY, ByVal dwcbEntry As Long, ByVal dwcEntries As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasEnumAutodialAddressesA Lib "rasapi32.dll" (ByRef lppRasAutodialAddresses As LongPtr, ByRef lpdwcbRasAutodialAddresses As Long, ByRef lpdwcRasAutodialAddresses As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasEnumAutodialAddressesW Lib "rasapi32.dll" (ByRef lppRasAutodialAddresses As LongPtr, ByRef lpdwcbRasAutodialAddresses As Long, ByRef lpdwcRasAutodialAddresses As Long) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function RasEnumAutodialAddresses Lib "rasapi32.dll" Alias "RasEnumAutodialAddressesW" (ByRef lppRasAutodialAddresses As LongPtr, ByRef lpdwcbRasAutodialAddresses As Long, ByRef lpdwcRasAutodialAddresses As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasGetAutodialEnableA Lib "rasapi32.dll" (ByVal dwDialingLocation As Long, ByRef lpfEnabled As BOOL) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasGetAutodialEnableW Lib "rasapi32.dll" (ByVal dwDialingLocation As Long, ByRef lpfEnabled As BOOL) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function RasGetAutodialEnable Lib "rasapi32.dll" Alias "RasGetAutodialEnableW" (ByVal dwDialingLocation As Long, ByRef lpfEnabled As BOOL) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasSetAutodialEnableA Lib "rasapi32.dll" (ByVal dwDialingLocation As Long, ByVal fEnabled As BOOL) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasSetAutodialEnableW Lib "rasapi32.dll" (ByVal dwDialingLocation As Long, ByVal fEnabled As BOOL) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function RasSetAutodialEnable Lib "rasapi32.dll" Alias "RasSetAutodialEnableW" (ByVal dwDialingLocation As Long, ByVal fEnabled As BOOL) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasGetAutodialParamA Lib "rasapi32.dll" (ByVal dwKey As RasADCtrlParams, ByRef lpvValue As Any, ByRef lpdwcbValue As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasGetAutodialParamW Lib "rasapi32.dll" (ByVal dwKey As RasADCtrlParams, ByRef lpvValue As Any, ByRef lpdwcbValue As Long) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function RasGetAutodialParam Lib "rasapi32.dll" Alias "RasGetAutodialParamW" (ByVal dwKey As RasADCtrlParams, ByRef lpvValue As Any, ByRef lpdwcbValue As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasSetAutodialParamA Lib "rasapi32.dll" (ByVal dwKey As RasADCtrlParams, ByRef lpvValue As Any, ByVal dwcbValue As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasSetAutodialParamW Lib "rasapi32.dll" (ByVal dwKey As RasADCtrlParams, ByRef lpvValue As Any, ByVal dwcbValue As Long) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function RasSetAutodialParam Lib "rasapi32.dll" Alias "RasSetAutodialParamW" (ByVal dwKey As RasADCtrlParams, ByRef lpvValue As Any, ByVal dwcbValue As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasGetPCscf Lib "rasapi32.dll" (ByVal lpszPCscf As LongPtr) As Long
+
+Public Type RAS_STATS
+    dwSize As Long
+    dwBytesXmited As Long
+    dwBytesRcved As Long
+    dwFramesXmited As Long
+    dwFramesRcved As Long
+    dwCrcErr As Long
+    dwTimeoutErr As Long
+    dwAlignmentErr As Long
+    dwHardwareOverrunErr As Long
+    dwFramingErr As Long
+    dwBufferOverrunErr As Long
+    dwCompressionRatioIn As Long
+    dwCompressionRatioOut As Long
+    dwBps As Long
+    dwConnectDuration As Long
+End Type
+
+Public Delegate Function RasCustomHangUpFn (ByVal hRasConn As LongPtr) As Long
+Public Delegate Function RasCustomDialFn (ByVal hInstDll As LongPtr, ByRef lpRasDialExtensions As RASDIALEXTENSIONS, ByVal lpszPhonebook As LongPtr, ByRef lpRasDialParams As RASDIALPARAMS, ByVal dwNotifierType As Long, ByVal lpvNotifier As LongPtr, ByRef lphRasConn As LongPtr, ByVal dwFlags As Long) As Long
+Public Delegate Function RasCustomDeleteEntryNotifyFn (ByVal lpszPhonebook As LongPtr, ByVal lpszEntry As LongPtr, ByVal dwFlags As RasCustomDeleteFlags) As Long
+ 
+Public Enum RasCustomDeleteFlags
+    RCD_SingleUser = 0
+    RCD_AllUsers = &H00000001
+    RCD_Eap = &H00000002
+    RCD_Logon = &H00000004
+End Enum
+
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasInvokeEapUI Lib "rasapi32.dll" (ByVal hRasConn As LongPtr, ByVal dwSubEntry As Long, ByRef lpRasDialExtensions As RASDIALEXTENSIONS, ByVal hwndParent As LongPtr) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasGetLinkStatistics Lib "rasapi32.dll" (ByVal hRasConn As LongPtr, ByVal dwSubEntry As Long, ByRef lpStatistics As RAS_STATS) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasGetConnectionStatistics Lib "rasapi32.dll" (ByVal hRasConn As LongPtr, ByRef lpStatistics As RAS_STATS) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasClearLinkStatistics Lib "rasapi32.dll" (ByVal hRasConn As LongPtr, ByVal dwSubEntry As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasClearConnectionStatistics Lib "rasapi32.dll" (ByVal hRasConn As LongPtr) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasGetEapUserDataA Lib "rasapi32.dll" (ByVal hToken As LongPtr, ByVal pszPhonebook As String, ByVal pszEntry As String, ByRef pbEapData As Any, ByRef pdwSizeofEapData As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasGetEapUserDataW Lib "rasapi32.dll" (ByVal hToken As LongPtr, ByVal pszPhonebook As LongPtr, ByVal pszEntry As LongPtr, ByRef pbEapData As Any, ByRef pdwSizeofEapData As Long) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function RasGetEapUserData Lib "rasapi32.dll" Alias "RasGetEapUserDataW" (ByVal hToken As LongPtr, ByVal pszPhonebook As String, ByVal pszEntry As String, ByRef pbEapData As Any, ByRef pdwSizeofEapData As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasSetEapUserDataA Lib "rasapi32.dll" (ByVal hToken As LongPtr, ByVal pszPhonebook As String, ByVal pszEntry As String, ByRef pbEapData As Any, ByVal dwSizeofEapData As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasSetEapUserDataW Lib "rasapi32.dll" (ByVal hToken As LongPtr, ByVal pszPhonebook As LongPtr, ByVal pszEntry As LongPtr, ByRef pbEapData As Any, ByVal dwSizeofEapData As Long) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function RasSetEapUserData Lib "rasapi32.dll" Alias "RasSetEapUserDataW" (ByVal hToken As LongPtr, ByVal pszPhonebook As String, ByVal pszEntry As String, ByRef pbEapData As Any, ByVal dwSizeofEapData As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasGetCustomAuthDataA Lib "rasapi32.dll" (ByVal pszPhonebook As String, ByVal pszEntry As String, ByRef pbCustomAuthData As Any, ByRef pdwSizeofCustomAuthData As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasGetCustomAuthDataW Lib "rasapi32.dll" (ByVal pszPhonebook As LongPtr, ByVal pszEntry As LongPtr, ByRef pbCustomAuthData As Any, ByRef pdwSizeofCustomAuthData As Long) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function RasGetCustomAuthData Lib "rasapi32.dll" Alias "RasGetCustomAuthDataW" (ByVal pszPhonebook As String, ByVal pszEntry As String, ByRef pbCustomAuthData As Any, ByRef pdwSizeofCustomAuthData As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasSetCustomAuthDataA Lib "rasapi32.dll" (ByVal pszPhonebook As String, ByVal pszEntry As String, ByRef pbCustomAuthData As Any, ByVal dwSizeofCustomAuthData As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasSetCustomAuthDataW Lib "rasapi32.dll" (ByVal pszPhonebook As LongPtr, ByVal pszEntry As LongPtr, ByRef pbCustomAuthData As Any, ByVal dwSizeofCustomAuthData As Long) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function RasSetCustomAuthData Lib "rasapi32.dll" Alias "RasSetCustomAuthDataW" (ByVal pszPhonebook As String, ByVal pszEntry As String, ByRef pbCustomAuthData As Any, ByVal dwSizeofCustomAuthData As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasGetEapUserIdentityW Lib "rasapi32.dll" (ByVal pszPhonebook As LongPtr, ByVal pszEntry As LongPtr, ByVal dwFlags As RasEapFlags, ByVal hwnd As LongPtr, ByRef ppRasEapUserIdentity As LongPtr) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasGetEapUserIdentityA Lib "rasapi32.dll" (ByVal pszPhonebook As String, ByVal pszEntry As String, ByVal dwFlags As RasEapFlags, ByVal hwnd As LongPtr, ByRef ppRasEapUserIdentity As LongPtr) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function RasGetEapUserIdentity Lib "rasapi32.dll" Alias "RasGetEapUserIdentityW" (ByVal pszPhonebook As String, ByVal pszEntry As String, ByVal dwFlags As RasEapFlags, ByVal hwnd As LongPtr, ByRef ppRasEapUserIdentity As LongPtr) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Sub RasFreeEapUserIdentityW Lib "rasapi32.dll" (ByRef pRasEapUserIdentity As RASEAPUSERIDENTITYW)
+[UseGetLastError(False)]
+Public Declare PtrSafe Sub RasFreeEapUserIdentityA Lib "rasapi32.dll" (ByRef pRasEapUserIdentity As RASEAPUSERIDENTITYA)
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Sub RasFreeEapUserIdentity Lib "rasapi32.dll" Alias "RasFreeEapUserIdentityW" (ByRef pRasEapUserIdentity As RASEAPUSERIDENTITY)
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasDeleteSubEntryA Lib "rasapi32.dll" (ByVal pszPhonebook As String, ByVal pszEntry As String, ByVal dwSubentryId As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasDeleteSubEntryW Lib "rasapi32.dll" (ByVal pszPhonebook As LongPtr, ByVal pszEntry As LongPtr, ByVal dwSubEntryId As Long) As Long
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function RasDeleteSubEntry Lib "rasapi32.dll" Alias "RasDeleteSubEntryW" (ByVal pszPhonebook As String, ByVal pszEntry As String, ByVal dwSubentryId As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasGetNapStatus Lib "rasapi32.dll" (ByVal hRasConn As LongPtr, ByRef pRasNapState As RASNAPSTATE) As Long
+
+Public Type RASUPDATECONN
+    version As RASAPIVERSION
+    dwSize As Long
+    dwFlags As Long
+    dwIfIndex As Long
+    localEndPoint As RASTUNNELENDPOINT
+    remoteEndPoint As RASTUNNELENDPOINT
+End Type
+
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasUpdateConnection Lib "rasapi32.dll" (ByVal hRasConn As LongPtr, ByRef lprasupdateconn As RASUPDATECONN) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function RasGetProjectionInfoEx Lib "rasapi32.dll" (ByVal hRasConn As LongPtr, ByRef pRasProjection As RAS_PROJECTION_INFO, ByRef lpdwSize As Long) As Long
+
+
+#End Region
+
+
+#Region "rasdlg.h"
+
+Public Delegate Sub RASPBDLGFUNCW (ByVal dwCallbackId As LongPtr, ByVal dwEvent As RasPBDEvents, ByVal pszText As LongPtr, ByVal pData As LongPtr)
+Public Delegate Sub RASPBDLGFUNCA (ByVal dwCallbackId As LongPtr, ByVal dwEvent As RasPBDEvents, ByVal pszText As LongPtr, ByVal pData As LongPtr)
+Public Delegate Sub RASPBDLGFUNC (ByVal dwCallbackId As LongPtr, ByVal dwEvent As RasPBDEvents, ByVal pszText As LongPtr, ByVal pData As LongPtr)
+
+Public Enum RasPBDEvents
+	RASPBDEVENT_AddEntry = 1
+	RASPBDEVENT_EditEntry = 2
+	RASPBDEVENT_RemoveEntry = 3
+	RASPBDEVENT_DialEntry = 4
+	RASPBDEVENT_EditGlobals = 5
+	RASPBDEVENT_NoUser = 6
+	RASPBDEVENT_NoUserEdit = 7
+End Enum
+
+Public Enum RasNoUserFlags
+	RASNOUSER_SmartCard = &H00000001
+End Enum
+
+Public Type RASNOUSERW
+	dwSize As Long
+	dwFlags As RasNoUserFlags
+	dwTimeoutMs As Long
+	szUserName(0 To UNLEN) As Integer
+	szPassword(0 To PWLEN) As Integer
+	szDomain(0 To DNLEN) As Integer
+End Type
+Public Type RASNOUSERA
+    dwSize As Long
+    dwFlags As RasNoUserFlags
+    dwTimeoutMs As Long
+    szUserName(0 To UNLEN) As Byte
+    szPassword(0 To PWLEN) As Byte
+    szDomain(0 To DNLEN) As Byte
+End Type
+
+Public Enum RasPhonebookDlgFlags
+	RASPBDFLAG_PositionDlg = &H00000001
+	RASPBDFLAG_ForceCloseOnDial = &H00000002
+	RASPBDFLAG_NoUser = &H00000010
+	RASPBDFLAG_UpdateDefaults = &H80000000
+End Enum
+
+' #If WDL_NO_DELEGATES Then
+[PackingAlignment(4)]
+Public Type RASPBDLGW
+	dwSize As Long
+	hwndOwner As LongPtr
+	dwFlags As RasPhonebookDlgFlags
+	xDlg As Long
+	yDlg As Long
+	dwCallbackId As LongPtr
+	pCallback As LongPtr
+	dwError As Long
+	reserved As LongPtr
+	reserved2 As LongPtr
+End Type
+[PackingAlignment(4)]
+Public Type RASPBDLGA
+    dwSize As Long
+    hwndOwner As LongPtr
+    dwFlags As RasPhonebookDlgFlags
+    xDlg As Long
+    yDlg As Long
+    dwCallbackId As LongPtr
+    pCallback As LongPtr
+    dwError As Long
+    reserved As LongPtr
+    reserved2 As LongPtr
+End Type
+' #Else
+' [PackingAlignment(4)]
+' Public Type RASPBDLGW
+    ' dwSize As Long
+    ' hwndOwner As LongPtr
+    ' dwFlags As RasPhonebookDlgFlags
+    ' xDlg As Long
+    ' yDlg As Long
+    ' dwCallbackId As LongPtr
+    ' pCallback As RASPBDLGFUNCW
+    ' dwError As Long
+    ' reserved As LongPtr
+    ' reserved2 As LongPtr
+' End Type
+' [PackingAlignment(4)]
+' Public Type RASPBDLGA
+    ' dwSize As Long
+    ' hwndOwner As LongPtr
+    ' dwFlags As RasPhonebookDlgFlags
+    ' xDlg As Long
+    ' yDlg As Long
+    ' dwCallbackId As LongPtr
+    ' pCallback As RASPBDLGFUNCA
+    ' dwError As Long
+    ' reserved As LongPtr
+    ' reserved2 As LongPtr
+' End Type
+' #End If
+
+Public Enum RasEntryDlgFlags
+	RASEDFLAG_PositionDlg = &H00000001
+	RASEDFLAG_NewEntry = &H00000002
+	' #if (WINVER < 0x600)
+	RASEDFLAG_CloneEntry = &H00000004
+	' #endif // (WINVER < 0x600)
+	RASEDFLAG_NoRename = &H00000008
+	RASEDFLAG_ShellOwned = &H40000000
+	RASEDFLAG_NewPhoneEntry = &H00000010
+	RASEDFLAG_NewTunnelEntry = &H00000020
+	' #if (WINVER < 0x600)
+	RASEDFLAG_NewDirectEntry = &H00000040
+	' #endif // (WINVER < 0x600)
+	RASEDFLAG_NewBroadbandEntry = &H00000080
+	RASEDFLAG_InternetEntry = &H00000100
+	RASEDFLAG_NAT = &H00000200
+	' #if (WINVER >= 0x600)
+	RASEDFLAG_IncomingConnection = &H00000400
+End Enum
+
+[PackingAlignment(4)]
+Public Type RASENTRYDLGW
+	dwSize As Long
+	hwndOwner As LongPtr
+	dwFlags As RasEntryDlgFlags
+	xDlg As Long
+	yDlg As Long
+	szEntry(0 To RAS_MaxEntryName) As Integer
+	dwError As Long
+	reserved As LongPtr
+	reserved2 As LongPtr
+End Type
+[PackingAlignment(4)]
+Public Type RASENTRYDLGA
+    dwSize As Long
+    hwndOwner As LongPtr
+    dwFlags As RasEntryDlgFlags
+    xDlg As Long
+    yDlg As Long
+    szEntry(0 To RAS_MaxEntryName) As Byte
+    dwError As Long
+    reserved As LongPtr
+    reserved2 As LongPtr
+End Type
+
+Public Enum RasDialDlgFlags
+	RASDDFLAG_PositionDlg = &H00000001
+	RASDDFLAG_NoPrompt = &H00000002
+	RASDDFLAG_AoacRedial = &H00000004
+	RASDDFLAG_LinkFailure = &H80000000
+End Enum
+
+[PackingAlignment(4)]
+Public Type RASDIALDLG
+	dwSize As Long
+	hwndOwner As LongPtr
+	dwFlags As RasDialDlgFlags
+	xDlg As Long
+	yDlg As Long
+	dwSubEntry As Long
+	dwError As Long
+	reserved As LongPtr
+	reserved2 As LongPtr
+End Type
+
+Public Delegate Function RasCustomDialDlgFn (ByVal hInstDll As LongPtr, ByVal dwFlags As Long, ByVal lpszPhonebook As LongPtr, ByVal lpszEntry As LongPtr, ByVal lpszPhoneNumber As LongPtr, ByRef lpInfo As RASDIALDLG, ByVal pvInfo As LongPtr) As BOOL
+Public Delegate Function RasCustomEntryDlgFn (ByVal hInstDll As LongPtr, ByVal lpszPhonebook As LongPtr, ByVal lpszEntry As LongPtr, ByRef lpInfo As RASENTRYDLG, ByVal dwFlags As Long) As BOOL
+
+Public Declare PtrSafe Function RasPhonebookDlgA Lib "rasdlg.dll" (ByVal lpszPhonebook As String, ByVal lpszEntry As String, ByRef lpInfo As RASPBDLGA) As BOOL
+Public Declare PtrSafe Function RasPhonebookDlgW Lib "rasdlg.dll" (ByVal lpszPhonebook As LongPtr, ByVal lpszEntry As LongPtr, ByRef lpInfo As RASPBDLGW) As BOOL
+Public DeclareWide PtrSafe Function RasPhonebookDlg Lib "rasdlg.dll" Alias "RasPhonebookDlgW" (ByVal lpszPhonebook As String, ByVal lpszEntry As String, ByRef lpInfo As RASPBDLG) As BOOL
+Public Declare PtrSafe Function RasEntryDlgA Lib "rasdlg.dll" (ByVal lpszPhonebook As String, ByVal lpszEntry As String, ByRef lpInfo As RASENTRYDLGA) As BOOL
+Public Declare PtrSafe Function RasEntryDlgW Lib "rasdlg.dll" (ByVal lpszPhonebook As LongPtr, ByVal lpszEntry As LongPtr, ByRef lpInfo As RASENTRYDLGW) As BOOL
+Public DeclareWide PtrSafe Function RasEntryDlg Lib "rasdlg.dll" Alias "RasEntryDlgW" (ByVal lpszPhonebook As String, ByVal lpszEntry As String, ByRef lpInfo As RASENTRYDLG) As BOOL
+Public Declare PtrSafe Function RasDialDlgA Lib "rasdlg.dll" (ByVal lpszPhonebook As String, ByVal lpszEntry As String, ByVal lpszPhoneNumber As String, ByRef lpInfo As RASDIALDLG) As BOOL
+Public Declare PtrSafe Function RasDialDlgW Lib "rasdlg.dll" (ByVal lpszPhonebook As LongPtr, ByVal lpszEntry As LongPtr, ByVal lpszPhoneNumber As LongPtr, ByRef lpInfo As RASDIALDLG) As BOOL
+Public DeclareWide PtrSafe Function RasDialDlg Lib "rasdlg.dll" Alias "RasDialDlgW" (ByVal lpszPhonebook As String, ByVal lpszEntry As String, ByVal lpszPhoneNumber As String, ByRef lpInfo As RASDIALDLG) As BOOL
+
+#End Region
+
+#Region "rasshost.h"
+
+Public Type SECURITY_MESSAGE
+	dwMsgId As Long
+	hPort As LongPtr 'HPORT
+	dwError As Long                        ' Should be non-zero only if error
+										   ' occurred during the security dialog.
+										   ' Should contain errors from winerror.h
+										   ' or raserror.h
+	UserName(0 To UNLEN) As Byte 		   ' Should always contain username if
+										   ' dwMsgId is SUCCESS/FAILURE
+	Domain(0 To DNLEN) As Byte     		   ' Should always contain domain if
+										   ' dwMsgId is SUCCESS/FAILURE
+End Type
+
+Public Enum RasSecurityMsgIDs
+	SECURITYMSG_SUCCESS = 1
+	SECURITYMSG_FAILURE = 2
+	SECURITYMSG_ERROR = 3
+End Enum
+
+Public Type RAS_SECURITY_INFO
+    LastError As Long       ' SUCCESS = receive completed
+                            ' PENDING = receive pending
+                            ' else completed with error
+    BytesReceived As Long   ' only valid if LastError == SUCCESS
+    DeviceName(0 To MAX_DEVICE_NAME) As Byte
+End Type
+
+Public Delegate Function RASSECURITYPROC () As Long
+
+Public Declare PtrSafe Function RasSecurityDialogSend Lib "rasman.dll" (ByVal hPort As LongPtr, ByRef pBuffer As Any, ByVal BufferLength As Integer) As Long
+Public Declare PtrSafe Function RasSecurityDialogReceive Lib "rasman.dll" (ByVal hPort As LongPtr, ByRef pBuffer As Any, ByRef pBufferLength As Integer, ByVal Timeout As Long, ByVal hEvent As LongPtr) As Long
+Public Declare PtrSafe Function RasSecurityDialogGetInfo Lib "rasman.dll" (ByVal hPort As LongPtr, pBuffer As RAS_SECURITY_INFO) As Long
+
+#End Region
+
+#Region "raseapif.h"
+
+Public Const RAS_EAP_REGISTRY_LOCATION  = "System\\CurrentControlSet\\Services\\Rasman\\PPP\\EAP"
+
+Public Const RAS_EAP_VALUENAME_PATH  = "Path"
+Public Const RAS_EAP_VALUENAME_CONFIGUI  = "ConfigUIPath"
+Public Const RAS_EAP_VALUENAME_INTERACTIVEUI  = "InteractiveUIPath"
+Public Const RAS_EAP_VALUENAME_IDENTITY  = "IdentityPath"
+Public Const RAS_EAP_VALUENAME_FRIENDLY_NAME  = "FriendlyName"
+Public Const RAS_EAP_VALUENAME_DEFAULT_DATA  = "ConfigData"
+Public Const RAS_EAP_VALUENAME_REQUIRE_CONFIGUI  = "RequireConfigUI"
+Public Const RAS_EAP_VALUENAME_ENCRYPTION  = "MPPEEncryptionSupported"
+Public Const RAS_EAP_VALUENAME_INVOKE_NAMEDLG  = "InvokeUsernameDialog"
+Public Const RAS_EAP_VALUENAME_INVOKE_PWDDLG  = "InvokePasswordDialog"
+Public Const RAS_EAP_VALUENAME_CONFIG_CLSID  = "ConfigCLSID"
+Public Const RAS_EAP_VALUENAME_STANDALONE_SUPPORTED  = "StandaloneSupported"
+Public Const RAS_EAP_VALUENAME_ROLES_SUPPORTED  = "RolesSupported"
+Public Const RAS_EAP_VALUENAME_PER_POLICY_CONFIG  = "PerPolicyConfig"
+Public Const RAS_EAP_VALUENAME_ISTUNNEL_METHOD  = "IsTunnelMethod"
+Public Const RAS_EAP_VALUENAME_FILTER_INNERMETHODS  = "FilterInnerMethods"
+
+Public Enum RasEapRoles
+	RAS_EAP_ROLE_AUTHENTICATOR = &H00000001
+	RAS_EAP_ROLE_AUTHENTICATEE = &H00000002
+End Enum
+
+Public Enum RasEapRoleFlags
+	RAS_EAP_ROLE_EXCLUDE_IN_EAP = &H00000004
+	RAS_EAP_ROLE_EXCLUDE_IN_PEAP = &H00000008
+	RAS_EAP_ROLE_EXCLUDE_IN_VPN = &H00000010
+End Enum
+
+Public Enum RAS_AUTH_ATTRIBUTE_TYPE
+	raatMinimum = 0                ' Undefined
+	raatUserName                   ' Value field is a Pointer
+	raatUserPassword               ' Value field is a Pointer
+	raatMD5CHAPPassword            ' Value field is a Pointer
+	raatNASIPAddress               ' Value field is a 32 bit integral value
+	raatNASPort                    ' Value field is a 32 bit integral value
+	raatServiceType                ' Value field is a 32 bit integral value
+	raatFramedProtocol             ' Value field is a 32 bit integral value
+	raatFramedIPAddress            ' Value field is a 32 bit integral value
+	raatFramedIPNetmask            ' Value field is a 32 bit integral value
+	raatFramedRouting = 10         ' Value field is a 32 bit integral value
+	raatFilterId                   ' Value field is a Pointer
+	raatFramedMTU                  ' Value field is a 32 bit integral value
+	raatFramedCompression          ' Value field is a 32 bit integral value
+	raatLoginIPHost                ' Value field is a 32 bit integral value
+	raatLoginService               ' Value field is a 32 bit integral value
+	raatLoginTCPPort               ' Value field is a 32 bit integral value
+	raatUnassigned17               ' Undefined
+	raatReplyMessage               ' Value field is a Pointer
+	raatCallbackNumber             ' Value field is a Pointer
+	raatCallbackId = 20            ' Value field is a Pointer
+	raatUnassigned21               ' Undefined
+	raatFramedRoute                ' Value field is a Pointer
+	raatFramedIPXNetwork           ' Value field is a 32 bit integral value
+	raatState                      ' Value field is a Pointer
+	raatClass                      ' Value field is a Pointer
+	raatVendorSpecific             ' Value field is a Pointer
+	raatSessionTimeout             ' Value field is a 32 bit integral value
+	raatIdleTimeout                ' Value field is a 32 bit integral value
+	raatTerminationAction          ' Value field is a 32 bit integral value
+	raatCalledStationId = 30       ' Value field is a Pointer
+	raatCallingStationId           ' Value field is a Pointer
+	raatNASIdentifier              ' Value field is a Pointer
+	raatProxyState                 ' Value field is a Pointer
+	raatLoginLATService            ' Value field is a Pointer
+	raatLoginLATNode               ' Value field is a Pointer
+	raatLoginLATGroup              ' Value field is a Pointer
+	raatFramedAppleTalkLink        ' Value field is a 32 bit integral value
+	raatFramedAppleTalkNetwork     ' Value field is a 32 bit integral value
+	raatFramedAppleTalkZone        ' Value field is a Pointer
+	raatAcctStatusType = 40        ' Value field is a 32 bit integral value
+	raatAcctDelayTime              ' Value field is a 32 bit integral value
+	raatAcctInputOctets            ' Value field is a 32 bit integral value
+	raatAcctOutputOctets           ' Value field is a 32 bit integral value
+	raatAcctSessionId              ' Value field is a Pointer
+	raatAcctAuthentic              ' Value field is a 32 bit integral value
+	raatAcctSessionTime            ' Value field is a 32 bit integral value
+	raatAcctInputPackets           ' Value field is a 32 bit integral value
+	raatAcctOutputPackets          ' Value field is a 32 bit integral value
+	raatAcctTerminateCause         ' Value field is a 32 bit integral value
+	raatAcctMultiSessionId = 50    ' Value field is a Pointer
+	raatAcctLinkCount              ' Value field is a 32 bit integral value
+	raatAcctEventTimeStamp = 55    ' Value field is a 32 bit integral value
+	raatMD5CHAPChallenge = 60      ' Value field is a Pointer
+	raatNASPortType                ' Value field is a 32 bit integral value
+	raatPortLimit                  ' Value field is a 32 bit integral value
+	raatLoginLATPort               ' Value field is a Pointer
+	raatTunnelType                 ' Value field is a 32 bit integral value
+	raatTunnelMediumType           ' Value field is a 32 bit integral value
+	raatTunnelClientEndpoint       ' Value field is a Pointer
+	raatTunnelServerEndpoint       ' Value field is a Pointer
+	raatARAPPassword = 70          ' Value field is a Pointer
+	raatARAPFeatures               ' Value field is a Pointer
+	raatARAPZoneAccess             ' Value field is a 32 bit integral value
+	raatARAPSecurity               ' Value field is a 32 bit integral value
+	raatARAPSecurityData           ' Value field is a Pointer
+	raatPasswordRetry              ' Value field is a 32 bit integral value
+	raatPrompt                     ' Value field is a 32 bit integral value
+	raatConnectInfo                ' Value field is a Pointer
+	raatConfigurationToken         ' Value field is a Pointer
+	raatEAPMessage                 ' Value field is a Pointer
+	raatSignature = 80               ' Value field is a Pointer
+	raatARAPChallengeResponse = 84   ' Value field is a Pointer
+	raatAcctInterimInterval = 85     ' Value field is a 32 bit integral value
+	raatNASIPv6Address = 95
+	raatFramedInterfaceId
+	raatFramedIPv6Prefix
+	raatLoginIPv6Host
+	raatFramedIPv6Route
+	raatFramedIPv6Pool
+	raatARAPGuestLogon = 8096        ' Value field is a 32 bit integral value
+	raatCertificateOID               ' Value field is a Pointer
+	raatEAPConfiguration             ' Value field is a Pointer
+	raatPEAPEmbeddedEAPTypeId = 8099 ' Value field is a 32 bit integral value
+	raatInnerEAPTypeId = 8099        ' Value field is a 32 bit integral value
+	raatPEAPFastRoamedSession = 8100 ' Value field is a 32 bit integral value
+	raatFastRoamedSession = 8100     ' Value field is a 32 bit integral value
+	raatEAPTLV = 8102                ' Value field is a Pointer
+	raatCredentialsChanged           ' Value field is a Integer with boolean semantics
+	raatCertificateThumbprint = 8250 ' Value field is a Pointer
+	raatPeerId = 9000                ' Value field is a pointer
+	raatServerId                     ' Value field is a pointer
+	raatMethodId                     ' Value field is a pointer
+	raatEMSK                         ' Value field is a pointer
+	raatSessionId                    ' Value field is a pointer
+	raatReserved = &HFFFFFFFF        ' Undefined
+End Enum
+
+Public Enum RasEapVasIDs
+	raatARAPChallenge = 33
+	raatARAPOldPassword = 19
+	raatARAPNewPassword = 20
+	raatARAPPasswordChangeReason = 21
+End Enum
+
+Public Const NGC_TICKET_PROPERTY_STRING_LENGTH = NCRYPT_PIN_CACHE_PIN_BYTE_LENGTH \ 2
+
+Public Type NgcTicketContext
+	wszTicket(0 To (NGC_TICKET_PROPERTY_STRING_LENGTH - 1)) As Integer
+	hKey As LongPtr 'NCRYPT_KEY_HANDLE
+	hImpersonateToken As LongPtr
+End Type
+
+Public Type RAS_AUTH_ATTRIBUTE
+	raaType As RAS_AUTH_ATTRIBUTE_TYPE
+	dwLength As Long
+	Value As LongPtr
+End Type
+
+Public Enum RasEapCodes
+	EAPCODE_Request = 1
+	EAPCODE_Response = 2
+	EAPCODE_Success = 3
+	EAPCODE_Failure = 4
+	MAXEAPCODE = 4
+End Enum
+
+Public Enum RasEapFlags
+	RAS_EAP_FLAG_ROUTER = &H00000001  ' This is a router
+	RAS_EAP_FLAG_NON_INTERACTIVE = &H00000002  ' No UI should be displayed
+	RAS_EAP_FLAG_LOGON = &H00000004  ' The user data was
+	'  obtained from Winlogon
+	RAS_EAP_FLAG_PREVIEW = &H00000008  ' User has checked
+	'  "Prompt for information
+	'  before dialing"
+	RAS_EAP_FLAG_FIRST_LINK = &H00000010  ' This is the first link
+	RAS_EAP_FLAG_MACHINE_AUTH = &H00000020  ' Use the default machine cert
+	'  or user cert based on the
+	'  application logon context
+	RAS_EAP_FLAG_GUEST_ACCESS = &H00000040  ' Request to provide guest
+	'  access.
+	RAS_EAP_FLAG_8021X_AUTH = &H00000080  ' Anything specific to 8021x
+	'  to be done in TLS
+	RAS_EAP_FLAG_HOSTED_IN_PEAP = &H00000100  ' This EAP Method is hosted
+	'  in PEAP
+	RAS_EAP_FLAG_RESUME_FROM_HIBERNATE = &H00000200  ' Indicates this is the
+	'  first call after m/c
+	'  resumed from hibernation.
+	RAS_EAP_FLAG_PEAP_UPFRONT = &H00000400  ' Indicate peap is enabled
+	'  at the beginning of IAS pipeline.
+	RAS_EAP_FLAG_ALTERNATIVE_USER_DB = &H00000800  ' The user database is
+	'  not active directory
+	RAS_EAP_FLAG_PEAP_FORCE_FULL_AUTH = &H00001000  ' Indicate peap should not
+	'  fast reconnect
+	RAS_EAP_FLAG_PRE_LOGON = &H00020000  ' Pre logon scenario like PLAP
+	RAS_EAP_FLAG_CONFG_READONLY = &H00080000  ' connection settings are read-only
+	RAS_EAP_FLAG_RESERVED = &H00100000  ' PEAP specific flag
+	RAS_EAP_FLAG_SAVE_CREDMAN = &H00200000  ' Save credentials to CredMan
+	RAS_EAP_FLAG_SERVER_VALIDATION_REQUIRED = &H02000000  ' Certificate server validation must be performed
+End Enum
+
+Public Type PPP_EAP_PACKET
+	Code As Byte ' 1-Request, 2-Response, 3-Success, 4-Failure
+	Id As Byte ' Id of this packet
+	Length(0 To 1) As Byte ' Length of this packet
+	Data(0 To 0) As Byte ' Data - First byte is Type for Request/Response
+End Type
+
+Public Const PPP_EAP_PACKET_HDR_LEN  = 4 '(sizeof(PPP_EAP_PACKET) - 1)
+
+Public Type PPP_EAP_INPUT
+	' Size of this structure
+	dwSizeInBytes As Long
+	' The following five fields are valid only in RasEapBegin call
+	fFlags As RasEapFlags ' See RAS_EAP_FLAG_*
+	fAuthenticator As BOOL ' Act as authenticator or authenticatee
+	pwszIdentity As LongPtr ' Users's identity
+	pwszPassword As LongPtr ' Client's account password. Only valid when
+	' fAuthenticator is FALSE.
+	bInitialId As Byte ' Initial packet identifier. Must be used for
+	' the first EAP packet sent by the DLL and
+	' incremented by one for each subsequent
+	' request packet.
+	' During the RasEapBegin call on the authenticator side, pUserAttributes
+	' contains the set of attributes for the currently dialed in user, e.g.,
+	' the port used, NAS IP Address, etc.
+	' When the fAuthenticationComplete flag is TRUE, pUserAttributes contains
+	' attributes (if any) returned by the authentication provider.
+	' This memory is not owned by the EAP DLL and should be treated as
+	' read-only.
+	pUserAttributes As LongPtr 'RAS_AUTH_ATTRIBUTE *
+	' The next two fields are used only if the EAP DLL is using the
+	' currently configured authentication provider ex: RADIUS or Windows NT
+	' domain authentication, and the fAuthenticator field above is set to
+	' TRUE.
+	' Indicates that the authenticator has completed authentication.
+	' Ignore this field if an authentication provider is not being used.
+	fAuthenticationComplete As BOOL
+	' Result of the authentication process by the authentication provider.
+	' NO_ERROR indicates success, otherwise it is a value from winerror.h,
+	' raserror.h or mprerror.h indicating failure reason.
+	dwAuthResultCode As Long
+	' Valid only on the authenticatee side. This may be used on the
+	' authenticatee side to impersonate the user being authenticated.
+	hTokenImpersonateUser As LongPtr
+	' This variable should be examined only by the authenticatee side.
+	' The EAP specification states that the success packet may be lost and
+	' since it is a non-acknowledged packet, reception of an NCP packet should
+	' be interpreted as a success packet. This varable is set to TRUE in this
+	' case only on the authenticatee side
+	fSuccessPacketReceived As BOOL
+	' Will be set to TRUE only when the user dismissed the interactive
+	' UI that was invoked by the EAP dll
+	fDataReceivedFromInteractiveUI As BOOL
+	' Data received from the Interactive UI. Will be set to
+	' non-NULL when fDataReceivedFromInteractiveUI is set to TRUE and
+	' RasEapInvokeInteractiveUI returned non-NULL data. This buffer will be
+	' freed by the PPP engine on return from the RasEapMakeMessage call. A
+	' copy of this data should be made in the EAP Dll's memory space.
+	pDataFromInteractiveUI As LongPtr
+	' Size in bytes of data pointed to by pInteractiveConnectionData. This may
+	' be 0 if there was no data passed back by RasEapInvokeInteractiveUI.
+	dwSizeOfDataFromInteractiveUI As Long
+	' Connection data received from the Config UI. Will be set to non-NULL
+	' when the RasEapBegin call is made and the RasEapInvokeConfigUI
+	' returned non-NULL data. This buffer will be freed by the PPP engine
+	' on return from the RasEapBegin call. A copy of this data should
+	' be made in the EAP Dll's memory space.
+	pConnectionData As LongPtr
+	' Size in bytes of data pointed to by pConnectionData. This may be
+	' 0 if there was no data passed back by the RasEapInvokeConfigUI call.
+	dwSizeOfConnectionData As Long
+	' User data received from the Identity UI or Interactive UI. Will be set
+	' to non-NULL when the RasEapBegin call is made if such data exists.
+	' This buffer will be freed by the PPP engine on return from the
+	' RasEapBegin call. A copy of this data should be made in the EAP Dll's
+	' memory space.
+	pUserData As LongPtr
+	' Size in bytes of data pointed to by pUserData. This may be 0 if there
+	' is no data.
+	dwSizeOfUserData As Long
+	' Reserved.
+	hReserved As LongPtr
+	' Connection identifier passed to EapHostPeerBeginSession by supplicant.
+	guidConnectionId As UUID
+	' Is the Eap connection request a Vpn request
+	isVpn As BOOL
+End Type
+
+Public Enum PPP_EAP_ACTION
+	' 
+	'  These actions are provided by the EAP DLL as output from the
+	'  RasEapMakeMessage API.  They tell the PPP engine what action (if any) to
+	'  take on the EAP DLL's behalf, and eventually inform the engine that the
+	'  EAP DLL has finished authentication.
+	' 
+	EAPACTION_NoAction 					 ' Be passive, i.e. listen without timeout (default)
+	EAPACTION_Authenticate 				 ' Invoke the back-end authenticator.
+	EAPACTION_Done 						 ' End auth session, dwAuthResultCode is set
+	EAPACTION_SendAndDone 				 ' As above but send message without timeout first
+	EAPACTION_Send 						 ' Send message, don't timeout waiting for reply
+	EAPACTION_SendWithTimeout 			 ' Send message, timeout if reply not received
+	EAPACTION_SendWithTimeoutInteractive ' As above, but don't increment
+	'  retry count
+	EAPACTION_IndicateTLV 		' Do not use
+	EAPACTION_IndicateIdentity  ' Do not use 
+End Enum
+
+Public Type PPP_EAP_OUTPUT
+	' Size of this structure
+	dwSizeInBytes As Long
+	' Action that the PPP engine should take
+	Action As PPP_EAP_ACTION
+	' dwAuthResultCode is valid only with an Action code of Done or
+	' SendAndDone. Zero value indicates succesful authentication.
+	' Non-zero indicates unsuccessful authentication with the value
+	' indicating the reason for authentication failure.
+	' Non-zero return codes should be only from winerror.h, raserror.h and
+	' mprerror.h
+	dwAuthResultCode As Long
+	' When Action is EAPACTION_Authenticate, pUserAttributes may contain
+	' additional attributes necessary to authenticate the user, e.g.,
+	' User-Password. If no credentials are presented, the back-end
+	' authenticator will assume the user is authentic and only retrieve
+	' authorizations.
+	' When Action is EAPACTION_Done, EAPACTION_SendAndDone, or EAPACTION_Send,
+	' pUserAttributes may contain additional attributes for the user. These
+	' attributes will overwrite any attributes of the same type returned by
+	' the back-end authenticator.
+	' It is up to the EAP DLL to free this memory in RasEapEnd call.
+	pUserAttributes As LongPtr 'RAS_AUTH_ATTRIBUTE *
+	' Flag set to true will cause the RasEapInvokeInteractiveUI call to be
+	' made.
+	fInvokeInteractiveUI As BOOL
+	' Pointer to context data, if any, to be sent to the UI. The EAP dll
+	' is responsible for freeing this buffer in the RasEapEnd call or when
+	' a response from the user for this invocation is obtained.
+	pUIContextData As LongPtr
+	' Size in bytes of the data pointed to by pUIContextData. Ignored if
+	' pUIContextData is NULL
+	dwSizeOfUIContextData As Long
+	' When set to TRUE, indicates that the information pointed to by
+	' pConnectionData should be saved in the phonebook. Only valid on
+	' the authenticatee side.
+	fSaveConnectionData As BOOL
+	' If fSaveConnectionData above is true, the data pointed to by
+	' pConnectionData will be saved in the phonebook. This data
+	' must be freed by the DLL when the RasEapEnd call is made.
+	pConnectionData As LongPtr
+	' Size, in bytes, of the data pointed to by pConnectionData
+	dwSizeOfConnectionData As Long
+	' When set to TRUE, indicates that the information pointed to by
+	' pUserData should be saved in the registry for this user. Only valid
+	' on the authenticatee side.
+	fSaveUserData As BOOL
+	' If fSaveUserData above is true, the data pointed to by pUserData will be
+	' saved in the registry for this user. This data must be freed by the DLL
+	' when the RasEapEnd call is made.
+	pUserData As LongPtr
+	' Size, in bytes, of the data pointed to by pUserData
+	dwSizeOfUserData As Long
+	pNgcKerbTicket As LongPtr 'NgcTicketContext*
+	fSaveToCredMan As BOOL
+End Type
+
+Public Delegate Function RasEapInitialize (ByVal fInitialize As BOOL) As Long
+Public Delegate Function RasEapBegin (ByRef ppWorkBuffer As LongPtr, ByRef pPppEapInput As PPP_EAP_INPUT) As Long
+Public Delegate Function RasEapEnd (ByVal pWorkBuffer As LongPtr) As Long
+Public Delegate Function RasEapMakeMessage (ByVal pWorkBuffer As LongPtr, ByRef pReceivePacket As PPP_EAP_PACKET, ByRef pSendPacket As PPP_EAP_PACKET, ByVal cbSendPacket As Long, ByRef pEapOutput As PPP_EAP_OUTPUT, ByRef pEapInput As PPP_EAP_INPUT) As Long
+
+
+Public Type PPP_EAP_INFO
+	' Size of this structure
+	dwSizeInBytes As Long
+	dwEapTypeId As Long
+	' Called to initialize/uninitialize this module. This will be called before
+	' any other call is made. fInitialize will be TRUE iff the module has to be
+	' initialized. Must return errorcodes only from winerror.h, raserror.h or
+	' mprerror.h
+	'DWORD(APIENTRY* RasEapInitialize)(_In_ BOOL fInitialize);
+    pfnRasEapInitialize As LongPtr
+	' Called to get a context buffer for this EAP session and pass
+	' initialization information. This will be called before any other
+	' call is made, except RasEapInitialize. Must return errorcodes only from
+	' winerror.h, raserror.h or mprerror.h
+	'DWORD(APIENTRY* RasEapBegin)(_Outptr_ VOID** ppWorkBuffer, _In_ PPP_EAP_INPUT* pPppEapInput);
+    pfnRasEapBegin As LongPtr
+	' Called to free the context buffer for this EAP session.
+	' Called after this session is completed successfully or not, provided
+	' the RasEapBegin call for this EAP session returned successfully.
+	' Must return errorcodes only from winerror.h, raserror.h or mprerror.h
+	'DWORD(APIENTRY* RasEapEnd)(_In_ VOID* pWorkBuffer);
+    pfnRasEapEnd As LongPtr
+	' Called to process an incomming packet and/or send a packet.
+	' cbSendPacket is the size in bytes of the buffer pointed to by
+	' pSendPacket. Must return errorcodes only from winerror.h, raserror.h or
+	' mprerror.h. Error return code indicates an error occurance during the
+	' authentication process.
+	'DWORD(APIENTRY* RasEapMakeMessage)(
+	'    _In_ VOID* pWorkBuf,
+	'    _In_ PPP_EAP_PACKET* pReceivePacket,
+	'    _Inout_updates_(cbSendPacket) PPP_EAP_PACKET* pSendPacket,
+	'    _In_ DWORD cbSendPacket,
+	'    _Out_ PPP_EAP_OUTPUT* pEapOutput,
+	'    _In_opt_ PPP_EAP_INPUT* pEapInput);
+    pfnRasEapMakeMessage As LongPtr
+End Type
+
+Public Type LEGACY_IDENTITY_UI_PARAMS
+	eapType As Long
+	dwFlags As Long
+	dwSizeofConnectionData As Long
+	pConnectionData As LongPtr
+	dwSizeofUserData As Long
+	pUserData As LongPtr
+	dwSizeofUserDataOut As Long
+	pUserDataOut As LongPtr
+	pwszIdentity As LongPtr
+	dwError As Long
+End Type
+
+Public Type LEGACY_INTERACTIVE_UI_PARAMS
+	eapType As Long
+	dwSizeofContextData As Long
+	pContextData As LongPtr
+	dwSizeofInteractiveUIData As Long
+	pInteractiveUIData As LongPtr
+	dwError As Long
+End Type
+
+Public Delegate Function RasEapGetInfo (ByVal dwEapTypeId As Long, ByRef pEapInfo As PPP_EAP_INFO) As Long
+Public Delegate Function RasEapFreeMemory (ByVal pMemory As LongPtr) As Long
+Public Delegate Function RasEapInvokeInteractiveUI (ByVal dwEapTypeId As Long, ByVal hwndParent As LongPtr, ByVal pUIContextData As LongPtr, ByVal dwSizeOfUIContextData As Long, ByRef ppDataFromInteractiveUI As LongPtr, ByRef pdwSizeOfDataFromInteractiveUI As Long) As Long
+Public Delegate Function RasEapInvokeConfigUI (ByVal dwEapTypeId As Long, ByVal hwndParent As LongPtr, ByVal dwFlags As Long, ByVal pConnectionDataIn As LongPtr, ByVal dwSizeOfConnectionDataIn As Long, ByRef ppConnectionDataOut As LongPtr, ByRef pdwSizeOfConnectionDataOut As Long) As Long
+Public Delegate Function RasEapGetIdentity (ByVal dwEapTypeId As Long, ByVal hwndParent As LongPtr, ByVal dwFlags As Long, ByVal pwszPhonebook As LongPtr, ByVal pwszEntry As LongPtr, ByVal pConnectionDataIn As LongPtr, ByVal dwSizeOfConnectionDataIn As Long, ByVal pUserDataIn As LongPtr, ByVal dwSizeOfUserDataIn As Long, ByRef ppUserDataOut As LongPtr, ByRef pdwSizeOfUserDataOut As Long, ByRef ppwszIdentityOut As LongPtr) As Long
+
+
+#End Region
+
+#Region "raserror.h"
+Public Const RASBASE = 600
+Public Const SUCCESS = 0
+
+
+Public Const PENDING                              = (RASBASE + 0)
+/*
+ * An operation is pending.%0
+ */
+
+Public Const ERROR_INVALID_PORT_HANDLE            = (RASBASE + 1)
+/*
+ * An invalid port handle was detected.%0
+ */
+
+Public Const ERROR_PORT_ALREADY_OPEN              = (RASBASE + 2)
+/*
+ * The specified port is already open.%0
+ */
+
+Public Const ERROR_BUFFER_TOO_SMALL               = (RASBASE + 3)
+/*
+ * The caller's buffer is too small.%0
+ */
+
+Public Const ERROR_WRONG_INFO_SPECIFIED           = (RASBASE + 4)
+/*
+ * Incorrect information was specified.%0
+ */
+
+' ' #If (WINVER < 0x600)
+'
+' The port information cannot be set.
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_CANNOT_SET_PORT_INFO           = (RASBASE + 5)
+/*
+ * %0
+ */
+' #endif
+
+Public Const ERROR_PORT_NOT_CONNECTED             = (RASBASE + 6)
+/*
+ * The specified port is not connected.%0
+ */
+
+' #If (WINVER < 0x600)
+'
+' An invalid event was detected.
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_EVENT_INVALID                  = (RASBASE + 7)
+/*
+ * %0
+ */
+' #endif
+
+Public Const ERROR_DEVICE_DOES_NOT_EXIST          = (RASBASE + 8)
+/*
+ * A device was specified that does not exist.%0
+ */
+
+Public Const ERROR_DEVICETYPE_DOES_NOT_EXIST      = (RASBASE + 9)
+/*
+ * A device type was specified that does not exist.%0
+ */
+
+Public Const ERROR_BUFFER_INVALID                 = (RASBASE + 10)
+/*
+ * An invalid buffer was specified.%0
+ */
+
+' #If (WINVER < 0x600)
+'
+' A route was specified that is not available.
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_ROUTE_NOT_AVAILABLE            = (RASBASE + 11)
+/*
+ * %0
+ */
+' #endif
+
+Public Const ERROR_ROUTE_NOT_ALLOCATED            = (RASBASE + 12)
+/*
+ * A route was specified that is not allocated.%0
+ */
+
+' #If (WINVER < 0x600)
+'
+' An invalid compression was specified.
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_INVALID_COMPRESSION_SPECIFIED  = (RASBASE + 13)
+/*
+ * %0
+ */
+
+'
+' There were insufficient buffers available.
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_OUT_OF_BUFFERS                 = (RASBASE + 14)
+/*
+ * %0
+ */
+' #endif
+
+Public Const ERROR_PORT_NOT_FOUND                 = (RASBASE + 15)
+/*
+ * The specified port was not found.%0
+ */
+
+Public Const ERROR_ASYNC_REQUEST_PENDING          = (RASBASE + 16)
+/*
+ * An asynchronous request is pending.%0
+ */
+
+Public Const ERROR_ALREADY_DISCONNECTING          = (RASBASE + 17)
+/*
+ * The modem (or other connecting device) is already disconnecting.%0
+ */
+
+Public Const ERROR_PORT_NOT_OPEN                  = (RASBASE + 18)
+/*
+ * The specified port is not open.%0
+ */
+
+Public Const ERROR_PORT_DISCONNECTED              = (RASBASE + 19)
+/*
+ * A connection to the remote computer could not be established, so the port used for this connection was closed.%0
+ */
+
+' #If (WINVER < 0x600)
+'
+'  No endpoints could be determined.
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_NO_ENDPOINTS                   = (RASBASE + 20)
+/*
+ * %0
+ */
+' #endif
+
+Public Const ERROR_CANNOT_OPEN_PHONEBOOK          = (RASBASE + 21)
+/*
+ * The system could not open the phone book file.%0
+ */
+
+Public Const ERROR_CANNOT_LOAD_PHONEBOOK          = (RASBASE + 22)
+/*
+ * The system could not load the phone book file.%0
+ */
+
+Public Const ERROR_CANNOT_FIND_PHONEBOOK_ENTRY    = (RASBASE + 23)
+/*
+ * The system could not find the phone book entry for this connection.%0
+ */
+
+Public Const ERROR_CANNOT_WRITE_PHONEBOOK         = (RASBASE + 24)
+/*
+ * The system could not update the phone book file.%0
+ */
+
+Public Const ERROR_CORRUPT_PHONEBOOK              = (RASBASE + 25)
+/*
+ * The system found invalid information in the phone book file.%0
+ */
+
+' #If (WINVER < 0x600)
+'
+' A string could not be loaded.
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_CANNOT_LOAD_STRING             = (RASBASE + 26)
+/*
+ * %0
+ */
+' #endif
+
+Public Const ERROR_KEY_NOT_FOUND                  = (RASBASE + 27)
+/*
+ * A key could not be found.%0
+ */
+
+Public Const ERROR_DISCONNECTION                  = (RASBASE + 28)
+/*
+ * The connection was terminated by the remote computer before it could be completed.%0
+ */
+
+Public Const ERROR_REMOTE_DISCONNECTION           = (RASBASE + 29)
+/*
+ * The connection was closed by the remote computer.%0
+ */
+
+Public Const ERROR_HARDWARE_FAILURE               = (RASBASE + 30)
+/*
+ * The modem (or other connecting device) was disconnected due to hardware failure.%0
+ */
+
+Public Const ERROR_USER_DISCONNECTION             = (RASBASE + 31)
+/*
+ * The user disconnected the modem (or other connecting device).%0
+ */
+
+Public Const ERROR_INVALID_SIZE                   = (RASBASE + 32)
+/*
+ * An incorrect structure size was detected.%0
+ */
+
+Public Const ERROR_PORT_NOT_AVAILABLE             = (RASBASE + 33)
+/*
+ * The modem (or other connecting device) is already in use or is not configured properly.%0
+ */
+
+' #If (WINVER < 0x600)
+'
+' Your computer could not be registered on the remote network.
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_CANNOT_PROJECT_CLIENT          = (RASBASE + 34)
+/*
+ * %0
+ */
+' #endif
+
+Public Const ERROR_UNKNOWN                        = (RASBASE + 35)
+/*
+ * There was an unknown error.%0
+ */
+
+Public Const ERROR_WRONG_DEVICE_ATTACHED          = (RASBASE + 36)
+/*
+ * The device attached to the port is not the one expected.%0
+ */
+
+' #If (WINVER < 0x600)
+'
+' A string was detected that could not be converted.
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_BAD_STRING                     = (RASBASE + 37)
+/*
+ * %0
+ */
+' #endif
+
+Public Const ERROR_REQUEST_TIMEOUT                = (RASBASE + 38)
+/*
+ * The remote server is not responding in a timely fashion.%0
+ */
+
+' #If (WINVER < 0x600)
+'
+' No asynchronous net is available.
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_CANNOT_GET_LANA                = (RASBASE + 39)
+/*
+ * %0
+ */
+
+'
+' An error has occurred involving NetBIOS.
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_NETBIOS_ERROR                  = (RASBASE + 40)
+/*
+ * %0
+ */
+
+'
+' The server cannot allocate NetBIOS resources needed to support the client.
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_SERVER_OUT_OF_RESOURCES        = (RASBASE + 41)
+/*
+ * %0
+ */
+
+'
+' One of your computer's NetBIOS names is already registered on the remote network.
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_NAME_EXISTS_ON_NET             = (RASBASE + 42)
+/*
+ * %0
+ */
+
+'
+' A network adapter at the server failed.
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_SERVER_GENERAL_NET_FAILURE     = (RASBASE + 43)
+/*
+ * %0
+ */
+
+'
+' You will not receive network message popups.
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const WARNING_MSG_ALIAS_NOT_ADDED          = (RASBASE + 44)
+/*
+ * %0
+ */
+' #endif
+
+Public Const ERROR_AUTH_INTERNAL                  = (RASBASE + 45)
+/*
+ * There was an internal authentication error.%0
+ */
+
+Public Const ERROR_RESTRICTED_LOGON_HOURS         = (RASBASE + 46)
+/*
+ * The account is not permitted to log on at this time of day.%0
+ */
+
+Public Const ERROR_ACCT_DISABLED                  = (RASBASE + 47)
+/*
+ * The account is disabled.%0
+ */
+
+Public Const ERROR_PASSWD_EXPIRED                 = (RASBASE + 48)
+/*
+ * The password for this account has expired.%0
+ */
+
+Public Const ERROR_NO_DIALIN_PERMISSION           = (RASBASE + 49)
+/*
+ * The account does not have permission to dial in.%0
+ */
+
+' #If (WINVER < 0x600)
+'
+' The remote access server is not responding.
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_SERVER_NOT_RESPONDING          = (RASBASE + 50)
+/*
+ * %0
+ */
+' #endif
+
+Public Const ERROR_FROM_DEVICE                    = (RASBASE + 51)
+/*
+ * The modem (or other connecting device) has reported an error.%0
+ */
+
+Public Const ERROR_UNRECOGNIZED_RESPONSE          = (RASBASE + 52)
+/*
+ * There was an unrecognized response from the modem (or other connecting device).%0
+ */
+
+Public Const ERROR_MACRO_NOT_FOUND                = (RASBASE + 53)
+/*
+ * A macro required by the modem (or other connecting device) was not found in the device.INF file.%0
+ */
+
+Public Const ERROR_MACRO_NOT_DEFINED              = (RASBASE + 54)
+/*
+ * A command or response in the device.INF file section refers to an undefined macro.%0
+ */
+
+Public Const ERROR_MESSAGE_MACRO_NOT_FOUND        = (RASBASE + 55)
+/*
+ * The <message> macro was not found in the device.INF file section.%0
+ */
+
+Public Const ERROR_DEFAULTOFF_MACRO_NOT_FOUND     = (RASBASE + 56)
+/*
+ * The <defaultoff> macro in the device.INF file section contains an undefined macro.%0
+ */
+
+Public Const ERROR_FILE_COULD_NOT_BE_OPENED       = (RASBASE + 57)
+/*
+ * The device.INF file could not be opened.%0
+ */
+
+Public Const ERROR_DEVICENAME_TOO_LONG            = (RASBASE + 58)
+/*
+ * The device name in the device.INF or media.INI file is too long.%0
+ */
+
+Public Const ERROR_DEVICENAME_NOT_FOUND           = (RASBASE + 59)
+/*
+ * The media.INI file refers to an unknown device name.%0
+ */
+
+Public Const ERROR_NO_RESPONSES                   = (RASBASE + 60)
+/*
+ * The device.INF file contains no responses for the command.%0
+ */
+
+Public Const ERROR_NO_COMMAND_FOUND               = (RASBASE + 61)
+/*
+ * The device.INF file is missing a command.%0
+ */
+
+Public Const ERROR_WRONG_KEY_SPECIFIED            = (RASBASE + 62)
+/*
+ * There was an attempt to set a macro not listed in device.INF file section.%0
+ */
+
+Public Const ERROR_UNKNOWN_DEVICE_TYPE            = (RASBASE + 63)
+/*
+ * The media.INI file refers to an unknown device type.%0
+ */
+
+Public Const ERROR_ALLOCATING_MEMORY              = (RASBASE + 64)
+/*
+ * The system has run out of memory.%0
+ */
+
+Public Const ERROR_PORT_NOT_CONFIGURED            = (RASBASE + 65)
+/*
+ * The modem (or other connecting device) is not properly configured.%0
+ */
+
+Public Const ERROR_DEVICE_NOT_READY               = (RASBASE + 66)
+/*
+ * The modem (or other connecting device) is not functioning.%0
+ */
+
+Public Const ERROR_READING_INI_FILE               = (RASBASE + 67)
+/*
+ * The system was unable to read the media.INI file.%0
+ */
+
+Public Const ERROR_NO_CONNECTION                  = (RASBASE + 68)
+/*
+ * The connection was terminated.%0
+ */
+
+Public Const ERROR_BAD_USAGE_IN_INI_FILE          = (RASBASE + 69)
+/*
+ * The usage parameter in the media.INI file is invalid.%0
+ */
+
+Public Const ERROR_READING_SECTIONNAME            = (RASBASE + 70)
+/*
+ * The system was unable to read the section name from the media.INI file.%0
+ */
+
+Public Const ERROR_READING_DEVICETYPE             = (RASBASE + 71)
+/*
+ * The system was unable to read the device type from the media.INI file.%0
+ */
+
+Public Const ERROR_READING_DEVICENAME             = (RASBASE + 72)
+/*
+ * The system was unable to read the device name from the media.INI file.%0
+ */
+
+Public Const ERROR_READING_USAGE                  = (RASBASE + 73)
+/*
+ * The system was unable to read the usage from the media.INI file.%0
+ */
+
+' #If (WINVER < 0x600)
+'
+' The system was unable to read the maximum connection BPS rate from the media.INI file.
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_READING_MAXCONNECTBPS          = (RASBASE + 74)
+/*
+ * %0
+ */
+
+'
+' The system was unable to read the maximum carrier connection speed from the media.INI file.
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_READING_MAXCARRIERBPS          = (RASBASE + 75)
+/*
+ * %0
+ */
+' #endif
+
+Public Const ERROR_LINE_BUSY                      = (RASBASE + 76)
+/*
+ * The phone line is busy.%0
+ */
+
+Public Const ERROR_VOICE_ANSWER                   = (RASBASE + 77)
+/*
+ * A person answered instead of a modem (or other connecting device).%0
+ */
+
+Public Const ERROR_NO_ANSWER                      = (RASBASE + 78)
+/*
+ * The remote computer did not respond. To make sure that the server can be reached, ping the remote computer.%0
+ */
+
+Public Const ERROR_NO_CARRIER                     = (RASBASE + 79)
+/*
+ * The system could not detect the carrier.%0
+ */
+
+Public Const ERROR_NO_DIALTONE                    = (RASBASE + 80)
+/*
+ * There was no dial tone.%0
+ */
+
+' #If (WINVER < 0x600)
+'
+' The modem (or other connecting device) reported a general error.
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_IN_COMMAND                     = (RASBASE + 81)
+/*
+ * %0
+ */
+
+'
+' There was an error in writing the section name.
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_WRITING_SECTIONNAME            = (RASBASE + 82)
+/*
+ * %0
+ */
+
+'
+' There was an error in writing the device type.
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_WRITING_DEVICETYPE             = (RASBASE + 83)
+/*
+ * %0
+ */
+
+'
+' There was an error in writing the device name.
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_WRITING_DEVICENAME             = (RASBASE + 84)
+/*
+ * %0
+ */
+
+'
+' There was an error in writing the maximum connection speed.
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_WRITING_MAXCONNECTBPS          = (RASBASE + 85)
+/*
+ * %0
+ */
+
+'
+' There was an error in writing the maximum carrier speed.
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_WRITING_MAXCARRIERBPS          = (RASBASE + 86)
+/*
+ * %0
+ */
+
+'
+' There was an error in writing the usage.
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_WRITING_USAGE                  = (RASBASE + 87)
+/*
+ * %0
+ */
+
+'
+' There was an error in writing the default-off.
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_WRITING_DEFAULTOFF             = (RASBASE + 88)
+/*
+ * %0
+ */
+
+'
+' There was an error in reading the default-off.
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_READING_DEFAULTOFF             = (RASBASE + 89)
+/*
+ * %0
+ */
+
+'
+' ERROR_EMPTY_INI_FILE
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_EMPTY_INI_FILE                 = (RASBASE + 90)
+/*
+ * %0
+ */
+' #endif
+
+Public Const ERROR_AUTHENTICATION_FAILURE         = (RASBASE + 91)
+/*
+ * The remote connection was denied because the user name and password combination you provided is not recognized, or the selected authentication protocol is not permitted on the remote access server.%0
+ */
+
+Public Const ERROR_PORT_OR_DEVICE                 = (RASBASE + 92)
+/*
+ * There was a hardware failure in the modem (or other connecting device).%0
+ */
+
+Public Const ERROR_NOT_BINARY_MACRO               = (RASBASE + 93)
+/*
+ * ERROR_NOT_BINARY_MACRO%0
+ */
+
+Public Const ERROR_DCB_NOT_FOUND                  = (RASBASE + 94)
+/*
+ * ERROR_DCB_NOT_FOUND%0
+ */
+
+Public Const ERROR_STATE_MACHINES_NOT_STARTED     = (RASBASE + 95)
+/*
+ * The state machines are not started.%0
+ */
+
+Public Const ERROR_STATE_MACHINES_ALREADY_STARTED = (RASBASE + 96)
+/*
+ * The state machines are already started.%0
+ */
+
+Public Const ERROR_PARTIAL_RESPONSE_LOOPING       = (RASBASE + 97)
+/*
+ * The response looping did not complete.%0
+ */
+
+Public Const ERROR_UNKNOWN_RESPONSE_KEY           = (RASBASE + 98)
+/*
+ * A response keyname in the device.INF file is not in the expected format.%0
+ */
+
+Public Const ERROR_RECV_BUF_FULL                  = (RASBASE + 99)
+/*
+ * The modem (or other connecting device) response caused a buffer overflow.%0
+ */
+
+Public Const ERROR_CMD_TOO_LONG                   = (RASBASE + 100)
+/*
+ * The expanded command in the device.INF file is too long.%0
+ */
+
+Public Const ERROR_UNSUPPORTED_BPS                = (RASBASE + 101)
+/*
+ * The modem moved to a connection speed not supported by the COM driver.%0
+ */
+
+Public Const ERROR_UNEXPECTED_RESPONSE            = (RASBASE + 102)
+/*
+ * Device response received when none expected.%0
+ */
+
+Public Const ERROR_INTERACTIVE_MODE               = (RASBASE + 103)
+/*
+ * The connection needs information from you, but the application does not allow user interaction.%0
+ */
+
+Public Const ERROR_BAD_CALLBACK_NUMBER            = (RASBASE + 104)
+/*
+ * The callback number is invalid.%0
+ */
+
+Public Const ERROR_INVALID_AUTH_STATE             = (RASBASE + 105)
+/*
+ * The authorization state is invalid.%0
+ */
+
+' #If (WINVER < 0x600)
+'
+' ERROR_WRITING_INITBPS
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_WRITING_INITBPS                = (RASBASE + 106)
+/*
+ * %0
+ */
+' #endif
+
+Public Const ERROR_X25_DIAGNOSTIC                 = (RASBASE + 107)
+/*
+ * There was an error related to the X.25 protocol.%0
+ */
+
+Public Const ERROR_ACCT_EXPIRED                   = (RASBASE + 108)
+/*
+ * The account has expired.%0
+ */
+
+Public Const ERROR_CHANGING_PASSWORD              = (RASBASE + 109)
+/*
+ * There was an error changing the password on the domain.  The password might have been too short or might have matched a previously used password.%0
+ */
+
+Public Const ERROR_OVERRUN                        = (RASBASE + 110)
+/*
+ * Serial overrun errors were detected while communicating with the modem.%0
+ */
+
+Public Const ERROR_RASMAN_CANNOT_INITIALIZE         = (RASBASE + 111)
+/*
+ * The operation could not finish because it could not start the Remote Access Connection Manager service in time. Please try the operation again.%0
+ */
+
+' #If (WINVER < 0x600)
+'
+' The two-way port is initializing.  Wait a few seconds and redial.
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_BIPLEX_PORT_NOT_AVAILABLE      = (RASBASE + 112)
+/*
+ * %0
+ */
+' #endif
+
+Public Const ERROR_NO_ACTIVE_ISDN_LINES           = (RASBASE + 113)
+/*
+ * No active ISDN lines are available.%0
+ */
+
+' #If (WINVER < 0x600)
+'
+' No ISDN channels are available to make the call.
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_NO_ISDN_CHANNELS_AVAILABLE     = (RASBASE + 114)
+/*
+ * %0
+ */
+
+'
+' Too many errors occurred because of poor phone line quality.
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_TOO_MANY_LINE_ERRORS           = (RASBASE + 115)
+/*
+ * %0
+ */
+' #endif
+
+Public Const ERROR_IP_CONFIGURATION               = (RASBASE + 116)
+/*
+ * The Remote Access Service IP configuration is unusable.%0
+ */
+
+Public Const ERROR_NO_IP_ADDRESSES                = (RASBASE + 117)
+/*
+ * No IP addresses are available in the static pool of Remote Access Service IP addresses.%0
+ */
+
+Public Const ERROR_PPP_TIMEOUT                    = (RASBASE + 118)
+/*
+ * The connection was terminated because the remote computer did not respond in a timely manner.%0
+ */
+
+' #If (WINVER < 0x600)
+'
+' The connection was terminated by the remote computer.
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_PPP_REMOTE_TERMINATED          = (RASBASE + 119)
+/*
+ * %0
+ */
+' #endif
+
+Public Const ERROR_PPP_NO_PROTOCOLS_CONFIGURED    = (RASBASE + 120)
+/*
+ * A connection to the remote computer could not be established.  You might need to change the network settings for this connection.%0
+ */
+
+Public Const ERROR_PPP_NO_RESPONSE                = (RASBASE + 121)
+/*
+ * A connection to the remote access server was not made because the remote access server did not respond.%0
+ */
+
+Public Const ERROR_PPP_INVALID_PACKET             = (RASBASE + 122)
+/*
+ * Invalid data was received from the remote computer.  This data was ignored.%0
+ */
+
+Public Const ERROR_PHONE_NUMBER_TOO_LONG          = (RASBASE + 123)
+/*
+ * The phone number, including prefix and suffix, is too long.%0
+ */
+
+' #If (WINVER < 0x600)
+'
+' The IPX protocol cannot dial out on the modem (or other connecting device) because this computer is not configured for dialing out (it is an IPX router).
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_IPXCP_NO_DIALOUT_CONFIGURED    = (RASBASE + 124)
+/*
+ * %0
+ */
+
+'
+' The IPX protocol cannot dial in on the modem (or other connecting device) because this computer is not configured for dialing in (the IPX router is not installed).
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_IPXCP_NO_DIALIN_CONFIGURED     = (RASBASE + 125)
+/*
+ * %0
+ */
+' #endif
+
+Public Const ERROR_IPXCP_DIALOUT_ALREADY_ACTIVE   = (RASBASE + 126)
+/*
+ * The IPX protocol cannot be used for dialing out on more than one modem (or other connecting device) at a time.%0
+ */
+
+' #If (WINVER < 0x600)
+'
+' Cannot access TCPCFG.DLL.
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_ACCESSING_TCPCFGDLL            = (RASBASE + 127)
+/*
+ * %0
+ */
+' #endif
+
+Public Const ERROR_NO_IP_RAS_ADAPTER              = (RASBASE + 128)
+/*
+ * The system cannot find an IP adapter.%0
+ */
+
+Public Const ERROR_SLIP_REQUIRES_IP               = (RASBASE + 129)
+/*
+ * SLIP cannot be used unless the IP protocol is installed.%0
+ */
+
+' #If (WINVER < 0x600)
+'
+' Computer registration is not complete.
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_PROJECTION_NOT_COMPLETE        = (RASBASE + 130)
+/*
+ * %0
+ */
+' #endif
+
+Public Const ERROR_PROTOCOL_NOT_CONFIGURED        = (RASBASE + 131)
+/*
+ * The protocol is not configured.%0
+ */
+
+Public Const ERROR_PPP_NOT_CONVERGING             = (RASBASE + 132)
+/*
+ *Your computer and the remote computer could not agree on PPP control protocols.%0
+ */
+
+Public Const ERROR_PPP_CP_REJECTED                = (RASBASE + 133)
+/*
+ * A connection to the remote computer could not be completed.  You might need to adjust the protocols on this computer.%0
+ */
+
+Public Const ERROR_PPP_LCP_TERMINATED             = (RASBASE + 134)
+/*
+ * The PPP link control protocol was terminated.%0
+ */
+
+Public Const ERROR_PPP_REQUIRED_ADDRESS_REJECTED  = (RASBASE + 135)
+/*
+ * The requested address was rejected by the server.%0
+ */
+
+Public Const ERROR_PPP_NCP_TERMINATED             = (RASBASE + 136)
+/*
+ * The remote computer terminated the control protocol.%0
+ */
+
+Public Const ERROR_PPP_LOOPBACK_DETECTED          = (RASBASE + 137)
+/*
+ * Loopback was detected.%0
+ */
+
+Public Const ERROR_PPP_NO_ADDRESS_ASSIGNED        = (RASBASE + 138)
+/*
+ * The remote connection was not made because the remote access server did not assign an IP address.%0
+ */
+
+Public Const ERROR_CANNOT_USE_LOGON_CREDENTIALS   = (RASBASE + 139)
+/*
+ * The authentication protocol required by the remote server cannot use the stored password.  Redial, entering the password explicitly.%0
+ */
+
+Public Const ERROR_TAPI_CONFIGURATION             = (RASBASE + 140)
+/*
+ * An invalid dialing rule was detected.%0
+ */
+
+Public Const ERROR_NO_LOCAL_ENCRYPTION            = (RASBASE + 141)
+/*
+ * The local computer does not support the required data encryption type.%0
+ */
+
+Public Const ERROR_NO_REMOTE_ENCRYPTION           = (RASBASE + 142)
+/*
+ * The remote computer does not support the required data encryption type.%0
+ */
+
+' #If (WINVER < 0x600)
+'
+' The remote computer requires data encryption.
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_REMOTE_REQUIRES_ENCRYPTION     = (RASBASE + 143)
+/*
+ * %0
+ */
+
+'
+' The system cannot use the IPX network number assigned by the remote computer.  Additional information is provided in the event log.
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_IPXCP_NET_NUMBER_CONFLICT      = (RASBASE + 144)
+/*
+ * %0
+ */
+
+'
+' ERROR_INVALID_SMM
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_INVALID_SMM                    = (RASBASE + 145)
+/*
+ * %0
+ */
+
+'
+' ERROR_SMM_UNINITIALIZED
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_SMM_UNINITIALIZED              = (RASBASE + 146)
+/*
+ * %0
+ */
+
+'
+' ERROR_NO_MAC_FOR_PORT
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_NO_MAC_FOR_PORT                = (RASBASE + 147)
+/*
+ * %0
+ */
+
+'
+' ERROR_SMM_TIMEOUT
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_SMM_TIMEOUT                    = (RASBASE + 148)
+/*
+ * %0
+ */
+' #endif
+
+
+Public Const ERROR_BAD_PHONE_NUMBER               = (RASBASE + 149)
+/*
+ * The destination address or phone number is either invalid or not present.%0
+ */
+
+
+' #If (WINVER < 0x600)
+
+'
+' ERROR_WRONG_MODULE
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_WRONG_MODULE                   = (RASBASE + 150)
+/*
+ * %0
+ */
+
+'
+' The callback number contains an invalid character.  Only the following 18 characters are allowed:  0 to 9, T, P, W, (, ), -, @, and space.
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_INVALID_CALLBACK_NUMBER        = (RASBASE + 151)
+/*
+ * %0
+ */
+' #endif
+
+Public Const ERROR_SCRIPT_SYNTAX                  = (RASBASE + 152)
+/*
+ * A syntax error was encountered while processing a script.%0
+ */
+
+Public Const ERROR_HANGUP_FAILED                  = (RASBASE + 153)
+/*
+ * The connection could not be disconnected because the user does not have the required permission to disconnect.%0
+ */
+
+Public Const ERROR_BUNDLE_NOT_FOUND               = (RASBASE + 154)
+/*
+ * The system could not find the multi-link bundle.%0
+ */
+
+Public Const ERROR_CANNOT_DO_CUSTOMDIAL           = (RASBASE + 155)
+/*
+ * The system cannot perform automated dial because this connection has a custom dialer specified.%0
+ */
+
+Public Const ERROR_DIAL_ALREADY_IN_PROGRESS       = (RASBASE + 156)
+/*
+ * This connection is already being dialed.%0
+ */
+
+Public Const ERROR_RASAUTO_CANNOT_INITIALIZE      = (RASBASE + 157)
+/*
+ * Remote Access Services could not be started automatically.  Additional information is provided in the event log.%0
+ */
+
+' #If (WINVER < 0x600)
+'
+' Internet Connection Sharing is already enabled on the connection.
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_CONNECTION_ALREADY_SHARED      = (RASBASE + 158)
+/*
+ * %0
+ */
+
+'
+' An error occurred while the existing Internet Connection Sharing settings were being changed.
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_SHARING_CHANGE_FAILED          = (RASBASE + 159)
+/*
+ * %0
+ */
+
+'
+' An error occurred while routing capabilities were being enabled.
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_SHARING_ROUTER_INSTALL         = (RASBASE + 160)
+/*
+ * %0
+ */
+
+'
+' An error occurred while Internet Connection Sharing was being enabled for the connection.
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_SHARE_CONNECTION_FAILED        = (RASBASE + 161)
+/*
+ * %0
+ */
+
+'
+' An error occurred while the local network was being configured for sharing.
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_SHARING_PRIVATE_INSTALL        = (RASBASE + 162)
+/*
+ * %0
+ */
+
+'
+' Internet Connection Sharing cannot be enabled.  There is more than one LAN connection other than the connection to be shared.
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_CANNOT_SHARE_CONNECTION        = (RASBASE + 163)
+/*
+ * %0
+ */
+' #endif
+
+Public Const ERROR_NO_SMART_CARD_READER           = (RASBASE + 164)
+/*
+ * No smart card reader is installed.%0
+ */
+
+Public Const ERROR_SHARING_ADDRESS_EXISTS         = (RASBASE + 165)
+/*
+ * Internet Connection Sharing cannot be enabled.  A LAN connection is already configured with the IP address that is required for automatic IP addressing.%0
+ */
+
+Public Const ERROR_NO_CERTIFICATE                 = (RASBASE + 166)
+/*
+ * A certificate could not be found.  Connections that use the L2TP protocol over IPSec require the installation of a machine certificate, also known as a computer certificate.%0
+ */
+
+Public Const ERROR_SHARING_MULTIPLE_ADDRESSES     = (RASBASE + 167)
+/*
+ * Internet Connection Sharing cannot be enabled.  The LAN connection selected as the private network has more than one IP address configured.  Please reconfigure the LAN connection with a single IP address before enabling Internet Connection Sharing.%0
+ */
+
+Public Const ERROR_FAILED_TO_ENCRYPT              = (RASBASE + 168)
+/*
+ * The connection attempt failed because of failure to encrypt data.%0
+ */
+
+Public Const ERROR_BAD_ADDRESS_SPECIFIED          = (RASBASE + 169)
+/*
+ * The specified destination is not reachable.%0
+ */
+
+Public Const ERROR_CONNECTION_REJECT              = (RASBASE + 170)
+/*
+ * The remote computer rejected the connection attempt.%0
+ */
+
+Public Const ERROR_CONGESTION                     = (RASBASE + 171)
+/*
+ * The connection attempt failed because the network is busy.%0
+ */
+
+Public Const ERROR_INCOMPATIBLE                   = (RASBASE + 172)
+/*
+ * The remote computer's network hardware is incompatible with the type of call requested.%0
+ */
+
+Public Const ERROR_NUMBERCHANGED                  = (RASBASE + 173)
+/*
+ * The connection attempt failed because the destination number has changed.%0
+ */
+
+Public Const ERROR_TEMPFAILURE                    = (RASBASE + 174)
+/*
+ * The connection attempt failed because of a temporary failure.  Try connecting again.%0
+ */
+
+Public Const ERROR_BLOCKED                        = (RASBASE + 175)
+/*
+ * The call was blocked by the remote computer.%0
+ */
+
+Public Const ERROR_DONOTDISTURB                   = (RASBASE + 176)
+/*
+ * The call could not be connected because the remote computer has invoked the Do Not Disturb feature.%0
+ */
+
+Public Const ERROR_OUTOFORDER                     = (RASBASE + 177)
+/*
+ * The connection attempt failed because the modem (or other connecting device) on the remote computer is out of order.%0
+ */
+
+Public Const ERROR_UNABLE_TO_AUTHENTICATE_SERVER  = (RASBASE + 178)
+/*
+ * It was not possible to verify the identity of the server.%0
+ */
+
+' #If (WINVER < 0x600)
+'
+' To dial out using this connection you must use a smart card.
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_SMART_CARD_REQUIRED            = (RASBASE + 179)
+/*
+ * %0
+ */
+' #endif
+
+Public Const ERROR_INVALID_FUNCTION_FOR_ENTRY     = (RASBASE + 180)
+/*
+ * An attempted function is not valid for this connection.%0
+ */
+
+' #If (WINVER < 0x600)
+'
+' The connection requires a certificate, and no valid certificate was found.  For further assistance, click More Info or search Help and Support Center for this error number.
+'
+' This error was obsoleted in the Windows Vista  release.
+'
+Public Const ERROR_CERT_FOR_ENCRYPTION_NOT_FOUND  = (RASBASE + 181)
+/*
+ * %0
+ */
+' #endif
+
+Public Const ERROR_SHARING_RRAS_CONFLICT          = (RASBASE + 182)
+/*
+ * Internet Connection Sharing (ICS) and Internet Connection Firewall (ICF) cannot be enabled because Routing and Remote Access has been enabled on this computer.  To enable ICS or ICF, first disable Routing and Remote Access.  For more information about Routing and Remote Access, ICS, or ICF, see Help and Support.%0
+ */
+
+Public Const ERROR_SHARING_NO_PRIVATE_LAN         = (RASBASE + 183)
+/*
+ * Internet Connection Sharing cannot be enabled.  The LAN connection selected as the private network is either not present, or is disconnected from the network.  Please ensure that the LAN adapter is connected before enabling Internet Connection Sharing.%0
+ */
+
+Public Const ERROR_NO_DIFF_USER_AT_LOGON          = (RASBASE + 184)
+/*
+ * You cannot dial using this connection at logon time, because it is configured to use a user name different than the one on the smart card.  If you want to use it at logon time, you must configure it to use the user name on the smart card.%0
+ */
+
+Public Const ERROR_NO_REG_CERT_AT_LOGON           = (RASBASE + 185)
+/*
+ * You cannot dial using this connection at logon time, because it is not configured to use a smart card.  If you want to use it at logon time, you must edit the properties of this connection so that it uses a smart card.%0
+ */
+
+Public Const ERROR_OAKLEY_NO_CERT                 = (RASBASE + 186)
+/*
+ * The connection attempt failed because there is no valid machine certificate on your computer for security authentication.%0
+ */
+
+Public Const ERROR_OAKLEY_AUTH_FAIL               = (RASBASE + 187)
+/*
+ * The L2TP connection attempt failed because the security layer could not authenticate the remote computer.%0
+ */
+
+Public Const ERROR_OAKLEY_ATTRIB_FAIL             = (RASBASE + 188)
+/*
+ * The L2TP connection attempt failed because the security layer could not negotiate compatible parameters with the remote computer.%0
+ */
+
+Public Const ERROR_OAKLEY_GENERAL_PROCESSING      = (RASBASE + 189)
+/*
+ * The L2TP connection attempt failed because the security layer encountered a processing error during initial negotiations with the remote computer.%0
+ */
+
+Public Const ERROR_OAKLEY_NO_PEER_CERT            = (RASBASE + 190)
+/*
+ * The L2TP connection attempt failed because certificate validation of the remote computer failed.%0
+ */
+
+Public Const ERROR_OAKLEY_NO_POLICY               = (RASBASE + 191)
+/*
+ * The L2TP connection attempt failed because security policy for the connection was not found.%0
+ */
+
+Public Const ERROR_OAKLEY_TIMED_OUT               = (RASBASE + 192)
+/*
+ * The L2TP connection attempt failed because security negotiation timed out.%0
+ */
+
+Public Const ERROR_OAKLEY_ERROR                   = (RASBASE + 193)
+/*
+ * The L2TP connection attempt failed because an error occurred while negotiating security.%0
+ */
+
+Public Const ERROR_UNKNOWN_FRAMED_PROTOCOL        = (RASBASE + 194)
+/*
+ * The Framed Protocol RADIUS attribute for this user is not PPP.%0
+ */
+
+Public Const ERROR_WRONG_TUNNEL_TYPE              = (RASBASE + 195)
+/*
+ * The remote connection request was denied because the VPN tunnel type being used is not allowed.%0
+ */
+
+Public Const ERROR_UNKNOWN_SERVICE_TYPE           = (RASBASE + 196)
+/*
+ * The Service Type RADIUS attribute for this user is neither Framed nor Callback Framed.%0
+ */
+
+Public Const ERROR_CONNECTING_DEVICE_NOT_FOUND    = (RASBASE + 197)
+/*
+ * A connection to the remote access server was not made because the modem was not found.%0
+ */
+
+Public Const ERROR_NO_EAPTLS_CERTIFICATE          = (RASBASE + 198)
+/*
+ * A certificate could not be found that can be used with this Extensible Authentication Protocol.%0
+ */
+
+Public Const ERROR_SHARING_HOST_ADDRESS_CONFLICT  = (RASBASE + 199)
+/*
+ * Internet Connection Sharing (ICS) cannot be enabled due to an IP address conflict on the network.  ICS requires the host be configured to use 192.168.137.1.  Please ensure that no other client on the network is configured to use 192.168.137.1.%0
+ */
+
+Public Const ERROR_AUTOMATIC_VPN_FAILED           = (RASBASE + 200)
+/*
+ * The remote connection was not made because the attempted VPN tunnels failed. The VPN server might be unreachable. If this connection is attempting to use an L2TP/IPsec tunnel, the security parameters required for IPsec negotiation might not be configured properly.%0
+ */
+
+Public Const ERROR_VALIDATING_SERVER_CERT         = (RASBASE + 201)
+/*
+ * This connection is configured to validate the identity of the access server, but Windows cannot verify the digital certificate sent by the server.%0
+ */
+
+Public Const ERROR_READING_SCARD                  = (RASBASE + 202)
+/*
+ * The card supplied was not recognized.  Please check that the card is inserted correctly, and fits tightly.%0
+ */
+
+Public Const ERROR_INVALID_PEAP_COOKIE_CONFIG     = (RASBASE + 203)
+/*
+ * The PEAP configuration stored in the session cookie does not match the current session configuration.%0
+ */
+
+Public Const ERROR_INVALID_PEAP_COOKIE_USER       = (RASBASE + 204)
+/*
+ * The PEAP identity stored in the session cookie does not match the current identity.%0
+ */
+
+Public Const ERROR_INVALID_MSCHAPV2_CONFIG        = (RASBASE + 205)
+/*
+ * You cannot dial using this connection at logon time, because it is configured to use logged on user's credentials.%0
+ */
+
+'
+' New Errors for Windows Vista
+'
+Public Const ERROR_VPN_GRE_BLOCKED                 = (RASBASE + 206)
+/*
+ * The VPN connection between your computer and the VPN server could not be completed. The most common cause for this failure is that at least one Internet device (for example, a firewall or a router) between your computer and the VPN server is not configured to allow Generic Routing Encapsulation (GRE) protocol packets. If the problem persists, contact your network administrator or Internet Service Provider.%0
+ */
+
+Public Const ERROR_VPN_DISCONNECT                 = (RASBASE + 207)
+/*
+ * The network connection between your computer and the VPN server was interrupted.  This can be caused by a problem in the VPN transmission and is commonly the result of internet latency or simply that your VPN server has reached capacity.  Please try to reconnect to the VPN server.  If this problem persists, contact the VPN administrator and analyze quality of network connectivity.%0
+ */
+
+Public Const ERROR_VPN_REFUSED                    = (RASBASE + 208)
+/*
+ * The network connection between your computer and the VPN server could not be established because the remote server refused the connection. This is typically caused by a mismatch between the server's configuration and your connection settings. Please contact the remote server's Administrator to verify the server configuration and your connection settings.%0
+ */
+
+Public Const ERROR_VPN_TIMEOUT                    = (RASBASE + 209)
+/*
+ * The network connection between your computer and the VPN server could not be established because the remote server is not responding. This could be because one of the network devices (e.g, firewalls, NAT, routers, etc) between your computer and the remote server is not configured to allow VPN connections. Please contact your Administrator or your service provider to determine which device may be causing the problem.%0
+ */
+
+Public Const ERROR_VPN_BAD_CERT                   = (RASBASE + 210)
+/*
+ * A network connection between your computer and the VPN server was started, but the VPN connection was not completed. This is typically caused by the use of an incorrect or expired certificate for authentication between the client and the server. Please contact your Administrator to ensure that the certificate being used for authentication is valid.%0
+ */
+
+Public Const ERROR_VPN_BAD_PSK                    = (RASBASE + 211)
+/*
+ * The network conection between your computer and the VPN server could not be established because the remote server is not responding.  This is typically caused by a pre-shared key problem between the client and server.  A pre-shared key is used to guarantee you are who you say you are in an IP Security (IPSec) communication cycle.  Please get the assistance of your administrator to determine where the pre-shared key problem is originating.%0
+ */
+
+Public Const ERROR_SERVER_POLICY                  = (RASBASE + 212)
+/*
+ *The connection was prevented because of a policy configured on your RAS/VPN server. Specifically, the authentication method used by the server to verify your username and password may not match the authentication method configured in your connection profile. Please contact the Administrator of the RAS server and notify them of this error.%0
+ */
+
+Public Const ERROR_BROADBAND_ACTIVE               = (RASBASE + 213)
+/*
+ * You have attempted to establish a second broadband connection while a previous broadband connection is already established using the same device or port. Please disconnect the earlier connection and then reestablish the connection.%0
+ */
+
+Public Const ERROR_BROADBAND_NO_NIC               = (RASBASE + 214)
+/*
+ * The underlying Ethernet connectivity required for the broadband connection was not found. Please install and enable the Ethernet adapter on your computer via the Network Connections folder before attempting this connection.%0
+ */
+
+Public Const ERROR_BROADBAND_TIMEOUT              = (RASBASE + 215)
+/*
+ * The broadband network conection could not be established on your computer because the remote server is not responding. This could be caused by an invalid value for the 'Service Name' field for this connection. Please contact your Internet Service Provider and inquire about the correct value for this field and update it in the Connection Properties.%0
+ */
+
+Public Const ERROR_FEATURE_DEPRECATED             = (RASBASE + 216)
+/*
+ * A feature or setting you have tried to enable is no longer supported by the remote access service.%0
+ */
+
+Public Const ERROR_CANNOT_DELETE                  = (RASBASE + 217)
+/*
+ * Cannot delete a connection while it is connected.%0
+ */
+
+' #If (WINVER <= 0x600)
+
+Public Const ERROR_RASQEC_RESOURCE_CREATION_FAILED = (RASBASE + 218)
+/*
+* The Network Access Protection (NAP) enforcement client could not create system resources for remote access connections. Some network services or resources might not be available. If the problem persists, disconnect and retry the remote access connection or contact the administrator for the remote access server.
+*/
+
+Public Const ERROR_RASQEC_NAPAGENT_NOT_ENABLED    = (RASBASE + 219)
+/*
+* The Network Access Protection Agent (NAPAgent) service has been disabled or is not installed on this computer. Some network services or resources might not be available. If the problem persists, disconnect and retry the remote access connection or contact the administrator for the remote access server.
+*/
+
+Public Const ERROR_RASQEC_NAPAGENT_NOT_CONNECTED  = (RASBASE + 220)
+/*
+* The Network Access Protection (NAP) enforcement client failed to register with the Network Access Protection Agent (NAPAgent) service. Some network services or resources might not be available. If the problem persists, disconnect and retry the remote access connection or contact the administrator for the remote access server.
+*/
+
+Public Const ERROR_RASQEC_CONN_DOESNOTEXIST       = (RASBASE + 221)
+/*
+* The Network Access Protection (NAP) enforcement client was unable to process the request because the remote access connection does not exist. Retry the remote access connection. If the problem persists, make sure that you can connect to the Internet, and then contact the administrator for the remote access server.
+*/
+
+Public Const ERROR_RASQEC_TIMEOUT                 = (RASBASE + 222)
+/*
+* The Network Access Protection (NAP) enforcement client did not respond. Some network services or resources might not be available. If the problem persists, disconnect and retry the remote access connection or contact the administrator for the remote access server.
+*/
+
+' #endif
+
+Public Const ERROR_PEAP_CRYPTOBINDING_INVALID    = (RASBASE + 223)
+/*
+* Received Crypto-Binding TLV is invalid.%0
+*/
+
+Public Const ERROR_PEAP_CRYPTOBINDING_NOTRECEIVED   = (RASBASE + 224)
+/*
+* Crypto-Binding TLV is not received.%0
+*/
+
+' #If (WINVER >= 0x600)
+
+Public Const ERROR_INVALID_VPNSTRATEGY   = (RASBASE + 225)
+/*
+* The remote connection was not made because Point-to-Point Tunneling Protocol (PPTP) is incompatible with IPv6. Use any other tunneling protocol. %0
+*/
+
+' #endif
+
+Public Const ERROR_EAPTLS_CACHE_CREDENTIALS_INVALID   = (RASBASE + 226)
+/*
+* EAPTLS validation of the cached credentials failed. Please discard
+* cached credentials.
+*/
+
+Public Const ERROR_IPSEC_SERVICE_STOPPED                 = (RASBASE + 227)
+/*
+* The VPN connection cannot be completed because the 'IKE and AuthIP IPSec Keying Modules' service and/or the 'Base Filtering Engine' service is not running. These services are required to establish the connection. Please ensure that these services have been started before dialing the connection.
+*/
+
+' #If (WINVER >= 0x600)
+
+Public Const ERROR_IDLE_TIMEOUT               = (RASBASE + 228)
+/*
+ * The connection was terminated because of idle timeout.%0
+ */
+
+Public Const ERROR_LINK_FAILURE               = (RASBASE + 229)
+/*
+ * The modem (or other connecting device) was disconnected due to link failure.%0
+ */
+
+Public Const ERROR_USER_LOGOFF                = (RASBASE + 230)
+/*
+ * The connection was terminated because user logged off.%0
+ */
+
+Public Const ERROR_FAST_USER_SWITCH           = (RASBASE + 231)
+/*
+ * The connection was terminated because user switch happened.%0
+ */
+
+Public Const ERROR_HIBERNATION                 = (RASBASE + 232)
+/*
+ * The connection was terminated because of hibernation.%0
+ */
+
+Public Const ERROR_SYSTEM_SUSPENDED            = (RASBASE + 233)
+/*
+ * The connection was terminated because the system got suspended.%0
+ */
+
+Public Const ERROR_RASMAN_SERVICE_STOPPED      = (RASBASE + 234)
+/*
+ * The connection was terminated because Remote Access Connection manager stopped.%0
+ */
+
+Public Const ERROR_INVALID_SERVER_CERT         = (RASBASE + 235)
+/*
+* The L2TP connection attempt failed because the security layer could not authenticate the remote computer. This could be because one or more fields of the certificate presented by the remote server could not be validated as belonging to the target destination.
+*/
+
+Public Const ERROR_NOT_NAP_CAPABLE             = (RASBASE + 236)
+/*
+* The Network Access Protection (NAP) health state of the computer cannot be determined. Contact your administrator to verify that the NAP enforcement client is enabled, the NAP Agent service is running, and NAP is enforced in the Protected Extensible Authentication Protocol (PEAP) properties of the remote access connection.
+*/
+
+' #endif
+
+' #If (WINVER >= 0x601)
+
+Public Const ERROR_INVALID_TUNNELID           = (RASBASE + 237)
+/*
+* Invalid Tunnel ID.%0
+*/
+
+Public Const ERROR_UPDATECONNECTION_REQUEST_IN_PROCESS    = (RASBASE + 238)
+/*
+* Another Update connection request is in progress. RAS allows only one Update Connection request at a time.%0
+*/
+
+Public Const ERROR_PROTOCOL_ENGINE_DISABLED    = (RASBASE + 239)
+/*
+* Negotiating using configured protocol is disable. Edit connection properties and select different protocol for negotiation and try again.%0
+*/
+
+Public Const ERROR_INTERNAL_ADDRESS_FAILURE    = (RASBASE + 240)
+/*
+ *  Internal address negotiation failed.%0
+ */
+
+Public Const ERROR_FAILED_CP_REQUIRED          = (RASBASE + 241)
+/*
+ * Client has to request a Internal IPv4 or IPv6 address.%0
+ */
+
+Public Const ERROR_TS_UNACCEPTABLE             = (RASBASE + 242)
+/*
+ *  Traffic Selectors negotiation failed.%0
+ */
+
+Public Const ERROR_MOBIKE_DISABLED             = (RASBASE + 243)
+/*
+* Mobility is disabled for this connection.
+*/
+
+Public Const ERROR_CANNOT_INITIATE_MOBIKE_UPDATE  = (RASBASE + 244)
+/*
+* The VPN Connection is still connecting or reauthenticating because of Quarantine state change. Initiate mobike update only when connection state is 'Connected'.
+*/
+
+Public Const ERROR_PEAP_SERVER_REJECTED_CLIENT_TLV           = (RASBASE + 245)
+/*
+* Server rejected client authentication, due unexpected TLV or value mismatch for a TLV.
+*/
+
+Public Const ERROR_INVALID_PREFERENCES           = (RASBASE + 246)
+/*
+* Either VPN Destination preference is not selected by the user or it is no longer valid.
+*/
+
+Public Const ERROR_EAPTLS_SCARD_CACHE_CREDENTIALS_INVALID = (RASBASE + 247)
+/*
+* Cached smart card credential is invalid.
+*/
+
+Public Const ERROR_SSTP_COOKIE_SET_FAILURE            = (RASBASE + 248)
+/*
+* VPN connection attempt failed due to internal error occurred while adding cookies to the Secure Socket Tunneling Protocol (SSTP). Please see the System Event Log for the detailed information.
+*/
+Public Const ERROR_INVALID_PEAP_COOKIE_ATTRIBUTES = (RASBASE + 249)
+/*
+* The PEAP inner method attributes stored in the cookie is invalid
+*/
+
+Public Const ERROR_EAP_METHOD_NOT_INSTALLED            = (RASBASE + 250)
+/*
+* The Extensible Authentication Protocol type required for authentication of the remote access connection is not installed on your computer.
+*/
+
+Public Const ERROR_EAP_METHOD_DOES_NOT_SUPPORT_SSO     = (RASBASE + 251)
+/*
+* The Extensible Authentication Protocol type configured on the remote access connection does not support single sign-on.
+*/
+
+Public Const ERROR_EAP_METHOD_OPERATION_NOT_SUPPORTED  = (RASBASE + 252)
+/*
+* The Extensible Authentication Protocol type configured on the remote access connection does not support the requested operation.
+*/
+
+Public Const ERROR_EAP_USER_CERT_INVALID               = (RASBASE + 253)
+/*
+* The remote access connection completed, but authentication failed because the certificate that authenticates the client to the server is not valid. Ensure that the certificate used for authentication is valid.
+*/
+
+Public Const ERROR_EAP_USER_CERT_EXPIRED               = (RASBASE + 254)
+/*
+* The remote access connection completed, but authentication failed because the certificate that authenticates the client to the server is expired. Renew the certificate.
+*/
+
+Public Const ERROR_EAP_USER_CERT_REVOKED               = (RASBASE + 255)
+/*
+* The remote access connection completed, but authentication failed because the certificate that authenticates the client to the server is revoked.
+*/
+
+Public Const ERROR_EAP_USER_CERT_OTHER_ERROR           = (RASBASE + 256)
+/*
+* The remote access connection completed, but authentication failed because of an error in the certificate that authenticates the client to the server.
+*/
+
+Public Const ERROR_EAP_SERVER_CERT_INVALID             = (RASBASE + 257)
+/*
+* The remote access connection completed, but authentication failed because the certificate that the client uses to authenticate the server is not valid.
+*/
+
+Public Const ERROR_EAP_SERVER_CERT_EXPIRED             = (RASBASE + 258)
+/*
+* The remote access connection completed, but authentication failed because the certificate that the client uses to authenticate the server is expired.
+*/
+
+Public Const ERROR_EAP_SERVER_CERT_REVOKED             = (RASBASE + 259)
+/*
+* The remote access connection completed, but authentication failed because the certificate that the client uses to authenticate the server is revoked.
+*/
+
+Public Const ERROR_EAP_SERVER_CERT_OTHER_ERROR         = (RASBASE + 260)
+/*
+* The remote access connection completed, but authentication failed because of an error in the certificate that the client uses to authenticate the server.
+*/
+
+Public Const ERROR_EAP_USER_ROOT_CERT_NOT_FOUND        = (RASBASE + 261)
+/*
+* The remote access connection completed, but authentication failed because a trusted root certificate that validates the user certificate was not found in the Trusted Root Certification Authorities certificate store.
+*/
+
+Public Const ERROR_EAP_USER_ROOT_CERT_INVALID          = (RASBASE + 262)
+/*
+* The remote access connection completed, but authentication failed because the trusted root certificate that is used to validate the user certificate is not valid.
+*/
+
+Public Const ERROR_EAP_USER_ROOT_CERT_EXPIRED          = (RASBASE + 263)
+/*
+* The remote access connection completed, but authentication failed because the certificate in the Trusted Root Certification Authorities certificate store that authenticates the user certificate is expired. Renew the certificate.
+*/
+
+Public Const ERROR_EAP_SERVER_ROOT_CERT_NOT_FOUND      = (RASBASE + 264)
+/*
+* The remote access connection completed, but authentication failed because a certificate that validates the server certificate was not found in the Trusted Root Certification Authorities certificate store.
+*/
+
+Public Const ERROR_EAP_SERVER_ROOT_CERT_INVALID        = (RASBASE + 265)
+/*
+* The remote zccess connection completed, but authentication failed because the certificate in the Trusted Root Certification Authorities certificate store that validates the server certificate is not valid.
+*/
+
+Public Const ERROR_EAP_SERVER_ROOT_CERT_NAME_REQUIRED  = (RASBASE + 266)
+/*
+* The remote access connection completed, but authentication failed because the certificate on the server computer does not have a server name specified.
+*/
+
+Public Const ERROR_PEAP_IDENTITY_MISMATCH               = (RASBASE + 267)
+/*
+*    The PEAP outer identity is not same as the inner identity when identity privacy is turned OFF.
+*/
+
+Public Const ERROR_DNSNAME_NOT_RESOLVABLE               = (RASBASE + 268)
+/*
+*    The remote connection was not made because the name of the remote access server did not resolve.
+*/
+
+Public Const ERROR_EAPTLS_PASSWD_INVALID                = (RASBASE + 269)
+/*
+* Password provided for certificate is not valid.
+*/
+
+Public Const ERROR_IKEV2_PSK_INTERFACE_ALREADY_EXISTS   = (RASBASE + 270)
+/*
+* The Interface  could not be enabled as more than one interface with same destination has been created with authentication method as Pre Shared Key. Change the destination/auth method and enable the interface.
+*/
+
+Public Const ERROR_INVALID_DESTINATION_IP               = (RASBASE + 271)
+/*
+* The Interface could not be enabled as no valid destination is found for it. Ensure that a valid/resolvable destination IP is configured and try again.
+*/
+
+' #endif
+
+' #If (WINVER >= 0x603)
+
+Public Const ERROR_INVALID_INTERFACE_CONFIG             = (RASBASE + 272)
+/*
+* The configuration for the interface is not valid
+*/
+
+' #endif
+
+Public Const ERROR_VPN_PLUGIN_GENERIC                   = (RASBASE + 273)
+/*
+* Couldn't connect to the VPN.
+*/
+
+Public Const ERROR_SSO_CERT_MISSING                     = (RASBASE + 274)
+/*
+* Couldn't connect because we couldn't find a certificate for single sign-on. Please contact your support person.
+*/
+
+Public Const ERROR_DEVICE_COMPLIANCE                    = (RASBASE + 275)
+/*
+* Couldn't connect because there was a problem with device compliance.
+*/
+
+Public Const ERROR_PLUGIN_NOT_INSTALLED                 = (RASBASE + 276)
+/*
+* The app %1!ws! is required for this VPN connection. Please download it in the Microsoft Store or contact your IT administrators.
+*/
+
+Public Const ERROR_ACTION_REQUIRED                      = (RASBASE + 277)
+/*
+* The connection requires an input state from the user.
+*/
+
+Public Const ERROR_WINHTTP_AUTO_PROXY_SERVICE           = (RASBASE + 278)
+/*
+* Couldn't connect because the call to the WinHttp Auto Proxy Service failed. This is usually the result of Web Proxy Auto-Discovery (WPAD) being disabled. Please enable it to allow the VPN connection to proceed, or contact your network administrator.
+*/
+
+Public Const RASBASEEND                                 = (RASBASE + 278)
+
+
+#End Region
+
+
+#Region "mgm.h"
+
+Public Type MGM_IF_ENTRY
+	dwIfIndex As Long
+	dwIfNextHopAddr As Long
+	bIGMP As BOOL
+	bIsEnabled As BOOL
+End Type
+
+Public Delegate Function MGM_RPF_CALLBACK (ByVal dwSourceAddr As Long, ByVal dwSourceMask As Long, ByVal dwGroupAddr As Long, ByVal dwGroupMask As Long, ByRef pdwInIfIndex As Long, ByRef pdwInIfNextHopAddr As Long, ByRef pdwUpStreamNbr As Long, ByVal dwHdrSize As Long, ByVal pbPacketHdr As LongPtr, ByVal pbRoute As LongPtr) As Long
+Public Delegate Function MGM_CREATION_ALERT_CALLBACK (ByVal dwSourceAddr As Long, ByVal dwSourceMask As Long, ByVal dwGroupAddr As Long, ByVal dwGroupMask As Long, ByVal dwInIfIndex As Long, ByVal dwInIfNextHopAddr As Long, ByVal dwIfCount As Long, ByRef pmieOutIfList As MGM_IF_ENTRY) As Long
+Public Delegate Function MGM_PRUNE_ALERT_CALLBACK (ByVal dwSourceAddr As Long, ByVal dwSourceMask As Long, ByVal dwGroupAddr As Long, ByVal dwGroupMask As Long, ByVal dwIfIndex As Long, ByVal dwIfNextHopAddr As Long, ByVal bMemberDelete As BOOL, ByRef pdwTimeout As Long) As Long
+Public Delegate Function MGM_JOIN_ALERT_CALLBACK (ByVal dwSourceAddr As Long, ByVal dwSourceMask As Long, ByVal dwGroupAddr As Long, ByVal dwGroupMask As Long, ByVal bMemberUpdate As BOOL) As Long
+Public Delegate Function MGM_WRONG_IF_CALLBACK (ByVal dwSourceAddr As Long, ByVal dwGroupAddr As Long, ByVal dwIfIndex As Long, ByVal dwIfNextHopAddr As Long, ByVal dwHdrSize As Long, ByVal pbPacketHdr As LongPtr) As Long
+Public Delegate Function MGM_LOCAL_JOIN_CALLBACK (ByVal dwSourceAddr As Long, ByVal dwSourceMask As Long, ByVal dwGroupAddr As Long, ByVal dwGroupMask As Long, ByVal dwIfIndex As Long, ByVal dwIfNextHopAddr As Long) As Long
+Public Delegate Function MGM_LOCAL_LEAVE_CALLBACK (ByVal dwSourceAddr As Long, ByVal dwSourceMask As Long, ByVal dwGroupAddr As Long, ByVal dwGroupMask As Long, ByVal dwIfIndex As Long, ByVal dwIfNextHopAddr As Long) As Long
+Public Delegate Function MGM_DISABLE_IGMP_CALLBACK (ByVal dwIfIndex As Long, ByVal dwIfNextHopAddr As Long) As Long
+Public Delegate Function MGM_ENABLE_IGMP_CALLBACK (ByVal dwIfIndex As Long, ByVal dwIfNextHopAddr As Long) As Long
+
+' #If WDL_NO_DELEGATES Then
+Public Type ROUTING_PROTOCOL_CONFIG
+	dwCallbackFlags As Long
+	pfnRpfCallback As LongPtr 'MGM_RPF_CALLBACK
+	pfnCreationAlertCallback As LongPtr 'MGM_CREATION_ALERT_CALLBACK
+	pfnPruneAlertCallback As LongPtr 'MGM_PRUNE_ALERT_CALLBACK
+	pfnJoinAlertCallback As LongPtr 'MGM_JOIN_ALERT_CALLBACK
+	pfnWrongIfCallback As LongPtr 'MGM_WRONG_IF_CALLBACK
+	' callbacks into Routing protocols
+	pfnLocalJoinCallback As LongPtr 'MGM_LOCAL_JOIN_CALLBACK
+	pfnLocalLeaveCallback As LongPtr 'MGM_LOCAL_LEAVE_CALLBACK
+	' callbacks into IGMP
+	pfnDisableIgmpCallback As LongPtr 'MGM_DISABLE_IGMP_CALLBACK
+	pfnEnableIgmpCallback As LongPtr 'MGM_ENABLE_IGMP_CALLBACK
+End Type
+' #Else
+' Public Type ROUTING_PROTOCOL_CONFIG
+    ' dwCallbackFlags As Long
+    ' pfnRpfCallback As MGM_RPF_CALLBACK
+    ' pfnCreationAlertCallback As MGM_CREATION_ALERT_CALLBACK
+    ' pfnPruneAlertCallback As MGM_PRUNE_ALERT_CALLBACK
+    ' pfnJoinAlertCallback As MGM_JOIN_ALERT_CALLBACK
+    ' pfnWrongIfCallback As MGM_WRONG_IF_CALLBACK
+    ' ' callbacks into Routing protocols
+    ' pfnLocalJoinCallback As MGM_LOCAL_JOIN_CALLBACK
+    ' pfnLocalLeaveCallback As MGM_LOCAL_LEAVE_CALLBACK
+    ' ' callbacks into IGMP
+    ' pfnDisableIgmpCallback As MGM_DISABLE_IGMP_CALLBACK
+    ' pfnEnableIgmpCallback As MGM_ENABLE_IGMP_CALLBACK
+' End Type
+' #End If
+
+Public Enum MGM_ENUM_TYPES
+	ANY_SOURCE = 0  ' enumerate group entries with
+					'  atleast one source
+	ALL_SOURCES     ' enumerate all source entries
+					'  for a group entry
+End Enum
+
+Public Type SOURCE_GROUP_ENTRY
+	dwSourceAddr As Long
+	dwSourceMask As Long
+	dwGroupAddr As Long
+	dwGroupMask As Long
+End Type
+
+Public Enum MgmStateFlags
+	MGM_JOIN_STATE_FLAG = &H00000001
+	MGM_FORWARD_STATE_FLAG = &H00000002
+End Enum
+
+[UseGetLastError(False)]
+Public Declare PtrSafe Function MgmRegisterMProtocol Lib "rtm.dll" (ByRef prpiInfo As ROUTING_PROTOCOL_CONFIG, ByVal dwProtocolId As Long, ByVal dwComponentId As Long, ByRef phProtocol As LongPtr) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function MgmDeRegisterMProtocol Lib "rtm.dll" (ByVal hProtocol As LongPtr) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function MgmTakeInterfaceOwnership Lib "rtm.dll" (ByVal hProtocol As LongPtr, ByVal dwIfIndex As Long, ByVal dwIfNextHopAddr As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function MgmReleaseInterfaceOwnership Lib "rtm.dll" (ByVal hProtocol As LongPtr, ByVal dwIfIndex As Long, ByVal dwIfNextHopAddr As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function MgmGetProtocolOnInterface Lib "rtm.dll" (ByVal dwIfIndex As Long, ByVal dwIfNextHopAddr As Long, ByRef pdwIfProtocolId As Long, ByRef pdwIfComponentId As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function MgmAddGroupMembershipEntry Lib "rtm.dll" (ByVal hProtocol As LongPtr, ByVal dwSourceAddr As Long, ByVal dwSourceMask As Long, ByVal dwGroupAddr As Long, ByVal dwGroupMask As Long, ByVal dwIfIndex As Long, ByVal dwIfNextHopIPAddr As Long, ByVal dwFlags As MgmStateFlags) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function MgmDeleteGroupMembershipEntry Lib "rtm.dll" (ByVal hProtocol As LongPtr, ByVal dwSourceAddr As Long, ByVal dwSourceMask As Long, ByVal dwGroupAddr As Long, ByVal dwGroupMask As Long, ByVal dwIfIndex As Long, ByVal dwIfNextHopIPAddr As Long, ByVal dwFlags As MgmStateFlags) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function MgmGetMfe Lib "rtm.dll" (ByRef pimm As MIB_IPMCAST_MFE, ByRef pdwBufferSize As Long, ByVal pbBuffer As LongPtr) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function MgmGetFirstMfe Lib "rtm.dll" (ByRef pdwBufferSize As Long, ByRef pbBuffer As Any, ByRef pdwNumEntries As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function MgmGetNextMfe Lib "rtm.dll" (ByRef pimmStart As MIB_IPMCAST_MFE, ByRef pdwBufferSize As Long, ByRef pbBuffer As Any, ByRef pdwNumEntries As Long) As Long
+
+Public Enum MgmMfeStats
+	' Include statistics corresponding to MIB_IPMCAST_MFE_STATS
+	MGM_MFE_STATS_0 = &H00000001
+	'  Include statistics corresponding to MIB_IPMCAST_MFE_STATS_EX
+	MGM_MFE_STATS_1 = &H00000002
+End Enum
+
+[UseGetLastError(False)]
+Public Declare PtrSafe Function MgmGetMfeStats Lib "rtm.dll" (ByRef pimm As MIB_IPMCAST_MFE, ByRef pdwBufferSize As Long, ByRef pbBuffer As Any, ByVal dwFlags As MgmMfeStats) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function MgmGetFirstMfeStats Lib "rtm.dll" (ByRef pdwBufferSize As Long, ByRef pbBuffer As Any, ByRef pdwNumEntries As Long, ByVal dwFlags As MgmMfeStats) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function MgmGetNextMfeStats Lib "rtm.dll" (ByRef pimmStart As MIB_IPMCAST_MFE, ByRef pdwBufferSize As Long, ByRef pbBuffer As Any, ByRef pdwNumEntries As Long, ByVal dwFlags As MgmMfeStats) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function MgmGroupEnumerationStart Lib "rtm.dll" (ByVal hProtocol As LongPtr, ByVal metEnumType As MGM_ENUM_TYPES, ByRef phEnumHandle As LongPtr) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function MgmGroupEnumerationGetNext Lib "rtm.dll" (ByVal hEnum As LongPtr, ByRef pdwBufferSize As Long, ByRef pbBuffer As Any, ByRef pdwNumEntries As Long) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function MgmGroupEnumerationEnd Lib "rtm.dll" (ByVal hEnum As LongPtr) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function MgmSetMfe Lib "rtm.dll" (ByVal hProtocol As LongPtr, ByRef pmimm As MIB_IPMCAST_MFE) As Long
+
+
+#End Region
+
+
+#Region "mprerror.h"
+
+Public Const ROUTEBASE = 900
+' Public Const SUCCESS 0
+
+Public Const ERROR_ROUTER_STOPPED                        = (ROUTEBASE + 0)
+/*
+ * The router is not running.%0
+ */
+
+Public Const ERROR_ALREADY_CONNECTED                     = (ROUTEBASE + 1)
+/*
+ * The interface is already connected.%0
+ */
+
+Public Const ERROR_UNKNOWN_PROTOCOL_ID                   = (ROUTEBASE + 2)
+/*
+ * The specified protocol identifier is not known to the router.%0
+ */
+
+Public Const ERROR_DDM_NOT_RUNNING                       = (ROUTEBASE + 3)
+/*
+ * The Demand-dial Interface Manager is not running.%0
+ */
+
+Public Const ERROR_INTERFACE_ALREADY_EXISTS              = (ROUTEBASE + 4)
+/*
+ * An interface with this name is already registered with the router.%0
+ */
+
+Public Const ERROR_NO_SUCH_INTERFACE                     = (ROUTEBASE + 5)
+/*
+ * An interface with this name is not registered with the router.%0
+ */
+
+Public Const ERROR_INTERFACE_NOT_CONNECTED               = (ROUTEBASE + 6)
+/*
+ * The interface is not connected.%0
+ */
+
+Public Const ERROR_PROTOCOL_STOP_PENDING                 = (ROUTEBASE + 7)
+/*
+ * The specified protocol is stopping.%0
+ */
+
+Public Const ERROR_INTERFACE_CONNECTED                   = (ROUTEBASE + 8)
+/*
+ * The interface is connected and hence cannot be deleted.%0
+ */
+
+Public Const ERROR_NO_INTERFACE_CREDENTIALS_SET          = (ROUTEBASE + 9)
+/*
+ * The interface credentials have not been set.%0
+ */
+
+Public Const ERROR_ALREADY_CONNECTING                    = (ROUTEBASE + 10)
+/*
+ * This interface is already in the process of connecting.%0
+ */
+
+Public Const ERROR_UPDATE_IN_PROGRESS                    = (ROUTEBASE + 11)
+/*
+ * An update of routing information on this interface is already in progress.%0
+ */
+
+Public Const ERROR_INTERFACE_CONFIGURATION               = (ROUTEBASE + 12)
+/*
+ * The interface confugration in invalid. There is already another interface that is connected to the same inteface on the remote router.%0
+ */
+
+Public Const ERROR_NOT_CLIENT_PORT                       = (ROUTEBASE + 13)
+/*
+ * A Remote Access Client attempted to connect over a port that was reserved for Routers only.%0
+ */
+
+Public Const ERROR_NOT_ROUTER_PORT                       = (ROUTEBASE + 14)
+/*
+ * A Demand Dial Router attempted to connect over a port that was reserved for Remote Access Clients only.%0
+ */
+
+Public Const ERROR_CLIENT_INTERFACE_ALREADY_EXISTS       = (ROUTEBASE + 15)
+/*
+ * The client interface with this name already exists and is currently connected.%0
+ */
+
+Public Const ERROR_INTERFACE_DISABLED                    = (ROUTEBASE + 16)
+/*
+ * The interface is in a disabled state.%0
+ */
+
+Public Const ERROR_AUTH_PROTOCOL_REJECTED                = (ROUTEBASE + 17)
+/*
+ * The authentication protocol was rejected by the remote peer.%0
+ */
+
+Public Const ERROR_NO_AUTH_PROTOCOL_AVAILABLE            = (ROUTEBASE + 18)
+/*
+ * There are no authentication protocols available for use.%0
+ */
+
+Public Const ERROR_PEER_REFUSED_AUTH                     = (ROUTEBASE + 19)
+/*
+ * The connection could not be established because the authentication protocol used by the RAS/VPN server to verify your username and password could not be matched with the settings in your connection profile.%0
+ */
+
+Public Const ERROR_REMOTE_NO_DIALIN_PERMISSION           = (ROUTEBASE + 20)
+/*
+ * The remote account does not have Remote Access permission.%0
+ */
+
+Public Const ERROR_REMOTE_PASSWD_EXPIRED                 = (ROUTEBASE + 21)
+/*
+ * The remote account has expired.%0
+ */
+
+Public Const ERROR_REMOTE_ACCT_DISABLED                  = (ROUTEBASE + 22)
+/*
+ * The remote account is disabled.%0
+ */
+
+Public Const ERROR_REMOTE_RESTRICTED_LOGON_HOURS         = (ROUTEBASE + 23)
+/*
+ * The remote account is not permitted to logon at this time of day.%0
+ */
+
+Public Const ERROR_REMOTE_AUTHENTICATION_FAILURE         = (ROUTEBASE + 24)
+/*
+ * Access was denied to the remote peer  because username and/or password is invalid on the domain.%0
+ */
+
+Public Const ERROR_INTERFACE_HAS_NO_DEVICES              = (ROUTEBASE + 25)
+/*
+ * There are no routing enabled ports available for use by this demand dial interface.%0
+ */
+
+Public Const ERROR_IDLE_DISCONNECTED                     = (ROUTEBASE + 26)
+/*
+ * The port has been disconnected due to inactivity.%0
+ */
+
+Public Const ERROR_INTERFACE_UNREACHABLE                 = (ROUTEBASE + 27)
+/*
+ * The interface is not reachable at this time.%0
+ */
+
+Public Const ERROR_SERVICE_IS_PAUSED                     = (ROUTEBASE + 28)
+/*
+ * The Demand Dial service is in a paused state.%0
+ */
+
+Public Const ERROR_INTERFACE_DISCONNECTED                = (ROUTEBASE + 29)
+/*
+ * The interface has been disconnected by the administrator.%0
+ */
+
+Public Const ERROR_AUTH_SERVER_TIMEOUT                   = (ROUTEBASE + 30)
+/*
+ * The authentication server did not respond to authentication requests in a timely fashion.%0
+ */
+
+Public Const ERROR_PORT_LIMIT_REACHED                    = (ROUTEBASE + 31)
+/*
+ * The maximum number of ports allowed for use in the multilinked connection has been reached.%0
+ */
+
+Public Const ERROR_PPP_SESSION_TIMEOUT                   = (ROUTEBASE + 32)
+/*
+ * The connection time limit for the user has been reached.%0
+ */
+
+Public Const ERROR_MAX_LAN_INTERFACE_LIMIT               = (ROUTEBASE + 33)
+/*
+ * The maximum limit on the number of LAN interfaces supported has been reached.%0
+ */
+
+Public Const ERROR_MAX_WAN_INTERFACE_LIMIT               = (ROUTEBASE + 34)
+/*
+ * The maximum limit on the number of Demand Dial interfaces supported has been reached.%0
+ */
+
+Public Const ERROR_MAX_CLIENT_INTERFACE_LIMIT            = (ROUTEBASE + 35)
+/*
+ * The maximum limit on the number of Remote Access clients supported has been reached.%0
+ */
+
+Public Const ERROR_BAP_DISCONNECTED                      = (ROUTEBASE + 36)
+/*
+ * The port has been disconnected due to the BAP policy.%0
+ */
+
+Public Const ERROR_USER_LIMIT                            = (ROUTEBASE + 37)
+/*
+ * Because another connection of your type is in use, the incoming connection cannot accept your connection request.%0
+ */
+
+Public Const ERROR_NO_RADIUS_SERVERS                     = (ROUTEBASE + 38)
+/*
+ * No RADIUS servers were located on the network.%0
+ */
+
+Public Const ERROR_INVALID_RADIUS_RESPONSE               = (ROUTEBASE + 39)
+/*
+ * An invalid response was received from the RADIUS authentication server.
+ * Make sure that the case sensitive secret pasword for the RADIUS server is set correctly.%0
+ */
+
+Public Const ERROR_DIALIN_HOURS_RESTRICTION              = (ROUTEBASE + 40)
+/*
+ * You do not have permission to connect at this time.%0
+ */
+
+Public Const ERROR_ALLOWED_PORT_TYPE_RESTRICTION         = (ROUTEBASE + 41)
+/*
+ * You do not have permission to connect using the current device type.%0
+ */
+
+Public Const ERROR_AUTH_PROTOCOL_RESTRICTION             = (ROUTEBASE + 42)
+/*
+ * The connection could not be established because the authentication method used by your connection profile is not permitted for use by an access policy configured on the RAS/VPN server. Specifically, this could be due to configuration differences between the authentication method selected on the RAS/VPN server and the access policy configured for it.%0
+ */
+
+Public Const ERROR_BAP_REQUIRED                          = (ROUTEBASE + 43)
+/*
+ * BAP is required for this user.%0
+ */
+
+Public Const ERROR_DIALOUT_HOURS_RESTRICTION             = (ROUTEBASE + 44)
+/*
+ * The interface is not allowed to connect at this time.%0
+ */
+
+Public Const ERROR_ROUTER_CONFIG_INCOMPATIBLE            = (ROUTEBASE + 45)
+/*
+ * The saved router configuration is incompatible with the current router.%0
+ */
+
+Public Const WARNING_NO_MD5_MIGRATION                    = (ROUTEBASE + 46)
+/*
+ * RemoteAccess has detected older format user accounts that will not be
+ * migrated automatically.  To migrate these manually, run XXXX.
+ */
+
+Public Const ERROR_PROTOCOL_ALREADY_INSTALLED            = (ROUTEBASE + 48)
+/*
+ * The transport is already installed with the router.%0
+ */
+
+Public Const ERROR_INVALID_SIGNATURE_LENGTH              = (ROUTEBASE + 49)
+/*
+ * Received invalid signature length in packet from RADIUS server.%0
+ */
+
+Public Const ERROR_INVALID_SIGNATURE                     = (ROUTEBASE + 50)
+/*
+ * Received invalid signature in packet from RADIUS server.%0
+ */
+
+Public Const ERROR_NO_SIGNATURE                          = (ROUTEBASE + 51)
+/*
+ * Did not receive signature along with EAPMessage from RADIUS server.%0
+ */
+
+Public Const ERROR_INVALID_PACKET_LENGTH_OR_ID           = (ROUTEBASE + 52)
+/*
+ * Received packet with invalid length or Id from RADIUS server.%0
+ */
+
+Public Const ERROR_INVALID_ATTRIBUTE_LENGTH              = (ROUTEBASE + 53)
+/*
+ * Received packet with attribute with invalid length from RADIUS server.%0
+ */
+
+Public Const ERROR_INVALID_PACKET                        = (ROUTEBASE + 54)
+/*
+ * Received invalid packet from RADIUS server.%0
+ */
+
+Public Const ERROR_AUTHENTICATOR_MISMATCH                = (ROUTEBASE + 55)
+/*
+ * Authenticator does not match in packet from RADIUS server.%0
+ */
+
+Public Const ERROR_REMOTEACCESS_NOT_CONFIGURED           = (ROUTEBASE + 56)
+/*
+ * Routing and Remote access server is either not configured or not running.%0
+ */
+
+Public Const ROUTEBASEEND                                = (ROUTEBASE + 57)
+
+#End Region
+
+
 End Module
 
 Public Alias FAX_LOG_CATEGORY As FAX_LOG_CATEGORYW
@@ -3437,3 +7866,39 @@ Public Alias FAX_JOB_PARAM As FAX_JOB_PARAMW
 Public Alias FAX_EVENT As FAX_EVENTW
 Public Alias FAX_PRINT_INFO As FAX_PRINT_INFOW
 Public Alias FAX_CONTEXT_INFO As FAX_CONTEXT_INFOW
+
+
+Public Alias ProbationTime As FILETIME
+Public Alias StringCorrelationId As CountedString
+
+
+Public Alias RASIPV4ADDR As IN_ADDR
+Public Alias RASIPV6ADDR As IN6_ADDR
+Public Alias RASCONN As RASCONNW
+Public Alias RASCONNSTATUS As RASCONNSTATUSW
+Public Alias RASDIALPARAMS As RASDIALPARAMSW
+Public Alias RASENTRYNAME As RASENTRYNAMEW
+Public Alias RASAMB As RASAMBW
+Public Alias RASPPPNBF As RASPPPNBFW
+Public Alias RASPPPIPX As RASPPPIPXW
+Public Alias RASPPPIP As RASPPPIPW
+Public Alias RASPPPLCP As RASPPPLCPW
+Public Alias RASSLIP As RASSLIPW
+Public Alias RASDEVINFO As RASDEVINFOW
+Public Alias RASCTRYINFOA As RASCTRYINFO
+Public Alias RASCTRYINFOW As RASCTRYINFO
+Public Alias RASENTRY As RASENTRYW
+Public Alias RASSUBENTRY As RASSUBENTRYW
+Public Alias RASCREDENTIALS As RASCREDENTIALSW
+Public Alias RASAUTODIALENTRY As RASAUTODIALENTRYW
+Public Alias RASEAPUSERIDENTITY As RASEAPUSERIDENTITYW
+
+
+Public Alias RASNOUSER As RASNOUSERW
+Public Alias RASPBDLG As RASPBDLGW
+Public Alias RASENTRYDLG As RASENTRYDLGW
+
+
+
+
+#End If
