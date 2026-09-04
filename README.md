@@ -243,7 +243,7 @@ Current coverage is already quite extensive, spanning hundreds of Windows SDK he
  
 ### Updates
 
-**Update (v9.4.725, 29 Aug 2026):**
+**Update (v9.4.725, 03 Sep 2026):**
 - Add ras.h, rasdlg.h, rasshost.h, raseapif.h,  mprerror.h, raserror.h 100%
 - Add mgm.h (100%)
 - Add rtmv2.h (100%)
