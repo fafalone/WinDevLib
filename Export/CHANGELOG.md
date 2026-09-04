@@ -1,6 +1,17 @@
 
+**Update (v9.4.725, 29 Aug 2026):**
+- Add ras.h, rasdlg.h, rasshost.h, raseapif.h,  mprerror.h, raserror.h 100%
+- Add mgm.h (100%)
+- Add rtmv2.h (100%)
+- Add naptypes.idl/.h (100%)
+- Add snmp.h, mgmtapi.h (100%)
+- Add PdhVb* functions (performance counter APIs specifically for VB, but it's recommended you switch to the regular ones)
+- Changed behavior of WDL_NO_WS_ALIASES flag; now the ws_ alias versions are always present, while the ones without are still only present if the flag is set.
+- (API Standards, breaking change) Some inconsistency with gethostname/GetHostNameW. If the WDL_NO_WS_ALIASES flag was set, gethostname improperly used the ANSI binding. 
+
+
 **Update (v9.4.722, 29 Aug 2026):**
-- Add pdh.h, pshmsg.h (previously only minimal coverage, now 100%); add loadperf.h (100%)
+- Add pdh.h, pdhmsg.h (previously only minimal coverage, now 100%); add loadperf.h (100%)
 - Add msacm.h, msacmdlg.h (previously only minimal coverage, now 100%)
 - Add legacy telephone APIs, tapi.h and WinFax.h (100%)
 - Add tcpioctl.h, madcapcl.h

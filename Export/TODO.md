@@ -2,18 +2,19 @@ Known omissions where a priority update neccessitated not finishing
 before release, or waiting on feature support:
 
 
+ 
+
+'naptypes.h - region in wdTelephony already started
+
 - Fix pTimeBase optional byref longlong when passing nullptr allowed
  
  
-- finish telephony apis tapi.h
 
-- rtmv2.h
-
-- mgm.h
+- rtmv2.h -- check RTM_ macro implementations, unimplemented macros
+ 
 
 - dsparse.h, ntdsapi.h, dsrole.h, dsquery.h
-
-- mq.h
+ 
 
 - mprapi.h
 
@@ -230,7 +231,7 @@ Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.
     enclaveium.h,bthioctl.h,bthledef.h,bthdef.h,muiload.h,StorageProvider.h,StorageProvider.idl,ExDisp.h,ExDisp.idl,ExDispid.h,
     mstcipip.h, mimeole.idl, MimeInfo.h,MimeInfo.idl and mimedisp.h, msoeapi.idl, imnact.idl, colordlg.h,gamingtcui.h, gameux.h,
     emptyvc.h,emptyvc.idl,wpc.h, wpcapi.h, wpcevent.h, DhcpCSdk.h, Dhcpv6cSdk.h, tcpioctl.h,madcapcl.h,msacm.h,msacmdlg.h,pdh.h, pdhmsg.h, loadperf.h,
-    WinFax.h,tapi.h,mq.h,
+    WinFax.h,tapi.h,mq.h,naptypes.h,mgm.h,ras.h, rasdlg.h, rasshost.h, raseapif.h,  mprerror.h, raserror.h
     
 Coverage in the 90%+ range  winbase.h, oleidl.h, oaidl.h, ocidl.h, ocidl.idl, ,objidl.h,objidl.idl,presentation.h,ScrnSave.h
 
