@@ -1,7 +1,7 @@
 # Windows Development Library for twinBASIC
 ## WinDevLib 
 
-**Current Version: 9.4.722 (August 29th, 2026)**
+**Current Version: 9.4.725 (September 3rd, 2026)**
 
 (c) 2022-2026 Jon Johnson (fafalone)
 
@@ -242,6 +242,16 @@ Current coverage is already quite extensive, spanning hundreds of Windows SDK he
 
  
 ### Updates
+
+**Update (v9.4.725, 29 Aug 2026):**
+- Add ras.h, rasdlg.h, rasshost.h, raseapif.h,  mprerror.h, raserror.h 100%
+- Add mgm.h (100%)
+- Add rtmv2.h (100%)
+- Add naptypes.idl/.h (100%)
+- Add snmp.h, mgmtapi.h (100%)
+- Add PdhVb* functions (performance counter APIs specifically for VB, but it's recommended you switch to the regular ones)
+- Changed behavior of WDL_NO_WS_ALIASES flag; now the ws_ alias versions are always present, while the ones without are still only present if the flag is set.
+- (API Standards, breaking change) Some inconsistency with gethostname/GetHostNameW. If the WDL_NO_WS_ALIASES flag was set, gethostname improperly used the ANSI binding. 
 
 **Update (v9.4.722, 29 Aug 2026):**
 - Add pdh.h, pshmsg.h (previously only minimal coverage, now 100%); add loadperf.h (100%)
