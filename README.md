@@ -1,7 +1,7 @@
 # Windows Development Library for twinBASIC
 ## WinDevLib 
 
-**Current Version: 9.4.725 (September 3rd, 2026)**
+**Current Version: 9.4.726 (September 12th, 2026)**
 
 (c) 2022-2026 Jon Johnson (fafalone)
 
@@ -242,6 +242,14 @@ Current coverage is already quite extensive, spanning hundreds of Windows SDK he
 
  
 ### Updates
+
+**Update (v9.4.726, 12 Sep 2026):**
+- Add mprapi.h, mprapidef.h (Note: Version aliasing is not implemented, so you would pick the type yourself, e.g. SOME_TYPE0/1/2, the SDK has if win7 SOME_TYPE = SOME_TYPE0, win8 has 1, win10 has 2-- that's not implemented, use 0/1/2 directly.)
+- Add ipxconst.h, ipxrip.h, ipxsap.h, ipxtfflt.h, ipxrtdef.h, routprot.h, RTInfo.h, stm.h
+- Add gnssdriver.h (Geolocation IOCTLs)
+- Add WinSnmp.h
+- Misc win32 and native additions
+- (API Standards, **BREAKING CHANGE**) SHGetPropertyStoreFromParsingName now uses proper ByNal pbc As IBindCtx instead of As Any. Use `Nothing`.
 
 **Update (v9.4.725, 03 Sep 2026):**
 - Add ras.h, rasdlg.h, rasshost.h, raseapif.h,  mprerror.h, raserror.h 100%
