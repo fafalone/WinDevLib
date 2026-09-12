@@ -1,5 +1,14 @@
 
-**Update (v9.4.725, 29 Aug 2026):**
+**Update (v9.4.726, 12 Sep 2026):**
+- Add mprapi.h, mprapidef.h (Note: Version aliasing is not implemented, so you would pick the type yourself, e.g. SOME_TYPE0/1/2, the SDK has if win7 SOME_TYPE = SOME_TYPE0, win8 has 1, win10 has 2-- that's not implemented, use 0/1/2 directly.)
+- Add ipxconst.h, ipxrip.h, ipxsap.h, ipxtfflt.h, ipxrtdef.h, routprot.h, RTInfo.h, stm.h
+- Add gnssdriver.h (Geolocation IOCTLs)
+- Add WinSnmp.h
+- Misc win32 and native additions
+- (API Standards, **BREAKING CHANGE**) SHGetPropertyStoreFromParsingName now uses proper ByNal pbc As IBindCtx instead of As Any. Use `Nothing`.
+
+
+**Update (v9.4.725, 03 Sep 2026):**
 - Add ras.h, rasdlg.h, rasshost.h, raseapif.h,  mprerror.h, raserror.h 100%
 - Add mgm.h (100%)
 - Add rtmv2.h (100%)
