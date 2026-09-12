@@ -5839,7 +5839,11 @@ Module wdAPIInternet
     End Type
     
     'ifdef.h
+    [Description("DEPRECATED - RENAMED NET_IF_COMPARTMENT_ID")]
     Public Enum NET_IF_COMPT
+        [_]
+    End Enum
+    Public Enum NET_IF_COMPARTMENT_ID
         NET_IF_COMPARTMENT_ID_UNSPECIFIED = 0
         NET_IF_COMPARTMENT_ID_PRIMARY = 1
     End Enum
@@ -7265,12 +7269,12 @@ Module wdAPIInternet
         dwMask As Long
         dwIfIndex As Long
     End Type
-    Public Enum ROUTER_CONNECTION_STATE
-        ROUTER_IF_STATE_UNREACHABLE = 0
-        ROUTER_IF_STATE_DISCONNECTED = 1
-        ROUTER_IF_STATE_CONNECTING = 2
-        ROUTER_IF_STATE_CONNECTED = 3
-    End Enum
+    ' Public Enum ROUTER_CONNECTION_STATE
+    '     ROUTER_IF_STATE_UNREACHABLE = 0
+    '     ROUTER_IF_STATE_DISCONNECTED = 1
+    '     ROUTER_IF_STATE_CONNECTING = 2
+    '     ROUTER_IF_STATE_CONNECTED = 3
+    ' End Enum
     Public Type MIB_IFSTATUS
         dwIfIndex As Long
         dwAdminStatus As Long
@@ -18347,6 +18351,259 @@ Public Declare PtrSafe Function SnmpMgrTrapListen Lib "mgmtapi.dll" (ByRef phTra
 Public Declare PtrSafe Function SnmpMgrGetTrap Lib "mgmtapi.dll" (ByRef enterprise As AsnObjectIdentifier, ByRef IPAddress As AsnNetworkAddress, ByRef genericTrap As AsnInteger, ByRef specificTrap As AsnInteger, ByRef timeStamp As AsnTimeticks, ByRef variableBindings As RFC1157VarBindList) As BOOL
 Public Declare PtrSafe Function SnmpMgrGetTrapEx Lib "mgmtapi.dll" (ByRef enterprise As AsnObjectIdentifier, ByRef agentAddress As AsnNetworkAddress, ByRef sourceAddress As AsnNetworkAddress, ByRef genericTrap As AsnInteger, ByRef specificTrap As AsnInteger, ByRef community As AsnOctetString, ByRef timeStamp As AsnTimeticks, ByRef variableBindings As RFC1157VarBindList) As BOOL
 
+
+'winsnmp.h
+
+Public Type smiOCTETS
+    len As smiUINT32
+    ptr As LongPtr 'smiLPBYTE
+End Type
+
+Public Type smiOID
+    len As smiUINT32
+    ptr As LongPtr 'smiLPUINT32
+End Type
+
+Public Type smiCNTR64
+    hipart As smiUINT32
+    lopart As smiUINT32
+End Type
+
+Public Enum SnmpObjectSyntax
+    SNMP_SYNTAX_SEQUENCE = (ASN_UNIVERSAL Or ASN_CONSTRUCTOR Or &H10)
+    SNMP_SYNTAX_INT = (ASN_UNIVERSAL Or ASN_PRIMITIVE Or &H02)
+    SNMP_SYNTAX_BITS = (ASN_UNIVERSAL Or ASN_PRIMITIVE Or &H03)
+    SNMP_SYNTAX_OCTETS = (ASN_UNIVERSAL Or ASN_PRIMITIVE Or &H04)
+    SNMP_SYNTAX_NULL = (ASN_UNIVERSAL Or ASN_PRIMITIVE Or &H05)
+    SNMP_SYNTAX_OID = (ASN_UNIVERSAL Or ASN_PRIMITIVE Or &H06)
+    SNMP_SYNTAX_INT32 = SNMP_SYNTAX_INT
+    SNMP_SYNTAX_IPADDR = (ASN_APPLICATION Or ASN_PRIMITIVE Or &H00)
+    SNMP_SYNTAX_CNTR32 = (ASN_APPLICATION Or ASN_PRIMITIVE Or &H01)
+    SNMP_SYNTAX_GAUGE32 = (ASN_APPLICATION Or ASN_PRIMITIVE Or &H02)
+    SNMP_SYNTAX_TIMETICKS = (ASN_APPLICATION Or ASN_PRIMITIVE Or &H03)
+    SNMP_SYNTAX_OPAQUE = (ASN_APPLICATION Or ASN_PRIMITIVE Or &H04)
+    SNMP_SYNTAX_NSAPADDR = (ASN_APPLICATION Or ASN_PRIMITIVE Or &H05)
+    SNMP_SYNTAX_CNTR64 = (ASN_APPLICATION Or ASN_PRIMITIVE Or &H06)
+    SNMP_SYNTAX_UINT32 = (ASN_APPLICATION Or ASN_PRIMITIVE Or &H07)
+    SNMP_SYNTAX_UNSIGNED32 = SNMP_SYNTAX_GAUGE32
+    ' * Exception conditions in response PDUs for SNMPv2 */
+    SNMP_SYNTAX_NOSUCHOBJECT = (ASN_CONTEXT Or ASN_PRIMITIVE Or &H00)
+    SNMP_SYNTAX_NOSUCHINSTANCE = (ASN_CONTEXT Or ASN_PRIMITIVE Or &H01)
+    SNMP_SYNTAX_ENDOFMIBVIEW = (ASN_CONTEXT Or ASN_PRIMITIVE Or &H02)
+End Enum
+
+Public Type smiVALUE
+    syntax As SnmpObjectSyntax 'smiUINT32 /* Insert SNMP_SYNTAX_<type> */
+        'union {
+        'smiINT    sNumber;       /* SNMP_SYNTAX_INT
+        '                            SNMP_SYNTAX_INT32 */
+        'smiUINT32 uNumber;       /* SNMP_SYNTAX_UINT32
+        '                            SNMP_SYNTAX_CNTR32
+        '                            SNMP_SYNTAX_GAUGE32
+        '                            SNMP_SYNTAX_TIMETICKS */
+        'smiCNTR64 hNumber;       /* SNMP_SYNTAX_CNTR64 */
+        'smiOCTETS string;        /* SNMP_SYNTAX_OCTETS
+        '                            SNMP_SYNTAX_BITS
+        '                            SNMP_SYNTAX_OPAQUE
+        '                            SNMP_SYNTAX_IPADDR
+        '                            SNMP_SYNTAX_NSAPADDR */
+        'smiOID    oid;           /* SNMP_SYNTAX_OID */
+        'smiBYTE   empty;         /* SNMP_SYNTAX_NULL
+        '                            SNMP_SYNTAX_NOSUCHOBJECT
+        '                            SNMP_SYNTAX_NOSUCHINSTANCE
+        '                            SNMP_SYNTAX_ENDOFMIBVIEW */
+        '    }     value;         /* union */
+        #If Win64 Then
+        __pad As Long
+        u(3) As Long
+        #Else
+        u(1) as long
+        #End If
+End Type
+
+Public Const MAXOBJIDSIZE  = 128  '* Max number of components in an OID */
+Public Const MAXOBJIDSTRSIZE  = 1408  '* Max len of decoded MAXOBJIDSIZE OID */
+
+Public Enum SnmpTrapValues
+    SNMP_TRAP_COLDSTART = 0
+    SNMP_TRAP_WARMSTART = 1
+    SNMP_TRAP_LINKDOWN = 2
+    SNMP_TRAP_LINKUP = 3
+    SNMP_TRAP_AUTHFAIL = 4
+    SNMP_TRAP_EGPNEIGHBORLOSS = 5
+    SNMP_TRAP_ENTERPRISESPECIFIC = 6
+End Enum
+
+Public Enum SnmpTranslationValues
+    SNMPAPI_TRANSLATED = 0
+    SNMPAPI_UNTRANSLATED_V1 = 1
+    SNMPAPI_UNTRANSLATED_V2 = 2
+End Enum
+
+Public Enum SnmpSupportLevels
+    SNMPAPI_NO_SUPPORT = 0
+    SNMPAPI_V1_SUPPORT = 1
+    SNMPAPI_V2_SUPPORT = 2
+    SNMPAPI_M2M_SUPPORT = 3
+End Enum
+
+Public Enum SnmpRetransmitMode
+    SNMPAPI_OFF = 0  ' Refuse support */
+    SNMPAPI_ON = 1  ' Request support */
+End Enum
+
+Public Enum SNMPAPI_STATUS
+    SNMPAPI_FAILURE = 0               ' Generic error code */
+    SNMPAPI_SUCCESS = 1               ' Generic success code */
+                                      '  WinSNMP API Error Codes (for SnmpGetLastError) */
+                                      '  (NOT SNMP Response-PDU error_status codes) */
+    SNMPAPI_ALLOC_ERROR = 2           ' Error allocating memory */
+    SNMPAPI_CONTEXT_INVALID = 3       ' Invalid context parameter */
+    SNMPAPI_CONTEXT_UNKNOWN = 4       ' Unknown context parameter */
+    SNMPAPI_ENTITY_INVALID = 5        ' Invalid entity parameter */
+    SNMPAPI_ENTITY_UNKNOWN = 6        ' Unknown entity parameter */
+    SNMPAPI_INDEX_INVALID = 7         ' Invalid VBL index parameter */
+    SNMPAPI_NOOP = 8                  ' No operation performed */
+    SNMPAPI_OID_INVALID = 9           ' Invalid OID parameter */
+    SNMPAPI_OPERATION_INVALID = 10    ' Invalid/unsupported operation */
+    SNMPAPI_OUTPUT_TRUNCATED = 11     ' Insufficient output buf len */
+    SNMPAPI_PDU_INVALID = 12          ' Invalid PDU parameter */
+    SNMPAPI_SESSION_INVALID = 13      ' Invalid session parameter */
+    SNMPAPI_SYNTAX_INVALID = 14       ' Invalid syntax in smiVALUE */
+    SNMPAPI_VBL_INVALID = 15          ' Invalid VBL parameter */
+    SNMPAPI_MODE_INVALID = 16         ' Invalid mode parameter */
+    SNMPAPI_SIZE_INVALID = 17         ' Invalid size/length parameter */
+    SNMPAPI_NOT_INITIALIZED = 18      ' SnmpStartup failed/not called */
+    SNMPAPI_MESSAGE_INVALID = 19      ' Invalid SNMP message format */
+    SNMPAPI_HWND_INVALID = 20         ' Invalid Window handle */
+    SNMPAPI_OTHER_ERROR = 99          ' For internal/undefined errors */
+    '  Generic Transport Layer (TL) Errors */
+    SNMPAPI_TL_NOT_INITIALIZED = 100  ' TL not initialized */
+    SNMPAPI_TL_NOT_SUPPORTED = 101    ' TL does not support protocol */
+    SNMPAPI_TL_NOT_AVAILABLE = 102    ' Network subsystem has failed */
+    SNMPAPI_TL_RESOURCE_ERROR = 103   ' TL resource error */
+    SNMPAPI_TL_UNDELIVERABLE = 104    ' Destination unreachable */
+    SNMPAPI_TL_SRC_INVALID = 105      ' Source endpoint invalid */
+    SNMPAPI_TL_INVALID_PARAM = 106    ' Input parameter invalid */
+    SNMPAPI_TL_IN_USE = 107           ' Source endpoint in use */
+    SNMPAPI_TL_TIMEOUT = 108          ' No response before timeout */
+    SNMPAPI_TL_PDU_TOO_BIG = 109      ' PDU too big for send/receive */
+    SNMPAPI_TL_OTHER = 199            ' Undefined TL error */
+End Enum
+
+Public Const MAXVENDORINFO = 32
+
+Public Type smiVENDORINFO
+    vendorName(0 To (MAXVENDORINFO * 2 - 1)) As Byte
+    vendorContact(0 To (MAXVENDORINFO * 2 - 1)) As Byte
+    vendorVersionId(0 To (MAXVENDORINFO - 1)) As Byte
+    vendorVersionDate(0 To (MAXVENDORINFO - 1)) As Byte
+    vendorEnterprise As smiUINT32
+End Type
+
+Public Delegate Function SNMPAPI_CALLBACK (ByVal hSession As LongPtr, ByVal hwnd As LongPtr, ByVal wMsg As Long, ByVal wParam As LongPtr, ByVal lParam As LongPtr, ByVal lpClientData As LongPtr) As SNMPAPI_STATUS
+
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SnmpGetTranslateMode Lib "wsnmp32.dll" (ByRef nTranslateMode As SnmpTranslationValues) As SNMPAPI_STATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SnmpSetTranslateMode Lib "wsnmp32.dll" (ByVal nTranslateMode As SnmpTranslationValues) As SNMPAPI_STATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SnmpGetRetransmitMode Lib "wsnmp32.dll" (ByRef nRetransmitMode As SnmpRetransmitMode) As SNMPAPI_STATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SnmpSetRetransmitMode Lib "wsnmp32.dll" (ByVal nRetransmitMode As SnmpRetransmitMode) As SNMPAPI_STATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SnmpGetTimeout Lib "wsnmp32.dll" (ByVal hEntity As LongPtr, ByRef nPolicyTimeout As smiTIMETICKS, ByRef nActualTimeout As smiTIMETICKS) As SNMPAPI_STATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SnmpSetTimeout Lib "wsnmp32.dll" (ByVal hEntity As LongPtr, ByVal nPolicyTimeout As smiTIMETICKS) As SNMPAPI_STATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SnmpGetRetry Lib "wsnmp32.dll" (ByVal hEntity As LongPtr, ByRef nPolicyRetry As smiUINT32, ByRef nActualRetry As smiUINT32) As SNMPAPI_STATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SnmpSetRetry Lib "wsnmp32.dll" (ByVal hEntity As LongPtr, ByVal nPolicyRetry As smiUINT32) As SNMPAPI_STATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SnmpGetVendorInfo Lib "wsnmp32.dll" (ByRef vendorInfo As smiVENDORINFO) As SNMPAPI_STATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SnmpStartup Lib "wsnmp32.dll" (ByRef nMajorVersion As smiUINT32, ByRef nMinorVersion As smiUINT32, ByRef nLevel As smiUINT32, ByRef nTranslateMode As smiUINT32, ByRef nRetransmitMode As smiUINT32) As SNMPAPI_STATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SnmpCleanup Lib "wsnmp32.dll" () As SNMPAPI_STATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SnmpOpen Lib "wsnmp32.dll" (ByVal hWnd As LongPtr, ByVal wMsg As Long) As LongPtr
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SnmpClose Lib "wsnmp32.dll" (ByVal session As LongPtr) As SNMPAPI_STATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SnmpSendMsg Lib "wsnmp32.dll" (ByVal session As LongPtr, ByVal srcEntity As LongPtr, ByVal dstEntity As LongPtr, ByVal context As LongPtr, ByVal PDU As LongPtr) As SNMPAPI_STATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SnmpRecvMsg Lib "wsnmp32.dll" (ByVal session As LongPtr, ByRef srcEntity As LongPtr, ByRef dstEntity As LongPtr, ByRef context As LongPtr, ByRef PDU As LongPtr) As SNMPAPI_STATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SnmpRegister Lib "wsnmp32.dll" (ByVal session As LongPtr, ByVal srcEntity As LongPtr, ByVal dstEntity As LongPtr, ByVal context As LongPtr, ByRef notification As smiOID, ByVal state As smiUINT32) As SNMPAPI_STATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SnmpCreateSession Lib "wsnmp32.dll" (ByVal hWnd As LongPtr, ByVal wMsg As Long, ByVal fCallBack As LongPtr, ByVal lpClientData As LongPtr) As LongPtr
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SnmpListen Lib "wsnmp32.dll" (ByVal hEntity As LongPtr, ByVal lStatus As SNMPAPI_STATUS) As SNMPAPI_STATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SnmpListenEx Lib "wsnmp32.dll" (ByVal hEntity As LongPtr, ByVal lStatus As SNMPAPI_STATUS, ByVal nUseEntityAddr As smiUINT32) As SNMPAPI_STATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SnmpCancelMsg Lib "wsnmp32.dll" (ByVal session As LongPtr, ByVal reqId As smiINT32) As SNMPAPI_STATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SnmpStartupEx Lib "wsnmp32.dll" (ByRef nMajorVersion As smiUINT32, ByRef nMinorVersion As smiUINT32, ByRef nLevel As smiUINT32, ByRef nTranslateMode As smiUINT32, ByRef nRetransmitMode As smiUINT32) As SNMPAPI_STATUS
+Public Delegate Function PFNSNMPSTARTUPEX (ByRef p1 As smiUINT32, ByRef p2 As smiUINT32, ByRef p3 As smiUINT32, ByRef p4 As smiUINT32, ByRef p5 As smiUINT32) As SNMPAPI_STATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SnmpCleanupEx Lib "wsnmp32.dll" () As SNMPAPI_STATUS
+Public Delegate Function PFNSNMPCLEANUPEX () As SNMPAPI_STATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SnmpStrToEntity Lib "wsnmp32.dll" (ByVal session As LongPtr, ByVal strng As String) As LongPtr
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SnmpEntityToStr Lib "wsnmp32.dll" (ByVal entity As LongPtr, ByVal size As smiUINT32, ByVal strng As String) As SNMPAPI_STATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SnmpFreeEntity Lib "wsnmp32.dll" (ByVal entity As LongPtr) As SNMPAPI_STATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SnmpStrToContext Lib "wsnmp32.dll" (ByVal session As LongPtr, ByRef strng As smiOCTETS) As LongPtr
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SnmpContextToStr Lib "wsnmp32.dll" (ByVal context As LongPtr, ByRef strng As smiOCTETS) As SNMPAPI_STATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SnmpFreeContext Lib "wsnmp32.dll" (ByVal context As LongPtr) As SNMPAPI_STATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SnmpSetPort Lib "wsnmp32.dll" (ByVal hEntity As LongPtr, ByVal nPort As Long) As SNMPAPI_STATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SnmpCreatePdu Lib "wsnmp32.dll" (ByVal session As LongPtr, ByVal PDU_type As SnmpAsnPDUTypes, ByVal request_id As smiINT32, ByVal error_status As smiINT, ByVal error_index As smiINT, ByVal varbindlist As LongPtr) As LongPtr
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SnmpGetPduData Lib "wsnmp32.dll" (ByVal PDU As LongPtr, ByRef PDU_type As SnmpAsnPDUTypes, ByRef request_id As smiINT32, ByRef error_status As smiINT, ByRef error_index As smiINT, ByRef varbindlist As LongPtr) As SNMPAPI_STATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SnmpSetPduData Lib "wsnmp32.dll" (ByVal PDU As LongPtr, ByRef PDU_type As SnmpAsnPDUTypes, ByRef request_id As smiINT32, ByRef non_repeaters As smiINT, ByRef max_repetitions As smiINT, ByRef varbindlist As LongPtr) As SNMPAPI_STATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SnmpDuplicatePdu Lib "wsnmp32.dll" (ByVal session As LongPtr, ByVal PDU As LongPtr) As LongPtr
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SnmpFreePdu Lib "wsnmp32.dll" (ByVal PDU As LongPtr) As SNMPAPI_STATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SnmpCreateVbl Lib "wsnmp32.dll" (ByVal session As LongPtr, ByRef name As smiOID, ByRef value As smiVALUE) As LongPtr
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SnmpDuplicateVbl Lib "wsnmp32.dll" (ByVal session As LongPtr, ByVal vbl As LongPtr) As LongPtr
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SnmpFreeVbl Lib "wsnmp32.dll" (ByVal vbl As LongPtr) As SNMPAPI_STATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SnmpCountVbl Lib "wsnmp32.dll" (ByVal vbl As LongPtr) As SNMPAPI_STATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SnmpGetVb Lib "wsnmp32.dll" (ByVal vbl As LongPtr, ByVal index As smiUINT32, ByRef name As smiOID, ByRef value As smiVALUE) As SNMPAPI_STATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SnmpSetVb Lib "wsnmp32.dll" (ByVal vbl As LongPtr, ByVal index As smiUINT32, ByRef name As smiOID, ByRef value As smiVALUE) As SNMPAPI_STATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SnmpDeleteVb Lib "wsnmp32.dll" (ByVal vbl As LongPtr, ByVal index As smiUINT32) As SNMPAPI_STATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SnmpGetLastError Lib "wsnmp32.dll" (ByVal session As LongPtr) As SNMPAPI_STATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SnmpStrToOid Lib "wsnmp32.dll" (ByVal strng As String, ByRef dstOID As smiOID) As SNMPAPI_STATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SnmpOidToStr Lib "wsnmp32.dll" (ByRef srcOID As smiOID, ByVal size As smiUINT32, ByVal strng As String) As SNMPAPI_STATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SnmpOidCopy Lib "wsnmp32.dll" (ByRef srcOID As smiOID, ByRef dstOID As smiOID) As SNMPAPI_STATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SnmpOidCompare Lib "wsnmp32.dll" (ByRef xOID As smiOID, ByRef yOID As smiOID, ByVal maxlen As smiUINT32, ByRef result As smiINT) As SNMPAPI_STATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SnmpEncodeMsg Lib "wsnmp32.dll" (ByVal session As LongPtr, ByVal srcEntity As LongPtr, ByVal dstEntity As LongPtr, ByVal context As LongPtr, ByVal pdu As LongPtr, ByRef msgBufDesc As smiOCTETS) As SNMPAPI_STATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SnmpDecodeMsg Lib "wsnmp32.dll" (ByVal session As LongPtr, ByRef srcEntity As LongPtr, ByRef dstEntity As LongPtr, ByRef context As LongPtr, ByRef pdu As LongPtr, ByRef msgBufDesc As smiOCTETS) As SNMPAPI_STATUS
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SnmpFreeDescriptor Lib "wsnmp32.dll" (ByVal syntax As smiUINT32, ByRef descriptor As smiOPAQUE) As SNMPAPI_STATUS
+
 #End Region
 
 End Module
@@ -18464,6 +18721,22 @@ Public Alias RFC1157VarBind As SnmpVarBind
 Public Alias AsnInteger As AsnInteger32
 Public Alias AsnCounter As AsnCounter32
 Public Alias AsnGauge As AsnGauge32
+
+
+Public Alias smiBYTE As Byte
+Public Alias smiINT As Long
+Public Alias smiINT32 As smiINT
+Public Alias smiUINT32 As Long
+Public Alias smiBITS As smiOCTETS
+Public Alias smiIPADDR As smiOCTETS
+Public Alias smiCNTR32 As smiUINT32
+Public Alias smiGAUGE32 As smiUINT32
+Public Alias smiTIMETICKS As smiUINT32
+Public Alias smiOPAQUE As smiOCTETS
+Public Alias smiNSAPADDR As smiOCTETS
+ 
+
+
 
 
 #End If
