@@ -936,8 +936,8 @@ Public DeclareWide PtrSafe Function SHLimitInputEditWithFlags Lib "shell32" Alia
 Public DeclareWide PtrSafe Function SHLimitInputCombo Lib "shell32" Alias "#748" (ByVal hwndEdit As LongPtr, ByVal psf As Any) As Long
 Public Declare PtrSafe Function SHLoadNonloadedIconOverlayIdentifiers Lib "shell32" () As Long
 Public DeclareWide PtrSafe Function SHGetDriveMedia Lib "shell32" (ByVal pszDrive As String, pdwMediaContent As ARCONTENT) As Long
-Public DeclareWide PtrSafe Function SHGetPropertyStoreFromParsingName Lib "shell32" (ByVal pszPath As String, pbc As Any, ByVal Flags As GETPROPERTYSTOREFLAGS, riid As UUID, ppv As Any) As Long
-Public DeclareWide PtrSafe Function SHGetPropertyStoreFromParsingName Lib "shell32" (ByVal pszPath As LongPtr, pbc As Any, ByVal Flags As GETPROPERTYSTOREFLAGS, riid As UUID, ppv As Any) As Long
+Public DeclareWide PtrSafe Function SHGetPropertyStoreFromParsingName Lib "shell32" (ByVal pszPath As String, ByVal pbc As IBindCtx, ByVal Flags As GETPROPERTYSTOREFLAGS, riid As UUID, ppv As Any) As Long
+Public Declare PtrSafe Function SHGetPropertyStoreFromParsingName Lib "shell32" (ByVal pszPath As LongPtr, ByVal pbc As IBindCtx, ByVal Flags As GETPROPERTYSTOREFLAGS, riid As UUID, ppv As Any) As Long
 Public Declare PtrSafe Function SHGetPropertyStoreFromIDList Lib "shell32" (ByVal pidl As LongPtr, ByVal Flags As GETPROPERTYSTOREFLAGS, riid As UUID, ppv As Any) As Long
 Public Declare PtrSafe Function SHRemovePersonalPropertyValues Lib "shell32" (ByVal psia As IShellItemArray) As Long
 Public DeclareWide PtrSafe Function SHAddDefaultPropertiesByExt Lib "shell32" (ByVal pszExt As String, ByVal pPropStore As IPropertyStore) As Long
@@ -6881,6 +6881,8 @@ Public DeclareWide PtrSafe Function EnumPropsEx Lib "user32" Alias "EnumPropsExW
 ' #End If
 Public Declare PtrSafe Function GetShellWindow Lib "user32" () As LongPtr
 Public Declare PtrSafe Function GetDesktopWindow Lib "user32" () As LongPtr
+Public Declare PtrSafe Function GetTaskmanWindow Lib "user32" () As LongPtr
+Public Declare PtrSafe Function IsTopLevelWindow Lib "user32" (ByVal hWnd As LongPtr) As BOOL
 Public Declare PtrSafe Function RegisterHotKey Lib "user32" (ByVal hWnd As LongPtr, ByVal id As Long, ByVal fsModifiers As HotKeyModifiers, ByVal vk As VirtualKeyCodes) As BOOL
 Public Declare PtrSafe Function UnregisterHotKey Lib "user32" (ByVal hWnd As LongPtr, ByVal id As Long) As BOOL
 Public Declare PtrSafe Function AttachThreadInput Lib "user32" (ByVal idAttach As Long, ByVal idAttachTo As Long, ByVal fAttach As BOOL) As BOOL
@@ -9228,6 +9230,7 @@ Public Declare PtrSafe Function AllowSetForegroundWindow Lib "user32" (ByVal dwP
 Public Declare PtrSafe Function LockSetForegroundWindow Lib "user32" (ByVal uLockCode As LSFW_Flags) As BOOL
 Public Declare PtrSafe Function GetForegroundWindow Lib "user32" () As LongPtr
 Public Declare PtrSafe Function GetTopWindow Lib "user32" (Optional ByVal hwnd As LongPtr) As LongPtr
+Public Declare PtrSafe Function GetTopLevelWindow Lib "user32" (ByVal hwnd As LongPtr) As LongPtr
 Public Declare PtrSafe Function IsWindow Lib "user32" (ByVal hWnd As LongPtr) As BOOL
 Public Declare PtrSafe Function IsMenu Lib "user32" (ByVal hMenu As LongPtr) As BOOL
 Public Declare PtrSafe Function IsHungAppWindow Lib "user32" (ByVal hWnd As LongPtr) As BOOL
@@ -33845,17 +33848,17 @@ Public Enum MCI_COMMANDS
 End Enum
 
 Public Enum MCI_DEVICE_TYPE
-    MCI_DEVTYPE_VCR = 513 /* (MCI_STRING_OFFSET + 1) */
-    MCI_DEVTYPE_VIDEODISC = 514 /* (MCI_STRING_OFFSET + 2) */
-    MCI_DEVTYPE_OVERLAY = 515 /* (MCI_STRING_OFFSET + 3) */
-    MCI_DEVTYPE_CD_AUDIO = 516 /* (MCI_STRING_OFFSET + 4) */
-    MCI_DEVTYPE_DAT = 517 /* (MCI_STRING_OFFSET + 5) */
-    MCI_DEVTYPE_SCANNER = 518 /* (MCI_STRING_OFFSET + 6) */
-    MCI_DEVTYPE_ANIMATION = 519 /* (MCI_STRING_OFFSET + 7) */
-    MCI_DEVTYPE_DIGITAL_VIDEO = 520 /* (MCI_STRING_OFFSET + 8) */
-    MCI_DEVTYPE_OTHER = 521 /* (MCI_STRING_OFFSET + 9) */
-    MCI_DEVTYPE_WAVEFORM_AUDIO = 522 /* (MCI_STRING_OFFSET + 10) */
-    MCI_DEVTYPE_SEQUENCER = 523 /* (MCI_STRING_OFFSET + 11) */
+    MCI_DEVTYPE_VCR = 513               /* (MCI_STRING_OFFSET + 1) */
+    MCI_DEVTYPE_VIDEODISC = 514         /* (MCI_STRING_OFFSET + 2) */
+    MCI_DEVTYPE_OVERLAY = 515           /* (MCI_STRING_OFFSET + 3) */
+    MCI_DEVTYPE_CD_AUDIO = 516          /* (MCI_STRING_OFFSET + 4) */
+    MCI_DEVTYPE_DAT = 517               /* (MCI_STRING_OFFSET + 5) */
+    MCI_DEVTYPE_SCANNER = 518           /* (MCI_STRING_OFFSET + 6) */
+    MCI_DEVTYPE_ANIMATION = 519         /* (MCI_STRING_OFFSET + 7) */
+    MCI_DEVTYPE_DIGITAL_VIDEO = 520     /* (MCI_STRING_OFFSET + 8) */
+    MCI_DEVTYPE_OTHER = 521             /* (MCI_STRING_OFFSET + 9) */
+    MCI_DEVTYPE_WAVEFORM_AUDIO = 522    /* (MCI_STRING_OFFSET + 10) */
+    MCI_DEVTYPE_SEQUENCER = 523         /* (MCI_STRING_OFFSET + 11) */
     MCI_DEVTYPE_FIRST = MCI_DEVTYPE_VCR
     MCI_DEVTYPE_LAST = MCI_DEVTYPE_SEQUENCER
     MCI_DEVTYPE_FIRST_USER = &H1000
@@ -39844,6 +39847,8 @@ Public Const IMN_SOFTKBDDESTROYED = &H0011
 Public Const IME_UI_CLASS_NAME_SIZE  = 16
 '  String buffer length of ImeEscape
 Public Const IME_ESC_STRING_BUFFER_SIZE  = 80
+
+
 
 
 Public Declare PtrSafe Function ImmInstallIMEA Lib "imm32" (ByVal lpszIMEFileName As String, ByVal lpszLayoutText As String) As LongPtr
