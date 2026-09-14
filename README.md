@@ -1,7 +1,7 @@
 # Windows Development Library for twinBASIC
 ## WinDevLib 
 
-**Current Version: 9.4.726 (September 12th, 2026)**
+**Current Version: 9.4.728 (September 13th, 2026)**
 
 (c) 2022-2026 Jon Johnson (fafalone)
 
@@ -242,6 +242,19 @@ Current coverage is already quite extensive, spanning hundreds of Windows SDK he
 
  
 ### Updates
+
+**Update (v9.4.728, 13 Sep 2026):**
+- **CRITICAL TEMP FIX:** There's an active tB bug where any call, even if unreachable, to a function returning an alias of an alias causes an immediate crash on startup. D2D1_COLOR_F is a major offender and many of my D2D projects were broken. I'll look for others in the future until this is fixed.
+- New helper: toType(Of T). Allows you to initialize a UDT with an argument list. Note you *must* supply arguments exactly as the UDT fields require. For example, a Long, you can't pass 1, because that's an Integer by default, you'd have to use 1&. This function cannot read the UDT field types itself yet.\
+Example: `Dim pt As POINTF = toType(Of POINTF)(123!, 456!)` creates a valid `POINTF` type.\
+Only numeric types are currently supported. Arrays are not currently supported. You must account for padding yourself.
+- Add ratings.h (100%)
+- Add ocmm.h/.idl, imgutil.h/.idl (100%) 
+- Add certbcli.h (100%)
+- Add winmm driver defs never added from mmiscapi.h; add mmddk.h (100%)
+- Completed mmreg.h coverage outside GUIDs that will be covered by later ksmedia.h additions
+- Additional IOCTL types/consts
+- (Breaking change) ICategorizer::CompareCategory returns the result of the comparison as the HRESULT, so it's a real inconvenience to use error trapping. It's now PreserveSig to get the result directly. The original Sub version has been added to WinDevLibImpl.
 
 **Update (v9.4.726, 12 Sep 2026):**
 - Add mprapi.h, mprapidef.h (Note: Version aliasing is not implemented, so you would pick the type yourself, e.g. SOME_TYPE0/1/2, the SDK has if win7 SOME_TYPE = SOME_TYPE0, win8 has 1, win10 has 2-- that's not implemented, use 0/1/2 directly.)
