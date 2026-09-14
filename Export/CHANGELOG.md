@@ -1,4 +1,7 @@
 
+**Update (v9.4.729, 13 Sep 2026):**
+- (Bug fix) Error in new `toType` helper wasn't picked up until it was used.
+
 **Update (v9.4.728, 13 Sep 2026):**
 - **CRITICAL TEMP FIX:** There's an active tB bug where any call, even if unreachable, to a function returning an alias of an alias causes an immediate crash on startup. D2D1_COLOR_F is a major offender and many of my D2D projects were broken. I'll look for others in the future until this is fixed.
 - New helper: toType(Of T). Allows you to initialize a UDT with an argument list. Note you *must* supply arguments exactly as the UDT fields require. For example, a Long, you can't pass 1, because that's an Integer by default, you'd have to use 1&. This function cannot read the UDT field types itself yet.\
