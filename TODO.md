@@ -1,12 +1,13 @@
 Known omissions where a priority update neccessitated not finishing 
 before release, or waiting on feature support:
 
+- finish dhcpsapi.h
 
+- MrmResourceIndexer.h
+ -      interactioncontext.h
+ - gamingtcui.h
  
-- finish mprapi.h, routprot.h, ipxrtdef.h, 
-
- 
-- Fix pTimeBase optional byref longlong when passing nullptr allowed
+ - Fix pTimeBase optional byref longlong when passing nullptr allowed
  
  
 
@@ -17,7 +18,6 @@ before release, or waiting on feature support:
  
 
 
-- dhcpsapi.h
 
 - msi.h
 
@@ -196,7 +196,7 @@ Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.
     spellcheckprovider.idl,structuredquerycondition.h,structuredquerycondition.idl,threadpoollegacyapiset.h,thumbcache.h,thumbcache.idl,thumbnailstreamcache.h,
     thumbnailstreamcache.idl,timezoneapi.h,TOM.h,tdh.h,winres.h,UIRibbon.h,UIRibbon.idl,UIRibbonKeydef.h,UIRibbonPropertyHelpers.h,UIAutomationClient.h,
     UIAutomationClient.idl,UIAutomationCore.h,UIAutomationCore.idl,UIAnimation.h,UIAnimation.idl,shtypes.h,shtypes.idl,TextServ.h,servprov.h,ServProv.Idl,
-    shappmgr.h,shappmgr.idl,shobjidl.h,ShObjIdl.idl,shlobj.h*,richedit.h,richole.h,shimgdata.h,uxtheme.h,mmsystem.h,mmsyscom.h,mciapi.h,mmiscapi2.h,playsoundapi.h,
+    shappmgr.h,shappmgr.idl,shobjidl.h,ShObjIdl.idl,shlobj.h*,richedit.h,richole.h,shimgdata.h,uxtheme.h,mmsystem.h,mmsyscom.h,mciapi.h,mmiscapi.h,mmiscapi2.h,playsoundapi.h,
     mmeapi.h,timeapi.h,joystickapi.h,commdlg.h,cderr.h,prsht.h,prsht.idl,comctrl.h,ShlObj_core.h,ShObjidl_core.h,ShObjidl_core.idl,credentialprovider.h,
     credentialprovider.idl,aclui.h,RadioMgr.h,RadioMgr.idl,PortableDevice.h,PortableDeviceAPI.h,PortableDeviceAPI.idl,portabledeviceclassextension.h,
     portabledeviceclassextension.idl,portabledevicetypes.h,portabledevicetypes.idl,dsound.h,WinDNS.h,dstorage.h,dstorageerr.h,wininet.h,propapi.h,psapi.h,
@@ -233,10 +233,11 @@ Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.
     mstcipip.h, mimeole.idl, MimeInfo.h,MimeInfo.idl and mimedisp.h, msoeapi.idl, imnact.idl, colordlg.h,gamingtcui.h, gameux.h,
     emptyvc.h,emptyvc.idl,wpc.h, wpcapi.h, wpcevent.h, DhcpCSdk.h, Dhcpv6cSdk.h, tcpioctl.h,madcapcl.h,msacm.h,msacmdlg.h,pdh.h, pdhmsg.h, loadperf.h,
     WinFax.h,tapi.h,mq.h,naptypes.h,mgm.h,ras.h, rasdlg.h, rasshost.h, raseapif.h,  mprerror.h, raserror.h
-    mprapi.h, mprapidef.h, 
+    mprapi.h, mprapidef.h, ipxconst.h, ipxrip.h, ipxsap.h, ipxtfflt.h, ipxrtdef.h, routprot.h, RTInfo.h, stm.h
+    gnssdriver.h, winsnmp.h, certbcli.h,mmreg.h,
 Coverage in the 90%+ range  winbase.h, oleidl.h, oaidl.h, ocidl.h, ocidl.idl, ,objidl.h,objidl.idl,presentation.h,ScrnSave.h
 
-Substantial coverage  mmsciapi.h, winnt.h,immdev.h,winioctl.h,mmreg.h,WS2spi.h,winerror.h,WindowsSearchErrors.h,windowsx.h,
+Substantial coverage  winnt.h,immdev.h,winioctl.h,WS2spi.h,winerror.h,WindowsSearchErrors.h,windowsx.h,
 
 Minimal coverage
     windot11.h,peninputpanel.h,xapobase.h,wmcodecdsp.h,ksmedia.h,d3dkmdt.h,d3dukmdt.h,d3dkmthk.h,fwpsu.h
