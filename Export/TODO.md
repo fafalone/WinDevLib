@@ -234,7 +234,7 @@ Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.
     emptyvc.h,emptyvc.idl,wpc.h, wpcapi.h, wpcevent.h, DhcpCSdk.h, Dhcpv6cSdk.h, tcpioctl.h,madcapcl.h,msacm.h,msacmdlg.h,pdh.h, pdhmsg.h, loadperf.h,
     WinFax.h,tapi.h,mq.h,naptypes.h,mgm.h,ras.h, rasdlg.h, rasshost.h, raseapif.h,  mprerror.h, raserror.h
     mprapi.h, mprapidef.h, ipxconst.h, ipxrip.h, ipxsap.h, ipxtfflt.h, ipxrtdef.h, routprot.h, RTInfo.h, stm.h
-    gnssdriver.h, winsnmp.h, certbcli.h,mmreg.h,
+    gnssdriver.h, winsnmp.h, certbcli.h,mmreg.h,tvout.h
 Coverage in the 90%+ range  winbase.h, oleidl.h, oaidl.h, ocidl.h, ocidl.idl, ,objidl.h,objidl.idl,presentation.h,ScrnSave.h
 
 Substantial coverage  winnt.h,immdev.h,winioctl.h,WS2spi.h,winerror.h,WindowsSearchErrors.h,windowsx.h,
