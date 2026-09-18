@@ -1,7 +1,7 @@
 # Windows Development Library for twinBASIC
 ## WinDevLib 
 
-**Current Version: 9.4.729 (September 13th, 2026)**
+**Current Version: 9.4.730 (September 17th, 2026)**
 
 (c) 2022-2026 Jon Johnson (fafalone)
 
@@ -242,6 +242,11 @@ Current coverage is already quite extensive, spanning hundreds of Windows SDK he
 
  
 ### Updates
+
+**Update (v9.4.730, 17 Sep 2026):**
+- Additional winuser.h macros
+- Add tvout.h (100%)
+- (Bug fix) IInertiaProcessor::Process, ProcessTime definitions incorrect.
 
 **Update (v9.4.729, 13 Sep 2026):**
 - (Bug fix) Error in new `toType` helper wasn't picked up until it was used.
