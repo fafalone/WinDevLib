@@ -1,4 +1,13 @@
 
+**Update (v9.4.732, 21 Sep 2026):**
+- Completed ksmedia.h
+- Add dhcpsapi.h (100%)
+- Add keycredmgr.h (100%)
+- Add diskguid.h (100%)
+- Add a number of missing constants from mfapi.h and mferror.h.
+- Some additional missing Media Foundation content
+- (Bug fix) KS_MPEG2Level, KS_MPEG2Profile values incorrect
+
 **Update (v9.4.730, 17 Sep 2026):**
 - Additional winuser.h macros
 - Add tvout.h (100%)

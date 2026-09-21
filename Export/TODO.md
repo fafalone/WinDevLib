@@ -1,8 +1,7 @@
 Known omissions where a priority update neccessitated not finishing 
 before release, or waiting on feature support:
 
-- finish dhcpsapi.h
-
+ 
 - MrmResourceIndexer.h
  -      interactioncontext.h
  - gamingtcui.h
@@ -17,9 +16,11 @@ before release, or waiting on feature support:
 - dsparse.h, ntdsapi.h, dsrole.h, dsquery.h
  
 
-
+- finish winsplp.h
 
 - msi.h
+
+- webservices.h
 
 -   ws2tcpip mstcipip.h inlined funcs;
 
@@ -234,13 +235,14 @@ Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.
     emptyvc.h,emptyvc.idl,wpc.h, wpcapi.h, wpcevent.h, DhcpCSdk.h, Dhcpv6cSdk.h, tcpioctl.h,madcapcl.h,msacm.h,msacmdlg.h,pdh.h, pdhmsg.h, loadperf.h,
     WinFax.h,tapi.h,mq.h,naptypes.h,mgm.h,ras.h, rasdlg.h, rasshost.h, raseapif.h,  mprerror.h, raserror.h
     mprapi.h, mprapidef.h, ipxconst.h, ipxrip.h, ipxsap.h, ipxtfflt.h, ipxrtdef.h, routprot.h, RTInfo.h, stm.h
-    gnssdriver.h, winsnmp.h, certbcli.h,mmreg.h,tvout.h
+    gnssdriver.h, winsnmp.h, certbcli.h,mmreg.h,tvout.h,dhcpsapi.h,ksmedia.h,diskguid.h
+    mfapi.h, mfcaptureengine.h, mfcaptureengine.idl, mfcontentdecryptionmodule.h, mfcontentdecryptionmodule.idl, mfd3d12.h,mfd3d12.idl,mferror.h, 
 Coverage in the 90%+ range  winbase.h, oleidl.h, oaidl.h, ocidl.h, ocidl.idl, ,objidl.h,objidl.idl,presentation.h,ScrnSave.h
 
 Substantial coverage  winnt.h,immdev.h,winioctl.h,WS2spi.h,winerror.h,WindowsSearchErrors.h,windowsx.h,
 
 Minimal coverage
-    windot11.h,peninputpanel.h,xapobase.h,wmcodecdsp.h,ksmedia.h,d3dkmdt.h,d3dukmdt.h,d3dkmthk.h,fwpsu.h
+    windot11.h,peninputpanel.h,xapobase.h,wmcodecdsp.h,d3dkmdt.h,d3dukmdt.h,d3dkmthk.h,fwpsu.h
     
 Zero or near-zero coverage  (all other files)
 
