@@ -11,10 +11,11 @@
 
 'Note: This is the central API module, but does not cover all APIs:
     'ntdll and kernel32 APIs are in wdAPINTKernel
-    'wininet, wnet, winsock, websocket, winhttp, iphlpapi, urlmon.dll and hlink.dll APIs are in wdInternet.twin. 
+    'wininet, wnet, winsock, websocket, winhttp, iphlpapi, dhcp, urlmon.dll and hlink.dll APIs are in wdInternet.twin. 
     'advapi32 crypto APIs, wincrypt, wincred, wintrust, cryptui, bcrypt, and ncrypt are in wdAPICrypto.twin.
     'comctl32.dll, comdlg32.dll, dwmapi.dll, and uxtheme.dll APIs are in wdAPIComCtl, along with the common control APIs from user32. 
     'GDIPlus APIs are in wdGDIP
+    'Telephone/fax/routing & remote access APIs are in wdTelephony.twin
     'Event tracing APIs are in wdETW.twin
     'dbghelp/imagehlp APIs are in wdAPIDbgHlp.twin
     'HID apis are in wdAPIHID.twin
@@ -41635,6 +41636,114 @@ Public Declare PtrSafe Function SetJobNamedProperty Lib "winspool.drv" (ByVal hP
 Public Declare PtrSafe Function DeleteJobNamedProperty Lib "winspool.drv" (ByVal hPrinter As LongPtr, ByVal JobId As Long, ByVal pszName As LongPtr) As Long
 Public Declare PtrSafe Function EnumJobNamedProperties Lib "winspool.drv" (ByVal hPrinter As LongPtr, ByVal JobId As Long, pcProperties As Long, ppProperties As LongPtr) As Long
 Public Declare PtrSafe Function GetPrintOutputInfo Lib "winspool.drv" (ByVal hWnd As LongPtr, ByVal pszPrinter As LongPtr, phFile As LongPtr, ppszOutputFile As LongPtr) As Long
+
+
+
+
+'winsplp.h
+
+Public Enum EBranchOfficeJobEventType
+    kInvalidJobState = 0
+    kLogJobPrinted         ' The job has been successfully printed
+    kLogJobRendered        ' The job was successfully rendered in the pipeline
+    kLogJobError           ' The job has failed due to an error
+    kLogJobPipelineError   ' The job failed during the print pipeline
+    kLogOfflineFileFull    ' The Offline archive for Brach Office Job Log entries
+                        '  exceeded its maximum size
+End Enum
+
+Public Type BranchOfficeJobDataPrinted
+    Status As Long             ' The current status, or the failure code for a JOB_ERROR event
+    pDocumentName As LongPtr   ' The Name of the Print Document
+    pUserName As LongPtr       ' The user who submitted the job
+    pMachineName As LongPtr    ' The name of the client machine printing the job
+    pPrinterName As LongPtr    ' The name of the print connection
+    pPortName As LongPtr       ' The Name of the port the job printed on
+    Size As LongLong           ' The size of the job (64 bits)
+    TotalPages As Long         ' The total number of pages in the job
+End Type
+
+Public Type BranchOfficeJobDataError
+    LastError As Long              ' The LastError at the time the event was logged
+    pDocumentName As LongPtr       ' The Name of the Print Document
+    pUserName As LongPtr           ' The user who submitted the job
+    pPrinterName As LongPtr        ' The name of the print connection
+    pDataType As LongPtr           ' The data type of the job
+    TotalSize As LongLong          ' The size of the job (64 bits)
+    PrintedSize As LongLong        ' The size of the job (64 bits)
+    TotalPages As Long             ' The total number of pages in the job
+    PrintedPages As Long           ' The number of pages currently printed
+    pMachineName As LongPtr        ' The name of the client machine printing the job
+    pJobError As LongPtr           ' The failure code for a JOB_ERROR event
+    pErrorDescription As LongPtr   ' The text description of the error (if available)
+End Type
+
+Public Type BranchOfficeJobDataRendered
+    Size As LongLong ' The size of the job (64 bits)
+    ICMMethod As Long
+    Color As Integer
+    PrintQuality As Integer
+    YResolution As Integer
+    Copies As Integer
+    TTOption As Integer
+End Type
+
+Public Type BranchOfficeJobDataPipelineFailed
+    pDocumentName As LongPtr    ' The Name of the Print Document
+    pPrinterName As LongPtr     ' The name of the print connection
+    pExtraErrorInfo As LongPtr  ' The name of the client machine printing the job
+End Type
+
+Public Type BranchOfficeLogOfflineFileFull
+    pMachineName As LongPtr ' The Name of the print client
+End Type
+
+Public Type BranchOfficeJobData
+    eEventType As EBranchOfficeJobEventType ' The type of event to be logged
+    JobId As Long ' The ID of the job on the client
+    'union
+    '{
+    '    BranchOfficeJobDataPrinted             LogJobPrinted;
+    '    BranchOfficeJobDataRendered            LogJobRendered;
+    '    BranchOfficeJobDataError               LogJobError;
+    '    BranchOfficeJobDataPipelineFailed      LogPipelineFailed;
+    '    BranchOfficeLogOfflineFileFull         LogOfflineFileFull;
+    '} JobInfo;
+    #If Win64 Then
+    JobInfo(87) As Byte
+    #Else
+    JobInfo(63) As Byte
+    #End If
+End Type
+
+Public Type BranchOfficeJobDataContainer
+    cJobDataEntries As Long
+    JobData(0 To 0) As BranchOfficeJobData
+End Type
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 #End Region
