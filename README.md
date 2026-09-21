@@ -1,7 +1,7 @@
 # Windows Development Library for twinBASIC
 ## WinDevLib 
 
-**Current Version: 9.4.730 (September 17th, 2026)**
+**Current Version: 9.4.732 (September 21st, 2026)**
 
 (c) 2022-2026 Jon Johnson (fafalone)
 
@@ -78,6 +78,8 @@ In addition to coverage of common Windows SDK-defined macros and inlined functio
 `Public Function GetMem(Of T)(ByVal ptr As LongPtr) As T` - A generic to dereference a pointer into any type. The native `CType(Of )` allows dereferencing to UDTs, but this helper allows instrinsic types in addition to UDTs, and is used the same way.
 
 `Public Function DCast(Of T, T2)(v As T2) As T` - Direct Cast: Copies the data of v into any type, without modification, so no overflows, and possible to e.g. go from `LongLong` to `POINT`, with `Dim pt As POINT = DCast(Of POINT)(SomeLongLong)`
+
+`Public Function toType(Of T)(ParamArray fields() As Variant) As T` - Makes a UDT from a list of arguments. Only numeric types are currently supported. You must currently insert any padding bytes yourself.
 
 `Public Type CTypeHelper(Of T)` / `Public Type TType(Of T)` - These are helpers for the `CType(Of )` operator, intended to allow a pointer to refer to any type, not just a UDT. For example, if you have only a pointer to an array of Single, you could pass it to a ByRef As Single argument with `CType(Of TType(Of Single))(ptr).x` and the API would still be able to access all members just like f(0).
 
@@ -242,6 +244,15 @@ Current coverage is already quite extensive, spanning hundreds of Windows SDK he
 
  
 ### Updates
+
+**Update (v9.4.732, 21 Sep 2026):**
+- Completed ksmedia.h
+- Add dhcpsapi.h (100%)
+- Add keycredmgr.h (100%)
+- Add diskguid.h (100%)
+- Add a number of missing constants from mfapi.h and mferror.h.
+- Some additional missing Media Foundation content
+- (Bug fix) KS_MPEG2Level, KS_MPEG2Profile values incorrect
 
 **Update (v9.4.730, 17 Sep 2026):**
 - Additional winuser.h macros
