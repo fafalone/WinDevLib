@@ -1,7 +1,9 @@
 Known omissions where a priority update neccessitated not finishing 
 before release, or waiting on feature support:
 
-- finish winineti.h
+- vswriter.h
+
+- cryptxml.h
 
 - MrmResourceIndexer.h
  -      interactioncontext.h
@@ -229,12 +231,12 @@ Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.
     SubAuth.h,davclient.h,DsGetDC.h,errhandlingapi.h,msports.h,objsafe.h,objsafe.idl,winternl.h,AppxPackaging.h,AppxPackaging.idl,XmlDom.idl,wofapi.h,ntddvdeo.h,
     ntddvol.h,hidclass.h,hidusage.h,hidpi.h,hidsdi.h,ntenclv.h,winenclave.h,winenclaveapi.h,ioringapi.h,ntioring_x.h,urlmon.h,urlmon.idl,
     gl.h,glu.h,DocObj.h,DocObj.idl,slpublic.h,slerror.h,sliddefs.h,fwpstypes.h,htiface.h,htiface.idl,htiframe.h,htiframe.idl,dmort.h,
-    odbcinst.h,sqltypes.h,sql.h,sqlext.h,sqlucode.h,minidumpapiset.h,coguid.h,ime_cmodes.h,compstui.h,NTSecAPI.h,
+    odbcinst.h,sqltypes.h,sql.h,sqlext.h,sqlucode.h,minidumpapiset.h,coguid.h,ime_cmodes.h,compstui.h,NTSecAPI.h,CertPolEng.h,
     dls1.h,dls2.h,dmerror.h,dmdls.h,dmusbuff.h,dmusicc.h,dmusicf.h,dmplugin.h,dmusici.h,dmksctrl.h,dmusics.h,d3d12compiler.h/d3d12compiler.idl
     xact3.h,xact3wb.h,xma2defs.h,audiodefs.h,xact3d3.h,dxfile.h,dxdiag.h,dxmini.h,dxcore.h,
-    d3dx10.h,d3dx10core.h,d3dx10tex.h,d3dx10async.h,d3dx10mesh.h,d3d9on12.h,codecapi.h,vfwmsgs.h,errors.h,
+    d3dx10.h,d3dx10core.h,d3dx10tex.h,d3dx10async.h,d3dx10mesh.h,d3d9on12.h,codecapi.h,vfwmsgs.h,errors.h,licenseprotection.h,rtlsupportapi.h,wct.h,xolehlp.h,
     enclaveium.h,bthioctl.h,bthledef.h,bthdef.h,muiload.h,StorageProvider.h,StorageProvider.idl,ExDisp.h,ExDisp.idl,ExDispid.h,
-    mstcipip.h, mimeole.idl, MimeInfo.h,MimeInfo.idl and mimedisp.h, msoeapi.idl, imnact.idl, colordlg.h,gamingtcui.h, gameux.h,
+    mstcipip.h, mimeole.idl, MimeInfo.h,MimeInfo.idl and mimedisp.h, msoeapi.idl, imnact.idl, colordlg.h,gamingtcui.h, gameux.h,winevt.h,wslapi.h,
     emptyvc.h,emptyvc.idl,wpc.h, wpcapi.h, wpcevent.h, DhcpCSdk.h, Dhcpv6cSdk.h, tcpioctl.h,madcapcl.h,msacm.h,msacmdlg.h,pdh.h, pdhmsg.h, loadperf.h,
     WinFax.h,tapi.h,mq.h,naptypes.h,mgm.h,ras.h, rasdlg.h, rasshost.h, raseapif.h,  mprerror.h, raserror.h,IEDial.h,IEDial.idl,winineti.h,
     mprapi.h, mprapidef.h, ipxconst.h, ipxrip.h, ipxsap.h, ipxtfflt.h, ipxrtdef.h, routprot.h, RTInfo.h, stm.h,ondemandconnrouthelper.h,wnvapi.h,
