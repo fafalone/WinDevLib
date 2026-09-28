@@ -979,6 +979,37 @@ End CoClass
 
 
 
+'IEDial.idl
+
+[InterfaceId("2D86F4FF-6E2D-4488-B2E9-6934AFD41BEA")]
+[OleAutomation(False)]
+[Description("Dial Event Sink")]
+Interface IDialEventSink Extends IUnknown
+    Sub OnEvent(ByVal dwEvent As Long, ByVal dwStatus As Long)
+End Interface
+
+[InterfaceId("39FD782B-7905-40D5-9148-3C9B190423D5")]
+[OleAutomation(False)]
+[Description("Dial Engine interface")]
+Interface IDialEngine Extends IUnknown
+    Sub Initialize(ByVal pwzConnectoid As LongPtr, ByVal pIDES As IDialEventSink)
+    Sub GetProperty(ByVal pwzProperty As LongPtr, ByVal pwzValue As LongPtr, ByVal dwBufSize As Long)
+    Sub SetProperty(ByVal pwzProperty As LongPtr, ByVal pwzValue As LongPtr)
+    Sub Dial()
+    Sub HangUp()
+    Sub GetConnectedState(ByRef pdwState As Long)
+    Sub GetConnectHandle(ByRef pdwHandle As LongPtr)
+End Interface
+
+[InterfaceId("8AECAFA9-4306-43CC-8C5A-765F2979CC16")]
+[OleAutomation(False)]
+[Description("Dial Branding")]
+Interface IDialBranding Extends IUnknown
+    Sub Initialize(ByVal pwzConnectoid As LongPtr)
+    Sub GetBitmap(ByVal dwIndex As Long, ByRef phBitmap As LongPtr)
+End Interface
+
+
 #End Region
 
 #If WDL_QUALIFY Then
@@ -3757,13 +3788,15 @@ Module wdAPIInternet
     End Enum
 
     Public Enum INET_REQFLAGS
-        INTERNET_REQFLAG_FROM_CACHE = &H00000001  ' response came from cache
-        INTERNET_REQFLAG_ASYNC = &H00000002  ' request was made asynchronously
-        INTERNET_REQFLAG_VIA_PROXY = &H00000004  ' request was made via a proxy
-        INTERNET_REQFLAG_NO_HEADERS = &H00000008  ' orginal response contained no headers
-        INTERNET_REQFLAG_PASSIVE = &H00000010  ' FTP: passive-mode connection
+        INTERNET_REQFLAG_FROM_CACHE = &H00000001            ' response came from cache
+        INTERNET_REQFLAG_ASYNC = &H00000002                 ' request was made asynchronously
+        INTERNET_REQFLAG_VIA_PROXY = &H00000004             ' request was made via a proxy
+        INTERNET_REQFLAG_NO_HEADERS = &H00000008            ' orginal response contained no headers
+        INTERNET_REQFLAG_PASSIVE = &H00000010               ' FTP: passive-mode connection
         INTERNET_REQFLAG_CACHE_WRITE_DISABLED = &H00000040  ' HTTPS: this request not cacheable
-        INTERNET_REQFLAG_NET_TIMEOUT = &H00000080  ' w/ _FROM_CACHE: net request timed out
+        INTERNET_REQFLAG_NET_TIMEOUT = &H00000080           ' w/ _FROM_CACHE: net request timed out
+        
+        INTERNET_REQFLAG_FROM_APP_CACHE = &H00000100        ' Response came from AppCache
     End Enum
 
     Public Enum INET_IDNFLAGS
@@ -3851,6 +3884,8 @@ Module wdAPIInternet
         SECURITY_INTERNET_MASK = (INTERNET_FLAG_IGNORE_CERT_CN_INVALID Or INTERNET_FLAG_IGNORE_CERT_DATE_INVALID Or INTERNET_FLAG_IGNORE_REDIRECT_TO_HTTPS Or INTERNET_FLAG_IGNORE_REDIRECT_TO_HTTP)
         SECURITY_IGNORE_ERROR_MASK = (INTERNET_FLAG_IGNORE_CERT_CN_INVALID Or INTERNET_FLAG_IGNORE_CERT_DATE_INVALID Or SECURITY_FLAG_IGNORE_UNKNOWN_CA Or SECURITY_FLAG_IGNORE_REVOCATION Or SECURITY_FLAG_IGNORE_WEAK_SIGNATURE)
         INTERNET_FLAGS_MASK = (INTERNET_FLAG_RELOAD Or INTERNET_FLAG_RAW_DATA Or INTERNET_FLAG_EXISTING_CONNECT Or INTERNET_FLAG_ASYNC Or INTERNET_FLAG_PASSIVE Or INTERNET_FLAG_NO_CACHE_WRITE Or INTERNET_FLAG_MAKE_PERSISTENT Or INTERNET_FLAG_FROM_CACHE Or INTERNET_FLAG_SECURE Or INTERNET_FLAG_KEEP_CONNECTION Or INTERNET_FLAG_NO_AUTO_REDIRECT Or INTERNET_FLAG_READ_PREFETCH Or INTERNET_FLAG_NO_COOKIES Or INTERNET_FLAG_NO_AUTH Or INTERNET_FLAG_CACHE_IF_NET_FAIL Or SECURITY_INTERNET_MASK Or INTERNET_FLAG_RESYNCHRONIZE Or INTERNET_FLAG_HYPERLINK Or INTERNET_FLAG_NO_UI Or INTERNET_FLAG_PRAGMA_NOCACHE Or INTERNET_FLAG_CACHE_ASYNC Or INTERNET_FLAG_FORMS_SUBMIT Or INTERNET_FLAG_NEED_FILE Or INTERNET_FLAG_RESTRICTED_ZONE Or INTERNET_FLAG_TRANSFER_BINARY Or INTERNET_FLAG_TRANSFER_ASCII Or INTERNET_FLAG_FWD_BACK Or INTERNET_FLAG_BGUPDATE)
+        
+        INTERNET_FLAGS_MASK_INTERNAL = INTERNET_FLAGS_MASK Or INTERNET_FLAG_FTP_FOLDER_VIEW
     End Enum
 
     Public Enum INET_FTPTRANSFER_TYPE
@@ -4004,14 +4039,21 @@ Module wdAPIInternet
     End Type
 
     Public Enum INET_CONNECTED_STATE
-        INTERNET_STATE_CONNECTED = &H00000001  ' connected state (mutually exclusive with disconnected)
-        INTERNET_STATE_DISCONNECTED = &H00000002  ' disconnected from network
-        INTERNET_STATE_DISCONNECTED_BY_USER = &H00000010  ' disconnected by user request
-        INTERNET_STATE_IDLE = &H00000100  ' no network requests being made (by Wininet)
-        INTERNET_STATE_BUSY = &H00000200  ' network requests being made (by Wininet)
+        INTERNET_STATE_CONNECTED = &H00000001               ' connected state (mutually exclusive with disconnected)
+        INTERNET_STATE_DISCONNECTED = &H00000002            ' disconnected from network
+        INTERNET_STATE_DISCONNECTED_BY_USER = &H00000010    ' disconnected by user request
+        INTERNET_STATE_IDLE = &H00000100                    ' no network requests being made (by Wininet)
+        INTERNET_STATE_BUSY = &H00000200                    ' network requests being made (by Wininet)
+        
+        INTERNET_STATE_ONLINE = INTERNET_STATE_CONNECTED
+        INTERNET_STATE_OFFLINE = INTERNET_STATE_DISCONNECTED
+        INTERNET_STATE_OFFLINE_USER = INTERNET_STATE_DISCONNECTED_BY_USER
+        INTERNET_LINE_STATE_MASK = (INTERNET_STATE_ONLINE Or INTERNET_STATE_OFFLINE)
+        INTERNET_BUSY_STATE_MASK = (INTERNET_STATE_IDLE Or INTERNET_STATE_BUSY)
     End Enum
     Public Enum INET_CONNECTED_FLAGS
         ISO_FORCE_DISCONNECTED = &H00000001
+        ISO_FORCE_OFFLINE = ISO_FORCE_DISCONNECTED
     End Enum
 
     Public Type INTERNET_CONNECTED_INFO
@@ -4118,17 +4160,17 @@ Module wdAPIInternet
     Public Const INTERNET_RFC1123_BUFSIZE = 30
 
     Public Enum INET_ICU_FLAGS
-        ICU_ESCAPE = &H80000000  ' (un)escape URL characters
-        ICU_USERNAME = &H40000000  ' use internal username & password
-        ICU_NO_ENCODE = &H20000000  ' Don't convert unsafe characters to escape sequence
-        ICU_DECODE = &H10000000  ' Convert %XX escape sequences to characters
-        ICU_NO_META = &H08000000  ' Don't convert .. etc. meta path sequences
-        ICU_ENCODE_SPACES_ONLY = &H04000000  ' Encode spaces only
-        ICU_BROWSER_MODE = &H02000000  ' Special encode/decode rules for browser
-        ICU_ENCODE_PERCENT = &H00001000  ' Encode any percent (ASCII25)
-        ICU_ESCAPE_AUTHORITY = &H00002000 ' Escape chars in authority components (user, pwd, host)
-        ICU_REJECT_USERPWD = &H000040000  ' Rejects URLs whick have username/pwd sections
-        ICU_INCLUDE_DEFAULT_PORT = &H00008000& ' Include default port numbers in URLs
+         ICU_ESCAPE = &H80000000                 ' (un)escape URL characters
+         ICU_USERNAME = &H40000000               ' use internal username & password
+         ICU_NO_ENCODE = &H20000000              ' Don't convert unsafe characters to escape sequence
+         ICU_DECODE = &H10000000                 ' Convert %XX escape sequences to characters
+         ICU_NO_META = &H08000000                ' Don't convert .. etc. meta path sequences
+         ICU_ENCODE_SPACES_ONLY = &H04000000     ' Encode spaces only
+         ICU_BROWSER_MODE = &H02000000           ' Special encode/decode rules for browser
+         ICU_ENCODE_PERCENT = &H00001000         ' Encode any percent (ASCII25)
+         ICU_ESCAPE_AUTHORITY = &H00002000       ' Escape chars in authority components (user, pwd, host)
+         ICU_REJECT_USERPWD = &H000040000        ' Rejects URLs whick have username/pwd sections
+         ICU_INCLUDE_DEFAULT_PORT = &H00008000&  ' Include default port numbers in URLs
     
     End Enum
 
@@ -4137,6 +4179,7 @@ Module wdAPIInternet
     Public Const CERN_PROXY_INTERNET_ACCESS  = INTERNET_OPEN_TYPE_PROXY
 
     Public Enum INET_CONNECT_SERVICES
+        INTERNET_SERVICE_URL = 0
         INTERNET_SERVICE_FTP = 1
         INTERNET_SERVICE_GOPHER = 2
         INTERNET_SERVICE_HTTP = 3
@@ -4161,6 +4204,7 @@ Module wdAPIInternet
         INTERNET_OPTION_DATA_SEND_TIMEOUT = 7
         INTERNET_OPTION_DATA_RECEIVE_TIMEOUT = 8
         INTERNET_OPTION_HANDLE_TYPE = 9
+        INTERNET_OPTION_CONTEXT_VALUE_OLD = 10
         INTERNET_OPTION_LISTEN_TIMEOUT = 11
         INTERNET_OPTION_READ_BUFFER_SIZE = 12
         INTERNET_OPTION_WRITE_BUFFER_SIZE = 13
@@ -4205,14 +4249,19 @@ Module wdAPIInternet
         INTERNET_OPTION_REQUEST_PRIORITY = 58
         INTERNET_OPTIONHTTP_VERSION = 59
         INTERNET_OPTION_RESET_URLCACHE_SESSION = 60
+        INTERNET_OPTION_NET_SPEED = 61
         INTERNET_OPTION_ERROR_MASK = 62
         INTERNET_OPTION_FROM_CACHE_TIMEOUT = 63
         INTERNET_OPTION_BYPASS_EDITED_ENTRY = 64
         INTERNET_OPTION_HTTP_DECODING = 65
+        '  Pass in pointer to INTERNET_SECURITY_CONNECTION_INFO to be filled in.
+        INTERNET_OPTION_SECURITY_CONNECTION_INFO = 66
         INTERNET_OPTION_DIAGNOSTIC_SOCKET_INFO = 67
         INTERNET_OPTION_CODEPAGE = 68
         INTERNET_OPTION_CACHE_TIMESTAMPS = 69
         INTERNET_OPTION_DISABLE_AUTODIAL = 70
+        INTERNET_OPTION_DETECT_POST_SEND = 71
+        INTERNET_OPTION_DISABLE_NTLM_PREAUTH = 72
         INTERNET_OPTION_MAX_CONNS_PER_SERVER = 73
         INTERNET_OPTION_MAX_CONNS_PER_1_0_SERVER = 74
         INTERNET_OPTION_PER_CONNECTION_OPTION = 75
@@ -4237,26 +4286,108 @@ Module wdAPIInternet
         INTERNET_OPTION_SOCKET_SEND_BUFFER_LENGTH = 94
         INTERNET_OPTION_PROXY_SETTINGS_CHANGED = 95
         INTERNET_OPTION_DATAFILE_EXT = 96
+        INTERNET_OPTION_ORIGINAL_CONNECT_FLAGS = 97
+        INTERNET_OPTION_CERT_ERROR_FLAGS = 98
+        INTERNET_OPTION_IGNORE_CERT_ERROR_FLAGS = 99
         INTERNET_OPTION_CODEPAGE_PATH = 100
         INTERNET_OPTION_CODEPAGE_EXTRA = 101
         INTERNET_OPTION_IDN = 102
         INTERNET_OPTION_MAX_CONNS_PER_PROXY = 103
         INTERNET_OPTION_SUPPRESS_SERVER_AUTH = 104
         INTERNET_OPTION_SERVER_CERT_CHAIN_CONTEXT = 105
+        INTERNET_OPTION_SESSION_START_TIME = 106
+        INTERNET_OPTION_PROXY_CREDENTIALS = 107
+        INTERNET_OPTION_EXTENDED_CALLBACKS = 108
+        INTERNET_OPTION_PROXY_FROM_REQUEST = 109
+        INTERNET_OPTION_ALLOW_FAILED_CONNECT_CONTENT = 110
+        INTERNET_OPTION_CACHE_PARTITION = 111
+        INTERNET_OPTION_AUTODIAL_HWND = 112
+        INTERNET_OPTION_SERVER_CREDENTIALS = 113
+        INTERNET_OPTION_WPAD_SLEEP = 114
+        INTERNET_OPTION_FAIL_ON_CACHE_WRITE_ERROR = 115
+        INTERNET_OPTION_DOWNLOAD_MODE = 116
+        INTERNET_OPTION_RESPONSE_RESUMABLE = 117
+        INTERNET_OPTION_CM_HANDLE_COPY_REF = 118
+        INTERNET_OPTION_CONNECTION_INFO = 120
+        INTERNET_OPTION_BACKGROUND_CONNECTIONS = 121
         INTERNET_OPTION_ENABLE_REDIRECT_CACHE_READ = 122
+        INTERNET_OPTION_DO_NOT_TRACK = 123
+        INTERNET_OPTION_USE_MODIFIED_HEADER_FILTER = 124
+        INTERNET_OPTION_WWA_MODE = 125
+        INTERNET_OPTION_UPGRADE_TO_WEB_SOCKET = 126
+        INTERNET_OPTION_WEB_SOCKET_KEEPALIVE_INTERVAL = 127
+        INTERNET_OPTION_UNLOAD_NOTIFY_EVENT = 128
+        INTERNET_OPTION_SOCKET_NODELAY = 129
+        INTERNET_OPTION_APP_CACHE = 130
+        INTERNET_OPTION_DEPENDENCY_HANDLE = 131
+        INTERNET_OPTION_USE_FIRST_AVAILABLE_CONNECTION = 132
+        INTERNET_OPTION_TIMED_CONNECTION_LIMIT_BYPASS = 133
+        INTERNET_OPTION_WEB_SOCKET_CLOSE_TIMEOUT = 134
+        INTERNET_OPTION_FLUSH_STATE = 135
+        INTERNET_OPTION_DISALLOW_PREMATURE_EOF = 137
+        INTERNET_OPTION_SOCKET_NOTIFICATION_IOCTL = 138
+        INTERNET_OPTION_CACHE_ENTRY_EXTRA_DATA = 139
+        INTERNET_OPTION_MAX_QUERY_BUFFER_SIZE = 140
+        INTERNET_OPTION_FALSE_START = 141
+        INTERNET_OPTION_USER_PASS_SERVER_ONLY = 142
+        INTERNET_OPTION_SERVER_AUTH_SCHEME = 143
+        INTERNET_OPTION_PROXY_AUTH_SCHEME = 144
+        INTERNET_OPTION_TUNNEL_ONLY = 145
+        INTERNET_OPTION_SOURCE_PORT = 146
         INTERNET_OPTION_COMPRESSED_CONTENT_LENGTH = 147
         INTERNET_OPTION_ENABLE_HTTP_PROTOCOL = 148
+        INTERNET_OPTION_ENABLE_DUO = INTERNET_OPTION_ENABLE_HTTP_PROTOCOL
         INTERNET_OPTION_HTTP_PROTOCOL_USED = 149
+        INTERNET_OPTION_DUO_USED = INTERNET_OPTION_HTTP_PROTOCOL_USED
+        INTERNET_OPTION_CHUNK_ENCODE_REQUEST = 150
+        INTERNET_OPTION_SECURE_FAILURE = 151
+        INTERNET_OPTION_NOTIFY_SENDING_COOKIE = 152
+        INTERNET_OPTION_CLIENT_CERT_ISSUER_LIST = 153
+        INTERNET_OPTION_RESET = 154
         INTERNET_OPTION_ENCODE_EXTRA = 155
+        INTERNET_OPTION_SERVER_ADDRESS_INFO = 156
         INTERNET_OPTION_HSTS = 157
+        INTERNET_OPTION_ENABLE_WBOEXT = 158
         INTERNET_OPTION_ENTERPRISE_CONTEXT = 159
+        INTERNET_OPTION_DISABLE_INSECURE_FALLBACK = 160
+        INTERNET_OPTION_ALLOW_INSECURE_FALLBACK = 161
         INTERNET_OPTION_CONNECTION_FILTER = 162
         INTERNET_OPTION_REFERER_TOKEN_BINDING_HOSTNAME = 163
+        INTERNET_OPTION_SET_IN_PRIVATE = 164
+        INTERNET_OPTION_DOWNLOAD_MODE_HANDLE = 165
+        INTERNET_OPTION_EDGE_COOKIES = 166
+        INTERNET_OPTION_NO_HTTP_SERVER_AUTH = 167
+        INTERNET_OPTION_ENABLE_HEADER_CALLBACKS = 168
+        INTERNET_OPTION_PRESERVE_REQUEST_SERVER_CREDENTIALS_ON_REDIRECT = 169
+        INTERNET_OPTION_PRESERVE_REFERER_ON_HTTPS_TO_HTTP_REDIRECT = 170
+        INTERNET_OPTION_TCP_FAST_OPEN = 171
+        INTERNET_OPTION_SYNC_MODE_AUTOMATIC_SESSION_DISABLED = 172
+        INTERNET_OPTION_ENABLE_ZLIB_DEFLATE = 173
+        INTERNET_OPTION_ENCODE_FALLBACK_FOR_REDIRECT_URI = 174
+        INTERNET_OPTION_EDGE_COOKIES_TEMP = 175
+        INTERNET_OPTION_OPT_IN_WEAK_SIGNATURE = 176
+        INTERNET_OPTION_PARSE_LINE_FOLDING = 177
+        INTERNET_OPTION_FORCE_DECODE = 178
+        INTERNET_OPTION_COOKIES_APPLY_HOST_ONLY = 179
+        INTERNET_OPTION_EDGE_MODE = 180
         INTERNET_OPTION_TOKEN_BINDING_PUBLIC_KEY = 181
+        INTERNET_OPTION_CANCEL_CACHE_WRITE = 182
+        INTERNET_OPTION_AUTH_SCHEME_SELECTED = 183
+        INTERNET_OPTION_NOCACHE_WRITE_IN_PRIVATE = 184
+        INTERNET_OPTION_ACTIVITY_ID = 185
+        INTERNET_OPTION_REQUEST_TIMES = 186
         INTERNET_OPTION_COOKIES_SAME_SITE_LEVEL = 187
+        INTERNET_OPTION_GLOBAL_CALLBACK = 188
+        INTERNET_OPTION_ENABLE_TEST_SIGNING = 189
+        INTERNET_OPTION_DISABLE_PROXY_LINK_LOCAL_NAME_RESOLUTION = 190
+        INTERNET_OPTION_HTTP_09 = 191
+        INTERNET_OPTION_CALLER_MODULE = 192
         INTERNET_OPTION_REQUEST_ANNOTATION = 193
         INTERNET_FIRST_OPTION = INTERNET_OPTION_CALLBACK
         INTERNET_LAST_OPTION = INTERNET_OPTION_REQUEST_ANNOTATION
+        INTERNET_LAST_OPTION_INTERNAL = INTERNET_OPTION_REQUEST_ANNOTATION
+        INTERNET_OPTION_OFFLINE_TIMEOUT = INTERNET_OPTION_DISCONNECTED_TIMEOUT
+        INTERNET_OPTION_LINE_STATE = INTERNET_OPTION_CONNECTED_STATE
     End Enum
     Public Enum INET_OPTIONSEX_FLAGS
         ISO_GLOBAL = &H00000001  ' modify option globally
@@ -4296,6 +4427,7 @@ Module wdAPIInternet
     End Enum
 
     Public Enum INET_AUTH_FLAGS
+        AUTH_FLAG_RESET = &H00000000  /* let registry decide */
         AUTH_FLAG_DISABLE_NEGOTIATE = &H00000001
         AUTH_FLAG_ENABLE_NEGOTIATE = &H00000002
         AUTH_FLAG_DISABLE_BASIC_CLEARCHANNEL = &H00000004
@@ -4335,6 +4467,16 @@ Module wdAPIInternet
         INTERNET_STATUS_P3P_HEADER = 325
         INTERNET_STATUS_P3P_POLICYREF = 326
         INTERNET_STATUS_COOKIE_HISTORY = 327
+        INTERNET_STATUS_SENDING_COOKIE = 328
+        INTERNET_STATUS_REQUEST_HEADERS_SET = 329
+        INTERNET_STATUS_RESPONSE_HEADERS_SET = 330
+    '  Extended callbacks.
+    '  They can happen outside the context of the registered session's API calls.
+        INTERNET_STATUS_PROXY_CREDENTIALS = 400
+        INTERNET_STATUS_SERVER_CREDENTIALS = 401
+        INTERNET_STATUS_SERVER_CONNECTION_STATE = 410
+        INTERNET_STATUS_END_BROWSER_SESSION = 420
+        INTERNET_STATUS_COOKIE = 430
     End Enum
 
     Public Enum InternetCookieState
@@ -4345,6 +4487,9 @@ Module wdAPIInternet
         COOKIE_STATE_DOWNGRADE = &H4
         COOKIE_STATE_REJECT = &H5
         COOKIE_STATE_MAX = COOKIE_STATE_REJECT
+        
+        COOKIE_STATE_LB = 0  ' COOKIE_STATE_UNKNOWN
+        COOKIE_STATE_UB = 5  ' COOKIE_STATE_MAX
     End Enum
 
     Public Type IncomingCookieState
@@ -4686,6 +4831,8 @@ Module wdAPIInternet
     '  header: "Accept: text/*, audio/*"
         HTTP_ADDREQ_FLAG_COALESCE_WITH_COMMA = &H40000000
         HTTP_ADDREQ_FLAG_COALESCE_WITH_SEMICOLON = &H01000000
+        HTTP_ADDREQ_FLAG_RESPONSE_HEADERS = &H02000000
+        HTTP_ADDREQ_FLAG_ALLOW_EMPTY_VALUES = &H04000000
         HTTP_ADDREQ_FLAG_COALESCE = HTTP_ADDREQ_FLAG_COALESCE_WITH_COMMA
     '  HTTP_ADDREQ_FLAG_REPLACE - replaces the specified header. Only one header can
     '  be supplied in the buffer. If the header to be replaced is not the first
@@ -4719,10 +4866,20 @@ Module wdAPIInternet
         INTERNET_COOKIE_HTTPONLY = &H00002000
         INTERNET_COOKIE_HOST_ONLY = &H00004000
         INTERNET_COOKIE_APPLY_HOST_ONLY = &H00008000&
+        INTERNET_COOKIE_PERSISTENT_HOST_ONLY = &H00010000
+    '  INTERNET_COOKIE_RESTRICTED_ZONE is the same as INTERNET_FLAG_RESTRICTED_ZONE
+        INTERNET_COOKIE_RESTRICTED_ZONE = &H00020000
+        INTERNET_COOKIE_EDGE_COOKIES = &H00040000
         INTERNET_COOKIE_HOST_ONLY_APPLIED = &H00080000
         INTERNET_COOKIE_SAME_SITE_STRICT = &H00100000
         INTERNET_COOKIE_SAME_SITE_LAX = &H00200000
         INTERNET_COOKIE_SAME_SITE_LEVEL_CROSS_SITE = &H00400000
+        INTERNET_COOKIE_ALL_COOKIES = &H20000000
+        INTERNET_COOKIE_NO_CALLBACK = &H40000000
+        INTERNET_COOKIE_ECTX_3RDPARTY = &H80000000
+        COOKIE_ALLOWED_SET_FLAGS = (INTERNET_COOKIE_THIRD_PARTY Or INTERNET_COOKIE_PROMPT_REQUIRED Or INTERNET_COOKIE_EVALUATE_P3P Or INTERNET_COOKIE_NON_SCRIPT Or INTERNET_COOKIE_RESTRICTED_ZONE Or INTERNET_COOKIE_NO_CALLBACK Or INTERNET_COOKIE_APPLY_HOST_ONLY Or INTERNET_COOKIE_EDGE_COOKIES)
+        COOKIE_ALLOWED_COOKIE_FLAGS = (INTERNET_COOKIE_IS_SECURE Or INTERNET_COOKIE_IS_SESSION Or INTERNET_COOKIE_IS_RESTRICTED Or INTERNET_COOKIE_HTTPONLY Or INTERNET_COOKIE_HOST_ONLY Or INTERNET_COOKIE_HOST_ONLY_APPLIED Or INTERNET_COOKIE_ECTX_3RDPARTY Or INTERNET_COOKIE_SAME_SITE_STRICT Or INTERNET_COOKIE_SAME_SITE_LAX)
+        COOKIE_ALLOWED_GET_FLAGS = (INTERNET_COOKIE_NON_SCRIPT Or INTERNET_COOKIE_THIRD_PARTY Or INTERNET_COOKIE_SAME_SITE_LEVEL_CROSS_SITE Or INTERNET_FLAG_RESTRICTED_ZONE Or INTERNET_COOKIE_ALL_COOKIES Or INTERNET_COOKIE_EDGE_COOKIES)
     End Enum
     Public Type INTERNET_COOKIE2
         pwszName As LongPtr
@@ -4744,6 +4901,7 @@ Module wdAPIInternet
         FLAGS_ERROR_UI_FLAGS_GENERATE_DATA = &H04
         FLAGS_ERROR_UI_FLAGS_NO_UI = &H08
         FLAGS_ERROR_UI_SERIALIZE_DIALOGS = &H10
+        FLAGS_ERROR_UI_SHOW_IDN_HOSTNAME = &H20
     End Enum
 
     Public Type INTERNET_AUTH_NOTIFY_DATA
@@ -4810,13 +4968,19 @@ Module wdAPIInternet
         ERROR_INTERNET_SEC_CERT_ERRORS = (INTERNET_ERROR_BASE + 55)
         ERROR_INTERNET_SEC_CERT_NO_REV = (INTERNET_ERROR_BASE + 56)
         ERROR_INTERNET_SEC_CERT_REV_FAILED = (INTERNET_ERROR_BASE + 57)
+        ERROR_INTERNET_NO_NEW_CONTAINERS = (INTERNET_ERROR_BASE + 51)
+        ERROR_INTERNET_SOURCE_PORT_IN_USE = (INTERNET_ERROR_BASE + 58)
+        ERROR_INTERNET_INSECURE_FALLBACK_REQUIRED = (INTERNET_ERROR_BASE + 59)
         ERROR_HTTP_HSTS_REDIRECT_REQUIRED = (INTERNET_ERROR_BASE + 60)
+        ERROR_INTERNET_PROXY_ALERT = (INTERNET_ERROR_BASE + 61)
         ERROR_INTERNET_SEC_CERT_WEAK_SIGNATURE = (INTERNET_ERROR_BASE + 62)
+    '  Error code for WP.
+        ERROR_INTERNET_NO_CM_CONNECTION = (INTERNET_ERROR_BASE + 80)
     '  FTP API errors
         ERROR_FTP_TRANSFER_IN_PROGRESS = (INTERNET_ERROR_BASE + 110)
         ERROR_FTP_DROPPED = (INTERNET_ERROR_BASE + 111)
         ERROR_FTP_NO_PASSIVE_MODE = (INTERNET_ERROR_BASE + 112)
-    '  gopher API errors
+   '  gopher API errors
         ERROR_GOPHER_PROTOCOL_ERROR = (INTERNET_ERROR_BASE + 130)
         ERROR_GOPHER_NOT_FILE = (INTERNET_ERROR_BASE + 131)
         ERROR_GOPHER_DATA_ERROR = (INTERNET_ERROR_BASE + 132)
@@ -4826,7 +4990,12 @@ Module wdAPIInternet
         ERROR_GOPHER_NOT_GOPHER_PLUS = (INTERNET_ERROR_BASE + 136)
         ERROR_GOPHER_ATTRIBUTE_NOT_FOUND = (INTERNET_ERROR_BASE + 137)
         ERROR_GOPHER_UNKNOWN_LOCATOR = (INTERNET_ERROR_BASE + 138)
-    '  HTTP API errors
+        ERROR_HTTP_PUSH_STATUS_CODE_NOT_SUPPORTED = (INTERNET_ERROR_BASE + 147)
+        ERROR_HTTP_PUSH_RETRY_NOT_SUPPORTED = (INTERNET_ERROR_BASE + 148)
+        ERROR_HTTP_PUSH_ENABLE_FAILED = (INTERNET_ERROR_BASE + 149)
+        ERROR_INTERNET_DISALLOW_INPRIVATE = (INTERNET_ERROR_BASE + 189)
+        ERROR_INTERNET_OFFLINE = ERROR_INTERNET_DISCONNECTED
+     '  HTTP API errors
         ERROR_HTTP_HEADER_NOT_FOUND = (INTERNET_ERROR_BASE + 150)
         ERROR_HTTP_DOWNLEVEL_SERVER = (INTERNET_ERROR_BASE + 151)
         ERROR_HTTP_INVALID_SERVER_RESPONSE = (INTERNET_ERROR_BASE + 152)
@@ -4834,19 +5003,19 @@ Module wdAPIInternet
         ERROR_HTTP_INVALID_QUERY_REQUEST = (INTERNET_ERROR_BASE + 154)
         ERROR_HTTP_HEADER_ALREADY_EXISTS = (INTERNET_ERROR_BASE + 155)
         ERROR_HTTP_REDIRECT_FAILED = (INTERNET_ERROR_BASE + 156)
-        ERROR_HTTP_NOT_REDIRECTED = (INTERNET_ERROR_BASE + 160)
-        ERROR_HTTP_COOKIE_NEEDS_CONFIRMATION = (INTERNET_ERROR_BASE + 161)
-        ERROR_HTTP_COOKIE_DECLINED = (INTERNET_ERROR_BASE + 162)
-        ERROR_HTTP_REDIRECT_NEEDS_CONFIRMATION = (INTERNET_ERROR_BASE + 168)
-    '  additional Internet API error codes
+   '  additional Internet API error codes
         ERROR_INTERNET_SECURITY_CHANNEL_ERROR = (INTERNET_ERROR_BASE + 157)
         ERROR_INTERNET_UNABLE_TO_CACHE_FILE = (INTERNET_ERROR_BASE + 158)
         ERROR_INTERNET_TCPIP_NOT_INSTALLED = (INTERNET_ERROR_BASE + 159)
+        ERROR_HTTP_NOT_REDIRECTED = (INTERNET_ERROR_BASE + 160)
+        ERROR_HTTP_COOKIE_NEEDS_CONFIRMATION = (INTERNET_ERROR_BASE + 161)
+        ERROR_HTTP_COOKIE_DECLINED = (INTERNET_ERROR_BASE + 162)
         ERROR_INTERNET_DISCONNECTED = (INTERNET_ERROR_BASE + 163)
         ERROR_INTERNET_SERVER_UNREACHABLE = (INTERNET_ERROR_BASE + 164)
         ERROR_INTERNET_PROXY_SERVER_UNREACHABLE = (INTERNET_ERROR_BASE + 165)
         ERROR_INTERNET_BAD_AUTO_PROXY_SCRIPT = (INTERNET_ERROR_BASE + 166)
         ERROR_INTERNET_UNABLE_TO_DOWNLOAD_SCRIPT = (INTERNET_ERROR_BASE + 167)
+        ERROR_HTTP_REDIRECT_NEEDS_CONFIRMATION = (INTERNET_ERROR_BASE + 168)
         ERROR_INTERNET_SEC_INVALID_CERT = (INTERNET_ERROR_BASE + 169)
         ERROR_INTERNET_SEC_CERT_REVOKED = (INTERNET_ERROR_BASE + 170)
     '  InternetAutodial specific errors
@@ -4862,6 +5031,15 @@ Module wdAPIInternet
         ERROR_INTERNET_GLOBAL_CALLBACK_FAILED = (INTERNET_ERROR_BASE + 191)
         ERROR_INTERNET_FEATURE_DISABLED = (INTERNET_ERROR_BASE + 192)
         INTERNET_ERROR_LAST = (INTERNET_ERROR_BASE + 192)
+        
+        INTERNET_INTERNAL_ERROR_BASE = (INTERNET_ERROR_BASE + 900)
+        ERROR_INTERNET_INTERNAL_SOCKET_ERROR = (INTERNET_INTERNAL_ERROR_BASE + 1)
+        ERROR_INTERNET_CONNECTION_AVAILABLE = (INTERNET_INTERNAL_ERROR_BASE + 2)
+        ERROR_INTERNET_NO_KNOWN_SERVERS = (INTERNET_INTERNAL_ERROR_BASE + 3)
+        ERROR_INTERNET_PING_FAILED = (INTERNET_INTERNAL_ERROR_BASE + 4)
+        ERROR_INTERNET_NO_PING_SUPPORT = (INTERNET_INTERNAL_ERROR_BASE + 5)
+        ERROR_INTERNET_CACHE_SUCCESS = (INTERNET_INTERNAL_ERROR_BASE + 6)
+        ERROR_HTTP_COOKIE_NEEDS_CONFIRMATION_EX = (INTERNET_INTERNAL_ERROR_BASE + 7)
     End Enum
 
     Public Enum INET_CACHE_ENTRIES
@@ -4870,10 +5048,32 @@ Module wdAPIInternet
         EDITED_CACHE_ENTRY = &H00000008
         TRACK_OFFLINE_CACHE_ENTRY = &H00000010
         TRACK_ONLINE_CACHE_ENTRY = &H00000020
+        HTTP_1_1_CACHE_ENTRY = &H00000040
+        STATIC_CACHE_ENTRY = &H00000080
+        MUST_REVALIDATE_CACHE_ENTRY = &H00000100
+        SHORTPATH_CACHE_ENTRY = &H00000200
+        DOWNLOAD_CACHE_ENTRY = &H00000400
+        REDIRECT_CACHE_ENTRY = &H00000800
+        COOKIE_ACCEPTED_CACHE_ENTRY = &H00001000
+        COOKIE_LEASHED_CACHE_ENTRY = &H00002000
+        COOKIE_DOWNGRADED_CACHE_ENTRY = &H00004000
+        COOKIE_REJECTED_CACHE_ENTRY = &H00008000&
         SPARSE_CACHE_ENTRY = &H00010000
+        PRIVACY_MODE_CACHE_ENTRY = &H00020000
+        XDR_CACHE_ENTRY = &H00040000
+        IMMUTABLE_CACHE_ENTRY = &H00080000
         COOKIE_CACHE_ENTRY = &H00100000
         URLHISTORY_CACHE_ENTRY = &H00200000
+        PENDING_DELETE_CACHE_ENTRY = &H00400000
+        OTHER_USER_CACHE_ENTRY = &H00800000
+        PRIVACY_IMPACTED_CACHE_ENTRY = &H02000000
+        POST_RESPONSE_CACHE_ENTRY = &H04000000
+        INSTALLED_CACHE_ENTRY = &H10000000
+        POST_CHECK_CACHE_ENTRY = &H20000000
+        IDENTITY_CACHE_ENTRY = &H80000000
+        ANY_CACHE_ENTRY = &HFFFFFFFF
         URLCACHE_FIND_DEFAULT_FILTER = NORMAL_CACHE_ENTRY Or COOKIE_CACHE_ENTRY Or URLHISTORY_CACHE_ENTRY Or TRACK_OFFLINE_CACHE_ENTRY Or TRACK_ONLINE_CACHE_ENTRY Or STICKY_CACHE_ENTRY
+        INCLUDE_BY_DEFAULT_CACHE_ENTRY = (HTTP_1_1_CACHE_ENTRY Or STATIC_CACHE_ENTRY Or MUST_REVALIDATE_CACHE_ENTRY Or PRIVACY_IMPACTED_CACHE_ENTRY Or POST_CHECK_CACHE_ENTRY Or COOKIE_ACCEPTED_CACHE_ENTRY Or COOKIE_LEASHED_CACHE_ENTRY Or COOKIE_DOWNGRADED_CACHE_ENTRY Or COOKIE_REJECTED_CACHE_ENTRY Or SHORTPATH_CACHE_ENTRY Or IMMUTABLE_CACHE_ENTRY)
     End Enum
     Public Type INTERNET_CACHE_ENTRY_INFOA
         dwStructSize As Long ' version of cache system.
@@ -4942,6 +5142,7 @@ Module wdAPIInternet
         CACHEGROUP_FLAG_NONPURGEABLE = &H00000001
         CACHEGROUP_FLAG_GIDONLY = &H00000004
         CACHEGROUP_FLAG_FLUSHURL_ONDELETE = &H00000002
+        CACHEGROUP_FLAG_VALID = &H00000007
     End Enum
     Public Enum INET_CACHEGROUP_TYPES
         CACHEGROUP_TYPE_INVALID = &H00000001
@@ -4984,6 +5185,8 @@ Module wdAPIInternet
         CACHE_ENTRY_SYNCTIME_FC = &H00000200
         CACHE_ENTRY_HEADERINFO_FC = &H00000400
         CACHE_ENTRY_EXEMPT_DELTA_FC = &H00000800
+        CACHE_ENTRY_TYPE_FC = &H00001000
+        CACHE_ENTRY_MODIFY_DATA_FC = &H80000000  ' this appears unused
     End Enum
 
     Public Enum INET_CACHE_GROUP_SET
@@ -5053,6 +5256,8 @@ Module wdAPIInternet
         INTERNET_SUPPRESS_RESET_ALL = &H00
         INTERNET_SUPPRESS_COOKIE_POLICY = &H01
         INTERNET_SUPPRESS_COOKIE_POLICY_RESET = &H02
+        INTERNET_SUPPRESS_COOKIE_PERSIST = &H03
+        INTERNET_SUPPRESS_COOKIE_PERSIST_RESET = &H04
     End Enum
 
     Public Enum INET_PRIVACY_TEMPLATES
@@ -5327,6 +5532,775 @@ Module wdAPIInternet
     
 
 
+    
+    'winineti.h
+    
+    ' Note: Constant defs that are extensions of other enums have been placed in those enums
+    
+    Public Const MAX_CACHE_ENTRY_INFO_SIZE = 4096
+    
+    Public Type INTERNET_PREFETCH_STATUS
+        ' dwStatus - status of download. See INTERNET_PREFETCH_ flags
+        dwStatus As InetPrefetchFlags
+        ' dwSize - size of file downloaded so far
+        dwSize As Long
+    End Type
+    
+    Public Enum InetPrefetchFlags
+        INTERNET_PREFETCH_PROGRESS = 0
+        INTERNET_PREFETCH_COMPLETE = 1
+        INTERNET_PREFETCH_ABORTED = 2
+    End Enum
+    
+    Public Type INTERNET_CONNECTION_INFO
+        LocalAddress As SOCKADDR_STORAGE
+        RemoteAddress As SOCKADDR_STORAGE
+    End Type
+    
+    Public Enum InetDlgFlags
+        DLG_FLAGS_INVALID_CA = &H01000000
+        DLG_FLAGS_SEC_CERT_CN_INVALID = &H02000000
+        DLG_FLAGS_SEC_CERT_DATE_INVALID = &H04000000
+        DLG_FLAGS_WEAK_SIGNATURE = &H00200000
+        DLG_FLAGS_INSECURE_FALLBACK = &H00400000
+        DLG_FLAGS_SEC_CERT_REV_FAILED = &H00800000
+    End Enum
+    
+    Public Type INTERNET_SECURITY_INFO
+        ' dwSize - Size of INTERNET_SECURITY_INFO structure.
+        dwSize As Long
+        ' pCertificate - Cert context pointing to leaf of certificate chain.
+        pCertificate As LongPtr 'PCCERT_CONTEXT
+        ' pcCertChain - Certificate chain for the certificate
+        pcCertChain As LongPtr 'PCCERT_CHAIN_CONTEXT
+        ' SECPKG_ATTR_CONNECTION_INFO
+        connectionInfo As SecPkgContext_ConnectionInfo
+        ' SECPKG_ATTR_CIPHER_INFO (Supported on >= LH)
+        cipherInfo As SecPkgContext_CipherInfo
+        ' pcUnverifiedCertChain - Cert chain from initial WinVerifyTrust state
+        pcUnverifiedCertChain As LongPtr 'PCCERT_CHAIN_CONTEXT
+        ' Channel Binding Token
+        channelBindingToken As SecPkgContext_Bindings
+    End Type
+    
+    Public Type INTERNET_SECURITY_CONNECTION_INFO
+        ' dwSize - size of INTERNET_SECURITY_CONNECTION_INFO
+        dwSize As Long
+        ' fSecure - Is this a secure connection.
+        fSecure As BOOL
+        ' SECPKG_ATTR_CONNECTION_INFO
+        connectionInfo As SecPkgContext_ConnectionInfo
+        ' SECPKG_ATTR_CIPHER_INFO (Supported on >= LH)
+        cipherInfo As SecPkgContext_CipherInfo
+    End Type
+    
+    Public Declare PtrSafe Function InternetAlgIdToStringA Lib "wininet" (ByVal ai As ALG_ID, ByVal lpstr As String, ByRef lpdwstrLength As Long, ByVal dwReserved As Long) As BOOL
+    Public Declare PtrSafe Function InternetAlgIdToStringW Lib "wininet" (ByVal ai As ALG_ID, ByVal lpstr As LongPtr, ByRef lpdwstrLength As Long, ByVal dwReserved As Long) As BOOL
+    Public DeclareWide PtrSafe Function InternetAlgIdToString Lib "wininet" Alias "InternetAlgIdToStringW" (ByVal ai As ALG_ID, ByVal lpstr As String, ByRef lpdwstrLength As Long, ByVal dwReserved As Long) As BOOL
+    Public Declare PtrSafe Function InternetSecurityProtocolToStringA Lib "wininet" (ByVal dwProtocol As Long, ByVal lpstr As String, ByRef lpdwstrLength As Long, ByVal dwReserved As Long) As BOOL
+    Public Declare PtrSafe Function InternetSecurityProtocolToStringW Lib "wininet" (ByVal dwProtocol As Long, ByVal lpstr As LongPtr, ByRef lpdwstrLength As Long, ByVal dwReserved As Long) As BOOL
+    Public DeclareWide PtrSafe Function InternetSecurityProtocolToString Lib "wininet" Alias "InternetSecurityProtocolToStringW" (ByVal dwProtocol As Long, ByVal lpstr As String, ByRef lpdwstrLength As Long, ByVal dwReserved As Long) As BOOL
+    Public Declare PtrSafe Function InternetGetSecurityInfoByURLA Lib "wininet" (ByVal lpszURL As String, ByRef ppCertChain As LongPtr, ByRef pdwSecureFlags As Long) As BOOL
+    Public Declare PtrSafe Function InternetGetSecurityInfoByURLW Lib "wininet" (ByVal lpszURL As LongPtr, ByRef ppCertChain As LongPtr, ByRef pdwSecureFlags As Long) As BOOL
+    Public DeclareWide PtrSafe Function InternetGetSecurityInfoByURL Lib "wininet" Alias "InternetGetSecurityInfoByURLW" (ByVal lpszURL As String, ByRef ppCertChain As LongPtr, ByRef pdwSecureFlags As Long) As BOOL
+    Public Declare PtrSafe Function ShowSecurityInfo Lib "wininet" (ByVal hWndParent As LongPtr, ByRef pSecurityInfo As INTERNET_SECURITY_INFO) As Long
+    Public Declare PtrSafe Function ShowX509EncodedCertificate Lib "wininet" (ByVal hWndParent As LongPtr, ByRef lpCert As Byte, ByVal cbCert As Long) As Long
+    Public Declare PtrSafe Function ShowClientAuthCerts Lib "wininet" (ByVal hWndParent As LongPtr) As Long
+    Public Declare PtrSafe Function ParseX509EncodedCertificateForListBoxEntry Lib "wininet" (ByRef lpCert As Byte, ByVal cbCert As Long, ByVal lpszListBoxEntry As String, ByRef lpdwListBoxEntry As Long) As Long
+    Public Declare PtrSafe Function InternetShowSecurityInfoByURLA Lib "wininet" (ByVal lpszURL As String, ByVal hwndParent As LongPtr) As BOOL
+    Public Declare PtrSafe Function InternetShowSecurityInfoByURLW Lib "wininet" (ByVal lpszURL As LongPtr, ByVal hwndParent As LongPtr) As BOOL
+    Public DeclareWide PtrSafe Function InternetShowSecurityInfoByURL Lib "wininet" Alias "InternetShowSecurityInfoByURLW" (ByVal lpszURL As String, ByVal hwndParent As LongPtr) As BOOL
+    Public Declare PtrSafe Function InternetFortezzaCommand Lib "wininet" (ByVal dwCommand As FORTCMD, ByVal hwnd As LongPtr, ByVal dwReserved As LongPtr) As BOOL
+    Public Declare PtrSafe Function InternetQueryFortezzaStatus Lib "wininet" (ByRef pdwStatus As FORTSTAT, ByVal dwReserved As LongPtr) As BOOL
+    Public Declare PtrSafe Function InternetDebugGetLocalTime Lib "wininet" (ByRef pstLocalTime As SYSTEMTIME, ByRef pdwReserved As Long) As BOOL
+    
+    Public Enum FORTCMD
+        FORTCMD_LOGON = 1
+        FORTCMD_LOGOFF = 2
+        FORTCMD_CHG_PERSONALITY = 3
+    End Enum
+    
+    Public Enum FORTSTAT
+        FORTSTAT_INSTALLED = &H00000001
+        FORTSTAT_LOGGEDON = &H00000002
+    End Enum
+
+    Public Function InternetConnectUrl(ByVal hInternet As LongPtr, ByVal lpszUrl As String, ByVal dwFlags As Long, ByVal dwContext As LongPtr) As LongPtr
+        Return InternetConnect(hInternet, lpszUrl, CInt(INTERNET_INVALID_PORT_NUMBER), vbNullString, vbNullString, INTERNET_SERVICE_URL, dwFlags, dwContext)
+    End Function
+    
+    Public Declare PtrSafe Function InternetWriteFileExA Lib "wininet" (ByVal hFile As LongPtr, ByRef lpBuffersIn As INTERNET_BUFFERSA, ByVal dwFlags As Long, ByVal dwContext As LongPtr) As BOOL
+    Public Declare PtrSafe Function InternetWriteFileExW Lib "wininet" (ByVal hFile As LongPtr, ByRef lpBuffersIn As INTERNET_BUFFERSW, ByVal dwFlags As Long, ByVal dwContext As LongPtr) As BOOL
+    Public DeclareWide PtrSafe Function InternetWriteFileEx Lib "wininet" Alias "InternetWriteFileExW" (ByVal hFile As LongPtr, ByRef lpBuffersIn As INTERNET_BUFFERS, ByVal dwFlags As Long, ByVal dwContext As LongPtr) As BOOL
+        
+    Public Enum InetDuoFlags
+        DUO_PROTOCOL_FLAG_SPDY3 = &H1
+        DUO_PROTOCOL_MASK = (DUO_PROTOCOL_FLAG_SPDY3)
+    End Enum
+    
+    Public Type INTERNET_DOWNLOAD_MODE_HANDLE
+        pcwszFileName As LongPtr
+        phFile As LongPtr
+    End Type
+    
+    Public Enum REQUEST_TIMES
+        NameResolutionStart = 0
+        NameResolutionEnd
+        ConnectionEstablishmentStart
+        ConnectionEstablishmentEnd
+        TLSHandshakeStart
+        TLSHandshakeEnd
+        HttpRequestTimeMax = 32
+    End Enum
+    
+    Public Type HTTP_REQUEST_TIMES
+        cTimes As Long
+        rgTimes(0 To (HttpRequestTimeMax - 1)) As LongLong
+    End Type
+    
+    Public Enum InetAuthSchemes
+        INTERNET_AUTH_SCHEME_BASIC = 0
+        INTERNET_AUTH_SCHEME_DIGEST = 1
+        INTERNET_AUTH_SCHEME_NTLM = 2
+        INTERNET_AUTH_SCHEME_KERBEROS = 3
+        INTERNET_AUTH_SCHEME_NEGOTIATE = 4
+        INTERNET_AUTH_SCHEME_PASSPORT = 5
+        INTERNET_AUTH_SCHEME_UNKNOWN = 6
+    End Enum
+    
+    Public Type INTERNET_SERVER_CONNECTION_STATE
+        lpcwszHostName As LongPtr
+        fProxy As BOOL                 ' Is this a proxy?
+        dwCounter As Long              ' Server connection state callback counter.
+        dwConnectionLimit As Long      ' Current Limit.
+        dwAvailableCreates As Long     ' Connections allowed to be created.
+        dwAvailableKeepAlives As Long  ' Keep alive connections available to be used.
+        dwActiveConnections As Long    ' Current number of active connections.
+        dwWaiters As Long              ' Number of request waiting on connections.
+    End Type
+    
+    Public Type INTERNET_END_BROWSER_SESSION_DATA
+        lpBuffer As LongPtr
+        dwBufferLength As Long
+    End Type
+    
+    Public Type INTERNET_CALLBACK_COOKIE
+        pcwszName As LongPtr
+        pcwszValue As LongPtr
+        pcwszDomain As LongPtr
+        pcwszPath As LongPtr
+        ftExpires As FILETIME
+        dwFlags As Long
+    End Type
+    
+    Public Type INTERNET_CREDENTIALS
+        lpcwszHostName As LongPtr
+        dwPort As Long
+        dwScheme As Long
+        lpcwszUrl As LongPtr
+        lpcwszRealm As LongPtr
+        fAuthIdentity As BOOL ' TRUE if pAuthIdentityOpaque is used in below struct.
+        'union {
+        '    struct {
+        '        LPCWSTR lpcwszUserName;
+        '        LPCWSTR lpcwszPassword;
+        '    };
+        '    PVOID pAuthIdentityOpaque;
+        '};
+        lpcwszUserName As LongPtr
+        lpcwszPassword As LongPtr
+        
+        ' EUS
+        Property Get pAuthIdentityOpaque() As LongPtr: Return Me.lpcwszUserName: End Property
+        Property Let pAuthIdentityOpaque(ByVal value As LongPtr): Me.lpcwszUserName = value: End Property
+    End Type
+    
+    Public Const MaxPrivacySettings = &H4000
+    
+    Public Declare PtrSafe Function FindP3PPolicySymbol Lib "wininet" Alias "#118" (ByVal pszSymbol As LongPtr) As Long
+    
+    Public Enum WininetInternetFilterStatus
+        INTERNET_STATUS_FILTER_RESOLVING = &H00000001
+        INTERNET_STATUS_FILTER_RESOLVED = &H00000002
+        INTERNET_STATUS_FILTER_CONNECTING = &H00000004
+        INTERNET_STATUS_FILTER_CONNECTED = &H00000008
+        INTERNET_STATUS_FILTER_SENDING = &H00000010
+        INTERNET_STATUS_FILTER_SENT = &H00000020
+        INTERNET_STATUS_FILTER_RECEIVING = &H00000040
+        INTERNET_STATUS_FILTER_RECEIVED = &H00000080
+        INTERNET_STATUS_FILTER_CLOSING = &H00000100
+        INTERNET_STATUS_FILTER_CLOSED = &H00000200
+        INTERNET_STATUS_FILTER_HANDLE_CREATED = &H00000400
+        INTERNET_STATUS_FILTER_HANDLE_CLOSING = &H00000800
+        INTERNET_STATUS_FILTER_PREFETCH = &H00001000
+        INTERNET_STATUS_FILTER_REDIRECT = &H00002000
+        INTERNET_STATUS_FILTER_STATE_CHANGE = &H00004000
+    End Enum
+    
+    Public Declare PtrSafe Function HttpGetServerCredentials Lib "wininet" (ByVal pwszUrl As LongPtr, ppwszUserName As LongPtr, ppwszPassword As LongPtr) As Long
+    
+    Public Type HTTP_PUSH_TRANSPORT_SETTING
+        TransportSettingId As UUID
+        BrokerEventId As UUID
+    End Type
+    
+    Public Type HTTP_PUSH_NOTIFICATION_STATUS
+        ChannelStatusValid As BOOL
+        ChannelStatus As Long
+    End Type
+    
+    Public Enum HTTP_PUSH_WAIT_TYPE
+        HttpPushWaitEnableComplete
+        HttpPushWaitReceiveComplete
+        HttpPushWaitSendComplete
+    End Enum
+    
+    Public Declare PtrSafe Function HttpPushEnable Lib "wininet" (ByVal hRequest As LongPtr, ByRef pTransportSetting As HTTP_PUSH_TRANSPORT_SETTING, ByRef phWait As LongPtr) As Long
+    Public Declare PtrSafe Function HttpPushWait Lib "wininet" (ByVal hWait As LongPtr, ByVal eType As HTTP_PUSH_WAIT_TYPE, ByRef pNotificationStatus As HTTP_PUSH_NOTIFICATION_STATUS) As Long
+    Public Declare PtrSafe Sub HttpPushClose Lib "wininet" (ByVal hWait As LongPtr)
+    
+    Public Type INTERNET_COOKIE
+        cbSize As Long
+        pszName As String
+        pszData As String
+        pszDomain As String
+        pszPath As String
+        pftExpires As FILETIME
+        dwFlags As Long
+        pszUrl As String
+        pszP3PPolicy As String
+    End Type
+    
+    Public Type COOKIE_DLG_INFO
+        pszServer As LongPtr
+        pic As LongPtr 'PINTERNET_COOKIE
+        dwStopWarning As WininetCookieUIReturn
+        cx As Long
+        cy As Long
+        pszHeader As LongPtr
+        dwOperation As WininetCookieOperations
+    End Type
+    
+    Public Enum WininetCookieUIReturn
+        COOKIE_DONT_ALLOW = 1
+        COOKIE_ALLOW = 2
+        COOKIE_ALLOW_ALL = 4
+        COOKIE_DONT_ALLOW_ALL = 8
+    End Enum
+    
+    Public Enum WininetCookieOperations
+        COOKIE_OP_SET = &H01
+        COOKIE_OP_MODIFY = &H02
+        COOKIE_OP_GET = &H04
+        COOKIE_OP_SESSION = &H08
+        COOKIE_OP_PERSISTENT = &H10
+        COOKIE_OP_3RD_PARTY = &H20
+    End Enum
+    
+    Public Declare PtrSafe Function HttpCheckDavComplianceA Lib "wininet" Alias "#104" (ByVal lpszUrl As String, ByVal lpszComplianceToken As String, ByRef lpfFound As BOOL, ByVal hWnd As LongPtr, ByVal lpvReserved As LongPtr) As BOOL
+    Public Declare PtrSafe Function HttpCheckDavComplianceW Lib "wininet" Alias "#105" (ByVal lpszUrl As LongPtr, ByVal lpszComplianceToken As LongPtr, ByRef lpfFound As BOOL, ByVal hWnd As LongPtr, ByVal lpvReserved As LongPtr) As BOOL
+    Public DeclareWide PtrSafe Function HttpCheckDavCompliance Lib "wininet" Alias "#105" (ByVal lpszUrl As String, ByVal lpszComplianceToken As String, ByRef lpfFound As BOOL, ByVal hWnd As LongPtr, ByVal lpvReserved As LongPtr) As BOOL
+    
+    Public Const CACHEGROUP_ID_BUILTIN_STICKY  = &H1000000000000007
+    
+    Public Type INTERNET_CACHE_CONFIG_PATH_ENTRYA
+        CachePath(0 To (MAX_PATH - 1)) As Byte
+        dwCacheSize As Long ' in KBytes
+    End Type
+    Public Type INTERNET_CACHE_CONFIG_PATH_ENTRYW
+        CachePath(0 To (MAX_PATH - 1)) As Integer
+        dwCacheSize As Long ' in KBytes
+    End Type
+    
+    Public Type INTERNET_CACHE_CONFIG_INFOA
+        dwStructSize As Long
+        dwContainer As Long
+        dwQuota As Long
+        dwReserved4 As Long
+        fPerUser As BOOL
+        dwSyncMode As Long
+        dwNumCachePaths As Long
+        'union
+        '{
+        '    struct
+        '    {
+        '        CHAR   CachePath[MAX_PATH];
+        '        DWORD dwCacheSize;
+        '    };
+        '    INTERNET_CACHE_CONFIG_PATH_ENTRYA CachePaths[ANYSIZE_ARRAY];
+        '};
+        CachePaths(0 To 0) As INTERNET_CACHE_CONFIG_PATH_ENTRYA
+        dwNormalUsage As Long
+        dwExemptUsage As Long
+    End Type
+    Public Type INTERNET_CACHE_CONFIG_INFOW
+        dwStructSize As Long
+        dwContainer As Long
+        dwQuota As Long
+        dwReserved4 As Long
+        fPerUser As BOOL
+        dwSyncMode As Long
+        dwNumCachePaths As Long
+        'union
+        '{
+        '    struct
+        '    {
+        '        CHAR   CachePath[MAX_PATH];
+        '        DWORD dwCacheSize;
+        '    };
+        '    INTERNET_CACHE_CONFIG_PATH_ENTRYW CachePaths[ANYSIZE_ARRAY];
+        '};
+        CachePaths(0 To 0) As INTERNET_CACHE_CONFIG_PATH_ENTRYA
+        dwNormalUsage As Long
+        dwExemptUsage As Long
+    End Type
+    
+    Public Declare PtrSafe Function IsUrlCacheEntryExpiredA Lib "wininet" (ByVal lpszUrlName As String, ByVal dwFlags As Long, ByRef pftLastModified As FILETIME) As BOOL
+    Public Declare PtrSafe Function IsUrlCacheEntryExpiredW Lib "wininet" (ByVal lpszUrlName As LongPtr, ByVal dwFlags As Long, ByRef pftLastModified As FILETIME) As BOOL
+    Public DeclareWide PtrSafe Function IsUrlCacheEntryExpired Lib "wininet" Alias "IsUrlCacheEntryExpiredW" (ByVal lpszUrlName As String, ByVal dwFlags As Long, ByRef pftLastModified As FILETIME) As BOOL
+    Public Declare PtrSafe Function CreateUrlCacheEntryExW Lib "wininet" (ByVal lpszUrlName As LongPtr, ByVal dwExpectedFileSize As Long, ByVal lpszFileExtension As LongPtr, ByVal lpszFileName As LongPtr, ByVal dwReserved As Long, ByVal fPreserveIncomingFileName As BOOL) As BOOL
+    
+    Public Enum WininetInternetCacheFlags
+        INTERNET_CACHE_FLAG_ALLOW_COLLISIONS = &H00000100
+        INTERNET_CACHE_FLAG_INSTALLED_ENTRY = &H00000200
+        INTERNET_CACHE_FLAG_ENTRY_OR_MAPPING = &H00000400
+        INTERNET_CACHE_FLAG_ADD_FILENAME_ONLY = &H00000800
+        INTERNET_CACHE_FLAG_GET_STRUCT_ONLY = &H00001000
+    End Enum
+    
+    Public Declare PtrSafe Function GetUrlCacheEntryBinaryBlob Lib "wininet" (ByVal pwszUrlName As LongPtr, ByRef dwType As Long, ByRef pftExpireTime As FILETIME, ByRef pftAccessTime As FILETIME, ByRef pftModifiedTime As FILETIME, ByRef ppbBlob As LongPtr, ByRef pcbBlob As Long) As Long
+    Public Declare PtrSafe Function CommitUrlCacheEntryBinaryBlob Lib "wininet" (ByVal pwszUrlName As LongPtr, ByVal dwType As Long, ByVal ftExpireTime As FILETIME, ByVal ftModifiedTime As FILETIME, ByRef pbBlob As Any, ByVal cbBlob As Long) As Long
+    
+    Public Enum WininetInternetCacheContainerFlags
+        INTERNET_CACHE_CONTAINER_NOSUBDIRS = (&H1)
+        INTERNET_CACHE_CONTAINER_AUTODELETE = (&H2)
+        INTERNET_CACHE_CONTAINER_RESERVED1 = (&H4)
+        INTERNET_CACHE_CONTAINER_NODESKTOPINIT = (&H8)
+        INTERNET_CACHE_CONTAINER_MAP_ENABLED = (&H10)
+        INTERNET_CACHE_CONTAINER_BLOOM_FILTER = (&H20)
+        INTERNET_CACHE_CONTAINER_SHARE_READ = (&H100)
+        INTERNET_CACHE_CONTAINER_SHARE_READ_WRITE = (&H300)
+    End Enum
+    
+    Public Declare PtrSafe Function CreateUrlCacheContainerA Lib "wininet" (ByVal Name As String, ByVal lpCachePrefix As String, ByVal lpszCachePath As String, ByVal KBCacheLimit As Long, ByVal dwContainerType As Long, ByVal dwOptions As Long, ByVal pvBuffer As LongPtr, ByRef cbBuffer As Long) As BOOL
+    Public Declare PtrSafe Function CreateUrlCacheContainerW Lib "wininet" (ByVal Name As LongPtr, ByVal lpCachePrefix As LongPtr, ByVal lpszCachePath As LongPtr, ByVal KBCacheLimit As Long, ByVal dwContainerType As Long, ByVal dwOptions As Long, ByVal pvBuffer As LongPtr, ByRef cbBuffer As Long) As BOOL
+    Public DeclareWide PtrSafe Function CreateUrlCacheContainer Lib "wininet" Alias "CreateUrlCacheContainerW" (ByVal Name As String, ByVal lpCachePrefix As String, ByVal lpszCachePath As String, ByVal KBCacheLimit As Long, ByVal dwContainerType As Long, ByVal dwOptions As Long, ByVal pvBuffer As LongPtr, ByRef cbBuffer As Long) As BOOL
+    Public Declare PtrSafe Function DeleteUrlCacheContainerA Lib "wininet" (ByVal Name As String, ByVal dwOptions As Long) As BOOL
+    Public Declare PtrSafe Function DeleteUrlCacheContainerW Lib "wininet" (ByVal Name As LongPtr, ByVal dwOptions As Long) As BOOL
+    Public DeclareWide PtrSafe Function DeleteUrlCacheContainer Lib "wininet" Alias "DeleteUrlCacheContainerW" (ByVal Name As String, ByVal dwOptions As Long) As BOOL
+    
+    Public Type INTERNET_CACHE_CONTAINER_INFOA
+        dwCacheVersion As Long     ' version of software
+        lpszName As String         ' embedded pointer to the container name string.
+        lpszCachePrefix As String  ' embedded pointer to the container URL prefix
+        lpszVolumeLabel As String  ' embedded pointer to the container volume label if any.
+        lpszVolumeTitle As String  ' embedded pointer to the container volume title if any.
+    End Type
+    Public Type INTERNET_CACHE_CONTAINER_INFOW
+        dwCacheVersion As Long     ' version of software
+        lpszName As LongPtr        ' embedded pointer to the container name string.
+        lpszCachePrefix As LongPtr ' embedded pointer to the container URL prefix
+        lpszVolumeLabel As LongPtr ' embedded pointer to the container volume label if any.
+        lpszVolumeTitle As LongPtr ' embedded pointer to the container volume title if any.
+    End Type
+    
+    Public Enum WininetFindCacheContainerOptions
+        CACHE_FIND_CONTAINER_RETURN_NOCHANGE = (&H1)
+    End Enum
+    
+    Public Declare PtrSafe Function FindFirstUrlCacheContainerA Lib "wininet" (ByRef pdwModified As Long, ByRef lpContainerInfo As INTERNET_CACHE_CONTAINER_INFOA, ByRef lpcbContainerInfo As Long, ByVal dwOptions As WininetFindCacheContainerOptions) As LongPtr
+    Public Declare PtrSafe Function FindFirstUrlCacheContainerW Lib "wininet" (ByRef pdwModified As Long, ByRef lpContainerInfo As INTERNET_CACHE_CONTAINER_INFOW, ByRef lpcbContainerInfo As Long, ByVal dwOptions As WininetFindCacheContainerOptions) As LongPtr
+    Public DeclareWide PtrSafe Function FindFirstUrlCacheContainer Lib "wininet" Alias "FindFirstUrlCacheContainerW" (ByRef pdwModified As Long, ByRef lpContainerInfo As INTERNET_CACHE_CONTAINER_INFO, ByRef lpcbContainerInfo As Long, ByVal dwOptions As WininetFindCacheContainerOptions) As LongPtr
+    Public Declare PtrSafe Function FindNextUrlCacheContainerA Lib "wininet" (ByVal hEnumHandle As LongPtr, ByRef lpContainerInfo As INTERNET_CACHE_CONTAINER_INFOA, ByRef lpcbContainerInfo As Long) As BOOL
+    Public Declare PtrSafe Function FindNextUrlCacheContainerW Lib "wininet" (ByVal hEnumHandle As LongPtr, ByRef lpContainerInfo As INTERNET_CACHE_CONTAINER_INFOW, ByRef lpcbContainerInfo As Long) As BOOL
+    Public DeclareWide PtrSafe Function FindNextUrlCacheContainer Lib "wininet" Alias "FindNextUrlCacheContainerW" (ByVal hEnumHandle As LongPtr, ByRef lpContainerInfo As INTERNET_CACHE_CONTAINER_INFO, ByRef lpcbContainerInfo As Long) As BOOL
+    
+    Public Enum WININET_SYNC_MODE
+        WININET_SYNC_MODE_NEVER = 0
+        WININET_SYNC_MODE_ON_EXPIRY ' bogus
+        WININET_SYNC_MODE_ONCE_PER_SESSION
+        WININET_SYNC_MODE_ALWAYS
+        WININET_SYNC_MODE_AUTOMATIC
+        WININET_SYNC_MODE_DEFAULT = WININET_SYNC_MODE_AUTOMATIC
+    End Enum
+
+
+    Public Declare PtrSafe Function FreeUrlCacheSpaceA Lib "wininet" (ByVal lpszCachePath As String, ByVal dwSize As Long, ByVal dwFilter As Long) As BOOL
+    Public Declare PtrSafe Function FreeUrlCacheSpaceW Lib "wininet" (ByVal lpszCachePath As LongPtr, ByVal dwSize As Long, ByVal dwFilter As Long) As BOOL
+    Public DeclareWide PtrSafe Function FreeUrlCacheSpace Lib "wininet" Alias "FreeUrlCacheSpaceW" (ByVal lpszCachePath As String, ByVal dwSize As Long, ByVal dwFilter As Long) As BOOL
+    Public Declare PtrSafe Function UrlCacheFreeGlobalSpace Lib "wininet" (ByVal ullTargetSize As LongLong, ByVal dwFilter As Long) As Long
+    Public Declare PtrSafe Function UrlCacheGetGlobalCacheSize Lib "wininet" (ByVal dwFilter As Long, ByRef pullSize As LongLong, ByRef pullLimit As LongLong) As Long
+    
+    Public Const CACHE_CONFIG_DISK_SPACE_VERYLOW_IE As LongLong = 26214400                         '  25 MB
+    Public Const CACHE_CONFIG_DISK_SPACE_LOW_IE As LongLong = 52428800                             '  50 MB
+    Public Const CACHE_CONFIG_DISK_SPACE_BELOWNORMAL_IE As LongLong = 104857600                    ' 100 MB
+    Public Const CACHE_CONFIG_DISK_SPACE_NORMAL_IE As LongLong = 346030080                         ' 330 MB
+    Public Const CACHE_CONFIG_DISK_SPACE_VERYLOW_IE_TOTAL As LongLong = 36700160                   '  35 MB
+    Public Const CACHE_CONFIG_DISK_SPACE_LOW_IE_TOTAL As LongLong = 78643200                       '  75 MB
+    Public Const CACHE_CONFIG_DISK_SPACE_BELOWNORMAL_IE_TOTAL As LongLong = 157286400              ' 150 MB
+    Public Const CACHE_CONFIG_DISK_SPACE_NORMAL_IE_TOTAL As LongLong = 519045120                   ' 495 MB
+    Public Const CACHE_CONFIG_DISK_SPACE_VERYLOW_APPCONTAINER As LongLong = 15728640               '  15 MB
+    Public Const CACHE_CONFIG_DISK_SPACE_LOW_APPCONTAINER As LongLong = 26214400                   '  25 MB
+    Public Const CACHE_CONFIG_DISK_SPACE_BELOWNORMAL_APPCONTAINER As LongLong = 36700160           '  35 MB
+    Public Const CACHE_CONFIG_DISK_SPACE_NORMAL_APPCONTAINER As LongLong = 52428800                '  50 MB
+    Public Const CACHE_CONFIG_DISK_SPACE_VERYLOW_APPCONTAINER_TOTAL As LongLong = 36700160         '   35 MB
+    Public Const CACHE_CONFIG_DISK_SPACE_LOW_APPCONTAINER_TOTAL As LongLong = 104857600            '  100 MB
+    Public Const CACHE_CONFIG_DISK_SPACE_BELOWNORMAL_APPCONTAINER_TOTAL As LongLong = 262144000    '  250 MB
+    Public Const CACHE_CONFIG_DISK_SPACE_NORMAL_APPCONTAINER_TOTAL As LongLong = 1048576000        ' 1000 MB
+    
+    Public Enum WininetCacheCfgFieldControlFlags
+        CACHE_CONFIG_FORCE_CLEANUP_FC = &H00000020
+        CACHE_CONFIG_DISK_CACHE_PATHS_FC = &H00000040
+        CACHE_CONFIG_SYNC_MODE_FC = &H00000080
+        CACHE_CONFIG_CONTENT_PATHS_FC = &H00000100
+        CACHE_CONFIG_COOKIES_PATHS_FC = &H00000200
+        CACHE_CONFIG_HISTORY_PATHS_FC = &H00000400
+        CACHE_CONFIG_QUOTA_FC = &H00000800
+        CACHE_CONFIG_USER_MODE_FC = &H00001000
+        CACHE_CONFIG_CONTENT_USAGE_FC = &H00002000
+        CACHE_CONFIG_STICKY_CONTENT_USAGE_FC = &H00004000
+        CACHE_CONFIG_CONTENT_QUOTA_FC = &H00008000&
+        CACHE_CONFIG_TOTAL_CONTENT_QUOTA_FC = &H00010000
+        CACHE_CONFIG_APPCONTAINER_CONTENT_QUOTA_FC = &H00020000
+        CACHE_CONFIG_APPCONTAINER_TOTAL_CONTENT_QUOTA_FC = &H00040000
+    End Enum
+    
+    Public Declare PtrSafe Function GetUrlCacheConfigInfoA Lib "wininet" (ByRef lpCacheConfigInfo As INTERNET_CACHE_CONFIG_INFOA, ByRef lpcbCacheConfigInfo As Long, ByVal dwFieldControl As WininetCacheCfgFieldControlFlags) As BOOL
+    Public Declare PtrSafe Function GetUrlCacheConfigInfoW Lib "wininet" (ByRef lpCacheConfigInfo As INTERNET_CACHE_CONFIG_INFOW, ByRef lpcbCacheConfigInfo As Long, ByVal dwFieldControl As WininetCacheCfgFieldControlFlags) As BOOL
+    Public DeclareWide PtrSafe Function GetUrlCacheConfigInfo Lib "wininet" Alias "GetUrlCacheConfigInfoW" (ByRef lpCacheConfigInfo As INTERNET_CACHE_CONFIG_INFO, ByRef lpcbCacheConfigInfo As Long, ByVal dwFieldControl As WininetCacheCfgFieldControlFlags) As BOOL
+    Public Declare PtrSafe Function SetUrlCacheConfigInfoA Lib "wininet" (ByRef lpCacheConfigInfo As INTERNET_CACHE_CONFIG_INFOA, ByVal dwFieldControl As WininetCacheCfgFieldControlFlags) As BOOL
+    Public Declare PtrSafe Function SetUrlCacheConfigInfoW Lib "wininet" (ByRef lpCacheConfigInfo As INTERNET_CACHE_CONFIG_INFOW, ByVal dwFieldControl As WininetCacheCfgFieldControlFlags) As BOOL
+    Public DeclareWide PtrSafe Function SetUrlCacheConfigInfo Lib "wininet" Alias "SetUrlCacheConfigInfoW" (ByRef lpCacheConfigInfo As INTERNET_CACHE_CONFIG_INFO, ByVal dwFieldControl As WininetCacheCfgFieldControlFlags) As BOOL
+    Public Declare PtrSafe Function RunOnceUrlCache Lib "wininet" (ByVal hwnd As LongPtr, ByVal hinst As LongPtr, ByVal lpszCmd As String, ByVal nCmdShow As Long) As Long
+    Public Declare PtrSafe Function DeleteIE3Cache Lib "wininet" (ByVal hwnd As LongPtr, ByVal hinst As LongPtr, ByVal lpszCmd As String, ByVal nCmdShow As Long) As Long
+    Public Declare PtrSafe Function UpdateUrlCacheContentPath Lib "wininet" (ByVal szNewPath As String) As BOOL
+    
+    Public Enum WininetCacheHeaderDataConsts
+        CACHE_HEADER_DATA_CURRENT_SETTINGS_VERSION = 0
+        CACHE_HEADER_DATA_CONLIST_CHANGE_COUNT = 1
+        CACHE_HEADER_DATA_COOKIE_CHANGE_COUNT = 2
+        CACHE_HEADER_DATA_NOTIFICATION_HWND = 3
+        CACHE_HEADER_DATA_NOTIFICATION_MESG = 4
+        CACHE_HEADER_DATA_ROOTGROUP_OFFSET = 5
+        CACHE_HEADER_DATA_GID_LOW = 6
+        CACHE_HEADER_DATA_GID_HIGH = 7
+        CACHE_HEADER_DATA_LAST_SCAVENGE_TIMESTAMP = 8
+        CACHE_HEADER_DATA_CACHE_READ_COUNT_SINCE_LAST_SCAVENGE = 9
+        CACHE_HEADER_DATA_CACHE_WRITE_COUNT_SINCE_LAST_SCAVENGE = 10
+        CACHE_HEADER_DATA_HSTS_CHANGE_COUNT = 11
+        CACHE_HEADER_DATA_CACHE_RESERVED_12 = 12
+        CACHE_HEADER_DATA_CACHE_RESERVED_13 = 13
+        CACHE_HEADER_DATA_SSL_STATE_COUNT = 14
+    '  legacy alias for ssl state count
+        CACHE_HEADER_DATA_DOWNLOAD_PARTIAL = CACHE_HEADER_DATA_SSL_STATE_COUNT
+        CACHE_HEADER_DATA_CACHE_RESERVED_15 = 15
+        CACHE_HEADER_DATA_CACHE_RESERVED_16 = 16
+        CACHE_HEADER_DATA_CACHE_RESERVED_17 = 17
+        CACHE_HEADER_DATA_CACHE_RESERVED_18 = 18
+        CACHE_HEADER_DATA_CACHE_RESERVED_19 = 19
+        CACHE_HEADER_DATA_CACHE_RESERVED_20 = 20
+        CACHE_HEADER_DATA_NOTIFICATION_FILTER = 21
+        CACHE_HEADER_DATA_ROOT_LEAK_OFFSET = 22
+        CACHE_HEADER_DATA_CACHE_RESERVED_23 = 23
+        CACHE_HEADER_DATA_CACHE_RESERVED_24 = 24
+        CACHE_HEADER_DATA_CACHE_RESERVED_25 = 25
+        CACHE_HEADER_DATA_CACHE_RESERVED_26 = 26
+        CACHE_HEADER_DATA_ROOT_GROUPLIST_OFFSET = 27  ' offset to group list
+        CACHE_HEADER_DATA_CACHE_RESERVED_28 = 28
+        CACHE_HEADER_DATA_CACHE_RESERVED_29 = 29
+        CACHE_HEADER_DATA_CACHE_RESERVED_30 = 30
+        CACHE_HEADER_DATA_CACHE_RESERVED_31 = 31
+        CACHE_HEADER_DATA_LAST = 31
+    End Enum
+
+    Public Enum WininetCacheNotifyFlags
+        CACHE_NOTIFY_ADD_URL = &H00000001
+        CACHE_NOTIFY_DELETE_URL = &H00000002
+        CACHE_NOTIFY_UPDATE_URL = &H00000004
+        CACHE_NOTIFY_DELETE_ALL = &H00000008
+        CACHE_NOTIFY_URL_SET_STICKY = &H00000010
+        CACHE_NOTIFY_URL_UNSET_STICKY = &H00000020
+        CACHE_NOTIFY_SET_ONLINE = &H00000100
+        CACHE_NOTIFY_SET_OFFLINE = &H00000200
+        CACHE_NOTIFY_FILTER_CHANGED = &H10000000
+    End Enum
+
+    Public Declare PtrSafe Function RegisterUrlCacheNotification Lib "wininet" (ByVal hWnd As LongPtr, ByVal uMsg As Long, ByVal gid As LongLong, ByVal dwOpsFilter As WininetCacheNotifyFlags, ByVal dwReserved As Long) As BOOL
+    Public Declare PtrSafe Function GetUrlCacheHeaderData Lib "wininet" (ByVal nIdx As Long, ByRef lpdwData As Long) As BOOL
+    Public Declare PtrSafe Function SetUrlCacheHeaderData Lib "wininet" (ByVal nIdx As Long, ByVal dwData As Long) As BOOL
+    Public Declare PtrSafe Function IncrementUrlCacheHeaderData Lib "wininet" (ByVal nIdx As Long, ByRef lpdwData As Long) As BOOL
+    Public Declare PtrSafe Function LoadUrlCacheContent Lib "wininet" () As BOOL
+    Public Declare PtrSafe Function GetUrlCacheContainerInfoA Lib "wininet" (ByVal lpszUrlName As String, ByRef lpContainerInfo As INTERNET_CACHE_CONTAINER_INFOA, ByRef lpcbContainerInfo As Long, ByVal dwOptions As Long) As BOOL
+    Public Declare PtrSafe Function GetUrlCacheContainerInfoW Lib "wininet" (ByVal lpszUrlName As LongPtr, ByRef lpContainerInfo As INTERNET_CACHE_CONTAINER_INFOW, ByRef lpcbContainerInfo As Long, ByVal dwOptions As Long) As BOOL
+    Public DeclareWide PtrSafe Function GetUrlCacheContainerInfo Lib "wininet" Alias "GetUrlCacheContainerInfoW" (ByVal lpszUrlName As String, ByRef lpContainerInfo As INTERNET_CACHE_CONTAINER_INFO, ByRef lpcbContainerInfo As Long, ByVal dwOptions As Long) As BOOL
+    Public Declare PtrSafe Function HttpGetTunnelSocket Lib "wininet" (ByVal hRequest As LongPtr, ByRef pSocket As LongPtr, ByRef ppbData As LongPtr, ByRef pdwDataLength As Long) As Long
+
+    Public Enum WininetAppCacheLookupFlags
+        APP_CACHE_LOOKUP_NO_MASTER_ONLY = &H1
+    End Enum
+    
+    Public Declare PtrSafe Function AppCacheLookup Lib "wininet" (ByVal pwszUrl As LongPtr, ByVal dwFlags As WininetAppCacheLookupFlags, ByRef phAppCache As LongPtr) As Long
+
+    Public Enum APP_CACHE_STATE
+        AppCacheStateNoUpdateNeeded
+        AppCacheStateUpdateNeeded
+        AppCacheStateUpdateNeededNew
+        AppCacheStateUpdateNeededMasterOnly
+    End Enum
+
+    Public Declare PtrSafe Function AppCacheCheckManifest Lib "wininet" (ByVal pwszMasterUrl As LongPtr, ByVal pwszManifestUrl As LongPtr, ByRef pbManifestData As Any, ByVal dwManifestDataSize As Long, ByRef pbManifestResponseHeaders As Any, ByVal dwManifestResponseHeadersSize As Long, ByRef peState As APP_CACHE_STATE, ByRef phNewAppCache As LongPtr) As Long
+    
+    Public Enum WininetAppCacheEntryTypes
+        APP_CACHE_ENTRY_TYPE_MASTER = &H01
+        APP_CACHE_ENTRY_TYPE_EXPLICIT = &H02
+        APP_CACHE_ENTRY_TYPE_FALLBACK = &H04
+        APP_CACHE_ENTRY_TYPE_FOREIGN = &H08
+        APP_CACHE_ENTRY_TYPE_MANIFEST = &H10
+    End Enum
+
+    Public Type APP_CACHE_DOWNLOAD_ENTRY
+        pwszUrl As LongPtr
+        dwEntryType As WininetAppCacheEntryTypes
+    End Type
+
+    Public Type APP_CACHE_DOWNLOAD_LIST
+        dwEntryCount As Long
+        pEntries As LongPtr 'APP_CACHE_DOWNLOAD_ENTRY*
+    End Type
+
+    Public Declare PtrSafe Function AppCacheGetDownloadList Lib "wininet" (ByVal hAppCache As LongPtr, ByRef pDownloadList As APP_CACHE_DOWNLOAD_LIST) As Long
+    Public Declare PtrSafe Sub AppCacheFreeDownloadList Lib "wininet" (ByRef pDownloadList As APP_CACHE_DOWNLOAD_LIST)
+
+    Public Enum APP_CACHE_FINALIZE_STATE
+        AppCacheFinalizeStateIncomplete
+        AppCacheFinalizeStateManifestChange
+        AppCacheFinalizeStateComplete
+    End Enum
+
+    Public Declare PtrSafe Function AppCacheFinalize Lib "wininet" (ByVal hAppCache As LongPtr, ByRef pbManifestData As Any, ByVal dwManifestDataSize As Long, ByRef peState As APP_CACHE_FINALIZE_STATE) As Long
+    Public Declare PtrSafe Function AppCacheGetFallbackUrl Lib "wininet" (ByVal hAppCache As LongPtr, ByVal pwszUrl As LongPtr, ByRef ppwszFallbackUrl As LongPtr) As Long
+    Public Declare PtrSafe Function AppCacheGetManifestUrl Lib "wininet" (ByVal hAppCache As LongPtr, ByRef ppwszManifestUrl As LongPtr) As Long
+    Public Declare PtrSafe Function AppCacheDuplicateHandle Lib "wininet" (ByVal hAppCache As LongPtr, ByRef phDuplicatedAppCache As LongPtr) As Long
+    Public Declare PtrSafe Sub AppCacheCloseHandle Lib "wininet" (ByVal hAppCache As LongPtr)
+
+    Public Type APP_CACHE_GROUP_INFO
+        pwszManifestUrl As LongPtr
+        ftLastAccessTime As FILETIME
+        ullSize As LongLong
+    End Type
+
+    Public Type APP_CACHE_GROUP_LIST
+        dwAppCacheGroupCount As Long
+        pAppCacheGroups As LongPtr 'APP_CACHE_GROUP_INFO*
+    End Type
+
+    Public Declare PtrSafe Sub AppCacheFreeGroupList Lib "wininet" (ByRef pAppCacheGroupList As APP_CACHE_GROUP_LIST)
+    Public Declare PtrSafe Function AppCacheGetGroupList Lib "wininet" (ByRef pAppCacheGroupList As APP_CACHE_GROUP_LIST) As Long
+    Public Declare PtrSafe Function AppCacheGetInfo Lib "wininet" (ByVal hAppCache As LongPtr, ByRef pAppCacheInfo As APP_CACHE_GROUP_INFO) As Long
+    Public Declare PtrSafe Function AppCacheDeleteGroup Lib "wininet" (ByVal pwszManifestUrl As LongPtr) As Long
+    #If WDL_NO_BYVAL_UDT = 0 Then
+    Public Declare PtrSafe Function AppCacheFreeSpace Lib "wininet" (ByVal ftCutOff As FILETIME) As Long
+    #Else
+    Public Declare PtrSafe Function AppCacheFreeSpace Lib "wininet" (ByVal ftCutOff As LongLong) As Long
+    #End If
+    Public Declare PtrSafe Function AppCacheGetIEGroupList Lib "wininet" (ByRef pAppCacheGroupList As APP_CACHE_GROUP_LIST) As Long
+    Public Declare PtrSafe Function AppCacheDeleteIEGroup Lib "wininet" (ByVal pwszManifestUrl As LongPtr) As Long
+    #If WDL_NO_BYVAL_UDT = 0 Then
+    Public Declare PtrSafe Function AppCacheFreeIESpace Lib "wininet" (ByVal ftCutOff As FILETIME) As Long
+    #Else
+    Public Declare PtrSafe Function AppCacheFreeIESpace Lib "wininet" (ByVal ftCutOff As LongLong) As Long
+    #End If
+    Public Declare PtrSafe Function AppCacheCreateAndCommitFile Lib "wininet" (ByVal hAppCache As LongPtr, ByVal pwszSourceFilePath As LongPtr, ByVal pwszUrl As LongPtr, ByRef pbResponseHeaders As Any, ByVal dwResponseHeadersSize As Long) As Long
+
+
+    Public Declare PtrSafe Function HttpOpenDependencyHandle Lib "wininet" (ByVal hRequestHandle As LongPtr, ByVal fBackground As BOOL, ByRef phDependencyHandle As LongPtr) As Long
+    Public Declare PtrSafe Sub HttpCloseDependencyHandle Lib "wininet" (ByVal hDependencyHandle As LongPtr)
+    Public Declare PtrSafe Function HttpDuplicateDependencyHandle Lib "wininet" (ByVal hDependencyHandle As LongPtr, ByRef phDuplicatedDependencyHandle As LongPtr) As Long
+    Public Declare PtrSafe Function HttpIndicatePageLoadComplete Lib "wininet" (ByVal hDependencyHandle As LongPtr) As Long
+
+    
+    Public Type URLCACHE_ENTRY_INFO
+        pwszSourceUrlName As LongPtr
+        pwszLocalFileName As LongPtr
+        dwCacheEntryType As Long
+        dwUseCount As Long
+        dwHitRate As Long
+        dwSizeLow As Long
+        dwSizeHigh As Long
+        ftLastModifiedTime As FILETIME
+        ftExpireTime As FILETIME
+        ftLastAccessTime As FILETIME
+        ftLastSyncTime As FILETIME
+        pbHeaderInfo As LongPtr
+        cbHeaderInfoSize As Long
+        pbExtraData As LongPtr
+        cbExtraDataSize As Long
+    End Type
+    
+    Public Declare PtrSafe Sub UrlCacheFreeEntryInfo Lib "wininet" (ByRef pCacheEntryInfo As URLCACHE_ENTRY_INFO)
+    Public Declare PtrSafe Function UrlCacheGetEntryInfo Lib "wininet" (ByVal hAppCache As LongPtr, ByVal pcwszUrl As LongPtr, ByRef pCacheEntryInfo As URLCACHE_ENTRY_INFO) As Long
+    Public Declare PtrSafe Sub UrlCacheCloseEntryHandle Lib "wininet" (ByVal hEntryFile As LongPtr)
+    Public Declare PtrSafe Function UrlCacheRetrieveEntryFile Lib "wininet" (ByVal hAppCache As LongPtr, ByVal pcwszUrl As LongPtr, ByRef pCacheEntryInfo As URLCACHE_ENTRY_INFO, ByRef phEntryFile As LongPtr) As Long
+    Public Declare PtrSafe Function UrlCacheReadEntryStream Lib "wininet" (ByVal hUrlCacheStream As LongPtr, ByVal ullLocation As LongLong, ByRef pBuffer As Any, ByVal dwBufferLen As Long, ByRef pdwBufferLen As Long) As Long
+    Public Declare PtrSafe Function UrlCacheRetrieveEntryStream Lib "wininet" (ByVal hAppCache As LongPtr, ByVal pcwszUrl As LongPtr, ByVal fRandomRead As BOOL, ByRef pCacheEntryInfo As URLCACHE_ENTRY_INFO, ByRef phEntryStream As LongPtr) As Long
+    Public Declare PtrSafe Function UrlCacheUpdateEntryExtraData Lib "wininet" (ByVal hAppCache As LongPtr, ByVal pcwszUrl As LongPtr, ByRef pbExtraData As Any, ByVal cbExtraData As Long) As Long
+    Public Declare PtrSafe Function UrlCacheCreateContainer Lib "wininet" (ByVal pwszName As LongPtr, ByVal pwszPrefix As LongPtr, ByVal pwszDirectory As LongPtr, ByVal ullLimit As LongLong, ByVal dwOptions As Long) As Long
+    Public Declare PtrSafe Function UrlCacheCheckEntriesExist Lib "wininet" (ByRef rgpwszUrls As LongPtr, ByVal cEntries As Long, ByRef rgfExist As BOOL) As Long
+    Public Declare PtrSafe Function UrlCacheGetContentPaths Lib "wininet" (ByRef pppwszDirectories As LongPtr, ByRef pcDirectories As Long) As Long
+
+    Public Enum URL_CACHE_LIMIT_TYPE
+        UrlCacheLimitTypeIE = 0
+        UrlCacheLimitTypeIETotal
+        UrlCacheLimitTypeAppContainer
+        UrlCacheLimitTypeAppContainerTotal
+        UrlCacheLimitTypeNum
+    End Enum
+
+    Public Declare PtrSafe Function UrlCacheGetGlobalLimit Lib "wininet" (ByVal limitType As URL_CACHE_LIMIT_TYPE, ByRef pullLimit As LongLong) As Long
+    Public Declare PtrSafe Function UrlCacheSetGlobalLimit Lib "wininet" (ByVal limitType As URL_CACHE_LIMIT_TYPE, ByVal ullLimit As LongLong) As Long
+    Public Declare PtrSafe Function UrlCacheReloadSettings Lib "wininet" () As Long
+    Public Declare PtrSafe Function UrlCacheContainerSetEntryMaximumAge Lib "wininet" (ByVal pwszPrefix As LongPtr, ByVal dwEntryMaxAge As Long) As Long
+    Public Declare PtrSafe Function UrlCacheFindFirstEntry Lib "wininet" (ByVal pwszPrefix As LongPtr, ByVal dwFlags As Long, ByVal dwFilter As Long, ByVal GroupId As LongLong, ByRef pCacheEntryInfo As URLCACHE_ENTRY_INFO, ByRef phFind As LongPtr) As Long
+    Public Declare PtrSafe Function UrlCacheFindNextEntry Lib "wininet" (ByVal hFind As LongPtr, ByRef pCacheEntryInfo As URLCACHE_ENTRY_INFO) As Long
+    Public Declare PtrSafe Function UrlCacheServer Lib "wininet" () As Long
+
+    Public Declare PtrSafe Function InternetGetDialEngineW Lib "wininet" (ByVal pwzConnectoid As LongPtr, ByVal pdes As IDialEventSink, ByRef ppde As IDialEngine) As Long
+    Public Declare PtrSafe Function InternetGetDialBrandingW Lib "wininet" (ByVal pwzConnectoid As LongPtr, ByRef ppdb As IDialBranding) As Long
+    Public Declare PtrSafe Function ReadGuidsForConnectedNetworks Lib "wininet" Alias "#401" (ByRef pcNetworks As Long, ByRef pppwszNetworkGuids As LongPtr, ByRef pppbstrNetworkNames As LongPtr, ByRef pppwszGWMacs As LongPtr, ByRef pcGatewayMacs As Long, ByRef pdwFlags As Long) As BOOL
+
+    Public Enum WininetAutoproxyFlags
+        INTERNET_AUTOPROXY_INIT_DEFAULT = &H1
+        INTERNET_AUTOPROXY_INIT_DOWNLOADSYNC = &H2
+        INTERNET_AUTOPROXY_INIT_QUERYSTATE = &H4
+        INTERNET_AUTOPROXY_INIT_ONLYQUERY = &H8
+        INTERNET_AUTOPROXY_INIT_MASK = (INTERNET_AUTOPROXY_INIT_DEFAULT Or INTERNET_AUTOPROXY_INIT_DOWNLOADSYNC Or INTERNET_AUTOPROXY_INIT_QUERYSTATE Or INTERNET_AUTOPROXY_INIT_ONLYQUERY)
+    End Enum
+
+    Public Declare PtrSafe Function CreateMD5SSOHash Lib "wininet" (ByVal pszChallengeInfo As LongPtr, ByVal pwszRealm As LongPtr, ByVal pwszTarget As LongPtr, ByRef pbHexHash As Any) As BOOL
+
+    Public Const REGSTR_DIAL_AUTOCONNECT  = "AutoConnect"
+    '  Registry entries for legacy cookies
+    Public Const REGSTR_LEASH_LEGACY_COOKIES  = "LeashLegacyCookies"
+    
+    Public Declare PtrSafe Function IsHostInProxyBypassList Lib "wininet" (ByVal tScheme As INTERNET_SCHEME, ByVal lpszHost As String, ByVal cchHost As Long) As BOOL
+
+    Public Type WININET_PROXY_INFO
+        fProxy As BOOL                 ' Is this a proxy or DIRECT?
+        fBypass As BOOL                ' If DIRECT, is it bypassing a proxy (intranet) or is all traffic DIRECT (internet)
+        ProxyScheme As INTERNET_SCHEME ' The scheme of the proxy, SOCKS, HTTP (CERN Proxy), HTTPS (SSL through Proxy)
+        pwszProxy As LongPtr           ' Hostname of the proxy.
+        ProxyPort As Integer           ' Port of the proxy.
+    End Type
+
+    Public Type WININET_PROXY_INFO_LIST
+        dwProxyInfoCount As Long
+        pProxyInfo As LongPtr 'WININET_PROXY_INFO*
+    End Type
+
+    Public Declare PtrSafe Sub InternetFreeProxyInfoList Lib "wininet" (ByRef pProxyInfoList As WININET_PROXY_INFO_LIST)
+    Public Declare PtrSafe Function InternetGetProxyForUrl Lib "wininet" (ByVal hInternet As LongPtr, ByVal pcwszUrl As LongPtr, ByRef pProxyInfoList As WININET_PROXY_INFO_LIST) As Long
+
+    Public Const LOCAL_NAMESPACE_PREFIX  = "Local\"
+    Public Const LOCAL_NAMESPACE_PREFIX_W  = "Local\"
+    Public Const WININET_STARTUP_MUTEX  = LOCAL_NAMESPACE_PREFIX & "WininetStartupMutex"
+    Public Const WININET_STARTUP_MUTEX_W  = LOCAL_NAMESPACE_PREFIX_W & "WininetStartupMutex"
+    
+    Public Declare PtrSafe Function DoConnectoidsExist Lib "wininet" Alias "#101" () As BOOL
+    Public Declare PtrSafe Function GetDiskInfoA Lib "wininet" Alias "#102" (ByVal pszPath As String, Optional ByRef pdwClusterSize As Long, Optional ByRef pdlAvail As LongLong, Optional ByRef pdlTotal As LongLong) As BOOL
+    Public Delegate Function CACHE_OPERATOR (ByRef pcei As INTERNET_CACHE_ENTRY_INFO, ByRef pcbcei As Long, ByVal pOpData As LongPtr) As BOOL
+    Public Declare PtrSafe Function PerformOperationOverUrlCacheA Lib "wininet" Alias "#103" (ByVal pszUrlSearchPattern As String, ByVal dwFlags As Long, ByVal dwFilter As Long, ByVal GroupId As LongLong, ByVal pReserved1 As LongPtr, ByRef pdwReserved2 As Long, ByVal pReserved3 As LongPtr, ByVal op As CACHE_OPERATOR, ByVal pOperatorData As LongPtr) As BOOL
+    Public Declare PtrSafe Function IsProfilesEnabled Lib "wininet" Alias "#112" () As BOOL
+    Public Declare PtrSafe Function _GetFileExtensionFromUrl Lib "wininet" (ByVal lpszUrl As String, ByVal dwFlags As Long, ByVal lpszExt As String, ByRef pcchExt As Long) As Long
+    Public Declare PtrSafe Function InternalInternetGetCookie Lib "wininet" Alias "#346" (ByVal lpszUrl As String, ByVal lpszCookieData As String, ByRef lpdwDataSize As Long) As Long
+    Public Declare PtrSafe Function ImportCookieFileA Lib "wininet" Alias "#108" (ByVal szFilename As String) As BOOL
+    Public Declare PtrSafe Function ImportCookieFileW Lib "wininet" Alias "#110" (ByVal szFilename As LongPtr) As BOOL
+    Public DeclareWide PtrSafe Function ImportCookieFile Lib "wininet" Alias "#110" (ByVal szFilename As String) As BOOL
+    Public Declare PtrSafe Function ExportCookieFileA Lib "wininet" Alias "#109" (ByVal szFilename As String, ByVal fAppend As BOOL) As BOOL
+    Public Declare PtrSafe Function ExportCookieFileW Lib "wininet" Alias "#111" (ByVal szFilename As LongPtr, ByVal fAppend As BOOL) As BOOL
+    Public DeclareWide PtrSafe Function ExportCookieFile Lib "wininet" Alias "#111" (ByVal szFilename As String, ByVal fAppend As BOOL) As BOOL
+    Public Declare PtrSafe Function IsDomainLegalCookieDomainA Lib "wininet" Alias "#116" (ByVal pchDomain As String, ByVal pchFullDomain As String) As BOOL
+    Public Declare PtrSafe Function IsDomainLegalCookieDomainW Lib "wininet" Alias "#117" (ByVal pchDomain As LongPtr, ByVal pchFullDomain As LongPtr) As BOOL
+    Public DeclareWide PtrSafe Function IsDomainLegalCookieDomain Lib "wininet" Alias "#117" (ByVal pchDomain As String, ByVal pchFullDomain As String) As BOOL
+
+    Public Enum HTTP_WEB_SOCKET_OPERATION
+        HTTP_WEB_SOCKET_SEND_OPERATION = 0
+        HTTP_WEB_SOCKET_RECEIVE_OPERATION = 1
+        HTTP_WEB_SOCKET_CLOSE_OPERATION = 2
+        HTTP_WEB_SOCKET_SHUTDOWN_OPERATION = 3
+    End Enum
+    
+    Public Enum HTTP_WEB_SOCKET_BUFFER_TYPE
+        HTTP_WEB_SOCKET_BINARY_MESSAGE_TYPE = 0
+        HTTP_WEB_SOCKET_BINARY_FRAGMENT_TYPE = 1
+        HTTP_WEB_SOCKET_UTF8_MESSAGE_TYPE = 2
+        HTTP_WEB_SOCKET_UTF8_FRAGMENT_TYPE = 3
+        HTTP_WEB_SOCKET_CLOSE_TYPE = 4
+        HTTP_WEB_SOCKET_PING_TYPE = 5
+    End Enum
+
+    Public Enum HTTP_WEB_SOCKET_CLOSE_STATUS
+        HTTP_WEB_SOCKET_SUCCESS_CLOSE_STATUS = 1000
+        HTTP_WEB_SOCKET_ENDPOINT_TERMINATED_CLOSE_STATUS = 1001
+        HTTP_WEB_SOCKET_PROTOCOL_ERROR_CLOSE_STATUS = 1002
+        HTTP_WEB_SOCKET_INVALID_DATA_TYPE_CLOSE_STATUS = 1003
+        HTTP_WEB_SOCKET_EMPTY_CLOSE_STATUS = 1005
+        HTTP_WEB_SOCKET_ABORTED_CLOSE_STATUS = 1006
+        HTTP_WEB_SOCKET_INVALID_PAYLOAD_CLOSE_STATUS = 1007
+        HTTP_WEB_SOCKET_POLICY_VIOLATION_CLOSE_STATUS = 1008
+        HTTP_WEB_SOCKET_MESSAGE_TOO_BIG_CLOSE_STATUS = 1009
+        HTTP_WEB_SOCKET_UNSUPPORTED_EXTENSIONS_CLOSE_STATUS = 1010
+        HTTP_WEB_SOCKET_SERVER_ERROR_CLOSE_STATUS = 1011
+        HTTP_WEB_SOCKET_SECURE_HANDSHAKE_ERROR_CLOSE_STATUS = 1015
+    End Enum
+
+    Public Type HTTP_WEB_SOCKET_ASYNC_RESULT
+        AsyncResult As INTERNET_ASYNC_RESULT
+        Operation As HTTP_WEB_SOCKET_OPERATION
+        BufferType As HTTP_WEB_SOCKET_BUFFER_TYPE
+        dwBytesTransferred As Long
+    End Type
+
+    Public Const HTTP_WEB_SOCKET_MAX_CLOSE_REASON_LENGTH  = 123
+    Public Const HTTP_WEB_SOCKET_MIN_KEEPALIVE_VALUE  = 10000
+    
+    Public Declare PtrSafe Function HttpWebSocketCompleteUpgrade Lib "wininet" (ByVal hRequest As LongPtr, ByVal dwContext As LongPtr) As LongPtr
+    Public Declare PtrSafe Function HttpWebSocketSend Lib "wininet" (ByVal hWebSocket As LongPtr, ByVal BufferType As HTTP_WEB_SOCKET_BUFFER_TYPE, ByRef pvBuffer As Any, ByVal dwBufferLength As Long) As BOOL
+    Public Declare PtrSafe Function HttpWebSocketReceive Lib "wininet" (ByVal hWebSocket As LongPtr, ByRef pvBuffer As Any, ByVal dwBufferLength As Long, ByRef pdwBytesRead As Long, ByRef pBufferType As HTTP_WEB_SOCKET_BUFFER_TYPE) As BOOL
+    Public Declare PtrSafe Function HttpWebSocketClose Lib "wininet" (ByVal hWebSocket As LongPtr, ByVal usStatus As Integer, ByVal pvReason As LongPtr, ByVal dwReasonLength As Long) As BOOL
+    Public Declare PtrSafe Function HttpWebSocketShutdown Lib "wininet" (ByVal hWebSocket As LongPtr, ByVal usStatus As Integer, ByVal pvReason As LongPtr, ByVal dwReasonLength As Long) As BOOL
+    Public Declare PtrSafe Function HttpWebSocketQueryCloseStatus Lib "wininet" (ByVal hWebSocket As LongPtr, ByRef pusStatus As Integer, ByVal pvReason As LongPtr, ByVal dwReasonLength As Long, ByRef pdwReasonLengthConsumed As Long) As BOOL
+
+    Public Enum WininetGlobalCallbackFlags
+        INTERNET_GLOBAL_CALLBACK_SENDING_HTTP_HEADERS = &H00000001
+        INTERNET_GLOBAL_CALLBACK_DETECTING_PROXY = &H00000002
+    End Enum
+    
+    Public Delegate Function INTERNET_GLOBAL_NOTIFICATION_CALLBACK (ByVal hInternet As LongPtr, ByVal pvContext As LongPtr, ByVal pcszUrl As LongPtr, ByVal pcszHost As LongPtr, ByRef pRemoteAddress As SOCKADDR_STORAGE, ByVal dwNotification As WininetGlobalCallbackFlags, ByVal pvEventData As LongPtr, ByVal dwEventDataLength As Long) As Long
+
+    Public Type INTERNET_GLOBAL_CALLBACK
+        pfnGlobalNotificationCallback As INTERNET_GLOBAL_NOTIFICATION_CALLBACK
+        dwNotifications As Long
+        pvContext As LongPtr
+        ullPriority As LongLong
+        guidRegistrationId As UUID
+    End Type
+    
+    Public Declare PtrSafe Function InternetConvertUrlFromWireToWideChar Lib "wininet" (ByVal pcszUrl As String, ByVal cchUrl As Long, ByVal pcwszBaseUrl As LongPtr, ByVal dwCodePageHost As Long, ByVal dwCodePagePath As Long, ByVal fEncodePathExtra As BOOL, ByVal dwCodePageExtra As Long, ByRef ppwszConvertedUrl As LongPtr) As Long
+    Public Declare PtrSafe Function HttpPreConnect Lib "wininet" (ByVal hRequest As LongPtr, ByVal pwszUrl As LongPtr, ByVal cConnections As Long) As Long
+    
+    Public Enum HTTP_POLICY_EXTENSION_TYPE
+        POLICY_EXTENSION_TYPE_NONE = 0
+        POLICY_EXTENSION_TYPE_WINHTTP = 1
+        POLICY_EXTENSION_TYPE_WININET = 2
+    End Enum
+    
+    Public Enum HTTP_POLICY_EXTENSION_VERSION
+        POLICY_EXTENSION_VERSION1 = 1
+    End Enum
+    
+    Public Delegate Function HTTP_POLICY_EXTENSION_INIT (ByVal Version As HTTP_POLICY_EXTENSION_VERSION, ByVal Type As HTTP_POLICY_EXTENSION_TYPE, ByVal pvData As LongPtr, ByVal cbData As Long) As Long
+    Public Delegate Function HTTP_POLICY_EXTENSION_SHUTDOWN (ByVal Type As HTTP_POLICY_EXTENSION_TYPE) As Long
+    
 
     #End Region
 
@@ -20501,6 +21475,178 @@ Public Declare PtrSafe Function SnmpFreeDescriptor Lib "wsnmp32.dll" (ByVal synt
 #End Region
 
 
+#Region "wnvapi.h"
+
+Public Const WNV_API_MAJOR_VERSION_1  = 1
+Public Const WNV_API_MINOR_VERSION_0  = 0
+
+Public Enum WNV_NOTIFICATION_TYPE
+    WnvPolicyMismatchType
+    WnvRedirectType
+    WnvObjectChangeType
+    WnvNotificationTypeMax
+End Enum
+
+Public Enum WNV_OBJECT_TYPE
+    WnvProviderAddressType
+    WnvCustomerAddressType
+    WnvObjectTypeMax
+End Enum
+
+Public Enum WNV_CA_NOTIFICATION_TYPE
+    WnvCustomerAddressAdded
+    WnvCustomerAddressDeleted
+    WnvCustomerAddressMoved
+    WnvCustomerAddressMax
+End Enum
+
+Public Type WNV_OBJECT_HEADER
+    MajorVersion As Byte
+    MinorVersion As Byte
+    Size As Long
+End Type
+
+Public Type WNV_NOTIFICATION_PARAM
+    Header As WNV_OBJECT_HEADER
+    NotificationType As WNV_NOTIFICATION_TYPE
+    PendingNotifications As Long
+    Buffer As LongPtr
+End Type
+
+Public Type WNV_IP_ADDRESS
+    'union {
+    '    IN_ADDR v4;
+    '    IN6_ADDR v6;
+    '    UCHAR Addr[sizeof(IN6_ADDR)];
+    '} IP;
+    u(3) As Long
+End Type
+
+Public Type WNV_POLICY_MISMATCH_PARAM
+    CAFamily As ADDRESS_FAMILY
+    PAFamily As ADDRESS_FAMILY
+    VirtualSubnetId As Long
+    CA As WNV_IP_ADDRESS
+    PA As WNV_IP_ADDRESS
+End Type
+
+Public Type WNV_PROVIDER_ADDRESS_CHANGE_PARAM
+    PAFamily As ADDRESS_FAMILY
+    PA As WNV_IP_ADDRESS
+    AddressState As NL_DAD_STATE
+End Type
+
+Public Type WNV_CUSTOMER_ADDRESS_CHANGE_PARAM
+    MACAddress As DL_EUI48
+    CAFamily As ADDRESS_FAMILY
+    CA As WNV_IP_ADDRESS
+    VirtualSubnetId As Long
+    PAFamily As ADDRESS_FAMILY
+    PA As WNV_IP_ADDRESS
+    NotificationReason As WNV_CA_NOTIFICATION_TYPE
+End Type
+
+Public Type WNV_OBJECT_CHANGE_PARAM
+    ObjectType As WNV_OBJECT_TYPE
+    'union {
+    '    WNV_PROVIDER_ADDRESS_CHANGE_PARAM ProviderAddressChange;
+    '    WNV_CUSTOMER_ADDRESS_CHANGE_PARAM CustomerAddressChange;
+    '} ObjectParam;
+    u(&H33) As Byte
+End Type
+
+Public Type WNV_REDIRECT_PARAM
+    CAFamily As ADDRESS_FAMILY
+    PAFamily As ADDRESS_FAMILY
+    NewPAFamily As ADDRESS_FAMILY
+    VirtualSubnetId As Long
+    CA As WNV_IP_ADDRESS
+    PA As WNV_IP_ADDRESS
+    NewPA As WNV_IP_ADDRESS
+End Type
+
+[UseGetLastError(False)]
+Public Declare PtrSafe Function WnvOpen Lib "wnvapi.dll" () As LongPtr
+[UseGetLastError(False)]
+Public Declare PtrSafe Function WnvRequestNotification Lib "wnvapi.dll" (ByVal WnvHandle As LongPtr, ByRef NotificationParam As WNV_NOTIFICATION_PARAM, ByRef Overlapped As OVERLAPPED, ByRef BytesTransferred As Long) As Long
+
+
+
+
+
+
+
+
+
+
+
+
+
+#End Region
+
+
+'IEDial.h
+
+Public Const DIALPROP_USERNAME  = "UserName"
+Public Const DIALPROP_PASSWORD  = "Password"
+Public Const DIALPROP_DOMAIN  = "Domain"
+Public Const DIALPROP_SAVEPASSWORD  = "SavePassword"
+Public Const DIALPROP_REDIALCOUNT  = "RedialCount"
+Public Const DIALPROP_REDIALINTERVAL  = "RedialInterval"
+Public Const DIALPROP_PHONENUMBER  = "PhoneNumber"
+Public Const DIALPROP_LASTERROR  = "LastError"
+Public Const DIALPROP_RESOLVEDPHONE  = "ResolvedPhone"
+
+Public Const DIALENG_OperationComplete  = &H10000
+Public Const DIALENG_RedialAttempt  = &H10001
+Public Const DIALENG_RedialWait  = &H10002
+
+Public Function IID_IDialEventSink() As UUID
+'{2d86f4ff-6e2d-4488-b2e9-6934afd41bea}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H2d86f4ff, CInt(&H6e2d), CInt(&H4488), &Hb2, &He9, &H69, &H34, &Haf, &Hd4, &H1b, &Hea)
+IID_IDialEventSink = iid
+End Function
+Public Function IID_IDialEngine() As UUID
+'{39fd782b-7905-40d5-9148-3c9b190423d5}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H39fd782b, CInt(&H7905), CInt(&H40d5), &H91, &H48, &H3c, &H9b, &H19, &H04, &H23, &Hd5)
+IID_IDialEngine = iid
+End Function
+Public Function IID_IDialBranding() As UUID
+'{8aecafa9-4306-43cc-8c5a-765f2979cc16}
+Static iid As UUID
+ If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H8aecafa9, CInt(&H4306), CInt(&H43cc), &H8c, &H5a, &H76, &H5f, &H29, &H79, &Hcc, &H16)
+IID_IDialBranding = iid
+End Function
+
+'ondemandconnrouthelper.h
+
+Public Declare PtrSafe Function OnDemandGetRoutingHint Lib "OnDemandConnRouteHelper.dll" (ByVal destinationHostName As LongPtr, ByRef interfaceIndex As Long) As Long
+Public Delegate Sub ONDEMAND_NOTIFICATION_CALLBACK (ByVal context As LongPtr)
+Public Declare PtrSafe Function OnDemandRegisterNotification Lib "OnDemandConnRouteHelper.dll" (ByVal callback As ONDEMAND_NOTIFICATION_CALLBACK, ByVal callbackContext As LongPtr, ByRef registrationHandle As LongPtr) As Long
+Public Declare PtrSafe Function OnDemandUnRegisterNotification Lib "OnDemandConnRouteHelper.dll" (ByVal registrationHandle As LongPtr) As Long
+
+Public Enum ODRTHLPNetInterfaceFlags
+    NET_INTERFACE_FLAG_NONE = &H00000000
+    NET_INTERFACE_FLAG_CONNECT_IF_NEEDED = &H00000001
+End Enum
+
+Public Type NET_INTERFACE_CONTEXT
+    InterfaceIndex As Long
+    ConfigurationName As LongPtr
+End Type
+
+Public Type NET_INTERFACE_CONTEXT_TABLE
+    InterfaceContextHandle As LongPtr
+    NumberOfEntries As Long
+    InterfaceContextArray As LongPtr 'NET_INTERFACE_CONTEXT*
+End Type
+
+Public Declare PtrSafe Function GetInterfaceContextTableForHostName Lib "OnDemandConnRouteHelper.dll" (ByVal HostName As LongPtr, ByVal ProxyName As LongPtr, ByVal Flags As ODRTHLPNetInterfaceFlags, ByRef ConnectionProfileFilterRawData As Any, ByVal ConnectionProfileFilterRawDataSize As Long, ByRef InterfaceContextTable As LongPtr) As Long
+Public Declare PtrSafe Sub FreeInterfaceContextTable Lib "OnDemandConnRouteHelper.dll" (ByVal InterfaceContextTable As LongPtr)
+
+
 
 End Module
 Public Alias IP_ADDR_FAMILY As Integer
@@ -20512,6 +21658,11 @@ Public Alias INTERNET_BUFFERS As INTERNET_BUFFERSW
 Public Alias GOPHER_FIND_DATA As GOPHER_FIND_DATAW
 Public Alias INTERNET_CACHE_ENTRY_INFO As INTERNET_CACHE_ENTRY_INFOW
 Public Alias INTERNET_CACHE_GROUP_INFO As INTERNET_CACHE_GROUP_INFOW
+Public Alias INTERNET_ONLINE_OFFLINE_INFO As INTERNET_CONNECTED_INFO
+Public Alias INTERNET_CACHE_CONFIG_PATH_ENTRY As INTERNET_CACHE_CONFIG_PATH_ENTRYW
+Public Alias INTERNET_CACHE_CONFIG_INFO As INTERNET_CACHE_CONFIG_INFOW
+Public Alias INTERNET_CACHE_CONTAINER_INFO As INTERNET_CACHE_CONTAINER_INFOW
+
 Public Alias IF_LUID As NET_LUID_LH
 Public Alias NET_LUID As NET_LUID_LH
 Public Alias MIB_IPADDRROW As MIB_IPADDRROW_XP

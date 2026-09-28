@@ -1924,7 +1924,7 @@ Public Type SENDCMDINPARAMS
     ' command to (0,1,2,3).
     bReserved(0 To 2) As Byte ' Reserved for future expansion.
     dwReserved(0 To 3) As Long ' For future use.
-    'bBuffer(0 To 0) As Byte ' Input buffer.
+    bBuffer(0 To 0) As Byte ' Input buffer.
 End Type
 
 
@@ -1945,6 +1945,13 @@ Public Enum IOCTL_SMART_ERROR
     SMART_NO_IDE_DEVICE = 10  ' Cmd issued to device not present
 '  although drive number is valid
 End Enum
+Public Const SMART_OFFLINE_ROUTINE_OFFLINE  = 0
+Public Const SMART_SHORT_SELFTEST_OFFLINE  = 1
+Public Const SMART_EXTENDED_SELFTEST_OFFLINE  = 2
+Public Const SMART_ABORT_OFFLINE_SELFTEST  = 127
+Public Const SMART_SHORT_SELFTEST_CAPTIVE  = 129
+Public Const SMART_EXTENDED_SELFTEST_CAPTIVE  = 130
+
 [PackingAlignment(1)]
 Public Type DRIVERSTATUS
     bDriverError As Byte ' Error code from driver,
@@ -1961,7 +1968,7 @@ End Type
 Public Type SENDCMDOUTPARAMS
     cBufferSize As Long ' Size of bBuffer in bytes
     DriverStatus As DRIVERSTATUS ' Driver status structure.
-    'bBuffer(0 To 0) As Byte ' Buffer of arbitrary length in which to store the data read from the                                                                                  // drive.
+    bBuffer(0 To 0) As Byte ' Buffer of arbitrary length in which to store the data read from the                                                                                  // drive.
 End Type
 
 Public Type FILE_OBJECTID_BUFFER
@@ -1972,6 +1979,9 @@ End Type
 Public Type FILE_SET_SPARSE_BUFFER
     SetSparse As Byte
 End Type
+
+Public Const DISK_ATTRIBUTE_OFFLINE  = &H0000000000000001
+Public Const DISK_ATTRIBUTE_READ_ONLY  = &H0000000000000002
 
 Public Type GET_DISK_ATTRIBUTES
     ' Specifies the size of the
@@ -1990,7 +2000,7 @@ Public Type SET_DISK_ATTRIBUTES
     ' Indicates whether to remember
     ' these settings across reboots
     ' or not.
-    Persist As Byte
+    Persist As CBoolean
     ' Reserved. Must set to zero.
     Reserved1(0 To 2) As Byte
     ' Specifies the new attributes.
@@ -2127,6 +2137,8 @@ Public Type IDENTIFY_DEVICE_DATA
     Signature                                           As Byte
     CheckSum                                            As Byte
 End Type
+
+
 Public Const IOCTL_STORAGE_BASE = FILE_DEVICE_MASS_STORAGE
 
 
@@ -2214,6 +2226,33 @@ Public Type STORAGE_HOTPLUG_INFO
     DeviceHotplug As Byte ' ie. 1394, USB, etc.
     WriteCacheEnableOverride As Byte ' This field should not be relied upon because it is no longer used
 End Type
+
+Public Const STORAGE_FEATURE_SUPPORT_V1 = &H1
+
+Public Type STORAGE_FEATURE_SUPPORT
+    ' Size of this structure
+    Size As Long
+    ' Version of this structure
+    Version As Long
+    'union {
+    '    struct {
+    '        //
+    '        // If set to '1', indicates that support for StorMQ miniports is present
+    '        //
+    '        ULONGLONG StorMQMiniportsSupported : 1;
+    '        //
+    '        // Reserved for future use. Must be set to zero.
+    '        //
+    '        ULONGLONG Reserved : 63;
+    '    } DUMMYSTRUCTNAME;
+    '    ULONGLONG AsUlonglong;
+    '} Flags;
+    Flags As LongLong
+    Reserved(0 To 5) As LongLong
+End Type
+
+
+
 
 Public Type DISK_EXTENT
     DiskNumber As Long
@@ -2432,6 +2471,88 @@ Public Type STORAGE_DEVICE_NUMBERS
     NumberOfDevices As Long
     Devices(0 To 255) As STORAGE_DEVICE_NUMBER
 End Type
+
+Public Enum StorageDevNumberExFlagsFlags
+    STORAGE_DEVICE_FLAGS_RANDOM_DEVICEGUID_REASON_CONFLICT = &H1
+    '  This flag indicates that deviceguid is randomly created because the HW ID was not available
+    STORAGE_DEVICE_FLAGS_RANDOM_DEVICEGUID_REASON_NOHWID = &H2
+    '  This flag indicates that deviceguid is created from the scsi page83 data.
+    '  If this flag is not set this implies it's created from serial number or is randomly generated.
+    STORAGE_DEVICE_FLAGS_PAGE_83_DEVICEGUID = &H4
+End Enum
+
+Public Type STORAGE_DEVICE_NUMBER_EX
+    ' Sizeof(STORAGE_DEVICE_NUMBER_EX).
+    Version As Long
+    ' Total size of the structure, including any additional data. Currently
+    ' this will always be the same as sizeof(STORAGE_DEVICE_NUMBER_EX).
+    Size As Long
+    ' Flags - this shall be a combination of STORAGE_DEVICE_FLAGS_XXX flags
+    ' that gives more information about the members of this structure.
+    Flags As StorageDevNumberExFlagsFlags
+    ' The FILE_DEVICE_XXX type for this device. This IOCTL is only
+    ' supported for disk devices.
+    DeviceType As DEVICE_TYPE
+    ' The number of this device.
+    DeviceNumber As Long
+    ' A globally-unique identification number for this device.
+    ' A GUID of {0} indicates that a GUID could not be generated. The GUID
+    ' is based on hardware information that doesn't change with firmware updates
+    ' (for instance, serial number can be used to form the GUID, but not the firmware
+    ' revision). The device GUID remains the same across reboots.
+    ' In general, if a device exposes a globally unique identifier, the storage driver
+    ' will use that identifier to form the GUID. Otherwise, the storage driver will combine
+    ' the device's vendor ID, product ID and serial number to create the GUID.
+    ' If a storage driver detects two devices with the same hardware information (which is
+    ' an indication of a problem with the device), the driver will generate a random GUID for
+    ' one of the two devices. When handling IOCTL_STORAGE_GET_DEVICE_NUMBER_EX for the device
+    ' with the random GUID, the driver will add STORAGE_DEVICE_FLAGS_RANDOM_DEVICEGUID_REASON_CONFLICT
+    ' to the Flags member of this structure.
+    ' If a storage device does not provide any identifying information, the driver will generate a random
+    ' GUID and add STORAGE_DEVICE_FLAGS_RANDOM_DEVICEGUID_REASON_NOHWID to the Flags member of this structure.
+    ' A random GUID is not persisted and will not be the same after a reboot.
+    DeviceGuid As UUID
+    ' If the device is partitionable, the partition number of the device.
+    ' Otherwise -1.
+    PartitionNumber As Long
+End Type
+
+Public Type STORAGE_BUS_RESET_REQUEST
+    PathId As Byte
+End Type
+
+Public Type STORAGE_BREAK_RESERVATION_REQUEST
+    Length As Long
+    _unused As Byte
+    PathId As Byte
+    TargetId As Byte
+    Lun As Byte
+End Type
+
+Public Type PREVENT_MEDIA_REMOVAL
+    PreventMediaRemoval As CBoolean
+End Type
+
+Public Type CLASS_MEDIA_CHANGE_CONTEXT
+    MediaChangeCount As Long
+    NewState As MEDIA_CHANGE_DETECTION_STATE ' see MEDIA_CHANGE_DETECTION_STATE enum in classpnp.h in DDK
+End Type
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -3127,6 +3248,21 @@ Public Const SCSI_IOCTL_DATA_OUT As Long = &H0
 Public Const READ_ATTRIBUTE_BUFFER_SIZE As Long = 512
 Public Const IDENTIFY_BUFFER_SIZE As Long = 512
 Public Const READ_THRESHOLD_BUFFER_SIZE As Long = 512
+Public Const SMART_LOG_SECTOR_SIZE As Long = 512
+
+Public Const READ_ATTRIBUTES  = &HD0
+Public Const READ_THRESHOLDS  = &HD1
+Public Const ENABLE_DISABLE_AUTOSAVE  = &HD2
+Public Const SAVE_ATTRIBUTE_VALUES  = &HD3
+Public Const EXECUTE_OFFLINE_DIAGS  = &HD4
+Public Const SMART_READ_LOG  = &HD5
+Public Const SMART_WRITE_LOG  = &Hd6
+Public Const ENABLE_SMART  = &HD8
+Public Const DISABLE_SMART  = &HD9
+Public Const RETURN_SMART_STATUS  = &HDA
+Public Const ENABLE_DISABLE_AUTO_OFFLINE  = &HDB
+
+
 Public Const DFP_GET_VERSION As Long = &H74080
 Public Const DFP_SEND_DRIVE_COMMAND As Long = &H7C084
 Public Const DFP_RECEIVE_DRIVE_DATA As Long = &H7C088 '??
@@ -3875,6 +4011,30 @@ Public Type BIN_RESULTS
     NumberOfBins As Long
     BinCounts(0 To 0) As BIN_COUNT
 End Type
+
+[PackingAlignment(1)]
+Public Type GETVERSIONINPARAMS
+    bVersion As Byte ' Binary driver version.
+    bRevision As Byte ' Binary driver revision.
+    bReserved As Byte ' Not used.
+    bIDEDeviceMap As Byte ' Bit map of IDE devices.
+    fCapabilities As Long ' Bit mask of driver capabilities.
+    dwReserved(0 To 3) As Long ' For future use.
+End Type
+
+Public Const CAP_ATA_ID_CMD  = 1  ' ATA ID command supported
+Public Const CAP_ATAPI_ID_CMD  = 2  ' ATAPI ID command supported
+Public Const CAP_SMART_CMD  = 4  ' SMART commannds supported
+
+
+
+
+
+
+
+
+
+
 
 Public Type NVMEIdentifyStruct
     PropertyId As Integer
@@ -7424,6 +7584,178 @@ Public Type DRIVE_LAYOUT_INFORMATION_EX
     u(&H27) As Byte
     PartitionEntry(0 To 0) As PARTITION_INFORMATION_EX
 End Type
+
+Public Enum DETECTION_TYPE
+    DetectNone
+    DetectInt13
+    DetectExInt13
+End Enum
+
+Public Type DISK_INT13_INFO
+    DriveSelect As Integer
+    MaxCylinders As Long
+    SectorsPerTrack As Integer
+    MaxHeads As Integer
+    NumberDrives As Integer
+End Type
+
+Public Type DISK_EX_INT13_INFO
+    ExBufferSize As Integer
+    ExFlags As Integer
+    ExCylinders As Long
+    ExHeads As Long
+    ExSectorsPerTrack As Long
+    ExSectorsPerDrive As LongLong
+    ExSectorSize As Integer
+    ExReserved As Integer
+End Type
+
+Public Type DISK_DETECTION_INFO
+    SizeOfDetectInfo As Long
+    DetectionType As DETECTION_TYPE
+    'union {
+    '        struct {
+    '                //
+    '                // If DetectionType == DETECTION_INT13 then we have just the Int13
+    '                // information.
+    '                //
+    '                DISK_INT13_INFO Int13;
+    '                //
+    '                // If DetectionType == DETECTION_EX_INT13, then we have the
+    '                // extended int 13 information.
+    '                //
+    '                DISK_EX_INT13_INFO ExInt13;     // If DetectionType == DetectExInt13
+    '        } DUMMYSTRUCTNAME;
+    '} DUMMYUNIONNAME;
+    u(31) As Byte
+End Type
+
+Public Type DISK_PARTITION_INFO
+    SizeOfPartitionInfo As Long
+    PartitionStyle As PARTITION_STYLE ' PartitionStyle = RAW, GPT or MBR
+    'union {
+    '        struct {                                                        // If PartitionStyle == MBR
+    '                DWORD Signature;                                // MBR Signature
+    '                DWORD CheckSum;                                 // MBR CheckSum
+    '        } Mbr;
+    '        struct {                                                        // If PartitionStyle == GPT
+    '                GUID DiskId;
+    '        } Gpt;
+    '} DUMMYUNIONNAME;
+    Gpt_DiskId As UUID
+    
+    'EUS
+    Public Property Get Mbr_Signature() As Long: Return Me.Gpt_DiskId.Data1: End Property
+    Public Property Let Mbr_Signature(ByVal value As Long): Me.Gpt_DiskId.Data1 = value: End Property
+    Public Property Get Mbr_CheckSum() As Long
+        Dim tmp As Long
+        CopyMemory tmp, ByVal VarPtr(Me.Gpt_DiskId.Data2), 4
+        Return tmp
+    End Property
+    Public Property Let Mbr_CheckSum(ByVal value As Long)
+        CopyMemory Me.Gpt_DiskId.Data2, value, 4
+    End Property
+End Type
+
+Public Type DISK_GEOMETRY_EX
+    Geometry As DISK_GEOMETRY ' Standard disk geometry: may be faked by driver.
+    DiskSize As LARGE_INTEGER ' Must always be correct
+    Data(0 To 0) As Byte      ' Partition, Detect info
+End Type
+
+Public Type DISK_CONTROLLER_NUMBER
+    ControllerNumber As Long
+    DiskNumber As Long
+End Type
+
+Public Enum DISK_CACHE_RETENTION_PRIORITY
+    EqualPriority
+    KeepPrefetchedData
+    KeepReadData
+End Enum
+
+Public Enum DISK_WRITE_CACHE_STATE
+    DiskWriteCacheNormal
+    DiskWriteCacheForceDisable
+    DiskWriteCacheDisableNotSupported
+End Enum
+
+Public Type DISK_CACHE_INFORMATION
+    ' on return indicates that the device is capable of saving any parameters
+    ' in non-volatile storage.  On send indicates that the device should
+    ' save the state in non-volatile storage.
+    ParametersSavable As CBoolean
+    ' Indicates whether the write and read caches are enabled.
+    ReadCacheEnabled As CBoolean
+    WriteCacheEnabled As CBoolean
+    ' Controls the likelyhood of data remaining in the cache depending on how
+    ' it got there.  Data cached from a READ or WRITE operation may be given
+    ' higher, lower or equal priority to data entered into the cache for other
+    ' means (like prefetch)
+    ReadRetentionPriority As DISK_CACHE_RETENTION_PRIORITY
+    WriteRetentionPriority As DISK_CACHE_RETENTION_PRIORITY
+    ' Requests for a larger number of blocks than this may have prefetching
+    ' disabled.  If this value is set to 0 prefetch will be disabled.
+    DisablePrefetchTransferLength As Integer
+    ' If TRUE then ScalarPrefetch (below) will be valid.  If FALSE then
+    ' the minimum and maximum values should be treated as a block count
+    ' (BlockPrefetch)
+    PrefetchScalar As CBoolean
+    ' Contains the minimum and maximum amount of data which will be
+    ' will be prefetched into the cache on a disk operation.  This value
+    ' may either be a scalar multiplier of the transfer length of the request,
+    ' or an abolute number of disk blocks.  PrefetchScalar (above) indicates
+    ' which interpretation is used.
+    'union {
+    '    struct {
+    '        WORD   Minimum;
+    '        WORD   Maximum;
+    '        //
+    '        // The maximum number of blocks which will be prefetched - useful
+    '        // with the scalar limits to set definite upper limits.
+    '        //
+    '        WORD   MaximumBlocks;
+    '    } ScalarPrefetch;
+    '    struct {
+    '        WORD   Minimum;
+    '        WORD   Maximum;
+    '    } BlockPrefetch;
+    '} DUMMYUNIONNAME;
+    Minimum As Integer
+    Maximum As Integer
+    MaximumBlocks As Integer
+End Type
+
+Public Type DISK_GROW_PARTITION
+    PartitionNumber As Long
+    BytesToGrow As LARGE_INTEGER
+End Type
+
+Public Const HIST_NO_OF_BUCKETS  = 24
+
+Public Type HISTOGRAM_BUCKET
+    Reads As Long
+    Writes As Long
+End Type
+
+Public Const HISTOGRAM_BUCKET_SIZE  = 8 'sizeof(HISTOGRAM_BUCKET)
+
+Public Type DISK_HISTOGRAM
+    DiskSize As LARGE_INTEGER
+    Start As LARGE_INTEGER
+    End As LARGE_INTEGER
+    Average As LARGE_INTEGER
+    AverageRead As LARGE_INTEGER
+    AverageWrite As LARGE_INTEGER
+    Granularity As Long
+    Size As Long
+    ReadCount As Long
+    WriteCount As Long
+    Histogram As LongPtr 'PHISTOGRAM_BUCKET
+End Type
+ 
+Public Const DISK_HISTOGRAM_SIZE  = 72 'LenB(Of DISK_HISTOGRAM)
+ 
 
 
 
