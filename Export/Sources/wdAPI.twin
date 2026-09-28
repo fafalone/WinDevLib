@@ -22385,17 +22385,113 @@ Public Declare PtrSafe Function AuditEnumerateCategories Lib "sechost" (ByRef pp
 Public Declare PtrSafe Function AuditEnumerateSubCategories Lib "sechost" (ByRef pAuditCategoryGuid As UUID, ByVal bRetrieveAllSubCategories As CBoolean, ByRef ppAuditSubCategoriesArray As LongPtr, ByRef pdwCountReturned As Long) As CBoolean
 Public Declare PtrSafe Function AuditLookupCategoryNameW Lib "advapi32" (ByRef pAuditCategoryGuid As UUID, ByRef ppszCategoryName As LongPtr) As CBoolean
 Public Declare PtrSafe Function AuditLookupCategoryNameA Lib "advapi32" (ByRef pAuditCategoryGuid As UUID, ByRef ppszCategoryName As LongPtr) As CBoolean
+Public DeclareWide PtrSafe Function AuditLookupCategoryName Lib "advapi32" Alias "AuditLookupCategoryNameW" (ByRef pAuditCategoryGuid As UUID, ByRef ppszCategoryName As LongPtr) As CBoolean
 Public Declare PtrSafe Function AuditLookupSubCategoryNameW Lib "advapi32" (ByRef pAuditSubCategoryGuid As UUID, ByRef ppszSubCategoryName As LongPtr) As CBoolean
 Public Declare PtrSafe Function AuditLookupSubCategoryNameA Lib "advapi32" (ByRef pAuditSubCategoryGuid As UUID, ByRef ppszSubCategoryName As LongPtr) As CBoolean
+Public DeclareWide PtrSafe Function AuditLookupSubCategoryName Lib "advapi32" Alias "AuditLookupSubCategoryNameW" (ByRef pAuditSubCategoryGuid As UUID, ByRef ppszSubCategoryName As LongPtr) As CBoolean
 Public Declare PtrSafe Function AuditLookupCategoryIdFromCategoryGuid Lib "advapi32" (ByRef pAuditCategoryGuid As UUID, ByRef pAuditCategoryId As POLICY_AUDIT_EVENT_TYPE) As CBoolean
 Public Declare PtrSafe Function AuditLookupCategoryGuidFromCategoryId Lib "advapi32" (ByVal AuditCategoryId As POLICY_AUDIT_EVENT_TYPE, ByRef pAuditCategoryGuid As UUID) As CBoolean
 Public Declare PtrSafe Function AuditSetSecurity Lib "sechost" (ByVal SecurityInformation As SECURITY_INFORMATION, ByRef pSecurityDescriptor As SECURITY_DESCRIPTOR) As CBoolean
 Public Declare PtrSafe Function AuditQuerySecurity Lib "sechost" (ByVal SecurityInformation As SECURITY_INFORMATION, ByRef ppSecurityDescriptor As LongPtr) As CBoolean
 Public Declare PtrSafe Function AuditSetGlobalSaclW Lib "advapi32" (ByVal ObjectTypeName As LongPtr, ByVal Acl As LongPtr) As CBoolean
 Public Declare PtrSafe Function AuditSetGlobalSaclA Lib "advapi32" (ByVal ObjectTypeName As String, ByVal Acl As LongPtr) As CBoolean
+Public DeclareWide PtrSafe Function AuditSetGlobalSacl Lib "advapi32" Alias "AuditSetGlobalSaclW" (ByVal ObjectTypeName As String, ByVal Acl As LongPtr) As CBoolean
 Public Declare PtrSafe Function AuditQueryGlobalSaclW Lib "advapi32" (ByVal ObjectTypeName As LongPtr, ByRef Acl As LongPtr) As CBoolean
 Public Declare PtrSafe Function AuditQueryGlobalSaclA Lib "advapi32" (ByVal ObjectTypeName As String, ByRef Acl As LongPtr) As CBoolean
+Public DeclareWide PtrSafe Function AuditQueryGlobalSacl Lib "advapi32" Alias "AuditQueryGlobalSaclW" (ByVal ObjectTypeName As String, ByRef Acl As LongPtr) As CBoolean
 Public Declare PtrSafe Sub AuditFree Lib "sechost" (ByVal Buffer As LongPtr)
+
+
+
+'wct.h
+
+Public Enum WCT_OBJECT_TYPE
+    WctCriticalSectionType = 1
+    WctSendMessageType
+    WctMutexType
+    WctAlpcType
+    WctComType
+    WctThreadWaitType
+    WctProcessWaitType
+    WctThreadType
+    WctComActivationType
+    WctUnknownType
+    WctSocketIoType
+    WctSmbIoType
+    WctMaxType
+End Enum
+
+Public Enum WCT_OBJECT_STATUS
+    WctStatusNoAccess = 1  ' ACCESS_DENIED for this object
+    WctStatusRunning       ' Thread status
+    WctStatusBlocked       ' Thread status
+    WctStatusPidOnly       ' Thread status
+    WctStatusPidOnlyRpcss  ' Thread status
+    WctStatusOwned         ' Dispatcher object status
+    WctStatusNotOwned      ' Dispatcher object status
+    WctStatusAbandoned     ' Dispatcher object status
+    WctStatusUnknown       ' All objects
+    WctStatusError         ' All objects
+    WctStatusMax
+End Enum
+
+Public Const WCT_MAX_NODE_COUNT  = 16
+Public Const WCT_OBJNAME_LENGTH  = 128
+
+Public Type WAITCHAIN_NODE_INFO
+    ObjectType As WCT_OBJECT_TYPE
+    ObjectStatus As WCT_OBJECT_STATUS
+    'union {
+    '    struct {
+    '        WCHAR ObjectName[WCT_OBJNAME_LENGTH];
+    '        LARGE_INTEGER Timeout;    // Not implemented in v1
+    '        BOOL Alertable;           // Not implemented in v1
+    '    } LockObject;
+    '    struct {
+    '        DWORD ProcessId;
+    '        DWORD ThreadId;
+    '        DWORD WaitTime;
+    '        DWORD ContextSwitches;
+    '    } ThreadObject;
+    '}; 
+    u(133) As Integer
+End Type
+
+Public Delegate Sub PWAITCHAINCALLBACK (ByVal WctHandle As LongPtr, ByVal Context As LongPtr, ByVal CallbackStatus As Long, ByRef NodeCount As Long, ByRef NodeInfoArray As WAITCHAIN_NODE_INFO, ByRef IsCycle As BOOL)
+
+Public Enum WctOpenFlags
+    WCT_ASYNC_OPEN_FLAG = &H1
+    WCTP_OPEN_ALL_FLAGS = (WCT_ASYNC_OPEN_FLAG)
+End Enum
+
+' #If WDL_NO_DELEGATES Then
+Public Declare PtrSafe Function OpenThreadWaitChainSession Lib "advapi32" (ByVal Flags As WctOpenFlags, ByVal callback As LongPtr) As LongPtr
+' #Else
+' Public Declare PtrSafe Function OpenThreadWaitChainSession Lib "advapi32" (ByVal Flags As WctOpenFlags, ByVal callback As PWAITCHAINCALLBACK) As LongPtr
+' #End If
+Public Declare PtrSafe Sub CloseThreadWaitChainSession Lib "advapi32" (ByVal WctHandle As LongPtr)
+
+Public Enum WctFlags
+    WCT_OUT_OF_PROC_FLAG = &H1
+    WCT_OUT_OF_PROC_COM_FLAG = &H2
+    WCT_OUT_OF_PROC_CS_FLAG = &H4
+    WCT_NETWORK_IO_FLAG = &H8
+    WCTP_GETINFO_ALL_FLAGS = (WCT_OUT_OF_PROC_FLAG Or WCT_OUT_OF_PROC_COM_FLAG Or WCT_OUT_OF_PROC_CS_FLAG)
+End Enum
+
+Public Declare PtrSafe Function GetThreadWaitChain Lib "advapi32" (ByVal WctHandle As LongPtr, ByVal Context As LongPtr, ByVal Flags As WctFlags, ByVal ThreadId As Long, ByRef NodeCount As Long, ByRef NodeInfoArray As WAITCHAIN_NODE_INFO, ByRef IsCycle As BOOL) As BOOL
+Public Delegate Function PCOGETCALLSTATE (ByVal param1 As Long, ByRef param2 As Long) As Long
+Public Delegate Function PCOGETACTIVATIONSTATE (ByVal param1 As UUID, ByVal param2 As Long, ByRef param3 As Long) As Long
+' #If WDL_NO_DELEGATES Then
+Public Declare PtrSafe Sub RegisterWaitChainCOMCallback Lib "advapi32" (ByVal CallStateCallback As LongPtr, ByVal ActivationStateCallback As LongPtr)
+' #Else
+' Public Declare PtrSafe Sub RegisterWaitChainCOMCallback Lib "advapi32" (ByVal CallStateCallback As PCOGETCALLSTATE, ByVal ActivationStateCallback As PCOGETACTIVATIONSTATE)
+' #End If
+
+
+
+
+
 
 
 
@@ -49396,6 +49492,25 @@ Public Declare PtrSafe Function GetEncSChannel CDecl Lib "Instrsa5.dll" (pData A
 Public Declare PtrSafe Function IsNTAdmin Lib "advpack.dll" (ByVal dwReserved As Long, ByRef lpdwReserved As Long) As Long
 
 
+
+'licenseprotection.h
+
+Public Enum LicenseProtectionStatus
+    ' Success
+    LicenseKeyNotFound
+    LicenseKeyUnprotected
+    LicenseKeyCorrupted
+    LicenseKeyAlreadyExists
+End Enum
+
+Public Declare PtrSafe Function RegisterLicenseKeyWithExpiration Lib "licenseprotection" (ByVal licenseKey As LongPtr, ByVal validityInDays As Long, status As LicenseProtectionStatus) As Long
+Public Declare PtrSafe Function ValidateLicenseKeyProtection Lib "licenseprotection" (ByVal licenseKey As LongPtr, notValidBefore As FILETIME, notValidAfter As FILETIME, status As LicenseProtectionStatus) As Long
+
+
+
+
+
+
 'advpub.h
 Public Declare PtrSafe Function ExtractFilesA Lib "advpack.dll" (ByVal pszCabName As String, ByVal pszExpandDir As String, ByVal dwFlags As Long, ByVal pszFileList As String, ByVal lpReserved As LongPtr, ByVal dwReserved As Long) As Long
 Public Declare PtrSafe Function ExtractFilesW Lib "advpack.dll" (ByVal pszCabName As LongPtr, ByVal pszExpandDir As LongPtr, ByVal dwFlags As Long, ByVal pszFileList As LongPtr, ByVal lpReserved As LongPtr, ByVal dwReserved As Long) As Long
@@ -52217,6 +52332,434 @@ Public Enum CompstuiResourceIDs
     ' IDS_CPSUI_STRID_LAST = 64873
     ' #endif
 End Enum
+
+
+/*
+winevt.h
+*/
+
+Public Enum EVT_VARIANT_TYPE
+    EvtVarTypeNull = 0
+    EvtVarTypeString = 1
+    EvtVarTypeAnsiString = 2
+    EvtVarTypeSByte = 3
+    EvtVarTypeByte = 4
+    EvtVarTypeInt16 = 5
+    EvtVarTypeUInt16 = 6
+    EvtVarTypeInt32 = 7
+    EvtVarTypeUInt32 = 8
+    EvtVarTypeInt64 = 9
+    EvtVarTypeUInt64 = 10
+    EvtVarTypeSingle = 11
+    EvtVarTypeDouble = 12
+    EvtVarTypeBoolean = 13
+    EvtVarTypeBinary = 14
+    EvtVarTypeGuid = 15
+    EvtVarTypeSizeT = 16
+    EvtVarTypeFileTime = 17
+    EvtVarTypeSysTime = 18
+    EvtVarTypeSid = 19
+    EvtVarTypeHexInt32 = 20
+    EvtVarTypeHexInt64 = 21
+    '  these types used internally
+    EvtVarTypeEvtHandle = 32
+    EvtVarTypeEvtXml = 35
+End Enum
+
+Public Const EVT_VARIANT_TYPE_MASK  = &H7f
+Public Const EVT_VARIANT_TYPE_ARRAY  = 128
+
+Public Type EVT_VARIANT
+    'union
+    '{
+    '    BOOL        BooleanVal;
+    '    INT8        SByteVal;
+    '    INT16       Int16Val;
+    '    INT32       Int32Val;
+    '    INT64       Int64Val;
+    '    UINT8       ByteVal;
+    '    UINT16      UInt16Val;
+    '    UINT32      UInt32Val;
+    '    UINT64      UInt64Val;
+    '    float       SingleVal;
+    '    double      DoubleVal;
+    '    ULONGLONG   FileTimeVal;
+    '    SYSTEMTIME* SysTimeVal;
+    '    GUID*       GuidVal;
+    '    LPCWSTR     StringVal;
+    '    LPCSTR      AnsiStringVal;
+    '    PBYTE       BinaryVal;
+    '    PSID        SidVal;
+    '    size_t      SizeTVal;
+    '    // array fields
+    '    BOOL*       BooleanArr;
+    '    INT8*       SByteArr;
+    '    INT16*      Int16Arr;
+    '    INT32*      Int32Arr;
+    '    INT64*      Int64Arr;
+    '    UINT8*      ByteArr;
+    '    UINT16*     UInt16Arr;
+    '    UINT32*     UInt32Arr;
+    '    UINT64*     UInt64Arr;
+    '    float*      SingleArr;
+    '    double*     DoubleArr;
+    '    FILETIME*   FileTimeArr;
+    '    SYSTEMTIME* SysTimeArr;
+    '    GUID*       GuidArr;
+    '    LPWSTR*     StringArr;
+    '    LPSTR*      AnsiStringArr;
+    '    PSID*       SidArr;
+    '    size_t*     SizeTArr;
+    '    // internal fields
+    '    EVT_HANDLE  EvtHandleVal;
+    '    LPCWSTR     XmlVal;
+    '    LPCWSTR*    XmlValArr;
+    '};
+    value As LongLong
+    Count As Long ' for arrays: number of elements (not the number of bytes).
+    Type As Long
+End Type
+
+Public Enum EVT_LOGIN_CLASS
+    EvtRpcLogin = 1
+End Enum
+
+Public Enum EVT_RPC_LOGIN_FLAGS
+    EvtRpcLoginAuthDefault = 0
+    EvtRpcLoginAuthNegotiate
+    EvtRpcLoginAuthKerberos
+    EvtRpcLoginAuthNTLM
+End Enum
+
+Public Type EVT_RPC_LOGIN
+    ' all str params are optional
+    Server As LongPtr
+    User As LongPtr
+    Domain As LongPtr
+    Password As LongPtr
+    Flags As EVT_RPC_LOGIN_FLAGS ' EVT_RPC_LOGIN_FLAGS
+End Type
+
+Public Declare PtrSafe Function EvtOpenSession Lib "wevtapi.dll" (ByVal LoginClass As EVT_LOGIN_CLASS, ByRef Login As Any, ByVal Timeout As Long, ByVal Flags As Long) As LongPtr
+Public Declare PtrSafe Function EvtClose Lib "wevtapi.dll" (ByVal Object As LongPtr) As BOOL
+Public Declare PtrSafe Function EvtCancel Lib "wevtapi.dll" (ByVal Object As LongPtr) As BOOL
+Public Declare PtrSafe Function EvtGetExtendedStatus Lib "wevtapi.dll" (ByVal BufferSize As Long, ByVal Buffer As LongPtr, ByRef BufferUsed As Long) As Long
+
+Public Enum EVT_QUERY_FLAGS
+    EvtQueryChannelPath = &H1
+    EvtQueryFilePath = &H2
+    EvtQueryForwardDirection = &H100
+    EvtQueryReverseDirection = &H200
+    EvtQueryTolerateQueryErrors = &H1000
+End Enum
+
+Public Enum EVT_SEEK_FLAGS
+    EvtSeekRelativeToFirst = 1
+    EvtSeekRelativeToLast = 2
+    EvtSeekRelativeToCurrent = 3
+    EvtSeekRelativeToBookmark = 4
+    EvtSeekOriginMask = 7
+    EvtSeekStrict = &H10000
+End Enum
+
+Public Declare PtrSafe Function EvtQuery Lib "wevtapi.dll" (ByVal Session As LongPtr, ByVal Path As LongPtr, ByVal Query As LongPtr, ByVal Flags As EVT_QUERY_FLAGS) As LongPtr
+Public Declare PtrSafe Function EvtNext Lib "wevtapi.dll" (ByVal ResultSet As LongPtr, ByVal EventsSize As Long, ByRef Events As LongPtr, ByVal Timeout As Long, ByVal Flags As Long, ByRef Returned As Long) As BOOL
+Public Declare PtrSafe Function EvtSeek Lib "wevtapi.dll" (ByVal ResultSet As LongPtr, ByVal Position As LongLong, ByVal Bookmark As LongPtr, ByVal Timeout As Long, ByVal Flags As EVT_SEEK_FLAGS) As BOOL
+
+
+Public Enum EVT_SUBSCRIBE_FLAGS
+    EvtSubscribeToFutureEvents = 1
+    EvtSubscribeStartAtOldestRecord = 2
+    EvtSubscribeStartAfterBookmark = 3
+    EvtSubscribeOriginMask = 3
+    EvtSubscribeTolerateQueryErrors = &H1000
+    EvtSubscribeStrict = &H10000
+End Enum
+
+Public Enum EVT_SUBSCRIBE_NOTIFY_ACTION
+    EvtSubscribeActionError = 0
+    EvtSubscribeActionDeliver
+End Enum
+
+Public Delegate Function EVT_SUBSCRIBE_CALLBACK (ByVal Action As EVT_SUBSCRIBE_NOTIFY_ACTION, ByVal UserContext As LongPtr, ByVal Event As LongPtr) As Long
+' #If WDL_NO_DELEGATES Then
+Public Declare PtrSafe Function EvtSubscribe Lib "wevtapi.dll" (ByVal Session As LongPtr, ByVal SignalEvent As LongPtr, ByVal ChannelPath As LongPtr, ByVal Query As LongPtr, ByVal Bookmark As LongPtr, ByVal Context As LongPtr, ByVal Callback As LongPtr, ByVal Flags As EVT_SUBSCRIBE_FLAGS) As LongPtr
+' #Else
+' Public Declare PtrSafe Function EvtSubscribe Lib "wevtapi.dll" (ByVal Session As LongPtr, ByVal SignalEvent As LongPtr, ByVal ChannelPath As LongPtr, ByVal Query As LongPtr, ByVal Bookmark As LongPtr, ByVal Context As LongPtr, ByVal Callback As EVT_SUBSCRIBE_CALLBACK, ByVal Flags As EVT_SUBSCRIBE_FLAGS) As LongPtr
+' #End If
+
+Public Enum EVT_SYSTEM_PROPERTY_ID
+    EvtSystemProviderName = 0    ' EvtVarTypeString
+    EvtSystemProviderGuid      ' EvtVarTypeGuid
+    EvtSystemEventID           ' EvtVarTypeUInt16
+    EvtSystemQualifiers        ' EvtVarTypeUInt16
+    EvtSystemLevel             ' EvtVarTypeUInt8
+    EvtSystemTask              ' EvtVarTypeUInt16
+    EvtSystemOpcode            ' EvtVarTypeUInt8
+    EvtSystemKeywords          ' EvtVarTypeHexInt64
+    EvtSystemTimeCreated       ' EvtVarTypeFileTime
+    EvtSystemEventRecordId     ' EvtVarTypeUInt64
+    EvtSystemActivityID        ' EvtVarTypeGuid
+    EvtSystemRelatedActivityID ' EvtVarTypeGuid
+    EvtSystemProcessID         ' EvtVarTypeUInt32
+    EvtSystemThreadID          ' EvtVarTypeUInt32
+    EvtSystemChannel           ' EvtVarTypeString
+    EvtSystemComputer          ' EvtVarTypeString
+    EvtSystemUserID            ' EvtVarTypeSid
+    EvtSystemVersion           ' EvtVarTypeUInt8
+    EvtSystemPropertyIdEND
+End Enum
+
+Public Enum EVT_RENDER_CONTEXT_FLAGS
+    EvtRenderContextValues = 0  ' Render specific properties
+    EvtRenderContextSystem      ' Render all system properties (System)
+    EvtRenderContextUser        ' Render all user properties (User/EventData)
+End Enum
+
+Public Enum EVT_RENDER_FLAGS
+    EvtRenderEventValues = 0 ' Variants
+    EvtRenderEventXml        ' XML
+    EvtRenderBookmark        ' Bookmark
+End Enum
+
+Public Declare PtrSafe Function EvtCreateRenderContext Lib "wevtapi.dll" (ByVal ValuePathsCount As Long, ByRef ValuePaths As LongPtr, ByVal Flags As EVT_RENDER_CONTEXT_FLAGS) As LongPtr
+Public Declare PtrSafe Function EvtRender Lib "wevtapi.dll" (ByVal Context As LongPtr, ByVal Fragment As LongPtr, ByVal Flags As EVT_RENDER_FLAGS, ByVal BufferSize As Long, ByRef Buffer As Any, ByRef BufferUsed As Long, ByRef PropertyCount As Long) As BOOL
+
+Public Enum EVT_FORMAT_MESSAGE_FLAGS
+    EvtFormatMessageEvent = 1
+    EvtFormatMessageLevel
+    EvtFormatMessageTask
+    EvtFormatMessageOpcode
+    EvtFormatMessageKeyword
+    EvtFormatMessageChannel
+    EvtFormatMessageProvider
+    EvtFormatMessageId
+    EvtFormatMessageXml
+End Enum
+
+Public Declare PtrSafe Function EvtFormatMessage Lib "wevtapi.dll" (ByVal PublisherMetadata As LongPtr, ByVal Event As LongPtr, ByVal MessageId As Long, ByVal ValueCount As Long, ByRef Values As EVT_VARIANT, ByVal Flags As EVT_FORMAT_MESSAGE_FLAGS, ByVal BufferSize As Long, ByVal Buffer As LongPtr, ByRef BufferUsed As Long) As BOOL
+Public DeclareWide PtrSafe Function EvtFormatMessage Lib "wevtapi.dll" (ByVal PublisherMetadata As LongPtr, ByVal Event As LongPtr, ByVal MessageId As Long, ByVal ValueCount As Long, ByRef Values As EVT_VARIANT, ByVal Flags As EVT_FORMAT_MESSAGE_FLAGS, ByVal BufferSize As Long, ByVal Buffer As String, ByRef BufferUsed As Long) As BOOL
+
+
+Public Enum EVT_OPEN_LOG_FLAGS
+    EvtOpenChannelPath = &H1
+    EvtOpenFilePath = &H2
+End Enum
+
+Public Enum EVT_LOG_PROPERTY_ID
+    EvtLogCreationTime = 0     ' EvtVarTypeFileTime
+    EvtLogLastAccessTime       ' EvtVarTypeFileTime
+    EvtLogLastWriteTime        ' EvtVarTypeFileTime
+    EvtLogFileSize             ' EvtVarTypeUInt64
+    EvtLogAttributes           ' EvtVarTypeUInt32
+    EvtLogNumberOfLogRecords   ' EvtVarTypeUInt64
+    EvtLogOldestRecordNumber   ' EvtVarTypeUInt64
+    EvtLogFull                 ' EvtVarTypeBoolean
+End Enum
+
+Public Declare PtrSafe Function EvtOpenLog Lib "wevtapi.dll" (ByVal Session As LongPtr, ByVal Path As LongPtr, ByVal Flags As EVT_OPEN_LOG_FLAGS) As LongPtr
+Public DeclareWide PtrSafe Function EvtOpenLog Lib "wevtapi.dll" (ByVal Session As LongPtr, ByVal Path As String, ByVal Flags As EVT_OPEN_LOG_FLAGS) As LongPtr
+Public Declare PtrSafe Function EvtGetLogInfo Lib "wevtapi.dll" (ByVal Log As LongPtr, ByVal PropertyId As EVT_LOG_PROPERTY_ID, ByVal PropertyValueBufferSize As Long, ByRef PropertyValueBuffer As EVT_VARIANT, ByRef PropertyValueBufferUsed As Long) As BOOL
+Public Declare PtrSafe Function EvtClearLog Lib "wevtapi.dll" (ByVal Session As LongPtr, ByVal ChannelPath As LongPtr, ByVal TargetFilePath As LongPtr, ByVal Flags As Long) As BOOL
+Public DeclareWide PtrSafe Function EvtClearLog Lib "wevtapi.dll" (ByVal Session As LongPtr, ByVal ChannelPath As String, ByVal TargetFilePath As String, ByVal Flags As Long) As BOOL
+
+
+Public Enum EVT_EXPORTLOG_FLAGS
+    EvtExportLogChannelPath = &H1
+    EvtExportLogFilePath = &H2
+    EvtExportLogTolerateQueryErrors = &H1000
+    EvtExportLogOverwrite = &H2000
+End Enum
+
+Public Declare PtrSafe Function EvtExportLog Lib "wevtapi.dll" (ByVal Session As LongPtr, ByVal Path As LongPtr, ByVal Query As LongPtr, ByVal TargetFilePath As LongPtr, ByVal Flags As EVT_EXPORTLOG_FLAGS) As BOOL
+Public DeclareWide PtrSafe Function EvtExportLog Lib "wevtapi.dll" (ByVal Session As LongPtr, ByVal Path As String, ByVal Query As String, ByVal TargetFilePath As String, ByVal Flags As EVT_EXPORTLOG_FLAGS) As BOOL
+Public Declare PtrSafe Function EvtArchiveExportedLog Lib "wevtapi.dll" (ByVal Session As LongPtr, ByVal LogFilePath As LongPtr, ByVal Locale As Long, ByVal Flags As Long) As BOOL
+Public DeclareWide PtrSafe Function EvtArchiveExportedLog Lib "wevtapi.dll" (ByVal Session As LongPtr, ByVal LogFilePath As String, ByVal Locale As Long, ByVal Flags As Long) As BOOL
+
+
+Public Enum EVT_CHANNEL_CONFIG_PROPERTY_ID
+    EvtChannelConfigEnabled = 0              ' EvtVarTypeBoolean
+    EvtChannelConfigIsolation              ' EvtVarTypeUInt32, EVT_CHANNEL_ISOLATION_TYPE
+    EvtChannelConfigType                   ' EvtVarTypeUInt32, EVT_CHANNEL_TYPE
+    EvtChannelConfigOwningPublisher        ' EvtVarTypeString
+    EvtChannelConfigClassicEventlog        ' EvtVarTypeBoolean
+    EvtChannelConfigAccess                 ' EvtVarTypeString
+    EvtChannelLoggingConfigRetention       ' EvtVarTypeBoolean
+    EvtChannelLoggingConfigAutoBackup      ' EvtVarTypeBoolean
+    EvtChannelLoggingConfigMaxSize         ' EvtVarTypeUInt64
+    EvtChannelLoggingConfigLogFilePath     ' EvtVarTypeString
+    EvtChannelPublishingConfigLevel        ' EvtVarTypeUInt32
+    EvtChannelPublishingConfigKeywords     ' EvtVarTypeUInt64
+    EvtChannelPublishingConfigControlGuid  ' EvtVarTypeGuid
+    EvtChannelPublishingConfigBufferSize   ' EvtVarTypeUInt32
+    EvtChannelPublishingConfigMinBuffers   ' EvtVarTypeUInt32
+    EvtChannelPublishingConfigMaxBuffers   ' EvtVarTypeUInt32
+    EvtChannelPublishingConfigLatency      ' EvtVarTypeUInt32
+    EvtChannelPublishingConfigClockType    ' EvtVarTypeUInt32, EVT_CHANNEL_CLOCK_TYPE
+    EvtChannelPublishingConfigSidType      ' EvtVarTypeUInt32, EVT_CHANNEL_SID_TYPE
+    EvtChannelPublisherList                ' EvtVarTypeString | EVT_VARIANT_TYPE_ARRAY
+    EvtChannelPublishingConfigFileMax      ' EvtVarTypeUint32
+    EvtChannelConfigPropertyIdEND
+End Enum
+
+Public Enum EVT_CHANNEL_TYPE
+    EvtChannelTypeAdmin = 0
+    EvtChannelTypeOperational
+    EvtChannelTypeAnalytic
+    EvtChannelTypeDebug
+End Enum
+
+Public Enum EVT_CHANNEL_ISOLATION_TYPE
+    EvtChannelIsolationTypeApplication = 0
+    EvtChannelIsolationTypeSystem
+    EvtChannelIsolationTypeCustom
+End Enum
+
+Public Enum EVT_CHANNEL_CLOCK_TYPE
+    EvtChannelClockTypeSystemTime = 0 ' System time
+    EvtChannelClockTypeQPC ' Query performance counter
+End Enum
+
+Public Enum EVT_CHANNEL_SID_TYPE
+    EvtChannelSidTypeNone = 0
+    EvtChannelSidTypePublishing
+End Enum
+
+Public Declare PtrSafe Function EvtOpenChannelEnum Lib "wevtapi.dll" (ByVal Session As LongPtr, ByVal Flags As Long) As LongPtr
+Public Declare PtrSafe Function EvtNextChannelPath Lib "wevtapi.dll" (ByVal ChannelEnum As LongPtr, ByVal ChannelPathBufferSize As Long, ByVal ChannelPathBuffer As LongPtr, ByRef ChannelPathBufferUsed As Long) As BOOL
+Public Declare PtrSafe Function EvtOpenChannelConfig Lib "wevtapi.dll" (ByVal Session As LongPtr, ByVal ChannelPath As LongPtr, ByVal Flags As Long) As LongPtr
+Public Declare PtrSafe Function EvtSaveChannelConfig Lib "wevtapi.dll" (ByVal ChannelConfig As LongPtr, ByVal Flags As Long) As BOOL
+Public Declare PtrSafe Function EvtSetChannelConfigProperty Lib "wevtapi.dll" (ByVal ChannelConfig As LongPtr, ByVal PropertyId As EVT_CHANNEL_CONFIG_PROPERTY_ID, ByVal Flags As Long, ByRef PropertyValue As EVT_VARIANT) As BOOL
+Public Declare PtrSafe Function EvtGetChannelConfigProperty Lib "wevtapi.dll" (ByVal ChannelConfig As LongPtr, ByVal PropertyId As EVT_CHANNEL_CONFIG_PROPERTY_ID, ByVal Flags As Long, ByVal PropertyValueBufferSize As Long, ByRef PropertyValueBuffer As EVT_VARIANT, ByRef PropertyValueBufferUsed As Long) As BOOL
+
+
+Public Enum EVT_CHANNEL_REFERENCE_FLAGS
+    EvtChannelReferenceImported = &H1
+End Enum
+
+Public Enum EVT_PUBLISHER_METADATA_PROPERTY_ID
+    EvtPublisherMetadataPublisherGuid = 0            ' EvtVarTypeGuid
+    EvtPublisherMetadataResourceFilePath           ' EvtVarTypeString
+    EvtPublisherMetadataParameterFilePath          ' EvtVarTypeString
+    EvtPublisherMetadataMessageFilePath            ' EvtVarTypeString
+    EvtPublisherMetadataHelpLink                   ' EvtVarTypeString
+    EvtPublisherMetadataPublisherMessageID         ' EvtVarTypeUInt32
+    EvtPublisherMetadataChannelReferences          ' EvtVarTypeEvtHandle, ObjectArray
+    EvtPublisherMetadataChannelReferencePath       ' EvtVarTypeString
+    EvtPublisherMetadataChannelReferenceIndex      ' EvtVarTypeUInt32
+    EvtPublisherMetadataChannelReferenceID         ' EvtVarTypeUInt32
+    EvtPublisherMetadataChannelReferenceFlags      ' EvtVarTypeUInt32
+    EvtPublisherMetadataChannelReferenceMessageID  ' EvtVarTypeUInt32
+    EvtPublisherMetadataLevels                     ' EvtVarTypeEvtHandle, ObjectArray
+    EvtPublisherMetadataLevelName                  ' EvtVarTypeString
+    EvtPublisherMetadataLevelValue                 ' EvtVarTypeUInt32
+    EvtPublisherMetadataLevelMessageID             ' EvtVarTypeUInt32
+    EvtPublisherMetadataTasks                      ' EvtVarTypeEvtHandle, ObjectArray
+    EvtPublisherMetadataTaskName                   ' EvtVarTypeString
+    EvtPublisherMetadataTaskEventGuid              ' EvtVarTypeGuid
+    EvtPublisherMetadataTaskValue                  ' EvtVarTypeUInt32
+    EvtPublisherMetadataTaskMessageID              ' EvtVarTypeUInt32
+    EvtPublisherMetadataOpcodes                    ' EvtVarTypeEvtHandle, ObjectArray
+    EvtPublisherMetadataOpcodeName                 ' EvtVarTypeString
+    EvtPublisherMetadataOpcodeValue                ' EvtVarTypeUInt32
+    EvtPublisherMetadataOpcodeMessageID            ' EvtVarTypeUInt32
+    EvtPublisherMetadataKeywords                   ' EvtVarTypeEvtHandle, ObjectArray
+    EvtPublisherMetadataKeywordName                ' EvtVarTypeString
+    EvtPublisherMetadataKeywordValue               ' EvtVarTypeUInt64
+    EvtPublisherMetadataKeywordMessageID           ' EvtVarTypeUInt32
+    EvtPublisherMetadataPropertyIdEND
+End Enum
+
+Public Declare PtrSafe Function EvtOpenPublisherEnum Lib "wevtapi.dll" (ByVal Session As LongPtr, ByVal Flags As Long) As LongPtr
+Public Declare PtrSafe Function EvtNextPublisherId Lib "wevtapi.dll" (ByVal PublisherEnum As LongPtr, ByVal PublisherIdBufferSize As Long, ByVal PublisherIdBuffer As LongPtr, ByRef PublisherIdBufferUsed As Long) As BOOL
+Public Declare PtrSafe Function EvtOpenPublisherMetadata Lib "wevtapi.dll" (ByVal Session As LongPtr, ByVal PublisherId As LongPtr, ByVal LogFilePath As LongPtr, ByVal Locale As Long, ByVal Flags As Long) As LongPtr
+Public Declare PtrSafe Function EvtGetPublisherMetadataProperty Lib "wevtapi.dll" (ByVal PublisherMetadata As LongPtr, ByVal PropertyId As EVT_PUBLISHER_METADATA_PROPERTY_ID, ByVal Flags As Long, ByVal PublisherMetadataPropertyBufferSize As Long, ByRef PublisherMetadataPropertyBuffer As EVT_VARIANT, ByRef PublisherMetadataPropertyBufferUsed As Long) As BOOL
+
+Public Enum EVT_EVENT_METADATA_PROPERTY_ID
+    EventMetadataEventID           ' EvtVarTypeUInt32
+    EventMetadataEventVersion      ' EvtVarTypeUInt32
+    EventMetadataEventChannel      ' EvtVarTypeUInt32
+    EventMetadataEventLevel        ' EvtVarTypeUInt32
+    EventMetadataEventOpcode       ' EvtVarTypeUInt32
+    EventMetadataEventTask         ' EvtVarTypeUInt32
+    EventMetadataEventKeyword      ' EvtVarTypeUInt64
+    EventMetadataEventMessageID    ' EvtVarTypeUInt32
+    EventMetadataEventTemplate     ' EvtVarTypeString
+    EvtEventMetadataPropertyIdEND
+End Enum
+
+Public Declare PtrSafe Function EvtOpenEventMetadataEnum Lib "wevtapi.dll" (ByVal PublisherMetadata As LongPtr, ByVal Flags As Long) As LongPtr
+Public Declare PtrSafe Function EvtNextEventMetadata Lib "wevtapi.dll" (ByVal EventMetadataEnum As LongPtr, ByVal Flags As Long) As LongPtr
+Public Declare PtrSafe Function EvtGetEventMetadataProperty Lib "wevtapi.dll" (ByVal EventMetadata As LongPtr, ByVal PropertyId As EVT_EVENT_METADATA_PROPERTY_ID, ByVal Flags As Long, ByVal EventMetadataPropertyBufferSize As Long, ByRef EventMetadataPropertyBuffer As EVT_VARIANT, ByRef EventMetadataPropertyBufferUsed As Long) As BOOL
+Public Declare PtrSafe Function EvtGetObjectArraySize Lib "wevtapi.dll" (ByVal ObjectArray As LongPtr, ByRef ObjectArraySize As Long) As BOOL
+Public Declare PtrSafe Function EvtGetObjectArrayProperty Lib "wevtapi.dll" (ByVal ObjectArray As LongPtr, ByVal PropertyId As Long, ByVal ArrayIndex As Long, ByVal Flags As Long, ByVal PropertyValueBufferSize As Long, ByRef PropertyValueBuffer As EVT_VARIANT, ByRef PropertyValueBufferUsed As Long) As BOOL
+
+
+Public Enum EVT_QUERY_PROPERTY_ID
+    ' 
+    '  list of channels or logfiles indentified in the query. Variant will be
+    '  array of EvtVarTypeString.
+    ' 
+    EvtQueryNames
+    ' 
+    '  Array of EvtVarTypeUInt32, indicating creation status ( Win32 error
+    '  code ) for the list of names returned by the EvtQueryNames
+    '  property.
+    ' 
+    EvtQueryStatuses
+    EvtQueryPropertyIdEND
+End Enum
+
+Public Enum EVT_EVENT_PROPERTY_ID
+    EvtEventQueryIDs = 0
+    EvtEventPath
+    EvtEventPropertyIdEND
+End Enum
+
+Public Declare PtrSafe Function EvtGetQueryInfo Lib "wevtapi.dll" (ByVal QueryOrSubscription As LongPtr, ByVal PropertyId As EVT_QUERY_PROPERTY_ID, ByVal PropertyValueBufferSize As Long, ByRef PropertyValueBuffer As EVT_VARIANT, ByRef PropertyValueBufferUsed As Long) As BOOL
+Public Declare PtrSafe Function EvtCreateBookmark Lib "wevtapi.dll" (ByVal BookmarkXml As LongPtr) As LongPtr
+Public Declare PtrSafe Function EvtUpdateBookmark Lib "wevtapi.dll" (ByVal Bookmark As LongPtr, ByVal Event As LongPtr) As BOOL
+Public Declare PtrSafe Function EvtGetEventInfo Lib "wevtapi.dll" (ByVal Event As LongPtr, ByVal PropertyId As EVT_EVENT_PROPERTY_ID, ByVal PropertyValueBufferSize As Long, ByRef PropertyValueBuffer As EVT_VARIANT, ByRef PropertyValueBufferUsed As Long) As BOOL
+
+Public Enum WevtAccessRights
+    EVT_READ_ACCESS = &H1
+    EVT_WRITE_ACCESS = &H2
+    EVT_CLEAR_ACCESS = &H4
+    EVT_ALL_ACCESS = &H7
+End Enum
+
+
+
+/*
+wslapi.h
+*/
+
+Public Enum WSL_DISTRIBUTION_FLAGS
+    WSL_DISTRIBUTION_FLAGS_NONE = &H0
+    WSL_DISTRIBUTION_FLAGS_ENABLE_INTEROP = &H1
+    WSL_DISTRIBUTION_FLAGS_APPEND_NT_PATH = &H2
+    WSL_DISTRIBUTION_FLAGS_ENABLE_DRIVE_MOUNTING = &H4
+    WSL_DISTRIBUTION_FLAGS_VALID = (WSL_DISTRIBUTION_FLAGS_ENABLE_INTEROP Or WSL_DISTRIBUTION_FLAGS_APPEND_NT_PATH Or WSL_DISTRIBUTION_FLAGS_ENABLE_DRIVE_MOUNTING)
+    WSL_DISTRIBUTION_FLAGS_DEFAULT = (WSL_DISTRIBUTION_FLAGS_ENABLE_INTEROP Or WSL_DISTRIBUTION_FLAGS_APPEND_NT_PATH Or WSL_DISTRIBUTION_FLAGS_ENABLE_DRIVE_MOUNTING)
+End Enum
+
+Public Declare PtrSafe Function WslIsDistributionRegistered Lib "wslapi" (ByVal distributionName As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function WslIsDistributionRegistered Lib "wslapi" (ByVal distributionName As String) As BOOL
+Public Declare PtrSafe Function WslRegisterDistribution Lib "wslapi" (ByVal distributionName As LongPtr, ByVal tarGzFilename As LongPtr) As Long
+Public DeclareWide PtrSafe Function WslRegisterDistribution Lib "wslapi" (ByVal distributionName As String, ByVal tarGzFilename As String) As Long
+Public Declare PtrSafe Function WslUnregisterDistribution Lib "wslapi" (ByVal distributionName As LongPtr) As Long
+Public DeclareWide PtrSafe Function WslUnregisterDistribution Lib "wslapi" (ByVal distributionName As String) As Long
+Public Declare PtrSafe Function WslConfigureDistribution Lib "wslapi" (ByVal distributionName As LongPtr, ByVal defaultUID As Long, ByVal wslDistributionFlags As WSL_DISTRIBUTION_FLAGS) As Long
+Public DeclareWide PtrSafe Function WslConfigureDistribution Lib "wslapi" (ByVal distributionName As String, ByVal defaultUID As Long, ByVal wslDistributionFlags As WSL_DISTRIBUTION_FLAGS) As Long
+Public Declare PtrSafe Function WslGetDistributionConfiguration Lib "wslapi" (ByVal distributionName As LongPtr, ByRef distributionVersion As Long, ByRef defaultUID As Long, ByRef wslDistributionFlags As WSL_DISTRIBUTION_FLAGS, ByRef defaultEnvironmentVariables As LongPtr, ByRef defaultEnvironmentVariableCount As Long) As Long
+Public DeclareWide PtrSafe Function WslGetDistributionConfiguration Lib "wslapi" (ByVal distributionName As String, ByRef distributionVersion As Long, ByRef defaultUID As Long, ByRef wslDistributionFlags As WSL_DISTRIBUTION_FLAGS, ByRef defaultEnvironmentVariables As LongPtr, ByRef defaultEnvironmentVariableCount As Long) As Long
+Public Declare PtrSafe Function WslLaunchInteractive Lib "wslapi" (ByVal distributionName As LongPtr, ByVal command As LongPtr, ByVal useCurrentWorkingDirectory As BOOL, ByRef exitCode As Long) As Long
+Public DeclareWide PtrSafe Function WslLaunchInteractive Lib "wslapi" (ByVal distributionName As String, ByVal command As String, ByVal useCurrentWorkingDirectory As BOOL, ByRef exitCode As Long) As Long
+Public Declare PtrSafe Function WslLaunch Lib "wslapi" (ByVal distributionName As LongPtr, ByVal command As LongPtr, ByVal useCurrentWorkingDirectory As BOOL, ByVal stdIn As LongPtr, ByVal stdOut As LongPtr, ByVal stdErr As LongPtr, ByRef process As LongPtr) As Long
+Public DeclareWide PtrSafe Function WslLaunch Lib "wslapi" (ByVal distributionName As String, ByVal command As String, ByVal useCurrentWorkingDirectory As BOOL, ByVal stdIn As LongPtr, ByVal stdOut As LongPtr, ByVal stdErr As LongPtr, ByRef process As LongPtr) As Long
+
+
+
 
 /*
 wcmapi.h

@@ -26881,6 +26881,14 @@ Public Function RtlEqualMemory(ByVal Source1 As LongPtr, ByVal Source2 As LongPt
 [UseGetLastError(False)] Public DeclareWide PtrSafe Function RtlAllocateFromPeb Lib "ntdll" (ByVal Size As Long, Block As LongPtr) As NTSTATUS
 [UseGetLastError(False)] Public DeclareWide PtrSafe Function RtlFreeToPeb Lib "ntdll" (ByVal Block As LongPtr, ByVal Size As Long) As NTSTATUS
 
+[UseGetLastError(False)] Public Declare PtrSafe Sub RtlInitializeSListHead Lib "ntdll" (ByRef ListHead As SLIST_HEADER)
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlFirstEntrySList Lib "ntdll" (ByRef ListHead As SLIST_HEADER) As LongPtr
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlInterlockedPopEntrySList Lib "ntdll" (ByRef ListHead As SLIST_HEADER) As LongPtr
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlInterlockedPushEntrySList Lib "ntdll" (ByRef ListHead As SLIST_HEADER, ByRef ListEntry As SLIST_ENTRY) As LongPtr
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlInterlockedPushListSListEx Lib "ntdll" (ByRef ListHead As SLIST_HEADER, ByRef List As SLIST_ENTRY, ByRef ListEnd As SLIST_ENTRY, ByVal Count As Long) As LongPtr
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlInterlockedFlushSList Lib "ntdll" (ByRef ListHead As SLIST_HEADER) As LongPtr
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlQueryDepthSList Lib "ntdll" (ByRef ListHead As SLIST_HEADER) As Integer
+
 [UseGetLastError(False)] Public DeclareWide PtrSafe Function RtlAreLongPathsEnabled Lib "ntdll" () As Byte
 [UseGetLastError(False)] Public DeclareWide PtrSafe Function RtlNtStatusToDosError Lib "ntdll" (ByVal ntStatus As NTSTATUS) As Long
 [UseGetLastError(False)] Public DeclareWide PtrSafe Function RtlNtStatusToDosErrorNoTeb Lib "ntdll" (ByVal ntStatus As NTSTATUS) As Long
@@ -27146,6 +27154,19 @@ Public Type RTL_MULTI_TIME_PRECISE
     SharedUserTime As LongLong
 End Type
 
+Public Enum RtlVirtuakUnwindFlags
+    UNW_FLAG_NHANDLER = &H0
+    UNW_FLAG_EHANDLER = &H1
+    UNW_FLAG_UHANDLER = &H2
+    UNW_FLAG_CHAININFO = &H4
+    UNW_FLAG_NO_EPILOGUE = &H80000000  ' Software only flag
+End Enum
+
+Public Const UNWIND_CHAIN_LIMIT = 32
+
+Public Delegate Function GET_RUNTIME_FUNCTION_CALLBACK (ByVal ControlPc As LongLong, ByVal Context As LongPtr) As LongPtr
+Public Delegate Function OUT_OF_PROCESS_FUNCTION_TABLE_CALLBACK (ByVal Process As LongPtr, ByVal TableAddress As LongPtr, Entries As Long, Functions As LongPtr) As Long
+
 
 #If Win64 Then
 [UseGetLastError(False)]
@@ -27209,15 +27230,26 @@ Public DeclareWide PtrSafe Function RtlFlushNonVolatileMemoryRanges Lib "ntdll" 
 [UseGetLastError(False)] Public DeclareWide PtrSafe Sub RtlUnwind Lib "ntdll" (ByVal TargetFrame As LongPtr, ByVal TargetIp As LongPtr, ExceptionRecord As EXCEPTION_RECORD, ByVal ReturnValue As LongPtr)
 [UseGetLastError(False)] Public DeclareWide PtrSafe Sub RtlUnwindEx Lib "ntdll" (ByVal TargetFrame As LongPtr, ByVal TargetIp As LongPtr, ExceptionRecord As EXCEPTION_RECORD, ByVal ReturnValue As LongPtr, ContextRecord As CONTEXT, HistoryTable As UNWIND_HISTORY_TABLE)
 [UseGetLastError(False)] Public DeclareWide PtrSafe Function RtlVirtualUnwind Lib "ntdll" (ByVal HandlerType As Long, ByVal ImageBase As LongPtr, ByVal ControlPc As LongPtr, FunctionEntry As RUNTIME_FUNCTION, ContextRecord As CONTEXT, HandlerData As LongPtr, EstablisherFrame As LongPtr, ContextPointers As KNONVOLATILE_CONTEXT_POINTERS) As LongPtr 'PEXCEPTION_ROUTINE
+Public Declare PtrSafe Function RtlVirtualUnwind2 Lib "ntdll" (ByVal HandlerType As Long, ByVal ImageBase As LongLong, ByVal ControlPc As LongLong, ByRef FunctionEntry As RUNTIME_FUNCTION, ByRef ContextRecord As CONTEXT, ByRef MachineFrameUnwound As CBoolean, ByRef HandlerData As LongPtr, ByRef EstablisherFrame As LongLong, ByRef ContextPointers As KNONVOLATILE_CONTEXT_POINTERS, ByRef LowLimit As LongLong, ByRef HighLimit As LongLong, ByRef HandlerRoutine As LongPtr, ByVal UnwindFlags As Long) As NTSTATUS
+Public Declare PtrSafe Function RtlVirtualUnwind3 Lib "ntdll" (ByVal HandlerType As Long, ByVal ImageBase As LongLong, ByVal ControlPc As LongLong, ByRef FunctionEntry As RUNTIME_FUNCTION, ByRef ContextRecord As CONTEXT, ByRef MachineFrameUnwound As CBoolean, ByRef HandlerData As LongPtr, ByRef EstablisherFrame As LongLong, ByRef ContextPointers As KNONVOLATILE_CONTEXT_POINTERS, ByRef LowLimit As LongLong, ByRef HighLimit As LongLong, ByRef HandlerRoutine As LongPtr, ByVal UnwindFlags As Long, ByRef ResultFlags As Long) As NTSTATUS
 [UseGetLastError(False)] Public DeclareWide PtrSafe Sub RtlCaptureContext Lib "ntdll" (ContextRecord As CONTEXT)
 #If Win64 Then
 [UseGetLastError(False)] Public DeclareWide PtrSafe Sub RtlCaptureContext2 Lib "ntdll" (ContextRecord As CONTEXT)
 #End If
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlAddGrowableFunctionTable Lib "ntdll" (ByRef DynamicTable As LongPtr, ByRef FunctionTable As RUNTIME_FUNCTION, ByVal EntryCount As Long, ByVal MaximumEntryCount As Long, ByVal RangeBase As LongPtr, ByVal RangeEnd As LongPtr) As NTSTATUS
+[UseGetLastError(False)] Public Declare PtrSafe Sub RtlGrowFunctionTable Lib "ntdll" (ByVal DynamicTable As LongPtr, ByVal NewEntryCount As Long)
+[UseGetLastError(False)] Public Declare PtrSafe Sub RtlDeleteGrowableFunctionTable Lib "ntdll" (ByVal DynamicTable As LongPtr)
+[UseGetLastError(False)] Public Declare PtrSafe Sub RtlRestoreContext CDecl Lib "ntdll" (ByRef ContextRecord As CONTEXT, ByRef ExceptionRecord As EXCEPTION_RECORD)
+[UseGetLastError(False)] Public Declare PtrSafe Sub RtlRaiseException Lib "ntdll" (ByRef ExceptionRecord As EXCEPTION_RECORD)
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlPcToFileHeader Lib "ntdll" (ByVal PcValue As LongPtr, ByRef BaseOfImage As LongPtr) As LongPtr
+
+
 [UseGetLastError(False)] Public DeclareWide PtrSafe Function RtlQueryElevationFlags Lib "ntdll" (pFlags As ElevationFlags) As NTSTATUS
 [UseGetLastError(False)] Public DeclareWide PtrSafe Function RtlAddFunctionTable CDecl Lib "ntdll" (FunctionTable As RUNTIME_FUNCTION, ByVal EntryCount As Long, ByVal BaseAddress As LongLong) As CBoolean
 [UseGetLastError(False)] Public DeclareWide PtrSafe Function RtlDeleteFunctionTable CDecl Lib "ntdll" (FunctionTable As RUNTIME_FUNCTION) As CBoolean
 [UseGetLastError(False)] Public DeclareWide PtrSafe Function RtlInstallFunctionTableCallback CDecl Lib "ntdll" (ByVal TableIdentifier As LongLong, ByVal BaseAddress As LongLong, ByVal Length As Long, ByVal Callback As LongPtr, ByVal Context As LongPtr, ByVal OutOfProcessCallbackDll As LongPtr) As CBoolean
 [UseGetLastError(False)] Public DeclareWide PtrSafe Function RtlLookupFunctionEntry Lib "ntdll" (ByVal ControlPc As LongLong, ImageBase As LongLong, HistoryTable As UNWIND_HISTORY_TABLE) As LongPtr
+
 [UseGetLastError(False)] Public DeclareWide PtrSafe Function RtlGetSystemGlobalData Lib "ntdll" (ByVal DataId As RTL_SYSTEM_GLOBAL_DATA_ID, Buffer As Any, ByVal Size As Long) As Long
 [UseGetLastError(False)] Public DeclareWide PtrSafe Function RtlSetSystemGlobalData Lib "ntdll" (ByVal DataId As RTL_SYSTEM_GLOBAL_DATA_ID, Buffer As Any, ByVal Size As Long) As Long
 [Description("While MSDN asserts this as required for accessing the NtSystemRoot field of KUSER_SHARED_DATA, a field present since NT4, it's only available in Win10 RS2+")]
