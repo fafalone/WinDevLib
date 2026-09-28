@@ -1,4 +1,16 @@
 
+**Update (v9.4.736, 28 Sep 2026):**
+- Add CertPolEng.h (100%)
+- Add licenseprotection.h (100%)
+- Add additional functions from rtlsupportapi.h to bring it to 100%
+- Add wct.h (100%)
+- Add winevt.h (100%)
+- Add xolehlp.h (100%)
+- Add wslapi.h (100%)
+- Adding missing undifferentiated unicode aliases for ntsec audit APIs.
+- Some additional native APIs
+- (Bug fix) SECURITY_FUNCTION_TABLE_A used Unicode (W) field names
+
 **Update (v9.4.734, 27 Sep 2026):**
 - Completed ks.h for everything not conditionally enabled only for kernel-mode.
 - Add ksproxy.h (100%)
