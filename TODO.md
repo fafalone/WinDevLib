@@ -1,14 +1,15 @@
 Known omissions where a priority update neccessitated not finishing 
 before release, or waiting on feature support:
 
- 
+- finish winineti.h
+
 - MrmResourceIndexer.h
  -      interactioncontext.h
  - gamingtcui.h
  
  - Fix pTimeBase optional byref longlong when passing nullptr allowed
  
- 
+- POWER_INFORMATION_INTERNAL_*
 
 - rtmv2.h -- check RTM_ macro implementations, unimplemented macros
  
@@ -21,6 +22,8 @@ before release, or waiting on feature support:
 - msi.h
 
 - webservices.h
+
+- mdmlocalmanagement
 
 -   ws2tcpip mstcipip.h inlined funcs;
 
@@ -226,23 +229,23 @@ Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.
     SubAuth.h,davclient.h,DsGetDC.h,errhandlingapi.h,msports.h,objsafe.h,objsafe.idl,winternl.h,AppxPackaging.h,AppxPackaging.idl,XmlDom.idl,wofapi.h,ntddvdeo.h,
     ntddvol.h,hidclass.h,hidusage.h,hidpi.h,hidsdi.h,ntenclv.h,winenclave.h,winenclaveapi.h,ioringapi.h,ntioring_x.h,urlmon.h,urlmon.idl,
     gl.h,glu.h,DocObj.h,DocObj.idl,slpublic.h,slerror.h,sliddefs.h,fwpstypes.h,htiface.h,htiface.idl,htiframe.h,htiframe.idl,dmort.h,
-    odbcinst.h,sqltypes.h,sql.h,sqlext.h,sqlucode.h,minidumpapiset.h,coguid.h,ime_cmodes.h,
+    odbcinst.h,sqltypes.h,sql.h,sqlext.h,sqlucode.h,minidumpapiset.h,coguid.h,ime_cmodes.h,compstui.h,NTSecAPI.h,
     dls1.h,dls2.h,dmerror.h,dmdls.h,dmusbuff.h,dmusicc.h,dmusicf.h,dmplugin.h,dmusici.h,dmksctrl.h,dmusics.h,d3d12compiler.h/d3d12compiler.idl
-    xact3.h,xact3wb.h,xma2defs.h,audiodefs.h,xact3d3.h,dxfile.h,dxdiag.h,dxmini.h,
-    d3dx10.h,d3dx10core.h,d3dx10tex.h,d3dx10async.h,d3dx10mesh.h,d3d9on12.h,codecapi.h,
+    xact3.h,xact3wb.h,xma2defs.h,audiodefs.h,xact3d3.h,dxfile.h,dxdiag.h,dxmini.h,dxcore.h,
+    d3dx10.h,d3dx10core.h,d3dx10tex.h,d3dx10async.h,d3dx10mesh.h,d3d9on12.h,codecapi.h,vfwmsgs.h,errors.h,
     enclaveium.h,bthioctl.h,bthledef.h,bthdef.h,muiload.h,StorageProvider.h,StorageProvider.idl,ExDisp.h,ExDisp.idl,ExDispid.h,
     mstcipip.h, mimeole.idl, MimeInfo.h,MimeInfo.idl and mimedisp.h, msoeapi.idl, imnact.idl, colordlg.h,gamingtcui.h, gameux.h,
     emptyvc.h,emptyvc.idl,wpc.h, wpcapi.h, wpcevent.h, DhcpCSdk.h, Dhcpv6cSdk.h, tcpioctl.h,madcapcl.h,msacm.h,msacmdlg.h,pdh.h, pdhmsg.h, loadperf.h,
-    WinFax.h,tapi.h,mq.h,naptypes.h,mgm.h,ras.h, rasdlg.h, rasshost.h, raseapif.h,  mprerror.h, raserror.h
-    mprapi.h, mprapidef.h, ipxconst.h, ipxrip.h, ipxsap.h, ipxtfflt.h, ipxrtdef.h, routprot.h, RTInfo.h, stm.h
-    gnssdriver.h, winsnmp.h, certbcli.h,mmreg.h,tvout.h,dhcpsapi.h,ksmedia.h,diskguid.h
+    WinFax.h,tapi.h,mq.h,naptypes.h,mgm.h,ras.h, rasdlg.h, rasshost.h, raseapif.h,  mprerror.h, raserror.h,IEDial.h,IEDial.idl,winineti.h,
+    mprapi.h, mprapidef.h, ipxconst.h, ipxrip.h, ipxsap.h, ipxtfflt.h, ipxrtdef.h, routprot.h, RTInfo.h, stm.h,ondemandconnrouthelper.h,wnvapi.h,
+    gnssdriver.h, winsnmp.h, certbcli.h,mmreg.h,tvout.h,dhcpsapi.h,ksmedia.h,ks.h,diskguid.h,xmllite.h,xmllite.idl
     mfapi.h, mfcaptureengine.h, mfcaptureengine.idl, mfcontentdecryptionmodule.h, mfcontentdecryptionmodule.idl, mfd3d12.h,mfd3d12.idl,mferror.h, 
 Coverage in the 90%+ range  winbase.h, oleidl.h, oaidl.h, ocidl.h, ocidl.idl, ,objidl.h,objidl.idl,presentation.h,ScrnSave.h
 
 Substantial coverage  winnt.h,immdev.h,winioctl.h,WS2spi.h,winerror.h,WindowsSearchErrors.h,windowsx.h,
 
 Minimal coverage
-    windot11.h,peninputpanel.h,xapobase.h,wmcodecdsp.h,d3dkmdt.h,d3dukmdt.h,d3dkmthk.h,fwpsu.h
+    windot11.h,peninputpanel.h,xapobase.h,wmcodecdsp.h,d3dkmdt.h,d3dukmdt.h,d3dkmthk.h,fwpsu.h,vfw.h
     
 Zero or near-zero coverage  (all other files)
 
