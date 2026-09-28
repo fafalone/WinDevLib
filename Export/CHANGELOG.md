@@ -1,4 +1,22 @@
 
+**Update (v9.4.734, 27 Sep 2026):**
+- Completed ks.h for everything not conditionally enabled only for kernel-mode.
+- Add ksproxy.h (100%)
+- Add xmllite.h/.idl (100%)
+- Add winineti.h (100%)
+- Add remaining NTSecAPI.h content, inc. Audit APIs, now 100%
+- Add swdevicedef.h, swdevice.h (100%)
+- Add compstui.h (100%)
+- Add ondemandconnrouthelper.h (100%)
+- Add wnvapi.h (100%)
+- Add errors.h (100%)
+- Additional native API defs, inc. all phnt ALPC defs
+- Add IEDial.h/.idl (100%)
+- Some additional NTSTATUS values
+- Added remaining SetupAPI ANSI APIs, since they were the only ones actually without them.
+- (Bug fix) NtSetSystemPowerState Flags argument associated with wrong enum.
+- (Bug fix) SetupDiInterfaceCreateDeviceW should be SetupDiCreateInterfaceDeviceW
+
 **Update (v9.4.732, 21 Sep 2026):**
 - Completed ksmedia.h
 - Add dhcpsapi.h (100%)
