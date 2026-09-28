@@ -1,7 +1,7 @@
 # Windows Development Library for twinBASIC
 ## WinDevLib 
 
-**Current Version: 9.4.734 (September 27th, 2026)**
+**Current Version: 9.4.736 (September 28th, 2026)**
 
 (c) 2022-2026 Jon Johnson (fafalone)
 
@@ -244,6 +244,18 @@ Current coverage is already quite extensive, spanning hundreds of Windows SDK he
 
  
 ### Updates
+
+**Update (v9.4.736, 28 Sep 2026):**
+- Add CertPolEng.h (100%)
+- Add licenseprotection.h (100%)
+- Add additional functions from rtlsupportapi.h to bring it to 100%
+- Add wct.h (100%)
+- Add winevt.h (100%)
+- Add xolehlp.h (100%)
+- Add wslapi.h (100%)
+- Adding missing undifferentiated unicode aliases for ntsec audit APIs.
+- Some additional native APIs
+- (Bug fix) SECURITY_FUNCTION_TABLE_A used Unicode (W) field names
 
 **Update (v9.4.734, 27 Sep 2026):**
 - Completed ks.h for everything not conditionally enabled only for kernel-mode.
