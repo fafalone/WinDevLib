@@ -1,7 +1,7 @@
 # Windows Development Library for twinBASIC
 ## WinDevLib 
 
-**Current Version: 9.4.736 (September 28th, 2026)**
+**Current Version: 9.5.738 (September 29th, 2026)**
 
 (c) 2022-2026 Jon Johnson (fafalone)
 
@@ -244,6 +244,19 @@ Current coverage is already quite extensive, spanning hundreds of Windows SDK he
 
  
 ### Updates
+
+**Update (v9.5.738, 29 Sep 2026):**
+- twinBASIC now supports the `_thiscall` and `__fastcall` calling conventions in interfaces, this has been applied to `ITextServices[2]`, `ITextHost2`, and `IAMFilterGraphCallback`.
+ so they're no longer limited to 64bit. This is version-gated to twinBASIC 990 so does not raise the minimum version; older versions have the original 64bit-only versions available.\
+ This change applies to the WinDevLibImpl versions too.
+- Add custom helpers VariantUI4ToI4, ChrW2, Dec2Bin, and Bin2Dec.
+- Continued changing some unions to use property gets/lets to simulate union support.
+- (Bug fix) PFM_ALL missing PFM_ALIGNMENT and PFM_OFFSETINDENT.
+- (Bug fix) IMpeg2Demultiplexer, IAMOpenProgress, IAMGraphStreams, IAMAudioRendererStats, IAMLatency, IDVSplitter, IDVRGB219, 
+IIPDVDec, IDVEnc, IAMDeviceRemoval, IAMPushSource, IVideoFrameStep, IAMVideoDecimationProperties, IDecimateVideoImage, 
+IDrawVideoImage, IAMFilterMiscFlags, IAMResourceControl, IAMStreamSelect, IAMDevMemoryControl, IAMDevMemoryAllocator, 
+IAMTimecodeDisplay, IAMTimecodeGenerator, and IAMTimecodeReader missing Extends IUnknown (or other base interface)
+
 
 **Update (v9.4.736, 28 Sep 2026):**
 - Add CertPolEng.h (100%)
