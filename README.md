@@ -1,7 +1,7 @@
 # Windows Development Library for twinBASIC
 ## WinDevLib 
 
-**Current Version: 9.5.738 (September 29th, 2026)**
+**Current Version: 9.5.740 (September 29th, 2026)**
 
 (c) 2022-2026 Jon Johnson (fafalone)
 
@@ -98,6 +98,16 @@ Converts a Unicode string to ANSI. This function is `[ConstantFoldable]` -- it c
 
 `Public Function VariantLPWSTRtoSTR(pVar As Variant, pOut As String) As Boolean`\
 Retrieves a tB-style String from a VT_LPWSTR Variant. Returns False if pVar is a null pointer, or the Variant is not a VT_LPWSTR, or PropVariantToStringAlloc returns a nullptr.
+
+`Public Function VariantUI4ToI4(pvar As Variant, pOut As Long) As Boolean`\
+Get a regular `Long` from a `Variant` containing an unsupported unsigned long type.
+
+`Public Function ChrW2(ByVal AscW2 As Long) As String`\
+An alternative for `ChrW` that supports certain extended Unicode characters.
+
+`Public Function DecToBin(ByVal nNumber) As String`\
+`Public Function BinToDec(ByVal nBinary As String) As Long`\
+Convert between binary and base-10.
 
 `Public Function GetSystemErrorString(lErrNum As Long, Optional ByVal lpSource As LongPtr = 0) As String`\
 `Public Function GetNtErrorString(lErrNum As Long) As String`\
@@ -256,6 +266,8 @@ Current coverage is already quite extensive, spanning hundreds of Windows SDK he
 IIPDVDec, IDVEnc, IAMDeviceRemoval, IAMPushSource, IVideoFrameStep, IAMVideoDecimationProperties, IDecimateVideoImage, 
 IDrawVideoImage, IAMFilterMiscFlags, IAMResourceControl, IAMStreamSelect, IAMDevMemoryControl, IAMDevMemoryAllocator, 
 IAMTimecodeDisplay, IAMTimecodeGenerator, and IAMTimecodeReader missing Extends IUnknown (or other base interface)
+- (Bug fix, WinDevLibImpl) `ITextHost[2]` has been corrected to change methods with 4-byte return types to Sub; they're completely invalid with the old signatures. The Functions are the only
+ones requiring v-table swaps now, the other changed ones can use `Err.ReturnHResult`.
 
 
 **Update (v9.4.736, 28 Sep 2026):**
