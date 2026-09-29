@@ -1,4 +1,18 @@
 
+**Update (v9.5.740, 29 Sep 2026):**
+- twinBASIC now supports the `_thiscall` and `__fastcall` calling conventions in interfaces, this has been applied to `ITextServices[2]`, `ITextHost2`, and `IAMFilterGraphCallback`.
+ so they're no longer limited to 64bit. This is version-gated to twinBASIC 990 so does not raise the minimum version; older versions have the original 64bit-only versions available.\
+ This change applies to the WinDevLibImpl versions too.
+- Add custom helpers VariantUI4ToI4, ChrW2, Dec2Bin, and Bin2Dec.
+- Continued changing some unions to use property gets/lets to simulate union support.
+- (Bug fix) PFM_ALL missing PFM_ALIGNMENT and PFM_OFFSETINDENT.
+- (Bug fix) IMpeg2Demultiplexer, IAMOpenProgress, IAMGraphStreams, IAMAudioRendererStats, IAMLatency, IDVSplitter, IDVRGB219, 
+IIPDVDec, IDVEnc, IAMDeviceRemoval, IAMPushSource, IVideoFrameStep, IAMVideoDecimationProperties, IDecimateVideoImage, 
+IDrawVideoImage, IAMFilterMiscFlags, IAMResourceControl, IAMStreamSelect, IAMDevMemoryControl, IAMDevMemoryAllocator, 
+IAMTimecodeDisplay, IAMTimecodeGenerator, and IAMTimecodeReader missing Extends IUnknown (or other base interface)
+- (Bug fix, WinDevLibImpl) `ITextHost[2]` has been corrected to change methods with 4-byte return types to Sub; they're completely invalid with the old signatures. The Functions are the only
+ones requiring v-table swaps now, the other changed ones can use `Err.ReturnHResult`.
+
 **Update (v9.4.736, 28 Sep 2026):**
 - Add CertPolEng.h (100%)
 - Add licenseprotection.h (100%)
