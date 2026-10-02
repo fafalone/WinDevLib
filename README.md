@@ -1,7 +1,7 @@
 # Windows Development Library for twinBASIC
 ## WinDevLib 
 
-**Current Version: 9.5.740 (September 29th, 2026)**
+**Current Version: 9.5.741 (October 1st, 2026)**
 
 (c) 2022-2026 Jon Johnson (fafalone)
 
@@ -255,7 +255,16 @@ Current coverage is already quite extensive, spanning hundreds of Windows SDK he
  
 ### Updates
 
-**Update (v9.5.738, 29 Sep 2026):**
+**Update (v9.5.741, 01 Oct 2026):**
+- (API Standards, **MAJOR BREAKING CHANGE**): `IShellItem` and `IShellItemArray` `BindToHandler` methods now take an `IBindCtx` instead of `LongPtr`. The lack of consistency has been 
+tripping me up enough I think it's worth making this change even though broken code will be widespread. If oleexp is ever updated again, the change will be applied to it too.
+- (Bug fix) VarBstrFromCy definition incorrect
+- (Bug fix) BuildSecurityDescriptor used ANSI type in unmarked alias; had duplicated argument names.
+- (Bug fix) SCardControl, SupplyDecryptionInfo, GdipIsVisibleRectI, GetVirtualDiskInformation duplicate argument names.
+- (Bug fix, WinDevLibImpl) ITextHost::TxSetScrollPos missing argument. 
+- (Bug fix, WinDevLibImpl) ITextHost::TxSetCaretPos duplicate argument name.
+
+**Update (v9.5.740, 29 Sep 2026):**
 - twinBASIC now supports the `_thiscall` and `__fastcall` calling conventions in interfaces, this has been applied to `ITextServices[2]`, `ITextHost2`, and `IAMFilterGraphCallback`.
  so they're no longer limited to 64bit. This is version-gated to twinBASIC 990 so does not raise the minimum version; older versions have the original 64bit-only versions available.\
  This change applies to the WinDevLibImpl versions too.
