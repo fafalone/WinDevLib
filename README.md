@@ -1,7 +1,7 @@
 # Windows Development Library for twinBASIC
 ## WinDevLib 
 
-**Current Version: 9.5.741 (October 1st, 2026)**
+**Current Version: 9.5.742 (October 3rd, 2026)**
 
 (c) 2022-2026 Jon Johnson (fafalone)
 
@@ -254,6 +254,12 @@ Current coverage is already quite extensive, spanning hundreds of Windows SDK he
 
  
 ### Updates
+
+**Update (v9.5.742, 03 Oct 2026):**
+- Additional Native APIs and defs
+- (TEMP FIX) Comctl and propsheets had multiple aliases-of-aliases that currently break any app they're used in.
+- (Bug fix) Definition of buffered SID type incorrect; had an extra subauthority in the buffer, causing its size to exceed SECURITY_MAX_SID_SIZE; some derived defs also affected.
+- (Bug fix) IRichEditUiaInformation::GetBoundaryRectangle used RECT instead of UiaRect (which is Doubles instead of Longs)
 
 **Update (v9.5.741, 01 Oct 2026):**
 - (API Standards, **MAJOR BREAKING CHANGE**): `IShellItem` and `IShellItemArray` `BindToHandler` methods now take an `IBindCtx` instead of `LongPtr`. The lack of consistency has been 
