@@ -239,9 +239,16 @@ Public Enum HEAP_INFORMATION_CLASS
     HeapStackDatabase = &H5                     ' q: RTL_HEAP_STACK_QUERY; s: RTL_HEAP_STACK_CONTROL
     HeapMemoryLimit = &H6                       ' since 19H2
     HeapTag = &H7                               ' since 20H1
+    HeapMemoryUsageInformation = &H8            ' q: HEAP_MEMORY_USAGE_INFORMATION // since 26H1
     HeapDetailedFailureInformation = &H80000001
     HeapSetDebuggingInformation = &H80000002    ' q; s: HEAP_DEBUGGING_INFORMATION
 End Enum
+
+Public Const HEAP_OPTIMIZE_RESOURCES_CURRENT_VERSION  = 1
+Public Type HEAP_OPTIMIZE_RESOURCES_INFORMATION
+    Version As Long
+    Flags As Long
+End Type
 
 Public Enum HEAP_COMPATIBILITY_MODE
     HEAP_COMPATIBILITY_MODE_STANDARD = 0
@@ -261,6 +268,117 @@ Public Type RTLP_HEAP_TAGGING_INFO
     EntriesCount As LongPtr
     Entries(0 To 0) As RTLP_TAG_INFO
 End Type
+
+Public Delegate Function RTL_HEAP_STACK_WRITE_ROUTINE (ByVal Information As LongPtr, ByVal Size As Long, ByVal Context As LongPtr) As NTSTATUS
+
+Public Type RTLP_HEAP_STACK_TRACE_SERIALIZATION_INIT
+    Count As Long
+    Total As Long
+    Flags As Long
+End Type
+
+Public Type RTLP_HEAP_STACK_TRACE_SERIALIZATION_HEADER
+    Version As Integer
+    PointerSize As Integer
+    Heap As LongPtr
+    TotalCommit As LongPtr
+    TotalReserve As LongPtr
+End Type
+
+Public Type RTLP_HEAP_STACK_TRACE_SERIALIZATION_ALLOCATION
+    Address As LongPtr
+    Flags As Long
+    DataSize As LongPtr
+End Type
+
+Public Type RTLP_HEAP_STACK_TRACE_SERIALIZATION_TERMINATOR
+    Address As LongPtr ' 0x1234CDEF
+    Flags As Long
+    DataSize As LongPtr ' -1
+End Type
+
+Public Type RTLP_HEAP_STACK_TRACE_SERIALIZATION_STACKFRAME
+    StackFrame(0 To (ANYSIZE_ARRAY - 1)) As LongPtr ' actual count: Size / sizeof(PVOID)
+End Type
+
+Public Const HEAP_STACK_QUERY_VERSION = &H2
+
+' #If WDL_NO_DELEGATES Then
+Public Type RTL_HEAP_STACK_QUERY
+    Version As Long
+    ProcessHandle As LongPtr
+    WriteRoutine As RTL_HEAP_STACK_WRITE_ROUTINE
+    SerializationContext As LongPtr
+    QueryLevel As Byte
+    Flags As Byte
+End Type
+' #Else
+' Public Type RTL_HEAP_STACK_QUERY
+    ' Version As Long
+    ' ProcessHandle As LongPtr
+    ' WriteRoutine As RTL_HEAP_STACK_WRITE_ROUTINE
+    ' SerializationContext As LongPtr
+    ' QueryLevel As Byte
+    ' Flags As Byte
+' End Type
+' #End If
+
+Public Const HEAP_STACK_CONTROL_VERSION = &H1
+Public Const HEAP_STACK_CONTROL_FLAGS_STACKTRACE_ENABLE  = &H1
+Public Const HEAP_STACK_CONTROL_FLAGS_STACKTRACE_DISABLE  = &H2
+
+Public Type RTL_HEAP_STACK_CONTROL
+    Version As Integer
+    Flags As Integer
+    ProcessHandle As LongPtr
+End Type
+
+Public Const HEAP_MEMORY_USAGE_INFO_CURRENT_VERSION = &H1
+
+Public Type HEAP_MEMORY_USAGE_ENTRY
+    HeapHandle As LongPtr
+    TotalCommittedBytes As LongPtr
+    TotalReservedBytes As LongPtr
+End Type
+
+Public Type HEAP_MEMORY_USAGE_INFORMATION
+    Version As Integer
+    EntryCount As LongPtr
+    Entries(0 To (ANYSIZE_ARRAY - 1)) As HEAP_MEMORY_USAGE_ENTRY
+End Type
+
+
+
+
+Public Delegate Function RTL_HEAP_DEBUGGING_INTERCEPTOR_ROUTINE (ByVal HeapHandle As LongPtr, ByVal Action As Long, ByVal StackFramesToCapture As Long, StackTrace As LongPtr) As NTSTATUS
+Public Delegate Function RTL_HEAP_LEAK_ENUMERATION_ROUTINE (ByVal Reserved As Long, ByVal HeapHandle As LongPtr, ByVal BaseAddress As LongPtr, ByVal BlockSize As LongPtr, ByVal StackTraceDepth As Long, StackTrace As LongPtr) As NTSTATUS
+Public Enum HeapDebugExtendedOptions
+    HEAP_DEBUG_EXTENDED_OPTION_NONE = &H0
+    HEAP_DEBUG_EXTENDED_OPTION_LFH_SUBSEGMENT_COMMIT = &H1
+    HEAP_DEBUG_EXTENDED_OPTION_PAD_ALLOCATIONS_WITH_HEADER_BLOCK = &H2
+    HEAP_DEBUG_EXTENDED_OPTION_VALID_MASK = &H3
+End Enum
+' #If WDL_NO_DELEGATES Then
+Public Type HEAP_DEBUGGING_INFORMATION
+    InterceptorFunction As LongPtr
+    InterceptorValue As Integer
+    ExtendedOptions As HeapDebugExtendedOptions
+    StackTraceDepth As Long
+    MinTotalBlockSize As LongPtr
+    MaxTotalBlockSize As LongPtr
+    HeapLeakEnumerationRoutine As LongPtr
+End Type
+' #Else
+' Public Type HEAP_DEBUGGING_INFORMATION
+    ' InterceptorFunction As RTL_HEAP_DEBUGGING_INTERCEPTOR_ROUTINE
+    ' InterceptorValue As Integer
+    ' ExtendedOptions As HeapDebugExtendedOptions
+    ' StackTraceDepth As Long
+    ' MinTotalBlockSize As LongPtr
+    ' MaxTotalBlockSize As LongPtr
+    ' HeapLeakEnumerationRoutine As RTL_HEAP_LEAK_ENUMERATION_ROUTINE
+' End Type
+' #End If
 
 Public Enum FINDEX_SEARCH_OPS
     FindExSearchNameMatch
@@ -16241,6 +16359,8 @@ Public Enum IMAGE_POLICY_ID
     ImagePolicyIdDeviceId
     ImagePolicyIdCapability
     ImagePolicyIdScenarioId
+    ImagePolicyIdCapabilityOverridable
+    ImagePolicyIdTrustletIdOverridable
     ImagePolicyIdMaximum
 End Enum
 
@@ -16340,6 +16460,14 @@ Public Enum RTL_FAST_FAIL
     FAST_FAIL_PATCH_CALLBACK_FAILED = 68
     FAST_FAIL_NTDLL_PATCH_FAILED = 69
     FAST_FAIL_INVALID_FLS_DATA = 70
+    FAST_FAIL_ASAN_ERROR = 71  ' Known to Asan, must retain value 71
+    FAST_FAIL_CLR_EXCEPTION_AOT = 72
+    FAST_FAIL_POINTER_AUTH_INVALID_RETURN_ADDRESS = 73
+    FAST_FAIL_INVALID_THREAD_STATE = 74
+    FAST_FAIL_CORRUPT_WOW64_STATE = 75
+    FAST_FAIL_INVALID_EXTENDED_STATE = 76
+    FAST_FAIL_KERNEL_POINTER_EXPECTED = 77
+    FAST_FAIL_INVALID_SME_STATE = 78
     FAST_FAIL_INVALID_FAST_FAIL_CODE = &HFFFFFFFF
 End Enum
 
@@ -20902,6 +21030,19 @@ End Type
 
 Public Type TOKEN_USER
     User As SID_AND_ATTRIBUTES
+End Type
+
+Public Type SE_TOKEN_USER
+    'union {
+    '    TOKEN_USER TokenUser;
+    '    SID_AND_ATTRIBUTES User;
+    '} DUMMYUNIONNAME;
+    TokenUser As TOKEN_USER
+    'union {
+    '    SID Sid;
+    '    BYTE  Buffer[SECURITY_MAX_SID_SIZE];
+    '} DUMMYUNIONNAME2;
+    Sid As SID
 End Type
 
 Public Type TOKEN_GROUPS
@@ -26722,7 +26863,20 @@ End Enum
  
 [UseGetLastError(False)] Public DeclareWide PtrSafe Function RtlIsUntrustedObject Lib "ntdll" (ByVal Handle As LongPtr, ByVal Object As LongPtr, IsUntrustedObject As CBoolean) As NTSTATUS
 Public DeclareWide PtrSafe Function RtlQueryValidationRunlevel Lib "ntdll" (ComponentName As UNICODE_STRING) As Long
+Public DeclareWide PtrSafe Sub RtlCopyLuidAndAttributesArray Lib "ntdll" (ByVal Count As Long, Src As LUID_AND_ATTRIBUTES, Dest As LUID_AND_ATTRIBUTES)
+Public DeclareWide PtrSafe Sub RtlCopyLuid Lib "ntdll" (DestinationLuid As LUID, SourceLuid As LUID)
+ 
+Public DeclareWide PtrSafe Function RtlGetCurrentTransaction Lib "ntdll" (Optional ByVal ExistingFileName As String, Optional ByVal NewFileName As String) As LongPtr
+Public DeclareWide PtrSafe Function RtlSetCurrentTransaction Lib "ntdll" (Optional ByVal TransactionHandle As LongPtr) As LOGICAL
 
+Public Declare PtrSafe Function RtlCreateMemoryBlockLookaside Lib "ntdll" (MemoryBlockLookaside As LongPtr, ByVal Flags As Long, ByVal InitialSize As Long, ByVal MinimumBlockSize As Long, ByVal MaximumBlockSize As Long) As NTSTATUS
+Public Declare PtrSafe Function RtlDestroyMemoryBlockLookaside Lib "ntdll" (ByVal MemoryBlockLookaside As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function RtlAllocateMemoryBlockLookaside Lib "ntdll" (ByVal MemoryBlockLookaside As LongPtr, ByVal BlockSize As Long, Block As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function RtlFreeMemoryBlockLookaside Lib "ntdll" (ByVal MemoryBlockLookaside As LongPtr, ByVal Block As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function RtlExtendMemoryBlockLookaside Lib "ntdll" (ByVal MemoryBlockLookaside As LongPtr, ByVal Increment As Long) As NTSTATUS
+Public Declare PtrSafe Function RtlResetMemoryBlockLookaside Lib "ntdll" (ByVal MemoryBlockLookaside As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function RtlLockMemoryBlockLookaside Lib "ntdll" (ByVal MemoryBlockLookaside As LongPtr) As NTSTATUS
+Public Declare PtrSafe Function RtlUnlockMemoryBlockLookaside Lib "ntdll" (ByVal MemoryBlockLookaside As LongPtr) As NTSTATUS
 
 [UseGetLastError(False)] Public DeclareWide PtrSafe Sub RtlFreeUnicodeString Lib "ntdll" (UnicodeString As UNICODE_STRING)
 [UseGetLastError(False)] Public DeclareWide PtrSafe Sub RtlFreeAnsiString Lib "ntdll" (AnsiString As ANSI_STRING)
@@ -26753,6 +26907,21 @@ End Sub
 [UseGetLastError(False)] Public DeclareWide PtrSafe Function RtlUnicodeStringToOemString Lib "ntdll" (DestinationString As OEM_STRING, SourceString As UNICODE_STRING, ByVal AllocateDestinationString As CBoolean) As NTSTATUS
 [UseGetLastError(False)] Public DeclareWide PtrSafe Function RtlUnicodeToMultiByteSize Lib "ntdll" (BytesInMultiByteString As Long, ByVal UnicodeString As LongPtr, ByVal BytesInUnicodeString As Long) As NTSTATUS
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlCharToInteger Lib "ntdll" (ByVal Str As String, ByVal Base As Long, Value As Long) As NTSTATUS
+
+#If WDL_RTL_BYTESWAP Or (TWINBASIC_BUILD < 992) Then
+Public Function RtlUshortByteSwap(ByVal _x As Integer) As Integer: Return _byteswap_ushort(_x): End Function
+Public Function RtlUlongByteSwap(ByVal _x As Long) As Long: Return _byteswap_ulong(_x): End Function
+Public Function RtlUlonglongByteSwap(ByVal _x As LongLong) As LongLong: Return _byteswap_uint64(_x): End Function
+#Else
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlUshortByteSwap FastCall Lib "ntdll" (ByVal Source As Integer) As Integer
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlUlongByteSwap FastCall Lib "ntdll" (ByVal Source As Long) As Long
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlUlonglongByteSwap FastCall Lib "ntdll" (ByVal Source As LongLong) As LongLong
+#End If
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlConvertUlongToLargeInteger Lib "ntdll" (ByVal UnsignedInteger As Long) As LARGE_INTEGER
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlConvertLongToLargeInteger Lib "ntdll" (ByVal SignedInteger As Long) As LARGE_INTEGER
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlEnlargedIntegerMultiply Lib "ntdll" (ByVal Multiplicand As Long, ByVal Multiplier As Long) As LARGE_INTEGER
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlEnlargedUnsignedMultiply Lib "ntdll" (ByVal Multiplicand As Long, ByVal Multiplier As Long) As LARGE_INTEGER
+
 
 [UseGetLastError(False)] Public DeclareWide PtrSafe Function RtlLoadString Lib "ntdll" (ByVal DllHandle As LongPtr, ByVal StringId As Long, ByVal StringLanguage As LongPtr, ByVal Flags As Long, ReturnString As LongPtr, ReturnStringLen As Integer, ByVal ReturnLanguageName As LongPtr, ReturnLanguageLen As Long) As NTSTATUS
 [UseGetLastError(False)] Public DeclareWide PtrSafe Sub RtlCopyUnicodeString Lib "ntdll" (DestinationString As UNICODE_STRING, SourceString As UNICODE_STRING)
@@ -26792,6 +26961,9 @@ Public Declare PtrSafe Function RtlUTF8ToUnicodeN Lib "ntdll" ( _
 
 Public Const LOGONID_CURRENT As Long = -1&
 Public Const SERVERNAME_CURRENT As LongPtr = 0
+
+
+
 
 Public Type RTL_USER_PROCESS_INFORMATION
     Length As Long
@@ -26880,6 +27052,11 @@ End Function
 Public Function EqualMemory(ByVal Source1 As LongPtr, ByVal Source2 As LongPtr, ByVal Length As LongPtr) As Boolean: Return (RtlCompareMemory(ByVal Source1, ByVal Source2, Length) = Length): End Function
 Public Function RtlEqualMemory(ByVal Source1 As LongPtr, ByVal Source2 As LongPtr, ByVal Length As LongPtr) As Boolean: Return (RtlCompareMemory(ByVal Source1, ByVal Source2, Length) = Length): End Function
 [UseGetLastError(False)] Public DeclareWide PtrSafe Function RtlIsZeroMemory Lib "ntdll" (Buffer As Any, ByVal Length As LongPtr) As CBoolean
+
+Public Function RtlEqualDeviceMemory(ByVal Source1 As LongPtr, ByVal Source2 As LongPtr, ByVal Length As LongPtr) As Boolean: Return (RtlCompareMemory(ByVal Source1, ByVal Source2, Length) = Length): End Function
+[UseGetLastError(False)] Public DeclareWide PtrSafe Function RtlCompareDeviceMemory Lib "ntdll" Alias "RtlCompareMemory" (Source1 As Any, Source2 As Any, ByVal Length As LongPtr) As LongPtr
+
+
 [Description("Returns true Windows version. Takes either OSVERSIONINFO or OSVERSIONINFOEX types (RTL_OSV... is an alias for these).")]
 [UseGetLastError(False)] Public DeclareWide PtrSafe Function RtlGetVersion Lib "ntdll" (lpVersionInformation As Any) As Long
 [UseGetLastError(False)] Public DeclareWide PtrSafe Sub RtlGetNtVersionNumbers Lib "ntdll" (Major As Long, Minor As Long, Build As Long)
@@ -26899,6 +27076,7 @@ Public Function RtlEqualMemory(ByVal Source1 As LongPtr, ByVal Source2 As LongPt
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlInterlockedPushListSListEx Lib "ntdll" (ByRef ListHead As SLIST_HEADER, ByRef List As SLIST_ENTRY, ByRef ListEnd As SLIST_ENTRY, ByVal Count As Long) As LongPtr
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlInterlockedFlushSList Lib "ntdll" (ByRef ListHead As SLIST_HEADER) As LongPtr
 [UseGetLastError(False)] Public Declare PtrSafe Function RtlQueryDepthSList Lib "ntdll" (ByRef ListHead As SLIST_HEADER) As Integer
+[UseGetLastError(False)] Public Declare PtrSafe Function RtlGetReturnAddressHijackTarget Lib "ntdll" () As LongPtr
 
 [UseGetLastError(False)] Public DeclareWide PtrSafe Function RtlAreLongPathsEnabled Lib "ntdll" () As Byte
 [UseGetLastError(False)] Public DeclareWide PtrSafe Function RtlNtStatusToDosError Lib "ntdll" (ByVal ntStatus As NTSTATUS) As Long
@@ -27031,7 +27209,10 @@ Public Delegate Function RTL_ENUM_HEAPS_ROUTINE (ByVal HeapHandle As LongPtr, By
 ' #End If
 [UseGetLastError(False)] Public DeclareWide PtrSafe Function RtlUsageHeap Lib "ntdll" (ByVal HeapHandle As LongPtr, ByVal Flags As Long, Usage As RTL_HEAP_USAGE) As NTSTATUS
 [UseGetLastError(False)] Public DeclareWide PtrSafe Function RtlWalkHeap Lib "ntdll" (ByVal HeapHandle As LongPtr, Entry As RTL_HEAP_WALK_ENTRY) As NTSTATUS
-
+Public DeclareWide PtrSafe Function RtlMultipleAllocateHeap Lib "ntdll" (ByVal HeapHandle As LongPtr, ByVal Flags As Long, ByVal Size As LongPtr, ByVal Count As Long, Array As LongPtr) As Long
+Public DeclareWide PtrSafe Function RtlMultipleFreeHeap Lib "ntdll" (ByVal HeapHandle As LongPtr, ByVal Flags As Long, ByVal Count As Long, Array As LongPtr) As Long
+[UseGetLastError(False)] Public DeclareWide PtrSafe Sub RtlDetectHeapLeaks Lib "ntdll" ()
+[UseGetLastError(False)] Public DeclareWide PtrSafe Sub RtlFlushHeaps Lib "ntdll" ()
 
 
 Public DeclareWide PtrSafe Function RtlGetActiveConsoleId Lib "ntdll" () As Long
@@ -27178,6 +27359,9 @@ Public Const UNWIND_CHAIN_LIMIT = 32
 Public Delegate Function GET_RUNTIME_FUNCTION_CALLBACK (ByVal ControlPc As LongLong, ByVal Context As LongPtr) As LongPtr
 Public Delegate Function OUT_OF_PROCESS_FUNCTION_TABLE_CALLBACK (ByVal Process As LongPtr, ByVal TableAddress As LongPtr, Entries As Long, Functions As LongPtr) As Long
 
+Public Enum VirtualUnwind2Flags
+    RTL_VIRTUAL_UNWIND2_VALIDATE_PAC = &H00000001
+End Enum
 
 #If Win64 Then
 [UseGetLastError(False)]
@@ -27196,19 +27380,35 @@ Public DeclareWide PtrSafe Function RtlFillNonVolatileMemory Lib "ntdll" (ByVal 
 Public DeclareWide PtrSafe Function RtlFlushNonVolatileMemoryRanges Lib "ntdll" (ByVal NvToken As LongPtr, NvRanges As NV_MEMORY_RANGE, ByVal NumRanges As LongPtr, ByVal Flags As RtlFlushNVMemFlags) As NTSTATUS
 #Else
 [Unimplemented, Description("Call not expected in 32-bit architecture")]
-Public DeclareWide PtrSafe Function RtlGetNonVolatileToken Lib "ntdll" (NvBuffer As Any, ByVal Size As LongPtr, NvToken As LongPtr) As NTSTATUS
+Public Function RtlGetNonVolatileToken(ByVal NvBuffer As LongPtr, ByVal Size As LongPtr, NvToken As LongPtr) As NTSTATUS
+    UNREFERENCED_PARAMETER(NvToken)
+    Return STATUS_NOT_IMPLEMENTED
+End Function
 [Unimplemented, Description("Call not expected in 32-bit architecture")]
-Public DeclareWide PtrSafe Function RtlFreeNonVolatileToken Lib "ntdll" (ByVal NvToken As LongPtr) As NTSTATUS
+Public Function RtlFreeNonVolatileToken(ByVal NvToken As LongPtr) As NTSTATUS
+    Return STATUS_NOT_IMPLEMENTED
+End Function
 [Unimplemented, Description("Call not expected in 32-bit architecture")]
-Public DeclareWide PtrSafe Function RtlFlushNonVolatileMemory Lib "ntdll" (ByVal NvToken As LongPtr, NvBuffer As Any, ByVal Size As LongPtr, ByVal Flags As RtlFlushNVMemFlags) As NTSTATUS
+Public Function RtlFlushNonVolatileMemory(ByVal NvToken As LongPtr, ByVal NvBuffer As LongPtr, ByVal Size As LongPtr, ByVal Flags As RtlFlushNVMemFlags) As NTSTATUS
+    Return STATUS_NOT_IMPLEMENTED
+End Function
 [Unimplemented, Description("Call not expected in 32-bit architecture")]
-Public DeclareWide PtrSafe Function RtlDrainNonVolatileFlush Lib "ntdll" (ByVal NvToken As LongPtr) As NTSTATUS
+Public Function RtlDrainNonVolatileFlush(ByVal NvToken As LongPtr) As NTSTATUS
+    Return STATUS_NOT_IMPLEMENTED
+End Function
 [Unimplemented, Description("Call not expected in 32-bit architecture")]
-Public DeclareWide PtrSafe Function RtlWriteNonVolatileMemory Lib "ntdll" (ByVal NvToken As LongPtr, NvDestination As Any, Source As Any, ByVal Size As LongPtr, ByVal Flags As RtlWriteNVMemFlags) As NTSTATUS
+Public Function RtlWriteNonVolatileMemory(ByVal NvToken As LongPtr, ByVal NvDestination As LongPtr, ByVal Source As LongPtr, ByVal Size As LongPtr, ByVal Flags As RtlWriteNVMemFlags) As NTSTATUS
+    Return STATUS_NOT_IMPLEMENTED
+End Function
 [Unimplemented, Description("Call not expected in 32-bit architecture")]
-Public DeclareWide PtrSafe Function RtlFillNonVolatileMemory Lib "ntdll" (ByVal NvToken As LongPtr, NvDestination As Any, ByVal Size As LongPtr, ByVal Value As Byte, ByVal Flags As RtlFillNVMemFlags) As NTSTATUS
+Public Function RtlFillNonVolatileMemory(ByVal NvToken As LongPtr, ByVal NvDestination As LongPtr, ByVal Size As LongPtr, ByVal Value As Byte, ByVal Flags As RtlFillNVMemFlags) As NTSTATUS
+    Return STATUS_NOT_IMPLEMENTED
+End Function
 [Unimplemented, Description("Call not expected in 32-bit architecture")]
-Public DeclareWide PtrSafe Function RtlFlushNonVolatileMemoryRanges Lib "ntdll" (ByVal NvToken As LongPtr, NvRanges As NV_MEMORY_RANGE, ByVal NumRanges As LongPtr, ByVal Flags As RtlFlushNVMemFlags) As NTSTATUS
+Public Function RtlFlushNonVolatileMemoryRanges(ByVal NvToken As LongPtr, NvRanges As NV_MEMORY_RANGE, ByVal NumRanges As LongPtr, ByVal Flags As RtlFlushNVMemFlags) As NTSTATUS
+    UNREFERENCED_PARAMETER(NvRanges)
+    Return STATUS_NOT_IMPLEMENTED
+End Function
 #End If
 
 [UseGetLastError(False)] Public DeclareWide PtrSafe Function RtlCrc32 Lib "ntdll" (Buffer As Any, ByVal size As LongPtr, ByVal InitialCrc As Long) As Long
@@ -27241,7 +27441,7 @@ Public DeclareWide PtrSafe Function RtlFlushNonVolatileMemoryRanges Lib "ntdll" 
 [UseGetLastError(False)] Public DeclareWide PtrSafe Sub RtlUnwind Lib "ntdll" (ByVal TargetFrame As LongPtr, ByVal TargetIp As LongPtr, ExceptionRecord As EXCEPTION_RECORD, ByVal ReturnValue As LongPtr)
 [UseGetLastError(False)] Public DeclareWide PtrSafe Sub RtlUnwindEx Lib "ntdll" (ByVal TargetFrame As LongPtr, ByVal TargetIp As LongPtr, ExceptionRecord As EXCEPTION_RECORD, ByVal ReturnValue As LongPtr, ContextRecord As CONTEXT, HistoryTable As UNWIND_HISTORY_TABLE)
 [UseGetLastError(False)] Public DeclareWide PtrSafe Function RtlVirtualUnwind Lib "ntdll" (ByVal HandlerType As Long, ByVal ImageBase As LongPtr, ByVal ControlPc As LongPtr, FunctionEntry As RUNTIME_FUNCTION, ContextRecord As CONTEXT, HandlerData As LongPtr, EstablisherFrame As LongPtr, ContextPointers As KNONVOLATILE_CONTEXT_POINTERS) As LongPtr 'PEXCEPTION_ROUTINE
-Public Declare PtrSafe Function RtlVirtualUnwind2 Lib "ntdll" (ByVal HandlerType As Long, ByVal ImageBase As LongLong, ByVal ControlPc As LongLong, ByRef FunctionEntry As RUNTIME_FUNCTION, ByRef ContextRecord As CONTEXT, ByRef MachineFrameUnwound As CBoolean, ByRef HandlerData As LongPtr, ByRef EstablisherFrame As LongLong, ByRef ContextPointers As KNONVOLATILE_CONTEXT_POINTERS, ByRef LowLimit As LongLong, ByRef HighLimit As LongLong, ByRef HandlerRoutine As LongPtr, ByVal UnwindFlags As Long) As NTSTATUS
+Public Declare PtrSafe Function RtlVirtualUnwind2 Lib "ntdll" (ByVal HandlerType As Long, ByVal ImageBase As LongLong, ByVal ControlPc As LongLong, ByRef FunctionEntry As RUNTIME_FUNCTION, ByRef ContextRecord As CONTEXT, ByRef MachineFrameUnwound As CBoolean, ByRef HandlerData As LongPtr, ByRef EstablisherFrame As LongLong, ByRef ContextPointers As KNONVOLATILE_CONTEXT_POINTERS, ByRef LowLimit As LongLong, ByRef HighLimit As LongLong, ByRef HandlerRoutine As LongPtr, ByVal UnwindFlags As VirtualUnwind2Flags) As NTSTATUS
 Public Declare PtrSafe Function RtlVirtualUnwind3 Lib "ntdll" (ByVal HandlerType As Long, ByVal ImageBase As LongLong, ByVal ControlPc As LongLong, ByRef FunctionEntry As RUNTIME_FUNCTION, ByRef ContextRecord As CONTEXT, ByRef MachineFrameUnwound As CBoolean, ByRef HandlerData As LongPtr, ByRef EstablisherFrame As LongLong, ByRef ContextPointers As KNONVOLATILE_CONTEXT_POINTERS, ByRef LowLimit As LongLong, ByRef HighLimit As LongLong, ByRef HandlerRoutine As LongPtr, ByVal UnwindFlags As Long, ByRef ResultFlags As Long) As NTSTATUS
 [UseGetLastError(False)] Public DeclareWide PtrSafe Sub RtlCaptureContext Lib "ntdll" (ContextRecord As CONTEXT)
 #If Win64 Then

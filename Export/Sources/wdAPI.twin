@@ -15085,7 +15085,7 @@ Public Type SID
 	Revision As Byte
 	SubAuthorityCount As Byte
 	IdentifierAuthority As SID_IDENTIFIER_AUTHORITY
-	SubAuthority(SID_MAX_SUB_AUTHORITIES) As Long
+	SubAuthority(0 To (SID_MAX_SUB_AUTHORITIES)) As Long
 End Type
 Public Const SID_REVISION  = (1)  ' Current revision level
 Public Const SID_MAX_SUB_AUTHORITIES  = (15)
@@ -21267,11 +21267,16 @@ Public Enum GROUP_SID_ATTRIBUTES
     SE_GROUP_VALID_ATTRIBUTES = (SE_GROUP_MANDATORY Or SE_GROUP_ENABLED_BY_DEFAULT Or SE_GROUP_ENABLED Or SE_GROUP_OWNER Or SE_GROUP_USE_FOR_DENY_ONLY Or SE_GROUP_LOGON_ID Or SE_GROUP_RESOURCE Or SE_GROUP_INTEGRITY Or SE_GROUP_INTEGRITY_ENABLED)
 End Enum
 
-Public Const ACCESS_REASON_TYPE_MASK  = &H00ff0000
-Public Const ACCESS_REASON_DATA_MASK  = &H0000ffff&
-Public Const ACCESS_REASON_STAGING_MASK  = &H80000000
-Public Const ACCESS_REASON_EXDATA_MASK  = &H7f000000
+[Description("Deprecated. Renamed to proper SDK name ACCESS_REASON.")]
 Public Enum ACCESS_REASON_TYPE
+    [_]
+End Enum
+Public Enum ACCESS_REASON
+    ACCESS_REASON_TYPE_MASK = &H00ff0000
+    ACCESS_REASON_DATA_MASK = &H0000ffff&
+    ACCESS_REASON_STAGING_MASK = &H80000000
+    ACCESS_REASON_EXDATA_MASK = &H7f000000
+    '----
     AccessReasonNone = &H00000000 ' Indicate no reason for the bit. The bit may not be checked, or just no known reason.
     ' 
     '  The lowest 2 bytes store the index of the ACE that grant/deny this bit.
@@ -21297,8 +21302,50 @@ Public Enum ACCESS_REASON_TYPE
     AccessReasonFilterAce = &H00a00000 ' The filtering ACE did not grant this access
 End Enum
 Public Type ACCESS_REASONS
-    Data(0 To 31) As ACCESS_REASON_TYPE
+    Data(0 To 31) As ACCESS_REASON
 End Type
+
+Public Enum SeSecurityDescriptorFlags
+    SE_SECURITY_DESCRIPTOR_FLAG_NO_OWNER_ACE = &H00000001
+    SE_SECURITY_DESCRIPTOR_FLAG_NO_LABEL_ACE = &H00000002
+    SE_SECURITY_DESCRIPTOR_FLAG_NO_ACCESS_FILTER_ACE = &H00000004
+    SE_SECURITY_DESCRIPTOR_VALID_FLAGS = &H00000007
+End Enum
+
+Public Enum SeAccessCheckFlags
+    SE_ACCESS_CHECK_FLAG_NO_LEARNING_MODE_LOGGING = &H00000008
+    SE_ACCESS_CHECK_VALID_FLAGS = &H00000008
+End Enum
+
+Public Type SE_SECURITY_DESCRIPTOR
+    Size As Long
+    Flags As SeSecurityDescriptorFlags
+    SecurityDescriptor As LongPtr 'PSECURITY_DESCRIPTOR
+End Type
+
+Public Type SE_ACCESS_REQUEST
+    Size As Long
+    SeSecurityDescriptor As LongPtr 'PSE_SECURITY_DESCRIPTOR
+    DesiredAccess As Long
+    PreviouslyGrantedAccess As Long
+    PrincipalSelfSid As LongPtr 'PSID ' Need to watch how this field affects the cache.
+    GenericMapping As LongPtr 'PGENERIC_MAPPING
+    ObjectTypeListCount As Long
+    ObjectTypeList As LongPtr 'POBJECT_TYPE_LIST
+End Type
+
+Public Type SE_ACCESS_REPLY
+    Size As Long
+    ResultListCount As Long ' Indicate the array size of GrantedAccess and AccessStatus, it only can be either 1 or ObjectTypeListCount.
+    GrantedAccess As LongPtr 'PACCESS_MASK
+    AccessStatus As LongPtr
+    AccessReason As LongPtr 'PACCESS_REASONS
+    Privileges As LongPtr 'PPRIVILEGE_SET
+End Type
+
+
+
+
 
 Public Enum AUDIT_EVENT_TYPE
     AuditEventObjectAccess
@@ -21452,55 +21499,57 @@ Public Enum CheckTokenMembershipExFlags
     CTMF_VALID_FLAGS = (CTMF_INCLUDE_APPCONTAINER Or CTMF_INCLUDE_LPAC)
 End Enum
 Public Enum TOKEN_INFORMATION_CLASS
-	TokenUser = 1
-	TokenGroups = 2
-	TokenPrivileges = 3
-	TokenOwner = 4
-	TokenPrimaryGroup = 5
-	TokenDefaultDacl = 6
-	TokenSource = 7
-	TokenType = 8
-	TokenImpersonationLevel = 9
-	TokenStatistics = 10
-	TokenRestrictedSids = 11
-	TokenSessionId = 12
-	TokenGroupsAndPrivileges = 13
-	TokenSessionReference = 14
-	TokenSandBoxInert = 15
-	TokenAuditPolicy = 16
-	TokenOrigin = 17
-	TokenElevationType = 18
-	TokenLinkedToken = 19
-	TokenElevation = 20
-	TokenHasRestrictions = 21
-	TokenAccessInformation = 22
-	TokenVirtualizationAllowed = 23
-	TokenVirtualizationEnabled = 24
-	TokenIntegrityLevel = 25
-	TokenUIAccess = 26
-	TokenMandatoryPolicy = 27
-	TokenLogonSid = 28
-	TokenIsAppContainer = 29
-	TokenCapabilities = 30
-	TokenAppContainerSid = 31
-	TokenAppContainerNumber = 32
-	TokenUserClaimAttributes = 33
-	TokenDeviceClaimAttributes = 34
-	TokenRestrictedUserClaimAttributes = 35
-	TokenRestrictedDeviceClaimAttributes = 36
-	TokenDeviceGroups = 37
-	TokenRestrictedDeviceGroups = 38
-	TokenSecurityAttributes = 39
-	TokenIsRestricted = 40
-	TokenProcessTrustLevel = 41
-	TokenPrivateNameSpace = 42
-	TokenSingletonAttributes = 43
-	TokenBnoIsolation = 44
-	TokenChildProcessFlags = 45
-	TokenIsLessPrivilegedAppContainer = 46
-	TokenIsSandboxed = 47
-	TokenIsAppSilo = 48
-	MaxTokenInfoClass = 49
+    TokenUser = 1
+    TokenGroups
+    TokenPrivileges
+    TokenOwner
+    TokenPrimaryGroup
+    TokenDefaultDacl
+    TokenSource
+    TokenType
+    TokenImpersonationLevel
+    TokenStatistics
+    TokenRestrictedSids
+    TokenSessionId
+    TokenGroupsAndPrivileges
+    TokenSessionReference
+    TokenSandBoxInert
+    TokenAuditPolicy
+    TokenOrigin
+    TokenElevationType
+    TokenLinkedToken
+    TokenElevation
+    TokenHasRestrictions
+    TokenAccessInformation
+    TokenVirtualizationAllowed
+    TokenVirtualizationEnabled
+    TokenIntegrityLevel
+    TokenUIAccess
+    TokenMandatoryPolicy
+    TokenLogonSid
+    TokenIsAppContainer
+    TokenCapabilities
+    TokenAppContainerSid
+    TokenAppContainerNumber
+    TokenUserClaimAttributes
+    TokenDeviceClaimAttributes
+    TokenRestrictedUserClaimAttributes
+    TokenRestrictedDeviceClaimAttributes
+    TokenDeviceGroups
+    TokenRestrictedDeviceGroups
+    TokenSecurityAttributes
+    TokenIsRestricted
+    TokenProcessTrustLevel
+    TokenPrivateNameSpace
+    TokenSingletonAttributes
+    TokenBnoIsolation
+    TokenChildProcessFlags
+    TokenIsLessPrivilegedAppContainer
+    TokenIsSandboxed
+    TokenIsAppSilo
+    TokenLoggingInformation
+    TokenLearningMode
+    MaxTokenInfoClass  ' MaxTokenInfoClass should always be the last enum
 End Enum
 
 Public Enum TOKEN_FLAGS
@@ -45022,6 +45071,8 @@ Public Type HIBERFILE_BUCKET
     PhysicalMemoryPercent(0 To (HIBERFILE_TYPE_MAX - 1)) As Long
 End Type
 
+Public Const BATTERY_DISCHARGE_FLAGS_EVENTCODE_MASK  = &H00000007
+Public Const BATTERY_DISCHARGE_FLAGS_ENABLE  = &H80000000
 
 Public Type SYSTEM_POWER_LEVEL
     Enable As CBoolean
@@ -45110,6 +45161,8 @@ Public Type SYSTEM_POWER_SOURCE_STATE
 End Type
 
 Public Const NUM_DISCHARGE_POLICIES = 4
+Public Const DISCHARGE_POLICY_CRITICAL  = 0
+Public Const DISCHARGE_POLICY_LOW  = 1
 
 Public Enum PowerActionPolicyFlags
     POWER_ACTION_QUERY_ALLOWED = &H00000001
@@ -45180,12 +45233,12 @@ Public Type SYSTEM_POWER_POLICY
     DischargePolicy(0 To (NUM_DISCHARGE_POLICIES - 1)) As SYSTEM_POWER_LEVEL
     ' video policies
     VideoTimeout As Long
-    VideoDimDisplay As Byte
+    VideoDimDisplay As CBoolean
     VideoReserved(0 To 2) As Long
     ' hard disk policies
     SpindownTimeout As Long
     ' processor policies
-    OptimizeForPower As Byte
+    OptimizeForPower As CBoolean
     FanThrottleTolerance As Byte
     ForcedThrottle As Byte
     MinThrottle As Byte
@@ -49946,7 +49999,7 @@ Public Declare PtrSafe Function RestoreFile Lib "fmapi.dll" (ByVal Context As Lo
 ' Public Declare PtrSafe Function RestoreFile Lib "fmapi.dll" (ByVal Context As LongPtr, RestorableFile As Any, ByVal DstFile As LongPtr, Optional ByVal Callback As FILE_RESTORE_CALLBACK, Optional ByVal ClbkArg As LongPtr) As BOOL
 ' #End If
 Public Declare PtrSafe Function SupplyDecryptionInfo Lib "fmapi.dll" (ByVal Context As LongPtr, ByVal RecoveryKeyFilePath As String, RecoveryPassword As Any, KeyPackage As Any, Optional ByVal KeyPackageSize As Long) As BOOL
-Public Declare PtrSafe Function SupplyDecryptionInfo Lib "fmapi.dll" (ByVal Context As LongPtr, ByVal RecoveryKeyFilePath As LongPtr, RecoveryPassword As Any, KeyPackage As Any, optional ByVal KeyPackageSize As Long) As BOOL
+Public Declare PtrSafe Function SupplyDecryptionInfo Lib "fmapi.dll" (ByVal Context As LongPtr, ByVal RecoveryKeyFilePath As LongPtr, RecoveryPassword As Any, KeyPackage As Any, Optional ByVal KeyPackageSize As Long) As BOOL
 
 
 'CimFs.h
