@@ -1,6 +1,9 @@
 Known omissions where a priority update neccessitated not finishing 
 before release, or waiting on feature support:
 
+
+- ALIASFIX replace when bug fixed
+
 - vswriter.h
 
 - cryptxml.h
