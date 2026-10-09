@@ -1,7 +1,7 @@
 # Windows Development Library for twinBASIC
 ## WinDevLib 
 
-**Current Version: 9.5.742 (October 3rd, 2026)**
+**Current Version: 9.5.744 (October 9th, 2026)**
 
 (c) 2022-2026 Jon Johnson (fafalone)
 
@@ -254,6 +254,14 @@ Current coverage is already quite extensive, spanning hundreds of Windows SDK he
 
  
 ### Updates
+
+**Update (v9.5.744, 09 Oct 2026):**
+- Add XPS Document interfaces (xpsdigitalsignature.h/.idl, xpsobjectmodel.h/.idl, xpsobjectmodel_1.h/.idl, xpsobjectmodel_2.h/.idl 100%)
+- Add Print Ticket APIs (prntvpt.h, 100%)
+- (Bug fix) CreateIC[W] used `DEVMODEA` instead of -W versions.
+- (Bug fix) ID2D1PrintControl didn't implement ByVal UDTs.
+- (Bug fix) Version gateincorrectly applied to ThisCall in DShow interface
+- (Internal) wdDocTarget.twin deleted and contents moved to new wdXPS.twin, as it's listed as part of XPS in the documentation.
 
 **Update (v9.5.742, 03 Oct 2026):**
 - Additional Native APIs and defs
