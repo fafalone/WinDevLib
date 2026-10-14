@@ -661,6 +661,20 @@ Public Type SFV_CREATE
     psfvcb As IShellFolderViewCB ' No callback if NULL
 End Type
 
+Public Enum SHWaitFileOpenFlags
+    SHWFF_ADD = &H01
+    SHWFF_REMOVE = &H02
+    SHWFF_WAIT = &H04
+End Enum
+
+Public Enum SHExecCmdFlags
+    SECL_NO_UI = &H2
+    SECL_LOG_USAGE = &H8
+    SECL_USE_IDLIST = &H10
+    SECL_ALLOW_NONEXE = &H20
+    SECL_RUNAS = &H40
+End Enum
+
 [Description("Adds an item ID list to shell list of recently used documents, or clears documents from the list")]
 Public Declare PtrSafe Sub SHAddToRecentDocs Lib "shell32" (ByVal uFlags As SHARD, pv As Any)
 [Description("Retrieves information about system-defined Shell icons.")]
@@ -724,6 +738,7 @@ Public Declare PtrSafe Function CDefFolderMenu_Create2 Lib "shell32" (ByVal pidl
 ' #Else
 ' Public Declare PtrSafe Function CDefFolderMenu_Create2 Lib "shell32" (ByVal pidl As LongPtr, ByVal hwnd As LongPtr, ByVal cidl As Long, apidl As LongPtr, ByVal psf As IShellFolder, ByVal pfn As DFMCallback, ByVal nKeys As Long, ahkeys As LongPtr, ppcm As IContextMenu) As Long
 ' #End If
+Public Declare PtrSafe Sub CDefFolderMenu_MergeMenu Lib "shell32" Alias "#702" (ByVal hInstance As LongPtr, ByVal uMainMerge As Long, ByVal uPopupMerge As Long, lpQcmInfo As QCMINFO)
 [Description("Creates an object that represents the Shell's default context menu implementation.")]
 Public Declare PtrSafe Function SHCreateDefaultContextMenu Lib "shell32" (pdcm As DEFCONTEXTMENU, riid As UUID, ppv As Any) As Long
 [Description("Notifies system of event that may affect the shell")]
@@ -748,12 +763,12 @@ Public Declare PtrSafe Sub SHUpdateImageW Lib "shell32" (ByVal pszHashItem As Lo
 Public DeclareWide PtrSafe Sub SHUpdateImage Lib "shell32" Alias "SHUpdateImageW" (ByVal pszHashItem As LongPtr, ByVal iIndex As Long, ByVal uFlags As GILFlags, ByVal iImageIndex As Long)
 [Description("Notifies the Shell that an image in the system image list has changed.")]
 Public DeclareWide PtrSafe Sub SHUpdateImage Lib "shell32" Alias "SHUpdateImageW" (ByVal pszHashItem As String, ByVal iIndex As Long, ByVal uFlags As GILFlags, ByVal iImageIndex As Long)
-[Description("Retrieves a system image list of the specified size.")]
+[UseGetLastError(False), Description("Retrieves a system image list of the specified size.")]
 Public Declare PtrSafe Function SHGetImageList Lib "shell32" (ByVal iImageList As SHIL, riid As UUID, ppv As Any) As Long
-[Description("Get item ID of special folder location")]
+[UseGetLastError(False), Description("Get item ID of special folder location")]
 Public Declare PtrSafe Function SHGetSpecialFolderLocation Lib "shell32" (ByVal hWnd As LongPtr, ByVal nFolder As CSIDLs, ppidl As LongPtr) As Long
 [Description("Get item ID of special folder location")]
-[PreserveSig(False)]
+[UseGetLastError(False), PreserveSig(False)]
 Public Declare PtrSafe Function SHGetSpecialFolderLocation Lib "shell32" (ByVal hWnd As LongPtr, ByVal nFolder As CSIDLs) As LongPtr
 Public Declare PtrSafe Function SHCloneSpecialIDList Lib "shell32" (ByVal hWnd As LongPtr, ByVal csidl As CSIDLs, ByVal fCreate As BOOL) As LongPtr
 Public Declare PtrSafe Function SHGetSettings Lib "Shell32" (lpsfs As SHELLFLAGSTATE, ByVal dwMask As SFS_MASK) As Long
@@ -771,6 +786,7 @@ Public Declare PtrSafe Function SHEmptyRecycleBinA Lib "shell32" (ByVal hwnd As 
 Public Declare PtrSafe Function SHEmptyRecycleBinW Lib "shell32" (ByVal hwnd As LongPtr, ByVal pszRootPath As LongPtr, ByVal dwFlags As SHERB_Flags) As Long
 Public DeclareWide PtrSafe Function SHEmptyRecycleBin Lib "shell32" Alias "SHEmptyRecycleBinW" (ByVal hwnd As LongPtr, ByVal pszRootPath As String, ByVal dwFlags As SHERB_Flags) As Long
 Public Declare PtrSafe Function SHAppBarMessage Lib "shell32" ([TypeHint(SHAppBarMessages)] ByVal dwMessage As Long, pData As APPBARDATA) As LongPtr
+
 
 [Description("The data object created by this function offers the Shell clipboard format identifier CFSTR_SHELLIDLIST. This data object also supports IDataObject::SetData calls to pick up other clipboard formats.")]
 Public Declare PtrSafe Function CIDLData_CreateFromIDArray Lib "shell32" (ByVal pidlFolder As LongPtr, ByVal cidl As Long, apidl As LongPtr, ppdtobj As IDataObject) As Long
@@ -809,11 +825,23 @@ Public Declare PtrSafe Function ILNext Lib "shell32" Alias "ILGetNext" (ByVal pi
 Public Declare PtrSafe Function ILRemoveLastID Lib "shell32" (ByVal pidl As LongPtr) As BOOL
 Public Declare PtrSafe Function ILSaveToStream Lib "shell32" (ByVal pstm As IStream, ByVal pidl As LongPtr) As Long
 Public Function ILSkip(ByVal pidl As LongPtr, ByVal cb As Long) As LongPtr: Return pidl + cb: End Function
+Public Declare PtrSafe Function ILGetDisplayName Lib "shell32" Alias "#15" (ByVal pidl As LongPtr, ByVal path As LongPtr) As BOOL
+Public Declare PtrSafe Function ILGetDisplayNameEx Lib "shell32" Alias "#186" (ByVal psf As IShellFolder, ByVal pidl As LongPtr, ByVal path As LongPtr, ByVal type As ILDispNameExFlags) As BOOL
+Public Enum ILDispNameExFlags
+    ILGDN_FORPARSING = 0
+    ILGDN_NORMAL = 1
+    ILGDN_INFOLDER = 2
+End Enum
+Public Declare PtrSafe Function ILGlobalClone Lib "shell32" Alias "#20" (ByVal pidl As LongPtr) As LongPtr
+Public Declare PtrSafe Sub ILGlobalFree Lib "shell32" Alias "#156" (ByVal pidl As LongPtr)
+ 
+Public DeclareWide PtrSafe Function DisplayNameOfW Lib "shell32" Alias "#757" (ByVal psf As IShellFolder, ByVal pidl As LongPtr, ByVal dwFlags As Long, ByVal pszBuf As String, ByVal cchBuf As Long) As Long
 Public Declare PtrSafe Function SHBindToFolderIDListParent Lib "shell32" (ByVal psfRoot As IShellFolder, ByVal pidl As LongPtr, ByRef riid As UUID, ByRef ppv As Any, ByRef ppidl As LongPtr) As Long
 Public Declare PtrSafe Function SHBindToFolderIDListParentEx Lib "shell32" (ByVal psfRoot As IShellFolder, ByVal pidl As LongPtr, ByVal ppBC As IBindCtx, ByRef riid As UUID, ByRef ppv As Any, ByRef ppidl As LongPtr) As Long
 Public Declare PtrSafe Function SHBindToParent Lib "shell32" (ByVal pidl As LongPtr, ByRef riid As UUID, ByRef ppv As Any, ByRef ppidlLast As LongPtr) As Long
 Public Declare PtrSafe Function SHGetIDListFromObject Lib "shell32" (ByVal pUnk As stdole.IUnknown, ByRef ppidl As LongPtr) As Long
 Public Declare PtrSafe Function SHGetNameFromIDList Lib "shell32" (ByVal pidl As LongPtr, ByVal sigdnName As SIGDN, ByRef ppszName As LongPtr) As Long
+[UseGetLastError(False)]
 Public Declare PtrSafe Function SHILCreateFromPath Lib "shell32" (ByVal pszPath As LongPtr, ppidl As LongPtr, rfgInOut As SFGAOF) As Long
 Public DeclareWide PtrSafe Function SHILCreateFromPath Lib "shell32" (ByVal pszPath As String, ppidl As LongPtr, rfgInOut As SFGAOF) As Long
 [Description("Converts an item ID list pointer to a file system path (cMaxPath buffer expected)")]
@@ -879,6 +907,12 @@ Public DeclareWide PtrSafe Function ShellExecute Lib "shell32" Alias "ShellExecu
 Public Declare PtrSafe Function ShellExecuteExA Lib "shell32" (ByRef pExecInfo As SHELLEXECUTEINFOA) As BOOL
 Public Declare PtrSafe Function ShellExecuteExW Lib "shell32" (ByRef pExecInfo As SHELLEXECUTEINFOW) As BOOL
 Public DeclareWide PtrSafe Function ShellExecuteEx Lib "shell32" Alias "ShellExecuteExW" (ByRef pExecInfo As SHELLEXECUTEINFO) As BOOL
+Public Declare PtrSafe Function RealShellExecuteA Lib "shell32" (ByVal hwnd As LongPtr, ByVal lpOperation As String, ByVal lpFile As String, ByVal lpParameters As String, ByVal lpDirectory As String, ByVal lpReturn As String, ByVal lpTitle As String, ByVal pReserved As LongPtr, ByVal nShowCmd As eSHOWWINDOW, Optional lphProcess As LongPtr) As LongPtr
+Public Declare PtrSafe Function RealShellExecuteW Lib "shell32" (ByVal hwnd As LongPtr, ByVal lpOperation As LongPtr, ByVal lpFile As LongPtr, ByVal lpParameters As LongPtr, ByVal lpDirectory As LongPtr, ByVal lpReturn As LongPtr, ByVal lpTitle As LongPtr, ByVal pReserved As LongPtr, ByVal nShowCmd As eSHOWWINDOW, Optional lphProcess As LongPtr) As LongPtr
+Public DeclareWide PtrSafe Function RealShellExecute Lib "shell32" Alias "RealShellExecuteW" (ByVal hwnd As LongPtr, ByVal lpOperation As String, ByVal lpFile As String, ByVal lpParameters As String, ByVal lpDirectory As String, ByVal lpReturn As String, ByVal lpTitle As String, ByVal pReserved As LongPtr, ByVal nShowCmd As eSHOWWINDOW, Optional lphProcess As LongPtr) As LongPtr
+Public Declare PtrSafe Function RealShellExecuteExA Lib "shell32" (ByVal hwnd As LongPtr, ByVal lpOperation As String, ByVal lpFile As String, ByVal lpParameters As String, ByVal lpDirectory As String, ByVal lpReturn As String, ByVal lpTitle As String, ByVal pReserved As LongPtr, ByVal nShowCmd As eSHOWWINDOW, lphProcess As LongPtr, ByVal dwFlags As Long) As LongPtr
+Public Declare PtrSafe Function RealShellExecuteExW Lib "shell32" (ByVal hwnd As LongPtr, ByVal lpOperation As LongPtr, ByVal lpFile As LongPtr, ByVal lpParameters As LongPtr, ByVal lpDirectory As LongPtr, ByVal lpReturn As LongPtr, ByVal lpTitle As LongPtr, ByVal pReserved As LongPtr, ByVal nShowCmd As eSHOWWINDOW, lphProcess As LongPtr, ByVal dwFlags As Long) As LongPtr
+Public DeclareWide PtrSafe Function RealShellExecuteEx Lib "shell32" Alias "RealShellExecuteExW" (ByVal hwnd As LongPtr, ByVal lpOperation As String, ByVal lpFile As String, ByVal lpParameters As String, ByVal lpDirectory As String, ByVal lpReturn As String, ByVal lpTitle As String, ByVal pReserved As LongPtr, ByVal nShowCmd As eSHOWWINDOW, lphProcess As LongPtr, ByVal dwFlags As Long) As LongPtr
 [Description("Opens a Control Panel item.")]
 Public Declare PtrSafe Function SHRunControlPanel Lib "shell32" Alias "#161" (ByVal lpszCommandLine As LongPtr, Optional ByVal hwndMsgParent As LongPtr) As BOOL
 [Description("Opens a Control Panel item.")]
@@ -1008,10 +1042,19 @@ Public Declare PtrSafe Function SHStartNetConnectionDialogW Lib "shell32" (ByVal
 Public DeclareWide PtrSafe Function SHStartNetConnectionDialog Lib "shell32" Alias "SHStartNetConnectionDialogW" (ByVal hwnd As LongPtr, ByVal pszRemoteName As String, ByVal dwType As NetResourceTypeValues) As Long
 Public Declare PtrSafe Function RestartDialog Lib "shell32" (ByVal hwnd As LongPtr, ByVal pszPrompt As LongPtr, ByVal dwReturn As ExitWindowsExFlags) As Long
 Public Declare PtrSafe Function RestartDialogEx Lib "shell32" (ByVal hwnd As LongPtr, ByVal pszPrompt As LongPtr, ByVal dwReturn As ExitWindowsExFlags, ByVal dwReasonCode As SystemShutdownReasons) As Long
+Public Declare PtrSafe Function LogoffWindowsDialog Lib "shell32" Alias "#54" (ByVal hwnd As LongPtr) As Long 'int
+Public Declare PtrSafe Sub ExitWindowsDialog Lib "shell32" Alias "#60" (ByVal hwnd As LongPtr)
 Public Declare PtrSafe Function PickIconDlg Lib "shell32" (ByVal hwnd As LongPtr, ByVal pszIconPath As LongPtr, ByVal cchIconPath As Long, Optional piIconIndex As Long) As Long
 Public Declare PtrSafe Function ReadCabinetState Lib "shell32" (pcs As CABINETSTATE, ByVal cLength As Long) As BOOL
 Public Declare PtrSafe Function WriteCabinetState Lib "shell32" (pcs As CABINETSTATE) As BOOL
 Public Declare PtrSafe Function IsNetDrive Lib "shell32" (ByVal iDrive As Long) As Long
+Public Declare PtrSafe Function SHFindComputer Lib "shell32" Alias "#91" (ByVal pidlRoot As LongPtr, ByVal pidlSavedSearch As LongPtr) As BOOL
+Public Declare PtrSafe Sub SHHandleDiskFull Lib "shell32" Alias "#185" (ByVal hwndOwner As LongPtr, ByVal uiDrive As Long)
+Public Declare PtrSafe Function SHOutOfMemoryMessageBox Lib "shell32" Alias "#126" (ByVal hwndOwner As LongPtr, ByVal lpCaption As String, ByVal uType As Long) As Long 'int
+[UseGetLastError(False)]
+Public Declare PtrSafe Function SHShouldShowWizards Lib "shell32" Alias "#237" (ByVal pUnknown As IUnknown) As Long
+Public Declare PtrSafe Function SHIsTempDisplayMode Lib "shell32" Alias "#724" () As BOOL
+
 [Unimplemented, Description("'ANSI version documented but never actually existed.")]
 Public Declare PtrSafe Function SHCreateFileExtractIconA Lib "shell32" (ByVal pszFile As String, ByVal dwFileAttributes As FILE_ATTRIBUTES, riid As UUID, ppv As Any) As Long
 Public Declare PtrSafe Function SHCreateFileExtractIconW Lib "shell32" (ByVal pszFile As LongPtr, ByVal dwFileAttributes As FILE_ATTRIBUTES, riid As UUID, ppv As Any) As Long
@@ -1031,7 +1074,8 @@ Public Declare PtrSafe Function SHLoadFilterFromStream Lib "shell32" Alias "#819
 Public Declare PtrSafe Function SHEnableServiceObject Lib "shell32" (rclsid As UUID, ByVal fEnable As BOOL) As Long
 Public Declare PtrSafe Function RealDriveType Lib "shell32" (ByVal iDrive As Long, ByVal fOKToHitNet As BOOL) As DriveTypes
 Public Declare PtrSafe Sub CheckDiskSpace Lib "shell32" Alias "#733" ()
-Public Declare PtrSafe Function CopyStreamUI Lib "shell32" Alias "#726" (ByVal pSrc As IStream, ByVal pDst As IStream, ByVal pDlg As IProgressDialog, ByVal ullMaxBytes As LongLong) As Long
+[UseGetLastError(False)]
+Public Declare PtrSafe Function CopyStreamUI Lib "shell32" Alias "#726" (ByVal pSrc As IStream, ByVal pDst As IStream, ByVal pProgress As IProgressDialog, Optional ByVal ullMaxBytes As LongLong) As Long
 Public Declare PtrSafe Function CopyStream Lib "shell32" (ByVal pSrc As IStream, ByVal pDst As IStream) As Long 'Calls CopyStreamUI(IStream,Istream,Null,0)
 Public DeclareWide PtrSafe Function CreateInfoTipFromItem Lib "shell32" Alias "#260" (ByVal psf As IShellFolder2, ByVal pidl As LongPtr, ByVal pText As LongPtr, riid As UUID, ppv As Any) As Long
 Public DeclareWide PtrSafe Function CreateInfoTipFromItem Lib "shell32" Alias "#260" (ByVal psf As IShellFolder2, ByVal pidl As LongPtr, ByVal pText As String, riid As UUID, ppv As Any) As Long
@@ -1160,6 +1204,7 @@ Public DeclareWide PtrSafe Function PathIsSlow Lib "shell32" Alias "PathIsSlowW"
 [Description("Deprecated. Creates a QueryCancelAutoPlay class moniker, which can then be used to register the `IQueryCancelAutoPlay` handler in the running object table (ROT). Use `CreateClassMoniker` instead. Note that the CLSID used in the call to `CreateClassMoniker` must be application-defined. Do not call `CreateClassMoniker` with a system-defined CLSID.")]
 Public Declare PtrSafe Function SHCreateQueryCancelAutoPlayMoniker Lib "shell32" (ppmoniker As IMoniker) As Long
 Public Declare PtrSafe Sub PerUserInit Lib "mydocs" ()
+Public Declare PtrSafe Function RegenerateUserEnvironment Lib "shell32" (lpEnvironment As LongPtr, ByVal bUpdateSelf As BOOL) As BOOL
 [Description("Enables asynchronous register and deregister of a thread.")]
 Public Declare PtrSafe Sub SHChangeNotifyRegisterThread Lib "shell32" (ByVal status As SCNRT_STATUS)
 [Description("SHFlushSFCache is called when the path to a special folder is changed. This ensures that the updated path stored in the registry is used rather than the cached value.")]
@@ -1170,7 +1215,9 @@ Public Declare PtrSafe Function SHAlloc Lib "shell32" (ByVal cb As LongPtr) As L
 Public Declare PtrSafe Sub SHFree Lib "shell32" (ByVal pv As LongPtr)
 [Description("Deprecated. No longer implemented after XP; will return E_NOTIMPL.")]
 Public Declare PtrSafe Function SHLoadInProc Lib "shell32" (rclsid As UUID) As Long
- 
+Public Declare PtrSafe Function SHWaitForFileToOpen Lib "shell32" Alias "#97" (ByVal pidl As LongPtr, ByVal dwFlags As SHWaitFileOpenFlags, ByVal dwTimeout As Long) As BOOL
+[UseGetLastError(False)]
+Public DeclareWide PtrSafe Function ShellExecCmdLine Lib "shell32" Alias "#265" (ByVal hwnd As LongPtr, ByVal pwszCommand As String, ByVal pwszStartDir As String, ByVal nShow As Long, ByVal pUnused As LongPtr, ByVal dwSecFlags As SHExecCmdFlags) As Long
 
 Public Declare PtrSafe Function DAD_SetDragImage Lib "shell32" (ByVal him As LongPtr, pptOffset As POINT) As BOOL
 #If WDL_NO_BYVAL_UDT = 0 Then
@@ -1302,109 +1349,109 @@ End Type
 
 
 Public Enum ShellFolderViewMessages
-' //              uMsg    wParam             lParam
-    SFVM_MERGEMENU = 1 ' -                  LPQCMINFO
-    SFVM_INVOKECOMMAND = 2 ' idCmd              -
-    SFVM_GETHELPTEXT = 3 ' idCmd,cchMax       pszText
-    SFVM_GETTOOLTIPTEXT = 4 ' idCmd,cchMax       pszText
-    SFVM_GETBUTTONINFO = 5 ' -                  LPTBINFO
-    SFVM_GETBUTTONS = 6 ' idCmdFirst,cbtnMax LPTBBUTTON
-    SFVM_INITMENUPOPUP = 7 ' idCmdFirst,nIndex  hmenu
-    'BEGIN UNDOCUMENTED
-    SFVM_SELCHANGE = 8 ' idCmdFirst,nItem   SFVM_SELCHANGE_DATA*
-    SFVM_DRAWITEM = 9 ' idCmdFirst         DRAWITEMSTRUCT*
-    SFVM_MEASUREITEM = 10 ' idCmdFirst         MEASUREITEMSTRUCT*
-    SFVM_EXITMENULOOP = 11 ' -                  -
-    SFVM_PRERELEASE = 12 ' -                  -
-    SFVM_GETCCHMAX = 13 ' LPCITEMIDLIST      pcchMax
-    'END UNDOCUMENTED
-    SFVM_FSNOTIFY = 14 ' LPCITEMIDLIST*     lEvent
-    SFVM_WINDOWCREATED = 15 ' hwnd               -
-    'BEGIN UNDOCUMENTED
-    SFVM_WINDOWDESTROY = 16 ' hwnd               -
-    SFVM_REFRESH = 17 ' BOOL fPreOrPost    -                         NB: this may be called multiple times in a row
-    SFVM_SETFOCUS = 18 ' -                  -
-    SFVM_QUERYCOPYHOOK = 20 ' -                  -
-    SFVM_NOTIFYCOPYHOOK = 21 ' -                  COPYHOOKINFO*
-    ' END UNDOCUMENTED
-    SFVM_GETDETAILSOF = 23 ' iColumn            DETAILSINFO*
-    SFVM_COLUMNCLICK = 24 ' iColumn            -
-    SFVM_QUERYFSNOTIFY = 25 ' -                  SHChangeNotifyEntry *
-    SFVM_DEFITEMCOUNT = 26 ' -                  UINT*
-    SFVM_DEFVIEWMODE = 27 ' -                  FOLDERVIEWMODE*
-    SFVM_UNMERGEMENU = 28 ' -                  hmenu
-    'BEGIN UNDOCUMENTED
-    SFVM_INSERTITEM = 29 ' pidl               -
-    SFVM_DELETEITEM = 30 ' pidl               -
-    ' END UNDOCUMENTED
-    SFVM_UPDATESTATUSBAR = 31 ' fInitialize        -
-    SFVM_BACKGROUNDENUM = 32 ' -                  -
-    ' BEGIN UNDOCUMENTED
-    SFVM_GETWORKINGDIR = 33 ' uMax               pszDir
-    SFVM_GETCOLSAVESTREAM = 34 ' flags              IStream **
-    SFVM_SELECTALL = 35 ' -                  -
-    'END UNDOCUMENTED
-    SFVM_DIDDRAGDROP = 36 ' dwEffect           IDataObject *
-    SFVM_SUPPORTSIDENTITY = 37 ' -                  -                         // NOT USED: must support IShellFolder2
-    SFVM_FOLDERISPARENT = 38 ' -                  pidlChild
-    ' END
-    SFVM_SETISFV = 39 ' -                  IShellFolderView*
-    SFVM_GETVIEWS = 40 ' SHELLVIEWID*       IEnumSFVViews **
-    SFVM_THISIDLIST = 41 ' -                  LPITMIDLIST*
-    ' UNDOCUMENTED
-    SFVM_GETITEMIDLIST = 42 ' iItem              LPITMIDLIST*
-    SFVM_SETITEMIDLIST = 43 ' iItem              LPITEMIDLIST
-    SFVM_INDEXOFITEMIDLIST = 44 ' *iItem             LPITEMIDLIST
-    SFVM_ODFINDITEM = 45 ' *iItem             NM_FINDITEM*
-    SFVM_HWNDMAIN = 46 '                    hwndMain
-    SFVM_ADDPROPERTYPAGES = 47 ' -                  SFVM_PROPPAGE_DATA *
-    SFVM_BACKGROUNDENUMDONE = 48 ' -                  -
-    SFVM_GETNOTIFY = 49 ' LPITEMIDLIST*      LONG*
-    'UNDOCUMENTED
-    SFVM_ARRANGE = 50 ' -                  lParamSort
-    SFVM_QUERYSTANDARDVIEWS = 51 ' -                  BOOL *                    // NOT USED: must use SFVM_GETVIEWDATA instead
-    SFVM_QUERYREUSEEXTVIEW = 52 ' -                  BOOL *                    // NOT USED
-    'END
-    SFVM_GETSORTDEFAULTS = 53 ' iDirection         iParamSort
-    SFVM_GETEMPTYTEXT = 54 ' cchMax             pszText
-    SFVM_GETITEMICONINDEX = 55 ' iItem              int *piIcon
-    SFVM_DONTCUSTOMIZE = 56 ' -                  BOOL *pbDontCustomize     // NOT USED
-    'END
-    SFVM_SIZE = 57 ' -                  -
-    SFVM_GETZONE = 58 ' -                  DWORD*
-    SFVM_GETPANE = 59 ' Pane ID            DWORD*
-    SFVM_ISOWNERDATA = 60 ' ISOWNERDATA        BOOL *
-    SFVM_GETODRANGEOBJECT = 61 ' iWhich             ILVRange **
-    SFVM_ODCACHEHINT = 62 ' -                  NMLVCACHEHINT *
-    SFVM_GETHELPTOPIC = 63 ' -                  SFVM_HELPTOPIC_DATA *
-    SFVM_OVERRIDEITEMCOUNT = 64 ' -                  UINT*                     // NOT USED: allowed override of actual item count for sizing calculations
-    SFVM_GETHELPTEXTW = 65 ' idCmd,cchMax       pszText - unicode
-    SFVM_GETTOOLTIPTEXTW = 66 ' idCmd,cchMax       pszText - unicode
-    SFVM_GETIPERSISTHISTORY = 67 '                    IPersistHistory **
-    'END
-    SFVM_GETANIMATION = 68 ' HINSTANCE *        WCHAR *
-    SFVM_GETHELPTEXTA = 69 ' idCmd,cchMax       pszText - ansi
-    SFVM_GETTOOLTIPTEXTA = 70 ' idCmd,cchMax       pszText - ansi
-    SFVM_GETICONOVERLAY = 71 ' iItem              int iOverlayIndex
-    SFVM_SETICONOVERLAY = 72 ' iItem              int * piOverlayIndex
-    SFVM_ALTERDROPEFFECT = 73 ' DWORD*             IDataObject*
-    SFVM_DELAYWINDOWCREATE = 74 ' HWND               - posted version of SFVM_WINDOWCREATED, no params
-    SFVM_FORCEWEBVIEW = 75 ' BOOL*              -
-    SFVM_GETVIEWINFO = 76 ' fvm.uViewMode      SFVM_VIEWINFO_DATA*          // NOT USED: shipped in Whistler Beta 1 only, remove soon
-    SFVM_GETCUSTOMVIEWINFO = 77 ' -                  SFVM_CUSTOMVIEWINFO_DATA*
-    SFVM_FOLDERSETTINGSFLAGS = 78 ' -                  DWORD * (FWF_ flags)
-    SFVM_ENUMERATEDITEMS = 79 ' UINT celt          LPCITEMIDLIST* rgpidl      // fired once at view creation, before first SFVM_GETVIEWDATA SFVM_GETDEFERREDVIEWSETTINGS
-    SFVM_GETVIEWDATA = 80 ' fvm.uViewMode      SFVM_VIEW_DATA*
-    SFVM_GETWEBVIEW_TEMPLATE = 81 ' fvm.uViewMode      SFVM_WEBVIEW_TEMPLATE_DATA*  // NOTE: going away soon
-    SFVM_GETWEBVIEWLAYOUT = 82 ' fvm.uViewMode      SFVM_WEBVIEW_LAYOUT_DATA*
-    SFVM_GETWEBVIEWCONTENT = 83 ' -                  SFVM_WEBVIEW_CONTENT_DATA*
-    SFVM_GETWEBVIEWTASKS = 84 ' -                  SFVM_WEBVIEW_TASKSECTION_DATA*
-    SFVM_GETWEBVIEWTHEME = 86 ' -                  SFVM_WEBVIEW_THEME_DATA* // HACK for Whistler, will remove when DirectUI goes DLL
-    SFVM_SORTLISTDATA = 87 ' PFNLVCOMPARE       lParamSort
-    SFVM_GETWEBVIEWBARRICADE = 88 ' -                  Element* // HACK for Whistler, will remove when DirectUI goes DLL
-    SFVM_ENUMWEBVIEWTASKS = 90 ' -                  SFVM_WEBVIEW_ENUMTASKSECTION_DATA*
-    SFVM_SETEMPTYTEXT = 91 ' -                  pszText
-    SFVM_GETDEFERREDVIEWSETTINGS = 92 ' -                  SFVM_DEFERRED_VIEW_SETTINGS* // set the default view settings
+' //              uMsg                wParam               lParam
+    SFVM_MERGEMENU = 1                  ' -                  LPQCMINFO
+    SFVM_INVOKECOMMAND = 2              ' idCmd              -
+    SFVM_GETHELPTEXT = 3                ' idCmd,cchMax       pszText
+    SFVM_GETTOOLTIPTEXT = 4             ' idCmd,cchMax       pszText
+    SFVM_GETBUTTONINFO = 5              ' -                  LPTBINFO
+    SFVM_GETBUTTONS = 6                 ' idCmdFirst,cbtnMax LPTBBUTTON
+    SFVM_INITMENUPOPUP = 7              ' idCmdFirst,nIndex  hmenu
+'BEGIN UNDOCUMENTED
+    SFVM_SELCHANGE = 8                  ' idCmdFirst,nItem   SFVM_SELCHANGE_DATA*,SFVSELECTSTATE
+    SFVM_DRAWITEM = 9                   ' idCmdFirst         DRAWITEMSTRUCT*
+    SFVM_MEASUREITEM = 10               ' idCmdFirst         MEASUREITEMSTRUCT*
+    SFVM_EXITMENULOOP = 11              ' -                  -
+    SFVM_PRERELEASE = 12                ' -                  -
+    SFVM_GETCCHMAX = 13                 ' LPCITEMIDLIST      pcchMax
+'END UNDOCUMENTED
+    SFVM_FSNOTIFY = 14                  ' LPCITEMIDLIST*     lEvent
+    SFVM_WINDOWCREATED = 15             ' hwnd               -
+'BEGIN UNDOCUMENTED
+    SFVM_WINDOWDESTROY = 16             ' hwnd               -
+    SFVM_REFRESH = 17                   ' BOOL fPreOrPost    -                         NB: this may be called multiple times in a row
+    SFVM_SETFOCUS = 18                  ' -                  -
+    SFVM_QUERYCOPYHOOK = 20             ' -                  -
+    SFVM_NOTIFYCOPYHOOK = 21            ' -                  COPYHOOKINFO*
+' END UNDOCUMENTED
+    SFVM_GETDETAILSOF = 23              ' iColumn            DETAILSINFO*
+    SFVM_COLUMNCLICK = 24               ' iColumn            -
+    SFVM_QUERYFSNOTIFY = 25             ' -                  SHChangeNotifyEntry *
+    SFVM_DEFITEMCOUNT = 26              ' -                  UINT*
+    SFVM_DEFVIEWMODE = 27               ' -                  FOLDERVIEWMODE*
+    SFVM_UNMERGEMENU = 28               ' -                  hmenu
+'BEGIN UNDOCUMENTED
+    SFVM_INSERTITEM = 29                ' pidl               -
+    SFVM_DELETEITEM = 30                ' pidl               -
+' END UNDOCUMENTED
+    SFVM_UPDATESTATUSBAR = 31           ' fInitialize        -
+    SFVM_BACKGROUNDENUM = 32            ' -                  -
+' BEGIN UNDOCUMENTED
+    SFVM_GETWORKINGDIR = 33             ' uMax               pszDir
+    SFVM_GETCOLSAVESTREAM = 34          ' flags              IStream **
+    SFVM_SELECTALL = 35                 ' -                  -
+'END UNDOCUMENTED
+    SFVM_DIDDRAGDROP = 36               ' dwEffect           IDataObject *
+    SFVM_SUPPORTSIDENTITY = 37          ' -                  -                         // NOT USED: must support IShellFolder2
+    SFVM_FOLDERISPARENT = 38            ' -                  pidlChild
+' END
+    SFVM_SETISFV = 39                   ' -                  IShellFolderView*
+    SFVM_GETVIEWS = 40                  ' SHELLVIEWID*       IEnumSFVViews **
+    SFVM_THISIDLIST = 41                ' -                  LPITMIDLIST*
+' UNDOCUMENTED
+    SFVM_GETITEMIDLIST = 42             ' iItem              LPITMIDLIST*
+    SFVM_SETITEMIDLIST = 43             ' iItem              LPITEMIDLIST
+    SFVM_INDEXOFITEMIDLIST = 44         ' *iItem             LPITEMIDLIST
+    SFVM_ODFINDITEM = 45                ' *iItem             NM_FINDITEM*
+    SFVM_HWNDMAIN = 46                  '                    hwndMain
+    SFVM_ADDPROPERTYPAGES = 47          ' -                  SFVM_PROPPAGE_DATA *
+    SFVM_BACKGROUNDENUMDONE = 48        ' -                  -
+    SFVM_GETNOTIFY = 49                 ' LPITEMIDLIST*      LONG*
+'UNDOCUMENTED
+    SFVM_ARRANGE = 50                   ' -                  lParamSort
+    SFVM_QUERYSTANDARDVIEWS = 51        ' -                  BOOL *                    // NOT USED: must use SFVM_GETVIEWDATA instead
+    SFVM_QUERYREUSEEXTVIEW = 52         ' -                  BOOL *                    // NOT USED
+'END
+    SFVM_GETSORTDEFAULTS = 53           ' iDirection         iParamSort
+    SFVM_GETEMPTYTEXT = 54              ' cchMax             pszText
+    SFVM_GETITEMICONINDEX = 55          ' iItem              int *piIcon
+    SFVM_DONTCUSTOMIZE = 56             ' -                  BOOL *pbDontCustomize     // NOT USED
+'END
+    SFVM_SIZE = 57                      ' -                  -
+    SFVM_GETZONE = 58                   ' -                  DWORD*
+    SFVM_GETPANE = 59                   ' Pane ID            DWORD*
+    SFVM_ISOWNERDATA = 60               ' ISOWNERDATA        BOOL *
+    SFVM_GETODRANGEOBJECT = 61          ' iWhich             ILVRange **
+    SFVM_ODCACHEHINT = 62               ' -                  NMLVCACHEHINT *
+    SFVM_GETHELPTOPIC = 63              ' -                  SFVM_HELPTOPIC_DATA *
+    SFVM_OVERRIDEITEMCOUNT = 64         ' -                  UINT*                     // NOT USED: allowed override of actual item count for sizing calculations
+    SFVM_GETHELPTEXTW = 65              ' idCmd,cchMax       pszText - unicode
+    SFVM_GETTOOLTIPTEXTW = 66           ' idCmd,cchMax       pszText - unicode
+    SFVM_GETIPERSISTHISTORY = 67        '                    IPersistHistory **
+'END
+    SFVM_GETANIMATION = 68              ' HINSTANCE *        WCHAR *
+    SFVM_GETHELPTEXTA = 69              ' idCmd,cchMax       pszText - ansi
+    SFVM_GETTOOLTIPTEXTA = 70           ' idCmd,cchMax       pszText - ansi
+    SFVM_GETICONOVERLAY = 71            ' iItem              int iOverlayIndex
+    SFVM_SETICONOVERLAY = 72            ' iItem              int * piOverlayIndex
+    SFVM_ALTERDROPEFFECT = 73           ' DWORD*             IDataObject*
+    SFVM_DELAYWINDOWCREATE = 74         ' HWND               - posted version of SFVM_WINDOWCREATED, no params
+    SFVM_FORCEWEBVIEW = 75              ' BOOL*              -
+    SFVM_GETVIEWINFO = 76               ' fvm.uViewMode      SFVM_VIEWINFO_DATA*          // NOT USED: shipped in Whistler Beta 1 only, remove soon
+    SFVM_GETCUSTOMVIEWINFO = 77         ' -                  SFVM_CUSTOMVIEWINFO_DATA*
+    SFVM_FOLDERSETTINGSFLAGS = 78       ' -                  DWORD * (FWF_ flags)
+    SFVM_ENUMERATEDITEMS = 79           ' UINT celt          LPCITEMIDLIST* rgpidl      // fired once at view creation, before first SFVM_GETVIEWDATA SFVM_GETDEFERREDVIEWSETTINGS
+    SFVM_GETVIEWDATA = 80               ' fvm.uViewMode      SFVM_VIEW_DATA*
+    SFVM_GETWEBVIEW_TEMPLATE = 81       ' fvm.uViewMode      SFVM_WEBVIEW_TEMPLATE_DATA*  // NOTE: going away soon
+    SFVM_GETWEBVIEWLAYOUT = 82          ' fvm.uViewMode      SFVM_WEBVIEW_LAYOUT_DATA*
+    SFVM_GETWEBVIEWCONTENT = 83         ' -                  SFVM_WEBVIEW_CONTENT_DATA*
+    SFVM_GETWEBVIEWTASKS = 84           ' -                  SFVM_WEBVIEW_TASKSECTION_DATA*
+    SFVM_GETWEBVIEWTHEME = 86           ' -                  SFVM_WEBVIEW_THEME_DATA* // HACK for Whistler, will remove when DirectUI goes DLL
+    SFVM_SORTLISTDATA = 87              ' PFNLVCOMPARE       lParamSort
+    SFVM_GETWEBVIEWBARRICADE = 88       ' -                  Element* // HACK for Whistler, will remove when DirectUI goes DLL
+    SFVM_ENUMWEBVIEWTASKS = 90          ' -                  SFVM_WEBVIEW_ENUMTASKSECTION_DATA*
+    SFVM_SETEMPTYTEXT = 91              ' -                  pszText
+    SFVM_GETDEFERREDVIEWSETTINGS = 92   ' -                  SFVM_DEFERRED_VIEW_SETTINGS* // set the default view settings
         
     SFVCB_SELECTIONCHANGED = &H0008
     SFVCB_DRAWMENUITEM = &H0009
@@ -1427,10 +1474,23 @@ Public Enum ShellFolderViewMessages
     SFVCB_GETEXTVIEWS = &H0028
 End Enum
 
+Public Type SFVCBINFO
+    dwReserved As Long
+    dwReserved2 As Long
+    pidl As LongPtr
+    lpdwUser As LongPtr
+End Type
+
 Public Type SFVM_SELCHANGE_DATA
     uOldState As Long
     uNewState As Long
     lParamItem As LongPtr
+End Type
+Public Type SFVSELECTSTATE
+    uOldState As Long
+    uNewState As Long
+    pidl As LongPtr
+    lpdwUser As LongPtr
 End Type
 
 Public Type COPYHOOKINFO
@@ -1562,7 +1622,7 @@ End Type
 [Description("Allow the application to run")] Public Const RF_OK  = &H0000
 [Description("Cancel the operation and close the dialog")] Public Const RF_CANCEL  = &H0001
 [Description("Cancel the operation, but leave the dialog open")] Public Const RF_RETRY  = &H0002
-
+Public Const RFN_VALIDATE = -510
 
 
 Public Enum SHValidateUNC_Flags
@@ -1982,29 +2042,29 @@ Public Type SHFILEINFOW   ' shfi
 End Type
 
 Public Enum SHGFI_flags
-  SHGFI_LARGEICON = &H0            ' sfi.hIcon is large icon
-  SHGFI_SMALLICON = &H1            ' sfi.hIcon is small icon
-  SHGFI_OPENICON = &H2              ' sfi.hIcon is open icon
-  SHGFI_SHELLICONSIZE = &H4      ' sfi.hIcon is shell size (not system size), rtns BOOL
-  SHGFI_PIDL = &H8                        ' pszPath is pidl, rtns BOOL
-  ' Indicates that the function should not attempt to access the file specified by pszPath.
-  ' Rather, it should act as if the file specified by pszPath exists with the file attributes
-  ' passed in dwFileAttributes. This flag cannot be combined with the SHGFI_ATTRIBUTES,
-  ' SHGFI_EXETYPE, or SHGFI_PIDL flags <---- !!!
-  SHGFI_USEFILEATTRIBUTES = &H10   ' pretend pszPath exists, rtns BOOL
-  SHGFI_ADDOVERLAYS = &H20
-  SHGFI_OVERLAYINDEX = &H40 'Return overlay index in upper 8 bits of iIcon.
-  SHGFI_ICON = &H100                    ' fills sfi.hIcon, rtns BOOL, use DestroyIcon
-  SHGFI_DISPLAYNAME = &H200    ' isf.szDisplayName is filled (SHGDN_NORMAL), rtns BOOL
-  SHGFI_TYPENAME = &H400          ' isf.szTypeName is filled, rtns BOOL
-  SHGFI_ATTRIBUTES = &H800         ' rtns IShellFolder::GetAttributesOf  SFGAO_* flags
-  SHGFI_ICONLOCATION = &H1000   ' fills sfi.szDisplayName with filename
-                                                        ' containing the icon, rtns BOOL
-  SHGFI_EXETYPE = &H2000            ' rtns two ASCII chars of exe type
-  SHGFI_SYSICONINDEX = &H4000   ' sfi.iIcon is sys il icon index, rtns hImagelist
-  SHGFI_LINKOVERLAY = &H8000&    ' add shortcut overlay to sfi.hIcon
-  SHGFI_SELECTED = &H10000        ' sfi.hIcon is selected icon
-  SHGFI_ATTR_SPECIFIED = &H20000    ' get only attributes specified in sfi.dwAttributes
+    SHGFI_LARGEICON = &H0             ' sfi.hIcon is large icon
+    SHGFI_SMALLICON = &H1             ' sfi.hIcon is small icon
+    SHGFI_OPENICON = &H2              ' sfi.hIcon is open icon
+    SHGFI_SHELLICONSIZE = &H4         ' sfi.hIcon is shell size (not system size), rtns BOOL
+    SHGFI_PIDL = &H8                  ' pszPath is pidl, rtns BOOL
+                                    ' Indicates that the function should not attempt to access the file specified by pszPath.
+                                    ' Rather, it should act as if the file specified by pszPath exists with the file attributes
+                                    ' passed in dwFileAttributes. This flag cannot be combined with the SHGFI_ATTRIBUTES,
+                                    ' SHGFI_EXETYPE, or SHGFI_PIDL flags <---- !!!
+    SHGFI_USEFILEATTRIBUTES = &H10    ' pretend pszPath exists, rtns BOOL
+    SHGFI_ADDOVERLAYS = &H20
+    SHGFI_OVERLAYINDEX = &H40         'Return overlay index in upper 8 bits of iIcon.
+    SHGFI_ICON = &H100                ' fills sfi.hIcon, rtns BOOL, use DestroyIcon
+    SHGFI_DISPLAYNAME = &H200         ' isf.szDisplayName is filled (SHGDN_NORMAL), rtns BOOL
+    SHGFI_TYPENAME = &H400            ' isf.szTypeName is filled, rtns BOOL
+    SHGFI_ATTRIBUTES = &H800          ' rtns IShellFolder::GetAttributesOf  SFGAO_* flags
+    SHGFI_ICONLOCATION = &H1000       ' fills sfi.szDisplayName with filename
+                                    ' containing the icon, rtns BOOL
+    SHGFI_EXETYPE = &H2000            ' rtns two ASCII chars of exe type
+    SHGFI_SYSICONINDEX = &H4000       ' sfi.iIcon is sys il icon index, rtns hImagelist
+    SHGFI_LINKOVERLAY = &H8000&       ' add shortcut overlay to sfi.hIcon
+    SHGFI_SELECTED = &H10000          ' sfi.hIcon is selected icon
+    SHGFI_ATTR_SPECIFIED = &H20000    ' get only attributes specified in sfi.dwAttributes
 End Enum
 
 Public Type SHCREATEPROCESSINFOW
@@ -5777,6 +5837,12 @@ Public Enum QueueStatusFlags
     QS_INPUT = (QS_MOUSE Or QS_KEY Or QS_RAWINPUT Or QS_TOUCH Or QS_POINTER)
     QS_ALLEVENTS = (QS_INPUT Or QS_POSTMESSAGE Or QS_TIMER Or QS_PAINT Or QS_HOTKEY)
     QS_ALLINPUT = (QS_INPUT Or QS_POSTMESSAGE Or QS_TIMER Or QS_PAINT Or QS_HOTKEY Or QS_SENDMESSAGE)
+    
+    'undoc
+    QS_SMRESULT = &H8000&
+    QS_EVENT = &H2000
+    QS_SYSEVENT = (QS_EVENT Or QS_SENDMESSAGE)
+    
 End Enum
 
 Public Enum PMOptions
@@ -6502,6 +6568,8 @@ Public Enum DrawFrameControlStates
 	DFCS_MENUCHECK = &H0001
 	DFCS_MENUBULLET = &H0002
 	DFCS_MENUARROWRIGHT = &H0004
+    DFCS_MENUARROWUP = &H0008
+    DFCS_MENUARROWDOWN = &H0010
 	DFCS_SCROLLUP = &H0000
 	DFCS_SCROLLDOWN = &H0001
 	DFCS_SCROLLLEFT = &H0002
@@ -6537,6 +6605,10 @@ Public Enum GetDcExFlags
 	DCX_EXCLUDEUPDATE = &H00000100
 	DCX_INTERSECTUPDATE = &H00000200
 	DCX_LOCKWINDOWUPDATE = &H00000400
+    DCX_USESTYLE = &H00010000
+    DCX_KEEPCLIPRGN = &H00040000
+    DCX_KEEPLAYOUT = &H40000000
+    DCX_PROCESSOWNED = &H80000000
 	DCX_VALIDATE = &H00200000
 End Enum
 
@@ -9395,6 +9467,8 @@ End Enum
 
 Public Const KL_NAMELENGTH = 9
 
+Public Const KL_UNLOAD  = &H20000000
+
 Public Type LASTINPUTINFO
     cbSize As Long
     dwTime As Long
@@ -9447,6 +9521,15 @@ Public Enum ExitWindowsExFlags
 	EWX_FORCEIFHUNG = &H00000010
 	EWX_QUICKRESOLVE = &H00000020
 	EWX_RESTARTAPPS = &H00000040
+    EWX_SHUTDOWN_CANCELED = &H0080 'Undocumented
+    EWX_CALLER_SYSTEM = &H0100 'Undocumented
+    EWX_CALLER_WINLOGON = &H0200 'Undocumented
+    EWX_CALLER_WINLOGON_LOGOFF = &H1000  'Undocumented ' WARNING!! Broken flag.
+'  All the range 0x0400 to 0x1000 is reserved for Winlogon.
+'  Flag 0x2000 appears to be a flag set when we call InitiateSystemShutdown* APIs (Winlogon shutdown APIs).
+'  0x4000 is also reserved.
+    EWX_NOTIFY = &H8000&
+    EWX_NONOTIFY = &H10000
 	EWX_HYBRID_SHUTDOWN = &H00400000
 	EWX_BOOTOPTIONS = &H01000000
 	EWX_ARSO = &H04000000
@@ -10304,6 +10387,8 @@ Public Enum SystemColors
     COLOR_BTNHILIGHT = COLOR_BTNHIGHLIGHT
 End Enum
 
+Public Const IDCARETTIMER  = (&Hffff)
+Public Const ID_TME_TIMER  = (&HFFFA)
 
 
 Public Enum SWP_Flags
@@ -10320,9 +10405,11 @@ Public Enum SWP_Flags
     SWP_NOOWNERZORDER = &H200
     SWP_NOREPOSITION = SWP_NOOWNERZORDER
     SWP_NOSENDCHANGING = &H400
-    
+    SWP_NOCLIENTSIZE = &H0800 'undoc
+    SWP_NOCLIENTMOVE = &H1000 'undoc
     SWP_DEFERERASE = &H2000
     SWP_ASYNCWINDOWPOS = &H4000
+    SWP_STATECHANGED = &H8000& 'undoc
 End Enum
 Public Enum WindowZOrderDefaults
     HWND_DESKTOP = 0&
@@ -10370,7 +10457,7 @@ Public Enum TPM_wFlags
     TPM_VERTICAL = &H40            ' Vert alignment matters more
     TPM_NONOTIFY = &H80           ' Don't send any notification msgs
     TPM_RETURNCMD = &H100
-
+    TPM_SYSTEM_MENU = &H200
     TPM_HORPOSANIMATION = &H400
     TPM_HORNEGANIMATION = &H800
     TPM_VERPOSANIMATION = &H1000
@@ -12949,8 +13036,8 @@ Public Declare PtrSafe Function RestoreDC Lib "gdi32" (ByVal hDC As LongPtr, ByV
 Public Declare PtrSafe Function SaveDC Lib "gdi32" (ByVal hDC As LongPtr) As Long
 Public Declare PtrSafe Function CancelDC Lib "gdi32" (ByVal hDC As LongPtr) As BOOL
 Public Declare PtrSafe Function CreateICA Lib "gdi32" (ByVal pwszDriver As String, ByVal pwszDevice As String, ByVal pszPort As String, pdm As DEVMODEA) As LongPtr
-Public Declare PtrSafe Function CreateICW Lib "gdi32" (ByVal pwszDriver As LongPtr, ByVal pwszDevice As LongPtr, ByVal pszPort As LongPtr, pdm As DEVMODEA) As LongPtr
-Public DeclareWide PtrSafe Function CreateIC Lib "gdi32" Alias "CreateICW" (ByVal pwszDriver As String, ByVal pwszDevice As String, ByVal pszPort As String, pdm As DEVMODEA) As LongPtr
+Public Declare PtrSafe Function CreateICW Lib "gdi32" (ByVal pwszDriver As LongPtr, ByVal pwszDevice As LongPtr, ByVal pszPort As LongPtr, pdm As DEVMODEW) As LongPtr
+Public DeclareWide PtrSafe Function CreateIC Lib "gdi32" Alias "CreateICW" (ByVal pwszDriver As String, ByVal pwszDevice As String, ByVal pszPort As String, pdm As DEVMODE) As LongPtr
 Public Declare PtrSafe Function SwapBuffers Lib "gdi32" (ByVal hDC As LongPtr) As BOOL
 [Description("Flushes the calling thread's current batch")]
 Public Declare PtrSafe Function GdiFlush Lib "gdi32" () As BOOL
@@ -55738,4 +55825,7 @@ Public Alias PDH_BROWSE_DLG_CONFIG_H As PDH_BROWSE_DLG_CONFIG_HW
 
 Public Alias SPLCLIENT_INFO_2 As SPLCLIENT_INFO_2_LONGHORN
 Public Alias SPLCLIENT_INFO_3 As SPLCLIENT_INFO_3_VISTA
+
+Public Alias NMRUNFILEDLG As NMRUNFILEDLGW
+Public Alias SFVCOPYHOOKINFO As COPYHOOKINFO
 #End If
