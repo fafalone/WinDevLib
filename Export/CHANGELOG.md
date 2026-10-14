@@ -1,4 +1,17 @@
 
+**Update (v9.5.745, 14 Oct 2026):**
+- LPWSTRtoStr will no longer attempt to dereference a null pointer.
+- (Bug fix) Typo in name and value of EPR_270.
+- (Bug fix) UI_PKEY_Viewable, UI_PKEY_Minimized, and UI_PKEY_QuickAccessToolbarDock values incorrect.
+
+**Update (v9.5.744, 09 Oct 2026):**
+- Add XPS Document interfaces (xpsdigitalsignature.h/.idl, xpsobjectmodel.h/.idl, xpsobjectmodel_1.h/.idl, xpsobjectmodel_2.h/.idl 100%)
+- Add Print Ticket APIs (prntvpt.h, 100%)
+- (Bug fix) CreateIC[W] used `DEVMODEA` instead of -W versions.
+- (Bug fix) ID2D1PrintControl didn't implement ByVal UDTs.
+- (Bug fix) Version gateincorrectly applied to ThisCall in DShow interface
+- (Internal) wdDocTarget.twin deleted and contents moved to new wdXPS.twin, as it's listed as part of XPS in the documentation.
+
 **Update (v9.5.742, 03 Oct 2026):**
 - Additional Native APIs and defs
 - (TEMP FIX) Comctl and propsheets had multiple aliases-of-aliases that currently break any app they're used in.
