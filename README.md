@@ -1,7 +1,7 @@
 # Windows Development Library for twinBASIC
 ## WinDevLib 
 
-**Current Version: 9.5.744 (October 9th, 2026)**
+**Current Version: 9.5.745 (October 14th, 2026)**
 
 (c) 2022-2026 Jon Johnson (fafalone)
 
@@ -254,6 +254,11 @@ Current coverage is already quite extensive, spanning hundreds of Windows SDK he
 
  
 ### Updates
+
+**Update (v9.5.745, 14 Oct 2026):**
+- LPWSTRtoStr will no longer attempt to dereference a null pointer.
+- (Bug fix) Typo in name and value of EPR_270.
+- (Bug fix) UI_PKEY_Viewable, UI_PKEY_Minimized, and UI_PKEY_QuickAccessToolbarDock values incorrect.
 
 **Update (v9.5.744, 09 Oct 2026):**
 - Add XPS Document interfaces (xpsdigitalsignature.h/.idl, xpsobjectmodel.h/.idl, xpsobjectmodel_1.h/.idl, xpsobjectmodel_2.h/.idl 100%)
