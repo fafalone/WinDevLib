@@ -1,4 +1,9 @@
 
+**Update (v9.5.746, 17 Oct 2026):**
+- Add cryptxml.h (100%)
+- Add cryptdlg.h (100%)
+- (API Standards, BREAKING CHANGE) IRichEditOle, IRichEditOleCallback, IOleInPlaceUIWindow inconsistenly used interface types vs LongPtr and inappropriately used ByVal LongPtr instead of ByRef struct.
+
 **Update (v9.5.745, 14 Oct 2026):**
 - LPWSTRtoStr will no longer attempt to dereference a null pointer.
 - (Bug fix) Typo in name and value of EPR_270.
