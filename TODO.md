@@ -3,10 +3,9 @@ before release, or waiting on feature support:
 
 
 - ALIASFIX replace when bug fixed
+ 
 
 - vswriter.h
-
-- cryptxml.h
 
 - MrmResourceIndexer.h
  -      interactioncontext.h
@@ -243,7 +242,7 @@ Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.
     emptyvc.h,emptyvc.idl,wpc.h, wpcapi.h, wpcevent.h, DhcpCSdk.h, Dhcpv6cSdk.h, tcpioctl.h,madcapcl.h,msacm.h,msacmdlg.h,pdh.h, pdhmsg.h, loadperf.h,
     WinFax.h,tapi.h,mq.h,naptypes.h,mgm.h,ras.h, rasdlg.h, rasshost.h, raseapif.h,  mprerror.h, raserror.h,IEDial.h,IEDial.idl,winineti.h,
     mprapi.h, mprapidef.h, ipxconst.h, ipxrip.h, ipxsap.h, ipxtfflt.h, ipxrtdef.h, routprot.h, RTInfo.h, stm.h,ondemandconnrouthelper.h,wnvapi.h,
-    gnssdriver.h, winsnmp.h, certbcli.h,mmreg.h,tvout.h,dhcpsapi.h,ksmedia.h,ks.h,diskguid.h,xmllite.h,xmllite.idl,
+    gnssdriver.h, winsnmp.h, certbcli.h,mmreg.h,tvout.h,dhcpsapi.h,ksmedia.h,ks.h,diskguid.h,xmllite.h,xmllite.idl,cryptxml.h,cryptdlg.h,
     xpsdigitalsignature.h, xpsdigitalsignature.idl, xpsobjectmodel.h, xpsobjectmodel.idl, xpsobjectmodel_1.h, xpsobjectmodel_1.idl, xpsobjectmodel_2.h, xpsobjectmodel_2.idl,prntvpt.h,
     mfapi.h, mfcaptureengine.h, mfcaptureengine.idl, mfcontentdecryptionmodule.h, mfcontentdecryptionmodule.idl, mfd3d12.h,mfd3d12.idl,mferror.h, 
 Coverage in the 90%+ range  winbase.h, oleidl.h, oaidl.h, ocidl.h, ocidl.idl, ,objidl.h,objidl.idl,presentation.h,ScrnSave.h
