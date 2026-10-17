@@ -1,7 +1,7 @@
 # Windows Development Library for twinBASIC
 ## WinDevLib 
 
-**Current Version: 9.5.745 (October 14th, 2026)**
+**Current Version: 9.5.746 (October 17th, 2026)**
 
 (c) 2022-2026 Jon Johnson (fafalone)
 
@@ -254,6 +254,11 @@ Current coverage is already quite extensive, spanning hundreds of Windows SDK he
 
  
 ### Updates
+
+**Update (v9.5.746, 17 Oct 2026):**
+- Add cryptxml.h (100%)
+- Add cryptdlg.h (100%)
+- (API Standards, BREAKING CHANGE) IRichEditOle, IRichEditOleCallback, IOleInPlaceUIWindow inconsistenly used interface types vs LongPtr and inappropriately used ByVal LongPtr instead of ByRef struct.
 
 **Update (v9.5.745, 14 Oct 2026):**
 - LPWSTRtoStr will no longer attempt to dereference a null pointer.
