@@ -1,4 +1,11 @@
 
+**Update (v9.5.747, 19 Oct 2026):**
+- (Breaking change) ITextDocument2Old, removed Get/Set from propget/propput names to match all other TOM interfaces.
+- (Bug fix) ITextSelection2 should inherit from ITextRange2, not ITextRange.
+- (Bug fix) ITextRange2::SetProperty signature incorrect.
+- (Bug fix) ITextStoryRanges::_NewEnum signature incorrect.
+- (Bug fix) ITextDocument2Old::GetWindow signature incorrect.
+
 **Update (v9.5.746, 17 Oct 2026):**
 - Add cryptxml.h (100%)
 - Add cryptdlg.h (100%)
