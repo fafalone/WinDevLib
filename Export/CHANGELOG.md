@@ -1,4 +1,17 @@
 
+**Update (v9.5.748, 23 Oct 2026):**
+- Add: Experimental addition of webservices.h by way of tBBlob. This is purely for testing at this point and shouldn't be considered a final version.
+- (Breaking change) IDCompositionVisual Transform and SetClip, IDCompositionVisual3 SetTransform;  don't appear to violate overload resolution rules in tB but were not using it.
+- (Bug fix) Comctl `COLORMAP` type conflicted with GDIPlus type `ColorMap`. The former has been renamed `COLORMAPcc`.
+- (Bug fix) `WDL_NO_DIRECTX` flag resulted in numerous errors from other things using DX. This flag will now also disable Kernel Streaming (KS).
+- (Bug fix) Removed duplicate aliases
+- (Bug fix) Duplicate `IP_ADAPTER_DNS_SERVER_ADDRESS` alias should be named `IP_ADAPTER_WINS_SERVER_ADDRESS`
+- (Bug fix) ITaskSettings::ExecutionTimeLimit, IPrincipal2::RequiredPrivilege incorrect/duplicate DispId
+- (Bug fix) Removed Enum AcmDriverDetails as it conflicted with Alias ACMDRIVERDETAILS; members are now consts as they're not linked.
+- (Bug fix) SFVM_CUSTOMVIEWINFO_DATA duplicate definition; these definitions differed and came from different sources; one renamed SFVM_CUSTOMVIEWINFO_DATA2.
+- (Bug fix) Failed to remove 32bit _CONTEXT type after creating Alias _CONTEXT
+
+
 **Update (v9.5.747, 19 Oct 2026):**
 - (Breaking change) ITextDocument2Old, removed Get/Set from propget/propput names to match all other TOM interfaces.
 - (Bug fix) ITextSelection2 should inherit from ITextRange2, not ITextRange.
