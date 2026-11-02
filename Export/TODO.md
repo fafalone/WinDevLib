@@ -1,6 +1,7 @@
 Known omissions where a priority update neccessitated not finishing 
 before release, or waiting on feature support:
 
+' EUS FOR EVENT_TRACE
 
 - ALIASFIX replace when bug fixed
  
@@ -245,6 +246,8 @@ Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.
     gnssdriver.h, winsnmp.h, certbcli.h,mmreg.h,tvout.h,dhcpsapi.h,ksmedia.h,ks.h,diskguid.h,xmllite.h,xmllite.idl,cryptxml.h,cryptdlg.h,
     xpsdigitalsignature.h, xpsdigitalsignature.idl, xpsobjectmodel.h, xpsobjectmodel.idl, xpsobjectmodel_1.h, xpsobjectmodel_1.idl, xpsobjectmodel_2.h, xpsobjectmodel_2.idl,prntvpt.h,
     mfapi.h, mfcaptureengine.h, mfcaptureengine.idl, mfcontentdecryptionmodule.h, mfcontentdecryptionmodule.idl, mfd3d12.h,mfd3d12.idl,mferror.h, 
+    appmodel.h,minappmodel.h
+    
 Coverage in the 90%+ range  winbase.h, oleidl.h, oaidl.h, ocidl.h, ocidl.idl, ,objidl.h,objidl.idl,presentation.h,ScrnSave.h
 
 Substantial coverage  winnt.h,immdev.h,winioctl.h,WS2spi.h,winerror.h,WindowsSearchErrors.h,windowsx.h,

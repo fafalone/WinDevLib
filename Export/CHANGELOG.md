@@ -1,4 +1,50 @@
 
+**Update (v9.5.750, 02 Nov 2026):** 
+- **NOTE** This is the first release of a major bugfix series as I have the Claude LLM hunt for mistakes. Please review the list-- some of the fixes you may have been using simple workarounds for, and some may not raise an error right away. Only wdAPIComCtl, wdGDIP, and wdETW have been reviewed so far, a lot more will be coming.
+- Add AppModel APIs (minappmodel.h, appmodel.h 100%, plus associated winerror.h consts)
+- Add missing APIs, types, constants, and macros from some fully completed features
+- (Breaking change) IMAGEDATA/ENIMAGE types were renamed from their original types with a "RichEd_" prefix for no apparent reason.
+- (API Standards, breaking change) GdipGetMetafileHeaderFrom* functions now use ByRef As MetafileHeader instead of ByVal As LongPtr
+- (Bug fix) TDICONS members used their pre-MAKEINTRESOURCEW values, this has been corrected- make sure to change if you applied the macro yourself.
+- (Bug fix) GetDateFormatEx missing argument.
+- (Bug fix) ETW_BUFFER_CALLBACK_INFORMATION LogfileHeader should be a pointer, not embedded.
+- (Bug fix) TraceEventInstance definition incorrect
+- (Bug fix) ETW_PROVIDER_TRAIT_TYPE enum values incorrect
+- (Bug fix) EtwQueryProcessHandleInfoMax, INVALID_PROCESSTRACE_HANDLE values incorrect
+- (Bug fix) TRACE_GUID_PROPERTIES.IsEnable, ITraceRelogger::SetCompressionMode should use CBoolean, not Boolean
+- (Bug fix) EtwGetTraitFromProviderTraits < should be <=
+- (Bug fix) TcpIp_TypeGroup2/4 missing member.
+- (Bug fix) GdipCreatePath2[I], IPrintDialogServices::GetCurrentPrinterName, IPrintDialogServices::GetCurrentPortName missing ByVal
+- (Bug fix) GdipGetStringFormatAlign ByVal on ByRef arg
+- (Bug fix) GdipPathIterNextMarkerPath, DrawImageAbort, GetThumbnailImageAbort, TreeView_GetImageList missing argument
+- (Bug fix) GdipAddPathClosedCurveI, GdipAddPathCurveI extra argument
+- (Bug fix) GdiplusStartupInputEx members out of order
+- (Bug fix) RedEyeCorrectionParams.areas should be a pointer, not inline RECT
+- (Bug fix) EnumerateMetafileProc, PSPCALLBACK[A,W] missing return type
+- (Bug fix) GdiplusShutdown, GdipFree incorrect return type (should be none)
+- (Bug fix) COLORMATCHTOTARGET should be named EMRCOLORMATCHTOTARGET; COLORCORRECTPALETTE should be EMRCOLORCORRECTPALETTE
+- (Bug fix) HitTestThemeBackground missing argument, missing ByVal, missing alternate for no-byval-udt.
+- (Bug fix) GetBufferedPaintBits ppbBuffer should be LongPtr for RGBQUAD**
+- (Bug fix) FlatSB_GetScrollProp, DPA_GetPtr, DTT_CALLBACK_PROC, ListView_SetColumnOrderArray, ListView_GetColumnOrderArray, Header_GetOrderArray, Header_SetOrderArray definitions incorrect for x64
+- (Bug fix) CHARFORMAT2[A,W] missing padding after szFacename (Error in SDK's C-branch, missing implicit padding from inherited base in C++ def used by dll)
+- (Bug fix) Edit_SetSel, Edit_SetHilite, Edit_Scroll, MonthCal_SetFirstDayOfWeek, ComboBox_InsertItemData should pass lParam ByVal
+- (Bug fix) DPA_AppendPtr, DPA_SortedInsertPtr arg should be passed ByVal
+- (Bug fix) Button_GetIdealSize psize should be As SIZE
+- (Bug fix) Button_GetTextMargin pmargin should be As RECT
+- (Bug fix) Button_GetNote argument order incorrect, incompatible for x64
+- (Bug fix) TreeView_GetItemRect code error
+- (Bug fix) Edit_GetText lpch should be ByRef, incorrect return type
+- (Bug fix) Edit_GetFileLine textBuffer should be ByRef
+- (Bug fix) ListView_GetGroupCount should use LVM_GETGROUPCOUNT and get count of groups, not items in a group
+- (Bug fix) TreeView_SetExtendedStyle missing argument, coding error
+- (Bug fix) ListView_GetEmptyText, PropSheet_RemovePage argument order incorrect
+- (Bug fix) H_MAX value incorrect, resulting in dozens of other constants being incorrect as well (all CBEN, TCN_FIRST and TCN_KEYDOWN through FOCUSCHANGE, UDN_FIRST/UDN_DELTAPOS)
+- (Bug fix) CFM_EFFECTS value incorrect (missing CFM_STRIKEOUT), CFM_EFFECTS2 value incorrect (missing CFM_HIDDEN). Impacted CFM_ALL, CFM_ALL2.
+- (Bug fix) CBEM_SETEXTENDEDSTYLE value incorrect (its value belongs to CBEM_SETEXSTYLE, previously missing)
+- (Bug fix) PSN_TRANSLATEACCELERATOR, PSN_QUERYINITIALFOCUS, PGK_MENU, UD_MINVAL, NMTTDISPINFOA_V1_SIZE, DTN_FIRST, DTN_LAST, MCN_FIRST, tomCharRepMax, CB_MSGMAX, LVM_GETSTRINGWIDTH values incorrect
+- (Bug fix) Name typos: BST_INDETERMINAT(E), PGF_CALCWIDT(H), TBS_NOTIFYBEFOREREMOVE (TBS_NOTIFYBEFOREMOVE)
+
+
 **Update (v9.5.748, 23 Oct 2026):**
 - Add: Experimental addition of webservices.h by way of tBBlob. This is purely for testing at this point and shouldn't be considered a final version.
 - (Breaking change) IDCompositionVisual Transform and SetClip, IDCompositionVisual3 SetTransform;  don't appear to violate overload resolution rules in tB but were not using it.
