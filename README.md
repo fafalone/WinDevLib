@@ -1,7 +1,7 @@
 # Windows Development Library for twinBASIC
 ## WinDevLib 
 
-**Current Version: 9.5.748 (October 23rd, 2026)**
+**Current Version: 9.5.750 (November 2nd, 2026)**
 
 (c) 2022-2026 Jon Johnson (fafalone)
 
