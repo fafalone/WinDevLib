@@ -51,7 +51,7 @@ Interface ITraceRelogger Extends IUnknown
     Sub CreateEventInstance(ByVal TraceStreamId As LongLong /*RELOGSTREAM_ID*/, ByVal Flags As Long, ByRef Event As ITraceEvent)
     Sub ProcessTrace()
     Sub SetOutputFilename(ByVal LogfileName As String)
-    Sub SetCompressionMode(ByVal CompressionMode As Boolean)
+    Sub SetCompressionMode(ByVal CompressionMode As CBoolean)
     Sub Cancel()
 End Interface
 
@@ -73,6 +73,13 @@ Module wdETW
     Public Const GLOBAL_LOGGER_NAMEW = "GlobalLogger"
     Public Const EVENT_LOGGER_NAMEW = "EventLog"
     Public Const DIAG_LOGGER_NAMEW = "DiagLog"
+    
+    Public Const KERNEL_LOGGER_NAMEA  = "NT Kernel Logger"
+    Public Const GLOBAL_LOGGER_NAMEA  = "GlobalLogger"
+    Public Const EVENT_LOGGER_NAMEA  = "EventLog"
+    Public Const DIAG_LOGGER_NAMEA  = "DiagLog"
+    
+    
     Public Const KERNEL_LOGGER_NAME = "NT Kernel Logger"
     Public Const GLOBAL_LOGGER_NAME = "GlobalLogger"
     Public Const EVENT_LOGGER_NAME = "EventLog"
@@ -495,8 +502,8 @@ Module wdETW
     Public Const PROCESS_TRACE_MODE_EVENT_RECORD = &H10000000
 
     Public Enum ETW_PROVIDER_TRAIT_TYPE
-        EtwProviderTraitTypeGroup  ' Provider group GUID.
-        EtwProviderTraitDecodeGuid ' Decode GUID (when different from control GUID)
+        EtwProviderTraitTypeGroup = 1  ' Provider group GUID.
+        EtwProviderTraitDecodeGuid = 2 ' Decode GUID (when different from control GUID)
         EtwProviderTraitTypeMax
     End Enum
 
@@ -764,6 +771,7 @@ Module wdETW
     Public Const SYSTEM_CPU_KW_CONFIG  As LongLong = &H0000000000000001
     Public Const SYSTEM_CPU_KW_CACHE_FLUSH  As LongLong = &H0000000000000002
     Public Const SYSTEM_CPU_KW_SPEC_CONTROL  As LongLong = &H0000000000000004
+    Public Const SYSTEM_CPU_KW_DOMAIN_CHANGE As LongLong = &H0000000000000008
     '  Keywords to be used for the System Hypervisor Provider.
     Public Const SYSTEM_HYPERVISOR_KW_PROFILE  As LongLong = &H0000000000000001
     Public Const SYSTEM_HYPERVISOR_KW_CALLOUTS  As LongLong = &H0000000000000002
@@ -787,6 +795,8 @@ Module wdETW
     Public Const SYSTEM_IO_KW_DRIVERS  As LongLong = &H0000000000000080
     Public Const SYSTEM_IO_KW_CC  As LongLong = &H0000000000000100
     Public Const SYSTEM_IO_KW_NETWORK  As LongLong = &H0000000000000200
+    Public Const SYSTEM_IO_KW_FILE_INIT As LongLong = &H0000000000000400
+    Public Const SYSTEM_IO_KW_TIMER As LongLong = &H0000000000000800
     '  Keywords to be used for the System IoFilter Provider.
     Public Const SYSTEM_IOFILTER_KW_GENERAL  As LongLong = &H0000000000000001
     Public Const SYSTEM_IOFILTER_KW_INIT  As LongLong = &H0000000000000002
@@ -855,13 +865,20 @@ Module wdETW
     Public Const SYSTEM_SCHEDULER_KW_IDEAL_PROCESSOR  As LongLong = &H0000000000000100
     Public Const SYSTEM_SCHEDULER_KW_CONTEXT_SWITCH  As LongLong = &H0000000000000200
     Public Const SYSTEM_SCHEDULER_KW_COMPACT_CSWITCH  As LongLong = &H0000000000000400
+    Public Const SYSTEM_SCHEDULER_KW_SCHEDULE_THREAD As LongLong = &H0000000000000800
+    Public Const SYSTEM_SCHEDULER_KW_READY_QUEUE As LongLong = &H0000000000001000
+    Public Const SYSTEM_SCHEDULER_KW_CPU_PARTITION As LongLong = &H0000000000002000
+    Public Const SYSTEM_SCHEDULER_KW_THREAD_FEEDBACK_READ As LongLong = &H0000000000004000
+    Public Const SYSTEM_SCHEDULER_KW_WORKLOAD_CLASS_UPDATE As LongLong = &H0000000000008000^
+    Public Const SYSTEM_SCHEDULER_KW_AUTOBOOST As LongLong = &H0000000000010000
     '  Keywords to be used for the System Syscall Provider.
     Public Const SYSTEM_SYSCALL_KW_GENERAL  As LongLong = &H0000000000000001
     '  Keywords to be used for the System Timer Provider.
     Public Const SYSTEM_TIMER_KW_GENERAL  As LongLong = &H0000000000000001
     Public Const SYSTEM_TIMER_KW_CLOCK_TIMER  As LongLong = &H0000000000000002
 
-
+    Public Const SYSTEM_MEMORY_POOL_FILTER_ID = 1
+    
     Public Enum ETW_COMPRESSION_RESUMPTION_MODE
         EtwCompressionModeRestart = 0
         EtwCompressionModeNoDisable = 1
@@ -919,6 +936,80 @@ Module wdETW
                                         '        ETW_BUFFER_CONTEXT  BufferContext;
     End Type                            '} EVENT_TRACE, *PEVENT_TRACE;
 
+    Private Type TwoLongs
+        a As Long
+        b As Long
+    End Type
+    Public Type EVENT_INSTANCE_HEADER
+        Size As Integer
+        'union {
+        '    USHORT      FieldTypeFlags;     // Indicates valid fields
+        '    struct {
+        '        UCHAR   HeaderType;         // Header type - internal use only
+        '        UCHAR   MarkerFlags;        // Marker - internal use only
+        '    } DUMMYSTRUCTNAME;
+        '} DUMMYUNIONNAME;
+        FieldTypeFlags As Integer
+        'union {
+        '    ULONG       Version;
+        '    struct {
+        '        UCHAR   Type;
+        '        UCHAR   Level;
+        '        USHORT  Version;
+        '    } Class;
+        '} DUMMYUNIONNAME2;
+        Class_Type As Byte
+        Class_Level As Byte
+        Class_Version As Integer
+        ' Version As Long
+        ThreadId As Long
+        ProcessId As Long
+        TimeStamp As LARGE_INTEGER
+        RegHandle As LongLong
+        InstanceId As Long
+        ParentInstanceId As Long
+        'union {
+        '    struct {
+        '        ULONG   KernelTime;             // Kernel Mode CPU ticks
+        '        ULONG   UserTime;               // User mode CPU ticks
+        '    } DUMMYSTRUCTNAME;
+        '    ULONG64     ProcessorTime;          // Processor Clock
+        '    struct {
+        '        ULONG   EventId;                // Event ID
+        '        ULONG   Flags;                  // Trace header Flags
+        '    } DUMMYSTRUCTNAME2;
+        '} DUMMYUNIONNAME3;
+        ProcessorTime As LongLong
+        ParentRegHandle As LongLong
+        
+        'EUS
+        Property Get KernelTime() As Long
+            Return CType(Of TwoLongs)(VarPtr(Me.ProcessorTime)).a
+        End Property
+        Property Let KernelTime(ByVal value As Long)
+            CType(Of TwoLongs)(VarPtr(Me.ProcessorTime)).a = value
+        End Property
+        Property Get UserTime() As Long
+            Return CType(Of TwoLongs)(VarPtr(Me.ProcessorTime)).b
+        End Property
+        Property Let UserTime(ByVal value As Long)
+            CType(Of TwoLongs)(VarPtr(Me.ProcessorTime)).b = value
+        End Property
+        Property Get EventId() As Long
+            Return CType(Of TwoLongs)(VarPtr(Me.ProcessorTime)).a
+        End Property
+        Property Let EventId(ByVal value As Long)
+            CType(Of TwoLongs)(VarPtr(Me.ProcessorTime)).a = value
+        End Property
+        Property Get Flags() As Long
+            Return CType(Of TwoLongs)(VarPtr(Me.ProcessorTime)).b
+        End Property
+        Property Let Flags(ByVal value As Long)
+            CType(Of TwoLongs)(VarPtr(Me.ProcessorTime)).b = value
+        End Property
+End Type
+    
+    
     Public Enum TraceDataTypes
         ETW_NULL_TYPE_VALUE = 0
         ETW_OBJECT_TYPE_VALUE = 1
@@ -975,7 +1066,7 @@ Module wdETW
         LoggerId As Long
         EnableLevel As Long
         EnableFlags As Long
-        IsEnable As Boolean
+        IsEnable As CBoolean
     End Type
 
 
@@ -1043,6 +1134,32 @@ Module wdETW
         ' ULONG ProfileSources[]; // Count indicated by ProfileSourceCount
         ' USHORT HookIds[]; // Count indicated by HookIdCount
     End Type
+    
+    Public Enum ETW_CONTEXT_REGISTER_TYPES
+        EtwContextRegisterTypeNone = 0
+        EtwContextRegisterTypeControl = &H1
+        EtwContextRegisterTypeInteger = &H2
+    End Enum
+    
+    Public Const TRACE_LBR_EVENT_OPCODE  = &H20
+    Public Const TRACE_LBR_MAXIMUM_EVENTS  = 4
+    
+    Public Enum TRACE_LBR_CONFIGURATION
+        TRACE_LBR_CONFIGURATION_NONE = &H0                     ' do not exclude any branches
+        TRACE_LBR_CONFIGURATION_EXCLUDE_KERNEL = &H1           ' exclude branches in kernel privilege
+        TRACE_LBR_CONFIGURATION_EXCLUDE_USER = &H2             ' exclude branches in user privilege
+        TRACE_LBR_CONFIGURATION_EXCLUDE_JCC = &H4              ' exclude conditional branches
+        TRACE_LBR_CONFIGURATION_EXCLUDE_NEAR_REL_CALL = &H8    ' exclude near relative calls
+        TRACE_LBR_CONFIGURATION_EXCLUDE_NEAR_IND_CALL = &H10   ' exclude near indirect calls
+        TRACE_LBR_CONFIGURATION_EXCLUDE_NEAR_RET = &H20        ' exclude near returns
+        TRACE_LBR_CONFIGURATION_EXCLUDE_NEAR_IND_JMP = &H40    ' exclude near indirect jumps
+        TRACE_LBR_CONFIGURATION_EXCLUDE_NEAR_REL_JMP = &H80    ' exclude near relative jumps
+        TRACE_LBR_CONFIGURATION_EXCLUDE_FAR_BRANCH = &H100     ' exclude far ("other") branches
+        TRACE_LBR_CONFIGURATION_CALLSTACK_ENABLE = &H200       ' record branches in callstack (LIFO) mode
+        TRACE_LBR_CONFIGURATION_SAMPLED = &H400                ' record sample-based LBR (ARM64 only)
+    End Enum
+    
+    
 
     Public Type ETW_BUFFER_HEADER
         Reserved1(0 To 3) As Long
@@ -1056,7 +1173,7 @@ Module wdETW
 
     Public Type ETW_BUFFER_CALLBACK_INFORMATION
         TraceHandle As LongLong
-        LogfileHeader As TRACE_LOGFILE_HEADER
+        LogfileHeader As LongPtr 'TRACE_LOGFILE_HEADER *
         BuffersRead As Long
     End Type
 
@@ -1185,6 +1302,94 @@ Module wdETW
         'lhpad(0 To 3) As Byte
     End Type  '272 bytes, qword-aligned         '} TRACE_LOGFILE_HEADER, *PTRACE_LOGFILE_HEADER;
 
+    Public Type TRACE_LOGFILE_HEADER32           'typedef struct _TRACE_LOGFILE_HEADER {
+        BufferSize As Long                      '    ULONG           BufferSize;         // Logger buffer size in Kbytes
+                                                '    union {
+        Version As Long                         '        ULONG       Version;            // Logger version
+                                                '        struct {
+                                                '            UCHAR   MajorVersion;
+                                                '            UCHAR   MinorVersion;
+                                                '            UCHAR   SubVersion;
+                                                '            UCHAR   SubMinorVersion;
+                                                '        } VersionDetail;
+                                                '    } DUMMYUNIONNAME;
+        ProviderVersion As Long                 '    ULONG           ProviderVersion;    // defaults to NT version
+        NumberOfProcessors As Long              '    ULONG           NumberOfProcessors; // Number of Processors
+        EndTime As LARGE_INTEGER                '    LARGE_INTEGER   EndTime;            // Time when logger stops
+        TimerResolution As Long                 '    ULONG           TimerResolution;    // assumes timer is constant!!!
+        MaximumFileSize As Long                 '    ULONG           MaximumFileSize;    // Maximum in Mbytes
+        LogFileMode As LoggerModeFlags          '    ULONG           LogFileMode;        // specify logfile mode
+        BuffersWritten As Long                  '    ULONG           BuffersWritten;     // used to file start of Circular File
+                                                '    union {
+                                                '        GUID LogInstanceGuid;           // For RealTime Buffer Delivery
+                                                '        struct {
+        StartBuffers As Long                    '            ULONG   StartBuffers;       // Count of buffers written at start.
+        PointerSize As Long                     '            ULONG   PointerSize;        // Size of pointer type in bits
+        EventsLost As Long                      '            ULONG   EventsLost;         // Events lost during log session
+        CpuSpeedInMhz As Long                   '            ULONG   CpuSpeedInMHz;      // Cpu Speed in MHz
+                                                '        } DUMMYSTRUCTNAME;
+                                                '    } DUMMYUNIONNAME2;
+                                                '#if defined(_WMIKM_)
+                                                '    PWCHAR          LoggerName;
+                                                '    PWCHAR          LogFileName;
+                                                '    RTL_TIME_ZONE_INFORMATION TimeZone;
+                                                '#Else
+        LoggerName As Long                      '    LPWSTR          LoggerName;
+        LogFileName As Long   '72               '    LPWSTR          LogFileName;
+        TimeZone As TIME_ZONE_INFORMATION '172  '    TIME_ZONE_INFORMATION TimeZone;
+        'tzpadding(0 To 3) As Byte               '#End If
+        BootTime As LARGE_INTEGER               '    LARGE_INTEGER   BootTime;
+        PerfFreq As LARGE_INTEGER               '    LARGE_INTEGER   PerfFreq;           // Reserved
+        starttime As LARGE_INTEGER              '    LARGE_INTEGER   StartTime;          // Reserved
+        ReservedFlags As Long                   '    ULONG           ReservedFlags;      // ClockType
+        BuffersLost As Long                     '    ULONG           BuffersLost;
+        'lhpad(0 To 3) As Byte
+    End Type  '272 bytes, qword-aligned         '} TRACE_LOGFILE_HEADER, *PTRACE_LOGFILE_HEADER;
+    
+    Public Type TRACE_LOGFILE_HEADER64           'typedef struct _TRACE_LOGFILE_HEADER {
+        BufferSize As Long                      '    ULONG           BufferSize;         // Logger buffer size in Kbytes
+                                                '    union {
+        Version As Long                         '        ULONG       Version;            // Logger version
+                                                '        struct {
+                                                '            UCHAR   MajorVersion;
+                                                '            UCHAR   MinorVersion;
+                                                '            UCHAR   SubVersion;
+                                                '            UCHAR   SubMinorVersion;
+                                                '        } VersionDetail;
+                                                '    } DUMMYUNIONNAME;
+        ProviderVersion As Long                 '    ULONG           ProviderVersion;    // defaults to NT version
+        NumberOfProcessors As Long              '    ULONG           NumberOfProcessors; // Number of Processors
+        EndTime As LARGE_INTEGER                '    LARGE_INTEGER   EndTime;            // Time when logger stops
+        TimerResolution As Long                 '    ULONG           TimerResolution;    // assumes timer is constant!!!
+        MaximumFileSize As Long                 '    ULONG           MaximumFileSize;    // Maximum in Mbytes
+        LogFileMode As LoggerModeFlags          '    ULONG           LogFileMode;        // specify logfile mode
+        BuffersWritten As Long                  '    ULONG           BuffersWritten;     // used to file start of Circular File
+                                                '    union {
+                                                '        GUID LogInstanceGuid;           // For RealTime Buffer Delivery
+                                                '        struct {
+        StartBuffers As Long                    '            ULONG   StartBuffers;       // Count of buffers written at start.
+        PointerSize As Long                     '            ULONG   PointerSize;        // Size of pointer type in bits
+        EventsLost As Long                      '            ULONG   EventsLost;         // Events lost during log session
+        CpuSpeedInMhz As Long                   '            ULONG   CpuSpeedInMHz;      // Cpu Speed in MHz
+                                                '        } DUMMYSTRUCTNAME;
+                                                '    } DUMMYUNIONNAME2;
+                                                '#if defined(_WMIKM_)
+                                                '    PWCHAR          LoggerName;
+                                                '    PWCHAR          LogFileName;
+                                                '    RTL_TIME_ZONE_INFORMATION TimeZone;
+                                                '#Else
+        LoggerName As LongLong                  '    LPWSTR          LoggerName;
+        LogFileName As LongLong   '72           '    LPWSTR          LogFileName;
+        TimeZone As TIME_ZONE_INFORMATION '172  '    TIME_ZONE_INFORMATION TimeZone;
+        'tzpadding(0 To 3) As Byte               '#End If
+        BootTime As LARGE_INTEGER               '    LARGE_INTEGER   BootTime;
+        PerfFreq As LARGE_INTEGER               '    LARGE_INTEGER   PerfFreq;           // Reserved
+        starttime As LARGE_INTEGER              '    LARGE_INTEGER   StartTime;          // Reserved
+        ReservedFlags As Long                   '    ULONG           ReservedFlags;      // ClockType
+        BuffersLost As Long                     '    ULONG           BuffersLost;
+        'lhpad(0 To 3) As Byte
+    End Type  '272 bytes, qword-aligned         '} TRACE_LOGFILE_HEADER, *PTRACE_LOGFILE_HEADER;
+    
     ' Public Type EVENT_TRACE_LOGFILEA            'typedef struct _EVENT_TRACE_LOGFILEA {
     '     LogFileName As String                   '  LPSTR                        LogFileName;
     '     LoggerName As String                    '  LPSTR                        LoggerName;
@@ -1633,6 +1838,17 @@ Module wdETW
         '                      exist in the ProfileSources array and HookIds arrays, respectively.
         ' 
         TracePmcSessionInformation = 27
+        
+        '
+        ' TraceContextRegisterInfo:
+        ' - TraceSetInformation.
+        '      Turns on context register tracing for the specified System Trace Provider events for the specified logger.
+        '      It also turns off context register tracing for all kernel events not on this list, regardless of prior status.
+        '
+        '      Input Format: A TRACE_CONTEXT_REGISTER_INFO structure, followed by an array of up to
+        '                    ETW_MAX_CONTEXT_REGISTER_EVENTS number of CLASSIC_EVENT_ID structures.
+        '
+        TraceContextRegisterInfo = 28
         MaxTraceSetInfoClass
     End Enum
     Public Type CLASSIC_EVENT_ID
@@ -1871,21 +2087,25 @@ Module wdETW
     '    The maximum number of event IDs in an event ID or stackwalk filter.
     '    Used with EVENT_FILTER_DESCRIPTOR of type EVENT_FILTER_TYPE_EVENT_ID or
     '    EVENT_FILTER_TYPE_STACKWALK. */
+    '    Used with EVENT_FILTER_DESCRIPTOR of type EVENT_FILTER_TYPE_EVENT_ID or
+    '    EVENT_FILTER_TYPE_STACKWALK. */
+    
     Public Enum EventFilterType
         EVENT_FILTER_TYPE_NONE = (&H0)
-        EVENT_FILTER_TYPE_SCHEMATIZED = (&H80000000)   ' Provider-side.
-        EVENT_FILTER_TYPE_SYSTEM_FLAGS = (&H80000001)   ' Internal use only.
-        EVENT_FILTER_TYPE_TRACEHANDLE = (&H80000002)   ' Initiate rundown.
-        EVENT_FILTER_TYPE_PID = (&H80000004)   ' Process ID.
-        EVENT_FILTER_TYPE_EXECUTABLE_NAME = (&H80000008)   ' EXE file name.
-        EVENT_FILTER_TYPE_PACKAGE_ID = (&H80000010)   ' Package ID.
-        EVENT_FILTER_TYPE_PACKAGE_APP_ID = (&H80000020)   ' Package Relative App Id (PRAID).
-        EVENT_FILTER_TYPE_PAYLOAD = (&H80000100)   ' TDH payload filter.
-        EVENT_FILTER_TYPE_EVENT_ID = (&H80000200)   ' Event IDs.
-        EVENT_FILTER_TYPE_EVENT_NAME = (&H80000400)   ' Event name (TraceLogging only).
-        EVENT_FILTER_TYPE_STACKWALK = (&H80001000)   ' Event IDs for stack.
-        EVENT_FILTER_TYPE_STACKWALK_NAME = (&H80002000)   ' Event name for stack (TraceLogging only).
-        EVENT_FILTER_TYPE_STACKWALK_LEVEL_KW = (&H80004000)   ' Filter stack collection by level and keyword.
+        EVENT_FILTER_TYPE_SCHEMATIZED = (&H80000000)        ' Provider-side.
+        EVENT_FILTER_TYPE_SYSTEM_FLAGS = (&H80000001)       ' Internal use only.
+        EVENT_FILTER_TYPE_TRACEHANDLE = (&H80000002)        ' Initiate rundown.
+        EVENT_FILTER_TYPE_PID = (&H80000004)                ' Process ID.
+        EVENT_FILTER_TYPE_EXECUTABLE_NAME = (&H80000008)    ' EXE file name.
+        EVENT_FILTER_TYPE_PACKAGE_ID = (&H80000010)         ' Package ID.
+        EVENT_FILTER_TYPE_PACKAGE_APP_ID = (&H80000020)     ' Package Relative App Id (PRAID).
+        EVENT_FILTER_TYPE_PAYLOAD = (&H80000100)            ' TDH payload filter.
+        EVENT_FILTER_TYPE_EVENT_ID = (&H80000200)           ' Event IDs.
+        EVENT_FILTER_TYPE_EVENT_NAME = (&H80000400)         ' Event name (TraceLogging only).
+        EVENT_FILTER_TYPE_STACKWALK = (&H80001000)          ' Event IDs for stack.
+        EVENT_FILTER_TYPE_STACKWALK_NAME = (&H80002000)     ' Event name for stack (TraceLogging only).
+        EVENT_FILTER_TYPE_STACKWALK_LEVEL_KW = (&H80004000) ' Filter stack collection by level and keyword.
+        EVENT_FILTER_TYPE_CONTAINER = (&H80008000)          ' Filter by Container ID.
     End Enum
     
     Public Enum ETWEventDataDescriptorTypes
@@ -2029,7 +2249,11 @@ Module wdETW
     Public Declare PtrSafe Function EtwEventActivityIdControl Lib "ntdll" (ByVal ControlCode As Long, ActivityId As UUID) As Long
     
     Public Sub EventDataDescCreate(EventDataDescriptor As EVENT_DATA_DESCRIPTOR, ByVal DataPtr As LongPtr, ByVal DataSize As Long)
-        EventDataDescriptor.Ptr = DataPtr
+        #If Win64 = 0 Then
+            EventDataDescriptor.Ptr = DataPtr And &H00000000FFFFFFFF^
+        #Else
+            EventDataDescriptor.Ptr = DataPtr
+        #End If
         EventDataDescriptor.Size = DataSize
         EventDataDescriptor.Type = 0 ' Reserved MUST be initialized.
         EventDataDescriptor.Reserved1 = 0 ' Reserved MUST be initialized.
@@ -2113,7 +2337,7 @@ Module wdETW
         EtwQueryPartitionInformationV2 = 2
         EtwQueryLastDroppedTimes = 3
         EtwQueryLogFileHeader = 4
-        EtwQueryProcessHandleInfoMax = 2
+        EtwQueryProcessHandleInfoMax
     End Enum
     Public Type ETW_TRACE_PARTITION_INFORMATION
         PartitionId As UUID
@@ -2136,7 +2360,16 @@ Module wdETW
         EventSecurityMax = 4
     End Enum
 
-
+    Public Type MOF_FIELD
+        DataPtr As LongLong ' Pointer to the field. Up to 64-bits only
+        Length As Long      ' Length of the MOF field
+        DataType As Long    ' Type of data
+    End Type
+    
+    Public Type TRACE_CONTEXT_REGISTER_INFO
+        RegisterTypes As ETW_CONTEXT_REGISTER_TYPES
+        Reserved As Long
+    End Type
 
     ' typedef ULONG (
     ' #ifndef MIDL_PASS
@@ -2200,6 +2433,9 @@ Module wdETW
     Public Declare PtrSafe Function EnableTraceEx2 Lib "advapi32" (ByVal TraceHandle As LongLong, ProviderId As UUID, ByVal ControlCode As EventControlCodes, _
                                 ByVal Level As Byte, ByVal MatchAnyKeyWord As LongLong, ByVal MatchAllKeyword As LongLong, _
                                 ByVal TimeOut As Long, EnableParameters As ENABLE_TRACE_PARAMETERS) As Long
+    [UseGetLastError(False)]
+    Public Declare PtrSafe Function EnumerateTraceGuids Lib "advapi32" (GuidPropertiesArray As LongPtr, ByVal PropertyArrayCount As Long, GuidCount As Long) As Long
+    [UseGetLastError(False)]
     Public Declare PtrSafe Function EnumerateTraceGuidsEx Lib "advapi32" (ByVal TraceQueryInfoClass As TRACE_QUERY_INFO_CLASS, InBuffer As Any, ByVal InBufferSize As Long, OutBuffer As Any, ByVal OutBufferSize As Long, ReturnLength As Long) As Long
     [UseGetLastError(False)]
     Public Declare PtrSafe Function TraceSetInformation Lib "advapi32" (ByVal SessionHandle As LongLong, ByVal InformationClass As TRACE_QUERY_INFO_CLASS, TraceInformation As Any, ByVal InformationLength As Long) As Long
@@ -2210,7 +2446,7 @@ Module wdETW
     [UseGetLastError(False)]
     Public Declare PtrSafe Function TraceEvent Lib "advapi32" (ByVal TraceHandle As LongLong, EventTrace As EVENT_TRACE_HEADER) As Long
     [UseGetLastError(False)]
-    Public Declare PtrSafe Function TraceEventInstance Lib "advapi32" (ByVal TraceHandle As LongLong, EventTrace As EVENT_TRACE_HEADER, InstInfo As EVENT_INSTANCE_INFO, ParentInstInfo As EVENT_INSTANCE_INFO) As Long
+    Public Declare PtrSafe Function TraceEventInstance Lib "advapi32" (ByVal TraceHandle As LongLong, EventTrace As EVENT_INSTANCE_HEADER, InstInfo As EVENT_INSTANCE_INFO, ParentInstInfo As EVENT_INSTANCE_INFO) As Long
     ' #If WDL_NO_DELEGATES Then
     [UseGetLastError(False)]
     Public Declare PtrSafe Function RegisterTraceGuidsA Lib "advapi32" (ByVal RequestAddress As LongPtr, ByVal RequestContext As LongPtr, ControlGuid As UUID, ByVal GuidCount As Long, TraceGuidReg As TRACE_GUID_REGISTRATION, ByVal MofImagePath As String, ByVal MofResourceName As String, RegistrationHandle As LongLong) As Long
@@ -2262,8 +2498,12 @@ Module wdETW
     Public Declare PtrSafe Function EventAccessQuery Lib "advapi32" (Guid As UUID, Buffer As SECURITY_DESCRIPTOR, BufferSize As Long) As Long
     Public Declare PtrSafe Function EventAccessRemove Lib "advapi32" (Guid As UUID) As Long
 
+    #If Win64 Then
     Public Const INVALID_PROCESSTRACE_HANDLE As LongLong = -1
-
+    #Else
+    Public Const INVALID_PROCESSTRACE_HANDLE As LongLong = &H00000000FFFFFFFF^
+    #End If
+    
     Public Function GetEventProcessorIndex(EventRecord As EVENT_RECORD) As Long
         If ((EventRecord.EventHeader.Flags And EVENT_HEADER_FLAG_PROCESSOR_INDEX) <> 0) Then
             Dim ProcessorIndex As Integer
@@ -2290,7 +2530,7 @@ Module wdETW
         Ptr += lstrlenA(ByVal Ptr)
         Ptr += 1
     
-        Do While (Ptr < PtrEnd)
+        Do While (Ptr <= PtrEnd)
             Dim TraitByteCount As Integer
             CopyMemory TraitByteCount, ByVal Ptr, 2
             If TraitByteCount < 3 Then Exit Do
@@ -3327,6 +3567,12 @@ Module wdETW
      If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H4f061568, CInt(&He215), CInt(&H499f), &Hab, &H2e, &Hed, &Ha0, &Hae, &H89, &H0a, &H5b)
      SystemTimerProviderGuid = iid
     End Function
+    Public Function LastBranchRecordProviderGuid() As UUID
+    '{99134383-5248-43fc-834b-529454e75df3}
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H99134383, CInt(&H5248), CInt(&H43fc), &H83, &H4b, &H52, &H94, &H54, &He7, &H5d, &Hf3)
+     LastBranchRecordProviderGuid = iid
+    End Function
     Public Function SystemConfigGuid() As UUID
     '{01853a65-418f-4f36-aefc-dc0f1d2fd235}
     Static iid As UUID
@@ -3706,6 +3952,7 @@ Module wdETW
        wsopt As Integer
        rcvwin As Long
        rcvwinscale As Integer
+       sndwinscale As Integer
        seqnum As Long
        connid As LongPtr
    End Type
@@ -3734,6 +3981,7 @@ Module wdETW
        wsopt As Integer
        rcvwin As Long
        rcvwinscale As Integer
+       sndwinscale As Integer
        seqnum As Long
        connid As LongPtr
    End Type

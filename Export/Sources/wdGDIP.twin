@@ -101,36 +101,70 @@ Module wdGDIP
     End Type
 
 
+    Public Delegate Sub DebugEventProc (ByVal level As DebugEventLevel, ByVal message As LongPtr)
+    
+    Public Delegate Function NotificationHookProc (token As LongPtr) As Long
+    Public Delegate Sub NotificationUnhookProc (ByVal token As LongPtr)
     
     Public Enum DebugEventLevel
         DebugEventLevelFatal = 0
         DebugEventLevelWarning = 1
     End Enum
+    ' #If WDL_NO_DELEGATES Then
     Public Type GdiplusStartupInput
         GdiplusVersion As Long
         DebugEventCallback As LongPtr
         SuppressBackgroundThread As BOOL
         SuppressExternalCodecs As BOOL
     End Type
+    ' #Else
+    ' Public Type GdiplusStartupInput
+        ' GdiplusVersion As Long
+        ' DebugEventCallback As DebugEventProc
+        ' SuppressBackgroundThread As BOOL
+        ' SuppressExternalCodecs As BOOL
+    ' End Type
+    ' #End If
     Public Enum GdiplusStartupParams
         GdiplusStartupDefault = &H00000000
         GdiplusStartupNoSetRound = &H00000001
         GdiplusStartupSetPSValue = &H00000002
         GdiplusStartupReserved0 = &H00000004
+        GdiplusStartupReserved1 = &H00000008
+        GdiplusStartupReserved2 = &H00000010
         GdiplusStartupTransparencyMask = &HFF000000
     End Enum
+    Public Enum GdipVersions
+        Gdip_V2 = 2
+        Gdip_V3 = 3 'Enables Heif and Avif image codecs.  Unlike other functionalities in Gdiplus,
+                    ' these two codecs require COM to be initiailized.
+    End Enum
+    ' #If WDL_NO_DELEGATES Then
     Public Type GdiplusStartupInputEx
         GdiplusVersion As Long
-        startupParameters As GdiplusStartupParams
         DebugEventCallback As LongPtr
         SuppressBackgroundThread As BOOL
         SuppressExternalCodecs As BOOL
+        startupParameters As GdiplusStartupParams
     End Type
-    
     Public Type GdiplusStartupOutput
         NotificationHook As LongPtr
         NotificationUnhook As LongPtr
     End Type
+    ' #Else
+    ' Public Type GdiplusStartupInputEx
+        ' GdiplusVersion As Long
+        ' DebugEventCallback As DebugEventProc
+        ' SuppressBackgroundThread As BOOL
+        ' SuppressExternalCodecs As BOOL
+        ' startupParameters As GdiplusStartupParams
+    ' End Type
+    ' Public Type GdiplusStartupOutput
+        ' NotificationHook As NotificationHookProc
+        ' NotificationUnhook As NotificationUnhookProc
+    ' End Type
+    ' #End If
+    
     
     Public Type BitmapData
         Width As Long
@@ -873,7 +907,7 @@ Module wdGDIP
     End Type
     Public Type RedEyeCorrectionParams
         numberOfAreas As Long
-        areas As RECT
+        areas As LongPtr 'RECT *
     End Type
     Public Type HueSaturationLightnessParams
         hueLevel As Long
@@ -1004,7 +1038,127 @@ Module wdGDIP
     Public Const GDIP_WMF_RECORD_BASE  = &H00010000
 
 
+    Public Type MetafileHeader
+         Type As MetafileType
+         Size As Long ' Size of the metafile (in bytes)
+         Version As Long ' EMF+, EMF, or WMF version
+         EmfPlusFlags As Long
+         DpiX As Single
+         DpiY As Single
+         X As Long ' Bounds in device units
+         Y As Long
+         Width As Long
+         Height As Long
+         'union
+         '{
+         '    METAHEADER      WmfHeader;
+         '    ENHMETAHEADER3  EmfHeader;
+         '};
+         u(0 To 87) As Byte ' ENHMETAHEADER3 = 88 bytes; METAHEADER = 18
+         EmfPlusHeaderSize As Long ' size of the EMF+ header in file
+         LogicalDpiX As Long ' Logical Dpi of reference Hdc
+         LogicalDpiY As Long ' usually valid only for EMF+
+         ' EUS
+         Property Get WmfHeader() As METAHEADER
+             CopyMemory WmfHeader, Me.u(0), LenB(Of METAHEADER)
+         End Property
+         Property Let WmfHeader(value As METAHEADER)
+             CopyMemory Me.u(0), value, LenB(Of METAHEADER)
+         End Property
+         Property Get EmfHeader() As ENHMETAHEADER3
+             CopyMemory EmfHeader, Me.u(0), LenB(Of ENHMETAHEADER3)
+         End Property
+         Property Let EmfHeader(value As ENHMETAHEADER3)
+             CopyMemory Me.u(0), value, LenB(Of ENHMETAHEADER3)
+         End Property
 
+         Function GetType() As MetafileType
+             Return Me.Type
+         End Function
+
+         Function GetMetafileSize() As Long
+             Return Me.Size
+         End Function
+
+         ' If IsEmfPlus, this is the EMF+ version; else it is the WMF or EMF ver
+         Function GetVersion() As Long
+             Return Me.Version
+         End Function
+
+         ' Get the EMF+ flags associated with the metafile
+         Function GetEmfPlusFlags() As Long
+             Return Me.EmfPlusFlags
+         End Function
+
+         Function GetDpiX() As Single
+             Return Me.DpiX
+         End Function
+
+         Function GetDpiY() As Single
+             Return Me.DpiY
+         End Function
+
+         ' GDI+ Rect order, as with the other GpRect-as-RECT declares: Right/Bottom receive Width/Height
+         Sub GetBounds(rect As RECT)
+             rect.Left = Me.X
+             rect.Top = Me.Y
+             rect.Right = Me.Width
+             rect.Bottom = Me.Height
+         End Sub
+
+         ' Is it any type of WMF (standard or Placeable Metafile)?
+         Function IsWmf() As Boolean
+             Return (Me.Type = MetafileTypeWmf) OrElse (Me.Type = MetafileTypeWmfPlaceable)
+         End Function
+
+         ' Is this an Placeable Metafile?
+         Function IsWmfPlaceable() As Boolean
+             Return (Me.Type = MetafileTypeWmfPlaceable)
+         End Function
+
+         ' Is this an EMF (not an EMF+)?
+         Function IsEmf() As Boolean
+             Return (Me.Type = MetafileTypeEmf)
+         End Function
+
+         ' Is this an EMF or EMF+ file?
+         Function IsEmfOrEmfPlus() As Boolean
+             Return (Me.Type >= MetafileTypeEmf)
+         End Function
+
+         ' Is this an EMF+ file?
+         Function IsEmfPlus() As Boolean
+             Return (Me.Type >= MetafileTypeEmfPlusOnly)
+         End Function
+
+         ' Is this an EMF+ dual (has dual, down-level records) file?
+         Function IsEmfPlusDual() As Boolean
+             Return (Me.Type = MetafileTypeEmfPlusDual)
+         End Function
+
+         ' Is this an EMF+ only (no dual records) file?
+         Function IsEmfPlusOnly() As Boolean
+             Return (Me.Type = MetafileTypeEmfPlusOnly)
+         End Function
+
+         ' If it's an EMF+ file, was it recorded against a display Hdc?
+         Function IsDisplay() As Boolean
+             Return Me.IsEmfPlus() AndAlso ((Me.EmfPlusFlags And GDIP_EMFPLUSFLAGS_DISPLAY) <> 0)
+         End Function
+
+         ' Get the WMF header of the metafile (if it is a WMF)
+         ' Pointer into this variable's union, or 0; the WmfHeader property returns a copy
+         Function GetWmfHeader() As LongPtr
+             If Me.IsWmf() Then Return VarPtr(Me.u(0))
+         End Function
+
+         ' Get the EMF header of the metafile (if it is an EMF)
+         ' Pointer into this variable's union, or 0; the EmfHeader property returns a copy
+         Function GetEmfHeader() As LongPtr
+             If Me.IsEmfOrEmfPlus() Then Return VarPtr(Me.u(0))
+         End Function
+     End Type
+    
     Public Enum MetafileFunctions
         META_SETBKCOLOR = &H0201
         META_SETBKMODE = &H0102
@@ -2039,7 +2193,7 @@ Module wdGDIP
         COLORMATCHTOTARGET_EMBEDED = &H00000001
     End Enum
     [Description("WARNING: Header only. Follow by a variable C-style array of BYTE")]
-    Public Type COLORMATCHTOTARGET
+    Public Type EMRCOLORMATCHTOTARGET
         emr As EMR
         dwAction As Long ' CS_ENABLE, CS_DISABLE or CS_DELETE_TRANSFORM
         dwFlags As Long ' flags
@@ -2048,7 +2202,7 @@ Module wdGDIP
         Data(0 To 0) As Byte ' Array size is cbName + cbData
     End Type
     
-    Public Type COLORCORRECTPALETTE
+    Public Type EMRCOLORCORRECTPALETTE
         emr As EMR
         ihPalette As Long ' Palette handle index
         nFirstEntry As Long ' Index of first entry to correct
@@ -2543,6 +2697,7 @@ Module wdGDIP
         szlMillimeters As SIZE ' Size of the reference device in millimeters
     End Type
 
+    [PackingAlignment(2)]
     Public Type PWMFRect16
         Left As Integer
         Top As Integer
@@ -2562,7 +2717,19 @@ Module wdGDIP
 
     Public Const GDIP_EMFPLUSFLAGS_DISPLAY = &H00000001
 
-
+    Public Const ALPHA_SHIFT  = 24
+    Public Const RED_SHIFT  = 16
+    Public Const GREEN_SHIFT  = 8
+    Public Const BLUE_SHIFT  = 0
+    Public Const ALPHA_MASK  = CLng(&Hff) << ALPHA_SHIFT
+    
+    Public Const REAL_MAX  = FLT_MAX
+    Public Const REAL_MIN  = FLT_MIN
+    Public Const REAL_TOLERANCE  = (FLT_MIN * 100)
+    Public Const REAL_EPSILON  = FLT_EPSILON
+    
+    
+    
     Public Type CharacterRange
         first As Long
         length As Long
@@ -2844,9 +3011,9 @@ Module wdGDIP
     [UseGetLastError(False)]
     Public Declare PtrSafe Function GdipCreatePath Lib "gdiplus" (ByVal brushmode As GpFillMode, Path As LongPtr) As GpStatus
     [UseGetLastError(False)]
-    Public Declare PtrSafe Function GdipCreatePath2 Lib "gdiplus" (pt As POINTF, bt As Byte, int As Long, ByVal fillmode As GpFillMode, Path As LongPtr) As GpStatus
+    Public Declare PtrSafe Function GdipCreatePath2 Lib "gdiplus" (pt As POINTF, types As Byte, ByVal count As Long, ByVal fillmode As GpFillMode, Path As LongPtr) As GpStatus
     [UseGetLastError(False)]
-    Public Declare PtrSafe Function GdipCreatePath2I Lib "gdiplus" (pt As POINT, bt As Byte, int As Long, ByVal fillmode As GpFillMode, Path As LongPtr) As GpStatus
+    Public Declare PtrSafe Function GdipCreatePath2I Lib "gdiplus" (pt As POINT, types As Byte, ByVal count As Long, ByVal fillmode As GpFillMode, Path As LongPtr) As GpStatus
     [UseGetLastError(False)]
     Public Declare PtrSafe Function GdipCreatePathIter Lib "gdiplus" (iterator As LongPtr, ByVal Path As LongPtr) As GpStatus
     [UseGetLastError(False)]
@@ -2908,7 +3075,7 @@ Module wdGDIP
     [UseGetLastError(False)]
     Public Declare PtrSafe Function GdipPathIterNextMarker Lib "gdiplus" (ByVal iterator As LongPtr, resultCount As Long, startIndex As Long, endIndex As Long) As GpStatus
     [UseGetLastError(False)]
-    Public Declare PtrSafe Function GdipPathIterNextMarkerPath Lib "gdiplus" (ByVal iterator As LongPtr, resultCount As Long) As GpStatus
+    Public Declare PtrSafe Function GdipPathIterNextMarkerPath Lib "gdiplus" (ByVal iterator As LongPtr, resultCount As Long, ByVal path As LongPtr) As GpStatus
     [UseGetLastError(False)]
     Public Declare PtrSafe Function GdipPathIterGetCount Lib "gdiplus" (ByVal iterator As LongPtr, count As Long) As GpStatus
     [UseGetLastError(False)]
@@ -3075,7 +3242,7 @@ Module wdGDIP
     [UseGetLastError(False)]
     Public Declare PtrSafe Function GdipAlloc Lib "gdiplus.dll" (ByVal Size As LongPtr) As LongPtr
     [UseGetLastError(False)]
-    Public Declare PtrSafe Function GdipFree Lib "gdiplus.dll" (ByVal Ptr As LongPtr) As GpStatus
+    Public Declare PtrSafe Sub GdipFree Lib "gdiplus.dll" (ByVal Ptr As LongPtr)
     [UseGetLastError(False)]
     Public Declare PtrSafe Function GdipSaveImageToStream Lib "gdiplus" (ByVal Image As LongPtr, ByVal stream As IStream, clsidEncoder As UUID, encoderParams As Any) As GpStatus
     [UseGetLastError(False)]
@@ -3115,7 +3282,7 @@ Module wdGDIP
     [UseGetLastError(False)]
     Public Declare PtrSafe Function GdiplusStartup Lib "gdiplus" (token As LongPtr, LInput As GdiplusStartupInput, Optional ByVal lOutPut As LongPtr = 0) As GpStatus
     [UseGetLastError(False)]
-    Public Declare PtrSafe Function GdiplusShutdown Lib "gdiplus" (ByVal token As LongPtr) As GpStatus
+    Public Declare PtrSafe Sub GdiplusShutdown Lib "gdiplus" (ByVal token As LongPtr)
     [UseGetLastError(False)]
     Public Declare PtrSafe Function GdipFindFirstImageItem Lib "gdiplus" (ByVal Image As LongPtr, item As ImageItemData) As GpStatus
     [UseGetLastError(False)]
@@ -3227,7 +3394,7 @@ Module wdGDIP
     [UseGetLastError(False)]
     Public Declare PtrSafe Function GdipSetStringFormatAlign Lib "gdiplus" (ByVal format As LongPtr, ByVal align As StringAlignment) As GpStatus
     [UseGetLastError(False)]
-    Public Declare PtrSafe Function GdipGetStringFormatAlign Lib "gdiplus" (ByVal format As LongPtr, ByVal align As StringAlignment) As GpStatus
+    Public Declare PtrSafe Function GdipGetStringFormatAlign Lib "gdiplus" (ByVal format As LongPtr, align As StringAlignment) As GpStatus
     [UseGetLastError(False)]
     Public Declare PtrSafe Function GdipSetStringFormatLineAlign Lib "gdiplus" (ByVal format As LongPtr, ByVal align As StringAlignment) As GpStatus
     [UseGetLastError(False)]
@@ -3294,6 +3461,8 @@ Module wdGDIP
     Public Declare PtrSafe Function GdipCreateFontFamilyFromName Lib "gdiplus" (ByVal Name As LongPtr, ByVal fontCollection As LongPtr, fontFamily As LongPtr) As GpStatus
     [UseGetLastError(False)]
     Public Declare PtrSafe Function GdipDeleteFontFamily Lib "gdiplus" (ByVal fontFamily As LongPtr) As GpStatus
+    [UseGetLastError(False)]
+    Public Declare PtrSafe Function GdipCloneFontFamily Lib "gdiplus" (ByVal fontFamily As LongPtr, clonedFontFamily As LongPtr) As GpStatus
     [UseGetLastError(False)]
     Public Declare PtrSafe Function GdipDeleteGraphics Lib "gdiplus" (ByVal Graphics As LongPtr) As GpStatus
     [UseGetLastError(False)]
@@ -3680,8 +3849,9 @@ Module wdGDIP
     Public Declare PtrSafe Function GdipDrawImagePointRect Lib "gdiplus" (ByVal Graphics As LongPtr, ByVal Image As LongPtr, ByVal x As Single, ByVal y As Single, ByVal srcx As Single, ByVal srcy As Single, ByVal srcwidth As Single, ByVal srcheight As Single, ByVal srcUnit As GpUnit) As GpStatus
     [UseGetLastError(False)]
     Public Declare PtrSafe Function GdipDrawImagePointRectI Lib "gdiplus" (ByVal Graphics As LongPtr, ByVal Image As LongPtr, ByVal x As Long, ByVal y As Long, ByVal srcx As Long, ByVal srcy As Long, ByVal srcwidth As Long, ByVal srcheight As Long, ByVal srcUnit As GpUnit) As GpStatus
-    Public Delegate Function DrawImageAbort () As BOOL
-    Public Delegate Function GetThumbnailImageAbort () As BOOL
+    Public Delegate Function ImageAbort (ByVal context As LongPtr) As BOOL
+    Public Delegate Function DrawImageAbort (ByVal context As LongPtr) As BOOL
+    Public Delegate Function GetThumbnailImageAbort (ByVal context As LongPtr) As BOOL
     ' #If WDL_NO_DELEGTES
     ' Public Declare PtrSafe Function GdipDrawImageRectRectI Lib "gdiplus" (ByVal Graphics As LongPtr, ByVal Image As LongPtr, ByVal dstx As Long, _
     '                                                                ByVal dsty As Long, ByVal dstwidth As Long, ByVal dstheight As Long, _
@@ -3716,15 +3886,15 @@ Module wdGDIP
     [UseGetLastError(False)]
     Public Declare PtrSafe Function GdipInitializePalette Lib "gdiplus" (palette As ColorPalette, ByVal paletteType As PaletteType, ByVal optimalColors As Long, ByVal useTransparentColor As BOOL, ByVal bitmap As LongPtr) As GpStatus
     [UseGetLastError(False)]
-    Public Declare PtrSafe Function GdipBitmapApplyEffect Lib "gdiplus" (ByVal bitmap As LongPtr, ByVal effect As LongPtr, roi As RECT, ByVal useAuxData As BOOL, auxData As Any, auxDataSize As Long) As GpStatus
+    Public Declare PtrSafe Function GdipBitmapApplyEffect Lib "gdiplus" (ByVal bitmap As LongPtr, ByVal effect As LongPtr, roi As RECT, ByVal useAuxData As BOOL, auxData As LongPtr, auxDataSize As Long) As GpStatus
     [UseGetLastError(False)]
-    Public Declare PtrSafe Function GdipBitmapCreateApplyEffect Lib "gdiplus" (inputBitmaps As Any, ByVal numInputs As Long, ByVal effect As LongPtr, roi As RECT, outputRect As RECT, outputBitmap As LongPtr, ByVal useAuxData As BOOL, auxData As Any, auxDataSize As Long) As GpStatus
+    Public Declare PtrSafe Function GdipBitmapCreateApplyEffect Lib "gdiplus" (inputBitmaps As LongPtr, ByVal numInputs As Long, ByVal effect As LongPtr, roi As RECT, outputRect As RECT, outputBitmap As LongPtr, ByVal useAuxData As BOOL, auxData As LongPtr, auxDataSize As Long) As GpStatus
     [UseGetLastError(False)]
     Public Declare PtrSafe Function GdipBitmapGetHistogram Lib "gdiplus" (ByVal bitmap As LongPtr, ByVal format As HistogramFormat, ByVal NumberOfEntries As Long, channel0 As Long, channel1 As Long, channel2 As Long, channel3 As Long) As GpStatus
     [UseGetLastError(False)]
     Public Declare PtrSafe Function GdipBitmapGetHistogramSize Lib "gdiplus" (ByVal format As HistogramFormat, NumberOfEntries As Long) As GpStatus
     ' typedef BOOL (CALLBACK * EnumerateMetafileProc)(EmfPlusRecordType,UINT,UINT,const BYTE*,VOID*);
-    Public Delegate Function EnumerateMetafileProc (ByVal nType As EmfPlusRecordType, ByVal dwFlags As Long, ByVal cbData As Long, ByVal data As LongPtr, ByVal callbackData As LongPtr)
+    Public Delegate Function EnumerateMetafileProc (ByVal nType As EmfPlusRecordType, ByVal dwFlags As Long, ByVal cbData As Long, ByVal data As LongPtr, ByVal callbackData As LongPtr) As BOOL
     ' #If WDL_NO_DELEGATES Then
     [UseGetLastError(False)]
     Public Declare PtrSafe Function GdipEnumerateMetafileDestPoint Lib "gdiplus" (ByVal Graphics As LongPtr, ByVal metafile As LongPtr, destPoint As POINTF, ByVal callback As LongPtr, callbackData As Any, ByVal imageAttributes As LongPtr) As GpStatus
@@ -3819,15 +3989,15 @@ Module wdGDIP
     [UseGetLastError(False)]
     Public Declare PtrSafe Function GdipGetMetafileHeaderFromWmf Lib "gdiplus" (ByVal hWmf As LongPtr, wmfPlaceableFileHeader As WmfPlaceableFileHeader, ByVal header As LongPtr) As GpStatus
     [UseGetLastError(False)]
-    Public Declare PtrSafe Function GdipGetMetafileHeaderFromEmf Lib "gdiplus" (ByVal hEmf As LongPtr, ByVal header As LongPtr) As GpStatus
+    Public Declare PtrSafe Function GdipGetMetafileHeaderFromEmf Lib "gdiplus" (ByVal hEmf As LongPtr, header As MetafileHeader) As GpStatus
     [UseGetLastError(False)]
-    Public Declare PtrSafe Function GdipGetMetafileHeaderFromFile Lib "gdiplus" (ByVal filename As LongPtr, ByVal header As LongPtr) As GpStatus
+    Public Declare PtrSafe Function GdipGetMetafileHeaderFromFile Lib "gdiplus" (ByVal filename As LongPtr, header As MetafileHeader) As GpStatus
     [UseGetLastError(False)]
-    Public DeclareWide PtrSafe Function GdipGetMetafileHeaderFromFile Lib "gdiplus" (ByVal filename As String, ByVal header As LongPtr) As GpStatus
+    Public DeclareWide PtrSafe Function GdipGetMetafileHeaderFromFile Lib "gdiplus" (ByVal filename As String, header As MetafileHeader) As GpStatus
     [UseGetLastError(False)]
-    Public Declare PtrSafe Function GdipGetMetafileHeaderFromStream Lib "gdiplus" (ByVal stream As IStream, ByVal header As LongPtr) As GpStatus
+    Public Declare PtrSafe Function GdipGetMetafileHeaderFromStream Lib "gdiplus" (ByVal stream As IStream, header As MetafileHeader) As GpStatus
     [UseGetLastError(False)]
-    Public Declare PtrSafe Function GdipGetMetafileHeaderFromMetafile Lib "gdiplus" (ByVal metafile As LongPtr, ByVal header As LongPtr) As GpStatus
+    Public Declare PtrSafe Function GdipGetMetafileHeaderFromMetafile Lib "gdiplus" (ByVal metafile As LongPtr, header As MetafileHeader) As GpStatus
     [UseGetLastError(False)]
     Public Declare PtrSafe Function GdipCreateStreamOnFile Lib "gdiplus" (ByVal filename As LongPtr, ByVal access As Long, stream As IStream) As GpStatus
     [UseGetLastError(False)]
@@ -3875,13 +4045,13 @@ Module wdGDIP
     [UseGetLastError(False)]
     Public Declare PtrSafe Function GdipAddPathBeziersI Lib "gdiplus" (ByVal Path As LongPtr, Points As POINT, ByVal count As Long) As GpStatus
     [UseGetLastError(False)]
-    Public Declare PtrSafe Function GdipAddPathCurveI Lib "gdiplus" (ByVal Path As LongPtr, Points As POINT, ByVal count As Long, ByVal tension As Single) As GpStatus
+    Public Declare PtrSafe Function GdipAddPathCurveI Lib "gdiplus" (ByVal Path As LongPtr, Points As POINT, ByVal count As Long) As GpStatus
     [UseGetLastError(False)]
     Public Declare PtrSafe Function GdipAddPathCurve2I Lib "gdiplus" (ByVal Path As LongPtr, Points As POINT, ByVal count As Long, ByVal tension As Single) As GpStatus
     [UseGetLastError(False)]
     Public Declare PtrSafe Function GdipAddPathCurve3I Lib "gdiplus" (ByVal Path As LongPtr, Points As POINT, ByVal count As Long, ByVal offset As Long, ByVal numberOfSegments As Long, ByVal tension As Single) As GpStatus
     [UseGetLastError(False)]
-    Public Declare PtrSafe Function GdipAddPathClosedCurveI Lib "gdiplus" (ByVal Path As LongPtr, Points As POINT, ByVal count As Long, ByVal tension As Single) As GpStatus
+    Public Declare PtrSafe Function GdipAddPathClosedCurveI Lib "gdiplus" (ByVal Path As LongPtr, Points As POINT, ByVal count As Long) As GpStatus
     [UseGetLastError(False)]
     Public Declare PtrSafe Function GdipAddPathClosedCurve2I Lib "gdiplus" (ByVal Path As LongPtr, Points As POINT, ByVal count As Long, ByVal tension As Single) As GpStatus
     [UseGetLastError(False)]

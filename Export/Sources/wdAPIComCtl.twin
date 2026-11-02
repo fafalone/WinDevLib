@@ -30,8 +30,8 @@ End Interface
 [OleAutomation(False)]
 Interface IPrintDialogServices Extends stdole.IUnknown
     Sub GetCurrentDevMode(pDevMode As DEVMODEW, pcbSize As Long)
-    Sub GetCurrentPrinterName(pPrinterName As LongPtr, pcchSize As Long)
-    Sub GetCurrentPortName(pPortName As LongPtr, pcchSize As Long)
+    Sub GetCurrentPrinterName(ByVal pPrinterName As LongPtr, pcchSize As Long)
+    Sub GetCurrentPortName(ByVal pPortName As LongPtr, pcchSize As Long)
 End Interface
 
 ' #If WDL_NO_DELEGATES Then
@@ -2233,6 +2233,11 @@ Module wdAPIComCtl
 Private Const WM_USER = &H400 'Workaround for constent expression evaluation bug. Do not make public.
 #Region "Common"
 
+Public Const COMCTL32_VERSION = 6
+
+Public Const WMN_FIRST  = (-1000)
+Public Const WMN_LAST  = (-1200)
+
 Public Enum ICC_CLASS
     ICC_LISTVIEW_CLASSES = &H1&
     ICC_TREEVIEW_CLASSES = &H2&
@@ -2282,6 +2287,7 @@ Public Const CCM_SETNOTIFYWINDOW = (CCM_FIRST + 9) '// wParam == hwndParent.
 Public Const CCM_SETWINDOWTHEME = (CCM_FIRST + 11)
 Public Const CCM_DPISCALE = (CCM_FIRST + 12)
 Public Const CCM_TRANSLATEACCELERATOR = &H461 '(WM_USER + 97)
+Public Const CCM_LAST  = (CCM_FIRST + &H200)
 
 Public Enum CommonStyles
     CCS_TOP = &H00000001
@@ -2307,6 +2313,8 @@ End Enum
 Public Const INFOTIPSIZE = 1024
 
 Public Const NM_FIRST                As Long = 0
+Public Const NM_LAST                 As Long = (-99)
+
 Public Const NM_OUTOFMEMORY          As Long = (NM_FIRST - 1)
 Public Const NM_CLICK                As Long = (NM_FIRST - 2) 'uses NMCLICK struct
 Public Const NM_DBLCLK               As Long = (NM_FIRST - 3)
@@ -2405,10 +2413,11 @@ End Type
 Public Const CDRF_DODEFAULT As Long = &H0
 Public Const CDRF_NEWFONT As Long = &H2
 Public Const CDRF_SKIPDEFAULT As Long = &H4
-Public Const CDRF_DOERASE As Long = &H8
+Public Const CDRF_DOERASE As Long = &H8 ' draw the background
+Public Const CDRF_SKIPPOSTPAINT As Long = &H100 ' don't draw the focus rect
 Public Const CDRF_NOTIFYPOSTPAINT As Long = &H10
 Public Const CDRF_NOTIFYITEMDRAW As Long = &H20
-Public Const CDRF_NOTIFYSUBITEMDRAW As Long = &H20
+Public Const CDRF_NOTIFYSUBITEMDRAW As Long = &H20 ' flags are the same, we can distinguish by context
 Public Const CDRF_NOTIFYPOSTERASE As Long = &H40
 
 Public Enum NotifyCustomDrawStates
@@ -2573,7 +2582,7 @@ Public Declare PtrSafe Sub DPA_EnumCallback Lib "comctl32" (ByVal hdpa As LongPt
 Public Declare PtrSafe Function DPA_Grow Lib "comctl32" (ByVal hdpa As LongPtr, ByVal cp As Long) As BOOL
 Public Declare PtrSafe Function DPA_InsertPtr Lib "comctl32" (ByVal hdpa As LongPtr, [TypeHint(DsaItemIndexSpecialValues)] ByVal i As Long, p As Any) As Long
 Public Declare PtrSafe Function DPA_SetPtr Lib "comctl32" (ByVal hdpa As LongPtr, [TypeHint(DsaItemIndexSpecialValues)] ByVal i As Long, p As Any) As BOOL
-Public Declare PtrSafe Function DPA_GetPtr Lib "comctl32" (ByVal hdpa As LongPtr, [TypeHint(DsaItemIndexSpecialValues)] ByVal i As Long) As LongPtr
+Public Declare PtrSafe Function DPA_GetPtr Lib "comctl32" (ByVal hdpa As LongPtr, [TypeHint(DsaItemIndexSpecialValues)] ByVal i As LongPtr) As LongPtr
 Public Declare PtrSafe Function DPA_GetPtrIndex Lib "comctl32" (ByVal hdpa As LongPtr, p As Any) As Long
 Public Declare PtrSafe Function DPA_GetSize Lib "comctl32" (ByVal hdpa As LongPtr) As LongLong
 Public Declare PtrSafe Function DPA_Sort Lib "comctl32" (ByVal hdpa As LongPtr, ByVal pfnCompare As LongPtr, ByVal lParam As LongPtr) As BOOL
@@ -2621,12 +2630,12 @@ Public Function DPA_FastGetPtr(ByVal hdpa As LongPtr, ByVal i As Long) As LongPt
 End Function
 ' #define DPA_AppendPtr(hdpa, pitem)  DPA_InsertPtr(hdpa, DA_LAST, pitem)
 Public Function DPA_AppendPtr(ByVal hdpa As LongPtr, ByVal pItem As LongPtr) As Long
-    Return DPA_InsertPtr(hdpa, DA_LAST, pItem)
+    Return DPA_InsertPtr(hdpa, DA_LAST, ByVal pItem)
 End Function
 ' #define DPA_SortedInsertPtr(hdpa, pFind, iStart, pfnCompare, lParam, options, pitem)  \
 ' DPA_InsertPtr(hdpa, DPA_Search(hdpa, pFind, iStart, pfnCompare, lParam, (DPAS_SORTED | (options))), (pitem))
 Public Function DPA_SortedInsertPtr(ByVal hdpa As LongPtr, ByVal pFind As LongPtr, ByVal iStart As Long, ByVal pfnCompare As LongPtr, ByVal lParam As LongPtr, ByVal options As DPASearchFlags, ByVal pItem As LongPtr) As Long
-    Return DPA_InsertPtr(hdpa, DPA_Search(hdpa, pFind, iStart, pfnCompare, lParam, (DPAS_SORTED Or (options))), (pItem))
+    Return DPA_InsertPtr(hdpa, DPA_Search(hdpa, ByVal pFind, iStart, pfnCompare, lParam, (DPAS_SORTED Or (options))), ByVal pItem)
 End Function
 
 
@@ -2849,7 +2858,7 @@ End Enum
 Public Enum ButtonStates
     BST_UNCHECKED = &H0000
     BST_CHECKED = &H0001
-    BST_INDETERMINAT = &H0002
+    BST_INDETERMINATE = &H0002
     BST_PUSHED = &H0004
     BST_FOCUS = &H0008
     BST_HOT = &H0200
@@ -2869,6 +2878,7 @@ Public Enum ButtonNotifications
     BN_SETFOCUS = 6
     BN_KILLFOCUS = 7
     BCN_FIRST = (-1250)
+    BCN_LAST = (-1350)
     BCN_HOTITEMCHANGE = (BCN_FIRST + &H0001)
     BCN_DROPDOWN = (BCN_FIRST + &H0002)
     NM_GETCUSTOMSPLITRECT = (BCN_FIRST + &H0003)
@@ -2964,7 +2974,7 @@ Public Const WC_COMBOBOXEXA = "ComboBoxEx32"
 Public Const WC_COMBOBOXEXW = "ComboBoxEx32"
 Public Const WC_COMBOBOXEX = WC_COMBOBOXEXW
 
-Public Const H_MAX As Long = (&HFFFF& + 1)
+Public Const H_MAX As Long = (&HFFFF + 1)
 
 Public Const CB_ADDSTRING = &H143
 Public Const CB_DELETESTRING = &H144
@@ -2989,7 +2999,7 @@ Public Const CB_GETTOPINDEX = &H15B
 Public Const CB_INITSTORAGE = &H161
 Public Const CB_INSERTSTRING = &H14A
 Public Const CB_LIMITTEXT = &H141
-Public Const CB_MSGMAX = &H15B
+Public Const CB_MSGMAX = &H165
 Public Const CB_MULTIPLEADDSTRING = &H163
 Public Const CB_RESETCONTENT = &H14B
 Public Const CB_SELECTSTRING = &H14D
@@ -3018,12 +3028,14 @@ Public Const CBEM_SETITEMA = (WM_USER + 5)
 Public Const CBEM_DELETEITEM = CB_DELETESTRING
 Public Const CBEM_GETCOMBOCONTROL = (WM_USER + 6)
 Public Const CBEM_GETEDITCONTROL = (WM_USER + 7)
-Public Const CBEM_SETEXTENDEDSTYLE = (WM_USER + 8)
+Public Const CBEM_SETEXSTYLE = (WM_USER + 8)
+Public Const CBEM_GETEXSTYLE = (WM_USER + 9)
 Public Const CBEM_GETEXTENDEDSTYLE = (WM_USER + 9)
 Public Const CBEM_HASEDITCHANGED = (WM_USER + 10)
 Public Const CBEM_INSERTITEMW = (WM_USER + 11)
 Public Const CBEM_SETITEMW = (WM_USER + 12)
 Public Const CBEM_GETITEMW = (WM_USER + 13)
+Public Const CBEM_SETEXTENDEDSTYLE = (WM_USER + 14)
 Public Const CBEM_INSERTITEM = CBEM_INSERTITEMW
 Public Const CBEM_SETITEM = CBEM_SETITEMW
 Public Const CBEM_GETITEM = CBEM_GETITEMW
@@ -3490,19 +3502,21 @@ Public Const DTM_SETFORMATW                As Long = (DTM_FIRST + 50)
 Public Const DTM_SETFORMAT = DTM_SETFORMATW
 
 
-Public Const DTN_FIRST                     As Long = (-760)
-Public Const DTN_LAST                      As Long = (-799)
-Public Const DTN_DATETIMECHANGE            As Long = (DTN_FIRST + 1)
-Public Const DTN_USERSTRINGA               As Long = (DTN_FIRST + 2)
-Public Const DTN_WMKEYDOWNA                As Long = (DTN_FIRST + 3)
-Public Const DTN_FORMATA                   As Long = (DTN_FIRST + 4)
-Public Const DTN_FORMATQUERYA              As Long = (DTN_FIRST + 5)
-Public Const DTN_DROPDOWN                  As Long = (DTN_FIRST + 6)
-Public Const DTN_CLOSEUP                   As Long = (DTN_FIRST + 7)
-Public Const DTN_USERSTRINGW               As Long = (DTN_FIRST + 15)
-Public Const DTN_WMKEYDOWNW                As Long = (DTN_FIRST + 16)
-Public Const DTN_FORMATW                   As Long = (DTN_FIRST + 17)
-Public Const DTN_FORMATQUERYW              As Long = (DTN_FIRST + 18)
+Public Const DTN_FIRST                     As Long = (-740)
+Public Const DTN_LAST                      As Long = (-745)
+Public Const DTN_FIRST2                    As Long = (0 - 753)  ' datetimepick2
+Public Const DTN_LAST2                     As Long = (0 - 799)
+Public Const DTN_DATETIMECHANGE            As Long = (DTN_FIRST2 - 6)  ' the systemtime has changed, -759
+Public Const DTN_USERSTRINGA               As Long = (DTN_FIRST2 - 5)  ' the user has entered a string, -758
+Public Const DTN_USERSTRINGW               As Long = (DTN_FIRST - 5)   ' -745
+Public Const DTN_WMKEYDOWNA                As Long = (DTN_FIRST2 - 4)  ' modify keydown on app format field (X), , -757
+Public Const DTN_WMKEYDOWNW                As Long = (DTN_FIRST - 4)   ' -744
+Public Const DTN_FORMATA                   As Long = (DTN_FIRST2 - 3)  ' query display for app format field (X), -756
+Public Const DTN_FORMATW                   As Long = (DTN_FIRST - 3)   ' -743
+Public Const DTN_FORMATQUERYA              As Long = (DTN_FIRST2 - 2)  ' query formatting info for app format field (X), -755
+Public Const DTN_FORMATQUERYW              As Long = (DTN_FIRST - 2)   ' -742
+Public Const DTN_DROPDOWN                  As Long = (DTN_FIRST2 - 1)  ' MonthCal has dropped down, -754
+Public Const DTN_CLOSEUP                   As Long = (DTN_FIRST2)      ' MonthCal is popping up, -753
 
 Public Const DTN_USERSTRING = DTN_USERSTRINGW
 Public Const DTN_WMKEYDOWN = DTN_WMKEYDOWNW
@@ -3731,6 +3745,7 @@ Public Const EN_HSCROLL  = &H0601
 Public Const EN_VSCROLL  = &H0602
 Public Const EN_ALIGN_LTR_EC  = &H0700
 Public Const EN_ALIGN_RTL_EC  = &H0701
+Public Const EN_IMAGE  = &H0721  ' Notification when mouse is over an image
 Public Const EN_BEFORE_PASTE  = &H0800 'Windows 10+
 Public Const EN_AFTER_PASTE  = &H0801 'Windows 10+
 'EM_SETMARGIN parameters */
@@ -4073,7 +4088,7 @@ Public Const LVM_FINDITEMA = (LVM_FIRST + 13)
 Public Const LVM_GETITEMRECT = (LVM_FIRST + 14)
 Public Const LVM_SETITEMPOSITION = (LVM_FIRST + 15)
 Public Const LVM_GETITEMPOSITION = (LVM_FIRST + 16)
-Public Const LVM_GETSTRINGWIDTH = (LVM_FIRST + 17)
+Public Const LVM_GETSTRINGWIDTHA = (LVM_FIRST + 17)
 Public Const LVM_HITTEST = (LVM_FIRST + 18)
 Public Const LVM_ENSUREVISIBLE = (LVM_FIRST + 19)
 Public Const LVM_SCROLL = (LVM_FIRST + 20)
@@ -4253,6 +4268,7 @@ Public Const LVM_GETISEARCHSTRING = LVM_GETISEARCHSTRINGW
 Public Const LVM_FINDITEM = LVM_FINDITEMW
 Public Const LVM_GETITEMTEXT = LVM_GETITEMTEXTW
 Public Const LVM_SETITEMTEXT = LVM_SETITEMTEXTW
+Public Const LVM_GETSTRINGWIDTH = LVM_GETSTRINGWIDTHW
 
 Public Const I_IMAGECALLBACK As Long = (-1)
 Public Const I_IMAGENONE As Long = (-2)
@@ -4262,6 +4278,7 @@ Public Const I_GROUPIDCALLBACK As Long = (-1)
 Public Const I_GROUPIDNONE As Long = (-2)
 Public Const LPSTR_TEXTCALLBACKA As Long = (-1)
 Public Const LPSTR_TEXTCALLBACKW As Long = (-1)
+Public Const LPSTR_TEXTCALLBACK = LPSTR_TEXTCALLBACKW
 
 Public Enum LV_VIEW
     LV_VIEW_ICON = &H0
@@ -4269,6 +4286,7 @@ Public Enum LV_VIEW
     LV_VIEW_SMALLICON = &H2
     LV_VIEW_LIST = &H3
     LV_VIEW_TILE = &H4&
+    LV_VIEW_MAX = &H4&
     LV_VIEW_CONTENTS = &H7
 'Below are not part of API, but are implemented by this project.
     LV_VIEW_THUMBNAIL = &H6&
@@ -4628,6 +4646,12 @@ End Enum
 Public Enum LVFI_States
      LVFIS_FOCUSED = &H1
 End Enum
+
+Public Const LVSCW_AUTOSIZE  = -1
+Public Const LVSCW_AUTOSIZE_USEHEADER  = -2
+
+Public Const LV_MAX_WORKAREAS = 16
+
 
 Public Type LVFOOTERITEM
     Mask As LVFOOTERITEM_Flags
@@ -5193,6 +5217,8 @@ Public Enum HeaderImageListFlags
 End Enum
 
 Public Const HDN_FIRST As Long = -300&
+Public Const HDN_LAST  = (-399)
+
 Public Const HDN_ITEMCHANGINGA = (HDN_FIRST - 0)
 Public Const HDN_ITEMCHANGINGW = (HDN_FIRST - 20)
 Public Const HDN_ITEMCHANGEDA = (HDN_FIRST - 1)
@@ -5418,6 +5444,9 @@ Public Declare PtrSafe Sub MenuHelp Lib "comctl32" (ByVal uMsg As Long, ByVal wP
 Public Declare PtrSafe Function ShowHideMenuCtl Lib "comctl32" (ByVal hWnd As LongPtr, ByVal uFlags As LongPtr, lpInfo As Long) As Long
 
 Public Declare PtrSafe Sub GetEffectiveClientRect Lib "comctl32" (ByVal hWnd As LongPtr, lprc As RECT, lpInfo As Long)
+
+Public Const MINSYSCOMMAND = SC_SIZE
+
 #End Region
 
 #Region "MonthCal"
@@ -5461,11 +5490,12 @@ Public Const MCM_SETCURRENTVIEW As Long = (MCM_FIRST + 32)
 Public Const MCM_SETUNICODEFORMAT = CCM_SETUNICODEFORMAT
 Public Const MCM_GETUNICODEFORMAT = CCM_GETUNICODEFORMAT
 
-Public Const MCN_FIRST As Long = (-750)
-Public Const MCN_VIEWCHANGE As Long = (MCN_FIRST)
-Public Const MCN_SELCHANGE As Long = (MCN_FIRST + 1)
-Public Const MCN_GETDAYSTATE As Long = (MCN_FIRST + 3)
-Public Const MCN_SELECT As Long = (MCN_FIRST + 4)
+Public Const MCN_FIRST As Long = (-746)
+Public Const MCN_LAST  = (-752)  ' MCN_FIRST - 6
+Public Const MCN_VIEWCHANGE As Long = (MCN_FIRST - 4)
+Public Const MCN_SELCHANGE As Long = (MCN_FIRST - 3)
+Public Const MCN_GETDAYSTATE As Long = (MCN_FIRST - 1)
+Public Const MCN_SELECT As Long = (MCN_FIRST)
 
 Public Enum GetMonthRangeFlags
     GMR_VISIBLE = 0    ' visible portion of display
@@ -5808,6 +5838,9 @@ Public Const PGM_SETBUTTONSIZE As Long = (PGM_FIRST + 10)
 Public Const PGM_GETBUTTONSIZE As Long = (PGM_FIRST + 11)
 Public Const PGM_GETBUTTONSTATE As Long = (PGM_FIRST + 12)
 Public Const PGM_SETSCROLLINFO As Long = (PGM_FIRST + 13)
+Public Const PGM_GETDROPTARGET = CCM_GETDROPTARGET
+
+
 
 Public Enum PagerScrollFlags
     PGF_SCROLLUP = 1
@@ -5817,17 +5850,18 @@ Public Enum PagerScrollFlags
 End Enum
 
 Public Enum PagerCalcSizeFlags
-    PGF_CALCWIDT = 1
+    PGF_CALCWIDTH = 1
     PGF_CALCHEIGHT = 2
 End Enum
 
 Public Enum PagerKeyDown
     PGK_SHIFT = 1
     PGK_CONTROL = 2
-    PGK_MENU = 3
+    PGK_MENU = 4
 End Enum
 
 Public Const PGN_FIRST As Long = (-900)
+Public Const PGN_LAST As Long = (-950)
 Public Const PGN_SCROLL  = (PGN_FIRST - 1)
 Public Const PGN_CALCSIZE  = (PGN_FIRST - 2)
 Public Const PGN_HOTITEMCHANGE  = (PGN_FIRST - 3)
@@ -5903,6 +5937,8 @@ End Type
 
 #Region "PropSheet"
 
+Public Const MAXPROPPAGES = 100
+
 ' typedef BOOL (* LPFNADDPROPSHEETPAGE)(HPROPSHEETPAGE, LPARAM);
 Public Delegate Function ADDPROPSHEETPAGE (ByVal hpsp As LongPtr, ByVal lParam As LongPtr) As BOOL
 ' typedef BOOL (* LPFNADDPROPSHEETPAGES)(LPVOID, LPFNADDPROPSHEETPAGE, LPARAM);
@@ -5911,10 +5947,10 @@ Public Delegate Function ADDPROPSHEETPAGES (ByVal pv As LongPtr, ByVal lpfnAddPr
 ' typedef int (CALLBACK *PFNPROPSHEETCALLBACK)(HWND, UINT, LPARAM);
 Public Delegate Function PROPSHEETCALLBACK (ByVal hWnd As LongPtr, ByVal uMsg As PSCALLBACKMSG, ByVal lParam As LongPtr) As Long
 ' typedef UINT (CALLBACK *LPFNPSPCALLBACKA)(HWND hwnd, UINT uMsg, struct _PROPSHEETPAGEA *ppsp);
-Public Delegate Function PSPCALLBACKA (ByVal hwnd As LongPtr, ByVal uMsg As PSPCALLBACKMESSAGES, ByVal ppsp As LongPtr)
+Public Delegate Function PSPCALLBACKA (ByVal hwnd As LongPtr, ByVal uMsg As PSPCALLBACKMESSAGES, ByVal ppsp As LongPtr) As Long
 ' typedef UINT (CALLBACK *LPFNPSPCALLBACKW)(HWND hwnd, UINT uMsg, struct _PROPSHEETPAGEW *ppsp);
-Public Delegate Function PSPCALLBACKW (ByVal hwnd As LongPtr, ByVal uMsg As PSPCALLBACKMESSAGES, ByVal ppsp As LongPtr)
-Public Delegate Function PSPCALLBACK (ByVal hwnd As LongPtr, ByVal uMsg As PSPCALLBACKMESSAGES, ByVal ppsp As LongPtr)
+Public Delegate Function PSPCALLBACKW (ByVal hwnd As LongPtr, ByVal uMsg As PSPCALLBACKMESSAGES, ByVal ppsp As LongPtr) As Long
+Public Delegate Function PSPCALLBACK (ByVal hwnd As LongPtr, ByVal uMsg As PSPCALLBACKMESSAGES, ByVal ppsp As LongPtr) As Long
 
 Public Enum PSP_FLAGS
     PSP_DEFAULT = &H00000000
@@ -6311,8 +6347,8 @@ Public Enum PSNOTIFYCODES
     PSN_WIZFINISH = (-208)
     PSN_QUERYCANCEL = (-209)
     PSN_GETOBJECT = (-210)
-    PSN_TRANSLATEACCELERATOR = (-211)
-    PSN_QUERYINITIALFOCUS = (-212)
+    PSN_TRANSLATEACCELERATOR = (-212)
+    PSN_QUERYINITIALFOCUS = (-213)
 End Enum
 
 Public Enum PSNOTIFYRESULTS
@@ -6356,10 +6392,12 @@ Public Enum PSMESSAGES
     PSM_INDEXTOID = (&H400 + 134)
     PSM_GETRESULT = (&H400 + 135)
     PSM_RECALCPAGESIZES = (&H400 + 136)
-    PSM_SETNEXTTEXT = (&H400 + 137)
+    PSM_SETNEXTTEXTW = (&H400 + 137)
+    PSM_SETNEXTTEXT = PSM_SETNEXTTEXTW
     PSM_SHOWWIZBUTTONS = (&H400 + 138)
     PSM_ENABLEWIZBUTTONS = (&H400 + 139)
-    PSM_SETBUTTONTEXT = (&H400 + 140)
+    PSM_SETBUTTONTEXTW = (&H400 + 140)
+    PSM_SETBUTTONTEXT = PSM_SETBUTTONTEXTW
     
     PSM_SETTITLE = PSM_SETTITLEW
     PSM_SETFINISHTEXT = PSM_SETFINISHTEXTW
@@ -6558,6 +6596,8 @@ Public Const RB_SETBANDWIDTH  = (WM_USER + 44)  ' set width for docked band
 Public Const RBSTR_CHANGERECT = &H0001
 
 Public Const RBN_FIRST As Long = (-831)
+Public Const RBN_LAST As Long = (-859)
+
 Public Const RBN_HEIGHTCHANGE  = (RBN_FIRST - 0)
 Public Const RBN_GETOBJECT  = (RBN_FIRST - 1)
 Public Const RBN_LAYOUTCHANGED  = (RBN_FIRST - 2)
@@ -6770,6 +6810,7 @@ End Type
 
 #Region "RichEdit"
 
+Public Const S_MSG_KEY_IGNORED = &H40201 ' MAKE_HRESULT(SEVERITY_SUCCESS, FACILITY_ITF, 0x201)
 
 Public Enum RichEdit_ParagraphFormatMask
     PFM_STARTINDENT = &H00000001
@@ -7185,7 +7226,7 @@ Public Enum tomCharRep
     tomTifinagh = 62
     tomAdlam = 89
     tomOsage = 90
-    tomCharRepMax = 91
+    tomCharRepMax = 63
 End Enum
 Public Enum tomPrefFontOptions
     tomIgnoreCurrentFont = 0
@@ -7973,9 +8014,9 @@ Public Enum CFMT_Mask
     CFM_MATH = &H10000000
     CFM_MATHORDINARY = &H20000000
     CFM_ALLEFFECTS = (CFM_EFFECTS2 Or CFM_FONTBOUND Or CFM_EXTENDED Or CFM_MATHNOBUILDUP Or CFM_MATH Or CFM_MATHORDINARY)
-        CFM_EFFECTS = (CFM_BOLD Or CFM_ITALIC Or CFM_UNDERLINE Or CFM_COLOR Or CFE_PROTECTED Or CFM_LINK)
+    CFM_EFFECTS = (CFM_BOLD Or CFM_ITALIC Or CFM_UNDERLINE Or CFM_COLOR Or CFM_STRIKEOUT Or CFE_PROTECTED Or CFM_LINK)
     CFM_ALL = (CFM_EFFECTS Or CFM_SIZE Or CFM_FACE Or CFM_OFFSET Or CFM_CHARSET)
-    CFM_EFFECTS2 = (CFM_EFFECTS Or CFM_DISABLED Or CFM_SMALLCAPS Or CFM_ALLCAPS Or CFM_OUTLINE Or CFM_SHADOW Or CFM_EMBOSS Or CFM_IMPRINT Or CFM_REVISED Or CFM_SUBSCRIPT Or CFM_SUPERSCRIPT Or CFM_BACKCOLOR)
+    CFM_EFFECTS2 = (CFM_EFFECTS Or CFM_DISABLED Or CFM_SMALLCAPS Or CFM_ALLCAPS Or CFM_HIDDEN Or CFM_OUTLINE Or CFM_SHADOW Or CFM_EMBOSS Or CFM_IMPRINT Or CFM_REVISED Or CFM_SUBSCRIPT Or CFM_SUPERSCRIPT Or CFM_BACKCOLOR)
     '(_RICHEDIT_VER  = >= &H0600)
     CFM_ALL2 = (CFM_ALL Or CFM_EFFECTS2 Or CFM_BACKCOLOR Or CFM_LCID Or CFM_UNDERLINETYPE Or CFM_WEIGHT Or CFM_REVAUTHOR Or CFM_SPACING Or CFM_KERNING Or CFM_STYLE Or CFM_ANIMATION Or CFM_COOKIE)
 End Enum
@@ -8562,12 +8603,22 @@ Public Enum RichEdit_EventNotifiyMasks
     ENM_HIDELINKTOOLTIP = &H80000000
 End Enum
 
+[Description("Deprecated.\" & vbcrlf & " RENAMED TO PROPER NAME: IMAGEDATA. Removal pending.")]
 Public Type RichEd_IMAGEDATA
+    renamed_see_description As Long
+End Type
+[Description("Deprecated.\" & vbcrlf & " RENAMED TO PROPER NAME: ENIMAGE. Removal pending.")]
+Public Type RichEd_ENIMAGE
+    renamed_see_description As Long
+End Type
+
+Public Type IMAGEDATA
     cp As Long
     Type As RichEd_IMAGETYPE
     Width As Long
     Height As Long
 End Type
+
 Public Enum RichEd_IMAGETYPE
     IT_NONE = 0
     IT_BMP = 1
@@ -8579,13 +8630,15 @@ Public Enum RichEd_IMAGETYPE
     IT_WMP = 7
     IT_UNKNOWN = 8
 End Enum
-Public Type RichEd_ENIMAGE
+ 
+Public Type ENIMAGE
     nmhdr As NMHDR
     msg As Long
     wParam As LongPtr
     lParam As LongPtr
-    ImageData As RichEd_IMAGEDATA
+    ImageData As IMAGEDATA
 End Type
+
 
 
 Public Enum RichEdit_TxEditStyleFlags
@@ -8712,6 +8765,7 @@ Public Type CHARFORMAT2W
     /* [TypeHint(FontFamily)] */
     bPitchAndFamily As Byte
     szFaceName(0 To (32 - 1)) As Integer
+    __pad As Integer
     wWeight As Integer          ' Font weight (LOGFONT value)        
     sSpacing As Integer         ' Amount to space between letters    
     crBackColor As Long         ' Background color                 
@@ -8740,6 +8794,7 @@ Public Type CHARFORMAT2A
     bCharSet As Byte
     bPitchAndFamily As Byte
     szFaceName(0 To (32 - 1)) As Byte
+    __pad As Integer
     wWeight As Integer          ' Font weight (LOGFONT value)        
     sSpacing As Integer         ' Amount to space between letters    
     crBackColor As Long         ' Background color                 
@@ -8756,6 +8811,8 @@ Public Type CHARFORMAT2A
     /* [TypeHint(RichEdit_UnderlineColors)] */ 
     bUnderlineColor As Byte     ' Underline color -- This would be a padding byte if not RichEd = &H800, so can be left in
 End Type
+
+Public Const CHARFORMATDELTA = 24 ' LenB(Of CHARFORMAT2W) - LenB(Of CHARFORMAT2W)
 
 Public Enum RichEdit_UnderlineTypes
     CFU_CF1UNDERLINE = &HFF  ' Map charformat's bit underline to CF2
@@ -9465,16 +9522,22 @@ Public Enum FlatScrollBarModes
     FSB_REGULAR_MODE = 0
 End Enum
 
-Public Declare PtrSafe Function FlatSB_EnableScrollBar Lib "comctl32" (ByVal hWnd As LongPtr, ByVal wSBFlags As ScrollBarType, ByVal wArrows As Long) As Long
-Public Declare PtrSafe Function FlatSB_ShowScrollBar Lib "comctl32" (ByVal hWnd As LongPtr, ByVal wSBFlags As ScrollBarType, ByVal fShow As Long) As Long
-Public Declare PtrSafe Function FlatSB_GetScrollRange Lib "comctl32" (ByVal hWnd As LongPtr, ByVal nBar As ScrollBarType, ByRef lpMinPos As Long, ByRef lpMaxPos As Long) As Long
-Public Declare PtrSafe Function FlatSB_GetScrollInfo Lib "comctl32" (ByVal hWnd As LongPtr, ByVal fnbar As ScrollBarType, ByRef lpsi As SCROLLINFO) As Long
+Public Declare PtrSafe Function FlatSB_EnableScrollBar Lib "comctl32" (ByVal hWnd As LongPtr, ByVal wSBFlags As ScrollBarType, ByVal wArrows As Long) As BOOL
+Public Declare PtrSafe Function FlatSB_ShowScrollBar Lib "comctl32" (ByVal hWnd As LongPtr, ByVal wSBFlags As ScrollBarType, ByVal fShow As BOOL) As BOOL
+Public Declare PtrSafe Function FlatSB_GetScrollRange Lib "comctl32" (ByVal hWnd As LongPtr, ByVal nBar As ScrollBarType, ByRef lpMinPos As Long, ByRef lpMaxPos As Long) As BOOL
+Public Declare PtrSafe Function FlatSB_GetScrollInfo Lib "comctl32" (ByVal hWnd As LongPtr, ByVal fnbar As ScrollBarType, ByRef lpsi As SCROLLINFO) As BOOL
 Public Declare PtrSafe Function FlatSB_GetScrollPos Lib "comctl32" (ByVal hWnd As LongPtr, ByVal nBar As ScrollBarType) As Long
-Public Declare PtrSafe Function FlatSB_GetScrollProp Lib "comctl32" (ByVal hWnd As LongPtr, ByVal propIndex As FlatScrollBarProps, ByRef Value As LongPtr) As Long
-Public Declare PtrSafe Function FlatSB_SetScrollPos Lib "comctl32" (ByVal hWnd As LongPtr, ByVal nBar As ScrollBarType, ByVal pos As Long, ByVal fRedraw As Long) As Long
-Public Declare PtrSafe Function FlatSB_SetScrollInfo Lib "comctl32" (ByVal hWnd As LongPtr, ByVal nBar As ScrollBarType, ByRef psi As SCROLLINFO, ByVal fRedraw As Long) As Long
-Public Declare PtrSafe Function FlatSB_SetScrollRange Lib "comctl32" (ByVal hWnd As LongPtr, ByVal nBar As ScrollBarType, ByVal min As Long, ByVal max As Long, ByVal fRedraw As Long) As Long
-Public Declare PtrSafe Function FlatSB_SetScrollProp Lib "comctl32" (ByVal hWnd As LongPtr, ByVal index As FlatScrollBarProps, ByVal newValue As LongPtr, ByVal fRedraw As Long) As Long
+Public Declare PtrSafe Function FlatSB_GetScrollProp Lib "comctl32" (ByVal hWnd As LongPtr, ByVal propIndex As FlatScrollBarProps, ByRef Value As Long) As BOOL
+#If Win64 Then
+Public Declare PtrSafe Function FlatSB_GetScrollPropPtr Lib "comctl32" (ByVal hWnd As LongPtr, ByVal propIndex As FlatScrollBarProps, ByRef Value As LongPtr) As BOOL
+#Else
+Public Declare PtrSafe Function FlatSB_GetScrollPropPtr Lib "comctl32" Alias "FlatSB_GetScrollProp" (ByVal hWnd As LongPtr, ByVal propIndex As FlatScrollBarProps, ByRef Value As LongPtr) As BOOL
+#End If
+Public Declare PtrSafe Function FlatSB_SetScrollPos Lib "comctl32" (ByVal hWnd As LongPtr, ByVal nBar As ScrollBarType, ByVal pos As Long, ByVal fRedraw As BOOL) As Long
+Public Declare PtrSafe Function FlatSB_SetScrollInfo Lib "comctl32" (ByVal hWnd As LongPtr, ByVal nBar As ScrollBarType, ByRef psi As SCROLLINFO, ByVal fRedraw As BOOL) As Long
+Public Declare PtrSafe Function FlatSB_SetScrollRange Lib "comctl32" (ByVal hWnd As LongPtr, ByVal nBar As ScrollBarType, ByVal min As Long, ByVal max As Long, ByVal fRedraw As BOOL) As Long
+Public Declare PtrSafe Function FlatSB_SetScrollProp Lib "comctl32" (ByVal hWnd As LongPtr, ByVal index As FlatScrollBarProps, ByVal newValue As LongPtr, ByVal fRedraw As BOOL) As BOOL
+Public Declare PtrSafe Function FlatSB_SetScrollPropPtr Lib "comctl32" Alias "FlatSB_SetScrollProp" (ByVal hWnd As LongPtr, ByVal index As FlatScrollBarProps, ByVal newValue As LongPtr, ByVal fRedraw As BOOL) As BOOL
 Public Declare PtrSafe Function InitializeFlatSB Lib "comctl32" (ByVal hWnd As LongPtr) As BOOL
 Public Declare PtrSafe Function UninitializeFlatSB Lib "comctl32" (ByVal hWnd As LongPtr) As BOOL
     
@@ -9580,6 +9643,7 @@ Public Enum StatusBar_Ts
 End Enum
 
 Public Const SBN_FIRST As Long = (-880)
+Public Const SBN_LAST As Long = (-899)
 Public Const SBN_SIMPLEMODECHANGE = (SBN_FIRST - 0)
 
 Public Enum StatusStyles
@@ -9666,6 +9730,8 @@ Public Const WC_TABCONTROL = WC_TABCONTROLW
 
 Public Const TCM_FIRST = &H1300                   '// Tab control messages
 Public Const TCN_FIRST = H_MAX - 550
+Public Const TCN_LAST = (-580)
+
 Public Enum TabItemFlags
     TCIF_TEXT = &H1
     TCIF_IMAGE = &H2
@@ -9810,16 +9876,16 @@ End Type
 
 #Region "TaskDialog"
 Public Enum TDICONS
-    TD_WARNING_ICON = -1 'exclamation point in a yellow 'yield' triangle (same image as IDI_EXCLAMATION)
-    TD_ERROR_ICON = -2 'round red circle containg 'X' (same as IDI_HAND)
-    TD_INFORMATION_ICON = -3 'round blue circle containing 'i' (same image as IDI_ASTERISK)
-    TD_SHIELD_ICON = -4 'Vista's security shield
-    TD_SHIELD_GRADIENT_ICON = -5 'same image as TD_SHIELD_ICON; main message text on gradient blue background
-    TD_SHIELD_WARNING_ICON = -6 'exclamation point in yellow Shield shape; main message text on gradient orange background
-    TD_SHIELD_ERROR_ICON = -7 'X contained within Shield shape; main message text on gradient red background
-    TD_SHIELD_OK_ICON = -8 'Shield shape containing green checkmark; main message text on gradient green background
-    TD_SHIELD_GRAY_ICON = -9 'same image as TD_SHIELD_ICON; main message text on medium gray background
-    TD_NO_ICON = 0 'no icon; text on white background
+    TD_WARNING_ICON = &HFFFF&            'exclamation point in a yellow 'yield' triangle (same image as IDI_EXCLAMATION)
+    TD_ERROR_ICON = &HFFFE&              'round red circle containg 'X' (same as IDI_HAND)
+    TD_INFORMATION_ICON = &HFFFD&        'round blue circle containing 'i' (same image as IDI_ASTERISK)
+    TD_SHIELD_ICON = &HFFFC&             'Vista's security shield
+    TD_SHIELD_GRADIENT_ICON = &HFFFB&    'same image as TD_SHIELD_ICON; main message text on gradient blue background
+    TD_SHIELD_WARNING_ICON = &HFFFFA&     'exclamation point in yellow Shield shape; main message text on gradient orange background
+    TD_SHIELD_ERROR_ICON = &HFFF9&       'X contained within Shield shape; main message text on gradient red background
+    TD_SHIELD_OK_ICON = &HFFF8&          'Shield shape containing green checkmark; main message text on gradient green background
+    TD_SHIELD_GRAY_ICON = &HFFF7&        'same image as TD_SHIELD_ICON; main message text on medium gray background
+    TD_NO_ICON = 0                       'no icon; text on white background
 End Enum
 
 'taskdialog common button flags
@@ -10136,6 +10202,8 @@ Public Const TB_GETPRESSEDIMAGELIST  = (WM_USER + 105)
 Public Const TB_SETWINDOWTHEME  = CCM_SETWINDOWTHEME
 
 Public Const TBN_FIRST As Long = (-700)
+Public Const TBN_LAST As Long = (-720)
+
 Public Const TBN_GETBUTTONINFOA  = (TBN_FIRST - 0)
 Public Const TBN_BEGINDRAG  = (TBN_FIRST - 1)
 Public Const TBN_ENDDRAG  = (TBN_FIRST - 2)
@@ -10167,6 +10235,9 @@ Public Const TBN_DRAGOVER  = (TBN_FIRST - 27)
 Public Const TBN_MAPACCELERATOR  = (TBN_FIRST - 28)
 
 Public Const TBN_GETDISPINFO  = TBN_GETDISPINFOW
+Public Const TBN_GETBUTTONINFO = TBN_GETBUTTONINFOW
+Public Const TBN_GETINFOTIP = TBN_GETINFOTIPW
+
 
 
 Public Enum Toolbar_ButtonStates
@@ -10612,6 +10683,8 @@ Public Const TTM_SETTITLE  = TTM_SETTITLEW
 Public Const TTM_SETWINDOWTHEME = CCM_SETWINDOWTHEME
 
 Public Const TTN_FIRST As Long = (-520)
+Public Const TTN_LAST As Long = (-549)
+
 Public Const TTN_GETDISPINFOA  = (TTN_FIRST - 0)
 Public Const TTN_GETDISPINFOW  = (TTN_FIRST - 10)
 Public Const TTN_SHOW  = (TTN_FIRST - 1)
@@ -10646,6 +10719,7 @@ Public Enum Tooltip_Flags
     TTF_TRACK = &H0020
     TTF_ABSOLUTE = &H0080
     TTF_TRANSPARENT = &H0100
+    TTF_PARSELINKS = &H1000
     TTF_DI_SETITEM = &H8000& ' valid only on the TTN_NEEDTEXT callback
 End Enum
 
@@ -10750,11 +10824,11 @@ Public Type NMTTDISPINFOA
     lParam As LongPtr
 End Type
 #If Win64 Then
-Public Const NMTTDISPINFOA_V1_SIZE = &HCC
+Public Const NMTTDISPINFOA_V1_SIZE = &H7C
 Public Const NMTTDISPINFOW_V1_SIZE = &HCC
 Public Const NMTTDISPINFO_V1_SIZE = &HCC
 #Else
-Public Const NMTTDISPINFOA_V1_SIZE = &HB8
+Public Const NMTTDISPINFOA_V1_SIZE = &H68
 Public Const NMTTDISPINFOW_V1_SIZE = &HB8
 Public Const NMTTDISPINFO_V1_SIZE = &HB8
 #End If
@@ -10811,6 +10885,7 @@ Public Const TBM_SETUNICODEFORMAT  = CCM_SETUNICODEFORMAT
 Public Const TBM_GETUNICODEFORMAT  = CCM_GETUNICODEFORMAT
 
 Public Const TRBN_FIRST As Long = (-1501)
+Public Const TRBN_LAST As Long = (-1519)
 Public Const TRBN_THUMBPOSCHANGING = (TRBN_FIRST - 1)
 
 
@@ -10830,7 +10905,7 @@ Public Enum TrackBarStyles
     TBS_TOOLTIPS = &H0100
     TBS_REVERSED = &H0200
     TBS_DOWNISLEFT = &H0400
-    TBS_NOTIFYBEFOREREMOVE = &H0800
+    TBS_NOTIFYBEFOREMOVE = &H0800
     TBS_TRANSPARENTBKGND = &H1000
 End Enum
 
@@ -11305,7 +11380,7 @@ Public Enum TVNotifications
     TVN_GETINFOTIP = TVN_GETINFOTIPW
     TVN_ITEMCHANGING = TVN_ITEMCHANGINGW
     TVN_ITEMCHANGED = TVN_ITEMCHANGEDW
-    
+    TVN_SELCHANGED = TVN_SELCHANGEDW
 End Enum   ' Notifications
 
 Public Const TVNRET_DEFAULT = &H0
@@ -11415,6 +11490,8 @@ Public Const UPDOWN_CLASSW  = "msctls_updown32"
 Public Const UPDOWN_CLASS = UPDOWN_CLASSW
 
 Public Const UDN_FIRST As Long = (H_MAX - 721)
+Public Const UDN_LAST As Long = (-729)
+
 Public Const UDN_DELTAPOS As Long = (UDN_FIRST - 1)
 
 Public Enum UpDownStyles
@@ -11455,7 +11532,7 @@ Public Type UDACCEL
 End Type
 
 Public Const UD_MAXVAL As Integer = &H7fff
-Public Const UD_MINVAL As Integer = &H8000
+Public Const UD_MINVAL As Integer = (-UD_MAXVAL)
 
 Public Type NMUPDOWN
     hdr As NMHDR
@@ -13284,23 +13361,23 @@ Public Type WTA_OPTIONS
 End Type
 
 Public Enum DTT_Flags
-    DTT_TEXTCOLOR = (1& << 0)  ' crText has been specified
-    DTT_BORDERCOLOR = (1& << 1)  ' crBorder has been specified
-    DTT_SHADOWCOLOR = (1& << 2)  ' crShadow has been specified
-    DTT_SHADOWTYPE = (1& << 3)  ' iTextShadowType has been specified
-    DTT_SHADOWOFFSET = (1& << 4)  ' ptShadowOffset has been specified
-    DTT_BORDERSIZE = (1& << 5)  ' iBorderSize has been specified
-    DTT_FONTPROP = (1& << 6)  ' iFontPropId has been specified
-    DTT_COLORPROP = (1& << 7)  ' iColorPropId has been specified
-    DTT_STATEID = (1& << 8)  ' IStateId has been specified
-    DTT_CALCRECT = (1& << 9)  ' Use pRect as and in/out parameter
-    DTT_APPLYOVERLAY = (1& << 10)  ' fApplyOverlay has been specified
-    DTT_GLOWSIZE = (1& << 11)  ' iGlowSize has been specified
-    DTT_CALLBACK = (1& << 12)  ' pfnDrawTextCallback has been specified
-    DTT_COMPOSITED = (1& << 13)  ' Draws text with antialiased alpha (needs a DIB section)
+    DTT_TEXTCOLOR = (1& << 0)       ' crText has been specified
+    DTT_BORDERCOLOR = (1& << 1)     ' crBorder has been specified
+    DTT_SHADOWCOLOR = (1& << 2)     ' crShadow has been specified
+    DTT_SHADOWTYPE = (1& << 3)      ' iTextShadowType has been specified
+    DTT_SHADOWOFFSET = (1& << 4)    ' ptShadowOffset has been specified
+    DTT_BORDERSIZE = (1& << 5)      ' iBorderSize has been specified
+    DTT_FONTPROP = (1& << 6)        ' iFontPropId has been specified
+    DTT_COLORPROP = (1& << 7)       ' iColorPropId has been specified
+    DTT_STATEID = (1& << 8)         ' IStateId has been specified
+    DTT_CALCRECT = (1& << 9)        ' Use pRect as and in/out parameter
+    DTT_APPLYOVERLAY = (1& << 10)   ' fApplyOverlay has been specified
+    DTT_GLOWSIZE = (1& << 11)       ' iGlowSize has been specified
+    DTT_CALLBACK = (1& << 12)       ' pfnDrawTextCallback has been specified
+    DTT_COMPOSITED = (1& << 13)     ' Draws text with antialiased alpha (needs a DIB section)
     DTT_VALIDBITS = (DTT_TEXTCOLOR Or DTT_BORDERCOLOR Or DTT_SHADOWCOLOR Or DTT_SHADOWTYPE Or DTT_SHADOWOFFSET Or DTT_BORDERSIZE Or DTT_FONTPROP Or DTT_COLORPROP Or DTT_STATEID Or DTT_CALCRECT Or DTT_APPLYOVERLAY Or DTT_GLOWSIZE Or DTT_COMPOSITED)
 End Enum
-Public Delegate Function DTT_CALLBACK_PROC (ByVal hdc As LongPtr, ByVal pszText As LongPtr, ByVal cchText As LongPtr, prc As RECT, ByVal dwFlags As Long, ByVal lParam As Long) As Long
+Public Delegate Function DTT_CALLBACK_PROC (ByVal hdc As LongPtr, ByVal pszText As LongPtr, ByVal cchText As Long, prc As RECT, ByVal dwFlags As Long, ByVal lParam As LongPtr) As Long
 Public Type DTTOPTS
     dwSize As Long ' size of the struct
     dwFlags As DTT_Flags ' which options have been specified
@@ -13991,7 +14068,11 @@ Public Declare PtrSafe Function GetThemePartSize Lib "uxtheme" (ByVal hTheme As 
 Public Declare PtrSafe Function GetThemeTextExtent Lib "uxtheme" (ByVal hTheme As LongPtr, ByVal hDC As LongPtr, ByVal iPartId As Long, ByVal iStateId As Long, ByVal pszText As LongPtr, ByVal cchCharCount As Long, ByVal dwTextFlags As Long, pBoundingRect As RECT, pExtentRect As RECT) As Long
 Public DeclareWide PtrSafe Function GetThemeTextExtent Lib "uxtheme" (ByVal hTheme As LongPtr, ByVal hDC As LongPtr, ByVal iPartId As Long, ByVal iStateId As Long, ByVal pszText As String, ByVal cchCharCount As Long, ByVal dwTextFlags As Long, pBoundingRect As RECT, pExtentRect As RECT) As Long
 Public Declare PtrSafe Function GetThemeTextMetrics Lib "uxtheme" (ByVal hTheme As LongPtr, ByVal hDC As LongPtr, ByVal iPartId As Long, ByVal iStateId As Long, ptm As TEXTMETRICW) As Long
-Public Declare PtrSafe Function HitTestThemeBackground Lib "uxtheme" (ByVal hTheme As LongPtr, ByVal hDC As LongPtr, ByVal iPartId As Long, ByVal iStateId As Long, pRect As RECT, ByVal hrgn As LongPtr, ptTest As POINT, pwHitTestCode As Integer) As Long
+#If WDL_NO_BYVAL_UDT = 0 Then
+Public Declare PtrSafe Function HitTestThemeBackground Lib "uxtheme" (ByVal hTheme As LongPtr, ByVal hDC As LongPtr, ByVal iPartId As Long, ByVal iStateId As Long, ByVal dwOptions As HTTB_Flags, pRect As RECT, ByVal hrgn As LongPtr, ByVal ptTest As POINT, pwHitTestCode As Integer) As Long
+#Else
+Public Declare PtrSafe Function HitTestThemeBackground Lib "uxtheme" (ByVal hTheme As LongPtr, ByVal hDC As LongPtr, ByVal iPartId As Long, ByVal iStateId As Long, ByVal dwOptions As HTTB_Flags, pRect As RECT, ByVal hrgn As LongPtr, ByVal ptTest As LongLong, pwHitTestCode As Integer) As Long
+#End If
 Public Declare PtrSafe Function DrawThemeIcon Lib "uxtheme" (ByVal hTheme As LongPtr, ByVal hDC As LongPtr, ByVal iPartId As Long, ByVal iStateId As Long, pRect As RECT, ByVal himl As LongPtr, ByVal iImageIndex As Long) As Long
 Public Declare PtrSafe Function DrawThemeEdge Lib "uxtheme" (ByVal hTheme As LongPtr, ByVal hDC As LongPtr, ByVal iPartId As Long, ByVal iStateId As Long, pDestRect As RECT, ByVal uEdge As Long, ByVal uFlags As Long, pContentRect As RECT) As Long
 Public Declare PtrSafe Function IsThemePartDefined Lib "uxtheme" (ByVal hTheme As LongPtr, ByVal iPartId As Long, ByVal iStateId As Long) As BOOL
@@ -14013,7 +14094,8 @@ Public Declare PtrSafe Function SetWindowTheme Lib "uxtheme" (ByVal hwnd As Long
 Public DeclareWide PtrSafe Function SetWindowTheme Lib "uxtheme" (ByVal hwnd As LongPtr, ByVal pszSubAppName As String, ByVal pszSubIdList As String) As Long
 Public Declare PtrSafe Function GetThemeFilename Lib "uxtheme" (ByVal hTheme As LongPtr, ByVal iPartId As Long, ByVal iStateId As Long, ByVal iPropId As Long, ByVal pszThemeFileName As LongPtr, ByVal cchMaxBuffChars As Long) As Long
 Public DeclareWide PtrSafe Function GetThemeFilename Lib "uxtheme" (ByVal hTheme As LongPtr, ByVal iPartId As Long, ByVal iStateId As Long, ByVal iPropId As Long, ByVal pszThemeFileName As String, ByVal cchMaxBuffChars As Long) As Long
-Public Declare PtrSafe Function GetThemeSysColorBrush Lib "uxtheme" (ByVal hTheme As LongPtr, ByVal iColorId As Long) As LongPtr
+Public Declare PtrSafe Function GetThemeSysColor Lib "uxtheme" (ByVal hTheme As LongPtr, ByVal iColorId As SystemColors) As Long
+Public Declare PtrSafe Function GetThemeSysColorBrush Lib "uxtheme" (ByVal hTheme As LongPtr, [TypeHint(VisualStylesPropertySymbolDefs)] ByVal iColorId As Long) As LongPtr
 Public Declare PtrSafe Function GetThemeSysBool Lib "uxtheme" (ByVal hTheme As LongPtr, ByVal iBoolId As Long) As BOOL
 Public Declare PtrSafe Function GetThemeSysSize Lib "uxtheme" (ByVal hTheme As LongPtr, ByVal iSizeId As Long) As Long
 Public Declare PtrSafe Function GetThemeSysFont Lib "uxtheme" (ByVal hTheme As LongPtr, ByVal iFontId As Long, ByVal plf As LongPtr) As Long
@@ -14038,7 +14120,7 @@ Public Declare PtrSafe Function SetWindowThemeAttribute Lib "uxtheme" (ByVal hWn
 Public Declare PtrSafe Function DrawThemeTextEx Lib "uxtheme" (ByVal hTheme As LongPtr, ByVal hDC As LongPtr, ByVal iPartId As Long, ByVal iStateId As Long, ByVal pszText As LongPtr, ByVal cchText As Long, ByVal dwTextFlags As Long, pRect As RECT, pOptions As DTTOPTS) As Long
 Public DeclareWide PtrSafe Function DrawThemeTextEx Lib "uxtheme" (ByVal hTheme As LongPtr, ByVal hDC As LongPtr, ByVal iPartId As Long, ByVal iStateId As Long, ByVal pszText As String, ByVal cchText As Long, ByVal dwTextFlags As Long, pRect As RECT, pOptions As DTTOPTS) As Long
 Public Declare PtrSafe Function GetThemeBitmap Lib "uxtheme" (ByVal hTheme As LongPtr, ByVal iPartId As Long, ByVal iStateId As Long, ByVal iPropId As Long, ByVal dwFlags As Long, phBitmap As LongPtr) As Long
-Public Declare PtrSafe Function GetThemeStream Lib "uxtheme" (ByVal hTheme As LongPtr, ByVal iPartId As Long, ByVal iStateId As Long, ByVal iPropId As Long, ppvStream As Any, pcbStream As Long, ByVal hInst As LongPtr) As Long
+Public Declare PtrSafe Function GetThemeStream Lib "uxtheme" (ByVal hTheme As LongPtr, ByVal iPartId As Long, ByVal iStateId As Long, ByVal iPropId As Long, ppvStream As LongPtr, pcbStream As Long, ByVal hInst As LongPtr) As Long
 Public Declare PtrSafe Function BufferedPaintInit Lib "uxtheme" () As Long
 Public Declare PtrSafe Function BufferedPaintUnInit Lib "uxtheme" () As Long
 Public Declare PtrSafe Function BeginBufferedPaint Lib "uxtheme" (ByVal hdcTarget As LongPtr, prcTarget As RECT, ByVal dwFormat As BP_BUFFERFORMAT, pPaintParams As BP_PAINTPARAMS, phdc As LongPtr) As LongPtr
@@ -14046,7 +14128,7 @@ Public Declare PtrSafe Function EndBufferedPaint Lib "uxtheme" (ByVal hBufferedP
 Public Declare PtrSafe Function GetBufferedPaintTargetRect Lib "uxtheme" (ByVal hBufferedPaint As LongPtr, prc As RECT) As Long
 Public Declare PtrSafe Function GetBufferedPaintTargetDC Lib "uxtheme" (ByVal hBufferedPaint As LongPtr) As LongPtr
 Public Declare PtrSafe Function GetBufferedPaintDC Lib "uxtheme" (ByVal hBufferedPaint As LongPtr) As LongPtr
-Public Declare PtrSafe Function GetBufferedPaintBits Lib "uxtheme" (ByVal hBufferedPaint As LongPtr, ppbBuffer As RGBQUAD, pcxRow As Long) As Long
+Public Declare PtrSafe Function GetBufferedPaintBits Lib "uxtheme" (ByVal hBufferedPaint As LongPtr, ppbBuffer As LongPtr, pcxRow As Long) As Long
 Public Declare PtrSafe Function BufferedPaintClear Lib "uxtheme" (ByVal hBufferedPaint As LongPtr, prc As RECT) As Long
 Public Declare PtrSafe Function BufferedPaintSetAlpha Lib "uxtheme" (ByVal hBufferedPaint As LongPtr, prc As RECT, ByVal alpha As Byte) As Long
 Public Declare PtrSafe Function BufferedPaintStopAllAnimations Lib "uxtheme" (ByVal hwnd As LongPtr) As Long
@@ -14732,7 +14814,7 @@ End Function
 Public Function Button_SetText(ByVal hwndCtl As LongPtr, ByVal lpsz As LongPtr) As BOOL
 Button_SetText = SetWindowTextW(hwndCtl, lpsz)
 End Function
-Public Function Button_GetIdealSize(hWnd As LongPtr, psize As Long) As Long
+Public Function Button_GetIdealSize(hWnd As LongPtr, psize As SIZE) As Long
 Button_GetIdealSize = CLng(SendMessage(hWnd, BCM_GETIDEALSIZE, 0, psize))
 End Function
 Public Function Button_SetImageList(hWnd As LongPtr, pbuttonImagelist As LongPtr) As LongPtr
@@ -14744,7 +14826,7 @@ End Function
 Public Function Button_SetTextMargin(hWnd As LongPtr, pmargin As LongPtr) As Long
 Button_SetTextMargin = CLng(SendMessage(hWnd, BCM_SETTEXTMARGIN, 0, ByVal pmargin))
 End Function
-Public Function Button_GetTextMargin(hWnd As LongPtr, pmargin As LongPtr) As Long
+Public Function Button_GetTextMargin(hWnd As LongPtr, pmargin As RECT) As Long
 Button_GetTextMargin = CLng(SendMessage(hWnd, BCM_GETTEXTMARGIN, 0, pmargin))
 End Function
 Public Function Button_SetDropDownState(hWnd As LongPtr, fDropDown As Long) As Long
@@ -14759,7 +14841,7 @@ End Function
 Public Function Button_SetNote(hWnd As LongPtr, psz As LongPtr) As Long
 Button_SetNote = CLng(SendMessage(hWnd, BCM_SETNOTE, 0, ByVal psz))
 End Function
-Public Function Button_GetNote(hWnd As LongPtr, pcc As Long, psz As LongPtr) As Long
+Public Function Button_GetNote(hWnd As LongPtr, psz As LongPtr, pcc As LongPtr) As Long
 Button_GetNote = CLng(SendMessage(hWnd, BCM_GETNOTE, pcc, ByVal psz))
 End Function
 Public Function Button_GetNoteLength(hWnd As LongPtr) As Long
@@ -14843,7 +14925,7 @@ Public Function ComboBox_AddItemData(hwndCtl As LongPtr, data As LongPtr) As Lon
 End Function
 
 Public Function ComboBox_InsertItemData(hwndCtl As LongPtr, index As Long, data As LongPtr) As Long
-    Return CLng(SendMessage(hwndCtl, CB_INSERTSTRING, index, data))
+    Return CLng(SendMessage(hwndCtl, CB_INSERTSTRING, index, ByVal data))
 End Function
 
 Public Function ComboBox_DeleteString(hwndCtl As LongPtr, index As Long) As Long
@@ -14996,7 +15078,7 @@ MonthCal_GetToday = CType(Of BOOL)(SendMessage(hmc, MCM_GETTODAY, 0, pst))
 End Function
 
 Public Function MonthCal_SetFirstDayOfWeek(ByVal hmc As LongPtr, ByVal iDay As Long) As Long
-MonthCal_SetFirstDayOfWeek = DCast(Of Long)(SendMessage(hmc, MCM_SETFIRSTDAYOFWEEK, 0, iDay))
+MonthCal_SetFirstDayOfWeek = DCast(Of Long)(SendMessage(hmc, MCM_SETFIRSTDAYOFWEEK, 0, ByVal iDay))
 End Function
 
 Public Function MonthCal_GetFirstDayOfWeek(ByVal hmc As LongPtr) As Long
@@ -15059,6 +15141,10 @@ Return CLng(SendMessage(hmc, MCM_GETCALENDARBORDER, 0, ByVal 0))
 End Function
 Public Function MonthCal_SetCurrentView(ByVal hmc As LongPtr, ByVal dwNewView As MonthCalView) As BOOL
 Return CType(Of BOOL)(SendMessage(hmc, MCM_SETCURRENTVIEW, 0, ByVal dwNewView))
+End Function
+
+Public Function MonthCal_HitTest(ByVal hmc As LongPtr, pinfo As MCHITTESTINFO) As MCHT_Flags
+    MonthCal_HitTest = DCast(Of MCHT_Flags)(SendMessage(hmc, MCM_HITTEST, 0, pinfo))
 End Function
 #End Region
 
@@ -15128,7 +15214,7 @@ End Function
 Public Function Edit_Enable(hwndCtl As LongPtr, fEnable As BOOL) As Long
 Edit_Enable = EnableWindow(hwndCtl, fEnable)
 End Function
-Public Function Edit_GetText(hwndCtl As LongPtr, ByVal lpch As String, ByVal cchMax As Long) As String
+Public Function Edit_GetText(hwndCtl As LongPtr, lpch As String, ByVal cchMax As Long) As Long
 Edit_GetText = GetWindowText(hwndCtl, lpch, cchMax)
 End Function
 Public Function Edit_GetTextLength(hwndCtl As LongPtr) As Long
@@ -15165,7 +15251,7 @@ Edit_GetSel = CLng(SendMessage(hwndCtl, EM_GETSEL, 0, ByVal 0&))
 End Function
 
 Public Sub Edit_SetSel(ByVal hwndCtl As LongPtr, ByVal ichStart As Long, ByVal ichEnd As Long)
-Call SendMessage(hwndCtl, EM_SETSEL, ichStart, ichEnd)
+Call SendMessage(hwndCtl, EM_SETSEL, ichStart, ByVal ichEnd)
 End Sub
 
 Public Sub Edit_ReplaceSel(ByVal hwndCtl As LongPtr, ByVal lpszReplace As LongPtr)
@@ -15197,7 +15283,7 @@ Edit_LineLength = CLng(SendMessage(hwndCtl, EM_LINELENGTH, line, ByVal 0&))
 End Function
 
 Public Sub Edit_Scroll(ByVal hwndCtl As LongPtr, ByVal dv As Long, ByVal dh As Long)
-Call SendMessage(hwndCtl, EM_LINESCROLL, dh, dv)
+Call SendMessage(hwndCtl, EM_LINESCROLL, dh, ByVal dv)
 End Sub
 
 Public Function Edit_CanUndo(ByVal hwndCtl As LongPtr) As BOOL
@@ -15274,7 +15360,7 @@ End Function
 
 [Unimplemented, Description("Message has no effect on any Windows version.")]
 Public Sub Edit_SetHilite(ByVal hwndCtl As LongPtr, ByVal ichStart As Long, ByVal ichEnd As Long)
-Call SendMessage(hwndCtl, EM_SETHILITE, ichStart, ichEnd)
+Call SendMessage(hwndCtl, EM_SETHILITE, ichStart, ByVal ichEnd)
 End Sub
 [Unimplemented, Description("Message has no effect on any Windows version.")]
 Public Function Edit_GetHilite(ByVal hwndCtl As LongPtr) As Long
@@ -15341,7 +15427,7 @@ Public Function Edit_GetFileLineLength(ByVal hwndCtl As LongPtr, ByVal character
 Edit_GetFileLineLength = CLng(SendMessage(hwndCtl, EM_FILELINELENGTH, characterIndex, ByVal 0&))
 End Function
 
-Public Function Edit_GetFileLine(ByVal hwndCtl As LongPtr, ByVal lineNumber As Long, ByVal textBuffer As String) As Long
+Public Function Edit_GetFileLine(ByVal hwndCtl As LongPtr, ByVal lineNumber As Long, textBuffer As String) As Long
 Edit_GetFileLine = CLng(SendMessage(hwndCtl, EM_GETFILELINE, lineNumber, ByVal textBuffer))
 End Function
 
@@ -15485,7 +15571,7 @@ End Function
 Public Function PropSheet_SetCurSel(hDlg As LongPtr, hPage As LongPtr, index As Long) As Long
     Return CLng(SendMessage(hDlg, PSM_SETCURSEL, index, ByVal hPage))
 End Function
-Public Function PropSheet_RemovePage(hDlg As LongPtr, hPage As LongPtr, index As Long) As Long
+Public Function PropSheet_RemovePage(hDlg As LongPtr, index As Long, hPage As LongPtr) As Long
     Return CLng(SendMessage(hDlg, PSM_REMOVEPAGE, index, ByVal hPage))
 End Function
 Public Function PropSheet_AddPage(hDlg As LongPtr, hPage As LongPtr) As Long
@@ -15875,11 +15961,11 @@ Public Function ListView_SetExtendedListViewStyleEx(hwndLV As LongPtr, dwMask As
                                                                                     ByVal dwMask, ByVal dw)
 End Function
 
-Public Function ListView_SetColumnOrderArray(hWnd As LongPtr, iCount As Long, lpiArray As LongPtr) As Boolean
+Public Function ListView_SetColumnOrderArray(hWnd As LongPtr, iCount As Long, lpiArray As Long) As Boolean
   ListView_SetColumnOrderArray = SendMessage(hWnd, LVM_SETCOLUMNORDERARRAY, ByVal iCount, lpiArray)
 End Function
 
-Public Function ListView_GetColumnOrderArray(hWnd As LongPtr, iCount As Long, lpiArray As LongPtr) As Boolean
+Public Function ListView_GetColumnOrderArray(hWnd As LongPtr, iCount As Long, lpiArray As Long) As Boolean
   ListView_GetColumnOrderArray = SendMessage(hWnd, LVM_GETCOLUMNORDERARRAY, ByVal iCount, lpiArray)
 End Function
 Public Function ListView_SetImageList(hWnd As LongPtr, himl As LongPtr, iImageList As LV_ImageList) As LongPtr
@@ -16177,7 +16263,7 @@ End Function
 
 
 
-Public Function ListView_GetEmptyText(hWnd As LongPtr, cchText As Long, pszText As String) As LongPtr
+Public Function ListView_GetEmptyText(hWnd As LongPtr, pszText As String, cchText As Long) As LongPtr
 
 ListView_GetEmptyText = SendMessage(hWnd, LVM_GETEMPTYTEXT, cchText, ByVal pszText)
 End Function
@@ -16247,12 +16333,8 @@ Public Function ListView_GetGroupRect(hWnd As LongPtr, iGroup As Long, Item As L
         rc.Top = Item
         ListView_GetGroupRect = SendMessage(hWnd, LVM_GETGROUPRECT, iGroup, rc)
 End Function
-Public Function ListView_GetGroupCount(hWnd As LongPtr, iGroup As Long) As LongPtr
-Dim LVG As LVGROUP
-    LVG.mask = LVGF_ITEMS
-    LVG.cbSize = LenB(LVG)
-    Call SendMessage(hWnd, LVM_GETGROUPINFO, iGroup, LVG)
-ListView_GetGroupCount = LVG.cItems
+Public Function ListView_GetGroupCount(hWnd As LongPtr) As LongPtr
+    Call SendMessage(hWnd, LVM_GETGROUPCOUNT, 0, ByVal vbNullPtr)
 End Function
 Public Function ListView_GetGroupState(hWnd As LongPtr, dwGroupId As Long, dwMask As LVGROUPSTATE) As LongPtr
 ListView_GetGroupState = SendMessage(hWnd, LVM_GETGROUPSTATE, dwGroupId, ByVal dwMask)
@@ -16448,6 +16530,13 @@ Public Function ListView_SetCheckStateEx(hwndLV As LongPtr, i As Long, nIndex As
 '  ListView_SetItemState(hwndLV, i, INDEXTOSTATEIMAGEMASK((fCheck)?2:1), LVIS_STATEIMAGEMASK)
 ListView_SetCheckStateEx = ListView_SetItemState(hwndLV, i, INDEXTOSTATEIMAGEMASK(nIndex), LVIS_STATEIMAGEMASK)
 End Function
+
+Public Function ListView_SetExtendedListViewStyle(ByVal hwndLV As LongPtr, ByVal dw As LVStylesEx) As LVStylesEx
+    ListView_SetExtendedListViewStyle = DCast(Of LVStylesEx)(SendMessage(hwndLV, LVM_SETEXTENDEDLISTVIEWSTYLE, 0, ByVal dw))
+End Function
+Public Function ListView_SubItemHitTestEx(ByVal hWnd As LongPtr, plvhti As LVHITTESTINFO) As Long
+    ListView_SubItemHitTestEx = CLng(SendMessage(hWnd, LVM_SUBITEMHITTEST, -1, plvhti))
+End Function
 #End Region
 
 #Region "HeaderMacros"
@@ -16514,12 +16603,12 @@ Public Function Header_CreateDragImage(hWnd As LongPtr, i As Long) As LongPtr
 '        (HIMAGELIST)SNDMSG((hwnd), HDM_CREATEDRAGIMAGE, (WPARAM)(i), 0)
 Header_CreateDragImage = SendMessage(hWnd, HDM_CREATEDRAGIMAGE, i, ByVal 0&)
 End Function
-Public Function Header_GetOrderArray(hWnd As LongPtr, iCount As Long, lpi As LongPtr) As LongPtr
+Public Function Header_GetOrderArray(hWnd As LongPtr, iCount As Long, lpi As Long) As LongPtr
 '#define Header_GetOrderArray(hwnd, iCount, lpi) \
 '        (BOOL)SNDMSG((hwnd), HDM_GETORDERARRAY, (WPARAM)(iCount), (LPARAM)(lpi))
 Header_GetOrderArray = SendMessage(hWnd, HDM_GETORDERARRAY, iCount, lpi)
 End Function
-Public Function Header_SetOrderArray(hWnd As LongPtr, iCount As Long, lpi As LongPtr) As LongPtr
+Public Function Header_SetOrderArray(hWnd As LongPtr, iCount As Long, lpi As Long) As LongPtr
 '#define Header_SetOrderArray(hwnd, iCount, lpi) \
 '        (BOOL)SNDMSG((hwnd), HDM_SETORDERARRAY, (WPARAM)(iCount), (LPARAM)(lpi))
 '// lparam = int array of size HDM_GETITEMCOUNT
@@ -16530,7 +16619,7 @@ Public Function Header_SetOrderArray(hWnd As LongPtr, iCount As Long, lpi As Lon
 '//      index 1 should be shown in the 2nd position
 '
 
-Header_SetOrderArray = SendMessage(hWnd, HDM_SETORDERARRAY, iCount, ByVal lpi)
+Header_SetOrderArray = SendMessage(hWnd, HDM_SETORDERARRAY, iCount, lpi)
 End Function
 Public Function Header_SetHotDivider(hWnd As LongPtr, fPos As Long, dw As Long) As LongPtr
 '#define Header_SetHotDivider(hwnd, fPos, dw) \
@@ -16658,8 +16747,8 @@ Public Function TreeView_SetImageList(hwnd As LongPtr, himl As LongPtr, iImage A
   TreeView_SetImageList = SendMessage(hwnd, TVM_SETIMAGELIST, ByVal iImage, ByVal himl)
 End Function
 
-Public Function TreeView_GetImageList(hwnd As LongPtr) As LongPtr
-TreeView_GetImageList = SendMessage(hwnd, TVM_GETIMAGELIST, 0, ByVal 0&)
+Public Function TreeView_GetImageList(hwnd As LongPtr, ByVal iImage As TVImageLists) As LongPtr
+TreeView_GetImageList = SendMessage(hwnd, TVM_GETIMAGELIST, iImage, ByVal 0&)
 End Function
 
 Public Function TreeView_GetIndent(hwnd As LongPtr) As Long
@@ -16692,10 +16781,9 @@ TreeView_GetItemPartRect = CLng(SendMessage(hwnd, TVM_GETITEMPARTRECT, 0, tInfo)
 
 End Function
 
-Public Function TreeView_GetItemRect(hwnd As LongPtr, hItem As LongPtr, prc As RECT, Code As Long) As Long
-Dim lp As LongPtr = hItem
-TreeView_GetItemRect = CLng(SendMessage(hwnd, TVM_GETITEMRECT, Code, lp))
-CopyMemory prc, ByVal lp, LenB(Of RECT)
+Public Function TreeView_GetItemRect(hwnd As LongPtr, hItem As LongPtr, prc As RECT, Code As BOOL) As Long
+CopyMemory prc, hItem, LenB(Of LongPtr)
+TreeView_GetItemRect = CLng(SendMessage(hwnd, TVM_GETITEMRECT, Code, prc))
 End Function
 
 Public Function TreeView_GetLineColor(hwnd As LongPtr) As Long
@@ -16714,12 +16802,8 @@ Public Function TreeView_SetStyle(hwnd As LongPtr, dwStyle As TV_Styles) As Long
 
 End Function
 
-Public Function TreeView_SetExtendedStyle(hwnd As LongPtr, lST As TV_Ex_Styles) As Long
-    Dim lStyle As LongPtr
-
-    lStyle = SendMessage(hwnd, TVM_GETEXTENDEDSTYLE, 0, 0)
-    lStyle = lStyle Or lST
-    Call SendMessage(hwnd, TVM_SETEXTENDEDSTYLE, 0, ByVal lStyle)
+Public Function TreeView_SetExtendedStyle(hwnd As LongPtr, lST As TV_Ex_Styles, ByVal mask As TV_Ex_Styles) As Long
+    Return CLng(SendMessage(hwnd, TVM_SETEXTENDEDSTYLE, lST, ByVal mask))
 
 End Function
 
@@ -17076,6 +17160,131 @@ Public Function TreeView_SortChildrenCB(hwnd As LongPtr, _
                                         fRecurse As Boolean) As Boolean
     TreeView_SortChildrenCB = SendMessage(hwnd, TVM_SORTCHILDRENCB, ByVal fRecurse, psort)
 End Function
+
+Public Function TreeView_GetSelectedCount(ByVal hwnd As LongPtr) As Long
+    TreeView_GetSelectedCount = DCast(Of Long)(SendMessage(hwnd, TVM_GETSELECTEDCOUNT, 0, ByVal 0&))
+End Function
+#End Region
+
+#Region "PagerMacros"
+Public Sub Pager_SetChild(ByVal hwnd As LongPtr, ByVal hwndChild As LongPtr)
+    SendMessage hwnd, PGM_SETCHILD, 0, ByVal hwndChild
+End Sub
+
+Public Sub Pager_RecalcSize(ByVal hwnd As LongPtr)
+    SendMessage hwnd, PGM_RECALCSIZE, 0, ByVal 0&
+End Sub
+
+Public Sub Pager_ForwardMouse(ByVal hwnd As LongPtr, ByVal bForward As BOOL)
+    SendMessage hwnd, PGM_FORWARDMOUSE, bForward, ByVal 0&
+End Sub
+
+Public Function Pager_SetBkColor(ByVal hwnd As LongPtr, ByVal clr As Long) As Long
+    Pager_SetBkColor = DCast(Of Long)(SendMessage(hwnd, PGM_SETBKCOLOR, 0, ByVal clr))
+End Function
+
+Public Function Pager_GetBkColor(ByVal hwnd As LongPtr) As Long
+    Pager_GetBkColor = DCast(Of Long)(SendMessage(hwnd, PGM_GETBKCOLOR, 0, ByVal 0&))
+End Function
+
+Public Function Pager_SetBorder(ByVal hwnd As LongPtr, ByVal iBorder As Long) As Long
+    Pager_SetBorder = CLng(SendMessage(hwnd, PGM_SETBORDER, 0, ByVal iBorder))
+End Function
+
+Public Function Pager_GetBorder(ByVal hwnd As LongPtr) As Long
+    Pager_GetBorder = CLng(SendMessage(hwnd, PGM_GETBORDER, 0, ByVal 0&))
+End Function
+
+Public Function Pager_SetPos(ByVal hwnd As LongPtr, ByVal iPos As Long) As Long
+    Pager_SetPos = CLng(SendMessage(hwnd, PGM_SETPOS, 0, ByVal iPos))
+End Function
+
+Public Function Pager_GetPos(ByVal hwnd As LongPtr) As Long
+    Pager_GetPos = CLng(SendMessage(hwnd, PGM_GETPOS, 0, ByVal 0&))
+End Function
+
+Public Function Pager_SetButtonSize(ByVal hwnd As LongPtr, ByVal iSize As Long) As Long
+    Pager_SetButtonSize = CLng(SendMessage(hwnd, PGM_SETBUTTONSIZE, 0, ByVal iSize))
+End Function
+
+Public Function Pager_GetButtonSize(ByVal hwnd As LongPtr) As Long
+    Pager_GetButtonSize = CLng(SendMessage(hwnd, PGM_GETBUTTONSIZE, 0, ByVal 0&))
+End Function
+
+Public Function Pager_GetButtonState(ByVal hwnd As LongPtr, ByVal iButton As PagerButton) As PagerButtonStates
+    Pager_GetButtonState = DCast(Of PagerButtonStates)(SendMessage(hwnd, PGM_GETBUTTONSTATE, 0, ByVal iButton))
+End Function
+
+Public Sub Pager_GetDropTarget(ByVal hwnd As LongPtr, ppdt As IDropTarget)
+    SendMessage hwnd, PGM_GETDROPTARGET, 0, ppdt
+End Sub
+
+Public Sub Pager_SetScrollInfo(ByVal hwnd As LongPtr, ByVal cTimeOut As Long, ByVal cLinesPer As Long, ByVal cPixelsPerLine As Long)
+    SendMessage hwnd, PGM_SETSCROLLINFO, cTimeOut, ByVal MAKELONG(cLinesPer, cPixelsPerLine)
+End Sub
+#End Region
+
+
+#Region "CommonDialogMacros"
+Public Function CommDlg_OpenSave_GetSpecA(ByVal hDlg As LongPtr, ByVal psz As LongPtr, ByVal cbMax As Long) As Long
+    CommDlg_OpenSave_GetSpecA = CLng(SendMessage(hDlg, CDM_GETSPEC, cbMax, ByVal psz))
+End Function
+
+Public Function CommDlg_OpenSave_GetSpecW(ByVal hDlg As LongPtr, ByVal psz As LongPtr, ByVal cbMax As Long) As Long
+    CommDlg_OpenSave_GetSpecW = CLng(SendMessage(hDlg, CDM_GETSPEC, cbMax, ByVal psz))
+End Function
+
+Public Function CommDlg_OpenSave_GetSpec(ByVal hDlg As LongPtr, psz As String, ByVal cbMax As Long) As Long
+    CommDlg_OpenSave_GetSpec = CLng(SendMessage(hDlg, CDM_GETSPEC, cbMax, ByVal psz))
+End Function
+
+Public Function CommDlg_OpenSave_GetFilePathA(ByVal hDlg As LongPtr, ByVal psz As LongPtr, ByVal cbMax As Long) As Long
+    CommDlg_OpenSave_GetFilePathA = CLng(SendMessage(hDlg, CDM_GETFILEPATH, cbMax, ByVal psz))
+End Function
+
+Public Function CommDlg_OpenSave_GetFilePathW(ByVal hDlg As LongPtr, ByVal psz As LongPtr, ByVal cbMax As Long) As Long
+    CommDlg_OpenSave_GetFilePathW = CLng(SendMessage(hDlg, CDM_GETFILEPATH, cbMax, ByVal psz))
+End Function
+
+Public Function CommDlg_OpenSave_GetFilePath(ByVal hDlg As LongPtr, psz As String, ByVal cbMax As Long) As Long
+    CommDlg_OpenSave_GetFilePath = CLng(SendMessage(hDlg, CDM_GETFILEPATH, cbMax, ByVal psz))
+End Function
+
+Public Function CommDlg_OpenSave_GetFolderPathA(ByVal hDlg As LongPtr, ByVal psz As LongPtr, ByVal cbMax As Long) As Long
+    CommDlg_OpenSave_GetFolderPathA = CLng(SendMessage(hDlg, CDM_GETFOLDERPATH, cbMax, ByVal psz))
+End Function
+
+Public Function CommDlg_OpenSave_GetFolderPathW(ByVal hDlg As LongPtr, ByVal psz As LongPtr, ByVal cbMax As Long) As Long
+    CommDlg_OpenSave_GetFolderPathW = CLng(SendMessage(hDlg, CDM_GETFOLDERPATH, cbMax, ByVal psz))
+End Function
+
+Public Function CommDlg_OpenSave_GetFolderPath(ByVal hDlg As LongPtr, psz As String, ByVal cbMax As Long) As Long
+    CommDlg_OpenSave_GetFolderPath = CLng(SendMessage(hDlg, CDM_GETFOLDERPATH, cbMax, ByVal psz))
+End Function
+
+Public Function CommDlg_OpenSave_GetFolderIDList(ByVal hDlg As LongPtr, ByVal pidl As LongPtr, ByVal cbMax As Long) As Long
+    CommDlg_OpenSave_GetFolderIDList = CLng(SendMessage(hDlg, CDM_GETFOLDERIDLIST, cbMax, ByVal pidl))
+End Function
+
+Public Sub CommDlg_OpenSave_SetControlText(ByVal hDlg As LongPtr, ByVal id As Long, ByVal pszText As String)
+    SendMessage hDlg, CDM_SETCONTROLTEXT, id, ByVal pszText
+End Sub
+
+Public Sub CommDlg_OpenSave_HideControl(ByVal hDlg As LongPtr, ByVal id As Long)
+    SendMessage hDlg, CDM_HIDECONTROL, id, ByVal 0&
+End Sub
+
+Public Sub CommDlg_OpenSave_SetDefExt(ByVal hDlg As LongPtr, ByVal pszExt As String)
+    SendMessage hDlg, CDM_SETDEFEXT, 0, ByVal pszExt
+End Sub
+
+Public Sub CommDlg_FindReplace_SendResult(ByVal hDlg As LongPtr, ByVal flags As FindReplaceFlags, ByVal pfr As LongPtr)
+    SendMessage hDlg, FRM_SETOPERATIONRESULT, flags, ByVal pfr
+End Sub
+
+Public Sub CommDlg_FindReplace_SendCustomResult(ByVal hDlg As LongPtr, ByVal pszText As String)
+    SendMessage hDlg, FRM_SETOPERATIONRESULTTEXT, 0, ByVal pszText
+End Sub
 #End Region
 
 #End Region
@@ -17271,9 +17480,9 @@ Public Declare PtrSafe Function GetSaveFileNameA Lib "comdlg32" (pOFN As OPENFIL
 Public Declare PtrSafe Function GetSaveFileNameW Lib "comdlg32" (pOFN As OPENFILENAMEW) As Long
 Public DeclareWide PtrSafe Function GetSaveFileName Lib "comdlg32" Alias "GetSaveFileNameW" (pOFN As OPENFILENAME) As Long
 
-Public Declare PtrSafe Function GetFileTitleA Lib "comdlg32" (ByVal Buf As String, ByVal cchSize As Long) As Integer
-Public Declare PtrSafe Function GetFileTitleW Lib "comdlg32" (ByVal Buf As LongPtr, ByVal cchSize As Long) As Integer
-Public DeclareWide PtrSafe Function GetFileTitle Lib "comdlg32" Alias "GetFileTitleW" (ByVal Buf As String, ByVal cchSize As Long) As Integer
+Public Declare PtrSafe Function GetFileTitleA Lib "comdlg32" (ByVal pszFile As String, ByVal Buf As String, ByVal cchSize As Long) As Integer
+Public Declare PtrSafe Function GetFileTitleW Lib "comdlg32" (ByVal pszFile As LongPtr, ByVal Buf As LongPtr, ByVal cchSize As Long) As Integer
+Public DeclareWide PtrSafe Function GetFileTitle Lib "comdlg32" Alias "GetFileTitleW" (ByVal pszFile As String, ByVal Buf As String, ByVal cchSize As Long) As Integer
 
 Public Const OFN_SHAREFALLTHROUGH  = 2
 Public Const OFN_SHARENOWARN  = 1
