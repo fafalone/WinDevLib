@@ -1,7 +1,128 @@
 Known omissions where a priority update neccessitated not finishing 
 before release, or waiting on feature support:
 
+
+- **AUDIT STATUS**
+wdAccessible.twin
+wdActiveIMM.twin
+wdAD.twin
+wdAMSI.twin
+wdAPI.twin
+wdAPIBio.twin
+wdAPIBluetooth.twin
+wdAPICld.twin
+wdAPIComCtl.twin - COMPLETE
+wdAPICrypto.twin
+wdAPIDbgHlp.twin
+wdAPIFlt.twin
+wdAPIHID.twin
+wdAPIInterlocked.twin
+wdAPIKS.twin
+wdAPINTKernel.twin
+wdAPISdkddkver.twin
+wdAPISL.twin
+wdAPIWFP.twin
+wdAPIWIM.twin
+wdAPIWLAN.twin
+wdAppModel.twin
+wdAppX.twin
+wdBITS.twin
+wdCodecAPI.twin
+wdCOM.twin
+wdCoreAudio.twin
+wdCredProv.twin
+wdD3D.twin
+wdD3D10.twin
+wdD3D12Video.twin
+wdD3D8.twin
+wdD3D9.twin
+wdDefs.twin
+wdDeprecated.twin
+wdDevices.twin
+wdDirectDraw.twin
+wdDirectInput.twin
+wdDirectManip.twin
+wdDirectML.twin
+wdDirectPlay.twin
+wdDirectShow.twin
+wdDirectX.twin
+wdDiskQuota.twin
+wdDMusic.twin
+wdDragDropConst.twin
+wdDShowBDA.twin
+wdDSound.twin
+wdDStorage.twin
+wdDXVA.twin
+wdETW.twin - COMPLETE
+wdExplorer.twin - COMPLETE
+wdFileHist.twin
+wdGDIP.twin - COMPLETE
+wdGL.twin
+wdGP.twin
+wdHelpers.twin
+wdICM.twin
+wdIID.twin
+wdIMAPI.twin
+wdImgUtil.twin
+wdInternet.twin
+wdInterop.twin
+wdIOCTL.twin
+wdLegacy.twin
+wdManipulations.twin
+wdMF.twin
+wdMIME.twin
+wdMSIME.twin
+wdNetcon.twin
+wdOLE.twin
+wdOPC.twin
+wdPhotoAcq.twin
+wdPKEY.twin
+wdPrintNotify.twin
+wdRadio.twin
+wdRTWorkQ.twin
+wdScript.twin
+wdSearch.twin
+wdSecurity.twin
+wdSensors.twin
+wdShellCore.twin - COMPLETE
+wdShellObj.twin - COMPLETE
+wdShellUndoc.twin
+wdSpeech.twin
+wdSpellCheck.twin
+wdSQL.twin
+wdStaticWrappers.twin
+wdSyncMgr.twin
+wdTablet.twin
+wdTaskScheduler.twin
+wdTelephony.twin
+wdTransactions.twin
+wdTypedef.twin
+wdTypelib.twin
+wdUIAnimation.twin
+wdUIRibbon.twin - COMPLETE
+wdUPNP.twin
+wdVDS.twin
+wdVFW.twin
+wdWBEM.twin
+wdWCN.twin
+wdWebservices.twin
+wdWebView2.twin
+wdWIC.twin - COMPLETE
+wdWinML.twin
+wdWinRTBase.twin
+wdWMDM.twin
+wdWPC.twin
+wdWSC.twin
+wdWsMan.twin
+wdWTS.twin
+wdXACT.twin
+wdXAudio.twin
+wdXML.twin
+wdXPS.twin
+
 ' EUS FOR EVENT_TRACE
+
+- fusion.h/.idl - some content already in from winsxs.h
 
 - ALIASFIX replace when bug fixed
  
@@ -31,6 +152,8 @@ before release, or waiting on feature support:
 - mdmlocalmanagement
 
 -   ws2tcpip mstcipip.h inlined funcs;
+
+- When Implements for [PreserveSig] is supported, uncomment attr on IAdviseSink[2,Ex]
 
 - IN6_IS_ADDR_ inlined funcs in ws2ipdef.h
 
@@ -114,65 +237,6 @@ dispinterface XMLDOMDocumentEvents
    et al adjust when tB has syntax support for [in] type t[x] syntax.
 
 - d3d compiler functions that mix ansi and unicode will need per-argument attributes when they become available   
-   
-   
-- (COMPLETED) CLSIDs for coclasses\
-keep file list for other tasks\
-wdAccessible,\
-wdAMSI,\
-wdAPI* 
-wdBITS,\ 
-wdCOM,\
-wdCoreAudio,\
-wdCredProv,\
-wdD3D*\
-wdDefs,\
-wdDeprecated,\
-wdDevices,\ 
-wdDirectML,\
-wdDirectShow,\
-wdDSound,\ 
-wdDStorage,\
-wdDXVA,\
-wdExplorer,\ 
-wdFileHist,\
-wdGDIP,\
-wdGP,\
-wdHelpers,\
-wdIID,\
-wdIMAPI,\
-wdInternet,\ 
-wdLegacy,\
-wdManipulations,\ 
-wdNetcon,\ 
-wdOLE,\
-wdOPC,\
-wdPhotoAcq,\
-wdPKEY,\
-wdPrintNotify,\
-wdRadio,\
-wdRTWorkQ,\
-wdScript,\
-wdSearch,\
-wdSecurity,\ 
-wdSensors,\ 
-wdShellCore,\ 
-wdShellObj,\ 
-wdSpeech,\ 
-wdSpellCheck,\ 
-wdSyncMgr,\ 
-wdTablet,\ 
-wdTaskScheduler,\ 
-wdUIAnimation,\ 
-wdUIRibbon,\ 
-wdUPNP,\ 
-wdWIC,\
-wdWinML,\
-wdWinRTBase,\
-wdWMDM,\
-wdWSC,\ 
-wdWTS,\
-wdXAudio
 
 - Create coverage list by header. (WORK IN PROGRESS: So long as this list is in todo.md it's incomplete--numerous other headers are covered.)
 Excluded from completed %:
@@ -246,7 +310,7 @@ Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.
     gnssdriver.h, winsnmp.h, certbcli.h,mmreg.h,tvout.h,dhcpsapi.h,ksmedia.h,ks.h,diskguid.h,xmllite.h,xmllite.idl,cryptxml.h,cryptdlg.h,
     xpsdigitalsignature.h, xpsdigitalsignature.idl, xpsobjectmodel.h, xpsobjectmodel.idl, xpsobjectmodel_1.h, xpsobjectmodel_1.idl, xpsobjectmodel_2.h, xpsobjectmodel_2.idl,prntvpt.h,
     mfapi.h, mfcaptureengine.h, mfcaptureengine.idl, mfcontentdecryptionmodule.h, mfcontentdecryptionmodule.idl, mfd3d12.h,mfd3d12.idl,mferror.h, 
-    appmodel.h,minappmodel.h
+    appmodel.h,minappmodel.h,regstr.h
     
 Coverage in the 90%+ range  winbase.h, oleidl.h, oaidl.h, ocidl.h, ocidl.idl, ,objidl.h,objidl.idl,presentation.h,ScrnSave.h
 

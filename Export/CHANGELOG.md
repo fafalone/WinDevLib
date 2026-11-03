@@ -1,4 +1,27 @@
 
+**Update (v9.5.752, 02 Nov 2026):** 
+- Add regstr.h (100%)
+- Add missing constants from some fully completed features; add remaining NTSTATUS codes
+- (Bug fix) IContextMenu::GetCommandString, IPropertyBag2::Read argument incorrect for x64
+- (Bug fix) IEnumShellImageStore vtable out of order, Next definition incorrect
+- (Bug fix) IShellView3::CreateViewWindow3, IFileDialogCustomize::RemoveAllControlItems missing argument
+- (Bug fix) IPersistSerializedPropStorage2::GetPropertyStorageBuffer psps should be ByVal
+- (Bug fix) IThumbnailCache::GetThumbnailByID first arg should be ByVal, so incorrect for x86 and missing no-byval-udt alts
+- (Bug fix) IVisualProperties::GetFont, IPackageDebugSettings::EnumerateBackgroundTasks definitions incorrect
+- (Bug fix) IPropertyChangeArray, IAssemblyCache, IPersistFolder3 missing method
+- (Bug fix) IHomeGroup::IsMember, IAssemblyCache::Reserved argument should be ByRef
+- (Bug fix) MKREDUCE enum, BIND_INTERRUPTABLE, GPS_MASK_VALID, REGSTR_PATH_SPECIAL_FOLDERS, E_NOT_SET, E_NOT_VALID_STATE, E_INSUFFICIENT_BUFFER, E_NOT_SUFFICIENT_BUFFER, E_TIME_SENSITIVE_THREAD, E_NO_TASK_QUEUE, CONNECT_E_NOCONNECTION, STATUS_VOLUME_UPGRADE_NOT_NEEDED, STATUS_VOLUME_UPGRADE_PENDING,  values incorrect
+- (Bug fix) CSIDL_MYDOCUMENTS value incorrect for Vista+
+- (Bug fix) NOTIFYICONDATA size constants incorrect for x64
+- (Bug fix) Name typos: SM_CONVERTABLESLATEMODE (SM_CONVERTIBLESLATEMODE), VK_OEM102 (VK_OEM_102), VK_OEM_FINNISH (VK_OEM_FINISH), E_STRING_NOT_NULL_TERMINATEDL (E_STRING_NOT_NULL_TERMINATED)
+- (Bug fix) Wrong GUID for CoClass MenuBand/values for sCLSID_MenuBand/CLSID_MenuBand, CoClass PropertySystem and CLSID_PropertySystem
+- (Bug fix) COAUTHIDENTITY, NT_CONSOLE_PROPS, EXTRASEARCH definitions incorrect
+- (Bug fix) STATPROPSETSTG definition incorrect- LongLong not a valid substitute for FILETIME due to alignment difference
+- (Bug fix) UIPropertyToIUnknownArrayAlloc coding errors
+- (Bug fix) IWICBitmapSourceTransform2 incorrect inheritance
+- (Bug fix) IWICPlanarBitmapSourceTransform::DoesSupportTransform argument should be ByRef
+- (Internal) **NOTE** You can now follow the status of the major bug audit by file, see the top of TODO.md
+
 **Update (v9.5.750, 02 Nov 2026):** 
 - **NOTE** This is the first release of a major bugfix series as I have the Claude LLM hunt for mistakes. Please review the list-- some of the fixes you may have been using simple workarounds for, and some may not raise an error right away. Only wdAPIComCtl, wdGDIP, and wdETW have been reviewed so far, a lot more will be coming.
 - Add AppModel APIs (minappmodel.h, appmodel.h 100%, plus associated winerror.h consts)
