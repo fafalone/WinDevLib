@@ -331,7 +331,7 @@
     
     [InterfaceId("c3373fdf-6d39-4e5f-8e79-bf40c0b7ed77")]
     [OleAutomation(False)]
-    Interface IWICBitmapSourceTransform2 Extends stdole.IUnknown
+    Interface IWICBitmapSourceTransform2 Extends IWICBitmapSourceTransform
         [PreserveSig]
         Function GetColorContextsForPixelFormat(pPixelFormat As UUID, ByVal cCount As Long, ppIColorContexts As IWICColorContext, pcActualCount As Long) As Long
     End Interface
@@ -340,7 +340,7 @@
     [OleAutomation(False)]
     Interface IWICPlanarBitmapSourceTransform Extends stdole.IUnknown
         [PreserveSig]
-        Function DoesSupportTransform(ByRef puiWidth As Long, ByRef puiHeight As Long, ByVal dstTransform As WICBitmapTransformOptions, ByVal dstPlanarOptions As WICPlanarOptions, ByRef pguidDstFormats As UUID, ByRef pPlaneDescriptions As WICBitmapPlaneDescription, ByVal cPlanes As Long, ByVal pfIsSupported As Long) As Long
+        Function DoesSupportTransform(ByRef puiWidth As Long, ByRef puiHeight As Long, ByVal dstTransform As WICBitmapTransformOptions, ByVal dstPlanarOptions As WICPlanarOptions, ByRef pguidDstFormats As UUID, ByRef pPlaneDescriptions As WICBitmapPlaneDescription, ByVal cPlanes As Long, pfIsSupported As BOOL) As Long
         [PreserveSig]
         Function CopyPixels(prcSource As WICRect, ByVal uiWidth As Long, ByVal uiHeight As Long, ByVal dstTransform As WICBitmapTransformOptions, ByVal dstPlanarOptions As WICPlanarOptions, ByRef pDstPlanes As WICBitmapPlane, ByVal cPlanes As Long) As Long
     End Interface
@@ -1070,8 +1070,9 @@ Module wdWIC
     
 Public Const WINCODEC_SDK_VERSION1  = &H0236
 Public Const WINCODEC_SDK_VERSION2  = &H0237
-
-    
+'#if(_WIN32_WINNT >= _WIN32_WINNT_WIN8) || defined(_WIN7_PLATFORM_UPDATE)
+Public Const WINCODEC_SDK_VERSION = WINCODEC_SDK_VERSION2
+'#endif
 Public Delegate Function PFNProgressNotification (ByVal pvData As LongPtr, ByVal uFrameNum As Long, ByVal operation As WICProgressOperation, ByVal dblProgress As Double) As Long
 
 Public Const CODEC_FORCE_DWORD = &H7FFFFFFF
@@ -1145,8 +1146,9 @@ Public Const sCLSID_WICBmpEncoder = "new: {69BE8BB4-D66D-47C8-865A-ED1589433782}
 Public Const sCLSID_WICGifDecoder = "new: {381DDA3C-9CE9-4834-A23E-1F98F8FC52BE}"
 Public Const sCLSID_WICPngEncoder = "new: {27949969-876A-41D7-9447-568F6A35A4DC}"
 Public Const sCLSID_WICBmpDecoder = "new: {6B462062-7CBF-400D-9FDB-813DD10F2778}"
+Public Const sCLSID_WICImagingFactory1 = "new: {CACAF262-9370-4615-A13B-9F5539DA4C0A}"
 Public Const sCLSID_WICImagingFactory2 = "new: {317D06E8-5F24-433D-BDF7-79CE68D8ABC2}"
-Public Const sCLSID_WICImagingFactory = "new: {CACAF262-9370-4615-A13B-9F5539DA4C0A}"
+Public Const sCLSID_WICImagingFactory = "new: {317D06E8-5F24-433D-BDF7-79CE68D8ABC2}"
 
 
 Public Type WICRect
@@ -1221,7 +1223,7 @@ Public Type WICBitmapPattern
     Length As Long
     Pattern As LongPtr
     mask As LongPtr
-    EndOfStream As Long
+    EndOfStream As BOOL
 End Type
 
 [Description("NOTE: WICBitmapInterpolationModeHighQualityCubic requires Windows 10+")]
@@ -2653,7 +2655,7 @@ End Function
 
 Public Function CLSID_WICImagingFactory() As UUID
 Static iid As UUID
- If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &HCACAF262, &H9370, &H4615, &HA1, &H3B, &H9F, &H55, &H39, &HDA, &H4C, &HA)
+If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H317D06E8, &H5F24, &H433D, &HBD, &HF7, &H79, &HCE, &H68, &HD8, &HAB, &HC2)
 CLSID_WICImagingFactory = iid
 End Function
 Public Function CLSID_WICImagingFactory1() As UUID
@@ -3506,6 +3508,11 @@ Static iid As UUID
  If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H958ecc2c, &H36cb, &H4af9, &H9e, &Ha8, &H0b, &H74, &Hba, &Hcc, &Hfd, &H3e)
 GUID_MetadataFormatJpegXLAnimFrame = iid
 End Function
+Public Function GUID_MetadataFormatGainMap() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H568d3138, &Hc446, &H4ec2, &Ha7, &Ha8, &H59, &Hab, &Hb1, &H6d, &H21, &He3)
+GUID_MetadataFormatGainMap = iid
+End Function
 
 
 Public Function CLSID_WICUnknownMetadataReader() As UUID
@@ -3938,6 +3945,17 @@ Static iid As UUID
  If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hd1ce58a8, &H06e0, &H4b6f, &H8f, &Hc1, &H57, &H75, &H60, &Hbd, &H5a, &Hd9)
 CLSID_WICJpegXLAnimFrameMetadataWriter = iid
 End Function
+Public Function CLSID_WICGainMapMetadataReader() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H3ac32daf, &H27b9, &H4af5, &Hb0, &Hab, &Hd1, &H18, &H9d, &Hcf, &H34, &Hb3)
+CLSID_WICGainMapMetadataReader = iid
+End Function
+Public Function CLSID_WICGainMapMetadataWriter() As UUID
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H6f845268, &Ha92e, &H4a02, &Hb0, &H02, &Ha6, &H7c, &H36, &H28, &H00, &Hb2)
+CLSID_WICGainMapMetadataWriter = iid
+End Function
+
 
 Public Function CLSID_WICJpegXLDecoder() As UUID
 Static iid As UUID
