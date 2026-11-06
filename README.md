@@ -1,7 +1,7 @@
 # Windows Development Library for twinBASIC
 ## WinDevLib 
 
-**Current Version: 9.5.752 (November 2nd, 2026)**
+**Current Version: 9.5.754 (November 6th, 2026)**
 
 (c) 2022-2026 Jon Johnson (fafalone)
 
@@ -254,6 +254,44 @@ Current coverage is already quite extensive, spanning hundreds of Windows SDK he
 
  
 ### Updates
+
+**Update (v9.5.754, 02 Nov 2026):** 
+- Add audioengineextensionapo.h/.idl (100%)
+- (Bug fix) IDxcLinker::RegisterLibrary, IDxcResult::GetNumOutputs, ::GetOutputByIndex and ::PrimaryOutput must use ThisCall calling convention. Added and gated (usable in x64-only) old version for tB Beta < 990
+- (Bug fix) ID2D1TransformedGeometry::GetSourceGeometry, ID2D1BitmapBrush::GetBitmap, ID2D1LinearGradientBrush::GetGradientStopCollection, ID2D1RadialGradientBrush::GetGradientStopCollection are void returns so can't be rewritten as a Function
+- (Bug fix) IDXGIInfoQueue::PopRetrievalFilter missing [PreserveSig]
+- (Bug fix) IDXGIInfoQueue::GetStorageFilter should be a Sub
+- (Bug fix) IDWriteAsyncResult::GetWaitHandle, IDWriteFontSet2::GetExpirationEvent, IDWriteFontCollection3::GetExpirationEvent definitions incorrect for x64
+- (Bug fix) IDWriteTextAnalysisSink::SetScriptAnalysis, ID2D1VertexBuffer::Map definitions incorrect
+- (Bug fix) ID2D1ImageSource::TryReclaimResources, IDCompositionTexture::GetAvailableFence argument should be ByRef
+- (Bug fix) D3D11_DEFAULT_BLEND_FACTOR_GREEN, D3D11_MAX_DEPTH type and value incorrect
+- (Bug fix) D3D12_RESOURCE_BARRIER x64 union substitute size incorrect
+- (Bug fix) D3D12_SHADER_RESOURCE_VIEW_DESC union substitute should be preceded by padding
+- (Bug fix) D3D12_ROOT_PARAMETER missing end padding for x64
+- (Bug fix) D3D12_RAYTRACING_GEOMETRY_DESC, D3D12_RENDER_PASS_BEGINNING_ACCESS union substitute size incorrect
+- (Bug fix) D3D12_VERSIONED_DEVICE_REMOVED_EXTENDED_DATA missing union substitute padding for x86
+- (Bug fix) D3D12_VERSION_NUMBER should use LongLong union arm to avoid breaking alignment in other types
+- (Bug fix) D3D12_FEATURE_DATA_D3D12_OPTIONS16/17 definitions incorrect (transposed member)
+- (Bug fix) D3DX11_IMAGE_LOAD_INFO, D3DX11_TEXTURE_LOAD_INFO member should be LongPtr instead of inline
+- (Bug fix) D3DKMT_SETDISPLAYMODE_FLAGS missing member
+- (Bug fix) DXGK_NODEMETADATA should be PackingAlignment(1)
+- (Bug fix) ID3D11Linker, ID3D12WorkGraphProperties (NoByValUDT version) missing methods
+- (Bug fix) ID3D12GraphicsCommandList1::ResolveSubresourceRegion, ID3D12Device::GetResourceAllocationInfo, ID3D12Device::GetCustomHeapProperties, D3D12EnableExperimentalFeatures missing arguments
+- (Bug fix) D3D12GetInterface, ID3D11ShaderReflection::GetNumInterfaceSlots name typo
+- (Bug fix) ID3D11VideoContext::VideoProcessorGetOutputTargetRect, VideoProcessorGetStreamOutputRate (NoByValUDT version) argument should be ByRef
+- (Bug fix) ID3D12Device11::CreateSampler2, ID3D12Tools1::ClearReservedGPUVARangesList, ID3D12DeviceTools::SetNextAllocationAddress should use [PreserveSig]
+- (Bug fix) ID3DX11DataProcessor::CreateDeviceObject method name incorrect
+- (Bug fix) ID3D12StateObjectProperties1 incorrect GUID
+- (Bug fix) DxcCreateInstance[2] should bind to dxcompiler.dll (which needs to be installed seperately, the previous dll exported the symbol but was not the correct one)
+- (Bug fix) D3D12_VIDEO_ENCODER_FRAME_SUBREGION_LAYOUT_CONFIG_SUPPORT member should be a pointer
+- (Bug fix) ID3D12VideoEncoder::GetCodecProfile, ::GetCodecConfigurationHeap, ID3D12VideoEncoderHeap::GetCodecProfile, ::GetCodecConfigurationHeap definition incorrect for x86 no-byval-udt version
+- (Bug fix) IPerChannelDbLevel missing method; impacted multiple other descendant interfaces
+- (Bug fix) IAudioMediaType::GetAudioFormat return should be a pointer
+- (Bug fix) IAudioEndpointLastBufferControl::ReleaseOutputDataPointerForLastBuffer should use [PreserveSig]
+- (Bug fix) ISpatialAudioClient::GetStaticObjectPosition, IAudioProcessingObject::GetLatency arguments should be ByRef
+- (Bug fix) IAudioViewManagerService::SetAudioStreamWindow definition incorrect for x64
+- (Bug fix) ISpatialAudioObjectForHrtf::SetOrientation, IKsFormatSupport::GetDevicePreferredFormat, IAudioSystemEffects2::GetEffectsList, IAudioProcessingObject::GetRegistrationProperties, IAudioProcessingObjectRT::APOProcess, IAudioProcessingObjectConfiguration::LockForProcess, AE_CURRENT_POSITION.f32FramesPerSecond, SpatialAudioObjectRenderStreamForMetadataActivationParams2.MaxMetadataItemCount incorrect type
+
 
 **Update (v9.5.752, 02 Nov 2026):** 
 - Add regstr.h (100%)
