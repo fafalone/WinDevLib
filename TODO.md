@@ -31,9 +31,9 @@ wdCodecAPI.twin
 wdCOM.twin
 wdCoreAudio.twin
 wdCredProv.twin
-wdD3D.twin
+wdD3D.twin - COMPLETE
 wdD3D10.twin
-wdD3D12Video.twin
+wdD3D12Video.twin - COMPLETE
 wdD3D8.twin
 wdD3D9.twin
 wdDefs.twin
@@ -45,7 +45,7 @@ wdDirectManip.twin
 wdDirectML.twin
 wdDirectPlay.twin
 wdDirectShow.twin
-wdDirectX.twin
+wdDirectX.twin - COMPLETE
 wdDiskQuota.twin
 wdDMusic.twin
 wdDragDropConst.twin
@@ -120,6 +120,9 @@ wdXAudio.twin
 wdXML.twin
 wdXPS.twin
 
+
+- add latest d3d12 agility sdk content  wdD3D_missing.txt
+
 ' EUS FOR EVENT_TRACE
 
 - fusion.h/.idl - some content already in from winsxs.h
@@ -153,7 +156,7 @@ wdXPS.twin
 
 -   ws2tcpip mstcipip.h inlined funcs;
 
-- When Implements for [PreserveSig] is supported, uncomment attr on IAdviseSink[2,Ex]
+- When Implements for [PreserveSig] is supported, uncomment attr on IAdviseSink[2,Ex], IDWriteFontDownloadListener
 
 - IN6_IS_ADDR_ inlined funcs in ws2ipdef.h
 
@@ -187,6 +190,7 @@ IDCompositionLinearTransferEffect, IDCompositionTableTransferEffect, IDCompositi
 IDCompositionAffineTransform2DEffect, IDCompositionTranslateTransform, IDCompositionScaleTransform, IDCompositionRotateTransform,
 IDCompositionSkewTransform, IDCompositionMatrixTransform, IDCompositionEffectGroup, IDCompositionTranslateTransform3D,
 IDCompositionScaleTransform3D, IDCompositionRotateTransform3D, IDCompositionMatrixTransform3D, IDCompositionRectangleClip,
+IDCompositionDynamicTexture
 ID2D1SvgStrokeDashArray, IDWriteGdiInterop1, IDWriteFontFace4, IDWriteFactory4, IDWriteFontSet1
 Note: ID2D1SvgElement overloads currently left tagged because tB cannot disambiguate 2 of them. 
 
