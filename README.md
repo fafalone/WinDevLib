@@ -255,7 +255,7 @@ Current coverage is already quite extensive, spanning hundreds of Windows SDK he
  
 ### Updates
 
-**Update (v9.5.754, 02 Nov 2026):** 
+**Update (v9.5.754, 06 Nov 2026):** 
 - Add audioengineextensionapo.h/.idl (100%)
 - (Bug fix) IDxcLinker::RegisterLibrary, IDxcResult::GetNumOutputs, ::GetOutputByIndex and ::PrimaryOutput must use ThisCall calling convention. Added and gated (usable in x64-only) old version for tB Beta < 990
 - (Bug fix) ID2D1TransformedGeometry::GetSourceGeometry, ID2D1BitmapBrush::GetBitmap, ID2D1LinearGradientBrush::GetGradientStopCollection, ID2D1RadialGradientBrush::GetGradientStopCollection are void returns so can't be rewritten as a Function
