@@ -6,10 +6,7 @@ Contributions are welcome and accepted: The Windows API surface is vast, and eve
 
 Contributions must be from Windows system components: DLL declares and COM interfaces/coclasses. Undocumented functions are welcome. Coverage of the Native API is welcome; I've prioritized regular the Win32 API and only included native APIs which have no standard equivalent at all, or offer significant benefits over it. But that's not a requirement now that twinBASIC has the performance to handle it. Code which is unimplemented (removed or set to always error) on Windows Vista and newer is not accepted. Code for 3rd party components is not accpted unless it ships preinstalled in Windows. 
 
-> [!NOTE]
-> OpenGL and SQL APIs are on hold until tB supports aliases in-language. For the former, this is out of a desire to retain compatibility with modules and samples by NeHe, who's already done extensive work bringing OpenGL to VB6. You may submit them, with the extra requirement that don't lose the type aliases from NeHe's library, but they won't appear until supported.\
-Tablet interfaces are on hold until tB supports defining dispinterfaces.\
-See TODO.md for others deliberately held off on, missing parts of features mostly done, and other related notes.
+See TODO.md for higher priority planned additions.
 
 ### Standards
 
