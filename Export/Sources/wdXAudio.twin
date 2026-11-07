@@ -173,7 +173,7 @@ Public Const XAPO_MIN_CHANNELS  = 1
 Public Const XAPO_MAX_CHANNELS  = 64
 '  supported framerate range
 Public Const XAPO_MIN_FRAMERATE  = 1000
-Public Const XAPO_MAX_FRAMERATE  = 200000
+Public Const XAPO_MAX_FRAMERATE  = 384000
 '  unicode string length, including terminator, used with XAPO_REGISTRATION_PROPERTIES
 Public Const XAPO_REGISTRATION_STRING_LENGTH  = 256
 
@@ -290,7 +290,7 @@ Public Const XAUDIO2_MAX_QUEUED_BUFFERS  = 64  ' Maximum buffers allowed in a vo
 Public Const XAUDIO2_MAX_BUFFERS_SYSTEM  = 2  ' Maximum buffers allowed for system threads (Xbox 360 only)
 Public Const XAUDIO2_MAX_AUDIO_CHANNELS  = 64  ' Maximum channels in an audio stream
 Public Const XAUDIO2_MIN_SAMPLE_RATE  = 1000  ' Minimum audio sample rate supported
-Public Const XAUDIO2_MAX_SAMPLE_RATE  = 200000  ' Maximum audio sample rate supported
+Public Const XAUDIO2_MAX_SAMPLE_RATE  = 384000  ' Maximum audio sample rate supported
 Public Const XAUDIO2_MAX_VOLUME_LEVEL As Single = 16777216.0!  ' Maximum acceptable volume level (2^24)
 Public Const XAUDIO2_MIN_FREQ_RATIO As Single = (1 / 1024.0!)  ' Minimum SetFrequencyRatio argument
 Public Const XAUDIO2_MAX_FREQ_RATIO As Single = 1024.0!  ' Maximum MaxFrequencyRatio argument
@@ -379,7 +379,7 @@ Public Enum XAUDIO2_PROCESSOR
     Processor31 = &H40000000
     Processor32 = &H80000000
     XAUDIO2_ANY_PROCESSOR = &Hffffffff
-    XAUDIO2_USE_DEFAULT_PROCESSO = &H00000000
+    XAUDIO2_USE_DEFAULT_PROCESSOR = &H00000000
     XAUDIO2_DEFAULT_PROCESSOR = Processor1
 End Enum
 
@@ -531,7 +531,7 @@ End Enum
 #If (WINDEVLIB_LITE = 0) Then
 #If (WDL_NO_MATH = 0) Then
 Public Function XAudio2DecibelsToAmplitudeRatio(ByVal Decibels As Single) As Single
-    Return CSng((10! ^ (Decibels \ 20!)))
+    Return CSng((10! ^ (Decibels / 20!)))
 End Function
 Public Function XAudio2AmplitudeRatioToDecibels(ByVal Volume As Single) As Single
     If (Volume = 0) Then
@@ -542,7 +542,7 @@ End Function
 Public Function XAudio2SemitonesToFrequencyRatio(ByVal Semitones As Single) As Single
     ' // FrequencyRatio = 2 ^ Octaves
     ' //                = 2 ^ (Semitones / 12)
-    Return CSng((2! ^ (Semitones \ 12!)))
+    Return CSng((2! ^ (Semitones / 12!)))
 End Function
 Public Function XAudio2FrequencyRatioToSemitones(ByVal FrequencyRatio As Single) As Single
     ' // Semitones = 12 * log2(FrequencyRatio)
@@ -553,16 +553,16 @@ Public Function XAudio2CutoffFrequencyToRadians(ByVal CutoffFrequency As Single,
     If (CLng((CutoffFrequency * 6)) >= SampleRate) Then
         Return XAUDIO2_MAX_FILTER_FREQUENCY
     End If
-    Return 2.0! * CSng(Sin(M_PI * CutoffFrequency \ CSng(SampleRate)))
+    Return 2.0! * CSng(Sin(M_PI * CutoffFrequency / CSng(SampleRate)))
 End Function
 Public Function XAudio2RadiansToCutoffFrequency(ByVal Radians As Single, ByVal SampleRate As Single) As Single
-    Return CSng(SampleRate * Asin(Radians \ 2.0!) \ M_PI)
+    Return CSng(SampleRate * Asin(Radians / 2.0!) / M_PI)
 End Function
 Public Function XAudio2CutoffFrequencyToOnePoleCoefficient(ByVal CutoffFrequency As Single, ByVal SampleRate As Long) As Single
     If (CLng((CutoffFrequency)) >= SampleRate) Then
         Return XAUDIO2_MAX_FILTER_FREQUENCY
     End If
-    Return CSng(1.0! - Pow(1.0! - 2.0! * CutoffFrequency \ SampleRate, 2.0!))
+    Return CSng(1.0! - Pow(1.0! - 2.0! * CutoffFrequency / SampleRate, 2.0!))
 End Function
 #End If
 
@@ -816,13 +816,13 @@ Public Sub ReverbConvertI3DL2ToNative(pI3DL2 As XAUDIO2FX_REVERB_I3DL2_PARAMETER
     
     Dim index As Long
     If (pI3DL2.DecayHFRatio >= 1.0!) Then
-        index = CLng((-4.0 * Log10(pI3DL2.DecayHFRatio)))
+        index = CLng(Fix((-4.0 * Log10(pI3DL2.DecayHFRatio))))
         If (index < -8) Then index = -8
         pNative.LowEQGain = CByte(If((index < 0), index + 8, 8))
         pNative.HighEQGain = 8
         pNative.DecayTime = pI3DL2.DecayTime * pI3DL2.DecayHFRatio
     Else
-        index = CLng((4.0 * Log10(pI3DL2.DecayHFRatio)))
+        index = CLng(Fix((4.0 * Log10(pI3DL2.DecayHFRatio))))
         If (index < -8) Then index = -8
         pNative.LowEQGain = 8
         pNative.HighEQGain = CByte(If((index < 0), index + 8, 8))
@@ -835,17 +835,17 @@ Public Sub ReverbConvertI3DL2ToNative(pI3DL2 As XAUDIO2FX_REVERB_I3DL2_PARAMETER
     ElseIf (reflectionsDelay <= 1) Then
         reflectionsDelay = 1
     End If
-    pNative.ReflectionsDelay = CLng(reflectionsDelay)
+    pNative.ReflectionsDelay = CLng(Fix(reflectionsDelay))
     
     reverbDelay = CSng(pI3DL2.ReverbDelay * 1000.0!)
     If (reverbDelay >= XAUDIO2FX_REVERB_MAX_REVERB_DELAY) Then
         reverbDelay = (XAUDIO2FX_REVERB_MAX_REVERB_DELAY - 1)
     End If
-    pNative.ReverbDelay = CByte(reverbDelay)
+    pNative.ReverbDelay = CByte(Fix(reverbDelay))
     
     pNative.ReflectionsGain = CSng(pI3DL2.Reflections / 100.0!)
     pNative.ReverbGain = CSng(pI3DL2.Reverb / 100.0!)
-    pNative.EarlyDiffusion = CByte(15.0! * pI3DL2.Diffusion / 100.0!)
+    pNative.EarlyDiffusion = CByte(Fix(15.0! * pI3DL2.Diffusion / 100.0!))
     pNative.LateDiffusion = pNative.EarlyDiffusion
     pNative.Density = pI3DL2.Density
     pNative.RoomFilterFreq = pI3DL2.HFReference
@@ -1028,6 +1028,25 @@ Public Function X3DAudioDefault_DirectionalCone() As X3DAUDIO_CONE
     End With
 End Function
 
+Public Function X3DAudioDefault_LinearCurvePoints() As X3DAUDIO_DISTANCE_CURVE_POINT()
+    Static pts(0 To 1) As X3DAUDIO_DISTANCE_CURVE_POINT
+    If pts(1).Distance = 0 Then
+        pts(0).Distance = 0.0!: pts(0).DSPSetting = 1.0!
+        pts(1).Distance = 1.0!: pts(1).DSPSetting = 0.0!
+    End If
+    X3DAudioDefault_LinearCurvePoints = pts
+End Function
+
+Public Function X3DAudioDefault_LinearCurve() As X3DAUDIO_DISTANCE_CURVE
+    Static pts(0 To 1) As X3DAUDIO_DISTANCE_CURVE_POINT
+    If pts(1).Distance = 0 Then
+        pts(0).Distance = 0.0!: pts(0).DSPSetting = 1.0!
+        pts(1).Distance = 1.0!: pts(1).DSPSetting = 0.0!
+    End If
+    X3DAudioDefault_LinearCurve.pPoints = VarPtr(pts(0))
+    X3DAudioDefault_LinearCurve.PointCount = 2
+End Function
+
 [PackingAlignment(1)]
 Public Type X3DAUDIO_LISTENER
     OrientFront As X3DAUDIO_VECTOR ' orientation of front direction, used only for matrix and delay calculations or listeners with cones for matrix, LPF (both direct and reverb paths), and reverb calculations, must be normalized when used
@@ -1076,12 +1095,12 @@ End Type
 
 #If WDL_XAUDIO8 Then
 [UseGetLastError(False)]
-Public Declare PtrSafe Sub X3DAudioInitialize CDecl Lib "xaudio2_8.dll" (ByVal SpeakerChannelMask As Long, ByVal SpeedOfSound As Single, Instance As X3DAUDIO_HANDLE)  
+Public Declare PtrSafe Function X3DAudioInitialize CDecl Lib "xaudio2_8.dll" (ByVal SpeakerChannelMask As Long, ByVal SpeedOfSound As Single, Instance As X3DAUDIO_HANDLE) As Long
 [UseGetLastError(False)]
-Public Declare PtrSafe Sub X3DAudioCalculate CDecl Lib "xaudio2_8.dlll" (Instance As X3DAUDIO_HANDLE, pListener As X3DAUDIO_LISTENER, pEmitter As X3DAUDIO_EMITTER, [TypeHint(X3DAudioControlFlags)] ByVal Flags As Long, pDSPSettings As X3DAUDIO_DSP_SETTINGS)
+Public Declare PtrSafe Sub X3DAudioCalculate CDecl Lib "xaudio2_8.dll" (Instance As X3DAUDIO_HANDLE, pListener As X3DAUDIO_LISTENER, pEmitter As X3DAUDIO_EMITTER, [TypeHint(X3DAudioControlFlags)] ByVal Flags As Long, pDSPSettings As X3DAUDIO_DSP_SETTINGS)
 #Else
 [UseGetLastError(False)]
-Public Declare PtrSafe Sub X3DAudioInitialize CDecl Lib "xaudio2_9.dll" (ByVal SpeakerChannelMask As Long, ByVal SpeedOfSound As Single, Instance As X3DAUDIO_HANDLE)
+Public Declare PtrSafe Function X3DAudioInitialize CDecl Lib "xaudio2_9.dll" (ByVal SpeakerChannelMask As Long, ByVal SpeedOfSound As Single, Instance As X3DAUDIO_HANDLE) As Long
 [UseGetLastError(False)]
 Public Declare PtrSafe Sub X3DAudioCalculate CDecl Lib "xaudio2_9.dll" (Instance As X3DAUDIO_HANDLE, pListener As X3DAUDIO_LISTENER, pEmitter As X3DAUDIO_EMITTER, [TypeHint(X3DAudioControlFlags)] ByVal Flags As Long, pDSPSettings As X3DAUDIO_DSP_SETTINGS)
 #End If
