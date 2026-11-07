@@ -3509,13 +3509,22 @@ Public Declare PtrSafe Sub vbCoUninitialize Lib "ole32" Alias "CoUninitialize" (
 Public Declare PtrSafe Function CoGetMalloc Lib "ole32" (ByVal dwMemContext As MEMCTX, ppMalloc As IMalloc) As Long
 [PreserveSig(False), UseGetLastError(False)]
 Public Declare PtrSafe Function CoGetMalloc Lib "ole32" (ByVal dwMemContext As MEMCTX) As IMalloc
+[UseGetLastError(False)]
 Public Declare PtrSafe Function CoRegisterMallocSpy Lib "ole32" (ByVal pMallocSpy As IMallocSpy) As Long
+[UseGetLastError(False)]
 Public Declare PtrSafe Function CoRevokeMallocSpy Lib "ole32" () As Long
 Public Declare PtrSafe Function CoCreateStandardMalloc Lib "ole32" (ByVal MEMCTX As MEMCTX, ppMalloc As IMalloc) As Long
 [PreserveSig(False)]
 Public Declare PtrSafe Function CoCreateStandardMalloc Lib "ole32" (ByVal MEMCTX As MEMCTX) As IMalloc
+[UseGetLastError(False)]
 Public Declare PtrSafe Function CoRegisterInitializeSpy Lib "ole32" (ByVal pSpy As IInitializeSpy, puliCookie As ULARGE_INTEGER) As Long
-Public Declare PtrSafe Function CoRevokeInitializeSpy Lib "ole32" (ByRef uliCookie As ULARGE_INTEGER) As Long
+#If WDL_NO_BYVAL_UDT = 0 Then
+[UseGetLastError(False)]
+Public Declare PtrSafe Function CoRevokeInitializeSpy Lib "ole32" (ByVal uliCookie As ULARGE_INTEGER) As Long
+#Else
+[UseGetLastError(False)]
+Public Declare PtrSafe Function CoRevokeInitializeSpy Lib "ole32" (ByVal uliCookie As LongLong) As Long
+#End If
 Public Declare PtrSafe Function CoGetSystemSecurityPermissions Lib "ole32" (ByVal comSDType As COMSD, ppSD As LongPtr /*PSECURITY_DESCRIPTOR*/) As Long
 Public Declare PtrSafe Function CoCreateInstanceEx Lib "ole32" (ByRef Clsid As UUID, ByVal punkOuter As stdole.IUnknown, ByVal dwClsContext As CLSCTX, pServerInfo As COSERVERINFO, ByVal dwCount As Long, pResults As MULTI_QI) As Long
 Public Declare PtrSafe Function CoCreateInstanceFromApp Lib "ole32" (ByRef Clsid As UUID, ByVal punkOuter As stdole.IUnknown, ByVal dwClsContext As CLSCTX, ByVal reserved As LongPtr, ByVal dwCount As Long, pResults As MULTI_QI) As Long
@@ -5772,6 +5781,41 @@ Public Type TOUCHPAD_PARAMETERS
     rightClickZoneWidth As Long
     rightClickZoneHeight As Long
 End Type
+Public Type TOUCHPAD_PARAMETERS_V1
+    versionNumber As TouchpadParamsVersions
+    ' These are status fields calculated dynamically, rather than user settings.
+    ' Their values are ignored in SPI_SETTOUCHPADPARAMETERS.
+    maxSupportedContacts As Long
+    legacyTouchpadFeatures As LEGACY_TOUCHPAD_FEATURES
+    'BOOL touchpadPresent             : 1;
+    'BOOL legacyTouchpadPresent       : 1;
+    'BOOL externalMousePresent        : 1;
+    'BOOL touchpadEnabled             : 1;
+    'BOOL touchpadActive              : 1;
+    'BOOL feedbackSupported           : 1;
+    'BOOL clickForceSupported         : 1;
+    'BOOL Reserved1                   : 25;
+    Bitfield1 As BOOL
+    ' These correspond to user settings and can be changed via SPI_SETTOUCHPADPARAMETERS.
+    'BOOL allowActiveWhenMousePresent : 1;
+    'BOOL feedbackEnabled             : 1;
+    'BOOL tapEnabled                  : 1;
+    'BOOL tapAndDragEnabled           : 1;
+    'BOOL twoFingerTapEnabled         : 1;
+    'BOOL rightClickZoneEnabled       : 1;
+    'BOOL mouseAccelSettingHonored    : 1;
+    'BOOL panEnabled                  : 1;
+    'BOOL zoomEnabled                 : 1;
+    'BOOL scrollDirectionReversed     : 1;
+    'BOOL Reserved2                   : 22;
+    Bitfield2 As BOOL
+    sensitivityLevel As TOUCHPAD_SENSITIVITY_LEVEL
+    cursorSpeed As Long
+    feedbackIntensity As Long
+    clickForceSensitivity As Long
+    rightClickZoneWidth As Long
+    rightClickZoneHeight As Long
+End Type
 Public Type TOUCHPAD_PARAMETERS_V2
     versionNumber As TouchpadParamsVersions
     ' These are status fields calculated dynamically, rather than user settings.
@@ -6129,6 +6173,7 @@ Public Enum WM_WTSESSION_CHANGE_wParam
     WTS_SESSION_REMOTE_CONTROL = &H9
     WTS_SESSION_CREATE = &Ha
     WTS_SESSION_TERMINATE = &Hb
+    WTS_SESSION_DESKTOP_READY = &Hf
 End Enum
 
 
@@ -7053,6 +7098,17 @@ Public Declare PtrSafe Function UnregisterTouchWindow Lib "user32" (ByVal hwnd A
 Public Declare PtrSafe Function IsTouchWindow Lib "user32" (ByVal hwnd As LongPtr, pulFlags As RegTouchWindowFlags) As BOOL
 Public Declare PtrSafe Function SetAdditionalForegroundBoostProcesses Lib "user32" (ByVal topLevelWindow As LongPtr, ByVal processHandleCount As Long, processHandleArray As LongPtr) As BOOL
 Public Declare PtrSafe Function SetProcessRestrictionExemption Lib "user32" (ByVal fEnableExemption As BOOL) As BOOL
+ 
+ 
+Public Type FRAME_MARGIN
+    left As Integer
+    right As Integer
+    top As Integer
+    bottom As Integer
+End Type
+
+
+
 
 
 Public Declare PtrSafe Function FindWindowW Lib "user32" (ByVal Class As LongPtr, ByVal Title As LongPtr) As LongPtr
@@ -7839,6 +7895,7 @@ End Type
 Public Type POINTER_TYPE_INFO
     type As POINTER_INPUT_TYPE
     'union{
+    '   POINTER_INFO  pointerInfo;
     '    POINTER_TOUCH_INFO touchInfo;
     '   POINTER_PEN_INFO   penInfo;
     '} DUMMYUNIONNAME; 
@@ -7856,6 +7913,12 @@ Public Type POINTER_TYPE_INFO
     End Property
     Property Let penInfo(value As POINTER_PEN_INFO)
     CopyMemory Me.touchInfo, value, LenB(Of POINTER_PEN_INFO)
+    End Property
+    Property Get pointerInfo() As POINTER_INFO
+    CopyMemory pointerInfo, Me.touchInfo, LenB(Of POINTER_INFO)
+    End Property
+    Property Let pointerInfo(value As POINTER_INFO)
+    CopyMemory Me.touchInfo, value, LenB(Of POINTER_INFO)
     End Property
 End Type
 
@@ -8093,6 +8156,10 @@ Public Declare PtrSafe Function GetPointerPenInfo Lib "user32" (ByVal pointerId 
 Public Declare PtrSafe Function GetPointerPenInfoHistory Lib "user32" (ByVal pointerId As Long, entriesCount As Long, penInfo As POINTER_PEN_INFO) As BOOL
 Public Declare PtrSafe Function GetPointerFramePenInfo Lib "user32" (ByVal pointerId As Long, pointerCount As Long, penInfo As POINTER_PEN_INFO) As BOOL
 Public Declare PtrSafe Function GetPointerFramePenInfoHistory Lib "user32" (ByVal pointerId As Long, entriesCount As Long, pointerCount As Long, penInfo As POINTER_PEN_INFO) As BOOL
+Public Declare PtrSafe Function GetPointerTouchpadInfo Lib "user32" (ByVal pointerId As Long, touchpadInfo As POINTER_TOUCH_INFO) As BOOL
+Public Declare PtrSafe Function GetPointerTouchpadInfoHistory Lib "user32" (ByVal pointerId As Long, entriesCount As Long, touchpadInfo As POINTER_TOUCH_INFO) As BOOL
+Public Declare PtrSafe Function GetPointerFrameTouchpadInfo Lib "user32" (ByVal pointerId As Long, pointerCount As Long, touchpadInfo As POINTER_TOUCH_INFO) As BOOL
+Public Declare PtrSafe Function GetPointerFrameTouchpadInfoHistory Lib "user32" (ByVal pointerId As Long, entriesCount As Long, pointerCount As Long, touchpadInfo As POINTER_TOUCH_INFO) As BOOL
 Public Declare PtrSafe Function SkipPointerFrameMessages Lib "user32" (ByVal pointerId As Long) As BOOL
 Public Declare PtrSafe Function RegisterPointerInputTarget Lib "user32" (ByVal hWnd As LongPtr, ByVal pointerType As POINTER_INPUT_TYPE) As BOOL
 Public Declare PtrSafe Function UnregisterPointerInputTarget Lib "user32" (ByVal hWnd As LongPtr, ByVal pointerType As POINTER_INPUT_TYPE) As BOOL
@@ -8101,6 +8168,8 @@ Public Declare PtrSafe Function UnregisterPointerInputTargetEx Lib "user32" (ByV
 Public Declare PtrSafe Function CreateSyntheticPointerDevice Lib "user32" (ByVal pointerType As POINTER_INPUT_TYPE, ByVal maxCount As Long, ByVal mode As POINTER_FEEDBACK_MODE) As LongPtr
 Public Declare PtrSafe Function InjectSyntheticPointerInput Lib "user32" (ByVal device As LongPtr, pointerInfo As POINTER_TYPE_INFO, ByVal count As Long) As BOOL
 Public Declare PtrSafe Sub DestroySyntheticPointerDevice Lib "user32" (ByVal device As LongPtr)
+Public Declare PtrSafe Function CreateSyntheticPointerDevice2 Lib "user32" (pParams As SYNTHETIC_DEVICE_CREATION_PARAMS) As LongPtr
+Public Declare PtrSafe Function InjectTouchpadAction Lib "user32" (ByVal hDevice As LongPtr, ByVal action As TOUCHPAD_ACTION) As BOOL
 Public Declare PtrSafe Function EnableMouseInPointer Lib "user32" (ByVal fEnable As BOOL) As BOOL
 Public Declare PtrSafe Function IsMouseInPointerEnabled Lib "user32" () As BOOL
 Public Declare PtrSafe Function EnableMouseInPointerForThread Lib "user32" () As BOOL
@@ -8111,7 +8180,40 @@ Public Declare PtrSafe Function PackTouchHitTestingProximityEvaluation Lib "user
 Public DeclareWide PtrSafe Function GetWindowFeedbackSetting Lib "user32" (ByVal hWnd As LongPtr, ByVal feedback As FEEDBACK_TYPE, ByVal dwFlags As WINDOW_FEEDBACK_SETTING_FLAGS, pSize As Long, config As Any) As BOOL
 Public DeclareWide PtrSafe Function SetWindowFeedbackSetting Lib "user32" (ByVal hWnd As LongPtr, ByVal feedback As FEEDBACK_TYPE, ByVal dwFlags As WINDOW_FEEDBACK_SETTING_FLAGS, pSize As Long, config As Any) As BOOL
 Public Declare PtrSafe Function GetPointerInputTransform Lib "user32" (ByVal pointerId As Long, ByVal historyCount As Long, inputTransform As INPUT_TRANSFORM) As BOOL
+Public Declare PtrSafe Function ReportWindowContentInertia Lib "user32" (ByVal hWnd As LongPtr, ByVal bStartInertia As BOOL) As BOOL
 Public Declare PtrSafe Function GetUnpredictedMessagePos Lib "user32" () As Long
+
+Public Enum SYNTHETIC_DEVICE_CREATION_OPTIONS
+    SDCO_NONE = &H0
+    SDCO_PHYSICAL_SIZE = &H1
+    SDCO_TOUCHPAD_GESTURE_ONLY = &H2
+End Enum
+
+Public Type SYNTHETIC_DEVICE_CREATION_PARAMS
+    pointerType As POINTER_INPUT_TYPE
+    maxCount As Long
+    feedbackMode As POINTER_FEEDBACK_MODE
+    hMonitor As LongPtr 'HMONITOR
+    deviceWidth As Long
+    deviceHeight As Long
+    options As SYNTHETIC_DEVICE_CREATION_OPTIONS
+End Type
+
+Public Enum TOUCHPAD_ACTION
+    TA_3FINGER_TAP
+    TA_3FINGER_PRESS
+    TA_3FINGER_RELEASE
+    TA_4FINGER_TAP
+    TA_4FINGER_PRESS
+    TA_4FINGER_RELEASE
+    TA_5FINGER_TAP
+    TA_5FINGER_PRESS
+    TA_5FINGER_RELEASE
+    TA_INERTIA_STOP
+    TA_INERTIA_END
+End Enum
+
+
 
 Public Type ColorEffect
     transform00 As Single
@@ -9253,6 +9355,9 @@ Public Declare PtrSafe Function RegisterPointerDeviceNotifications Lib "user32" 
 Public Declare PtrSafe Function GetPointerDeviceRects Lib "user32" (ByVal device As LongPtr, pointerDeviceRect As RECT, displayRect As RECT) As BOOL
 Public Declare PtrSafe Function GetPointerDeviceCursors Lib "user32" (ByVal device As LongPtr, cursorCount As Long, pointerProperties As POINTER_DEVICE_CURSOR_INFO) As BOOL
 Public Declare PtrSafe Function GetRawPointerDeviceData Lib "user32" (ByVal pointerId As Long, ByVal historyCount As Long, ByVal propertiesCount As Long, pProperties As POINTER_DEVICE_PROPERTY, pValues As Long) As BOOL
+Public Declare PtrSafe Function RegisterTouchpadCapableWindow Lib "user32" (ByVal hWnd As LongPtr, ByVal fEnable As BOOL) As BOOL
+Public Declare PtrSafe Function RegisterTouchpadCapableThread Lib "user32" (ByVal fEnable As BOOL) As BOOL
+Public Declare PtrSafe Function SetMaxTouchpadSensitivity Lib "user32" (ByVal maxSensitivity As BOOL) As BOOL
 Public Declare PtrSafe Function WaitForInputIdle Lib "user32" (ByVal hProcess As LongPtr, ByVal dwMilliseconds As Long) As Long
 [Description("Only this Ex version exists; GetMouseMovePoints was a Windows CE function, not exported from desktop versions.")]
 Public Declare PtrSafe Function GetMouseMovePointsEx Lib "user32" (ByVal cbSize As Long, lppt As MOUSEMOVEPOINT, lpptBuf As MOUSEMOVEPOINT, ByVal nBufPoints As Long, ByVal resolution As MouseMovePointResolution) As Long
@@ -21239,6 +21344,7 @@ Public Enum SECURITY_RIDS
     SECURITY_RESTRICTED_SERVICES_BASE_RID = (&H00000063)
     SECURITY_RESTRICTED_SERVICES_RID_COUNT = (6)
     SECURITY_SHADOWADMINACCOUNT_RID = (&H00000064)
+    SECURITY_AGENTIC_PLATFORM_BASE_RID = (&H00000065)
 '  Virtual account logon is not limited to inbox callers.  Reserve base RID 0x6F for application usage.
     SECURITY_MAX_BASE_RID = (&H0000006F)
     SECURITY_MAX_ALWAYS_FILTERED = (&H000003E7)
