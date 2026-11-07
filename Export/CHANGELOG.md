@@ -1,5 +1,28 @@
 
-**Update (v9.5.754, 02 Nov 2026):** 
+**Update (v9.5.756, 06 Nov 2026):** 
+- Changed IgnoreWarnings on delegate-using functions to suppress the new TB0037 warning
+- Add missing Media Foundation content
+- (Bug fix) CoRevokeInitializeSpy argument should be ByVal with no-ByVal-UDT alternate
+- (Bug fix) MFTRegisterLocalByCLSID, MFTRegisterLocal extra argument
+- (Bug fix) MFCreateWAVEMediaSink missing argument
+- (Bug fix) MFCreateMuxSink, IMFASFStreamConfig::AddPayloadExtension ByVal UDT had only x86 no-byval workaround instead of proper usage and alternate branching
+- (Bug fix) IMFAudioMediaType::GetAudioFormat, IMFVideoMediaType::GetVideoFormat incorrect return type
+- (Bug fix) MFIsVirtualCameraTypeSupported, IEVRTrustedVideoPlugin::IsInTrustedVideoMode, ::CanConstrict, IMFContentDecryptionModuleSession::Load argument should be ByRef
+- (Bug fix) MFCreateVideoRenderer is in mf.dll, not evr.dll
+- (Bug fix) MFVideoFlags multiple values incorrect
+- (Bug fix) MFASYNC_LOCALIZE_REMOTE_CALLBACK, MF_AUDIO_RENDERER_ATTRIBUTE_FLAGS_NOPERSIST, MFASF_DEFAULT_BUFFER_WINDOW_MS value incorrect
+- (Bug fix) MFAudioFormat_Float, MFAudioFormat_Dolby_AC3_SPDIF, MFAudioFormat_ADTSincorrect GUID
+- (Bug fix) VMRMONITORINFO, VMR9MonitorInfo definition incorrect
+- (Bug fix) OPM_OUTPUT_ID_DATA needed [PackingAlignment(1)]
+- (Bug fix) MFP_ACQUIRE_USER_CREDENTIAL_EVENT, IMFPMediaItem::GetUrl, IMFMediaEngineProtectedContent::SetOPMWindow definition incorrect for x64
+- (Bug fix) MFCreateEncryptedMediaExtensionsStoreActivate, MFCreateVirtualCamera, MFCreateSensorGroup, MFCreateCameraControlMonitor, MFCreateCameraOcclusionStateMonitor, MFCreateRelativePanelWatcher String for LPWSTR without DeclareWide
+- (Bug fix) Win8-only X3DAudioCalculate lib typo.
+- (Bug fix) X3DAudioInitialize should be a Function returning Long
+- (Bug fix) XAUDIO2_USE_DEFAULT_PROCESSO(R) name typo
+- (Bug fix) XAudio2 math helper coding errors
+- (Regression) Conditional block for tB Beta 989 and earlier description typo.
+
+**Update (v9.5.754, 06 Nov 2026):** 
 - Add audioengineextensionapo.h/.idl (100%)
 - (Bug fix) IDxcLinker::RegisterLibrary, IDxcResult::GetNumOutputs, ::GetOutputByIndex and ::PrimaryOutput must use ThisCall calling convention. Added and gated (usable in x64-only) old version for tB Beta < 990
 - (Bug fix) ID2D1TransformedGeometry::GetSourceGeometry, ID2D1BitmapBrush::GetBitmap, ID2D1LinearGradientBrush::GetGradientStopCollection, ID2D1RadialGradientBrush::GetGradientStopCollection are void returns so can't be rewritten as a Function
