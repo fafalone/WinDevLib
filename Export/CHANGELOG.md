@@ -1,4 +1,47 @@
 
+**Update (v9.5.758, 08 Nov 2026):** 
+- Add MSStkPPg.h (100%)
+- Add missing constants from some fully completed features 
+- (Bug fix) InspectHSTRINGCallback[2] missing return types, was generating a error in tB 1042+
+- (Bug fix) AuthzInitializeObjectAccessAuditEvent[2] incorrect calling convention and missing vargs ParamArray
+- (Bug fix) FdiAlloc, FdiFree incorrect calling convention
+- (Bug fix) MaskBlt, SetupDiGetClassDevsEx[A,W], SetupDiGetActualSectionToInstallEx[A,W], CM_Get_Next_Res_Des[_Ex], CM_Open_DevNode_Key[_Ex], RegGetKeySecurity, AddAce, AddResourceAttributeAce, AddConditionalAce, AuthzCachedAccessCheck, EnumPrinterData[A,W], PerfEnumerateCounterSetInstances, PdhGetFormattedCounterArray[A,W], CompressorCompress, CompressorDecompress, ILIsParent, SHPropStgCreate, SHPropStgWriteMultiple, ImmGetCandidateWindow, IMPSetIME[A,W], LsaLookupTranslateNames, BSTR_UserSize, VARIANT_UserSize, BSTR_UserSize64, VARIANT_UserSize64, InSendMessageEx, CharPrev[A,W], CLEANLOCALSTORAGE_UserSize[64] missing argument
+- (Bug fix) SetupQueueCopySection[A,W], CoGetInstanceFromIStorage, GetPixelFormat, RegSetKeySecurity, ObjectPrivilegeAuditAlarm[W], LSA_ALLOCATE_CLIENT_BUFFER, AuthzInitializeContextFromAuthzContext, NetMessageNameEnum, NetConfigGet[All] extra argument
+- (Bug fix) GetDisplayConfigBufferSizes, ExtTextOut arguments out of order
+- (Bug fix) LSA_ALLOCATE_CLIENT_BUFFER, SetupDecompressOrCopyFile[A,W], VerFindFile[A,W] argument should be ByRef
+- (Bug fix) SetupDiDestroyClassImageListEx, CM_Get_DevNode_Registry_Property_Ex, sndPlaySound, VarR8FromInt, VarR8FromUint incorrect alias
+- (Bug fix) CM_Get_Device_Interface_Alia[s]_Ex, FE_EXPORT_FUNC (was FE_EXXPORT_FUNC) name typo
+- (Bug fix) SHMessageBoxCheck[A,W], SetWindowFeedbackSetting, SetDisplayConfig, IsWellKnownSid, SetupDiSetDeviceInterfaceProperty[A,W], SetupDiSetDeviceProperty[A,W], PowerWriteIconResourceSpecifier, BuildExplicitAccessWithName[A,W], BuildImpersonateExplicitAccessWithName[A,W], PathCommonPrefixW, GetAltTabInfo[A,W], FE_EXPORT_FUNC argument should be ByVal
+- (Bug fix) SetupQueryInfVersionInformation[A,W], ReportEvent[A,W], CalculatePopupWindowPosition, SetupDiGetDeviceInterfaceProperty[A], ScriptGetFontAlternateGlyphs, ScriptSubstituteSingleGlyph, ScriptPositionSingleGlyph incorrect argument type
+- (Bug fix) PowerGetActiveScheme, DefRawInputProc, GetExplicitEntriesFromAcl[A,W], GetNamedSecurityInfo[A,W], ConvertStringSecurityDescriptorToSecurityDescriptor[A,W], CM_Import_PowerScheme, LsaQueryForestTrustInformation[2], LsaSetForestTrustInformation[2], LsaGetDeviceRegistrationInfo double indirection for Type should be LongPtr
+- (Bug fix) SHPropStgReadMultiple single indirection should be ByRef Type.
+- (Bug fix) GetGlyphIndices[A,W], StrFormatByteSize64, GetRawInputBuffer definition incorrect
+- (Bug fix) acmFilterTagEnumW uses ANSI type in argument
+- (Bug fix) qsort, SHSTOCKICONINFO, SHARDAPPIDINFOIDLIST, SHCopyKey[A,W], SHRegGetInt, GetActiveObject, VariantCopyPtrVar, FONTDESC, HH_WINTYPE, SCRIPT_TABDEF definition incorrect for x64
+- (Bug fix) CreateService[A,W], CreateWindowStation[A,W], OpenWindowStation[A,W], GetMultipleTrustee[A,W], PowerReportThermalEvent incorrect return type
+- (Bug fix) CorePrinterDriverInstalled[A,W] additional UDT should be ByVal, with no-byval-udt alt split for 32/64bit
+- (Bug fix) SERVICE_TRIGGER, CBT_CREATEWNDA/W, RSOP_TARGET struct member should be a pointer, not inlined
+- (Bug fix) DISPLAYCONFIG_MODE_INFO members out of order, union substitute size incorrect
+- (Bug fix) SHITEMID, MMTIME, MULTIKEYHELPA, DMA_RESOURCE, EXTLOGFONTA, RSOP_TARGET incorrect member type
+- (Bug fix) DRVCONFIGINFOEX, DRVCONFIGINFO, CS_DES, CS_RESOURCE, IRQ_RESOURCE_64, MEM_RESOURCE should have [PackingAlignment(1)]
+- (Bug fix) KEYBDINPUT extra member
+- (Bug fix) PRINTER_NOTIFY_INFO should have manual padding for x64 because its type uses a byte-array union substitute, not accounting for the pointer in it
+- (Bug fix) BranchOfficeJobDataContainer should have manual padding before the array because the array type is 8-byte aligned, unaccounted for by union substitute
+- (Bug fix) auxGetDevCapsA, SP_TROUBLESHOOTER_PARAMS_A, SP_POWERMESSAGEWAKE_PARAMS_A, SetupDiGetDeviceInterfaceDetailA, SetupVerifyInfFileA used -W definition
+- (Bug fix) SCardGetCardTypeProviderNameW, RESTOREPOINTINFOW used -A definition
+- (Bug fix) TRUSTED_DOMAIN_INFORMATION_EX2 missing member
+- (Bug fix) WAITCHAIN_NODE_INFO, PDH_COUNTER_INFO_A/W incorrect union substitute size
+- (Bug fix) PSFormatForDisplay, DeriveCapabilitySidsFromName, CveEventWrite, CreateFileRestoreContext, ScanRestorableFiles, RestoreFile, SupplyDecryptionInfo String for LPWSTR without DeclareWide
+- (Bug fix) SHAnsiToAnsi, SHUnicodeToAnsi, SetDeskWallpaper String for LPSTR using DeclareWide
+- (Bug fix) SCardControl is in winscard.dll, not kernel32.dll
+- (Bug fix) SHSimulateDrop is in shlwapi.dll, not shell32.dll
+- (Bug fix) IsValidDevmode missing alias
+- (Bug fix) StgOpenLayoutDocfile is in dflayout.dll, not ole32.dll (Note: dflayout.dll is not included with Windows)
+- (Bug fix) CoRegisterDeviceCatalog, CoRevokeDeviceCatalog are in combase.dll, not ole32.dll
+- (Bug fix) MDT_DEFAULT, GCP_MAXEXTENT, MCI_WAVE_OUTPUT, MCI_VD_PLAY_SLOW, kJobProduction, kJobConsumption, MSV1_0_CRED_SHA_PRESENT, KERB_PURGE_ALL_TICKETS, KERB_WRAP_NO_ENCRYPT value incorrect
+- (Bug fix) TRUSTLET_BINDING_DATA Type member should be inlined, not a pointer
+- (Bug fix) IsProcessDPIAware incorrect casing
+
 **Update (v9.5.756, 06 Nov 2026):** 
 - Changed IgnoreWarnings on delegate-using functions to suppress the new TB0037 warning
 - Add missing Media Foundation content
