@@ -1,7 +1,7 @@
 # Windows Development Library for twinBASIC
 ## WinDevLib 
 
-**Current Version: 9.5.758 (November 8th, 2026)**
+**Current Version: 9.5.760 (November 12th, 2026)**
 
 (c) 2022-2026 Jon Johnson (fafalone)
 
@@ -254,6 +254,39 @@ Current coverage is already quite extensive, spanning hundreds of Windows SDK he
 
  
 ### Updates
+
+**Update (v9.5.760, 12 Nov 2026):**
+- Add processmodel.h
+- Add missing content from some fully completed features 
+- (BREAKING CHANGE) ByVal UDT support has now been implemented for the Console APIs (consoleapi[2].h); many used Long for ByVal COORD. Also for the PROGRESS_ROUTINE delegate.
+- (Bug fix) Missing argument: NtDuplicateObject, NtMapViewOfSection, SetConsoleNumberOfCommands[A,W], GetProcessorSystemCycleTime, GetStringTypeA, RtlCompareUnicodeStrings, CreateEnlistment, SleepConditionVariableSRW, NtCancelIoFile, NtCreateProfile[Ex], IContextCallback::ContextCallback
+- (Bug fix) Extra argument: ReadFileEx, WriteFileEx, OpenFileById, CreateMutexEx[A,W], NtMapViewOfSectionEx, ConvertFiberToThread 
+- (Bug fix) COPYFILE2_INFO[*], OBJECT_BASIC_INFORMATION, SleepConditionVariableSRW, WakeAllConditionVariable, WakeConditionVariable, SleepConditionVariableCS, InitializeConditionVariable, all SRWLock functions inappropriately substituted a type for a struct consisting of only that type
+- (Bug fix) Arguments out of order: MapViewOfFile3 
+- (Bug fix) Definition incorrect: NtCancelIoFileEx, INPUT_RECORD, ST_DATA_MGR_STATS, WER_GATHER, IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY_XDATA, IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY_XDATA_EXTENDED, IMAGE_ARM64_RUNTIME_FUNCTION_ENTRY_XDATA_EPILOG_SCOPE, IMachineGlobalObjectTable::RegisterArgument
+- (Bug fix) Incorrect argument type: FindNLSStringEx, GetSystemTimeAdjustmentPrecise, LdrGetProcedureAddress[Ex], LdrGetProcedureAddressForCaller, NtCreateProfileEx 
+- (Bug fix) Argument should be ByVal: GetFirmwareEnvironmentVariableEx[A,W]
+- (Bug fix) Argument should be ByRef: LdrLoadDll, NtPrivilegedServiceAuditAlarm, RtlFindLongestRunClear, RtlFindFirstRunClear
+- (Bug fix) Double indirection should be ByRef LongPtr: RtlImageRvaToVa
+- (Bug fix) Deleted incorrect overload of RtlGetImageFileMachines
+- (Bug fix) Type member should be inlined, not a pointer: PROCESS_WAKE_INFORMATION
+- (Bug fix) Definition incorrect for x64: GetLongPathName[A,W], ReOpenFile, IMachineGlobalObjectTable::RevokeObject, LdrResFindResource
+- (Bug fix) Definition incorrect for x86: TEB, MEMORY_WORKING_SET_BLOCK, KUSER_SHARED_DATA, GDI_TEB_BATCH (affecting all TEB), PROCESS_DYNAMIC_EH_CONTINUATION_TARGET, RUNTIME_REPORT_PACKAGE_HEADER, RTL_USER_PROCESS_PARAMETERS_WIN10_19H1/20H1/21H2
+- (Bug fix) Use of Boolean instead of CBoolean: NtOpenThreadToken[Ex], LdrOpenImageFileOptionsKey, LdrIsModuleSxsRedirected, RtlDosPathNameToNtPathName_U
+- (Bug fix) Incorrect return type: SetUnhandledExceptionFilter, SetThreadUILanguage, SetThreadpoolThreadMinimum, NtFlushWriteBuffer, NtFlushProcessWriteBuffers, RtlNormalizeProcessParams, RtlDeNormalizeProcessParams, LdrControlFlowGuardEnforced, NtCancelIoFile[Ex], ENCLAVE_ROUTINE, DELAYLOAD_FAILURE_DLL_CALLBACK, OleUIPromptUser[A,W]
+- (Bug fix) Missing member: CONSOLE_SCREEN_BUFFER_INFOEX, ST_STATS
+- (Bug fix) Members out of order: IMAGE_LOAD_CONFIG_DIRECTORY32
+- (Bug fix) Member type incorrect: SYSTEM_LOOKASIDE_INFORMATION, PS_SYSTEM_DLL_INIT_BLOCK_V2
+- (Bug fix) Union substitute size incorrect: SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX, HEAP_INFORMATION_ITEM, HEAP_EXTENDED_INFORMATION, PROCESS_MITIGATION_POLICY_INFORMATION, EVENT_TRACE_PROFILE_ADD_INFORMATION_V3
+- (Bug fix) Bitfield substitute size incorrect: SDB_CSTRUCT_COBALT_PROCFLAG
+- (Bug fix) Missing padding due to union substitute not accounting for alignment: EVENT_TRACE_PROFILE_ADD_INFORMATION_V3, PROCESS_DEVICEMAP_INFORMATION[_EX]
+- (Bug fix) Name typo: DbgUiConnectToDbg (was DdbgUiConnectToDbg)
+- (Bug fix) Value incorrect: QUEUE_USER_APC_CALLBACK_DATA_CONTEXT, TXFS_MINIVERSION_DIRTY_VIEW, TXFS_MINIVERSION_DEFAULT_VIEW, IMAGE_SYM_CLASS_END_OF_FUNCTION, UNWIND_HISTORY_TABLE_SIZE, POLICY_AUDIT_SUBCATEGORY_COUNT
+- (Bug fix) Missing methods: IPropertyPage, IOleInPlaceSiteWindowless
+- (Bug fix) Incorrect alias: OleUIAddVerbMenu
+- (Bug fix) Some DVASPECT values should be in an enum named DVASPECT2
+- (Bug fix) Use of String for LPSTR with DeclareWide: SfpVerifyFile, QueryOptionalDelayLoadedAPI, RtlFindExportedRoutineByName
+- (Bug fix) Use of String for LPWSTR without DeclareWide: WofFileEnumFiles, IsBadStringPtr, MFCreateSensorProfile, MFCreateRelativePanelWatcher
 
 **Update (v9.5.758, 08 Nov 2026):** 
 - Add MSStkPPg.h (100%)
