@@ -167,6 +167,12 @@ Interface IPropertyPage Extends stdole.IUnknown
     Sub Deactivate()
     Sub GetPageInfo(pPageInfo As PROPPAGEINFO)
     Sub SetObjects(ByVal cObjects As Long, ppunk As IUnknown)
+    Sub Show(ByVal nCmdShow As Long)
+    Sub Move(pRect As RECT)
+    Sub IsPageDirty() 'TODO: [PreserveSig] when implements supported
+    Sub Apply()
+    Sub Help(ByVal pszHelpDir As LongPtr)
+    Sub TranslateAccelerator(pMsg As MSG)
 End Interface
 [InterfaceId("01E44665-24AC-101B-84ED-08002B2EC713")]
 [OleAutomation(False)]
@@ -310,7 +316,7 @@ Interface IOleControl Extends stdole.IUnknown
     [PreserveSig]
     Function OnMnemonic(ByRef pMsg As MSG) As Long
     Sub OnAmbientPropertyChange(ByVal DispID As Long)
-    Sub FreezeEvents(ByVal bFreeze As Long)
+    Sub FreezeEvents(ByVal bFreeze As BOOL)
 End Interface
 [InterfaceId("C895C8F9-6564-4123-8760-529F72AB9322")]
 [OleAutomation(True)]
@@ -347,7 +353,7 @@ Interface IOleInPlaceSite Extends IOleWindow
     Sub OnUIActivate()
     Sub GetWindowContext(ppFrame As IOleInPlaceFrame, ppDoc As IOleInPlaceUIWindow, ByVal lprcPosRect As LongPtr, ByVal lprcClipRect As LongPtr, ByVal lpFrameInfo As LongPtr)
     Sub Scroll(ByVal scrollExtant As LongLong)
-    Sub OnUIDeactivate(ByVal fUndoable As Long)
+    Sub OnUIDeactivate(ByVal fUndoable As BOOL)
     Sub OnInPlaceDeactivate()
     Sub DiscardUndoState()
     Sub DeactivateAndUndo()
@@ -421,6 +427,7 @@ Interface IOleInPlaceSiteWindowless Extends IOleInPlaceSiteEx
     Sub GetDC(pRect As RECT, ByVal grfFlags As OLEDCFLAGS, phDC As LongPtr)
     Sub ReleaseDC(ByVal hDC As LongPtr)
     Sub InvalidateRect(pRect As RECT, ByVal fErase As BOOL)
+    Sub InvalidateRgn(ByVal hRGN As LongPtr, ByVal fErase As BOOL)
     Sub ScrollRect(ByVal dx As Long, ByVal dy As Long, pRectScroll As RECT, pRectClip As RECT)
     Sub AdjustRect(prc As RECT)
     Sub OnDefWindowMessage(ByVal msg As Long, ByVal wParam As LongPtr, ByVal lParam As LongPtr, plResult As LongPtr)
@@ -969,8 +976,8 @@ End Type
 
 Public Type PAGESET
 	cbStruct As Long
-	fOddPages As Long
-	fEvenPages As Long
+	fOddPages As BOOL
+	fEvenPages As BOOL
 	cPageRange As Long
 	rgPages(0 To 0) As PAGERANGE
 End Type
@@ -1335,7 +1342,7 @@ End Type
 
 Public Type OLEINPLACEFRAMEINFO
 	cb As Long
-	fMDIApp As Long
+	fMDIApp As BOOL
 	hwndFrame As LongPtr
 	hAccel As LongPtr
 	cAccelEntries As Long
@@ -1585,7 +1592,7 @@ Public Const OLEUI_ERR_STANDARDMAX  = 116  ' Start here for specific errors.
     
 Public Declare PtrSafe Function OleUIAddVerbMenuA Lib "OLEDLG.DLL" (ByVal lpoleobj As IOleObject, ByVal lpszShortType As String, ByVal hMenu As LongPtr, ByVal uPos As Long, ByVal uIDVerbMin As Long, ByVal uIDVerbMax As Long, ByVal bAddConvert As BOOL, ByVal idConvert As Long, ByRef lphmenu As LongPtr) As BOOL
 Public Declare PtrSafe Function OleUIAddVerbMenuW Lib "OLEDLG.DLL" (ByVal lpoleobj As IOleObject, ByVal lpszShortType As LongPtr, ByVal hMenu As LongPtr, ByVal uPos As Long, ByVal uIDVerbMin As Long, ByVal uIDVerbMax As Long, ByVal bAddConvert As BOOL, ByVal idConvert As Long, ByRef lphmenu As LongPtr) As BOOL
-Public DeclareWide PtrSafe Function OleUIAddVerbMenu Lib "OLEDLG.DLL" Alias "OleUIAddVerbMenuA" (ByVal lpoleobj As IOleObject, ByVal lpszShortType As String, ByVal hMenu As LongPtr, ByVal uPos As Long, ByVal uIDVerbMin As Long, ByVal uIDVerbMax As Long, ByVal bAddConvert As BOOL, ByVal idConvert As Long, ByRef lphmenu As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function OleUIAddVerbMenu Lib "OLEDLG.DLL" Alias "OleUIAddVerbMenuW" (ByVal lpoleobj As IOleObject, ByVal lpszShortType As String, ByVal hMenu As LongPtr, ByVal uPos As Long, ByVal uIDVerbMin As Long, ByVal uIDVerbMax As Long, ByVal bAddConvert As BOOL, ByVal idConvert As Long, ByRef lphmenu As LongPtr) As BOOL
     
 Public Type OLEUIINSERTOBJECTA
     ' These IN fields are standard across all OLEUI dialog functions.
@@ -2083,58 +2090,58 @@ Public Declare PtrSafe Function OleUIBusyW Lib "OLEDLG.DLL" (ByRef any As OLEUIB
 Public DeclareWide PtrSafe Function OleUIBusy Lib "OLEDLG.DLL" Alias "OleUIBusyW" (ByRef any As OLEUIBUSY) As Long
 
 Public Type OLEUICHANGESOURCEA
-    ' These IN fields are standard across all OLEUI dialog functions.
-    cbStruct As Long ' Structure Size
-    dwFlags As CHANGESOURCEFLAGS ' IN-OUT:  Flags
-    hWndOwner As LongPtr ' Owning window
-    lpszCaption As String ' Dialog caption bar contents
-    lpfnHook As LongPtr 'LPFNOLEUIHOOK ' Hook callback
-    lCustData As LongPtr ' Custom data to pass to hook
-    hInstance As LongPtr ' Instance for customized template name
-    lpszTemplate As String ' Customized template name
-    hResource As LongPtr 'HRSRC ' Customized template handle
-    ' INTERNAL ONLY: do not modify these members
-    lpOFN As LongPtr 'OPENFILENAMEA* ' pointer OPENFILENAME struct
-    dwReserved1(0 To 3) As Long ' (reserved for future use)
-    ' Specifics for OLEUICHANGESOURCE.
-    lpOleUILinkContainer As IOleUILinkContainerA ' IN: used to validate link sources
-    dwLink As Long ' IN: magic# for lpOleUILinkContainer
-    lpszDisplayName As String ' IN-OUT: complete source display name
-    nFileLength As Long ' IN-OUT: file moniker part of lpszDisplayName
-    lpszFrom As String ' OUT: prefix of source changed from
-    lpszTo As String ' OUT: prefix of source changed to
+' These IN fields are standard across all OLEUI dialog functions.
+    cbStruct As Long                                ' Structure Size
+    dwFlags As CHANGESOURCEFLAGS                    ' IN-OUT:  Flags
+    hWndOwner As LongPtr                            ' Owning window
+    lpszCaption As String                           ' Dialog caption bar contents
+    lpfnHook As LongPtr                             'LPFNOLEUIHOOK ' Hook callback
+    lCustData As LongPtr                            ' Custom data to pass to hook
+    hInstance As LongPtr                            ' Instance for customized template name
+    lpszTemplate As String                          ' Customized template name
+    hResource As LongPtr                            'HRSRC ' Customized template handle
+' INTERNAL ONLY: do not modify these members
+    lpOFN As LongPtr                                'OPENFILENAMEA* ' pointer OPENFILENAME struct
+    dwReserved1(0 To 3) As Long                     ' (reserved for future use)
+' Specifics for OLEUICHANGESOURCE.
+    lpOleUILinkContainer As IOleUILinkContainerA    ' IN: used to validate link sources
+    dwLink As Long                                  ' IN: magic# for lpOleUILinkContainer
+    lpszDisplayName As String                       ' IN-OUT: complete source display name
+    nFileLength As Long                             ' IN-OUT: file moniker part of lpszDisplayName
+    lpszFrom As String                              ' OUT: prefix of source changed from
+    lpszTo As String                                ' OUT: prefix of source changed to
 End Type
 
 Public Type OLEUICHANGESOURCEW
-    ' These IN fields are standard across all OLEUI dialog functions.
-    cbStruct As Long ' Structure Size
-    dwFlags As CHANGESOURCEFLAGS ' IN-OUT:  Flags
-    hWndOwner As LongPtr ' Owning window
-    lpszCaption As LongPtr ' Dialog caption bar contents
-    lpfnHook As LongPtr 'LPFNOLEUIHOOK ' Hook callback
-    lCustData As LongPtr ' Custom data to pass to hook
-    hInstance As LongPtr ' Instance for customized template name
-    lpszTemplate As LongPtr ' Customized template name
-    hResource As LongPtr 'HRSRC ' Customized template handle
-    ' INTERNAL ONLY: do not modify these members
-    lpOFN As LongPtr 'OPENFILENAMEW ' pointer OPENFILENAME struct
-    dwReserved1(0 To 3) As Long ' (reserved for future use)
-    ' Specifics for OLEUICHANGESOURCE.
-    lpOleUILinkContainer As IOleUILinkContainerW ' IN: used to validate link sources
-    dwLink As Long ' IN: magic# for lpOleUILinkContainer
-    lpszDisplayName As LongPtr ' IN-OUT: complete source display name
-    nFileLength As Long ' IN-OUT: file moniker part of lpszDisplayName
-    lpszFrom As LongPtr ' OUT: prefix of source changed from
-    lpszTo As LongPtr ' OUT: prefix of source changed to
+' These IN fields are standard across all OLEUI dialog functions.
+    cbStruct As Long                                ' Structure Size
+    dwFlags As CHANGESOURCEFLAGS                    ' IN-OUT:  Flags
+    hWndOwner As LongPtr                            ' Owning window
+    lpszCaption As LongPtr                          ' Dialog caption bar contents
+    lpfnHook As LongPtr                             'LPFNOLEUIHOOK ' Hook callback
+    lCustData As LongPtr                            ' Custom data to pass to hook
+    hInstance As LongPtr                            ' Instance for customized template name
+    lpszTemplate As LongPtr                         ' Customized template name
+    hResource As LongPtr                            'HRSRC ' Customized template handle
+' INTERNAL ONLY: do not modify these members
+    lpOFN As LongPtr                                'OPENFILENAMEW ' pointer OPENFILENAME struct
+    dwReserved1(0 To 3) As Long                     ' (reserved for future use)
+' Specifics for OLEUICHANGESOURCE.
+    lpOleUILinkContainer As IOleUILinkContainerW    ' IN: used to validate link sources
+    dwLink As Long                                  ' IN: magic# for lpOleUILinkContainer
+    lpszDisplayName As LongPtr                      ' IN-OUT: complete source display name
+    nFileLength As Long                             ' IN-OUT: file moniker part of lpszDisplayName
+    lpszFrom As LongPtr                             ' OUT: prefix of source changed from
+    lpszTo As LongPtr                               ' OUT: prefix of source changed to
 End Type
 'Alias OLEUICHANGESOURCE As OLEUICHANGESOURCEW
  
 
 Public Enum CHANGESOURCEFLAGS
-    CSF_SHOWHELP = &H00000001  ' IN: enable/show help button
-    CSF_VALIDSOURCE = &H00000002  ' OUT: link was validated
+    CSF_SHOWHELP = &H00000001       ' IN: enable/show help button
+    CSF_VALIDSOURCE = &H00000002    ' OUT: link was validated
     CSF_ONLYGETSOURCE = &H00000004  ' IN: disables validation of source
-    CSF_EXPLORER = &H0000000
+    CSF_EXPLORER = &H00000008       ' IN: use new OFN_EXPLORER custom template behavior
 End Enum
     
 Public Const OLEUI_CSERR_LINKCNTRNULL  = (OLEUI_ERR_STANDARDMAX + 0)
@@ -2302,9 +2309,9 @@ Public Declare PtrSafe Function OleUIObjectPropertiesA Lib "OLEDLG.DLL" (arg As 
 Public Declare PtrSafe Function OleUIObjectPropertiesW Lib "OLEDLG.DLL" (arg As OLEUIOBJECTPROPSW) As Long
 Public DeclareWide PtrSafe Function OleUIObjectProperties Lib "OLEDLG.DLL" Alias "OleUIObjectPropertiesW" (arg As OLEUIOBJECTPROPS) As Long
  
-Public Declare PtrSafe Function OleUIPromptUserA CDecl Lib "OLEDLG.DLL" (ByVal nTemplate As Long, ByVal hwndParent As LongPtr, ByVal ParamArray args As Any()) As BOOL
-Public Declare PtrSafe Function OleUIPromptUserW CDecl Lib "OLEDLG.DLL" (ByVal nTemplate As Long, ByVal hwndParent As LongPtr, ByVal ParamArray args As Any()) As BOOL
-Public DeclareWide PtrSafe Function OleUIPromptUser CDecl Lib "OLEDLG.DLL" Alias "OleUIPromptUserW" (ByVal nTemplate As Long, ByVal hwndParent As LongPtr, ByVal ParamArray args As Any()) As BOOL
+Public Declare PtrSafe Function OleUIPromptUserA CDecl Lib "OLEDLG.DLL" (ByVal nTemplate As Long, ByVal hwndParent As LongPtr, ByVal ParamArray args As Any()) As Long
+Public Declare PtrSafe Function OleUIPromptUserW CDecl Lib "OLEDLG.DLL" (ByVal nTemplate As Long, ByVal hwndParent As LongPtr, ByVal ParamArray args As Any()) As Long
+Public DeclareWide PtrSafe Function OleUIPromptUser CDecl Lib "OLEDLG.DLL" Alias "OleUIPromptUserW" (ByVal nTemplate As Long, ByVal hwndParent As LongPtr, ByVal ParamArray args As Any()) As Long
 
 Public Declare PtrSafe Function OleUIUpdateLinksA Lib "OLEDLG.DLL" (ByVal lpOleUILinkCntr As IOleUILinkContainerA, ByVal hwndParent As LongPtr, ByVal lpszTitle As String, ByVal cLinks As Long) As BOOL
 Public Declare PtrSafe Function OleUIUpdateLinksW Lib "OLEDLG.DLL" (ByVal lpOleUILinkCntr As IOleUILinkContainerW, ByVal hwndParent As Long, ByVal lpszTitle As LongPtr, ByVal cLinks As Long) As BOOL
@@ -2398,5 +2405,15 @@ Public Enum OLECONTF
     OLECONTF_ONLYUSER = 8
     OLECONTF_ONLYIFRUNNING = 16
 End Enum
+
+Public Enum PictureAttributes
+    PICTURE_SCALABLE = &H1
+    PICTURE_TRANSPARENT = &H2
+End Enum
+
+Public Const PAGESET_TOLASTPAGE As Integer = &Hffff
+
+Public Delegate Function LPFNOLEUIHOOK (ByVal hwnd As LongPtr, ByVal uint As Long, ByVal wParam As LongPtr, ByVal lParam As LongPtr) As Long
+
 
 End Module
