@@ -3302,10 +3302,19 @@ Public Type SOLE_AUTHENTICATION_SERVICE
 	hr As Long
 End Type
 
+Public Const COLE_DEFAULT_PRINCIPAL As LongPtr = -1 '((OLECHAR *)( INT_PTR )-1 )
+Public Const COLE_DEFAULT_AUTHINFO As LongPtr = -1 '((void *)( INT_PTR )-1 )
+
+
 Public Type SOLE_AUTHENTICATION_INFO
 	dwAuthnSvc As RPC_AUTHN
 	dwAuthzSvc As RPC_AUTHZ
 	pAuthInfo As LongPtr
+End Type
+
+Public Type SOLE_AUTHENTICATION_LIST
+    cAuthInfo As Long
+    aAuthInfo As LongPtr 'SOLE_AUTHENTICATION_INFO*
 End Type
 
 [Description("⚠️ **WARNING:** Buffered array substituted for C-style array. LenB is invalid. If type is more than 4095 bytes, struct is invalid. Do not write empty bytes.")]
@@ -18249,6 +18258,7 @@ Public Enum POLICY_AUDIT_EVENT_TYPE_EX
     iLogon_NPS
     iLogon_Claims
     iLogon_Groups
+    iLogon_AccessRights
 
     iObjectAccess_FileSystem
     iObjectAccess_Registry
@@ -21502,6 +21512,16 @@ Public Enum SECURITY_PROCESS_TRUST_RIDS
     SECURITY_PROCESS_PROTECTION_LEVEL_AUTHENTICODE_RID = (&H00000400)
     SECURITY_PROCESS_PROTECTION_LEVEL_NONE_RID = (&H00000000)
 End Enum
+Public Function SECURITY_ANTI_TAMPER_AUTHORITY() As SID_IDENTIFIER_AUTHORITY
+SECURITY_ANTI_TAMPER_AUTHORITY.Value(5) = 20
+End Function
+Public Enum SECURITY_ANTI_TAMPER_RIDS
+    SECURITY_ANTI_TAMPER_APP_ID_BASE_RID = (&H00000001)
+    SECURITY_ANTI_TAMPER_MUTABLE_APP_ID_BASE_RID = (&H00000002)
+    SECURITY_ANTI_TAMPER_APP_INSTANCE_BASE_RID = (&H00000003)
+    SECURITY_ANTI_TAMPER_ENTITLEMENT_BASE_RID = (&H00000004)
+    SECURITY_ANTI_TAMPER_APP_SUITE_BASE_RID = (&H00000005)
+End Enum
 Public Const SECURITY_TRUSTED_INSTALLER_RID1  = 956008885
 Public Const SECURITY_TRUSTED_INSTALLER_RID2 As Long = &HCBC28419& ' 3418522649
 Public Const SECURITY_TRUSTED_INSTALLER_RID3  = 1831038044
@@ -21700,7 +21720,9 @@ Public Enum AceTypes
 	SYSTEM_SCOPED_POLICY_ID_ACE_TYPE = (&H13)
 	SYSTEM_PROCESS_TRUST_LABEL_ACE_TYPE = (&H14)
 	SYSTEM_ACCESS_FILTER_ACE_TYPE = (&H15)
-	ACCESS_MAX_MS_V5_ACE_TYPE = (&H15)
+    SYSTEM_MANDATORY_APP_ACCESS_ALLOWED_ACE_TYPE = (&H16)
+    SYSTEM_MANDATORY_ACCESS_ALLOWED_ACE_TYPE = (&H17)
+	ACCESS_MAX_MS_V5_ACE_TYPE = (&H17)
 End Enum
 
 Public Enum ACE_FLAGS
@@ -21804,6 +21826,11 @@ Public Enum TOKEN_INFORMATION_CLASS
     TokenLearningMode
     TokenIsSystemManagedAdmin
     TokenIsInstaller
+    TokenHasTamperProtection
+    TokenAppIdentitySid
+    TokenAppInstanceSid
+    TokenAppSuiteSid
+    TokenEntitlements
     MaxTokenInfoClass  ' MaxTokenInfoClass should always be the last enum
 End Enum
 
@@ -30335,7 +30362,9 @@ Public Declare PtrSafe Function NetWkstaTransportEnum Lib "netapi32" (ByVal serv
 
 Public Declare PtrSafe Function NetRemoteTOD Lib "netapi32" (ByVal servername As LongPtr, pBuffer As LongPtr) As Long 'TIME_OF_DAY_INFO
 Public Declare PtrSafe Function NetRemoteComputerSupports Lib "netapi32" (ByVal UncServerName As LongPtr, ByVal OptionsWanted As NetuserRemoteComputerSupports, OptionsSupported As NetuserRemoteComputerSupports) As Long
+[Description("Note: Desc Strings may be ANSI; controlled by DESC_CHAR_UNICODE in the SDK rather than the master UNICODE switch.")]
 Public Declare PtrSafe Function RxRemoteApi CDecl Lib "netapi32" (ByVal ApiNumber As Long, ByVal UncServerName As LongPtr, ByVal ParmDescString As LongPtr, ByVal DataDesc16 As LongPtr, ByVal DataDesc32 As LongPtr, ByVal DataDescSmb As LongPtr, ByVal AuxDesc16 As LongPtr, ByVal AuxDesc32 As LongPtr, ByVal AuxDescSmb As LongPtr, ByVal Flags As NetuserRxRemoteFlags, ByVal ParamArray vargs As Any()) As Long
+[Description("Note: Desc Strings may be ANSI; controlled by DESC_CHAR_UNICODE in the SDK rather than the master UNICODE switch.")]
 Public DeclareWide PtrSafe Function RxRemoteApi CDecl Lib "netapi32" (ByVal ApiNumber As Long, ByVal UncServerName As String, ByVal ParmDescString As String, ByVal DataDesc16 As String, ByVal DataDesc32 As String, ByVal DataDescSmb As String, ByVal AuxDesc16 As String, ByVal AuxDesc32 As String, ByVal AuxDescSmb As String, ByVal Flags As NetuserRxRemoteFlags, ByVal ParamArray vargs As Any()) As Long
 
 Public Enum NetuserRemoteComputerSupports
@@ -50827,7 +50856,7 @@ End Type
 Public Declare PtrSafe Function SfcGetNextProtectedFile Lib "sfc.dll" (ByVal RpcHandle As LongPtr, ProtFileData As PROTECTED_FILE_DATA) As BOOL
 Public DeclareWide PtrSafe Function SfcIsFileProtected Lib "sfc.dll" (ByVal RpcHandle As LongPtr, ByVal ProtFileName As String) As BOOL
 Public DeclareWide PtrSafe Function SfcIsKeyProtected Lib "sfc.dll" ([TypeHint(RegKeyspace)] ByVal KeyHandle As LongPtr, ByVal SubKeyName As String, ByVal KeySam As REGSAM) As BOOL
-Public DeclareWide PtrSafe Function SfpVerifyFile Lib "sfc.dll" (ByVal pszFileName As String, ByVal pszError As String, ByVal dwErrSize As Long) As BOOL
+Public Declare PtrSafe Function SfpVerifyFile Lib "sfc.dll" (ByVal pszFileName As String, ByVal pszError As String, ByVal dwErrSize As Long) As BOOL
 
 'UNDOCUMENTED:
 Public Type PPROTECTED_FILE_INFO
@@ -51385,14 +51414,14 @@ End Type
 
 ' #If WDL_NO_DELEGATES Then
 [UseGetLastError(False)]
-Public Declare PtrSafe Function WofFileEnumFiles Lib "Wofutil.dll" (ByVal VolumeName As LongPtr, ByVal Algorithm As Long, ByVal EnumProc As LongPtr, Optional ByVal UserData As LongPtr) As Long
+Public DeclareWide PtrSafe Function WofFileEnumFiles Lib "Wofutil.dll" (ByVal VolumeName As LongPtr, ByVal Algorithm As Long, ByVal EnumProc As LongPtr, Optional ByVal UserData As LongPtr) As Long
 [UseGetLastError(False)]
-Public Declare PtrSafe Function WofFileEnumFiles Lib "Wofutil.dll" (ByVal VolumeName As String, ByVal Algorithm As Long, ByVal EnumProc As LongPtr, Optional ByVal UserData As LongPtr) As Long
+Public DeclareWide PtrSafe Function WofFileEnumFiles Lib "Wofutil.dll" (ByVal VolumeName As String, ByVal Algorithm As Long, ByVal EnumProc As LongPtr, Optional ByVal UserData As LongPtr) As Long
 ' #Else
 ' [UseGetLastError(False)]
-' Public Declare PtrSafe Function WofFileEnumFiles Lib "Wofutil.dll" (ByVal VolumeName As LongPtr, ByVal Algorithm As WofWimFileCompressionProviders, ByVal EnumProc As WofEnumFilesProc, Optional ByVal UserData As LongPtr) As Long
+' Public DeclareWide PtrSafe Function WofFileEnumFiles Lib "Wofutil.dll" (ByVal VolumeName As LongPtr, ByVal Algorithm As WofWimFileCompressionProviders, ByVal EnumProc As WofEnumFilesProc, Optional ByVal UserData As LongPtr) As Long
 ' [UseGetLastError(False)]
-' Public Declare PtrSafe Function WofFileEnumFiles Lib "Wofutil.dll" (ByVal VolumeName As String, ByVal Algorithm As WofWimFileCompressionProviders, ByVal EnumProc As WofEnumFilesProc, Optional ByVal UserData As LongPtr) As Long
+' Public DeclareWide PtrSafe Function WofFileEnumFiles Lib "Wofutil.dll" (ByVal VolumeName As String, ByVal Algorithm As WofWimFileCompressionProviders, ByVal EnumProc As WofEnumFilesProc, Optional ByVal UserData As LongPtr) As Long
 ' #End If
 
 
