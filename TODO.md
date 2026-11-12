@@ -7,7 +7,7 @@ wdAccessible.twin
 wdActiveIMM.twin
 wdAD.twin
 wdAMSI.twin
-wdAPI.twin
+wdAPI.twin - COMPLETE
 wdAPIBio.twin
 wdAPIBluetooth.twin
 wdAPICld.twin
@@ -18,7 +18,7 @@ wdAPIFlt.twin
 wdAPIHID.twin
 wdAPIInterlocked.twin
 wdAPIKS.twin
-wdAPINTKernel.twin
+wdAPINTKernel.twin - COMPLETE
 wdAPISdkddkver.twin
 wdAPISL.twin
 wdAPIWFP.twin
@@ -28,7 +28,7 @@ wdAppModel.twin
 wdAppX.twin
 wdBITS.twin
 wdCodecAPI.twin
-wdCOM.twin
+wdCOM.twin - COMPLETE
 wdCoreAudio.twin - COMPLETE
 wdCredProv.twin
 wdD3D.twin - COMPLETE
@@ -73,7 +73,7 @@ wdMF.twin - COMPLETE
 wdMIME.twin
 wdMSIME.twin
 wdNetcon.twin
-wdOLE.twin
+wdOLE.twin - COMPLETE
 wdOPC.twin
 wdPhotoAcq.twin
 wdPKEY.twin
@@ -97,7 +97,7 @@ wdTaskScheduler.twin
 wdTelephony.twin
 wdTransactions.twin
 wdTypedef.twin
-wdTypelib.twin
+wdTypelib.twin - COMPLETE
 wdUIAnimation.twin
 wdUIRibbon.twin - COMPLETE
 wdUPNP.twin
@@ -120,6 +120,11 @@ wdXAudio.twin - COMPLETE
 wdXML.twin
 wdXPS.twin
 
+- non-error tasks in audit review for wdAPI
+
+- PssNt* apis from ntpsapi
+
+- comsvcs.h
 
 - update webauthn
 
@@ -318,7 +323,7 @@ Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.
     gnssdriver.h, winsnmp.h, certbcli.h,mmreg.h,tvout.h,dhcpsapi.h,ksmedia.h,ks.h,diskguid.h,xmllite.h,xmllite.idl,cryptxml.h,cryptdlg.h,
     xpsdigitalsignature.h, xpsdigitalsignature.idl, xpsobjectmodel.h, xpsobjectmodel.idl, xpsobjectmodel_1.h, xpsobjectmodel_1.idl, xpsobjectmodel_2.h, xpsobjectmodel_2.idl,prntvpt.h,
     mfapi.h, mfcaptureengine.h, mfcaptureengine.idl, mfcontentdecryptionmodule.h, mfcontentdecryptionmodule.idl, mfd3d12.h,mfd3d12.idl,mferror.h, 
-    appmodel.h,minappmodel.h,regstr.h,MSStkPPg.h
+    appmodel.h,minappmodel.h,regstr.h,MSStkPPg.h,processmodel.h,profileapi.h,ctxcall.h,ctxcall.idl,
     
 Coverage in the 90%+ range  winbase.h, oleidl.h, oaidl.h, ocidl.h, ocidl.idl, ,objidl.h,objidl.idl,presentation.h,ScrnSave.h
 
