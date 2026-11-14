@@ -1,4 +1,40 @@
 
+**Update (v9.5.762, 14 Nov 2026):**
+- (Bug fix) Missing argument: CertGetCertificateChain, CryptSignMessage, CertVerifyRevocation, CertRetrieveLogoOrBiometricInfo, CryptCATPutCatAttrInfo, BCryptCreateMultiHash, GetBestRoute2
+- (Bug fix) Extra argument: InternetUnlockRequestFile, WNetUseConnection4[A,W], WebSocketGetGlobalProperty, INetworkEvents::NetworkPropertyChanged, CertSetCertificateContextProperty
+- (Bug fix) Argument type incorrect: WinHttpConnect, ws_htons, ws_ntohs, GetIcmpStatisticsEx, Dav[Un]RegisterAuthCallback, IHlinkBrowseContext::Clone, CertRegisterPhysicalStore
+- (Bug fix) Incorrect casing: UnEnableRouter
+- (Bug fix) Name typo: WINHTTP_OPTION[_]HTTP_VERSION, INTERNET_OPTION[_]HTTP_VERSION, IPPORT_FTP[_]DATA, WinHttpRegisterProxyChangeNotification[-e], INetworkEvents::NetworkDele[t]ed, INetworkConnectionEvents::NetworkConnectionConnectivityChanged/NetworkConnectionPropertyChanged
+- (Bug fix) Alias incorrect: WNetRestoreConnection
+- (Bug fix) String instead of LongPtr in -W variant: GetAddrInfoExW
+- (Bug fix) Definition incorrect for x64: [ws_]accept, CoInternetGetSecurityUrl[Ex], FindNextUrlCacheGroup, if_indextoname, HlinkResolveShortcutToString, IInternetSecurityManagerEx2::ProcessUrlActionEx2/QueryCustomPolicyEx2 , IInternetHostSecurityManager::GetSecurityId, ProcessPrng, CERT_POLICY_QUALIFIER_NOTICE_REFERENCE, CRYPT_PROVIDER_DATA, CMC_STATUS_INFO, CERT_VERIFY_CERTIFICATE_TRUST
+- (Bug fix) Double indirection should be ByRef LongPtr, not ByRef Type: InternetGetCookieEx2, CredGetTargetInfo[A,W]
+- (Bug fix) Argument should be ByRef: DavGetUNCFromHTTPPath, DavGetHTTPFromUNCPath, IInternetZoneManagerEx2::GetIESecurityState
+- (Bug fix) Argument should be ByVal: CertVerifyCTLUsage, WintrustAddActionID
+- (Bug fix) Function should be a Sub: FreeDnsSettings
+- (Bug fix) Return type incorrect: FindNextUrlCacheEntry[A,W], CryptFindOIDInfo, WintrustGetDefaultForUsage, RtlGenRandom
+- (Bug fix) Inappropriate substitution of type for UDT consisting of that type or equivalent: [ws_]inet_ntoa
+- (Bug fix) Syntax error in WDL_NO_WS_ALIASES compile option in `bind`
+- (Bug fix) IHttpSecurity included a method of an interface it extends
+- (Bug fix) Incorrect DISPID: INetwork::IsConnectedToInternet
+- (Bug fix) Member type incorrect: INTERNET_CACHE_CONFIG_INFOW.CachePaths, ICMP_ECHO_REPLY32.Options, DNS_CONNECTION_PROXY_INFO.pwszFriendlyName, DNS_CONNECTION_PROXY_INFO_EX.pwszConnectionName, CERT_POLICY_QUALIFIER_USER_NOTICE.pNoticeReference, CPS_URLS.pAlgorithm/.pDigest, CERT_POLICY95_QUALIFIER1.rgCPSURLs, CRYPT_RETRIEVE_AUX_INFO.pLastSyncTime, SIP_SUBJECTINFO.pgSubjectType, SIP_ADD_NEWPROVIDER.pgSubject, WINTRUST_CERT_INFO.psCertContext, SIGNER_SUBJECT_INFO.pAttrAuthCode, CRYPT_XML_ALGORITHM_INFO.wsz*
+- (Bug fix) Member should be a pointer, not inlined: INTERNET_COOKIE.pftExpires, ADDRINFO_DNS_SERVER.ai_addr, DHCP_IP_RESERVATION/DHCP_IP_RESERVATION_V6.ReservedForClient, CERT_CHAIN_FIND_BY_ISSUER_PARA.rgIssuer
+- (Bug fix) Union substitute size incorrect: DHCP_OPTION_SCOPE_INFO, DHCP_OPTION_SCOPE_INFO6, DHCP_SEARCH_INFO_V6, INTERNET_PER_CONN_OPTIONA/W
+- (Bug fix) Should have [PackingAlignment()]: WINHTTP_CONNECTION_INFO, WINHTTP_REQUEST_TIMES (x86 only)
+- (Bug fix) SOCKADDR_INET using Byte() for its union substitute caused broken alignment in other types; changed to Long()
+- (Bug fix) IP6_ADDRESS can only be 8-byte aligned under x64 (and must be), and must be 4-byte aligned under x86, so a union alternate using Long is used instead for x86.
+- (Bug fix) uCLSSPEC and CRYPT_XML_KEY_INFO_ITEM should have padding befores their union substitute under x64
+- (Bug fix) HTTP_REQUEST_V2 inherits from V1 and due to C rules should include the tail padding bytes under x86, which the flattened def in WDL erased.
+- (Bug fix) Missing member: WSAMSG, DHCP_SERVER_CONFIG_INFO_V6
+- (Bug fix) IPX_PATTERN should have 2 sets of its members for struct { ... } Src, Dest;
+- (Bug fix) Array size incorrect: IF_COUNTED_STRING_LH, CRYPT_AES_128_KEY_STATE.Key
+- (Bug fix) Members out of order: SENS_QOCINFO
+- (Bug fix) Value incorrect: RSA1024BIT_KEY, CRYPTNET_CRL_PRE_FETCH_CONFIG_REGPATH, DIGEST_SIGN_EX, DIGEST_SIGN_EX_WITHFILEHANDLE, INVALID_SOCKET, HTTP_MIN_ALLOWED_BANDWIDTH_THROTTLING_RATE, IpSuffixOriginManual, IpSuffixOriginWellKnown, IpSuffixOriginDhcp, IpSuffixOriginLinkLayerAddress, IpSuffixOriginRandom, IpDadStateTentative, IpDadStateDuplicate, IpDadStateDeprecated, IpDadStatePreferred, NlincCategoryStateMax, all QosRSVPFilterType, SIO_TCP_INFO, SIO_UDP_NETRESET, ICU_REJECT_USERPWD
+- (Bug fix) HTTP_URI_SCHEME should be named HTTP_SCHEME; MIB_IPROUTE_TYPE should be named MIB_IPFORWARD_TYPE; NCRYPT_PCP_RAW_POLICYDIGEST should be named NCRYPT_PCP_RAW_POLICYDIGEST_INFO; WINTRUST_DETACHED_SIG_HANDLES should be named WINTRUST_DETACHED_SIG_FILE_HANDLES
+- (Bug fix) Definition incorrect: CryptMsgCountersign
+- (Bug fix) Use of String for LPWSTR without DeclareWide: CryptHashCertificate2
+- (Bug fix) CERT_ID and CERT_ALT_NAME_ENTRY should use LongLong for its x64 union byte array substitute as without 8 byte alignment multiple types embedding it are misaligned
+
 **Update (v9.5.760, 12 Nov 2026):**
 - Add processmodel.h
 - Add missing content from some fully completed features 
