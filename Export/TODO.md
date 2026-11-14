@@ -12,7 +12,7 @@ wdAPIBio.twin
 wdAPIBluetooth.twin
 wdAPICld.twin
 wdAPIComCtl.twin - COMPLETE
-wdAPICrypto.twin
+wdAPICrypto.twin - COMPLETE
 wdAPIDbgHlp.twin
 wdAPIFlt.twin
 wdAPIHID.twin
@@ -64,7 +64,7 @@ wdICM.twin
 wdIID.twin
 wdIMAPI.twin
 wdImgUtil.twin
-wdInternet.twin
+wdInternet.twin - COMPLETE
 wdInterop.twin
 wdIOCTL.twin
 wdLegacy.twin
@@ -119,6 +119,8 @@ wdXACT.twin
 wdXAudio.twin - COMPLETE
 wdXML.twin
 wdXPS.twin
+
+- missing content from wdInternet and wdAPICrypto audit
 
 - non-error tasks in audit review for wdAPI
 
