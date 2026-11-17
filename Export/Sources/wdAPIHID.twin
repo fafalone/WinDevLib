@@ -3447,7 +3447,8 @@ Public Declare PtrSafe Function HidP_TranslateUsagesToI8042ScanCodes Lib "hid.dl
 ' Public Const HIDP_STATUS_NOT_IMPLEMENTED = &Hc0110020
 ' Public Const HIDP_STATUS_NOT_BUTTON_ARRAY = &Hc0110021
 
-'Public Declare PtrSafe Function HidP_GetVersionInternal Lib "hid.dll" (Version As Long) As NTSTATUS
+Public Delegate Function HidP_GetVersionInternal (Version As Long) As NTSTATUS
+[IgnoreWarnings(TB0037)]
 Public Function HidP_GetVersion(Version As Long) As NTSTATUS
     Dim status As NTSTATUS = HIDP_STATUS_SUCCESS
     Version = 1
@@ -3455,9 +3456,11 @@ Public Function HidP_GetVersion(Version As Long) As NTSTATUS
     If (module = 0) Then
         Return HIDP_STATUS_INTERNAL_ERROR
     End If
-    Dim fnVersionInternal As LongPtr = GetProcAddress(module, "HidP_GetVersionInternal")
+    Dim fnVersionInternal As HidP_GetVersionInternal = GetProcAddress(module, "HidP_GetVersionInternal")
     If (fnVersionInternal <> 0) Then
-        Call DispCallFunc(ByVal 0, fnVersionInternal, CC_STDCALL, CInt(VT_UI4), 1, VT_UI4, Version, status)
+        status = fnVersionInternal(Version)
+    Else
+        ' This DLL build doesn't support HidP_GetVersionInternal, so the version is 1.
     End If
     Return status
 End Function

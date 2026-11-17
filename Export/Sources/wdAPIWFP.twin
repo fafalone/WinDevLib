@@ -686,7 +686,7 @@ Public Type IKEEXT_AUTHENTICATION_METHOD0
     pad As Long
     u(55) As Byte
     #Else
-    u(31) As Byte  
+    u(31) As Byte
     #End If
 End Type
 Public Type IKEEXT_AUTHENTICATION_METHOD1
@@ -706,7 +706,7 @@ Public Type IKEEXT_AUTHENTICATION_METHOD1
     pad As Long
     u(71) As Byte
     #Else
-    u(35) As Byte  
+    u(35) As Byte
     #End If
 End Type
 Public Type IKEEXT_AUTHENTICATION_METHOD2
@@ -727,7 +727,7 @@ Public Type IKEEXT_AUTHENTICATION_METHOD2
     pad As Long
     u(71) As Byte
     #Else
-    u(35) As Byte  
+    u(35) As Byte
     #End If
 End Type
 
@@ -1349,6 +1349,7 @@ Public Enum IpsecPolicyFlags
 ' #endif // (NTDDI_VERSION >= NTDDI_WIN8)
 ' #if (NTDDI_VERSION >= NTDDI_WIN10_RS3)
     IPSEC_POLICY_FLAG_SITE_TO_SITE_TUNNEL = (&H00010000)
+    IPSEC_POLICY_FLAG_POINT_TO_SITE_TUNNEL = &H00020000
 ' #endif // (NTDDI_VERSION > NTDDI_WIN10_RS3)
     IPSEC_POLICY_FLAG_BANDWIDTH1 = (&H10000000)
     IPSEC_POLICY_FLAG_BANDWIDTH2 = (&H20000000)
@@ -1453,7 +1454,7 @@ Public Type IPSEC_TUNNEL_POLICY1
     flags As Long
     numIpsecProposals As Long
     ipsecProposals As LongPtr 'IPSEC_PROPOSAL0*
-    tunnelEndpoints As IPSEC_TUNNEL_ENDPOINTS0
+    tunnelEndpoints As IPSEC_TUNNEL_ENDPOINTS1
     saIdleTimeout As IPSEC_SA_IDLE_TIMEOUT0
     emPolicy As LongPtr 'IKEEXT_EM_POLICY1*
 End Type
@@ -1461,7 +1462,7 @@ Public Type IPSEC_TUNNEL_POLICY2
     flags As Long
     numIpsecProposals As Long
     ipsecProposals As LongPtr 'IPSEC_PROPOSAL0*
-    tunnelEndpoints As IPSEC_TUNNEL_ENDPOINTS0
+    tunnelEndpoints As IPSEC_TUNNEL_ENDPOINTS2
     saIdleTimeout As IPSEC_SA_IDLE_TIMEOUT0
     emPolicy As LongPtr 'IKEEXT_EM_POLICY2*
     fwdPathSaLifetime As Long
@@ -1749,6 +1750,7 @@ Public Type IPSEC_TRAFFIC0
     ipVersion As FWP_IP_VERSION
     localAddress(3) As Long
     remoteAddress(3) As Long
+    trafficType As IPSEC_TRAFFIC_TYPE
     ipsecFilterOrTunnelPolicyId As LongLong
     remotePort As Integer
 End Type
@@ -1782,6 +1784,7 @@ Public Type IPSEC_TRAFFIC1
     ipVersion As FWP_IP_VERSION
     localAddress(3) As Long
     remoteAddress(3) As Long
+    trafficType As IPSEC_TRAFFIC_TYPE
     ipsecFilterOrTunnelPolicyId As LongLong
     remotePort As Integer
     localPort As Integer
@@ -1804,7 +1807,7 @@ Public Type IPSEC_GETSPI0
     '    /* [case()] */  /* Empty union arm */
     '    }     ;
     inboundUdpEncapsulation As LongPtr 'IPSEC_V4_UDP_ENCAPSULATION0 *
-    rngCryptoModuleID As UUID 'IPSEC_CRYPTO_MODULE_ID
+    rngCryptoModuleID As LongPtr 'UUID * 'IPSEC_CRYPTO_MODULE_ID *
 End Type
 Public Type IPSEC_GETSPI1
     inboundIpsecTraffic As IPSEC_TRAFFIC1
@@ -1815,7 +1818,7 @@ Public Type IPSEC_GETSPI1
     '    /* [case()] */  /* Empty union arm */
     '    }     ;
     inboundUdpEncapsulation As LongPtr 'IPSEC_V4_UDP_ENCAPSULATION0 *
-    rngCryptoModuleID As UUID 'IPSEC_CRYPTO_MODULE_ID
+    rngCryptoModuleID As LongPtr 'UUID * 'IPSEC_CRYPTO_MODULE_ID *
 End Type
 
 Public Type IPSEC_SA_DETAILS0
@@ -1833,8 +1836,8 @@ End Type
 Public Type IPSEC_SA_DETAILS1
     ipVersion As FWP_IP_VERSION
     saDirection As FWP_DIRECTION
-    traffic As IPSEC_TRAFFIC0
-    saBundle As IPSEC_SA_BUNDLE0
+    traffic As IPSEC_TRAFFIC1
+    saBundle As IPSEC_SA_BUNDLE1
     '    /* [switch_is][switch_type] */ union
     '        {
     udpEncapsulation As LongPtr '*IPSEC_V4_UDP_ENCAPSULATION0
@@ -2506,11 +2509,23 @@ Public Type FWPM_FILTER0
     '   /* [switch_is] */ /* [switch_type] */ union
     '       {
     '       /* [case()] */ UINT64 rawContext;
-    providerContextKey As UUID
+    'providerContextKey As UUID
     '       }     ;
+    rawContext As LongLong
+    __pad As LongLong
     reserved As LongPtr 'GUID *
     filterId As LongLong
     effectiveWeight As FWP_VALUE0
+    
+    'EUS
+    Property Get providerContextKey() As UUID
+        Dim tmp As UUID
+        CopyMemory tmp, Me.rawContext, LenB(Of UUID)
+        Return tmp
+    End Property
+    Property Let providerContextKey(value As UUID)
+        CopyMemory Me.rawContext, ByVal VarPtr(value), LenB(Of UUID)
+    End Property
 End Type
 
 Public Type FWPM_FILTER_ENUM_TEMPLATE0
@@ -2545,9 +2560,65 @@ Public Type FWPM_LAYER_STATISTICS0
     numCacheEntries As Long
 End Type
 
+Public Type FWPM_LAYER_STATISTICS1
+    ' layerId for the statistics
+    layerId As UUID
+    ' number of classifications that returned permit
+    classifyPermitCount As Long
+    ' number of classifications that returned block
+    classifyBlockCount As Long
+    ' number of classifications that returned block via veto
+    classifyVetoCount As Long
+    ' number of cache entries
+    numCacheEntries As Long
+    ' number of filters
+    filterCount As Long
+    ' size of filters
+    totalFilterSize As Long
+End Type
+
 Public Type FWPM_STATISTICS0
     numLayerStatistics As Long
     layerStatistics As LongPtr 'FWPM_LAYER_STATISTICS0 *
+    inboundAllowedConnectionsV4 As Long
+    inboundBlockedConnectionsV4 As Long
+    outboundAllowedConnectionsV4 As Long
+    outboundBlockedConnectionsV4 As Long
+    inboundAllowedConnectionsV6 As Long
+    inboundBlockedConnectionsV6 As Long
+    outboundAllowedConnectionsV6 As Long
+    outboundBlockedConnectionsV6 As Long
+    inboundActiveConnectionsV4 As Long
+    outboundActiveConnectionsV4 As Long
+    inboundActiveConnectionsV6 As Long
+    outboundActiveConnectionsV6 As Long
+    reauthDirInbound As LongLong
+    reauthDirOutbound As LongLong
+    reauthFamilyV4 As LongLong
+    reauthFamilyV6 As LongLong
+    reauthProtoOther As LongLong
+    reauthProtoIPv4 As LongLong
+    reauthProtoIPv6 As LongLong
+    reauthProtoICMP As LongLong
+    reauthProtoICMP6 As LongLong
+    reauthProtoUDP As LongLong
+    reauthProtoTCP As LongLong
+    reauthReasonPolicyChange As LongLong
+    reauthReasonNewArrivalInterface As LongLong
+    reauthReasonNewNextHopInterface As LongLong
+    reauthReasonProfileCrossing As LongLong
+    reauthReasonClassifyCompletion As LongLong
+    reauthReasonIPSecPropertiesChanged As LongLong
+    reauthReasonMidStreamInspection As LongLong
+    reauthReasonSocketPropertyChanged As LongLong
+    reauthReasonNewInboundMCastBCastPacket As LongLong
+    reauthReasonEDPPolicyChanged As LongLong
+    reauthReasonProxyHandleChanged As LongLong
+End Type
+
+Public Type FWPM_STATISTICS1
+    numLayerStatistics As Long
+    layerStatistics As LongPtr ' FWPM_LAYER_STATISTICS1 *
     inboundAllowedConnectionsV4 As Long
     inboundBlockedConnectionsV4 As Long
     outboundAllowedConnectionsV4 As Long
@@ -3523,9 +3594,9 @@ End Enum
 
 Public Const FWPM_AUTO_WEIGHT_BITS  = (60)
 '  Maximum auto-generated weight.
-Public Const FWPM_AUTO_WEIGHT_MAX  = (MAXUINT64 >> (64 - FWPM_AUTO_WEIGHT_BITS))
+Public Const FWPM_AUTO_WEIGHT_MAX  = &H0FFFFFFFFFFFFFFF^ ' (MAXUINT64 >> (64 - FWPM_AUTO_WEIGHT_BITS))
 '  Maximum allowed weight range.
-Public Const FWPM_WEIGHT_RANGE_MAX  = (MAXUINT64 >> FWPM_AUTO_WEIGHT_BITS)
+Public Const FWPM_WEIGHT_RANGE_MAX  = &HF ' (MAXUINT64 >> FWPM_AUTO_WEIGHT_BITS)
 '  IPsec policy
 Public Const FWPM_WEIGHT_RANGE_IPSEC  = (&H0)
 '  Filters to exempt IKE traffic from IPsec.
@@ -3535,7 +3606,7 @@ Public Const FWPM_WEIGHT_RANGE_IKE_EXEMPTIONS  = (&Hc)
 'RESUME 3233
 Public Const FWPM_CONTEXT_IPSEC_INBOUND_PASSTHRU As LongLong = (&H1)
 Public Const FWPM_CONTEXT_IPSEC_INBOUND_PERSIST_CONNECTION_SECURITY As LongLong = (&H2)
-Public Const FWPM_CONTEXT_IPSEC_INBOUND_RESERVED As LongLong = (&Hff00000000000000)
+Public Const FWPM_CONTEXT_IPSEC_INBOUND_RESERVED As LongLong = (&Hff00000000000000^)
 ' #if (NTDDI_VERSION >= NTDDI_WINTHRESHOLD)
 Public Const FWPM_CONTEXT_IPSEC_INBOUND_SECURITY_REALM_ID As LongLong = (&H4)
 ' #endif
@@ -3564,6 +3635,7 @@ Public Const FWPM_CONTEXT_TCP_CHIMNEY_OFFLOAD_ENABLE As LongLong = (&H1)
 Public Const FWPM_CONTEXT_TCP_CHIMNEY_OFFLOAD_DISABLE As LongLong = (&H2)
 '  Contexts used in the RPC audit sublayer
 Public Const FWPM_CONTEXT_RPC_AUDIT_ENABLED As LongLong = (&H1)
+Public Const FWPM_CONTEXT_RPC_AUDIT_BUFFER_ENABLED As LongLong = (&H2)
 
 
 Public Enum FwpmAccessRights
@@ -3584,7 +3656,7 @@ Public Enum FwpmAccessRights
     FWPM_GENERIC_ALL = (STANDARD_RIGHTS_REQUIRED Or FWPM_ACTRL_ADD Or FWPM_ACTRL_ADD_LINK Or FWPM_ACTRL_BEGIN_READ_TXN Or FWPM_ACTRL_BEGIN_WRITE_TXN Or FWPM_ACTRL_CLASSIFY Or FWPM_ACTRL_ENUM Or FWPM_ACTRL_OPEN Or FWPM_ACTRL_READ Or FWPM_ACTRL_READ_STATS Or FWPM_ACTRL_SUBSCRIBE Or FWPM_ACTRL_WRITE)
 End Enum
 
-Public Declare PtrSafe Sub FwpmFreeMemory0 Lib "Fwpuclnt.dll" (p As Any)
+Public Declare PtrSafe Sub FwpmFreeMemory0 Lib "Fwpuclnt.dll" (p As LongPtr)
 Public Declare PtrSafe Function FwpmEngineOpen0 Lib "Fwpuclnt.dll" (ByVal serverName As LongPtr, ByVal authnService As RPC_AUTHN, authIdentity As SEC_WINNT_AUTH_IDENTITY_W, session As FWPM_SESSION0, engineHandle As LongPtr) As Long
 Public Declare PtrSafe Function FwpmEngineClose0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr) As Long
 Public Declare PtrSafe Function FwpmEngineGetOption0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal option As FWPM_ENGINE_OPTION, value As LongPtr) As Long
@@ -3744,7 +3816,8 @@ Public Declare PtrSafe Function IPsecSaContextDeleteById0 Lib "Fwpuclnt.dll" (By
 Public Declare PtrSafe Function IPsecSaContextGetById0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal id As LongLong, saContext As LongPtr) As Long
 Public Declare PtrSafe Function IPsecSaContextGetById1 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal id As LongLong, saContext As LongPtr) As Long
 Public Declare PtrSafe Function IPsecSaContextGetSpi0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal id As LongLong, getSpi As IPSEC_GETSPI0, inboundSpi As IPSEC_SA_SPI) As Long
-Public Declare PtrSafe Function IPsecSaContextSetSpi0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal id As LongLong, getSpi As IPSEC_GETSPI0, ByVal inboundSpi As IPSEC_SA_SPI) As Long
+Public Declare PtrSafe Function IPsecSaContextGetSpi1 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal id As LongLong, getSpi As IPSEC_GETSPI1, inboundSpi As IPSEC_SA_SPI) As Long
+Public Declare PtrSafe Function IPsecSaContextSetSpi0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal id As LongLong, getSpi As IPSEC_GETSPI1, ByVal inboundSpi As IPSEC_SA_SPI) As Long
 Public Declare PtrSafe Function IPsecSaContextAddInbound0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal id As LongLong, inboundBundle As IPSEC_SA_BUNDLE0) As Long
 Public Declare PtrSafe Function IPsecSaContextAddOutbound0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal id As LongLong, outboundBundle As IPSEC_SA_BUNDLE0) As Long
 Public Declare PtrSafe Function IPsecSaContextAddInbound1 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal id As LongLong, inboundBundle As IPSEC_SA_BUNDLE1) As Long
@@ -3928,7 +4001,7 @@ Public Declare PtrSafe Function FwpmConnectionSubscriptionsGet0 Lib "Fwpuclnt.dl
 ' _Inout_ void* context,
 ' _In_ const FWPM_VSWITCH_EVENT0* vSwitchEvent
 ' );
-Public Delegate Sub FwpmVSwitchEventCallback0 (ByVal context As LongPtr, vSwitchEvent As FWPM_VSWITCH_EVENT0)
+Public Delegate Function FwpmVSwitchEventCallback0 (ByVal context As LongPtr, vSwitchEvent As FWPM_VSWITCH_EVENT0) As Long
 ' Public Declare PtrSafe Function FwpmvSwitchEventSubscribe0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, subscription As FWPM_VSWITCH_EVENT_SUBSCRIPTION0, ByVal callback As FwpmVSwitchEventCallback0, ByVal context As LongPtr, subscriptionHandle As LongPtr) As Long
 Public Declare PtrSafe Function FwpmvSwitchEventSubscribe0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, subscription As FWPM_VSWITCH_EVENT_SUBSCRIPTION0, ByVal callback As LongPtr, ByVal context As LongPtr, subscriptionHandle As LongPtr) As Long
 Public Declare PtrSafe Function FwpmvSwitchEventUnsubscribe0 Lib "Fwpuclnt.dll" (ByVal engineHandle As LongPtr, ByVal subscriptionHandle As LongPtr) As Long
@@ -5593,6 +5666,7 @@ Public Enum FwpsFilterFlags
     FWPS_FILTER_FLAG_IPSEC_NO_ACQUIRE_INITIATE = (&H0020)
     FWPS_FILTER_FLAG_RESERVED0 = (&H0040)
     FWPS_FILTER_FLAG_RESERVED1 = (&H0080)
+    FWPS_FILTER_FLAG_RESERVED2 = (&H0100)
 End Enum
 
 Public Type FWPS_FILTER0
@@ -5775,5 +5849,671 @@ Public Declare PtrSafe Function FwpsAleEndpointSetSecurityInfo0 Lib "Fwpuclnt.dl
 #End Region
  
  #End Region
+End Module
+
+'fwpvi.h - Version-independent names for the Windows Filtering Platform API
+'
+'Set NTDDI_VERSION as a conditional compilation argument in your project settings to select the
+'versions, e.g. NTDDI_VERSION = &H0A000004 (NTDDI_WIN10_RS3). If it isn't set, it evaluates as 0
+'and the oldest (...0) versions are used, as with the #else branches in fwpvi.h; names only
+'defined for newer versions are then not defined.
+'The #Const copies below exist because #If can only use conditional compilation constants, not
+'the Public Const NTDDI_* values in wdAPISdkddkver.
+'fwpvi.h's outer #if (NTDDI_VERSION >= NTDDI_WIN6) is left out so an unset NTDDI_VERSION still
+'gets the ...0 versions. Kernel-mode (fwpsk.h/fwpmk.h) names, and fwpsu.h names WinDevLib
+'doesn't cover yet, are left out.
+
+#Const NTDDI_WIN7 = &H06010000
+#Const NTDDI_WIN8 = &H06020000
+#Const NTDDI_WINTHRESHOLD = &H0A000000
+#Const NTDDI_WIN10_RS3 = &H0A000004
+#Const NTDDI_WIN10_RS4 = &H0A000005
+#Const NTDDI_WIN10_RS5 = &H0A000006
+#Const NTDDI_WIN10_CO = &H0A00000B
+#Const NTDDI_WIN11_ZN = &H0A00000E
+
+'Types
+
+Public Alias FWPM_DISPLAY_DATA As FWPM_DISPLAY_DATA0
+Public Alias FWPM_SESSION As FWPM_SESSION0
+Public Alias FWPM_SESSION_ENUM_TEMPLATE As FWPM_SESSION_ENUM_TEMPLATE0
+Public Alias FWPM_PROVIDER As FWPM_PROVIDER0
+Public Alias FWPM_PROVIDER_ENUM_TEMPLATE As FWPM_PROVIDER_ENUM_TEMPLATE0
+Public Alias FWPM_PROVIDER_CHANGE As FWPM_PROVIDER_CHANGE0
+Public Alias FWPM_PROVIDER_SUBSCRIPTION As FWPM_PROVIDER_SUBSCRIPTION0
+Public Alias FWPM_CLASSIFY_OPTION As FWPM_CLASSIFY_OPTION0
+Public Alias FWPM_CLASSIFY_OPTIONS As FWPM_CLASSIFY_OPTIONS0
+Public Alias FWPM_NETWORK_CONNECTION_POLICY_SETTING As FWPM_NETWORK_CONNECTION_POLICY_SETTING0
+Public Alias FWPM_NETWORK_CONNECTION_POLICY_SETTINGS As FWPM_NETWORK_CONNECTION_POLICY_SETTINGS0
+#If (NTDDI_VERSION >= NTDDI_WIN10_RS3) Then
+    Public Alias FWPM_PROVIDER_CONTEXT As FWPM_PROVIDER_CONTEXT3
+#ElseIf (NTDDI_VERSION >= NTDDI_WIN8) Then
+    Public Alias FWPM_PROVIDER_CONTEXT As FWPM_PROVIDER_CONTEXT2
+#ElseIf (NTDDI_VERSION >= NTDDI_WIN7) Then
+    Public Alias FWPM_PROVIDER_CONTEXT As FWPM_PROVIDER_CONTEXT1
+#Else
+    Public Alias FWPM_PROVIDER_CONTEXT As FWPM_PROVIDER_CONTEXT0
+#End If
+Public Alias FWPM_PROVIDER_CONTEXT_ENUM_TEMPLATE As FWPM_PROVIDER_CONTEXT_ENUM_TEMPLATE0
+Public Alias FWPM_PROVIDER_CONTEXT_CHANGE As FWPM_PROVIDER_CONTEXT_CHANGE0
+Public Alias FWPM_PROVIDER_CONTEXT_SUBSCRIPTION As FWPM_PROVIDER_CONTEXT_SUBSCRIPTION0
+Public Alias FWPM_SUBLAYER As FWPM_SUBLAYER0
+Public Alias FWPM_SUBLAYER_ENUM_TEMPLATE As FWPM_SUBLAYER_ENUM_TEMPLATE0
+Public Alias FWPM_SUBLAYER_CHANGE As FWPM_SUBLAYER_CHANGE0
+Public Alias FWPM_SUBLAYER_SUBSCRIPTION As FWPM_SUBLAYER_SUBSCRIPTION0
+Public Alias FWPM_FIELD As FWPM_FIELD0
+Public Alias FWPM_LAYER As FWPM_LAYER0
+Public Alias FWPM_LAYER_ENUM_TEMPLATE As FWPM_LAYER_ENUM_TEMPLATE0
+Public Alias FWPM_CALLOUT As FWPM_CALLOUT0
+Public Alias FWPM_CALLOUT_ENUM_TEMPLATE As FWPM_CALLOUT_ENUM_TEMPLATE0
+Public Alias FWPM_CALLOUT_CHANGE As FWPM_CALLOUT_CHANGE0
+Public Alias FWPM_CALLOUT_SUBSCRIPTION As FWPM_CALLOUT_SUBSCRIPTION0
+Public Alias FWPM_ACTION As FWPM_ACTION0
+Public Alias FWPM_FILTER_CONDITION As FWPM_FILTER_CONDITION0
+Public Alias FWPM_FILTER As FWPM_FILTER0
+Public Alias FWPM_FILTER_ENUM_TEMPLATE As FWPM_FILTER_ENUM_TEMPLATE0
+Public Alias FWPM_FILTER_CHANGE As FWPM_FILTER_CHANGE0
+Public Alias FWPM_FILTER_SUBSCRIPTION As FWPM_FILTER_SUBSCRIPTION0
+#If (NTDDI_VERSION >= NTDDI_WINTHRESHOLD) Then
+    Public Alias FWPM_NET_EVENT_HEADER As FWPM_NET_EVENT_HEADER3
+#ElseIf (NTDDI_VERSION >= NTDDI_WIN8) Then
+    Public Alias FWPM_NET_EVENT_HEADER As FWPM_NET_EVENT_HEADER2
+#ElseIf (NTDDI_VERSION >= NTDDI_WIN7) Then
+    Public Alias FWPM_NET_EVENT_HEADER As FWPM_NET_EVENT_HEADER1
+#Else
+    Public Alias FWPM_NET_EVENT_HEADER As FWPM_NET_EVENT_HEADER0
+#End If
+#If (NTDDI_VERSION >= NTDDI_WIN10_RS4) Then
+    Public Alias FWPM_NET_EVENT_IKEEXT_MM_FAILURE As FWPM_NET_EVENT_IKEEXT_MM_FAILURE2
+    Public Alias FWPM_NET_EVENT_IKEEXT_EM_FAILURE As FWPM_NET_EVENT_IKEEXT_EM_FAILURE1
+#ElseIf (NTDDI_VERSION >= NTDDI_WIN7) Then
+    Public Alias FWPM_NET_EVENT_IKEEXT_MM_FAILURE As FWPM_NET_EVENT_IKEEXT_MM_FAILURE1
+    Public Alias FWPM_NET_EVENT_IKEEXT_EM_FAILURE As FWPM_NET_EVENT_IKEEXT_EM_FAILURE1
+#Else
+    Public Alias FWPM_NET_EVENT_IKEEXT_MM_FAILURE As FWPM_NET_EVENT_IKEEXT_MM_FAILURE0
+    Public Alias FWPM_NET_EVENT_IKEEXT_EM_FAILURE As FWPM_NET_EVENT_IKEEXT_EM_FAILURE0
+#End If
+#If (NTDDI_VERSION >= NTDDI_WIN10_RS4) Then
+    Public Alias FWPM_NET_EVENT_IKEEXT_QM_FAILURE As FWPM_NET_EVENT_IKEEXT_QM_FAILURE1
+#Else
+    Public Alias FWPM_NET_EVENT_IKEEXT_QM_FAILURE As FWPM_NET_EVENT_IKEEXT_QM_FAILURE0
+#End If
+Public Alias FWPM_NET_EVENT_IPSEC_KERNEL_DROP As FWPM_NET_EVENT_IPSEC_KERNEL_DROP0
+#If (NTDDI_VERSION >= NTDDI_WIN8) Then
+    Public Alias FWPM_NET_EVENT_CLASSIFY_DROP As FWPM_NET_EVENT_CLASSIFY_DROP2
+    Public Alias FWPM_NET_EVENT_CLASSIFY_DROP_MAC As FWPM_NET_EVENT_CLASSIFY_DROP_MAC0
+    Public Alias FWPM_NET_EVENT_IPSEC_DOSP_DROP As FWPM_NET_EVENT_IPSEC_DOSP_DROP0
+#ElseIf (NTDDI_VERSION >= NTDDI_WIN7) Then
+    Public Alias FWPM_NET_EVENT_CLASSIFY_DROP As FWPM_NET_EVENT_CLASSIFY_DROP1
+    Public Alias FWPM_NET_EVENT_IPSEC_DOSP_DROP As FWPM_NET_EVENT_IPSEC_DOSP_DROP0
+#Else
+    Public Alias FWPM_NET_EVENT_CLASSIFY_DROP As FWPM_NET_EVENT_CLASSIFY_DROP0
+#End If
+#If (NTDDI_VERSION >= NTDDI_WIN8) Then
+    Public Alias FWPM_NET_EVENT_CLASSIFY_ALLOW As FWPM_NET_EVENT_CLASSIFY_ALLOW0
+    Public Alias FWPM_NET_EVENT_CAPABILITY_DROP As FWPM_NET_EVENT_CAPABILITY_DROP0
+    Public Alias FWPM_NET_EVENT_CAPABILITY_ALLOW As FWPM_NET_EVENT_CAPABILITY_ALLOW0
+#End If
+#If (NTDDI_VERSION >= NTDDI_WIN10_RS5) Then
+    Public Alias FWPM_NET_EVENT_LPM_PACKET_ARRIVAL As FWPM_NET_EVENT_LPM_PACKET_ARRIVAL0
+#End If
+#If (NTDDI_VERSION >= NTDDI_WIN10_RS5) Then
+    Public Alias FWPM_NET_EVENT As FWPM_NET_EVENT5
+#ElseIf (NTDDI_VERSION >= NTDDI_WIN10_RS4) Then
+    Public Alias FWPM_NET_EVENT As FWPM_NET_EVENT4
+#ElseIf (NTDDI_VERSION >= NTDDI_WINTHRESHOLD) Then
+    Public Alias FWPM_NET_EVENT As FWPM_NET_EVENT3
+#ElseIf (NTDDI_VERSION >= NTDDI_WIN8) Then
+    Public Alias FWPM_NET_EVENT As FWPM_NET_EVENT2
+#ElseIf (NTDDI_VERSION >= NTDDI_WIN7) Then
+    Public Alias FWPM_NET_EVENT As FWPM_NET_EVENT1
+#Else
+    Public Alias FWPM_NET_EVENT As FWPM_NET_EVENT0
+#End If
+Public Alias FWPM_NET_EVENT_ENUM_TEMPLATE As FWPM_NET_EVENT_ENUM_TEMPLATE0
+Public Alias FWPM_NET_EVENT_SUBSCRIPTION As FWPM_NET_EVENT_SUBSCRIPTION0
+#If (NTDDI_VERSION >= NTDDI_WIN7) Then
+    Public Alias FWPM_SYSTEM_PORTS_BY_TYPE As FWPM_SYSTEM_PORTS_BY_TYPE0
+    Public Alias FWPM_SYSTEM_PORTS As FWPM_SYSTEM_PORTS0
+#End If
+Public Alias FWPS_FILTER_CONDITION As FWPS_FILTER_CONDITION0
+Public Alias FWPS_ACTION As FWPS_ACTION0
+#If (NTDDI_VERSION >= NTDDI_WIN10_RS3) Then
+    Public Alias FWPS_FILTER As FWPS_FILTER3
+#ElseIf (NTDDI_VERSION >= NTDDI_WIN8) Then
+    Public Alias FWPS_FILTER As FWPS_FILTER2
+#ElseIf (NTDDI_VERSION >= NTDDI_WIN7) Then
+    Public Alias FWPS_FILTER As FWPS_FILTER1
+#Else
+    Public Alias FWPS_FILTER As FWPS_FILTER0
+#End If
+Public Alias FWPS_INCOMING_VALUE As FWPS_INCOMING_VALUE0
+Public Alias FWPS_INCOMING_VALUES As FWPS_INCOMING_VALUES0
+Public Alias FWPS_DISCARD_METADATA As FWPS_DISCARD_METADATA0
+Public Alias FWPS_INBOUND_FRAGMENT_METADATA As FWPS_INBOUND_FRAGMENT_METADATA0
+Public Alias FWPS_CLASSIFY_OUT As FWPS_CLASSIFY_OUT0
+#If (NTDDI_VERSION >= NTDDI_WIN7) Then
+    Public Alias FWPS_ALE_ENDPOINT_PROPERTIES As FWPS_ALE_ENDPOINT_PROPERTIES0
+    Public Alias FWPS_ALE_ENDPOINT_ENUM_TEMPLATE As FWPS_ALE_ENDPOINT_ENUM_TEMPLATE0
+#End If
+Public Alias FWP_VALUE As FWP_VALUE0
+Public Alias FWP_RANGE As FWP_RANGE0
+Public Alias FWP_CONDITION_VALUE As FWP_CONDITION_VALUE0
+#If (NTDDI_VERSION >= NTDDI_WIN7) Then
+    Public Alias IKEEXT_PRESHARED_KEY_AUTHENTICATION As IKEEXT_PRESHARED_KEY_AUTHENTICATION1
+#Else
+    Public Alias IKEEXT_PRESHARED_KEY_AUTHENTICATION As IKEEXT_PRESHARED_KEY_AUTHENTICATION0
+#End If
+Public Alias IKEEXT_CERT_ROOT_CONFIG As IKEEXT_CERT_ROOT_CONFIG0
+#If (NTDDI_VERSION >= NTDDI_WIN8) Then
+    Public Alias IKEEXT_CERTIFICATE_AUTHENTICATION As IKEEXT_CERTIFICATE_AUTHENTICATION2
+#ElseIf (NTDDI_VERSION >= NTDDI_WIN7) Then
+    Public Alias IKEEXT_CERTIFICATE_AUTHENTICATION As IKEEXT_CERTIFICATE_AUTHENTICATION1
+#Else
+    Public Alias IKEEXT_CERTIFICATE_AUTHENTICATION As IKEEXT_CERTIFICATE_AUTHENTICATION0
+#End If
+Public Alias IKEEXT_IPV6_CGA_AUTHENTICATION As IKEEXT_IPV6_CGA_AUTHENTICATION0
+#If (NTDDI_VERSION >= NTDDI_WIN8) Then
+    Public Alias IKEEXT_KERBEROS_AUTHENTICATION As IKEEXT_KERBEROS_AUTHENTICATION1
+#Else
+    Public Alias IKEEXT_KERBEROS_AUTHENTICATION As IKEEXT_KERBEROS_AUTHENTICATION0
+#End If
+#If (NTDDI_VERSION >= NTDDI_WIN8) Then
+    Public Alias IKEEXT_RESERVED_AUTHENTICATION As IKEEXT_RESERVED_AUTHENTICATION0
+#End If
+Public Alias IKEEXT_NTLM_V2_AUTHENTICATION As IKEEXT_NTLM_V2_AUTHENTICATION0
+#If (NTDDI_VERSION >= NTDDI_WIN7) Then
+    Public Alias IKEEXT_EAP_AUTHENTICATION As IKEEXT_EAP_AUTHENTICATION0
+#End If
+#If (NTDDI_VERSION >= NTDDI_WIN8) Then
+    Public Alias IKEEXT_AUTHENTICATION_METHOD As IKEEXT_AUTHENTICATION_METHOD2
+#ElseIf (NTDDI_VERSION >= NTDDI_WIN7) Then
+    Public Alias IKEEXT_AUTHENTICATION_METHOD As IKEEXT_AUTHENTICATION_METHOD1
+#Else
+    Public Alias IKEEXT_AUTHENTICATION_METHOD As IKEEXT_AUTHENTICATION_METHOD0
+#End If
+Public Alias IKEEXT_CIPHER_ALGORITHM As IKEEXT_CIPHER_ALGORITHM0
+Public Alias IKEEXT_INTEGRITY_ALGORITHM As IKEEXT_INTEGRITY_ALGORITHM0
+Public Alias IKEEXT_PROPOSAL As IKEEXT_PROPOSAL0
+#If (NTDDI_VERSION >= NTDDI_WIN8) Then
+    Public Alias IKEEXT_POLICY As IKEEXT_POLICY2
+#ElseIf (NTDDI_VERSION >= NTDDI_WIN7) Then
+    Public Alias IKEEXT_POLICY As IKEEXT_POLICY1
+#Else
+    Public Alias IKEEXT_POLICY As IKEEXT_POLICY0
+#End If
+#If (NTDDI_VERSION >= NTDDI_WIN8) Then
+    Public Alias IKEEXT_EM_POLICY As IKEEXT_EM_POLICY2
+#ElseIf (NTDDI_VERSION >= NTDDI_WIN7) Then
+    Public Alias IKEEXT_EM_POLICY As IKEEXT_EM_POLICY1
+#Else
+    Public Alias IKEEXT_EM_POLICY As IKEEXT_EM_POLICY0
+#End If
+#If (NTDDI_VERSION >= NTDDI_WIN7) Then
+    Public Alias IKEEXT_IP_VERSION_SPECIFIC_KEYMODULE_STATISTICS As IKEEXT_IP_VERSION_SPECIFIC_KEYMODULE_STATISTICS1
+#Else
+    Public Alias IKEEXT_IP_VERSION_SPECIFIC_KEYMODULE_STATISTICS As IKEEXT_IP_VERSION_SPECIFIC_KEYMODULE_STATISTICS0
+#End If
+#If (NTDDI_VERSION >= NTDDI_WIN7) Then
+    Public Alias IKEEXT_KEYMODULE_STATISTICS As IKEEXT_KEYMODULE_STATISTICS1
+#Else
+    Public Alias IKEEXT_KEYMODULE_STATISTICS As IKEEXT_KEYMODULE_STATISTICS0
+#End If
+#If (NTDDI_VERSION >= NTDDI_WIN7) Then
+    Public Alias IKEEXT_IP_VERSION_SPECIFIC_COMMON_STATISTICS As IKEEXT_IP_VERSION_SPECIFIC_COMMON_STATISTICS1
+#Else
+    Public Alias IKEEXT_IP_VERSION_SPECIFIC_COMMON_STATISTICS As IKEEXT_IP_VERSION_SPECIFIC_COMMON_STATISTICS0
+#End If
+#If (NTDDI_VERSION >= NTDDI_WIN7) Then
+    Public Alias IKEEXT_COMMON_STATISTICS As IKEEXT_COMMON_STATISTICS1
+#Else
+    Public Alias IKEEXT_COMMON_STATISTICS As IKEEXT_COMMON_STATISTICS0
+#End If
+#If (NTDDI_VERSION >= NTDDI_WIN7) Then
+    Public Alias IKEEXT_STATISTICS As IKEEXT_STATISTICS1
+#Else
+    Public Alias IKEEXT_STATISTICS As IKEEXT_STATISTICS0
+#End If
+Public Alias IKEEXT_TRAFFIC As IKEEXT_TRAFFIC0
+Public Alias IKEEXT_COOKIE_PAIR As IKEEXT_COOKIE_PAIR0
+Public Alias IKEEXT_NAME_CREDENTIAL As IKEEXT_NAME_CREDENTIAL0
+#If (NTDDI_VERSION >= NTDDI_WIN8) Then
+    Public Alias IKEEXT_CERTIFICATE_CREDENTIAL As IKEEXT_CERTIFICATE_CREDENTIAL1
+    Public Alias IKEEXT_CREDENTIAL As IKEEXT_CREDENTIAL2
+    Public Alias IKEEXT_CREDENTIAL_PAIR As IKEEXT_CREDENTIAL_PAIR2
+    Public Alias IKEEXT_CREDENTIALS As IKEEXT_CREDENTIALS2
+#ElseIf (NTDDI_VERSION >= NTDDI_WIN7) Then
+    Public Alias IKEEXT_CERTIFICATE_CREDENTIAL As IKEEXT_CERTIFICATE_CREDENTIAL1
+    Public Alias IKEEXT_CREDENTIAL As IKEEXT_CREDENTIAL1
+    Public Alias IKEEXT_CREDENTIAL_PAIR As IKEEXT_CREDENTIAL_PAIR1
+    Public Alias IKEEXT_CREDENTIALS As IKEEXT_CREDENTIALS1
+#Else
+    Public Alias IKEEXT_CERTIFICATE_CREDENTIAL As IKEEXT_CERTIFICATE_CREDENTIAL0
+    Public Alias IKEEXT_CREDENTIAL As IKEEXT_CREDENTIAL0
+    Public Alias IKEEXT_CREDENTIAL_PAIR As IKEEXT_CREDENTIAL_PAIR0
+    Public Alias IKEEXT_CREDENTIALS As IKEEXT_CREDENTIALS0
+#End If
+#If (NTDDI_VERSION >= NTDDI_WIN8) Then
+    Public Alias IKEEXT_SA_DETAILS As IKEEXT_SA_DETAILS2
+#ElseIf (NTDDI_VERSION >= NTDDI_WIN7) Then
+    Public Alias IKEEXT_SA_DETAILS As IKEEXT_SA_DETAILS1
+#Else
+    Public Alias IKEEXT_SA_DETAILS As IKEEXT_SA_DETAILS0
+#End If
+Public Alias IKEEXT_SA_ENUM_TEMPLATE As IKEEXT_SA_ENUM_TEMPLATE0
+#If (NTDDI_VERSION >= NTDDI_WIN8) Then
+    Public Alias IKEEXT_CERT_EKUS As IKEEXT_CERT_EKUS0
+#End If
+#If (NTDDI_VERSION >= NTDDI_WIN8) Then
+    Public Alias IKEEXT_CERT_NAME As IKEEXT_CERT_NAME0
+#End If
+#If (NTDDI_VERSION >= NTDDI_WIN8) Then
+    Public Alias IKEEXT_CERTIFICATE_CRITERIA As IKEEXT_CERTIFICATE_CRITERIA0
+#End If
+Public Alias IPSEC_SA_LIFETIME As IPSEC_SA_LIFETIME0
+Public Alias IPSEC_AUTH_TRANSFORM_ID As IPSEC_AUTH_TRANSFORM_ID0
+Public Alias IPSEC_AUTH_TRANSFORM As IPSEC_AUTH_TRANSFORM0
+Public Alias IPSEC_CIPHER_TRANSFORM_ID As IPSEC_CIPHER_TRANSFORM_ID0
+Public Alias IPSEC_CIPHER_TRANSFORM As IPSEC_CIPHER_TRANSFORM0
+Public Alias IPSEC_AUTH_AND_CIPHER_TRANSFORM As IPSEC_AUTH_AND_CIPHER_TRANSFORM0
+Public Alias IPSEC_SA_TRANSFORM As IPSEC_SA_TRANSFORM0
+Public Alias IPSEC_PROPOSAL As IPSEC_PROPOSAL0
+Public Alias IPSEC_SA_IDLE_TIMEOUT As IPSEC_SA_IDLE_TIMEOUT0
+#If (NTDDI_VERSION >= NTDDI_WIN10_RS3) Then
+    Public Alias IPSEC_TUNNEL_POLICY As IPSEC_TUNNEL_POLICY3
+#ElseIf (NTDDI_VERSION >= NTDDI_WIN8) Then
+    Public Alias IPSEC_TUNNEL_POLICY As IPSEC_TUNNEL_POLICY2
+#ElseIf (NTDDI_VERSION >= NTDDI_WIN7) Then
+    Public Alias IPSEC_TUNNEL_POLICY As IPSEC_TUNNEL_POLICY1
+#Else
+    Public Alias IPSEC_TUNNEL_POLICY As IPSEC_TUNNEL_POLICY0
+#End If
+#If (NTDDI_VERSION >= NTDDI_WIN8) Then
+    Public Alias IPSEC_TRANSPORT_POLICY As IPSEC_TRANSPORT_POLICY2
+    Public Alias IPSEC_TUNNEL_ENDPOINT As IPSEC_TUNNEL_ENDPOINT0
+    Public Alias IPSEC_TUNNEL_ENDPOINTS As IPSEC_TUNNEL_ENDPOINTS2
+#ElseIf (NTDDI_VERSION >= NTDDI_WIN7) Then
+    Public Alias IPSEC_TRANSPORT_POLICY As IPSEC_TRANSPORT_POLICY1
+    Public Alias IPSEC_TUNNEL_ENDPOINTS As IPSEC_TUNNEL_ENDPOINTS1
+#Else
+    Public Alias IPSEC_TRANSPORT_POLICY As IPSEC_TRANSPORT_POLICY0
+    Public Alias IPSEC_TUNNEL_ENDPOINTS As IPSEC_TUNNEL_ENDPOINTS0
+#End If
+#If (NTDDI_VERSION >= NTDDI_WIN8) Then
+    Public Alias IPSEC_KEYING_POLICY As IPSEC_KEYING_POLICY1
+#Else
+    Public Alias IPSEC_KEYING_POLICY As IPSEC_KEYING_POLICY0
+#End If
+Public Alias IPSEC_AGGREGATE_SA_STATISTICS As IPSEC_AGGREGATE_SA_STATISTICS0
+Public Alias IPSEC_ESP_DROP_PACKET_STATISTICS As IPSEC_ESP_DROP_PACKET_STATISTICS0
+Public Alias IPSEC_AH_DROP_PACKET_STATISTICS As IPSEC_AH_DROP_PACKET_STATISTICS0
+#If (NTDDI_VERSION >= NTDDI_WIN7) Then
+    Public Alias IPSEC_AGGREGATE_DROP_PACKET_STATISTICS As IPSEC_AGGREGATE_DROP_PACKET_STATISTICS1
+    Public Alias IPSEC_TRAFFIC_STATISTICS As IPSEC_TRAFFIC_STATISTICS1
+    Public Alias IPSEC_STATISTICS As IPSEC_STATISTICS1
+#Else
+    Public Alias IPSEC_AGGREGATE_DROP_PACKET_STATISTICS As IPSEC_AGGREGATE_DROP_PACKET_STATISTICS0
+    Public Alias IPSEC_TRAFFIC_STATISTICS As IPSEC_TRAFFIC_STATISTICS0
+    Public Alias IPSEC_STATISTICS As IPSEC_STATISTICS0
+#End If
+Public Alias IPSEC_SA_AUTH_INFORMATION As IPSEC_SA_AUTH_INFORMATION0
+Public Alias IPSEC_SA_CIPHER_INFORMATION As IPSEC_SA_CIPHER_INFORMATION0
+Public Alias IPSEC_SA_AUTH_AND_CIPHER_INFORMATION As IPSEC_SA_AUTH_AND_CIPHER_INFORMATION0
+Public Alias IPSEC_SA As IPSEC_SA0
+Public Alias IPSEC_KEYMODULE_STATE As IPSEC_KEYMODULE_STATE0
+Public Alias IPSEC_TOKEN As IPSEC_TOKEN0
+Public Alias IPSEC_ID As IPSEC_ID0
+#If (NTDDI_VERSION >= NTDDI_WIN7) Then
+    Public Alias IPSEC_TRAFFIC As IPSEC_TRAFFIC1
+    Public Alias IPSEC_SA_BUNDLE As IPSEC_SA_BUNDLE1
+#Else
+    Public Alias IPSEC_TRAFFIC As IPSEC_TRAFFIC0
+    Public Alias IPSEC_SA_BUNDLE As IPSEC_SA_BUNDLE0
+#End If
+#If (NTDDI_VERSION >= NTDDI_WIN10_RS3) Then
+    Public Alias IPSEC_TRAFFIC_SELECTOR As IPSEC_TRAFFIC_SELECTOR0
+    Public Alias IPSEC_TRAFFIC_SELECTOR_POLICY As IPSEC_TRAFFIC_SELECTOR_POLICY0
+#End If
+Public Alias IPSEC_V4_UDP_ENCAPSULATION As IPSEC_V4_UDP_ENCAPSULATION0
+#If (NTDDI_VERSION >= NTDDI_WIN7) Then
+    Public Alias IPSEC_GETSPI As IPSEC_GETSPI1
+    Public Alias IPSEC_SA_DETAILS As IPSEC_SA_DETAILS1
+    Public Alias IPSEC_SA_CONTEXT As IPSEC_SA_CONTEXT1
+#Else
+    Public Alias IPSEC_GETSPI As IPSEC_GETSPI0
+    Public Alias IPSEC_SA_DETAILS As IPSEC_SA_DETAILS0
+    Public Alias IPSEC_SA_CONTEXT As IPSEC_SA_CONTEXT0
+#End If
+Public Alias IPSEC_SA_CONTEXT_ENUM_TEMPLATE As IPSEC_SA_CONTEXT_ENUM_TEMPLATE0
+Public Alias IPSEC_SA_ENUM_TEMPLATE As IPSEC_SA_ENUM_TEMPLATE0
+Public Alias IPSEC_ADDRESS_INFO As IPSEC_ADDRESS_INFO0
+#If (NTDDI_VERSION >= NTDDI_WIN7) Then
+    Public Alias IPSEC_VIRTUAL_IF_TUNNEL_INFO As IPSEC_VIRTUAL_IF_TUNNEL_INFO0
+    Public Alias IPSEC_DOSP_OPTIONS As IPSEC_DOSP_OPTIONS0
+    Public Alias IPSEC_DOSP_STATISTICS As IPSEC_DOSP_STATISTICS0
+    Public Alias IPSEC_DOSP_STATE As IPSEC_DOSP_STATE0
+    Public Alias IPSEC_DOSP_STATE_ENUM_TEMPLATE As IPSEC_DOSP_STATE_ENUM_TEMPLATE0
+#End If
+#If (NTDDI_VERSION >= NTDDI_WIN8) Then
+    Public Alias IPSEC_KEY_MANAGER As IPSEC_KEY_MANAGER0
+    Public Alias IPSEC_KEY_MANAGER_CALLBACKS As IPSEC_KEY_MANAGER_CALLBACKS0
+#End If
+#If (NTDDI_VERSION >= NTDDI_WIN8) Then
+    Public Alias FWPM_CONNECTION As FWPM_CONNECTION0
+    Public Alias FWPM_CONNECTION_ENUM_TEMPLATE As FWPM_CONNECTION_ENUM_TEMPLATE0
+    Public Alias FWPM_CONNECTION_SUBSCRIPTION As FWPM_CONNECTION_SUBSCRIPTION0
+    Public Alias FWPM_VSWITCH_EVENT As FWPM_VSWITCH_EVENT0
+    Public Alias FWPM_VSWITCH_EVENT_SUBSCRIPTION As FWPM_VSWITCH_EVENT_SUBSCRIPTION0
+#End If
+#If (NTDDI_VERSION >= NTDDI_WIN8) Then
+    Public Alias IPSEC_SA_CONTEXT_SUBSCRIPTION As IPSEC_SA_CONTEXT_SUBSCRIPTION0
+    Public Alias IPSEC_SA_CONTEXT_CHANGE As IPSEC_SA_CONTEXT_CHANGE0
+#End If
+
+'Enum and delegate targets: tB's documentation lists only intrinsic types, Types, Interfaces and other
+'Aliases as Alias targets, so these may need to be removed if the compiler rejects them.
+
+Public Alias FWPM_PROVIDER_CHANGE_CALLBACK As FwpmProviderChangeCallback0 'FWPM_PROVIDER_CHANGE_CALLBACK0
+Public Alias FWPM_PROVIDER_CONTEXT_CHANGE_CALLBACK As FwpmProviderContextChangeCallback0 'FWPM_PROVIDER_CONTEXT_CHANGE_CALLBACK0
+Public Alias FWPM_SUBLAYER_CHANGE_CALLBACK As FwpmSublayerChangeCallback0 'FWPM_SUBLAYER_CHANGE_CALLBACK0
+Public Alias FWPM_CALLOUT_CHANGE_CALLBACK As FwpmCalloutChangeCallback0 'FWPM_CALLOUT_CHANGE_CALLBACK0
+Public Alias FWPM_FILTER_CHANGE_CALLBACK As FwpmFilterChangeCallback0 'FWPM_FILTER_CHANGE_CALLBACK0
+#If (NTDDI_VERSION >= NTDDI_WIN10_RS5) Then
+    Public Alias FWPM_NET_EVENT_CALLBACK As FwpmNetEventCallback4 'FWPM_NET_EVENT_CALLBACK4
+#ElseIf (NTDDI_VERSION >= NTDDI_WIN10_RS4) Then
+    Public Alias FWPM_NET_EVENT_CALLBACK As FwpmNetEventCallback3 'FWPM_NET_EVENT_CALLBACK3
+#ElseIf (NTDDI_VERSION >= NTDDI_WINTHRESHOLD) Then
+    Public Alias FWPM_NET_EVENT_CALLBACK As FwpmNetEventCallback2 'FWPM_NET_EVENT_CALLBACK2
+#ElseIf (NTDDI_VERSION >= NTDDI_WIN8) Then
+    Public Alias FWPM_NET_EVENT_CALLBACK As FwpmNetEventCallback1 'FWPM_NET_EVENT_CALLBACK1
+#ElseIf (NTDDI_VERSION >= NTDDI_WIN7) Then
+    Public Alias FWPM_NET_EVENT_CALLBACK As FwpmNetEventCallback0 'FWPM_NET_EVENT_CALLBACK0
+#End If
+#If (NTDDI_VERSION >= NTDDI_WIN7) Then
+    Public Alias FWPM_SYSTEM_PORTS_CALLBACK As FwpmSystemPortsCallback0 'FWPM_SYSTEM_PORTS_CALLBACK0
+#End If
+#If (NTDDI_VERSION >= NTDDI_WIN10_CO) Then
+    Public Alias FWPM_DYNAMIC_KEYWORD_CALLBACK As FwpmDynamicKeywordCallback0 'FWPM_DYNAMIC_KEYWORD_CALLBACK0
+#End If
+#If (NTDDI_VERSION >= NTDDI_WIN8) Then
+    Public Alias IPSEC_KEY_MANAGER_KEY_DICTATION_CHECK As IpsecKeyManagerKeyDictationCheck0 'IPSEC_KEY_MANAGER_KEY_DICTATION_CHECK0
+    Public Alias IPSEC_KEY_MANAGER_DICTATE_KEY As IpsecKeyManagerKeyDictateKey0 'IPSEC_KEY_MANAGER_DICTATE_KEY0
+    Public Alias IPSEC_KEY_MANAGER_NOTIFY_KEY As IpsecKeyManagerNotifyKey0 'IPSEC_KEY_MANAGER_NOTIFY_KEY0
+#End If
+#If (NTDDI_VERSION >= NTDDI_WIN8) Then
+    Public Alias FWPM_CONNECTION_CALLBACK As FwpmConnectionCallback0 'FWPM_CONNECTION_CALLBACK0
+    Public Alias FWPM_VSWITCH_EVENT_CALLBACK As FwpmVSwitchEventCallback0 'FWPM_VSWITCH_EVENT_CALLBACK0
+#End If
+#If (NTDDI_VERSION >= NTDDI_WIN8) Then
+    Public Alias IPSEC_SA_CONTEXT_EVENT_TYPE As IPSEC_SA_CONTEXT_EVENT_TYPE0
+#End If
+
+#If WDL_QUALIFY Then
+[MustBeQualified]
+#End If
+Module wdAPIWFPvi
+
+    Public Declare PtrSafe Sub FwpmFreeMemory Lib "Fwpuclnt.dll" Alias "FwpmFreeMemory0" (p As LongPtr) 'signature corrected; see the wdAPIWFP review
+    Public Declare PtrSafe Function FwpmEngineOpen Lib "Fwpuclnt.dll" Alias "FwpmEngineOpen0" (ByVal serverName As LongPtr, ByVal authnService As RPC_AUTHN, authIdentity As SEC_WINNT_AUTH_IDENTITY_W, session As FWPM_SESSION0, engineHandle As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmEngineClose Lib "Fwpuclnt.dll" Alias "FwpmEngineClose0" (ByVal engineHandle As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmEngineGetOption Lib "Fwpuclnt.dll" Alias "FwpmEngineGetOption0" (ByVal engineHandle As LongPtr, ByVal option As FWPM_ENGINE_OPTION, value As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmEngineSetOption Lib "Fwpuclnt.dll" Alias "FwpmEngineSetOption0" (ByVal engineHandle As LongPtr, ByVal option As FWPM_ENGINE_OPTION, newValue As FWP_VALUE0) As Long
+    Public Declare PtrSafe Function FwpmEngineGetSecurityInfo Lib "Fwpuclnt.dll" Alias "FwpmEngineGetSecurityInfo0" (ByVal engineHandle As LongPtr, ByVal securityInfo As SECURITY_INFORMATION, sidOwner As LongPtr, sidGroup As LongPtr, dacl As LongPtr, sacl As LongPtr, securityDescriptor As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmEngineSetSecurityInfo Lib "Fwpuclnt.dll" Alias "FwpmEngineSetSecurityInfo0" (ByVal engineHandle As LongPtr, ByVal securityInfo As SECURITY_INFORMATION, ByVal sidOwner As LongPtr, ByVal sidGroup As LongPtr, ByVal dacl As LongPtr, ByVal sacl As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmSessionCreateEnumHandle Lib "Fwpuclnt.dll" Alias "FwpmSessionCreateEnumHandle0" (ByVal engineHandle As LongPtr, enumTemplate As FWPM_SESSION_ENUM_TEMPLATE0, enumHandle As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmSessionEnum Lib "Fwpuclnt.dll" Alias "FwpmSessionEnum0" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr, ByVal numEntriesRequested As Long, entries As LongPtr, numEntriesReturned As Long) As Long
+    Public Declare PtrSafe Function FwpmSessionDestroyEnumHandle Lib "Fwpuclnt.dll" Alias "FwpmSessionDestroyEnumHandle0" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmTransactionBegin Lib "Fwpuclnt.dll" Alias "FwpmTransactionBegin0" (ByVal engineHandle As LongPtr, ByVal flags As FwpmTxnFlags) As Long
+    Public Declare PtrSafe Function FwpmTransactionCommit Lib "Fwpuclnt.dll" Alias "FwpmTransactionCommit0" (ByVal engineHandle As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmTransactionAbort Lib "Fwpuclnt.dll" Alias "FwpmTransactionAbort0" (ByVal engineHandle As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmProviderAdd Lib "Fwpuclnt.dll" Alias "FwpmProviderAdd0" (ByVal engineHandle As LongPtr, provider As FWPM_PROVIDER0, sd As SECURITY_DESCRIPTOR) As Long
+    Public Declare PtrSafe Function FwpmProviderDeleteByKey Lib "Fwpuclnt.dll" Alias "FwpmProviderDeleteByKey0" (ByVal engineHandle As LongPtr, key As UUID) As Long
+    Public Declare PtrSafe Function FwpmProviderGetByKey Lib "Fwpuclnt.dll" Alias "FwpmProviderGetByKey0" (ByVal engineHandle As LongPtr, key As UUID, provider As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmProviderCreateEnumHandle Lib "Fwpuclnt.dll" Alias "FwpmProviderCreateEnumHandle0" (ByVal engineHandle As LongPtr, enumTemplate As FWPM_PROVIDER_ENUM_TEMPLATE0, enumHandle As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmProviderEnum Lib "Fwpuclnt.dll" Alias "FwpmProviderEnum0" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr, ByVal numEntriesRequested As Long, entries As LongPtr, numEntriesReturned As Long) As Long
+    Public Declare PtrSafe Function FwpmProviderDestroyEnumHandle Lib "Fwpuclnt.dll" Alias "FwpmProviderDestroyEnumHandle0" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmProviderGetSecurityInfoByKey Lib "Fwpuclnt.dll" Alias "FwpmProviderGetSecurityInfoByKey0" (ByVal engineHandle As LongPtr, key As UUID, ByVal securityInfo As SECURITY_INFORMATION, sidOwner As LongPtr, sidGroup As LongPtr, dacl As LongPtr, sacl As LongPtr, securityDescriptor As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmProviderSetSecurityInfoByKey Lib "Fwpuclnt.dll" Alias "FwpmProviderSetSecurityInfoByKey0" (ByVal engineHandle As LongPtr, key As UUID, ByVal securityInfo As SECURITY_INFORMATION, ByVal sidOwner As LongPtr, ByVal sidGroup As LongPtr, ByVal dacl As LongPtr, ByVal sacl As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmProviderSubscribeChanges Lib "Fwpuclnt.dll" Alias "FwpmProviderSubscribeChanges0" (ByVal engineHandle As LongPtr, subscription As FWPM_PROVIDER_SUBSCRIPTION0, ByVal callback As LongPtr, ByVal context As LongPtr, changeHandle As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmProviderUnsubscribeChanges Lib "Fwpuclnt.dll" Alias "FwpmProviderUnsubscribeChanges0" (ByVal engineHandle As LongPtr, ByVal changeHandle As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmProviderSubscriptionsGet Lib "Fwpuclnt.dll" Alias "FwpmProviderSubscriptionsGet0" (ByVal engineHandle As LongPtr, entries As LongPtr, numEntrie As Long) As Long
+    #If (NTDDI_VERSION >= NTDDI_WIN10_RS3) Then
+        Public Declare PtrSafe Function FwpmProviderContextAdd Lib "Fwpuclnt.dll" Alias "FwpmProviderContextAdd3" (ByVal engineHandle As LongPtr, providerContext As FWPM_PROVIDER_CONTEXT3, sd As SECURITY_DESCRIPTOR, Optional id As LongLong) As Long
+        Public Declare PtrSafe Function FwpmProviderContextGetById Lib "Fwpuclnt.dll" Alias "FwpmProviderContextGetById3" (ByVal engineHandle As LongPtr, ByVal id As LongLong, providerContext As LongPtr) As Long
+        Public Declare PtrSafe Function FwpmProviderContextGetByKey Lib "Fwpuclnt.dll" Alias "FwpmProviderContextGetByKey3" (ByVal engineHandle As LongPtr, key As UUID, providerContext As LongPtr) As Long
+        Public Declare PtrSafe Function FwpmProviderContextEnum Lib "Fwpuclnt.dll" Alias "FwpmProviderContextEnum3" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr, ByVal numEntriesRequested As Long, entries As LongPtr, numEntriesReturned As Long) As Long
+    #ElseIf (NTDDI_VERSION >= NTDDI_WIN8) Then
+        Public Declare PtrSafe Function FwpmProviderContextAdd Lib "Fwpuclnt.dll" Alias "FwpmProviderContextAdd2" (ByVal engineHandle As LongPtr, providerContext As FWPM_PROVIDER_CONTEXT2, sd As SECURITY_DESCRIPTOR, Optional id As LongLong) As Long
+        Public Declare PtrSafe Function FwpmProviderContextGetById Lib "Fwpuclnt.dll" Alias "FwpmProviderContextGetById2" (ByVal engineHandle As LongPtr, ByVal id As LongLong, providerContext As LongPtr) As Long
+        Public Declare PtrSafe Function FwpmProviderContextGetByKey Lib "Fwpuclnt.dll" Alias "FwpmProviderContextGetByKey2" (ByVal engineHandle As LongPtr, key As UUID, providerContext As LongPtr) As Long
+        Public Declare PtrSafe Function FwpmProviderContextEnum Lib "Fwpuclnt.dll" Alias "FwpmProviderContextEnum2" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr, ByVal numEntriesRequested As Long, entries As LongPtr, numEntriesReturned As Long) As Long
+    #ElseIf (NTDDI_VERSION >= NTDDI_WIN7) Then
+        Public Declare PtrSafe Function FwpmProviderContextAdd Lib "Fwpuclnt.dll" Alias "FwpmProviderContextAdd1" (ByVal engineHandle As LongPtr, providerContext As FWPM_PROVIDER_CONTEXT1, sd As SECURITY_DESCRIPTOR, Optional id As LongLong) As Long
+        Public Declare PtrSafe Function FwpmProviderContextGetById Lib "Fwpuclnt.dll" Alias "FwpmProviderContextGetById1" (ByVal engineHandle As LongPtr, ByVal id As LongLong, providerContext As LongPtr) As Long
+        Public Declare PtrSafe Function FwpmProviderContextGetByKey Lib "Fwpuclnt.dll" Alias "FwpmProviderContextGetByKey1" (ByVal engineHandle As LongPtr, key As UUID, providerContext As LongPtr) As Long
+        Public Declare PtrSafe Function FwpmProviderContextEnum Lib "Fwpuclnt.dll" Alias "FwpmProviderContextEnum1" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr, ByVal numEntriesRequested As Long, entries As LongPtr, numEntriesReturned As Long) As Long
+    #Else
+        Public Declare PtrSafe Function FwpmProviderContextAdd Lib "Fwpuclnt.dll" Alias "FwpmProviderContextAdd0" (ByVal engineHandle As LongPtr, providerContext As FWPM_PROVIDER_CONTEXT0, sd As SECURITY_DESCRIPTOR, Optional id As LongLong) As Long
+        Public Declare PtrSafe Function FwpmProviderContextGetById Lib "Fwpuclnt.dll" Alias "FwpmProviderContextGetById0" (ByVal engineHandle As LongPtr, ByVal id As LongLong, providerContext As LongPtr) As Long
+        Public Declare PtrSafe Function FwpmProviderContextGetByKey Lib "Fwpuclnt.dll" Alias "FwpmProviderContextGetByKey0" (ByVal engineHandle As LongPtr, key As UUID, providerContext As LongPtr) As Long
+        Public Declare PtrSafe Function FwpmProviderContextEnum Lib "Fwpuclnt.dll" Alias "FwpmProviderContextEnum0" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr, ByVal numEntriesRequested As Long, entries As LongPtr, numEntriesReturned As Long) As Long
+    #End If
+    Public Declare PtrSafe Function FwpmProviderContextDeleteById Lib "Fwpuclnt.dll" Alias "FwpmProviderContextDeleteById0" (ByVal engineHandle As LongPtr, ByVal id As LongLong) As Long
+    Public Declare PtrSafe Function FwpmProviderContextDeleteByKey Lib "Fwpuclnt.dll" Alias "FwpmProviderContextDeleteByKey0" (ByVal engineHandle As LongPtr, key As UUID) As Long
+    Public Declare PtrSafe Function FwpmProviderContextCreateEnumHandle Lib "Fwpuclnt.dll" Alias "FwpmProviderContextCreateEnumHandle0" (ByVal engineHandle As LongPtr, enumTemplate As FWPM_PROVIDER_CONTEXT_ENUM_TEMPLATE0, enumHandle As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmProviderContextDestroyEnumHandle Lib "Fwpuclnt.dll" Alias "FwpmProviderContextDestroyEnumHandle0" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmProviderContextGetSecurityInfoByKey Lib "Fwpuclnt.dll" Alias "FwpmProviderContextGetSecurityInfoByKey0" (ByVal engineHandle As LongPtr, key As UUID, ByVal securityInfo As SECURITY_INFORMATION, sidOwner As LongPtr, sidGroup As LongPtr, dacl As LongPtr, sacl As LongPtr, securityDescriptor As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmProviderContextSetSecurityInfoByKey Lib "Fwpuclnt.dll" Alias "FwpmProviderContextSetSecurityInfoByKey0" (ByVal engineHandle As LongPtr, key As UUID, ByVal securityInfo As SECURITY_INFORMATION, ByVal sidOwner As LongPtr, ByVal sidGroup As LongPtr, ByVal dacl As LongPtr, ByVal sacl As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmProviderContextSubscribeChanges Lib "Fwpuclnt.dll" Alias "FwpmProviderContextSubscribeChanges0" (ByVal engineHandle As LongPtr, subscription As FWPM_PROVIDER_CONTEXT_SUBSCRIPTION0, ByVal callback As LongPtr, ByVal context As LongPtr, changeHandle As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmProviderContextUnsubscribeChanges Lib "Fwpuclnt.dll" Alias "FwpmProviderContextUnsubscribeChanges0" (ByVal engineHandle As LongPtr, ByVal changeHandle As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmProviderContextSubscriptionsGet Lib "Fwpuclnt.dll" Alias "FwpmProviderContextSubscriptionsGet0" (ByVal engineHandle As LongPtr, entries As LongPtr, numEntrie As Long) As Long
+    Public Declare PtrSafe Function FwpmSubLayerAdd Lib "Fwpuclnt.dll" Alias "FwpmSubLayerAdd0" (ByVal engineHandle As LongPtr, subLayer As FWPM_SUBLAYER0, sd As SECURITY_DESCRIPTOR) As Long
+    Public Declare PtrSafe Function FwpmSubLayerDeleteByKey Lib "Fwpuclnt.dll" Alias "FwpmSubLayerDeleteByKey0" (ByVal engineHandle As LongPtr, key As UUID) As Long
+    Public Declare PtrSafe Function FwpmSubLayerGetByKey Lib "Fwpuclnt.dll" Alias "FwpmSubLayerGetByKey0" (ByVal engineHandle As LongPtr, key As UUID, subLayer As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmSubLayerCreateEnumHandle Lib "Fwpuclnt.dll" Alias "FwpmSubLayerCreateEnumHandle0" (ByVal engineHandle As LongPtr, enumTemplate As FWPM_SUBLAYER_ENUM_TEMPLATE0, enumHandle As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmSubLayerEnum Lib "Fwpuclnt.dll" Alias "FwpmSubLayerEnum0" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr, ByVal numEntriesRequested As Long, entries As LongPtr, numEntriesReturned As Long) As Long
+    Public Declare PtrSafe Function FwpmSubLayerDestroyEnumHandle Lib "Fwpuclnt.dll" Alias "FwpmSubLayerDestroyEnumHandle0" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmSubLayerGetSecurityInfoByKey Lib "Fwpuclnt.dll" Alias "FwpmSubLayerGetSecurityInfoByKey0" (ByVal engineHandle As LongPtr, key As UUID, ByVal securityInfo As SECURITY_INFORMATION, sidOwner As LongPtr, sidGroup As LongPtr, dacl As LongPtr, sacl As LongPtr, securityDescriptor As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmSubLayerSetSecurityInfoByKey Lib "Fwpuclnt.dll" Alias "FwpmSubLayerSetSecurityInfoByKey0" (ByVal engineHandle As LongPtr, key As UUID, ByVal securityInfo As SECURITY_INFORMATION, ByVal sidOwner As LongPtr, ByVal sidGroup As LongPtr, ByVal dacl As LongPtr, ByVal sacl As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmSubLayerSubscribeChanges Lib "Fwpuclnt.dll" Alias "FwpmSubLayerSubscribeChanges0" (ByVal engineHandle As LongPtr, subscription As FWPM_SUBLAYER_SUBSCRIPTION0, ByVal callback As LongPtr, ByVal context As LongPtr, changeHandle As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmSubLayerUnsubscribeChanges Lib "Fwpuclnt.dll" Alias "FwpmSubLayerUnsubscribeChanges0" (ByVal engineHandle As LongPtr, ByVal changeHandle As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmSubLayerSubscriptionsGet Lib "Fwpuclnt.dll" Alias "FwpmSubLayerSubscriptionsGet0" (ByVal engineHandle As LongPtr, entries As LongPtr, numEntries As Long) As Long
+    Public Declare PtrSafe Function FwpmLayerGetById Lib "Fwpuclnt.dll" Alias "FwpmLayerGetById0" (ByVal engineHandle As LongPtr, [TypeHint(FWPS_BUILTIN_LAYERS)] ByVal id As Integer, layer As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmLayerGetByKey Lib "Fwpuclnt.dll" Alias "FwpmLayerGetByKey0" (ByVal engineHandle As LongPtr, key As UUID, layer As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmLayerCreateEnumHandle Lib "Fwpuclnt.dll" Alias "FwpmLayerCreateEnumHandle0" (ByVal engineHandle As LongPtr, enumTemplate As FWPM_LAYER_ENUM_TEMPLATE0, enumHandle As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmLayerEnum Lib "Fwpuclnt.dll" Alias "FwpmLayerEnum0" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr, ByVal numEntriesRequested As Long, entries As LongPtr, numEntriesReturned As Long) As Long
+    Public Declare PtrSafe Function FwpmLayerDestroyEnumHandle Lib "Fwpuclnt.dll" Alias "FwpmLayerDestroyEnumHandle0" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmLayerGetSecurityInfoByKey Lib "Fwpuclnt.dll" Alias "FwpmLayerGetSecurityInfoByKey0" (ByVal engineHandle As LongPtr, key As UUID, ByVal securityInfo As SECURITY_INFORMATION, sidOwner As LongPtr, sidGroup As LongPtr, dacl As LongPtr, sacl As LongPtr, securityDescriptor As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmLayerSetSecurityInfoByKey Lib "Fwpuclnt.dll" Alias "FwpmLayerSetSecurityInfoByKey0" (ByVal engineHandle As LongPtr, key As UUID, ByVal securityInfo As SECURITY_INFORMATION, ByVal sidOwner As LongPtr, ByVal sidGroup As LongPtr, ByVal dacl As LongPtr, ByVal sacl As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmCalloutAdd Lib "Fwpuclnt.dll" Alias "FwpmCalloutAdd0" (ByVal engineHandle As LongPtr, callout As FWPM_CALLOUT0, sd As SECURITY_DESCRIPTOR, Optional id As Long) As Long
+    Public Declare PtrSafe Function FwpmCalloutDeleteById Lib "Fwpuclnt.dll" Alias "FwpmCalloutDeleteById0" (ByVal engineHandle As LongPtr, ByVal id As Long) As Long
+    Public Declare PtrSafe Function FwpmCalloutDeleteByKey Lib "Fwpuclnt.dll" Alias "FwpmCalloutDeleteByKey0" (ByVal engineHandle As LongPtr, key As UUID) As Long
+    Public Declare PtrSafe Function FwpmCalloutGetById Lib "Fwpuclnt.dll" Alias "FwpmCalloutGetById0" (ByVal engineHandle As LongPtr, ByVal id As Long, callout As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmCalloutGetByKey Lib "Fwpuclnt.dll" Alias "FwpmCalloutGetByKey0" (ByVal engineHandle As LongPtr, key As UUID, callout As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmCalloutCreateEnumHandle Lib "Fwpuclnt.dll" Alias "FwpmCalloutCreateEnumHandle0" (ByVal engineHandle As LongPtr, enumTemplate As FWPM_CALLOUT_ENUM_TEMPLATE0, enumHandle As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmCalloutEnum Lib "Fwpuclnt.dll" Alias "FwpmCalloutEnum0" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr, ByVal numEntriesRequested As Long, entries As LongPtr, numEntriesReturned As Long) As Long
+    Public Declare PtrSafe Function FwpmCalloutDestroyEnumHandle Lib "Fwpuclnt.dll" Alias "FwpmCalloutDestroyEnumHandle0" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmCalloutGetSecurityInfoByKey Lib "Fwpuclnt.dll" Alias "FwpmCalloutGetSecurityInfoByKey0" (ByVal engineHandle As LongPtr, key As UUID, ByVal securityInfo As SECURITY_INFORMATION, sidOwner As LongPtr, sidGroup As LongPtr, dacl As LongPtr, sacl As LongPtr, securityDescriptor As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmCalloutSetSecurityInfoByKey Lib "Fwpuclnt.dll" Alias "FwpmCalloutSetSecurityInfoByKey0" (ByVal engineHandle As LongPtr, key As UUID, ByVal securityInfo As SECURITY_INFORMATION, ByVal sidOwner As LongPtr, ByVal sidGroup As LongPtr, ByVal dacl As LongPtr, ByVal sacl As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmCalloutSubscribeChanges Lib "Fwpuclnt.dll" Alias "FwpmCalloutSubscribeChanges0" (ByVal engineHandle As LongPtr, subscription As FWPM_CALLOUT_SUBSCRIPTION0, ByVal callback As LongPtr, ByVal context As LongPtr, changeHandle As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmCalloutUnsubscribeChanges Lib "Fwpuclnt.dll" Alias "FwpmCalloutUnsubscribeChanges0" (ByVal engineHandle As LongPtr, ByVal changeHandle As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmCalloutSubscriptionsGet Lib "Fwpuclnt.dll" Alias "FwpmCalloutSubscriptionsGet0" (ByVal engineHandle As LongPtr, entries As LongPtr, numEntries As Long) As Long
+    Public Declare PtrSafe Function FwpmFilterAdd Lib "Fwpuclnt.dll" Alias "FwpmFilterAdd0" (ByVal engineHandle As LongPtr, filter As FWPM_FILTER0, sd As SECURITY_DESCRIPTOR, Optional id As LongLong) As Long
+    Public Declare PtrSafe Function FwpmFilterDeleteById Lib "Fwpuclnt.dll" Alias "FwpmFilterDeleteById0" (ByVal engineHandle As LongPtr, ByVal id As LongLong) As Long
+    Public Declare PtrSafe Function FwpmFilterDeleteByKey Lib "Fwpuclnt.dll" Alias "FwpmFilterDeleteByKey0" (ByVal engineHandle As LongPtr, key As UUID) As Long
+    Public Declare PtrSafe Function FwpmFilterGetById Lib "Fwpuclnt.dll" Alias "FwpmFilterGetById0" (ByVal engineHandle As LongPtr, ByVal id As LongLong, filter As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmFilterGetByKey Lib "Fwpuclnt.dll" Alias "FwpmFilterGetByKey0" (ByVal engineHandle As LongPtr, key As UUID, filter As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmFilterCreateEnumHandle Lib "Fwpuclnt.dll" Alias "FwpmFilterCreateEnumHandle0" (ByVal engineHandle As LongPtr, enumTemplate As FWPM_FILTER_ENUM_TEMPLATE0, enumHandle As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmFilterEnum Lib "Fwpuclnt.dll" Alias "FwpmFilterEnum0" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr, ByVal numEntriesRequested As Long, entries As LongPtr, numEntriesReturned As Long) As Long
+    Public Declare PtrSafe Function FwpmFilterDestroyEnumHandle Lib "Fwpuclnt.dll" Alias "FwpmFilterDestroyEnumHandle0" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmFilterGetSecurityInfoByKey Lib "Fwpuclnt.dll" Alias "FwpmFilterGetSecurityInfoByKey0" (ByVal engineHandle As LongPtr, key As UUID, ByVal securityInfo As SECURITY_INFORMATION, sidOwner As LongPtr, sidGroup As LongPtr, dacl As LongPtr, sacl As LongPtr, securityDescriptor As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmFilterSetSecurityInfoByKey Lib "Fwpuclnt.dll" Alias "FwpmFilterSetSecurityInfoByKey0" (ByVal engineHandle As LongPtr, key As UUID, ByVal securityInfo As SECURITY_INFORMATION, ByVal sidOwner As LongPtr, ByVal sidGroup As LongPtr, ByVal dacl As LongPtr, ByVal sacl As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmFilterSubscribeChanges Lib "Fwpuclnt.dll" Alias "FwpmFilterSubscribeChanges0" (ByVal engineHandle As LongPtr, subscription As FWPM_FILTER_SUBSCRIPTION0, ByVal callback As LongPtr, ByVal context As LongPtr, changeHandle As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmFilterUnsubscribeChanges Lib "Fwpuclnt.dll" Alias "FwpmFilterUnsubscribeChanges0" (ByVal engineHandle As LongPtr, ByVal changeHandle As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmFilterSubscriptionsGet Lib "Fwpuclnt.dll" Alias "FwpmFilterSubscriptionsGet0" (ByVal engineHandle As LongPtr, entries As LongPtr, numEntries As Long) As Long
+    Public DeclareWide PtrSafe Function FwpmGetAppIdFromFileName Lib "Fwpuclnt.dll" Alias "FwpmGetAppIdFromFileName0" (ByVal filename As String, appId As LongPtr) As Long
+    Public DeclareWide PtrSafe Function FwpmGetAppIdFromFileName Lib "Fwpuclnt.dll" Alias "FwpmGetAppIdFromFileName0" (ByVal filename As LongPtr, appId As LongPtr) As Long
+    #If (NTDDI_VERSION >= NTDDI_WIN10_RS3) Then
+        Public Declare PtrSafe Function FwpmIPsecTunnelAdd Lib "Fwpuclnt.dll" Alias "FwpmIPsecTunnelAdd3" (ByVal engineHandle As LongPtr, ByVal flags As FwpmTunnelFlags, mainModePolicy As FWPM_PROVIDER_CONTEXT3, tunnelPolicy As FWPM_PROVIDER_CONTEXT3, ByVal numFilterConditions As Long, filterConditions As FWPM_FILTER_CONDITION0, keyModKey As UUID, sd As SECURITY_DESCRIPTOR) As Long
+    #ElseIf (NTDDI_VERSION >= NTDDI_WIN8) Then
+        Public Declare PtrSafe Function FwpmIPsecTunnelAdd Lib "Fwpuclnt.dll" Alias "FwpmIPsecTunnelAdd2" (ByVal engineHandle As LongPtr, ByVal flags As FwpmTunnelFlags, mainModePolicy As FWPM_PROVIDER_CONTEXT2, tunnelPolicy As FWPM_PROVIDER_CONTEXT2, ByVal numFilterConditions As Long, filterConditions As FWPM_FILTER_CONDITION0, keyModKey As UUID, sd As SECURITY_DESCRIPTOR) As Long
+    #ElseIf (NTDDI_VERSION >= NTDDI_WIN7) Then
+        Public Declare PtrSafe Function FwpmIPsecTunnelAdd Lib "Fwpuclnt.dll" Alias "FwpmIPsecTunnelAdd1" (ByVal engineHandle As LongPtr, ByVal flags As FwpmTunnelFlags, mainModePolicy As FWPM_PROVIDER_CONTEXT1, tunnelPolicy As FWPM_PROVIDER_CONTEXT1, ByVal numFilterConditions As Long, filterConditions As FWPM_FILTER_CONDITION0, keyModKey As UUID, sd As SECURITY_DESCRIPTOR) As Long
+    #Else
+        Public Declare PtrSafe Function FwpmIPsecTunnelAdd Lib "Fwpuclnt.dll" Alias "FwpmIPsecTunnelAdd0" (ByVal engineHandle As LongPtr, ByVal flags As FwpmTunnelFlags, mainModePolicy As FWPM_PROVIDER_CONTEXT0, tunnelPolicy As FWPM_PROVIDER_CONTEXT0, ByVal numFilterConditions As Long, filterConditions As FWPM_FILTER_CONDITION0, sd As SECURITY_DESCRIPTOR) As Long
+    #End If
+    Public Declare PtrSafe Function FwpmIPsecTunnelDeleteByKey Lib "Fwpuclnt.dll" Alias "FwpmIPsecTunnelDeleteByKey0" (ByVal engineHandle As LongPtr, key As UUID) As Long
+    #If (NTDDI_VERSION >= NTDDI_WIN7) Then
+        Public Declare PtrSafe Function IPsecGetStatistics Lib "Fwpuclnt.dll" Alias "IPsecGetStatistics1" (ByVal engineHandle As LongPtr, ipsecStatistics As IPSEC_STATISTICS1) As Long
+        Public Declare PtrSafe Function IPsecSaContextCreate Lib "Fwpuclnt.dll" Alias "IPsecSaContextCreate1" (ByVal engineHandle As LongPtr, outboundTraffic As IPSEC_TRAFFIC1, virtualIfTunnelInfo As IPSEC_VIRTUAL_IF_TUNNEL_INFO0, inboundFilterId As LongLong, id As LongLong) As Long
+    #Else
+        Public Declare PtrSafe Function IPsecGetStatistics Lib "Fwpuclnt.dll" Alias "IPsecGetStatistics0" (ByVal engineHandle As LongPtr, ipsecStatistics As IPSEC_STATISTICS0) As Long
+        Public Declare PtrSafe Function IPsecSaContextCreate Lib "Fwpuclnt.dll" Alias "IPsecSaContextCreate0" (ByVal engineHandle As LongPtr, outboundTraffic As IPSEC_TRAFFIC0, inboundFilterId As LongLong, id As LongLong) As Long
+    #End If
+    Public Declare PtrSafe Function IPsecSaContextDeleteById Lib "Fwpuclnt.dll" Alias "IPsecSaContextDeleteById0" (ByVal engineHandle As LongPtr, ByVal id As LongLong) As Long
+    #If (NTDDI_VERSION >= NTDDI_WIN7) Then
+        Public Declare PtrSafe Function IPsecSaContextGetById Lib "Fwpuclnt.dll" Alias "IPsecSaContextGetById1" (ByVal engineHandle As LongPtr, ByVal id As LongLong, saContext As LongPtr) As Long
+        Public Declare PtrSafe Function IPsecSaContextGetSpi Lib "Fwpuclnt.dll" Alias "IPsecSaContextGetSpi1" (ByVal engineHandle As LongPtr, ByVal id As LongLong, getSpi As IPSEC_GETSPI1, inboundSpi As IPSEC_SA_SPI) As Long 'IPsecSaContextGetSpi1 isn't in wdAPIWFP yet
+        Public Declare PtrSafe Function IPsecSaContextSetSpi Lib "Fwpuclnt.dll" Alias "IPsecSaContextSetSpi0" (ByVal engineHandle As LongPtr, ByVal id As LongLong, getSpi As IPSEC_GETSPI1, ByVal inboundSpi As IPSEC_SA_SPI) As Long 'signature corrected; see the wdAPIWFP review
+        Public Declare PtrSafe Function IPsecSaContextAddInbound Lib "Fwpuclnt.dll" Alias "IPsecSaContextAddInbound1" (ByVal engineHandle As LongPtr, ByVal id As LongLong, inboundBundle As IPSEC_SA_BUNDLE1) As Long
+        Public Declare PtrSafe Function IPsecSaContextAddOutbound Lib "Fwpuclnt.dll" Alias "IPsecSaContextAddOutbound1" (ByVal engineHandle As LongPtr, ByVal id As LongLong, outboundBundle As IPSEC_SA_BUNDLE1) As Long
+    #Else
+        Public Declare PtrSafe Function IPsecSaContextGetById Lib "Fwpuclnt.dll" Alias "IPsecSaContextGetById0" (ByVal engineHandle As LongPtr, ByVal id As LongLong, saContext As LongPtr) As Long
+        Public Declare PtrSafe Function IPsecSaContextGetSpi Lib "Fwpuclnt.dll" Alias "IPsecSaContextGetSpi0" (ByVal engineHandle As LongPtr, ByVal id As LongLong, getSpi As IPSEC_GETSPI0, inboundSpi As IPSEC_SA_SPI) As Long
+        Public Declare PtrSafe Function IPsecSaContextAddInbound Lib "Fwpuclnt.dll" Alias "IPsecSaContextAddInbound0" (ByVal engineHandle As LongPtr, ByVal id As LongLong, inboundBundle As IPSEC_SA_BUNDLE0) As Long
+        Public Declare PtrSafe Function IPsecSaContextAddOutbound Lib "Fwpuclnt.dll" Alias "IPsecSaContextAddOutbound0" (ByVal engineHandle As LongPtr, ByVal id As LongLong, outboundBundle As IPSEC_SA_BUNDLE0) As Long
+    #End If
+    Public Declare PtrSafe Function IPsecSaContextExpire Lib "Fwpuclnt.dll" Alias "IPsecSaContextExpire0" (ByVal engineHandle As LongPtr, ByVal id As LongLong) As Long
+    #If (NTDDI_VERSION >= NTDDI_WIN7) Then
+        Public Declare PtrSafe Function IPsecSaContextUpdate Lib "Fwpuclnt.dll" Alias "IPsecSaContextUpdate0" (ByVal engineHandle As LongPtr, [TypeHint(IpsecSaBundleContextFlags)] ByVal flags As LongLong, newValues As IPSEC_SA_CONTEXT1) As Long
+    #End If
+    Public Declare PtrSafe Function IPsecSaContextCreateEnumHandle Lib "Fwpuclnt.dll" Alias "IPsecSaContextCreateEnumHandle0" (ByVal engineHandle As LongPtr, enumTemplate As IPSEC_SA_CONTEXT_ENUM_TEMPLATE0, enumHandle As LongPtr) As Long
+    #If (NTDDI_VERSION >= NTDDI_WIN7) Then
+        Public Declare PtrSafe Function IPsecSaContextEnum Lib "Fwpuclnt.dll" Alias "IPsecSaContextEnum1" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr, ByVal numEntriesRequested As Long, entries As LongPtr, numEntriesReturned As Long) As Long
+    #Else
+        Public Declare PtrSafe Function IPsecSaContextEnum Lib "Fwpuclnt.dll" Alias "IPsecSaContextEnum0" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr, ByVal numEntriesRequested As Long, entries As LongPtr, numEntriesReturned As Long) As Long
+    #End If
+    Public Declare PtrSafe Function IPsecSaContextDestroyEnumHandle Lib "Fwpuclnt.dll" Alias "IPsecSaContextDestroyEnumHandle0" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr) As Long
+    Public Declare PtrSafe Function IPsecSaCreateEnumHandle Lib "Fwpuclnt.dll" Alias "IPsecSaCreateEnumHandle0" (ByVal engineHandle As LongPtr, enumTemplate As IPSEC_SA_ENUM_TEMPLATE0, enumHandle As LongPtr) As Long
+    #If (NTDDI_VERSION >= NTDDI_WIN7) Then
+        Public Declare PtrSafe Function IPsecSaEnum Lib "Fwpuclnt.dll" Alias "IPsecSaEnum1" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr, ByVal numEntriesRequested As Long, entries As LongPtr, numEntriesReturned As Long) As Long
+    #Else
+        Public Declare PtrSafe Function IPsecSaEnum Lib "Fwpuclnt.dll" Alias "IPsecSaEnum0" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr, ByVal numEntriesRequested As Long, entries As LongPtr, numEntriesReturned As Long) As Long
+    #End If
+    Public Declare PtrSafe Function IPsecSaDestroyEnumHandle Lib "Fwpuclnt.dll" Alias "IPsecSaDestroyEnumHandle0" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr) As Long
+    Public Declare PtrSafe Function IPsecSaDbGetSecurityInfo Lib "Fwpuclnt.dll" Alias "IPsecSaDbGetSecurityInfo0" (ByVal engineHandle As LongPtr, ByVal securityInfo As SECURITY_INFORMATION, sidOwner As LongPtr, sidGroup As LongPtr, dacl As LongPtr, sacl As LongPtr, securityDescriptor As LongPtr) As Long
+    Public Declare PtrSafe Function IPsecSaDbSetSecurityInfo Lib "Fwpuclnt.dll" Alias "IPsecSaDbSetSecurityInfo0" (ByVal engineHandle As LongPtr, ByVal securityInfo As SECURITY_INFORMATION, ByVal sidOwner As LongPtr, ByVal sidGroup As LongPtr, ByVal dacl As LongPtr, ByVal sacl As LongPtr) As Long
+    #If (NTDDI_VERSION >= NTDDI_WIN7) Then
+        Public Declare PtrSafe Function IPsecDospGetStatistics Lib "Fwpuclnt.dll" Alias "IPsecDospGetStatistics0" (ByVal engineHandle As LongPtr, idpStatistics As IPSEC_DOSP_STATISTICS0) As Long
+        Public Declare PtrSafe Function IPsecDospStateCreateEnumHandle Lib "Fwpuclnt.dll" Alias "IPsecDospStateCreateEnumHandle0" (ByVal engineHandle As LongPtr, enumTemplate As IPSEC_DOSP_STATE_ENUM_TEMPLATE0, enumHandle As LongPtr) As Long
+        Public Declare PtrSafe Function IPsecDospStateEnum Lib "Fwpuclnt.dll" Alias "IPsecDospStateEnum0" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr, ByVal numEntriesRequested As Long, entries As LongPtr, numEntries As Long) As Long
+        Public Declare PtrSafe Function IPsecDospStateDestroyEnumHandle Lib "Fwpuclnt.dll" Alias "IPsecDospStateDestroyEnumHandle0" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr) As Long
+        Public Declare PtrSafe Function IPsecDospGetSecurityInfo Lib "Fwpuclnt.dll" Alias "IPsecDospGetSecurityInfo0" (ByVal engineHandle As LongPtr, ByVal securityInfo As SECURITY_INFORMATION, sidOwner As LongPtr, sidGroup As LongPtr, dacl As LongPtr, sacl As LongPtr, securityDescriptor As LongPtr) As Long
+        Public Declare PtrSafe Function IPsecDospSetSecurityInfo Lib "Fwpuclnt.dll" Alias "IPsecDospSetSecurityInfo0" (ByVal engineHandle As LongPtr, ByVal securityInfo As SECURITY_INFORMATION, ByVal sidOwner As LongPtr, ByVal sidGroup As LongPtr, ByVal dacl As LongPtr, ByVal sacl As LongPtr) As Long
+    #End If
+    #If (NTDDI_VERSION >= NTDDI_WIN7) Then
+        Public Declare PtrSafe Function IkeextGetStatistics Lib "Fwpuclnt.dll" Alias "IkeextGetStatistics1" (ByVal engineHandle As LongPtr, ikeextStatistics As IKEEXT_STATISTICS1) As Long
+    #Else
+        Public Declare PtrSafe Function IkeextGetStatistics Lib "Fwpuclnt.dll" Alias "IkeextGetStatistics0" (ByVal engineHandle As LongPtr, ikeextStatistics As IKEEXT_STATISTICS0) As Long
+    #End If
+    Public Declare PtrSafe Function IkeextSaDeleteById Lib "Fwpuclnt.dll" Alias "IkeextSaDeleteById0" (ByVal engineHandle As LongPtr, ByVal id As LongLong) As Long
+    #If (NTDDI_VERSION >= NTDDI_WIN8) Then
+        Public Declare PtrSafe Function IkeextSaGetById Lib "Fwpuclnt.dll" Alias "IkeextSaGetById2" (ByVal engineHandle As LongPtr, ByVal id As LongLong, saLookupContext As UUID, sa As LongPtr) As Long
+    #ElseIf (NTDDI_VERSION >= NTDDI_WIN7) Then
+        Public Declare PtrSafe Function IkeextSaGetById Lib "Fwpuclnt.dll" Alias "IkeextSaGetById1" (ByVal engineHandle As LongPtr, ByVal id As LongLong, saLookupContext As UUID, sa As LongPtr) As Long
+    #Else
+        Public Declare PtrSafe Function IkeextSaGetById Lib "Fwpuclnt.dll" Alias "IkeextSaGetById0" (ByVal engineHandle As LongPtr, ByVal id As LongLong, sa As LongPtr) As Long
+    #End If
+    Public Declare PtrSafe Function IkeextSaCreateEnumHandle Lib "Fwpuclnt.dll" Alias "IkeextSaCreateEnumHandle0" (ByVal engineHandle As LongPtr, enumTemplate As IKEEXT_SA_ENUM_TEMPLATE0, enumHandle As LongPtr) As Long
+    #If (NTDDI_VERSION >= NTDDI_WIN8) Then
+        Public Declare PtrSafe Function IkeextSaEnum Lib "Fwpuclnt.dll" Alias "IkeextSaEnum2" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr, ByVal numEntriesRequested As Long, entries As LongPtr, numEntriesReturned As Long) As Long
+    #ElseIf (NTDDI_VERSION >= NTDDI_WIN7) Then
+        Public Declare PtrSafe Function IkeextSaEnum Lib "Fwpuclnt.dll" Alias "IkeextSaEnum1" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr, ByVal numEntriesRequested As Long, entries As LongPtr, numEntriesReturned As Long) As Long
+    #Else
+        Public Declare PtrSafe Function IkeextSaEnum Lib "Fwpuclnt.dll" Alias "IkeextSaEnum0" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr, ByVal numEntriesRequested As Long, entries As LongPtr, numEntriesReturned As Long) As Long
+    #End If
+    Public Declare PtrSafe Function IkeextSaDestroyEnumHandle Lib "Fwpuclnt.dll" Alias "IkeextSaDestroyEnumHandle0" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr) As Long
+    Public Declare PtrSafe Function IkeextSaDbGetSecurityInfo Lib "Fwpuclnt.dll" Alias "IkeextSaDbGetSecurityInfo0" (ByVal engineHandle As LongPtr, ByVal securityInfo As SECURITY_INFORMATION, sidOwner As LongPtr, sidGroup As LongPtr, dacl As LongPtr, sacl As LongPtr, securityDescriptor As LongPtr) As Long
+    Public Declare PtrSafe Function IkeextSaDbSetSecurityInfo Lib "Fwpuclnt.dll" Alias "IkeextSaDbSetSecurityInfo0" (ByVal engineHandle As LongPtr, ByVal securityInfo As SECURITY_INFORMATION, ByVal sidOwner As LongPtr, ByVal sidGroup As LongPtr, ByVal dacl As LongPtr, ByVal sacl As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmNetEventCreateEnumHandle Lib "Fwpuclnt.dll" Alias "FwpmNetEventCreateEnumHandle0" (ByVal engineHandle As LongPtr, enumTemplate As FWPM_NET_EVENT_ENUM_TEMPLATE0, enumHandle As LongPtr) As Long
+    #If (NTDDI_VERSION >= NTDDI_WIN10_RS5) Then
+        Public Declare PtrSafe Function FwpmNetEventEnum Lib "Fwpuclnt.dll" Alias "FwpmNetEventEnum5" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr, ByVal numEntriesRequested As Long, entries As LongPtr, numEntriesReturned As Long) As Long
+    #ElseIf (NTDDI_VERSION >= NTDDI_WIN10_RS4) Then
+        Public Declare PtrSafe Function FwpmNetEventEnum Lib "Fwpuclnt.dll" Alias "FwpmNetEventEnum4" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr, ByVal numEntriesRequested As Long, entries As LongPtr, numEntriesReturned As Long) As Long
+    #ElseIf (NTDDI_VERSION >= NTDDI_WINTHRESHOLD) Then
+        Public Declare PtrSafe Function FwpmNetEventEnum Lib "Fwpuclnt.dll" Alias "FwpmNetEventEnum3" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr, ByVal numEntriesRequested As Long, entries As LongPtr, numEntriesReturned As Long) As Long
+    #ElseIf (NTDDI_VERSION >= NTDDI_WIN8) Then
+        Public Declare PtrSafe Function FwpmNetEventEnum Lib "Fwpuclnt.dll" Alias "FwpmNetEventEnum2" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr, ByVal numEntriesRequested As Long, entries As LongPtr, numEntriesReturned As Long) As Long
+    #ElseIf (NTDDI_VERSION >= NTDDI_WIN7) Then
+        Public Declare PtrSafe Function FwpmNetEventEnum Lib "Fwpuclnt.dll" Alias "FwpmNetEventEnum1" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr, ByVal numEntriesRequested As Long, entries As LongPtr, numEntriesReturned As Long) As Long
+    #Else
+        Public Declare PtrSafe Function FwpmNetEventEnum Lib "Fwpuclnt.dll" Alias "FwpmNetEventEnum0" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr, ByVal numEntriesRequested As Long, entries As LongPtr, numEntriesReturned As Long) As Long
+    #End If
+    Public Declare PtrSafe Function FwpmNetEventDestroyEnumHandle Lib "Fwpuclnt.dll" Alias "FwpmNetEventDestroyEnumHandle0" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmNetEventsGetSecurityInfo Lib "Fwpuclnt.dll" Alias "FwpmNetEventsGetSecurityInfo0" (ByVal engineHandle As LongPtr, ByVal securityInfo As SECURITY_INFORMATION, sidOwner As LongPtr, sidGroup As LongPtr, dacl As LongPtr, sacl As LongPtr, securityDescriptor As LongPtr) As Long
+    Public Declare PtrSafe Function FwpmNetEventsSetSecurityInfo Lib "Fwpuclnt.dll" Alias "FwpmNetEventsSetSecurityInfo0" (ByVal engineHandle As LongPtr, ByVal securityInfo As SECURITY_INFORMATION, ByVal sidOwner As LongPtr, ByVal sidGroup As LongPtr, ByVal dacl As LongPtr, ByVal sacl As LongPtr) As Long
+    #If (NTDDI_VERSION >= NTDDI_WIN10_RS5) Then
+        Public Declare PtrSafe Function FwpmNetEventSubscribe Lib "Fwpuclnt.dll" Alias "FwpmNetEventSubscribe4" (ByVal engineHandle As LongPtr, subscription As FWPM_NET_EVENT_SUBSCRIPTION0, ByVal callback As LongPtr, ByVal context As LongPtr, eventsHandle As LongPtr) As Long
+    #ElseIf (NTDDI_VERSION >= NTDDI_WIN10_RS4) Then
+        Public Declare PtrSafe Function FwpmNetEventSubscribe Lib "Fwpuclnt.dll" Alias "FwpmNetEventSubscribe3" (ByVal engineHandle As LongPtr, subscription As FWPM_NET_EVENT_SUBSCRIPTION0, ByVal callback As LongPtr, ByVal context As LongPtr, eventsHandle As LongPtr) As Long
+    #ElseIf (NTDDI_VERSION >= NTDDI_WINTHRESHOLD) Then
+        Public Declare PtrSafe Function FwpmNetEventSubscribe Lib "Fwpuclnt.dll" Alias "FwpmNetEventSubscribe2" (ByVal engineHandle As LongPtr, subscription As FWPM_NET_EVENT_SUBSCRIPTION0, ByVal callback As LongPtr, ByVal context As LongPtr, eventsHandle As LongPtr) As Long
+    #ElseIf (NTDDI_VERSION >= NTDDI_WIN8) Then
+        Public Declare PtrSafe Function FwpmNetEventSubscribe Lib "Fwpuclnt.dll" Alias "FwpmNetEventSubscribe1" (ByVal engineHandle As LongPtr, subscription As FWPM_NET_EVENT_SUBSCRIPTION0, ByVal callback As LongPtr, ByVal context As LongPtr, eventsHandle As LongPtr) As Long
+    #ElseIf (NTDDI_VERSION >= NTDDI_WIN7) Then
+        Public Declare PtrSafe Function FwpmNetEventSubscribe Lib "Fwpuclnt.dll" Alias "FwpmNetEventSubscribe0" (ByVal engineHandle As LongPtr, subscription As FWPM_NET_EVENT_SUBSCRIPTION0, ByVal callback As LongPtr, ByVal context As LongPtr, eventsHandle As LongPtr) As Long
+    #End If
+    #If (NTDDI_VERSION >= NTDDI_WIN7) Then
+        Public Declare PtrSafe Function FwpmNetEventUnsubscribe Lib "Fwpuclnt.dll" Alias "FwpmNetEventUnsubscribe0" (ByVal engineHandle As LongPtr, ByVal eventsHandle As LongPtr) As Long
+        Public Declare PtrSafe Function FwpmNetEventSubscriptionsGet Lib "Fwpuclnt.dll" Alias "FwpmNetEventSubscriptionsGet0" (ByVal engineHandle As LongPtr, entries As LongPtr, numEntries As Long) As Long
+        Public Declare PtrSafe Function FwpmSystemPortsGet Lib "Fwpuclnt.dll" Alias "FwpmSystemPortsGet0" (ByVal engineHandle As LongPtr, sysPorts As LongPtr) As Long
+        Public Declare PtrSafe Function FwpmSystemPortsSubscribe Lib "Fwpuclnt.dll" Alias "FwpmSystemPortsSubscribe0" (ByVal engineHandle As LongPtr, ByVal reserved As LongPtr, ByVal callback As LongPtr, ByVal context As LongPtr, sysPortsHandle As LongPtr) As Long
+        Public Declare PtrSafe Function FwpmSystemPortsUnsubscribe Lib "Fwpuclnt.dll" Alias "FwpmSystemPortsUnsubscribe0" (ByVal engineHandle As LongPtr, ByVal sysPortsHandle As LongPtr) As Long
+    #End If
+    #If (NTDDI_VERSION >= NTDDI_WIN10_CO) Then
+        Public Declare PtrSafe Function FwpmDynamicKeywordSubscribe Lib "Fwpuclnt.dll" Alias "FwpmDynamicKeywordSubscribe0" (ByVal flags As Long, ByVal callback As LongPtr, ByVal context As LongPtr, subscriptionHandle As LongPtr) As Long
+        Public Declare PtrSafe Function FwpmDynamicKeywordUnsubscribe Lib "Fwpuclnt.dll" Alias "FwpmDynamicKeywordUnsubscribe0" (ByVal subscriptionHandle As LongPtr) As Long 'fwpvi.h maps this to FwpmDynamicUnsubscribe0, which no header declares
+    #End If
+    #If (NTDDI_VERSION >= NTDDI_WIN8) Then
+        Public Declare PtrSafe Function IPsecKeyManagerAddAndRegister Lib "Fwpuclnt.dll" Alias "IPsecKeyManagerAddAndRegister0" (ByVal engineHandle As LongPtr, keyManager As IPSEC_KEY_MANAGER0, keyManagerCallbacks As IPSEC_KEY_MANAGER_CALLBACKS0, keyMgmtHandle As LongPtr) As Long
+        Public Declare PtrSafe Function IPsecKeyManagerUnregisterAndDelete Lib "Fwpuclnt.dll" Alias "IPsecKeyManagerUnregisterAndDelete0" (ByVal engineHandle As LongPtr, ByVal keyMgmtHandle As LongPtr) As Long
+        Public Declare PtrSafe Function IPsecKeyManagersGet Lib "Fwpuclnt.dll" Alias "IPsecKeyManagersGet0" (ByVal engineHandle As LongPtr, entries As LongPtr, numEntries As Long) As Long
+        Public Declare PtrSafe Function IPsecKeyManagerGetSecurityInfoByKey Lib "Fwpuclnt.dll" Alias "IPsecKeyManagerGetSecurityInfoByKey0" (ByVal engineHandle As LongPtr, ByVal reserved As LongPtr, ByVal securityInfo As SECURITY_INFORMATION, sidOwner As LongPtr, sidGroup As LongPtr, dacl As LongPtr, sacl As LongPtr, securityDescriptor As LongPtr) As Long
+        Public Declare PtrSafe Function IPsecKeyManagerSetSecurityInfoByKey Lib "Fwpuclnt.dll" Alias "IPsecKeyManagerSetSecurityInfoByKey0" (ByVal engineHandle As LongPtr, ByVal reserved As LongPtr, ByVal securityInfo As SECURITY_INFORMATION, ByVal sidOwner As LongPtr, ByVal sidGroup As LongPtr, ByVal dacl As LongPtr, ByVal sacl As LongPtr) As Long
+    #End If
+    #If (NTDDI_VERSION >= NTDDI_WIN8) Then
+        Public Declare PtrSafe Function FwpmConnectionSubscribe Lib "Fwpuclnt.dll" Alias "FwpmConnectionSubscribe0" (ByVal engineHandle As LongPtr, subscription As FWPM_CONNECTION_SUBSCRIPTION0, ByVal callback As LongPtr, ByVal context As LongPtr, eventsHandle As LongPtr) As Long
+        Public Declare PtrSafe Function FwpmConnectionUnsubscribe Lib "Fwpuclnt.dll" Alias "FwpmConnectionUnsubscribe0" (ByVal engineHandle As LongPtr, ByVal eventsHandle As LongPtr) As Long
+        Public Declare PtrSafe Function FwpmConnectionGetById Lib "Fwpuclnt.dll" Alias "FwpmConnectionGetById0" (ByVal engineHandle As LongPtr, ByVal id As LongLong, connection As LongPtr) As Long
+        Public Declare PtrSafe Function FwpmConnectionEnum Lib "Fwpuclnt.dll" Alias "FwpmConnectionEnum0" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr, ByVal numEntriesRequested As Long, entries As LongPtr, numEntriesReturned As Long) As Long
+        Public Declare PtrSafe Function FwpmConnectionCreateEnumHandle Lib "Fwpuclnt.dll" Alias "FwpmConnectionCreateEnumHandle0" (ByVal engineHandle As LongPtr, enumTemplate As FWPM_CONNECTION_ENUM_TEMPLATE0, enumHandle As LongPtr) As Long
+        Public Declare PtrSafe Function FwpmConnectionDestroyEnumHandle Lib "Fwpuclnt.dll" Alias "FwpmConnectionDestroyEnumHandle0" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr) As Long
+        Public Declare PtrSafe Function FwpmConnectionSubscriptionsGet Lib "Fwpuclnt.dll" Alias "FwpmConnectionSubscriptionsGet0" (ByVal engineHandle As LongPtr, entries As LongPtr, numEntries As Long) As Long
+        Public Declare PtrSafe Function FwpmConnectionGetSecurityInfo Lib "Fwpuclnt.dll" Alias "FwpmConnectionGetSecurityInfo0" (ByVal engineHandle As LongPtr, ByVal securityInfo As SECURITY_INFORMATION, sidOwner As LongPtr, sidGroup As LongPtr, dacl As LongPtr, sacl As LongPtr, securityDescriptor As LongPtr) As Long
+        Public Declare PtrSafe Function FwpmConnectionSetSecurityInfo Lib "Fwpuclnt.dll" Alias "FwpmConnectionSetSecurityInfo0" (ByVal engineHandle As LongPtr, ByVal securityInfo As SECURITY_INFORMATION, ByVal sidOwner As LongPtr, ByVal sidGroup As LongPtr, ByVal dacl As LongPtr, ByVal sacl As LongPtr) As Long
+        Public Declare PtrSafe Function FwpmvSwitchEventSubscribe Lib "Fwpuclnt.dll" Alias "FwpmvSwitchEventSubscribe0" (ByVal engineHandle As LongPtr, subscription As FWPM_VSWITCH_EVENT_SUBSCRIPTION0, ByVal callback As LongPtr, ByVal context As LongPtr, subscriptionHandle As LongPtr) As Long
+        Public Declare PtrSafe Function FwpmvSwitchEventUnsubscribe Lib "Fwpuclnt.dll" Alias "FwpmvSwitchEventUnsubscribe0" (ByVal engineHandle As LongPtr, ByVal subscriptionHandle As LongPtr) As Long
+        Public Declare PtrSafe Function FwpmvSwitchEventsGetSecurityInfo Lib "Fwpuclnt.dll" Alias "FwpmvSwitchEventsGetSecurityInfo0" (ByVal engineHandle As LongPtr, ByVal securityInfo As SECURITY_INFORMATION, sidOwner As LongPtr, sidGroup As LongPtr, dacl As LongPtr, sacl As LongPtr, securityDescriptor As LongPtr) As Long
+        Public Declare PtrSafe Function FwpmvSwitchEventsSetSecurityInfo Lib "Fwpuclnt.dll" Alias "FwpmvSwitchEventsSetSecurityInfo0" (ByVal engineHandle As LongPtr, ByVal securityInfo As SECURITY_INFORMATION, ByVal sidOwner As LongPtr, ByVal sidGroup As LongPtr, ByVal dacl As LongPtr, ByVal sacl As LongPtr) As Long
+    #End If
+    #If (NTDDI_VERSION >= NTDDI_WIN8) Then
+        Public Declare PtrSafe Function IPsecSaContextSubscribe Lib "Fwpuclnt.dll" Alias "IPsecSaContextSubscribe0" (ByVal engineHandle As LongPtr, subscription As IPSEC_SA_CONTEXT_SUBSCRIPTION0, ByVal callback As LongPtr, ByVal context As LongPtr, eventsHandle As LongPtr) As Long
+        Public Declare PtrSafe Function IPsecSaContextUnsubscribe Lib "Fwpuclnt.dll" Alias "IPsecSaContextUnsubscribe0" (ByVal engineHandle As LongPtr, ByVal eventsHandle As LongPtr) As Long
+        Public Declare PtrSafe Function IPsecSaContextSubscriptionsGet Lib "Fwpuclnt.dll" Alias "IPsecSaContextSubscriptionsGet0" (ByVal engineHandle As LongPtr, entries As LongPtr, numEntries As Long) As Long
+    #End If
+    #If (NTDDI_VERSION >= NTDDI_WIN11_ZN) Then
+        Public Declare PtrSafe Function FwpmConnectionPolicyAdd Lib "Fwpuclnt.dll" Alias "FwpmConnectionPolicyAdd0" (ByVal engineHandle As LongPtr, connectionPolicy As FWPM_PROVIDER_CONTEXT3, ByVal ipVersion As FWP_IP_VERSION, ByVal weight As LongLong, ByVal numFilterConditions As Long, filterConditions As FWPM_FILTER_CONDITION0, sd As SECURITY_DESCRIPTOR) As Long
+        Public Declare PtrSafe Function FwpmConnectionPolicyDeleteByKey Lib "Fwpuclnt.dll" Alias "FwpmConnectionPolicyDeleteByKey0" (ByVal engineHandle As LongPtr, key As UUID) As Long
+    #End If
+    #If (NTDDI_VERSION >= NTDDI_WIN7) Then
+        Public Declare PtrSafe Function FwpsOpenToken Lib "Fwpuclnt.dll" Alias "FwpsOpenToken0" (ByVal engineHandle As LongPtr, ByVal modifiedId As LUID, ByVal desiredAccess As Long, ByRef accessToken As LongPtr) As Long
+        Public Declare PtrSafe Function FwpsAleEndpointGetById Lib "Fwpuclnt.dll" Alias "FwpsAleEndpointGetById0" (ByVal engineHandle As LongPtr, ByVal endpointId As LongLong, ByRef properties As LongPtr) As Long
+        Public Declare PtrSafe Function FwpsAleEndpointCreateEnumHandle Lib "Fwpuclnt.dll" Alias "FwpsAleEndpointCreateEnumHandle0" (ByVal engineHandle As LongPtr, ByRef enumTemplate As FWPS_ALE_ENDPOINT_ENUM_TEMPLATE0, ByRef enumHandle As LongPtr) As Long
+        Public Declare PtrSafe Function FwpsAleEndpointEnum Lib "Fwpuclnt.dll" Alias "FwpsAleEndpointEnum0" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr, ByVal numEntriesRequested As Long, ByRef entries As LongPtr, ByRef numEntriesReturned As Long) As Long
+        Public Declare PtrSafe Function FwpsAleEndpointDestroyEnumHandle Lib "Fwpuclnt.dll" Alias "FwpsAleEndpointDestroyEnumHandle0" (ByVal engineHandle As LongPtr, ByVal enumHandle As LongPtr) As Long
+        Public Declare PtrSafe Function FwpsAleEndpointGetSecurityInfo Lib "Fwpuclnt.dll" Alias "FwpsAleEndpointGetSecurityInfo0" (ByVal engineHandle As LongPtr, ByVal securityInfo As SECURITY_INFORMATION, ByRef sidOwner As LongPtr, ByRef sidGroup As LongPtr, ByRef dacl As LongPtr, ByRef sacl As LongPtr, ByRef securityDescriptor As LongPtr) As Long
+        Public Declare PtrSafe Function FwpsAleEndpointSetSecurityInfo Lib "Fwpuclnt.dll" Alias "FwpsAleEndpointSetSecurityInfo0" (ByVal engineHandle As LongPtr, ByVal securityInfo As SECURITY_INFORMATION, ByVal sidOwner As LongPtr, ByVal sidGroup As LongPtr, ByRef dacl As ACL, ByRef sacl As ACL) As Long
+    #End If
+
 End Module
 #End If
