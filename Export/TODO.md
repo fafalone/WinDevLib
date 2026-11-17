@@ -2,8 +2,11 @@ Known omissions where a priority update neccessitated not finishing
 before release, or waiting on feature support:
 
 
-- **AUDIT STATUS**
-wdAccessible.twin
+- **AUDIT STATUS**\
+WinDevLib is currently in the process of having AI do a full bugs audit
+file by file, this lists all files and whether it has been audited yet:
+```
+wdAccessible.twin - COMPLETE
 wdActiveIMM.twin
 wdAD.twin
 wdAMSI.twin
@@ -21,7 +24,7 @@ wdAPIKS.twin
 wdAPINTKernel.twin - COMPLETE
 wdAPISdkddkver.twin
 wdAPISL.twin
-wdAPIWFP.twin
+wdAPIWFP.twin - COMPLETE
 wdAPIWIM.twin
 wdAPIWLAN.twin
 wdAppModel.twin
@@ -34,12 +37,12 @@ wdCredProv.twin
 wdD3D.twin - COMPLETE
 wdD3D10.twin
 wdD3D12Video.twin - COMPLETE
-wdD3D8.twin
+wdD3D8.twin - COMPLETE
 wdD3D9.twin
-wdDefs.twin
+wdDefs.twin - COMPLETE
 wdDeprecated.twin
 wdDevices.twin
-wdDirectDraw.twin
+wdDirectDraw.twin - COMPLETE
 wdDirectInput.twin
 wdDirectManip.twin
 wdDirectML.twin
@@ -48,7 +51,7 @@ wdDirectShow.twin
 wdDirectX.twin - COMPLETE
 wdDiskQuota.twin
 wdDMusic.twin
-wdDragDropConst.twin
+wdDragDropConst.twin - COMPLETE
 wdDShowBDA.twin
 wdDSound.twin
 wdDStorage.twin
@@ -61,14 +64,14 @@ wdGL.twin
 wdGP.twin
 wdHelpers.twin
 wdICM.twin
-wdIID.twin
+wdIID.twin - COMPLETE
 wdIMAPI.twin
 wdImgUtil.twin
 wdInternet.twin - COMPLETE
 wdInterop.twin
 wdIOCTL.twin
 wdLegacy.twin
-wdManipulations.twin
+wdManipulations.twin - COMPLETE
 wdMF.twin - COMPLETE
 wdMIME.twin
 wdMSIME.twin
@@ -76,19 +79,19 @@ wdNetcon.twin
 wdOLE.twin - COMPLETE
 wdOPC.twin
 wdPhotoAcq.twin
-wdPKEY.twin
+wdPKEY.twin - COMPLETE
 wdPrintNotify.twin
-wdRadio.twin
+wdRadio.twin - COMPLETE
 wdRTWorkQ.twin
 wdScript.twin
-wdSearch.twin
-wdSecurity.twin
-wdSensors.twin
+wdSearch.twin - COMPLETE
+wdSecurity.twin - COMPLETE
+wdSensors.twin - COMPLETE
 wdShellCore.twin - COMPLETE
 wdShellObj.twin - COMPLETE
 wdShellUndoc.twin
 wdSpeech.twin
-wdSpellCheck.twin
+wdSpellCheck.twin - COMPLETE
 wdSQL.twin
 wdStaticWrappers.twin
 wdSyncMgr.twin
@@ -96,7 +99,7 @@ wdTablet.twin
 wdTaskScheduler.twin
 wdTelephony.twin
 wdTransactions.twin
-wdTypedef.twin
+wdTypedef.twin - COMPLETE
 wdTypelib.twin - COMPLETE
 wdUIAnimation.twin
 wdUIRibbon.twin - COMPLETE
@@ -106,7 +109,7 @@ wdVFW.twin
 wdWBEM.twin
 wdWCN.twin
 wdWebservices.twin
-wdWebView2.twin
+wdWebView2.twin - COMPLETE
 wdWIC.twin - COMPLETE
 wdWinML.twin
 wdWinRTBase.twin
@@ -118,9 +121,10 @@ wdWTS.twin
 wdXACT.twin
 wdXAudio.twin - COMPLETE
 wdXML.twin
-wdXPS.twin
+wdXPS.twin - COMPLETE
+```
 
-- missing content from wdInternet and wdAPICrypto audit
+- missing content from wdInternet and wdAPICrypto audit; Long for BOOL and missing content from wdSearch etc audit
 
 - non-error tasks in audit review for wdAPI
 
@@ -168,6 +172,8 @@ wdXPS.twin
 -   ws2tcpip mstcipip.h inlined funcs;
 
 - When Implements for [PreserveSig] is supported, uncomment attr on IAdviseSink[2,Ex], IDWriteFontDownloadListener
+
+- When ByVal for SAFEARRAY is supported, change wdAccessible types (search "* As ")
 
 - IN6_IS_ADDR_ inlined funcs in ws2ipdef.h
 
