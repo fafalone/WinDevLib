@@ -1,7 +1,7 @@
 # Windows Development Library for twinBASIC
 ## WinDevLib 
 
-**Current Version: 9.5.762 (November 14th, 2026)**
+**Current Version: 9.5.764 (November 17th, 2026)**
 
 (c) 2022-2026 Jon Johnson (fafalone)
 
@@ -254,6 +254,38 @@ Current coverage is already quite extensive, spanning hundreds of Windows SDK he
 
  
 ### Updates
+
+**Update (v9.5.764, 17 Nov 2026):**
+- Added unversioned aliases for the Windows Filtering Platform (fwpvi.h). These respond to the NTDDI_VERSION constant set in conditional compilation. Without that set, it uses the baseline version (Windows Vista+; the lowest used is NTDDI_WIN6). Note twinBASIC still does not, as of this writing, support passthrough of compilation constants, so you'd need to rebuild WinDevLib.twinpack from the .twinproj and import it as a file to use the higher versions for now.
+- Add missing content from some fully completed features 
+- (Breaking change) D3DPRESENT_PARAMETERS, D3DSURFACE_DESC, and D3DVOLUME_DESC are defined by both D3D8 and D3D9 with different layouts. The D3D9 versions have been renamed to D3D9PRESENT_PARAMETERS/D3D9SURFACE_DESC/D3D9VOLUME_DESC respectively.
+- (Bug fix) A number of UIAutomation interfaces (and one accessibility) used ByRef SAFEARRAY when it should be ByVal-- which is currently unsupported (so these functions failed). As a workaround until its supported, they've been changed to ByVal As LongPtr: declare a temporary LongPtr variable, and use `CopyMemory tempVar, ByVal VarPtr(yourArray), LenB(tempVar)`, then pass tempVar.
+- (Bug fix) Fixed-array substitute size incorrect: SID
+- (Bug fix) Value incorrect: WM_KEYLAST, WM_MOUSELAST, SENSOR_STATE_*, ERROR_SOURCE_PROTHNDLR, IID_IPropertyFrame, CLSIDSTR_QueryAssociations, CLSIDSTR_QueryAssociations, CLSIDSTR_NetworkShare, IIDSTR_IQueryInfo, REGDF_NODETCONFIG, CONFIGFLAG_VERIFY_HARDWARE, SE_APP_SILO_USER_PROFILE_MINIMAL_CAPABILITY, SE_APP_SILO_PROFILES_ROOT_MINIMAL_CAPABILITY, SE_APP_SILO_VOLUME_ROOT_MINIMAL_CAPABILITY, DNS_ERROR_DNSSEC_BASE, GDI_HANDLE_BUFFER_SIZE, MEM_EXECUTE_OPTION_DISABLE, MEM_EXECUTE_OPTION_ENABLE, DDEM_MODEFAILED, FWPM_WEIGHT_RANGE_MAX, FWPM_AUTO_WEIGHT_MAX, FWPM_CONTEXT_IPSEC_INBOUND_RESERVED, CLSID_BackgroundCopyManager1_5, IID_INewWindowManager, IID_IStorageProviderHandler, IID_IThumbnailCachePrimer, IID_IShellDispatch6, IID_IActiveDesktopP, IID_IShellMenu, IID_IPropertyStorage, IID_IShellFolder3, PKEY_Security_EncryptionOwners, PKEY_DeviceInterface_Bluetooth_ProductId, PKEY_DeviceInterface_Bluetooth_VendorId, PKEY_SAM_GroupMembers, sCLSID_CAccPropServices, D3DSI_OPCODE_MASK, ISC_RET_MESSAGES, ISC_RET_DEFERRED_CRED_VALIDATION, ISC_RET_NO_POST_HANDSHAKE_AUTH, ISC_RET_REUSE_SESSION_TICKETS, ISC_REQ_MESSAGES, ISC_REQ_DEFERRED_CRED_VALIDATION, ISC_REQ_NO_POST_HANDSHAKE_AUTH, ISC_REQ_REUSE_SESSION_TICKETS, ASC_REQ_MESSAGES, ASC_REQ_REUSE_SESSION_TICKETS, ASC_RET_MESSAGES, ASC_RET_REUSE_SESSION_TICKETS
+- (Bug fix) Name typo: ICoreWebView2PermissionRequestedEventArgs3::Save(s)InProfile, KeyCachedInformatio(n), FILE_DISPOSITION_FLAG_IGNORE_READONLY_ATTRIBUTE, IID[_]IPackagedComSyntaxSupport, [IID_]IInternetThreadSwitch, ITransferMedium[Item], CLSID_DesktopGa[d]get, [P]KEY_SAM_ScriptPath
+- (Bug fix) Definition incorrect for x64: SYSTEM_PROCESS_INFORMATION
+- (Bug fix) Missing method: ICoreWebView2_25, IDirectDrawSurface4, IDirectDrawSurface7
+- (Bug fix) Argument type incorrect: IDirectDrawSurface4/7::GetAttachedSurface, IPsecSaContextSetSpi0, IAccessibleWindowlessSite::QueryObjectIdRanges, IMetaData::GetData, LoadIFilterEx
+- (Bug fix) FWPM_FILTER0's chosen union arm only had 4 byte padding instead of 8, misaligning it and the entire struct. The providerContextKey member is now a propget/let, note you must use it as a whole, you cannot address the individual fields: only Dim g As UUID = filter.providerContextKey; filter.providerContextKey = g.
+- (Bug fix) Member should be a pointer, not inlined: TOKENBINDING_RESULT_LIST.resultData, TOKENBINDING_KEY_TYPES.keyType, IPSEC_GETSPI0/1.rngCryptoModuleID
+- (Bug fix) Member type incorrect: IPSEC_SA_DETAILS1.traffic, IPSEC_SA_DETAILS1.saBundle, IPSEC_TUNNEL_POLICY1.tunnelEndpoints, IPSEC_TUNNEL_POLICY2.tunnelEndpoints 
+- (Bug fix) Missing member: IPSEC_TRAFFIC0, IPSEC_TRAFFIC1
+- (Bug fix) Missing argument: SslGenerateKeyPair, IRichChunk::GetData
+- (Bug fix) Return type incorrect: FwpmVSwitchEventCallback0, SspiFreeAuthIdentity, SspiZeroAuthIdentity, ISearchManager::GetParameter
+- (Bug fix) Incorrect InterfaceId: IActiveDesktopP
+- (Bug fix) Constant type incorrect: PHOTO_GAINCONTROL_*
+- (Bug fix) Incorrect DispId: IWebBrowser::Refresh
+- (Bug fix) Argument should be ByRef: IFileSearchBand::SetSearchParameters, IAccPropServer::GetPropValue, ITextProvider2::GetCaretRange, IUIAutomationTextPattern2::GetCaretRange, IUIAutomation::CreateAndConditionFromNativeArray, IUIAutomation::CreateOrConditionFromNativeArray, TextRange_Compare, WindowPattern_WaitForInputIdle, ILoadFilterWithPrivateComActivation::LoadFilterWithPrivateComActivation, IUrlAccessor4::ShouldIndexItemContent/ShouldIndexProperty
+- (Bug fix) Argument should be ByVal: ISearchFolderItemFactory::SetFolderTypeID (plus No-ByVal-UDT alternates), ITextProvider::RangeFromPoint (plus No-ByVal-UDT alternates), SslDeserializeCertificateStore (plus No-ByVal-UDT alternates), IDirect3DDevice8::SetCursorProperties/CopyRects/UpdateTexture/GetFrontBuffer/SetRenderTarget/SetTexture/ProcessVertices/SetStreamSource/SetIndices, IConditionGenerator::RecognizeNamedEntities, IWordBreaker::ComposePhrase
+- (Bug fix) There's no conflict so Uia_ExtendedProperty is now just ExtendedProperty, its SDK name
+- (Bug fix) Derived interface repeating parent interfaces methods: IDirect3DBaseTexture8, IDirect3DTexture8, IDirect3DVolumeTexture8, IDirect3DCubeTexture8, IDirect3DVertexBuffer8, IDirect3DIndexBuffer8
+- (Bug fix) Macro coding error: D3DCOLOR_COLORVALUE
+- (Bug fix) Duplicated functions: D3DCOLOR_*
+- (Bug fix) D3DADAPTER_IDENTIFIER8 should have [PackingAlignment(4)] in 32bit
+- (Bug fix) ID3DX8Font (ID3DXFont DX8 version) should use DX8.1 GUID/methods. Old 8.0 version renamed ID3DX80Font.
+- (Bug fix) String for LPWSTR without DeclareWide: ChangeAccountPassword
+- (Bug fix) Unicode names in ANSI type: SecurityFunctionTableA
+- (Bug fix) Double indirection should be ByRef LongPtr: ISearchCrawlScopeManager2::GetVersion
 
 **Update (v9.5.762, 14 Nov 2026):**
 - (Bug fix) Missing argument: CertGetCertificateChain, CryptSignMessage, CertVerifyRevocation, CertRetrieveLogoOrBiometricInfo, CryptCATPutCatAttrInfo, BCryptCreateMultiHash, GetBestRoute2
