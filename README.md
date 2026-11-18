@@ -1,7 +1,7 @@
 # Windows Development Library for twinBASIC
 ## WinDevLib 
 
-**Current Version: 9.5.764 (November 17th, 2026)**
+**Current Version: 9.5.766 (November 18th, 2026)**
 
 (c) 2022-2026 Jon Johnson (fafalone)
 
@@ -254,6 +254,27 @@ Current coverage is already quite extensive, spanning hundreds of Windows SDK he
 
  
 ### Updates
+
+**Update (v9.5.766, 18 Nov 2026):**
+- (Bug fix) NT_ERROR/NT_WARNING/NT_INFORMATION, MAKELONG macro implementations did not properly handle unsigned math.
+- (Bug fix) MAKELPARAM, MAKEWPARAM, MAKELRESULT, and POINTTOPOINTS were impacted by the above, but still incorrect for x64; they now have x64 branches so both are correct.
+- (Bug fix) MAKELONG and MAKELPARAM were also duplicated in 2 modules in recent WDL versions
+- (Bug fix) HRESULT_SEVERITY and SCODE_SEVERITY shifted in the wrong direction
+- (Bug fix) GET_APPCOMMAND_LPARAM and GID_ROTATE_ANGLE_FROM_ARGUMENT could overflow with some valid values
+- (Bug fix) GET_DEVICE_LPARAM, GET_MOUSEORKEY_LPARAM, GET_FLAGS_LPARAM, GET_X_LPARAM, GET_Y_LPARAM, GET_SC_WPARAM, and GET_WM_COMMAND_ID could overflow on x64
+- (Bug fix) GID_ROTATE_ANGLE_TO_ARGUMENT would round where C/C++ truncates
+- (Bug fix) MAKELCID, SUBLANGID and LANGIDFROMLCID fail for LANGIDs of &H8000 and above
+- (Bug fix) On x64, ULongToHandle sign-extended instead of zero-extended
+- (Bug fix) PALETTEINDEX doesn't mask the index to a WORD
+- (Bug fix) VarTypeEx sign extension would make VarTypeEx(VT_ILLEGAL)=VT_ILLEGAL False
+- (Bug fix) ICMP 'is' functions should return Boolean for clarity
+- (Bug fix) SHLoadLibraryFromItem, SHLoadLibraryFromKnownFolder, SHAddFolderPathToLibrary, and SHRemoveFolderPathFromLibrary used Err.LastHResult for methods that returned it as [PreserveSig]
+- (Bug fix) SHRemoveFolderPathFromLibrary leaked a pidl
+- (Bug fix) CredRemoveLogonTypeFromFlags should be a Sub that modifies its argument instead of returning it
+- (Bug fix) Acos, Asec, Acosec and Acotan return wrong values
+- (Bug fix) VariantSetTypePtr vtOnlyIf broken
+- (Bug fix) InitPropVariantFromStringPtr checked VarPtr of a direct byval ptr
+- (Bug fix) ChrW2 incorrect outside of planes 0-1
 
 **Update (v9.5.764, 17 Nov 2026):**
 - Added unversioned aliases for the Windows Filtering Platform (fwpvi.h). These respond to the NTDDI_VERSION constant set in conditional compilation. Without that set, it uses the baseline version (Windows Vista+; the lowest used is NTDDI_WIN6). Note twinBASIC still does not, as of this writing, support passthrough of compilation constants, so you'd need to rebuild WinDevLib.twinpack from the .twinproj and import it as a file to use the higher versions for now.
