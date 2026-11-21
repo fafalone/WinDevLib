@@ -27,6 +27,22 @@ DirectSound :: Ported from:
 
 #If WDL_NO_DIRECTX = 0 Then
 
+Public Alias IDirectSoundCapture8 As IDirectSoundCapture
+Public Alias IDirectSound3DListener8 As IDirectSound3DListener
+Public Alias IDirectSound3DBuffer8 As IDirectSound3DBuffer
+Public Alias IDirectSoundNotify8 As IDirectSoundNotify
+Public Alias IDirectSoundFXGargle8 As IDirectSoundFXGargle
+Public Alias IDirectSoundFXChorus8 As IDirectSoundFXChorus
+Public Alias IDirectSoundFXFlanger8 As IDirectSoundFXFlanger
+Public Alias IDirectSoundFXEcho8 As IDirectSoundFXEcho
+Public Alias IDirectSoundFXDistortion8 As IDirectSoundFXDistortion
+Public Alias IDirectSoundFXCompressor8 As IDirectSoundFXCompressor
+Public Alias IDirectSoundFXParamEq8 As IDirectSoundFXParamEq
+Public Alias IDirectSoundFXWavesReverb8 As IDirectSoundFXWavesReverb
+Public Alias IDirectSoundFXI3DL2Reverb8 As IDirectSoundFXI3DL2Reverb
+Public Alias IDirectSoundCaptureFXAec8 As IDirectSoundCaptureFXAec
+Public Alias IDirectSoundCaptureFXNoiseSuppress8 As IDirectSoundCaptureFXNoiseSuppress
+Public Alias IDirectSoundFullDuplex8 As IDirectSoundFullDuplex
 
 [InterfaceId("D616F352-D622-11CE-AAC5-0020AF0B99A3")]
 [OleAutomation(False)]
@@ -115,7 +131,7 @@ End Interface
 [InterfaceId("EDCB4C7A-DAAB-4216-A42E-6C50596DDC1D")]
 [OleAutomation(False)]
 Interface IDirectSoundFullDuplex Extends stdole.IUnknown
-    Sub Initialize(pCaptureGuid As UUID, pRenderGuid As UUID, lpDscBufferDesc As DSCBUFFERDESC, lpDsBufferDesc As DSCBUFFERDESC, ByVal hWnd As LongPtr, ByVal dwLevel As Long, lplpDirectSoundCaptureBuffer8 As IDirectSoundCaptureBuffer8, lplpDirectSoundBuffer8 As IDirectSoundBuffer8)
+    Sub Initialize(pCaptureGuid As UUID, pRenderGuid As UUID, lpDscBufferDesc As DSCBUFFERDESC, lpDsBufferDesc As DSBUFFERDESC, ByVal hWnd As LongPtr, ByVal dwLevel As Long, lplpDirectSoundCaptureBuffer8 As IDirectSoundCaptureBuffer8, lplpDirectSoundBuffer8 As IDirectSoundBuffer8)
 End Interface
 
 [InterfaceId("279AFA83-4981-11CE-A521-0020AF0BE560")]
@@ -200,8 +216,8 @@ Interface IDirectSound3DListener Extends stdole.IUnknown
     Function GetDopplerFactor() As Single
     Sub GetOrientation(ByRef pvOrientFront As D3DVECTOR, ByRef pvOrientTop As D3DVECTOR)
     Sub GetPosition(ByRef pvPosition As D3DVECTOR)
-    Sub GetRolloffFactor(ByRef pflRolloffFactor As D3DVECTOR)
-    Sub GetVelocity(ByRef pflRolloffFactor As D3DVECTOR)
+    Sub GetRolloffFactor(ByRef pflRolloffFactor As D3DVALUE)
+    Sub GetVelocity(ByRef pvVelocity As D3DVECTOR)
     Sub SetAllParameters(ByRef pcDs3dBuffer As DS3DLISTENER, ByVal dwApply As DS3DAPPLY_CONST)
     Sub SetDistanceFactor(ByVal flDistanceFactor As Single, ByVal dwApply As DS3DAPPLY_CONST)
     Sub SetDopplerFactor(ByVal flDopplerFactor As Single, ByVal dwApply As DS3DAPPLY_CONST)
@@ -223,7 +239,7 @@ End Interface
 [InterfaceId("B0210782-89CD-11D0-AF08-00A0C925CD16")]
 [OleAutomation(False)]
 Interface IDirectSoundCaptureBuffer Extends stdole.IUnknown
-    Sub GetCaps(ByRef pDSCBCaps As DSCCAPS)
+    Sub GetCaps(ByRef pDSCBCaps As DSCBCAPS)
     Sub GetCurrentPosition(ByRef pdwCapturePosition As Any, ByRef pdwReadPosition As Long)
     Sub GetFormat(ByRef pwfxFormat As Any, ByVal dwSizeAllocated As Long, ByRef pdwSizeWritten As Long)
     Function GetStatus() As DSCBSTATUS_CONST
@@ -277,8 +293,20 @@ End CoClass
 #End If
 Module wdDSound
 
+    Public Const DIRECTSOUND_VERSION = &H900
 
+    Public Function DSSPEAKER_COMBINED(ByVal c As Long, ByVal g As Long) As Long
+    Return (c And &HFF&) Or ((g And &HFF&) << 16)
+    End Function
 
+    Public Function DSSPEAKER_CONFIG(ByVal a As Long) As Byte
+    Return CByte(a And &HFF&)
+    End Function
+
+    Public Function DSSPEAKER_GEOMETRY(ByVal a As Long) As Byte
+    Return CByte((a >> 16) And &HFF&)
+    End Function
+    
     Public Enum DSBCAPS_CONST
         DSBCAPS_PRIMARYBUFFER = &H1
         DSBCAPS_STATIC = &H2
@@ -391,7 +419,8 @@ Module wdDSound
     Public Const DSBFREQUENCY_MIN  = 100
     ' #if DIRECTSOUND_VERSION >= 0x0900
     Public Const DSBFREQUENCY_MAX  = 200000
-    
+    Public Const _FACDS  = &H878 /* DirectSound's facility code */
+    Public Function MAKE_DSHRESULT(ByVal code As Long) As Long: Return MAKE_HRESULT(1, _FACDS, code): End Function
     
     Public Const DSBPAN_LEFT  = -10000
     Public Const DSBPAN_CENTER  = 0
@@ -507,6 +536,8 @@ Module wdDSound
         DSFX_I3DL2_MATERIAL_PRESET_STONEWALL = 6
         DSFX_I3DL2_MATERIAL_PRESET_CURTAIN = 7
     End Enum
+    
+    
  
     
     Public Enum DSFX_I3DL2_ROOM
@@ -545,8 +576,8 @@ Module wdDSound
 	
     Public Enum DS_ERR
         DS_OK = &H0
-        DSERR_OUTOFMEMORY = &H7
-        DSERR_NOINTERFACE = &H1AE
+        DSERR_OUTOFMEMORY = E_OUTOFMEMORY
+        DSERR_NOINTERFACE = E_NOINTERFACE
         DS_NO_VIRTUALIZATION = &H0878000A
         DS_INCOMPLETE = &H08780014
         DSERR_UNSUPPORTED = &H80004001
@@ -560,14 +591,15 @@ Module wdDSound
         DSERR_BADFORMAT = &H88780064
         DSERR_NODRIVER = &H88780078
         DSERR_ALREADYINITIALIZED = &H88780082
+        DSERR_NOAGGREGATION = CLASS_E_NOAGGREGATION
         DSERR_BUFFERLOST = &H88780096
         DSERR_OTHERAPPHASPRIO = &H887800A0
         DSERR_UNINITIALIZED = &H887800AA
-        DSERR_BUFFERTOOSMALL = &H887810B4
-        DSERR_DS8_REQUIRED = &H887810BE
-        DSERR_SENDLOOP = &H887810C8
-        DSERR_BADSENDBUFFERGUID = &H887810D2
-        DSERR_FXUNAVAILABLE = &H887810DC
+        DSERR_BUFFERTOOSMALL = &H887800B4
+        DSERR_DS8_REQUIRED = &H887800BE
+        DSERR_SENDLOOP = &H887800C8
+        DSERR_BADSENDBUFFERGUID = &H887800D2
+        DSERR_FXUNAVAILABLE = &H887800DC
         DSERR_OBJECTNOTFOUND = &H88781161
     End Enum
 	
@@ -688,6 +720,13 @@ Module wdDSound
         lpwfxFormat As LongPtr 'LPWAVEFORMATEX
     End Type
     
+    Public Type DSCBCAPS
+        dwSize As Long
+        dwFlags As Long
+        dwBufferBytes As Long
+        dwReserved As Long
+    End Type
+
 	Public Type DSCCAPS
 		dwSize As Long
 		dwFlags As DSCCAPS_CONST
@@ -719,7 +758,7 @@ Module wdDSound
 
 	Public Type DSFXGargle
 		dwRateHz As eGARGLE_FREQ
-		WaveShape As eGARGLE_WAVE
+		dwWaveShape As eGARGLE_WAVE
 	End Type
     Public Const DSFXCHORUS_WETDRYMIX_MIN  As Single = 0.0
     Public Const DSFXCHORUS_WETDRYMIX_MAX  As Single = 100.0
@@ -738,9 +777,9 @@ Module wdDSound
 		fDepth As Single
 		fFeedback As Single
 		fFrequency As Single
-		Waveform As eCHORUS_WAVE
+		lWaveform As eCHORUS_WAVE
 		fDelay As Single
-		phase As eCHORUS_PHASE
+		lPhase As eCHORUS_PHASE
 	End Type
     Public Const DSFXFLANGER_WETDRYMIX_MIN  As Single = 0.0
     Public Const DSFXFLANGER_WETDRYMIX_MAX  As Single = 100.0
@@ -760,9 +799,9 @@ Module wdDSound
 		fDepth As Single
 		fFeedback As Single
 		fFrequency As Single
-		Waveform As eFLANGER_WAVE
+		lWaveform As eFLANGER_WAVE
 		fDelay As Single
-		phase As eFLANGER_PHASE
+		lPhase As eFLANGER_PHASE
 	End Type
 
 	Public Type DSFXEcho
@@ -772,17 +811,29 @@ Module wdDSound
 		fRightDelay As Single
 		lPanDelay As Long
 	End Type
+    
+    Public Const DSFXECHO_WETDRYMIX_MIN  As Single = 0.0!
+    Public Const DSFXECHO_WETDRYMIX_MAX  As Single = 100.0!
+    Public Const DSFXECHO_FEEDBACK_MIN  As Single = 0.0!
+    Public Const DSFXECHO_FEEDBACK_MAX  As Single = 100.0!
+    Public Const DSFXECHO_LEFTDELAY_MIN  As Single = 1.0!
+    Public Const DSFXECHO_LEFTDELAY_MAX  As Single = 2000.0!
+    Public Const DSFXECHO_RIGHTDELAY_MIN  As Single = 1.0!
+    Public Const DSFXECHO_RIGHTDELAY_MAX  As Single = 2000.0!
+    Public Const DSFXECHO_PANDELAY_MIN  = 0
+    Public Const DSFXECHO_PANDELAY_MAX  = 1
+    
 
-    Public Const DSFXDISTORTION_GAIN_MIN  As Single = -60.0
-    Public Const DSFXDISTORTION_GAIN_MAX  As Single = 0.0
-    Public Const DSFXDISTORTION_EDGE_MIN  As Single = 0.0
-    Public Const DSFXDISTORTION_EDGE_MAX  As Single = 100.0
-    Public Const DSFXDISTORTION_POSTEQCENTERFREQUENCY_MIN  As Single = 100.0
-    Public Const DSFXDISTORTION_POSTEQCENTERFREQUENCY_MAX  As Single = 8000.0
-    Public Const DSFXDISTORTION_POSTEQBANDWIDTH_MIN  As Single = 100.0
-    Public Const DSFXDISTORTION_POSTEQBANDWIDTH_MAX  As Single = 8000.0
-    Public Const DSFXDISTORTION_PRELOWPASSCUTOFF_MIN  As Single = 100.0
-    Public Const DSFXDISTORTION_PRELOWPASSCUTOFF_MAX  As Single = 8000.0
+    Public Const DSFXDISTORTION_GAIN_MIN  As Single = -60.0!
+    Public Const DSFXDISTORTION_GAIN_MAX  As Single = 0.0!
+    Public Const DSFXDISTORTION_EDGE_MIN  As Single = 0.0!
+    Public Const DSFXDISTORTION_EDGE_MAX  As Single = 100.0!
+    Public Const DSFXDISTORTION_POSTEQCENTERFREQUENCY_MIN  As Single = 100.0!
+    Public Const DSFXDISTORTION_POSTEQCENTERFREQUENCY_MAX  As Single = 8000.0!
+    Public Const DSFXDISTORTION_POSTEQBANDWIDTH_MIN  As Single = 100.0!
+    Public Const DSFXDISTORTION_POSTEQBANDWIDTH_MAX  As Single = 8000.0!
+    Public Const DSFXDISTORTION_PRELOWPASSCUTOFF_MIN  As Single = 100.0!
+    Public Const DSFXDISTORTION_PRELOWPASSCUTOFF_MAX  As Single = 8000.0!
 	Public Type DSFXDistortion
 		fGain As Single
 		fEdge As Single
@@ -799,12 +850,34 @@ Module wdDSound
 		fRatio As Single
 		fPredelay As Single
 	End Type
+    
+    Public Const DSFXCOMPRESSOR_GAIN_MIN As Single = -60.0!
+    Public Const DSFXCOMPRESSOR_GAIN_MAX As Single = 60.0!
+    Public Const DSFXCOMPRESSOR_ATTACK_MIN As Single = 0.01!
+    Public Const DSFXCOMPRESSOR_ATTACK_MAX As Single = 500.0!
+    Public Const DSFXCOMPRESSOR_RELEASE_MIN As Single = 50.0!
+    Public Const DSFXCOMPRESSOR_RELEASE_MAX As Single = 3000.0!
+    Public Const DSFXCOMPRESSOR_THRESHOLD_MIN As Single = -60.0!
+    Public Const DSFXCOMPRESSOR_THRESHOLD_MAX As Single = 0.0!
+    Public Const DSFXCOMPRESSOR_RATIO_MIN As Single = 1.0!
+    Public Const DSFXCOMPRESSOR_RATIO_MAX As Single = 100.0!
+    Public Const DSFXCOMPRESSOR_PREDELAY_MIN As Single = 0.0!
+    Public Const DSFXCOMPRESSOR_PREDELAY_MAX As Single = 4.0!
+    
 
 	Public Type DSFXParamEq
 		fCenter As Single
 		fBandwidth As Single
 		fGain As Single
 	End Type
+    
+    Public Const DSFXPARAMEQ_CENTER_MIN As Single = 80.0!
+    Public Const DSFXPARAMEQ_CENTER_MAX As Single = 16000.0!
+    Public Const DSFXPARAMEQ_BANDWIDTH_MIN As Single = 1.0!
+    Public Const DSFXPARAMEQ_BANDWIDTH_MAX As Single = 36.0!
+    Public Const DSFXPARAMEQ_GAIN_MIN As Single = -15.0!
+    Public Const DSFXPARAMEQ_GAIN_MAX As Single = 15.0!
+    
 
 	Public Type DSFXI3DL2Reverb
 		lRoom As Long
@@ -820,6 +893,47 @@ Module wdDSound
 		flDensity As Single
 		flHFReference As Single
 	End Type
+    
+    Public Const DSFX_I3DL2REVERB_ROOM_MIN  = (-10000)
+    Public Const DSFX_I3DL2REVERB_ROOM_MAX  = 0
+    Public Const DSFX_I3DL2REVERB_ROOM_DEFAULT  = (-1000)
+    Public Const DSFX_I3DL2REVERB_ROOMHF_MIN  = (-10000)
+    Public Const DSFX_I3DL2REVERB_ROOMHF_MAX  = 0
+    Public Const DSFX_I3DL2REVERB_ROOMHF_DEFAULT  = (-100)
+    Public Const DSFX_I3DL2REVERB_ROOMROLLOFFFACTOR_MIN As Single = 0.0!
+    Public Const DSFX_I3DL2REVERB_ROOMROLLOFFFACTOR_MAX As Single = 10.0!
+    Public Const DSFX_I3DL2REVERB_ROOMROLLOFFFACTOR_DEFAULT As Single = 0.0!
+    Public Const DSFX_I3DL2REVERB_DECAYTIME_MIN As Single = 0.1!
+    Public Const DSFX_I3DL2REVERB_DECAYTIME_MAX As Single = 20.0!
+    Public Const DSFX_I3DL2REVERB_DECAYTIME_DEFAULT As Single = 1.49!
+    Public Const DSFX_I3DL2REVERB_DECAYHFRATIO_MIN As Single = 0.1!
+    Public Const DSFX_I3DL2REVERB_DECAYHFRATIO_MAX As Single = 2.0!
+    Public Const DSFX_I3DL2REVERB_DECAYHFRATIO_DEFAULT As Single = 0.83!
+    Public Const DSFX_I3DL2REVERB_REFLECTIONS_MIN  = (-10000)
+    Public Const DSFX_I3DL2REVERB_REFLECTIONS_MAX  = 1000
+    Public Const DSFX_I3DL2REVERB_REFLECTIONS_DEFAULT  = (-2602)
+    Public Const DSFX_I3DL2REVERB_REFLECTIONSDELAY_MIN As Single = 0.0!
+    Public Const DSFX_I3DL2REVERB_REFLECTIONSDELAY_MAX As Single = 0.3!
+    Public Const DSFX_I3DL2REVERB_REFLECTIONSDELAY_DEFAULT As Single = 0.007!
+    Public Const DSFX_I3DL2REVERB_REVERB_MIN  = (-10000)
+    Public Const DSFX_I3DL2REVERB_REVERB_MAX  = 2000
+    Public Const DSFX_I3DL2REVERB_REVERB_DEFAULT  = (200)
+    Public Const DSFX_I3DL2REVERB_REVERBDELAY_MIN As Single = 0.0!
+    Public Const DSFX_I3DL2REVERB_REVERBDELAY_MAX As Single = 0.1!
+    Public Const DSFX_I3DL2REVERB_REVERBDELAY_DEFAULT As Single = 0.011!
+    Public Const DSFX_I3DL2REVERB_DIFFUSION_MIN As Single = 0.0!
+    Public Const DSFX_I3DL2REVERB_DIFFUSION_MAX As Single = 100.0!
+    Public Const DSFX_I3DL2REVERB_DIFFUSION_DEFAULT As Single = 100.0!
+    Public Const DSFX_I3DL2REVERB_DENSITY_MIN As Single = 0.0!
+    Public Const DSFX_I3DL2REVERB_DENSITY_MAX As Single = 100.0!
+    Public Const DSFX_I3DL2REVERB_DENSITY_DEFAULT As Single = 100.0!
+    Public Const DSFX_I3DL2REVERB_HFREFERENCE_MIN As Single = 20.0!
+    Public Const DSFX_I3DL2REVERB_HFREFERENCE_MAX As Single = 20000.0!
+    Public Const DSFX_I3DL2REVERB_HFREFERENCE_DEFAULT As Single = 5000.0!
+    Public Const DSFX_I3DL2REVERB_QUALITY_MIN  = 0
+    Public Const DSFX_I3DL2REVERB_QUALITY_MAX  = 3
+    Public Const DSFX_I3DL2REVERB_QUALITY_DEFAULT  = 2
+    
 
 	Public Type DSFXWavesReverb
 		fInGain As Single
@@ -828,7 +942,19 @@ Module wdDSound
 		fHighFreqRTRatio As Single
 	End Type
 
- 
+    Public Const DSFX_WAVESREVERB_INGAIN_MIN As Single = -96.0!
+    Public Const DSFX_WAVESREVERB_INGAIN_MAX As Single = 0.0!
+    Public Const DSFX_WAVESREVERB_INGAIN_DEFAULT As Single = 0.0!
+    Public Const DSFX_WAVESREVERB_REVERBMIX_MIN As Single = -96.0!
+    Public Const DSFX_WAVESREVERB_REVERBMIX_MAX As Single = 0.0!
+    Public Const DSFX_WAVESREVERB_REVERBMIX_DEFAULT As Single = 0.0!
+    Public Const DSFX_WAVESREVERB_REVERBTIME_MIN As Single = 0.001!
+    Public Const DSFX_WAVESREVERB_REVERBTIME_MAX As Single = 3000.0!
+    Public Const DSFX_WAVESREVERB_REVERBTIME_DEFAULT As Single = 1000.0!
+    Public Const DSFX_WAVESREVERB_HIGHFREQRTRATIO_MIN As Single = 0.001!
+    Public Const DSFX_WAVESREVERB_HIGHFREQRTRATIO_MAX As Single = 0.999!
+    Public Const DSFX_WAVESREVERB_HIGHFREQRTRATIO_DEFAULT As Single = 0.001!
+    
     
     Public Const CLSID_DSFX_STANDARD_GARGLE As String = "{DAFD8210-5711-4B91-9FE3-F75B7AE279BF}"
     Public Const CLSID_DSFX_STANDARD_CHORUS As String = "{EFE6629C-81F7-4281-BD91-C9D604A95AF6}"
@@ -846,6 +972,15 @@ Module wdDSound
     Public Const GUID_DSCFX_CLASS_NS As String = "{E07F903F-62FD-4e60-8CDD-DEA7236665B5}"
     Public Const GUID_DSCFX_MS_NS As String = "{11C5C73B-66E9-4ba1-A0BA-E814C6EED92D}"
     Public Const GUID_DSCFX_SYSTEM_NS As String = "{5AB0882E-7274-4516-877D-4EEE99BA4FD0}"
+    
+    Public Const I3DL2_MATERIAL_PRESET_SINGLEWINDOW  = "-2800,0.71"
+    Public Const I3DL2_MATERIAL_PRESET_DOUBLEWINDOW  = "-5000,0.40"
+    Public Const I3DL2_MATERIAL_PRESET_THINDOOR  = "-1800,0.66"
+    Public Const I3DL2_MATERIAL_PRESET_THICKDOOR  = "-4400,0.64"
+    Public Const I3DL2_MATERIAL_PRESET_WOODWALL  = "-4000,0.50"
+    Public Const I3DL2_MATERIAL_PRESET_BRICKWALL  = "-5000,0.60"
+    Public Const I3DL2_MATERIAL_PRESET_STONEWALL  = "-6000,0.68"
+    Public Const I3DL2_MATERIAL_PRESET_CURTAIN  = "-1200,0.15"
     
 	Public Const I3DL2_ENVIRONMENT_PRESET_DEFAULT = "-1000,-100,0.0,1.49,0.83,-2602,0.007,200,0.011,100.0,100.0,5000.0"
 	Public Const I3DL2_ENVIRONMENT_PRESET_GENERIC = "-1000,-100,0.0,1.49,0.83,-2602,0.007,200,0.011,100.0,100.0,5000.0"
@@ -970,7 +1105,7 @@ Module wdDSound
                                             ) As Long
 
     [UseGetLastError(False)]
-    Public Declare PtrSafe Function DirectSoundGetDeviceId Lib "dsound" Alias "GetDeviceId" (pGuidSrc As UUID, pGuidDest As UUID) As Long
+    Public Declare PtrSafe Function DirectSoundGetDeviceId Lib "dsound" Alias "GetDeviceID" (pGuidSrc As UUID, pGuidDest As UUID) As Long
 
 
 
@@ -1029,6 +1164,11 @@ Module wdDSound
      If (iid.Data1 = 0&) Then Call DEFINE_UUID(iid, &H00990DF4, CInt(&H0DBB), CInt(&H4872), &H83, &H3E, &H6D, &H30, &H3E, &H80, &HAE, &HB6)
     IID_IDirectSoundCaptureBuffer8 = iid
     End Function
+    Public Function GUID_All_Objects() As UUID
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Haa114de5, &Hc262, &H4169, &Ha1, &Hc8, &H23, &Hd6, &H98, &Hcc, &H73, &Hb5)
+    GUID_All_Objects = iid
+    End Function
     Public Function IID_IDirectSoundNotify() As UUID
     '{B0210783-89CD-11D0-AF08-00A0C925CD16}
     Static iid As UUID
@@ -1049,6 +1189,56 @@ Module wdDSound
     Static iid As UUID
      If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hedcb4c7a, &Hdaab, &H4216, &Ha4, &H2e, &H6c, &H50, &H59, &H6d, &Hdc, &H1d)
     IID_IDirectSoundFullDuplex = iid
+    End Function
+    
+    
+    Public Function IID_IDirectSoundCapture8() As UUID
+    Return IID_IDirectSoundCapture
+    End Function
+    Public Function IID_IDirectSound3DListener8() As UUID
+    Return IID_IDirectSound3DListener
+    End Function
+    Public Function IID_IDirectSound3DBuffer8() As UUID
+    Return IID_IDirectSound3DBuffer
+    End Function
+    Public Function IID_IDirectSoundNotify8() As UUID
+    Return IID_IDirectSoundNotify
+    End Function
+    Public Function IID_IDirectSoundFXGargle8() As UUID
+    Return IID_IDirectSoundFXGargle
+    End Function
+    Public Function IID_IDirectSoundFXChorus8() As UUID
+    Return IID_IDirectSoundFXChorus
+    End Function
+    Public Function IID_IDirectSoundFXFlanger8() As UUID
+    Return IID_IDirectSoundFXFlanger
+    End Function
+    Public Function IID_IDirectSoundFXEcho8() As UUID
+    Return IID_IDirectSoundFXEcho
+    End Function
+    Public Function IID_IDirectSoundFXDistortion8() As UUID
+    Return IID_IDirectSoundFXDistortion
+    End Function
+    Public Function IID_IDirectSoundFXCompressor8() As UUID
+    Return IID_IDirectSoundFXCompressor
+    End Function
+    Public Function IID_IDirectSoundFXParamEq8() As UUID
+    Return IID_IDirectSoundFXParamEq
+    End Function
+    Public Function IID_IDirectSoundFXWavesReverb8() As UUID
+    Return IID_IDirectSoundFXWavesReverb
+    End Function
+    Public Function IID_IDirectSoundFXI3DL2Reverb8() As UUID
+    Return IID_IDirectSoundFXI3DL2Reverb
+    End Function
+    Public Function IID_IDirectSoundCaptureFXAec8() As UUID
+    Return IID_IDirectSoundCaptureFXAec
+    End Function
+    Public Function IID_IDirectSoundCaptureFXNoiseSuppress8() As UUID
+    Return IID_IDirectSoundCaptureFXNoiseSuppress
+    End Function
+    Public Function IID_IDirectSoundFullDuplex8() As UUID
+    Return IID_IDirectSoundFullDuplex
     End Function
  
     

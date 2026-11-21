@@ -94,7 +94,7 @@ End Function
         
     [IgnoreWarnings(TB0018)]
     Public Function PALETTERGB(ByVal r As Long, ByVal g As Long, ByVal b As Long) As Long
-        Return ((&H02000000) Or RGB(r, g, b))
+        Return &H02000000 Or (r And &HFF&) Or ((g And &HFF&) << 8) Or ((b And &HFF&) << 16)
     End Function
     Public Function PALETTEINDEX(ByVal i As Long) As Long
         Return (&H01000000 Or (i And &HFFFF&))
@@ -142,7 +142,7 @@ End Function
     End Sub
 
     Public Function HasOverlappedIoCompleted(lpOverlapped As OVERLAPPED) As Boolean
-        Return lpOverlapped.Internal <> STATUS_PENDING
+        Return (lpOverlapped.Internal And &HFFFFFFFF^) <> STATUS_PENDING
     End Function
     
 
@@ -491,14 +491,16 @@ End Function
         Return IS_POINTER_FLAG_SET_WPARAM(wParam, POINTER_MESSAGE_FLAG_CANCELED)
     End Function
 
-    Public Function IS_HIGH_SURROGATE(ByVal wch As Integer) As Boolean
-        Return (((wch) >= HIGH_SURROGATE_START) And ((wch) <= HIGH_SURROGATE_END))
+    Public Function IS_HIGH_SURROGATE(ByVal wch As Long) As Boolean
+        wch = wch And &HFFFF&
+        Return (wch >= &HD800&) And (wch <= &HDBFF&)
     End Function
-    Public Function IS_LOW_SURROGATE(ByVal wch As Integer) As Boolean
-        Return (((wch) >= LOW_SURROGATE_START) And ((wch) <= LOW_SURROGATE_END))
+    Public Function IS_LOW_SURROGATE(ByVal wch As Long) As Boolean
+        wch = wch And &HFFFF&
+        Return (wch >= &HDC00&) And (wch <= &HDFFF&)
     End Function
-    Public Function IS_SURROGATE_PAIR(ByVal hs As Integer, ByVal ls As Integer) As Boolean
-        Return (IS_HIGH_SURROGATE(hs) And IS_LOW_SURROGATE(ls))
+    Public Function IS_SURROGATE_PAIR(ByVal hs As Long, ByVal ls As Long) As Boolean
+        Return IS_HIGH_SURROGATE(hs) And IS_LOW_SURROGATE(ls)
     End Function
 
     Public Function ICMP6_ISTYPEINFORMATIONAL(ByVal Type As Long) As Boolean
@@ -542,7 +544,7 @@ End Function
 
     [Description("Indicates whether an NTSTATUS value represents a successful operation (>= 0)")]
     Public Function NT_SUCCESS(ByVal Status As NTSTATUS) As Boolean
-        Return CLngToULng(Status) >= STATUS_SUCCESS
+        Return Status >= STATUS_SUCCESS
     End Function
     #If TWINBASIC_BUILD >= 997 Then 'TODO: clear conditional when package req. raised
     Public Function NT_INFORMATION([TypeHint(NTSTATUS)] ByVal Status As Long) As Boolean
@@ -754,7 +756,7 @@ End Function
     End Function
 
     Public Function Make_XY_lParam(ByVal X As Long, ByVal Y As Long) As LongPtr
-    Make_XY_lParam = (CLng(LOWORD(Y)) * &H10000) Or (LOWORD(X) And &HFFFF&)
+        Return MAKELPARAM(X, Y)
     End Function
 
     Public Function GET_SC_WPARAM(ByVal wParam As LongPtr) As Long
@@ -865,137 +867,204 @@ End Function
     End Function
     
     #If WDL_NO_MATH = 0 Then
-    Public Function Log10f(ByVal Value As Single) As Single
-        Return CSng((Log(Value) / Log(10!)))
-    End Function
+    [UseGetLastError(False)]
+    Public Declare PtrSafe Function crt_log CDecl Lib "msvcrt" Alias "log" (ByVal x As Double) As Double
+    [UseGetLastError(False)]
+    Public Declare PtrSafe Function crt_log10 CDecl Lib "msvcrt" Alias "log10" (ByVal x As Double) As Double
+    [UseGetLastError(False)]
+    Public Declare PtrSafe Function crt_acos CDecl Lib "msvcrt" Alias "acos" (ByVal x As Double) As Double
+    [UseGetLastError(False)]
+    Public Declare PtrSafe Function crt_asin CDecl Lib "msvcrt" Alias "asin" (ByVal x As Double) As Double
+    [UseGetLastError(False)]
+    Public Declare PtrSafe Function crt_atan CDecl Lib "msvcrt" Alias "atan" (ByVal x As Double) As Double
+    [UseGetLastError(False)]
+    Public Declare PtrSafe Function crt_cos CDecl Lib "msvcrt" Alias "cos" (ByVal x As Double) As Double
+    [UseGetLastError(False)]
+    Public Declare PtrSafe Function crt_sin CDecl Lib "msvcrt" Alias "sin" (ByVal x As Double) As Double
+    [UseGetLastError(False)]
+    Public Declare PtrSafe Function crt_cosh CDecl Lib "msvcrt" Alias "cosh" (ByVal x As Double) As Double
+    [UseGetLastError(False)]
+    Public Declare PtrSafe Function crt_sinh CDecl Lib "msvcrt" Alias "sinh" (ByVal x As Double) As Double
+    [UseGetLastError(False)]
+    Public Declare PtrSafe Function crt_tanh CDecl Lib "msvcrt" Alias "tanh" (ByVal x As Double) As Double
+    [UseGetLastError(False)]
+    Public Declare PtrSafe Function crt_asinh CDecl Lib "ucrtbase" Alias "asinh" (ByVal x As Double) As Double
+    [UseGetLastError(False)]
+    Public Declare PtrSafe Function crt_acosh CDecl Lib "ucrtbase" Alias "acosh" (ByVal x As Double) As Double
+    [UseGetLastError(False)]
+    Public Declare PtrSafe Function crt_atanh CDecl Lib "ucrtbase" Alias "atanh" (ByVal x As Double) As Double
+ 
+    ' Where C returns NaN or an infinity (domain error, pole or overflow), these raise error 5, 11 or 6.
+    ' The Single versions compute in Double and round the result once.
     Public Function Log10(ByVal Value As Double) As Double
-        Return (Log(Value) / Log(10#))
+        Dim r As Double = Log(Value) / Log(10#)
+        Dim k As Double = CDbl(Int(r + 0.5))
+        If Abs(r - k) < 0.000000001 Then
+            If 10# ^ k = Value Then Return k        ' exact for powers of 10, as C's log10 is; Log(1000) / Log(10) is 2.9999999999999996
+        End If
+        Return r
+    End Function
+    Public Function Log10f(ByVal Value As Single) As Single
+        Return CSng(Log10(Value))
     End Function
     Public Function Asin(ByVal Arg As Double) As Double
-        Return Atn(Arg / Sqr(-Arg * Arg + 1))
+        If Abs(Arg) = 1 Then Return Arg * 2 * Atn(1)
+        Return Atn(Arg / Sqr((1 - Arg) * (1 + Arg)))
     End Function
     Public Function Asinf(ByVal Arg As Single) As Single
-        Return CSng(Atn(Arg / Sqr(-Arg * Arg + 1)))
+        Return CSng(Asin(Arg))
     End Function
     Public Function Acos(ByVal Arg As Double) As Double
-        Return Atn(-Arg / Sqr(-Arg * Arg + 1)) + 2 * Atn(1)
+        If Arg = -1 Then Return 4 * Atn(1)
+        Return 2 * Atn(Sqr((1 - Arg) / (1 + Arg)))
     End Function
     Public Function Acosf(ByVal Arg As Single) As Single
-        Return CSng(Atn(-Arg / Sqr(-Arg * Arg + 1)) + 2 * Atn(1))
+        Return CSng(Acos(Arg))
     End Function
     Public Function Atan(ByVal Arg As Double) As Double
         Return Atn(Arg)
     End Function
     Public Function Atanf(ByVal Arg As Single) As Single
-        Return CSng(Atn(Arg))
+        Return CSng(Atan(Arg))
     End Function
+    ' Sec and Cosec use the C runtime's cos and sin: tB's Cos and Sin reduce the argument with a 66-bit pi,
+    ' which loses relative precision near their zeros (Cosec(3.14159265358979) is off by 1.3E-06).
     Public Function Sec(ByVal Arg As Double) As Double
-        Return 1 / Cos(Arg)
+        Return 1 / crt_cos(Arg)
     End Function
     Public Function Secf(ByVal Arg As Single) As Single
-        Return CSng(1 / Cos(Arg))
+        Return CSng(Sec(Arg))
     End Function
     Public Function Asec(ByVal Arg As Double) As Double
-        Return 2 * Atn(1) - Atn(CDbl(Sgn(Arg)) / Sqr(Arg * Arg - 1))
+        Return Acos(1 / Arg)
     End Function
     Public Function Asecf(ByVal Arg As Single) As Single
-        Return CSng(2 * Atn(1) - Atn(CDbl(Sgn(Arg)) / Sqr(Arg * Arg - 1)))
+        Return CSng(Asec(Arg))
     End Function
     Public Function Cosec(ByVal Arg As Double) As Double
-        Return 1 / Sin(Arg)
+        Return 1 / crt_sin(Arg)
     End Function
     Public Function Cosecf(ByVal Arg As Single) As Single
-        Return CSng(1 / Sin(Arg))
+        Return CSng(Cosec(Arg))
     End Function
     Public Function Acosec(ByVal Arg As Double) As Double
-        Return Atn(CDbl(Sgn(Arg)) / Sqr(Arg * Arg - 1))
+        Return Asin(1 / Arg)
     End Function
     Public Function Acosecf(ByVal Arg As Single) As Single
-        Return CSng(Atn(CDbl(Sgn(Arg)) / Sqr(Arg * Arg - 1)))
+        Return CSng(Acosec(Arg))
     End Function
+    [Description("Arccotangent, in the range 0 to pi.")]
     Public Function Acotan(ByVal Arg As Double) As Double
-        Return 2 * Atn(1) - Atn(Arg)
+        If Abs(Arg) <= 1 Then Return 2 * Atn(1) - Atn(Arg)
+        If Arg > 0 Then Return Atn(1 / Arg)                  ' pi/2 - Atn(Arg) would cancel for large |Arg|
+        Return 4 * Atn(1) + Atn(1 / Arg)
     End Function
+    [Description("Arccotangent, in the range 0 to pi.")]
     Public Function Acotanf(ByVal Arg As Single) As Single
-        Return CSng(2 * Atn(1) - Atn(Arg))
+        Return CSng(Acotan(Arg))
     End Function
     Public Function Sinh(ByVal Arg As Double) As Double
+        Dim ax As Double = CDbl(Abs(Arg))
+        If ax < 0.001 Then Return Arg * (1 + Arg * Arg / 6 * (1 + Arg * Arg / 20))       ' x + x^3/6 + x^5/120
+        If ax > 709 Then Return CDbl(Sgn(Arg)) * (Exp(ax / 2) * (Exp(ax / 2) / 2))       ' e^|x|/2 without overflowing Exp
         Return (Exp(Arg) - Exp(-Arg)) / 2
     End Function
     Public Function Sinhf(ByVal Arg As Single) As Single
-        Return CSng((Exp(Arg) - Exp(-Arg)) / 2)
+        Return CSng(Sinh(Arg))
     End Function
     Public Function Cosh(ByVal Arg As Double) As Double
+        Dim ax As Double = CDbl(Abs(Arg))
+        If ax > 709 Then Return Exp(ax / 2) * (Exp(ax / 2) / 2)
         Return (Exp(Arg) + Exp(-Arg)) / 2
     End Function
     Public Function Coshf(ByVal Arg As Single) As Single
-        Return CSng((Exp(Arg) + Exp(-Arg)) / 2)
+        Return CSng(Cosh(Arg))
     End Function
     Public Function Tanh(ByVal Arg As Double) As Double
-        Return (Exp(Arg) - Exp(-Arg)) / (Exp(Arg) + Exp(-Arg))
+        Dim ax As Double = CDbl(Abs(Arg))
+        If ax < 0.001 Then Return Arg * (1 - Arg * Arg / 3 * (1 - 0.4 * Arg * Arg))      ' x - x^3/3 + 2x^5/15
+        Dim ex2 As Double = Exp(-2 * ax)
+        Return CDbl(Sgn(Arg)) * (1 - ex2) / (1 + ex2)
     End Function
     Public Function Tanhf(ByVal Arg As Single) As Single
-        Return CSng((Exp(Arg) - Exp(-Arg)) / (Exp(Arg) + Exp(-Arg)))
+        Return CSng(Tanh(Arg))
     End Function
+    [IgnoreWarnings(TB0018)]
     Public Function Sech(ByVal Arg As Double) As Double
-        Return 2 / (Exp(Arg) + Exp(-Arg))
+        Dim ex As Double = Exp(-Abs(Arg))
+        Return 2 * ex / (1 + ex * ex)
     End Function
     Public Function Sechf(ByVal Arg As Single) As Single
-        Return CSng(2 / (Exp(Arg) + Exp(-Arg)))
+        Return CSng(Sech(Arg))
     End Function
+    [IgnoreWarnings(TB0018)]
     Public Function Cosech(ByVal Arg As Double) As Double
-        Return 2 / (Exp(Arg) - Exp(-Arg))
+        Dim ax As Double = Abs(Arg)
+        If ax < 0.001 Then Return 1 / Arg - Arg * (1 / 6 - 7 * Arg * Arg / 360)         ' 1/x - x/6 + 7x^3/360
+        Dim ex As Double = Exp(-ax)
+        Return CDbl(Sgn(Arg)) * 2 * ex / (1 - ex * ex)
     End Function
     Public Function Cosechf(ByVal Arg As Single) As Single
-        Return CSng(2 / (Exp(Arg) - Exp(-Arg)))
+        Return CSng(Cosech(Arg))
     End Function
+    [IgnoreWarnings(TB0018)]
     Public Function Cotanh(ByVal Arg As Double) As Double
-        Return (Exp(Arg) + Exp(-Arg)) / (Exp(Arg) - Exp(-Arg))
+        Dim ax As Double = Abs(Arg)
+        If ax < 0.001 Then Return 1 / Arg + Arg * (1 / 3 - Arg * Arg / 45)              ' 1/x + x/3 - x^3/45
+        Dim ex2 As Double = Exp(-2 * ax)
+        Return CDbl(Sgn(Arg)) * (1 + ex2) / (1 - ex2)
     End Function
     Public Function Cotanhf(ByVal Arg As Single) As Single
-        Return CSng((Exp(Arg) + Exp(-Arg)) / (Exp(Arg) - Exp(-Arg)))
+        Return CSng(Cotanh(Arg))
     End Function
+    [IgnoreWarnings(TB0018)]
     Public Function Asinh(ByVal Arg As Double) As Double
-        Return Log(Arg + Sqr(Arg * Arg + 1))
+        Dim ax As Double = Abs(Arg)
+        If ax < 0.001 Then Return Arg * (1 - Arg * Arg / 6 * (1 - 0.45 * Arg * Arg))     ' x - x^3/6 + 3x^5/40
+        If ax > 100000000 Then Return CDbl(Sgn(Arg)) * (Log(ax) + Log(2#))               ' Sqr(x * x + 1) = |x| at this size
+        Return CDbl(Sgn(Arg)) * Log(ax + Sqr(ax * ax + 1))
     End Function
     Public Function Asinhf(ByVal Arg As Single) As Single
-        Return CSng(Log(Arg + Sqr(Arg * Arg + 1)))
+        Return CSng(Asinh(Arg))
     End Function
     Public Function Acosh(ByVal Arg As Double) As Double
-        Return Log(Arg + Sqr(Arg * Arg - 1))
+        If Arg > 100000000 Then Return Log(Arg) + Log(2#)
+        Return Log(Arg + Sqr((Arg - 1) * (Arg + 1)))
     End Function
     Public Function Acoshf(ByVal Arg As Single) As Single
-        Return CSng(Log(Arg + Sqr(Arg * Arg - 1)))
+        Return CSng(Acosh(Arg))
     End Function
     Public Function Atanh(ByVal Arg As Double) As Double
+        If Abs(Arg) < 0.001 Then Return Arg * (1 + Arg * Arg / 3 * (1 + 0.6 * Arg * Arg)) ' x + x^3/3 + x^5/5
         Return Log((1 + Arg) / (1 - Arg)) / 2
     End Function
     Public Function Atanhf(ByVal Arg As Single) As Single
-        Return CSng(Log((1 + Arg) / (1 - Arg)) / 2)
+        Return CSng(Atanh(Arg))
     End Function
     Public Function Asech(ByVal Arg As Double) As Double
-    Return Log((Sqr(-Arg * Arg + 1) + 1) / Arg)
+        Return Log((1 + Sqr((1 - Arg) * (1 + Arg))) / Arg)
     End Function
     Public Function Asechf(ByVal Arg As Single) As Single
-        Return CSng(Log((Sqr(-Arg * Arg + 1) + 1) / Arg))
+        Return CSng(Asech(Arg))
     End Function
     Public Function Acosech(ByVal Arg As Double) As Double
-        Return Log(CDbl((Sgn(Arg)) * Sqr(Arg * Arg + 1) + 1) / Arg)
+        Return Asinh(1 / Arg)
     End Function
     Public Function Acosechf(ByVal Arg As Single) As Single
-        Return CSng(Log((CDbl(Sgn(Arg)) * Sqr(Arg * Arg + 1) + 1) / Arg))
+        Return CSng(Acosech(Arg))
     End Function
     Public Function Acotanh(ByVal Arg As Double) As Double
+        If Abs(Arg) >= 2 Then Return Atanh(1 / Arg)             ' the direct form cancels toward Log(1) for large |Arg|
         Return Log((Arg + 1) / (Arg - 1)) / 2
     End Function
     Public Function Acotanhf(ByVal Arg As Single) As Single
-        Return CSng(Log((Arg + 1) / (Arg - 1)) / 2)
+        Return CSng(Acotanh(Arg))
     End Function
     Public Function Pow(ByVal Base As Double, ByVal Power As Double) As Double
         Return Base ^ Power
     End Function
     Public Function Powf(ByVal Base As Single, ByVal Power As Single) As Single
-        Return CSng(Base ^ Power)
+        Return CSng(Pow(Base, Power))
     End Function
     #End If
         

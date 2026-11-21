@@ -68,7 +68,7 @@ End Interface
 [InterfaceId("9B7E4C02-342C-4106-A19F-4F2704F689F0")]
 [OleAutomation(False)]
 Interface ID3D10Buffer Extends ID3D10Resource
-    Sub Map(ByVal MapType As D3D10_MAP, ByVal MapFlags As D3D10_MAP_FLAG, ByRef ppData As Any)
+    Sub Map(ByVal MapType As D3D10_MAP, ByVal MapFlags As D3D10_MAP_FLAG, ByRef ppData As LongPtr)
     [PreserveSig]
     Sub Unmap()
     [PreserveSig]
@@ -78,7 +78,7 @@ End Interface
 [InterfaceId("9B7E4C03-342C-4106-A19F-4F2704F689F0")]
 [OleAutomation(False)]
 Interface ID3D10Texture1D Extends ID3D10Resource
-    Sub Map(ByVal Subresource As Long, ByVal MapType As D3D10_MAP, ByVal MapFlags As D3D10_MAP_FLAG, ByRef ppData As Any)
+    Sub Map(ByVal Subresource As Long, ByVal MapType As D3D10_MAP, ByVal MapFlags As D3D10_MAP_FLAG, ByRef ppData As LongPtr)
     [PreserveSig]
     Sub Unmap(ByVal Subresource As Long)
     [PreserveSig]
@@ -370,7 +370,6 @@ End Interface
   [InterfaceId("C530AD7D-9B16-4395-A979-BA2ECFF83ADD")]
   [OleAutomation(False)]
   Interface ID3D10ShaderReflectionType Extends Nothing
-      [PreserveSig]
       Sub GetDesc(ByRef pDesc As D3D10_SHADER_TYPE_DESC)
       [PreserveSig]
       Function GetMemberTypeByIndex(ByVal Index As Long) As ID3D10ShaderReflectionType
@@ -683,13 +682,13 @@ End Interface
   [InterfaceId("EDAD8D99-8A35-4d6d-8566-2EA276CDE161")]
   [OleAutomation(False)]
    Interface ID3D10BlendState1 Extends ID3D10BlendState
-      Sub GetDesc1(pDesc As D3D10_BLEND_DESC1)
+      [PreserveSig] Sub GetDesc1(pDesc As D3D10_BLEND_DESC1)
   End Interface
       
   [InterfaceId("9B7E4C87-342C-4106-A19F-4F2704F689F0")]
   [OleAutomation(False)]
    Interface ID3D10ShaderResourceView1 Extends ID3D10ShaderResourceView
-      Sub GetDesc1(pDesc As D3D10_SHADER_RESOURCE_VIEW_DESC1)
+      [PreserveSig] Sub GetDesc1(pDesc As D3D10_SHADER_RESOURCE_VIEW_DESC1)
   End Interface
        
   [InterfaceId("9B7E4C8F-342C-4106-A19F-4F2704F689F0")]
@@ -971,7 +970,7 @@ End Interface
 
     '=========================================================================
     '  Methods for globally muting debug spte from the InfoQueue
-    Sub SetMuteDebugOutput(ByVal bMute As BOOL)
+    [PreserveSig] Sub SetMuteDebugOutput(ByVal bMute As BOOL)
     [PreserveSig] Function GetMuteDebugOutput() As BOOL
 End Interface
 
@@ -1041,8 +1040,8 @@ Interface ID3DX10Font Extends IUnknown
     [PreserveSig] Function DrawTextA(ByVal pSprite As ID3DX10Sprite, ByVal pString As LongPtr /*ANSI*/, ByVal Count As Long, ByRef pRect As RECT, ByVal Format As Long,   Color As D3DXCOLOR) As Long
     [PreserveSig] Function DrawTextW(ByVal pSprite As ID3DX10Sprite, ByVal pString As String, ByVal Count As Long, ByRef pRect As RECT, ByVal Format As Long,   Color As D3DXCOLOR) As Long
     #Else
-    [PreserveSig] Function DrawTextA(ByVal pSprite As ID3DX10Sprite, ByVal pString As LongPtr /*ANSI*/, ByVal Count As Long, ByRef pRect As RECT, ByVal Format As Long, ByVal ColorR As D3DXCOLOR, ByVal ColorG As D3DXCOLOR, ByVal ColorB As D3DXCOLOR, ByVal ColorA As D3DXCOLOR) As Long
-    [PreserveSig] Function DrawTextW(ByVal pSprite As ID3DX10Sprite, ByVal pString As String, ByVal Count As Long, ByRef pRect As RECT, ByVal Format As Long, ByVal ColorR As D3DXCOLOR, ByVal ColorG As D3DXCOLOR, ByVal ColorB As D3DXCOLOR, ByVal ColorA As D3DXCOLOR) As Long
+    [PreserveSig] Function DrawTextA(ByVal pSprite As ID3DX10Sprite, ByVal pString As LongPtr /*ANSI*/, ByVal Count As Long, ByRef pRect As RECT, ByVal Format As Long, ByVal ColorR As Single, ByVal ColorG As Single, ByVal ColorB As Single, ByVal ColorA As Single) As Long
+    [PreserveSig] Function DrawTextW(ByVal pSprite As ID3DX10Sprite, ByVal pString As String, ByVal Count As Long, ByRef pRect As RECT, ByVal Format As Long, ByVal ColorR As Single, ByVal ColorG As Single, ByVal ColorB As Single, ByVal ColorA As Single) As Long
     #End If
     #End If
 End Interface
@@ -1344,6 +1343,10 @@ Module wdD3D10
     
     Public Const  _FACD3D10 = &H879
     Public Const  _FACD3D10DEBUG = _FACD3D10 + 1
+    
+    Public Function MAKE_D3D10_HRESULT(ByVal code As Long) As Long: Return MAKE_HRESULT(1, _FACD3D10, code): End Function
+    Public Function MAKE_D3D10_STATUS(ByVal code As Long) As Long: Return MAKE_HRESULT(0, _FACD3D10, code): End Function
+           
     
     Public Enum D3D10_INPUT_CLASSIFICATION
         D3D10_INPUT_PER_VERTEX_DATA = 0
@@ -1908,8 +1911,8 @@ Module wdD3D10
     Public Function D3D10_ENCODE_BASIC_FILTER(ByVal min As Long, ByVal mag As Long, ByVal mip As Long, ByVal bComparison As Boolean) As D3D10_FILTER
         Return CType(Of D3D10_FILTER)(If(bComparison, D3D10_COMPARISON_FILTERING_BIT, 0&) Or _
                 (((min) And D3D10_FILTER_TYPE_MASK) << D3D10_MIN_FILTER_SHIFT) Or _
-                (((mag) & D3D10_FILTER_TYPE_MASK) << D3D10_MAG_FILTER_SHIFT) Or _
-                (((mip) & D3D10_FILTER_TYPE_MASK) << D3D10_MIP_FILTER_SHIFT))
+                (((mag) And D3D10_FILTER_TYPE_MASK) << D3D10_MAG_FILTER_SHIFT) Or _
+                (((mip) And D3D10_FILTER_TYPE_MASK) << D3D10_MIP_FILTER_SHIFT))
     End Function
 
     ' Encodes an anisotropic filter (with comparison flag)
@@ -2099,6 +2102,9 @@ Module wdD3D10
     End Enum
     
     Public Const D3D10_SDK_VERSION = 29
+    Public Const D3D10_1_SDK_VERSION = &H20
+     Public Const D3D_SPEC_VERSION = 1.050005
+    
     
     Public Function IID_ID3D10DeviceChild() As UUID
     Static iid As UUID
@@ -2592,7 +2598,7 @@ Module wdD3D10
     Public Type D3D10_PASS_DESC
         Name As LongPtr  '  Name of this pass (NULL if not anonymous)    
         Annotations As Long ' Number of annotations on this pass
-        pIAInputSignature As Byte   ' Signature from VS or GS (if there is no VS)
+        pIAInputSignature As LongPtr   ' Signature from VS or GS (if there is no VS)
                                     ' or NULL if neither exists
         IAInputSignatureSize As LongPtr ' Singature size in bytes                                
         StencilRef As Long ' Specified in SetDepthStencilState()
@@ -2968,10 +2974,10 @@ Module wdD3D10
         ' index variable being written to, if -1 it's not going to a variable
         Var As Long
         ' range data that the compiler expects to be true
-        uValueMax As Long: uValueMin As Long
-        iValueMax As Long: iValueMin As Long
-        fValueMax As Single: fValueMin As Single
-        bInfPossible As BOOL: bNaNPossible As BOOL
+        uValueMin As Long: uValueMax As Long
+        iValueMin As Long: iValueMax As Long
+        fValueMin As Single: fValueMax As Single
+        bNaNPossible As BOOL: bInfPossible As BOOL
     End Type
     
     Public Type D3D10_SHADER_DEBUG_OUTPUTREG_INFO
@@ -3782,7 +3788,7 @@ Module wdD3D10
     Public Declare PtrSafe Function D3DX10CreateDeviceAndSwapChain Lib "d3dx10_43.dll" (ByVal pAdapter As IDXGIAdapter, ByVal DriverType As D3D10_DRIVER_TYPE, ByVal Software As LongPtr, ByVal Flags As Long, ByRef pSwapChainDesc As DXGI_SWAP_CHAIN_DESC, ByRef ppSwapChain As IDXGISwapChain, ByRef ppDevice As ID3D10Device) As Long
     [UseGetLastError(False)]
     Public Declare PtrSafe Function D3DX10GetFeatureLevel1 Lib "d3dx10_43.dll" (ByVal pDevice As ID3D10Device, ByRef ppDevice1 As ID3D10Device1) As Long
-    [UseGetLastError(False)]
+    [UseGetLastError(False), Description("Note: Requires the diagnostic build of the DLL.")]
     Public Declare PtrSafe Function D3DX10DebugMute Lib "d3dx10_43.dll" (ByVal Mute As BOOL) As BOOL
     [UseGetLastError(False)]
     Public Declare PtrSafe Function D3DX10CheckVersion Lib "d3dx10_43.dll" (ByVal D3DSdkVersion As Long, ByVal D3DX10SdkVersion As Long) As Long
