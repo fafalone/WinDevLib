@@ -1,4 +1,43 @@
 
+**Update (v9.5.768, 21 Nov 2026):**
+- Add missing content from some fully completed features 
+- (API Standards) Some DSound struct member names were changed to match SDK
+- (Bug fix) Additional corrections to math helpers to match C behavior
+- (Bug fix) IDxcResult::GetNumOutputs still had `ThisCall` active in the pre-Beta990 block.
+- (Bug fix) ID3DXTextureGutterHelper, ID3DXPRTEngine missing Extends
+- (Bug fix) ID3DXFont some members missing [PreserveSig]
+- (Bug fix) Extra argument: IDirect3DDevice9.GetIndices, D3DXGetImageInfo*
+- (Bug fix) Extra member: DIEFFECT_DX5
+- (Bug fix) Return type incorrect: ID3D10ShaderReflectionType::GetDesc, ID3D10BlendState1::GetDesc1, ID3D10ShaderResourceView1::GetDesc1, ID3D10InfoQueue.SetMuteDebugOutput, ID3DXSkinInfo::GetBoneOffsetMatrix
+- (Bug fix) Missing alias: D3DXCreateVolumeTextureFromResourceEx
+- (Bug fix) String for LPSTR*: IDirectXFileBinary
+- (Bug fix) Coding error: D3DVS_VERSION, c_dfDIKeyboard, c_dfDIJoystick2, GET_DIDEVICE_[SUB]TYPE, DIEFT_GETTYPE, DIDFT_GETINSTANCE 
+- (Bug fix) Members out of order: D3D10_SHADER_DEBUG_OUTPUTVAR
+- (Bug fix) Arguments out of order: DIMAKEUSAGEDWORD
+- (Bug fix) Value incorrect: D3DOK_NOAUTOGEN, DSERR_OUTOFMEMORY, DSERR_NOINTERFACE, DSERR_BUFFERTOOSMALL, DSERR_DS8_REQUIRED, DSERR_SENDLOOP, DSERR_BADSENDBUFFERGUID, DSERR_FXUNAVAILABLE
+- (Bug fix) D3D10_ENCODE_BASIC_FILTER used & instead of And
+- (Bug fix) D3DPS_END/D3DVS_END, D3DX_16F_SIGN_MASK sign extension error
+- (Bug fix) ID3DX10Font 32bit No-ByVal-UDT branch still had ByVal UDTs in place of their Single members.
+- (Bug fix) D3DCONTENTPROTECTIONCAPS should have [PackingAlignment(4)] on 32bit
+- (Bug fix) D3D9X UDTs using String for LPSTR should still use LongPtr as they're also passed Unicode functions
+- (Bug fix) Definition incorrect for x64: IDirect3D9[Ex]::GetAdapterMonitor, ID3DXConstantTable::GetBufferPointer, ID3DXConstantTable.GetBufferPointer, ID3DXPatchMesh.LockAttributeBuffer, D3DXBONECOMBINATION.BoneId
+- (Bug fix) Argument type incorrect: D3D10_PASS_DESC.pIAInputSignature, ID3DXConstantTable::SetVector[Array], ID3DXRenderToEnvMap::BeginCube, ID3DXPMesh::ClonePMeshFVF,ClonePMesh, ID3DXAnimationController::GetTrackDesc,SetTrackDesc, D3DXGetImageInfoFromFileInMemory, all D3DX declares needing ID3DXPRTBuffer, IDirectSoundFullDuplex::Initialize, IDirectSoundCaptureBuffer::GetCap, IDirectSound3DListener::GetRolloffFactor
+- (Bug fix) IDWriteFactory3 method name for overload changed
+- (Bug fix) c_dfDI* functions used VarPtr to temp variables that would become invalid
+- (Bug fix) IDirectInputDevice8A.GetDeviceInfo and GetEffectInfo take the W structs
+- (Bug fix) Incorrect InterfaceId: IDirectInput8A
+- (Bug fix) Case incorrect: DirectSoundGetDeviceId Alias
+- (Bug fix) DICONFIGUREDEVICESPARAMSA should use LongPtr for String even though it's ANSI as it gets passed to an interface method
+- (Bug fix, WinDevLibImpl) IPersistFile/IPersistStream contained IPersist's base method but did not extend it, meaning a QI directly for IPersist would fail if it wasn't implemented too, and if it was, you'd have two different GetClassID implementations.
+
+
+**Update (v9.5.767, 18 Nov 2026):**
+- (Bug fix) NT_SUCCESS regression
+- (Bug fix) PALETTERGB while not strictly incorrect did not match C due to differences in tB's RGB() function; it now matches C.
+- (Bug fix) _SURROGATE functions still incorrect
+- (Bug fix) HasOverlappedIoCompleted incorrect for some values
+
+
 **Update (v9.5.766, 18 Nov 2026):**
 - (Bug fix) NT_ERROR/NT_WARNING/NT_INFORMATION, MAKELONG macro implementations did not properly handle unsigned math.
 - (Bug fix) MAKELPARAM, MAKEWPARAM, MAKELRESULT, and POINTTOPOINTS were impacted by the above, but still incorrect for x64; they now have x64 branches so both are correct.

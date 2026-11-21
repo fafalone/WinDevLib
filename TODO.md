@@ -35,15 +35,15 @@ wdCOM.twin - COMPLETE
 wdCoreAudio.twin - COMPLETE
 wdCredProv.twin
 wdD3D.twin - COMPLETE
-wdD3D10.twin
+wdD3D10.twin - COMPLETE
 wdD3D12Video.twin - COMPLETE
 wdD3D8.twin - COMPLETE
-wdD3D9.twin
+wdD3D9.twin - COMPLETE
 wdDefs.twin - COMPLETE
 wdDeprecated.twin
 wdDevices.twin
 wdDirectDraw.twin - COMPLETE
-wdDirectInput.twin
+wdDirectInput.twin - COMPLETE
 wdDirectManip.twin
 wdDirectML.twin
 wdDirectPlay.twin
@@ -53,7 +53,7 @@ wdDiskQuota.twin
 wdDMusic.twin
 wdDragDropConst.twin - COMPLETE
 wdDShowBDA.twin
-wdDSound.twin
+wdDSound.twin - COMPLETE
 wdDStorage.twin
 wdDXVA.twin
 wdETW.twin - COMPLETE
@@ -62,7 +62,7 @@ wdFileHist.twin
 wdGDIP.twin - COMPLETE
 wdGL.twin
 wdGP.twin
-wdHelpers.twin
+wdHelpers.twin - COMPLETE
 wdICM.twin
 wdIID.twin - COMPLETE
 wdIMAPI.twin
@@ -123,6 +123,8 @@ wdXAudio.twin - COMPLETE
 wdXML.twin
 wdXPS.twin - COMPLETE
 ```
+
+- as soon as derived interface dupe method name bug fixed, search wdDirectX for 5( 6( etc
 
 - missing content from wdInternet and wdAPICrypto audit; Long for BOOL and missing content from wdSearch etc audit
 
