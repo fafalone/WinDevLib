@@ -22,6 +22,19 @@ Module wdAPIHID
 #Region "hidclass.h"
     Public Const HID_REVISION = &H00000001
     
+    Public Function HID_CTL_CODE(ByVal id As Long) As Long
+        Return CTL_CODE(FILE_DEVICE_KEYBOARD, (id), METHOD_NEITHER, FILE_ANY_ACCESS)
+    End Function
+    Public Function HID_BUFFER_CTL_CODE(ByVal id As Long) As Long
+        Return CTL_CODE(FILE_DEVICE_KEYBOARD, (id), METHOD_BUFFERED, FILE_ANY_ACCESS)
+    End Function
+    Public Function HID_IN_CTL_CODE(ByVal id As Long) As Long
+        Return CTL_CODE(FILE_DEVICE_KEYBOARD, (id), METHOD_IN_DIRECT, FILE_ANY_ACCESS)
+    End Function
+    Public Function HID_OUT_CTL_CODE(ByVal id As Long) As Long
+        Return CTL_CODE(FILE_DEVICE_KEYBOARD, (id), METHOD_OUT_DIRECT, FILE_ANY_ACCESS)
+    End Function
+       
     Public Const IOCTL_HID_GET_DRIVER_CONFIG = &Hb0190
     Public Const IOCTL_HID_SET_DRIVER_CONFIG = &Hb0194
     Public Const IOCTL_HID_GET_POLL_FREQUENCY_MSEC = &Hb0198
@@ -68,22 +81,30 @@ Module wdAPIHID
         DeviceObjectRemoved
     End Enum
     ' typedef VOID (*PHID_STATUS_CHANGE)(_In_ PVOID Context, _In_ enum DeviceObjectState State);
+    Public Delegate Sub HID_STATUS_CHANGE (ByVal Context As LongPtr, ByVal State As DeviceObjectState)
+    Public Delegate Function PHIDP_GETCAPS (ByVal PreparsedData As LongPtr, Capabilities As HIDP_CAPS) As NTSTATUS
+    ' #If WDL_NO_DELEGATES Then
     Public Type HID_INTERFACE_NOTIFY_PNP
-        i As LongPtr
+        i As INTERFACE
         StatusChangeFn As LongPtr 'PHID_STATUS_CHANGE
         CallbackContext As LongPtr
     End Type
-    ' _Must_inspect_result_
-    ' typedef 
-    ' NTSTATUS 
-    ' (__stdcall *PHIDP_GETCAPS) (
-        ' _In_  PHIDP_PREPARSED_DATA PreparsedData, 
-        ' _Out_ PHIDP_CAPS Capabilities
-        ' );
     Public Type HID_INTERFACE_HIDPARSE
-        i As LongPtr
+        i As INTERFACE
         HidpGetCaps As LongPtr 'PHIDP_GETCAPS
     End Type
+    ' #Else
+    ' Public Type HID_INTERFACE_NOTIFY_PNP
+    '     i As INTERFACE
+    '     StatusChangeFn As HID_STATUS_CHANGE
+    '     CallbackContext As LongPtr
+    ' End Type
+    ' Public Type HID_INTERFACE_HIDPARSE
+        ' i As INTERFACE
+        ' HidpGetCaps As PHIDP_GETCAPS
+    ' End Type
+    ' #End If
+ 
         
     Public Type HID_COLLECTION_INFORMATION
         ' DescriptorSize is the size of the input buffer required to accept
@@ -683,6 +704,7 @@ Public Const HID_USAGE_CONSUMER_PROGRAMMABLE_BUTTONS                          As
 Public Const HID_USAGE_CONSUMER_MICROPHONE                                    As Integer = &H0004
 Public Const HID_USAGE_CONSUMER_HEADPHONE                                     As Integer = &H0005
 Public Const HID_USAGE_CONSUMER_GRAPHIC_EQUALIZER                             As Integer = &H0006
+Public Const HID_USAGE_CONSUMER_KEYBOARD_BACKLIGHT                            As Integer = &H0007
 Public Const HID_USAGE_CONSUMER_10                                            As Integer = &H0020
 Public Const HID_USAGE_CONSUMER_100                                           As Integer = &H0021
 Public Const HID_USAGE_CONSUMER_AMPM                                          As Integer = &H0022
@@ -1127,6 +1149,9 @@ Public Const HID_USAGE_CONSUMER_CONTACT_EMAIL_MAIN                            As
 Public Const HID_USAGE_CONSUMER_CONTACT_SPEED_DIAL_NUMBER                     As Integer = &H0512
 Public Const HID_USAGE_CONSUMER_CONTACT_STATUS_FLAG                           As Integer = &H0513
 Public Const HID_USAGE_CONSUMER_CONTACT_MISC                                  As Integer = &H0514
+Public Const HID_USAGE_CONSUMER_KEYBOARD_BRIGHTNESS_NEXT                      As Integer = &H0515
+Public Const HID_USAGE_CONSUMER_KEYBOARD_BRIGHTNESS_PREVIOUS                  As Integer = &H0516
+Public Const HID_USAGE_CONSUMER_KEYBOARD_BACKLIGHT_LEVEL_SUGGESTION           As Integer = &H0517
 
 Public Const HID_VALUE_CONSUMER_KEYBOARD_FORM_FACTOR_UNKNOWN                 As Long = &H0000
 Public Const HID_VALUE_CONSUMER_KEYBOARD_FORM_FACTOR_FULL_SIZE               As Long = &H0001
@@ -1428,6 +1453,7 @@ Public Const HID_USAGE_GENERIC_SYSCTL_APP_DBG_BREAK                          As 
 Public Const HID_USAGE_GENERIC_SYSCTL_MUTE                                   As Integer = &H00A7
 Public Const HID_USAGE_GENERIC_SYSCTL_HIBERNATE                              As Integer = &H00A8
 Public Const HID_USAGE_GENERIC_SYSCTL_MICROPHONE_MUTE                        As Integer = &H00A9
+Public Const HID_USAGE_GENERIC_SYSCTL_ACCESSIBILITY_BINDING                  As Integer = &H00AA
 Public Const HID_USAGE_GENERIC_SYSCTL_DISP_INVERT                            As Integer = &H00B0
 Public Const HID_USAGE_GENERIC_SYSCTL_DISP_INTERNAL                          As Integer = &H00B1
 Public Const HID_USAGE_GENERIC_SYSCTL_DISP_EXTERNAL                          As Integer = &H00B2
@@ -3179,21 +3205,21 @@ Public Type USAGE_AND_PAGE
 End Type
 
 Public Function HidP_IsSameUsageAndPage(u1 As USAGE_AND_PAGE, u2 As USAGE_AND_PAGE) As Boolean
-    Return (RtlCompareMemory(u1, u2, 8) = 8)
+    Return (RtlCompareMemory(u1, u2, 4) = 4)
 End Function
 
 Public Type HIDP_BUTTON_CAPS
     UsagePage As Integer 'USAGE
     ReportID As Byte
-    IsAlias As Byte
+    IsAlias As CBoolean
     BitField As Integer
     LinkCollection As Integer ' A unique internal index pointer
     LinkUsage As Integer 'USAGE
     LinkUsagePage As Integer 'USAGE
-    IsRange As Byte
-    IsStringRange As Byte
-    IsDesignatorRange As Byte
-    IsAbsolute As Byte
+    IsRange As CBoolean
+    IsStringRange As CBoolean
+    IsDesignatorRange As CBoolean
+    IsAbsolute As CBoolean
     ReportCount As Integer ' Available in API version >= 2 only.
     Reserved2 As Integer
     Reserved(0 To 8) As Long
@@ -3225,16 +3251,16 @@ End Type
 Public Type HIDP_VALUE_CAPS
     UsagePage As Integer 'USAGE
     ReportID As Byte
-    IsAlias As Byte
+    IsAlias As CBoolean
     BitField As Integer
     LinkCollection As Integer ' A unique internal index pointer
     LinkUsage As Integer 'USAGE
     LinkUsagePage As Integer 'USAGE
-    IsRange As Byte
-    IsStringRange As Byte
-    IsDesignatorRange As Byte
-    IsAbsolute As Byte
-    HasNull As Byte ' Does this channel have a null report   union
+    IsRange As CBoolean
+    IsStringRange As CBoolean
+    IsDesignatorRange As CBoolean
+    IsAbsolute As CBoolean
+    HasNull As CBoolean ' Does this channel have a null report   union
     Reserved As Byte
     BitSize As Integer ' How many bits are devoted to this value?
     ReportCount As Integer ' See Note below.  Usually set to 1.
@@ -3383,7 +3409,7 @@ Public Type HIDP_BUTTON_ARRAY_DATA
 End Type
 
 Public Declare PtrSafe Function HidP_GetButtonArray Lib "hid.dll" (ByVal ReportType As HIDP_REPORT_TYPE, ByVal UsagePage As Integer, ByVal LinkCollection As Integer, ByVal Usage As Integer, ButtonData As HIDP_BUTTON_ARRAY_DATA, ButtonDataLength As Integer, ByVal PreparsedData As LongPtr, Report As Any, ByVal ReportLength As Long) As NTSTATUS
-Public Declare PtrSafe Function HidP_SetButtonArray Lib "hid.dll" (ByVal ReportType As HIDP_REPORT_TYPE, ByVal UsagePage As Integer, ByVal LinkCollection As Integer, ByVal Usage As Integer, ButtonData As HIDP_BUTTON_ARRAY_DATA, ButtonDataLength As Integer, ByVal PreparsedData As LongPtr, Report As Any, ByVal ReportLength As Long) As NTSTATUS
+Public Declare PtrSafe Function HidP_SetButtonArray Lib "hid.dll" (ByVal ReportType As HIDP_REPORT_TYPE, ByVal UsagePage As Integer, ByVal LinkCollection As Integer, ByVal Usage As Integer, ButtonData As HIDP_BUTTON_ARRAY_DATA, ByVal ButtonDataLength As Integer, ByVal PreparsedData As LongPtr, Report As Any, ByVal ReportLength As Long) As NTSTATUS
 
 Public Enum HIDP_KEYBOARD_DIRECTION
     HidP_Keyboard_Break
@@ -3423,6 +3449,11 @@ End Type
 
 Public Declare PtrSafe Function HidP_TranslateUsageAndPagesToI8042ScanCodes Lib "hid.dll" (ChangedUsageList As USAGE_AND_PAGE, ByVal UsageListLength As Long, ByVal KeyAction As HIDP_KEYBOARD_DIRECTION, ModifierState As HIDP_KEYBOARD_MODIFIER_STATE, ByVal InsertCodesProcedure As LongPtr, Optional ByVal InsertCodesContext As LongPtr) As NTSTATUS
 Public Declare PtrSafe Function HidP_TranslateUsagesToI8042ScanCodes Lib "hid.dll" (ChangedUsageList As Integer, ByVal UsageListLength As Long, ByVal KeyAction As HIDP_KEYBOARD_DIRECTION, ModifierState As HIDP_KEYBOARD_MODIFIER_STATE, ByVal InsertCodesProcedure As LongPtr, Optional ByVal InsertCodesContext As LongPtr) As NTSTATUS
+
+
+Public Function HIDP_ERROR_CODES(ByVal Sev As Long, ByVal code As Long) As NTSTATUS
+    Return (((Sev) << 28) Or (FACILITY_HID_ERROR_CODE << 16) Or (code))
+End Function
 
 ' Public Const FACILITY_HID_ERROR_CODE = &H11
 ' These were added as NTSTATUS members
@@ -3483,25 +3514,25 @@ Public Type HIDD_ATTRIBUTES
     ' Additional fields will be added to the end of this structure.
 End Type
 
-Public Declare PtrSafe Function HidD_GetAttributes Lib "hid.dll" (ByVal HidDeviceObject As LongPtr, Attributes As HIDD_ATTRIBUTES) As Byte
+Public Declare PtrSafe Function HidD_GetAttributes Lib "hid.dll" (ByVal HidDeviceObject As LongPtr, Attributes As HIDD_ATTRIBUTES) As CBoolean
 Public Declare PtrSafe Sub HidD_GetHidGuid Lib "hid.dll" (HidGuid As UUID)
-Public Declare PtrSafe Function HidD_GetPreparsedData Lib "hid.dll" (ByVal HidDeviceObject As LongPtr, PreparsedData As LongPtr) As Byte
-Public Declare PtrSafe Function HidD_FreePreparsedData Lib "hid.dll" (ByVal PreparsedData As LongPtr) As Byte
-Public Declare PtrSafe Function HidD_FlushQueue Lib "hid.dll" (ByVal HidDeviceObject As LongPtr) As Byte
-Public Declare PtrSafe Function HidD_GetConfiguration Lib "hid.dll" (ByVal HidDeviceObject As LongPtr, Configuration As HIDD_CONFIGURATION, ByVal ConfigurationLength As Long) As Byte
-Public Declare PtrSafe Function HidD_SetConfiguration Lib "hid.dll" (ByVal HidDeviceObject As LongPtr, Configuration As HIDD_CONFIGURATION, ByVal ConfigurationLength As Long) As Byte
-Public Declare PtrSafe Function HidD_GetFeature Lib "hid.dll" (ByVal HidDeviceObject As LongPtr, ReportBuffer As Any, ByVal ReportBufferLength As Long) As Byte
-Public Declare PtrSafe Function HidD_SetFeature Lib "hid.dll" (ByVal HidDeviceObject As LongPtr, ReportBuffer As Any, ByVal ReportBufferLength As Long) As Byte
-Public Declare PtrSafe Function HidD_GetInputReport Lib "hid.dll" (ByVal HidDeviceObject As LongPtr, ReportBuffer As Any, ByVal ReportBufferLength As Long) As Byte
-Public Declare PtrSafe Function HidD_SetOutputReport Lib "hid.dll" (ByVal HidDeviceObject As LongPtr, ReportBuffer As Any, ByVal ReportBufferLength As Long) As Byte
-Public Declare PtrSafe Function HidD_GetNumInputBuffers Lib "hid.dll" (ByVal HidDeviceObject As LongPtr, NumberBuffers As Long) As Byte
-Public Declare PtrSafe Function HidD_SetNumInputBuffers Lib "hid.dll" (ByVal HidDeviceObject As LongPtr, ByVal NumberBuffers As Long) As Byte
-Public Declare PtrSafe Function HidD_GetPhysicalDescriptor Lib "hid.dll" (ByVal HidDeviceObject As LongPtr, Buffer As Any, ByVal BufferLength As Long) As Byte
-Public Declare PtrSafe Function HidD_GetManufacturerString Lib "hid.dll" (ByVal HidDeviceObject As LongPtr, Buffer As Any, ByVal BufferLength As Long) As Byte
-Public Declare PtrSafe Function HidD_GetProductString Lib "hid.dll" (ByVal HidDeviceObject As LongPtr, Buffer As Any, ByVal BufferLength As Long) As Byte
-Public Declare PtrSafe Function HidD_GetIndexedString Lib "hid.dll" (ByVal HidDeviceObject As LongPtr, ByVal StringIndex As Long, Buffer As Any, ByVal BufferLength As Long) As Byte
-Public Declare PtrSafe Function HidD_GetSerialNumberString Lib "hid.dll" (ByVal HidDeviceObject As LongPtr, Buffer As Any, ByVal BufferLength As Long) As Byte
-Public Declare PtrSafe Function HidD_GetMsGenreDescriptor Lib "hid.dll" (ByVal HidDeviceObject As LongPtr, Buffer As Any, ByVal BufferLength As Long) As Byte
+Public Declare PtrSafe Function HidD_GetPreparsedData Lib "hid.dll" (ByVal HidDeviceObject As LongPtr, PreparsedData As LongPtr) As CBoolean
+Public Declare PtrSafe Function HidD_FreePreparsedData Lib "hid.dll" (ByVal PreparsedData As LongPtr) As CBoolean
+Public Declare PtrSafe Function HidD_FlushQueue Lib "hid.dll" (ByVal HidDeviceObject As LongPtr) As CBoolean
+Public Declare PtrSafe Function HidD_GetConfiguration Lib "hid.dll" (ByVal HidDeviceObject As LongPtr, Configuration As HIDD_CONFIGURATION, ByVal ConfigurationLength As Long) As CBoolean
+Public Declare PtrSafe Function HidD_SetConfiguration Lib "hid.dll" (ByVal HidDeviceObject As LongPtr, Configuration As HIDD_CONFIGURATION, ByVal ConfigurationLength As Long) As CBoolean
+Public Declare PtrSafe Function HidD_GetFeature Lib "hid.dll" (ByVal HidDeviceObject As LongPtr, ReportBuffer As Any, ByVal ReportBufferLength As Long) As CBoolean
+Public Declare PtrSafe Function HidD_SetFeature Lib "hid.dll" (ByVal HidDeviceObject As LongPtr, ReportBuffer As Any, ByVal ReportBufferLength As Long) As CBoolean
+Public Declare PtrSafe Function HidD_GetInputReport Lib "hid.dll" (ByVal HidDeviceObject As LongPtr, ReportBuffer As Any, ByVal ReportBufferLength As Long) As CBoolean
+Public Declare PtrSafe Function HidD_SetOutputReport Lib "hid.dll" (ByVal HidDeviceObject As LongPtr, ReportBuffer As Any, ByVal ReportBufferLength As Long) As CBoolean
+Public Declare PtrSafe Function HidD_GetNumInputBuffers Lib "hid.dll" (ByVal HidDeviceObject As LongPtr, NumberBuffers As Long) As CBoolean
+Public Declare PtrSafe Function HidD_SetNumInputBuffers Lib "hid.dll" (ByVal HidDeviceObject As LongPtr, ByVal NumberBuffers As Long) As CBoolean
+Public Declare PtrSafe Function HidD_GetPhysicalDescriptor Lib "hid.dll" (ByVal HidDeviceObject As LongPtr, Buffer As Any, ByVal BufferLength As Long) As CBoolean
+Public Declare PtrSafe Function HidD_GetManufacturerString Lib "hid.dll" (ByVal HidDeviceObject As LongPtr, Buffer As Any, ByVal BufferLength As Long) As CBoolean
+Public Declare PtrSafe Function HidD_GetProductString Lib "hid.dll" (ByVal HidDeviceObject As LongPtr, Buffer As Any, ByVal BufferLength As Long) As CBoolean
+Public Declare PtrSafe Function HidD_GetIndexedString Lib "hid.dll" (ByVal HidDeviceObject As LongPtr, ByVal StringIndex As Long, Buffer As Any, ByVal BufferLength As Long) As CBoolean
+Public Declare PtrSafe Function HidD_GetSerialNumberString Lib "hid.dll" (ByVal HidDeviceObject As LongPtr, Buffer As Any, ByVal BufferLength As Long) As CBoolean
+Public Declare PtrSafe Function HidD_GetMsGenreDescriptor Lib "hid.dll" (ByVal HidDeviceObject As LongPtr, Buffer As Any, ByVal BufferLength As Long) As CBoolean
 
 
 #End Region
