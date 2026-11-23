@@ -1,7 +1,7 @@
 # Windows Development Library for twinBASIC
 ## WinDevLib 
 
-**Current Version: 9.5.7708 (November 23rd, 2026)**
+**Current Version: 9.5.770 (November 23rd, 2026)**
 
 (c) 2022-2026 Jon Johnson (fafalone)
 
@@ -255,7 +255,7 @@ Current coverage is already quite extensive, spanning hundreds of Windows SDK he
  
 ### Updates
 
-**Update (v9.5.770, 21 Nov 2026):**
+**Update (v9.5.770, 23 Nov 2026):**
 - Add missing content from some fully completed features 
 - IsWindows8Point1OrGreater and tests for a newer version now take a custom optional NoVersionLie argument to match IsWindowsVersionOrGreater
 - (BREAKING CHANGE) IMAGE_FILE_MACHINE_* constants are almost always stored in an Integer field, so the enum values in ImageMachineType are no longer coerced to a postive Long. Therefore CIntToUInt is no longer required for comparison-- and will be incorrect in existing code that does use it.
