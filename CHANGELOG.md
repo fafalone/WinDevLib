@@ -1,4 +1,28 @@
 
+**Update (v9.5.770, 21 Nov 2026):**
+- Add missing content from some fully completed features 
+- IsWindows8Point1OrGreater and tests for a newer version now take a custom optional NoVersionLie argument to match IsWindowsVersionOrGreater
+- (BREAKING CHANGE) IMAGE_FILE_MACHINE_* constants are almost always stored in an Integer field, so the enum values in ImageMachineType are no longer coerced to a postive Long. Therefore CIntToUInt is no longer required for comparison-- and will be incorrect in existing code that does use it.
+- (API Standards) IWpdSerializer::GetIPortableDeviceValuesFromBuffer should use As Any buffer
+- (API Standards) IDirectInput7W::CreateDeviceEx, IDirectInput8[A,W]::CreateDevice, ImageList_CoCreateInstance, SHWeakQueryInterface, SHWeakReleaseInterface, CoGetStdMarshalEx, CoCreateFreeThreadedMarshaler, IMsoComponentManager::FCreateSubComponentManager used LongPtr for COM aggregation punkOuter
+- (Bug fix) Value incorrect: SECURITY_MAX_SID_SIZE, sCLSID_PortableDevicePropVariantCollection
+- (Bug fix) Missing method: IPortableDeviceContent, IPortableDeviceServiceCapabilities, IEnumPortableDeviceObjectIDs
+- (Bug fix) Argument type incorrect: IPortableDeviceServiceCapabilities::GetFormatRenderingProfiles, IWpdSerializer::WriteIPortableDeviceValuesToBuffer, PDXVAHDSW_GetVideoProcessorCaps
+- (Bug fix) Argument should be ByVal: IPortableDevicePropVariantCollection::ChangeType, IPortableDeviceUnitsStream::SeekInUnits (w/ No-ByVal-UDT alt)
+- (Bug fix) Argument should be ByRef: HidP_SetButtonArray
+- (Bug fix) Return type incorrect: DXVA2FloatToFixed
+- (Bug fix) Name typos: IPortableDeviceValues (multiple methods), DXVA_Deblock_H264.bbSinternalLeftVert/.bbSinternalTopHorz
+- (Bug fix) Coding error: HidP_IsSameUsageAndPage
+- (Bug fix) Member should be inlined, not a pointer: HID_INTERFACE_NOTIFY_PNP.i, HID_INTERFACE_HIDPARSE.i
+- (Bug fix) Array size incorrect: DXVA_Slice_H264_Long.Weights, DXVA_QMatrix_MJPEG.quantvals
+- (Bug fix) DXVA_Status_AV1 should have [PackingAlignment(1)]
+- (Bug fix) DXVA2FloatToFixed rounds where C truncates
+- (Bug fix) DXVA2FixedToFloat treats Fraction as signed
+- (Bug fix) DXVABit and DXVABitMask shift a 16-bit Integer
+- (Bug fix) DXVA_FilmGrainChar_H264 used its tag name instead of actual name (was DXVA_FilmGrainCharacteristics)
+- (Bug fix) DXVA2_Fixed32TransparentAlpha and DXVA2_Fixed32OpaqueAlpha improperly marked Private
+- (Bug fix) IsWindowsVersionOrGreater with NoVersionLie=True incorrect for Windows 8.1 when called from 8.1.
+
 **Update (v9.5.768, 21 Nov 2026):**
 - Add missing content from some fully completed features 
 - (API Standards) Some DSound struct member names were changed to match SDK
