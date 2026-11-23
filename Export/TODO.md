@@ -18,7 +18,7 @@ wdAPIComCtl.twin - COMPLETE
 wdAPICrypto.twin - COMPLETE
 wdAPIDbgHlp.twin
 wdAPIFlt.twin
-wdAPIHID.twin
+wdAPIHID.twin - COMPLETE
 wdAPIInterlocked.twin
 wdAPIKS.twin
 wdAPINTKernel.twin - COMPLETE
@@ -41,7 +41,7 @@ wdD3D8.twin - COMPLETE
 wdD3D9.twin - COMPLETE
 wdDefs.twin - COMPLETE
 wdDeprecated.twin
-wdDevices.twin
+wdDevices.twin - COMPLETE
 wdDirectDraw.twin - COMPLETE
 wdDirectInput.twin - COMPLETE
 wdDirectManip.twin
@@ -55,7 +55,7 @@ wdDragDropConst.twin - COMPLETE
 wdDShowBDA.twin
 wdDSound.twin - COMPLETE
 wdDStorage.twin
-wdDXVA.twin
+wdDXVA.twin - COMPLETE
 wdETW.twin - COMPLETE
 wdExplorer.twin - COMPLETE
 wdFileHist.twin
@@ -131,6 +131,9 @@ wdXPS.twin - COMPLETE
 - non-error tasks in audit review for wdAPI
 
 - PssNt* apis from ntpsapi
+
+- The driver command-access map macros (L4497–4718): BEGIN_WPD_COMMAND_ACCESS_MAP, END_WPD_COMMAND_ACCESS_MAP, WPD_COMMAND_ACCESS_ENTRY, WPD_COMMAND_ACCESS_PROPERTY_ENTRY, DECLARE_WPD_STANDARD_COMMAND_ACCESS_ENTRIES, DECLARE_IS_COMMAND_IN_WPD_COMMAND_ACCESS_MAP, IS_COMMAND_IN_WPD_COMMAND_ACCESS_MAP, DECLARE_VERIFY_WPD_COMMAND_ACCESS and VERIFY_WPD_COMMAND_ACCESS. They build static C++ tables and inline functions.
+
 
 - comsvcs.h
 
