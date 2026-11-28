@@ -11,13 +11,13 @@ wdActiveIMM.twin
 wdAD.twin
 wdAMSI.twin
 wdAPI.twin - COMPLETE
-wdAPIBio.twin
-wdAPIBluetooth.twin
+wdAPIBio.twin - COMPLETE
+wdAPIBluetooth.twin - COMPLETE
 wdAPICld.twin
 wdAPIComCtl.twin - COMPLETE
 wdAPICrypto.twin - COMPLETE
 wdAPIDbgHlp.twin
-wdAPIFlt.twin
+wdAPIFlt.twin - COMPLETE
 wdAPIHID.twin - COMPLETE
 wdAPIInterlocked.twin
 wdAPIKS.twin
@@ -26,14 +26,14 @@ wdAPISdkddkver.twin
 wdAPISL.twin
 wdAPIWFP.twin - COMPLETE
 wdAPIWIM.twin
-wdAPIWLAN.twin
+wdAPIWLAN.twin - COMPLETE
 wdAppModel.twin
 wdAppX.twin
-wdBITS.twin
+wdBITS.twin - COMPLETE
 wdCodecAPI.twin
 wdCOM.twin - COMPLETE
 wdCoreAudio.twin - COMPLETE
-wdCredProv.twin
+wdCredProv.twin - COMPLETE
 wdD3D.twin - COMPLETE
 wdD3D10.twin - COMPLETE
 wdD3D12Video.twin - COMPLETE
@@ -44,8 +44,8 @@ wdDeprecated.twin
 wdDevices.twin - COMPLETE
 wdDirectDraw.twin - COMPLETE
 wdDirectInput.twin - COMPLETE
-wdDirectManip.twin
-wdDirectML.twin
+wdDirectManip.twin - COMPLETE
+wdDirectML.twin - COMPLETE
 wdDirectPlay.twin
 wdDirectShow.twin
 wdDirectX.twin - COMPLETE
@@ -54,14 +54,14 @@ wdDMusic.twin
 wdDragDropConst.twin - COMPLETE
 wdDShowBDA.twin
 wdDSound.twin - COMPLETE
-wdDStorage.twin
+wdDStorage.twin - COMPLETE
 wdDXVA.twin - COMPLETE
 wdETW.twin - COMPLETE
 wdExplorer.twin - COMPLETE
 wdFileHist.twin
 wdGDIP.twin - COMPLETE
 wdGL.twin
-wdGP.twin
+wdGP.twin - COMPLETE
 wdHelpers.twin - COMPLETE
 wdICM.twin
 wdIID.twin - COMPLETE
@@ -75,14 +75,14 @@ wdManipulations.twin - COMPLETE
 wdMF.twin - COMPLETE
 wdMIME.twin
 wdMSIME.twin
-wdNetcon.twin
+wdNetcon.twin - COMPLETE
 wdOLE.twin - COMPLETE
-wdOPC.twin
+wdOPC.twin - COMPLETE
 wdPhotoAcq.twin
 wdPKEY.twin - COMPLETE
-wdPrintNotify.twin
+wdPrintNotify.twin - COMPLETE
 wdRadio.twin - COMPLETE
-wdRTWorkQ.twin
+wdRTWorkQ.twin - COMPLETE
 wdScript.twin
 wdSearch.twin - COMPLETE
 wdSecurity.twin - COMPLETE
@@ -96,7 +96,7 @@ wdSQL.twin
 wdStaticWrappers.twin
 wdSyncMgr.twin
 wdTablet.twin
-wdTaskScheduler.twin
+wdTaskScheduler.twin - COMPLETE
 wdTelephony.twin
 wdTransactions.twin
 wdTypedef.twin - COMPLETE
@@ -106,12 +106,12 @@ wdUIRibbon.twin - COMPLETE
 wdUPNP.twin
 wdVDS.twin
 wdVFW.twin
-wdWBEM.twin
+wdWBEM.twin - COMPLETE
 wdWCN.twin
 wdWebservices.twin
 wdWebView2.twin - COMPLETE
 wdWIC.twin - COMPLETE
-wdWinML.twin
+wdWinML.twin - COMPLETE
 wdWinRTBase.twin
 wdWMDM.twin
 wdWPC.twin
@@ -178,7 +178,7 @@ wdXPS.twin - COMPLETE
 
 - When Implements for [PreserveSig] is supported, uncomment attr on IAdviseSink[2,Ex], IDWriteFontDownloadListener
 
-- When ByVal for SAFEARRAY is supported, change wdAccessible types (search "* As ")
+- When ByVal for SAFEARRAY is supported, change wdAccessible and wdTaskScheduler types (search "* As ") 
 
 - IN6_IS_ADDR_ inlined funcs in ws2ipdef.h
 
@@ -290,7 +290,7 @@ Verified 100% basic coverage (for SDK 10.0.22621.0 minimum, most for 10.0.26100.
     enclaveapi.h,wincon.h,wincontypes.h,consoleapi.h,consoleapi2.h,consoleapi3.h,winreg.h,lsalookup.h,adtgen.h,authz.h,cfg.h,sfc.h,secext.h,AudioAPOTypes.h,
     audioclient.h,audioclient.idl,audioclientactivationparams.h,audioendpoints.h,audioendpoints.idl,audioenginebaseapo.h,audioenginebaseapo.idl,
     audioengineendpoint.h,audioengineendpoint.idl,audiomediatype.h,audiomediatype.idl,audiostatemonitorapi.h,audiopolicy.h,audiopolicy.idl,audiosessiontypes.h,
-    devicetopology.h,devicetopology.idl,endpointvolume.h,mmdeviceapi.h,spatialaudioclient.h,spatialaudiohrtf.h,spatialaudiometadata.h,l2cnm.h,wlantypes.h,
+    devicetopology.h,devicetopology.idl,endpointvolume.h,mmdeviceapi.h,spatialaudioclient.h,spatialaudiohrtf.h,spatialaudiometadata.h,l2cmn.h,wlantypes.h,
     ndis\ObjectHeader.h,eaptypes.h,gdiplusflat.h,GdiplusImaging.h,imapi.h,manipulations.h,manipulations.idl,propsys.h,propsys.idl,spellcheck.h,spellcheck.idl,spellcheckprovider.h,
     spellcheckprovider.idl,structuredquerycondition.h,structuredquerycondition.idl,threadpoollegacyapiset.h,thumbcache.h,thumbcache.idl,thumbnailstreamcache.h,
     thumbnailstreamcache.idl,timezoneapi.h,TOM.h,tdh.h,winres.h,UIRibbon.h,UIRibbon.idl,UIRibbonKeydef.h,UIRibbonPropertyHelpers.h,UIAutomationClient.h,
