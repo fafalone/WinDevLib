@@ -114,6 +114,33 @@
         [Description("method Delete")]
         Sub Delete()
     End Interface
+    
+    [InterfaceId("C08956B8-1CD3-11D1-B1C5-00805FC1270E")]
+    [OleAutomation(False)]
+    Interface IEnumNetSharingEveryConnection Extends IUnknown
+        [PreserveSig] Function Next(ByVal celt As Long, rgVar As Variant, pceltFetched As Long) As Long
+        Sub Skip(ByVal celt As Long)
+        Sub Reset()
+        Sub Clone(ppenum As IEnumNetSharingEveryConnection)
+    End Interface
+    
+    [InterfaceId("C08956B4-1CD3-11D1-B1C5-00805FC1270E")]
+    [OleAutomation(False)]
+    Interface IEnumNetSharingPublicConnection Extends IUnknown
+        [PreserveSig] Function Next(ByVal celt As Long, rgVar As Variant, pceltFetched As Long) As Long
+        Sub Skip(ByVal celt As Long)
+        Sub Reset()
+        Sub Clone(ppenum As IEnumNetSharingPublicConnection)
+    End Interface
+    
+    [InterfaceId("C08956B5-1CD3-11D1-B1C5-00805FC1270E")]
+    [OleAutomation(False)]
+    Interface IEnumNetSharingPrivateConnection Extends IUnknown
+        [PreserveSig] Function Next(ByVal celt As Long, rgVar As Variant, pceltFetched As Long) As Long
+        Sub Skip(ByVal celt As Long)
+        Sub Reset()
+        Sub Clone(ppenum As IEnumNetSharingPrivateConnection)
+    End Interface
 
     [InterfaceId("02E4A2DE-DA20-4E34-89C8-AC22275A010B")]
     '[ DualInterface]
@@ -135,7 +162,7 @@
     Interface INetConnectionProps Extends IDispatch
         [DispId(1)]
         [Description("property Guid")]
-        Property Get guid() As String
+        Property Get Guid() As String
         [DispId(2)]
         [Description("property Name")]
         Property Get Name() As String
@@ -162,7 +189,7 @@
         Property Get SharingEnabled() As Boolean
         [DispId(2)]
         [Description("property SharingConnectionType")]
-        Property Get SHARINGCONNECTIONTYPE() As SHARINGCONNECTIONTYPE
+        Property Get SharingConnectionType() As SHARINGCONNECTIONTYPE
         [DispId(3)]
         [Description("method DisableSharing")]
         Sub DisableSharing()
@@ -234,7 +261,7 @@
     Interface INetSharingManager Extends IDispatch
         [DispId(1)]
         [Description("property SharingInstalled")]
-        Property Get SharingInstalled() As Integer
+        Property Get SharingInstalled() As Boolean
         [DispId(2)]
         [Description("EnumPublicConnections")]
         Property Get EnumPublicConnections(ByVal flags As SHARINGCONNECTION_ENUM_FLAGS) As INetSharingPublicConnectionCollection
@@ -243,13 +270,13 @@
         Property Get EnumPrivateConnections(ByVal flags As SHARINGCONNECTION_ENUM_FLAGS) As INetSharingPrivateConnectionCollection
         [DispId(6)]
         [Description("INetSharingConfigurationForINetConnection")]
-        Property Get INetSharingConfigurationForINetConnection(ByVal pNetConnection As LongPtr) As INetSharingConfiguration
+        Property Get INetSharingConfigurationForINetConnection(ByVal pNetConnection As INetConnection) As INetSharingConfiguration
         [DispId(7)]
         [Description("EnumEveryConnection")]
         Property Get EnumEveryConnection() As INetSharingEveryConnectionCollection
         [DispId(8)]
         [Description("NetConnectionProps")]
-        Property Get NetConnectionProps(ByVal pNetConnection As LongPtr) As INetConnectionProps
+        Property Get NetConnectionProps(ByVal pNetConnection As INetConnection) As INetConnectionProps
     End Interface
 
     'CLSID_NetSharingManager 
@@ -268,6 +295,8 @@
 [MustBeQualified]
 #End If
 Module wdNetcon
+    
+Public Const NETCON_MAX_NAME_LEN = 256
 
 Public Enum NETCON_CHARACTERISTIC_FLAGS
 	NCCF_NONE = &H0000 ' No special characteristics
@@ -334,6 +363,15 @@ Public Enum NETCON_MEDIATYPE
 	NCM_SHAREDACCESSHOST_LAN
 	NCM_SHAREDACCESSHOST_RAS
 End Enum
+
+Public Const S_OBJECT_NO_LONGER_VALID As Long = 2
+
+Public Declare PtrSafe Sub NcFreeNetconProperties Lib "netshell.dll" (ByVal pProps As LongPtr) 'struct only used as NETCON_PROPERTIES** so pass the pointer instead of the usual ByRef
+Public Declare PtrSafe Function NcIsValidConnectionName Lib "netshell.dll" (ByVal pszwName As LongPtr) As BOOL
+Public DeclareWide PtrSafe Function NcIsValidConnectionName Lib "netshell.dll" (ByVal pszwName As String) As BOOL
+
+
+
 
 Public Type NETCON_PROPERTIES
 	guidId As UUID

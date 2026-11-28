@@ -43,7 +43,7 @@ Interface IScheduledWorkItem Extends stdole.IUnknown
     Sub SetCreator(ByVal pwszCreator As String)
     Function GetCreator() As LongPtr
     Sub SetWorkItemData(ByVal cbData As Integer, rgbData As Any)
-    Sub GetWorkItemData(pcbData As Integer, prgbData As Any)
+    Sub GetWorkItemData(pcbData As Integer, prgbData As LongPtr)
     Sub SetErrorRetryCount(ByVal wRetryCount As Integer)
     Function GetErrorRetryCount() As Integer
     Sub SetErrorRetryInterval(ByVal wRetryInterval As Integer)
@@ -107,7 +107,7 @@ End Interface
 [InterfaceId("4086658a-cbbb-11cf-b604-00c04fd8d565")]
 [OleAutomation(False)]
 Interface IProvideTaskPage Extends stdole.IUnknown
-    Function GetPage(ByVal tpType As TASKPAGE, ByVal fPersistChanges As Long) As LongPtr
+    Function GetPage(ByVal tpType As TASKPAGE, ByVal fPersistChanges As BOOL) As LongPtr
 End Interface
 
 '---------------------------------------------
@@ -405,7 +405,7 @@ Interface ITriggerCollection Extends IDispatch
     Property Get Count() As Long
     [DispId(0)]
     [Description("Retrieve specific element")]
-    Property Get Item(ByVal index As Variant) As ITrigger
+    Property Get Item(ByVal index As Long) As ITrigger
     [DispId(-4)]
     [Description("Create new enumerator")]
     Property Get _NewEnum() As stdole.IUnknown
@@ -763,7 +763,7 @@ Interface IActionCollection Extends IDispatch
     Property Get Count() As Long
     [DispId(0)]
     [Description("Retrieve specific element")]
-    Property Get Item(ByVal index As Variant) As IAction
+    Property Get Item(ByVal index As Long) As IAction
     [DispId(-4)]
     [Description("Create new enumerator")]
     Property Get _NewEnum() As stdole.IUnknown
@@ -897,15 +897,15 @@ Interface ITaskNamedValueCollection Extends IDispatch
     Property Get Count() As Long
     [DispId(0)]
     [Description("Access one ITaskNamedValuePair by index.")]
-    Property Get Item(ByVal index As Variant) As ITaskNamedValuePair
+    Property Get Item(ByVal index As Long) As ITaskNamedValuePair
     [DispId(-4)]
     Property Get _NewEnum() As stdole.IUnknown
     [DispId(2)]
     [Description("Create new ITaskNamedValuePair.")]
-    Function Create(ByVal type As TASK_TRIGGER_TYPE2) As ITaskNamedValuePair
+    Function Create(ByVal name As String, ByVal value As String) As ITaskNamedValuePair
     [DispId(4)]
     [Description("Delete specific ITaskNamedValuePair.")]
-    Sub Remove(ByVal index As Variant)
+    Sub Remove(ByVal index As Long)
     [DispId(5)]
     [Description("Delete all ITaskNamedValuePairs.")]
     Sub Clear()
@@ -1260,8 +1260,13 @@ Interface IEmailAction Extends IAction
     [Description("Filenames of attachements to email")]
     Property Get Attachments() As Variant()
     [DispId(19)]
-    [Description("Filenames of attachements to email")]
-    Property Let Attachments(pAttachments() As Variant) '//SAFEARRAY(VARIANT)
+    [Description("Filenames of attachements to email" & vbCrLf & vbCrLf & "**REQUIRES TEMPORARY WORKAROUND - Pass `psaA` from:**" & vbCrLf & vbCrLf & _
+            "```" & vbCrLf & _
+            "    Dim psaA As LongPtr" & vbCrLf & _
+            "    CopyMemory psaA, ByVal VarPtr(arr), LenB(psaA)" & vbCrLf & _
+            "```" & vbCrLf _
+    )]
+    Property Let Attachments(ByVal pAttachments As LongPtr /* As Variant() */) '//SAFEARRAY(VARIANT)
 End Interface
 
 [InterfaceId("248919AE-E345-4A6D-8AEB-E0D3165C904E")]
@@ -1313,8 +1318,9 @@ End Interface
 [OleAutomation(False)]
 Interface IRunnableTask Extends stdole.IUnknown
     Sub Run()
-    Sub Kill(ByVal bWait As Long)
+    Sub Kill(ByVal bWait As BOOL)
     Sub Suspend()
+    Sub Resume()
     Sub IsRunning()
 End Interface
 
@@ -1322,14 +1328,14 @@ End Interface
 [OleAutomation(False)]
 Interface IShellTaskScheduler Extends stdole.IUnknown
     [PreserveSig] Function AddTask(ByVal prt As IRunnableTask, rtoid As UUID, ByVal lParam As LongPtr, ByVal dwPriority As Long) As Long
-    [PreserveSig] Function RemoveTasks(rtoid As UUID, ByVal lParam As LongPtr, ByVal bWaitIfRunning As Long) As Long
+    [PreserveSig] Function RemoveTasks(rtoid As UUID, ByVal lParam As LongPtr, ByVal bWaitIfRunning As BOOL) As Long
     [PreserveSig] Function CountTasks(rtoid As UUID) As Long
     [PreserveSig] Function Status(ByVal dwReleaseStatus As Long, ByVal dwThreadTimeout As Long) As Long
 End Interface
 
-'CLSID_Task 
+'CLSID_CTask 
 [CoClassId("148BD520-A2AB-11CE-B11F-00AA00530503")]
-CoClass Task
+CoClass CTask
 	 [Default] Interface ITask
 End CoClass
 
@@ -1445,12 +1451,10 @@ End Enum
 'TRIGGER_TYPE_UNION
 Public Type DAILY
 	DaysInterval As Integer
-	Reserved As Long
 End Type
 Public Type WEEKLY
 	WeeksInterval As Integer
     rgfDaysOfTheWeek As Integer
-    Reserved As Integer
 End Type
 Public Type MONTHLYDATE
 	rgfDays As Long
@@ -1461,8 +1465,15 @@ Public Type MONTHLYDOW
     rgfDaysOfTheWeek As Integer
     rgfMonths As Integer
 End Type
+' typedef union _TRIGGER_TYPE_UNION {
+' DAILY       Daily;
+' WEEKLY      Weekly;
+' MONTHLYDATE MonthlyDate;
+' MONTHLYDOW  MonthlyDOW;
+' } TRIGGER_TYPE_UNION;
 Public Type TRIGGER_TYPE_UNION
 	TimeUnion(5) As Byte 'Copy one of the preceeding 4 structures into this
+    __pad As Integer
 End Type
 '===================
 
@@ -1628,18 +1639,18 @@ Public Enum IRTIR_Values
 	IRTIR_TASK_FINISHED = 4
 End Enum
 
-Public Const sCLSID_Task = "new: {148BD520-A2AB-11CE-B11F-00AA00530503}"
+Public Const sCLSID_CTask = "new: {148BD520-A2AB-11CE-B11F-00AA00530503}"
 Public Const sCLSID_SchedulingAgent = "new: {148BD52A-A2AB-11CE-B11F-00AA00530503}"
 
 Public Const sCLSID_TaskScheduler = "new: {0F87369F-A4E5-4CFC-BD3E-73E6154572DD}"
 Public Const sCLSID_TaskHandlerPS = "new: {F2A69DB7-DA2C-4352-9066-86FEE6DACAC9}"
 Public Const sCLSID_TaskHandlerStatusPS = "new: {9F15266D-D7BA-48F0-93C1-E6895F6FE5AC}"
 Public Const sCLSID_ShellTaskScheduler = "new: {603D3800-BD81-11D0-A3A5-00C04FD706EC}"
-Public Function CLSID_Task() As UUID
+Public Function CLSID_CTask() As UUID
 '{148BD520-A2AB-11CE-B11F-00AA00530503}
 Static iid As UUID
     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H148BD520, CInt(&HA2AB), CInt(&H11CE), &HB1, &H1F, &H00, &HAA, &H00, &H53, &H05, &H03)
-    CLSID_Task = iid
+    CLSID_CTask = iid
 End Function
 Public Function CLSID_CSchedulingAgent() As UUID
 Return CLSID_CTaskScheduler

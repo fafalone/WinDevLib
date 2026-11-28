@@ -11,15 +11,18 @@
 'Real-time Work Queue (RTWorkQ.h)
 
 #If WINDEVLIB_LITE = 0 Then
+    'note: same GUID as IMFAsyncResult
 [InterfaceId("ac6b7889-0740-4d51-8619-905994a55cc6")]
 [OleAutomation(False)]
 Interface IRtwqAsyncResult Extends IUnknown
     Sub GetState(ppunkState As IUnknown)
     Sub GetStatus()
+    Sub SetStatus(ByVal hrStatus As Long)
     Sub GetObject(ppObject As IUnknown)
     [PreserveSig] Function GetStateNoAddRef() As IUnknown
 End Interface
 
+    'note: same GUID as IMFAsyncCallback
 [InterfaceId("a27003cf-2354-4f2a-8d6a-ab7cff15437e")]
 [OleAutomation(False)]
 Interface IRtwqAsyncCallback Extends IUnknown
@@ -40,6 +43,9 @@ End Interface
 [MustBeQualified]
 #End If
 Module wdRTWorkQ
+    
+Public Delegate Sub RTWQPERIODICCALLBACK (ByVal context As IUnknown)
+Public Function RTWQ_E_ERROR(ByVal x As Long) As Long: Return (&Hc00d0000 + x): End Function
 
 Public Const RTWQ_E_BUFFERTOOSMALL  = (&Hc00d0000 + 14001)
 Public Const RTWQ_E_NOT_INITIALIZED  = (&Hc00d0000 + 14006)
@@ -64,6 +70,7 @@ End Enum
     ' HANDLE hEvent;
 ' }   RTWQASYNCRESULT;
 Public Type RTWQASYNCRESULT
+    pVtable As LongPtr
     overlapped As OVERLAPPED
     pCallback As IRtwqAsyncCallback
     hrStatusResult As Long
@@ -98,7 +105,11 @@ Public Declare PtrSafe Function RtwqAllocateSerialWorkQueue Lib "RTWorkQ.dll" (B
 
 Public Declare PtrSafe Function RtwqScheduleWorkItem Lib "RTWorkQ.dll" (ByVal result As IRtwqAsyncResult, ByVal Timeout As LongLong, key As LongLong) As Long
 
+' #If WDL_NO_DELEGATES Then
 Public Declare PtrSafe Function RtwqAddPeriodicCallback Lib "RTWorkQ.dll" (ByVal Callback As LongPtr, ByVal context As IUnknown, key As Long) As Long
+' #Else
+' Public Declare PtrSafe Function RtwqAddPeriodicCallback Lib "RTWorkQ.dll" (ByVal Callback As RTWQPERIODICCALLBACK, ByVal context As IUnknown, key As Long) As Long
+' #End If
 Public Declare PtrSafe Function RtwqRemovePeriodicCallback Lib "RTWorkQ.dll" (ByVal dwKey As Long) As Long
 
 Public Declare PtrSafe Function RtwqCancelWorkItem Lib "RTWorkQ.dll" (ByVal key As LongLong) As Long
@@ -122,6 +133,23 @@ Public Declare PtrSafe Function RtwqSetDeadline Lib "RTWorkQ.dll" (ByVal workQue
 Public Declare PtrSafe Function RtwqSetDeadline2 Lib "RTWorkQ.dll" (ByVal workQueueId As Long, ByVal deadlineInHNS As LongLong, ByVal preDeadlineInHNS As LongLong, pRequest As LongPtr) As Long
 Public Declare PtrSafe Function RtwqCancelDeadline Lib "RTWorkQ.dll" (ByVal pRequest As LongPtr) As Long
 
-
+Public Function IID_IRtwqAsyncResult() As UUID
+'{ac6b7889-0740-4d51-8619-905994a55cc6}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hac6b7889, CInt(&H0740), CInt(&H4d51), &H86, &H19, &H90, &H59, &H94, &Ha5, &H5c, &Hc6)
+ IID_IRtwqAsyncResult = iid
+End Function
+Public Function IID_IRtwqAsyncCallback() As UUID
+'{a27003cf-2354-4f2a-8d6a-ab7cff15437e}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Ha27003cf, CInt(&H2354), CInt(&H4f2a), &H8d, &H6a, &Hab, &H7c, &Hff, &H15, &H43, &H7e)
+ IID_IRtwqAsyncCallback = iid
+End Function
+Public Function IID_IRtwqPlatformEvents() As UUID
+'{63d9255a-7ff1-4b61-8faf-ed6460dacf2b}
+Static iid As UUID
+ If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H63d9255a, CInt(&H7ff1), CInt(&H4b61), &H8f, &Haf, &Hed, &H64, &H60, &Hda, &Hcf, &H2b)
+ IID_IRtwqPlatformEvents = iid
+End Function
 End Module
 #End If
