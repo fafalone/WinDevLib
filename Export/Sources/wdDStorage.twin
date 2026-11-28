@@ -129,8 +129,15 @@ End Interface
 [OleAutomation(False)]
 Interface IDStorageQueue2 Extends IDStorageQueue1
     ' Obtains support information about the queue for a specified compression format.
-    [PreserveSig] Function GetCompressionSupport(ByVal format As DSTORAGE_COMPRESSION_FORMAT) As DSTORAGE_COMPRESSION_SUPPORT
+    [PreserveSig] Function GetCompressionSupport([TypeHint(DSTORAGE_COMPRESSION_FORMAT)] ByVal format As Byte) As DSTORAGE_COMPRESSION_SUPPORT
 End Interface
+
+[InterfaceId("deb54c52-eca8-46b3-82a7-031b72262653")]
+[OleAutomation(False)]
+Interface IDStorageQueue3 Extends IDStorageQueue2
+    [PreserveSig] Sub EnqueueRequests(requests As DSTORAGE_REQUEST, ByVal numRequests As Long, ByVal fence As ID3D12Fence, ByVal value As LongLong, ByVal flag As DSTORAGE_ENQUEUE_REQUEST_FLAGS)
+End Interface
+
 
 [InterfaceId("84EF5121-9B43-4D03-B5C1-CC34606B262D")]
 [OleAutomation(False)]
@@ -225,6 +232,12 @@ Public Enum DSTORAGE_REQUEST_DESTINATION_TYPE
     ' / that is tiled.
     ' / </summary>
     DSTORAGE_REQUEST_DESTINATION_TILES = 4
+    ' / <summary>
+    ' / The destination of the DirectStorage request is an ID3D12Resource
+    ' / that is a texture that will receive the number of subresources
+    ' / specified in a single request.
+    ' / </summary>
+    DSTORAGE_REQUEST_DESTINATION_MULTIPLE_SUBRESOURCES_RANGE = 5
 End Enum
 
 Public Type DSTORAGE_QUEUE_DESC
@@ -422,6 +435,26 @@ Public Type DSTORAGE_DESTINATION_MULTIPLE_SUBRESOURCES
     FirstSubresource As Long
 End Type
 
+Public Type DSTORAGE_DESTINATION_MULTIPLE_SUBRESOURCES_RANGE
+    '/ <summary>
+    '/ Address of the resource to receive the final result of this request. The
+    '/ source is expected to contain full data for all subresources, starting
+    '/ from FirstSubresource.
+    '/ </summary>
+    Resource As ID3D12Resource
+    '/ <summary>
+    '/ Describes the first subresource of the destination texture copy
+    '/ location. The subresource referred to must be in the
+    '/ D3D12_RESOURCE_STATE_COMMON state.
+    '/ </summary>
+    FirstSubresource As Long
+    '/ <summary>
+    '/ Describes the number of subresources to copy to the destination
+    '/ resource starting from the FirstSubresource specified.
+    '/ </summary>
+    NumSubresources As Long
+End Type
+
 Public Type DSTORAGE_DESTINATION_TILES
     '/ <summary>
     '/ Address of the resource to receive the final result of this request. The
@@ -456,9 +489,11 @@ End Type
 ' };
 Public Type DSTORAGE_DESTINATION
     #If Win64 Then
-    u(39) As Byte
+    u0(4) As LongLong
     #Else
-    u(23) As Byte
+    u0 As LongLong
+    u1(6) As Long
+    _pad as Long
     #End If
 End Type
 
@@ -499,6 +534,27 @@ Public Type DSTORAGE_REQUEST
     '/ </summary>
     Name As LongPtr
 End Type
+
+Public Enum DSTORAGE_ENQUEUE_REQUEST_FLAGS
+    ' / <summary>
+    ' / Requests wait on the ID3D12Fence before writing to the destination.
+    ' / All processing required for the requests before the write can be
+    ' / completed asynchronously once submitted. This is the default behavior.
+    ' / </summary>
+    DSTORAGE_ENQUEUE_REQUEST_FLAG_NONE = 0
+    ' / <summary>
+    ' / Requests wait on the ID3D12Fence before utilizing the GPU for any of
+    ' / the requests and before writing to the destination. All processing
+    ' / required for the requests, except GPU work or writing to the
+    ' / destination, can be completed asynchronously once submitted.
+    ' / </summary>
+    DSTORAGE_ENQUEUE_REQUEST_FLAG_FENCE_WAIT_BEFORE_GPU_WORK = 1
+    ' / <summary>
+    ' / Requests wait on the ID3D12Fence before reading from the source. No
+    ' / processing occurs until the ID3D12Fence is set.
+    ' / </summary>
+    DSTORAGE_ENQUEUE_REQUEST_FLAG_FENCE_WAIT_BEFORE_SOURCE_ACCESS = 2
+End Enum
 
 Public Const DSTORAGE_REQUEST_MAX_NAME = 64
 
@@ -559,11 +615,7 @@ Public Type DSTORAGE_ERROR_FIRST_FAILURE
     '    DSTORAGE_ERROR_PARAMETERS_SIGNAL Signal;
     '    DSTORAGE_ERROR_PARAMETERS_EVENT Event;
     '};
-    #If Win64 Then
-        u(687) As Byte
-    #Else
-        u(671) As Byte
-    #End If
+    u(85) As LongLong
 End Type
 
 Public Type DSTORAGE_ERROR_RECORD
@@ -587,7 +639,7 @@ Public Enum DSTORAGE_STAGING_BUFFER_SIZE
     ' / <summary>
     ' / The default staging buffer size of 32MB.
     ' / </summary>
-    DSTORAGE_STAGING_BUFFER_SIZE_32MB = 321048576
+    DSTORAGE_STAGING_BUFFER_SIZE_32MB = 32 * 1048576
 End Enum
 
 Public Enum DSTORAGE_GET_REQUEST_FLAGS
@@ -632,7 +684,8 @@ Public Type DSTORAGE_CUSTOM_DECOMPRESSION_REQUEST
     '/ The compression format.  This will be >= DSTORAGE_CUSTOM_COMPRESSION_0
     '/ if DSTORAGE_CUSTOM_DECOMPRESSION_CUSTOMONLY is used to retrieve requests.
     '/ </summary>
-    CompressionFormat As DSTORAGE_COMPRESSION_FORMAT
+    ' [TypeHint(DSTORAGE_COMPRESSION_FORMAT)]
+    CompressionFormat As Byte
     '/ <summary>
     '/ Reserved for future use.
     '/ </summary>
@@ -854,7 +907,7 @@ Public Const DSTORAGE_DISABLE_BUILTIN_CPU_DECOMPRESSION = -1
     Public Declare PtrSafe Function DStorageSetConfiguration Lib "dstorage.dll" (configuration As DSTORAGE_CONFIGURATION) As Long
     Public Declare PtrSafe Function DStorageSetConfiguration1 Lib "dstorage.dll" (configuration As DSTORAGE_CONFIGURATION1) As Long
     Public Declare PtrSafe Function DStorageGetFactory Lib "dstorage.dll" (riid As UUID, ppv As Any) As Long
-    Public Declare PtrSafe Function DStorageCreateCompressionCodec Lib "dstorage.dll" (ByVal format As DSTORAGE_COMPRESSION_FORMAT, ByVal numThreads As Long, riid As UUID, ppv As Any) As Long
+    Public Declare PtrSafe Function DStorageCreateCompressionCodec Lib "dstorage.dll" ([TypeHint(DSTORAGE_COMPRESSION_FORMAT)] ByVal format As Byte, ByVal numThreads As Long, riid As UUID, ppv As Any) As Long
     
     
     'dstorageerr.h 100%
@@ -911,6 +964,12 @@ Public Const DSTORAGE_DISABLE_BUILTIN_CPU_DECOMPRESSION = -1
     Static iid As UUID
      If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H84EF5121, CInt(&H9B43), CInt(&H4D03), &HB5, &HC1, &HCC, &H34, &H60, &H6B, &H26, &H2D)
      IID_IDStorageCompressionCodec = iid
+    End Function
+    Public Function IID_IDStorageQueue3() As UUID
+    '{deb54c52-eca8-46b3-82a7-031b72262653}
+    Static iid As UUID
+     If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &Hdeb54c52, CInt(&Heca8), CInt(&H46b3), &H82, &Ha7, &H03, &H1b, &H72, &H26, &H26, &H53)
+     IID_IDStorageQueue3 = iid
     End Function
     Public Function IID_IDStorageQueue2() As UUID
     '{B1C9D643-3A49-44A2-B46F-653649470D18}

@@ -100,6 +100,18 @@ Interface IBackgroundCopyCallback Extends stdole.IUnknown
     Sub JobModification(ByVal pJob As IBackgroundCopyJob, ByVal dwReserved As Long)
 End Interface
 
+[InterfaceId("ca29d251-b4bb-4679-a3d9-ae8006119d54")]
+[OleAutomation(False)]
+Interface AsyncIBackgroundCopyCallback Extends stdole.iunknown
+    Sub Begin_JobTransferred(ByVal pJob As IBackgroundCopyJob)
+    Sub Finish_JobTransferred()
+    Sub Begin_JobError(ByVal pJob As IBackgroundCopyJob, ByVal pError As IBackgroundCopyError)
+    Sub Finish_JobError()
+    Sub Begin_JobModification(ByVal pJob As IBackgroundCopyJob, ByVal dwReserved As Long)
+    Sub Finish_JobModification()
+End Interface
+
+
 
 [InterfaceId("5CE34C0D-0DC9-4C1F-897C-DAA1B78CEE7C")]
 [OleAutomation(False)]
@@ -340,8 +352,15 @@ End CoClass
     [OleAutomation(False)]
     [Description("IBackgroundCopyJob5 interface")]
     Interface IBackgroundCopyJob5 Extends IBackgroundCopyJob4
-        Sub SetProperty(ByVal propertyId As BITS_JOB_PROPERTY_ID, ByVal propertyValue As UUID)
+        Sub SetProperty(ByVal propertyId As BITS_JOB_PROPERTY_ID, ByVal propertyValue As BITS_JOB_PROPERTY_VALUE)
         Sub GetProperty(ByVal propertyId As BITS_JOB_PROPERTY_ID, ByRef PropertyValue As BITS_JOB_PROPERTY_VALUE)
+    End Interface
+    [InterfaceId("85C1657F-DAFC-40E8-8834-DF18EA25717E")]
+    [OleAutomation(False)]
+    [Description("IBackgroundCopyFile5 interface")]
+    Interface IBackgroundCopyFile5 Extends IBackgroundCopyFile4
+        Sub SetProperty(ByVal propertyId As BITS_FILE_PROPERTY_ID, ByVal PropertyValue As BITS_FILE_PROPERTY_VALUE)
+        Sub GetProperty(ByVal propertyId As BITS_FILE_PROPERTY_ID, ByRef PropertyValue As BITS_FILE_PROPERTY_VALUE)
     End Interface
 #Else
     [InterfaceId("E847030C-BBBA-4657-AF6D-484AA42BF1FE")]
@@ -355,14 +374,14 @@ End CoClass
         #End If
         Sub GetProperty(ByVal propertyId As BITS_JOB_PROPERTY_ID, ByRef PropertyValue As BITS_JOB_PROPERTY_VALUE)
     End Interface
+    [InterfaceId("85C1657F-DAFC-40E8-8834-DF18EA25717E")]
+    [OleAutomation(False)]
+    [Description("IBackgroundCopyFile5 interface")]
+    Interface IBackgroundCopyFile5 Extends IBackgroundCopyFile4
+        Sub SetProperty(ByVal propertyId As BITS_FILE_PROPERTY_ID, ByVal PropertyValue As LongPtr)
+        Sub GetProperty(ByVal propertyId As BITS_FILE_PROPERTY_ID, ByRef PropertyValue As BITS_FILE_PROPERTY_VALUE)
+    End Interface
 #End If
-[InterfaceId("85C1657F-DAFC-40E8-8834-DF18EA25717E")]
-[OleAutomation(False)]
-[Description("IBackgroundCopyFile5 interface")]
-Interface IBackgroundCopyFile5 Extends IBackgroundCopyFile4
-    Sub SetProperty(ByVal propertyId As BITS_FILE_PROPERTY_ID, ByVal PropertyValue As LongPtr)
-    Sub GetProperty(ByVal propertyId As BITS_FILE_PROPERTY_ID, ByRef PropertyValue As BITS_FILE_PROPERTY_VALUE)
-End Interface
 
 [CoClassId("1ECCA34C-E88A-44E3-8D6A-8921BDE9E452")]
 [COMCreatable]
@@ -392,7 +411,7 @@ End Interface
 Interface IBackgroundCopyFile6 Extends IBackgroundCopyFile5
     Sub UpdateDownloadPosition(ByVal Offset As LongLong)
     Sub RequestFileRanges(ByVal RangeCount As Long, ByRef ranges As BG_FILE_RANGE)
-    Sub GetFilledFileRanges(ByRef RangeCount As Long, ByRef ranges As BG_FILE_RANGE)
+    Sub GetFilledFileRanges(ByRef RangeCount As Long, ByRef ranges As LongPtr)
 End Interface
 
 [CoClassId("4BD3E4E1-7BD4-4A2B-9964-496400DE5193")]
@@ -498,11 +517,12 @@ Interface IBackgroundCopyJob1 Extends stdole.IUnknown
     Sub CancelJob()
     Sub GetProgress(ByVal dwFlags As QMgrProgressFlags, ByRef pdwProgress As Long)
     Sub GetStatus(ByRef pdwStatus As QMgrStatusFlags, ByRef pdwWin32Result As Long, ByRef pdwTransportResult As Long, ByRef pdwNumOfRetries As Long)
-    Sub AddFiles(ByVal cFileCount As Long, ByRef ppFileSet As FILESETINFO)
+    Sub AddFiles(ByVal cFileCount As Long, ByRef ppFileSet As LongPtr)
     Sub GetFile(ByVal cFileIndex As Long, ByRef pFileInfo As FILESETINFO)
     Sub GetFileCount(ByRef pdwFileCount As Long)
     Sub SwitchToForeground()
     Sub get_JobID(ByRef pguidJobID As UUID)
+    ' #If defined(TEST_TIMES)
     Sub GetTimes(ByRef pTimes As BACKGROUND_COPY_TIMES)
 End Interface
 
@@ -778,7 +798,7 @@ Module wdBITS
 Public Type BG_FILE_PROGRESS
     BytesTotal As LongLong
     BytesTransferred As LongLong
-    completed As BOOL
+    Completed As BOOL
 End Type
 
 Public Enum BG_ERROR_CONTEXT
@@ -1030,7 +1050,33 @@ Public Type BITS_JOB_PROPERTY_VALUE
     '        BG_AUTH_TARGET Target;
     '}
     'BITS_JOB_PROPERTY_VALUE;
-    u(0 To 3) As Long
+    ClsID As UUID
+    
+    'EUS
+    Property Get Dword() As Long
+    Return Me.ClsID.Data1
+    End Property
+    Property Let Dword(ByVal value As Long)
+    Me.ClsID.Data1 = value
+    End Property
+    Property Get Enable() As BOOL
+    Return Me.ClsID.Data1
+    End Property
+    Property Let Enable(ByVal value As BOOL)
+    Me.ClsID.Data1 = value
+    End Property
+    Property Get Uint64() As LongLong
+    Return GetMem(Of LongLong)(VarPtr(Me.ClsID.Data1))
+    End Property
+    Property Let Uint64(ByVal value As LongLong)
+    CopyMemory Me.ClsID.Data1, value, 8
+    End Property
+    Property Get Target() As BG_AUTH_TARGET
+    Return Me.ClsID.Data1
+    End Property
+    Property Let Target(ByVal value As BG_AUTH_TARGET)
+    Me.ClsID.Data1 = value
+    End Property
 End Type
 
 Public Enum BITS_FILE_PROPERTY_ID
@@ -1045,7 +1091,7 @@ Public Type BITS_FILE_PROPERTY_VALUE
     '        LPWSTR String;
     '}
     'BITS_FILE_PROPERTY_VALUE;
-    pString As LongPtr
+    String As LongPtr
 End Type
 
 Public Enum QMgrNotifyFlags

@@ -108,6 +108,9 @@ Module wdAPIWLAN
         ' #if (NTDDI_VERSION >= NTDDI_WIN10_FE)
         DOT11_AUTH_ALGO_WPA3_ENT = 11
         ' #endif
+        
+        DOT11_AUTH_ALGO_PQC_1X = 12
+        
         DOT11_AUTH_ALGO_IHV_START = &H80000000
         DOT11_AUTH_ALGO_IHV_END = &Hffffffff
         
@@ -130,6 +133,7 @@ Module wdAPIWLAN
     ' #endif
     ' #if (NTDDI_VERSION >= NTDDI_WIN10_FE)
         DOT11_AUTH_ALGORITHM_WPA3_ENT = DOT11_AUTH_ALGO_WPA3_ENT
+        DOT11_AUTH_ALGORITHM_PQC_1X = DOT11_AUTH_ALGO_PQC_1X
     End Enum
     
     Public Enum DOT11_CIPHER_ALGORITHM
@@ -619,7 +623,7 @@ Module wdAPIWLAN
 ' } EAP_METHOD_PROPERTY_VALUE;
 	Public Type EAP_METHOD_PROPERTY_VALUE
         #If Win64 Then
-        empv(16) As Byte
+        empv(15) As Byte
         #Else
         empv(7) As Byte
         #End If
@@ -698,7 +702,7 @@ Module wdAPIWLAN
     ' } EapCredentialTypeData;
     Public Type EapCredentialTypeData
         #If Win64 Then
-        data(31) As Byte
+        data(3) As LongLong
         #Else
         data(23) As Byte
         #End If
@@ -724,7 +728,7 @@ Module wdAPIWLAN
     Public Const _EAP_GENERAL_LAST  = (+ &H3F)  ' (+31)
     
     
-    Public Const EAP_GROUP_MASK  = &H0000FF00
+    Public Const EAP_GROUP_MASK  = &H0000FF00&
     Public Const EAP_E_EAPHOST_FIRST  = &H80420000
     Public Const EAP_E_EAPHOST_LAST  = &H804200FF
     Public Const EAP_I_EAPHOST_FIRST  = &H80420000
@@ -886,6 +890,12 @@ Module wdAPIWLAN
     
 	Public Const WLAN_API_VERSION_1_0  = &H00000001
 	Public Const WLAN_API_VERSION_2_0  = &H00000002
+    Public Function WLAN_API_VERSION_MAJOR(ByVal _v As Long) As Integer: Return CInt(_v And &HFFFF&): End Function
+    Public Function WLAN_API_VERSION_MINOR(ByVal _v As Long) As Integer: Return CInt(_v >> 16): End Function
+    Public Function WLAN_API_MAKE_VERSION(ByVal _major As Integer, ByVal _minor As Integer) As Long
+        Return (CLng(_minor) << 16 Or CLng(_major))
+    End Function
+        
 	Public Const WLAN_API_VERSION  = WLAN_API_VERSION_2_0
 	Public Const WLAN_MAX_NAME_LENGTH  = L2_PROFILE_MAX_NAME_LENGTH
         
@@ -1305,7 +1315,7 @@ Module wdAPIWLAN
         dot11BssPhyType As DOT11_PHY_TYPE
         lRssi As Long
         uLinkQuality As Long
-        bInRegDomain As Byte
+        bInRegDomain As CBoolean
         usBeaconPeriod As Integer
         ullTimestamp As LongLong
         ullHostTimestamp As LongLong
@@ -2218,7 +2228,20 @@ Module wdAPIWLAN
     ' _In_ DWORD          dwError,
     ' _In_ DWORD          dwReasonCode
     ' );
+    #If WDL_NO_BYVAL_UDT = 0 Then
+    Public Delegate Sub WFD_OPEN_SESSION_COMPLETE_CALLBACK (ByVal hSessionHandle As LongPtr, ByVal pvContext As LongPtr, ByVal guidSessionInterface As UUID, ByVal dwError As Long, ByVal dwReasonCode As Long)
+    #Else
+    #If Win64 Then
+    Public Delegate Sub WFD_OPEN_SESSION_COMPLETE_CALLBACK (ByVal hSessionHandle As LongPtr, ByVal pvContext As LongPtr,  guidSessionInterface As UUID, ByVal dwError As Long, ByVal dwReasonCode As Long)
+    #Else
+    Public Delegate Sub WFD_OPEN_SESSION_COMPLETE_CALLBACK (ByVal hSessionHandle As LongPtr, ByVal pvContext As LongPtr, ByVal guidSessionInterface1 As Long, ByVal guidSessionInterface2 As Long, ByVal guidSessionInterface3 As Long, ByVal guidSessionInterface4 As Long, ByVal dwError As Long, ByVal dwReasonCode As Long)
+    #End If
+    #End If
+    ' #If WDL_NO_DELEGATES Then
     Public Declare PtrSafe Function WFDStartOpenSession Lib "Wlanapi.dll" (ByVal hClientHandle As LongPtr, pDeviceAddress As DOT11_MAC_ADDRESS, ByVal pvContext As LongPtr, ByVal pfnCallback As LongPtr, phSessionHandle As LongPtr) As Long
+    ' #Else
+    ' Public Declare PtrSafe Function WFDStartOpenSession Lib "Wlanapi.dll" (ByVal hClientHandle As LongPtr, pDeviceAddress As DOT11_MAC_ADDRESS, ByVal pvContext As LongPtr, ByVal pfnCallback As WFD_OPEN_SESSION_COMPLETE_CALLBACK, phSessionHandle As LongPtr) As Long
+    ' #End If
     Public Declare PtrSafe Function WFDCancelOpenSession Lib "Wlanapi.dll" (ByVal hSessionHandle As LongPtr) As Long
     Public Declare PtrSafe Function WFDOpenLegacySession Lib "Wlanapi.dll" (ByVal hClientHandle As LongPtr, pLegacyMacAddress As DOT11_MAC_ADDRESS, phSessionHandle As LongPtr, pGuidSessionInterface As UUID) As Long
     Public Declare PtrSafe Function WFDCloseSession Lib "Wlanapi.dll" (ByVal hSessionHandle As LongPtr) As Long

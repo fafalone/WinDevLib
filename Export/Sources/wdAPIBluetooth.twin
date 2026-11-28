@@ -95,7 +95,23 @@ Public Type SdpQueryUuidUnion
     ' #endif // _NTDDK_
             ' USHORT uuid16;
     ' } SdpQueryUuidUnion;
-    u(15) As Byte
+    uuid128 As UUID
+    
+    ' EUS
+    Property Get uuid32() As Long
+        Return Me.uuid128.Data1
+    End Property
+    Property Let uuid32(ByVal value As Long)
+        Me.uuid128.Data1 = value
+    End Property
+    Property Get uuid16() As Integer
+        Dim tmp As Integer
+        CopyMemory tmp, Me.uuid128.Data1, 2
+        Return tmp
+    End Property
+    Property Let uuid16(ByVal value As Integer)
+        CopyMemory Me.uuid128.Data1, value, 2
+    End Property
 End Type
 Public Type SdpQueryUuid
     u As SdpQueryUuidUnion
@@ -161,6 +177,8 @@ Static iid As UUID
  If (iid.Data1 = 0) Then Call DEFINE_UUID(iid, &H00000000, &H0000, &H1000, &H80, &H00, &H00, &H80, &H5F, &H9B, &H34, &HFB)
 Bluetooth_Base_UUID = iid
 End Function
+
+
 
 Public Const SDP_PROTOCOL_UUID16  = (&H0001)
 Public Const UDP_PROTOCOL_UUID16  = (&H0002)
@@ -912,19 +930,35 @@ End Enum
 
 Public Const BTH_ADDR_NULL As BTH_ADDR = 0
 
-Public Const NAP_MASK  As LongLong = &HFFFF00000000
+Public Const NAP_MASK  As LongLong = &HFFFF00000000^
 Public Const SAP_MASK As LongLong = &H0000FFFFFFFF^
 
 Public Const NAP_BIT_OFFSET  = (8 * 4)
 Public Const SAP_BIT_OFFSET  = (0)
 
-' #define GET_NAP(_bth_addr)  ((USHORT) (((_bth_addr) & NAP_MASK) >> NAP_BIT_OFFSET))
-' #define GET_SAP(_bth_addr)  ((ULONG)  (((_bth_addr) & SAP_MASK) >> SAP_BIT_OFFSET))
+Public Function GET_NAP(ByVal bth_addr As LongLong) As Integer
+    Dim v As LongLong = (bth_addr And NAP_MASK) >> NAP_BIT_OFFSET
+    If v > &H7FFF^ Then v = v - &H10000^
+    Return CInt(v)
+End Function
 
-' #define SET_NAP(_nap) (((ULONGLONG) ((USHORT) (_nap))) << NAP_BIT_OFFSET)
-' #define SET_SAP(_sap) (((ULONGLONG) ((ULONG)  (_sap))) << SAP_BIT_OFFSET)
+Public Function GET_SAP(ByVal bth_addr As LongLong) As Long
+    Dim v As LongLong = (bth_addr And SAP_MASK) >> SAP_BIT_OFFSET
+    If v > &H7FFFFFFF^ Then v = v - &H100000000^
+    Return CLng(v)
+End Function
 
-' #define SET_NAP_SAP(_nap, _sap) (SET_NAP(_nap) | SET_SAP(_sap))
+Public Function SET_NAP(ByVal nap As Long) As LongLong
+    Return (CLngLng(nap) And &HFFFF^) << NAP_BIT_OFFSET
+End Function
+
+Public Function SET_SAP(ByVal sap As Long) As LongLong
+    Return (CLngLng(sap) And &HFFFFFFFF^) << SAP_BIT_OFFSET
+End Function
+
+Public Function SET_NAP_SAP(ByVal nap As Long, ByVal sap As Long) As LongLong
+    Return SET_NAP(nap) Or SET_SAP(sap)
+End Function
 
 Public Const COD_FORMAT_BIT_OFFSET  = (0)
 Public Const COD_MINOR_BIT_OFFSET  = (2)
@@ -935,14 +969,33 @@ Public Const COD_MINOR_MASK  = (&H0000FC)
 Public Const COD_MAJOR_MASK  = (&H001F00)
 Public Const COD_SERVICE_MASK  = (&HFFE000)
 
-' #define GET_COD_FORMAT(_cod)    ( (_cod) & COD_FORMAT_MASK   >> COD_FORMAT_BIT_OFFSET)
-' #define GET_COD_MINOR(_cod)     (((_cod) & COD_MINOR_MASK)   >> COD_MINOR_BIT_OFFSET)
-' #define GET_COD_MAJOR(_cod)     (((_cod) & COD_MAJOR_MASK)   >> COD_MAJOR_BIT_OFFSET)
-' #define GET_COD_SERVICE(_cod)   (((_cod) & COD_SERVICE_MASK) >> COD_SERVICE_BIT_OFFSET)
+Public Function GET_COD_FORMAT(ByVal cod As Long) As Long
+    Return cod And (COD_FORMAT_MASK >> COD_FORMAT_BIT_OFFSET)
+End Function
 
-' #define SET_COD_MINOR(_cod, _minor) (_cod) = ((_cod) & ~COD_MINOR_MASK) | ((_minor) << COD_MINOR_BIT_OFFSET)
-' #define SET_COD_MAJOR(_cod, _major) (_cod) = ((_cod) & ~COD_MAJOR_MASK) | ((_major) << COD_MAJOR_BIT_OFFSET)
-' #define SET_COD_SERVICE(_cod, _service) (_cod) = ((_cod) & ~COD_SERVICE_MASK) | ((_service) << COD_SERVICE_BIT_OFFSET)
+Public Function GET_COD_MINOR(ByVal cod As Long) As Long
+    Return (cod And COD_MINOR_MASK) >> COD_MINOR_BIT_OFFSET
+End Function
+
+Public Function GET_COD_MAJOR(ByVal cod As Long) As Long
+    Return (cod And COD_MAJOR_MASK) >> COD_MAJOR_BIT_OFFSET
+End Function
+
+Public Function GET_COD_SERVICE(ByVal cod As Long) As Long
+    Return (cod And COD_SERVICE_MASK) >> COD_SERVICE_BIT_OFFSET
+End Function
+
+Public Sub SET_COD_MINOR(ByRef cod As Long, ByVal minor As Long)
+    cod = (cod And Not COD_MINOR_MASK) Or (minor << COD_MINOR_BIT_OFFSET)
+End Sub
+
+Public Sub SET_COD_MAJOR(ByRef cod As Long, ByVal major As Long)
+    cod = (cod And Not COD_MAJOR_MASK) Or (major << COD_MAJOR_BIT_OFFSET)
+End Sub
+
+Public Sub SET_COD_SERVICE(ByRef cod As Long, ByVal service As Long)
+    cod = (cod And Not COD_SERVICE_MASK) Or (service << COD_SERVICE_BIT_OFFSET)
+End Sub
 
 Public Enum BthCodServiceFlags
     COD_VERSION = (&H0)
@@ -1040,8 +1093,13 @@ Public Const COD_LAN_ACCESS_BIT_OFFSET  = (5)
 Public Const COD_LAN_MINOR_MASK  = (&H00001C)
 Public Const COD_LAN_ACCESS_MASK  = (&H0000E0)
 
-' #define GET_COD_LAN_MINOR(_cod)         (((_cod) & COD_LAN_MINOR_MASK) >> COD_MINOR_BIT_OFFSET)
-' #define GET_COD_LAN_ACCESS(_cod)         (((_cod) & COD_LAN_ACCESS_MASK) >> COD_LAN_ACCESS_BIT_OFFSET)
+Public Function GET_COD_LAN_MINOR(ByVal _cod As Long) As Long
+    Return (_cod And COD_LAN_MINOR_MASK) >> COD_MINOR_BIT_OFFSET
+End Function
+
+Public Function GET_COD_LAN_ACCESS(ByVal _cod As Long) As Long
+    Return (_cod And COD_LAN_ACCESS_MASK) >> COD_LAN_ACCESS_BIT_OFFSET
+End Function
 
 Public Enum BthLanAccessPctCodes
     COD_LAN_MINOR_UNCLASSIFIED = (&H00)
@@ -1088,8 +1146,13 @@ Public Const BTH_ADDR_LIAC  = (&H9E8B00)
 Public Const BTH_ADDR_GIAC  = (&H9E8B33)
 
 'Alias BTHSTATUS As Byte
-' #define BTH_ERROR(_btStatus)   ((_btStatus) != BTH_ERROR_SUCCESS)
-' #define BTH_SUCCESS(_btStatus) ((_btStatus) == BTH_ERROR_SUCCESS)
+Public Function BTH_ERROR(ByVal _btStatus As Byte) As Boolean
+    Return _btStatus <> BTH_ERROR_SUCCESS
+End Function
+
+Public Function BTH_SUCCESS(ByVal _btStatus As Byte) As Boolean
+    Return _btStatus = BTH_ERROR_SUCCESS
+End Function
 
 Public Enum BthErrorCodes
     BTH_ERROR_SUCCESS = (&H00)
@@ -1208,6 +1271,8 @@ Public Enum BthBdiFlags
     BDIF_LE_DEBUGKEY = (&H40000000)
 ' #if (NTDDI_VERSION >= NTDDI_WIN10_19H1) // >= NTDDI_WIN10_19H1
     BDIF_TX_POWER = (&H80000000)
+    
+    BDIF_VALID_FLAGS = (BDIF_ADDRESS Or BDIF_COD Or BDIF_NAME Or BDIF_PAIRED Or BDIF_PERSONAL Or BDIF_CONNECTED Or BDIF_SHORT_NAME Or BDIF_VISIBLE Or BDIF_RSSI Or BDIF_EIR Or BDIF_SSP_PAIRED Or BDIF_SSP_MITM_PROTECTED Or BDIF_BR Or BDIF_LE Or BDIF_LE_PAIRED Or BDIF_LE_PERSONAL Or BDIF_LE_MITM_PROTECTED Or BDIF_LE_PRIVACY_ENABLED Or BDIF_LE_RANDOM_ADDRESS_TYPE Or BDIF_LE_DISCOVERABLE Or BDIF_LE_NAME Or BDIF_LE_VISIBLE Or BDIF_LE_CONNECTED Or BDIF_LE_CONNECTABLE Or BDIF_BR_SECURE_CONNECTION_PAIRED Or BDIF_LE_SECURE_CONNECTION_PAIRED Or BDIF_DEBUGKEY Or BDIF_LE_DEBUGKEY Or BDIF_TX_POWER)
 End Enum
 
 Public Type BTH_DEVICE_INFO
@@ -1459,7 +1524,7 @@ Public Enum BthSdpProtocolSpecificAttribs
     HFP_HF_BRSF_SUPPORTED_FEATURE_HF_INDICATORS = (&H0100)  ' Bit 8
     HFP_HF_BRSF_SUPPORTED_FEATURE_ESCO_S4_SETTINGS = (&H0200)  ' Bit 9
     HFP_HF_BRSF_SUPPORTED_FEATURE_ENHANCED_VOICE_RECOGNITION = (&H0400)  ' Bit 10
-    HFP_HF_BRSF_SUPPORTED_FEATURE_VOICE_RECOGNITION_TEXT  = (&H0800)  ' Bit 11
+    HFP_HF_BRSF_SUPPORTED_FEATURE_VOICE_RECOGNITION_TEXT = (&H0800)  ' Bit 11
     CORDLESS_EXTERNAL_NETWORK_PSTN = (&H01)
     CORDLESS_EXTERNAL_NETWORK_ISDN = (&H02)
     CORDLESS_EXTERNAL_NETWORK_GSM = (&H03)
@@ -1508,62 +1573,176 @@ Public Const STR_ADDR_FMT  = STR_ADDR_FMTW
 Public Const STR_ADDR_SHORT_FMT  = STR_ADDR_SHORT_FMTW
 Public Const STR_USBHCI_CLASS_HARDWAREID  = STR_USBHCI_CLASS_HARDWAREIDW
 
-' #define GET_BITS(field,offset,mask)         ( ( (field) >> (offset) ) & (mask) )
-' #define GET_BIT(field,offset)               ( GET_BITS(field,offset,0x1) )
+Public Function GET_BITS(ByVal field As LongLong, ByVal offset As Long, ByVal mask As LongLong) As LongLong
+    If offset = 0 Then Return field And mask
+    Dim v As LongLong = (field And &H7FFFFFFFFFFFFFFF^) >> offset
+    If field < 0 Then v = v Or (1^ << (63 - offset))
+    Return v And mask
+End Function
 
-' #define LMP_3_SLOT_PACKETS(x)               (GET_BIT(x, 0))
-' #define LMP_5_SLOT_PACKETS(x)               (GET_BIT(x, 1))
-' #define LMP_ENCRYPTION(x)                   (GET_BIT(x, 2))
-' #define LMP_SLOT_OFFSET(x)                  (GET_BIT(x, 3))
-' #define LMP_TIMING_ACCURACY(x)              (GET_BIT(x, 4))
-' #define LMP_SWITCH(x)                       (GET_BIT(x, 5))
-' #define LMP_HOLD_MODE(x)                    (GET_BIT(x, 6))
-' #define LMP_SNIFF_MODE(x)                   (GET_BIT(x, 7))
-' #define LMP_PARK_MODE(x)                    (GET_BIT(x, 8))
-' #define LMP_RSSI(x)                         (GET_BIT(x, 9))
-' #define LMP_CHANNEL_QUALITY_DRIVEN_MODE(x)  (GET_BIT(x,10))
-' #define LMP_SCO_LINK(x)                     (GET_BIT(x,11))
-' #define LMP_HV2_PACKETS(x)                  (GET_BIT(x,12))
-' #define LMP_HV3_PACKETS(x)                  (GET_BIT(x,13))
-' #define LMP_MU_LAW_LOG(x)                   (GET_BIT(x,14))
-' #define LMP_A_LAW_LOG(x)                    (GET_BIT(x,15))
-' #define LMP_CVSD(x)                         (GET_BIT(x,16))
-' #define LMP_PAGING_SCHEME(x)                (GET_BIT(x,17))
-' #define LMP_POWER_CONTROL(x)                (GET_BIT(x,18))
-' #define LMP_TRANSPARENT_SCO_DATA(x)         (GET_BIT(x,19))
-' #define LMP_FLOW_CONTROL_LAG(x)             (GET_BITS(x,20,0x3))
-' #define LMP_BROADCAST_ENCRYPTION(x)         (GET_BIT(x,23))
-' #define LMP_ENHANCED_DATA_RATE_ACL_2MBPS_MODE(x) (GET_BIT(x,25))
-' #define LMP_ENHANCED_DATA_RATE_ACL_3MBPS_MODE(x) (GET_BIT(x,26))
-' #define LMP_ENHANCED_INQUIRY_SCAN(x)        (GET_BIT(x,27))
-' #define LMP_INTERLACED_INQUIRY_SCAN(x)      (GET_BIT(x,28))
-' #define LMP_INTERLACED_PAGE_SCAN(x)         (GET_BIT(x,29))
-' #define LMP_RSSI_WITH_INQUIRY_RESULTS(x)    (GET_BIT(x,30))
-' #define LMP_ESCO_LINK(x)                    (GET_BIT(x,31))
-' #define LMP_EV4_PACKETS(x)                  (GET_BIT(x,32))
-' #define LMP_EV5_PACKETS(x)                  (GET_BIT(x,33))
-' #define LMP_AFH_CAPABLE_SLAVE(x)            (GET_BIT(x,35))
-' #define LMP_AFH_CLASSIFICATION_SLAVE(x)     (GET_BIT(x,36))
-' #define LMP_BR_EDR_NOT_SUPPORTED(x)         (GET_BIT(x,37))
-' #define LMP_LE_SUPPORTED(x)                 (GET_BIT(x,38))
-' #define LMP_3SLOT_EDR_ACL_PACKETS(x)        (GET_BIT(x,39))
-' #define LMP_5SLOT_EDR_ACL_PACKETS(x)        (GET_BIT(x,40))
-' #define LMP_SNIFF_SUBRATING(x)              (GET_BIT(x,41))
-' #define LMP_PAUSE_ENCRYPTION(x)             (GET_BIT(x,42))
-' #define LMP_AFH_CAPABLE_MASTER(x)           (GET_BIT(x,43))
-' #define LMP_AFH_CLASSIFICATION_MASTER(x)    (GET_BIT(x,44))
-' #define LMP_EDR_ESCO_2MBPS_MODE(x)          (GET_BIT(x,45))
-' #define LMP_EDR_ESCO_3MBPS_MODE(x)          (GET_BIT(x,46))
-' #define LMP_3SLOT_EDR_ESCO_PACKETS(x)       (GET_BIT(x,47))
-' #define LMP_EXTENDED_INQUIRY_RESPONSE(x)    (GET_BIT(x,48))
-' #define LMP_SIMULT_LE_BR_TO_SAME_DEV(x)     (GET_BIT(x,49))
-' #define LMP_SECURE_SIMPLE_PAIRING(x)        (GET_BIT(x,51))
-' #define LMP_ENCAPSULATED_PDU(x)             (GET_BIT(x,52))
-' #define LMP_ERRONEOUS_DATA_REPORTING(x)     (GET_BIT(x,53))
-' #define LMP_NON_FLUSHABLE_PACKET_BOUNDARY_FLAG(x) (GET_BIT(x,54))
-' #define LMP_LINK_SUPERVISION_TIMEOUT_CHANGED_EVENT(x) (GET_BIT(x,56))
-' #define LMP_INQUIRY_RESPONSE_TX_POWER_LEVEL(x)(GET_BIT(x,57))
-' #define LMP_EXTENDED_FEATURES(x)            (GET_BIT(x,63))
+Public Function GET_BIT(ByVal field As LongLong, ByVal offset As Long) As Long
+    Return CLng(GET_BITS(field, offset, &H1^))
+End Function
+
+Public Function LMP_3_SLOT_PACKETS(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 0)
+End Function
+Public Function LMP_5_SLOT_PACKETS(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 1)
+End Function
+Public Function LMP_ENCRYPTION(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 2)
+End Function
+Public Function LMP_SLOT_OFFSET(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 3)
+End Function
+Public Function LMP_TIMING_ACCURACY(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 4)
+End Function
+Public Function LMP_SWITCH(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 5)
+End Function
+Public Function LMP_HOLD_MODE(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 6)
+End Function
+Public Function LMP_SNIFF_MODE(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 7)
+End Function
+Public Function LMP_PARK_MODE(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 8)
+End Function
+Public Function LMP_RSSI(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 9)
+End Function
+Public Function LMP_CHANNEL_QUALITY_DRIVEN_MODE(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 10)
+End Function
+Public Function LMP_SCO_LINK(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 11)
+End Function
+Public Function LMP_HV2_PACKETS(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 12)
+End Function
+Public Function LMP_HV3_PACKETS(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 13)
+End Function
+Public Function LMP_MU_LAW_LOG(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 14)
+End Function
+Public Function LMP_A_LAW_LOG(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 15)
+End Function
+Public Function LMP_CVSD(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 16)
+End Function
+Public Function LMP_PAGING_SCHEME(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 17)
+End Function
+Public Function LMP_POWER_CONTROL(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 18)
+End Function
+Public Function LMP_TRANSPARENT_SCO_DATA(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 19)
+End Function
+Public Function LMP_FLOW_CONTROL_LAG(ByVal x As LongLong) As Long
+    Return CLng(GET_BITS(x, 20, &H3^))
+End Function
+Public Function LMP_BROADCAST_ENCRYPTION(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 23)
+End Function
+Public Function LMP_ENHANCED_DATA_RATE_ACL_2MBPS_MODE(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 25)
+End Function
+Public Function LMP_ENHANCED_DATA_RATE_ACL_3MBPS_MODE(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 26)
+End Function
+Public Function LMP_ENHANCED_INQUIRY_SCAN(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 27)
+End Function
+Public Function LMP_INTERLACED_INQUIRY_SCAN(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 28)
+End Function
+Public Function LMP_INTERLACED_PAGE_SCAN(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 29)
+End Function
+Public Function LMP_RSSI_WITH_INQUIRY_RESULTS(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 30)
+End Function
+Public Function LMP_ESCO_LINK(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 31)
+End Function
+Public Function LMP_EV4_PACKETS(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 32)
+End Function
+Public Function LMP_EV5_PACKETS(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 33)
+End Function
+Public Function LMP_AFH_CAPABLE_SLAVE(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 35)
+End Function
+Public Function LMP_AFH_CLASSIFICATION_SLAVE(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 36)
+End Function
+Public Function LMP_BR_EDR_NOT_SUPPORTED(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 37)
+End Function
+Public Function LMP_LE_SUPPORTED(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 38)
+End Function
+Public Function LMP_3SLOT_EDR_ACL_PACKETS(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 39)
+End Function
+Public Function LMP_5SLOT_EDR_ACL_PACKETS(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 40)
+End Function
+Public Function LMP_SNIFF_SUBRATING(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 41)
+End Function
+Public Function LMP_PAUSE_ENCRYPTION(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 42)
+End Function
+Public Function LMP_AFH_CAPABLE_MASTER(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 43)
+End Function
+Public Function LMP_AFH_CLASSIFICATION_MASTER(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 44)
+End Function
+Public Function LMP_EDR_ESCO_2MBPS_MODE(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 45)
+End Function
+Public Function LMP_EDR_ESCO_3MBPS_MODE(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 46)
+End Function
+Public Function LMP_3SLOT_EDR_ESCO_PACKETS(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 47)
+End Function
+Public Function LMP_EXTENDED_INQUIRY_RESPONSE(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 48)
+End Function
+Public Function LMP_SIMULT_LE_BR_TO_SAME_DEV(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 49)
+End Function
+Public Function LMP_SECURE_SIMPLE_PAIRING(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 51)
+End Function
+Public Function LMP_ENCAPSULATED_PDU(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 52)
+End Function
+Public Function LMP_ERRONEOUS_DATA_REPORTING(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 53)
+End Function
+Public Function LMP_NON_FLUSHABLE_PACKET_BOUNDARY_FLAG(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 54)
+End Function
+Public Function LMP_LINK_SUPERVISION_TIMEOUT_CHANGED_EVENT(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 56)
+End Function
+Public Function LMP_INQUIRY_RESPONSE_TX_POWER_LEVEL(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 57)
+End Function
+Public Function LMP_EXTENDED_FEATURES(ByVal x As LongLong) As Long
+    Return GET_BIT(x, 63)
+End Function
 #End Region
 
 #Region "bluetoothapis.h"
@@ -1630,10 +1809,10 @@ End Type
 
 Public Enum BLUETOOTH_AUTHENTICATION_METHOD
     BLUETOOTH_AUTHENTICATION_METHOD_LEGACY = &H1
-    BLUETOOTH_AUTHENTICATION_METHOD_OOB = 0
-    BLUETOOTH_AUTHENTICATION_METHOD_NUMERIC_COMPARISON = 1
-    BLUETOOTH_AUTHENTICATION_METHOD_PASSKEY_NOTIFICATION = 2
-    BLUETOOTH_AUTHENTICATION_METHOD_PASSKEY = 3
+    BLUETOOTH_AUTHENTICATION_METHOD_OOB
+    BLUETOOTH_AUTHENTICATION_METHOD_NUMERIC_COMPARISON
+    BLUETOOTH_AUTHENTICATION_METHOD_PASSKEY_NOTIFICATION
+    BLUETOOTH_AUTHENTICATION_METHOD_PASSKEY
 End Enum
 Public Enum BLUETOOTH_IO_CAPABILITY
     BLUETOOTH_IO_CAPABILITY_DISPLAYONLY = &H00
@@ -1712,25 +1891,25 @@ Public Delegate Function BthDeviceCallback (ByVal pvParam As LongPtr, pDevice As
 '     '      call BluetoothSelectDevicesFree() to free
 ' End Type
 Public Type BLUETOOTH_SELECT_DEVICE_PARAMS
-    dwSize As Long '  IN  sizeof this structure
-    cNumOfClasses As Long '  IN  Number in prgClassOfDevice - if ZERO search for all devices
-    prgClassOfDevices As BLUETOOTH_COD_PAIRS  '  IN  Array of CODs to find.
-    pszInfo As LongPtr '  IN  If not NULL, sets the "information" text
-    hwndParent As LongPtr '  IN  parent window - NULL == no parent
-    fForceAuthentication As BOOL '  IN  If TRUE, authenication will be forced before returning
-    fShowAuthenticated As BOOL '  IN  If TRUE, authenticated devices will be shown in the picker
-    fShowRemembered As BOOL '  IN  If TRUE, remembered devices will be shown in the picker
-    fShowUnknown As BOOL '  IN  If TRUE, unknown devices that are not authenticated or "remember" will be shown.
-    fAddNewDeviceWizard As BOOL '  IN  If TRUE, invokes the add new device wizard.
-    fSkipServicesPage As BOOL '  IN  If TRUE, skips the "Services" page in the wizard.
-    pfnDeviceCallback As LongPtr '  IN  If non-NULL, a callback that will be called for each device. If the
-    '      the callback returns TRUE, the item will be added. If the callback is
-    '      is FALSE, the item will not be shown.
-    pvParam As LongPtr '  IN  Parameter to be passed to pfnDeviceCallback as the pvParam.
-    cNumDevices As Long '  IN  number calles wants - ZERO == no limit.
-    '  OUT the number of devices returned.
-    pDevices As LongPtr 'PBLUETOOTH_DEVICE_INFO '  OUT pointer to an array for BLUETOOTH_DEVICE_INFOs.
-    '      call BluetoothSelectDevicesFree() to free
+    dwSize As Long                              '  IN  sizeof this structure
+    cNumOfClasses As Long                       '  IN  Number in prgClassOfDevice - if ZERO search for all devices
+    prgClassOfDevices As LongPtr 'BLUETOOTH_COD_PAIRS*    '  IN  Array of CODs to find.
+    pszInfo As LongPtr                          '  IN  If not NULL, sets the "information" text
+    hwndParent As LongPtr                       '  IN  parent window - NULL == no parent
+    fForceAuthentication As BOOL                '  IN  If TRUE, authenication will be forced before returning
+    fShowAuthenticated As BOOL                  '  IN  If TRUE, authenticated devices will be shown in the picker
+    fShowRemembered As BOOL                     '  IN  If TRUE, remembered devices will be shown in the picker
+    fShowUnknown As BOOL                        '  IN  If TRUE, unknown devices that are not authenticated or "remember" will be shown.
+    fAddNewDeviceWizard As BOOL                 '  IN  If TRUE, invokes the add new device wizard.
+    fSkipServicesPage As BOOL                   '  IN  If TRUE, skips the "Services" page in the wizard.
+    pfnDeviceCallback As LongPtr                '  IN  If non-NULL, a callback that will be called for each device. If the
+                                                '      the callback returns TRUE, the item will be added. If the callback is
+                                                '      is FALSE, the item will not be shown.
+    pvParam As LongPtr                          '  IN  Parameter to be passed to pfnDeviceCallback as the pvParam.
+    cNumDevices As Long                         '  IN  number calles wants - ZERO == no limit.
+                                                '  OUT the number of devices returned.
+    pDevices As LongPtr  'PBLUETOOTH_DEVICE_INFO '  OUT pointer to an array for BLUETOOTH_DEVICE_INFOs.
+                                                '      call BluetoothSelectDevicesFree() to free
 End Type
 
 Public Declare PtrSafe Function BluetoothSelectDevices Lib "bthprops.cpl" (pbtsdp As BLUETOOTH_SELECT_DEVICE_PARAMS) As BOOL
@@ -1871,7 +2050,7 @@ Public Type SDP_ELEMENT_DATA
         ' } alternative;
 
     ' } data;
-    data(15) As Byte
+    data(1) As LongLong
 End Type
 
 Public Declare PtrSafe Function BluetoothSdpGetElementData Lib "bthprops.cpl" (pSdpStream As Any, ByVal cbSdpStreamLength As Long, pData As SDP_ELEMENT_DATA) As Long
@@ -1954,19 +2133,25 @@ End Enum
 Public Const BTH_LE_GAP_APPEARANCE_CATEGORY_OFFSET = &H6
 Public Const BTH_LE_GAP_APPEARANCE_CATEGORY_MASK = &H3ff
  
-' #define BTH_LE_GAP_APPEARANCE_GET_CATEGORY(a) \
-' ((a >> BTH_LE_GAP_APPEARANCE_CATEGORY_OFFSET) & BTH_LE_GAP_APPEARANCE_CATEGORY_MASK)
+Public Function BTH_LE_GAP_APPEARANCE_GET_CATEGORY(ByVal a As Integer) As Integer
+    Return CInt(((CLng(a) And &HFFFF&) >> BTH_LE_GAP_APPEARANCE_CATEGORY_OFFSET) And BTH_LE_GAP_APPEARANCE_CATEGORY_MASK)
+End Function
 
-' #define BTH_LE_GAP_APPEARANCE_SET_CATEGORY(a, c) \
-' a = ((a & ~BTH_LE_GAP_APPEARANCE_CATEGORY_MASK) | (c << BTH_LE_GAP_APPEARANCE_CATEGORY_OFFSET))
+Public Sub BTH_LE_GAP_APPEARANCE_SET_CATEGORY(ByRef a As Integer, ByVal c As Integer)
+    Dim v As Long = ((CLng(a) And Not BTH_LE_GAP_APPEARANCE_CATEGORY_MASK) Or (CLng(c) << BTH_LE_GAP_APPEARANCE_CATEGORY_OFFSET)) And &HFFFF&
+    If (v And &H8000&) <> 0 Then v = v Or &HFFFF0000&
+    a = CInt(v)
+End Sub
 
-' #define BTH_LE_GAP_APPEARANCE_SUB_CATEGORY_MASK             0x3f
+Public Const BTH_LE_GAP_APPEARANCE_SUB_CATEGORY_MASK = &H3F
 
-' #define BTH_LE_GAP_APPEARANCE_GET_SUB_CATEGORY(a) \
-' ((UCHAR)(a & BTH_LE_GAP_APPEARANCE_SUB_CATEGORY_MASK))
+Public Function BTH_LE_GAP_APPEARANCE_GET_SUB_CATEGORY(ByVal a As Integer) As Byte
+    Return CByte(a And BTH_LE_GAP_APPEARANCE_SUB_CATEGORY_MASK)
+End Function
 
-' #define BTH_LE_GAP_APPEARANCE_SET_SUB_CATEGORY(a, s) \
-' a = ((a & ~BTH_LE_GAP_APPEARANCE_SUB_CATEGORY_MASK) | s)
+Public Sub BTH_LE_GAP_APPEARANCE_SET_SUB_CATEGORY(ByRef a As Integer, ByVal s As Byte)
+    a = CInt((a And Not BTH_LE_GAP_APPEARANCE_SUB_CATEGORY_MASK) Or s)
+End Sub
 
 Public Enum BthLeGapAppearanceCat
     BTH_LE_GAP_APPEARANCE_CATEGORY_UNCATEGORIZED = &H0000
@@ -2129,7 +2314,7 @@ Public Function IS_BLUETOOTH_GATT_FLAG_VALID(ByVal f As BthLeGattFlags) As Boole
 End Function
     
 Public Type BTH_LE_UUID
-    IsShortUuid As Byte
+    IsShortUuid As CBoolean
     ' union {
 
 ' #ifdef MIDL_PASS
@@ -2165,14 +2350,14 @@ Public Type BTH_LE_GATT_CHARACTERISTIC
     CharacteristicUuid As BTH_LE_UUID
     AttributeHandle As Integer
     CharacteristicValueHandle As Integer
-    IsBroadcastable As Byte 'BOOLEAN
-    IsReadable As Byte 'BOOLEAN
-    IsWritable As Byte 'BOOLEAN
-    IsWritableWithoutResponse As Byte 'BOOLEAN
-    IsSignedWritable As Byte 'BOOLEAN
-    IsNotifiable As Byte 'BOOLEAN
-    IsIndicatable As Byte 'BOOLEAN
-    HasExtendedProperties As Byte 'BOOLEAN
+    IsBroadcastable As CBoolean
+    IsReadable As CBoolean
+    IsWritable As CBoolean
+    IsWritableWithoutResponse As CBoolean
+    IsSignedWritable As CBoolean
+    IsNotifiable As CBoolean
+    IsIndicatable As CBoolean
+    HasExtendedProperties As CBoolean
 End Type
 
 [Description("⚠️ **WARNING:** Data is an unsupported variable C-style array. The size used here is a guess at the maximum ever needed. Use BTH_LE_GATT_CHARACTERISTIC_VALUE_sa for an alternative.")]
@@ -2194,6 +2379,7 @@ Public Type BTH_LE_GATT_DESCRIPTOR
     DescriptorUuid As BTH_LE_UUID
     AttributeHandle As Integer
 End Type
+[Description("⚠️ **WARNING:** Data is an unsupported variable C-style array. The size used here is a guess at the maximum ever needed. Use BTH_LE_GATT_CHARACTERISTIC_VALUE_sa for an alternative.")]
 Public Type BTH_LE_GATT_DESCRIPTOR_VALUE
     DescriptorType As BTH_LE_GATT_DESCRIPTOR_TYPE
     DescriptorUuid As BTH_LE_UUID
@@ -2307,7 +2493,7 @@ Public Function IsBthLEUuidMatch(uuid1 As BTH_LE_UUID, uuid2 As BTH_LE_UUID) As 
     ElseIf uuid1.IsShortUuid Then
         Dim tmp As Integer
         CopyMemory tmp, uuid1.Value, 2
-        tempLongUuid.Value.Data1 += tmp
+        tempLongUuid.Value.Data1 += CIntToUInt(tmp)
         If CompareMemory(tempLongUuid.Value, uuid2.Value, LenB(Of UUID)) = LenB(Of UUID) Then
             Return True
         Else
@@ -2316,7 +2502,7 @@ Public Function IsBthLEUuidMatch(uuid1 As BTH_LE_UUID, uuid2 As BTH_LE_UUID) As 
     ElseIf uuid2.IsShortUuid Then
         Dim tmp2 As Integer
         CopyMemory tmp2, uuid2.Value, 2
-        tempLongUuid.Value.Data1 += tmp2
+        tempLongUuid.Value.Data1 += CIntToUInt(tmp2)
         If CompareMemory(uuid1.Value, tempLongUuid.Value, LenB(Of UUID)) = LenB(Of UUID) Then
             Return True
         Else
@@ -2608,7 +2794,7 @@ Public Type BTH_INFO_RSP
     '    USHORT  connectionlessMTU;
     '    UCHAR   data[MAX_L2CAP_INFO_DATA_LENGTH];
     '};
-    u(45) As Byte
+    u(0 To (MAX_L2CAP_INFO_DATA_LENGTH - 1)) As Byte
 End Type
 
 
