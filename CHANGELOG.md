@@ -1,5 +1,32 @@
 
-**Update (v9.5.770, 21 Nov 2026):**
+**Update (v9.5.772, 27 Nov 2026):**
+- Add missing content from some fully completed features 
+- (API Standards, breaking change) DML_BINDING_TABLE_DESC and IBackgroundCopyFile5::SetProperty should not have used primitives in place of structs containing only those primitives
+- (API Standards, breaking change) Member name changed to match SDK: BITS_FILE_PROPERTY_VALUE.String, WINBIO_IDENTITY.Type
+- (API Standards, breaking change) Enums improperly using tag names: WBEM_LOCKING_FLAG_TYPE (was WBEM_LOCKING), SWbemAnalysisMatrixList/SWbemAssocQueryInf (had leading underscores)
+- (API Standards, breaking change) Should use ByVal As Interface instead of ByVal As LongPtr: INetSharingManager::INetSharingConfigurationForINetConnection/NetConnectionProps
+- (Bug fix) Return type incorrect: IOpcCertificateEnumerator::GetCurrent
+- (Bug fix) Argument should by ByRef: IOpcSignatureReference/IOpcSignatureRelationshipReference/IOpcSignaturePartReference ::GetDigestValue, IOpcSignatureCustomObject::GetXml, IOpcDigitalSignature::GetNamespaces,GetSignatureValue,GetSignatureXml
+- (Bug fix) Member should be a pointer, not inlined: DML_ACTIVATION_HARD_SWISH_OPERATOR_DESC, BLUETOOTH_SELECT_DEVICE_PARAMS.prgClassOfDevices
+- (Bug fix) Name typo: DML_RNN_OPERATOR_DESC/DML_LSTM_OPERATOR_DESC/DML_GRU_OPERATOR_DESC .Re(c)urrenceTensor
+- (Bug fix) Union substitute padding incorrect: SdpQueryUuid[Union], EapCredential[TypeData], WINML_VARIABLE_DESC, TRIGGER_TYPE_UNION
+- (Bug fix) Union substitute array size incorrect: EAP_METHOD_PROPERTY_VALUE
+- (Bug fix) Union substite requires different datatype for alignment: SDP_ELEMENT_DATA, DSTORAGE_DESTINATION, DSTORAGE_ERROR_FIRST_FAILURE (also x86 size incorrect)
+- (Bug fix) Double indirection should be ByRef LongPtr: IBackgroundCopyJob1::AddFiles, IBackgroundCopyFile6::GetFilledFileRanges, ICredentialProvider::GetFieldDescriptorAt
+- (Bug fix) Incorrect method definitions: ITaskNamedValueCollection
+- (Bug fix) Argument type incorrect: IDStorageQueue2::GetCompressionSupport, DStorageCreateCompressionCodec, ITriggerCollection.Item, IActionCollection.Item, IWbemPathKeyList::MakeSingleton
+- (Bug fix) Missing method: IRunnableTask, IRtwqAsyncResult
+- (Bug fix) DAILY and WEEEKLY types had padding that should have been in the union substitute they're used in
+- (Bug fix) CoClass Task/[s]CLSID_Task should be CTask/[s]CLSID_CTask
+- (Bug fix) Macro implementations IS_OPC_CONFORMANCE_ERROR and IS_ZIP_CONFORMANCE_ERROR use & instead of And, fail in LITE mode; also should return Boolean for clarity
+- (Bug fix) WbemBackupRestore coclass should use IWbemBackupRestoreEx as its default interface; DirectManipulation[Shared]Manager should have IDirectManipulationManager
+- (Bug fix) Value incorrect: EAP_GROUP_MASK, BLUETOOTH_AUTHENTICATION_METHOD_*, NAP_MASK, DSTORAGE_STAGING_BUFFER_SIZE_32MB
+- (Bug fix) Coding error: IsBthLEUuidMatch improper sign extension
+- (Bug fix) RTWQASYNCRESULT should have a pVtable member to stand in for its currently inexpressible inheritance from IRtwqAsyncResult.
+- (Bug fix) Use of String for LPWSTR without DeclareWide: FilterAttach[AtAltitude], FilterDetach
+- (Bug fix) Definition incorrect for x64: ICredentialProviderCredentialEvents::SetFieldBitmap
+
+**Update (v9.5.770, 23 Nov 2026):**
 - Add missing content from some fully completed features 
 - IsWindows8Point1OrGreater and tests for a newer version now take a custom optional NoVersionLie argument to match IsWindowsVersionOrGreater
 - (BREAKING CHANGE) IMAGE_FILE_MACHINE_* constants are almost always stored in an Integer field, so the enum values in ImageMachineType are no longer coerced to a postive Long. Therefore CIntToUInt is no longer required for comparison-- and will be incorrect in existing code that does use it.
